@@ -118,6 +118,7 @@ export default function transformProps(chartProps: ChartProps) {
     global_opacity: globalOpacity,
     map_color: maplibreColor,
     map_label: maplibreLabel,
+    map_provider: mapProvider,
     map_style: maplibreStyle,
     pandas_aggfunc: pandasAggfunc,
     point_radius: pointRadius,
@@ -194,6 +195,7 @@ export default function transformProps(chartProps: ChartProps) {
     clusterer,
     globalOpacity,
     hasCustomMetric,
+    mapProvider,
     mapStyle: maplibreStyle,
     onViewportChange({
       latitude,

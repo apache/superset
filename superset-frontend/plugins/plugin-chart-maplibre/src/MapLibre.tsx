@@ -17,9 +17,11 @@
  * under the License.
  */
 import { memo, useCallback, useMemo, useState } from 'react';
-import { Map, type ViewStateChangeEvent } from 'react-map-gl/maplibre';
+import { Map as MapLibreMap } from 'react-map-gl/maplibre';
+import { Map as MapboxMap } from 'react-map-gl/mapbox';
 import { WebMercatorViewport } from '@math.gl/web-mercator';
 import ScatterPlotOverlay from './components/ScatterPlotOverlay';
+import { getMapboxApiKey } from './utils/mapbox';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './MapLibre.css';
 
@@ -52,6 +54,7 @@ interface MapLibreProps {
   clusterer: Clusterer; // Required - used for getClusters()
   globalOpacity?: number;
   hasCustomMetric?: boolean;
+  mapProvider?: string;
   mapStyle?: string;
   onViewportChange?: (viewport: Viewport) => void;
   pointRadius?: number;
@@ -68,6 +71,7 @@ function MapLibre({
   clusterer,
   globalOpacity = 1,
   hasCustomMetric,
+  mapProvider,
   mapStyle,
   onViewportChange,
   pointRadius = DEFAULT_POINT_RADIUS,
@@ -96,7 +100,7 @@ function MapLibre({
   const [viewport, setViewport] = useState<Viewport>(initialViewport);
 
   const handleMove = useCallback(
-    (evt: ViewStateChangeEvent) => {
+    (evt: { viewState: { longitude: number; latitude: number; zoom: number } }) => {
       const { longitude, latitude, zoom } = evt.viewState;
       const newViewport = { longitude, latitude, zoom };
       setViewport(newViewport);
@@ -122,10 +126,16 @@ function MapLibre({
   const clusters = clusterer.getClusters(bbox, Math.round(viewport.zoom));
 
   const resolvedMapStyle = mapStyle || DEFAULT_MAP_STYLE;
+  const MapComponent = mapProvider === 'mapbox' ? MapboxMap : MapLibreMap;
+  const mapboxProps =
+    mapProvider === 'mapbox'
+      ? { mapboxAccessToken: getMapboxApiKey() }
+      : {};
 
   return (
-    <Map
+    <MapComponent
       {...viewport}
+      {...mapboxProps}
       style={{ width, height }}
       mapStyle={resolvedMapStyle}
       onMove={handleMove}
@@ -145,7 +155,7 @@ function MapLibre({
           return [coordinates[0], coordinates[1]];
         }}
       />
-    </Map>
+    </MapComponent>
   );
 }
 

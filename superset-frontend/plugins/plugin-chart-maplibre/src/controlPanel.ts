@@ -194,6 +194,25 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [
           {
+            name: 'map_provider',
+            config: {
+              type: 'SelectControl',
+              label: t('Map Provider'),
+              clearable: false,
+              renderTrigger: true,
+              choices: [
+                ['maplibre', t('MapLibre (open-source)')],
+                ['mapbox', t('Mapbox (API key required)')],
+              ],
+              default: 'maplibre',
+              description: t(
+                'MapLibre is open-source and requires no API key. Mapbox requires MAPBOX_API_KEY to be configured on the server.',
+              ),
+            },
+          },
+        ],
+        [
+          {
             name: 'map_style',
             config: {
               type: 'SelectControl',
