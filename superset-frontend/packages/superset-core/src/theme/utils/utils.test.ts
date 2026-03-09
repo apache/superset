@@ -336,3 +336,25 @@ test('getSystemColors extracts system colors from tokens', () => {
     colorInfo: '#info',
   });
 });
+
+test('deserializeThemeConfig unwraps a single-element valid algorithm array', () => {
+  const config: SerializableThemeConfig = {
+    token: { colorPrimary: '#ff0000' },
+    algorithm: [ThemeAlgorithm.DARK],
+  };
+
+  const result = deserializeThemeConfig(config);
+
+  expect(result.algorithm).toBe(antdThemeImport.darkAlgorithm);
+});
+
+test('deserializeThemeConfig falls back to defaultAlgorithm when all algorithms in array are invalid', () => {
+  const config = {
+    token: { colorPrimary: '#ff0000' },
+    algorithm: ['unknown_algo'],
+  };
+
+  const result = deserializeThemeConfig(config as any);
+
+  expect(result.algorithm).toBe(antdThemeImport.defaultAlgorithm);
+});
