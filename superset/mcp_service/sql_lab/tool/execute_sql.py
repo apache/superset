@@ -203,7 +203,7 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
             last_data_stmt = stmt
             break
 
-    if last_data_stmt is not None:
+    if last_data_stmt is not None and last_data_stmt.data is not None:
         rows = last_data_stmt.data.rows
         columns = last_data_stmt.data.columns
         row_count = len(last_data_stmt.data.rows)
