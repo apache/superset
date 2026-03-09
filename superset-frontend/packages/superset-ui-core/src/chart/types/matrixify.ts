@@ -51,7 +51,7 @@ export type MatrixifyMode = 'disabled' | 'metrics' | 'dimensions';
 /**
  * Selection method for dimension values
  */
-export type MatrixifySelectionMode = 'members' | 'topn';
+export type MatrixifySelectionMode = 'members' | 'topn' | 'all';
 
 /**
  * Sort order for top N selection
@@ -199,6 +199,7 @@ export function isMatrixifyEnabled(formData: MatrixifyFormData): boolean {
       ? config.rows.metrics && config.rows.metrics.length > 0
       : config.rows.dimension?.dimension &&
         (config.rows.selectionMode === 'topn' ||
+          config.rows.selectionMode === 'all' ||
           (config.rows.dimension.values &&
             config.rows.dimension.values.length > 0)));
 
@@ -208,6 +209,7 @@ export function isMatrixifyEnabled(formData: MatrixifyFormData): boolean {
       ? config.columns.metrics && config.columns.metrics.length > 0
       : config.columns.dimension?.dimension &&
         (config.columns.selectionMode === 'topn' ||
+          config.columns.selectionMode === 'all' ||
           (config.columns.dimension.values &&
             config.columns.dimension.values.length > 0)));
 
@@ -243,6 +245,7 @@ export function getMatrixifyValidationErrors(
         ? config.rows.metrics && config.rows.metrics.length > 0
         : config.rows.dimension?.dimension &&
           (config.rows.selectionMode === 'topn' ||
+            config.rows.selectionMode === 'all' ||
             (config.rows.dimension.values &&
               config.rows.dimension.values.length > 0));
 
@@ -263,6 +266,7 @@ export function getMatrixifyValidationErrors(
         ? config.columns.metrics && config.columns.metrics.length > 0
         : config.columns.dimension?.dimension &&
           (config.columns.selectionMode === 'topn' ||
+            config.columns.selectionMode === 'all' ||
             (config.columns.dimension.values &&
               config.columns.dimension.values.length > 0));
 
@@ -281,6 +285,7 @@ export function getMatrixifyValidationErrors(
       ? config.rows.metrics && config.rows.metrics.length > 0
       : config.rows.dimension?.dimension &&
         (config.rows.selectionMode === 'topn' ||
+          config.rows.selectionMode === 'all' ||
           (config.rows.dimension.values &&
             config.rows.dimension.values.length > 0));
 
@@ -289,6 +294,7 @@ export function getMatrixifyValidationErrors(
       ? config.columns.metrics && config.columns.metrics.length > 0
       : config.columns.dimension?.dimension &&
         (config.columns.selectionMode === 'topn' ||
+          config.columns.selectionMode === 'all' ||
           (config.columns.dimension.values &&
             config.columns.dimension.values.length > 0));
 

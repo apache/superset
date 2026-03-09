@@ -61,6 +61,7 @@ import ColorBreakpointsControl from './ColorBreakpointsControl';
 import MatrixifyDimensionControl from './MatrixifyDimensionControl';
 import JSEditorControl from './JSEditorControl';
 import SwitchControl from './SwitchControl';
+import VerticalRadioControl from './VerticalRadioControl';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DateFilterControlExtension = extensionsRegistry.get(
@@ -111,6 +112,7 @@ const controlMap = {
   TimeRangeControl,
   MatrixifyDimensionControl,
   SwitchControl,
+  VerticalRadioControl,
   ...sharedControlComponents,
 };
 export default controlMap;

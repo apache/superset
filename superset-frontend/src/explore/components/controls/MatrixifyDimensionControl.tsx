@@ -42,7 +42,7 @@ interface MatrixifyDimensionControlProps {
   description?: string;
   hovered?: boolean;
   renderTrigger?: boolean;
-  selectionMode?: 'members' | 'topn';
+  selectionMode?: 'members' | 'topn' | 'all';
   topNMetric?: string;
   topNValue?: number;
   topNOrder?: 'ASC' | 'DESC';
@@ -115,7 +115,7 @@ export default function MatrixifyDimensionControl(
       !value?.dimension ||
       !datasource ||
       !datasource.id ||
-      selectionMode !== 'members'
+      (selectionMode !== 'members' && selectionMode !== 'all')
     ) {
       setValueOptions([]);
       return undefined;
@@ -149,6 +149,14 @@ export default function MatrixifyDimensionControl(
             value: v,
           })),
         );
+
+        // Auto-select all values in 'all' mode
+        if (selectionMode === 'all' && !signal.aborted) {
+          onChange({
+            dimension: value.dimension,
+            values,
+          });
+        }
       } catch (error) {
         setValueOptions([]);
       } finally {

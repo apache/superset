@@ -184,14 +184,15 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
     visibility: () => false,
   };
 
-  // Add selection mode control (Dimension Members vs TopN)
+  // Add selection mode control (Dimension Members / Top N / All)
   matrixifyControls[`matrixify_dimension_selection_mode_${axis}`] = {
-    type: 'RadioButtonControl',
+    type: 'VerticalRadioControl',
     label: t(`Selection method`),
     default: 'members',
     options: [
       ['members', t('Dimension members')],
       ['topn', t('Top n')],
+      ['all', t('All dimensions')],
     ],
     renderTrigger: true,
     tabOverride: 'matrixify',
