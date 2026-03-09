@@ -563,6 +563,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # in addition to relative timeshifts (e.g., "1 day ago")
     # @lifecycle: development
     "DATE_RANGE_TIMESHIFTS_ENABLED": False,
+    # Enable API key authentication via FAB SecurityManager
+    # When enabled, users can create/manage API keys in the User Info page
+    # @lifecycle: development
+    "FAB_API_KEY_ENABLED": False,
     # Enable granular export controls (can_export_data, can_export_image,
     # can_copy_clipboard) instead of the single can_csv permission
     # @lifecycle: development
@@ -1638,10 +1642,8 @@ FAB_ADD_SECURITY_PERMISSION_VIEW = False
 FAB_ADD_SECURITY_VIEW_MENU_VIEW = False
 FAB_ADD_SECURITY_PERMISSION_VIEWS_VIEW = False
 
-# API Key Authentication via FAB SecurityManager
-# When enabled, users can create API keys for programmatic access
-# Keys are validated by FAB's @protect() decorator automatically
-FAB_API_KEY_ENABLED = True
+# API Key Authentication prefix configuration
+# Used by FAB SecurityManager for key validation
 FAB_API_KEY_PREFIXES = ["sst_"]
 
 # The link to a page containing common errors and their resolutions
