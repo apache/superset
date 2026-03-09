@@ -685,10 +685,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         """Get all catalogs from a database.
         ... (omitted docstring for brevity) ...
         """
-        try:
-            database = DatabaseDAO.get_with_check(pk)
-        except (DatabaseNotFoundError, SupersetSecurityException):
-            return self.response_404()
+        database = DatabaseDAO.get_with_check(pk)
 
         try:
             catalogs = database.get_all_catalog_names(
@@ -723,10 +720,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         """Get all schemas from a database.
         ... (omitted docstring for brevity) ...
         """
-        try:
-            database = DatabaseDAO.get_with_check(pk)
-        except (DatabaseNotFoundError, SupersetSecurityException):
-            return self.response_404()
+        database = DatabaseDAO.get_with_check(pk)
 
         try:
             params = kwargs["rison"]
@@ -781,10 +775,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         """Get a list of tables for given database.
         ... (omitted docstring for brevity) ...
         """
-        try:
-            DatabaseDAO.get_with_check(pk)
-        except (DatabaseNotFoundError, SupersetSecurityException):
-            return self.response_404()
+        DatabaseDAO.get_with_check(pk)
 
         force = kwargs["rison"].get("force", False)
         catalog_name = kwargs["rison"].get("catalog_name")
@@ -1210,10 +1201,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         """Get charts and dashboards count associated to a database.
         ... (omitted docstring for brevity) ...
         """
-        try:
-            DatabaseDAO.get_with_check(pk)
-        except (DatabaseNotFoundError, SupersetSecurityException):
-            return self.response_404()
+        DatabaseDAO.get_with_check(pk)
 
         data = DatabaseDAO.get_related_objects(pk)
         charts = [
@@ -1296,10 +1284,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        try:
-            DatabaseDAO.get_with_check(pk)
-        except (DatabaseNotFoundError, SupersetSecurityException):
-            return self.response_404()
+        DatabaseDAO.get_with_check(pk)
 
         try:
             sql_request = ValidateSQLRequest().load(request.json)
