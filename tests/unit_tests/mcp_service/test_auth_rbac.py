@@ -119,8 +119,9 @@ def test_check_tool_permission_granted(app_context) -> None:
     g.user = MagicMock(username="admin")
     func = _make_tool_func(class_perm="Chart", method_perm="read")
 
-    with patch("superset.security_manager") as mock_sm:
-        mock_sm.can_access.return_value = True
+    mock_sm = MagicMock()
+    mock_sm.can_access = MagicMock(return_value=True)
+    with patch("superset.security_manager", mock_sm):
         result = check_tool_permission(func)
 
     assert result is True
@@ -132,8 +133,9 @@ def test_check_tool_permission_denied(app_context) -> None:
     g.user = MagicMock(username="viewer")
     func = _make_tool_func(class_perm="Dashboard", method_perm="write")
 
-    with patch("superset.security_manager") as mock_sm:
-        mock_sm.can_access.return_value = False
+    mock_sm = MagicMock()
+    mock_sm.can_access = MagicMock(return_value=False)
+    with patch("superset.security_manager", mock_sm):
         result = check_tool_permission(func)
 
     assert result is False
@@ -146,8 +148,9 @@ def test_check_tool_permission_default_method_is_read(app_context) -> None:
     func = _make_tool_func(class_perm="Dataset")
     # No method_perm set - should default to "read"
 
-    with patch("superset.security_manager") as mock_sm:
-        mock_sm.can_access.return_value = True
+    mock_sm = MagicMock()
+    mock_sm.can_access = MagicMock(return_value=True)
+    with patch("superset.security_manager", mock_sm):
         result = check_tool_permission(func)
 
     assert result is True
