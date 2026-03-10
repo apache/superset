@@ -46,7 +46,7 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   xAxisTitle: '',
   xAxisTitleMargin: 0,
   yAxisTitle: '',
-  yAxisTitleMargin: 0,
+  yAxisTitleMargin: 15,
   yAxisTitlePosition: 'Top',
   // Now that the weird bug workaround is over, here's the rest...
   ...DEFAULT_SORT_SERIES_DATA,

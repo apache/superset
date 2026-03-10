@@ -120,7 +120,7 @@ export const DEFAULT_TITLE_FORM_DATA: TitleFormData = {
   xAxisTitle: '',
   xAxisTitleMargin: 0,
   yAxisTitle: '',
-  yAxisTitleMargin: 0,
+  yAxisTitleMargin: 15,
   yAxisTitlePosition: 'Top',
 };
 
