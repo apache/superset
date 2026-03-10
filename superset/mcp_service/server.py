@@ -35,9 +35,9 @@ from superset.mcp_service.mcp_config import (
     MCP_TOOL_SEARCH_CONFIG,
 )
 from superset.mcp_service.middleware import (
+    create_response_size_guard_middleware,
     GlobalErrorHandlerMiddleware,
     LoggingMiddleware,
-    create_response_size_guard_middleware,
 )
 from superset.mcp_service.storage import _create_redis_store
 
