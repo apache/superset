@@ -16,12 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
+import { renderHook } from '@testing-library/react-hooks';
+import { ThemeProvider } from '@emotion/react';
 import { theme as antdTheme } from 'antd';
 import {
   getFontSize,
   getColorVariants,
   isThemeDark,
   isThemeConfigDark,
+  useThemeMode,
 } from './themeUtils';
 import { Theme } from '../Theme';
 import { ThemeAlgorithm } from '../types';
@@ -233,4 +237,30 @@ test('isThemeConfigDark returns false for config with empty token object', () =>
     token: {},
   };
   expect(isThemeConfigDark(config)).toBe(false);
+});
+
+test('useThemeMode returns false for a light theme', () => {
+  const { result } = renderHook(() => useThemeMode(), {
+    wrapper: ({ children }) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      React.createElement(
+        ThemeProvider,
+        { theme: lightTheme.theme } as any,
+        children,
+      ),
+  });
+  expect(result.current).toBe(false);
+});
+
+test('useThemeMode returns true for a dark theme', () => {
+  const { result } = renderHook(() => useThemeMode(), {
+    wrapper: ({ children }) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      React.createElement(
+        ThemeProvider,
+        { theme: darkTheme.theme } as any,
+        children,
+      ),
+  });
+  expect(result.current).toBe(true);
 });

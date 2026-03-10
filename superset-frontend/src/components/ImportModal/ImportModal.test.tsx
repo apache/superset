@@ -140,3 +140,47 @@ test('should render ssh_tunnel private_key_password fields when needed for impor
   });
   expect(getByTestId('ssh_tunnel_private_key_password')).toBeInTheDocument();
 });
+
+test('should render encrypted extra secret fields when needed for import', () => {
+  const { getByTestId } = setup({
+    encryptedExtraFields: [
+      {
+        fileName: 'databases/examples.yaml',
+        fields: [
+          {
+            path: '$.credentials_info.private_key',
+            label: 'Service Account Private Key',
+          },
+        ],
+      },
+    ],
+  });
+  expect(getByTestId('encrypted_extra_secret')).toBeInTheDocument();
+});
+
+test('should render multiple encrypted extra secret fields for multiple files', () => {
+  const { getAllByTestId } = setup({
+    encryptedExtraFields: [
+      {
+        fileName: 'databases/bigquery.yaml',
+        fields: [
+          {
+            path: '$.credentials_info.private_key',
+            label: 'Service Account Private Key',
+          },
+        ],
+      },
+      {
+        fileName: 'databases/snowflake.yaml',
+        fields: [
+          { path: '$.auth_params.privatekey_body', label: 'Private Key Body' },
+          {
+            path: '$.auth_params.privatekey_pass',
+            label: 'Private Key Password',
+          },
+        ],
+      },
+    ],
+  });
+  expect(getAllByTestId('encrypted_extra_secret')).toHaveLength(3);
+});
