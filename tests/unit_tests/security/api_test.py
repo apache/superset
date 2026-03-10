@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any
+
 import pytest
 
 from superset.extensions import csrf
@@ -52,7 +54,7 @@ def test_csrf_exempt_blueprints(app_context: None) -> None:
     ],
     indirect=True,
 )
-def test_csrf_exempt_blueprints_with_api_key(app_context: None) -> None:
+def test_csrf_exempt_blueprints_with_api_key(app: Any, app_context: None) -> None:
     """
     Test that ApiKeyApi blueprint is CSRF-exempt when FAB_API_KEY_ENABLED
     config is enabled.

@@ -51,9 +51,7 @@ def upgrade() -> None:
         sa.Column("key_prefix", sa.String(length=16), nullable=False),
         sa.Column("user_id", sa.Integer(), nullable=False),
         sa.Column("scopes", sa.Text(), nullable=True),
-        sa.Column(
-            "active", sa.Boolean(), nullable=False, server_default=sa.text("true")
-        ),
+        sa.Column("active", sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.Column("created_on", sa.DateTime(), nullable=True),
         sa.Column("expires_on", sa.DateTime(), nullable=True),
         sa.Column("revoked_on", sa.DateTime(), nullable=True),
