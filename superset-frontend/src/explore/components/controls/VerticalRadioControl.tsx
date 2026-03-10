@@ -19,13 +19,15 @@
 import { type ReactNode } from 'react';
 import { css } from '@apache-superset/core/theme';
 import { JsonValue } from '@superset-ui/core';
-import { Radio, Space } from '@superset-ui/core/components';
+import { Radio, Space, Tooltip } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import ControlHeader from '../ControlHeader';
 
 interface RadioOption {
   value: JsonValue;
   label: ReactNode;
   disabled?: boolean;
+  tooltip?: string;
 }
 
 type RadioOptionTuple = [JsonValue, ReactNode];
@@ -74,13 +76,27 @@ export default function VerticalRadioControl({
       >
         <Space direction="vertical">
           {normalizedOptions.map(
-            ({ value: val, label, disabled = false }) => (
+            ({ value: val, label, disabled = false, tooltip }) => (
               <Radio
                 key={JSON.stringify(val)}
                 value={val}
                 disabled={disabled}
               >
                 {label}
+                {tooltip && (
+                  <Tooltip title={tooltip} placement="right">
+                    <Icons.InfoCircleOutlined
+                      css={css`
+                        margin-left: 4px;
+                        font-size: 12px;
+                        color: ${disabled
+                          ? 'rgba(0, 0, 0, 0.25)'
+                          : 'rgba(0, 0, 0, 0.45)'};
+                        cursor: help;
+                      `}
+                    />
+                  </Tooltip>
+                )}
               </Radio>
             ),
           )}

@@ -23,6 +23,7 @@ import { AdhocMetric } from '../../query';
  * Constants for Matrixify filter generation
  * These match the literal types used in Filter.ts
  */
+
 export const MatrixifyFilterConstants = {
   // Filter expression types
   ExpressionType: {

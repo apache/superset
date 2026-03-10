@@ -32,6 +32,7 @@ export interface MatrixifyDimensionControlValue {
   dimension: string;
   values: any[];
   topNValues?: TopNValue[]; // Store topN values with their metric values
+  totalValueCount?: number; // Total number of distinct values for this dimension
 }
 
 interface MatrixifyDimensionControlProps {
@@ -150,12 +151,22 @@ export default function MatrixifyDimensionControl(
           })),
         );
 
-        // Auto-select all values in 'all' mode
-        if (selectionMode === 'all' && !signal.aborted) {
-          onChange({
+        if (!signal.aborted) {
+          // Always store totalValueCount so the selection mode control can check it
+          const MAX_ALL_DIMENSION_VALUES = 25;
+          const allValues =
+            selectionMode === 'all'
+              ? values.slice(0, MAX_ALL_DIMENSION_VALUES)
+              : (value.values || []);
+          const updatedValue: MatrixifyDimensionControlValue = {
             dimension: value.dimension,
-            values,
-          });
+            values: allValues,
+            totalValueCount: values.length,
+          };
+          if (value.topNValues) {
+            updatedValue.topNValues = value.topNValues;
+          }
+          onChange(updatedValue);
         }
       } catch (error) {
         setValueOptions([]);

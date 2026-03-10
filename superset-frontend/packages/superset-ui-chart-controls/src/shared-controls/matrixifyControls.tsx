@@ -189,15 +189,19 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
     type: 'VerticalRadioControl',
     label: t(`Selection method`),
     default: 'members',
-    options: [
-      ['members', t('Dimension members')],
-      ['topn', t('Top n')],
-      ['all', t('All dimensions')],
-    ],
     renderTrigger: true,
     tabOverride: 'matrixify',
     visibility: ({ controls }) =>
       isMatrixifyVisible(controls, axis, 'dimensions'),
+    options: [
+      { value: 'members', label: t('Dimension members') },
+      { value: 'topn', label: t('Top n') },
+      {
+        value: 'all',
+        label: t('All dimensions'),
+        tooltip: t('Uses the first 25 values if the dimension has more.'),
+      },
+    ],
   };
 
   // TopN controls
