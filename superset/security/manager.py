@@ -431,6 +431,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("can_read", "Theme"),
         # Embedded dashboard support
         ("can_read", "EmbeddedDashboard"),
+        ("can_read", "CurrentUserRestApi"),
         # Datasource metadata for chart rendering
         ("can_get", "Datasource"),
         ("can_external_metadata", "Datasource"),
