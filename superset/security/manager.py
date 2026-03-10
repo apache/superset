@@ -537,8 +537,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         )
                     except Exception:  # pylint: disable=broad-except
                         logger.warning(
-                            "Failed to save upstream OAuth token for provider %s",
-                            provider,
+                            "Failed to save upstream OAuth token"
                         )
                     finally:
                         session.pop("oauth_full_token", None)

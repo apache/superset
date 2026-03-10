@@ -509,6 +509,9 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             if user and user.email:
                 effective_username = user.email.split("@")[0]
 
+        masked_url = self.get_password_masked_url(sqlalchemy_url)
+        logger.debug("Database._get_sqla_engine(). Masked URL: %s", str(masked_url))
+
         # Check if this database has an upstream login provider configured.
         # If so, use the saved login token instead of a separate database OAuth2 dance.
         upstream_providers = app.config.get("DATABASE_OAUTH2_UPSTREAM_PROVIDERS", {})
@@ -529,8 +532,6 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                 if oauth2_config and hasattr(g, "user") and hasattr(g.user, "id")
                 else None
             )
-        masked_url = self.get_password_masked_url(sqlalchemy_url)
-        logger.debug("Database._get_sqla_engine(). Masked URL: %s", str(masked_url))
 
         if self.impersonate_user:
             sqlalchemy_url, engine_kwargs = self.db_engine_spec.impersonate_user(
