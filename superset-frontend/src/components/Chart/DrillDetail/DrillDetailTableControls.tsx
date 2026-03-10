@@ -109,7 +109,7 @@ export default function TableControls({
             >
               {colName}
             </span>
-            <strong data-test="filter-val">{val}</strong>
+            <strong data-test="filter-val">{String(val)}</strong>
           </Tag>
         ))}
       </div>

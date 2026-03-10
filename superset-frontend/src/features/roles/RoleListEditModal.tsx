@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import Tabs from '@superset-ui/core/components/Tabs';
 import { RoleObject } from 'src/pages/RolesList';
@@ -330,7 +330,7 @@ function RoleListEditModal({
       initialValues={initialValues}
       requiredFields={['roleName']}
     >
-      {(form: FormInstance) => {
+      {((form: FormInstance) => {
         formRef.current = form;
 
         return (
@@ -368,7 +368,7 @@ function RoleListEditModal({
             </Tabs.TabPane>
           </Tabs>
         );
-      }}
+      }) as unknown as ReactNode}
     </FormModal>
   );
 }

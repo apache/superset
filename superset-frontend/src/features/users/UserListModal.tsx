@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ReactNode } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -133,7 +134,7 @@ function UserListModal({
       requiredFields={requiredFields}
       initialValues={initialValues}
     >
-      {(form: FormInstance) => (
+      {((form: FormInstance) => (
         <>
           <FormItem
             name="first_name"
@@ -268,7 +269,7 @@ function UserListModal({
             </>
           )}
         </>
-      )}
+      )) as unknown as ReactNode}
     </FormModal>
   );
 }

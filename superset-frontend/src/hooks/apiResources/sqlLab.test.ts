@@ -17,7 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import {
   createWrapper,
   defaultStore as store,
@@ -61,7 +61,7 @@ beforeEach(() => {
 });
 
 test('returns api response mapping json result', async () => {
-  const { result, waitFor } = renderHook(() => useSqlLabInitialState(), {
+  const { result } = renderHook(() => useSqlLabInitialState(), {
     wrapper: createWrapper({
       useRedux: true,
       store,
@@ -89,7 +89,7 @@ test('returns api response mapping json result', async () => {
 });
 
 test('returns cached data without api request', async () => {
-  const { result, waitFor, rerender } = renderHook(
+  const { result, rerender } = renderHook(
     () => useSqlLabInitialState(),
     {
       wrapper: createWrapper({

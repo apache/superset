@@ -121,7 +121,7 @@ export function mapColumns<T extends object>(
             column,
           });
         }
-        return val;
+        return val as ReactNode;
       },
       className: column.className,
     };

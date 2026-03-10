@@ -22,6 +22,7 @@ import {
   useState,
   Dispatch,
   FC,
+  ReactNode,
   useReducer,
 } from 'react';
 
@@ -60,7 +61,7 @@ const reducer = (state: DropzoneSet = {}, action: Action) => {
   return state;
 };
 
-const ExploreContainer: FC<{}> = ({ children }) => {
+const ExploreContainer: FC<{ children?: ReactNode }> = ({ children }) => {
   const dragDropManager = useDragDropManager();
   const [dragging, setDragging] = useState(
     dragDropManager.getMonitor().isDragging(),

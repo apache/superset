@@ -65,7 +65,7 @@ const ContentWrapper = styled.div`
   overflow: auto;
 `;
 
-const AppLayout: React.FC = ({ children }) => {
+const AppLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const queryEditorId = useSelector<SqlLabRootState, string>(
     ({ sqlLab: { tabHistory } }) => tabHistory.slice(-1)[0],
   );

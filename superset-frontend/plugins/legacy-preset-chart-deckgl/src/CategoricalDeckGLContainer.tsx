@@ -139,7 +139,8 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
   const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {
     const { current } = containerRef;
     if (current) {
-      current.setTooltip(tooltip);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (current as any).setTooltip(tooltip);
     }
   }, []);
 
