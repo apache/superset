@@ -18,6 +18,8 @@
  */
 import { AppSection } from '@superset-ui/core';
 import {
+  act,
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -1334,6 +1336,196 @@ test('renders text input with starts-with placeholder', () => {
   expect(
     screen.getByPlaceholderText('Type to search (starts with)...'),
   ).toBeInTheDocument();
+});
+
+test('typing in LIKE input calls setDataMask with ILIKE Contains payload', async () => {
+  jest.useFakeTimers();
+  const setDataMaskMock = jest.fn();
+
+  render(
+    // @ts-expect-error
+    <SelectFilterPlugin
+      // @ts-expect-error
+      {...transformProps({
+        ...selectMultipleProps,
+        formData: {
+          ...selectMultipleProps.formData,
+          operatorType: SelectFilterOperatorType.Contains,
+        },
+        filterState: { value: undefined },
+      })}
+      setDataMask={setDataMaskMock}
+      showOverflow={false}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        nativeFilters: {
+          filters: {
+            'test-filter': { name: 'Test Filter' },
+          },
+        },
+        dataMask: {
+          'test-filter': {
+            extraFormData: {},
+            filterState: { value: undefined },
+          },
+        },
+      },
+    },
+  );
+
+  setDataMaskMock.mockClear();
+  const input = screen.getByPlaceholderText('Type to search (contains)...');
+  fireEvent.change(input, { target: { value: 'Jen' } });
+  act(() => {
+    jest.advanceTimersByTime(500);
+  });
+
+  expect(setDataMaskMock).toHaveBeenCalledWith(
+    expect.objectContaining({
+      extraFormData: {
+        filters: [
+          {
+            col: 'gender',
+            op: 'ILIKE',
+            val: '%Jen%',
+          },
+        ],
+      },
+    }),
+  );
+});
+
+test('typing in LIKE input with inverse selection calls setDataMask with NOT ILIKE payload', async () => {
+  jest.useFakeTimers();
+  const setDataMaskMock = jest.fn();
+
+  render(
+    // @ts-expect-error
+    <SelectFilterPlugin
+      // @ts-expect-error
+      {...transformProps({
+        ...selectMultipleProps,
+        formData: {
+          ...selectMultipleProps.formData,
+          operatorType: SelectFilterOperatorType.Contains,
+          inverseSelection: true,
+        },
+        filterState: { value: undefined },
+      })}
+      setDataMask={setDataMaskMock}
+      showOverflow={false}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        nativeFilters: {
+          filters: {
+            'test-filter': { name: 'Test Filter' },
+          },
+        },
+        dataMask: {
+          'test-filter': {
+            extraFormData: {},
+            filterState: { value: undefined },
+          },
+        },
+      },
+    },
+  );
+
+  setDataMaskMock.mockClear();
+  const input = screen.getByPlaceholderText('Type to search (contains)...');
+  fireEvent.change(input, { target: { value: 'Jen' } });
+  act(() => {
+    jest.advanceTimersByTime(500);
+  });
+
+  expect(setDataMaskMock).toHaveBeenCalledWith(
+    expect.objectContaining({
+      extraFormData: {
+        filters: [
+          {
+            col: 'gender',
+            op: 'NOT ILIKE',
+            val: '%Jen%',
+          },
+        ],
+      },
+    }),
+  );
+});
+
+test('clear-all resets LIKE input value and calls setDataMask with empty state', async () => {
+  jest.useFakeTimers();
+  const setDataMaskMock = jest.fn();
+
+  const likeProps = {
+    // @ts-expect-error
+    ...transformProps({
+      ...selectMultipleProps,
+      formData: {
+        ...selectMultipleProps.formData,
+        operatorType: SelectFilterOperatorType.Contains,
+      },
+      filterState: { value: ['Jen'] },
+    }),
+    setDataMask: setDataMaskMock,
+    showOverflow: false,
+  };
+
+  const reduxState = {
+    useRedux: true,
+    initialState: {
+      nativeFilters: {
+        filters: {
+          'test-filter': { name: 'Test Filter' },
+        },
+      },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {
+            filters: [{ col: 'gender', op: 'ILIKE', val: '%Jen%' }],
+          },
+          filterState: { value: ['Jen'] },
+        },
+      },
+    },
+  };
+
+  const { rerender } = render(
+    // @ts-expect-error
+    <SelectFilterPlugin {...likeProps} />,
+    reduxState,
+  );
+
+  const input = screen.getByPlaceholderText('Type to search (contains)...');
+  expect(input).toHaveValue('Jen');
+
+  setDataMaskMock.mockClear();
+
+  rerender(
+    // @ts-expect-error
+    <SelectFilterPlugin
+      {...likeProps}
+      clearAllTrigger={{ 'test-filter': true }}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(input).toHaveValue('');
+  });
+
+  await waitFor(() => {
+    expect(setDataMaskMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filterState: expect.objectContaining({
+          value: null,
+        }),
+      }),
+    );
+  });
 });
 
 test('renders standard Select dropdown when operatorType is Exact', () => {
