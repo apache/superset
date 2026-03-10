@@ -162,11 +162,16 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
                 logger=logger,
             )
 
+            # Strip computed fields before passing to DAO query
+            dao_columns = request.select_columns
+            if dao_columns:
+                dao_columns = [c for c in dao_columns if c != "popularity_score"]
+
             with event_logger.log_context(action="mcp.list_charts.query"):
                 result = list_core.run_tool(
                     filters=request.filters,
                     search=request.search,
-                    select_columns=request.select_columns,
+                    select_columns=dao_columns,
                     order_column=request.order_column,
                     order_direction=request.order_direction,
                     page=max(request.page - 1, 0),
