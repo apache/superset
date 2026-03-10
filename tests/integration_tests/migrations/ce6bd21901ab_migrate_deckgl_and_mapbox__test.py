@@ -122,6 +122,7 @@ def test_migrate_deckgl_slice_mapbox_style():
 
 
 def test_migrate_deckgl_slice_open_style():
+    """All existing deck_* charts get map_renderer='mapbox' for backwards compat."""
     slc = Slice(
         slice_name="Test Scatter",
         viz_type="deck_scatter",
@@ -135,25 +136,26 @@ def test_migrate_deckgl_slice_open_style():
 
     modified = _migrate_deckgl_slice(slc)
 
-    assert modified is False
+    assert modified is True
     params = json.loads(slc.params)
     assert params["mapbox_style"] == "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
-    assert "map_renderer" not in params
+    assert params["map_renderer"] == "mapbox"
 
 
 def test_migrate_deckgl_slice_no_mapbox_style():
-    """Slices without mapbox_style are not modified."""
-    original_params = json.dumps({"viz_type": "deck_arc", "other_param": "value"})
+    """Slices without mapbox_style still get map_renderer='mapbox'."""
     slc = Slice(
         slice_name="Test Arc No Style",
         viz_type="deck_arc",
-        params=original_params,
+        params=json.dumps({"viz_type": "deck_arc", "other_param": "value"}),
     )
 
     modified = _migrate_deckgl_slice(slc)
 
-    assert modified is False
-    assert slc.params == original_params
+    assert modified is True
+    params = json.loads(slc.params)
+    assert params["map_renderer"] == "mapbox"
+    assert params["other_param"] == "value"
 
 
 def test_downgrade_deckgl_slice():
