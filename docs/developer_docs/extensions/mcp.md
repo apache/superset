@@ -61,7 +61,7 @@ Prompts provide interactive guidance and context to AI agents. They help agents 
 The simplest way to create an MCP tool is using the `@tool` decorator:
 
 ```python
-from superset_core.mcp import tool
+from superset_core.mcp.decorators import tool
 
 @tool
 def hello_world() -> dict:
@@ -94,7 +94,7 @@ Here's a more comprehensive example showing best practices:
 import random
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field
-from superset_core.mcp import tool
+from superset_core.mcp.decorators import tool
 
 class RandomNumberRequest(BaseModel):
     """Request schema for random number generation."""
@@ -253,7 +253,7 @@ The AI agent sees your tool's:
 Create interactive prompts using the `@prompt` decorator:
 
 ```python
-from superset_core.mcp import prompt
+from superset_core.mcp.decorators import prompt
 from fastmcp import Context
 
 @prompt("my_extension.workflow_guide")

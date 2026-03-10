@@ -232,6 +232,7 @@ export async function embedDashboard({
       });
       iframe.src = `${supersetDomain}/embedded/${id}${urlParamsString}`;
       iframe.title = iframeTitle;
+      iframe.style.background = 'transparent';
       if (iframeAllowExtras.length > 0) {
         iframe.setAttribute('allow', iframeAllowExtras.join('; '));
       }

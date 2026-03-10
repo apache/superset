@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useState, useMemo } from 'react';
-import { t } from '@apache-superset/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { FormLabel, Select } from '@superset-ui/core/components';
 import { SELECT_WIDTH } from './utils';
 import { CardSortSelectOption, SortColumn } from './types';

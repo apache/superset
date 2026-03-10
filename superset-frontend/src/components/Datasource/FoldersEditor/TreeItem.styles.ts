@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { styled, css } from '@apache-superset/core/ui';
+import { styled, css } from '@apache-superset/core/theme';
 
 export const FOLDER_INDENTATION_WIDTH = 24;
 export const ITEM_INDENTATION_WIDTH = 4;

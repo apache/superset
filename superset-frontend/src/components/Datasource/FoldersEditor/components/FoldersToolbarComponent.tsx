@@ -18,7 +18,7 @@
  */
 
 import { memo, useMemo } from 'react';
-import { t, tn } from '@apache-superset/core';
+import { t, tn } from '@apache-superset/core/translation';
 import { Button, Input, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import {

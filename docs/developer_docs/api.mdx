@@ -68,14 +68,14 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 | `POST` | [Create a new dashboard](./api/create-a-new-dashboard) | `/api/v1/dashboard/` |
 | `GET` | [Get metadata information about this API resource (dashboard--info)](./api/get-metadata-information-about-this-api-resource-dashboard-info) | `/api/v1/dashboard/_info` |
 | `GET` | [Get a dashboard detail information](./api/get-a-dashboard-detail-information) | `/api/v1/dashboard/{id_or_slug}` |
-| `GET` | [Get a dashboard's chart definitions.](./api/get-a-dashboards-chart-definitions) | `/api/v1/dashboard/{id_or_slug}/charts` |
+| `GET` | [Get a dashboard's chart definitions.](./api/get-a-dashboard-s-chart-definitions) | `/api/v1/dashboard/{id_or_slug}/charts` |
 | `POST` | [Create a copy of an existing dashboard](./api/create-a-copy-of-an-existing-dashboard) | `/api/v1/dashboard/{id_or_slug}/copy/` |
-| `GET` | [Get dashboard's datasets](./api/get-dashboards-datasets) | `/api/v1/dashboard/{id_or_slug}/datasets` |
-| `DELETE` | [Delete a dashboard's embedded configuration](./api/delete-a-dashboards-embedded-configuration) | `/api/v1/dashboard/{id_or_slug}/embedded` |
-| `GET` | [Get the dashboard's embedded configuration](./api/get-the-dashboards-embedded-configuration) | `/api/v1/dashboard/{id_or_slug}/embedded` |
-| `POST` | [Set a dashboard's embedded configuration](./api/set-a-dashboards-embedded-configuration) | `/api/v1/dashboard/{id_or_slug}/embedded` |
+| `GET` | [Get dashboard's datasets](./api/get-dashboard-s-datasets) | `/api/v1/dashboard/{id_or_slug}/datasets` |
+| `DELETE` | [Delete a dashboard's embedded configuration](./api/delete-a-dashboard-s-embedded-configuration) | `/api/v1/dashboard/{id_or_slug}/embedded` |
+| `GET` | [Get the dashboard's embedded configuration](./api/get-the-dashboard-s-embedded-configuration) | `/api/v1/dashboard/{id_or_slug}/embedded` |
+| `POST` | [Set a dashboard's embedded configuration](./api/set-a-dashboard-s-embedded-configuration) | `/api/v1/dashboard/{id_or_slug}/embedded` |
 | `PUT` | [Update dashboard by id_or_slug embedded](./api/update-dashboard-by-id-or-slug-embedded) | `/api/v1/dashboard/{id_or_slug}/embedded` |
-| `GET` | [Get dashboard's tabs](./api/get-dashboards-tabs) | `/api/v1/dashboard/{id_or_slug}/tabs` |
+| `GET` | [Get dashboard's tabs](./api/get-dashboard-s-tabs) | `/api/v1/dashboard/{id_or_slug}/tabs` |
 | `DELETE` | [Delete a dashboard](./api/delete-a-dashboard) | `/api/v1/dashboard/{pk}` |
 | `PUT` | [Update a dashboard](./api/update-a-dashboard) | `/api/v1/dashboard/{pk}` |
 | `POST` | [Compute and cache a screenshot (dashboard-pk-cache-dashboard-screenshot)](./api/compute-and-cache-a-screenshot-dashboard-pk-cache-dashboard-screenshot) | `/api/v1/dashboard/{pk}/cache_dashboard_screenshot/` |
@@ -84,7 +84,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 | `POST` | [Mark the dashboard as favorite for the current user](./api/mark-the-dashboard-as-favorite-for-the-current-user) | `/api/v1/dashboard/{pk}/favorites/` |
 | `PUT` | [Update native filters configuration for a dashboard.](./api/update-native-filters-configuration-for-a-dashboard) | `/api/v1/dashboard/{pk}/filters` |
 | `GET` | [Get a computed screenshot from cache (dashboard-pk-screenshot-digest)](./api/get-a-computed-screenshot-from-cache-dashboard-pk-screenshot-digest) | `/api/v1/dashboard/{pk}/screenshot/{digest}/` |
-| `GET` | [Get dashboard's thumbnail](./api/get-dashboards-thumbnail) | `/api/v1/dashboard/{pk}/thumbnail/{digest}/` |
+| `GET` | [Get dashboard's thumbnail](./api/get-dashboard-s-thumbnail) | `/api/v1/dashboard/{pk}/thumbnail/{digest}/` |
 | `GET` | [Download multiple dashboards as YAML files](./api/download-multiple-dashboards-as-yaml-files) | `/api/v1/dashboard/export/` |
 | `GET` | [Check favorited dashboards for current user](./api/check-favorited-dashboards-for-current-user) | `/api/v1/dashboard/favorite_status/` |
 | `POST` | [Import dashboard(s) with associated charts/datasets/databases](./api/import-dashboard-s-with-associated-charts-datasets-databases) | `/api/v1/dashboard/import/` |
@@ -177,7 +177,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 | `GET` | [Get names of databases currently available](./api/get-names-of-databases-currently-available) | `/api/v1/database/available/` |
 | `GET` | [Download database(s) and associated dataset(s) as a zip file](./api/download-database-s-and-associated-dataset-s-as-a-zip-file) | `/api/v1/database/export/` |
 | `POST` | [Import database(s) with associated datasets](./api/import-database-s-with-associated-datasets) | `/api/v1/database/import/` |
-| `GET` | [Receive personal access tokens from OAuth2](./api/receive-personal-access-tokens-from-o-auth-2) | `/api/v1/database/oauth2/` |
+| `GET` | [Receive personal access tokens from OAuth2](./api/receive-personal-access-tokens-from-oauth2) | `/api/v1/database/oauth2/` |
 | `GET` | [Get related fields data (database-related-column-name)](./api/get-related-fields-data-database-related-column-name) | `/api/v1/database/related/{column_name}` |
 | `POST` | [Test a database connection](./api/test-a-database-connection) | `/api/v1/database/test_connection/` |
 | `POST` | [Upload a file and returns file metadata](./api/upload-a-file-and-returns-file-metadata) | `/api/v1/database/upload_metadata/` |
@@ -201,7 +201,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | [Get the bootstrap data for SqlLab page](./api/get-the-bootstrap-data-for-sql-lab-page) | `/api/v1/sqllab/` |
+| `GET` | [Get the bootstrap data for SqlLab page](./api/get-the-bootstrap-data-for-sqllab-page) | `/api/v1/sqllab/` |
 | `POST` | [Estimate the SQL query execution cost](./api/estimate-the-sql-query-execution-cost) | `/api/v1/sqllab/estimate/` |
 | `POST` | [Execute a SQL query](./api/execute-a-sql-query) | `/api/v1/sqllab/execute/` |
 | `GET` | [Export the SQL query results to a CSV](./api/export-the-sql-query-results-to-a-csv) | `/api/v1/sqllab/export/{client_id}/` |
@@ -249,7 +249,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | [Return an AdvancedDataTypeResponse](./api/return-an-advanced-data-type-response) | `/api/v1/advanced_data_type/convert` |
+| `GET` | [Return an AdvancedDataTypeResponse](./api/return-an-advanceddatatyperesponse) | `/api/v1/advanced_data_type/convert` |
 | `GET` | [Return a list of available advanced data types](./api/return-a-list-of-available-advanced-data-types) | `/api/v1/advanced_data_type/types` |
 
 </details>
@@ -324,8 +324,8 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | [Create a new dashboard's permanent link](./api/create-a-new-dashboards-permanent-link) | `/api/v1/dashboard/{pk}/permalink` |
-| `GET` | [Get dashboard's permanent link state](./api/get-dashboards-permanent-link-state) | `/api/v1/dashboard/permalink/{key}` |
+| `POST` | [Create a new dashboard's permanent link](./api/create-a-new-dashboard-s-permanent-link) | `/api/v1/dashboard/{pk}/permalink` |
+| `GET` | [Get dashboard's permanent link state](./api/get-dashboard-s-permanent-link-state) | `/api/v1/dashboard/permalink/{key}` |
 
 </details>
 
@@ -335,7 +335,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | [Create a new permanent link (explore-permalink)](./api/create-a-new-permanent-link-explore-permalink) | `/api/v1/explore/permalink` |
-| `GET` | [Get chart's permanent link state](./api/get-charts-permanent-link-state) | `/api/v1/explore/permalink/{key}` |
+| `GET` | [Get chart's permanent link state](./api/get-chart-s-permanent-link-state) | `/api/v1/explore/permalink/{key}` |
 
 </details>
 
@@ -345,7 +345,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | [Create a new permanent link (sqllab-permalink)](./api/create-a-new-permanent-link-sqllab-permalink) | `/api/v1/sqllab/permalink` |
-| `GET` | [Get permanent link state for SQLLab editor.](./api/get-permanent-link-state-for-sql-lab-editor) | `/api/v1/sqllab/permalink/{key}` |
+| `GET` | [Get permanent link state for SQLLab editor.](./api/get-permanent-link-state-for-sqllab-editor) | `/api/v1/sqllab/permalink/{key}` |
 
 </details>
 
@@ -363,10 +363,10 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | [Create a dashboard's filter state](./api/create-a-dashboards-filter-state) | `/api/v1/dashboard/{pk}/filter_state` |
-| `DELETE` | [Delete a dashboard's filter state value](./api/delete-a-dashboards-filter-state-value) | `/api/v1/dashboard/{pk}/filter_state/{key}` |
-| `GET` | [Get a dashboard's filter state value](./api/get-a-dashboards-filter-state-value) | `/api/v1/dashboard/{pk}/filter_state/{key}` |
-| `PUT` | [Update a dashboard's filter state value](./api/update-a-dashboards-filter-state-value) | `/api/v1/dashboard/{pk}/filter_state/{key}` |
+| `POST` | [Create a dashboard's filter state](./api/create-a-dashboard-s-filter-state) | `/api/v1/dashboard/{pk}/filter_state` |
+| `DELETE` | [Delete a dashboard's filter state value](./api/delete-a-dashboard-s-filter-state-value) | `/api/v1/dashboard/{pk}/filter_state/{key}` |
+| `GET` | [Get a dashboard's filter state value](./api/get-a-dashboard-s-filter-state-value) | `/api/v1/dashboard/{pk}/filter_state/{key}` |
+| `PUT` | [Update a dashboard's filter state value](./api/update-a-dashboard-s-filter-state-value) | `/api/v1/dashboard/{pk}/filter_state/{key}` |
 
 </details>
 

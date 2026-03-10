@@ -25,9 +25,9 @@ import {
   FC,
 } from 'react';
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
-import { SupersetTheme } from '@apache-superset/core/ui';
+import { SupersetTheme } from '@apache-superset/core/theme';
 import {
   Button,
   Collapse,

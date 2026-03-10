@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { AsyncSelect } from '@superset-ui/core/components';
 import { type TagType } from 'src/components';

@@ -19,7 +19,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useLocation } from 'react-router-dom';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   getLabelsColorMap,
   isDefined,

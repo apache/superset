@@ -35,7 +35,8 @@ import {
   QueryFormData,
   Behavior,
 } from '@superset-ui/core';
-import { css, styled, useTheme, t } from '@apache-superset/core/ui';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import {
   Icons,
   ModalTrigger,

@@ -31,9 +31,11 @@ import {
   DataMaskStateWithId,
   JsonObject,
   ensureIsArray,
+  FeatureFlag,
   getCategoricalSchemeRegistry,
   getColumnLabel,
   getSequentialSchemeRegistry,
+  isFeatureEnabled,
   NO_TIME_RANGE,
   QueryFormColumn,
   VizType,
@@ -149,11 +151,20 @@ export const hydrateExplore =
     if (colorSchemeKey) verifyColorScheme(ColorSchemeType.CATEGORICAL);
     if (linearColorSchemeKey) verifyColorScheme(ColorSchemeType.SEQUENTIAL);
 
+    const granularExport = isFeatureEnabled(FeatureFlag.GranularExportControls);
     const exploreState = {
       // note this will add `form_data` to state,
       // which will be manipulable by future reducers.
       can_add: findPermission('can_write', 'Chart', user?.roles),
-      can_download: findPermission('can_csv', 'Superset', user?.roles),
+      can_download: granularExport
+        ? findPermission('can_export_data', 'Superset', user?.roles)
+        : findPermission('can_csv', 'Superset', user?.roles),
+      can_export_image: granularExport
+        ? findPermission('can_export_image', 'Superset', user?.roles)
+        : true,
+      can_copy_clipboard: granularExport
+        ? findPermission('can_copy_clipboard', 'Superset', user?.roles)
+        : true,
       can_overwrite: ensureIsArray(slice?.owners).includes(
         user?.userId as number,
       ),

@@ -33,7 +33,7 @@ import {
   getTimeFormatterForGranularity,
 } from '@superset-ui/core';
 import TableChart, { sanitizeHeaderId } from '../src/TableChart';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import transformProps from '../src/transformProps';
 import DateWithFormatter from '../src/utils/DateWithFormatter';
 import testData from './testData';

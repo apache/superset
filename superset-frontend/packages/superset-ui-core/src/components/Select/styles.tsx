@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { Select } from 'antd';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Spin } from '../Spin';

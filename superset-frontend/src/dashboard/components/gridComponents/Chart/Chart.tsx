@@ -19,7 +19,8 @@
 import cx from 'classnames';
 import { useCallback, useEffect, useRef, useMemo, useState, memo } from 'react';
 import type { ChartCustomization, JsonObject } from '@superset-ui/core';
-import { styled, t } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { debounce } from 'lodash';
 import { bindActionCreators } from 'redux';
 import { useDispatch, useSelector } from 'react-redux';
@@ -761,6 +762,7 @@ const Chart = (props: ChartProps) => {
           emitCrossFilters={emitCrossFilters}
           onChartStateChange={handleChartStateChange}
           suppressLoadingSpinner={suppressLoadingSpinner}
+          filterState={dataMask[props.id]?.filterState}
         />
       </ChartWrapper>
 
