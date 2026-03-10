@@ -71,7 +71,7 @@ function createChartProps(overrides: Record<string, unknown> = {}) {
 
 test('extracts globalOpacity from formData', () => {
   const result = transformProps(createChartProps({ globalOpacity: 0.5 }));
-  expect(result).toEqual(expect.objectContaining({ globalOpacity: 0.5 }));
+  expect(result.globalOpacity).toBe(0.5);
 });
 
 test('extracts viewport values from formData', () => {
@@ -113,6 +113,66 @@ test('provides onViewportChange callback that updates control values', () => {
   expect(setControlValue).toHaveBeenCalledWith('viewport_longitude', -0.12);
   expect(setControlValue).toHaveBeenCalledWith('viewport_latitude', 51.5);
   expect(setControlValue).toHaveBeenCalledWith('viewport_zoom', 10);
+});
+
+test('normalizes string viewport values to numbers', () => {
+  const result = transformProps(
+    createChartProps({
+      viewportLongitude: '-122.4',
+      viewportLatitude: '37.8',
+      viewportZoom: '12',
+    }),
+  );
+  expect(result.viewportLongitude).toBe(-122.4);
+  expect(result.viewportLatitude).toBe(37.8);
+  expect(result.viewportZoom).toBe(12);
+});
+
+test('normalizes empty viewport values to undefined', () => {
+  const result = transformProps(
+    createChartProps({
+      viewportLongitude: '',
+      viewportLatitude: '',
+      viewportZoom: '',
+    }),
+  );
+  expect(result.viewportLongitude).toBeUndefined();
+  expect(result.viewportLatitude).toBeUndefined();
+  expect(result.viewportZoom).toBeUndefined();
+});
+
+test('normalizes string opacity to number', () => {
+  const result = transformProps(createChartProps({ globalOpacity: '0.5' }));
+  expect(result.globalOpacity).toBe(0.5);
+});
+
+test('defaults empty opacity to 1', () => {
+  const result = transformProps(createChartProps({ globalOpacity: '' }));
+  expect(result.globalOpacity).toBe(1);
+});
+
+test('clamps opacity to [0, 1] range', () => {
+  expect(
+    transformProps(createChartProps({ globalOpacity: 5 })).globalOpacity,
+  ).toBe(1);
+  expect(
+    transformProps(createChartProps({ globalOpacity: -1 })).globalOpacity,
+  ).toBe(0);
+});
+
+test('passes through numeric values unchanged', () => {
+  const result = transformProps(
+    createChartProps({
+      viewportLongitude: -122.4,
+      viewportLatitude: 37.8,
+      viewportZoom: 12,
+      globalOpacity: 0.8,
+    }),
+  );
+  expect(result.viewportLongitude).toBe(-122.4);
+  expect(result.viewportLatitude).toBe(37.8);
+  expect(result.viewportZoom).toBe(12);
+  expect(result.globalOpacity).toBe(0.8);
 });
 
 test('calls onError and returns empty object for invalid color', () => {
