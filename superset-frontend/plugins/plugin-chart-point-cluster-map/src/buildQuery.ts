@@ -41,8 +41,7 @@ export interface MapLibreFormData extends SqlaFormData {
 }
 
 export default function buildQuery(formData: MapLibreFormData) {
-  const { all_columns_x, all_columns_y, map_label, point_radius } =
-    formData;
+  const { all_columns_x, all_columns_y, map_label, point_radius } = formData;
 
   if (!all_columns_x || !all_columns_y) {
     throw new Error('Longitude and latitude columns are required');
@@ -57,9 +56,7 @@ export default function buildQuery(formData: MapLibreFormData) {
 
     // Add label column if specified and not 'count'
     const hasCustomMetric =
-      map_label &&
-      map_label.length > 0 &&
-      map_label[0] !== 'count';
+      map_label && map_label.length > 0 && map_label[0] !== 'count';
     if (hasCustomMetric) {
       columns.push(map_label[0]);
     }

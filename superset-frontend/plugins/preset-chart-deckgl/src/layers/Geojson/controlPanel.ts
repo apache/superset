@@ -81,7 +81,12 @@ const config: ControlPanelConfig = {
     },
     {
       label: t('Map'),
-      controlSetRows: [[mapProvider], [mapboxStyle], [maplibreStyle], [viewport, autozoom]],
+      controlSetRows: [
+        [mapProvider],
+        [mapboxStyle],
+        [maplibreStyle],
+        [viewport, autozoom],
+      ],
     },
     {
       label: t('GeoJson Settings'),

@@ -68,7 +68,12 @@ const config: ControlPanelConfig = {
     {
       label: t('Map'),
       expanded: true,
-      controlSetRows: [[mapProvider], [mapboxStyle], [maplibreStyle], [autozoom, viewport]],
+      controlSetRows: [
+        [mapProvider],
+        [mapboxStyle],
+        [maplibreStyle],
+        [autozoom, viewport],
+      ],
     },
     {
       label: t('Point Size'),

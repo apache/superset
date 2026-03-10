@@ -102,7 +102,9 @@ function MapLibre({
   const [viewport, setViewport] = useState<Viewport>(initialViewport);
 
   const handleMove = useCallback(
-    (evt: { viewState: { longitude: number; latitude: number; zoom: number } }) => {
+    (evt: {
+      viewState: { longitude: number; latitude: number; zoom: number };
+    }) => {
       const { longitude, latitude, zoom } = evt.viewState;
       const newViewport = { longitude, latitude, zoom };
       setViewport(newViewport);

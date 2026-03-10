@@ -139,7 +139,9 @@ export const DeckGLContainer = memo(
             color: theme.colorTextSecondary,
           }}
         >
-          {t('Mapbox requires a MAPBOX_API_KEY to be configured on the server.')}
+          {t(
+            'Mapbox requires a MAPBOX_API_KEY to be configured on the server.',
+          )}
         </div>
       );
     }

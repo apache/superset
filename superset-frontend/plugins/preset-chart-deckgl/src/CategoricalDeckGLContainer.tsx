@@ -325,8 +325,14 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
         viewport={viewport}
         layers={getLayers()}
         setControlValue={props.setControlValue}
-        mapStyle={props.formData.map_renderer === 'mapbox' ? props.formData.mapbox_style : (props.formData.maplibre_style || props.formData.mapbox_style)}
-        mapProvider={props.formData.map_renderer === 'mapbox' ? 'mapbox' : 'maplibre'}
+        mapStyle={
+          props.formData.map_renderer === 'mapbox'
+            ? props.formData.mapbox_style
+            : props.formData.maplibre_style || props.formData.mapbox_style
+        }
+        mapProvider={
+          props.formData.map_renderer === 'mapbox' ? 'mapbox' : 'maplibre'
+        }
         mapboxApiKey={getMapboxApiKey()}
         width={props.width}
         height={props.height}

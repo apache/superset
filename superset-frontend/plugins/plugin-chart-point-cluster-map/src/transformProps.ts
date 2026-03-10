@@ -215,7 +215,10 @@ export default function transformProps(chartProps: ChartProps) {
     globalOpacity,
     hasCustomMetric,
     mapProvider,
-    mapStyle: mapProvider === 'mapbox' ? (mapboxStyle as string) : (maplibreStyle as string),
+    mapStyle:
+      mapProvider === 'mapbox'
+        ? (mapboxStyle as string)
+        : (maplibreStyle as string),
     onViewportChange({
       latitude,
       longitude,
