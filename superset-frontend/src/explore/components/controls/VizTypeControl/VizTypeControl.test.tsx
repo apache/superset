@@ -157,7 +157,7 @@ describe('VizTypeControl', () => {
     // Multi Chart text should NOT appear when Line Chart is selected
     expect(
       within(screen.getByTestId('fast-viz-switcher')).queryByText(
-        'deck.gl Multiple Layers (Legacy Mapbox)',
+        'deck.gl Multiple Layers',
       ),
     ).not.toBeInTheDocument();
   });
@@ -174,7 +174,7 @@ describe('VizTypeControl', () => {
     expect(screen.getByLabelText('multiple')).toBeVisible();
     expect(
       within(screen.getByTestId('fast-viz-switcher')).getByText(
-        'deck.gl Multiple Layers (Legacy Mapbox)',
+        'deck.gl Multiple Layers',
       ),
     ).toBeInTheDocument();
     // Should not show the generic check-square icon
