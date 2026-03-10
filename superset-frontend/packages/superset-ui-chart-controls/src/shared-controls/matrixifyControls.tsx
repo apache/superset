@@ -158,7 +158,9 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
         selectionMode,
         topNMetric: getValue(`matrixify_topn_metric_${axis}`),
         topNValue: getValue(`matrixify_topn_value_${axis}`),
-        topNOrder: getValue(`matrixify_topn_order_${axis}`, true) ? 'DESC' : 'ASC',
+        topNOrder: getValue(`matrixify_topn_order_${axis}`, true)
+          ? 'DESC'
+          : 'ASC',
         formData: form_data,
         validators,
       };

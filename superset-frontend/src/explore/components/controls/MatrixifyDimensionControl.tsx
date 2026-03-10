@@ -157,7 +157,7 @@ export default function MatrixifyDimensionControl(
           const allValues =
             selectionMode === 'all'
               ? values.slice(0, MAX_ALL_DIMENSION_VALUES)
-              : (value.values || []);
+              : value.values || [];
           const updatedValue: MatrixifyDimensionControlValue = {
             dimension: value.dimension,
             values: allValues,

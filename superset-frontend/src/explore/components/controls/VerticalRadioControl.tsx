@@ -42,9 +42,7 @@ interface VerticalRadioControlProps {
   validationErrors?: string[];
 }
 
-function normalizeOption(
-  option: RadioOption | RadioOptionTuple,
-): RadioOption {
+function normalizeOption(option: RadioOption | RadioOptionTuple): RadioOption {
   if (Array.isArray(option)) {
     return { value: option[0], label: option[1] };
   }
@@ -77,11 +75,7 @@ export default function VerticalRadioControl({
         <Space direction="vertical">
           {normalizedOptions.map(
             ({ value: val, label, disabled = false, tooltip }) => (
-              <Radio
-                key={JSON.stringify(val)}
-                value={val}
-                disabled={disabled}
-              >
+              <Radio key={JSON.stringify(val)} value={val} disabled={disabled}>
                 {label}
                 {tooltip && (
                   <Tooltip title={tooltip} placement="right">

@@ -39,7 +39,9 @@ export default function SwitchControl({
     onChange?.(checked);
   };
 
-  const switchNode = <Switch size="small" checked={!!value} onChange={handleChange} />;
+  const switchNode = (
+    <Switch size="small" checked={!!value} onChange={handleChange} />
+  );
 
   if (props.label) {
     return (

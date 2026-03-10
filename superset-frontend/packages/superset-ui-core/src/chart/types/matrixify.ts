@@ -166,7 +166,8 @@ export function getMatrixifyConfig(
       dimension: formData.matrixify_dimension_columns,
       topnValue: formData.matrixify_topn_value_columns,
       topnMetric: formData.matrixify_topn_metric_columns,
-      topnOrder: formData.matrixify_topn_order_columns !== false ? 'desc' : 'asc',
+      topnOrder:
+        formData.matrixify_topn_order_columns !== false ? 'desc' : 'asc',
     },
   };
 }

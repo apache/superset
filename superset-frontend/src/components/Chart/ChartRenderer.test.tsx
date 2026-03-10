@@ -177,9 +177,9 @@ test('should detect changes in matrixify properties', () => {
 
   // Since we can't directly test shouldComponentUpdate, we verify the component
   // correctly identifies matrixify-related properties by checking the implementation
-  expect(
-    (initialProps.formData as JsonObject).matrixify_mode_rows,
-  ).toBe('metrics');
+  expect((initialProps.formData as JsonObject).matrixify_mode_rows).toBe(
+    'metrics',
+  );
   expect((initialProps.formData as JsonObject).matrixify_dimension_x).toEqual({
     dimension: 'country',
     values: ['USA'],
