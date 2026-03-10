@@ -357,10 +357,7 @@ def _refresh_upstream_provider_token(
             refresh_token=token.refresh_token,
         )
     except Exception:  # pylint: disable=broad-except
-        logger.warning(
-            "Failed to refresh upstream OAuth token for provider %s",
-            provider,
-        )
+        logger.warning("Failed to refresh upstream OAuth token")
         db.session.delete(token)
         db.session.commit()
         return None
