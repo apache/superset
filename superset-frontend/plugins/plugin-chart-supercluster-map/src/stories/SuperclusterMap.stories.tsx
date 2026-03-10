@@ -19,11 +19,26 @@
 
 /* eslint-disable sort-keys, no-magic-numbers */
 import { SuperChart } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/theme';
 import ScatterMapChartPlugin from '@superset-ui/plugin-chart-supercluster-map';
 import { withResizableChartDemo } from '@storybook-shared';
-import { data } from './data';
+import { generateData } from './data';
 
 new ScatterMapChartPlugin().configure({ key: 'map_gl' }).register();
+
+/**
+ * Convert legacy GeoJSON features to flat tabular records
+ * that transformProps expects from a Superset SQL query.
+ */
+function geoJSONToRecords(
+  geoJSON: { features: { geometry: { coordinates: number[] }; properties: Record<string, unknown> }[] },
+) {
+  return geoJSON.features.map(f => ({
+    LON: f.geometry.coordinates[0],
+    LAT: f.geometry.coordinates[1],
+    metric: f.properties.metric ?? null,
+  }));
+}
 
 export default {
   title: 'Chart Plugins/plugin-chart-supercluster-map',
@@ -57,7 +72,7 @@ export default {
       control: 'select',
       options: ['maplibre', 'mapbox'],
       description:
-        'Map renderer. MapLibre is open-source and requires no API key. Mapbox requires MAPBOX_API_KEY.',
+        'Map renderer. MapLibre is open-source. Mapbox requires MAPBOX_API_KEY.',
     },
   },
 };
@@ -78,32 +93,38 @@ export const InteractiveSuperclusterMap = ({
   mapRenderer: string;
   width: number;
   height: number;
-}) => (
-  <SuperChart
-    chartType="map_gl"
-    width={width}
-    height={height}
-    queriesData={[{ data }]}
-    formData={{
-      all_columns_x: 'LON',
-      all_columns_y: 'LAT',
-      clustering_radius: String(clusteringRadius),
-      global_opacity: globalOpacity,
-      map_color: '#008b8b',
-      map_label: [],
-      map_renderer: mapRenderer,
-      maplibre_style: 'https://tiles.openfreemap.org/styles/liberty',
-      mapbox_style: 'mapbox://styles/mapbox/light-v11',
-      pandas_aggfunc: 'sum',
-      point_radius: pointRadius,
-      point_radius_unit: 'Pixels',
-      render_while_dragging: renderWhileDragging,
-      viewport_latitude: 37.78,
-      viewport_longitude: -122.42,
-      viewport_zoom: 12,
-    }}
-  />
-);
+}) => {
+  const theme = useTheme();
+  const { geoJSON } = generateData(theme);
+  const records = geoJSONToRecords(geoJSON);
+
+  return (
+    <SuperChart
+      chartType="map_gl"
+      width={width}
+      height={height}
+      queriesData={[{ data: records }]}
+      formData={{
+        all_columns_x: 'LON',
+        all_columns_y: 'LAT',
+        clustering_radius: String(clusteringRadius),
+        global_opacity: globalOpacity,
+        map_color: '#008b8b',
+        map_label: [],
+        map_renderer: mapRenderer,
+        maplibre_style: 'https://tiles.openfreemap.org/styles/liberty',
+        mapbox_style: 'mapbox://styles/mapbox/light-v11',
+        pandas_aggfunc: 'sum',
+        point_radius: pointRadius,
+        point_radius_unit: 'Pixels',
+        render_while_dragging: renderWhileDragging,
+        viewport_latitude: 37.78,
+        viewport_longitude: -122.42,
+        viewport_zoom: 12,
+      }}
+    />
+  );
+};
 
 export const WithMetricLabels = ({
   width,
@@ -111,32 +132,38 @@ export const WithMetricLabels = ({
 }: {
   width: number;
   height: number;
-}) => (
-  <SuperChart
-    chartType="map_gl"
-    width={width}
-    height={height}
-    queriesData={[{ data }]}
-    formData={{
-      all_columns_x: 'LON',
-      all_columns_y: 'LAT',
-      clustering_radius: '60',
-      global_opacity: 1,
-      map_color: '#dc143c',
-      map_label: ['metric'],
-      map_renderer: 'maplibre',
-      maplibre_style:
-        'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-      pandas_aggfunc: 'sum',
-      point_radius: 'Auto',
-      point_radius_unit: 'Pixels',
-      render_while_dragging: true,
-      viewport_latitude: 37.78,
-      viewport_longitude: -122.42,
-      viewport_zoom: 12,
-    }}
-  />
-);
+}) => {
+  const theme = useTheme();
+  const { geoJSON } = generateData(theme);
+  const records = geoJSONToRecords(geoJSON);
+
+  return (
+    <SuperChart
+      chartType="map_gl"
+      width={width}
+      height={height}
+      queriesData={[{ data: records }]}
+      formData={{
+        all_columns_x: 'LON',
+        all_columns_y: 'LAT',
+        clustering_radius: '60',
+        global_opacity: 1,
+        map_color: '#dc143c',
+        map_label: ['metric'],
+        map_renderer: 'maplibre',
+        maplibre_style:
+          'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+        pandas_aggfunc: 'sum',
+        point_radius: 'Auto',
+        point_radius_unit: 'Pixels',
+        render_while_dragging: true,
+        viewport_latitude: 37.78,
+        viewport_longitude: -122.42,
+        viewport_zoom: 12,
+      }}
+    />
+  );
+};
 
 export const NoClustering = ({
   width,
@@ -144,29 +171,35 @@ export const NoClustering = ({
 }: {
   width: number;
   height: number;
-}) => (
-  <SuperChart
-    chartType="map_gl"
-    width={width}
-    height={height}
-    queriesData={[{ data }]}
-    formData={{
-      all_columns_x: 'LON',
-      all_columns_y: 'LAT',
-      clustering_radius: '0',
-      global_opacity: 0.8,
-      map_color: '#228b22',
-      map_label: [],
-      map_renderer: 'maplibre',
-      maplibre_style:
-        'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
-      pandas_aggfunc: 'sum',
-      point_radius: 'Auto',
-      point_radius_unit: 'Pixels',
-      render_while_dragging: true,
-      viewport_latitude: 37.78,
-      viewport_longitude: -122.42,
-      viewport_zoom: 12,
-    }}
-  />
-);
+}) => {
+  const theme = useTheme();
+  const { geoJSON } = generateData(theme);
+  const records = geoJSONToRecords(geoJSON);
+
+  return (
+    <SuperChart
+      chartType="map_gl"
+      width={width}
+      height={height}
+      queriesData={[{ data: records }]}
+      formData={{
+        all_columns_x: 'LON',
+        all_columns_y: 'LAT',
+        clustering_radius: '0',
+        global_opacity: 0.8,
+        map_color: '#228b22',
+        map_label: [],
+        map_renderer: 'maplibre',
+        maplibre_style:
+          'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
+        pandas_aggfunc: 'sum',
+        point_radius: 'Auto',
+        point_radius_unit: 'Pixels',
+        render_while_dragging: true,
+        viewport_latitude: 37.78,
+        viewport_longitude: -122.42,
+        viewport_zoom: 12,
+      }}
+    />
+  );
+};
