@@ -115,7 +115,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
     dispatcher = (
         semantic_view.get_row_count
         if query_object.is_rowcount
-        else semantic_view.get_dataframe
+        else semantic_view.get_table
     )
 
     # Step 1: Convert QueryObject to list of SemanticQuery objects
@@ -124,15 +124,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
 
     # Step 2: Execute the main query (first in the list)
     main_query = queries[0]
-    main_result = dispatcher(
-        metrics=main_query.metrics,
-        dimensions=main_query.dimensions,
-        filters=main_query.filters,
-        order=main_query.order,
-        limit=main_query.limit,
-        offset=main_query.offset,
-        group_limit=main_query.group_limit,
-    )
+    main_result = dispatcher(main_query)
 
     main_df = main_result.results.to_pandas()
 
@@ -163,15 +155,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
         strict=False,
     ):
         # Execute the offset query
-        result = dispatcher(
-            metrics=offset_query.metrics,
-            dimensions=offset_query.dimensions,
-            filters=offset_query.filters,
-            order=offset_query.order,
-            limit=offset_query.limit,
-            offset=offset_query.offset,
-            group_limit=offset_query.group_limit,
-        )
+        result = dispatcher(offset_query)
 
         # Add this query's requests to the collection
         all_requests.extend(result.requests)
