@@ -17,6 +17,8 @@
 
 """Tests for viz_type display name mapping."""
 
+import re
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -26,6 +28,26 @@ from superset.mcp_service.chart.viz_type_names import (
     _FRONTEND_ONLY_NAMES,
     get_viz_type_display_name,
     VIZ_TYPE_DISPLAY_NAMES,
+)
+from superset.utils import json
+
+# Paths to the source-of-truth files
+_JSON_PATH = (
+    Path(__file__).resolve().parents[4]
+    / "superset"
+    / "mcp_service"
+    / "chart"
+    / "viz_type_display_names.json"
+)
+_VIZTYPE_TS_PATH = (
+    Path(__file__).resolve().parents[4]
+    / "superset-frontend"
+    / "packages"
+    / "superset-ui-core"
+    / "src"
+    / "chart"
+    / "types"
+    / "VizType.ts"
 )
 
 
@@ -130,8 +152,14 @@ def test_all_frontend_only_names_are_non_empty() -> None:
 
 
 def test_viz_type_display_names_alias() -> None:
-    """VIZ_TYPE_DISPLAY_NAMES is an alias for _FRONTEND_ONLY_NAMES."""
-    assert VIZ_TYPE_DISPLAY_NAMES is _FRONTEND_ONLY_NAMES
+    """VIZ_TYPE_DISPLAY_NAMES contains the same data as _FRONTEND_ONLY_NAMES."""
+    assert VIZ_TYPE_DISPLAY_NAMES == _FRONTEND_ONLY_NAMES
+
+
+def test_frontend_only_names_loaded_from_json() -> None:
+    """_FRONTEND_ONLY_NAMES is loaded from the JSON file, not hardcoded."""
+    json_data = json.loads(_JSON_PATH.read_text(encoding="utf-8"))
+    assert _FRONTEND_ONLY_NAMES == json_data
 
 
 def test_legacy_import_failure_gracefully_handled() -> None:
@@ -206,3 +234,41 @@ def test_serialize_chart_object_none_viz_type() -> None:
     assert result is not None
     assert result.viz_type is None
     assert result.chart_type_display_name is None
+
+
+# ---------------------------------------------------------------------------
+# Sync-validation tests: JSON ↔ VizType.ts alignment
+# ---------------------------------------------------------------------------
+
+
+def _parse_viztype_ts_values() -> set[str]:
+    """Extract all viz_type string values from VizType.ts."""
+    content = _VIZTYPE_TS_PATH.read_text(encoding="utf-8")
+    # Matches lines like:  Area = 'echarts_area',
+    return set(re.findall(r"=\s*'([^']+)'", content))
+
+
+def test_json_keys_match_viztype_ts() -> None:
+    """Every key in the JSON file must be a valid VizType.ts value.
+
+    This catches typos or stale entries in the JSON that don't
+    correspond to any enum member in VizType.ts.
+    """
+    json_keys = set(json.loads(_JSON_PATH.read_text(encoding="utf-8")).keys())
+
+    ts_values = _parse_viztype_ts_values()
+    invalid = json_keys - ts_values
+    assert not invalid, (
+        f"JSON keys not found in VizType.ts: {sorted(invalid)}. "
+        "Either add them to VizType.ts or remove from viz_type_display_names.json."
+    )
+
+
+def test_json_file_is_valid_json() -> None:
+    """The JSON file must be parseable and contain a flat string→string dict."""
+    data = json.loads(_JSON_PATH.read_text(encoding="utf-8"))
+    assert isinstance(data, dict)
+    for key, value in data.items():
+        assert isinstance(key, str), f"Non-string key: {key!r}"
+        assert isinstance(value, str), f"Non-string value for {key!r}: {value!r}"
+        assert value.strip(), f"Empty/whitespace display name for {key!r}"
