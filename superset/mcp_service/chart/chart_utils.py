@@ -477,6 +477,17 @@ def add_legend_config(form_data: Dict[str, Any], config: XYChartConfig) -> None:
             form_data["legend_orientation"] = config.legend.position
 
 
+def add_orientation_config(form_data: Dict[str, Any], config: XYChartConfig) -> None:
+    """Add orientation configuration to form_data for bar charts.
+
+    Only applies when kind='bar' and an explicit orientation is set.
+    When orientation is None (the default), Superset uses its own default
+    (vertical bars).
+    """
+    if config.kind == "bar" and config.orientation:
+        form_data["orientation"] = config.orientation
+
+
 def configure_temporal_handling(
     form_data: Dict[str, Any],
     x_is_temporal: bool,
@@ -573,6 +584,7 @@ def map_xy_config(
     # Add configurations
     add_axis_config(form_data, config)
     add_legend_config(form_data, config)
+    add_orientation_config(form_data, config)
 
     return form_data
 
