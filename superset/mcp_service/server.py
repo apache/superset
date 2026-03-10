@@ -156,19 +156,36 @@ def create_event_store(config: dict[str, Any] | None = None) -> Any | None:
         return None
 
 
+def _strip_titles(obj: Any) -> Any:
+    """Recursively strip 'title' keys from JSON Schema objects.
+
+    Pydantic auto-generates 'title' for every field and model (e.g.
+    "title": "Chart Type" for a field named chart_type). These are
+    redundant with property names and inflate schema size by ~12%.
+    """
+    if isinstance(obj, dict):
+        return {k: _strip_titles(v) for k, v in obj.items() if k != "title"}
+    if isinstance(obj, list):
+        return [_strip_titles(item) for item in obj]
+    return obj
+
+
 def _serialize_tools_without_output_schema(
     tools: Sequence[Any],
 ) -> list[dict[str, Any]]:
-    """Serialize tools to JSON, stripping outputSchema to reduce token usage.
+    """Serialize tools to JSON, stripping outputSchema and titles to reduce tokens.
 
     LLMs only need inputSchema to call tools. outputSchema accounts for
-    50-80% of the per-tool schema size, so stripping it cuts search result
-    tokens by ~63%.
+    50-80% of the per-tool schema size, and auto-generated 'title' fields
+    add ~12% bloat. Stripping both cuts search result tokens significantly.
     """
     results = []
     for tool in tools:
         data = tool.to_mcp_tool().model_dump(mode="json", exclude_none=True)
         data.pop("outputSchema", None)
+        input_schema = data.get("inputSchema")
+        if input_schema:
+            data["inputSchema"] = _strip_titles(input_schema)
         results.append(data)
     return results
 
