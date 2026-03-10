@@ -137,6 +137,13 @@ export interface MatrixifyConfig {
 }
 
 /**
+ * Check if a given axis mode is active (not disabled)
+ */
+function isAxisEnabled(mode?: MatrixifyMode): boolean {
+  return mode === 'metrics' || mode === 'dimensions';
+}
+
+/**
  * Helper function to extract Matrixify configuration from form data
  */
 export function getMatrixifyConfig(
@@ -170,16 +177,6 @@ export function getMatrixifyConfig(
         formData.matrixify_topn_order_columns !== false ? 'desc' : 'asc',
     },
   };
-}
-
-/**
- * Check if Matrixify is enabled and properly configured
- */
-/**
- * Check if a given axis mode is active (not disabled)
- */
-function isAxisEnabled(mode?: MatrixifyMode): boolean {
-  return mode === 'metrics' || mode === 'dimensions';
 }
 
 export function isMatrixifyEnabled(formData: MatrixifyFormData): boolean {
