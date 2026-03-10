@@ -178,6 +178,16 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       : filterState?.excludeFilterValues,
   );
 
+  const [likeInputValue, setLikeInputValue] = useState<string>(
+    filterState.value?.[0] != null ? String(filterState.value[0]) : '',
+  );
+
+  useEffect(() => {
+    const externalValue =
+      filterState.value?.[0] != null ? String(filterState.value[0]) : '';
+    setLikeInputValue(externalValue);
+  }, [filterState.value]);
+
   const prevExcludeFilterValues = useRef(excludeFilterValues);
 
   const hasOnlyOrientationChanged = useRef(false);
@@ -462,6 +472,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
       updateDataMask(null);
       setSearch('');
+      setLikeInputValue('');
       onClearAllComplete?.(formData.nativeFilterId);
     }
   }, [clearAllTrigger, onClearAllComplete, updateDataMask]);
@@ -508,6 +519,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   const handleLikeInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
+      setLikeInputValue(e.target.value);
       debouncedLikeChange(e.target.value);
     },
     [debouncedLikeChange],
@@ -551,11 +563,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             <Input
               allowClear
               placeholder={likeInputPlaceholder}
-              defaultValue={
-                filterState.value?.[0] != null
-                  ? String(filterState.value[0])
-                  : undefined
-              }
+              value={likeInputValue}
               onChange={handleLikeInputChange}
               onFocus={setFocusedFilter}
               onBlur={unsetFocusedFilter}
