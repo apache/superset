@@ -85,9 +85,17 @@ try:
         # Initialize only the minimal dependencies needed for MCP service
         with _mcp_app.app_context():
             try:
+                from flask_babel import Babel
+
                 from superset.extensions import db
 
                 db.init_app(_mcp_app)
+
+                # Initialize Flask-Babel — many Superset modules (models,
+                # DAOs, utils) import gettext/lazy_gettext from flask_babel
+                # which requires app.extensions['babel'] to exist.
+                _mcp_app.config.setdefault("BABEL_DEFAULT_LOCALE", "en")
+                Babel(_mcp_app)
 
                 # Initialize only MCP-specific dependencies
                 # MCP tools import directly from superset.daos/models, so we only need
