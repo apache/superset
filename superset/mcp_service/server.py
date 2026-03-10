@@ -29,11 +29,15 @@ from typing import Any
 import uvicorn
 
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
-from superset.mcp_service.mcp_config import get_mcp_factory_config, MCP_STORE_CONFIG
+from superset.mcp_service.mcp_config import (
+    MCP_STORE_CONFIG,
+    MCP_TOOL_SEARCH_CONFIG,
+    get_mcp_factory_config,
+)
 from superset.mcp_service.middleware import (
-    create_response_size_guard_middleware,
     GlobalErrorHandlerMiddleware,
     LoggingMiddleware,
+    create_response_size_guard_middleware,
 )
 from superset.mcp_service.storage import _create_redis_store
 
@@ -151,6 +155,39 @@ def create_event_store(config: dict[str, Any] | None = None) -> Any | None:
         return None
 
 
+def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> None:
+    """Apply tool search transform to reduce initial context size.
+
+    When enabled, replaces the full tool catalog with a search interface.
+    LLMs see only synthetic search/call tools plus pinned tools, and
+    discover other tools on-demand via natural language search.
+    """
+    strategy = config.get("strategy", "bm25")
+    kwargs = {
+        "max_results": config.get("max_results", 5),
+        "always_visible": config.get("always_visible", []),
+        "search_tool_name": config.get("search_tool_name", "search_tools"),
+        "call_tool_name": config.get("call_tool_name", "call_tool"),
+    }
+
+    if strategy == "regex":
+        from fastmcp.server.transforms.search import RegexSearchTransform
+
+        transform = RegexSearchTransform(**kwargs)
+    else:
+        from fastmcp.server.transforms.search import BM25SearchTransform
+
+        transform = BM25SearchTransform(**kwargs)
+
+    mcp_instance.add_transform(transform)
+    logger.info(
+        "Tool search transform enabled (strategy=%s, max_results=%d, pinned=%s)",
+        strategy,
+        kwargs["max_results"],
+        kwargs["always_visible"],
+    )
+
+
 def _create_auth_provider(flask_app: Any) -> Any | None:
     """Create an auth provider from Flask app config.
 
@@ -218,6 +255,11 @@ def run_server(
         logging.info("Creating MCP app from factory configuration...")
         factory_config = get_mcp_factory_config()
         mcp_instance = create_mcp_app(**factory_config)
+
+        # Apply tool search transform if configured
+        tool_search_config = MCP_TOOL_SEARCH_CONFIG
+        if tool_search_config.get("enabled", False):
+            _apply_tool_search_transform(mcp_instance, tool_search_config)
     else:
         # Use default initialization with auth from Flask config
         logging.info("Creating MCP app with default configuration...")
@@ -251,6 +293,13 @@ def run_server(
             auth=auth_provider,
             middleware=middleware_list or None,
         )
+
+        # Apply tool search transform if configured
+        tool_search_config = flask_app.config.get(
+            "MCP_TOOL_SEARCH_CONFIG", MCP_TOOL_SEARCH_CONFIG
+        )
+        if tool_search_config.get("enabled", False):
+            _apply_tool_search_transform(mcp_instance, tool_search_config)
 
     # Create EventStore for session management (Redis for multi-pod, None for in-memory)
     event_store = create_event_store(event_store_config)
