@@ -41,6 +41,9 @@ class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
         """
         Create a semantic layer from its configuration.
         """
+        raise NotImplementedError(
+            "Semantic layers must implement the from_configuration method"
+        )
 
     @classmethod
     @abstractmethod
@@ -66,6 +69,9 @@ class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
         The Snowflake semantic layer has an example implementation of this method, where
         database and schema names are populated based on the provided connection info.
         """
+        raise NotImplementedError(
+            "Semantic layers must implement the get_configuration_schema method"
+        )
 
     @classmethod
     @abstractmethod
@@ -94,6 +100,9 @@ class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
         database and schema names are required if they were not provided in the initial
         configuration.
         """
+        raise NotImplementedError(
+            "Semantic layers must implement the get_runtime_schema method"
+        )
 
     @abstractmethod
     def get_semantic_views(
