@@ -101,6 +101,7 @@ class TestGenerateDashboard:
         mock_query = Mock()
         mock_filter = Mock()
         mock_query.filter.return_value = mock_filter
+        mock_filter.order_by.return_value = mock_filter
         mock_filter.all.return_value = [
             _mock_chart(id=1, slice_name="Sales Chart"),
             _mock_chart(id=2, slice_name="Revenue Chart"),
@@ -139,6 +140,7 @@ class TestGenerateDashboard:
         mock_query = Mock()
         mock_filter = Mock()
         mock_query.filter.return_value = mock_filter
+        mock_filter.order_by.return_value = mock_filter
         mock_filter.all.return_value = [_mock_chart(id=1)]
         mock_db_session.query.return_value = mock_query
 
@@ -162,6 +164,7 @@ class TestGenerateDashboard:
         mock_query = Mock()
         mock_filter = Mock()
         mock_query.filter.return_value = mock_filter
+        mock_filter.order_by.return_value = mock_filter
         mock_filter.all.return_value = [_mock_chart(id=5, slice_name="Single Chart")]
         mock_db_session.query.return_value = mock_query
 
@@ -192,6 +195,7 @@ class TestGenerateDashboard:
         mock_query = Mock()
         mock_filter = Mock()
         mock_query.filter.return_value = mock_filter
+        mock_filter.order_by.return_value = mock_filter
         mock_filter.all.return_value = [
             _mock_chart(id=i, slice_name=f"Chart {i}") for i in chart_ids
         ]
@@ -261,6 +265,7 @@ class TestGenerateDashboard:
         mock_query = Mock()
         mock_filter = Mock()
         mock_query.filter.return_value = mock_filter
+        mock_filter.order_by.return_value = mock_filter
         mock_filter.all.return_value = [_mock_chart(id=1)]
         mock_db_session.query.return_value = mock_query
         mock_create_command.return_value.run.side_effect = Exception("Creation failed")
@@ -284,6 +289,7 @@ class TestGenerateDashboard:
         mock_query = Mock()
         mock_filter = Mock()
         mock_query.filter.return_value = mock_filter
+        mock_filter.order_by.return_value = mock_filter
         mock_filter.all.return_value = [_mock_chart(id=3)]
         mock_db_session.query.return_value = mock_query
 
@@ -320,6 +326,7 @@ class TestGenerateDashboard:
         mock_query = Mock()
         mock_filter = Mock()
         mock_query.filter.return_value = mock_filter
+        mock_filter.order_by.return_value = mock_filter
         mock_filter.all.return_value = [
             _mock_chart(id=1, slice_name="Sales Revenue"),
             _mock_chart(id=2, slice_name="Customer Count"),
@@ -350,6 +357,7 @@ class TestGenerateDashboard:
         mock_query = Mock()
         mock_filter = Mock()
         mock_query.filter.return_value = mock_filter
+        mock_filter.order_by.return_value = mock_filter
         mock_filter.all.return_value = [
             _mock_chart(id=1, slice_name="Sales Revenue"),
         ]
