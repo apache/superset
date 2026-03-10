@@ -61,18 +61,17 @@ def test_upgrade_mapbox():
 
     params = json.loads(slc.params)
     assert params["viz_type"] == "map_gl"
-    assert params["map_style"] == "mapbox://styles/mapbox/streets-v11"
-    assert params["map_provider"] == "mapbox"
+    assert params["mapbox_style"] == "mapbox://styles/mapbox/streets-v11"
+    assert params["map_renderer"] == "mapbox"
     assert params["map_label"] == ["name"]
     assert params["map_color"] == "#ff0000"
-    assert "mapbox_style" not in params
     assert "mapbox_label" not in params
     assert "mapbox_color" not in params
     assert params["other_param"] == "value"
 
     query_context = json.loads(slc.query_context)
     assert query_context["form_data"]["viz_type"] == "map_gl"
-    assert query_context["form_data"]["map_style"] == "mapbox://styles/mapbox/streets-v11"
+    assert query_context["form_data"]["mapbox_style"] == "mapbox://styles/mapbox/streets-v11"
 
 
 @pytest.mark.usefixtures("app_context")
@@ -95,8 +94,8 @@ def test_upgrade_mapbox_with_non_mapbox_style():
 
     assert slc.viz_type == "map_gl"
     params = json.loads(slc.params)
-    assert params["map_style"] == "https://tiles.openfreemap.org/styles/liberty"
-    assert "map_provider" not in params
+    assert params["mapbox_style"] == "https://tiles.openfreemap.org/styles/liberty"
+    assert "map_renderer" not in params
 
 
 def test_migrate_deckgl_slice_mapbox_style():
@@ -116,9 +115,8 @@ def test_migrate_deckgl_slice_mapbox_style():
 
     assert modified is True
     params = json.loads(slc.params)
-    assert params["map_style"] == "mapbox://styles/mapbox/dark-v9"
-    assert params["map_provider"] == "mapbox"
-    assert "mapbox_style" not in params
+    assert params["mapbox_style"] == "mapbox://styles/mapbox/dark-v9"
+    assert params["map_renderer"] == "mapbox"
     assert params["viz_type"] == "deck_arc"  # viz_type unchanged
     assert params["other_param"] == "value"
 
@@ -137,11 +135,10 @@ def test_migrate_deckgl_slice_open_style():
 
     modified = _migrate_deckgl_slice(slc)
 
-    assert modified is True
+    assert modified is False
     params = json.loads(slc.params)
-    assert params["map_style"] == "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
-    assert "map_provider" not in params
-    assert "mapbox_style" not in params
+    assert params["mapbox_style"] == "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
+    assert "map_renderer" not in params
 
 
 def test_migrate_deckgl_slice_no_mapbox_style():
@@ -166,8 +163,8 @@ def test_downgrade_deckgl_slice():
         params=json.dumps(
             {
                 "viz_type": "deck_arc",
-                "map_style": "mapbox://styles/mapbox/dark-v9",
-                "map_provider": "mapbox",
+                "mapbox_style": "mapbox://styles/mapbox/dark-v9",
+                "map_renderer": "mapbox",
                 "other_param": "value",
             }
         ),
@@ -178,6 +175,5 @@ def test_downgrade_deckgl_slice():
     assert modified is True
     params = json.loads(slc.params)
     assert params["mapbox_style"] == "mapbox://styles/mapbox/dark-v9"
-    assert "map_style" not in params
-    assert "map_provider" not in params
+    assert "map_renderer" not in params
     assert params["other_param"] == "value"
