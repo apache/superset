@@ -37,7 +37,11 @@ from superset.superset_typing import OAuth2ClientConfig, OAuth2State
 
 if TYPE_CHECKING:
     from superset.db_engine_specs.base import BaseEngineSpec
-    from superset.models.core import Database, DatabaseUserOAuth2Tokens, UpstreamOAuthToken
+    from superset.models.core import (
+        Database,
+        DatabaseUserOAuth2Tokens,
+        UpstreamOAuthToken,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -354,7 +358,9 @@ def _refresh_upstream_provider_token(
         )
     except Exception:  # pylint: disable=broad-except
         logger.warning(
-            "Failed to refresh upstream OAuth token for provider %s", provider, exc_info=True
+            "Failed to refresh upstream OAuth token for provider %s",
+            provider,
+            exc_info=True,
         )
         db.session.delete(token)
         db.session.commit()
