@@ -103,6 +103,7 @@ def generate_preview_from_form_data(
 
         # Execute query
         command = ChartDataCommand(query_context_obj)
+        command.validate()
         result = command.run()
 
         if not result or not result.get("queries"):
