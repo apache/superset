@@ -24,7 +24,7 @@ import ScatterMapChartPlugin from '@superset-ui/plugin-chart-point-cluster-map';
 import { withResizableChartDemo } from '@storybook-shared';
 import { generateData } from './data';
 
-new ScatterMapChartPlugin().configure({ key: 'map_gl' }).register();
+new ScatterMapChartPlugin().configure({ key: 'point_cluster_map' }).register();
 
 export default {
   title: 'Chart Plugins/plugin-chart-point-cluster-map',
@@ -83,7 +83,7 @@ export const InteractiveSuperclusterMap = ({
   const theme = useTheme();
   return (
     <SuperChart
-      chartType="map_gl"
+      chartType="point_cluster_map"
       width={width}
       height={height}
       queriesData={[{ data: generateData(theme) }]}
@@ -117,7 +117,7 @@ export const WithMetricLabels = ({
   const theme = useTheme();
   return (
     <SuperChart
-      chartType="map_gl"
+      chartType="point_cluster_map"
       width={width}
       height={height}
       queriesData={[{ data: generateData(theme) }]}
@@ -151,7 +151,7 @@ export const NoClustering = ({
   const theme = useTheme();
   return (
     <SuperChart
-      chartType="map_gl"
+      chartType="point_cluster_map"
       width={width}
       height={height}
       queriesData={[{ data: generateData(theme) }]}

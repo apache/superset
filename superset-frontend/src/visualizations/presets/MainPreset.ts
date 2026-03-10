@@ -131,7 +131,7 @@ export default class MainPreset extends Preset {
           key: VizType.MixedTimeseries,
         }),
         new HorizonChartPlugin().configure({ key: VizType.Horizon }),
-        new ScatterMapChartPlugin().configure({ key: VizType.MapLibre }),
+        new ScatterMapChartPlugin().configure({ key: VizType.PointClusterMap }),
         new PairedTTestChartPlugin().configure({ key: VizType.PairedTTest }),
         new ParallelCoordinatesChartPlugin().configure({
           key: VizType.ParallelCoordinates,

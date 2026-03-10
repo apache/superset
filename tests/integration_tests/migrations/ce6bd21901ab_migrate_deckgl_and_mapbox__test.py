@@ -57,10 +57,10 @@ def test_upgrade_mapbox():
 
     MigrateMapBox.upgrade_slice(slc)
 
-    assert slc.viz_type == "map_gl"
+    assert slc.viz_type == "point_cluster_map"
 
     params = json.loads(slc.params)
-    assert params["viz_type"] == "map_gl"
+    assert params["viz_type"] == "point_cluster_map"
     assert params["mapbox_style"] == "mapbox://styles/mapbox/streets-v11"
     assert params["map_renderer"] == "mapbox"
     assert params["map_label"] == ["name"]
@@ -70,7 +70,7 @@ def test_upgrade_mapbox():
     assert params["other_param"] == "value"
 
     query_context = json.loads(slc.query_context)
-    assert query_context["form_data"]["viz_type"] == "map_gl"
+    assert query_context["form_data"]["viz_type"] == "point_cluster_map"
     assert query_context["form_data"]["mapbox_style"] == "mapbox://styles/mapbox/streets-v11"
 
 
@@ -92,7 +92,7 @@ def test_upgrade_mapbox_with_non_mapbox_style():
 
     MigrateMapBox.upgrade_slice(slc)
 
-    assert slc.viz_type == "map_gl"
+    assert slc.viz_type == "point_cluster_map"
     params = json.loads(slc.params)
     assert params["mapbox_style"] == "https://tiles.openfreemap.org/styles/liberty"
     assert "map_renderer" not in params

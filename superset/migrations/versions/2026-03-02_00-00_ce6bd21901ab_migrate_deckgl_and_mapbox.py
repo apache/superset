@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""migrate mapbox and deckgl charts to map_gl
+"""migrate mapbox and deckgl charts to point_cluster_map
 
 Revision ID: ce6bd21901ab
 Revises: 4b2a8c9d3e1f
@@ -62,11 +62,11 @@ DECKGL_VIZ_TYPES = [
 
 
 class MigrateMapBox(MigrateViz):
-    """Migrate the legacy standalone Mapbox scatter chart to the new map_gl plugin."""
+    """Migrate the legacy standalone Mapbox scatter chart to point_cluster_map."""
 
     has_x_axis_control = False
     source_viz_type = "mapbox"
-    target_viz_type = "map_gl"
+    target_viz_type = "point_cluster_map"
     rename_keys = {
         "mapbox_label": "map_label",
         "mapbox_color": "map_color",

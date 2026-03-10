@@ -1524,8 +1524,8 @@ class MapboxViz(BaseViz):
 class MapLibreViz(MapboxViz):
     """Rich maps made with MapLibre"""
 
-    viz_type = "maplibre"
-    verbose_name = _("MapLibre")
+    viz_type = "point_cluster_map"
+    verbose_name = _("Point Cluster Map")
     credits = '<a href="https://maplibre.org/">MapLibre GL JS</a>'
 
     @deprecated(deprecated_in="3.0")
