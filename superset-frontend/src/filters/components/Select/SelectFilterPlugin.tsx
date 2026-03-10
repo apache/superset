@@ -150,8 +150,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     operatorType = SelectFilterOperatorType.Exact,
   } = formData;
 
-  const isLikeOperator = operatorType !== SelectFilterOperatorType.Exact;
-
   const groupby = useMemo(
     () => ensureIsArray(formData.groupby).map(getColumnLabel),
     [formData.groupby],
@@ -165,6 +163,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     filterState,
   });
   const datatype: GenericDataType = coltypeMap[col];
+  const isLikeOperator =
+    operatorType !== SelectFilterOperatorType.Exact &&
+    datatype === GenericDataType.String;
   const labelFormatter = useMemo(
     () =>
       getDataRecordFormatter({

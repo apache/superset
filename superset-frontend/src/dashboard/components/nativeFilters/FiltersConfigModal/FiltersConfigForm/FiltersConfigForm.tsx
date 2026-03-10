@@ -45,6 +45,7 @@ import {
   useEffect,
   useImperativeHandle,
   useMemo,
+  useRef,
   useState,
   RefObject,
   memo,
@@ -632,6 +633,16 @@ const FiltersConfigForm = (
     filterToEdit?.controlValues?.operatorType ??
     SelectFilterOperatorType.Exact;
 
+  const selectedColumnIsString = useMemo(() => {
+    const columnName = formFilter?.column;
+    if (!columnName || !datasetDetails?.columns) return true;
+    const colMeta = datasetDetails.columns.find(
+      (c: { column_name: string }) => c.column_name === columnName,
+    );
+    if (!colMeta) return true;
+    return colMeta.type_generic === GenericDataType.String;
+  }, [formFilter?.column, datasetDetails?.columns]);
+
   const onOperatorTypeChanged = (value: SelectFilterOperatorType) => {
     const previous = form.getFieldValue('filters')?.[filterId].controlValues;
     setNativeFilterFieldValues(form, filterId, {
@@ -643,6 +654,21 @@ const FiltersConfigForm = (
     formChanged();
     forceUpdate();
   };
+
+  const prevColumnRef = useRef(formFilter?.column);
+  const datasetLoaded = !!datasetDetails?.columns;
+  useEffect(() => {
+    const columnChanged = prevColumnRef.current !== formFilter?.column;
+    if (
+      (columnChanged || datasetLoaded) &&
+      !selectedColumnIsString &&
+      currentOperatorType !== SelectFilterOperatorType.Exact
+    ) {
+      onOperatorTypeChanged(SelectFilterOperatorType.Exact);
+    }
+    prevColumnRef.current = formFilter?.column;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formFilter?.column, selectedColumnIsString, datasetLoaded]);
 
   const validatePreFilter = () =>
     setTimeout(
@@ -705,6 +731,7 @@ const FiltersConfigForm = (
             'columns.filterable',
             'columns.is_dttm',
             'columns.type',
+            'columns.type_generic',
             'columns.verbose_name',
             'database.id',
             'database.database_name',
@@ -1748,18 +1775,31 @@ const FiltersConfigForm = (
                                     value: SelectFilterOperatorType.Exact,
                                     label: t('Exact match (IN)'),
                                   },
-                                  {
-                                    value: SelectFilterOperatorType.Contains,
-                                    label: t('Contains text (ILIKE %x%)'),
-                                  },
-                                  {
-                                    value: SelectFilterOperatorType.StartsWith,
-                                    label: t('Starts with (ILIKE x%)'),
-                                  },
-                                  {
-                                    value: SelectFilterOperatorType.EndsWith,
-                                    label: t('Ends with (ILIKE %x)'),
-                                  },
+                                  ...(selectedColumnIsString
+                                    ? [
+                                        {
+                                          value:
+                                            SelectFilterOperatorType.Contains,
+                                          label: t(
+                                            'Contains text (ILIKE %x%)',
+                                          ),
+                                        },
+                                        {
+                                          value:
+                                            SelectFilterOperatorType.StartsWith,
+                                          label: t(
+                                            'Starts with (ILIKE x%)',
+                                          ),
+                                        },
+                                        {
+                                          value:
+                                            SelectFilterOperatorType.EndsWith,
+                                          label: t(
+                                            'Ends with (ILIKE %x)',
+                                          ),
+                                        },
+                                      ]
+                                    : []),
                                 ]}
                                 onChange={value => {
                                   onOperatorTypeChanged(
