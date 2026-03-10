@@ -159,8 +159,8 @@ export default function transformProps(chartProps: ChartProps) {
   }
   if (rgb === null) {
     onError("Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'");
-
-    return {};
+    // Fall back to a safe default color so the chart can still render
+    rgb = ['#000000', '0', '0', '0'];
   }
 
   const opts: SuperclusterOptions<PointProperties, ClusterProperties> = {
