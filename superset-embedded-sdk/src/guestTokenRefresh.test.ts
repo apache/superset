@@ -23,16 +23,17 @@ import {
   MIN_REFRESH_WAIT_MS,
   DEFAULT_TOKEN_EXP_MS,
 } from "./guestTokenRefresh";
+import { afterAll, beforeAll, it, expect, describe, vi } from 'vitest';
 
 describe("guest token refresh", () => {
   beforeAll(() => {
-    jest.useFakeTimers();
-    jest.setSystemTime(new Date("2022-03-03 01:00"));
-    jest.spyOn(global, "setTimeout");
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2022-03-03 01:00"));
+    vi.spyOn(global, "setTimeout");
   });
 
   afterAll(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   function makeFakeJWT(claims: any) {
