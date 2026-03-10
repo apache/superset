@@ -650,6 +650,7 @@ const FiltersConfigForm = (
         ...previous,
         operatorType: value,
       },
+      defaultDataMask: null,
     });
     formChanged();
     forceUpdate();
