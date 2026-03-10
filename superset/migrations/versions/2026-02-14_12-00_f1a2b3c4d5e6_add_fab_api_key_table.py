@@ -69,5 +69,9 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Drop ab_api_key table."""
+    """Drop ab_api_key table if it exists."""
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    if "ab_api_key" not in inspector.get_table_names():
+        return
     op.drop_table("ab_api_key")
