@@ -50,6 +50,22 @@ from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
+# Compiled regex for stripping common emoji Unicode ranges from tab text.
+# Uses specific Unicode blocks to avoid overly permissive ranges.
+_EMOJI_RE = re.compile(
+    "["
+    "\U0001f300-\U0001f5ff"  # Misc Symbols and Pictographs
+    "\U0001f600-\U0001f64f"  # Emoticons
+    "\U0001f680-\U0001f6ff"  # Transport and Map Symbols
+    "\U0001f900-\U0001f9ff"  # Supplemental Symbols and Pictographs
+    "\U0001fa70-\U0001faff"  # Symbols and Pictographs Extended-A
+    "\u2600-\u26ff"  # Misc Symbols
+    "\u2700-\u27bf"  # Dingbats
+    "\ufe00-\ufe0f"  # Variation Selectors
+    "\u200d"  # Zero-width joiner
+    "]+"
+)
+
 
 def _find_next_row_position(layout: Dict[str, Any]) -> str:
     """
@@ -67,23 +83,6 @@ def _find_next_row_position(layout: Dict[str, Any]) -> str:
     while row_key in layout:
         row_key = generate_id("ROW")
     return row_key
-
-
-# Compiled regex for stripping common emoji Unicode ranges from tab text.
-# Uses specific Unicode blocks to avoid overly permissive ranges.
-_EMOJI_RE = re.compile(
-    "["
-    "\U0001f300-\U0001f5ff"  # Misc Symbols and Pictographs
-    "\U0001f600-\U0001f64f"  # Emoticons
-    "\U0001f680-\U0001f6ff"  # Transport and Map Symbols
-    "\U0001f900-\U0001f9ff"  # Supplemental Symbols and Pictographs
-    "\U0001fa70-\U0001faff"  # Symbols and Pictographs Extended-A
-    "\u2600-\u26ff"  # Misc Symbols
-    "\u2700-\u27bf"  # Dingbats
-    "\ufe00-\ufe0f"  # Variation Selectors
-    "\u200d"  # Zero-width joiner
-    "]+"
-)
 
 
 def _normalize_tab_text(text: str | None) -> str:
