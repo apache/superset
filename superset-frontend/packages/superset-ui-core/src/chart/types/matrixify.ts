@@ -108,6 +108,7 @@ export interface MatrixifyFormData {
   matrixify_topn_value_rows?: number;
   matrixify_topn_metric_rows?: AdhocMetric;
   matrixify_topn_order_rows?: boolean;
+  matrixify_all_sort_by_rows?: 'a_to_z' | 'z_to_a' | 'metric';
 
   // Column axis configuration
   matrixify_mode_columns?: MatrixifyMode;
@@ -117,6 +118,7 @@ export interface MatrixifyFormData {
   matrixify_topn_value_columns?: number;
   matrixify_topn_metric_columns?: AdhocMetric;
   matrixify_topn_order_columns?: boolean;
+  matrixify_all_sort_by_columns?: 'a_to_z' | 'z_to_a' | 'metric';
 
   // Grid layout configuration
   matrixify_row_height?: number;

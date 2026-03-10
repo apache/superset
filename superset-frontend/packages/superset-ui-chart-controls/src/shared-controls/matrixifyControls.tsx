@@ -34,7 +34,7 @@ const isMatrixifyVisible = (
   controls: any,
   axis: 'rows' | 'columns',
   mode?: 'metrics' | 'dimensions',
-  selectionMode?: 'members' | 'topn',
+  selectionMode?: 'members' | 'topn' | 'all',
 ) => {
   const modeControl = `matrixify_mode_${axis}`;
   const selectionModeControl = `matrixify_dimension_selection_mode_${axis}`;
@@ -122,6 +122,7 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
         `matrixify_topn_metric_${axis}`,
         `matrixify_topn_order_${axis}`,
         `matrixify_dimension_selection_mode_${axis}`,
+        `matrixify_all_sort_by_${axis}`,
       ];
 
       return fieldsToCheck.some(
@@ -161,6 +162,7 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
         topNOrder: getValue(`matrixify_topn_order_${axis}`, true)
           ? 'DESC'
           : 'ASC',
+        allSortBy: getValue(`matrixify_all_sort_by_${axis}`, 'a_to_z'),
         formData: form_data,
         validators,
       };
@@ -240,15 +242,15 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
     description: t(`Metric to use for ordering Top N values`),
     tabOverride: 'matrixify',
     visibility: ({ controls }) =>
-      isMatrixifyVisible(controls, axis, 'dimensions', 'topn'),
+      isMatrixifyVisible(controls, axis, 'dimensions', 'topn') ||
+      (isMatrixifyVisible(controls, axis, 'dimensions', 'all') &&
+        controls?.[`matrixify_all_sort_by_${axis}`]?.value === 'metric'),
     mapStateToProps: (state, controlState) => {
       const { controls, datasource } = state;
-      const isVisible = isMatrixifyVisible(
-        controls,
-        axis,
-        'dimensions',
-        'topn',
-      );
+      const isVisible =
+        isMatrixifyVisible(controls, axis, 'dimensions', 'topn') ||
+        (isMatrixifyVisible(controls, axis, 'dimensions', 'all') &&
+          controls?.[`matrixify_all_sort_by_${axis}`]?.value === 'metric');
 
       const originalProps =
         dndAdhocMetricControl.mapStateToProps?.(state, controlState) || {};
@@ -271,7 +273,24 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
     renderTrigger: true,
     tabOverride: 'matrixify',
     visibility: ({ controls }) =>
-      isMatrixifyVisible(controls, axis, 'dimensions', 'topn'),
+      isMatrixifyVisible(controls, axis, 'dimensions', 'topn') ||
+      (isMatrixifyVisible(controls, axis, 'dimensions', 'all') &&
+        controls?.[`matrixify_all_sort_by_${axis}`]?.value === 'metric'),
+  };
+
+  matrixifyControls[`matrixify_all_sort_by_${axis}`] = {
+    type: 'RadioButtonControl',
+    label: t('Sort by'),
+    default: 'a_to_z',
+    renderTrigger: true,
+    tabOverride: 'matrixify',
+    visibility: ({ controls }) =>
+      isMatrixifyVisible(controls, axis, 'dimensions', 'all'),
+    options: [
+      ['a_to_z', t('A-Z')],
+      ['z_to_a', t('Z-A')],
+      ['metric', t('Metric')],
+    ],
   };
 });
 

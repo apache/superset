@@ -297,6 +297,7 @@ function buildMatrixifySection(
       [`matrixify_dimension_${axis}`],
       [`matrixify_topn_dimension_${axis}`],
       [`matrixify_topn_value_${axis}`],
+      [`matrixify_all_sort_by_${axis}`],
       [`matrixify_topn_metric_${axis}`],
       [`matrixify_topn_order_${axis}`],
       [
