@@ -30,9 +30,9 @@ import uvicorn
 
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
 from superset.mcp_service.mcp_config import (
+    get_mcp_factory_config,
     MCP_STORE_CONFIG,
     MCP_TOOL_SEARCH_CONFIG,
-    get_mcp_factory_config,
 )
 from superset.mcp_service.middleware import (
     GlobalErrorHandlerMiddleware,
