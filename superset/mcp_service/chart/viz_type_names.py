@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 # Display names for modern chart plugins that exist only in the frontend
 # (TypeScript ChartMetadata.name) and have no BaseViz subclass in viz.py.
 # These take precedence over viz.py verbose_name when both exist.
+# See also: superset-frontend/packages/superset-ui-core/src/chart/types/VizType.ts
 _FRONTEND_ONLY_NAMES: dict[str, str] = {
     # ECharts time-series variants
     "echarts_timeseries": "Generic Chart",
