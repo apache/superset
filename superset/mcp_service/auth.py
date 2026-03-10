@@ -230,7 +230,15 @@ def get_user_from_request() -> User:
                 user_with_rels = load_user_with_relationships(
                     username=user.username,
                 )
-                return user_with_rels or user
+                if user_with_rels is None:
+                    logger.warning(
+                        "Failed to reload API key user %s with relationships; "
+                        "using original user object which may have lazy-loaded "
+                        "relationships",
+                        user.username,
+                    )
+                    return user
+                return user_with_rels
             raise ValueError(
                 "Invalid or expired API key. "
                 "Create a new key at /api/v1/security/api_keys/."
