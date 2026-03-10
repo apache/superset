@@ -141,6 +141,7 @@ const ItemTitleContainer = forwardRef<HTMLDivElement, Props>(
           key={`item-title-tab-${id}`}
           onClick={() => onChange(id)}
           className={classNames.join(' ')}
+          aria-selected={isActive}
         >
           <div css={{ display: 'flex', width: '100%', alignItems: 'center' }}>
             <div
