@@ -26,8 +26,6 @@ import {
 } from '@superset-ui/core';
 import { CardStyles } from 'src/views/CRUD/utils';
 import {
-  Dropdown,
-  Button,
   FaveStar,
   PublishedLabel,
   ListViewCard,
@@ -36,7 +34,7 @@ import { MenuItem } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Dashboard } from 'src/views/CRUD/types';
 import { assetUrl } from 'src/utils/assetUrl';
-import { FacePile } from 'src/components';
+import { FacePile, KebabMenuButton } from 'src/components';
 
 interface DashboardCardProps {
   isChart?: boolean;
@@ -191,11 +189,10 @@ function DashboardCard({
                 isStarred={favoriteStatus}
               />
             )}
-            <Dropdown menu={{ items: menuItems }} trigger={['hover', 'click']}>
-              <Button buttonSize="xsmall" buttonStyle="link">
-                <Icons.MoreOutlined iconSize="xl" />
-              </Button>
-            </Dropdown>
+            <KebabMenuButton
+              menuItems={menuItems}
+              dataTest="dashboard-card-menu"
+            />
           </ListViewCard.Actions>
         }
       />
