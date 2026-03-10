@@ -195,11 +195,16 @@ async function resolvePermalinkUrl(
 export async function getChartPermalink(
   formData: Pick<QueryFormData, 'datasource'>,
   excludedUrlParams?: string[],
+  chartState?: JsonObject,
 ): Promise<PermalinkResult> {
-  const result = await getPermalink('/api/v1/explore/permalink', {
+  const payload: JsonObject = {
     formData,
     urlParams: getChartUrlParams(excludedUrlParams),
-  });
+  };
+  if (chartState && Object.keys(chartState).length > 0) {
+    payload.chartState = chartState;
+  }
+  const result = await getPermalink('/api/v1/explore/permalink', payload);
   return resolvePermalinkUrl(result);
 }
 
