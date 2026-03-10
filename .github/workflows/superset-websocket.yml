@@ -24,6 +24,10 @@ jobs:
         uses: actions/checkout@v6
         with:
           persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: './superset-websocket/.nvmrc'
       - name: Install dependencies
         working-directory: ./superset-websocket
         run: npm ci
