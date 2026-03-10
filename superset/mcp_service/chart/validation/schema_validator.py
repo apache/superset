@@ -180,8 +180,6 @@ class SchemaValidator:
 
         return chart_type_validators[chart_type](config)
 
-        return True, None
-
     @staticmethod
     def _pre_validate_xy_config(
         config: Dict[str, Any],
