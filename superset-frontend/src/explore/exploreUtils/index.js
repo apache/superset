@@ -78,21 +78,24 @@ export function getAnnotationJsonUrl(slice_id, force) {
     .toString();
 }
 
-export function getURIDirectory(endpointType = 'base') {
+export function getURIDirectory(endpointType = 'base', includeAppRoot = true) {
   // Building the directory part of the URI
-  if (
-    ['full', 'json', 'csv', 'query', 'results', 'samples'].includes(
-      endpointType,
-    )
-  ) {
-    return ensureAppRoot('/superset/explore_json/');
-  }
-  return ensureAppRoot('/explore/');
+  const uri = ['full', 'json', 'csv', 'query', 'results', 'samples'].includes(
+    endpointType,
+  )
+    ? '/superset/explore_json/'
+    : '/explore/';
+  return includeAppRoot ? ensureAppRoot(uri) : uri;
 }
 
-export function mountExploreUrl(endpointType, extraSearch = {}, force = false) {
+export function mountExploreUrl(
+  endpointType,
+  extraSearch = {},
+  force = false,
+  includeAppRoot = true,
+) {
   const uri = new URI('/');
-  const directory = getURIDirectory(endpointType);
+  const directory = getURIDirectory(endpointType, includeAppRoot);
   const search = uri.search(true);
   Object.keys(extraSearch).forEach(key => {
     search[key] = extraSearch[key];

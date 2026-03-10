@@ -132,7 +132,7 @@ beforeAll(() => {
   });
 });
 
-afterAll(() => fetchMock.restore());
+afterAll(() => fetchMock.clearHistory());
 
 const setup = (props = defaultProps, store = initialStore) =>
   render(<SaveModal {...props} />, {
@@ -290,9 +290,9 @@ test('updates slice name and selected dashboard', async () => {
     }),
   );
   await waitFor(() =>
-    expect(fetchMock.calls(fetchDashboardEndpoint)).toHaveLength(1),
+    expect(fetchMock.callHistory.calls(fetchDashboardEndpoint)).toHaveLength(1),
   );
-  expect(fetchMock.calls(fetchDashboardEndpoint)[0][0]).toEqual(
+  expect(fetchMock.callHistory.calls(fetchDashboardEndpoint)[0].url).toEqual(
     expect.stringContaining(`dashboard/${dashboardId}`),
   );
   expect(createSlice).toHaveBeenCalledWith(
@@ -371,17 +371,13 @@ test('dispatches removeChartState when saving and going to dashboard', async () 
   // Mock the dashboard API response
   const dashboardId = 123;
   const dashboardUrl = '/superset/dashboard/test-dashboard/';
-  fetchMock.get(
-    `glob:*/api/v1/dashboard/${dashboardId}*`,
-    {
-      result: {
-        id: dashboardId,
-        dashboard_title: 'Test Dashboard',
-        url: dashboardUrl,
-      },
+  fetchMock.get(`glob:*/api/v1/dashboard/${dashboardId}*`, {
+    result: {
+      id: dashboardId,
+      dashboard_title: 'Test Dashboard',
+      url: dashboardUrl,
     },
-    { overwriteRoutes: true },
-  );
+  });
 
   const mockDispatch = jest.fn();
   const mockHistory = {

@@ -72,17 +72,17 @@ describe('ExecutionLog', () => {
   });
 
   test('fetches report/alert', () => {
-    const callsQ = fetchMock.calls(/report\/1/);
+    const callsQ = fetchMock.callHistory.calls(/report\/1/);
     expect(callsQ).toHaveLength(2);
-    expect(callsQ[1][0]).toMatchInlineSnapshot(
+    expect(callsQ[1].url).toMatchInlineSnapshot(
       `"http://localhost/api/v1/report/1"`,
     );
   });
 
   test('fetches execution logs', () => {
-    const callsQ = fetchMock.calls(/report\/1\/log/);
+    const callsQ = fetchMock.callHistory.calls(/report\/1\/log/);
     expect(callsQ).toHaveLength(1);
-    expect(callsQ[0][0]).toMatchInlineSnapshot(
+    expect(callsQ[0].url).toMatchInlineSnapshot(
       `"http://localhost/api/v1/report/1/log/?q=(order_column:start_dttm,order_direction:desc,page:0,page_size:25)"`,
     );
   });

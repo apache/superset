@@ -132,12 +132,9 @@ export default function AdhocFilterEditPopoverSqlTabContent({
           height={`${height - 130}px`}
           onChange={onSqlExpressionChange}
           width="100%"
-          showGutter={false}
+          lineNumbers={false}
           value={adhocFilter.sqlExpression || adhocFilter.translateToSql()}
-          editorProps={{ $blockScrolling: true }}
-          enableLiveAutocompletion
-          className="filter-sql-editor"
-          wrapEnabled
+          wordWrap
           showValidation
           expressionType={
             adhocFilter.clause === 'HAVING'

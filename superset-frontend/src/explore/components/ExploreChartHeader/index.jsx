@@ -274,7 +274,7 @@ export const ExploreChartHeader = ({
               />
             ) : null}
             {formData && isMatrixifyEnabled(formData) && (
-              <Tag name="Matrixify" color="purple" />
+              <Tag name="Matrixified" color="purple" />
             )}
             {metadataBar}
           </div>

@@ -54,7 +54,7 @@ fetchMock.get(DATASOURCE_ENDPOINT, DATASOURCE_PAYLOAD);
 fetchMock.get(INFO_ENDPOINT, {});
 
 afterEach(() => {
-  fetchMock.resetHistory();
+  fetchMock.clearHistory();
 });
 
 const setup = (props = mockedProps) =>
@@ -70,7 +70,9 @@ test('renders', () => {
 
 test('fetches datasources', async () => {
   setup();
-  await waitFor(() => expect(fetchMock.calls(INFO_ENDPOINT)).toHaveLength(1));
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(INFO_ENDPOINT)).toHaveLength(1),
+  );
 });
 
 test('renders confirmation message', async () => {
@@ -87,6 +89,6 @@ test('changes the datasource', async () => {
   const proceedButton = getByRole('button', { name: 'Proceed' });
   fireEvent.click(proceedButton);
   await waitFor(() =>
-    expect(fetchMock.calls(/api\/v1\/dataset\/7/)).toHaveLength(1),
+    expect(fetchMock.callHistory.calls(/api\/v1\/dataset\/7/)).toHaveLength(1),
   );
 });

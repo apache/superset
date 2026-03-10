@@ -41,9 +41,9 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // @ts-ignore
   window.location = originalLocation;
-  fetchMock.reset();
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
   jest.clearAllMocks(); // Clears mock history but keeps spy in place
 });
 
@@ -126,26 +126,25 @@ const createProps = (
     ...overrides,
   }) as unknown as DatasourceControlComponentProps;
 
+const getDbWithQuery = 'glob:*/api/v1/database/?q=*';
+const getDatasetWithAll = 'glob:*/api/v1/dataset/*';
+const putDatasetWithAll = 'glob:*/api/v1/dataset/*';
+
 async function openAndSaveChanges(
   datasource: TestDatasource | Record<string, unknown>,
 ) {
+  fetchMock.removeRoute(getDbWithQuery);
+  fetchMock.get(getDbWithQuery, { result: [] }, { name: getDbWithQuery });
+
+  fetchMock.removeRoute('put' + putDatasetWithAll);
+  fetchMock.put(putDatasetWithAll, {}, { name: 'put' + putDatasetWithAll });
+
+  fetchMock.removeRoute('get' + getDatasetWithAll);
   fetchMock.get(
-    'glob:*/api/v1/database/?q=*',
-    { result: [] },
-    { overwriteRoutes: true },
-  );
-  fetchMock.put(
-    'glob:*/api/v1/dataset/*',
-    {},
-    {
-      overwriteRoutes: true,
-    },
-  );
-  fetchMock.get(
-    'glob:*/api/v1/dataset/*',
+    getDatasetWithAll,
     { result: datasource },
     {
-      overwriteRoutes: true,
+      name: 'get' + getDatasetWithAll,
     },
   );
   await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
@@ -262,19 +261,16 @@ test('Click on Edit dataset', async () => {
   SupersetClientGet.mockImplementationOnce(
     async () => ({ json: { result: [] } }) as any,
   );
-  fetchMock.get(
-    'glob:*/api/v1/database/?q=*',
-    { result: [] },
-    { overwriteRoutes: true },
-  );
+  fetchMock.removeRoute(getDbWithQuery);
+  fetchMock.get(getDbWithQuery, { result: [] }, { name: getDbWithQuery });
   render(<DatasourceControl {...props} />, {
     useRedux: true,
     useRouter: true,
   });
-  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
   await act(async () => {
-    await userEvent.click(screen.getByText('Edit dataset'));
+    userEvent.click(screen.getByText('Edit dataset'));
   });
 
   expect(
@@ -581,28 +577,16 @@ test('should allow creating new metrics in dataset editor', async () => {
   });
 
   // Mock API calls for dataset editor
-  fetchMock.get(
-    'glob:*/api/v1/database/?q=*',
-    { result: [] },
-    { overwriteRoutes: true },
-  );
+  fetchMock.get(getDbWithQuery, { response: { result: [] } });
 
-  fetchMock.get(
-    'glob:*/api/v1/dataset/*',
-    { result: mockDatasourceWithMetrics },
-    { overwriteRoutes: true },
-  );
+  fetchMock.get(getDatasetWithAll, { result: mockDatasourceWithMetrics });
 
-  fetchMock.put(
-    'glob:*/api/v1/dataset/*',
-    {
-      result: {
-        ...mockDatasourceWithMetrics,
-        metrics: [{ id: 1, metric_name: newMetricName }],
-      },
+  fetchMock.put(putDatasetWithAll, {
+    result: {
+      ...mockDatasourceWithMetrics,
+      metrics: [{ id: 1, metric_name: newMetricName }],
     },
-    { overwriteRoutes: true },
-  );
+  });
 
   SupersetClientGet.mockImplementationOnce(
     async () => ({ json: { result: [] } }) as any,
@@ -614,31 +598,31 @@ test('should allow creating new metrics in dataset editor', async () => {
   });
 
   // Open datasource menu and click edit dataset
-  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
-  await userEvent.click(await screen.findByTestId('edit-dataset'));
+  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  userEvent.click(await screen.findByTestId('edit-dataset'));
 
   // Wait for modal to appear and navigate to Metrics tab
   await waitFor(() => {
     expect(screen.getByText('Metrics')).toBeInTheDocument();
   });
 
-  await userEvent.click(screen.getByText('Metrics'));
+  userEvent.click(screen.getByText('Metrics'));
 
   // Click add new metric button
   const addButton = await screen.findByTestId('crud-add-table-item');
-  await userEvent.click(addButton);
+  userEvent.click(addButton);
 
   // Find and fill in the metric name
   const nameInput = await screen.findByTestId('textarea-editable-title-input');
-  await userEvent.clear(nameInput);
-  await userEvent.type(nameInput, newMetricName);
+  userEvent.clear(nameInput);
+  userEvent.type(nameInput, newMetricName);
 
   // Save the modal
-  await userEvent.click(screen.getByTestId('datasource-modal-save'));
+  userEvent.click(screen.getByTestId('datasource-modal-save'));
 
   // Confirm the save
   const okButton = await screen.findByText('OK');
-  await userEvent.click(okButton);
+  userEvent.click(okButton);
 
   // Verify the onDatasourceSave callback was called
   await waitFor(() => {
@@ -658,23 +642,15 @@ test('should allow deleting metrics in dataset editor', async () => {
   });
 
   // Mock API calls
-  fetchMock.get(
-    'glob:*/api/v1/database/?q=*',
-    { result: [] },
-    { overwriteRoutes: true },
-  );
+  fetchMock.get('glob:*/api/v1/database/?q=*', { result: [] });
 
-  fetchMock.get(
-    'glob:*/api/v1/dataset/*',
-    { result: mockDatasourceWithMetrics },
-    { overwriteRoutes: true },
-  );
+  fetchMock.get('glob:*/api/v1/dataset/*', {
+    result: mockDatasourceWithMetrics,
+  });
 
-  fetchMock.put(
-    'glob:*/api/v1/dataset/*',
-    { result: { ...mockDatasourceWithMetrics, metrics: [] } },
-    { overwriteRoutes: true },
-  );
+  fetchMock.put('glob:*/api/v1/dataset/*', {
+    result: { ...mockDatasourceWithMetrics, metrics: [] },
+  });
 
   SupersetClientGet.mockImplementationOnce(
     async () => ({ json: { result: [] } }) as any,
@@ -722,23 +698,11 @@ test('should handle metric save confirmation modal', async () => {
   const props = createProps();
 
   // Mock API calls for dataset editor
-  fetchMock.get(
-    'glob:*/api/v1/database/?q=*',
-    { result: [] },
-    { overwriteRoutes: true },
-  );
+  fetchMock.get('glob:*/api/v1/database/?q=*', { result: [] });
 
-  fetchMock.get(
-    'glob:*/api/v1/dataset/*',
-    { result: mockDatasource },
-    { overwriteRoutes: true },
-  );
+  fetchMock.get('glob:*/api/v1/dataset/*', { result: mockDatasource });
 
-  fetchMock.put(
-    'glob:*/api/v1/dataset/*',
-    { result: mockDatasource },
-    { overwriteRoutes: true },
-  );
+  fetchMock.put('glob:*/api/v1/dataset/*', { result: mockDatasource });
 
   SupersetClientGet.mockImplementationOnce(
     async () => ({ json: { result: [] } }) as any,
@@ -782,23 +746,11 @@ test('should verify real DatasourceControl callback fires on save', async () => 
   });
 
   // Mock API calls with the same datasource (no changes needed for this test)
-  fetchMock.get(
-    'glob:*/api/v1/database/?q=*',
-    { result: [] },
-    { overwriteRoutes: true },
-  );
+  fetchMock.get('glob:*/api/v1/database/?q=*', { result: [] });
 
-  fetchMock.get(
-    'glob:*/api/v1/dataset/*',
-    { result: mockDatasource },
-    { overwriteRoutes: true },
-  );
+  fetchMock.get('glob:*/api/v1/dataset/*', { result: mockDatasource });
 
-  fetchMock.put(
-    'glob:*/api/v1/dataset/*',
-    { result: mockDatasource },
-    { overwriteRoutes: true },
-  );
+  fetchMock.put('glob:*/api/v1/dataset/*', { result: mockDatasource });
 
   SupersetClientGet.mockImplementationOnce(
     async () => ({ json: { result: [] } }) as any,

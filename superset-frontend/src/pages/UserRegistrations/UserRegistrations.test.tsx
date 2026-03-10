@@ -50,7 +50,7 @@ describe('UserRegistrations', () => {
   });
   test('fetches and renders user registrations', async () => {
     expect(await screen.findByText('User registrations')).toBeVisible();
-    const calls = fetchMock.calls(userRegistrationsEndpoint);
+    const calls = fetchMock.callHistory.calls(userRegistrationsEndpoint);
     expect(calls.length).toBeGreaterThan(0);
   });
 });

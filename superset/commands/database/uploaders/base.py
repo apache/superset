@@ -159,6 +159,12 @@ class UploadCommand(BaseCommand):
         if not self._model:
             return
 
+        self._table_name, self._schema = (
+            self._model.db_engine_spec.normalize_table_name_for_upload(
+                self._table_name, self._schema
+            )
+        )
+
         self._reader.read(self._file, self._model, self._table_name, self._schema)
 
         sqla_table = (

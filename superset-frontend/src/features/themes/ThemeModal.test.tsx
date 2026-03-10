@@ -64,17 +64,28 @@ const mockSystemTheme: ThemeObject = {
   is_system: true,
 };
 
+const postThemeMockName = 'postTheme';
+const putThemeMockName = 'putTheme';
+
 beforeEach(() => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   fetchMock.get('glob:*/api/v1/theme/1', { result: mockTheme });
   fetchMock.get('glob:*/api/v1/theme/2', { result: mockSystemTheme });
   fetchMock.get('glob:*/api/v1/theme/*', { result: mockTheme });
-  fetchMock.post('glob:*/api/v1/theme/', { result: { ...mockTheme, id: 3 } });
-  fetchMock.put('glob:*/api/v1/theme/*', { result: mockTheme });
+  fetchMock.post(
+    'glob:*/api/v1/theme/',
+    { result: { ...mockTheme, id: 3 } },
+    { name: postThemeMockName },
+  );
+  fetchMock.put(
+    'glob:*/api/v1/theme/*',
+    { result: mockTheme },
+    { name: putThemeMockName },
+  );
 });
 
 afterEach(() => {
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
   jest.clearAllMocks();
 });
 
@@ -420,7 +431,7 @@ test('saves changes when clicking Save button in unsaved changes alert', async (
 
   // Wait for API call to complete
   await screen.findByRole('dialog');
-  expect(fetchMock.called()).toBe(true);
+  expect(fetchMock.callHistory.called()).toBe(true);
 });
 
 test('discards changes when clicking Discard button in unsaved changes alert', async () => {
@@ -451,8 +462,8 @@ test('discards changes when clicking Discard button in unsaved changes alert', a
   await userEvent.click(discardButton);
 
   expect(onHide).toHaveBeenCalled();
-  expect(fetchMock.called('glob:*/api/v1/theme/', 'POST')).toBe(false);
-  expect(fetchMock.called('glob:*/api/v1/theme/*', 'PUT')).toBe(false);
+  expect(fetchMock.callHistory.called()).toBe(false);
+  expect(fetchMock.callHistory.called(putThemeMockName)).toBe(false);
 });
 
 test('creates new theme when saving', async () => {
@@ -477,7 +488,7 @@ test('creates new theme when saving', async () => {
   await userEvent.click(saveButton);
 
   expect(await screen.findByRole('dialog')).toBeInTheDocument();
-  expect(fetchMock.called('glob:*/api/v1/theme/', 'POST')).toBe(true);
+  expect(fetchMock.callHistory.called(postThemeMockName)).toBe(true);
 });
 
 test('updates existing theme when saving', async () => {
@@ -504,11 +515,11 @@ test('updates existing theme when saving', async () => {
   await userEvent.click(saveButton);
 
   expect(await screen.findByRole('dialog')).toBeInTheDocument();
-  expect(fetchMock.called('glob:*/api/v1/theme/*', 'PUT')).toBe(true);
+  expect(fetchMock.callHistory.called(putThemeMockName)).toBe(true);
 });
 
 test('handles API errors gracefully', async () => {
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
   fetchMock.post('glob:*/api/v1/theme/', 500);
 
   render(
@@ -532,7 +543,7 @@ test('handles API errors gracefully', async () => {
   await userEvent.click(saveButton);
 
   await screen.findByRole('dialog');
-  expect(fetchMock.called()).toBe(true);
+  expect(fetchMock.callHistory.called()).toBe(true);
 });
 
 test('applies theme locally when clicking Apply button', async () => {
@@ -560,7 +571,7 @@ test('applies theme locally when clicking Apply button', async () => {
 });
 
 test('disables Apply button when JSON configuration is invalid', async () => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   fetchMock.get('glob:*/api/v1/theme/*', {
     result: { ...mockTheme, json_data: 'invalid json' },
   });

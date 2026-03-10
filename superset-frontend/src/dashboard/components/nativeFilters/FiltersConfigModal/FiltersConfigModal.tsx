@@ -503,7 +503,7 @@ function FiltersConfigModal({
     <BaseModalWrapper
       open={isOpen}
       maskClosable={false}
-      title={t('Filters and customization settings')}
+      title={t('Add or edit display controls')}
       expanded={expanded}
       destroyOnHidden
       onCancel={handleCancel}

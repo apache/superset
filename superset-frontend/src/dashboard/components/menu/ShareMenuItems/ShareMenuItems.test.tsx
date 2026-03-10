@@ -47,15 +47,15 @@ const createProps = () => ({
 
 const { location } = window;
 
+const postDashboardPermalinkMockUrl = `http://localhost/api/v1/dashboard/${DASHBOARD_ID}/permalink`;
+
 beforeAll((): void => {
   // @ts-ignore
   delete window.location;
   fetchMock.post(
-    `http://localhost/api/v1/dashboard/${DASHBOARD_ID}/permalink`,
+    postDashboardPermalinkMockUrl,
     { key: '123', url: 'http://localhost/superset/dashboard/p/123/' },
-    {
-      sendAsJson: true,
-    },
+    { name: postDashboardPermalinkMockUrl },
   );
 });
 
@@ -67,6 +67,7 @@ beforeEach(() => {
 });
 
 afterAll((): void => {
+  // @ts-ignore
   window.location = location;
 });
 
@@ -188,10 +189,11 @@ test('Click on "Share dashboard by email" and succeed', async () => {
 });
 
 test('Click on "Share dashboard by email" and fail', async () => {
+  fetchMock.removeRoute(postDashboardPermalinkMockUrl);
   fetchMock.post(
     `http://localhost/api/v1/dashboard/${DASHBOARD_ID}/permalink`,
     { status: 404 },
-    { overwriteRoutes: true },
+    { name: postDashboardPermalinkMockUrl },
   );
   const props = createProps();
   render(

@@ -215,6 +215,11 @@ function createQueryErrorContext(
 const getCurrentTab: typeof sqlLabApi.getCurrentTab = () =>
   getTab(activeEditorId());
 
+const getActivePanel: typeof sqlLabApi.getActivePanel = () => {
+  const { activeSouthPaneTab } = getSqlLabState();
+  return new Panel(String(activeSouthPaneTab));
+};
+
 const getTabs: typeof sqlLabApi.getTabs = () => {
   const { queryEditors } = getSqlLabState();
   return queryEditors
@@ -389,6 +394,7 @@ const onDidChangeTabTitle: typeof sqlLabApi.onDidChangeTabTitle = (
 
 export const sqlLab: typeof sqlLabApi = {
   CTASMethod,
+  getActivePanel,
   getCurrentTab,
   onDidChangeEditorDatabase,
   onDidChangeEditorSchema,

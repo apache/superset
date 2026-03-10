@@ -109,13 +109,10 @@ const StyledMain = styled('main')`
 
 const StyledTitleContainer = styled('div')`
   position: relative;
-  padding: 130px 20px 0;
-  margin-bottom: 160px;
+  padding: 130px 20px 20px;
+  margin-bottom: 0;
   background-image: url('/img/grid-background.jpg');
   background-size: cover;
-  ${mq[1]} {
-    margin-bottom: 100px;
-  }
   .info-container {
     position: relative;
     z-index: 4;

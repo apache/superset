@@ -22,10 +22,13 @@ import { getFormData } from '../../../../src/query/api/legacy';
 
 import setupClientForTest from '../setupClientForTest';
 
+beforeAll(() => fetchMock.mockGlobal());
+afterAll(() => fetchMock.hardReset());
+
 describe('getFormData()', () => {
   beforeAll(() => setupClientForTest());
 
-  afterEach(() => fetchMock.restore());
+  afterEach(() => fetchMock.clearHistory().removeRoutes());
 
   const mockData = {
     datasource: '1__table',

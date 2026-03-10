@@ -170,7 +170,11 @@ describe('ChartContainer', () => {
       useRedux: true,
     });
     const tabpanel = screen.getByRole('tabpanel', { name: /results/i });
-    expect(await within(tabpanel).findByText(/0 rows/i)).toBeInTheDocument();
+    expect(
+      await within(tabpanel).findByText(/0 rows/i, undefined, {
+        timeout: 5000,
+      }),
+    ).toBeInTheDocument();
 
     const gutter = container.querySelector('.gutter');
     expect(gutter).toBeVisible();

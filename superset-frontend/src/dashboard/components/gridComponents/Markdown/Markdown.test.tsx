@@ -30,6 +30,25 @@ import { mockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 import MarkdownConnected from './Markdown';
 
+jest.mock('src/core/editors', () => ({
+  EditorHost: ({
+    value,
+    onChange,
+    onBlur,
+  }: {
+    value: string;
+    onChange?: (v: string) => void;
+    onBlur?: (v: string) => void;
+  }) => (
+    <textarea
+      role="textbox"
+      defaultValue={value}
+      onChange={e => onChange?.(e.target.value)}
+      onBlur={e => onBlur?.(e.target.value)}
+    />
+  ),
+}));
+
 interface MarkdownProps {
   id: string;
   parentId: string;
@@ -165,7 +184,7 @@ test('should call updateComponents when switching from edit to preview with chan
   const updateComponents = jest.fn();
   const mockCode = 'new markdown!';
 
-  const { container } = await setup({
+  await setup({
     editMode: true,
     updateComponents,
     component: {
@@ -185,8 +204,8 @@ test('should call updateComponents when switching from edit to preview with chan
     // Wait for editor to be fully mounted
     await new Promise(resolve => setTimeout(resolve, 50));
 
-    // Find the actual textarea/input element
-    const editor = container.querySelector('.ace_text-input');
+    // Find the actual textarea element
+    const editor = screen.getByRole('textbox');
 
     if (editor) {
       // Simulate direct input

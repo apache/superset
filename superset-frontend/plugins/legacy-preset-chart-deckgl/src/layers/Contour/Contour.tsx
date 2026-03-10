@@ -25,6 +25,7 @@ import sandboxedEval from '../../utils/sandbox';
 import { GetLayerType, createDeckGLComponent } from '../../factory';
 import { ColorType } from '../../types';
 import TooltipRow from '../../TooltipRow';
+import { getSafeCellSize } from './getSafeCellSize';
 import {
   createTooltipContent,
   CommonTooltipRows,
@@ -159,11 +160,23 @@ export const getLayer: GetLayerType<ContourLayer> = function ({
     return baseTooltipContent(o);
   };
 
+  const safeCellSize = getSafeCellSize({
+    cellSize,
+    viewport: fd.viewport,
+    onAutoAdjust: ({ original, adjusted, estimatedCells }) => {
+      console.warn(
+        `[DeckGL Contour] cellSize=${original} would create ~${Math.round(
+          estimatedCells,
+        )} cells. Auto-adjusted to ${adjusted} to prevent WebGL crash.`,
+      );
+    },
+  });
+
   return new ContourLayer({
     id: `contourLayer-${fd.slice_id}`,
     data,
     contours,
-    cellSize: Number(cellSize || '200'),
+    cellSize: safeCellSize,
     aggregation: aggregation.toUpperCase(),
     getPosition: (d: { position: number[]; weight: number }) =>
       d.position as Position,

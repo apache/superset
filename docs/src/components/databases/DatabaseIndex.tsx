@@ -26,6 +26,7 @@ import {
   KeyOutlined,
   SearchOutlined,
   LinkOutlined,
+  BugOutlined,
 } from '@ant-design/icons';
 import type { DatabaseData, DatabaseInfo, TimeGrains } from './types';
 
@@ -44,6 +45,8 @@ interface TableEntry {
   hasDrivers: boolean;
   hasAuthMethods: boolean;
   hasConnectionString: boolean;
+  hasCustomErrors: boolean;
+  customErrorCount: number;
   joins?: boolean;
   subqueries?: boolean;
   supports_dynamic_schema?: boolean;
@@ -223,6 +226,8 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
           db.documentation?.connection_string ||
             (db.documentation?.drivers?.length ?? 0) > 0
         ),
+        hasCustomErrors: (db.documentation?.custom_errors?.length ?? 0) > 0,
+        customErrorCount: db.documentation?.custom_errors?.length ?? 0,
         isCompatible: false,
       });
 
@@ -246,6 +251,8 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
             hasDrivers: false,
             hasAuthMethods: false,
             hasConnectionString: Boolean(compat.connection_string),
+            hasCustomErrors: false,
+            customErrorCount: 0,
             joins: db.joins,
             subqueries: db.subqueries,
             supports_dynamic_schema: db.supports_dynamic_schema,
@@ -457,7 +464,7 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
     {
       title: 'Documentation',
       key: 'docs',
-      width: 150,
+      width: 180,
       render: (_: unknown, record: TableEntry) => (
         <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
           {record.hasConnectionString && (
@@ -474,6 +481,13 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
             <Tag icon={<KeyOutlined />} color="default">
               Auth
             </Tag>
+          )}
+          {record.hasCustomErrors && (
+            <Tooltip title={`${record.customErrorCount} troubleshooting tips`}>
+              <Tag icon={<BugOutlined />} color="volcano">
+                Errors
+              </Tag>
+            </Tooltip>
           )}
         </div>
       ),

@@ -34,7 +34,7 @@ Frontend contribution types allow extensions to extend Superset's user interface
 
 Extensions can add new views or panels to the host application, such as custom SQL Lab panels, dashboards, or other UI components. Each view is registered with a unique ID and can be activated or deactivated as needed. Contribution areas are uniquely identified (e.g., `sqllab.panels` for SQL Lab panels), enabling seamless integration into specific parts of the application.
 
-``` json
+```json
 "frontend": {
   "contributions": {
     "views": {
@@ -53,7 +53,7 @@ Extensions can add new views or panels to the host application, such as custom S
 
 Extensions can define custom commands that can be executed within the host application, such as context-aware actions or menu options. Each command can specify properties like a unique command identifier, an icon, a title, and a description. These commands can be invoked by users through menus, keyboard shortcuts, or other UI elements, enabling extensions to add rich, interactive functionality to Superset.
 
-``` json
+```json
 "frontend": {
   "contributions": {
     "commands": [
@@ -72,7 +72,7 @@ Extensions can define custom commands that can be executed within the host appli
 
 Extensions can contribute new menu items or context menus to the host application, providing users with additional actions and options. Each menu item can specify properties such as the target view, the command to execute, its placement (primary, secondary, or context), and conditions for when it should be displayed. Menu contribution areas are uniquely identified (e.g., `sqllab.editor` for the SQL Lab editor), allowing extensions to seamlessly integrate their functionality into specific menus and workflows within Superset.
 
-``` json
+```json
 "frontend": {
   "contributions": {
     "menus": {
@@ -101,6 +101,27 @@ Extensions can contribute new menu items or context menus to the host applicatio
 }
 ```
 
+### Editors
+
+Extensions can replace Superset's default text editors with custom implementations. This enables enhanced editing experiences using alternative editor frameworks like Monaco, CodeMirror, or custom solutions. When an extension registers an editor for a language, it replaces the default Ace editor in all locations that use that language (SQL Lab, Dashboard Properties, CSS editors, etc.).
+
+```json
+"frontend": {
+  "contributions": {
+    "editors": [
+      {
+        "id": "my_extension.monaco_sql",
+        "name": "Monaco SQL Editor",
+        "languages": ["sql"],
+        "description": "Monaco-based SQL editor with IntelliSense"
+      }
+    ]
+  }
+}
+```
+
+See [Editors Extension Point](./extension-points/editors) for implementation details.
+
 ## Backend
 
 Backend contribution types allow extensions to extend Superset's server-side capabilities with new API endpoints, MCP tools, and MCP prompts.
@@ -109,7 +130,7 @@ Backend contribution types allow extensions to extend Superset's server-side cap
 
 Extensions can register custom REST API endpoints under the `/api/v1/extensions/` namespace. This dedicated namespace prevents conflicts with built-in endpoints and provides a clear separation between core and extension functionality.
 
-``` json
+```json
 "backend": {
   "entryPoints": ["my_extension.entrypoint"],
   "files": ["backend/src/my_extension/**/*.py"]
@@ -118,7 +139,7 @@ Extensions can register custom REST API endpoints under the `/api/v1/extensions/
 
 The entry point module registers the API with Superset:
 
-``` python
+```python
 from superset_core.api.rest_api import add_extension_api
 from .api import MyExtensionAPI
 

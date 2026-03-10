@@ -64,7 +64,7 @@ async function renderAndWait(props = mockedProps) {
 }
 
 beforeEach(() => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   cleanup();
   renderAndWait();
   fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
@@ -191,7 +191,7 @@ describe('DatasourceModal', () => {
 
     // Render with the initial datasource
     cleanup();
-    fetchMock.reset();
+    fetchMock.clearHistory().removeRoutes();
     fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
     fetchMock.put(SAVE_DATASOURCE_ENDPOINT, {});
     fetchMock.get(GET_DATASOURCE_ENDPOINT, { result: {} });
@@ -225,16 +225,16 @@ describe('DatasourceModal', () => {
 
     // Verify the PUT request was made with override_columns=true
     await waitFor(() => {
-      const putCalls = fetchMock
+      const putCalls = fetchMock.callHistory
         .calls()
         .filter(
           call =>
-            call[0].includes('/api/v1/dataset/7') &&
-            call[0].includes('override_columns') &&
-            call[1]?.method === 'PUT',
+            call.url.includes('/api/v1/dataset/7') &&
+            call.url.includes('override_columns') &&
+            call.options?.method === 'put',
         );
       expect(putCalls.length).toBeGreaterThan(0);
-      expect(putCalls[putCalls.length - 1][0]).toContain(
+      expect(putCalls[putCalls.length - 1].url).toContain(
         'override_columns=true',
       );
     });
@@ -252,7 +252,7 @@ describe('DatasourceModal', () => {
 
     // Render with the initial datasource
     cleanup();
-    fetchMock.reset();
+    fetchMock.clearHistory().removeRoutes();
     fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
     fetchMock.put(SAVE_DATASOURCE_ENDPOINT, {});
     fetchMock.get(GET_DATASOURCE_ENDPOINT, { result: {} });
@@ -292,16 +292,16 @@ describe('DatasourceModal', () => {
 
     // Verify the PUT request was made with override_columns=false
     await waitFor(() => {
-      const putCalls = fetchMock
+      const putCalls = fetchMock.callHistory
         .calls()
         .filter(
           call =>
-            call[0].includes('/api/v1/dataset/7') &&
-            call[0].includes('override_columns') &&
-            call[1]?.method === 'PUT',
+            call.url.includes('/api/v1/dataset/7') &&
+            call.url.includes('override_columns') &&
+            call.options?.method === 'put',
         );
       expect(putCalls.length).toBeGreaterThan(0);
-      expect(putCalls[putCalls.length - 1][0]).toContain(
+      expect(putCalls[putCalls.length - 1].url).toContain(
         'override_columns=false',
       );
     });

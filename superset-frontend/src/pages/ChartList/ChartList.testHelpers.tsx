@@ -291,17 +291,27 @@ export const API_ENDPOINTS = {
   CATCH_ALL: 'glob:*',
 };
 
-export const setupMocks = () => {
-  fetchMock.reset();
+export const setupMocks = (
+  payloadMap = {
+    [API_ENDPOINTS.CHARTS_INFO]: ['can_read', 'can_write', 'can_export'],
+  },
+) => {
+  fetchMock.get(
+    API_ENDPOINTS.CHARTS_INFO,
+    {
+      permissions: payloadMap[API_ENDPOINTS.CHARTS_INFO],
+    },
+    { name: API_ENDPOINTS.CHARTS_INFO },
+  );
 
-  fetchMock.get(API_ENDPOINTS.CHARTS_INFO, {
-    permissions: ['can_read', 'can_write', 'can_export'],
-  });
-
-  fetchMock.get(API_ENDPOINTS.CHARTS, {
-    result: mockCharts,
-    chart_count: mockCharts.length,
-  });
+  fetchMock.get(
+    API_ENDPOINTS.CHARTS,
+    {
+      result: mockCharts,
+      chart_count: mockCharts.length,
+    },
+    { name: API_ENDPOINTS.CHARTS },
+  );
 
   fetchMock.get(API_ENDPOINTS.CHART_FAVORITE_STATUS, {
     result: [],

@@ -86,21 +86,30 @@ describe('async actions', () => {
   };
 
   let dispatch;
+  const fetchQueryEndpoint = 'glob:*/api/v1/sqllab/results/*';
+  const runQueryEndpoint = 'glob:*/api/v1/sqllab/execute/';
 
   beforeEach(() => {
     dispatch = sinon.spy();
+    fetchMock.removeRoute(fetchQueryEndpoint);
+    fetchMock.get(
+      fetchQueryEndpoint,
+      JSON.stringify({
+        data: mockBigNumber,
+        query: { sqlEditorId: 'dfsadfs' },
+      }),
+      { name: fetchQueryEndpoint },
+    );
+
+    fetchMock.removeRoute(runQueryEndpoint);
+    fetchMock.post(runQueryEndpoint, `{ "data": ${mockBigNumber} }`, {
+      name: runQueryEndpoint,
+    });
   });
 
-  afterEach(() => fetchMock.resetHistory());
-
-  const fetchQueryEndpoint = 'glob:*/api/v1/sqllab/results/*';
-  fetchMock.get(
-    fetchQueryEndpoint,
-    JSON.stringify({ data: mockBigNumber, query: { sqlEditorId: 'dfsadfs' } }),
-  );
-
-  const runQueryEndpoint = 'glob:*/api/v1/sqllab/execute/';
-  fetchMock.post(runQueryEndpoint, `{ "data": ${mockBigNumber} }`);
+  afterEach(() => {
+    fetchMock.clearHistory();
+  });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('saveQuery', () => {
@@ -117,15 +126,15 @@ describe('async actions', () => {
 
       const store = mockStore(initialState);
       return store.dispatch(actions.saveQuery(query, queryId)).then(() => {
-        expect(fetchMock.calls(saveQueryEndpoint)).toHaveLength(1);
+        expect(fetchMock.callHistory.calls(saveQueryEndpoint)).toHaveLength(1);
       });
     });
 
     test('posts the correct query object', () => {
       const store = mockStore(initialState);
       return store.dispatch(actions.saveQuery(query, queryId)).then(() => {
-        const call = fetchMock.calls(saveQueryEndpoint)[0];
-        const formData = JSON.parse(call[1].body);
+        const call = fetchMock.callHistory.calls(saveQueryEndpoint)[0];
+        const formData = JSON.parse(call.options.body);
         const mappedQueryToServer = actions.convertQueryToServer(query);
 
         Object.keys(mappedQueryToServer).forEach(key => {
@@ -172,11 +181,12 @@ describe('async actions', () => {
     const expectedSql = 'SELECT 1';
 
     beforeEach(() => {
+      fetchMock.removeRoute(formatQueryEndpoint);
       fetchMock.post(
         formatQueryEndpoint,
         { result: expectedSql },
         {
-          overwriteRoutes: true,
+          name: formatQueryEndpoint,
         },
       );
     });
@@ -185,7 +195,9 @@ describe('async actions', () => {
       const store = mockStore(initialState);
       store.dispatch(actions.formatQuery(query, queryId));
       await waitFor(() =>
-        expect(fetchMock.calls(formatQueryEndpoint)).toHaveLength(1),
+        expect(fetchMock.callHistory.calls(formatQueryEndpoint)).toHaveLength(
+          1,
+        ),
       );
       expect(store.getActions()[0].type).toBe(actions.QUERY_EDITOR_SET_SQL);
       expect(store.getActions()[0].sql).toBe(expectedSql);
@@ -209,11 +221,13 @@ describe('async actions', () => {
       store.dispatch(actions.formatQuery(queryEditorWithoutExtras));
 
       await waitFor(() =>
-        expect(fetchMock.calls(formatQueryEndpoint)).toHaveLength(1),
+        expect(fetchMock.callHistory.calls(formatQueryEndpoint)).toHaveLength(
+          1,
+        ),
       );
 
-      const call = fetchMock.calls(formatQueryEndpoint)[0];
-      const body = JSON.parse(call[1].body);
+      const call = fetchMock.callHistory.calls(formatQueryEndpoint)[0];
+      const body = JSON.parse(call.options.body);
 
       expect(body).toEqual({ sql: 'SELECT * FROM table' });
       expect(body.database_id).toBeUndefined();
@@ -238,11 +252,13 @@ describe('async actions', () => {
       store.dispatch(actions.formatQuery(queryEditorWithDb));
 
       await waitFor(() =>
-        expect(fetchMock.calls(formatQueryEndpoint)).toHaveLength(1),
+        expect(fetchMock.callHistory.calls(formatQueryEndpoint)).toHaveLength(
+          1,
+        ),
       );
 
-      const call = fetchMock.calls(formatQueryEndpoint)[0];
-      const body = JSON.parse(call[1].body);
+      const call = fetchMock.callHistory.calls(formatQueryEndpoint)[0];
+      const body = JSON.parse(call.options.body);
 
       expect(body).toEqual({
         sql: 'SELECT * FROM table',
@@ -268,11 +284,13 @@ describe('async actions', () => {
       store.dispatch(actions.formatQuery(queryEditorWithTemplateString));
 
       await waitFor(() =>
-        expect(fetchMock.calls(formatQueryEndpoint)).toHaveLength(1),
+        expect(fetchMock.callHistory.calls(formatQueryEndpoint)).toHaveLength(
+          1,
+        ),
       );
 
-      const call = fetchMock.calls(formatQueryEndpoint)[0];
-      const body = JSON.parse(call[1].body);
+      const call = fetchMock.callHistory.calls(formatQueryEndpoint)[0];
+      const body = JSON.parse(call.options.body);
 
       expect(body).toEqual({
         sql: 'SELECT * FROM table WHERE id = {{ user_id }}',
@@ -299,11 +317,13 @@ describe('async actions', () => {
       store.dispatch(actions.formatQuery(queryEditorWithTemplateObject));
 
       await waitFor(() =>
-        expect(fetchMock.calls(formatQueryEndpoint)).toHaveLength(1),
+        expect(fetchMock.callHistory.calls(formatQueryEndpoint)).toHaveLength(
+          1,
+        ),
       );
 
-      const call = fetchMock.calls(formatQueryEndpoint)[0];
-      const body = JSON.parse(call[1].body);
+      const call = fetchMock.callHistory.calls(formatQueryEndpoint)[0];
+      const body = JSON.parse(call.options.body);
 
       expect(body).toEqual({
         sql: 'SELECT * FROM table WHERE id = {{ user_id }}',
@@ -314,12 +334,11 @@ describe('async actions', () => {
 
     test('dispatches QUERY_EDITOR_SET_SQL with formatted result', async () => {
       const formattedSql = 'SELECT\n  *\nFROM\n  table';
-      fetchMock.post(
+      fetchMock.removeRoute(formatQueryEndpoint);
+      fetchMock.route(
         formatQueryEndpoint,
         { result: formattedSql },
-        {
-          overwriteRoutes: true,
-        },
+        { name: formatQueryEndpoint },
       );
 
       const queryEditorToFormat = {
@@ -365,11 +384,13 @@ describe('async actions', () => {
       store.dispatch(actions.formatQuery(outdatedQueryEditor));
 
       await waitFor(() =>
-        expect(fetchMock.calls(formatQueryEndpoint)).toHaveLength(1),
+        expect(fetchMock.callHistory.calls(formatQueryEndpoint)).toHaveLength(
+          1,
+        ),
       );
 
-      const call = fetchMock.calls(formatQueryEndpoint)[0];
-      const body = JSON.parse(call[1].body);
+      const call = fetchMock.callHistory.calls(formatQueryEndpoint)[0];
+      const body = JSON.parse(call.options.body);
 
       expect(body.sql).toBe('SELECT * FROM updated_table');
       expect(body.database_id).toBe(10);
@@ -388,7 +409,7 @@ describe('async actions', () => {
       expect.assertions(1);
 
       return makeRequest().then(() => {
-        expect(fetchMock.calls(fetchQueryEndpoint)).toHaveLength(1);
+        expect(fetchMock.callHistory.calls(fetchQueryEndpoint)).toHaveLength(1);
       });
     });
 
@@ -402,7 +423,7 @@ describe('async actions', () => {
 
     test.skip('parses large number result without losing precision', () =>
       makeRequest().then(() => {
-        expect(fetchMock.calls(fetchQueryEndpoint)).toHaveLength(1);
+        expect(fetchMock.callHistory.calls(fetchQueryEndpoint)).toHaveLength(1);
         expect(dispatch.callCount).toBe(2);
         expect(dispatch.getCall(1).lastArg.results.data.toString()).toBe(
           mockBigNumber,
@@ -427,10 +448,11 @@ describe('async actions', () => {
     test('calls queryFailed on fetch error', () => {
       expect.assertions(1);
 
+      fetchMock.removeRoute(fetchQueryEndpoint);
       fetchMock.get(
         fetchQueryEndpoint,
         { throws: { message: 'error text' } },
-        { overwriteRoutes: true },
+        { name: fetchQueryEndpoint },
       );
 
       const store = mockStore({});
@@ -457,7 +479,7 @@ describe('async actions', () => {
       expect.assertions(1);
 
       return makeRequest().then(() => {
-        expect(fetchMock.calls(runQueryEndpoint)).toHaveLength(1);
+        expect(fetchMock.callHistory.calls(runQueryEndpoint)).toHaveLength(1);
       });
     });
 
@@ -469,9 +491,9 @@ describe('async actions', () => {
       });
     });
 
-    test.skip('parses large number result without losing precision', () =>
+    test('parses large number result without losing precision', () =>
       makeRequest().then(() => {
-        expect(fetchMock.calls(runQueryEndpoint)).toHaveLength(1);
+        expect(fetchMock.callHistory.calls(runQueryEndpoint)).toHaveLength(1);
         expect(dispatch.callCount).toBe(2);
         expect(dispatch.getCall(1).lastArg.results.data.toString()).toBe(
           mockBigNumber,
@@ -495,6 +517,7 @@ describe('async actions', () => {
     test('calls queryFailed on fetch error and logs the error details', () => {
       expect.assertions(2);
 
+      fetchMock.removeRoute(runQueryEndpoint);
       fetchMock.post(
         runQueryEndpoint,
         {
@@ -504,7 +527,7 @@ describe('async actions', () => {
             statusText: 'timeout',
           },
         },
-        { overwriteRoutes: true },
+        { name: runQueryEndpoint },
       );
 
       const store = mockStore({});
@@ -550,7 +573,9 @@ describe('async actions', () => {
         `{ "data": ${mockBigNumber} }`,
       );
       await makeRequest().then(() => {
-        expect(fetchMock.calls(runQueryEndpointWithParams)).toHaveLength(1);
+        expect(
+          fetchMock.callHistory.calls(runQueryEndpointWithParams),
+        ).toHaveLength(1);
       });
     });
   });
@@ -591,7 +616,7 @@ describe('async actions', () => {
       expect.assertions(1);
 
       return makeRequest().then(() => {
-        expect(fetchMock.calls(stopQueryEndpoint)).toHaveLength(1);
+        expect(fetchMock.callHistory.calls(stopQueryEndpoint)).toHaveLength(1);
       });
     });
 
@@ -607,8 +632,8 @@ describe('async actions', () => {
       expect.assertions(1);
 
       return makeRequest().then(() => {
-        const call = fetchMock.calls(stopQueryEndpoint)[0];
-        const body = JSON.parse(call[1].body);
+        const call = fetchMock.callHistory.calls(stopQueryEndpoint)[0];
+        const body = JSON.parse(call.options.body);
         expect(body.client_id).toBe(baseQuery.id);
       });
     });
@@ -955,7 +980,7 @@ describe('async actions', () => {
       isFeatureEnabled.mockRestore();
     });
 
-    afterEach(() => fetchMock.resetHistory());
+    afterEach(() => fetchMock.clearHistory());
 
     // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('addQueryEditor', () => {
@@ -978,7 +1003,9 @@ describe('async actions', () => {
         store.dispatch(actions.addQueryEditor(queryEditor));
 
         expect(store.getActions()).toEqual(expectedActions);
-        expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
+        expect(
+          fetchMock.callHistory.calls(updateTabStateEndpoint),
+        ).toHaveLength(0);
       });
     });
 
@@ -1121,7 +1148,9 @@ describe('async actions', () => {
           const request = actions.queryEditorSetAndSaveSql(queryEditor, sql);
           return request(store.dispatch, store.getState).then(() => {
             expect(store.getActions()).toEqual(expectedActions);
-            expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(1);
+            expect(
+              fetchMock.callHistory.calls(updateTabStateEndpoint),
+            ).toHaveLength(1);
           });
         });
       });
@@ -1143,7 +1172,9 @@ describe('async actions', () => {
           request(store.dispatch, store.getState);
 
           expect(store.getActions()).toEqual(expectedActions);
-          expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
+          expect(
+            fetchMock.callHistory.calls(updateTabStateEndpoint),
+          ).toHaveLength(0);
           isFeatureEnabled.mockRestore();
         });
       });
@@ -1325,10 +1356,14 @@ describe('async actions', () => {
             expectedActionTypes,
           );
           expect(store.getActions()[0].prepend).toBeFalsy();
-          expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(1);
+          expect(
+            fetchMock.callHistory.calls(updateTableSchemaEndpoint),
+          ).toHaveLength(1);
 
           // tab state is not updated, since no query was run
-          expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
+          expect(
+            fetchMock.callHistory.calls(updateTabStateEndpoint),
+          ).toHaveLength(0);
         });
       });
     });
@@ -1354,14 +1389,15 @@ describe('async actions', () => {
       });
 
       beforeEach(() => {
+        fetchMock.removeRoute(runQueryEndpoint);
         fetchMock.post(runQueryEndpoint, JSON.stringify(results), {
-          overwriteRoutes: true,
+          name: runQueryEndpoint,
         });
       });
 
       afterEach(() => {
         store.clearActions();
-        fetchMock.resetHistory();
+        fetchMock.clearHistory();
       });
 
       test('updates and runs data preview query when configured', () => {
@@ -1382,9 +1418,11 @@ describe('async actions', () => {
           expect(store.getActions().map(a => a.type)).toEqual(
             expectedActionTypes,
           );
-          expect(fetchMock.calls(runQueryEndpoint)).toHaveLength(1);
+          expect(fetchMock.callHistory.calls(runQueryEndpoint)).toHaveLength(1);
           // tab state is not updated, since the query is a data preview
-          expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
+          expect(
+            fetchMock.callHistory.calls(updateTabStateEndpoint),
+          ).toHaveLength(0);
         });
       });
 
@@ -1406,9 +1444,11 @@ describe('async actions', () => {
           expect(store.getActions().map(a => a.type)).toEqual(
             expectedActionTypes,
           );
-          expect(fetchMock.calls(runQueryEndpoint)).toHaveLength(1);
+          expect(fetchMock.callHistory.calls(runQueryEndpoint)).toHaveLength(1);
           // tab state is not updated, since the query is a data preview
-          expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
+          expect(
+            fetchMock.callHistory.calls(updateTabStateEndpoint),
+          ).toHaveLength(0);
         });
       });
     });
@@ -1428,13 +1468,13 @@ describe('async actions', () => {
         ];
         return store.dispatch(actions.expandTable(table)).then(() => {
           expect(store.getActions()).toEqual(expectedActions);
-          const expandedCalls = fetchMock
+          const expandedCalls = fetchMock.callHistory
             .calls()
             .filter(
               call =>
-                call[0] &&
-                call[0].includes('/tableschemaview/') &&
-                call[0].includes('/expanded'),
+                call.url &&
+                call.url.includes('/tableschemaview/') &&
+                call.url.includes('/expanded'),
             );
           expect(expandedCalls).toHaveLength(1);
         });
@@ -1454,7 +1494,7 @@ describe('async actions', () => {
         return store.dispatch(actions.expandTable(table)).then(() => {
           expect(store.getActions()).toEqual(expectedActions);
           // Check all POST calls to find the expanded endpoint
-          const expandedCalls = fetchMock
+          const expandedCalls = fetchMock.callHistory
             .calls()
             .filter(
               call =>
@@ -1480,13 +1520,13 @@ describe('async actions', () => {
         return store.dispatch(actions.expandTable(table)).then(() => {
           expect(store.getActions()).toEqual(expectedActions);
           // Check all POST calls to find the expanded endpoint
-          const expandedCalls = fetchMock
+          const expandedCalls = fetchMock.callHistory
             .calls()
             .filter(
               call =>
-                call[0] &&
-                call[0].includes('/tableschemaview/') &&
-                call[0].includes('/expanded'),
+                call.url &&
+                call.url.includes('/tableschemaview/') &&
+                call.url.includes('/expanded'),
             );
           expect(expandedCalls).toHaveLength(0);
         });
@@ -1510,13 +1550,13 @@ describe('async actions', () => {
         return store.dispatch(actions.expandTable(table)).then(() => {
           expect(store.getActions()).toEqual(expectedActions);
           // Check all POST calls to find the expanded endpoint
-          const expandedCalls = fetchMock
+          const expandedCalls = fetchMock.callHistory
             .calls()
             .filter(
               call =>
-                call[0] &&
-                call[0].includes('/tableschemaview/') &&
-                call[0].includes('/expanded'),
+                call.url &&
+                call.url.includes('/tableschemaview/') &&
+                call.url.includes('/expanded'),
             );
           expect(expandedCalls).toHaveLength(0);
           isFeatureEnabled.mockRestore();
@@ -1539,13 +1579,13 @@ describe('async actions', () => {
         ];
         return store.dispatch(actions.collapseTable(table)).then(() => {
           expect(store.getActions()).toEqual(expectedActions);
-          const expandedCalls = fetchMock
+          const expandedCalls = fetchMock.callHistory
             .calls()
             .filter(
               call =>
-                call[0] &&
-                call[0].includes('/tableschemaview/') &&
-                call[0].includes('/expanded'),
+                call.url &&
+                call.url.includes('/tableschemaview/') &&
+                call.url.includes('/expanded'),
             );
           expect(expandedCalls).toHaveLength(1);
         });
@@ -1564,13 +1604,13 @@ describe('async actions', () => {
         ];
         return store.dispatch(actions.collapseTable(table)).then(() => {
           expect(store.getActions()).toEqual(expectedActions);
-          const expandedCalls = fetchMock
+          const expandedCalls = fetchMock.callHistory
             .calls()
             .filter(
               call =>
-                call[0] &&
-                call[0].includes('/tableschemaview/') &&
-                call[0].includes('/expanded'),
+                call.url &&
+                call.url.includes('/tableschemaview/') &&
+                call.url.includes('/expanded'),
             );
           expect(expandedCalls).toHaveLength(0);
         });
@@ -1589,13 +1629,13 @@ describe('async actions', () => {
         ];
         return store.dispatch(actions.collapseTable(table)).then(() => {
           expect(store.getActions()).toEqual(expectedActions);
-          const expandedCalls = fetchMock
+          const expandedCalls = fetchMock.callHistory
             .calls()
             .filter(
               call =>
-                call[0] &&
-                call[0].includes('/tableschemaview/') &&
-                call[0].includes('/expanded'),
+                call.url &&
+                call.url.includes('/tableschemaview/') &&
+                call.url.includes('/expanded'),
             );
           expect(expandedCalls).toHaveLength(0);
         });
@@ -1618,7 +1658,7 @@ describe('async actions', () => {
         ];
         return store.dispatch(actions.collapseTable(table)).then(() => {
           expect(store.getActions()).toEqual(expectedActions);
-          const expandedCalls = fetchMock
+          const expandedCalls = fetchMock.callHistory
             .calls()
             .filter(
               call =>
@@ -1647,7 +1687,9 @@ describe('async actions', () => {
         ];
         return store.dispatch(actions.removeTables([table])).then(() => {
           expect(store.getActions()).toEqual(expectedActions);
-          expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(1);
+          expect(
+            fetchMock.callHistory.calls(updateTableSchemaEndpoint),
+          ).toHaveLength(1);
         });
       });
 
@@ -1667,7 +1709,9 @@ describe('async actions', () => {
         ];
         return store.dispatch(actions.removeTables(tables)).then(() => {
           expect(store.getActions()).toEqual(expectedActions);
-          expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(2);
+          expect(
+            fetchMock.callHistory.calls(updateTableSchemaEndpoint),
+          ).toHaveLength(2);
         });
       });
 
@@ -1684,7 +1728,9 @@ describe('async actions', () => {
         ];
         return store.dispatch(actions.removeTables(tables)).then(() => {
           expect(store.getActions()).toEqual(expectedActions);
-          expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(1);
+          expect(
+            fetchMock.callHistory.calls(updateTableSchemaEndpoint),
+          ).toHaveLength(1);
         });
       });
     });
@@ -1699,8 +1745,9 @@ describe('async actions', () => {
           query: { sqlEditorId: 'null' },
           query_id: 'efgh',
         };
+        fetchMock.removeRoute(runQueryEndpoint);
         fetchMock.post(runQueryEndpoint, JSON.stringify(results), {
-          overwriteRoutes: true,
+          name: runQueryEndpoint,
         });
 
         const oldQueryEditor = { ...queryEditor, inLocalStorage: true };
@@ -1777,10 +1824,14 @@ describe('async actions', () => {
           .dispatch(actions.syncQueryEditor(oldQueryEditor))
           .then(() => {
             expect(store.getActions()).toEqual(expectedActions);
-            expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(3);
+            expect(
+              fetchMock.callHistory.calls(updateTabStateEndpoint),
+            ).toHaveLength(3);
 
             // query editor has 2 tables loaded in the schema viewer
-            expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(2);
+            expect(
+              fetchMock.callHistory.calls(updateTableSchemaEndpoint),
+            ).toHaveLength(2);
           });
       });
     });

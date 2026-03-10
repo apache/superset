@@ -37,6 +37,9 @@ import { SliceIdAndOrFormData } from '../../../src/chart/clients/ChartClient';
 
 configureTranslation();
 
+beforeAll(() => fetchMock.mockGlobal());
+afterAll(() => fetchMock.hardReset());
+
 describe('ChartClient', () => {
   let chartClient: ChartClient;
 
@@ -50,7 +53,7 @@ describe('ChartClient', () => {
     chartClient = new ChartClient();
   });
 
-  afterEach(() => fetchMock.restore());
+  afterEach(() => fetchMock.removeRoutes().clearHistory());
 
   describe('new ChartClient(config)', () => {
     it('creates a client without argument', () => {

@@ -119,12 +119,16 @@ fetchMock.get(ownersEndpoint, { result: [] });
 fetchMock.get(databaseEndpoint, { result: [] });
 fetchMock.get(dashboardEndpoint, { result: [] });
 fetchMock.get(chartEndpoint, { result: [{ text: 'table chart', value: 1 }] });
-fetchMock.get(tabsEndpoint, {
-  result: {
-    all_tabs: {},
-    tab_tree: [],
+fetchMock.get(
+  tabsEndpoint,
+  {
+    result: {
+      all_tabs: {},
+      tab_tree: [],
+    },
   },
-});
+  { name: tabsEndpoint },
+);
 
 // Create a valid alert with all required fields entered for validation check
 
@@ -682,45 +686,37 @@ test('renders dashboard filter dropdowns', async () => {
 });
 
 test('filter reappears in dropdown after clearing with X icon', async () => {
-  const tabsWithFiltersEndpoint = 'glob:*/api/v1/dashboard/1/tabs';
   const chartDataEndpoint = 'glob:*/api/v1/chart/data*';
 
-  fetchMock.get(
-    tabsWithFiltersEndpoint,
-    {
-      result: {
-        all_tabs: { tab1: 'Tab 1' },
-        tab_tree: [{ title: 'Tab 1', value: 'tab1' }],
-        native_filters: {
-          all: [
-            {
-              id: 'NATIVE_FILTER-test1',
-              name: 'Test Filter 1',
-              filterType: 'filter_select',
-              targets: [{ column: { name: 'test_column_1' } }],
-              adhoc_filters: [],
-            },
-          ],
-          tab1: [
-            {
-              id: 'NATIVE_FILTER-test2',
-              name: 'Test Filter 2',
-              filterType: 'filter_select',
-              targets: [{ column: { name: 'test_column_2' } }],
-              adhoc_filters: [],
-            },
-          ],
-        },
+  fetchMock.removeRoute(tabsEndpoint);
+  fetchMock.get(tabsEndpoint, {
+    result: {
+      all_tabs: { tab1: 'Tab 1' },
+      tab_tree: [{ title: 'Tab 1', value: 'tab1' }],
+      native_filters: {
+        all: [
+          {
+            id: 'NATIVE_FILTER-test1',
+            name: 'Test Filter 1',
+            filterType: 'filter_select',
+            targets: [{ column: { name: 'test_column_1' } }],
+            adhoc_filters: [],
+          },
+        ],
+        tab1: [
+          {
+            id: 'NATIVE_FILTER-test2',
+            name: 'Test Filter 2',
+            filterType: 'filter_select',
+            targets: [{ column: { name: 'test_column_2' } }],
+            adhoc_filters: [],
+          },
+        ],
       },
     },
-    { overwriteRoutes: true },
-  );
+  });
 
-  fetchMock.post(
-    chartDataEndpoint,
-    { result: [{ data: [] }] },
-    { overwriteRoutes: true },
-  );
+  fetchMock.post(chartDataEndpoint, { result: [{ data: [] }] });
 
   render(<AlertReportModal {...generateMockedProps(true, true)} />, {
     useRedux: true,

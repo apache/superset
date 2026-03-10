@@ -17,6 +17,7 @@
  * under the License.
  */
 export enum ViewContribution {
+  LeftSidebar = 'sqllab.leftSidebar',
   RightSidebar = 'sqllab.rightSidebar',
   Panels = 'sqllab.panels',
   Editor = 'sqllab.editor',
