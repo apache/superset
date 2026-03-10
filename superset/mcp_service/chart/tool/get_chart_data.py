@@ -462,6 +462,7 @@ async def get_chart_data(  # noqa: C901
             # Execute the query
             with event_logger.log_context(action="mcp.get_chart_data.query_execution"):
                 command = ChartDataCommand(query_context)
+                command.validate()
                 result = command.run()
 
             # Handle empty query results for certain chart types
