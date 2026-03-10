@@ -150,6 +150,7 @@ export interface ButtonProps {
   buttonStyle: 'primary' | 'secondary' | 'dashed' | 'link' | 'tertiary';
   loading?: boolean;
   icon?: IconType;
+  component?: ReactNode;
 }
 
 export interface SubMenuProps {
@@ -300,18 +301,22 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
               </SubMenu>
             ))}
           </Menu>
-          {props.buttons?.map((btn, i) => (
-            <Button
-              key={i}
-              buttonStyle={btn.buttonStyle}
-              icon={btn.icon}
-              onClick={btn.onClick}
-              data-test={btn['data-test']}
-              loading={btn.loading ?? false}
-            >
-              {btn.name}
-            </Button>
-          ))}
+          {props.buttons?.map((btn, i) =>
+            btn.component ? (
+              <span key={i}>{btn.component}</span>
+            ) : (
+              <Button
+                key={i}
+                buttonStyle={btn.buttonStyle}
+                icon={btn.icon}
+                onClick={btn.onClick}
+                data-test={btn['data-test']}
+                loading={btn.loading ?? false}
+              >
+                {btn.name}
+              </Button>
+            ),
+          )}
         </div>
       </Row>
       {props.children}
