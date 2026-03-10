@@ -26,7 +26,7 @@ from uuid import UUID, uuid4
 
 from celery.utils.log import get_task_logger
 from flask import g
-from superset_core.api.tasks import TaskProperties, TaskScope
+from superset_core.tasks.types import TaskProperties, TaskScope
 
 from superset.tasks.exceptions import ExecutorNotFoundError, InvalidExecutorError
 from superset.tasks.types import (

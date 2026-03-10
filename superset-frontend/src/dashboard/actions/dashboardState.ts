@@ -35,8 +35,8 @@ import {
   removeChart,
   refreshChart,
 } from 'src/components/Chart/chartAction';
-import { logging } from '@apache-superset/core';
-import { t } from '@apache-superset/core/ui';
+import { logging } from '@apache-superset/core/utils';
+import { t } from '@apache-superset/core/translation';
 import { chart as initChart } from 'src/components/Chart/chartReducer';
 import { applyDefaultFormData } from 'src/explore/store';
 import {

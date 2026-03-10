@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ChartProps, QueryFormData, VizType } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { HandlebarsQueryFormData } from '../../src/types';
 import transformProps from '../../src/plugin/transformProps';
 

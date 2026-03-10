@@ -28,7 +28,7 @@ To facilitate the development of extensions, we define a set of well-defined con
 
 ## Frontend
 
-Frontend contribution types allow extensions to extend Superset's user interface with new views, commands, and menu items. Frontend contributions are registered directly in code from your extension's `index.tsx` entry point — they do not need to be declared in `extension.json`.
+Frontend contribution types allow extensions to extend Superset's user interface with new views, commands, and menu items. Frontend contributions are registered directly in code from your extension's `index.tsx` entry point.
 
 ### Views
 
@@ -68,25 +68,28 @@ commands.registerCommand(
 
 ### Menus
 
-Extensions can contribute new menu items or context menus to the host application, providing users with additional actions and options. Each menu item specifies the target area, the command to execute, and its placement (primary, secondary, or context). Menu contribution areas are uniquely identified (e.g., `sqllab.editor` for the SQL Lab editor).
+Extensions can contribute new menu items or context menus to the host application, providing users with additional actions and options. Each menu item specifies the view and command to execute, the target area, and the location (`primary`, `secondary`, or `context`). Menu contribution areas are uniquely identified (e.g., `sqllab.editor` for the SQL Lab editor).
 
 ```typescript
 import { menus } from '@apache-superset/core';
 
-menus.addMenuItem('sqllab.editor', {
-  placement: 'primary',
-  command: 'my-extension.copy-query',
-});
+menus.registerMenuItem(
+  { view: 'sqllab.editor', command: 'my-extension.copy-query' },
+  'sqllab.editor',
+  'primary',
+);
 
-menus.addMenuItem('sqllab.editor', {
-  placement: 'secondary',
-  command: 'my-extension.prettify',
-});
+menus.registerMenuItem(
+  { view: 'sqllab.editor', command: 'my-extension.prettify' },
+  'sqllab.editor',
+  'secondary',
+);
 
-menus.addMenuItem('sqllab.editor', {
-  placement: 'context',
-  command: 'my-extension.clear',
-});
+menus.registerMenuItem(
+  { view: 'sqllab.editor', command: 'my-extension.clear' },
+  'sqllab.editor',
+  'context',
+);
 ```
 
 ### Editors
@@ -111,24 +114,31 @@ See [Editors Extension Point](./extension-points/editors) for implementation det
 
 ## Backend
 
-Backend contribution types allow extensions to extend Superset's server-side capabilities with new API endpoints, MCP tools, and MCP prompts.
+Backend contribution types allow extensions to extend Superset's server-side capabilities. Backend contributions are registered at startup via classes and functions imported from the auto-discovered `entrypoint.py` file.
 
 ### REST API Endpoints
 
 Extensions can register custom REST API endpoints under the `/extensions/` namespace. This dedicated namespace prevents conflicts with built-in endpoints and provides a clear separation between core and extension functionality.
 
 ```python
-from superset_core.api.rest_api import RestApi, api
-from flask_appbuilder.api import expose, protect
+from flask import Response
+from flask_appbuilder.api import expose, permission_name, protect, safe
+from superset_core.rest_api.api import RestApi
+from superset_core.rest_api.decorators import api
 
 @api(
     id="my_extension_api",
     name="My Extension API",
-    description="Custom API endpoints for my extension"
+    description="Custom API endpoints for my extension",
 )
 class MyExtensionAPI(RestApi):
+    openapi_spec_tag = "My Extension"
+    class_permission_name = "my_extension_api"
+
     @expose("/hello", methods=("GET",))
     @protect()
+    @safe
+    @permission_name("read")
     def hello(self) -> Response:
         return self.response(200, result={"message": "Hello from extension!"})
 
@@ -136,7 +146,7 @@ class MyExtensionAPI(RestApi):
 from .api import MyExtensionAPI
 ```
 
-**Note**: The [`@api`](superset-core/src/superset_core/api/rest_api.py:59) decorator automatically detects context and generates appropriate paths:
+**Note**: The [`@api`](superset-core/src/superset_core/rest_api/decorators.py) decorator automatically detects context and generates appropriate paths:
 
 - **Extension context**: `/extensions/{publisher}/{name}/` with ID prefixed as `extensions.{publisher}.{name}.{id}`
 - **Host context**: `/api/v1/` with original ID
@@ -152,16 +162,65 @@ You can also specify a `resource_name` parameter to add an additional path segme
 @api(
     id="analytics_api",
     name="Analytics API",
-    resource_name="analytics"  # Adds /analytics to the path
+    resource_name="analytics",  # Adds /analytics to the path
 )
 class AnalyticsAPI(RestApi):
+
     @expose("/insights", methods=("GET",))
-    def insights(self):
+    @protect()
+    @safe
+    @permission_name("read")
+    def insights(self) -> Response:
         # This endpoint will be available at:
         # /extensions/my-org/dataset-tools/analytics/insights
         return self.response(200, result={"insights": []})
 ```
 
-### MCP Tools and Prompts
+### MCP Tools
 
-Extensions can contribute Model Context Protocol (MCP) tools and prompts that AI agents can discover and use. See [MCP Integration](./mcp) for detailed documentation.
+Extensions can register Python functions as MCP tools that AI agents can discover and call. Tools provide executable functionality such as data processing, custom analytics, or integration with external services. Each tool specifies a unique name and an optional description that helps AI agents decide when to use it.
+
+```python
+from superset_core.mcp.decorators import tool
+
+@tool(
+    name="my-extension.get_summary",
+    description="Get a summary of recent query activity",
+    tags=["analytics", "queries"],
+)
+def get_summary() -> dict:
+    """Returns a summary of recent query activity."""
+    return {"status": "success", "result": {"queries_today": 42}}
+```
+
+See [MCP Integration](./mcp) for implementation details.
+
+### MCP Prompts
+
+Extensions can register MCP prompts that provide interactive guidance and context to AI agents. Prompts help agents understand domain-specific workflows, best practices, or troubleshooting steps for your extension's use cases.
+
+```python
+from superset_core.mcp.decorators import prompt
+from fastmcp import Context
+
+@prompt(
+    "my-extension.analysis_guide",
+    title="Analysis Guide",
+    description="Step-by-step guidance for data analysis workflows",
+)
+async def analysis_guide(ctx: Context) -> str:
+    """Provides guidance for data analysis workflows."""
+    return """
+    # Data Analysis Guide
+
+    Follow these steps for effective analysis:
+
+    1. **Explore your data** - Review available datasets and schema
+    2. **Build your query** - Use SQL Lab to craft and test queries
+    3. **Visualize results** - Choose the right chart type for your data
+
+    What would you like to analyze today?
+    """
+```
+
+See [MCP Integration](./mcp) for implementation details.
