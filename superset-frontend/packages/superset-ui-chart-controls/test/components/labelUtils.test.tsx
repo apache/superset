@@ -24,6 +24,7 @@ import {
   getMetricTooltipNode,
   getColumnTypeTooltipNode,
 } from '../../src/components/labelUtils';
+import { GenericDataType } from '@apache-superset/core/common';
 
 test("should get column name when column doesn't have verbose_name", () => {
   expect(
@@ -87,6 +88,24 @@ test('should get column datatype rendered as tooltip when column has a type', ()
 
   expect(screen.getByText('Column type')).toBeVisible();
   expect(screen.getByText('text')).toBeVisible();
+});
+
+test('should fall back to generic data type label when type is "column"', () => {
+  render(
+    <>
+      {getColumnTypeTooltipNode({
+        id: 123,
+        column_name: 'column name',
+        verbose_name: '',
+        description: '',
+        type: 'column',
+        type_generic: GenericDataType.String,
+      })}
+    </>,
+  );
+
+  expect(screen.getByText('Column type')).toBeVisible();
+  expect(screen.getByText('string')).toBeVisible();
 });
 
 test('should get column name, verbose name and description when it has a verbose name', () => {

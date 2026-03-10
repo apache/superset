@@ -59,7 +59,7 @@ export function ColumnOption({
   const type = hasExpression ? 'expression' : type_generic;
   const [tooltipText, setTooltipText] = useState<ReactNode>(column.column_name);
   const [columnTypeTooltipText, setcolumnTypeTooltipText] = useState<ReactNode>(
-    column.type,
+    getColumnTypeTooltipNode(column),
   );
 
   useLayoutEffect(() => {
