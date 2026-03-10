@@ -460,6 +460,84 @@ class TestMapXYConfig:
         assert result["groupby"] == ["category"]
         assert result["x_axis"] == "order_date"
 
+    def test_map_xy_config_bar_horizontal_orientation(self) -> None:
+        """Test XY config mapping for horizontal bar chart"""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="department"),
+            y=[ColumnRef(name="headcount", aggregate="SUM")],
+            kind="bar",
+            orientation="horizontal",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["viz_type"] == "echarts_timeseries_bar"
+        assert result["orientation"] == "horizontal"
+
+    def test_map_xy_config_bar_vertical_orientation(self) -> None:
+        """Test XY config mapping for vertical bar chart (explicit)"""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+            orientation="vertical",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["viz_type"] == "echarts_timeseries_bar"
+        assert result["orientation"] == "vertical"
+
+    def test_map_xy_config_bar_no_orientation(self) -> None:
+        """Test XY config mapping for bar chart without orientation."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["viz_type"] == "echarts_timeseries_bar"
+        assert "orientation" not in result
+
+    def test_map_xy_config_line_orientation_ignored(self) -> None:
+        """Test that orientation is ignored for non-bar chart types"""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+            orientation="horizontal",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["viz_type"] == "echarts_timeseries_line"
+        assert "orientation" not in result
+
+    def test_map_xy_config_bar_horizontal_with_stacked(self) -> None:
+        """Test horizontal bar chart with stacked option"""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="department"),
+            y=[ColumnRef(name="headcount", aggregate="SUM")],
+            kind="bar",
+            orientation="horizontal",
+            stacked=True,
+            group_by=ColumnRef(name="level"),
+        )
+
+        result = map_xy_config(config)
+
+        assert result["viz_type"] == "echarts_timeseries_bar"
+        assert result["orientation"] == "horizontal"
+        assert result["stack"] == "Stack"
+        assert result["groupby"] == ["level"]
+
 
 class TestMapConfigToFormData:
     """Test map_config_to_form_data function"""
