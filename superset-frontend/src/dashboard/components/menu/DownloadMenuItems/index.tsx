@@ -17,7 +17,8 @@
  * under the License.
  */
 import { SyntheticEvent } from 'react';
-import { logging, t } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
+import { t } from '@apache-superset/core/translation';
 import {
   FeatureFlag,
   isFeatureEnabled,

@@ -30,7 +30,7 @@ import {
   type ThemeContextType,
   Theme,
   ThemeMode,
-} from '@apache-superset/core/ui';
+} from '@apache-superset/core/theme';
 import { ThemeController } from './ThemeController';
 
 const ThemeContext = createContext<ThemeContextType | null>(null);

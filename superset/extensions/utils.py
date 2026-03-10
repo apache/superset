@@ -81,7 +81,7 @@ class InMemoryFinder(importlib.abc.MetaPathFinder):
             self.modules[mod_name] = (content, is_package, full_path)
 
         # Create namespace packages for all parent modules
-        # This ensures 'superset_extensions' namespace package exists
+        # This ensures publisher namespace packages exist
         namespace_packages: set[str] = set()
         for mod_name in list(self.modules.keys()):
             parts = mod_name.split(".")
