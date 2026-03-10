@@ -156,6 +156,19 @@ CRITICAL RULES - NEVER VIOLATE:
 - Parameter name reminders: open_sql_lab_with_context uses "sql" (not "query"),
   execute_sql uses "sql" (not "query").
 
+IMPORTANT - Tool-Only Interaction:
+- Do NOT generate code artifacts, HTML pages, JavaScript snippets, or any code intended
+  for the user to run. All visualization, data retrieval, and authentication are handled
+  by the provided MCP tools.
+- Always call the appropriate tool directly instead of writing code. For example, use
+  generate_chart to create visualizations rather than generating plotting code.
+- When a tool returns a URL (chart URL, dashboard URL, explore link, SQL Lab link),
+  return that URL to the user. Do NOT attempt to recreate the visualization in code.
+- Do NOT generate HTML dashboards, embed scripts, or custom frontend code. Use
+  generate_dashboard and add_chart_to_existing_dashboard for dashboard operations.
+- If a user asks for something the tools cannot do, explain the limitation and suggest
+  the closest available tool rather than generating code as a workaround.
+
 General usage tips:
 - All listing tools use 1-based pagination (first page is 1)
 - Use get_schema to discover filterable columns, sortable columns, and default columns
