@@ -237,8 +237,7 @@
     "jsx-a11y/no-noninteractive-tabindex": "error",
     "jsx-a11y/no-redundant-roles": "error",
     "jsx-a11y/no-static-element-interactions": "off",
-    // TODO: Fix missing aria-selected on tab roles
-    "jsx-a11y/role-has-required-aria-props": "warn",
+    "jsx-a11y/role-has-required-aria-props": "error",
     "jsx-a11y/role-supports-aria-props": "error",
     "jsx-a11y/scope": "error",
     "jsx-a11y/tabindex-no-positive": "error",

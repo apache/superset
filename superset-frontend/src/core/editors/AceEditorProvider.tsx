@@ -182,6 +182,10 @@ const createAceEditorHandle = (
       completionProviders.current.delete(provider.id);
     });
   },
+
+  resize: () => {
+    aceEditorRef.current?.editor?.resize();
+  },
 });
 
 /**

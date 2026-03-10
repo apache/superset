@@ -19,7 +19,7 @@
 
 /* eslint-disable no-magic-numbers */
 import { SuperChart } from '@superset-ui/core';
-import { useTheme } from '@apache-superset/core/ui';
+import { useTheme } from '@apache-superset/core/theme';
 import MapBoxChartPlugin from '@superset-ui/legacy-plugin-chart-map-box';
 import { withResizableChartDemo } from '@storybook-shared';
 import { generateData } from './data';

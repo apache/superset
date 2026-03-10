@@ -18,7 +18,7 @@
  */
 import { useMemo } from 'react';
 import { truncationCSS } from '@superset-ui/core';
-import { styled, SupersetTheme } from '@apache-superset/core/ui';
+import { styled, SupersetTheme } from '@apache-superset/core/theme';
 import {
   FormItem as StyledFormItem,
   Form,

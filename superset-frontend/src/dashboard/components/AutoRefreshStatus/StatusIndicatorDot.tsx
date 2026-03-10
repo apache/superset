@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FC, useMemo, useRef, useEffect, useState } from 'react';
-import { css, useTheme } from '@apache-superset/core/ui';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { AutoRefreshStatus } from '../../types/autoRefresh';
 
 export interface StatusIndicatorDotProps {

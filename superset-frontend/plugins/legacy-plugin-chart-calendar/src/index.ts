@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
-import { t } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
 import transformProps from './transformProps';
 import example from './images/example.jpg';
 import exampleDark from './images/example-dark.jpg';
