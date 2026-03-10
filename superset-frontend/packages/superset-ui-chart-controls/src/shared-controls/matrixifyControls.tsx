@@ -279,14 +279,15 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
   };
 
   matrixifyControls[`matrixify_all_sort_by_${axis}`] = {
-    type: 'RadioButtonControl',
+    type: 'SelectControl',
     label: t('Sort by'),
     default: 'a_to_z',
+    clearable: false,
     renderTrigger: true,
     tabOverride: 'matrixify',
     visibility: ({ controls }) =>
       isMatrixifyVisible(controls, axis, 'dimensions', 'all'),
-    options: [
+    choices: [
       ['a_to_z', t('A-Z')],
       ['z_to_a', t('Z-A')],
       ['metric', t('Metric')],
