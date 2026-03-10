@@ -262,20 +262,24 @@ async def get_chart_data(  # noqa: C901
 
                 _apply_extra_form_data(cached_form_data_dict, request.extra_form_data)
 
+                cached_query: dict[str, Any] = {
+                    "filters": cached_form_data_dict.get("filters", []),
+                    "columns": cached_groupby,
+                    "metrics": cached_metrics,
+                    "row_limit": row_limit,
+                    "order_desc": cached_form_data_dict.get("order_desc", True),
+                }
+                # Include adhoc_filters so dashboard native filters are applied
+                cached_adhoc = cached_form_data_dict.get("adhoc_filters")
+                if cached_adhoc:
+                    cached_query["adhoc_filters"] = cached_adhoc
+
                 query_context = factory.create(
                     datasource={
                         "id": datasource_id,
                         "type": datasource_type,
                     },
-                    queries=[
-                        {
-                            "filters": cached_form_data_dict.get("filters", []),
-                            "columns": cached_groupby,
-                            "metrics": cached_metrics,
-                            "row_limit": row_limit,
-                            "order_desc": cached_form_data_dict.get("order_desc", True),
-                        }
-                    ],
+                    queries=[cached_query],
                     form_data=cached_form_data_dict,
                     force=request.force_refresh,
                 )
@@ -432,20 +436,24 @@ async def get_chart_data(  # noqa: C901
 
                 _apply_extra_form_data(form_data, request.extra_form_data)
 
+                fallback_query: dict[str, Any] = {
+                    "filters": form_data.get("filters", []),
+                    "columns": query_columns,
+                    "metrics": metrics,
+                    "row_limit": row_limit,
+                    "order_desc": True,
+                }
+                # Include adhoc_filters so dashboard native filters are applied
+                fallback_adhoc = form_data.get("adhoc_filters")
+                if fallback_adhoc:
+                    fallback_query["adhoc_filters"] = fallback_adhoc
+
                 query_context = factory.create(
                     datasource={
                         "id": chart.datasource_id,
                         "type": chart.datasource_type,
                     },
-                    queries=[
-                        {
-                            "filters": form_data.get("filters", []),
-                            "columns": query_columns,
-                            "metrics": metrics,
-                            "row_limit": row_limit,
-                            "order_desc": True,
-                        }
-                    ],
+                    queries=[fallback_query],
                     form_data=form_data,
                     force=request.force_refresh,
                 )
