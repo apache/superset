@@ -984,9 +984,12 @@ def _mixed_timeseries_what(config: MixedTimeseriesChartConfig) -> str:
 
 def _big_number_chart_what(config: BigNumberChartConfig) -> str:
     """Build the 'what' portion for a big number chart name."""
-    metric_label = (
-        config.metric.label or f"{config.metric.aggregate}({config.metric.name})"
-    )
+    if config.metric.label:
+        metric_label = config.metric.label
+    elif config.metric.aggregate:
+        metric_label = f"{config.metric.aggregate}({config.metric.name})"
+    else:
+        metric_label = config.metric.name
     if config.show_trendline:
         return f"Big Number \u2013 {metric_label} (with trendline)"
     return f"Big Number \u2013 {metric_label}"
