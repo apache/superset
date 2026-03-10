@@ -26,7 +26,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   DataMask,
   DataMaskStateWithId,
@@ -38,7 +38,12 @@ import {
   isChartCustomizationDivider,
   ChartCustomizationDivider,
 } from '@superset-ui/core';
-import { css, SupersetTheme, useTheme, styled } from '@apache-superset/core/ui';
+import {
+  css,
+  SupersetTheme,
+  useTheme,
+  styled,
+} from '@apache-superset/core/theme';
 import {
   createHtmlPortalNode,
   InPortal,
@@ -181,13 +186,13 @@ const FilterControls: FC<FilterControlsProps> = ({
     clearAllTriggers,
     onClearAllComplete,
   );
-  const portalNodes = useMemo(() => {
-    const nodes = new Array(filtersWithValues.length);
-    for (let i = 0; i < filtersWithValues.length; i += 1) {
-      nodes[i] = createHtmlPortalNode();
-    }
-    return nodes;
-  }, [filtersWithValues.length]);
+  const portalNodes = useMemo(
+    () =>
+      Array.from({ length: filtersWithValues.length }, () =>
+        createHtmlPortalNode(),
+      ),
+    [filtersWithValues.length],
+  );
 
   const filterIds = new Set(filtersWithValues.map(item => item.id));
 
@@ -279,10 +284,14 @@ const FilterControls: FC<FilterControlsProps> = ({
           />
         );
       }
+      const filterWithDataMask = addDataMaskToCustomization(
+        item,
+        dataMaskSelected,
+      );
       return (
         <FilterControl
           key={item.id}
-          filter={addDataMaskToCustomization(item, dataMaskSelected)}
+          filter={filterWithDataMask}
           dataMaskSelected={dataMaskSelected}
           onFilterSelectionChange={(_, dataMask) =>
             handleChartCustomizationChange(item, dataMask)

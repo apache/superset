@@ -23,9 +23,9 @@ const originalWindowLocation = window.location;
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('extractUrlParams', () => {
   beforeAll(() => {
-    // @ts-ignore
+    // @ts-expect-error
     delete window.location;
-    // @ts-ignore
+    // @ts-expect-error
     window.location = { search: '?edit=true&abc=123' };
   });
 

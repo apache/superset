@@ -430,6 +430,11 @@ categories:
       url: https://brandct.cn/
       contributors: ["@wenbinye"]
 
+    - name: XNET
+      url: https://xnetmobile.com/
+      logo: xnet.png
+      contributors: ["@deuspt"]
+
     - name: Zeta
       url: https://www.zeta.tech/
       contributors: ["@shaikidris"]
@@ -619,6 +624,9 @@ categories:
   Logistics:
     - name: Stockarea
       url: https://stockarea.io
+
+    - name: VTG
+      url: https://www.vtg.de
 
   Sports:
     - name: Club 25 de Agosto (Femenino / Women's Team)

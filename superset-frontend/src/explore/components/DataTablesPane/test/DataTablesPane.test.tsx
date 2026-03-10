@@ -185,7 +185,7 @@ describe('DataTablesPane', () => {
   });
 
   test('Displaying the data pane is under featureflag', () => {
-    // @ts-ignore
+    // @ts-expect-error
     global.featureFlags = {
       [FeatureFlag.DatapanelClosedByDefault]: true,
     };

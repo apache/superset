@@ -19,6 +19,8 @@
 import { render, screen, within, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
+import { MemoryRouter } from 'react-router-dom';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import { ReactNode } from 'react';
@@ -50,16 +52,6 @@ type MockedListViewProps = Omit<
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
-
-function makeMockLocation(query?: string) {
-  const queryStr = query ? encodeURIComponent(query) : '';
-  return {
-    protocol: 'http:',
-    host: 'localhost',
-    pathname: '/',
-    search: queryStr.length ? `?${queryStr}` : '',
-  } as Location;
-}
 
 const fetchSelectsMock = jest.fn(() =>
   Promise.resolve({ data: [], totalCount: 0 }),
@@ -214,9 +206,11 @@ test('redirects to first page when page index is invalid', async () => {
 const factory = (overrides?: Partial<ListViewProps>) => {
   const props = { ...mockedPropsComprehensive, ...overrides };
   return render(
-    <QueryParamProvider location={makeMockLocation()}>
-      <ListView {...props} />
-    </QueryParamProvider>,
+    <MemoryRouter>
+      <QueryParamProvider adapter={ReactRouter5Adapter}>
+        <ListView {...props} />
+      </QueryParamProvider>
+    </MemoryRouter>,
     { store: mockStore() },
   );
 };

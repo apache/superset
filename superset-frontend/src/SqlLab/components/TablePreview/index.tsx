@@ -19,9 +19,10 @@
 import { type FC, useCallback, useMemo, useRef, useState } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { nanoid } from 'nanoid';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { ClientErrorObject, getExtensionsRegistry } from '@superset-ui/core';
-import { css, styled, Alert, useTheme } from '@apache-superset/core/ui';
+import { Alert } from '@apache-superset/core/components';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import {
   SafeMarkdown,
   Breadcrumb,
@@ -41,6 +42,7 @@ import {
   useTableMetadataQuery,
 } from 'src/hooks/apiResources';
 import { runTablePreviewQuery } from 'src/SqlLab/actions/sqlLab';
+import { PREVIEW_QUERY_LIMIT } from 'src/SqlLab/constants';
 import { ActionButton } from '@superset-ui/core/components/ActionButton';
 import ResultSet from '../ResultSet';
 import ShowSQL from '../ShowSQL';
@@ -63,7 +65,6 @@ const TABS_KEYS = {
   SAMPLE: 'sample',
 };
 const TAB_HEADER_HEIGHT = 80;
-const PREVIEW_QUERY_LIMIT = 100;
 
 const Title = styled.div`
   ${({ theme }) => css`
@@ -288,11 +289,11 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
         {schema && <Breadcrumb.Item>{schema}</Breadcrumb.Item>}
         <Breadcrumb.Item> </Breadcrumb.Item>
       </Breadcrumb>
-      <div style={{ display: 'none' }}>
+      <div style={{ display: 'none' }} aria-hidden="true">
         <CopyToClipboard
           copyNode={
             <button type="button" ref={copyStatementActionRef}>
-              invisible button
+              {t('Copy')}
             </button>
           }
           text={tableData.selectStar}
@@ -305,7 +306,7 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
             title={t('CREATE VIEW statement')}
             triggerNode={
               <button type="button" ref={showViewStatementActionRef}>
-                invisible button
+                {t('Show SQL')}
               </button>
             }
           />

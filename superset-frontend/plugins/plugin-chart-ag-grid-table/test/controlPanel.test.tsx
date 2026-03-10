@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { QueryFormData } from '@superset-ui/core';
 import {
   Dataset,
@@ -24,9 +24,9 @@ import {
   ControlConfig,
   ControlPanelState,
   ControlState,
+  ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
 import config from '../src/controlPanel';
-import { ColorSchemeEnum } from '../src/types';
 
 const findConditionalFormattingControl = (): ControlConfig | null => {
   for (const section of config.controlPanelSections) {

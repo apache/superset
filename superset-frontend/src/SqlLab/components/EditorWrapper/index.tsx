@@ -19,7 +19,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { usePrevious } from '@superset-ui/core';
-import { css, useTheme } from '@apache-superset/core/ui';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { Global } from '@emotion/react';
 import type { editors } from '@apache-superset/core';
 
@@ -29,6 +29,7 @@ import type { KeyboardShortcut } from 'src/SqlLab/components/KeyboardShortcutBut
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { SqlLabRootState, type CursorPosition } from 'src/SqlLab/types';
 import { EditorHost } from 'src/core/editors';
+import { registerEditorHandle, unregisterEditorHandle } from 'src/core/sqlLab';
 import { useAnnotations } from './useAnnotations';
 import { useKeywords } from './useKeywords';
 
@@ -253,13 +254,23 @@ const EditorWrapper = ({
   const handleEditorReady = useCallback(
     (handle: EditorHandle) => {
       editorHandleRef.current = handle;
+      // Register handle for SQL Lab API access
+      registerEditorHandle(queryEditorId, handle);
       // Set initial cursor position
       const { row, column } = cursorPosition;
       handle.moveCursorToPosition({ line: row, column });
       handle.focus();
       handle.scrollToLine(row);
     },
-    [cursorPosition],
+    [cursorPosition, queryEditorId],
+  );
+
+  // Unregister editor handle on unmount
+  useEffect(
+    () => () => {
+      unregisterEditorHandle(queryEditorId);
+    },
+    [queryEditorId],
   );
 
   const { data: annotations } = useAnnotations({

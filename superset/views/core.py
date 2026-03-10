@@ -489,7 +489,12 @@ class Superset(BaseSupersetView):
         # slc perms
         slice_add_perm = security_manager.can_access("can_write", "Chart")
         slice_overwrite_perm = security_manager.is_owner(slc) if slc else False
-        slice_download_perm = security_manager.can_access("can_csv", "Superset")
+        if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
+            slice_download_perm = security_manager.can_access(
+                "can_export_data", "Superset"
+            )
+        else:
+            slice_download_perm = security_manager.can_access("can_csv", "Superset")
 
         form_data["datasource"] = str(datasource_id) + "__" + cast(str, datasource_type)
 
@@ -899,6 +904,21 @@ class Superset(BaseSupersetView):
             .scalar()
         ):
             return self.dashboard(dashboard_id_or_slug=str(welcome_dashboard_id))
+
+        payload = {
+            "user": bootstrap_user_data(g.user, include_perms=True),
+            "common": common_bootstrap_payload(),
+        }
+
+        return self.render_app_template(extra_bootstrap_data=payload)
+
+    @has_access
+    @event_logger.log_this
+    @expose("/file-handler")
+    def file_handler(self) -> FlaskResponse:
+        """File handler page for PWA file handling"""
+        if not g.user or not get_user_id():
+            return redirect_to_login()
 
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),

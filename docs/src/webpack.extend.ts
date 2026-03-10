@@ -67,8 +67,8 @@ export default function webpackExtendPlugin(): Plugin<void> {
         use: 'js-yaml-loader',
       });
 
-      // Add babel-loader rule for superset-frontend files
-      // This ensures Emotion CSS-in-JS is processed correctly for SSG
+      // Add swc-loader rule for superset-frontend files
+      // SWC is a Rust-based transpiler that's significantly faster than babel
       const supersetFrontendPath = path.resolve(
         __dirname,
         '../../superset-frontend',
@@ -76,26 +76,37 @@ export default function webpackExtendPlugin(): Plugin<void> {
       config.module?.rules?.push({
         test: /\.(tsx?|jsx?)$/,
         include: supersetFrontendPath,
+        exclude: /node_modules/,
         use: {
-          loader: 'babel-loader',
+          loader: 'swc-loader',
           options: {
-            presets: [
-              [
-                '@babel/preset-react',
-                {
+            // Ignore superset-frontend/.swcrc which references plugins not
+            // installed in the docs workspace (e.g. @swc/plugin-emotion)
+            swcrc: false,
+            jsc: {
+              parser: {
+                syntax: 'typescript',
+                tsx: true,
+              },
+              transform: {
+                react: {
                   runtime: 'automatic',
                   importSource: '@emotion/react',
                 },
-              ],
-              '@babel/preset-typescript',
-            ],
-            plugins: ['@emotion/babel-plugin'],
+              },
+            },
           },
         },
       });
 
       return {
-        devtool: isDev ? 'eval-source-map' : config.devtool,
+        devtool: isDev ? false : config.devtool,
+        cache: {
+          type: 'filesystem' as const,
+          buildDependencies: {
+            config: [__filename],
+          },
+        },
         ...(isDev && {
           optimization: {
             ...config.optimization,
@@ -118,10 +129,15 @@ export default function webpackExtendPlugin(): Plugin<void> {
             'react-dom': path.resolve(__dirname, '../node_modules/react-dom'),
             // Allow importing from superset-frontend
             src: path.resolve(__dirname, '../../superset-frontend/src'),
-            // '@superset-ui/core': path.resolve(
-            //   __dirname,
-            //   '../../superset-frontend/packages/superset-ui-core',
-            // ),
+            // Lightweight shim for @superset-ui/core that re-exports only the
+            // utilities needed by components (ensureIsArray, usePrevious, etc.).
+            // Avoids pulling in the full barrel which includes d3, color, query
+            // modules and causes OOM. Required for Rspack which is stricter about
+            // module resolution than webpack.
+            '@superset-ui/core$': path.resolve(
+              __dirname,
+              './shims/superset-ui-core.ts',
+            ),
             // Add aliases for our components to make imports easier
             '@docs/components': path.resolve(__dirname, '../src/components'),
             '@superset/components': path.resolve(
@@ -140,9 +156,9 @@ export default function webpackExtendPlugin(): Plugin<void> {
             // to source so the docs build doesn't depend on pre-built lib/ artifacts.
             // More specific sub-path aliases must come first; webpack matches the
             // longest prefix.
-            '@apache-superset/core/ui': path.resolve(
+            '@apache-superset/core/components': path.resolve(
               __dirname,
-              '../../superset-frontend/packages/superset-core/src/ui',
+              '../../superset-frontend/packages/superset-core/src/components',
             ),
             '@apache-superset/core/api/core': path.resolve(
               __dirname,
@@ -208,8 +224,6 @@ export default function webpackExtendPlugin(): Plugin<void> {
             ),
           },
         },
-        // We're removing the ts-loader rule that was processing superset-frontend files
-        // This will prevent TypeScript errors from files outside the docs directory
       };
     },
   };
