@@ -19,7 +19,6 @@
 
 import '@testing-library/jest-dom';
 import { render, screen } from '@superset-ui/core/spec';
-import mockConsole, { RestoreConsole } from 'jest-mock-console';
 import { triggerResizeObserver } from 'resize-observer-polyfill';
 import { ErrorBoundary } from 'react-error-boundary';
 
@@ -34,6 +33,7 @@ import {
 
 import { isMatrixifyEnabled } from '../../../src/chart/types/matrixify';
 import MatrixifyGridRenderer from '../../../src/chart/components/Matrixify/MatrixifyGridRenderer';
+import { Mock } from 'vitest';
 
 // Mock Matrixify imports
 vi.mock('../../../src/chart/types/matrixify', () => ({
@@ -65,8 +65,6 @@ function getDimensionText(container: HTMLElement) {
 describe('SuperChart', () => {
   vi.setConfig({ testTimeout: 5000 });
 
-  let restoreConsole: RestoreConsole;
-
   const plugins = [
     new DiligentChartPlugin().configure({ key: ChartKeys.DILIGENT }),
     new BuggyChartPlugin().configure({ key: ChartKeys.BUGGY }),
@@ -76,15 +74,6 @@ describe('SuperChart', () => {
     plugins.forEach(p => {
       p.unregister().register();
     });
-  });
-
-  beforeEach(() => {
-    restoreConsole = mockConsole();
-    triggerResizeObserver([]); // Reset any pending resize observers
-  });
-
-  afterEach(() => {
-    restoreConsole();
   });
 
   describe('includes ErrorBoundary', () => {
@@ -458,11 +447,12 @@ describe('SuperChart', () => {
   });
 
   test('should render MatrixifyGridRenderer when matrixify is enabled with empty data', () => {
-    const mockIsMatrixifyEnabled = isMatrixifyEnabled as vi.MockedFunction<
+    const mockIsMatrixifyEnabled = isMatrixifyEnabled as Mock<
       typeof isMatrixifyEnabled
     >;
-    const mockMatrixifyGridRenderer =
-      MatrixifyGridRenderer as vi.MockedFunction<typeof MatrixifyGridRenderer>;
+    const mockMatrixifyGridRenderer = MatrixifyGridRenderer as Mock<
+      typeof MatrixifyGridRenderer
+    >;
 
     mockIsMatrixifyEnabled.mockReturnValue(true);
 
@@ -481,11 +471,12 @@ describe('SuperChart', () => {
   });
 
   test('should render MatrixifyGridRenderer when matrixify is enabled with null data', () => {
-    const mockIsMatrixifyEnabled = isMatrixifyEnabled as vi.MockedFunction<
+    const mockIsMatrixifyEnabled = isMatrixifyEnabled as Mock<
       typeof isMatrixifyEnabled
     >;
-    const mockMatrixifyGridRenderer =
-      MatrixifyGridRenderer as vi.MockedFunction<typeof MatrixifyGridRenderer>;
+    const mockMatrixifyGridRenderer = MatrixifyGridRenderer as Mock<
+      typeof MatrixifyGridRenderer
+    >;
 
     mockIsMatrixifyEnabled.mockReturnValue(true);
 
@@ -504,11 +495,12 @@ describe('SuperChart', () => {
   });
 
   test('should ignore custom noResults component when matrixify is enabled', () => {
-    const mockIsMatrixifyEnabled = isMatrixifyEnabled as vi.MockedFunction<
+    const mockIsMatrixifyEnabled = isMatrixifyEnabled as Mock<
       typeof isMatrixifyEnabled
     >;
-    const mockMatrixifyGridRenderer =
-      MatrixifyGridRenderer as vi.MockedFunction<typeof MatrixifyGridRenderer>;
+    const mockMatrixifyGridRenderer = MatrixifyGridRenderer as Mock<
+      typeof MatrixifyGridRenderer
+    >;
 
     mockIsMatrixifyEnabled.mockReturnValue(true);
 
@@ -532,11 +524,12 @@ describe('SuperChart', () => {
   });
 
   test('should apply error boundary to matrixify grid renderer', () => {
-    const mockIsMatrixifyEnabled = isMatrixifyEnabled as vi.MockedFunction<
+    const mockIsMatrixifyEnabled = isMatrixifyEnabled as Mock<
       typeof isMatrixifyEnabled
     >;
-    const mockMatrixifyGridRenderer =
-      MatrixifyGridRenderer as vi.MockedFunction<typeof MatrixifyGridRenderer>;
+    const mockMatrixifyGridRenderer = MatrixifyGridRenderer as Mock<
+      typeof MatrixifyGridRenderer
+    >;
 
     mockIsMatrixifyEnabled.mockReturnValue(true);
     const onErrorBoundary = vi.fn();

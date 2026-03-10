@@ -28,6 +28,7 @@ import { store } from 'src/views/store';
 import { isFeatureEnabled } from '@superset-ui/core';
 import { FacePile } from '.';
 import { getRandomColor } from './utils';
+import { Mock } from 'vitest';
 
 // Mock the feature flag
 vi.mock('@superset-ui/core', async importActual => ({
@@ -35,9 +36,7 @@ vi.mock('@superset-ui/core', async importActual => ({
   isFeatureEnabled: vi.fn(),
 }));
 
-const mockIsFeatureEnabled = isFeatureEnabled as vi.MockedFunction<
-  typeof isFeatureEnabled
->;
+const mockIsFeatureEnabled = isFeatureEnabled as Mock<typeof isFeatureEnabled>;
 
 const users = Array.from({ length: 10 }, (_, i) => ({
   first_name: 'user',
@@ -115,7 +114,9 @@ describe('FacePile', () => {
 
     const firstAvatar = within(container).getByText('U0');
     fireEvent.mouseEnter(firstAvatar);
-    act(() => vi.runAllTimers());
+    act(() => {
+      vi.runAllTimers();
+    });
 
     expect(screen.getByRole('tooltip')).toHaveTextContent('user 0');
   });

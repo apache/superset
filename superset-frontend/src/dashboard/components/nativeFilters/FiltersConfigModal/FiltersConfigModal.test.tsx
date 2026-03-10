@@ -587,7 +587,7 @@ test('reorders filters via keyboard (Space, ArrowDown, Space)', async () => {
     sortableElements.forEach((el, index) => {
       const sortableNode = el.parentElement;
       if (sortableNode) {
-        jest.spyOn(sortableNode, 'getBoundingClientRect').mockImplementation(
+        vi.spyOn(sortableNode, 'getBoundingClientRect').mockImplementation(
           () =>
             ({
               bottom: (index + 1) * SORTABLE_ITEM_HEIGHT,

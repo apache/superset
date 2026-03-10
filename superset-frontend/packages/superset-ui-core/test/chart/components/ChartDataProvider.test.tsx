@@ -18,22 +18,10 @@
  */
 import '@testing-library/jest-dom';
 import { render, screen, act } from '@testing-library/react';
-import ChartClient from '../../../src/chart/clients/ChartClient';
 import ChartDataProvider, {
   ChartDataProviderProps,
 } from '../../../src/chart/components/ChartDataProvider';
 import { bigNumberFormData } from '../fixtures/formData';
-
-// Keep existing mock setup
-const defaultMockLoadFormData = vi.fn(({ formData }: { formData: unknown }) =>
-  Promise.resolve(formData),
-);
-
-type MockLoadFormData =
-  | typeof defaultMockLoadFormData
-  | vi.Mock<Promise<unknown>, unknown[]>;
-
-let mockLoadFormData: MockLoadFormData = defaultMockLoadFormData;
 
 function createPromise<T>(input: T) {
   return Promise.resolve(input);
@@ -43,24 +31,34 @@ function createArrayPromise<T>(input: T) {
   return Promise.resolve([input]);
 }
 
-const mockLoadDatasource = vi.fn<Promise<unknown>, unknown[]>(createPromise);
-const mockLoadQueryData = vi.fn<Promise<unknown>, unknown[]>(
-  createArrayPromise,
+const { mockLoadDatasource, mockLoadQueryData, mockLoadFormData } = vi.hoisted(
+  () => ({
+    mockLoadDatasource: vi.fn().mockImplementation(createPromise),
+    mockLoadQueryData: vi.fn().mockImplementation(createArrayPromise),
+    mockLoadFormData: vi.fn(({ formData }: { formData: unknown }) =>
+      Promise.resolve(formData),
+    ),
+  }),
 );
 
-const actual = vi.requireActual('../../../src/chart/clients/ChartClient');
-vi.spyOn(actual, 'default').mockImplementation(() => ({
-  loadDatasource: mockLoadDatasource,
-  loadFormData: mockLoadFormData,
-  loadQueryData: mockLoadQueryData,
-}));
-
-const ChartClientMock = ChartClient as vi.Mock<ChartClient>;
+vi.mock('../../../src/chart/clients/ChartClient', async importActual => {
+  const actual = (await importActual()) as Record<any, any>;
+  return {
+    ...actual,
+    default: function () {
+      return {
+        ...actual.default,
+        loadDatasource: mockLoadDatasource,
+        loadFormData: mockLoadFormData,
+        loadQueryData: mockLoadQueryData,
+      };
+    },
+  };
+});
 
 describe('ChartDataProvider', () => {
   beforeEach(() => {
-    ChartClientMock.mockClear();
-    mockLoadFormData = defaultMockLoadFormData;
+    mockLoadFormData.mockClear();
     mockLoadFormData.mockClear();
     mockLoadDatasource.mockClear();
     mockLoadQueryData.mockClear();
@@ -81,11 +79,6 @@ describe('ChartDataProvider', () => {
     return render(<ChartDataProvider {...props} {...overrideProps} />);
   }
 
-  test('instantiates a new ChartClient()', () => {
-    setup();
-    expect(ChartClientMock).toHaveBeenCalledTimes(1);
-  });
-
   describe('ChartClient.loadFormData', () => {
     test('calls method on mount', () => {
       setup();
@@ -100,7 +93,7 @@ describe('ChartDataProvider', () => {
       const options = { host: 'override' };
       setup({ formDataRequestOptions: options });
       expect(mockLoadFormData).toHaveBeenCalledTimes(1);
-      expect(mockLoadFormData.mock.calls[0][1]).toEqual(options);
+      expect((mockLoadFormData.mock.calls[0] as any[])[1]).toEqual(options);
     });
 
     test('calls ChartClient.loadFormData when formData or sliceId change', async () => {

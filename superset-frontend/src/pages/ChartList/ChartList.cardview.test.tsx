@@ -65,9 +65,7 @@ describe('ChartList Card View Tests', () => {
     setupMocks();
 
     // Enable card view as default
-    (
-      isFeatureEnabled as vi.MockedFunction<typeof isFeatureEnabled>
-    ).mockImplementation(
+    (isFeatureEnabled as Mock<typeof isFeatureEnabled>).mockImplementation(
       (feature: string) => feature === 'LISTVIEWS_DEFAULT_CARD_VIEW',
     );
   });
@@ -118,9 +116,7 @@ describe('ChartList Card View Tests', () => {
 
   test('renders ChartList in card view with thumbnails enabled', async () => {
     // Enable thumbnails feature flag
-    (
-      isFeatureEnabled as vi.MockedFunction<typeof isFeatureEnabled>
-    ).mockImplementation(
+    (isFeatureEnabled as Mock<typeof isFeatureEnabled>).mockImplementation(
       (feature: string) =>
         feature === 'LISTVIEWS_DEFAULT_CARD_VIEW' || feature === 'THUMBNAILS',
     );
@@ -412,9 +408,7 @@ describe('ChartList Card View Tests', () => {
 
   test('can bulk add tags to selected charts', async () => {
     // Enable tagging system for this test
-    (
-      isFeatureEnabled as vi.MockedFunction<typeof isFeatureEnabled>
-    ).mockImplementation(
+    (isFeatureEnabled as Mock<typeof isFeatureEnabled>).mockImplementation(
       (feature: string) =>
         feature === 'LISTVIEWS_DEFAULT_CARD_VIEW' ||
         feature === 'TAGGING_SYSTEM',

@@ -25,13 +25,14 @@ import { ErrorType } from '@superset-ui/core';
 import type { ErrorMessageComponentProps } from 'src/components/ErrorMessage/types';
 import { getErrorMessageComponentRegistry } from 'src/components/ErrorMessage';
 import { ChartErrorMessage } from './ChartErrorMessage';
+import { Mock } from 'vitest';
 
 // Mock the useChartOwnerNames hook
 vi.mock('src/hooks/apiResources', () => ({
   useChartOwnerNames: vi.fn(),
 }));
 
-const mockUseChartOwnerNames = useChartOwnerNames as vi.MockedFunction<
+const mockUseChartOwnerNames = useChartOwnerNames as Mock<
   typeof useChartOwnerNames
 >;
 

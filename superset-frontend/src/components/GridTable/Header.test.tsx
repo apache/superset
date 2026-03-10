@@ -25,10 +25,9 @@ vi.mock('@superset-ui/core/components/Dropdown', () => ({
   Dropdown: () => <div data-test="mock-dropdown" />,
 }));
 
-vi.mock('@superset-ui/core/components/Icons', () => {
-  const actualIcons = vi.requireActual('@superset-ui/core/components/Icons');
+vi.mock('@superset-ui/core/components/Icons', async importActual => {
+  const actualIcons = (await importActual()) as Record<any, any>;
   return {
-    __esModule: true,
     Icons: {
       ...actualIcons.Icons, // retain the real `Icons` export
       Sort: vi.fn(() => <div data-test="mock-sort" />),

@@ -19,9 +19,10 @@
 import { render, screen } from 'spec/helpers/testing-library';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import AccessSection from './AccessSection';
+import { Mock } from 'vitest';
 
 // Mock feature flags
-vi.mock('@superset-ui/core', async (importActual) => ({
+vi.mock('@superset-ui/core', async importActual => ({
   ...(await importActual()),
   isFeatureEnabled: vi.fn(),
 }));
@@ -38,7 +39,7 @@ vi.mock('src/components/Tag/utils', () => ({
   loadTags: vi.fn(),
 }));
 
-const mockedIsFeatureEnabled = isFeatureEnabled as vi.Mock;
+const mockedIsFeatureEnabled = isFeatureEnabled as Mock;
 
 const defaultProps = {
   isLoading: false,

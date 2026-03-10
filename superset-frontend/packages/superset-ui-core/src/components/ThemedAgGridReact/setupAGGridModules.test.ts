@@ -18,6 +18,7 @@
  */
 import { ModuleRegistry } from 'ag-grid-community';
 import { setupAGGridModules, defaultModules } from './setupAGGridModules';
+import { Mock } from 'vitest';
 
 vi.mock('ag-grid-community', () => ({
   ModuleRegistry: {
@@ -88,7 +89,7 @@ test('setupAGGridModules registers default + additional modules when provided', 
 
   expect(ModuleRegistry.registerModules).toHaveBeenCalledTimes(1);
 
-  const registeredModules = (ModuleRegistry.registerModules as vi.Mock).mock
+  const registeredModules = (ModuleRegistry.registerModules as Mock).mock
     .calls[0][0];
 
   // Should contain all default modules

@@ -30,7 +30,7 @@ test('postFormData should call SupersetClient.post with correct payload and retu
   const mockKey = '123abc';
   const mockResponse = { json: { key: mockKey } };
 
-  (SupersetClient.post as vi.Mock).mockResolvedValue(mockResponse);
+  (SupersetClient.post as Mock).mockResolvedValue(mockResponse);
 
   const result = await postFormData(
     1,
@@ -57,7 +57,7 @@ test('putFormData should call SupersetClient.put with correct payload and return
   const mockMessage = 'Form data updated';
   const mockResponse = { json: { message: mockMessage } };
 
-  (SupersetClient.put as vi.Mock).mockResolvedValue(mockResponse);
+  (SupersetClient.put as Mock).mockResolvedValue(mockResponse);
 
   const result = await putFormData(
     10,
@@ -81,7 +81,7 @@ test('putFormData should call SupersetClient.put with correct payload and return
 });
 
 test('postFormData without optional params should work', async () => {
-  (SupersetClient.post as vi.Mock).mockResolvedValue({
+  (SupersetClient.post as Mock).mockResolvedValue({
     json: { key: 'abc' },
   });
 

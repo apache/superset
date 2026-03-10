@@ -32,6 +32,7 @@ import {
   API_ENDPOINTS,
   getLatestDashboardApiCall,
 } from './DashboardList.testHelpers';
+import { Mock } from 'vitest';
 
 vi.setConfig({ testTimeout: 30000 });
 
@@ -41,13 +42,10 @@ vi.mock('@superset-ui/core', async importActual => ({
 }));
 
 vi.mock('src/utils/export', () => ({
-  __esModule: true,
   default: vi.fn(),
 }));
 
-const mockIsFeatureEnabled = isFeatureEnabled as vi.MockedFunction<
-  typeof isFeatureEnabled
->;
+const mockIsFeatureEnabled = isFeatureEnabled as Mock<typeof isFeatureEnabled>;
 
 beforeEach(() => {
   setupMocks();

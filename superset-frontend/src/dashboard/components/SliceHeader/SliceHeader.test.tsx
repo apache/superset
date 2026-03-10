@@ -23,6 +23,7 @@ import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import SliceHeader from '.';
+import { Mock } from 'vitest';
 
 vi.mock('src/dashboard/components/SliceHeaderControls', () => ({
   __esModule: true,
@@ -566,7 +567,7 @@ test('Should render RowCountLabel when row limit is hit, and hide it otherwise',
     },
   };
 
-  const mockUseUiConfig = useUiConfig as vi.MockedFunction<typeof useUiConfig>;
+  const mockUseUiConfig = useUiConfig as Mock<typeof useUiConfig>;
   mockUseUiConfig.mockReturnValue({
     hideTitle: false,
     hideTab: false,
@@ -597,8 +598,8 @@ test('Should render RowCountLabel when row limit is hit, and hide it otherwise',
 });
 
 test('Should hide warning in embedded by default for non-table charts', () => {
-  const mockIsEmbedded = isEmbedded as vi.MockedFunction<typeof isEmbedded>;
-  const mockUseUiConfig = useUiConfig as vi.MockedFunction<typeof useUiConfig>;
+  const mockIsEmbedded = isEmbedded as Mock<typeof isEmbedded>;
+  const mockUseUiConfig = useUiConfig as Mock<typeof useUiConfig>;
 
   mockIsEmbedded.mockReturnValue(true);
   mockUseUiConfig.mockReturnValue({
@@ -643,7 +644,7 @@ test('Should hide warning in embedded by default for non-table charts', () => {
 });
 
 test('Should show row count badge for table chart without server pagination', () => {
-  const mockUseUiConfig = useUiConfig as vi.MockedFunction<typeof useUiConfig>;
+  const mockUseUiConfig = useUiConfig as Mock<typeof useUiConfig>;
   mockUseUiConfig.mockReturnValue({
     hideTitle: false,
     hideTab: false,
@@ -734,7 +735,7 @@ test('Should show row count warning for table chart with server pagination when 
     },
   };
 
-  const mockUseUiConfig = useUiConfig as vi.MockedFunction<typeof useUiConfig>;
+  const mockUseUiConfig = useUiConfig as Mock<typeof useUiConfig>;
   mockUseUiConfig.mockReturnValue({
     hideTitle: false,
     hideTab: false,
@@ -793,7 +794,7 @@ test('Should NOT show row count warning for table chart with server pagination w
     },
   };
 
-  const mockUseUiConfig = useUiConfig as vi.MockedFunction<typeof useUiConfig>;
+  const mockUseUiConfig = useUiConfig as Mock<typeof useUiConfig>;
   mockUseUiConfig.mockReturnValue({
     hideTitle: false,
     hideTab: false,

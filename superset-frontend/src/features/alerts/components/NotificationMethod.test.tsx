@@ -392,14 +392,12 @@ describe('NotificationMethod', () => {
     window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: true };
 
     // Mock the SupersetClient.get to simulate an error
-    jest
-      .spyOn(SupersetClient, 'get')
-      .mockImplementation(
-        () =>
-          Promise.resolve({ json: { result: [] } }) as unknown as Promise<
-            Response | JsonResponse | TextResponse
-          >,
-      );
+    vi.spyOn(SupersetClient, 'get').mockImplementation(
+      () =>
+        Promise.resolve({ json: { result: [] } }) as unknown as Promise<
+          Response | JsonResponse | TextResponse
+        >,
+    );
 
     render(
       <NotificationMethod
@@ -525,7 +523,7 @@ describe('NotificationMethod', () => {
       // Set feature flag so that SlackV2 branch renders RefreshLabel
       window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: true };
       // Spy on SupersetClient.get which is called by updateSlackOptions
-      const supersetClientSpy = jest
+      const supersetClientSpy = vi
         .spyOn(SupersetClient, 'get')
         .mockImplementation(
           () =>

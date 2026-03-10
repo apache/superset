@@ -24,8 +24,11 @@ import {
   userEvent,
 } from 'spec/helpers/testing-library';
 import { HeaderMenu, type HeaderMenuProps } from './HeaderMenu';
+import { Mock } from 'vitest';
 
-vi.mock('src/utils/copy', () => vi.fn().mockImplementation(f => f()));
+vi.mock('src/utils/copy', () => ({
+  default: vi.fn().mockImplementation(f => f()),
+}));
 
 const mockInvisibleColumn = {
   getColId: vi.fn().mockReturnValue('column2'),
@@ -63,14 +66,14 @@ const mockedProps = {
 };
 
 afterEach(() => {
-  (mockGridApi.getDataAsCsv as vi.Mock).mockClear();
-  (mockGridApi.setColumnsPinned as vi.Mock).mockClear();
-  (mockGridApi.setColumnsVisible as vi.Mock).mockClear();
-  (mockGridApi.setColumnsVisible as vi.Mock).mockClear();
-  (mockGridApi.setColumnsPinned as vi.Mock).mockClear();
-  (mockGridApi.autoSizeColumns as vi.Mock).mockClear();
-  (mockGridApi.autoSizeAllColumns as vi.Mock).mockClear();
-  (mockGridApi.moveColumns as vi.Mock).mockClear();
+  (mockGridApi.getDataAsCsv as Mock).mockClear();
+  (mockGridApi.setColumnsPinned as Mock).mockClear();
+  (mockGridApi.setColumnsVisible as Mock).mockClear();
+  (mockGridApi.setColumnsVisible as Mock).mockClear();
+  (mockGridApi.setColumnsPinned as Mock).mockClear();
+  (mockGridApi.autoSizeColumns as Mock).mockClear();
+  (mockGridApi.autoSizeAllColumns as Mock).mockClear();
+  (mockGridApi.moveColumns as Mock).mockClear();
 });
 
 const setup = (props: HeaderMenuProps = mockedProps) => {

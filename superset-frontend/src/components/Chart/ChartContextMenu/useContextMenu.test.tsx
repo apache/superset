@@ -25,10 +25,11 @@ import { noOp } from 'src/utils/common';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import { useContextMenu } from './useContextMenu';
 import { ContextMenuItem } from './ChartContextMenu';
+import { Mock } from 'vitest';
 
 vi.mock('src/utils/cachedSupersetGet');
 
-const mockCachedSupersetGet = cachedSupersetGet as vi.MockedFunction<
+const mockCachedSupersetGet = cachedSupersetGet as Mock<
   typeof cachedSupersetGet
 >;
 const CONTEXT_MENU_TEST_ID = 'chart-context-menu';

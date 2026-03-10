@@ -94,8 +94,8 @@ describe('CartodiagramPlugin transformProps', () => {
     theme: supersetTheme,
   });
 
-  let chartTransformPropsPieMock: vi.MockedFunction<any>;
-  let chartTransformPropsTimeseriesMock: vi.MockedFunction<any>;
+  let chartTransformPropsPieMock: Mock<any>;
+  let chartTransformPropsTimeseriesMock: Mock<any>;
   beforeEach(() => {
     chartTransformPropsPieMock = vi.fn();
     chartTransformPropsTimeseriesMock = vi.fn();

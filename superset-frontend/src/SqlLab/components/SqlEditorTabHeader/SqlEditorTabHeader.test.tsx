@@ -138,7 +138,7 @@ describe('SqlEditorTabHeader', () => {
         expect(screen.getByTestId('close-tab-menu-option')).toBeInTheDocument(),
       );
       const expectedTitle = 'typed text';
-      const mockPrompt = jest
+      const mockPrompt = vi
         .spyOn(window, 'prompt')
         .mockImplementation(() => expectedTitle);
       fireEvent.click(screen.getByTestId('rename-tab-menu-option'));

@@ -34,9 +34,9 @@ type Projection = ((...args: unknown[]) => void) & {
 };
 
 type PathFn = (() => string) & {
-  projection: vi.Mock;
-  bounds: vi.Mock<[[number, number], [number, number]]>;
-  centroid: vi.Mock<[number, number]>;
+  projection: Mock;
+  bounds: Mock<[[number, number], [number, number]]>;
+  centroid: Mock<[number, number]>;
 };
 
 const mockPath: PathFn = vi.fn(() => 'M10 10 L20 20') as unknown as PathFn;

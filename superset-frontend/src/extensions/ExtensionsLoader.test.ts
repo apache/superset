@@ -80,10 +80,10 @@ test('initializes extension without remoteEntry', async () => {
 
 test('handles initialization errors gracefully', async () => {
   const loader = ExtensionsLoader.getInstance();
-  const errorSpy = jest.spyOn(logging, 'error').mockImplementation();
+  const errorSpy = vi.spyOn(logging, 'error').mockImplementation(() => {});
 
   // Intercept script element creation so onerror fires in jsdom
-  const appendChildSpy = jest
+  const appendChildSpy = vi
     .spyOn(document.head, 'appendChild')
     .mockImplementation((element: Node) => {
       if (element instanceof HTMLScriptElement && element.onerror) {

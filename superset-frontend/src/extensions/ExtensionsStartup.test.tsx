@@ -82,7 +82,7 @@ test('renders without crashing', () => {
 test('sets up global superset object when user is logged in', async () => {
   // Mock initializeExtensions to avoid API calls in this test
   const loader = ExtensionsLoader.getInstance();
-  const initializeSpy = jest
+  const initializeSpy = vi
     .spyOn(loader, 'initializeExtensions')
     .mockImplementation(() => Promise.resolve());
 
@@ -121,7 +121,7 @@ test('does not set up global superset object when user is not logged in', async 
 test('initializes ExtensionsLoader when user is logged in', async () => {
   // Mock initializeExtensions to avoid API calls, but track that it was called
   const loader = ExtensionsLoader.getInstance();
-  const initializeSpy = jest
+  const initializeSpy = vi
     .spyOn(loader, 'initializeExtensions')
     .mockImplementation(() => Promise.resolve());
 
@@ -201,7 +201,7 @@ test('initializes ExtensionsLoader and logs success when EnableExtensions featur
 
   // Mock the initializeExtensions method to succeed
   const originalInitialize = ExtensionsLoader.prototype.initializeExtensions;
-  ExtensionsLoader.prototype.initializeExtensions = jest
+  ExtensionsLoader.prototype.initializeExtensions = vi
     .fn()
     .mockImplementation(() => Promise.resolve());
 
@@ -235,9 +235,9 @@ test('does not initialize ExtensionsLoader when EnableExtensions feature flag is
   mockIsFeatureEnabled.mockReturnValue(false);
 
   const loader = ExtensionsLoader.getInstance();
-  const initializeSpy = jest
+  const initializeSpy = vi
     .spyOn(loader, 'initializeExtensions')
-    .mockImplementation();
+    .mockImplementation(vi.fn());
 
   render(<ExtensionsStartup />, {
     useRedux: true,
@@ -266,7 +266,7 @@ test('logs error when ExtensionsLoader initialization fails', async () => {
 
   // Mock the initializeExtensions method to throw an error
   const originalInitialize = ExtensionsLoader.prototype.initializeExtensions;
-  ExtensionsLoader.prototype.initializeExtensions = jest
+  ExtensionsLoader.prototype.initializeExtensions = vi
     .fn()
     .mockImplementation(() => {
       throw new Error('Test initialization error');

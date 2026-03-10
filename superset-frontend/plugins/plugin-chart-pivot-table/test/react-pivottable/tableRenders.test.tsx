@@ -20,8 +20,8 @@ import { TableRenderer } from '../../src/react-pivottable/TableRenderers';
 import type { PivotData } from '../../src/react-pivottable/utilities';
 
 let tableRenderer: TableRenderer;
-let mockGetAggregatedData: vi.Mock;
-let mockSortAndCacheData: vi.Mock;
+let mockGetAggregatedData: Mock;
+let mockSortAndCacheData: Mock;
 
 const columnIndex = 0;
 const visibleColKeys = [['col1'], ['col2']];

@@ -24,7 +24,7 @@ vi.mock('@superset-ui/core', async importActual => ({
   getChartMetadataRegistry: vi.fn(),
 }));
 
-const mockedGetChartMetadataRegistry = getChartMetadataRegistry as vi.Mock;
+const mockedGetChartMetadataRegistry = getChartMetadataRegistry as Mock;
 
 test('Should return false', () => {
   const get = vi.fn();

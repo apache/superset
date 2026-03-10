@@ -19,6 +19,7 @@
 import { renderHook } from '@testing-library/react-hooks';
 import { SupersetClient } from '@superset-ui/core';
 import { useDeckLayerMetadata } from './useDeckLayerMetadata';
+import { Mock } from 'vitest';
 
 vi.mock('@superset-ui/core', async importActual => ({
   ...(await importActual()),
@@ -27,7 +28,7 @@ vi.mock('@superset-ui/core', async importActual => ({
   },
 }));
 
-const mockSupersetClientGet = SupersetClient.get as vi.Mock;
+const mockSupersetClientGet = SupersetClient.get as Mock;
 
 beforeEach(() => {
   vi.clearAllMocks();

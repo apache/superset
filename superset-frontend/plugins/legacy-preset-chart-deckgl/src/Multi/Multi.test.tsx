@@ -24,6 +24,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import { DatasourceType, SupersetClient } from '@superset-ui/core';
 import DeckMulti from './Multi';
 import * as fitViewportModule from '../utils/fitViewport';
+import { Mock } from 'vitest';
 
 // Mock DeckGLContainer
 vi.mock('../DeckGLContainer', () => ({
@@ -128,7 +129,7 @@ const renderWithProviders = (component: React.ReactElement) =>
 describe('DeckMulti Autozoom Functionality', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (SupersetClient.get as vi.Mock).mockResolvedValue({
+    (SupersetClient.get as Mock).mockResolvedValue({
       json: {
         data: {
           features: [],
@@ -451,7 +452,7 @@ describe('DeckMulti Autozoom Functionality', () => {
 describe('DeckMulti Component Rendering', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (SupersetClient.get as vi.Mock).mockResolvedValue({
+    (SupersetClient.get as Mock).mockResolvedValue({
       json: {
         data: {
           features: [],
@@ -502,7 +503,7 @@ describe('DeckMulti Component Rendering', () => {
     });
 
     // Check that all requests include the dashboardId
-    const { calls } = (SupersetClient.get as vi.Mock).mock;
+    const { calls } = (SupersetClient.get as Mock).mock;
     calls.forEach(call => {
       const url = call[0].endpoint;
       const urlParams = new URLSearchParams(url.split('?')[1]);
@@ -529,7 +530,7 @@ describe('DeckMulti Component Rendering', () => {
     });
 
     // Check that requests don't include dashboardId
-    const { calls } = (SupersetClient.get as vi.Mock).mock;
+    const { calls } = (SupersetClient.get as Mock).mock;
     calls.forEach(call => {
       const url = call[0].endpoint;
       const formData = JSON.parse(
@@ -557,7 +558,7 @@ describe('DeckMulti Component Rendering', () => {
     });
 
     // Verify dashboardId is preserved with filters
-    const { calls } = (SupersetClient.get as vi.Mock).mock;
+    const { calls } = (SupersetClient.get as Mock).mock;
     calls.forEach(call => {
       const url = call[0].endpoint;
       const formData = JSON.parse(

@@ -18,6 +18,7 @@
  */
 // eslint-disable-next-line import/no-extraneous-dependencies
 import fetchMock from 'fetch-mock';
+import { Mock } from 'vitest';
 import rison from 'rison';
 import { render, screen } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
@@ -33,8 +34,9 @@ const DashboardList = DashboardListComponent as unknown as React.FC<
   Record<string, any>
 >;
 
-export const mockHandleResourceExport =
-  handleResourceExport as jest.MockedFunction<typeof handleResourceExport>;
+export const mockHandleResourceExport = handleResourceExport as Mock<
+  typeof handleResourceExport
+>;
 
 export const mockDashboards = [
   {
@@ -317,7 +319,7 @@ export const setupMocks = (
     { name: API_ENDPOINTS.DASHBOARD_RELATED_CHANGED_BY },
   );
 
-  global.URL.createObjectURL = jest.fn();
+  global.URL.createObjectURL = vi.fn();
   fetchMock.get(
     API_ENDPOINTS.THUMBNAIL,
     { body: new Blob(), sendAsJson: false },

@@ -31,7 +31,7 @@ vi.mock('@superset-ui/core', async importActual => ({
   getClientErrorObject: vi.fn(),
 }));
 
-const mockedGetClientErrorObject = getClientErrorObject as vi.Mock;
+const mockedGetClientErrorObject = getClientErrorObject as Mock;
 
 const CURRENT_DATASOURCE = {
   id: 1,

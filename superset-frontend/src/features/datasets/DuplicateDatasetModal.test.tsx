@@ -66,8 +66,8 @@ const Wrapper = ({
   onDuplicate,
 }: {
   dataset: VirtualDatasetFixture | null;
-  onHide: vi.Mock;
-  onDuplicate: vi.Mock;
+  onHide: Mock;
+  onDuplicate: Mock;
 }) => (
   <ThemeProvider theme={supersetTheme}>
     <DuplicateDatasetModal
@@ -80,8 +80,8 @@ const Wrapper = ({
 
 const renderModal = (
   dataset: VirtualDatasetFixture | null,
-  onHide: vi.Mock,
-  onDuplicate: vi.Mock,
+  onHide: Mock,
+  onDuplicate: Mock,
 ) =>
   render(
     <Wrapper dataset={dataset} onHide={onHide} onDuplicate={onDuplicate} />,

@@ -73,8 +73,8 @@ export const createDataTablesPaneProps = (sliceId: number) =>
     datasource,
     queryForce: false,
     chartStatus: 'rendered' as ChartStatus,
-    onCollapseChange: jest.fn(),
-    setForceQuery: jest.fn(),
+    onCollapseChange: vi.fn(),
+    setForceQuery: vi.fn(),
     canDownload: true,
   }) as DataTablesPaneProps;
 
@@ -92,7 +92,7 @@ export const createSamplesPaneProps = ({
     datasource: { ...datasource, id: datasourceId },
     queryForce,
     isVisible: true,
-    setForceQuery: jest.fn(),
+    setForceQuery: vi.fn(),
     canDownload: true,
   }) as SamplesPaneProps;
 
@@ -118,7 +118,7 @@ export const createResultsPaneOnDashboardProps = ({
     },
     queryForce,
     isVisible: true,
-    setForceQuery: jest.fn(),
+    setForceQuery: vi.fn(),
     errorMessage,
     canDownload: true,
   }) as ResultsPaneProps;

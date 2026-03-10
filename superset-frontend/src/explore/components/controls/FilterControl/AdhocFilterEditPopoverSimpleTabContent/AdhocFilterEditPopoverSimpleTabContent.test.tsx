@@ -143,7 +143,7 @@ vi.mock('@superset-ui/core', async importActual => ({
   isFeatureEnabled: vi.fn(),
 }));
 
-const mockedIsFeatureEnabled = isFeatureEnabled as vi.Mock;
+const mockedIsFeatureEnabled = isFeatureEnabled as Mock;
 
 const ADVANCED_DATA_TYPE_ENDPOINT_VALID =
   'glob:*/api/v1/advanced_data_type/convert?q=(type:type,values:!(v))';

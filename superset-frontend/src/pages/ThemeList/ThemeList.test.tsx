@@ -127,7 +127,7 @@ const mockRefreshData = vi.fn();
 
 beforeEach(() => {
   // Mock the useListViewResource hook
-  (hooks.useListViewResource as vi.Mock).mockReturnValue({
+  (hooks.useListViewResource as Mock).mockReturnValue({
     state: {
       loading: false,
       resourceCollection: mockThemes,
@@ -143,7 +143,7 @@ beforeEach(() => {
 
   // Mock useThemeContext
   mockGetAppliedThemeId.mockReturnValue(null);
-  (useThemeContext as vi.Mock).mockReturnValue({
+  (useThemeContext as Mock).mockReturnValue({
     getCurrentCrudThemeId: vi.fn().mockReturnValue('1'),
     appliedTheme: { theme_name: 'Light Theme', id: 1 },
     setTemporaryTheme: mockSetTemporaryTheme,
@@ -530,7 +530,7 @@ test('component loads successfully with applied theme ID set', async () => {
   // This test verifies that having a stored theme ID doesn't break the component
   // Mock hasDevOverride to return true since we have a dev override set
   mockGetAppliedThemeId.mockReturnValue(1);
-  (useThemeContext as vi.Mock).mockReturnValue({
+  (useThemeContext as Mock).mockReturnValue({
     getCurrentCrudThemeId: vi.fn().mockReturnValue('1'),
     appliedTheme: { theme_name: 'Light Theme', id: 1 },
     setTemporaryTheme: mockSetTemporaryTheme,
@@ -562,7 +562,7 @@ test('component loads successfully with applied theme ID set', async () => {
 test('component loads successfully and preserves applied theme state', async () => {
   // Mock hasDevOverride to return true and getAppliedThemeId to return a theme
   mockGetAppliedThemeId.mockReturnValue(1);
-  (useThemeContext as vi.Mock).mockReturnValue({
+  (useThemeContext as Mock).mockReturnValue({
     getCurrentCrudThemeId: vi.fn().mockReturnValue('1'),
     appliedTheme: { theme_name: 'Light Theme', id: 1 },
     setTemporaryTheme: mockSetTemporaryTheme,

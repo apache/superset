@@ -51,8 +51,8 @@ vi.mock('src/components/MessageToasts/withToasts', () => ({
   useToasts: () => mockToasts,
 }));
 
-vi.mock('@superset-ui/core', async (importActual) => {
-  const original = await importActual() as any;
+vi.mock('@superset-ui/core', async importActual => {
+  const original = (await importActual()) as any;
   return {
     ...original,
     SupersetClient: {
@@ -232,7 +232,7 @@ describe('RoleListEditModal', () => {
   });
 
   test('preserves missing IDs as numeric fallbacks on partial hydration', async () => {
-    const mockGet = SupersetClient.get as jest.Mock;
+    const mockGet = SupersetClient.get as Mock;
     mockGet.mockImplementation(({ endpoint }) => {
       if (endpoint?.includes('/api/v1/security/permissions-resources/')) {
         // Only return permission id=10, not id=20
@@ -275,7 +275,7 @@ describe('RoleListEditModal', () => {
 
   test('does not fire fallback toast when hydration fetch fails', async () => {
     mockToasts.addDangerToast.mockClear();
-    const mockGet = SupersetClient.get as jest.Mock;
+    const mockGet = SupersetClient.get as Mock;
     mockGet.mockImplementation(({ endpoint }) => {
       if (endpoint?.includes('/api/v1/security/permissions-resources/')) {
         return Promise.reject(new Error('network error'));
@@ -308,7 +308,7 @@ describe('RoleListEditModal', () => {
   });
 
   test('fires warning toast when hydration returns zero rows but IDs were expected', async () => {
-    const mockGet = SupersetClient.get as jest.Mock;
+    const mockGet = SupersetClient.get as Mock;
     mockGet.mockImplementation(({ endpoint }) =>
       Promise.resolve({ json: { count: 0, result: [] } }),
     );
@@ -327,7 +327,7 @@ describe('RoleListEditModal', () => {
   });
 
   test('does not leak state when switching roles', async () => {
-    const mockGet = SupersetClient.get as jest.Mock;
+    const mockGet = SupersetClient.get as Mock;
 
     // Role A: returns permission 10 with label
     const roleA = {
@@ -371,12 +371,7 @@ describe('RoleListEditModal', () => {
     });
 
     const { rerender, unmount } = render(
-      <RoleListEditModal
-        role={roleA}
-        show
-        onHide={jest.fn()}
-        onSave={jest.fn()}
-      />,
+      <RoleListEditModal role={roleA} show onHide={vi.fn()} onSave={vi.fn()} />,
     );
 
     await waitFor(() => {
@@ -391,12 +386,7 @@ describe('RoleListEditModal', () => {
 
     // Switch to Role B
     rerender(
-      <RoleListEditModal
-        role={roleB}
-        show
-        onHide={jest.fn()}
-        onSave={jest.fn()}
-      />,
+      <RoleListEditModal role={roleB} show onHide={vi.fn()} onSave={vi.fn()} />,
     );
 
     await waitFor(() => {
@@ -421,7 +411,7 @@ describe('RoleListEditModal', () => {
   });
 
   test('fetches permissions and groups by id for hydration', async () => {
-    const mockGet = SupersetClient.get as jest.Mock;
+    const mockGet = SupersetClient.get as Mock;
     mockGet.mockResolvedValue({
       json: {
         count: 0,

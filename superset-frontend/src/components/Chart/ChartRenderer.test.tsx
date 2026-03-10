@@ -52,9 +52,9 @@ vi.mock('@superset-ui/core', async importActual => ({
   ),
 }));
 
-vi.mock('src/components/Chart/ChartContextMenu/ChartContextMenu', () => () => (
-  <div data-test="mock-chart-context-menu" />
-));
+vi.mock('src/components/Chart/ChartContextMenu/ChartContextMenu', () => ({
+  default: () => <div data-test="mock-chart-context-menu" />,
+}));
 
 interface MockActions {
   chartRenderingSucceeded: (chartId: number) => Dispatch;

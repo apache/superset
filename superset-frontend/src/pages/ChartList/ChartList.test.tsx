@@ -75,9 +75,7 @@ describe('ChartList', () => {
   afterEach(() => {
     fetchMock.clearHistory();
     // Reset feature flag mock
-    (
-      isFeatureEnabled as vi.MockedFunction<typeof isFeatureEnabled>
-    ).mockReset();
+    (isFeatureEnabled as Mock<typeof isFeatureEnabled>).mockReset();
   });
 
   test('renders component with basic structure', async () => {
@@ -248,9 +246,7 @@ describe('ChartList - Global Filter Interactions', () => {
   afterEach(() => {
     fetchMock.clearHistory();
     // Reset feature flag mock
-    (
-      isFeatureEnabled as vi.MockedFunction<typeof isFeatureEnabled>
-    ).mockReset();
+    (isFeatureEnabled as Mock<typeof isFeatureEnabled>).mockReset();
   });
 
   test('renders all standard filters', async () => {
@@ -283,9 +279,7 @@ describe('ChartList - Global Filter Interactions', () => {
 
   test('renders Tags filter when TAGGING_SYSTEM is enabled', async () => {
     // Mock feature flag to enable tags
-    (
-      isFeatureEnabled as vi.MockedFunction<typeof isFeatureEnabled>
-    ).mockImplementation(
+    (isFeatureEnabled as Mock<typeof isFeatureEnabled>).mockImplementation(
       (feature: string) =>
         feature === 'TAGGING_SYSTEM' ||
         feature !== 'LISTVIEWS_DEFAULT_CARD_VIEW',
@@ -312,9 +306,7 @@ describe('ChartList - Global Filter Interactions', () => {
   });
 
   test('does not render Tags filter when TAGGING_SYSTEM is disabled', async () => {
-    (
-      isFeatureEnabled as vi.MockedFunction<typeof isFeatureEnabled>
-    ).mockImplementation(
+    (isFeatureEnabled as Mock<typeof isFeatureEnabled>).mockImplementation(
       (feature: string) =>
         feature !== 'LISTVIEWS_DEFAULT_CARD_VIEW' &&
         feature !== 'TAGGING_SYSTEM',

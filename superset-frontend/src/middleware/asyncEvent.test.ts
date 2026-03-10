@@ -26,7 +26,7 @@ vi.mock('@superset-ui/core', async importActual => ({
   isFeatureEnabled: vi.fn(),
 }));
 
-const mockedIsFeatureEnabled = isFeatureEnabled as vi.Mock;
+const mockedIsFeatureEnabled = isFeatureEnabled as Mock;
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('asyncEvent middleware', () => {

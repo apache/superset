@@ -30,6 +30,7 @@ import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFro
 import emptyDashboardLayout from 'src/dashboard/fixtures/emptyDashboardLayout';
 import React from 'react';
 import TabsComponent from './Tabs';
+import { Mock } from 'vitest';
 
 // Cast to accept partial mock props in tests
 const Tabs = TabsComponent as unknown as React.FC<Record<string, unknown>>;
@@ -191,7 +192,7 @@ test('Should render editMode:false', () => {
 
 test('Update component props', () => {
   const props = createProps();
-  (getLeafComponentIdFromPath as vi.Mock).mockResolvedValueOnce('none');
+  (getLeafComponentIdFromPath as Mock).mockResolvedValueOnce('none');
   props.editMode = false;
   const { rerender } = render(<Tabs {...props} />, {
     useRedux: true,

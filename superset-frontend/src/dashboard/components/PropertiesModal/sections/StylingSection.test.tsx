@@ -24,9 +24,10 @@ import {
 } from 'spec/helpers/testing-library';
 import { SupersetClient, isFeatureEnabled } from '@superset-ui/core';
 import StylingSection from './StylingSection';
+import { Mock } from 'vitest';
 
 // Mock SupersetClient
-vi.mock('@superset-ui/core', async (importActual) => ({
+vi.mock('@superset-ui/core', async importActual => ({
   ...(await importActual()),
   SupersetClient: {
     get: vi.fn(),
@@ -34,10 +35,8 @@ vi.mock('@superset-ui/core', async (importActual) => ({
   isFeatureEnabled: vi.fn(),
 }));
 
-const mockSupersetClient = SupersetClient as vi.Mocked<typeof SupersetClient>;
-const mockIsFeatureEnabled = isFeatureEnabled as vi.MockedFunction<
-  typeof isFeatureEnabled
->;
+const mockSupersetClient = SupersetClient;
+const mockIsFeatureEnabled = isFeatureEnabled as Mock<typeof isFeatureEnabled>;
 
 // Mock ColorSchemeSelect component
 vi.mock('src/dashboard/components/ColorSchemeSelect', () => ({
@@ -82,7 +81,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   // Reset mocks
   mockIsFeatureEnabled.mockReturnValue(false);
-  mockSupersetClient.get.mockResolvedValue({
+  (mockSupersetClient.get as Mock).mockResolvedValue({
     json: { result: mockCssTemplates },
     response: {} as Response,
   });
@@ -242,7 +241,9 @@ describe('CSS Template functionality', () => {
   test('shows error toast when template fetch fails', async () => {
     mockIsFeatureEnabled.mockImplementation(flag => flag === 'CSS_TEMPLATES');
     const addDangerToast = vi.fn();
-    mockSupersetClient.get.mockRejectedValueOnce(new Error('API Error'));
+    (mockSupersetClient.get as Mock).mockRejectedValueOnce(
+      new Error('API Error'),
+    );
 
     render(
       <StylingSection {...defaultProps} addDangerToast={addDangerToast} />,
@@ -257,7 +258,7 @@ describe('CSS Template functionality', () => {
 
   test('does not show CSS template select when no templates available', async () => {
     mockIsFeatureEnabled.mockImplementation(flag => flag === 'CSS_TEMPLATES');
-    mockSupersetClient.get.mockResolvedValueOnce({
+    (mockSupersetClient.get as Mock).mockResolvedValueOnce({
       json: { result: [] },
       response: {} as Response,
     });

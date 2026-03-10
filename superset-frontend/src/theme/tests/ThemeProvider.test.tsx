@@ -26,9 +26,10 @@ import { act, render, screen } from '@superset-ui/core/spec';
 import { renderHook } from '@testing-library/react-hooks';
 import { SupersetThemeProvider, useThemeContext } from '../ThemeProvider';
 import { ThemeController } from '../ThemeController';
+import { Mock } from 'vitest';
 
 vi.mock('../ThemeController');
-const MockThemeController = ThemeController as vi.MockedClass<
+const MockThemeController = ThemeController as Mock<
   typeof ThemeController
 >;
 
@@ -58,7 +59,7 @@ const mockDarkTheme = {
 } as unknown as Theme;
 
 const createWrapper =
-  (controller: vi.Mocked<ThemeController>) =>
+  (controller: any) =>
   ({ children }: { children: ReactNode }) => (
     <SupersetThemeProvider themeController={controller}>
       {children}
@@ -67,8 +68,8 @@ const createWrapper =
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SupersetThemeProvider', () => {
-  let mockThemeController: vi.Mocked<ThemeController>;
-  let mockOnChangeCallback: vi.Mock;
+  let mockThemeController: any;
+  let mockOnChangeCallback: any;
 
   beforeEach(() => {
     mockOnChangeCallback = vi.fn();
@@ -82,9 +83,9 @@ describe('SupersetThemeProvider', () => {
       canUpdateTheme: vi.fn().mockReturnValue(true),
       canUpdateMode: vi.fn().mockReturnValue(true),
       destroy: vi.fn(),
-    } as unknown as vi.Mocked<ThemeController>;
+    } as unknown as Mock;
 
-    mockThemeController.onChange.mockImplementation(callback => {
+    mockThemeController.onChange.mockImplementation((callback: any) => {
       mockOnChangeCallback.mockImplementation(callback);
       return vi.fn();
     });

@@ -36,7 +36,7 @@ const defaultProps: {
   name: string;
   label: string;
   valueKey: string;
-  onChange: vi.Mock;
+  onChange: Mock;
 } = {
   choices: [
     ['1 year ago', '1 year ago'],

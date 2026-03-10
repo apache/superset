@@ -23,6 +23,7 @@ import { ThemeProvider } from '@apache-superset/core/theme';
 import { supersetTheme } from '@apache-superset/core/theme';
 import MatrixifyGridRenderer from './MatrixifyGridRenderer';
 import { generateMatrixifyGrid } from './MatrixifyGridGenerator';
+import { Mock } from 'vitest';
 
 // Mock the MatrixifyGridGenerator
 vi.mock('./MatrixifyGridGenerator', () => ({
@@ -37,7 +38,7 @@ vi.mock('./MatrixifyGridCell', () =>
   ),
 );
 
-const mockGenerateMatrixifyGrid = generateMatrixifyGrid as vi.MockedFunction<
+const mockGenerateMatrixifyGrid = generateMatrixifyGrid as Mock<
   typeof generateMatrixifyGrid
 >;
 

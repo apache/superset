@@ -450,7 +450,7 @@ test('"Certification details" should not be empty when saved', async () => {
 });
 
 test('Should display only custom tags when tagging system is enabled', async () => {
-  const mockIsFeatureEnabled = isFeatureEnabled as vi.MockedFunction<
+  const mockIsFeatureEnabled = isFeatureEnabled as Mock<
     typeof isFeatureEnabled
   >;
   mockIsFeatureEnabled.mockImplementation(

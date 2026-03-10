@@ -43,14 +43,15 @@ import { storeWithState } from 'spec/fixtures/mockStore';
 import mockState from 'spec/fixtures/mockState';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import * as useNativeFiltersModule from './state';
+import { Mock } from 'vitest';
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 fetchMock.put('glob:*/api/v1/dashboard/*', {});
 // Add mock for logging endpoint
 fetchMock.post('glob:*/superset/log/?*', {});
 
-vi.mock('src/dashboard/actions/dashboardState', () => ({
-  ...vi.requireActual('src/dashboard/actions/dashboardState'),
+vi.mock('src/dashboard/actions/dashboardState', async importActual => ({
+  ...(await importActual()),
   fetchFaveStar: vi.fn(),
   setActiveTab: vi.fn(),
   setDirectPathToChild: vi.fn(),
@@ -107,24 +108,24 @@ vi.mock('src/dashboard/containers/DashboardGrid', () => {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DashboardBuilder', () => {
-  let favStarStub: vi.Mock;
-  let activeTabsStub: vi.Mock;
+  let favStarStub: Mock;
+  let activeTabsStub: Mock;
 
   beforeAll(() => {
     // this is invoked on mount, so we stub it instead of making a request
-    favStarStub = (fetchFaveStar as vi.Mock).mockReturnValue({
+    favStarStub = (fetchFaveStar as Mock).mockReturnValue({
       type: 'mock-action',
     });
-    activeTabsStub = (setActiveTab as vi.Mock).mockReturnValue({
+    activeTabsStub = (setActiveTab as Mock).mockReturnValue({
       type: 'mock-action',
     });
-    (useStoredSidebarWidth as vi.Mock).mockImplementation(() => [100, vi.fn()]);
+    (useStoredSidebarWidth as Mock).mockImplementation(() => [100, vi.fn()]);
   });
 
   afterAll(() => {
     favStarStub.mockReset();
     activeTabsStub.mockReset();
-    (useStoredSidebarWidth as vi.Mock).mockReset();
+    (useStoredSidebarWidth as Mock).mockReset();
   });
 
   function setup(overrideState = {}) {
@@ -244,7 +245,7 @@ describe('DashboardBuilder', () => {
   });
 
   test('should change redux state if a top-level Tab is clicked', async () => {
-    (setDirectPathToChild as vi.Mock).mockImplementation(arg0 => ({
+    (setDirectPathToChild as Mock).mockImplementation(arg0 => ({
       type: 'type',
       arg0,
     }));
@@ -260,7 +261,7 @@ describe('DashboardBuilder', () => {
       'TABS_ID',
       'TAB_ID2',
     ]);
-    (setDirectPathToChild as vi.Mock).mockReset();
+    (setDirectPathToChild as Mock).mockReset();
   });
 
   test('should not display a loading spinner when saving is not in progress', () => {
@@ -280,7 +281,7 @@ describe('DashboardBuilder', () => {
   test('should set FilterBar width by useStoredSidebarWidth', () => {
     const expectedValue = 200;
     const setter = vi.fn();
-    (useStoredSidebarWidth as vi.Mock).mockImplementation(() => [
+    (useStoredSidebarWidth as Mock).mockImplementation(() => [
       expectedValue,
       setter,
     ]);
@@ -297,11 +298,11 @@ describe('DashboardBuilder', () => {
   test('should set header max width based on open filter bar width', () => {
     const expectedValue = 320;
     const setter = vi.fn();
-    (useStoredSidebarWidth as vi.Mock).mockImplementation(() => [
+    (useStoredSidebarWidth as Mock).mockImplementation(() => [
       expectedValue,
       setter,
     ]);
-    const nativeFiltersSpy = jest
+    const nativeFiltersSpy = vi
       .spyOn(useNativeFiltersModule, 'useNativeFilters')
       .mockReturnValue({
         showDashboard: true,
@@ -323,11 +324,11 @@ describe('DashboardBuilder', () => {
 
   test('should use closed filter bar width when the panel is collapsed', () => {
     const setter = vi.fn();
-    (useStoredSidebarWidth as vi.Mock).mockImplementation(() => [
+    (useStoredSidebarWidth as Mock).mockImplementation(() => [
       OPEN_FILTER_BAR_WIDTH,
       setter,
     ]);
-    const nativeFiltersSpy = jest
+    const nativeFiltersSpy = vi
       .spyOn(useNativeFiltersModule, 'useNativeFilters')
       .mockReturnValue({
         showDashboard: true,
@@ -349,11 +350,11 @@ describe('DashboardBuilder', () => {
 
   test('should not constrain header width when filter bar is hidden', () => {
     const setter = vi.fn();
-    (useStoredSidebarWidth as vi.Mock).mockImplementation(() => [
+    (useStoredSidebarWidth as Mock).mockImplementation(() => [
       OPEN_FILTER_BAR_WIDTH,
       setter,
     ]);
-    const nativeFiltersSpy = jest
+    const nativeFiltersSpy = vi
       .spyOn(useNativeFiltersModule, 'useNativeFilters')
       .mockReturnValue({
         showDashboard: true,
@@ -378,7 +379,7 @@ describe('DashboardBuilder', () => {
       [FeatureFlag.FilterBarClosedByDefault]: true,
     };
     const setter = vi.fn();
-    (useStoredSidebarWidth as vi.Mock).mockImplementation(() => [
+    (useStoredSidebarWidth as Mock).mockImplementation(() => [
       CLOSED_FILTER_BAR_WIDTH,
       setter,
     ]);
@@ -398,7 +399,7 @@ describe('DashboardBuilder', () => {
       [FeatureFlag.FilterBarClosedByDefault]: false,
     };
     const setter = vi.fn();
-    (useStoredSidebarWidth as vi.Mock).mockImplementation(() => [
+    (useStoredSidebarWidth as Mock).mockImplementation(() => [
       OPEN_FILTER_BAR_WIDTH,
       setter,
     ]);
@@ -456,9 +457,9 @@ describe('DashboardBuilder', () => {
 });
 
 test('should render ParentSize wrapper with height 100% for tabs', async () => {
-  (useStoredSidebarWidth as vi.Mock).mockImplementation(() => [100, vi.fn()]);
-  (fetchFaveStar as vi.Mock).mockReturnValue({ type: 'mock-action' });
-  (setActiveTab as vi.Mock).mockReturnValue({ type: 'mock-action' });
+  (useStoredSidebarWidth as Mock).mockImplementation(() => [100, vi.fn()]);
+  (fetchFaveStar as Mock).mockReturnValue({ type: 'mock-action' });
+  (setActiveTab as Mock).mockReturnValue({ type: 'mock-action' });
 
   const { findByTestId } = render(<DashboardBuilder />, {
     useRedux: true,
@@ -482,10 +483,10 @@ test('should render ParentSize wrapper with height 100% for tabs', async () => {
 });
 
 test('should maintain layout when switching between tabs', async () => {
-  (useStoredSidebarWidth as vi.Mock).mockImplementation(() => [100, vi.fn()]);
-  (fetchFaveStar as vi.Mock).mockReturnValue({ type: 'mock-action' });
-  (setActiveTab as vi.Mock).mockReturnValue({ type: 'mock-action' });
-  (setDirectPathToChild as vi.Mock).mockImplementation(arg0 => ({
+  (useStoredSidebarWidth as Mock).mockImplementation(() => [100, vi.fn()]);
+  (fetchFaveStar as Mock).mockReturnValue({ type: 'mock-action' });
+  (setActiveTab as Mock).mockReturnValue({ type: 'mock-action' });
+  (setDirectPathToChild as Mock).mockImplementation(arg0 => ({
     type: 'type',
     arg0,
   }));

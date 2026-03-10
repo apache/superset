@@ -34,9 +34,7 @@ vi.mock('src/utils/export', () => ({
   default: vi.fn(),
 }));
 
-const mockExport = handleResourceExport as vi.MockedFunction<
-  typeof handleResourceExport
->;
+const mockExport = handleResourceExport as Mock<typeof handleResourceExport>;
 
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
 const chartsInfoEndpoint = 'glob:*/api/v1/chart/_info*';

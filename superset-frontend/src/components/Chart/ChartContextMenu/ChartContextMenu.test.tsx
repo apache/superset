@@ -27,10 +27,11 @@ import ChartContextMenu, {
   ChartContextMenuRef,
   ContextMenuItem,
 } from './ChartContextMenu';
+import { Mock } from 'vitest';
 
 vi.mock('src/utils/cachedSupersetGet');
 
-const mockCachedSupersetGet = cachedSupersetGet as vi.MockedFunction<
+const mockCachedSupersetGet = cachedSupersetGet as Mock<
   typeof cachedSupersetGet
 >;
 

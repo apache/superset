@@ -182,9 +182,9 @@ test('should render the metadata bar', async () => {
 });
 
 test('should render the error', async () => {
-  jest
-    .spyOn(SupersetClient, 'post')
-    .mockRejectedValue(new Error('Something went wrong'));
+  vi.spyOn(SupersetClient, 'post').mockRejectedValue(
+    new Error('Something went wrong'),
+  );
   await waitForRender();
   expect(screen.getByText('Error: Something went wrong')).toBeInTheDocument();
 });

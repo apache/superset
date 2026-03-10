@@ -43,9 +43,7 @@ vi.mock('src/utils/export', () => ({
   default: vi.fn(),
 }));
 
-const mockIsFeatureEnabled = isFeatureEnabled as vi.MockedFunction<
-  typeof isFeatureEnabled
->;
+const mockIsFeatureEnabled = isFeatureEnabled as Mock<typeof isFeatureEnabled>;
 
 const mockUser = {
   userId: 1,

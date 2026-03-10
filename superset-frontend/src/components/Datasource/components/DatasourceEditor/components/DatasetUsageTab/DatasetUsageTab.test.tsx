@@ -25,6 +25,7 @@ import {
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import DatasetUsageTab from '.';
+import { Mock } from 'vitest';
 
 const mockChartsResponse = {
   result: [
@@ -131,7 +132,7 @@ afterEach(() => {
   Element.prototype.scrollTo = originalScrollTo;
   // Restore console.error if it was spied on
   if (vi.isMockFunction(console.error)) {
-    (console.error as vi.Mock).mockRestore();
+    (console.error as Mock).mockRestore();
   }
 });
 
@@ -388,7 +389,7 @@ test('handles slow network without race condition', async () => {
 
 test('scrolls to top after data loads, not before', async () => {
   // Use the global scrollTo mock
-  const scrollToMock = Element.prototype.scrollTo as vi.Mock;
+  const scrollToMock = Element.prototype.scrollTo as Mock;
 
   let resolvePromise: (value: any) => void;
   const delayedPromise = new Promise(resolve => {
@@ -437,7 +438,7 @@ test('scrolls to top after data loads, not before', async () => {
 
 test('does not scroll on initial mount, only on page change', async () => {
   // Use the global scrollTo mock
-  const scrollToMock = Element.prototype.scrollTo as vi.Mock;
+  const scrollToMock = Element.prototype.scrollTo as Mock;
 
   const mockOnFetchCharts = vi.fn(() =>
     Promise.resolve({
@@ -504,7 +505,9 @@ test('cleans up animation frame on unmount during loading', async () => {
 });
 
 test('handles AbortError without setState after unmount', async () => {
-  const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation();
+  const consoleErrorSpy = vi
+    .spyOn(console, 'error')
+    .mockImplementation(() => {});
 
   let rejectPromise: (reason?: any) => void;
   const abortedPromise = new Promise((_, reject) => {

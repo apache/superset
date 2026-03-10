@@ -43,7 +43,7 @@ vi.mock('@superset-ui/core', async importActual => ({
   isFeatureEnabled: vi.fn(),
 }));
 
-const mockIsFeatureEnabled = isFeatureEnabled as vi.Mock;
+const mockIsFeatureEnabled = isFeatureEnabled as Mock;
 
 const FormDataMock = () => {
   const formData = useSelector(

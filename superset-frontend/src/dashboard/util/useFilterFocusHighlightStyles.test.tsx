@@ -42,7 +42,7 @@ describe('useFilterFocusHighlightStyles', () => {
       { ...mockState, ...(initialState as any), ...customState },
       compose(applyMiddleware(thunk)),
     );
-  const mockGetRelatedCharts = getRelatedCharts as vi.Mock;
+  const mockGetRelatedCharts = getRelatedCharts as Mock;
 
   const renderWrapper = (chartId: number, store = createMockStore()) =>
     render(<TestComponent chartId={chartId} />, {

@@ -31,12 +31,12 @@ import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import AlertReportModal, { AlertReportModalProps } from './AlertReportModal';
 import { AlertObject, NotificationMethodOption } from './types';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
   isFeatureEnabled: () => true,
 }));
 
-jest.mock('src/features/databases/state.ts', () => ({
+vi.mock('src/features/databases/state.ts', () => ({
   useCommonConf: () => ({
     ALERT_REPORTS_NOTIFICATION_METHODS: ['Email', 'Slack', 'SlackV2'],
   }),
@@ -287,8 +287,8 @@ const validAlert: AlertObject = {
   } as any,
 };
 
-jest.mock('./buildErrorTooltipMessage', () => ({
-  buildErrorTooltipMessage: jest.fn(),
+vi.mock('./buildErrorTooltipMessage', () => ({
+  buildErrorTooltipMessage: vi.fn(),
 }));
 
 const generateMockedProps = (
@@ -307,8 +307,8 @@ const generateMockedProps = (
   return {
     addDangerToast: () => {},
     addSuccessToast: () => {},
-    onAdd: jest.fn(() => []),
-    onHide: jest.fn(),
+    onAdd: vi.fn(() => []),
+    onHide: vi.fn(),
     alert: useValidAlert ? alert : null,
     show: true,
     isReport,

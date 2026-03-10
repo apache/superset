@@ -21,6 +21,7 @@ import userEvent from '@testing-library/user-event';
 import { SupersetClient } from '@superset-ui/core';
 import DeckglLayerVisibilityCustomizationPlugin from './DeckglLayerVisibilityCustomizationPlugin';
 import { PluginDeckglLayerVisibilityProps } from './types';
+import { Mock } from 'vitest';
 
 vi.mock('@superset-ui/core', async importActual => ({
   ...(await importActual()),
@@ -29,7 +30,7 @@ vi.mock('@superset-ui/core', async importActual => ({
   },
 }));
 
-const mockSupersetClientGet = SupersetClient.get as vi.Mock;
+const mockSupersetClientGet = SupersetClient.get as Mock;
 
 const defaultProps: PluginDeckglLayerVisibilityProps = {
   formData: {

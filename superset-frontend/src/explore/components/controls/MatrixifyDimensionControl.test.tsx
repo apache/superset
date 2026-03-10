@@ -151,7 +151,7 @@ test('should show value selector in members mode when dimension is selected', ()
     values: [],
   };
 
-  (SupersetClient.get as vi.Mock).mockResolvedValue({
+  (SupersetClient.get as Mock).mockResolvedValue({
     json: { result: ['USA', 'Canada'] },
   });
 
@@ -174,7 +174,7 @@ test('should load dimension values from API in members mode', async () => {
     values: [],
   };
 
-  (SupersetClient.get as vi.Mock).mockResolvedValue({
+  (SupersetClient.get as Mock).mockResolvedValue({
     json: { result: ['USA', 'Canada', 'Mexico'] },
   });
 
@@ -200,7 +200,7 @@ test('should handle API errors gracefully in members mode', async () => {
     values: [],
   };
 
-  (SupersetClient.get as vi.Mock).mockRejectedValue(new Error('API Error'));
+  (SupersetClient.get as Mock).mockRejectedValue(new Error('API Error'));
 
   render(
     <MatrixifyDimensionControl
@@ -235,9 +235,7 @@ test('should not show value selector in topn mode', () => {
 });
 
 test('should fetch TopN values when all params are provided', async () => {
-  const mockFetchTopNValues = fetchTopNValues as vi.MockedFunction<
-    typeof fetchTopNValues
-  >;
+  const mockFetchTopNValues = fetchTopNValues as Mock<typeof fetchTopNValues>;
   const onChange = vi.fn();
   const value: MatrixifyDimensionControlValue = {
     dimension: 'country',
@@ -275,9 +273,7 @@ test('should fetch TopN values when all params are provided', async () => {
 });
 
 test('should display error when TopN fetch fails', async () => {
-  const mockFetchTopNValues = fetchTopNValues as vi.MockedFunction<
-    typeof fetchTopNValues
-  >;
+  const mockFetchTopNValues = fetchTopNValues as Mock<typeof fetchTopNValues>;
   const value: MatrixifyDimensionControlValue = {
     dimension: 'country',
     values: [],
@@ -301,9 +297,7 @@ test('should display error when TopN fetch fails', async () => {
 });
 
 test('should convert string topNValue to number', async () => {
-  const mockFetchTopNValues = fetchTopNValues as vi.MockedFunction<
-    typeof fetchTopNValues
-  >;
+  const mockFetchTopNValues = fetchTopNValues as Mock<typeof fetchTopNValues>;
   const value: MatrixifyDimensionControlValue = {
     dimension: 'country',
     values: [],
@@ -439,7 +433,7 @@ test('should preserve dimension values when rerendering with same mode', async (
     values: ['USA', 'Australia'],
   };
 
-  (SupersetClient.get as vi.Mock).mockResolvedValue({
+  (SupersetClient.get as Mock).mockResolvedValue({
     json: { result: ['USA', 'Canada', 'Australia', 'Mexico'] },
   });
 
@@ -483,7 +477,7 @@ test('should not clear values on initial render with members mode', async () => 
     values: ['USA', 'Australia'],
   };
 
-  (SupersetClient.get as vi.Mock).mockResolvedValue({
+  (SupersetClient.get as Mock).mockResolvedValue({
     json: { result: ['USA', 'Canada', 'Australia', 'Mexico'] },
   });
 
@@ -517,7 +511,7 @@ test('should preserve values when other props change but mode stays the same', a
     values: ['USA', 'Australia'],
   };
 
-  (SupersetClient.get as vi.Mock).mockResolvedValue({
+  (SupersetClient.get as Mock).mockResolvedValue({
     json: { result: ['USA', 'Canada', 'Australia', 'Mexico'] },
   });
 

@@ -249,9 +249,9 @@ const comparison: TableChartProps = {
   filterState: { filters: {} },
   ownState: {},
   hooks: {
-    onAddFilter: jest.fn(),
-    setDataMask: jest.fn(),
-    onContextMenu: jest.fn(),
+    onAddFilter: vi.fn(),
+    setDataMask: vi.fn(),
+    onContextMenu: vi.fn(),
   },
   emitCrossFilters: true,
 };
@@ -296,9 +296,9 @@ const comparisonWithConfig: TableChartProps = {
   filterState: { filters: {} },
   ownState: {},
   hooks: {
-    onAddFilter: jest.fn(),
-    setDataMask: jest.fn(),
-    onContextMenu: jest.fn(),
+    onAddFilter: vi.fn(),
+    setDataMask: vi.fn(),
+    onContextMenu: vi.fn(),
   },
   emitCrossFilters: false,
 };
@@ -371,9 +371,9 @@ const comparisonWithHiddenColumns: TableChartProps = {
   filterState: { filters: {} },
   ownState: {},
   hooks: {
-    onAddFilter: jest.fn(),
-    setDataMask: jest.fn(),
-    onContextMenu: jest.fn(),
+    onAddFilter: vi.fn(),
+    setDataMask: vi.fn(),
+    onContextMenu: vi.fn(),
   },
   emitCrossFilters: false,
 };

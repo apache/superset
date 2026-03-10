@@ -64,7 +64,7 @@ vi.mock('@superset-ui/core', async importActual => ({
   isFeatureEnabled: vi.fn(),
 }));
 
-const mockedIsFeatureEnabled = isFeatureEnabled as vi.Mock;
+const mockedIsFeatureEnabled = isFeatureEnabled as Mock;
 
 const unsavedQueryEditor = {
   id: defaultProps.queryEditorId,

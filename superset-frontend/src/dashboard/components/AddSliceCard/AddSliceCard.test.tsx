@@ -67,7 +67,7 @@ test('render thumbnail if feature flag is set', async () => {
 });
 
 test('does not render the tooltip with anchors', async () => {
-  const mock = jest
+  const mock = vi
     .spyOn(global.React, 'useState')
     .mockImplementation(() => [true, vi.fn()]);
   render(

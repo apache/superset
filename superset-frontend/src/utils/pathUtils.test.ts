@@ -172,7 +172,7 @@ const TEL_URL = 'tel:+1234567890';
 async function loadPathUtils(appRoot = '') {
   const bootstrapData = { common: { application_root: appRoot } };
   document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify(bootstrapData)}'></div>`;
-  jest.resetModules();
+  vi.resetModules();
   await import('./getBootstrapData');
   return import('./pathUtils');
 }

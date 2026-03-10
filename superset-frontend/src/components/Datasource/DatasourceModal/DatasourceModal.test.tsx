@@ -131,7 +131,7 @@ describe('DatasourceModal', () => {
   });
 
   test('should render error dialog', async () => {
-    const putSpy = jest
+    const putSpy = vi
       .spyOn(SupersetClient, 'put')
       .mockRejectedValue(new Error('Something went wrong'));
 

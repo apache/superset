@@ -22,7 +22,7 @@ import { updateColumns } from '.';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('updateColumns', () => {
-  let addSuccessToast: vi.Mock;
+  let addSuccessToast: Mock;
 
   beforeEach(() => {
     addSuccessToast = vi.fn();

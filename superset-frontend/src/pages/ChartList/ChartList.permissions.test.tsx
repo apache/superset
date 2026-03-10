@@ -131,14 +131,14 @@ const renderWithPermissions = async (
   userId: number | undefined = 1,
   featureFlags: { tagging?: boolean; cardView?: boolean } = {},
 ) => {
-  (
-    isFeatureEnabled as vi.MockedFunction<typeof isFeatureEnabled>
-  ).mockImplementation((feature: string) => {
-    if (feature === 'TAGGING_SYSTEM') return featureFlags.tagging === true;
-    if (feature === 'LISTVIEWS_DEFAULT_CARD_VIEW')
-      return featureFlags.cardView === true;
-    return false;
-  });
+  (isFeatureEnabled as Mock<typeof isFeatureEnabled>).mockImplementation(
+    (feature: string) => {
+      if (feature === 'TAGGING_SYSTEM') return featureFlags.tagging === true;
+      if (feature === 'LISTVIEWS_DEFAULT_CARD_VIEW')
+        return featureFlags.cardView === true;
+      return false;
+    },
+  );
 
   // Convert role permissions to API permissions
   setupMocks({ [API_ENDPOINTS.CHARTS_INFO]: permissions.map(perm => perm[0]) });
@@ -166,9 +166,7 @@ const renderWithPermissions = async (
 describe('ChartList - Permission-based UI Tests', () => {
   beforeEach(() => {
     fetchMock.clearHistory().removeRoutes();
-    (
-      isFeatureEnabled as vi.MockedFunction<typeof isFeatureEnabled>
-    ).mockReset();
+    (isFeatureEnabled as Mock<typeof isFeatureEnabled>).mockReset();
   });
 
   test('shows all UI elements for admin users with full permissions', async () => {

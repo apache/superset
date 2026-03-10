@@ -28,11 +28,12 @@ import * as SupersetCore from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import PropertiesModal from '.';
+import { Mock } from 'vitest';
 
 // Increase timeout for CI environment
 vi.setConfig({ testTimeout: 60000 });
 
-vi.mock('@superset-ui/core', async (importActual) => ({
+vi.mock('@superset-ui/core', async importActual => ({
   ...(await importActual()),
   isFeatureEnabled: vi.fn(),
   getCategoricalSchemeRegistry: vi.fn(() => ({
@@ -42,7 +43,7 @@ vi.mock('@superset-ui/core', async (importActual) => ({
   })),
 }));
 
-const mockedIsFeatureEnabled = isFeatureEnabled as vi.Mock;
+const mockedIsFeatureEnabled = isFeatureEnabled as Mock;
 
 const spyColorSchemeSelect = vi.spyOn(ColorSchemeSelect, 'default');
 const mockedJsonMetadata =

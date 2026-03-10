@@ -117,11 +117,11 @@ test('renders the component with Formatted SQL and buttons', async () => {
 test('copies the SQL to the clipboard when Copy button is clicked', async () => {
   setup(mockProps);
 
-  (copyTextToClipboard as vi.Mock).mockResolvedValue('');
+  (copyTextToClipboard as Mock).mockResolvedValue('');
   const copyButton = screen.getByText('Copy');
-  expect(copyTextToClipboard as vi.Mock).not.toHaveBeenCalled();
+  expect(copyTextToClipboard as Mock).not.toHaveBeenCalled();
   fireEvent.click(copyButton);
-  expect(copyTextToClipboard as vi.Mock).toHaveBeenCalled();
+  expect(copyTextToClipboard as Mock).toHaveBeenCalled();
 });
 
 test('shows the original SQL when Format switch is unchecked', async () => {

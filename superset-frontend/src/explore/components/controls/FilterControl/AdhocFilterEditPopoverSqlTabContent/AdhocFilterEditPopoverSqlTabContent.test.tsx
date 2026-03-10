@@ -29,10 +29,10 @@ import { Clauses, ExpressionTypes } from '../types';
 import AdhocFilterEditPopoverSqlTabContent from '.';
 
 // Track resize calls for testing
-const mockResize = jest.fn();
+const mockResize = vi.fn();
 
 // Mock EditorHost with ref support for resize
-jest.mock('src/core/editors', () => {
+vi.mock('src/core/editors', () => {
   const React = require('react');
   return {
     EditorHost: React.forwardRef(
@@ -113,7 +113,7 @@ test('calls onChange when the SQL expression changes', async () => {
 });
 
 test('calls editor resize when adhocFilter changes', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   const { rerender } = render(
     <AdhocFilterEditPopoverSqlTabContent
       adhocFilter={adhocFilter}

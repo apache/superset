@@ -21,6 +21,7 @@ import { GenericDataType } from '@apache-superset/core/common';
 import { getColorFormatters } from '@superset-ui/chart-controls';
 import { BigNumberTotalChartProps } from '../types';
 import transformProps from './transformProps';
+import { Mock } from 'vitest';
 
 vi.mock('@superset-ui/chart-controls', () => ({
   getColorFormatters: vi.fn(),
@@ -234,7 +235,7 @@ describe('BigNumberTotal transformProps', () => {
   test('should propagate colorThresholdFormatters from getColorFormatters', () => {
     // Override the getColorFormatters mock to return specific value
     const mockFormatters = [{ formatter: 'red' }];
-    (getColorFormatters as vi.Mock).mockReturnValueOnce(mockFormatters);
+    (getColorFormatters as Mock).mockReturnValueOnce(mockFormatters);
 
     const chartProps = {
       width: 800,

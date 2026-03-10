@@ -25,6 +25,7 @@ import {
   setNativeFilterFieldValues,
   doesColumnMatchFilterType,
 } from './utils';
+import { Mock } from 'vitest';
 
 vi.mock('./utils', () => ({
   getControlItems: vi.fn(),
@@ -144,7 +145,7 @@ test('Should render null when has no "formFilter.filterType" is falsy value', ()
 
 test('Should render null empty when "getControlItems" return []', () => {
   const props = createProps();
-  (getControlItems as vi.Mock).mockReturnValue([]);
+  (getControlItems as Mock).mockReturnValue([]);
   const controlItemsMap = getControlItemsMap(props);
   const { container } = renderControlItems(controlItemsMap);
   expect(container.children).toHaveLength(0);
@@ -152,7 +153,7 @@ test('Should render null empty when "getControlItems" return []', () => {
 
 test('Should render null empty when "getControlItems" return enableSingleValue', () => {
   const props = createProps();
-  (getControlItems as vi.Mock).mockReturnValue([
+  (getControlItems as Mock).mockReturnValue([
     { name: 'enableSingleValue', config: { renderTrigger: true } },
   ]);
   const controlItemsMap = getControlItemsMap(props);
@@ -163,7 +164,7 @@ test('Should render null empty when "getControlItems" return enableSingleValue',
 test('Should render null empty when "controlItems" are falsy', () => {
   const props = createProps();
   const controlItems = [null, false, {}, { config: { renderTrigger: false } }];
-  (getControlItems as vi.Mock).mockReturnValue(controlItems);
+  (getControlItems as Mock).mockReturnValue(controlItems);
   const controlItemsMap = getControlItemsMap(props);
   const { container } = renderControlItems(controlItemsMap);
   expect(container.children).toHaveLength(0);
@@ -176,7 +177,7 @@ test('Should render ControlItems', () => {
     ...createControlItems(),
     { name: 'name_2', config: { renderTrigger: true } },
   ];
-  (getControlItems as vi.Mock).mockReturnValue(controlItems);
+  (getControlItems as Mock).mockReturnValue(controlItems);
   const controlItemsMap = getControlItemsMap(props);
   renderControlItems(controlItemsMap);
   expect(screen.getAllByRole('checkbox')).toHaveLength(2);
@@ -184,7 +185,7 @@ test('Should render ControlItems', () => {
 
 test('Clicking on checkbox', () => {
   const props = createProps();
-  (getControlItems as vi.Mock).mockReturnValue(createControlItems());
+  (getControlItems as Mock).mockReturnValue(createControlItems());
   const controlItemsMap = getControlItemsMap(props);
   renderControlItems(controlItemsMap);
   expect(props.forceUpdate).not.toHaveBeenCalled();
@@ -196,7 +197,7 @@ test('Clicking on checkbox', () => {
 
 test('Clicking on checkbox when resetConfig:false', () => {
   const props = createProps();
-  (getControlItems as vi.Mock).mockReturnValue([
+  (getControlItems as Mock).mockReturnValue([
     { name: 'name_1', config: { renderTrigger: true, resetConfig: false } },
   ]);
   const controlItemsMap = getControlItemsMap(props);
@@ -211,7 +212,7 @@ test('Clicking on checkbox when resetConfig:false', () => {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ColumnSelect filterValues behavior', () => {
   beforeEach(() => {
-    (getControlItems as vi.Mock).mockReturnValue([
+    (getControlItems as Mock).mockReturnValue([
       {
         name: 'groupby',
         config: { label: 'Column', multiple: false, required: false },
@@ -220,7 +221,7 @@ describe('ColumnSelect filterValues behavior', () => {
   });
 
   test('only renders filterable columns when doesColumnMatchFilterType returns true', () => {
-    (doesColumnMatchFilterType as vi.Mock).mockReturnValue(true);
+    (doesColumnMatchFilterType as Mock).mockReturnValue(true);
     const props = {
       ...createProps(),
       formFilter: { filterType: 'filterType' },
@@ -235,7 +236,7 @@ describe('ColumnSelect filterValues behavior', () => {
   });
 
   test('renders no columns when doesColumnMatchFilterType returns false', () => {
-    (doesColumnMatchFilterType as vi.Mock).mockReturnValue(false);
+    (doesColumnMatchFilterType as Mock).mockReturnValue(false);
     const props = {
       ...createProps(),
       formFilter: { filterType: 'filterType' },

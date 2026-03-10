@@ -37,15 +37,15 @@ type MockedListViewProps = Omit<
   | 'disableBulkSelect'
   | 'bulkActions'
 > & {
-  fetchData: vi.Mock<unknown[], [ListViewFetchDataConfig]>;
-  refreshData: vi.Mock;
-  addSuccessToast: vi.Mock;
-  addDangerToast: vi.Mock;
-  disableBulkSelect: vi.Mock;
+  fetchData: Mock<unknown[], [ListViewFetchDataConfig]>;
+  refreshData: Mock;
+  addSuccessToast: Mock;
+  addDangerToast: Mock;
+  disableBulkSelect: Mock;
   bulkActions: Array<{
     key: string;
     name: ReactNode;
-    onSelect: vi.Mock;
+    onSelect: Mock;
     type?: 'primary' | 'secondary' | 'danger';
   }>;
 };

@@ -25,7 +25,7 @@ interface Props extends ColorBreakpointsControlProps {
   name: string;
   label: string;
   value: ColorBreakpointType[];
-  onChange: vi.Mock;
+  onChange: Mock;
   breakpoints: ColorBreakpointType[];
 }
 

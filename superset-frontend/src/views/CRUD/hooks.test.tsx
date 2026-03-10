@@ -559,7 +559,7 @@ test('useFavoriteStatus: saveFaveStar posts when not starred', async () => {
   vi.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: { result: [] },
   } as unknown as JsonResponse);
-  const postSpy = jest
+  const postSpy = vi
     .spyOn(SupersetClient, 'post')
     .mockResolvedValue({} as JsonResponse);
 
@@ -579,7 +579,7 @@ test('useFavoriteStatus: saveFaveStar deletes when already starred', async () =>
   vi.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: { result: [] },
   } as unknown as JsonResponse);
-  const deleteSpy = jest
+  const deleteSpy = vi
     .spyOn(SupersetClient, 'delete')
     .mockResolvedValue({} as JsonResponse);
 
@@ -617,7 +617,7 @@ test('useFavoriteStatus: saveFaveStar uses correct endpoint per type', async () 
   vi.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: { result: [] },
   } as unknown as JsonResponse);
-  const postSpy = jest
+  const postSpy = vi
     .spyOn(SupersetClient, 'post')
     .mockResolvedValue({} as JsonResponse);
 

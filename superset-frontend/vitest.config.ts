@@ -35,8 +35,26 @@ export default defineConfig({
       },
       include: '**/*.svg',
     }),
+    {
+      name: 'geojson-mock-plugin',
+      // 1. Intercept the resolution of any .geojson file
+      resolveId(id) {
+        if (id.endsWith('.geojson')) {
+          return id; // Return the id to claim responsibility for this file
+        }
+      },
+      // 2. Provide a virtual mock implementation
+      load(id) {
+        if (id.endsWith('.geojson')) {
+          return 'export default { type: "FeatureCollection", features: [] };';
+        }
+      },
+    },
   ],
   test: {
+    sequence: {
+      hooks: 'list',
+    },
     globals: true,
     env: {
       // Timezone for unit tests

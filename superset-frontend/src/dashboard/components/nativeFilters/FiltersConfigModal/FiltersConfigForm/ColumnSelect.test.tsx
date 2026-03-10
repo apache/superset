@@ -25,13 +25,14 @@ import {
 import fetchMock from 'fetch-mock';
 import { Column, JsonObject, getClientErrorObject } from '@superset-ui/core';
 import { ColumnSelect } from './ColumnSelect';
+import { Mock } from 'vitest';
 
 vi.mock('@superset-ui/core', async importActual => ({
   ...(await importActual()),
   getClientErrorObject: vi.fn(() => Promise.resolve({ error: 'Error' })),
 }));
 
-const mockedGetClientErrorObject = getClientErrorObject as vi.Mock;
+const mockedGetClientErrorObject = getClientErrorObject as Mock;
 
 fetchMock.get('glob:*/api/v1/dataset/123?*', {
   body: {

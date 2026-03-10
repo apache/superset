@@ -233,7 +233,7 @@ test('CurrencyFormatter AUTO mode returns plain value when getCurrencySymbol ret
 
   const OrigNumberFormat = Intl.NumberFormat;
   // Return formatToParts without a 'currency' entry so getCurrencySymbol → undefined
-  Intl.NumberFormat = jest.fn().mockImplementation(() => ({
+  Intl.NumberFormat = vi.fn().mockImplementation(() => ({
     formatToParts: () => [{ type: 'integer', value: '1' }],
   })) as unknown as typeof Intl.NumberFormat;
 
@@ -254,7 +254,7 @@ test('CurrencyFormatter AUTO mode falls back to plain value when getCurrencySymb
   // Mock Intl.NumberFormat to throw to simulate an environment where the
   // currency code is rejected, triggering the catch block in format()
   const OrigNumberFormat = Intl.NumberFormat;
-  Intl.NumberFormat = jest.fn().mockImplementation(() => {
+  Intl.NumberFormat = vi.fn().mockImplementation(() => {
     throw new RangeError('Invalid currency code');
   }) as unknown as typeof Intl.NumberFormat;
 

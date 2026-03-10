@@ -43,8 +43,8 @@ describe('Header', () => {
     embeddedMode: boolean;
     filters: Record<string, any>;
     handleComponentDrop: () => void;
-    deleteComponent: vi.Mock;
-    updateComponents: vi.Mock;
+    deleteComponent: Mock;
+    updateComponents: Mock;
   }
 
   const baseComponent = newComponentFactory(HEADER_TYPE);

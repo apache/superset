@@ -28,7 +28,7 @@ vi.mock('@superset-ui/core', async importActual => ({
   fetchTimeRange: vi.fn(),
 }));
 
-const mockedFetchTimeRange = fetchTimeRange as vi.Mock;
+const mockedFetchTimeRange = fetchTimeRange as Mock;
 
 test('should return empty object if operator is not TEMPORAL_RANGE', () => {
   const adhocFilter = new AdhocFilter({

@@ -39,7 +39,7 @@ describe('CartodiagramPlugin buildQuery', () => {
     geom_column: 'geom',
   };
 
-  let chartQueryBuilderMock: vi.MockedFunction<any>;
+  let chartQueryBuilderMock: Mock<any>;
   beforeEach(() => {
     chartQueryBuilderMock = vi.fn();
 

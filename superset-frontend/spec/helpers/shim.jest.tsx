@@ -65,15 +65,15 @@ g.caches = new CacheStorage();
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: jest.fn().mockImplementation(query => ({
+  value: vi.fn().mockImplementation(query => ({
     matches: false,
     media: query,
     onchange: null,
-    addListener: jest.fn(), // Deprecated
-    removeListener: jest.fn(), // Deprecated
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
+    addListener: vi.fn(), // Deprecated
+    removeListener: vi.fn(), // Deprecated
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
   })),
 });
 
@@ -93,8 +93,8 @@ jest.mock('src/hooks/useTabId', () => ({
 jest.mock('react-markdown', () => ({
   default: (props: any) => <>{props.children}</>,
 }));
-jest.mock('rehype-sanitize', () => ({ default: () => jest.fn() }));
-jest.mock('rehype-raw', () => ({ default: () => jest.fn() }));
+jest.mock('rehype-sanitize', () => ({ default: () => vi.fn() }));
+jest.mock('rehype-raw', () => ({ default: () => vi.fn() }));
 
 // Mocks the Icon component due to its async nature
 // Tests should override this when needed

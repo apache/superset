@@ -59,14 +59,14 @@ interface MarkdownProps {
   editMode: boolean;
   availableColumnCount: number;
   columnWidth: number;
-  onResizeStart: vi.Mock;
-  onResize: vi.Mock;
-  onResizeStop: vi.Mock;
-  handleComponentDrop: vi.Mock;
-  updateComponents: vi.Mock;
-  deleteComponent: vi.Mock;
-  logEvent: vi.Mock;
-  addDangerToast: vi.Mock;
+  onResizeStart: Mock;
+  onResize: Mock;
+  onResizeStop: Mock;
+  handleComponentDrop: Mock;
+  updateComponents: Mock;
+  deleteComponent: Mock;
+  logEvent: Mock;
+  addDangerToast: Mock;
   undoLength?: number;
   redoLength?: number;
 }

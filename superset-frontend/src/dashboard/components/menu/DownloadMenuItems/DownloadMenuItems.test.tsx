@@ -26,12 +26,12 @@ import {
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import { SupersetClient } from '@superset-ui/core';
 import { useDownloadMenuItems } from '.';
+import { Mock } from 'vitest';
 
 const mockAddSuccessToast = vi.fn();
 const mockAddDangerToast = vi.fn();
 
 vi.mock('src/components/MessageToasts/withToasts', () => ({
-  __esModule: true,
   default: (Component: React.ComponentType) => Component,
   useToasts: () => ({
     addSuccessToast: mockAddSuccessToast,
@@ -46,7 +46,7 @@ vi.mock('@superset-ui/core', async importActual => ({
   },
 }));
 
-const mockSupersetClient = SupersetClient as vi.Mocked<typeof SupersetClient>;
+const mockSupersetClient = SupersetClient
 
 const createProps = () => ({
   pdfMenuItemTitle: 'Export to PDF',
@@ -99,7 +99,7 @@ test('Export as Example calls SupersetClient.get with correct endpoint', async (
       'Content-Disposition': 'attachment; filename="dashboard_123_example.zip"',
     }),
   };
-  mockSupersetClient.get.mockResolvedValue(mockResponse as unknown as Response);
+  (mockSupersetClient.get as Mock).mockResolvedValue(mockResponse as unknown as Response);
 
   // Mock URL.createObjectURL / revokeObjectURL since jsdom doesn't support them
   const createObjectURL = vi.fn(() => 'blob:http://localhost/fake');
@@ -124,7 +124,7 @@ test('Export as Example calls SupersetClient.get with correct endpoint', async (
 });
 
 test('Export as Example shows error toast on failure', async () => {
-  mockSupersetClient.get.mockRejectedValue(new Error('Network error'));
+  (mockSupersetClient.get as Mock).mockRejectedValue(new Error('Network error'));
 
   render(<MenuWrapper />, { useRedux: true });
 

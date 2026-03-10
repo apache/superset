@@ -107,9 +107,9 @@ afterEach(() => {
 
 test('does nothing when not a real-time dashboard (refreshFrequency = 0)', () => {
   const store = createMockStore({ refreshFrequency: 0 });
-  const onRefresh = jest.fn().mockResolvedValue(undefined);
-  const onRestartTimer = jest.fn();
-  const onStopTimer = jest.fn();
+  const onRefresh = vi.fn().mockResolvedValue(undefined);
+  const onRestartTimer = vi.fn();
+  const onStopTimer = vi.fn();
 
   renderHook(
     () =>
@@ -135,9 +135,9 @@ test('pauses immediately when mounted in a hidden tab', () => {
     refreshFrequency: 5,
     autoRefreshPauseOnInactiveTab: true,
   });
-  const onRefresh = jest.fn().mockResolvedValue(undefined);
-  const onRestartTimer = jest.fn();
-  const onStopTimer = jest.fn();
+  const onRefresh = vi.fn().mockResolvedValue(undefined);
+  const onRestartTimer = vi.fn();
+  const onStopTimer = vi.fn();
 
   mockVisibilityState('hidden');
 
@@ -159,9 +159,9 @@ test('stops timer when tab becomes hidden for real-time dashboard', () => {
     refreshFrequency: 5,
     autoRefreshPauseOnInactiveTab: true,
   });
-  const onRefresh = jest.fn().mockResolvedValue(undefined);
-  const onRestartTimer = jest.fn();
-  const onStopTimer = jest.fn();
+  const onRefresh = vi.fn().mockResolvedValue(undefined);
+  const onRestartTimer = vi.fn();
+  const onStopTimer = vi.fn();
 
   renderHook(
     () =>
@@ -188,9 +188,9 @@ test('does not stop timer when manually paused', () => {
     autoRefreshPaused: true,
     autoRefreshPauseOnInactiveTab: true,
   });
-  const onRefresh = jest.fn().mockResolvedValue(undefined);
-  const onRestartTimer = jest.fn();
-  const onStopTimer = jest.fn();
+  const onRefresh = vi.fn().mockResolvedValue(undefined);
+  const onRestartTimer = vi.fn();
+  const onStopTimer = vi.fn();
 
   renderHook(
     () =>
@@ -217,9 +217,9 @@ test('refreshes and restarts timer when tab becomes visible after being paused b
     refreshFrequency: 5,
     autoRefreshPauseOnInactiveTab: true,
   });
-  const onRefresh = jest.fn().mockResolvedValue(undefined);
-  const onRestartTimer = jest.fn();
-  const onStopTimer = jest.fn();
+  const onRefresh = vi.fn().mockResolvedValue(undefined);
+  const onRestartTimer = vi.fn();
+  const onStopTimer = vi.fn();
 
   // Start with tab visible
   mockVisibilityState('visible');
@@ -261,9 +261,9 @@ test('does not refresh when returning to visible if manually paused', () => {
     autoRefreshPaused: true,
     autoRefreshPauseOnInactiveTab: true,
   });
-  const onRefresh = jest.fn().mockResolvedValue(undefined);
-  const onRestartTimer = jest.fn();
-  const onStopTimer = jest.fn();
+  const onRefresh = vi.fn().mockResolvedValue(undefined);
+  const onRestartTimer = vi.fn();
+  const onStopTimer = vi.fn();
 
   // Start with tab hidden
   mockVisibilityState('hidden');
@@ -293,9 +293,9 @@ test('restarts timer when refresh fails after tab resumes', async () => {
     refreshFrequency: 5,
     autoRefreshPauseOnInactiveTab: true,
   });
-  const onRefresh = jest.fn().mockRejectedValue(new Error('boom'));
-  const onRestartTimer = jest.fn();
-  const onStopTimer = jest.fn();
+  const onRefresh = vi.fn().mockRejectedValue(new Error('boom'));
+  const onRestartTimer = vi.fn();
+  const onStopTimer = vi.fn();
 
   // Start with tab visible
   mockVisibilityState('visible');
@@ -332,9 +332,9 @@ test('does nothing when pause-on-inactive is disabled', () => {
     refreshFrequency: 5,
     autoRefreshPauseOnInactiveTab: false,
   });
-  const onRefresh = jest.fn().mockResolvedValue(undefined);
-  const onRestartTimer = jest.fn();
-  const onStopTimer = jest.fn();
+  const onRefresh = vi.fn().mockResolvedValue(undefined);
+  const onRestartTimer = vi.fn();
+  const onStopTimer = vi.fn();
 
   renderHook(
     () =>
@@ -360,9 +360,9 @@ test('clears tab pause and restarts timer when pause-on-inactive is disabled', (
     autoRefreshPauseOnInactiveTab: false,
     autoRefreshPausedByTab: true,
   });
-  const onRefresh = jest.fn().mockResolvedValue(undefined);
-  const onRestartTimer = jest.fn();
-  const onStopTimer = jest.fn();
+  const onRefresh = vi.fn().mockResolvedValue(undefined);
+  const onRestartTimer = vi.fn();
+  const onStopTimer = vi.fn();
 
   renderHook(
     () =>

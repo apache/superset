@@ -160,7 +160,7 @@ describe('ExploreChartHeader', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
+    (useUnsavedChangesPrompt as Mock).mockReturnValue({
       showModal: false,
       setShowModal: vi.fn(),
       handleConfirmNavigation: vi.fn(),
@@ -398,13 +398,13 @@ describe('ExploreChartHeader', () => {
     );
 
     const setSaveChartModalVisibilityMock =
-      setSaveChartModalVisibilitySpy as vi.Mock;
+      setSaveChartModalVisibilitySpy as Mock;
 
     const triggerManualSave = vi.fn(() => {
       setSaveChartModalVisibilityMock(true);
     });
 
-    (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
+    (useUnsavedChangesPrompt as Mock).mockReturnValue({
       showModal: false,
       setShowModal: vi.fn(),
       handleConfirmNavigation: vi.fn(),
@@ -430,7 +430,7 @@ describe('ExploreChartHeader', () => {
   test('Save disabled', async () => {
     const triggerManualSave = vi.fn();
 
-    (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
+    (useUnsavedChangesPrompt as Mock).mockReturnValue({
       showModal: false,
       setShowModal: vi.fn(),
       handleConfirmNavigation: vi.fn(),
@@ -455,7 +455,7 @@ describe('ExploreChartHeader', () => {
   test('should render UnsavedChangesModal when showModal is true', async () => {
     const props = createProps();
 
-    (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
+    (useUnsavedChangesPrompt as Mock).mockReturnValue({
       showModal: true,
       setShowModal: vi.fn(),
       handleConfirmNavigation: vi.fn(),
@@ -477,7 +477,7 @@ describe('ExploreChartHeader', () => {
   test('should call handleSaveAndCloseModal when clicking Save in UnsavedChangesModal', async () => {
     const handleSaveAndCloseModal = vi.fn();
 
-    (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
+    (useUnsavedChangesPrompt as Mock).mockReturnValue({
       showModal: true,
       setShowModal: vi.fn(),
       handleConfirmNavigation: vi.fn(),
@@ -501,7 +501,7 @@ describe('ExploreChartHeader', () => {
   test('should call handleConfirmNavigation when clicking Discard in UnsavedChangesModal', async () => {
     const handleConfirmNavigation = vi.fn();
 
-    (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
+    (useUnsavedChangesPrompt as Mock).mockReturnValue({
       showModal: true,
       setShowModal: vi.fn(),
       handleConfirmNavigation,
@@ -525,7 +525,7 @@ describe('ExploreChartHeader', () => {
   test('should call setShowModal(false) when clicking close button in UnsavedChangesModal', async () => {
     const setShowModal = vi.fn();
 
-    (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
+    (useUnsavedChangesPrompt as Mock).mockReturnValue({
       showModal: true,
       setShowModal,
       handleConfirmNavigation: vi.fn(),
@@ -579,7 +579,7 @@ describe('Additional actions tests', () => {
   vi.setConfig({ testTimeout: 15000 }); // ✅ Applies to all tests in this suite
 
   beforeEach(() => {
-    (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
+    (useUnsavedChangesPrompt as Mock).mockReturnValue({
       showModal: false,
       setShowModal: vi.fn(),
       handleConfirmNavigation: vi.fn(),
@@ -746,7 +746,7 @@ describe('Additional actions tests', () => {
       spyDownloadAsImage = vi.spyOn(downloadAsImage, 'default');
       spyExportChart = vi.spyOn(exploreUtils, 'exportChart');
 
-      (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
+      (useUnsavedChangesPrompt as Mock).mockReturnValue({
         showModal: false,
         setShowModal: vi.fn(),
         handleConfirmNavigation: vi.fn(),
@@ -928,7 +928,7 @@ describe('Additional actions tests', () => {
       });
 
       // Avoid jsdom navigation side-effects on <a>.click()
-      anchorClickSpy = jest
+      anchorClickSpy = vi
         .spyOn(HTMLAnchorElement.prototype, 'click')
         .mockImplementation(() => {});
     });
@@ -946,7 +946,7 @@ describe('Additional actions tests', () => {
       spyDownloadAsImage = vi.spyOn(downloadAsImage, 'default');
       spyExportChart = vi.spyOn(exploreUtils, 'exportChart');
 
-      (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
+      (useUnsavedChangesPrompt as Mock).mockReturnValue({
         showModal: false,
         setShowModal: vi.fn(),
         handleConfirmNavigation: vi.fn(),

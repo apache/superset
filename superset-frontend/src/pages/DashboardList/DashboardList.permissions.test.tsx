@@ -30,22 +30,22 @@ import {
   mockDashboards,
   setupMocks,
 } from './DashboardList.testHelpers';
+import { Mock } from 'vitest';
 
 // Cast to accept partial mock props in tests
 const DashboardList = DashboardListComponent as unknown as React.FC<
   Record<string, any>
 >;
 
-jest.setTimeout(30000);
+vi.setConfig({ testTimeout: 30000 });
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
 
-jest.mock('src/utils/export', () => ({
-  __esModule: true,
-  default: jest.fn(),
+vi.mock('src/utils/export', () => ({
+  default: vi.fn(),
 }));
 
 // Permission configurations
@@ -137,14 +137,14 @@ const renderWithPermissions = async (
   userId: number | undefined = 1,
   featureFlags: { tagging?: boolean; cardView?: boolean } = {},
 ) => {
-  (
-    isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
-  ).mockImplementation((feature: string) => {
-    if (feature === 'TAGGING_SYSTEM') return featureFlags.tagging === true;
-    if (feature === 'LISTVIEWS_DEFAULT_CARD_VIEW')
-      return featureFlags.cardView === true;
-    return false;
-  });
+  (isFeatureEnabled as Mock<typeof isFeatureEnabled>).mockImplementation(
+    (feature: string) => {
+      if (feature === 'TAGGING_SYSTEM') return featureFlags.tagging === true;
+      if (feature === 'LISTVIEWS_DEFAULT_CARD_VIEW')
+        return featureFlags.cardView === true;
+      return false;
+    },
+  );
 
   // Convert role permissions to API permissions
   setupMocks({
@@ -173,9 +173,7 @@ const renderWithPermissions = async (
 describe('DashboardList - Permission-based UI Tests', () => {
   beforeEach(() => {
     fetchMock.clearHistory().removeRoutes();
-    (
-      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
-    ).mockReset();
+    (isFeatureEnabled as Mock<typeof isFeatureEnabled>).mockReset();
   });
 
   test('shows all UI elements for admin users with full permissions', async () => {

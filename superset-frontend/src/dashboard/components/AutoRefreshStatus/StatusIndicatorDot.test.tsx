@@ -20,11 +20,6 @@ import { render, screen, act } from 'spec/helpers/testing-library';
 import { StatusIndicatorDot } from './StatusIndicatorDot';
 import { AutoRefreshStatus } from '../../types/autoRefresh';
 
-afterEach(() => {
-  jest.runOnlyPendingTimers();
-  jest.useRealTimers();
-});
-
 test('renders with success status', () => {
   render(<StatusIndicatorDot status={AutoRefreshStatus.Success} />);
   const dot = screen.getByTestId('status-indicator-dot');
@@ -70,7 +65,7 @@ test('has correct accessibility attributes', () => {
 });
 
 test('fetching status updates immediately without debounce', () => {
-  jest.useFakeTimers();
+  vi.useFakeTimers();
 
   const { rerender } = render(
     <StatusIndicatorDot status={AutoRefreshStatus.Success} />,
@@ -84,7 +79,7 @@ test('fetching status updates immediately without debounce', () => {
 });
 
 test('debounces non-fetching status changes to prevent flickering', () => {
-  jest.useFakeTimers();
+  vi.useFakeTimers();
 
   const { rerender } = render(
     <StatusIndicatorDot status={AutoRefreshStatus.Success} />,
@@ -99,7 +94,7 @@ test('debounces non-fetching status changes to prevent flickering', () => {
 
   // Fast forward past debounce time (100ms)
   act(() => {
-    jest.advanceTimersByTime(150);
+    vi.advanceTimersByTime(150);
   });
 
   // Now should be error

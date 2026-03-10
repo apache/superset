@@ -42,7 +42,7 @@ const mockRedisXrange = vi.fn() as jest.MockedFunction<MockedRedisXrange>;
 
 jest.mock('ws');
 jest.mock('ioredis', () => {
-  return jest.fn().mockImplementation(() => {
+  return vi.fn().mockImplementation(() => {
     return { xrange: mockRedisXrange };
   });
 });

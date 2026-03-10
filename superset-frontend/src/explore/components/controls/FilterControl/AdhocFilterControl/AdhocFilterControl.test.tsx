@@ -21,6 +21,7 @@ import userEvent from '@testing-library/user-event';
 import AdhocFilterControl from '.';
 import AdhocFilter from '../AdhocFilter';
 import { Clauses, ExpressionTypes } from '../types';
+import { Mock } from 'vitest';
 
 interface TestProps {
   name: string;
@@ -38,7 +39,7 @@ interface TestProps {
     type?: string;
     [key: string]: unknown;
   }>;
-  onChange: vi.Mock;
+  onChange: Mock;
   sections: string[];
   operators: string[];
   [key: string]: unknown;
@@ -136,13 +137,13 @@ describe('AdhocFilterControl', () => {
         }),
       });
 
-      jest
-        .spyOn(response, 'json')
-        .mockImplementation(() => Promise.resolve(mockResponse));
+      vi.spyOn(response, 'json').mockImplementation(() =>
+        Promise.resolve(mockResponse),
+      );
       return response;
     };
 
-    global.fetch = jest
+    global.fetch = vi
       .fn()
       .mockImplementation(() => Promise.resolve(createMockResponse()));
 

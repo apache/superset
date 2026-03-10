@@ -497,7 +497,7 @@ test('onDashboardChange triggers tabs load for existing dashboard', async () => 
     },
   });
   const component = new TestSaveModal(defaultProps);
-  const loadTabsMock = jest
+  const loadTabsMock = vi
     .fn()
     .mockResolvedValue([{ value: 'tab1', title: 'Main Tab' }]);
   component.loadTabs = loadTabsMock;

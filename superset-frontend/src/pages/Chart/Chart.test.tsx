@@ -59,7 +59,7 @@ describe('ChartPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
+    (useUnsavedChangesPrompt as Mock).mockReturnValue({
       showModal: false,
       setShowModal: vi.fn(),
       handleConfirmNavigation: vi.fn(),
@@ -98,7 +98,7 @@ describe('ChartPage', () => {
     const chartApiRoute = `glob:*/api/v1/chart/*`;
     const exploreApiRoute = 'glob:*/api/v1/explore/*';
     const expectedDatasourceName = 'failed datasource name';
-    (getParsedExploreURLParams as vi.Mock).mockReturnValue(
+    (getParsedExploreURLParams as Mock).mockReturnValue(
       new Map([['datasource_id', 1]]),
     );
     fetchMock.get(exploreApiRoute, () => {
@@ -141,7 +141,7 @@ describe('ChartPage', () => {
   test('fetches the chart api when explore metadata is prohibited and access from the chart link', async () => {
     const expectedChartId = 7;
     const expectedChartName = 'Unauthorized dataset owned chart name';
-    (getParsedExploreURLParams as vi.Mock).mockReturnValue(
+    (getParsedExploreURLParams as Mock).mockReturnValue(
       new Map([['slice_id', expectedChartId]]),
     );
     const chartApiRoute = `glob:*/api/v1/chart/${expectedChartId}`;
@@ -201,14 +201,12 @@ describe('ChartPage', () => {
 
     afterEach(() => {
       localStorage.clear();
-      (getFormDataWithExtraFilters as vi.Mock).mockClear();
+      (getFormDataWithExtraFilters as Mock).mockClear();
     });
 
     test('overrides the form_data with dashboardContextFormData', async () => {
       const dashboardFormData = getDashboardFormData();
-      (getFormDataWithExtraFilters as vi.Mock).mockReturnValue(
-        dashboardFormData,
-      );
+      (getFormDataWithExtraFilters as Mock).mockReturnValue(dashboardFormData);
       const exploreApiRoute = 'glob:*/api/v1/explore/*';
       const exploreFormData = getExploreFormData();
       fetchMock.get(exploreApiRoute, {
@@ -241,9 +239,7 @@ describe('ChartPage', () => {
         viz_type: VizType.Table,
         show_cell_bars: true,
       };
-      (getFormDataWithExtraFilters as vi.Mock).mockReturnValue(
-        dashboardFormData,
-      );
+      (getFormDataWithExtraFilters as Mock).mockReturnValue(dashboardFormData);
       const exploreApiRoute = 'glob:*/api/v1/explore/*';
       const exploreFormData = getExploreFormData({
         viz_type: VizType.Table,

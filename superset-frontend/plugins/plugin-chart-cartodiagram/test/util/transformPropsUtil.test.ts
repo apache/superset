@@ -175,7 +175,7 @@ describe('transformPropsUtil', () => {
   });
 
   describe('getChartConfigs', () => {
-    let chartTransformer: vi.MockedFunction<any>;
+    let chartTransformer: Mock<any>;
     const geomColumn = 'geom';
     const pieChartConfig = {
       params: {},

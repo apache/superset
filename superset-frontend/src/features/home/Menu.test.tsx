@@ -26,9 +26,9 @@ import { Menu } from './Menu';
 import * as getBootstrapData from 'src/utils/getBootstrapData';
 import { Mock } from 'vitest';
 
-jest.mock('@apache-superset/core/theme', () => ({
-  ...jest.requireActual('@apache-superset/core/theme'),
-  useTheme: jest.fn(),
+vi.mock('@apache-superset/core/theme', async importActual => ({
+  ...(await importActual()),
+  useTheme: vi.fn(),
 }));
 
 const dropdownItems = [
@@ -246,10 +246,7 @@ const notanonProps = {
 };
 
 const useSelectorMock = vi.spyOn(reactRedux, 'useSelector');
-const staticAssetsPrefixMock = vi.spyOn(
-  getBootstrapData,
-  'staticAssetsPrefix',
-);
+const staticAssetsPrefixMock = vi.spyOn(getBootstrapData, 'staticAssetsPrefix');
 const applicationRootMock = vi.spyOn(getBootstrapData, 'applicationRoot');
 const useThemeMock = CoreTheme.useTheme as Mock;
 

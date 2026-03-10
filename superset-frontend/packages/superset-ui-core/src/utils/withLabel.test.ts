@@ -32,7 +32,7 @@ test('withLabel prepends label to validator error message', () => {
 });
 
 test('withLabel passes value and state to underlying validator', () => {
-  const validator = jest.fn(() => false as false);
+  const validator = vi.fn(() => false as false);
   const labeled = withLabel(validator, 'Field');
   labeled('value', { someState: true });
   expect(validator).toHaveBeenCalledWith('value', { someState: true });

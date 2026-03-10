@@ -36,6 +36,7 @@ import dashboardState from 'spec/fixtures/mockDashboardState';
 import { sliceEntitiesForChart as sliceEntities } from 'spec/fixtures/mockSliceEntities';
 import { getAllActiveFilters } from 'src/dashboard/util/activeAllDashboardFilters';
 import { getRelatedCharts } from 'src/dashboard/util/getRelatedCharts';
+import { Mock } from 'vitest';
 
 // Test mock data doesn't perfectly match strict component prop types,
 // so we use a loosely-typed wrapper for test rendering
@@ -46,7 +47,7 @@ const Dashboard = DashboardComponent as unknown as React.FC<
 // mock data
 vi.mock('src/dashboard/util/getRelatedCharts');
 
-const mockGetRelatedCharts = getRelatedCharts as vi.Mock;
+const mockGetRelatedCharts = getRelatedCharts as Mock;
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Dashboard', () => {

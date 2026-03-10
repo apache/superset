@@ -23,7 +23,7 @@ import { FoldersEditorItemType } from '../../types';
 import { DragOverlayContent } from './DragOverlayContent';
 
 // Mock TreeItem to avoid dnd-kit hook dependencies
-jest.mock('../TreeItem', () => ({
+vi.mock('../TreeItem', () => ({
   TreeItem: ({ name, id }: { name: string; id: string }) => (
     <div data-test={`tree-item-${id}`}>{name}</div>
   ),

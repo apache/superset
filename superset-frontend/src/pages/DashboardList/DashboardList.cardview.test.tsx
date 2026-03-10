@@ -32,17 +32,17 @@ import {
   setupMocks,
   getLatestDashboardApiCall,
 } from './DashboardList.testHelpers';
+import { Mock } from 'vitest';
 
-jest.setTimeout(30000);
+vi.setConfig({ testTimeout: 30000 });
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
 
-jest.mock('src/utils/export', () => ({
-  __esModule: true,
-  default: jest.fn(),
+vi.mock('src/utils/export', () => ({
+  default: vi.fn(),
 }));
 
 const mockUser = {
@@ -63,9 +63,7 @@ describe('DashboardList Card View Tests', () => {
     setupMocks();
 
     // Enable card view as default
-    (
-      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
-    ).mockImplementation(
+    (isFeatureEnabled as Mock<typeof isFeatureEnabled>).mockImplementation(
       (feature: string) => feature === 'LISTVIEWS_DEFAULT_CARD_VIEW',
     );
   });

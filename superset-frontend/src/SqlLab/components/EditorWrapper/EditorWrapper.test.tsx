@@ -47,7 +47,7 @@ vi.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
 ));
 
 // Mock EditorHost from the editors module
-const MockEditorHost = jest
+const MockEditorHost = vi
   .fn()
   .mockImplementation((props: editors.EditorProps) => (
     <div data-test="editor-host">{JSON.stringify(props)}</div>

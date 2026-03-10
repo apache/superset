@@ -127,11 +127,11 @@ const mockInitialState = {
   },
 };
 
-vi.mock('@superset-ui/core', async (importActual) => ({
+vi.mock('@superset-ui/core', async importActual => ({
   ...(await importActual()),
   isFeatureEnabled: vi.fn(),
 }));
-const mockIsFeatureEnabled = isFeatureEnabled as vi.Mock;
+const mockIsFeatureEnabled = isFeatureEnabled as Mock;
 
 const setup = (props: Props, store: Store) =>
   render(<SqlEditor {...props} />, {
@@ -184,8 +184,8 @@ describe('SqlEditor', () => {
     store = createStore(mockInitialState);
     actions = [];
 
-    (ResultSet as unknown as vi.Mock).mockClear();
-    (ResultSet as unknown as vi.Mock).mockImplementation(() => (
+    (ResultSet as unknown as Mock).mockClear();
+    (ResultSet as unknown as Mock).mockImplementation(() => (
       <div data-test="mock-result-set" />
     ));
   });
@@ -241,7 +241,7 @@ describe('SqlEditor', () => {
     const { findByTestId } = setup(mockedProps, store);
     const editor = await findByTestId('react-ace');
     const sql = 'select *';
-    const renderCountForSouthPane = (ResultSet as unknown as vi.Mock).mock.calls
+    const renderCountForSouthPane = (ResultSet as unknown as Mock).mock.calls
       .length;
     expect(ResultSet).toHaveBeenCalledTimes(renderCountForSouthPane);
     fireEvent.change(editor, { target: { value: sql } });

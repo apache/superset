@@ -32,6 +32,7 @@ import { FILTER_BAR_TEST_ID } from './utils';
 import FilterBar from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 import * as dataMaskActions from 'src/dataMask/actions';
+import { Mock } from 'vitest';
 
 vi.useFakeTimers();
 
@@ -40,7 +41,7 @@ vi.mock('@superset-ui/core', async importActual => ({
   makeApi: vi.fn(),
 }));
 
-const mockedMakeApi = makeApi as vi.Mock;
+const mockedMakeApi = makeApi as Mock;
 
 class MainPreset extends Preset {
   constructor() {

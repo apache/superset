@@ -22,10 +22,11 @@ import { FeatureFlag, VizType } from '@superset-ui/core';
 import mockState from 'spec/fixtures/mockState';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
+import { Mock } from 'vitest';
 
 vi.mock('src/utils/cachedSupersetGet');
 
-const mockCachedSupersetGet = cachedSupersetGet as vi.MockedFunction<
+const mockCachedSupersetGet = cachedSupersetGet as Mock<
   typeof cachedSupersetGet
 >;
 const SLICE_ID = 371;

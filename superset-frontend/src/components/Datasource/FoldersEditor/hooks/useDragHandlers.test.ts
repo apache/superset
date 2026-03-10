@@ -71,12 +71,12 @@ function makeDragStartEvent(id: string): DragStartEvent {
 function setup(selectedIds: Set<string> = new Set()) {
   return renderHook(() =>
     useDragHandlers({
-      setItems: jest.fn(),
+      setItems: vi.fn(),
       computeFlattenedItems: () => flatItems,
       fullFlattenedItems: flatItems,
       selectedItemIds: selectedIds,
-      onChange: jest.fn(),
-      addWarningToast: jest.fn(),
+      onChange: vi.fn(),
+      addWarningToast: vi.fn(),
     }),
   );
 }
