@@ -265,5 +265,5 @@ test('exportChart legacy API includes force param when force=true', async () => 
 
   expect(onStartStreamingExport).toHaveBeenCalledTimes(1);
   const callArgs = onStartStreamingExport.mock.calls[0][0];
-  expect(callArgs.url).toBe('/superset/explore_json/?csv=true&force=true');
+  expect(callArgs.url).toBe('/superset/explore_json/?force=true&csv=true');
 });

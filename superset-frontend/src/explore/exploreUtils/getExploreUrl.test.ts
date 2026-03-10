@@ -73,7 +73,7 @@ test('Get relative ExploreUrl with force:true', () => {
       force: true,
       relative: true,
     }),
-  ).toBe('/superset/explore_json/?csv=true&force=true');
+  ).toBe('/superset/explore_json/?force=true&csv=true');
 });
 
 test('Get relative ExploreUrl with endpointType:base', () => {
