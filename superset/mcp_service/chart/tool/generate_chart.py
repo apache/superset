@@ -264,10 +264,6 @@ async def generate_chart(  # noqa: C901
             await ctx.report_progress(2, 5, "Creating chart in database")
             from superset.commands.chart.create import CreateChartCommand
 
-            # Use custom chart name if provided, otherwise auto-generate
-            chart_name = request.chart_name or generate_chart_name(request.config)
-            await ctx.debug("Chart name: chart_name=%s" % (chart_name,))
-
             # Find the dataset to get its numeric ID
             from superset.daos.dataset import DatasetDAO
 
@@ -343,6 +339,15 @@ async def generate_chart(  # noqa: C901
                         "api_version": "v1",
                     }
                 )
+
+            # Generate chart name after dataset lookup so we can include dataset name
+            dataset_name = getattr(dataset, "datasource_name", None) or getattr(
+                dataset, "table_name", None
+            )
+            chart_name = request.chart_name or generate_chart_name(
+                request.config, dataset_name=dataset_name
+            )
+            await ctx.debug("Chart name: chart_name=%s" % (chart_name,))
 
             try:
                 with event_logger.log_context(action="mcp.generate_chart.db_write"):
