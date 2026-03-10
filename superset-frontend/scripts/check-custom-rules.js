@@ -600,7 +600,7 @@ function main() {
     /\/lib\//,
     /\/dist\//,
     /plugins\/legacy-/, // Legacy plugins can have old color patterns
-    /plugin-chart-maplibre\/src\/controlPanel/, // Data visualization color choices
+    /plugin-chart-supercluster-map\/src\/controlPanel/, // Data visualization color choices
     /\/vendor\//, // Third-party vendor code
     /spec\/fixtures\//, // Test fixtures
     /theme\/exampleThemes/, // Theme examples legitimately have colors
