@@ -195,19 +195,19 @@
   dependencies:
     "@ant-design/fast-color" "^3.0.0"
 
-"@ant-design/cssinjs-utils@^2.1.1":
-  version "2.1.1"
-  resolved "https://registry.yarnpkg.com/@ant-design/cssinjs-utils/-/cssinjs-utils-2.1.1.tgz#c70d86206204e882073a0fe4969a5ddf154c6915"
-  integrity sha512-RKxkj5pGFB+FkPJ5NGhoX3DK3xsv0pMltha7Ei1AnY3tILeq38L7tuhaWDPQI/5nlPxOog44wvqpNyyGcUsNMg==
+"@ant-design/cssinjs-utils@^2.1.2":
+  version "2.1.2"
+  resolved "https://registry.yarnpkg.com/@ant-design/cssinjs-utils/-/cssinjs-utils-2.1.2.tgz#a4a57e02dd7e7c3732ab7f1df406df98b5542d12"
+  integrity sha512-5fTHQ158jJJ5dC/ECeyIdZUzKxE/mpEMRZxthyG1sw/AKRHKgJBg00Yi6ACVXgycdje7KahRNvNET/uBccwCnA==
   dependencies:
-    "@ant-design/cssinjs" "^2.1.0"
+    "@ant-design/cssinjs" "^2.1.2"
     "@babel/runtime" "^7.23.2"
     "@rc-component/util" "^1.4.0"
 
-"@ant-design/cssinjs@^2.1.0":
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/@ant-design/cssinjs/-/cssinjs-2.1.0.tgz#081394937f86aefe55e35198019d0483f405a484"
-  integrity sha512-eZFrPCnrYrF3XtL7qA4L75P0qA3TtZta8H3Yggy7UYFh8gZgu5bSMNF+v4UVCzGxzYmx8ZvPdgOce0BJ6PsW9g==
+"@ant-design/cssinjs@^2.1.2":
+  version "2.1.2"
+  resolved "https://registry.yarnpkg.com/@ant-design/cssinjs/-/cssinjs-2.1.2.tgz#0219e37afdd957248b10da366febae1e4001c952"
+  integrity sha512-2Hy8BnCEH31xPeSLbhhB2ctCPXE2ZnASdi+KbSeS79BNbUhL9hAEe20SkUk+BR8aKTmqb6+FKFruk7w8z0VoRQ==
   dependencies:
     "@babel/runtime" "^7.11.1"
     "@emotion/hash" "^0.8.0"
@@ -2964,12 +2964,12 @@
     "@rc-component/util" "^1.3.0"
     clsx "^2.1.1"
 
-"@rc-component/color-picker@~3.1.0":
-  version "3.1.0"
-  resolved "https://registry.yarnpkg.com/@rc-component/color-picker/-/color-picker-3.1.0.tgz#437586ea2fc27862e7429a754cf85e519e05f461"
-  integrity sha512-o7Vavj7yyfVxFmeynXf0fCHVlC0UTE9al74c6nYuLck+gjuVdQNWSVXR8Efq/mmWFy7891SCOsfaPq6Eqe1s/g==
+"@rc-component/color-picker@~3.1.1":
+  version "3.1.1"
+  resolved "https://registry.yarnpkg.com/@rc-component/color-picker/-/color-picker-3.1.1.tgz#0a00411457e697cf9320e945762a4b08f71938f9"
+  integrity sha512-OHaCHLHszCegdXmIq2ZRIZBN/EtpT6Wm8SG/gpzLATHbVKc/avvuKi+zlOuk05FTWvgaMmpxAko44uRJ3M+2pg==
   dependencies:
-    "@ant-design/fast-color" "^3.0.0"
+    "@ant-design/fast-color" "^3.0.1"
     "@rc-component/util" "^1.3.0"
     clsx "^2.1.1"
 
@@ -3009,10 +3009,10 @@
     "@rc-component/util" "^1.2.1"
     clsx "^2.1.1"
 
-"@rc-component/form@~1.6.2":
-  version "1.6.2"
-  resolved "https://registry.npmjs.org/@rc-component/form/-/form-1.6.2.tgz"
-  integrity sha512-OgIn2RAoaSBqaIgzJf/X6iflIa9LpTozci1lagLBdURDFhGA370v0+T0tXxOi8YShMjTha531sFhwtnrv+EJaQ==
+"@rc-component/form@~1.7.1":
+  version "1.7.1"
+  resolved "https://registry.yarnpkg.com/@rc-component/form/-/form-1.7.1.tgz#baf18de01e649415c39e895a2c2fc9c61e1f2e23"
+  integrity sha512-Uhw0FPvJ+Ko4xBxhvziqmqzIuO0YvVBzVyFGNAI9fMCz4r4DfrYK6PRIN6CkFqM0vdAX9sr4JGA1/h/VzpA1cA==
   dependencies:
     "@rc-component/async-validator" "^5.1.0"
     "@rc-component/util" "^1.6.2"
@@ -3075,15 +3075,7 @@
   dependencies:
     "@babel/runtime" "^7.18.0"
 
-"@rc-component/motion@^1.0.0", "@rc-component/motion@^1.1.3", "@rc-component/motion@^1.1.4":
-  version "1.1.6"
-  resolved "https://registry.npmjs.org/@rc-component/motion/-/motion-1.1.6.tgz"
-  integrity sha512-aEQobs/YA0kqRvHIPjQvOytdtdRVyhf/uXAal4chBjxDu6odHckExJzjn2D+Ju1aKK6hx3pAs6BXdV9+86xkgQ==
-  dependencies:
-    "@rc-component/util" "^1.2.0"
-    clsx "^2.1.1"
-
-"@rc-component/motion@^1.3.1":
+"@rc-component/motion@^1.0.0", "@rc-component/motion@^1.1.3", "@rc-component/motion@^1.1.4", "@rc-component/motion@^1.3.1":
   version "1.3.1"
   resolved "https://registry.yarnpkg.com/@rc-component/motion/-/motion-1.3.1.tgz#1e56b06841ee677261251e6e69fedc8d73e65b22"
   integrity sha512-Wo1mkd0tCcHtvYvpPOmlYJz546z16qlsiwaygmW7NPJpOZOF9GBjhGzdzZSsC2lEJ1IUkWLF4gMHlRA1aSA+Yw==
@@ -3184,21 +3176,10 @@
     "@rc-component/util" "^1.3.0"
     clsx "^2.1.1"
 
-"@rc-component/select@~1.6.0":
-  version "1.6.5"
-  resolved "https://registry.yarnpkg.com/@rc-component/select/-/select-1.6.5.tgz#69276239c6ac0884a67597961b0224c4ad0bc4ca"
-  integrity sha512-Cx+/OYEorXlPQ6ZFDro3HbalPZLlJWagvGtl8DGYO4losXM6gw43qbsxWqU1c3XOQVIOUDBlr7dSksSNMj8kXg==
-  dependencies:
-    "@rc-component/overflow" "^1.0.0"
-    "@rc-component/trigger" "^3.0.0"
-    "@rc-component/util" "^1.3.0"
-    "@rc-component/virtual-list" "^1.0.1"
-    clsx "^2.1.1"
-
-"@rc-component/select@~1.6.12":
-  version "1.6.12"
-  resolved "https://registry.yarnpkg.com/@rc-component/select/-/select-1.6.12.tgz#24312b31aad2a78ce1ec0062b15f56428bddab8f"
-  integrity sha512-jYXAglYdOb54BrpWAcjjhdBP16NyCv/HbEaWFMbEHZQAJVmGHPAtmBqbFuPPuvInAVsIwLbCj4Agag9udOamiQ==
+"@rc-component/select@~1.6.0", "@rc-component/select@~1.6.14":
+  version "1.6.14"
+  resolved "https://registry.yarnpkg.com/@rc-component/select/-/select-1.6.14.tgz#61028c0abe02d2a909935b5cb586374968196c96"
+  integrity sha512-T1IWeLlSas7Z/igZtPtJ/bweCxMMkXIGKQBtnigK+I/n1AVNjCs+ZdL3Fj42mq3uqm4sd1uzeQLZkdCqR26ADw==
   dependencies:
     "@rc-component/overflow" "^1.0.0"
     "@rc-component/trigger" "^3.0.0"
@@ -5668,14 +5649,14 @@ ansi-styles@^6.1.0:
   resolved "https://registry.npmjs.org/ansi-styles/-/ansi-styles-6.2.1.tgz"
   integrity sha512-bN798gFfQX+viw3R7yrGWRqnrN2oRkEkUjjl4JNn4E8GxxbjtG3FbrEIIY3l8/hrwUwIeCZvi4QuOTP4MErVug==
 
-antd@^6.3.1:
-  version "6.3.1"
-  resolved "https://registry.yarnpkg.com/antd/-/antd-6.3.1.tgz#ea035d7b0f836a20938945d5a0eaef172537d89b"
-  integrity sha512-8pRjvxitZFyrYAtgwml93Km7fCXjw9IeqlmzpIsusRsmO3eWFVrOMum6+0TsGCtR/WrXVnPwfsgrFg3ChzGCeA==
+antd@^6.3.2:
+  version "6.3.2"
+  resolved "https://registry.yarnpkg.com/antd/-/antd-6.3.2.tgz#ce1a33783d495fcfc77b58b73156ac6249e4fc0a"
+  integrity sha512-IlMoqaXlq5Bgxi0ANERhAzmDREYyGwr/U7MCVihaUQbE/ZOB3r4ArakUxjA1ULYNDA6K00dawSrB8aalGnZlLA==
   dependencies:
     "@ant-design/colors" "^8.0.1"
-    "@ant-design/cssinjs" "^2.1.0"
-    "@ant-design/cssinjs-utils" "^2.1.1"
+    "@ant-design/cssinjs" "^2.1.2"
+    "@ant-design/cssinjs-utils" "^2.1.2"
     "@ant-design/fast-color" "^3.0.1"
     "@ant-design/icons" "^6.1.0"
     "@ant-design/react-slick" "~2.0.0"
@@ -5683,11 +5664,11 @@ antd@^6.3.1:
     "@rc-component/cascader" "~1.14.0"
     "@rc-component/checkbox" "~2.0.0"
     "@rc-component/collapse" "~1.2.0"
-    "@rc-component/color-picker" "~3.1.0"
+    "@rc-component/color-picker" "~3.1.1"
     "@rc-component/dialog" "~1.8.4"
     "@rc-component/drawer" "~1.4.2"
     "@rc-component/dropdown" "~1.0.2"
-    "@rc-component/form" "~1.6.2"
+    "@rc-component/form" "~1.7.1"
     "@rc-component/image" "~1.6.0"
     "@rc-component/input" "~1.1.2"
     "@rc-component/input-number" "~1.6.2"
@@ -5703,7 +5684,7 @@ antd@^6.3.1:
     "@rc-component/rate" "~1.0.1"
     "@rc-component/resize-observer" "^1.1.1"
     "@rc-component/segmented" "~1.3.0"
-    "@rc-component/select" "~1.6.12"
+    "@rc-component/select" "~1.6.14"
     "@rc-component/slider" "~1.0.1"
     "@rc-component/steps" "~1.2.2"
     "@rc-component/switch" "~1.0.3"
