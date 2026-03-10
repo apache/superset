@@ -113,12 +113,10 @@ export function EditableTitle({
     const padding = 20;
     const maxAllowedWidth = typeof maxWidth === 'number' ? maxWidth : Infinity;
     setInputWidth(Math.min(textWidth + padding, maxAllowedWidth));
-  }, [currentTitle, canEdit, maxWidth]);
+  }, [currentTitle, maxWidth]);
 
   useEffect(() => {
-    if (editing) {
-      setIsEditing(true);
-    }
+    setIsEditing(editing);
   }, [editing]);
 
   useEffect(() => {
