@@ -28,30 +28,24 @@ from datetime import datetime, timedelta
 from time import time
 from typing import Any, cast, Sequence, TypeGuard
 
+import isodate
 import numpy as np
 import pyarrow as pa
 from superset_core.semantic_layers.types import (
     AdhocExpression,
-    Day,
     Dimension,
     Filter,
     FilterValues,
     Grain,
+    Grains,
     GroupLimit,
-    Hour,
     Metric,
-    Minute,
-    Month,
     Operator,
     OrderDirection,
     OrderTuple,
     PredicateType,
-    Quarter,
-    Second,
     SemanticQuery,
     SemanticResult,
-    Week,
-    Year,
 )
 from superset_core.semantic_layers.view import SemanticViewFeature
 
@@ -746,25 +740,14 @@ def _get_group_limit_filters(
     return filters if filters else None
 
 
-def _convert_time_grain(time_grain: str) -> type[Grain] | None:
+def _convert_time_grain(time_grain: str) -> Grain | None:
     """
-    Convert a time grain string from the query object to a Grain enum.
+    Convert a time grain string (ISO 8601 duration) to a Grain instance.
     """
-    mapping = {
-        grain.representation: grain
-        for grain in [
-            Second,
-            Minute,
-            Hour,
-            Day,
-            Week,
-            Month,
-            Quarter,
-            Year,
-        ]
-    }
-
-    return mapping.get(time_grain)
+    try:
+        return Grains.get(time_grain)
+    except (ValueError, isodate.ISO8601Error):
+        return None
 
 
 def validate_query_object(

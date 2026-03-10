@@ -20,178 +20,83 @@ from __future__ import annotations
 import enum
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
-from functools import total_ordering
-from typing import Type as TypeOf
 
+import isodate
 import pyarrow as pa
 
 
-class Type:
-    """
-    Base class for types.
-    """
-
-
-class INTEGER(Type):
-    """
-    Represents an integer type.
-    """
-
-
-class NUMBER(Type):
-    """
-    Represents a number type.
-    """
-
-
-class DECIMAL(Type):
-    """
-    Represents a decimal type.
-    """
-
-
-class STRING(Type):
-    """
-    Represents a string type.
-    """
-
-
-class BOOLEAN(Type):
-    """
-    Represents a boolean type.
-    """
-
-
-class DATE(Type):
-    """
-    Represents a date type.
-    """
-
-
-class TIME(Type):
-    """
-    Represents a time type.
-    """
-
-
-class DATETIME(DATE, TIME):
-    """
-    Represents a datetime type.
-    """
-
-
-class INTERVAL(Type):
-    """
-    Represents an interval type.
-    """
-
-
-class OBJECT(Type):
-    """
-    Represents an object type.
-    """
-
-
-class BINARY(Type):
-    """
-    Represents a binary type.
-    """
-
-
 @dataclass(frozen=True)
-@total_ordering
 class Grain:
     """
-    Base class for time and date grains with comparison support.
+    Represents a time grain (e.g., day, month, year).
 
     Attributes:
         name: Human-readable name of the grain (e.g., "Second")
-        representation: ISO 8601 representation (e.g., "PT1S")
-        value: Time period as a timedelta
+        representation: ISO 8601 duration (e.g., "PT1S", "P1D", "P1M")
     """
 
     name: str
     representation: str
-    value: timedelta
+
+    def __post_init__(self) -> None:
+        isodate.parse_duration(self.representation)
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Grain):
-            return self.value == other.value
-        return NotImplemented
-
-    def __lt__(self, other: object) -> bool:
-        if isinstance(other, Grain):
-            return self.value < other.value
+            return self.representation == other.representation
         return NotImplemented
 
     def __hash__(self) -> int:
-        return hash((self.name, self.representation, self.value))
+        return hash(self.representation)
 
 
-class Second(Grain):
-    name = "Second"
-    representation = "PT1S"
-    value = timedelta(seconds=1)
+class Grains:
+    """Pre-defined common grains and factory for custom ones."""
 
+    SECOND = Grain("Second", "PT1S")
+    MINUTE = Grain("Minute", "PT1M")
+    HOUR = Grain("Hour", "PT1H")
+    DAY = Grain("Day", "P1D")
+    WEEK = Grain("Week", "P1W")
+    MONTH = Grain("Month", "P1M")
+    QUARTER = Grain("Quarter", "P3M")
+    YEAR = Grain("Year", "P1Y")
 
-class Minute(Grain):
-    name = "Minute"
-    representation = "PT1M"
-    value = timedelta(minutes=1)
+    _REGISTRY: dict[str, Grain] = {
+        "PT1S": SECOND,
+        "PT1M": MINUTE,
+        "PT1H": HOUR,
+        "P1D": DAY,
+        "P1W": WEEK,
+        "P1M": MONTH,
+        "P3M": QUARTER,
+        "P1Y": YEAR,
+    }
 
-
-class Hour(Grain):
-    name = "Hour"
-    representation = "PT1H"
-    value = timedelta(hours=1)
-
-
-class Day(Grain):
-    name = "Day"
-    representation = "P1D"
-    value = timedelta(days=1)
-
-
-class Week(Grain):
-    name = "Week"
-    representation = "P1W"
-    value = timedelta(weeks=1)
-
-
-class Month(Grain):
-    name = "Month"
-    representation = "P1M"
-    value = timedelta(days=30)
-
-
-class Quarter(Grain):
-    name = "Quarter"
-    representation = "P3M"
-    value = timedelta(days=90)
-
-
-class Year(Grain):
-    name = "Year"
-    representation = "P1Y"
-    value = timedelta(days=365)
+    @classmethod
+    def get(cls, representation: str, name: str | None = None) -> Grain:
+        """Return a pre-defined grain or create a custom one."""
+        if grain := cls._REGISTRY.get(representation):
+            return grain
+        return Grain(name or representation, representation)
 
 
 @dataclass(frozen=True)
 class Dimension:
     id: str
     name: str
-    type: TypeOf[Type]
+    type: pa.DataType
 
     definition: str | None = None
     description: str | None = None
-    grain: TypeOf[Grain] | None = None
+    grain: Grain | None = None
 
 
 @dataclass(frozen=True)
 class Metric:
     id: str
     name: str
-    type: TypeOf[Type]
+    type: pa.DataType
 
     definition: str | None = None
     description: str | None = None
