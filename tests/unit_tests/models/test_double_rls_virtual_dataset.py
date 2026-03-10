@@ -50,7 +50,7 @@ def test_rls_filters_include_guest_when_enabled(
     """
     Test that RLS filters include guest filters when enabled.
 
-    When include_guest_rls=True and EMBEDDED_SUPERSET is enabled,
+    When include_global_guest_rls=True and EMBEDDED_SUPERSET is enabled,
     both regular and guest RLS filters should be returned.
     """
     regular_filter = MagicMock()
@@ -73,9 +73,9 @@ def test_rls_filters_include_guest_when_enabled(
             return_value=True,
         ),
     ):
-        # Call with include_guest_rls=True
-        filters = BaseDatasource._get_sqla_row_level_filters_internal(
-            mock_datasource, include_guest_rls=True
+        # Call with include_global_guest_rls=True
+        filters = BaseDatasource.get_sqla_row_level_filters(
+            mock_datasource, include_global_guest_rls=True
         )
 
         # Should include both regular and guest RLS
@@ -115,9 +115,9 @@ def test_rls_filters_exclude_guest_when_requested(
             return_value=True,
         ),
     ):
-        # Call internal API with include_guest_rls=False
-        filters = BaseDatasource._get_sqla_row_level_filters_internal(
-            mock_datasource, include_guest_rls=False
+        # Call internal API with include_global_guest_rls=False
+        filters = BaseDatasource.get_sqla_row_level_filters(
+            mock_datasource, include_global_guest_rls=False
         )
 
         # Should include only regular RLS, not guest RLS
@@ -134,7 +134,7 @@ def test_rls_filters_include_guest_by_default(
     """
     Test that RLS filters include guest filters by default.
 
-    The default behavior (include_guest_rls=True) ensures backwards
+    The default behavior (include_global_guest_rls=True) ensures backwards
     compatibility with existing code.
     """
     regular_filter = MagicMock()
@@ -157,8 +157,8 @@ def test_rls_filters_include_guest_by_default(
             return_value=True,
         ),
     ):
-        # Call internal API with default include_guest_rls=True
-        filters = BaseDatasource._get_sqla_row_level_filters_internal(mock_datasource)
+        # Call internal API with default include_global_guest_rls=True
+        filters = BaseDatasource.get_sqla_row_level_filters(mock_datasource)
 
         # Should include both regular and guest RLS
         assert len(filters) == 2
@@ -171,7 +171,7 @@ def test_regular_rls_always_included(
     """
     Test that regular (non-guest) RLS is always included.
 
-    Even when include_guest_rls=False, regular RLS filters must still
+    Even when include_global_guest_rls=False, regular RLS filters must still
     be applied to underlying tables in virtual datasets.
     """
     regular_filter = MagicMock()
@@ -192,9 +192,9 @@ def test_regular_rls_always_included(
             return_value=True,
         ),
     ):
-        # Call internal API with include_guest_rls=False
-        filters = BaseDatasource._get_sqla_row_level_filters_internal(
-            mock_datasource, include_guest_rls=False
+        # Call internal API with include_global_guest_rls=False
+        filters = BaseDatasource.get_sqla_row_level_filters(
+            mock_datasource, include_global_guest_rls=False
         )
 
         # Regular RLS should still be included
@@ -210,7 +210,7 @@ def test_guest_rls_skipped_when_feature_disabled(
     Test that guest RLS is skipped when EMBEDDED_SUPERSET is disabled.
 
     This verifies that the feature flag is respected regardless of
-    the include_guest_rls parameter.
+    the include_global_guest_rls parameter.
     """
     regular_filter = MagicMock()
     regular_filter.clause = "col1 = 'value1'"
@@ -232,9 +232,9 @@ def test_guest_rls_skipped_when_feature_disabled(
             return_value=False,  # Feature disabled
         ),
     ):
-        # Even with include_guest_rls=True, feature flag takes precedence
-        filters = BaseDatasource._get_sqla_row_level_filters_internal(
-            mock_datasource, include_guest_rls=True
+        # Even with include_global_guest_rls=True, feature flag takes precedence
+        filters = BaseDatasource.get_sqla_row_level_filters(
+            mock_datasource, include_global_guest_rls=True
         )
 
         # Should include only regular RLS
@@ -278,8 +278,8 @@ def test_filter_grouping_preserved(
             return_value=False,
         ),
     ):
-        filters = BaseDatasource._get_sqla_row_level_filters_internal(
-            mock_datasource, include_guest_rls=False
+        filters = BaseDatasource.get_sqla_row_level_filters(
+            mock_datasource, include_global_guest_rls=False
         )
 
         # Should have 2 filters: one ungrouped, one grouped (ORed)
