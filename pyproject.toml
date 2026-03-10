@@ -286,6 +286,7 @@ module = [
     "superset.commands.security.update",
     "superset.commands.security.create",
     "superset.datasource.api",
+    "superset.semantic_layers.api",
 ]
 warn_unused_ignores = false
 
