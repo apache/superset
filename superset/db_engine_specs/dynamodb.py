@@ -14,6 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
+import re
 from datetime import datetime
 from typing import Any, Optional
 
@@ -26,6 +29,7 @@ from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 class DynamoDBEngineSpec(BaseEngineSpec):
     engine = "dynamodb"
     engine_name = "Amazon DynamoDB"
+    allows_sql_comments = False
 
     metadata = {
         "description": (
@@ -75,6 +79,42 @@ class DynamoDBEngineSpec(BaseEngineSpec):
             "DATETIME({col}, 'start of day', 'weekday 1', '-7 days')"
         ),
     }
+
+    # Regex to match leading single-line (--) and multi-line (/* */) SQL comments,
+    # including any surrounding whitespace.
+    _leading_comments_re = re.compile(
+        r"^(\s*(--[^\n]*(\n|$)|/\*.*?\*/\s*))+",
+        re.DOTALL,
+    )
+
+    @classmethod
+    def execute(
+        cls,
+        cursor: Any,
+        query: str,
+        database: Any,
+        **kwargs: Any,
+    ) -> None:
+        """
+        Execute a SQL query against DynamoDB via PyDynamoDB.
+
+        PyDynamoDB uses regex patterns (e.g. ``r"^\\s*(SELECT).*"``) to identify
+        query types. Leading SQL comments—such as those injected by
+        ``SQL_QUERY_MUTATOR``—break this detection and cause
+        "Expected nested_select_statement" errors.
+
+        This override strips leading comments so the query always starts with
+        the actual SQL keyword that PyDynamoDB expects.
+        """
+        query = cls._strip_leading_comments(query)
+        if cls.arraysize:
+            cursor.arraysize = cls.arraysize
+        cursor.execute(query)
+
+    @classmethod
+    def _strip_leading_comments(cls, sql: str) -> str:
+        """Remove leading SQL comments (``--`` and ``/* */``) from a query."""
+        return cls._leading_comments_re.sub("", sql).lstrip()
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
