@@ -22,6 +22,7 @@ from typing import Any, Awaitable, Callable, Dict, Protocol
 
 from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware, MiddlewareContext
+from flask import has_app_context
 from pydantic import ValidationError
 from sqlalchemy.exc import OperationalError, TimeoutError
 from starlette.exceptions import HTTPException
@@ -171,24 +172,25 @@ class LoggingMiddleware(Middleware):
             return result
         finally:
             duration_ms = int((time.time() - start_time) * 1000)
-            event_logger.log(
-                user_id=user_id,
-                action="mcp_tool_call",
-                dashboard_id=dashboard_id,
-                duration_ms=duration_ms,
-                slice_id=slice_id,
-                referrer=None,
-                curated_payload={
-                    "tool": tool_name,
-                    "agent_id": agent_id,
-                    "params": _sanitize_params(params),
-                    "method": context.method,
-                    "dashboard_id": dashboard_id,
-                    "slice_id": slice_id,
-                    "dataset_id": dataset_id,
-                    "success": success,
-                },
-            )
+            if has_app_context():
+                event_logger.log(
+                    user_id=user_id,
+                    action="mcp_tool_call",
+                    dashboard_id=dashboard_id,
+                    duration_ms=duration_ms,
+                    slice_id=slice_id,
+                    referrer=None,
+                    curated_payload={
+                        "tool": tool_name,
+                        "agent_id": agent_id,
+                        "params": _sanitize_params(params),
+                        "method": context.method,
+                        "dashboard_id": dashboard_id,
+                        "slice_id": slice_id,
+                        "dataset_id": dataset_id,
+                        "success": success,
+                    },
+                )
             logger.info(
                 "MCP tool call: tool=%s, agent_id=%s, user_id=%s, method=%s, "
                 "dashboard_id=%s, slice_id=%s, dataset_id=%s, duration_ms=%s, "
@@ -213,23 +215,24 @@ class LoggingMiddleware(Middleware):
         agent_id, user_id, dashboard_id, slice_id, dataset_id, params = (
             self._extract_context_info(context)
         )
-        event_logger.log(
-            user_id=user_id,
-            action="mcp_message",
-            dashboard_id=dashboard_id,
-            duration_ms=None,
-            slice_id=slice_id,
-            referrer=None,
-            curated_payload={
-                "tool": getattr(context.message, "name", None),
-                "agent_id": agent_id,
-                "params": _sanitize_params(params),
-                "method": context.method,
-                "dashboard_id": dashboard_id,
-                "slice_id": slice_id,
-                "dataset_id": dataset_id,
-            },
-        )
+        if has_app_context():
+            event_logger.log(
+                user_id=user_id,
+                action="mcp_message",
+                dashboard_id=dashboard_id,
+                duration_ms=None,
+                slice_id=slice_id,
+                referrer=None,
+                curated_payload={
+                    "tool": getattr(context.message, "name", None),
+                    "agent_id": agent_id,
+                    "params": _sanitize_params(params),
+                    "method": context.method,
+                    "dashboard_id": dashboard_id,
+                    "slice_id": slice_id,
+                    "dataset_id": dataset_id,
+                },
+            )
         logger.info(
             "MCP message: tool=%s, agent_id=%s, user_id=%s, method=%s",
             getattr(context.message, "name", None),
