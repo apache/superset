@@ -213,23 +213,27 @@ class LoggingMiddleware(Middleware):
         agent_id, user_id, dashboard_id, slice_id, dataset_id, params = (
             self._extract_context_info(context)
         )
-        event_logger.log(
-            user_id=user_id,
-            action="mcp_message",
-            dashboard_id=dashboard_id,
-            duration_ms=None,
-            slice_id=slice_id,
-            referrer=None,
-            curated_payload={
-                "tool": getattr(context.message, "name", None),
-                "agent_id": agent_id,
-                "params": _sanitize_params(params),
-                "method": context.method,
-                "dashboard_id": dashboard_id,
-                "slice_id": slice_id,
-                "dataset_id": dataset_id,
-            },
-        )
+        try:
+            event_logger.log(
+                user_id=user_id,
+                action="mcp_message",
+                dashboard_id=dashboard_id,
+                duration_ms=None,
+                slice_id=slice_id,
+                referrer=None,
+                curated_payload={
+                    "tool": getattr(context.message, "name", None),
+                    "agent_id": agent_id,
+                    "params": _sanitize_params(params),
+                    "method": context.method,
+                    "dashboard_id": dashboard_id,
+                    "slice_id": slice_id,
+                    "dataset_id": dataset_id,
+                },
+            )
+        except RuntimeError:
+            # No Flask app context (e.g., during MCP initialize handshake)
+            pass
         logger.info(
             "MCP message: tool=%s, agent_id=%s, user_id=%s, method=%s",
             getattr(context.message, "name", None),
