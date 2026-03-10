@@ -17,7 +17,7 @@
 """add_upstream_oauth_tokens
 
 Revision ID: a1b2c3d4e5f6
-Revises: f5b5f88d8526
+Revises: 9787190b3d89
 Create Date: 2026-03-06 12:00:00.000000
 
 """
@@ -27,7 +27,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "a1b2c3d4e5f6"
-down_revision = "4b2a8c9d3e1f"
+down_revision = "9787190b3d89"
 
 
 def upgrade() -> None:
