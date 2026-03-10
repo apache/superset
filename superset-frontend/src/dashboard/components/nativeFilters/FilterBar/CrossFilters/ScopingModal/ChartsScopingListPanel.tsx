@@ -18,8 +18,8 @@
  */
 
 import { ReactNode, useMemo } from 'react';
-import { t } from '@apache-superset/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import {
   ChartConfiguration,
   DashboardLayout,

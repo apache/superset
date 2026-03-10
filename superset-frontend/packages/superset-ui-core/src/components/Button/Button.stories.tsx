@@ -105,7 +105,7 @@ export const InteractiveButton = (args: ButtonProps & { children: string }) => (
 );
 
 InteractiveButton.args = {
-  buttonStyle: 'default',
+  buttonStyle: 'primary',
   buttonSize: 'default',
   children: 'Button!',
 };

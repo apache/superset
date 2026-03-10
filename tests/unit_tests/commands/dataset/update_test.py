@@ -29,7 +29,12 @@ from superset.commands.dataset.exceptions import (
     DatasetNotFoundError,
     MultiCatalogDisabledValidationError,
 )
-from superset.commands.dataset.update import UpdateDatasetCommand, validate_folders
+from superset.commands.dataset.update import (
+    DEFAULT_COLUMNS_FOLDER_UUID,
+    DEFAULT_METRICS_FOLDER_UUID,
+    UpdateDatasetCommand,
+    validate_folders,
+)
 from superset.commands.exceptions import OwnersNotFoundValidationError
 from superset.datasets.schemas import FolderSchema
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -562,6 +567,34 @@ def test_validate_folders_invalid_names(mocker: MockerFixture) -> None:
     with pytest.raises(ValidationError) as excinfo:
         validate_folders(folders=folders_with_columns, valid_uuids=set())
     assert str(excinfo.value) == "Folder cannot have name 'Columns'"
+
+
+@with_feature_flags(DATASET_FOLDERS=True)
+def test_validate_folders_allows_default_folders(mocker: MockerFixture) -> None:
+    """
+    Test that default system folders (Metrics/Columns) are allowed when using
+    the well-known default folder UUIDs, so their position can be persisted.
+    """
+    folders = cast(
+        list[FolderSchema],
+        [
+            {
+                "uuid": DEFAULT_METRICS_FOLDER_UUID,
+                "type": "folder",
+                "name": "Metrics",
+                "children": [],
+            },
+            {
+                "uuid": DEFAULT_COLUMNS_FOLDER_UUID,
+                "type": "folder",
+                "name": "Columns",
+                "children": [],
+            },
+        ],
+    )
+
+    # Should not raise - default folders are allowed to use reserved names
+    validate_folders(folders=folders, valid_uuids=set())
 
 
 @with_feature_flags(DATASET_FOLDERS=True)

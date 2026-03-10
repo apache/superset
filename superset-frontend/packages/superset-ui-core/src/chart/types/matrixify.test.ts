@@ -260,6 +260,88 @@ test('should handle empty form data object', () => {
   expect(isMatrixifyEnabled(formData)).toBe(false);
 });
 
+test('isMatrixifyEnabled should return false when layout enabled but no axis modes configured', () => {
+  const formData = {
+    viz_type: 'table',
+    matrixify_enable_vertical_layout: true,
+    // No matrixify_mode_rows or matrixify_mode_columns set
+  } as MatrixifyFormData;
+  expect(isMatrixifyEnabled(formData)).toBe(false);
+});
+
+test('getMatrixifyValidationErrors should return dimension error for rows when dimension has no data', () => {
+  const formData = {
+    viz_type: 'table',
+    matrixify_enable_vertical_layout: true,
+    matrixify_mode_rows: 'dimensions',
+    // No matrixify_dimension_rows set
+    matrixify_mode_columns: 'metrics',
+    matrixify_columns: [createMetric('Q1')],
+  } as MatrixifyFormData;
+
+  const errors = getMatrixifyValidationErrors(formData);
+  expect(errors).toContain('Please select a dimension and values for rows');
+});
+
+test('getMatrixifyValidationErrors should return metric error for columns when metrics array is empty', () => {
+  const formData = {
+    viz_type: 'table',
+    matrixify_enable_vertical_layout: true,
+    matrixify_mode_rows: 'metrics',
+    matrixify_rows: [createMetric('Revenue')],
+    matrixify_mode_columns: 'metrics',
+    matrixify_columns: [],
+  } as MatrixifyFormData;
+
+  const errors = getMatrixifyValidationErrors(formData);
+  expect(errors).toContain('Please select at least one metric for columns');
+});
+
+test('getMatrixifyValidationErrors should return dimension error for columns when no dimension data', () => {
+  const formData = {
+    viz_type: 'table',
+    matrixify_enable_vertical_layout: true,
+    matrixify_mode_rows: 'metrics',
+    matrixify_rows: [createMetric('Revenue')],
+    matrixify_mode_columns: 'dimensions',
+    // No matrixify_dimension_columns set
+  } as MatrixifyFormData;
+
+  const errors = getMatrixifyValidationErrors(formData);
+  expect(errors).toContain('Please select a dimension and values for columns');
+});
+
+test('getMatrixifyValidationErrors skips row check when matrixify_mode_rows is not set (line 240 false, line 279 || false)', () => {
+  const formData = {
+    viz_type: 'table',
+    matrixify_enable_vertical_layout: true,
+    // No matrixify_mode_rows — hasRowMode = false
+    matrixify_mode_columns: 'metrics',
+    matrixify_columns: [createMetric('Q1')],
+  } as MatrixifyFormData;
+
+  const errors = getMatrixifyValidationErrors(formData);
+  expect(errors).toEqual([]);
+});
+
+test('getMatrixifyValidationErrors evaluates full && expression when dimension is set but values are empty (lines 244, 264, 283, 291 true branches)', () => {
+  const formData = {
+    viz_type: 'table',
+    matrixify_enable_vertical_layout: true,
+    matrixify_mode_rows: 'dimensions',
+    matrixify_dimension_rows: { dimension: 'country', values: [] },
+    matrixify_mode_columns: 'dimensions',
+    matrixify_dimension_columns: { dimension: 'product', values: [] },
+  } as MatrixifyFormData;
+
+  const errors = getMatrixifyValidationErrors(formData);
+  expect(errors).toContain('Please select a dimension and values for rows');
+  expect(errors).toContain('Please select a dimension and values for columns');
+  expect(errors).toContain(
+    'Configure at least one complete row or column axis',
+  );
+});
+
 test('should handle partial configuration with one axis only', () => {
   const formData = {
     viz_type: 'table',

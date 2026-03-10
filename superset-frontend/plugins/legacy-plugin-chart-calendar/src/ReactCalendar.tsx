@@ -17,7 +17,7 @@
  * under the License.
  */
 import { reactify } from '@superset-ui/core';
-import { styled, css, useTheme } from '@apache-superset/core/ui';
+import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { Global } from '@emotion/react';
 import Component from './Calendar';
 
@@ -46,7 +46,7 @@ const Calendar = ({ className, ...otherProps }: CalendarWrapperProps) => {
             line-height: 1;
             padding: ${theme.sizeUnit * 3}px;
             background: ${theme.colorBgElevated};
-            color: ${theme.colorTextLightSolid};
+            color: ${theme.colorTextBase};
             border-radius: 4px;
             pointer-events: none;
             z-index: 1000;

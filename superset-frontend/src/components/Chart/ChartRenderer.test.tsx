@@ -40,9 +40,13 @@ jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   SuperChart: ({
     postTransformProps = (x: JsonObject) => x,
+    isRefreshing = false,
     ...props
-  }: MockSuperChartProps) => (
-    <div data-test="mock-super-chart">
+  }: MockSuperChartProps & { isRefreshing?: boolean }) => (
+    <div
+      data-test="mock-super-chart"
+      data-is-refreshing={isRefreshing ? 'true' : 'false'}
+    >
       {JSON.stringify(postTransformProps(props).formData)}
     </div>
   ),
@@ -372,4 +376,66 @@ test('should detect nested matrixify property changes', () => {
   expect(getByTestId('mock-super-chart')).toHaveTextContent(
     JSON.stringify(updatedProps.formData),
   );
+});
+
+test('renders chart during loading when suppressLoadingSpinner has valid data', () => {
+  const props = {
+    ...requiredProps,
+    chartStatus: 'loading' as const,
+    chartAlert: undefined,
+    suppressLoadingSpinner: true,
+    queriesResponse: [{ data: [{ value: 1 }] }],
+  };
+
+  const { getByTestId } = render(<ChartRenderer {...props} />);
+  expect(getByTestId('mock-super-chart')).toBeInTheDocument();
+  expect(getByTestId('mock-super-chart')).toHaveAttribute(
+    'data-is-refreshing',
+    'true',
+  );
+});
+
+test('does not mark chart as refreshing when loading is not in progress', () => {
+  const props = {
+    ...requiredProps,
+    chartStatus: 'success' as const,
+    chartAlert: undefined,
+    suppressLoadingSpinner: true,
+    queriesResponse: [{ data: [{ value: 1 }] }],
+  };
+
+  const { getByTestId } = render(<ChartRenderer {...props} />);
+  expect(getByTestId('mock-super-chart')).toHaveAttribute(
+    'data-is-refreshing',
+    'false',
+  );
+});
+
+test('does not mark chart as refreshing when spinner suppression is disabled', () => {
+  const props = {
+    ...requiredProps,
+    chartStatus: 'success' as const,
+    chartAlert: undefined,
+    suppressLoadingSpinner: false,
+    queriesResponse: [{ data: [{ value: 1 }] }],
+  };
+
+  const { getByTestId } = render(<ChartRenderer {...props} />);
+  expect(getByTestId('mock-super-chart')).toHaveAttribute(
+    'data-is-refreshing',
+    'false',
+  );
+});
+
+test('does not render chart during loading when last data has errors', () => {
+  const props = {
+    ...requiredProps,
+    chartStatus: 'loading' as const,
+    chartAlert: undefined,
+    suppressLoadingSpinner: true,
+    queriesResponse: [{ error: 'bad' }],
+  };
+
+  const { queryByTestId } = render(<ChartRenderer {...props} />);
+  expect(queryByTestId('mock-super-chart')).not.toBeInTheDocument();
 });

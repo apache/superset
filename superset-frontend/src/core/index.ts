@@ -16,25 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { core as coreType } from '@apache-superset/core';
-import { getExtensionsContextValue } from '../extensions/ExtensionsContextUtils';
+import { common as coreType } from '@apache-superset/core';
 import { Disposable } from './models';
-
-export const registerViewProvider: typeof coreType.registerViewProvider = (
-  id,
-  viewProvider,
-) => {
-  const { registerViewProvider: register, unregisterViewProvider: unregister } =
-    getExtensionsContextValue();
-  register(id, viewProvider);
-  return new Disposable(() => unregister(id));
-};
 
 const { GenericDataType } = coreType;
 
 export const core: typeof coreType = {
   GenericDataType,
-  registerViewProvider,
   Disposable,
 };
 
@@ -42,6 +30,8 @@ export * from './authentication';
 export * from './commands';
 export * from './editors';
 export * from './extensions';
+export * from './menus';
 export * from './models';
 export * from './sqlLab';
 export * from './utils';
+export * from './views';
