@@ -31,6 +31,7 @@ import {
   mockRelatedCharts,
   mockRelatedDashboards,
   mockHandleResourceExport,
+  mockDatasetListEndpoints,
   API_ENDPOINTS,
 } from './DatasetList.testHelpers';
 
@@ -98,7 +99,7 @@ test('typing in search triggers debounced API call with search filter', async ()
 
   // Record initial API calls
   const initialCallCount = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASETS,
+    API_ENDPOINTS.DATASOURCE_COMBINED,
   ).length;
 
   // Type search query and submit with Enter to trigger the debounced fetch
@@ -107,14 +108,16 @@ test('typing in search triggers debounced API call with search filter', async ()
   // Wait for debounced API call
   await waitFor(
     () => {
-      const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
+      const calls = fetchMock.callHistory.calls(
+        API_ENDPOINTS.DATASOURCE_COMBINED,
+      );
       expect(calls.length).toBeGreaterThan(initialCallCount);
     },
     { timeout: 5000 },
   );
 
   // Verify the latest API call includes search filter in URL
-  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
+  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASOURCE_COMBINED);
   const latestCall = calls[calls.length - 1];
   const { url } = latestCall;
 
@@ -136,8 +139,7 @@ test('typing in search triggers debounced API call with search filter', async ()
 test('500 error triggers danger toast with error message', async () => {
   const addDangerToast = jest.fn();
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
+  mockDatasetListEndpoints({
     status: 500,
     body: { message: 'Internal Server Error' },
   });
@@ -173,8 +175,7 @@ test('500 error triggers danger toast with error message', async () => {
 test('network timeout triggers danger toast', async () => {
   const addDangerToast = jest.fn();
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
+  mockDatasetListEndpoints({
     throws: new Error('Network timeout'),
   });
 
@@ -213,8 +214,7 @@ test('clicking delete opens modal with related objects count', async () => {
   // Set up delete mocks
   setupDeleteMocks(datasetToDelete.id);
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
+  mockDatasetListEndpoints({
     result: [datasetToDelete],
     count: 1,
   });
@@ -254,8 +254,7 @@ test('clicking delete opens modal with related objects count', async () => {
 test('clicking export calls handleResourceExport with dataset ID', async () => {
   const datasetToExport = mockDatasets[0];
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
+  mockDatasetListEndpoints({
     result: [datasetToExport],
     count: 1,
   });
@@ -288,8 +287,7 @@ test('clicking duplicate opens modal and submits duplicate request', async () =>
     kind: 'virtual',
   };
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
+  mockDatasetListEndpoints({
     result: [datasetToDuplicate],
     count: 1,
   });
@@ -312,7 +310,7 @@ test('clicking duplicate opens modal and submits duplicate request', async () =>
 
   // Track initial dataset list API calls BEFORE duplicate action
   const initialDatasetCallCount = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASETS,
+    API_ENDPOINTS.DATASOURCE_COMBINED,
   ).length;
 
   const row = screen.getByText(datasetToDuplicate.table_name).closest('tr');
@@ -355,7 +353,9 @@ test('clicking duplicate opens modal and submits duplicate request', async () =>
   // Verify refreshData() is called (observable via new dataset list API call)
   await waitFor(
     () => {
-      const datasetCalls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
+      const datasetCalls = fetchMock.callHistory.calls(
+        API_ENDPOINTS.DATASOURCE_COMBINED,
+      );
       expect(datasetCalls.length).toBeGreaterThan(initialDatasetCallCount);
     },
     { timeout: 3000 },
@@ -376,8 +376,7 @@ test('certified dataset shows badge and tooltip with certification details', asy
     }),
   };
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
+  mockDatasetListEndpoints({
     result: [certifiedDataset],
     count: 1,
   });
@@ -417,8 +416,7 @@ test('dataset with warning shows icon and tooltip with markdown content', async 
     }),
   };
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
+  mockDatasetListEndpoints({
     result: [datasetWithWarning],
     count: 1,
   });
@@ -452,8 +450,7 @@ test('dataset with warning shows icon and tooltip with markdown content', async 
 test('dataset name links to Explore with correct URL and accessible label', async () => {
   const dataset = mockDatasets[0];
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, { result: [dataset], count: 1 });
+  mockDatasetListEndpoints({ result: [dataset], count: 1 });
 
   renderDatasetList(mockAdminUser);
 
