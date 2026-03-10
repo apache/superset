@@ -229,6 +229,42 @@ def inject_model_session_implementation() -> None:
     core_models_module.get_session = get_session
 
 
+def inject_semantic_layer_implementations() -> None:
+    """
+    Replace abstract semantic layer decorator in
+    superset_core.semantic_layers.decorators with a concrete implementation
+    that registers classes in the contributions registry.
+    """
+    import superset_core.semantic_layers.decorators as core_sl_module
+
+    from superset.extensions.context import get_current_extension_context
+    from superset.semantic_layers.registry import registry
+
+    def semantic_layer_impl(
+        id: str,
+        name: str,
+        description: str | None = None,
+    ) -> Callable[[Any], Any]:
+        def decorator(cls: Any) -> Any:
+            context = get_current_extension_context()
+
+            if context:
+                manifest = context.manifest
+                prefixed_id = f"extensions.{manifest.publisher}.{manifest.name}.{id}"
+            else:
+                prefixed_id = id
+
+            cls.name = name
+            cls.description = description
+            cls._semantic_layer_id = prefixed_id
+            registry[prefixed_id] = cls
+            return cls
+
+        return decorator
+
+    core_sl_module.semantic_layer = semantic_layer_impl  # type: ignore[assignment]
+
+
 def initialize_core_api_dependencies() -> None:
     """
     Initialize all dependency injections for the superset-core API.
@@ -242,3 +278,4 @@ def initialize_core_api_dependencies() -> None:
     inject_query_implementations()
     inject_task_implementations()
     inject_rest_api_implementations()
+    inject_semantic_layer_implementations()
