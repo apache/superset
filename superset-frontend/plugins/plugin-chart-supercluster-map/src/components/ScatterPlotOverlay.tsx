@@ -78,7 +78,7 @@ const computeClusterLabel = (
   if (aggregation === 'var') {
     return Math.round(100 * variance) / 100;
   }
-  if (aggregation === 'stdev') {
+  if (aggregation === 'std' || aggregation === 'stdev') {
     return Math.round(100 * Math.sqrt(variance)) / 100;
   }
 
