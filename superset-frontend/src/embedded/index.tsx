@@ -21,10 +21,16 @@ import 'src/public-path';
 import { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
+import { Global } from '@emotion/react';
 import { t } from '@apache-superset/core';
 import { makeApi } from '@superset-ui/core';
 import { logging } from '@apache-superset/core';
-import { type SupersetThemeConfig, ThemeMode } from '@apache-superset/core/ui';
+import {
+  type SupersetThemeConfig,
+  ThemeMode,
+  css,
+  useTheme,
+} from '@apache-superset/core/ui';
 import Switchboard from '@superset-ui/switchboard';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import setupClient from 'src/setup/setupClient';
@@ -88,8 +94,34 @@ const EmbededLazyDashboardPage = () => {
   return <LazyDashboardPage idOrSlug={bootstrapData.embedded!.dashboard_id} />;
 };
 
+/**
+ * Global CSS reset for embedded dashboards.
+ *
+ * In standalone mode, antd's <Layout> component injects box-sizing and
+ * font-size via CSS-in-JS. Embedded mode does not render <Layout>, so
+ * these rules are never injected. This component fills that gap.
+ */
+const EmbeddedGlobalStyles = () => {
+  const theme = useTheme();
+  return (
+    <Global
+      styles={css`
+        *,
+        *::before,
+        *::after {
+          box-sizing: border-box;
+        }
+        body {
+          font-size: ${theme.fontSize}px;
+        }
+      `}
+    />
+  );
+};
+
 const EmbeddedRoute = () => (
   <EmbeddedContextProviders>
+    <EmbeddedGlobalStyles />
     <Suspense fallback={<Loading />}>
       <ErrorBoundary>
         <EmbededLazyDashboardPage />
