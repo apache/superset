@@ -33,7 +33,8 @@ import { Map as MapboxMap } from 'react-map-gl/mapbox';
 import mapboxgl from 'mapbox-gl';
 import type { Layer } from '@deck.gl/core';
 import { JsonObject, JsonValue, usePrevious } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/theme';
+import { styled, useTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import DeckGLOverlayMapLibre from './components/DeckGLOverlayMapLibre';
 import DeckGLOverlayMapbox from './components/DeckGLOverlayMapbox';
 import Tooltip, { TooltipProps } from './components/Tooltip';
@@ -119,6 +120,7 @@ export const DeckGLContainer = memo(
       return <Tooltip tooltip={tooltipState} />;
     };
 
+    const theme = useTheme();
     const { children = null, height, width } = props;
     const isMapbox = props.mapProvider === 'mapbox';
     const mapStyle = props.mapStyle || DEFAULT_MAP_STYLE;
@@ -134,10 +136,10 @@ export const DeckGLContainer = memo(
             justifyContent: 'center',
             padding: 16,
             textAlign: 'center',
-            color: '#666',
+            color: theme.colorTextSecondary,
           }}
         >
-          Mapbox requires a MAPBOX_API_KEY to be configured on the server.
+          {t('Mapbox requires a MAPBOX_API_KEY to be configured on the server.')}
         </div>
       );
     }

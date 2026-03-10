@@ -629,7 +629,7 @@ function main() {
         '**/lib/**', // Build artifacts
         '**/dist/**', // Build artifacts
         'plugins/legacy-*/**', // Legacy plugins
-        'plugins/plugin-chart-maplibre/src/controlPanel.*', // Data visualization color choices
+        'plugins/plugin-chart-supercluster-map/src/controlPanel.*', // Data visualization color choices
         '**/vendor/**',
         'spec/fixtures/**',
         '**/theme/exampleThemes/**',

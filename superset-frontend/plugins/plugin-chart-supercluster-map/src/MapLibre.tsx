@@ -20,6 +20,8 @@ import { memo, useCallback, useMemo, useState } from 'react';
 import { Map as MapLibreMap } from 'react-map-gl/maplibre';
 import { Map as MapboxMap } from 'react-map-gl/mapbox';
 import { WebMercatorViewport } from '@math.gl/web-mercator';
+import { useTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import ScatterPlotOverlay from './components/ScatterPlotOverlay';
 import { getMapboxApiKey } from './utils/mapbox';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -125,6 +127,7 @@ function MapLibre({
 
   const clusters = clusterer.getClusters(bbox, Math.round(viewport.zoom));
 
+  const theme = useTheme();
   const resolvedMapStyle = mapStyle || DEFAULT_MAP_STYLE;
   const mapboxApiKey = mapProvider === 'mapbox' ? getMapboxApiKey() : '';
 
@@ -139,10 +142,10 @@ function MapLibre({
           justifyContent: 'center',
           padding: 16,
           textAlign: 'center',
-          color: '#666',
+          color: theme.colorTextSecondary,
         }}
       >
-        Mapbox requires a MAPBOX_API_KEY to be configured on the server.
+        {t('Mapbox requires a MAPBOX_API_KEY to be configured on the server.')}
       </div>
     );
   }
