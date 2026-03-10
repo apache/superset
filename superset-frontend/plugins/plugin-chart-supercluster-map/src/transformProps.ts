@@ -127,20 +127,35 @@ export default function transformProps(chartProps: ChartProps) {
     render_while_dragging: renderWhileDragging,
   } = formData;
 
-  // Build GeoJSON from raw query records
-  const records: DataRecord[] = queriesData[0]?.data || [];
-  const hasCustomMetric = maplibreLabel != null && maplibreLabel.length > 0;
-  const labelCol = hasCustomMetric ? maplibreLabel[0] : null;
-  const pointRadiusCol =
-    pointRadius && pointRadius !== 'Auto' ? pointRadius : null;
+  // Support two data formats:
+  // 1. Legacy/GeoJSON: queriesData[0].data is an object with { geoJSON, bounds, hasCustomMetric }
+  // 2. Tabular records: queriesData[0].data is an array of flat records from a SQL query
+  const rawData = queriesData[0]?.data;
+  const isLegacyFormat = rawData && !Array.isArray(rawData) && rawData.geoJSON;
 
-  const { geoJSON, bounds } = buildGeoJSONFromRecords(
-    records,
-    allColumnsX,
-    allColumnsY,
-    labelCol,
-    pointRadiusCol,
-  );
+  let geoJSON: { type: 'FeatureCollection'; features: any[] };
+  let bounds: [[number, number], [number, number]] | undefined;
+  let hasCustomMetric: boolean;
+
+  if (isLegacyFormat) {
+    geoJSON = (rawData as any).geoJSON;
+    bounds = (rawData as any).bounds;
+    hasCustomMetric = (rawData as any).hasCustomMetric ?? false;
+  } else {
+    const records: DataRecord[] = (rawData as DataRecord[]) || [];
+    hasCustomMetric = maplibreLabel != null && maplibreLabel.length > 0;
+    const labelCol = hasCustomMetric ? maplibreLabel[0] : null;
+    const pointRadiusCol =
+      pointRadius && pointRadius !== 'Auto' ? pointRadius : null;
+
+    ({ geoJSON, bounds } = buildGeoJSONFromRecords(
+      records,
+      allColumnsX,
+      allColumnsY,
+      labelCol,
+      pointRadiusCol,
+    ));
+  }
 
   // Validate color — supports hex (#rrggbb) and rgb(r, g, b) formats
   let rgb: string[] | null = null;

@@ -26,20 +26,6 @@ import { generateData } from './data';
 
 new ScatterMapChartPlugin().configure({ key: 'map_gl' }).register();
 
-/**
- * Convert legacy GeoJSON features to flat tabular records
- * that transformProps expects from a Superset SQL query.
- */
-function geoJSONToRecords(
-  geoJSON: { features: { geometry: { coordinates: number[] }; properties: Record<string, unknown> }[] },
-) {
-  return geoJSON.features.map(f => ({
-    LON: f.geometry.coordinates[0],
-    LAT: f.geometry.coordinates[1],
-    metric: f.properties.metric ?? null,
-  }));
-}
-
 export default {
   title: 'Chart Plugins/plugin-chart-supercluster-map',
   decorators: [withResizableChartDemo],
@@ -95,18 +81,13 @@ export const InteractiveSuperclusterMap = ({
   height: number;
 }) => {
   const theme = useTheme();
-  const { geoJSON } = generateData(theme);
-  const records = geoJSONToRecords(geoJSON);
-
   return (
     <SuperChart
       chartType="map_gl"
       width={width}
       height={height}
-      queriesData={[{ data: records }]}
+      queriesData={[{ data: generateData(theme) }]}
       formData={{
-        all_columns_x: 'LON',
-        all_columns_y: 'LAT',
         clustering_radius: String(clusteringRadius),
         global_opacity: globalOpacity,
         map_color: '#008b8b',
@@ -134,18 +115,13 @@ export const WithMetricLabels = ({
   height: number;
 }) => {
   const theme = useTheme();
-  const { geoJSON } = generateData(theme);
-  const records = geoJSONToRecords(geoJSON);
-
   return (
     <SuperChart
       chartType="map_gl"
       width={width}
       height={height}
-      queriesData={[{ data: records }]}
+      queriesData={[{ data: generateData(theme) }]}
       formData={{
-        all_columns_x: 'LON',
-        all_columns_y: 'LAT',
         clustering_radius: '60',
         global_opacity: 1,
         map_color: '#dc143c',
@@ -173,18 +149,13 @@ export const NoClustering = ({
   height: number;
 }) => {
   const theme = useTheme();
-  const { geoJSON } = generateData(theme);
-  const records = geoJSONToRecords(geoJSON);
-
   return (
     <SuperChart
       chartType="map_gl"
       width={width}
       height={height}
-      queriesData={[{ data: records }]}
+      queriesData={[{ data: generateData(theme) }]}
       formData={{
-        all_columns_x: 'LON',
-        all_columns_y: 'LAT',
         clustering_radius: '0',
         global_opacity: 0.8,
         map_color: '#228b22',
