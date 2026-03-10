@@ -23,9 +23,8 @@ from abc import ABC, abstractmethod
 from superset_core.semantic_layers.types import (
     Dimension,
     Filter,
-    GroupLimit,
     Metric,
-    OrderTuple,
+    SemanticQuery,
     SemanticResult,
 )
 
@@ -77,33 +76,13 @@ class SemanticView(ABC):
         """
 
     @abstractmethod
-    def get_table(
-        self,
-        metrics: list[Metric],
-        dimensions: list[Dimension],
-        filters: set[Filter] | None = None,
-        order: list[OrderTuple] | None = None,
-        limit: int | None = None,
-        offset: int | None = None,
-        *,
-        group_limit: GroupLimit | None = None,
-    ) -> SemanticResult:
+    def get_table(self, query: SemanticQuery) -> SemanticResult:
         """
         Execute a semantic query and return the results.
         """
 
     @abstractmethod
-    def get_row_count(
-        self,
-        metrics: list[Metric],
-        dimensions: list[Dimension],
-        filters: set[Filter] | None = None,
-        order: list[OrderTuple] | None = None,
-        limit: int | None = None,
-        offset: int | None = None,
-        *,
-        group_limit: GroupLimit | None = None,
-    ) -> SemanticResult:
+    def get_row_count(self, query: SemanticQuery) -> SemanticResult:
         """
         Execute a query and return the number of rows the result would have.
         """
