@@ -582,3 +582,96 @@ def test_update_recipient_to_slack_v2_missing_channels(mocker: MockerFixture):
     )
     with pytest.raises(UpdateFailedError):
         mock_cmmd.update_report_schedule_slack_v2()
+
+
+@with_feature_flags(ALERT_REPORT_TABS=False, ALERT_REPORTS_FILTER=True)
+def test_get_dashboard_urls_with_native_filters_without_tabs_feature(
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """
+    Test that native filters are applied to dashboard URLs when
+    ALERT_REPORTS_FILTER is enabled but ALERT_REPORT_TABS is disabled.
+    """
+    import urllib.parse
+
+    mock_dashboard = mocker.Mock()
+    mock_dashboard.uuid = "test-uuid-123"
+    mock_dashboard.id = 123
+
+    mock_report_schedule = mocker.Mock()
+    mock_report_schedule.chart = False
+    mock_report_schedule.dashboard = mock_dashboard
+    mock_report_schedule.force_screenshot = False
+    mock_report_schedule.extra = {
+        "dashboard": {
+            "nativeFilters": [
+                {
+                    "nativeFilterId": "filter_id",
+                    "columnName": "column_name",
+                    "filterType": "filter_select",
+                    "filterValues": ["value1", "value2"],
+                }
+            ]
+        }
+    }
+    mock_report_schedule.get_native_filters_params.return_value = "(filter_id:test)"
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+
+    result: list[str] = class_instance.get_dashboard_urls()
+
+    # Verify native_filters param is in the URL
+    assert len(result) == 1
+    parsed_url = urllib.parse.urlparse(result[0])
+    query_params = urllib.parse.parse_qs(parsed_url.query)
+    assert "native_filters" in query_params
+    assert query_params["native_filters"][0] == "(filter_id:test)"
+
+
+@with_feature_flags(ALERT_REPORT_TABS=False, ALERT_REPORTS_FILTER=False)
+def test_get_dashboard_urls_without_filter_feature(
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """
+    Test that native filters are NOT applied when ALERT_REPORTS_FILTER is disabled.
+    """
+    import urllib.parse
+
+    mock_dashboard = mocker.Mock()
+    mock_dashboard.uuid = "test-uuid-123"
+    mock_dashboard.id = 123
+
+    mock_report_schedule = mocker.Mock()
+    mock_report_schedule.chart = False
+    mock_report_schedule.dashboard = mock_dashboard
+    mock_report_schedule.force_screenshot = False
+    mock_report_schedule.extra = {
+        "dashboard": {
+            "nativeFilters": [
+                {
+                    "nativeFilterId": "filter_id",
+                    "columnName": "column_name",
+                    "filterType": "filter_select",
+                    "filterValues": ["value1", "value2"],
+                }
+            ]
+        }
+    }
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+
+    result: list[str] = class_instance.get_dashboard_urls()
+
+    # Verify native_filters param is NOT in the URL
+    assert len(result) == 1
+    parsed_url = urllib.parse.urlparse(result[0])
+    query_params = urllib.parse.parse_qs(parsed_url.query)
+    assert "native_filters" not in query_params
+    # Verify get_native_filters_params was not called
+    mock_report_schedule.get_native_filters_params.assert_not_called()
