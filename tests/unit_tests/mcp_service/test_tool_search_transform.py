@@ -20,6 +20,10 @@
 from unittest.mock import MagicMock, patch
 
 from superset.mcp_service.mcp_config import MCP_TOOL_SEARCH_CONFIG
+from superset.mcp_service.server import (
+    _apply_tool_search_transform,
+    _serialize_tools_without_output_schema,
+)
 
 
 def test_tool_search_config_defaults():
@@ -35,8 +39,6 @@ def test_tool_search_config_defaults():
 
 def test_apply_bm25_transform():
     """BM25SearchTransform is applied when strategy is 'bm25'."""
-    from superset.mcp_service.server import _apply_tool_search_transform
-
     mock_mcp = MagicMock()
     config = {
         "strategy": "bm25",
@@ -52,19 +54,20 @@ def test_apply_bm25_transform():
 
         _apply_tool_search_transform(mock_mcp, config)
 
-        mock_bm25_cls.assert_called_once_with(
-            max_results=5,
-            always_visible=["health_check"],
-            search_tool_name="search_tools",
-            call_tool_name="call_tool",
+        call_kwargs = mock_bm25_cls.call_args[1]
+        assert call_kwargs["max_results"] == 5
+        assert call_kwargs["always_visible"] == ["health_check"]
+        assert call_kwargs["search_tool_name"] == "search_tools"
+        assert call_kwargs["call_tool_name"] == "call_tool"
+        assert (
+            call_kwargs["search_result_serializer"]
+            is _serialize_tools_without_output_schema
         )
         mock_mcp.add_transform.assert_called_once_with(mock_transform)
 
 
 def test_apply_regex_transform():
     """RegexSearchTransform is applied when strategy is 'regex'."""
-    from superset.mcp_service.server import _apply_tool_search_transform
-
     mock_mcp = MagicMock()
     config = {
         "strategy": "regex",
@@ -82,19 +85,20 @@ def test_apply_regex_transform():
 
         _apply_tool_search_transform(mock_mcp, config)
 
-        mock_regex_cls.assert_called_once_with(
-            max_results=10,
-            always_visible=["health_check", "get_instance_info"],
-            search_tool_name="find_tools",
-            call_tool_name="invoke_tool",
+        call_kwargs = mock_regex_cls.call_args[1]
+        assert call_kwargs["max_results"] == 10
+        assert call_kwargs["always_visible"] == ["health_check", "get_instance_info"]
+        assert call_kwargs["search_tool_name"] == "find_tools"
+        assert call_kwargs["call_tool_name"] == "invoke_tool"
+        assert (
+            call_kwargs["search_result_serializer"]
+            is _serialize_tools_without_output_schema
         )
         mock_mcp.add_transform.assert_called_once_with(mock_transform)
 
 
 def test_apply_transform_uses_defaults_for_missing_keys():
     """Missing config keys fall back to sensible defaults."""
-    from superset.mcp_service.server import _apply_tool_search_transform
-
     mock_mcp = MagicMock()
     config = {}  # All keys missing — should use defaults
 
@@ -103,12 +107,11 @@ def test_apply_transform_uses_defaults_for_missing_keys():
 
         _apply_tool_search_transform(mock_mcp, config)
 
-        mock_bm25_cls.assert_called_once_with(
-            max_results=5,
-            always_visible=[],
-            search_tool_name="search_tools",
-            call_tool_name="call_tool",
-        )
+        call_kwargs = mock_bm25_cls.call_args[1]
+        assert call_kwargs["max_results"] == 5
+        assert call_kwargs["always_visible"] == []
+        assert call_kwargs["search_tool_name"] == "search_tools"
+        assert call_kwargs["call_tool_name"] == "call_tool"
 
 
 def test_transform_not_applied_when_disabled():
@@ -122,3 +125,43 @@ def test_transform_applied_when_enabled():
     """Transform is applied when config has enabled=True."""
     config = {"enabled": True}
     assert config.get("enabled", False)
+
+
+def test_serialize_tools_strips_output_schema():
+    """Custom serializer removes outputSchema from tool definitions."""
+    mock_tool = MagicMock()
+    mock_mcp_tool = MagicMock()
+    mock_mcp_tool.model_dump.return_value = {
+        "name": "test_tool",
+        "description": "A test tool",
+        "inputSchema": {"type": "object", "properties": {"x": {"type": "integer"}}},
+        "outputSchema": {
+            "type": "object",
+            "properties": {"result": {"type": "string"}},
+        },
+    }
+    mock_tool.to_mcp_tool.return_value = mock_mcp_tool
+
+    result = _serialize_tools_without_output_schema([mock_tool])
+
+    assert len(result) == 1
+    assert result[0]["name"] == "test_tool"
+    assert "inputSchema" in result[0]
+    assert "outputSchema" not in result[0]
+
+
+def test_serialize_tools_handles_no_output_schema():
+    """Custom serializer works when tool has no outputSchema."""
+    mock_tool = MagicMock()
+    mock_mcp_tool = MagicMock()
+    mock_mcp_tool.model_dump.return_value = {
+        "name": "simple_tool",
+        "inputSchema": {"type": "object"},
+    }
+    mock_tool.to_mcp_tool.return_value = mock_mcp_tool
+
+    result = _serialize_tools_without_output_schema([mock_tool])
+
+    assert len(result) == 1
+    assert result[0]["name"] == "simple_tool"
+    assert "outputSchema" not in result[0]

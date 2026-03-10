@@ -24,6 +24,7 @@ For multi-pod deployments, configure MCP_EVENT_STORE_CONFIG with Redis URL.
 
 import logging
 import os
+from collections.abc import Sequence
 from typing import Any
 
 import uvicorn
@@ -155,6 +156,23 @@ def create_event_store(config: dict[str, Any] | None = None) -> Any | None:
         return None
 
 
+def _serialize_tools_without_output_schema(
+    tools: Sequence[Any],
+) -> list[dict[str, Any]]:
+    """Serialize tools to JSON, stripping outputSchema to reduce token usage.
+
+    LLMs only need inputSchema to call tools. outputSchema accounts for
+    50-80% of the per-tool schema size, so stripping it cuts search result
+    tokens by ~63%.
+    """
+    results = []
+    for tool in tools:
+        data = tool.to_mcp_tool().model_dump(mode="json", exclude_none=True)
+        data.pop("outputSchema", None)
+        results.append(data)
+    return results
+
+
 def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> None:
     """Apply tool search transform to reduce initial context size.
 
@@ -163,11 +181,12 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
     discover other tools on-demand via natural language search.
     """
     strategy = config.get("strategy", "bm25")
-    kwargs = {
+    kwargs: dict[str, Any] = {
         "max_results": config.get("max_results", 5),
         "always_visible": config.get("always_visible", []),
         "search_tool_name": config.get("search_tool_name", "search_tools"),
         "call_tool_name": config.get("call_tool_name", "call_tool"),
+        "search_result_serializer": _serialize_tools_without_output_schema,
     }
 
     if strategy == "regex":
