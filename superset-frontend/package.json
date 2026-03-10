@@ -342,7 +342,7 @@
     "js-yaml-loader": "^1.2.2",
     "jsdom": "^28.1.0",
     "lerna": "^8.2.3",
-    "lightningcss": "^1.31.1",
+    "lightningcss": "^1.32.0",
     "mini-css-extract-plugin": "^2.10.0",
     "open-cli": "^8.0.0",
     "oxlint": "^1.51.0",
