@@ -44,7 +44,7 @@ logger = logging.getLogger("alembic.env")
 
 # revision identifiers, used by Alembic.
 revision = "ce6bd21901ab"
-down_revision = "4b2a8c9d3e1f"
+down_revision = "a1b2c3d4e5f6"
 
 DECKGL_VIZ_TYPES = [
     "deck_arc",
