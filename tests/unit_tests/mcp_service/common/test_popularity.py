@@ -366,6 +366,7 @@ class TestGetPopularitySortedIds:
         )
 
         assert sorted_ids == [2, 1]
+        assert scores == {1: 30.0, 2: 10.0}
         assert total == 2
 
     def test_empty_results(self):
