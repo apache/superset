@@ -1004,7 +1004,7 @@ def test_convert_query_object_filter_unknown_operator(
     mock_datasource: MagicMock,
 ) -> None:
     """
-    Test filter with unknown operator returns None.
+    Test filter with unknown operator raises ValueError.
     """
     all_dimensions = {
         dim.name: dim for dim in mock_datasource.implementation.dimensions
@@ -1016,9 +1016,8 @@ def test_convert_query_object_filter_unknown_operator(
         "val": "Electronics",
     }
 
-    result = _convert_query_object_filter(filter_, all_dimensions)
-
-    assert result is None
+    with pytest.raises(ValueError, match="Unsupported filter operator"):
+        _convert_query_object_filter(filter_, all_dimensions)
 
 
 def test_validate_query_object_undefined_metric_error(

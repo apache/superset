@@ -237,7 +237,7 @@ def inject_semantic_layer_implementations() -> None:
     """
     import superset_core.semantic_layers.decorators as core_sl_module
 
-    from superset.extensions.context import get_current_extension_context
+    import superset.extensions.context as context_module
     from superset.semantic_layers.registry import registry
 
     def semantic_layer_impl(
@@ -246,9 +246,7 @@ def inject_semantic_layer_implementations() -> None:
         description: str | None = None,
     ) -> Callable[[Any], Any]:
         def decorator(cls: Any) -> Any:
-            context = get_current_extension_context()
-
-            if context:
+            if context := context_module.get_current_extension_context():
                 manifest = context.manifest
                 prefixed_id = f"extensions.{manifest.publisher}.{manifest.name}.{id}"
             else:

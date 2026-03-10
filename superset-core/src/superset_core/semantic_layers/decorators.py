@@ -41,12 +41,10 @@ Usage:
 
 from __future__ import annotations
 
-from typing import Any, Callable, TypeVar
-
-from superset_core.semantic_layers.layer import SemanticLayer
+from typing import Callable, TypeVar
 
 # Type variable for decorated semantic layer classes
-T = TypeVar("T", bound=type[SemanticLayer[Any, Any]])
+T = TypeVar("T")
 
 
 def semantic_layer(
