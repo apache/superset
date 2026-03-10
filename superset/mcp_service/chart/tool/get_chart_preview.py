@@ -161,6 +161,7 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             )
 
             command = ChartDataCommand(query_context)
+            command.validate()
             result = command.run()
 
             data = []
@@ -235,6 +236,7 @@ class TablePreviewStrategy(PreviewFormatStrategy):
             )
 
             command = ChartDataCommand(query_context)
+            command.validate()
             result = command.run()
 
             data = []
@@ -341,6 +343,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
 
             # Execute the query
             command = ChartDataCommand(query_context)
+            command.validate()
             result = command.run()
 
             # Extract data from result

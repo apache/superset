@@ -101,6 +101,7 @@ def _compile_chart(
         )
 
         command = ChartDataCommand(query_context)
+        command.validate()
         result = command.run()
 
         warnings: List[str] = []
