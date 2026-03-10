@@ -199,7 +199,10 @@ def generate_dashboard(
 
         with event_logger.log_context(action="mcp.generate_dashboard.chart_validation"):
             chart_objects = (
-                db.session.query(Slice).filter(Slice.id.in_(request.chart_ids)).all()
+                db.session.query(Slice)
+                .filter(Slice.id.in_(request.chart_ids))
+                .order_by(Slice.id)
+                .all()
             )
             found_chart_ids = [chart.id for chart in chart_objects]
 
