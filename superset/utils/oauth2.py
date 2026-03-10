@@ -360,7 +360,6 @@ def _refresh_upstream_provider_token(
         logger.warning(
             "Failed to refresh upstream OAuth token for provider %s",
             provider,
-            exc_info=True,
         )
         db.session.delete(token)
         db.session.commit()

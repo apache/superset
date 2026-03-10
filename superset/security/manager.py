@@ -519,8 +519,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             provider = session.get("oauth_provider")
             # Use the full token dict saved by set_oauth_session, not the
             # (access_token, secret) tuple that FAB stores in session["oauth"].
-            token = session.get("oauth_full_token")
-            if token and provider:
+            if session.get("oauth_full_token") and provider:
                 provider_config = next(
                     (
                         p
@@ -533,7 +532,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     from superset.utils.oauth2 import save_user_provider_token
 
                     try:
-                        save_user_provider_token(user.id, provider, token)
+                        save_user_provider_token(
+                            user.id, provider, session["oauth_full_token"]
+                        )
                     except Exception:  # pylint: disable=broad-except
                         logger.warning(
                             "Failed to save upstream OAuth token for provider %s",
