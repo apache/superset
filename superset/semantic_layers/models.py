@@ -324,8 +324,6 @@ class SemanticView(AuditMixinNullable, Model):
             "extra": None,
             "always_filter_main_dttm": False,
             "normalize_columns": False,
-            # TODO XXX
-            # "owners": [owner.id for owner in self.owners],
             "edit_url": "",
             "default_endpoint": None,
             "folders": [],
