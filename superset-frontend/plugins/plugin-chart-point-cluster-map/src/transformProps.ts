@@ -139,8 +139,8 @@ export default function transformProps(chartProps: ChartProps) {
 
   if (isLegacyFormat) {
     const legacy = rawData as any;
-    geoJSON = legacy.geoJSON;
-    bounds = legacy.bounds;
+    ({ geoJSON } = legacy);
+    ({ bounds } = legacy);
     hasCustomMetric = legacy.hasCustomMetric ?? false;
   } else {
     const records: DataRecord[] = (rawData as DataRecord[]) || [];
@@ -156,8 +156,8 @@ export default function transformProps(chartProps: ChartProps) {
       labelCol,
       pointRadiusCol,
     );
-    geoJSON = built.geoJSON;
-    bounds = built.bounds;
+    ({ geoJSON } = built);
+    ({ bounds } = built);
   }
 
   // Validate color — supports hex (#rrggbb) and rgb(r, g, b) formats
