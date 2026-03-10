@@ -158,7 +158,7 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
         selectionMode,
         topNMetric: getValue(`matrixify_topn_metric_${axis}`),
         topNValue: getValue(`matrixify_topn_value_${axis}`),
-        topNOrder: getValue(`matrixify_topn_order_${axis}`),
+        topNOrder: getValue(`matrixify_topn_order_${axis}`, true) ? 'DESC' : 'ASC',
         formData: form_data,
         validators,
       };
@@ -263,13 +263,9 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
   };
 
   matrixifyControls[`matrixify_topn_order_${axis}`] = {
-    type: 'RadioButtonControl',
-    label: t(`Sort order`),
-    default: 'desc',
-    options: [
-      ['asc', t('Ascending')],
-      ['desc', t('Descending')],
-    ],
+    type: 'CheckboxControl',
+    label: t('Sort descending'),
+    default: true,
     renderTrigger: true,
     tabOverride: 'matrixify',
     visibility: ({ controls }) =>

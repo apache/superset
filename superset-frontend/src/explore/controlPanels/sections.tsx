@@ -277,6 +277,11 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
 function buildMatrixifySection(
   axis: 'columns' | 'rows',
 ): ControlPanelSectionConfig {
+  const customizationControls =
+    axis === 'rows'
+      ? ['matrixify_show_row_labels', 'matrixify_row_height']
+      : ['matrixify_show_column_headers', 'matrixify_fit_columns_dynamically'];
+
   return {
     label:
       axis === 'columns'
@@ -294,37 +299,18 @@ function buildMatrixifySection(
       [`matrixify_topn_value_${axis}`],
       [`matrixify_topn_metric_${axis}`],
       [`matrixify_topn_order_${axis}`],
-    ],
-  };
-}
-
-function buildMatrixifyCustomizationSection(
-  axis: 'columns' | 'rows',
-): ControlPanelSectionConfig {
-  return {
-    label: t('Customization and styling'),
-    expanded: true,
-    tabOverride: 'matrixify',
-    visibility: ({ controls }) =>
-      controls?.matrixify_enable?.value === true &&
-      controls?.[`matrixify_mode_${axis}`]?.value !== 'disabled' &&
-      controls?.[`matrixify_mode_${axis}`]?.value !== undefined,
-    controlSetRows: [
       [
-        axis === 'rows'
-          ? 'matrixify_show_row_labels'
-          : 'matrixify_show_column_headers',
+        <ControlSubSectionHeader>
+          {t('Customization and styling')}
+        </ControlSubSectionHeader>,
       ],
+      customizationControls,
     ],
   };
 }
 
 export const matrixifyRows = buildMatrixifySection('rows');
 export const matrixifyColumns = buildMatrixifySection('columns');
-export const matrixifyRowsCustomization =
-  buildMatrixifyCustomizationSection('rows');
-export const matrixifyColumnsCustomization =
-  buildMatrixifyCustomizationSection('columns');
 
 export const matrixifyEnableSection: ControlPanelSectionConfig = {
   label: t('Matrixify'),
@@ -361,7 +347,6 @@ export const matrixifyCells: ControlPanelSectionConfig = {
     );
   },
   controlSetRows: [
-    ['matrixify_row_height', 'matrixify_fit_columns_dynamically'],
     ['matrixify_charts_per_row'],
     ['matrixify_cell_title_template'],
   ],

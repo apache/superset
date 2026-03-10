@@ -104,7 +104,7 @@ export interface MatrixifyFormData {
   matrixify_dimension_rows?: MatrixifyDimensionValue;
   matrixify_topn_value_rows?: number;
   matrixify_topn_metric_rows?: AdhocMetric;
-  matrixify_topn_order_rows?: MatrixifySortOrder;
+  matrixify_topn_order_rows?: boolean;
 
   // Column axis configuration
   matrixify_mode_columns?: MatrixifyMode;
@@ -113,7 +113,7 @@ export interface MatrixifyFormData {
   matrixify_dimension_columns?: MatrixifyDimensionValue;
   matrixify_topn_value_columns?: number;
   matrixify_topn_metric_columns?: AdhocMetric;
-  matrixify_topn_order_columns?: MatrixifySortOrder;
+  matrixify_topn_order_columns?: boolean;
 
   // Grid layout configuration
   matrixify_row_height?: number;
@@ -157,7 +157,7 @@ export function getMatrixifyConfig(
       dimension: formData.matrixify_dimension_rows,
       topnValue: formData.matrixify_topn_value_rows,
       topnMetric: formData.matrixify_topn_metric_rows,
-      topnOrder: formData.matrixify_topn_order_rows,
+      topnOrder: formData.matrixify_topn_order_rows !== false ? 'desc' : 'asc',
     },
     columns: {
       mode: formData.matrixify_mode_columns || 'disabled',
@@ -166,7 +166,7 @@ export function getMatrixifyConfig(
       dimension: formData.matrixify_dimension_columns,
       topnValue: formData.matrixify_topn_value_columns,
       topnMetric: formData.matrixify_topn_metric_columns,
-      topnOrder: formData.matrixify_topn_order_columns,
+      topnOrder: formData.matrixify_topn_order_columns !== false ? 'desc' : 'asc',
     },
   };
 }
