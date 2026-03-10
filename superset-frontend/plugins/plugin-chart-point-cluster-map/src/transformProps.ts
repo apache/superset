@@ -87,7 +87,7 @@ function buildGeoJSONFromRecords(
     });
   }
 
-  const bounds =
+  const bounds: [[number, number], [number, number]] | undefined =
     features.length > 0
       ? [
           [minLon, minLat],
@@ -138,9 +138,10 @@ export default function transformProps(chartProps: ChartProps) {
   let hasCustomMetric: boolean;
 
   if (isLegacyFormat) {
-    geoJSON = (rawData as any).geoJSON;
-    bounds = (rawData as any).bounds;
-    hasCustomMetric = (rawData as any).hasCustomMetric ?? false;
+    const legacy = rawData as any;
+    geoJSON = legacy.geoJSON;
+    bounds = legacy.bounds;
+    hasCustomMetric = legacy.hasCustomMetric ?? false;
   } else {
     const records: DataRecord[] = (rawData as DataRecord[]) || [];
     hasCustomMetric = maplibreLabel != null && maplibreLabel.length > 0;
@@ -148,13 +149,15 @@ export default function transformProps(chartProps: ChartProps) {
     const pointRadiusCol =
       pointRadius && pointRadius !== 'Auto' ? pointRadius : null;
 
-    ({ geoJSON, bounds } = buildGeoJSONFromRecords(
+    const built = buildGeoJSONFromRecords(
       records,
       allColumnsX,
       allColumnsY,
       labelCol,
       pointRadiusCol,
-    ));
+    );
+    geoJSON = built.geoJSON;
+    bounds = built.bounds;
   }
 
   // Validate color — supports hex (#rrggbb) and rgb(r, g, b) formats

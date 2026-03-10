@@ -149,11 +149,7 @@ def _downgrade_deckgl_slice(slc: Slice) -> bool:
 
 def _migrate_deckgl_slices(session: Session, *, upgrade: bool) -> None:
     fn = _migrate_deckgl_slice if upgrade else _downgrade_deckgl_slice
-    slices = (
-        session.query(Slice)
-        .filter(Slice.viz_type.in_(DECKGL_VIZ_TYPES))
-        .all()
-    )
+    slices = session.query(Slice).filter(Slice.viz_type.in_(DECKGL_VIZ_TYPES)).all()
     for slc in slices:
         try:
             fn(slc)

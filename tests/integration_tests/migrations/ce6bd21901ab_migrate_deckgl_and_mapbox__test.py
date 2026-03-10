@@ -71,7 +71,10 @@ def test_upgrade_mapbox():
 
     query_context = json.loads(slc.query_context)
     assert query_context["form_data"]["viz_type"] == "point_cluster_map"
-    assert query_context["form_data"]["mapbox_style"] == "mapbox://styles/mapbox/streets-v11"
+    assert (
+        query_context["form_data"]["mapbox_style"]
+        == "mapbox://styles/mapbox/streets-v11"
+    )
 
 
 @pytest.mark.usefixtures("app_context")
@@ -138,7 +141,10 @@ def test_migrate_deckgl_slice_open_style():
 
     assert modified is True
     params = json.loads(slc.params)
-    assert params["mapbox_style"] == "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
+    assert (
+        params["mapbox_style"]
+        == "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
+    )
     assert params["map_renderer"] == "mapbox"
 
 
