@@ -190,6 +190,39 @@ def _serialize_tools_without_output_schema(
     return results
 
 
+def _fix_call_tool_schema(transform: Any) -> None:
+    """Patch the call_tool proxy to emit a clean ``type: object`` schema.
+
+    FastMCP's BaseSearchTransform defines ``arguments`` as
+    ``dict[str, Any] | None`` which emits an ``anyOf`` JSON Schema.
+    Some MCP bridges (mcp-remote, Claude Desktop) don't handle ``anyOf``
+    and strip it, leaving the field without a ``type`` — causing all
+    call_tool invocations to fail with "Input should be a valid dictionary".
+
+    This patches the transform's ``_make_call_tool`` to post-process the
+    schema, replacing the ``anyOf`` with a flat ``type: object``.
+    """
+    original_make = transform._make_call_tool
+
+    def patched_make_call_tool() -> Any:
+        tool = original_make()
+        props = (tool.parameters or {}).get("properties", {})
+        if "arguments" in props:
+            props["arguments"] = {
+                "additionalProperties": True,
+                "default": None,
+                "description": "Arguments to pass to the tool",
+                "type": "object",
+            }
+        return tool
+
+    import types
+
+    transform._make_call_tool = types.MethodType(
+        lambda self: patched_make_call_tool(), transform
+    )
+
+
 def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> None:
     """Apply tool search transform to reduce initial context size.
 
@@ -215,6 +248,7 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
 
         transform = BM25SearchTransform(**kwargs)
 
+    _fix_call_tool_schema(transform)
     mcp_instance.add_transform(transform)
     logger.info(
         "Tool search transform enabled (strategy=%s, max_results=%d, pinned=%s)",
