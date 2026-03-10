@@ -45,10 +45,10 @@ export const matrixifySection: ControlPanelSectionConfig = {
   expanded: false,
   visibility: ({ controls }) =>
     controls?.matrixify_enable?.value === true &&
-    ((controls?.matrixify_mode_rows?.value === 'metrics' ||
-      controls?.matrixify_mode_rows?.value === 'dimensions') ||
-      (controls?.matrixify_mode_columns?.value === 'metrics' ||
-        controls?.matrixify_mode_columns?.value === 'dimensions')),
+    (controls?.matrixify_mode_rows?.value === 'metrics' ||
+      controls?.matrixify_mode_rows?.value === 'dimensions' ||
+      controls?.matrixify_mode_columns?.value === 'metrics' ||
+      controls?.matrixify_mode_columns?.value === 'dimensions'),
   controlSetRows: [
     [
       {
