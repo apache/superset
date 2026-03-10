@@ -51,6 +51,7 @@ test('isMatrixifyEnabled should return false when layout controls are disabled',
 test('isMatrixifyEnabled should return true for valid metrics mode configuration', () => {
   const formData = {
     viz_type: 'table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'metrics',
     matrixify_mode_columns: 'metrics',
     matrixify_rows: [createMetric('Revenue')],
@@ -63,6 +64,7 @@ test('isMatrixifyEnabled should return true for valid metrics mode configuration
 test('isMatrixifyEnabled should return true for valid dimensions mode configuration', () => {
   const formData = {
     viz_type: 'table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'dimensions',
     matrixify_mode_columns: 'dimensions',
     matrixify_dimension_rows: { dimension: 'country', values: ['USA'] },
@@ -75,6 +77,7 @@ test('isMatrixifyEnabled should return true for valid dimensions mode configurat
 test('isMatrixifyEnabled should return true for mixed mode configuration', () => {
   const formData = {
     viz_type: 'table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'metrics',
     matrixify_mode_columns: 'dimensions',
     matrixify_rows: [createMetric('Revenue')],
@@ -87,6 +90,7 @@ test('isMatrixifyEnabled should return true for mixed mode configuration', () =>
 test('isMatrixifyEnabled should return true for topn dimension selection mode', () => {
   const formData = {
     viz_type: 'table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'dimensions',
     matrixify_mode_columns: 'dimensions',
     matrixify_dimension_rows: {
@@ -105,6 +109,7 @@ test('isMatrixifyEnabled should return true for topn dimension selection mode', 
 test('isMatrixifyEnabled should return false when both axes have empty metrics arrays', () => {
   const formData = {
     viz_type: 'table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'metrics',
     matrixify_mode_columns: 'metrics',
     matrixify_rows: [],
@@ -117,6 +122,7 @@ test('isMatrixifyEnabled should return false when both axes have empty metrics a
 test('isMatrixifyEnabled should return false when both dimensions have empty values and no topn mode', () => {
   const formData = {
     viz_type: 'table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'dimensions',
     matrixify_mode_columns: 'dimensions',
     matrixify_dimension_rows: { dimension: 'country', values: [] },
@@ -251,7 +257,18 @@ test('should handle empty form data object', () => {
 test('isMatrixifyEnabled should return false when no axis modes configured', () => {
   const formData = {
     viz_type: 'table',
+    matrixify_enable: true,
     // No matrixify_mode_rows or matrixify_mode_columns set
+  } as MatrixifyFormData;
+  expect(isMatrixifyEnabled(formData)).toBe(false);
+});
+
+test('isMatrixifyEnabled should return false when switch is off even with valid axis config', () => {
+  const formData = {
+    viz_type: 'table',
+    matrixify_enable: false,
+    matrixify_mode_rows: 'metrics',
+    matrixify_rows: [createMetric('Revenue')],
   } as MatrixifyFormData;
   expect(isMatrixifyEnabled(formData)).toBe(false);
 });
@@ -327,6 +344,7 @@ test('getMatrixifyValidationErrors evaluates full && expression when dimension i
 test('should handle partial configuration with one axis only', () => {
   const formData = {
     viz_type: 'table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'metrics',
     matrixify_rows: [createMetric('Revenue')],
     // No columns configuration

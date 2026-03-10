@@ -307,6 +307,7 @@ describe('ControlPanelsContainer', () => {
     props.form_data = {
       ...props.form_data,
       viz_type: 'line',
+      matrixify_enable: true,
       matrixify_mode_rows: 'metrics',
     };
 
@@ -327,6 +328,7 @@ describe('ControlPanelsContainer', () => {
       form_data: {
         ...props.form_data,
         viz_type: 'line',
+        matrixify_enable: true,
         matrixify_mode_rows: 'metrics',
         matrixify_dimension_columns: {
           dimension: 'country',
@@ -381,6 +383,7 @@ describe('ControlPanelsContainer', () => {
       form_data: {
         ...props.form_data,
         viz_type: 'line',
+        matrixify_enable: true,
         matrixify_mode_columns: 'metrics',
       },
     };

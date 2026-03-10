@@ -97,6 +97,9 @@ export interface MatrixifyAxisConfig {
  * Complete Matrixify configuration in form data
  */
 export interface MatrixifyFormData {
+  // Global enable switch
+  matrixify_enable?: boolean;
+
   // Row axis configuration (mode 'disabled' means axis is off)
   matrixify_mode_rows?: MatrixifyMode;
   matrixify_rows?: AdhocMetric[];
@@ -164,7 +167,7 @@ export function getMatrixifyConfig(
       dimension: formData.matrixify_dimension_rows,
       topnValue: formData.matrixify_topn_value_rows,
       topnMetric: formData.matrixify_topn_metric_rows,
-      topnOrder: formData.matrixify_topn_order_rows !== false ? 'desc' : 'asc',
+      topnOrder: formData.matrixify_topn_order_rows === false ? 'asc' : 'desc',
     },
     columns: {
       mode: formData.matrixify_mode_columns || 'disabled',
@@ -174,12 +177,16 @@ export function getMatrixifyConfig(
       topnValue: formData.matrixify_topn_value_columns,
       topnMetric: formData.matrixify_topn_metric_columns,
       topnOrder:
-        formData.matrixify_topn_order_columns !== false ? 'desc' : 'asc',
+        formData.matrixify_topn_order_columns === false ? 'asc' : 'desc',
     },
   };
 }
 
 export function isMatrixifyEnabled(formData: MatrixifyFormData): boolean {
+  if (formData.matrixify_enable !== true) {
+    return false;
+  }
+
   const rowEnabled = isAxisEnabled(formData.matrixify_mode_rows);
   const colEnabled = isAxisEnabled(formData.matrixify_mode_columns);
 

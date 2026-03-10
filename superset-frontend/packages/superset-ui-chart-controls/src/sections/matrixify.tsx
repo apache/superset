@@ -44,10 +44,11 @@ export const matrixifySection: ControlPanelSectionConfig = {
   label: t('Cell layout & styling'),
   expanded: false,
   visibility: ({ controls }) =>
-    (controls?.matrixify_mode_rows?.value !== undefined &&
-      controls?.matrixify_mode_rows?.value !== 'disabled') ||
-    (controls?.matrixify_mode_columns?.value !== undefined &&
-      controls?.matrixify_mode_columns?.value !== 'disabled'),
+    controls?.matrixify_enable?.value === true &&
+    ((controls?.matrixify_mode_rows?.value === 'metrics' ||
+      controls?.matrixify_mode_rows?.value === 'dimensions') ||
+      (controls?.matrixify_mode_columns?.value === 'metrics' ||
+        controls?.matrixify_mode_columns?.value === 'dimensions')),
   controlSetRows: [
     [
       {
@@ -110,8 +111,9 @@ export const matrixifySection: ControlPanelSectionConfig = {
 export const matrixifyRowSection: ControlPanelSectionConfig = {
   expanded: false,
   visibility: ({ controls }) =>
-    controls?.matrixify_mode_rows?.value !== undefined &&
-    controls?.matrixify_mode_rows?.value !== 'disabled',
+    controls?.matrixify_enable?.value === true &&
+    (controls?.matrixify_mode_rows?.value === 'metrics' ||
+      controls?.matrixify_mode_rows?.value === 'dimensions'),
   controlSetRows: [
     ['matrixify_show_row_labels'],
     ['matrixify_rows'],
@@ -127,8 +129,9 @@ export const matrixifyRowSection: ControlPanelSectionConfig = {
 export const matrixifyColumnSection: ControlPanelSectionConfig = {
   expanded: false,
   visibility: ({ controls }) =>
-    controls?.matrixify_mode_columns?.value !== undefined &&
-    controls?.matrixify_mode_columns?.value !== 'disabled',
+    controls?.matrixify_enable?.value === true &&
+    (controls?.matrixify_mode_columns?.value === 'metrics' ||
+      controls?.matrixify_mode_columns?.value === 'dimensions'),
   controlSetRows: [
     ['matrixify_show_column_headers'],
     ['matrixify_columns'],
