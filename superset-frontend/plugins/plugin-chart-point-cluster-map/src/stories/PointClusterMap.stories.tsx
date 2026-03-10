@@ -20,14 +20,14 @@
 /* eslint-disable sort-keys, no-magic-numbers */
 import { SuperChart } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/theme';
-import ScatterMapChartPlugin from '@superset-ui/plugin-chart-supercluster-map';
+import ScatterMapChartPlugin from '@superset-ui/plugin-chart-point-cluster-map';
 import { withResizableChartDemo } from '@storybook-shared';
 import { generateData } from './data';
 
 new ScatterMapChartPlugin().configure({ key: 'map_gl' }).register();
 
 export default {
-  title: 'Chart Plugins/plugin-chart-supercluster-map',
+  title: 'Chart Plugins/plugin-chart-point-cluster-map',
   decorators: [withResizableChartDemo],
   args: {
     clusteringRadius: 60,

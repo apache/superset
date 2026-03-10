@@ -1,7 +1,7 @@
 {
-  "name": "@superset-ui/plugin-chart-supercluster-map",
+  "name": "@superset-ui/plugin-chart-point-cluster-map",
   "version": "1.0.0",
-  "description": "Superset Chart Plugin - Supercluster Map",
+  "description": "Superset Chart Plugin - Point Cluster Map",
   "keywords": [
     "superset"
   ],
@@ -12,7 +12,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/apache/superset.git",
-    "directory": "superset-frontend/plugins/plugin-chart-supercluster-map"
+    "directory": "superset-frontend/plugins/plugin-chart-point-cluster-map"
   },
   "license": "Apache-2.0",
   "author": "Superset",
