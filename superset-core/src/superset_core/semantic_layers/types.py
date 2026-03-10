@@ -98,7 +98,7 @@ class Metric:
     name: str
     type: pa.DataType
 
-    definition: str | None = None
+    definition: str
     description: str | None = None
 
 
