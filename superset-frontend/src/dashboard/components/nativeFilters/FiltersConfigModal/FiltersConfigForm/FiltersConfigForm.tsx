@@ -1745,7 +1745,8 @@ const FiltersConfigForm = (
                               )}
                             </CollapsibleControl>
                           </FormItem>
-                          {!isChartCustomization && (
+                          {!isChartCustomization &&
+                            itemTypeField === 'filter_select' && (
                             <StyledRowFormItem
                               expanded={expanded}
                               name={[
