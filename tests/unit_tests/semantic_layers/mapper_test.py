@@ -1228,7 +1228,7 @@ def test_get_results_without_time_offsets(
         }
     )
 
-    # Mock the semantic view's get_dataframe method
+    # Mock the semantic view's get_table method
     mock_result = SemanticResult(
         requests=[
             SemanticRequest(
@@ -1239,7 +1239,7 @@ def test_get_results_without_time_offsets(
         results=pa.Table.from_pandas(main_df),
     )
 
-    mock_datasource.implementation.get_dataframe = mocker.Mock(return_value=mock_result)
+    mock_datasource.implementation.get_table = mocker.Mock(return_value=mock_result)
 
     # Create query object without time offsets
     query_object = ValidatedQueryObject(
@@ -1284,7 +1284,7 @@ def test_get_results_with_single_time_offset(
         }
     )
 
-    # Mock the semantic view's get_dataframe method
+    # Mock the semantic view's get_table method
     # It will be called twice: once for main, once for offset
     mock_main_result = SemanticResult(
         requests=[
@@ -1312,7 +1312,7 @@ def test_get_results_with_single_time_offset(
         results=pa.Table.from_pandas(offset_df.copy()),
     )
 
-    mock_datasource.implementation.get_dataframe = mocker.Mock(
+    mock_datasource.implementation.get_table = mocker.Mock(
         side_effect=[mock_main_result, mock_offset_result]
     )
 
@@ -1391,7 +1391,7 @@ def test_get_results_with_multiple_time_offsets(
         results=pa.Table.from_pandas(offset_1m_df.copy()),
     )
 
-    mock_datasource.implementation.get_dataframe = mocker.Mock(
+    mock_datasource.implementation.get_table = mocker.Mock(
         side_effect=[mock_main_result, mock_offset_1w_result, mock_offset_1m_result]
     )
 
@@ -1457,7 +1457,7 @@ def test_get_results_with_empty_offset_result(
         results=pa.Table.from_pandas(offset_df),
     )
 
-    mock_datasource.implementation.get_dataframe = mocker.Mock(
+    mock_datasource.implementation.get_table = mocker.Mock(
         side_effect=[mock_main_result, mock_offset_result]
     )
 
@@ -1519,7 +1519,7 @@ def test_get_results_with_partial_offset_match(
         results=pa.Table.from_pandas(offset_df.copy()),
     )
 
-    mock_datasource.implementation.get_dataframe = mocker.Mock(
+    mock_datasource.implementation.get_table = mocker.Mock(
         side_effect=[mock_main_result, mock_offset_result]
     )
 
@@ -1584,7 +1584,7 @@ def test_get_results_with_multiple_dimensions(
         results=pa.Table.from_pandas(offset_df.copy()),
     )
 
-    mock_datasource.implementation.get_dataframe = mocker.Mock(
+    mock_datasource.implementation.get_table = mocker.Mock(
         side_effect=[mock_main_result, mock_offset_result]
     )
 
@@ -1663,7 +1663,7 @@ def test_get_results_with_duplicate_columns(
         results=pa.Table.from_pandas(offset_df.copy()),
     )
 
-    mock_datasource.implementation.get_dataframe = mocker.Mock(
+    mock_datasource.implementation.get_table = mocker.Mock(
         side_effect=[mock_main_result, mock_offset_result]
     )
 
@@ -1702,7 +1702,7 @@ def test_get_results_empty_requests(
         results=pa.Table.from_pandas(main_df),
     )
 
-    mock_datasource.implementation.get_dataframe = mocker.Mock(return_value=mock_result)
+    mock_datasource.implementation.get_table = mocker.Mock(return_value=mock_result)
 
     query_object = ValidatedQueryObject(
         datasource=mock_datasource,
@@ -2326,7 +2326,7 @@ def test_get_results_with_is_rowcount(
     )
 
     mock_datasource.implementation.get_row_count = mocker.Mock(return_value=mock_result)
-    mock_datasource.implementation.get_dataframe = mocker.Mock()
+    mock_datasource.implementation.get_table = mocker.Mock()
 
     query_object = ValidatedQueryObject(
         datasource=mock_datasource,
@@ -2340,9 +2340,9 @@ def test_get_results_with_is_rowcount(
 
     result = get_results(query_object)
 
-    # Should have called get_row_count, not get_dataframe
+    # Should have called get_row_count, not get_table
     mock_datasource.implementation.get_row_count.assert_called_once()
-    mock_datasource.implementation.get_dataframe.assert_not_called()
+    mock_datasource.implementation.get_table.assert_not_called()
     pd.testing.assert_frame_equal(result.df, main_df)
 
 
