@@ -18,7 +18,7 @@
  */
 
 import fetchMock from 'fetch-mock';
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 import { createWrapper, render } from 'spec/helpers/testing-library';
 import { supersetGetCache } from 'src/utils/cachedSupersetGet';
 import { useDatasetMetadataBar } from './useDatasetMetadataBar';

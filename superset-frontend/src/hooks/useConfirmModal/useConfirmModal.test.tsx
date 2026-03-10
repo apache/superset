@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen, userEvent, waitFor } from '@superset-ui/core/spec';
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 import { ThemeProvider, supersetTheme } from '@apache-superset/core/theme';
 import { useConfirmModal } from '.';
 

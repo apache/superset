@@ -23,7 +23,7 @@ import {
   ThemeMode,
 } from '@apache-superset/core/theme';
 import { act, render, screen } from '@superset-ui/core/spec';
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 import { SupersetThemeProvider, useThemeContext } from '../ThemeProvider';
 import { ThemeController } from '../ThemeController';
 
