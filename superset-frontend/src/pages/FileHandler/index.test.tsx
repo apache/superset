@@ -113,20 +113,29 @@ type LaunchQueue = {
   ) => void;
 };
 
-const setupLaunchQueue = () => {
+const pendingTimerIds = new Set<ReturnType<typeof setTimeout>>();
+
+const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
   let savedConsumer:
     | ((params: { files?: MockFileHandle[] }) => void | Promise<void>)
     | null = null;
   (window as unknown as Window & { launchQueue: LaunchQueue }).launchQueue = {
     setConsumer: (consumer: (params: { files?: MockFileHandle[] }) => void) => {
       savedConsumer = consumer;
+      if (fileHandle) {
+        const id = setTimeout(() => {
+          pendingTimerIds.delete(id);
+          consumer({
+            files: [fileHandle],
+          });
+        }, 0);
+        pendingTimerIds.add(id);
+      }
     },
   };
   return {
     triggerConsumer: async (params: { files?: MockFileHandle[] }) => {
-      if (savedConsumer) {
-        await savedConsumer(params);
-      }
+      await savedConsumer?.(params);
     },
   };
 };
@@ -182,7 +191,7 @@ test('redirects when no files are provided', async () => {
 
 test('handles CSV file correctly', async () => {
   const fileHandle = createMockFileHandle('test.csv');
-  const { triggerConsumer } = setupLaunchQueue();
+  setupLaunchQueue(fileHandle);
 
   render(
     <MemoryRouter initialEntries={['/superset/file-handler']}>
@@ -192,8 +201,6 @@ test('handles CSV file correctly', async () => {
     </MemoryRouter>,
     { useRedux: true },
   );
-
-  await triggerConsumer({ files: [fileHandle] });
 
   const modal = await screen.findByTestId('upload-modal');
   expect(modal).toBeInTheDocument();
@@ -205,7 +212,7 @@ test('handles CSV file correctly', async () => {
 
 test('handles Excel (.xls) file correctly', async () => {
   const fileHandle = createMockFileHandle('test.xls');
-  const { triggerConsumer } = setupLaunchQueue();
+  setupLaunchQueue(fileHandle);
 
   render(
     <MemoryRouter initialEntries={['/superset/file-handler']}>
@@ -215,8 +222,6 @@ test('handles Excel (.xls) file correctly', async () => {
     </MemoryRouter>,
     { useRedux: true },
   );
-
-  await triggerConsumer({ files: [fileHandle] });
 
   const modal = await screen.findByTestId('upload-modal');
   expect(modal).toBeInTheDocument();
@@ -226,7 +231,7 @@ test('handles Excel (.xls) file correctly', async () => {
 
 test('handles Excel (.xlsx) file correctly', async () => {
   const fileHandle = createMockFileHandle('test.xlsx');
-  const { triggerConsumer } = setupLaunchQueue();
+  setupLaunchQueue(fileHandle);
 
   render(
     <MemoryRouter initialEntries={['/superset/file-handler']}>
@@ -236,8 +241,6 @@ test('handles Excel (.xlsx) file correctly', async () => {
     </MemoryRouter>,
     { useRedux: true },
   );
-
-  await triggerConsumer({ files: [fileHandle] });
 
   const modal = await screen.findByTestId('upload-modal');
   expect(modal).toBeInTheDocument();
@@ -247,7 +250,7 @@ test('handles Excel (.xlsx) file correctly', async () => {
 
 test('handles Parquet file correctly', async () => {
   const fileHandle = createMockFileHandle('test.parquet');
-  const { triggerConsumer } = setupLaunchQueue();
+  setupLaunchQueue(fileHandle);
 
   render(
     <MemoryRouter initialEntries={['/superset/file-handler']}>
@@ -257,8 +260,6 @@ test('handles Parquet file correctly', async () => {
     </MemoryRouter>,
     { useRedux: true },
   );
-
-  await triggerConsumer({ files: [fileHandle] });
 
   const modal = await screen.findByTestId('upload-modal');
   expect(modal).toBeInTheDocument();
@@ -292,7 +293,7 @@ test('shows error for unsupported file type', async () => {
 
 test('handles file with uppercase extension', async () => {
   const fileHandle = createMockFileHandle('test.CSV');
-  const { triggerConsumer } = setupLaunchQueue();
+  setupLaunchQueue(fileHandle);
 
   render(
     <MemoryRouter initialEntries={['/superset/file-handler']}>
@@ -302,8 +303,6 @@ test('handles file with uppercase extension', async () => {
     </MemoryRouter>,
     { useRedux: true },
   );
-
-  await triggerConsumer({ files: [fileHandle] });
 
   const modal = await screen.findByTestId('upload-modal');
   expect(modal).toBeInTheDocument();
@@ -346,7 +345,7 @@ test('handles errors during file processing', async () => {
 
 test('modal close redirects to welcome page', async () => {
   const fileHandle = createMockFileHandle('test.csv');
-  const { triggerConsumer } = setupLaunchQueue();
+  setupLaunchQueue(fileHandle);
 
   render(
     <MemoryRouter initialEntries={['/superset/file-handler']}>
@@ -356,8 +355,6 @@ test('modal close redirects to welcome page', async () => {
     </MemoryRouter>,
     { useRedux: true },
   );
-
-  await triggerConsumer({ files: [fileHandle] });
 
   const modal = await screen.findByTestId('upload-modal');
   expect(modal).toBeInTheDocument();
