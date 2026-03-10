@@ -262,10 +262,7 @@ function CollectionControl({
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
-        <SortableContext
-          items={itemIds}
-          strategy={verticalListSortingStrategy}
-        >
+        <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
           <List
             bordered
             css={(theme: SupersetTheme) => ({
@@ -292,11 +289,7 @@ function CollectionControl({
   return (
     <div data-test="CollectionControl" className="CollectionControl">
       <HeaderContainer>
-        <ControlHeader
-          name={name}
-          label={label}
-          description={description}
-        />
+        <ControlHeader name={name} label={label} description={description} />
         <AddIconButton onClick={onAdd}>
           <Icons.PlusOutlined
             iconSize="s"

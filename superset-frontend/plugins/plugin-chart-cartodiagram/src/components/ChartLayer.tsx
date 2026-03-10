@@ -31,7 +31,14 @@ import Loader from '../images/loading.gif';
  * Custom OpenLayers layer that displays charts on given locations.
  */
 export class ChartLayer extends Layer {
-  charts: { htmlElement: HTMLDivElement; root: Root; coordinate: number[]; width: number; height: number; feature: any }[] = [];
+  charts: {
+    htmlElement: HTMLDivElement;
+    root: Root;
+    coordinate: number[];
+    width: number;
+    height: number;
+    feature: any;
+  }[] = [];
 
   chartConfigs: ChartConfig = {
     type: 'FeatureCollection',

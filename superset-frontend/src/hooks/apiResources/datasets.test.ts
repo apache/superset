@@ -159,9 +159,7 @@ test('useDatasetDrillInfo fetches dataset drill info successfully', async () => 
     },
   } as any);
 
-  const { result } = renderHook(() =>
-    useDatasetDrillInfo(123, 456),
-  );
+  const { result } = renderHook(() => useDatasetDrillInfo(123, 456));
 
   expect(result.current.status).toBe('loading');
 
@@ -182,9 +180,7 @@ test('useDatasetDrillInfo fetches dataset drill info successfully', async () => 
 test('useDatasetDrillInfo handles network errors', async () => {
   mockedCachedSupersetGet.mockRejectedValue(new Error('Network error'));
 
-  const { result } = renderHook(() =>
-    useDatasetDrillInfo(123, 456),
-  );
+  const { result } = renderHook(() => useDatasetDrillInfo(123, 456));
 
   await waitFor(() => {
     expect(result.current.status).toBe('error');
@@ -222,9 +218,7 @@ test('useDatasetDrillInfo extracts dataset ID from string format', async () => {
     },
   } as any);
 
-  const { result } = renderHook(() =>
-    useDatasetDrillInfo('123__table', 456),
-  );
+  const { result } = renderHook(() => useDatasetDrillInfo('123__table', 456));
 
   await waitFor(() => {
     expect(result.current.status).toBe('complete');
@@ -271,9 +265,7 @@ test('useDatasetDrillInfo creates new verbose_map from columns and metrics', asy
     },
   } as any);
 
-  const { result } = renderHook(() =>
-    useDatasetDrillInfo(123, 456),
-  );
+  const { result } = renderHook(() => useDatasetDrillInfo(123, 456));
 
   await waitFor(() => {
     expect(result.current.status).toBe('complete');
@@ -295,9 +287,7 @@ test('useDatasetDrillInfo handles NaN datasource ID from malformed string', asyn
     },
   } as any);
 
-  const { result } = renderHook(() =>
-    useDatasetDrillInfo('abc', 456),
-  );
+  const { result } = renderHook(() => useDatasetDrillInfo('abc', 456));
 
   await waitFor(() => {
     expect(result.current.status).toBe('complete');

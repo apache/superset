@@ -86,9 +86,7 @@ describe('useDashboardDatasets', () => {
       result: mockDatasets,
     });
 
-    const { result } = renderHook(() =>
-      useDashboardDatasets(1),
-    );
+    const { result } = renderHook(() => useDashboardDatasets(1));
 
     const expectedContent = [
       {

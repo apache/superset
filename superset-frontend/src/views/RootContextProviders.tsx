@@ -34,7 +34,9 @@ import querystring from 'query-string';
 const themeController = new ThemeController();
 const extensionsRegistry = getExtensionsRegistry();
 
-export const RootContextProviders: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
+export const RootContextProviders: React.FC<{ children?: React.ReactNode }> = ({
+  children,
+}) => {
   const RootContextProviderExtension = extensionsRegistry.get(
     'root.context.provider',
   );

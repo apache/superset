@@ -89,15 +89,12 @@ test('returns api response mapping json result', async () => {
 });
 
 test('returns cached data without api request', async () => {
-  const { result, rerender } = renderHook(
-    () => useSqlLabInitialState(),
-    {
-      wrapper: createWrapper({
-        store,
-        useRedux: true,
-      }),
-    },
-  );
+  const { result, rerender } = renderHook(() => useSqlLabInitialState(), {
+    wrapper: createWrapper({
+      store,
+      useRedux: true,
+    }),
+  });
   await waitFor(() => expect(result.current.data).toEqual(expectedResult));
   expect(fetchMock.callHistory.calls(sqlLabInitialStateApiRoute).length).toBe(
     1,

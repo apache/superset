@@ -52,9 +52,7 @@ test('fetches layer metadata successfully', async () => {
   };
   mockSupersetClientGet.mockResolvedValue(mockResponse);
 
-  const { result } = renderHook(() =>
-    useDeckLayerMetadata([1, 2]),
-  );
+  const { result } = renderHook(() => useDeckLayerMetadata([1, 2]));
 
   expect(result.current.isLoading).toBe(true);
 
@@ -76,9 +74,7 @@ test('handles API error and returns fallback layers', async () => {
   const errorMessage = 'Network error';
   mockSupersetClientGet.mockRejectedValue(new Error(errorMessage));
 
-  const { result } = renderHook(() =>
-    useDeckLayerMetadata([1, 2, 3]),
-  );
+  const { result } = renderHook(() => useDeckLayerMetadata([1, 2, 3]));
 
   await waitFor(() => {
     expect(result.current.isLoading).toBe(false);
@@ -95,9 +91,7 @@ test('handles API error and returns fallback layers', async () => {
 test('handles non-Error object rejection', async () => {
   mockSupersetClientGet.mockRejectedValue('String error');
 
-  const { result } = renderHook(() =>
-    useDeckLayerMetadata([1]),
-  );
+  const { result } = renderHook(() => useDeckLayerMetadata([1]));
 
   await waitFor(() => {
     expect(result.current.isLoading).toBe(false);
@@ -163,9 +157,7 @@ test('handles empty result from API', async () => {
   };
   mockSupersetClientGet.mockResolvedValue(mockResponse);
 
-  const { result } = renderHook(() =>
-    useDeckLayerMetadata([1, 2]),
-  );
+  const { result } = renderHook(() => useDeckLayerMetadata([1, 2]));
 
   await waitFor(() => {
     expect(result.current.isLoading).toBe(false);

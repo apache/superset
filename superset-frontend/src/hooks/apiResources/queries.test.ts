@@ -76,15 +76,12 @@ test('returns api response mapping camelCase keys', async () => {
   const editorId = '23';
   const editorQueryApiRoute = `glob:*/api/v1/query/?q=*`;
   fetchMock.get(editorQueryApiRoute, fakeApiResult);
-  const { result } = renderHook(
-    () => useEditorQueriesQuery({ editorId }),
-    {
-      wrapper: createWrapper({
-        useRedux: true,
-        store,
-      }),
-    },
-  );
+  const { result } = renderHook(() => useEditorQueriesQuery({ editorId }), {
+    wrapper: createWrapper({
+      useRedux: true,
+      store,
+    }),
+  });
   await waitFor(() =>
     expect(fetchMock.callHistory.calls(editorQueryApiRoute).length).toBe(1),
   );
