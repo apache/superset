@@ -18,60 +18,33 @@
 """
 User-friendly display names for chart viz_type identifiers.
 
+The single source of truth for frontend-only chart display names is the
+JSON file ``viz_type_display_names.json`` in this directory.  A sync-
+validation test ensures it stays aligned with ``VizType.ts``.
+
 Legacy chart names are read from ``BaseViz.verbose_name`` in
 ``superset/viz.py``, avoiding a duplicate hardcoded list.
-Modern frontend-only chart plugins define their names in TypeScript
-``ChartMetadata.name``, which is not accessible from the Python backend,
-so a small overrides dict is maintained here for those.
 """
 
 import logging
+from pathlib import Path
+
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
+
+_JSON_PATH = Path(__file__).parent / "viz_type_display_names.json"
+
+
+def _load_frontend_display_names() -> dict[str, str]:
+    """Load frontend-only display names from the JSON source of truth."""
+    return json.loads(_JSON_PATH.read_text(encoding="utf-8"))
+
 
 # Display names for modern chart plugins that exist only in the frontend
 # (TypeScript ChartMetadata.name) and have no BaseViz subclass in viz.py.
 # These take precedence over viz.py verbose_name when both exist.
-# See also: superset-frontend/packages/superset-ui-core/src/chart/types/VizType.ts
-_FRONTEND_ONLY_NAMES: dict[str, str] = {
-    # ECharts time-series variants
-    "echarts_timeseries": "Generic Chart",
-    "echarts_timeseries_line": "Line Chart",
-    "echarts_timeseries_bar": "Bar Chart",
-    "echarts_timeseries_scatter": "Scatter Plot",
-    "echarts_timeseries_smooth": "Smooth Line",
-    "echarts_timeseries_step": "Stepped Line",
-    "echarts_area": "Area Chart",
-    # ECharts categorical / statistical
-    "pie": "Pie Chart",
-    "box_plot": "Box Plot",
-    "heatmap_v2": "Heatmap",
-    "histogram_v2": "Histogram",
-    "radar": "Radar Chart",
-    "funnel": "Funnel Chart",
-    "gauge_chart": "Gauge Chart",
-    "graph_chart": "Graph Chart",
-    "mixed_timeseries": "Mixed Chart",
-    "treemap_v2": "Treemap",
-    "tree_chart": "Tree Chart",
-    "sunburst_v2": "Sunburst",
-    "sankey_v2": "Sankey Chart",
-    "bubble_v2": "Bubble Chart",
-    "waterfall": "Waterfall Chart",
-    "gantt_chart": "Gantt Chart",
-    # Big Number
-    "big_number": "Big Number",
-    "big_number_total": "Big Number",
-    "pop_kpi": "Big Number Period Over Period",
-    # Tables
-    "table": "Table",
-    "ag-grid-table": "Table V2",
-    "pivot_table_v2": "Pivot Table",
-    # Other frontend-only plugins
-    "word_cloud": "Word Cloud",
-    "handlebars": "Handlebars",
-    "cartodiagram": "Cartodiagram",
-}
+_FRONTEND_ONLY_NAMES: dict[str, str] = _load_frontend_display_names()
 
 # Lazy cache for the merged display-names dict (legacy + frontend-only)
 _display_names_cache: dict[str, str] | None = None
