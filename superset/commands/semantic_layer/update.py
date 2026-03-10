@@ -33,6 +33,7 @@ from superset.commands.semantic_layer.exceptions import (
 from superset.daos.semantic_layer import SemanticViewDAO
 from superset.exceptions import SupersetSecurityException
 from superset.semantic_layers.models import SemanticView
+from superset.utils import json
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -65,3 +66,20 @@ class UpdateSemanticViewCommand(BaseCommand):
             security_manager.raise_for_ownership(self._model)
         except SupersetSecurityException as ex:
             raise SemanticViewForbiddenError() from ex
+
+        name = self._properties.get("name", self._model.name)
+        layer_uuid = str(self._model.semantic_layer_uuid)
+        configuration = self._properties.get(
+            "configuration",
+            json.loads(self._model.configuration),
+        )
+        if not SemanticViewDAO.validate_update_uniqueness(
+            view_uuid=str(self._model.uuid),
+            name=name,
+            layer_uuid=layer_uuid,
+            configuration=configuration,
+        ):
+            raise ValueError(
+                f"A semantic view with name '{name}' and the same "
+                "configuration already exists in this semantic layer."
+            )
