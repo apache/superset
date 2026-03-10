@@ -432,6 +432,20 @@ class TestSchemaValidatorHandlebars:
         assert error is not None
         assert error.error_code == "INVALID_HANDLEBARS_TEMPLATE"
 
+    def test_invalid_query_mode_rejected(self) -> None:
+        data = {
+            "dataset_id": 1,
+            "config": {
+                "chart_type": "handlebars",
+                "handlebars_template": "<p>test</p>",
+                "query_mode": "invalid",
+            },
+        }
+        is_valid, _, error = SchemaValidator.validate_request(data)
+        assert is_valid is False
+        assert error is not None
+        assert error.error_code == "INVALID_QUERY_MODE"
+
     def test_raw_mode_missing_columns(self) -> None:
         data = {
             "dataset_id": 1,

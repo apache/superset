@@ -321,6 +321,18 @@ class SchemaValidator:
             )
 
         query_mode = config.get("query_mode", "aggregate")
+        if query_mode not in ("aggregate", "raw"):
+            return False, ChartGenerationError(
+                error_type="invalid_query_mode",
+                message="Invalid query_mode for handlebars chart",
+                details="query_mode must be either 'aggregate' or 'raw'",
+                suggestions=[
+                    "Use 'aggregate' for aggregated data (default)",
+                    "Use 'raw' for individual rows",
+                ],
+                error_code="INVALID_QUERY_MODE",
+            )
+
         if query_mode == "raw" and "columns" not in config:
             return False, ChartGenerationError(
                 error_type="missing_raw_columns",
