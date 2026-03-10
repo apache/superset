@@ -534,7 +534,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
               expression.includes('\n');
             const wrappedExpression = isExpression
               ? `(${expression})`
-              : `"${expression}"`;
+              : expression;
             resolved = resolved.replace(
               new RegExp(`\\b${escapedLabel}\\b`, 'g'),
               wrappedExpression,
@@ -547,6 +547,8 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       // Resolve and apply AG Grid WHERE clause
       if (ownState.agGridComplexWhere && ownState.agGridComplexWhere.trim()) {
         const resolvedWhere = resolveLabelsToSQL(ownState.agGridComplexWhere);
+        (ownState as Record<string, unknown>).agGridComplexWhere =
+          resolvedWhere;
         const existingWhere = queryObject.extras?.where;
         const combinedWhere = existingWhere
           ? `${existingWhere} AND ${resolvedWhere}`
@@ -564,6 +566,8 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       // Resolve and apply AG Grid HAVING clause
       if (ownState.agGridHavingClause && ownState.agGridHavingClause.trim()) {
         const resolvedHaving = resolveLabelsToSQL(ownState.agGridHavingClause);
+        (ownState as Record<string, unknown>).agGridHavingClause =
+          resolvedHaving;
         const existingHaving = queryObject.extras?.having;
         const combinedHaving = existingHaving
           ? `${existingHaving} AND ${resolvedHaving}`
