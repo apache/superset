@@ -28,7 +28,7 @@
   "devDependencies": {
     "@eslint/js": "^9.25.1",
     "@types/eslint__js": "^8.42.3",
-    "@types/jest": "^29.5.14",
+    "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/lodash": "^4.17.24",
     "@types/node": "^25.3.3",
@@ -39,7 +39,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-lodash": "^8.0.0",
     "globals": "^17.4.0",
-    "jest": "^29.7.0",
+    "jest": "^30.3.0",
     "prettier": "^3.8.1",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
