@@ -36,6 +36,10 @@ import {
   isChartCustomization,
 } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
 import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
+import {
+  HYDRATE_EXPLORE,
+  HydrateExplore,
+} from 'src/explore/actions/hydrateExplore';
 import { SaveFilterChangesType } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/types';
 import {
   migrateChartCustomizationArray,
@@ -195,7 +199,7 @@ function updateDataMaskForFilterChanges(
 const dataMaskReducer = produce(
   (
     draft: DataMaskStateWithId,
-    action: AnyDataMaskAction | HydrateDashboardAction,
+    action: AnyDataMaskAction | HydrateDashboardAction | HydrateExplore,
   ) => {
     const cleanState: DataMaskStateWithId = {};
     switch (action.type) {
@@ -285,6 +289,20 @@ const dataMaskReducer = produce(
         });
 
         return cleanState;
+      }
+      case HYDRATE_EXPLORE: {
+        const hydrateExploreAction = action as HydrateExplore;
+        const loadedDataMask = hydrateExploreAction.data.dataMask;
+        if (loadedDataMask) {
+          Object.entries(loadedDataMask).forEach(([id, mask]) => {
+            draft[id] = {
+              ...getInitialDataMask(id),
+              ...draft[id],
+              ...mask,
+            };
+          });
+        }
+        return draft;
       }
       case SET_DATA_MASK_FOR_FILTER_CHANGES_COMPLETE:
         updateDataMaskForFilterChanges(
