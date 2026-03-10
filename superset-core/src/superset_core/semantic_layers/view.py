@@ -77,7 +77,7 @@ class SemanticView(ABC):
         """
 
     @abstractmethod
-    def get_dataframe(
+    def get_table(
         self,
         metrics: list[Metric],
         dimensions: list[Dimension],
@@ -106,4 +106,24 @@ class SemanticView(ABC):
     ) -> SemanticResult:
         """
         Execute a query and return the number of rows the result would have.
+        """
+
+    @abstractmethod
+    def get_compatible_metrics(
+        self,
+        selected_metrics: set[Metric],
+        selected_dimensions: set[Dimension],
+    ) -> set[Metric]:
+        """
+        Return metrics compatible with the selected dimensions.
+        """
+
+    @abstractmethod
+    def get_compatible_dimensions(
+        self,
+        selected_metrics: set[Metric],
+        selected_dimensions: set[Dimension],
+    ) -> set[Dimension]:
+        """
+        Return dimensions compatible with the selected metrics.
         """

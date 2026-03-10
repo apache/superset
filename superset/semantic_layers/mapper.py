@@ -30,7 +30,6 @@ from typing import Any, cast, Sequence, TypeGuard
 
 import numpy as np
 import pyarrow as pa
-from superset_core.semantic_layers.semantic_view import SemanticViewFeature
 from superset_core.semantic_layers.types import (
     AdhocExpression,
     Day,
@@ -54,6 +53,7 @@ from superset_core.semantic_layers.types import (
     Week,
     Year,
 )
+from superset_core.semantic_layers.view import SemanticViewFeature
 
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_object import QueryObject
@@ -348,8 +348,6 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
             time_offset,
             all_dimensions,
         )
-        print(">>", filters)
-
         queries.append(
             SemanticQuery(
                 metrics=metrics,
@@ -603,8 +601,8 @@ def _convert_query_object_filter(
 
     operator = operator_mapping.get(operator_str)
     if not operator:
-        # Unknown operator - create adhoc filter
-        return None
+        # Unknown operator - raise error to prevent unauthorized access
+        raise ValueError(f"Unsupported filter operator: {operator_str}")
 
     return {
         Filter(

@@ -25,29 +25,6 @@ from typing import Type as TypeOf
 
 import pyarrow as pa
 
-__all__ = [
-    "BINARY",
-    "BOOLEAN",
-    "DATE",
-    "DATETIME",
-    "DECIMAL",
-    "Day",
-    "Dimension",
-    "Hour",
-    "INTEGER",
-    "INTERVAL",
-    "Minute",
-    "Month",
-    "NUMBER",
-    "OBJECT",
-    "Quarter",
-    "Second",
-    "STRING",
-    "TIME",
-    "Week",
-    "Year",
-]
-
 
 class Type:
     """
@@ -216,7 +193,7 @@ class Metric:
     name: str
     type: TypeOf[Type]
 
-    definition: str | None
+    definition: str | None = None
     description: str | None = None
 
 

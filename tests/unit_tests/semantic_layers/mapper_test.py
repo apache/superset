@@ -22,7 +22,6 @@ import pandas as pd
 import pyarrow as pa
 import pytest
 from pytest_mock import MockerFixture
-from superset_core.semantic_layers.semantic_view import SemanticViewFeature
 from superset_core.semantic_layers.types import (
     AdhocExpression,
     Day,
@@ -48,6 +47,7 @@ from superset_core.semantic_layers.types import (
     Week,
     Year,
 )
+from superset_core.semantic_layers.view import SemanticViewFeature
 
 from superset.semantic_layers.mapper import (
     _convert_query_object_filter,
@@ -59,12 +59,18 @@ from superset.semantic_layers.mapper import (
     _get_order_from_query_object,
     _get_time_bounds,
     _get_time_filter,
+    _normalize_column,
+    _validate_filters,
+    _validate_granularity,
+    _validate_group_limit,
+    _validate_metrics,
     get_results,
     map_query_object,
     validate_query_object,
     ValidatedQueryObject,
     ValidatedQueryObjectFilterClause,
 )
+from superset.superset_typing import AdhocColumn
 from superset.utils.core import FilterOperator
 
 # Alias for convenience
@@ -1717,9 +1723,6 @@ def test_normalize_column_adhoc_not_in_dimensions() -> None:
     """
     Test _normalize_column raises error for AdhocColumn with sqlExpression not in dims.
     """
-    from superset.semantic_layers.mapper import _normalize_column
-    from superset.superset_typing import AdhocColumn
-
     dimension_names = {"category", "region"}
     adhoc_column: AdhocColumn = {
         "isColumnReference": True,
@@ -1734,9 +1737,6 @@ def test_normalize_column_adhoc_missing_sql_expression() -> None:
     """
     Test _normalize_column raises error for AdhocColumn without sqlExpression.
     """
-    from superset.semantic_layers.mapper import _normalize_column
-    from superset.superset_typing import AdhocColumn
-
     dimension_names = {"category", "region"}
     adhoc_column: AdhocColumn = {
         "isColumnReference": True,
@@ -1750,9 +1750,6 @@ def test_normalize_column_adhoc_valid(mock_datasource: MagicMock) -> None:
     """
     Test _normalize_column with valid AdhocColumn reference.
     """
-    from superset.semantic_layers.mapper import _normalize_column
-    from superset.superset_typing import AdhocColumn
-
     dimension_names = {"category", "region"}
     adhoc_column: AdhocColumn = {
         "isColumnReference": True,
@@ -2115,8 +2112,6 @@ def test_validate_metrics_adhoc_error(
     """
     Test validation error for adhoc metrics.
     """
-    from superset.semantic_layers.mapper import _validate_metrics
-
     mock_datasource = mocker.Mock()
     category_dim = Dimension("category", "category", STRING, "category", "Category")
     sales_metric = Metric("total_sales", "total_sales", NUMBER, "SUM(amount)", "Sales")
@@ -2139,7 +2134,6 @@ def test_validate_filters_adhoc_column_error(
     """
     Test validation error for adhoc column in filter.
     """
-    from superset.semantic_layers.mapper import _validate_filters
 
     query_object = mocker.Mock()
     query_object.filter = [
@@ -2160,7 +2154,6 @@ def test_validate_filters_missing_operator_error(
     """
     Test validation error for filter without operator.
     """
-    from superset.semantic_layers.mapper import _validate_filters
 
     query_object = mocker.Mock()
     query_object.filter = [
@@ -2481,7 +2474,6 @@ def test_validate_filters_empty(mocker: MockerFixture) -> None:
     """
     Test _validate_filters with empty filter list (the loop doesn't run).
     """
-    from superset.semantic_layers.mapper import _validate_filters
 
     query_object = mocker.Mock()
     query_object.filter = []  # Empty filter list
@@ -2494,7 +2486,6 @@ def test_validate_granularity_valid(mocker: MockerFixture) -> None:
     """
     Test _validate_granularity with valid granularity and time grain.
     """
-    from superset.semantic_layers.mapper import _validate_granularity
 
     mock_datasource = mocker.Mock()
     time_dim = Dimension("order_date", "order_date", STRING, "order_date", "Date", Day)
@@ -2514,7 +2505,6 @@ def test_validate_group_limit_valid(mocker: MockerFixture) -> None:
     """
     Test _validate_group_limit with valid group limit settings.
     """
-    from superset.semantic_layers.mapper import _validate_group_limit
 
     mock_datasource = mocker.Mock()
     category_dim = Dimension("category", "category", STRING, "category", "Category")
@@ -2647,7 +2637,6 @@ def test_validate_filters_with_valid_filters(mocker: MockerFixture) -> None:
     Test _validate_filters with valid filters that pass validation.
     This covers the branch where the loop completes without raising.
     """
-    from superset.semantic_layers.mapper import _validate_filters
 
     query_object = mocker.Mock()
     query_object.filter = [
