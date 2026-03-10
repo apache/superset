@@ -1055,7 +1055,19 @@ def generate_chart_name(
     | BigNumberChartConfig,
     dataset_name: str | None = None,
 ) -> str:
-    """Generate a descriptive chart name following a standard format."""
+    """Generate a descriptive chart name following a standard format.
+
+    Format conventions (by chart type):
+      Aggregated (bar/scatter with group_by): [Metric] by [Dimension]
+      Time-series (line/area, no group_by):   [Metric] Over Time
+      Table (no aggregates):                  [Dataset] Records
+      Table (with aggregates):                [Metric] Summary
+      Pie:                                    [Dimension] by [Metric]
+      Pivot Table:                            Pivot Table – [Row1, Row2]
+      Mixed Timeseries:                       [Primary] + [Secondary]
+    An en-dash followed by context (filters / time grain) is appended
+    when such information is available.
+    """
     if isinstance(config, TableChartConfig):
         what = _table_chart_what(config, dataset_name)
         context = _summarize_filters(config.filters)

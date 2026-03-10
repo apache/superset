@@ -381,6 +381,7 @@ async def generate_chart(  # noqa: C901
                 config, dataset_name=dataset_name
             )
             await ctx.debug("Chart name: chart_name=%s" % (chart_name,))
+
             try:
                 with event_logger.log_context(action="mcp.generate_chart.db_write"):
                     command = CreateChartCommand(
