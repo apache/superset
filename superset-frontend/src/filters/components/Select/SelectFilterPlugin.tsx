@@ -571,6 +571,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
               onMouseEnter={setHoveredFilter}
               onMouseLeave={unsetHoveredFilter}
               disabled={isDisabled}
+              ref={inputRef}
             />
           ) : (
             <Select
