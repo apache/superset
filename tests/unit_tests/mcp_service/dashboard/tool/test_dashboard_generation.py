@@ -33,6 +33,9 @@ from superset.mcp_service.dashboard.tool.add_chart_to_existing_dashboard import 
     _find_next_row_position,
     _find_tab_insert_target,
 )
+from superset.mcp_service.dashboard.tool.generate_dashboard import (
+    _generate_title_from_charts,
+)
 from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
@@ -113,6 +116,7 @@ class TestGenerateDashboard:
         mock_query = Mock()
         mock_filter = Mock()
         mock_query.filter.return_value = mock_filter
+        mock_filter.order_by.return_value = mock_filter
         mock_filter.all.return_value = [
             _mock_chart(id=1, slice_name="Sales Chart"),
             _mock_chart(id=2, slice_name="Revenue Chart"),
@@ -151,6 +155,7 @@ class TestGenerateDashboard:
         mock_query = Mock()
         mock_filter = Mock()
         mock_query.filter.return_value = mock_filter
+        mock_filter.order_by.return_value = mock_filter
         mock_filter.all.return_value = [_mock_chart(id=1)]
         mock_db_session.query.return_value = mock_query
 
@@ -174,6 +179,7 @@ class TestGenerateDashboard:
         mock_query = Mock()
         mock_filter = Mock()
         mock_query.filter.return_value = mock_filter
+        mock_filter.order_by.return_value = mock_filter
         mock_filter.all.return_value = [_mock_chart(id=5, slice_name="Single Chart")]
         mock_db_session.query.return_value = mock_query
 
@@ -204,6 +210,7 @@ class TestGenerateDashboard:
         mock_query = Mock()
         mock_filter = Mock()
         mock_query.filter.return_value = mock_filter
+        mock_filter.order_by.return_value = mock_filter
         mock_filter.all.return_value = [
             _mock_chart(id=i, slice_name=f"Chart {i}") for i in chart_ids
         ]
@@ -273,6 +280,7 @@ class TestGenerateDashboard:
         mock_query = Mock()
         mock_filter = Mock()
         mock_query.filter.return_value = mock_filter
+        mock_filter.order_by.return_value = mock_filter
         mock_filter.all.return_value = [_mock_chart(id=1)]
         mock_db_session.query.return_value = mock_query
         mock_create_command.return_value.run.side_effect = Exception("Creation failed")
@@ -296,6 +304,7 @@ class TestGenerateDashboard:
         mock_query = Mock()
         mock_filter = Mock()
         mock_query.filter.return_value = mock_filter
+        mock_filter.order_by.return_value = mock_filter
         mock_filter.all.return_value = [_mock_chart(id=3)]
         mock_db_session.query.return_value = mock_query
 
@@ -321,6 +330,67 @@ class TestGenerateDashboard:
             assert (
                 "description" not in call_args or call_args.get("description") is None
             )
+
+    @patch("superset.commands.dashboard.create.CreateDashboardCommand")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_auto_title_from_charts(
+        self, mock_db_session, mock_create_command, mcp_server
+    ):
+        """Test that omitting dashboard_title generates a title from chart names."""
+        mock_query = Mock()
+        mock_filter = Mock()
+        mock_query.filter.return_value = mock_filter
+        mock_filter.order_by.return_value = mock_filter
+        mock_filter.all.return_value = [
+            _mock_chart(id=1, slice_name="Sales Revenue"),
+            _mock_chart(id=2, slice_name="Customer Count"),
+        ]
+        mock_db_session.query.return_value = mock_query
+
+        mock_dashboard = _mock_dashboard(id=50, title="Sales Revenue & Customer Count")
+        mock_create_command.return_value.run.return_value = mock_dashboard
+
+        # No dashboard_title provided
+        request = {"chart_ids": [1, 2]}
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            assert result.structured_content["error"] is None
+
+            call_args = mock_create_command.call_args[0][0]
+            assert call_args["dashboard_title"] == "Sales Revenue & Customer Count"
+
+    @patch("superset.commands.dashboard.create.CreateDashboardCommand")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_empty_string_title_preserved(
+        self, mock_db_session, mock_create_command, mcp_server
+    ):
+        """Test that an explicit empty-string title is NOT replaced by auto-gen."""
+        mock_query = Mock()
+        mock_filter = Mock()
+        mock_query.filter.return_value = mock_filter
+        mock_filter.order_by.return_value = mock_filter
+        mock_filter.all.return_value = [
+            _mock_chart(id=1, slice_name="Sales Revenue"),
+        ]
+        mock_db_session.query.return_value = mock_query
+
+        mock_dashboard = _mock_dashboard(id=60, title="")
+        mock_create_command.return_value.run.return_value = mock_dashboard
+
+        # Explicit empty string title
+        request = {"chart_ids": [1], "dashboard_title": ""}
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            assert result.structured_content["error"] is None
+
+            call_args = mock_create_command.call_args[0][0]
+            assert call_args["dashboard_title"] == ""
 
 
 class TestAddChartToExistingDashboard:
@@ -943,3 +1013,55 @@ class TestLayoutHelpers:
 
         assert "ROW-new" in layout["TAB-first"]["children"]
         assert "ROW-new" not in layout["GRID_ID"]["children"]
+
+
+class TestGenerateTitleFromCharts:
+    """Tests for _generate_title_from_charts helper."""
+
+    def test_empty_list_returns_dashboard(self):
+        assert _generate_title_from_charts([]) == "Dashboard"
+
+    def test_single_chart(self):
+        charts = [_mock_chart(id=1, slice_name="Revenue")]
+        assert _generate_title_from_charts(charts) == "Revenue"
+
+    def test_two_charts_joined_with_ampersand(self):
+        charts = [
+            _mock_chart(id=1, slice_name="Revenue"),
+            _mock_chart(id=2, slice_name="Costs"),
+        ]
+        assert _generate_title_from_charts(charts) == "Revenue & Costs"
+
+    def test_three_charts_joined_with_commas(self):
+        charts = [
+            _mock_chart(id=1, slice_name="Revenue"),
+            _mock_chart(id=2, slice_name="Costs"),
+            _mock_chart(id=3, slice_name="Profit"),
+        ]
+        assert _generate_title_from_charts(charts) == "Revenue, Costs, Profit"
+
+    def test_four_charts_shows_plus_more(self):
+        charts = [_mock_chart(id=i, slice_name=f"Chart {i}") for i in range(1, 5)]
+        assert (
+            _generate_title_from_charts(charts) == "Chart 1, Chart 2, Chart 3 + 1 more"
+        )
+
+    def test_many_charts_shows_plus_more(self):
+        charts = [_mock_chart(id=i, slice_name=f"Chart {i}") for i in range(1, 8)]
+        assert (
+            _generate_title_from_charts(charts) == "Chart 1, Chart 2, Chart 3 + 4 more"
+        )
+
+    def test_charts_without_names_returns_dashboard(self):
+        chart = Mock()
+        chart.slice_name = None
+        assert _generate_title_from_charts([chart]) == "Dashboard"
+
+    def test_long_title_is_truncated(self):
+        charts = [
+            _mock_chart(id=1, slice_name="A" * 100),
+            _mock_chart(id=2, slice_name="B" * 100),
+        ]
+        title = _generate_title_from_charts(charts)
+        assert len(title) <= 150
+        assert title.endswith("\u2026")

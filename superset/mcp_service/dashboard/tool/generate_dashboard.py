@@ -139,6 +139,45 @@ def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
     return layout
 
 
+_DEFAULT_DASHBOARD_TITLE = "Dashboard"
+_MAX_TITLE_LENGTH = 150
+
+
+def _generate_title_from_charts(chart_objects: List[Any]) -> str:
+    """
+    Build a descriptive dashboard title from the included chart names.
+
+    Joins up to three chart ``slice_name`` values with " & " (two charts)
+    or ", " (three charts).  When there are more than three charts the
+    remaining count is appended as "+ N more".  The result is capped at
+    ``_MAX_TITLE_LENGTH`` characters.
+
+    Returns ``"Dashboard"`` when *chart_objects* is empty or no chart has
+    a usable name.
+    """
+    names = [
+        c.slice_name
+        for c in sorted(chart_objects, key=lambda c: getattr(c, "id", 0))
+        if getattr(c, "slice_name", None)
+    ]
+    if not names:
+        return _DEFAULT_DASHBOARD_TITLE
+
+    if len(names) == 1:
+        title = names[0]
+    elif len(names) == 2:
+        title = f"{names[0]} & {names[1]}"
+    elif len(names) == 3:
+        title = f"{names[0]}, {names[1]}, {names[2]}"
+    else:
+        title = f"{names[0]}, {names[1]}, {names[2]} + {len(names) - 3} more"
+
+    if len(title) > _MAX_TITLE_LENGTH:
+        title = title[: _MAX_TITLE_LENGTH - 1] + "\u2026"
+
+    return title
+
+
 @tool(tags=["mutate"])
 @parse_request(GenerateDashboardRequest)
 def generate_dashboard(
@@ -161,7 +200,10 @@ def generate_dashboard(
 
         with event_logger.log_context(action="mcp.generate_dashboard.chart_validation"):
             chart_objects = (
-                db.session.query(Slice).filter(Slice.id.in_(request.chart_ids)).all()
+                db.session.query(Slice)
+                .filter(Slice.id.in_(request.chart_ids))
+                .order_by(Slice.id)
+                .all()
             )
             found_chart_ids = [chart.id for chart in chart_objects]
 
@@ -178,10 +220,17 @@ def generate_dashboard(
         with event_logger.log_context(action="mcp.generate_dashboard.layout"):
             layout = _create_dashboard_layout(chart_objects)
 
+        # Resolve dashboard title: use provided title or derive from chart names
+        dashboard_title = (
+            request.dashboard_title
+            if request.dashboard_title is not None
+            else _generate_title_from_charts(chart_objects)
+        )
+
         # Prepare dashboard data and create dashboard
         with event_logger.log_context(action="mcp.generate_dashboard.db_write"):
             dashboard_data = {
-                "dashboard_title": request.dashboard_title,
+                "dashboard_title": dashboard_title,
                 "slug": None,  # Let Superset auto-generate slug
                 "css": "",
                 "json_metadata": json.dumps(

@@ -452,7 +452,13 @@ class GenerateDashboardRequest(BaseModel):
     chart_ids: List[int] = Field(
         ..., description="List of chart IDs to include in the dashboard", min_length=1
     )
-    dashboard_title: str = Field(..., description="Title for the new dashboard")
+    dashboard_title: str | None = Field(
+        None,
+        description=(
+            "Title for the new dashboard. When omitted a descriptive title "
+            "is generated from the included chart names."
+        ),
+    )
     description: str | None = Field(None, description="Description for the dashboard")
     published: bool = Field(
         default=True, description="Whether to publish the dashboard"
