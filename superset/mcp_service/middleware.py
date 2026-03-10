@@ -171,24 +171,28 @@ class LoggingMiddleware(Middleware):
             return result
         finally:
             duration_ms = int((time.time() - start_time) * 1000)
-            event_logger.log(
-                user_id=user_id,
-                action="mcp_tool_call",
-                dashboard_id=dashboard_id,
-                duration_ms=duration_ms,
-                slice_id=slice_id,
-                referrer=None,
-                curated_payload={
-                    "tool": tool_name,
-                    "agent_id": agent_id,
-                    "params": _sanitize_params(params),
-                    "method": context.method,
-                    "dashboard_id": dashboard_id,
-                    "slice_id": slice_id,
-                    "dataset_id": dataset_id,
-                    "success": success,
-                },
-            )
+            try:
+                event_logger.log(
+                    user_id=user_id,
+                    action="mcp_tool_call",
+                    dashboard_id=dashboard_id,
+                    duration_ms=duration_ms,
+                    slice_id=slice_id,
+                    referrer=None,
+                    curated_payload={
+                        "tool": tool_name,
+                        "agent_id": agent_id,
+                        "params": _sanitize_params(params),
+                        "method": context.method,
+                        "dashboard_id": dashboard_id,
+                        "slice_id": slice_id,
+                        "dataset_id": dataset_id,
+                        "success": success,
+                    },
+                )
+            except RuntimeError:
+                # No Flask app context (middleware runs after tool pops context)
+                pass
             logger.info(
                 "MCP tool call: tool=%s, agent_id=%s, user_id=%s, method=%s, "
                 "dashboard_id=%s, slice_id=%s, dataset_id=%s, duration_ms=%s, "
