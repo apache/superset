@@ -17,9 +17,11 @@
  * under the License.
  */
 import { type ReactNode } from 'react';
-import { css } from '@apache-superset/core/theme';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { JsonValue } from '@superset-ui/core';
-import { Radio, Space, Tooltip } from '@superset-ui/core/components';
+import { Radio } from '@superset-ui/core/components/Radio';
+import { Space } from '@superset-ui/core/components/Space';
+import { Tooltip } from '@superset-ui/core/components/Tooltip';
 import { Icons } from '@superset-ui/core/components/Icons';
 import ControlHeader from '../ControlHeader';
 
@@ -55,6 +57,7 @@ export default function VerticalRadioControl({
   onChange,
   ...props
 }: VerticalRadioControlProps) {
+  const theme = useTheme();
   const normalizedOptions = options.map(normalizeOption);
   const currentValue = initialValue ?? normalizedOptions[0]?.value;
 
@@ -84,8 +87,8 @@ export default function VerticalRadioControl({
                         margin-left: 4px;
                         font-size: 12px;
                         color: ${disabled
-                          ? 'rgba(0, 0, 0, 0.25)'
-                          : 'rgba(0, 0, 0, 0.45)'};
+                          ? theme.colorTextDisabled
+                          : theme.colorTextTertiary};
                         cursor: help;
                       `}
                     />
