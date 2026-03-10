@@ -32,6 +32,7 @@ def test_update_semantic_view_success(mocker: MockerFixture) -> None:
     """Test successful update of a semantic view."""
     mock_model = MagicMock()
     mock_model.id = 1
+    mock_model.configuration = "{}"
 
     dao = mocker.patch(
         "superset.commands.semantic_layer.update.SemanticViewDAO",
@@ -86,6 +87,7 @@ def test_update_semantic_view_forbidden(mocker: MockerFixture) -> None:
 def test_update_semantic_view_copies_data(mocker: MockerFixture) -> None:
     """Test that the command copies input data and does not mutate it."""
     mock_model = MagicMock()
+    mock_model.configuration = "{}"
 
     dao = mocker.patch(
         "superset.commands.semantic_layer.update.SemanticViewDAO",
@@ -102,3 +104,108 @@ def test_update_semantic_view_copies_data(mocker: MockerFixture) -> None:
 
     # The original dict should not have been modified
     assert original_data == {"description": "Original"}
+
+
+def _make_view_model(
+    uuid: str = "view-uuid-1",
+    name: str = "my_view",
+    layer_uuid: str = "layer-uuid-1",
+    configuration: str = '{"schema": "prod"}',
+) -> MagicMock:
+    model = MagicMock()
+    model.uuid = uuid
+    model.name = name
+    model.semantic_layer_uuid = layer_uuid
+    model.configuration = configuration
+    return model
+
+
+def test_update_uniqueness_different_config_same_name(
+    mocker: MockerFixture,
+) -> None:
+    """Same name but different configuration is allowed."""
+    mock_model = _make_view_model(configuration='{"schema": "prod"}')
+
+    dao = mocker.patch(
+        "superset.commands.semantic_layer.update.SemanticViewDAO",
+    )
+    dao.find_by_id.return_value = mock_model
+    dao.update.return_value = mock_model
+    dao.validate_update_uniqueness.return_value = True
+
+    mocker.patch(
+        "superset.commands.semantic_layer.update.security_manager",
+    )
+
+    # Update to a config that differs from an existing view
+    data = {"name": "my_view", "configuration": {"schema": "testing"}}
+    result = UpdateSemanticViewCommand(1, data).run()
+
+    assert result == mock_model
+    dao.validate_update_uniqueness.assert_called_once_with(
+        view_uuid="view-uuid-1",
+        name="my_view",
+        layer_uuid="layer-uuid-1",
+        configuration={"schema": "testing"},
+    )
+
+
+def test_update_uniqueness_same_config_different_name(
+    mocker: MockerFixture,
+) -> None:
+    """Same configuration but different name is allowed."""
+    mock_model = _make_view_model(configuration='{"schema": "prod"}')
+
+    dao = mocker.patch(
+        "superset.commands.semantic_layer.update.SemanticViewDAO",
+    )
+    dao.find_by_id.return_value = mock_model
+    dao.update.return_value = mock_model
+    dao.validate_update_uniqueness.return_value = True
+
+    mocker.patch(
+        "superset.commands.semantic_layer.update.security_manager",
+    )
+
+    data = {"name": "renamed_view", "configuration": {"schema": "prod"}}
+    result = UpdateSemanticViewCommand(1, data).run()
+
+    assert result == mock_model
+    dao.validate_update_uniqueness.assert_called_once_with(
+        view_uuid="view-uuid-1",
+        name="renamed_view",
+        layer_uuid="layer-uuid-1",
+        configuration={"schema": "prod"},
+    )
+
+
+def test_update_uniqueness_same_config_same_name_fails(
+    mocker: MockerFixture,
+) -> None:
+    """Same name and same configuration is a duplicate."""
+    mock_model = _make_view_model(configuration='{"schema": "prod"}')
+
+    dao = mocker.patch(
+        "superset.commands.semantic_layer.update.SemanticViewDAO",
+    )
+    dao.find_by_id.return_value = mock_model
+    dao.validate_update_uniqueness.return_value = False
+
+    mocker.patch(
+        "superset.commands.semantic_layer.update.security_manager",
+    )
+
+    from superset.commands.semantic_layer.exceptions import (
+        SemanticViewUpdateFailedError,
+    )
+
+    data = {"name": "my_view", "configuration": {"schema": "prod"}}
+    with pytest.raises(SemanticViewUpdateFailedError):
+        UpdateSemanticViewCommand(1, data).run()
+
+    dao.validate_update_uniqueness.assert_called_once_with(
+        view_uuid="view-uuid-1",
+        name="my_view",
+        layer_uuid="layer-uuid-1",
+        configuration={"schema": "prod"},
+    )
