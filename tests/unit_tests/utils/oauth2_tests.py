@@ -35,7 +35,6 @@ from superset.utils.oauth2 import (
     get_oauth2_access_token,
     get_upstream_provider_token,
     refresh_oauth2_token,
-    save_user_provider_token,
 )
 
 DUMMY_OAUTH2_CONFIG = cast(OAuth2ClientConfig, {})
