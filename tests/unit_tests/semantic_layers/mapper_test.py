@@ -24,28 +24,18 @@ import pytest
 from pytest_mock import MockerFixture
 from superset_core.semantic_layers.types import (
     AdhocExpression,
-    Day,
     Dimension,
     Filter,
     Grain,
+    Grains,
     GroupLimit,
-    Hour,
-    INTEGER,
     Metric,
-    Minute,
-    Month,
-    NUMBER,
     Operator,
     OrderDirection,
     PredicateType,
-    Quarter,
-    Second,
     SemanticQuery,
     SemanticRequest,
     SemanticResult,
-    STRING,
-    Week,
-    Year,
 )
 from superset_core.semantic_layers.view import SemanticViewFeature
 
@@ -113,21 +103,21 @@ def mock_datasource(mocker: MockerFixture) -> MagicMock:
     time_dim = Dimension(
         id="orders.order_date",
         name="order_date",
-        type=STRING,
+        type=pa.utf8(),
         description="Order date",
         definition="order_date",
     )
     category_dim = Dimension(
         id="products.category",
         name="category",
-        type=STRING,
+        type=pa.utf8(),
         description="Product category",
         definition="category",
     )
     region_dim = Dimension(
         id="customers.region",
         name="region",
-        type=STRING,
+        type=pa.utf8(),
         description="Customer region",
         definition="region",
     )
@@ -136,14 +126,14 @@ def mock_datasource(mocker: MockerFixture) -> MagicMock:
     sales_metric = Metric(
         id="orders.total_sales",
         name="total_sales",
-        type=NUMBER,
+        type=pa.float64(),
         definition="SUM(amount)",
         description="Total sales",
     )
     count_metric = Metric(
         id="orders.order_count",
         name="order_count",
-        type=INTEGER,
+        type=pa.int64(),
         definition="COUNT(*)",
         description="Order count",
     )
@@ -169,14 +159,14 @@ def mock_datasource(mocker: MockerFixture) -> MagicMock:
 @pytest.mark.parametrize(
     "input_grain, expected_grain",
     [
-        ("PT1S", Second),
-        ("PT1M", Minute),
-        ("PT1H", Hour),
-        ("P1D", Day),
-        ("P1W", Week),
-        ("P1M", Month),
-        ("P1Y", Year),
-        ("P3M", Quarter),
+        ("PT1S", Grains.SECOND),
+        ("PT1M", Grains.MINUTE),
+        ("PT1H", Grains.HOUR),
+        ("P1D", Grains.DAY),
+        ("P1W", Grains.WEEK),
+        ("P1M", Grains.MONTH),
+        ("P1Y", Grains.YEAR),
+        ("P3M", Grains.QUARTER),
         ("INVALID", None),
         ("", None),
     ],
@@ -855,7 +845,7 @@ def test_map_query_object_basic(mock_datasource: MagicMock) -> None:
                 Metric(
                     id="orders.total_sales",
                     name="total_sales",
-                    type=NUMBER,
+                    type=pa.float64(),
                     definition="SUM(amount)",
                     description="Total sales",
                 ),
@@ -864,7 +854,7 @@ def test_map_query_object_basic(mock_datasource: MagicMock) -> None:
                 Dimension(
                     id="products.category",
                     name="category",
-                    type=STRING,
+                    type=pa.utf8(),
                     definition="category",
                     description="Product category",
                     grain=None,
@@ -876,7 +866,7 @@ def test_map_query_object_basic(mock_datasource: MagicMock) -> None:
                     column=Dimension(
                         id="orders.order_date",
                         name="order_date",
-                        type=STRING,
+                        type=pa.utf8(),
                         definition="order_date",
                         description="Order date",
                         grain=None,
@@ -889,7 +879,7 @@ def test_map_query_object_basic(mock_datasource: MagicMock) -> None:
                     column=Dimension(
                         id="orders.order_date",
                         name="order_date",
-                        type=STRING,
+                        type=pa.utf8(),
                         definition="order_date",
                         description="Order date",
                         grain=None,
@@ -930,7 +920,7 @@ def test_map_query_object_with_time_offsets(mock_datasource: MagicMock) -> None:
             column=Dimension(
                 id="orders.order_date",
                 name="order_date",
-                type=STRING,
+                type=pa.utf8(),
                 definition="order_date",
                 description="Order date",
                 grain=None,
@@ -943,7 +933,7 @@ def test_map_query_object_with_time_offsets(mock_datasource: MagicMock) -> None:
             column=Dimension(
                 id="orders.order_date",
                 name="order_date",
-                type=STRING,
+                type=pa.utf8(),
                 definition="order_date",
                 description="Order date",
                 grain=None,
@@ -958,7 +948,7 @@ def test_map_query_object_with_time_offsets(mock_datasource: MagicMock) -> None:
             column=Dimension(
                 id="orders.order_date",
                 name="order_date",
-                type=STRING,
+                type=pa.utf8(),
                 definition="order_date",
                 description="Order date",
                 grain=None,
@@ -971,7 +961,7 @@ def test_map_query_object_with_time_offsets(mock_datasource: MagicMock) -> None:
             column=Dimension(
                 id="orders.order_date",
                 name="order_date",
-                type=STRING,
+                type=pa.utf8(),
                 definition="order_date",
                 description="Order date",
                 grain=None,
@@ -986,7 +976,7 @@ def test_map_query_object_with_time_offsets(mock_datasource: MagicMock) -> None:
             column=Dimension(
                 id="orders.order_date",
                 name="order_date",
-                type=STRING,
+                type=pa.utf8(),
                 definition="order_date",
                 description="Order date",
                 grain=None,
@@ -999,7 +989,7 @@ def test_map_query_object_with_time_offsets(mock_datasource: MagicMock) -> None:
             column=Dimension(
                 id="orders.order_date",
                 name="order_date",
-                type=STRING,
+                type=pa.utf8(),
                 definition="order_date",
                 description="Order date",
                 grain=None,
@@ -1111,9 +1101,11 @@ def test_validate_query_object_group_limit_not_supported_error(
     Test validation error when group limit not supported.
     """
     mock_datasource = mocker.Mock()
-    time_dim = Dimension("order_date", "order_date", STRING, "order_date", "Date")
-    category_dim = Dimension("category", "category", STRING, "category", "Category")
-    sales_metric = Metric("total_sales", "total_sales", NUMBER, "SUM(amount)", "Sales")
+    time_dim = Dimension("order_date", "order_date", pa.utf8(), "order_date", "Date")
+    category_dim = Dimension("category", "category", pa.utf8(), "category", "Category")
+    sales_metric = Metric(
+        "total_sales", "total_sales", pa.float64(), "SUM(amount)", "Sales"
+    )
 
     mock_datasource.implementation.dimensions = {time_dim, category_dim}
     mock_datasource.implementation.metrics = {sales_metric}
@@ -1168,7 +1160,7 @@ def test_convert_query_object_filter(
     Test filter with different operators.
     """
     all_dimensions = {
-        "category": Dimension("category", "category", STRING, "category", "Category")
+        "category": Dimension("category", "category", pa.utf8(), "category", "Category")
     }
 
     filter_: ValidatedQueryObjectFilterClause = {
@@ -1193,7 +1185,7 @@ def test_convert_query_object_filter_like() -> None:
     """
     Test filter with LIKE operator.
     """
-    all_dimensions = {"name": Dimension("name", "name", STRING, "name", "Name")}
+    all_dimensions = {"name": Dimension("name", "name", pa.utf8(), "name", "Name")}
 
     filter_: ValidatedQueryObjectFilterClause = {
         "op": "LIKE",
@@ -1905,7 +1897,7 @@ def test_convert_query_object_filter_temporal_range_with_value() -> None:
     """
     all_dimensions = {
         "order_date": Dimension(
-            "order_date", "order_date", STRING, "order_date", "Order date"
+            "order_date", "order_date", pa.utf8(), "order_date", "Order date"
         )
     }
     filter_: ValidatedQueryObjectFilterClause = {
@@ -2113,8 +2105,10 @@ def test_validate_metrics_adhoc_error(
     Test validation error for adhoc metrics.
     """
     mock_datasource = mocker.Mock()
-    category_dim = Dimension("category", "category", STRING, "category", "Category")
-    sales_metric = Metric("total_sales", "total_sales", NUMBER, "SUM(amount)", "Sales")
+    category_dim = Dimension("category", "category", pa.utf8(), "category", "Category")
+    sales_metric = Metric(
+        "total_sales", "total_sales", pa.float64(), "SUM(amount)", "Sales"
+    )
 
     mock_datasource.implementation.dimensions = {category_dim}
     mock_datasource.implementation.metrics = {sales_metric}
@@ -2235,9 +2229,11 @@ def test_validate_query_object_group_others_not_supported_error(
     Test validation error when group_others feature not supported.
     """
     mock_datasource = mocker.Mock()
-    time_dim = Dimension("order_date", "order_date", STRING, "order_date", "Date")
-    category_dim = Dimension("category", "category", STRING, "category", "Category")
-    sales_metric = Metric("total_sales", "total_sales", NUMBER, "SUM(amount)", "Sales")
+    time_dim = Dimension("order_date", "order_date", pa.utf8(), "order_date", "Date")
+    category_dim = Dimension("category", "category", pa.utf8(), "category", "Category")
+    sales_metric = Metric(
+        "total_sales", "total_sales", pa.float64(), "SUM(amount)", "Sales"
+    )
 
     mock_datasource.implementation.dimensions = {time_dim, category_dim}
     mock_datasource.implementation.metrics = {sales_metric}
@@ -2268,8 +2264,10 @@ def test_validate_query_object_adhoc_orderby_not_supported_error(
     Test validation error when adhoc expressions in orderby not supported.
     """
     mock_datasource = mocker.Mock()
-    category_dim = Dimension("category", "category", STRING, "category", "Category")
-    sales_metric = Metric("total_sales", "total_sales", NUMBER, "SUM(amount)", "Sales")
+    category_dim = Dimension("category", "category", pa.utf8(), "category", "Category")
+    sales_metric = Metric(
+        "total_sales", "total_sales", pa.float64(), "SUM(amount)", "Sales"
+    )
 
     mock_datasource.implementation.dimensions = {category_dim}
     mock_datasource.implementation.metrics = {sales_metric}
@@ -2353,8 +2351,8 @@ def test_get_filters_from_query_object_with_filter_loop(
     Test _get_filters_from_query_object processes filter array correctly.
     """
     # Create dimensions
-    time_dim = Dimension("order_date", "order_date", STRING, "order_date", "Date")
-    category_dim = Dimension("category", "category", STRING, "category", "Category")
+    time_dim = Dimension("order_date", "order_date", pa.utf8(), "order_date", "Date")
+    category_dim = Dimension("category", "category", pa.utf8(), "category", "Category")
     all_dimensions = {"order_date": time_dim, "category": category_dim}
 
     # Create mock query object with filters
@@ -2403,7 +2401,7 @@ def test_convert_query_object_filter_temporal_range_non_string_value() -> None:
     """
     all_dimensions = {
         "order_date": Dimension(
-            "order_date", "order_date", STRING, "order_date", "Order date"
+            "order_date", "order_date", pa.utf8(), "order_date", "Order date"
         )
     }
     filter_: ValidatedQueryObjectFilterClause = {
@@ -2425,8 +2423,8 @@ def test_get_group_limit_filters_with_filter_loop(
     Test _get_group_limit_filters processes filter array correctly.
     """
     # Create dimensions
-    time_dim = Dimension("order_date", "order_date", STRING, "order_date", "Date")
-    category_dim = Dimension("category", "category", STRING, "category", "Category")
+    time_dim = Dimension("order_date", "order_date", pa.utf8(), "order_date", "Date")
+    category_dim = Dimension("category", "category", pa.utf8(), "category", "Category")
     all_dimensions = {"order_date": time_dim, "category": category_dim}
 
     # Create mock query object with filters
@@ -2488,7 +2486,9 @@ def test_validate_granularity_valid(mocker: MockerFixture) -> None:
     """
 
     mock_datasource = mocker.Mock()
-    time_dim = Dimension("order_date", "order_date", STRING, "order_date", "Date", Day)
+    time_dim = Dimension(
+        "order_date", "order_date", pa.utf8(), "order_date", "Date", Grains.DAY
+    )
 
     mock_datasource.implementation.dimensions = {time_dim}
 
@@ -2507,8 +2507,10 @@ def test_validate_group_limit_valid(mocker: MockerFixture) -> None:
     """
 
     mock_datasource = mocker.Mock()
-    category_dim = Dimension("category", "category", STRING, "category", "Category")
-    sales_metric = Metric("total_sales", "total_sales", NUMBER, "SUM(amount)", "Sales")
+    category_dim = Dimension("category", "category", pa.utf8(), "category", "Category")
+    sales_metric = Metric(
+        "total_sales", "total_sales", pa.float64(), "SUM(amount)", "Sales"
+    )
 
     mock_datasource.implementation.dimensions = {category_dim}
     mock_datasource.implementation.metrics = {sales_metric}
@@ -2535,8 +2537,8 @@ def test_get_filters_from_query_object_filter_returns_none(
     This covers the branch where the filter conversion fails and loop continues.
     """
     # Create dimensions
-    time_dim = Dimension("order_date", "order_date", STRING, "order_date", "Date")
-    category_dim = Dimension("category", "category", STRING, "category", "Category")
+    time_dim = Dimension("order_date", "order_date", pa.utf8(), "order_date", "Date")
+    category_dim = Dimension("category", "category", pa.utf8(), "category", "Category")
     all_dimensions = {"order_date": time_dim, "category": category_dim}
 
     # Create mock query object with a filter that will return None
@@ -2587,8 +2589,8 @@ def test_get_group_limit_filters_filter_returns_none(
     This covers the branch where the filter conversion fails and loop continues.
     """
     # Create dimensions
-    time_dim = Dimension("order_date", "order_date", STRING, "order_date", "Date")
-    category_dim = Dimension("category", "category", STRING, "category", "Category")
+    time_dim = Dimension("order_date", "order_date", pa.utf8(), "order_date", "Date")
+    category_dim = Dimension("category", "category", pa.utf8(), "category", "Category")
     all_dimensions = {"order_date": time_dim, "category": category_dim}
 
     # Create mock query object with filters
@@ -2664,8 +2666,8 @@ def test_get_group_limit_filters_granularity_missing_inner_from(
     Covers branch 704->729 where time_dimension exists but inner_from_dttm is None.
     """
     # Create dimensions
-    time_dim = Dimension("order_date", "order_date", STRING, "order_date", "Date")
-    category_dim = Dimension("category", "category", STRING, "category", "Category")
+    time_dim = Dimension("order_date", "order_date", pa.utf8(), "order_date", "Date")
+    category_dim = Dimension("category", "category", pa.utf8(), "category", "Category")
     all_dimensions = {"order_date": time_dim, "category": category_dim}
 
     # Create mock query object with granularity but missing inner_from_dttm
@@ -2693,8 +2695,8 @@ def test_get_group_limit_filters_granularity_missing_inner_to(
     Covers branch 704->729 where time_dimension exists but inner_to_dttm is None.
     """
     # Create dimensions
-    time_dim = Dimension("order_date", "order_date", STRING, "order_date", "Date")
-    category_dim = Dimension("category", "category", STRING, "category", "Category")
+    time_dim = Dimension("order_date", "order_date", pa.utf8(), "order_date", "Date")
+    category_dim = Dimension("category", "category", pa.utf8(), "category", "Category")
     all_dimensions = {"order_date": time_dim, "category": category_dim}
 
     # Create mock query object with granularity but missing inner_to_dttm
@@ -2722,7 +2724,7 @@ def test_get_group_limit_filters_no_granularity(
     This explicitly covers the branch 704->729 where granularity is Falsy.
     """
     # Create dimensions
-    category_dim = Dimension("category", "category", STRING, "category", "Category")
+    category_dim = Dimension("category", "category", pa.utf8(), "category", "Category")
     all_dimensions = {"category": category_dim}
 
     # Create mock query object with no granularity
