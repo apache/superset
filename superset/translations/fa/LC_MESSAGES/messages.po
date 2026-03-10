@@ -10463,7 +10463,7 @@ msgstr "در حال اجرا"
 
 #, fuzzy, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
-msgstr "در حال اجرای بیانیه %(statement_num)s از %(statement_count)s"
+msgstr "در حال اجرای بیانیه %(block_num)s از %(block_count)s"
 
 msgid "SAT"
 msgstr "سَت"
