@@ -610,6 +610,107 @@ class TestAddChartToExistingDashboard:
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
     @pytest.mark.asyncio
+    async def test_add_chart_to_specific_tab_by_name(
+        self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
+    ):
+        """Test adding chart to a specific tab using target_tab name."""
+        mock_dashboard = _mock_dashboard(id=3, title="Tabbed Dashboard")
+        mock_dashboard.slices = [Mock(id=10)]
+        mock_dashboard.position_json = json.dumps(
+            {
+                "ROOT_ID": {
+                    "children": ["GRID_ID"],
+                    "id": "ROOT_ID",
+                    "type": "ROOT",
+                },
+                "GRID_ID": {
+                    "children": ["TABS-abc123"],
+                    "id": "GRID_ID",
+                    "parents": ["ROOT_ID"],
+                    "type": "GRID",
+                },
+                "TABS-abc123": {
+                    "children": ["TAB-tab1", "TAB-tab2"],
+                    "id": "TABS-abc123",
+                    "parents": ["ROOT_ID", "GRID_ID"],
+                    "type": "TABS",
+                },
+                "TAB-tab1": {
+                    "children": ["ROW-existing"],
+                    "id": "TAB-tab1",
+                    "meta": {"text": "Activity Metrics"},
+                    "parents": ["ROOT_ID", "GRID_ID", "TABS-abc123"],
+                    "type": "TAB",
+                },
+                "TAB-tab2": {
+                    "children": [],
+                    "id": "TAB-tab2",
+                    "meta": {"text": "Customers"},
+                    "parents": ["ROOT_ID", "GRID_ID", "TABS-abc123"],
+                    "type": "TAB",
+                },
+                "ROW-existing": {
+                    "children": ["CHART-10"],
+                    "id": "ROW-existing",
+                    "meta": {"background": "BACKGROUND_TRANSPARENT"},
+                    "parents": ["ROOT_ID", "GRID_ID", "TABS-abc123", "TAB-tab1"],
+                    "type": "ROW",
+                },
+                "CHART-10": {
+                    "id": "CHART-10",
+                    "type": "CHART",
+                    "parents": [
+                        "ROOT_ID",
+                        "GRID_ID",
+                        "TABS-abc123",
+                        "TAB-tab1",
+                        "ROW-existing",
+                    ],
+                },
+                "DASHBOARD_VERSION_KEY": "v2",
+            }
+        )
+        mock_find_dashboard.return_value = mock_dashboard
+
+        mock_chart = _mock_chart(id=30, slice_name="Customer Chart")
+        mock_db_session.get.return_value = mock_chart
+
+        updated_dashboard = _mock_dashboard(id=3, title="Tabbed Dashboard")
+        updated_dashboard.slices = [Mock(id=10), Mock(id=30)]
+        mock_update_command.return_value.run.return_value = updated_dashboard
+
+        request = {"dashboard_id": 3, "chart_id": 30, "target_tab": "Customers"}
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "add_chart_to_existing_dashboard", {"request": request}
+            )
+
+            assert result.structured_content["error"] is None
+
+            call_args = mock_update_command.call_args[0][1]
+            layout = json.loads(call_args["position_json"])
+
+            row_key = result.structured_content["position"]["row_key"]
+            assert row_key in layout
+
+            # Chart should be in TAB-tab2 (Customers), NOT TAB-tab1
+            assert row_key in layout["TAB-tab2"]["children"]
+            assert row_key not in layout["TAB-tab1"]["children"]
+
+            # GRID_ID should still only have TABS, not the new row
+            assert layout["GRID_ID"]["children"] == ["TABS-abc123"]
+
+            # Verify correct parent chain includes TAB-tab2
+            chart_parents = layout["CHART-30"]["parents"]
+            assert "TABS-abc123" in chart_parents
+            assert "TAB-tab2" in chart_parents
+            assert "TAB-tab1" not in chart_parents
+
+    @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
     async def test_add_chart_dashboard_with_nanoid_rows(
         self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
     ):
@@ -709,6 +810,63 @@ class TestLayoutHelpers:
             "TAB-second": {"children": [], "type": "TAB"},
         }
         assert _find_tab_insert_target(layout) == "TAB-first"
+
+    def test_find_tab_insert_target_by_tab_name(self):
+        """Test _find_tab_insert_target resolves target_tab by display name."""
+        layout = {
+            "GRID_ID": {"children": ["TABS-main"], "type": "GRID"},
+            "TABS-main": {"children": ["TAB-first", "TAB-second"], "type": "TABS"},
+            "TAB-first": {
+                "children": [],
+                "type": "TAB",
+                "meta": {"text": "Activity Metrics"},
+            },
+            "TAB-second": {
+                "children": [],
+                "type": "TAB",
+                "meta": {"text": "Customers"},
+            },
+        }
+        assert _find_tab_insert_target(layout, target_tab="Customers") == "TAB-second"
+
+    def test_find_tab_insert_target_by_tab_id(self):
+        """Test _find_tab_insert_target resolves target_tab by component ID."""
+        layout = {
+            "GRID_ID": {"children": ["TABS-main"], "type": "GRID"},
+            "TABS-main": {"children": ["TAB-first", "TAB-second"], "type": "TABS"},
+            "TAB-first": {
+                "children": [],
+                "type": "TAB",
+                "meta": {"text": "Tab 1"},
+            },
+            "TAB-second": {
+                "children": [],
+                "type": "TAB",
+                "meta": {"text": "Tab 2"},
+            },
+        }
+        assert _find_tab_insert_target(layout, target_tab="TAB-second") == "TAB-second"
+
+    def test_find_tab_insert_target_unmatched_falls_back_to_first(self):
+        """Test _find_tab_insert_target falls back to first tab when target_tab
+        doesn't match any tab name or ID."""
+        layout = {
+            "GRID_ID": {"children": ["TABS-main"], "type": "GRID"},
+            "TABS-main": {"children": ["TAB-first", "TAB-second"], "type": "TABS"},
+            "TAB-first": {
+                "children": [],
+                "type": "TAB",
+                "meta": {"text": "Tab 1"},
+            },
+            "TAB-second": {
+                "children": [],
+                "type": "TAB",
+                "meta": {"text": "Tab 2"},
+            },
+        }
+        assert (
+            _find_tab_insert_target(layout, target_tab="Nonexistent Tab") == "TAB-first"
+        )
 
     def test_find_tab_insert_target_no_grid(self):
         """Test _find_tab_insert_target with missing GRID_ID."""
