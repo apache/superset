@@ -46,14 +46,19 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 # Compiled regex for stripping common emoji Unicode ranges from tab text.
-# Not exhaustive (omits flags, skin-tone modifiers, etc.) but sufficient for
-# flexible matching of dashboard tab labels.
+# Uses specific Unicode blocks to avoid overly permissive ranges.
 _EMOJI_RE = re.compile(
-    "[\U0001f300-\U0001f9ff"
-    "\U0001fa00-\U0001faff"
-    "\U00002600-\U000027bf"
-    "\U0000fe00-\U0000fe0f"
-    "\U0000200d]+"
+    "["
+    "\U0001f300-\U0001f5ff"  # Misc Symbols and Pictographs
+    "\U0001f600-\U0001f64f"  # Emoticons
+    "\U0001f680-\U0001f6ff"  # Transport and Map Symbols
+    "\U0001f900-\U0001f9ff"  # Supplemental Symbols and Pictographs
+    "\U0001fa70-\U0001faff"  # Symbols and Pictographs Extended-A
+    "\u2600-\u26ff"  # Misc Symbols
+    "\u2700-\u27bf"  # Dingbats
+    "\ufe00-\ufe0f"  # Variation Selectors
+    "\u200d"  # Zero-width joiner
+    "]+"
 )
 
 
