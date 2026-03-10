@@ -19,9 +19,12 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from superset.daos.base import BaseDAO
 from superset.extensions import db
 from superset.semantic_layers.models import SemanticLayer, SemanticView
+from superset.utils import json
 
 
 class SemanticLayerDAO(BaseDAO[SemanticLayer]):
@@ -108,36 +111,64 @@ class SemanticViewDAO(BaseDAO[SemanticView]):
         )
 
     @staticmethod
-    def validate_uniqueness(name: str, layer_uuid: str) -> bool:
+    def validate_uniqueness(
+        name: str,
+        layer_uuid: str,
+        configuration: dict[str, Any],
+    ) -> bool:
         """
-        Validate that view name is unique within semantic layer.
+        Validate that view is unique within a semantic layer.
+
+        Uniqueness is determined by name, layer, and configuration.
+        The configuration column is encrypted (non-deterministic
+        ciphertext), so it cannot be compared at the DB level. Instead,
+        we filter by name + layer in SQL and compare decrypted
+        configuration dicts in Python.
 
         :param name: View name
         :param layer_uuid: UUID of the semantic layer
-        :return: True if name is unique within layer, False otherwise
+        :param configuration: Configuration dict to compare
+        :return: True if unique, False otherwise
         """
-        query = db.session.query(SemanticView).filter(
-            SemanticView.name == name,
-            SemanticView.semantic_layer_uuid == layer_uuid,
+        candidates = (
+            db.session.query(SemanticView)
+            .filter(
+                SemanticView.name == name,
+                SemanticView.semantic_layer_uuid == layer_uuid,
+            )
+            .all()
         )
-        return not db.session.query(query.exists()).scalar()
+        return not any(json.loads(c.configuration) == configuration for c in candidates)
 
     @staticmethod
-    def validate_update_uniqueness(view_uuid: str, name: str, layer_uuid: str) -> bool:
+    def validate_update_uniqueness(
+        view_uuid: str,
+        name: str,
+        layer_uuid: str,
+        configuration: dict[str, Any],
+    ) -> bool:
         """
-        Validate that view name is unique within semantic layer for updates.
+        Validate that view is unique within a semantic layer for updates.
+
+        Same logic as ``validate_uniqueness`` but excludes the view
+        being updated.
 
         :param view_uuid: UUID of the view being updated
         :param name: New name to validate
         :param layer_uuid: UUID of the semantic layer
-        :return: True if name is unique within layer, False otherwise
+        :param configuration: Configuration dict to compare
+        :return: True if unique, False otherwise
         """
-        query = db.session.query(SemanticView).filter(
-            SemanticView.name == name,
-            SemanticView.semantic_layer_uuid == layer_uuid,
-            SemanticView.uuid != view_uuid,
+        candidates = (
+            db.session.query(SemanticView)
+            .filter(
+                SemanticView.name == name,
+                SemanticView.semantic_layer_uuid == layer_uuid,
+                SemanticView.uuid != view_uuid,
+            )
+            .all()
         )
-        return not db.session.query(query.exists()).scalar()
+        return not any(json.loads(c.configuration) == configuration for c in candidates)
 
     @staticmethod
     def find_by_name(name: str, layer_uuid: str) -> SemanticView | None:
