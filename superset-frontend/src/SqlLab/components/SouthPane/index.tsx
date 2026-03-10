@@ -80,7 +80,7 @@ const StyledPane = styled.div`
       ${({ theme }) => theme.sizeUnit * 2}px;
   }
   .ant-tabs-tabpane {
-    padding-top: ${({ theme }) => theme.sizeUnit * 4}px;
+    padding-top: ${({ theme }) => theme.sizeUnit * 3}px;
     .scrollable {
       overflow-y: auto;
     }
