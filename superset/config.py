@@ -2114,7 +2114,7 @@ DATABASE_OAUTH2_TIMEOUT = timedelta(seconds=30)
 # For databases with a matching database_name, the upstream login token will be
 # forwarded instead of triggering a separate database OAuth2 dance.
 # Requires `save_token: True` in the corresponding OAUTH_PROVIDERS entry.
-# Example: {"trino_prod": "my_keycloak_provider", "trino_staging": "my_keycloak_provider"}
+# Example: {"trino_prod": "my_keycloak_prov", "trino_staging": "my_keycloak_prov"}
 DATABASE_OAUTH2_UPSTREAM_PROVIDERS: dict[str, str] = {}
 
 # Enable/disable CSP warning
