@@ -98,6 +98,17 @@ export const GlobalStyles = () => {
         [role='button'] {
           cursor: pointer;
         }
+
+        // Override geostyler CSS that hides AntD ColorPicker alpha input
+        // See: https://github.com/apache/superset/issues/34721
+        .ant-color-picker .ant-color-picker-alpha-input {
+          display: block;
+        }
+
+        .ant-color-picker .ant-color-picker-slider-alpha {
+          display: flex;
+          margin-top: ${theme.marginXS}px;
+        }
       `}
     />
   );
