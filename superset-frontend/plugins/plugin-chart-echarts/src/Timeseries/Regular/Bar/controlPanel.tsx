@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { ensureIsArray, JsonArray } from '@superset-ui/core';
 import {
   ControlPanelConfig,
@@ -35,12 +35,13 @@ import {
   minorTicks,
   richTooltipSection,
   seriesOrderSection,
-  showValueSection,
+  showValueSectionWithoutStream,
   truncateXAxis,
   xAxisBounds,
   xAxisLabelRotation,
   xAxisLabelInterval,
   forceMaxInterval,
+  colorByPrimaryAxisSection,
 } from '../../../controls';
 
 import { OrientationType } from '../../types';
@@ -327,7 +328,8 @@ const config: ControlPanelConfig = {
         ...seriesOrderSection,
         ['color_scheme'],
         ['time_shift_color'],
-        ...showValueSection,
+        ...showValueSectionWithoutStream,
+        ...colorByPrimaryAxisSection,
         [
           {
             name: 'stackDimension',
@@ -372,14 +374,22 @@ const config: ControlPanelConfig = {
         ...richTooltipSection,
         [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
         ...createAxisControl('y'),
+        ['echart_options'],
       ],
     },
   ],
-  formDataOverrides: formData => ({
-    ...formData,
-    metrics: getStandardizedControls().popAllMetrics(),
-    groupby: getStandardizedControls().popAllColumns(),
-  }),
+  formDataOverrides: formData => {
+    // Reset stack to null if it's Stream when switching to Bar chart
+    const formDataWithStack = formData as Record<string, unknown>;
+    return {
+      ...formData,
+      metrics: getStandardizedControls().popAllMetrics(),
+      groupby: getStandardizedControls().popAllColumns(),
+      ...(formDataWithStack.stack === StackControlsValue.Stream && {
+        stack: null,
+      }),
+    };
+  },
 };
 
 export default config;

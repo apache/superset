@@ -25,7 +25,8 @@ import {
   useState,
 } from 'react';
 import { LatestQueryFormData } from '@superset-ui/core';
-import { css, t } from '@apache-superset/core/ui';
+import { css } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { Input, Space, Typography } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
 import { URL_PARAMS } from 'src/constants';
@@ -105,7 +106,7 @@ const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
           shouldShowText={false}
           text={html}
           copyNode={
-            <span role="button" aria-label="Copy to clipboard">
+            <span role="button" aria-label={t('Copy to clipboard')}>
               <Icons.CopyOutlined />
             </span>
           }

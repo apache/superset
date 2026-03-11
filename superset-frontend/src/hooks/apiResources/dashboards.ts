@@ -17,14 +17,42 @@
  * under the License.
  */
 
+import rison from 'rison';
 import { Dashboard, Datasource, EmbeddedDashboard } from 'src/dashboard/types';
 import { Chart } from 'src/types/Chart';
 import { Currency } from '@superset-ui/core';
 import { useApiV1Resource, useTransformedResource } from './apiResources';
 
-export const useDashboard = (idOrSlug: string | number) =>
-  useTransformedResource(
-    useApiV1Resource<Dashboard>(`/api/v1/dashboard/${idOrSlug}`),
+const DASHBOARD_GET_COLUMNS = [
+  'id',
+  'slug',
+  'url',
+  'dashboard_title',
+  'published',
+  'css',
+  'theme',
+  'json_metadata',
+  'position_json',
+  'certified_by',
+  'certification_details',
+  'changed_by_name',
+  'changed_by',
+  'changed_on',
+  'created_by',
+  'charts',
+  'owners',
+  'roles',
+  'tags',
+  'changed_on_delta_humanized',
+  'created_on_delta_humanized',
+  'is_managed_externally',
+  'uuid',
+];
+
+export const useDashboard = (idOrSlug: string | number) => {
+  const q = rison.encode({ columns: DASHBOARD_GET_COLUMNS });
+  return useTransformedResource(
+    useApiV1Resource<Dashboard>(`/api/v1/dashboard/${idOrSlug}?q=${q}`),
     dashboard => ({
       ...dashboard,
       // TODO: load these at the API level
@@ -35,6 +63,7 @@ export const useDashboard = (idOrSlug: string | number) =>
       owners: dashboard.owners || [],
     }),
   );
+};
 
 // gets the chart definitions for a dashboard
 export const useDashboardCharts = (idOrSlug: string | number) =>

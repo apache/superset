@@ -276,7 +276,7 @@ describe('SuperChart', () => {
   };
 
   // Update the resize observer trigger to ensure it's called after component mount
-  /* oxlint-disable-next-line jest/no-disabled-tests */
+  /* oxlint-disable-next-line jest/no-disabled-tests, jest/expect-expect -- skipped test */
   test.skip('works when width and height are percent', async () => {
     const { container } = render(
       <SuperChart

@@ -678,7 +678,7 @@ class TestSqlaTableModel(SupersetTestCase):
             datasource_id=tbl.id,
         )
         dashboard.slices.append(slc)
-        datasource_info = slc.datasource.data_for_slices([slc])
+        datasource_info = tbl.data_for_slices([slc])
         assert "database" in datasource_info
 
         # clean up and auto commit

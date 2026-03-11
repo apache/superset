@@ -45,6 +45,7 @@
 
     "baseUrl": ".",
     "paths": {
+      "@storybook-shared": ["./.storybook/shared"],
       "@superset-ui/core": ["./packages/superset-ui-core/src"],
       "@superset-ui/core/*": ["./packages/superset-ui-core/src/*"],
       "@superset-ui/chart-controls": [
@@ -68,6 +69,7 @@
     "./plugins/**/*",
     "./packages/**/*",
     "./scripts/**/*",
+    "./.storybook/**/*",
     "./webpack.config.js",
     "./webpack*.js",
     "./package.json"

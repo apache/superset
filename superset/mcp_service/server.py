@@ -29,11 +29,41 @@ from typing import Any
 import uvicorn
 
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
-from superset.mcp_service.mcp_config import (
-    get_mcp_factory_config,
-    MCP_STORE_CONFIG,
+from superset.mcp_service.mcp_config import get_mcp_factory_config, MCP_STORE_CONFIG
+from superset.mcp_service.middleware import (
+    create_response_size_guard_middleware,
+    GlobalErrorHandlerMiddleware,
+    LoggingMiddleware,
 )
 from superset.mcp_service.storage import _create_redis_store
+
+logger = logging.getLogger(__name__)
+
+
+def _suppress_third_party_warnings() -> None:
+    """Suppress known third-party deprecation warnings from MCP responses.
+
+    The MCP SDK captures Python warnings and forwards them to clients via
+    ``mcp.server.lowlevel.server:Warning:`` log entries.  This wastes LLM
+    tokens and causes clients to try to "fix" irrelevant internal warnings.
+
+    Suppressed warnings:
+    - marshmallow ``RemovedInMarshmallow4Warning`` (triggered during
+      database engine schema instantiation)
+    - google.api_core ``FutureWarning`` (Python version support notices)
+    """
+    import warnings
+
+    warnings.filterwarnings(
+        "ignore",
+        category=DeprecationWarning,
+        module=r"marshmallow\..*",
+    )
+    warnings.filterwarnings(
+        "ignore",
+        category=FutureWarning,
+        module=r"google\..*",
+    )
 
 
 def configure_logging(debug: bool = False) -> None:
@@ -121,6 +151,40 @@ def create_event_store(config: dict[str, Any] | None = None) -> Any | None:
         return None
 
 
+def _create_auth_provider(flask_app: Any) -> Any | None:
+    """Create an auth provider from Flask app config.
+
+    Tries MCP_AUTH_FACTORY first, then falls back to the default factory
+    when MCP_AUTH_ENABLED is True.
+    """
+    auth_provider = None
+    if auth_factory := flask_app.config.get("MCP_AUTH_FACTORY"):
+        try:
+            auth_provider = auth_factory(flask_app)
+            logger.info(
+                "Auth provider created from MCP_AUTH_FACTORY: %s",
+                type(auth_provider).__name__ if auth_provider else "None",
+            )
+        except Exception:
+            # Do not log the exception — it may contain secrets
+            logger.error("Failed to create auth provider from MCP_AUTH_FACTORY")
+    elif flask_app.config.get("MCP_AUTH_ENABLED", False):
+        from superset.mcp_service.mcp_config import (
+            create_default_mcp_auth_factory,
+        )
+
+        try:
+            auth_provider = create_default_mcp_auth_factory(flask_app)
+            logger.info(
+                "Auth provider created from default factory: %s",
+                type(auth_provider).__name__ if auth_provider else "None",
+            )
+        except Exception:
+            # Do not log the exception — it may contain secrets
+            logger.error("Failed to create auth provider from default factory")
+    return auth_provider
+
+
 def run_server(
     host: str = "127.0.0.1",
     port: int = 5008,
@@ -145,6 +209,7 @@ def run_server(
     """
 
     configure_logging(debug)
+    _suppress_third_party_warnings()
 
     # DO NOT IMPORT TOOLS HERE!! IMPORT THEM IN app.py!!!!!
 
@@ -160,25 +225,27 @@ def run_server(
         from superset.mcp_service.flask_singleton import get_flask_app
 
         flask_app = get_flask_app()
-
-        # Get auth factory from config and create auth provider
-        auth_provider = None
-        auth_factory = flask_app.config.get("MCP_AUTH_FACTORY")
-        if auth_factory:
-            try:
-                auth_provider = auth_factory(flask_app)
-                logging.info(
-                    "Auth provider created: %s",
-                    type(auth_provider).__name__ if auth_provider else "None",
-                )
-            except Exception as e:
-                logging.error("Failed to create auth provider: %s", e)
+        auth_provider = _create_auth_provider(flask_app)
 
         # Build middleware list
+        # FastMCP wraps handlers so that the LAST-added middleware is
+        # outermost.  Order here is innermost → outermost.
         middleware_list = []
+
+        # Add caching middleware (innermost – runs closest to the tool)
         caching_middleware = create_response_caching_middleware()
         if caching_middleware:
             middleware_list.append(caching_middleware)
+
+        # Add response size guard (protects LLM clients from huge responses)
+        if size_guard_middleware := create_response_size_guard_middleware():
+            middleware_list.append(size_guard_middleware)
+
+        # Add logging middleware (logs all tool calls with duration tracking)
+        middleware_list.append(LoggingMiddleware())
+
+        # Add global error handler (outermost – catches all exceptions)
+        middleware_list.append(GlobalErrorHandlerMiddleware())
 
         mcp_instance = init_fastmcp_server(
             auth=auth_provider,
