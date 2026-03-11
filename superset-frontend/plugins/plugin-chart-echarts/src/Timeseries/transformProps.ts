@@ -649,6 +649,13 @@ export default function transformProps(
     isHorizontal,
   );
 
+  // Reduce grid padding for compact charts to maximize the drawing area.
+  // Keep enough top padding so the max label doesn't clip against the cell border.
+  if (height < 100) {
+    padding.top = Math.min(padding.top, 12);
+    padding.bottom = Math.min(padding.bottom, 5);
+  }
+
   const legendData =
     colorByPrimaryAxis && groupBy.length === 0 && series.length > 0
       ? // When colorByPrimaryAxis is enabled, show only primary axis values (deduped + filtered)
@@ -734,14 +741,30 @@ export default function transformProps(
     ),
   };
 
+  // Adapt y-axis to chart height: three tiers based on available space.
+  // >= 100px: full axis with proportional tick count
+  // 60-99px: show only min/max labels, hide lines/ticks
+  // < 60px: hide all axis decorations, show line only
+  const isCompactChart = height < 100;
+  const isMicroChart = height < 60;
+  const yAxisSplitNumber = isCompactChart
+    ? undefined
+    : Math.max(3, Math.floor(height / 80));
+
   let yAxis: any = {
     ...defaultYAxis,
     type: logAxis ? AxisType.Log : AxisType.Value,
+    ...(yAxisSplitNumber !== undefined && { splitNumber: yAxisSplitNumber }),
     min: yAxisMin,
     max: yAxisMax,
-    minorTick: { show: minorTicks },
-    minorSplitLine: { show: minorSplitLine },
+    minorTick: { show: isCompactChart ? false : minorTicks },
+    minorSplitLine: { show: isCompactChart ? false : minorSplitLine },
+    splitLine: { show: !isCompactChart },
     axisLabel: {
+      show: !isMicroChart,
+      showMinLabel: !isMicroChart,
+      showMaxLabel: !isMicroChart,
+      hideOverlap: true,
       formatter: getYAxisFormatter(
         metrics,
         forcePercentFormatter,
@@ -750,8 +773,9 @@ export default function transformProps(
         yAxisFormat,
       ),
     },
+    axisTick: { show: !isCompactChart },
     scale: truncateYAxis,
-    name: yAxisTitle,
+    name: isCompactChart ? undefined : yAxisTitle,
     nameGap: convertInteger(yAxisTitleMargin),
     nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
   };
@@ -897,7 +921,8 @@ export default function transformProps(
       ...getLegendProps(
         legendType,
         legendOrientation,
-        showLegend,
+        // Hide legend on compact charts — not enough vertical space
+        isCompactChart ? false : showLegend,
         theme,
         zoomable,
         legendState,
