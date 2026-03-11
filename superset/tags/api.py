@@ -542,27 +542,29 @@ class TagRestApi(BaseSupersetModelRestApi):
         """Get all objects associated with a tag.
         ---
         get:
-          summary: Get all objects associated with a tag. If tagIds is set tags will be ignored.
+          summary: Get all objects associated with a tag
+          description: >-
+            Get all objects associated with a tag.
+            If tagIds is set, tags will be ignored.
           parameters:
-          - in: path
+          - in: query
             name: tagIds
             schema:
               type: array
               items:
                 type: integer
-          - in: path
+          - in: query
             name: tags
             schema:
               type: array
               items:
                 type: string
-          - in: path
+          - in: query
             name: types
             schema:
               type: array
               items:
                 type: string
-
           responses:
             200:
               description: List of tagged objects associated with a Tag
