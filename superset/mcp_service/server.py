@@ -116,7 +116,7 @@ def create_event_store(config: dict[str, Any] | None = None) -> Any | None:
     if config is None:
         config = MCP_STORE_CONFIG
 
-    if not (redis_url := config.get("CACHE_REDIS_URL")):
+    if not config.get("CACHE_REDIS_URL"):
         logging.info("EventStore: Using in-memory storage (single-pod mode)")
         return None
 
@@ -204,8 +204,7 @@ def _fix_call_tool_schema(transform: Any) -> None:
 
     def patched_make_call_tool() -> Any:
         tool = original_make()
-        props = (tool.parameters or {}).get("properties", {})
-        if "arguments" in props:
+        if "arguments" in (props := (tool.parameters or {}).get("properties", {})):
             props["arguments"] = {
                 "additionalProperties": True,
                 "default": None,
