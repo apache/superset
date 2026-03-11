@@ -20,6 +20,7 @@ import fetchMock from 'fetch-mock';
 import WS from 'jest-websocket-mock';
 import { parseErrorJson, isFeatureEnabled } from '@superset-ui/core';
 import * as asyncEvent from 'src/middleware/asyncEvent';
+import { Mock } from 'vitest';
 
 vi.mock('@superset-ui/core', async importActual => ({
   ...(await importActual()),

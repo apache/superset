@@ -207,7 +207,7 @@ describe('callApi()', () => {
         // corruptObject has no toString method and will fail cast to String()
         corrupt: [corruptObject],
       };
-      vi.spyOn(console, 'error').mockImplementation();
+      vi.spyOn(console, 'error').mockImplementation(() => {});
 
       await callApi({
         url: mockPostUrl,

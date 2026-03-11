@@ -33,6 +33,7 @@ import { JsonObject, VizType } from '@superset-ui/core';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { getParsedExploreURLParams } from 'src/explore/exploreUtils/getParsedExploreURLParams';
 import ChartPage from '.';
+import { Mock } from 'vitest';
 
 vi.mock('src/hooks/useUnsavedChangesPrompt', () => ({
   useUnsavedChangesPrompt: vi.fn(),

@@ -19,6 +19,7 @@
 import fetchMock from 'fetch-mock';
 import { SupersetClientClass, ClientConfig, CallApi } from '@superset-ui/core';
 import { LOGIN_GLOB } from './fixtures/constants';
+import { Mock } from 'vitest';
 
 beforeAll(() => fetchMock.mockGlobal());
 afterAll(() => fetchMock.hardReset());
@@ -554,7 +555,7 @@ describe('SupersetClientClass', () => {
 
   describe('when unauthorized', () => {
     let originalLocation: any;
-    let authSpy: vi.SpyInstance;
+    let authSpy: Mock;
     const mockRequestUrl = 'https://host/get/url';
     const mockRequestPath = '/get/url';
     const mockRequestSearch = '?param=1&param=2';
@@ -571,7 +572,7 @@ describe('SupersetClientClass', () => {
       } as unknown as Location;
       authSpy = vi
         .spyOn(SupersetClientClass.prototype, 'ensureAuth')
-        .mockImplementation();
+        .mockImplementation(vi.fn());
       const rejectValue = { status: 401 };
       fetchMock.get(mockRequestUrl, () => Promise.reject(rejectValue));
     });
@@ -663,7 +664,7 @@ describe('SupersetClientClass', () => {
     const guestToken = 'test-guest-token';
     const postFormPayload = { number: 123, array: [1, 2, 3] };
 
-    let authSpy: vi.SpyInstance;
+    let authSpy: Mock;
     let client: SupersetClientClass;
     let appendChild: any;
     let removeChild: any;

@@ -25,18 +25,14 @@ import { SupersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import AsyncIcon from '../../../src/components/Icons/AsyncIcon';
 
 // Mock only the SVG import to prevent dynamic import issues
-vi.mock(
-  '!!@svgr/webpack!../../../src/assets/images/icons/slack.svg',
-  () => {
-    const MockSlackSVG = (props: any) => (
-      <svg {...props} viewBox="0 0 24 24" data-testid="slack-svg">
-        <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52z" />
-      </svg>
-    );
-    return { default: MockSlackSVG };
-  },
-  { virtual: true },
-);
+vi.mock('!!@svgr/webpack!../../../src/assets/images/icons/slack.svg', () => {
+  const MockSlackSVG = (props: any) => (
+    <svg {...props} viewBox="0 0 24 24" data-testid="slack-svg">
+      <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52z" />
+    </svg>
+  );
+  return { default: MockSlackSVG };
+});
 
 // Basic theme for testing
 const mockTheme: SupersetTheme = {

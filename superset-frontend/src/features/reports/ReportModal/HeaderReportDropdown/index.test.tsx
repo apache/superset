@@ -20,6 +20,7 @@ import { act, render, screen, userEvent } from 'spec/helpers/testing-library';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import { useHeaderReportMenuItems, HeaderReportProps } from './index';
+import { Mock } from 'vitest';
 
 const createProps = () => ({
   dashboardId: 1,
@@ -146,7 +147,7 @@ describe('Header Report Dropdown', () => {
   test('renders correctly', () => {
     const mockedProps = createProps();
     act(() => {
-      setup(mockedProps, stateWithUserAndReport);
+      setup(mockedProps as HeaderReportProps, stateWithUserAndReport);
     });
     expect(screen.getAllByRole('menuitem')[0]).toBeInTheDocument();
   });
@@ -154,7 +155,7 @@ describe('Header Report Dropdown', () => {
   test('renders the dropdown correctly', async () => {
     const mockedProps = createProps();
     act(() => {
-      setup(mockedProps, stateWithUserAndReport);
+      setup(mockedProps as HeaderReportProps, stateWithUserAndReport);
     });
     expect(await screen.findByText('Email reports active')).toBeInTheDocument();
     expect(screen.getByText('Edit email report')).toBeInTheDocument();
@@ -165,7 +166,7 @@ describe('Header Report Dropdown', () => {
     const mockedProps = createProps();
     mockedProps.showReportModal = vi.fn();
     act(() => {
-      setup(mockedProps, stateWithUserAndReport);
+      setup(mockedProps as HeaderReportProps, stateWithUserAndReport);
     });
     const editModal = await screen.findByText('Edit email report');
     userEvent.click(editModal);
@@ -176,7 +177,7 @@ describe('Header Report Dropdown', () => {
     const mockedProps = createProps();
     mockedProps.setCurrentReportDeleting = vi.fn();
     act(() => {
-      setup(mockedProps, stateWithUserAndReport);
+      setup(mockedProps as HeaderReportProps, stateWithUserAndReport);
     });
     const deleteModal = await screen.findByText('Delete email report');
     userEvent.click(deleteModal);
@@ -186,7 +187,7 @@ describe('Header Report Dropdown', () => {
   test('renders Manage Email Reports Menu if there is a report', async () => {
     const mockedProps = createProps();
     act(() => {
-      setup(mockedProps, stateWithUserAndReport);
+      setup(mockedProps as HeaderReportProps, stateWithUserAndReport);
     });
     expect(await screen.findByText('Email reports active')).toBeInTheDocument();
     expect(screen.getByText('Edit email report')).toBeInTheDocument();
@@ -197,7 +198,7 @@ describe('Header Report Dropdown', () => {
     const mockedProps = createProps();
 
     act(() => {
-      setup(mockedProps, stateWithOnlyUser);
+      setup(mockedProps as HeaderReportProps, stateWithOnlyUser);
     });
     expect(
       await screen.findByText('Set up an email report'),
@@ -207,7 +208,7 @@ describe('Header Report Dropdown', () => {
   test('renders Schedule Email Reports as long as user has permission through any role', async () => {
     const mockedProps = createProps();
     act(() => {
-      setup(mockedProps, stateWithNonAdminUser);
+      setup(mockedProps as HeaderReportProps, stateWithNonAdminUser);
     });
     userEvent.click(screen.getByRole('menuitem'));
     expect(
@@ -219,7 +220,7 @@ describe('Header Report Dropdown', () => {
     const mockedProps = createProps();
 
     act(() => {
-      setup(mockedProps, stateWithNonMenuAccessOnManage);
+      setup(mockedProps as HeaderReportProps, stateWithNonMenuAccessOnManage);
     });
 
     userEvent.click(screen.getByRole('menu'));

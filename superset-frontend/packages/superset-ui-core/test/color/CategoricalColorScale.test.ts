@@ -23,6 +23,7 @@ import {
   FeatureFlag,
   LabelsColorMapSource,
 } from '@superset-ui/core';
+import { Mock } from 'vitest';
 
 describe('CategoricalColorScale', () => {
   beforeEach(() => {
@@ -64,14 +65,8 @@ describe('CategoricalColorScale', () => {
 
   describe('.getColor(value, sliceId)', () => {
     let scale: CategoricalColorScale;
-    let addSliceSpy: vi.SpyInstance<
-      void,
-      [label: string, color: string, sliceId: number, colorScheme?: string]
-    >;
-    let getNextAvailableColorSpy: vi.SpyInstance<
-      string,
-      [currentLabel: string, currentColor: string]
-    >;
+    let addSliceSpy: Mock<typeof scale.labelsColorMapInstance.addSlice>;
+    let getNextAvailableColorSpy: Mock<typeof scale.getNextAvailableColor>;
 
     beforeEach(() => {
       scale = new CategoricalColorScale(['blue', 'red', 'green']);
@@ -94,9 +89,9 @@ describe('CategoricalColorScale', () => {
       const chartColorMap = new Map([['testValueChart', 'chartColor']]);
       const dashboardColorMap = new Map([['testValueDash', 'dashboardColor']]);
       scale.chartLabelsColorMap = chartColorMap;
-      jest
-        .spyOn(scale.labelsColorMapInstance, 'getColorMap')
-        .mockReturnValue(dashboardColorMap);
+      vi.spyOn(scale.labelsColorMapInstance, 'getColorMap').mockReturnValue(
+        dashboardColorMap,
+      );
 
       // Test when source is Dashboard
       scale.labelsColorMapInstance.source = LabelsColorMapSource.Dashboard;

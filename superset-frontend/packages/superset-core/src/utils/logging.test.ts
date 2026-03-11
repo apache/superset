@@ -24,9 +24,9 @@ beforeEach(() => {
 test('should pipe to `console` methods', () => {
   const { logging } = require('@apache-superset/core/utils');
 
-  vi.spyOn(logging, 'debug').mockImplementation();
-  vi.spyOn(logging, 'log').mockImplementation();
-  vi.spyOn(logging, 'info').mockImplementation();
+  vi.spyOn(logging, 'debug').mockImplementation(() => {});
+  vi.spyOn(logging, 'log').mockImplementation(() => {});
+  vi.spyOn(logging, 'info').mockImplementation(() => {});
   expect(() => {
     logging.debug();
     logging.log();

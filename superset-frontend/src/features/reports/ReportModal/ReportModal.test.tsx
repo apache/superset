@@ -26,6 +26,7 @@ import {
 import { FeatureFlag, VizType, isFeatureEnabled } from '@superset-ui/core';
 import * as actions from 'src/features/reports/ReportModal/actions';
 import ReportModal from '.';
+import { Mock } from 'vitest';
 
 const REPORT_ENDPOINT = 'glob:*/api/v1/report*';
 fetchMock.get(REPORT_ENDPOINT, {});

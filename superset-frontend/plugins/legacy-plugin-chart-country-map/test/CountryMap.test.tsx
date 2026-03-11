@@ -21,6 +21,7 @@ import '@testing-library/jest-dom';
 import { render, fireEvent } from '@testing-library/react';
 import d3 from 'd3';
 import ReactCountryMap from '../src/ReactCountryMap';
+import { Mock } from 'vitest';
 
 // d3 v3 APIs have loose types; cast to allow jest mock operations
 const d3Any = d3 as any;
