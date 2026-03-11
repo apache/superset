@@ -328,51 +328,34 @@ function getEndTimeFromGranularity(
 
   switch (granularity) {
     case TimeGranularity.SECOND:
-    case 'PT1S':
       return new Date(time + MS_IN_SECOND);
     case TimeGranularity.MINUTE:
-    case 'PT1M':
       return new Date(time + MS_IN_MINUTE);
     case TimeGranularity.FIVE_MINUTES:
-    case 'PT5M':
       return new Date(time + MS_IN_MINUTE * 5);
     case TimeGranularity.TEN_MINUTES:
-    case 'PT10M':
       return new Date(time + MS_IN_MINUTE * 10);
     case TimeGranularity.FIFTEEN_MINUTES:
-    case 'PT15M':
       return new Date(time + MS_IN_MINUTE * 15);
     case TimeGranularity.THIRTY_MINUTES:
-    case 'PT30M':
       return new Date(time + MS_IN_MINUTE * 30);
     case TimeGranularity.HOUR:
-    case 'PT1H':
       return new Date(time + MS_IN_HOUR);
     case TimeGranularity.DAY:
     case TimeGranularity.DATE:
-    case 'P1D':
-    case 'date':
       return new Date(Date.UTC(year, month, date + 1));
     case TimeGranularity.WEEK:
     case TimeGranularity.WEEK_STARTING_SUNDAY:
     case TimeGranularity.WEEK_STARTING_MONDAY:
-    case 'P1W':
-    case '1969-12-28T00:00:00Z/P1W':
-    case '1969-12-29T00:00:00Z/P1W':
       return new Date(Date.UTC(year, month, date + 7));
     case TimeGranularity.WEEK_ENDING_SATURDAY:
     case TimeGranularity.WEEK_ENDING_SUNDAY:
-    case 'P1W/1970-01-03T00:00:00Z':
-    case 'P1W/1970-01-04T00:00:00Z':
       return new Date(Date.UTC(year, month, date + 1));
     case TimeGranularity.MONTH:
-    case 'P1M':
       return new Date(Date.UTC(year, month + 1, 1));
     case TimeGranularity.QUARTER:
-    case 'P3M':
       return new Date(Date.UTC(year, Math.floor(month / 3) * 3 + 3, 1));
     case TimeGranularity.YEAR:
-    case 'P1Y':
       return new Date(Date.UTC(year + 1, 0, 1));
     default:
       return new Date(Date.UTC(year, month, date + 1));
@@ -626,23 +609,24 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         clientX: number,
         clientY: number,
       ) => {
-      const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
+        const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         filteredColumnsMeta.forEach(col => {
           if (!col.isMetric) {
             const dataRecordValue = value[col.key];
-            
+
             // Handle temporal columns differently to support time ranges
             if (col.dataType === GenericDataType.Temporal && timeGrain) {
               // Make sure the value is a Date
-              const startTime = dataRecordValue instanceof Date 
-                ? dataRecordValue 
-                : new Date(dataRecordValue as string | number);
-              
+              const startTime =
+                dataRecordValue instanceof Date
+                  ? dataRecordValue
+                  : new Date(dataRecordValue as string | number);
+
               // Calculate the end time based on the granularity
               const endTime = getEndTimeFromGranularity(startTime, timeGrain);
-              
+
               const timeRangeValue = `${startTime.toISOString()} : ${endTime.toISOString()}`;
-              
+
               drillToDetailFilters.push({
                 col: col.key,
                 op: 'TEMPORAL_RANGE',
@@ -652,11 +636,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               });
             } else {
               // Non-temporal columns use exact match
+              const sanitizedValue = extractTextFromHTML(dataRecordValue);
               drillToDetailFilters.push({
                 col: col.key,
                 op: '==',
-                val: dataRecordValue as string | number | boolean,
-                formattedVal: formatColumnValue(col, dataRecordValue)[1],
+                val: sanitizedValue as string | number | boolean,
+                formattedVal: formatColumnValue(col, sanitizedValue)[1],
               });
             }
           }
@@ -687,6 +672,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     isRawRecords,
     filteredColumnsMeta,
     getCrossFilterDataMask,
+    timeGrain,
   ]);
 
   const getHeaderColumns = useCallback(
