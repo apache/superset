@@ -29,6 +29,7 @@ import reducerIndex from 'spec/helpers/reducerIndex';
 import Header from '.';
 import { DASHBOARD_HEADER_ID } from '../../util/constants';
 import { UPDATE_COMPONENTS } from '../../actions/dashboardLayout';
+import { AutoRefreshStatus } from '../../types/autoRefresh';
 
 const initialState = {
   dashboardInfo: {
@@ -161,11 +162,38 @@ const setRefreshFrequency = jest.fn();
 const onRefresh = jest.fn();
 const dashboardInfoChanged = jest.fn();
 const dashboardTitleChanged = jest.fn();
+const startAutoRefresh = jest.fn();
+const endAutoRefresh = jest.fn();
+const setRefreshInFlight = jest.fn();
+const setStatus = jest.fn();
+const setFetchStartTime = jest.fn();
+const recordSuccess = jest.fn();
+const recordError = jest.fn();
+const setPaused = jest.fn();
+const setPausedByTab = jest.fn();
 
 jest.mock('src/hooks/useUnsavedChangesPrompt', () => ({
   useUnsavedChangesPrompt: jest.fn(),
 }));
+jest.mock('src/dashboard/contexts/AutoRefreshContext', () => ({
+  useAutoRefreshContext: jest.fn(),
+}));
+jest.mock('src/dashboard/hooks/useRealTimeDashboard', () => ({
+  useRealTimeDashboard: jest.fn(),
+}));
+jest.mock('src/dashboard/hooks/useAutoRefreshTabPause', () => ({
+  useAutoRefreshTabPause: jest.fn(),
+}));
 
+const useAutoRefreshContextMock = jest.requireMock(
+  'src/dashboard/contexts/AutoRefreshContext',
+).useAutoRefreshContext as jest.Mock;
+const useRealTimeDashboardMock = jest.requireMock(
+  'src/dashboard/hooks/useRealTimeDashboard',
+).useRealTimeDashboard as jest.Mock;
+const useAutoRefreshTabPauseMock = jest.requireMock(
+  'src/dashboard/hooks/useAutoRefreshTabPause',
+).useAutoRefreshTabPause as jest.Mock;
 beforeAll(() => {
   jest.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
     addSuccessToast,
@@ -202,6 +230,23 @@ beforeEach(() => {
     handleConfirmNavigation: jest.fn(),
     handleSaveAndCloseModal: jest.fn(),
   });
+  useAutoRefreshContextMock.mockReturnValue({
+    startAutoRefresh,
+    endAutoRefresh,
+    setRefreshInFlight,
+  });
+  useRealTimeDashboardMock.mockReturnValue({
+    isPaused: false,
+    setStatus,
+    setPaused,
+    setPausedByTab,
+    recordSuccess,
+    recordError,
+    setFetchStartTime,
+  });
+  useAutoRefreshTabPauseMock.mockImplementation(() => {});
+  fetchCharts.mockImplementation(() => undefined);
+  onRefresh.mockResolvedValue(undefined);
 
   window.history.pushState({}, 'Test page', '/dashboard?standalone=1');
 });
@@ -535,10 +580,91 @@ test('should render the dropdown icon', () => {
 });
 
 test('should refresh the charts', async () => {
-  setup();
+  setup({
+    dashboardState: {
+      ...initialState.dashboardState,
+      sliceIds: [1],
+    },
+    charts: {
+      1: { latestQueryFormData: { metric: 'value' } },
+    },
+  });
   await openActionsDropdown();
   userEvent.click(screen.getByText('Refresh dashboard'));
   expect(onRefresh).toHaveBeenCalledTimes(1);
+});
+
+test('auto-refresh uses onRefresh with skipped filters and toggles refresh state', async () => {
+  jest.useFakeTimers();
+  onRefresh.mockResolvedValue(undefined);
+
+  const originalRequestAnimationFrame = window.requestAnimationFrame;
+  window.requestAnimationFrame = callback => {
+    callback(0);
+    return 0;
+  };
+
+  try {
+    setup({
+      dashboardState: {
+        ...initialState.dashboardState,
+        refreshFrequency: 10,
+        sliceIds: [1, 2],
+      },
+      charts: {
+        1: { latestQueryFormData: { metric: 'a' }, chartStatus: 'success' },
+        2: { latestQueryFormData: { metric: 'b' }, chartStatus: 'success' },
+      },
+    });
+
+    jest.advanceTimersByTime(10000);
+    await waitFor(() =>
+      expect(onRefresh).toHaveBeenCalledWith([1, 2], true, 2000, 1, true),
+    );
+
+    expect(fetchCharts).not.toHaveBeenCalled();
+    expect(startAutoRefresh).toHaveBeenCalled();
+    expect(setStatus).toHaveBeenCalledWith(AutoRefreshStatus.Fetching);
+    expect(setRefreshInFlight).toHaveBeenCalledWith(true);
+    expect(setRefreshInFlight).toHaveBeenCalledWith(false);
+    expect(endAutoRefresh).toHaveBeenCalled();
+  } finally {
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+    jest.useRealTimers();
+  }
+});
+
+test('resume clears tab pause flag', () => {
+  useRealTimeDashboardMock.mockReturnValue({
+    isRealTimeDashboard: true,
+    isPaused: true,
+    isPausedByTab: true,
+    effectiveStatus: AutoRefreshStatus.Paused,
+    lastSuccessfulRefresh: null,
+    lastAutoRefreshTime: null,
+    refreshErrorCount: 0,
+    refreshFrequency: 10,
+    setStatus,
+    setPaused,
+    setPausedByTab,
+    recordSuccess,
+    recordError,
+    setFetchStartTime,
+    autoRefreshPauseOnInactiveTab: true,
+    setPauseOnInactiveTab: jest.fn(),
+  });
+
+  setup({
+    dashboardState: {
+      ...initialState.dashboardState,
+      refreshFrequency: 10,
+    },
+  });
+
+  userEvent.click(screen.getByTestId('auto-refresh-toggle'));
+
+  expect(setPaused).toHaveBeenCalledWith(false);
+  expect(setPausedByTab).toHaveBeenCalledWith(false);
 });
 
 test('should render an extension component if one is supplied', () => {

@@ -22,7 +22,7 @@ from typing import Any, Optional, Union
 
 import pytest
 from flask_appbuilder.security.sqla.models import User
-from superset_core.api.tasks import TaskScope
+from superset_core.tasks.types import TaskScope
 
 from superset.tasks.exceptions import ExecutorNotFoundError, InvalidExecutorError
 from superset.tasks.types import Executor, ExecutorType, FixedExecutor

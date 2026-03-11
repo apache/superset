@@ -19,7 +19,7 @@
 import { ReactElement, cloneElement } from 'react';
 
 import { Dropdown as AntdDropdown, DropdownProps } from 'antd';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import {
   IconOrientation,

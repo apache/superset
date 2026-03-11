@@ -151,8 +151,8 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
 
     # pylint: disable=invalid-name
     encrypted_extra_sensitive_fields = {
-        "$.auth_params.privatekey_body",
-        "$.auth_params.privatekey_pass",
+        "$.auth_params.privatekey_body": "Private Key Body",
+        "$.auth_params.privatekey_pass": "Private Key Password",
     }
 
     _time_grain_expressions = {

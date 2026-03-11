@@ -88,11 +88,9 @@ class ChartInfo(BaseModel):
     viz_type: str | None = Field(None, description="Visualization type")
     datasource_name: str | None = Field(None, description="Datasource name")
     datasource_type: str | None = Field(None, description="Datasource type")
-    url: str | None = Field(None, description="Chart URL")
+    url: str | None = Field(None, description="Chart explore page URL")
     description: str | None = Field(None, description="Chart description")
     cache_timeout: int | None = Field(None, description="Cache timeout")
-    form_data: Dict[str, Any] | None = Field(None, description="Chart form data")
-    query_context: Any | None = Field(None, description="Query context")
     changed_by: str | None = Field(None, description="Last modifier (username)")
     changed_by_name: str | None = Field(
         None, description="Last modifier (display name)"
@@ -111,6 +109,24 @@ class ChartInfo(BaseModel):
     uuid: str | None = Field(None, description="Chart UUID")
     tags: List[TagInfo] = Field(default_factory=list, description="Chart tags")
     owners: List[UserInfo] = Field(default_factory=list, description="Chart owners")
+
+    # Fields for unsaved state support
+    form_data_key: str | None = Field(
+        None,
+        description=(
+            "Cache key used to retrieve unsaved form_data. When present, indicates "
+            "the form_data came from cache (unsaved edits) rather than the saved chart."
+        ),
+    )
+    is_unsaved_state: bool = Field(
+        default=False,
+        description=(
+            "True if the form_data came from cache (unsaved edits) rather than the "
+            "saved chart configuration. When true, the data reflects what the user "
+            "sees in the Explore view, not the saved version."
+        ),
+    )
+
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
 
     @model_serializer(mode="wrap", when_used="json")
@@ -202,12 +218,26 @@ class VersionedResponse(BaseModel):
 
 
 class GetChartInfoRequest(BaseModel):
-    """Request schema for get_chart_info with support for ID or UUID."""
+    """Request schema for get_chart_info with support for ID or UUID.
+
+    When form_data_key is provided, the tool will retrieve the unsaved chart state
+    from cache, allowing you to explain what the user actually sees (not the saved
+    version). This is useful when a user edits a chart in Explore but hasn't saved yet.
+    """
 
     identifier: Annotated[
         int | str,
         Field(description="Chart identifier - can be numeric ID or UUID string"),
     ]
+    form_data_key: str | None = Field(
+        default=None,
+        description=(
+            "Optional cache key for retrieving unsaved chart state. When a user "
+            "edits a chart in Explore but hasn't saved, the current state is stored "
+            "with this key. If provided, the tool returns the current unsaved "
+            "configuration instead of the saved version."
+        ),
+    )
 
 
 def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
@@ -231,8 +261,6 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         url=chart_url,
         description=getattr(chart, "description", None),
         cache_timeout=getattr(chart, "cache_timeout", None),
-        form_data=getattr(chart, "form_data", None),
-        query_context=getattr(chart, "query_context", None),
         changed_by=getattr(chart, "changed_by_name", None)
         or (str(chart.changed_by) if getattr(chart, "changed_by", None) else None),
         changed_by_name=getattr(chart, "changed_by_name", None),
@@ -457,6 +485,183 @@ class FilterConfig(BaseModel):
 
 
 # Actual chart types
+class PieChartConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    chart_type: Literal["pie"] = Field(
+        ...,
+        description=(
+            "Chart type discriminator - MUST be 'pie' for pie/donut charts. "
+            "This field is REQUIRED and tells Superset which chart "
+            "configuration schema to use."
+        ),
+    )
+    dimension: ColumnRef = Field(
+        ..., description="Category column that defines the pie slices"
+    )
+    metric: ColumnRef = Field(
+        ...,
+        description=(
+            "Value metric that determines slice sizes. "
+            "Must include an aggregate function (e.g., SUM, COUNT)."
+        ),
+    )
+    donut: bool = Field(False, description="Render as a donut chart with a center hole")
+    show_labels: bool = Field(True, description="Display labels on slices")
+    label_type: Literal[
+        "key",
+        "value",
+        "percent",
+        "key_value",
+        "key_percent",
+        "key_value_percent",
+        "value_percent",
+    ] = Field("key_value_percent", description="Type of labels to show on slices")
+    sort_by_metric: bool = Field(True, description="Sort slices by metric value")
+    show_legend: bool = Field(True, description="Whether to show legend")
+    filters: List[FilterConfig] | None = Field(None, description="Filters to apply")
+    row_limit: int = Field(
+        100,
+        description="Maximum number of slices to display",
+        ge=1,
+        le=10000,
+    )
+    number_format: str = Field(
+        "SMART_NUMBER",
+        description="Number format string",
+        max_length=50,
+    )
+    show_total: bool = Field(False, description="Display aggregate count in center")
+    labels_outside: bool = Field(True, description="Place labels outside the pie")
+    outer_radius: int = Field(
+        70,
+        description="Outer edge radius as a percentage (1-100)",
+        ge=1,
+        le=100,
+    )
+    inner_radius: int = Field(
+        30,
+        description="Inner radius as a percentage for donut (1-100)",
+        ge=1,
+        le=100,
+    )
+
+
+class PivotTableChartConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    chart_type: Literal["pivot_table"] = Field(
+        ...,
+        description=(
+            "Chart type discriminator - MUST be 'pivot_table' for interactive "
+            "pivot tables. This field is REQUIRED."
+        ),
+    )
+    rows: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description="Row grouping columns (at least one required)",
+    )
+    columns: List[ColumnRef] | None = Field(
+        None,
+        description="Column grouping columns (optional, for cross-tabulation)",
+    )
+    metrics: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Metrics to aggregate. Each must have an aggregate function "
+            "(e.g., SUM, COUNT, AVG)."
+        ),
+    )
+    aggregate_function: Literal[
+        "Sum",
+        "Average",
+        "Median",
+        "Sample Variance",
+        "Sample Standard Deviation",
+        "Minimum",
+        "Maximum",
+        "Count",
+        "Count Unique Values",
+        "First",
+        "Last",
+    ] = Field("Sum", description="Default aggregation function for the pivot table")
+    show_row_totals: bool = Field(True, description="Show row totals")
+    show_column_totals: bool = Field(True, description="Show column totals")
+    transpose: bool = Field(False, description="Swap rows and columns")
+    combine_metric: bool = Field(
+        False,
+        description="Display metrics side by side within columns",
+    )
+    filters: List[FilterConfig] | None = Field(None, description="Filters to apply")
+    row_limit: int = Field(
+        10000,
+        description="Maximum number of cells",
+        ge=1,
+        le=50000,
+    )
+    value_format: str = Field(
+        "SMART_NUMBER",
+        description="Value format string",
+        max_length=50,
+    )
+
+
+class MixedTimeseriesChartConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    chart_type: Literal["mixed_timeseries"] = Field(
+        ...,
+        description=(
+            "Chart type discriminator - MUST be 'mixed_timeseries' for charts "
+            "that combine two different series types (e.g., line + bar). "
+            "This field is REQUIRED."
+        ),
+    )
+    x: ColumnRef = Field(..., description="X-axis temporal column (shared)")
+    time_grain: TimeGrain | None = Field(
+        None,
+        description=(
+            "Time granularity for the x-axis. "
+            "Common values: PT1H (hourly), P1D (daily), P1W (weekly), "
+            "P1M (monthly), P1Y (yearly)."
+        ),
+    )
+    # Primary series (Query A)
+    y: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description="Primary Y-axis metrics (Query A)",
+    )
+    primary_kind: Literal["line", "bar", "area", "scatter"] = Field(
+        "line", description="Primary series chart type"
+    )
+    group_by: ColumnRef | None = Field(
+        None, description="Group by column for primary series"
+    )
+    # Secondary series (Query B)
+    y_secondary: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description="Secondary Y-axis metrics (Query B)",
+    )
+    secondary_kind: Literal["line", "bar", "area", "scatter"] = Field(
+        "bar", description="Secondary series chart type"
+    )
+    group_by_secondary: ColumnRef | None = Field(
+        None, description="Group by column for secondary series"
+    )
+    # Display options
+    show_legend: bool = Field(True, description="Whether to show legend")
+    x_axis: AxisConfig | None = Field(None, description="X-axis configuration")
+    y_axis: AxisConfig | None = Field(None, description="Primary Y-axis configuration")
+    y_axis_secondary: AxisConfig | None = Field(
+        None, description="Secondary Y-axis configuration"
+    )
+    filters: List[FilterConfig] | None = Field(None, description="Filters to apply")
+
+
 class TableChartConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -544,6 +749,14 @@ class XYChartConfig(BaseModel):
             "If not specified, Superset will use its default behavior."
         ),
     )
+    orientation: Literal["vertical", "horizontal"] | None = Field(
+        None,
+        description=(
+            "Bar chart orientation. Only applies when kind='bar'. "
+            "'vertical' (default): bars extend upward. "
+            "'horizontal': bars extend rightward, useful for long category names."
+        ),
+    )
     stacked: bool = Field(
         False,
         description="Stack bars/areas on top of each other instead of side-by-side",
@@ -603,10 +816,17 @@ class XYChartConfig(BaseModel):
 
 # Discriminated union entry point with custom error handling
 ChartConfig = Annotated[
-    XYChartConfig | TableChartConfig,
+    XYChartConfig
+    | TableChartConfig
+    | PieChartConfig
+    | PivotTableChartConfig
+    | MixedTimeseriesChartConfig,
     Field(
         discriminator="chart_type",
-        description="Chart configuration - specify chart_type as 'xy' or 'table'",
+        description=(
+            "Chart configuration - specify chart_type as 'xy', 'table', "
+            "'pie', 'pivot_table', or 'mixed_timeseries'"
+        ),
     ),
 ]
 
@@ -792,9 +1012,24 @@ class UpdateChartPreviewRequest(FormDataCacheControl):
 
 
 class GetChartDataRequest(QueryCacheControl):
-    """Request for chart data with cache control."""
+    """Request for chart data with cache control.
+
+    When form_data_key is provided, the tool will use the unsaved chart configuration
+    from cache to query data, allowing you to get data for what the user actually sees
+    (not the saved version). This is useful when a user edits a chart in Explore but
+    hasn't saved yet.
+    """
 
     identifier: int | str = Field(description="Chart identifier (ID, UUID)")
+    form_data_key: str | None = Field(
+        default=None,
+        description=(
+            "Optional cache key for retrieving unsaved chart state. When a user "
+            "edits a chart in Explore but hasn't saved, the current state is stored "
+            "with this key. If provided, the tool uses this configuration to query "
+            "data instead of the saved chart configuration."
+        ),
+    )
     limit: int | None = Field(
         default=None,
         description=(
@@ -870,9 +1105,24 @@ class ChartData(BaseModel):
 
 
 class GetChartPreviewRequest(QueryCacheControl):
-    """Request for chart preview with cache control."""
+    """Request for chart preview with cache control.
+
+    When form_data_key is provided, the tool will render a preview using the unsaved
+    chart configuration from cache, allowing you to preview what the user actually sees
+    (not the saved version). This is useful when a user edits a chart in Explore but
+    hasn't saved yet.
+    """
 
     identifier: int | str = Field(description="Chart identifier (ID, UUID)")
+    form_data_key: str | None = Field(
+        default=None,
+        description=(
+            "Optional cache key for retrieving unsaved chart state. When a user "
+            "edits a chart in Explore but hasn't saved, the current state is stored "
+            "with this key. If provided, the tool renders a preview using this "
+            "configuration instead of the saved chart configuration."
+        ),
+    )
     format: Literal["url", "ascii", "table", "vega_lite"] = Field(
         default="url",
         description=(
@@ -1039,9 +1289,8 @@ class ChartPreview(BaseModel):
 
     # Backward compatibility fields (populated based on content type)
     format: str | None = Field(
-        None, description="Format of the preview (url, ascii, table, base64)"
+        None, description="Format of the preview (ascii, table, vega_lite)"
     )
-    preview_url: str | None = Field(None, description="Image URL for 'url' format")
     ascii_chart: str | None = Field(
         None, description="ASCII art chart for 'ascii' format"
     )

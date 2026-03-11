@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, SupersetTheme } from '@apache-superset/core';
+import { SupersetTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import {
   isFeatureEnabled,
   FeatureFlag,
@@ -25,7 +26,7 @@ import {
   SupersetClient,
   isMatrixifyEnabled,
 } from '@superset-ui/core';
-import { css, styled } from '@apache-superset/core/ui';
+import { css, styled } from '@apache-superset/core/theme';
 import { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';

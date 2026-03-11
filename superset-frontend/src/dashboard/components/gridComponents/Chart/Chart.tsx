@@ -19,7 +19,8 @@
 import cx from 'classnames';
 import { useCallback, useEffect, useRef, useMemo, useState, memo } from 'react';
 import type { ChartCustomization, JsonObject } from '@superset-ui/core';
-import { styled, t } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { debounce } from 'lodash';
 import { bindActionCreators } from 'redux';
 import { useDispatch, useSelector } from 'react-redux';
@@ -46,6 +47,7 @@ import {
   convertChartStateToOwnState,
   hasChartStateConverter,
 } from '../../../util/chartStateConverter';
+import { useIsAutoRefreshing } from 'src/dashboard/contexts/AutoRefreshContext';
 
 import SliceHeader from '../../SliceHeader';
 import MissingChart from '../../MissingChart';
@@ -232,6 +234,7 @@ const Chart = (props: ChartProps) => {
       (state.dashboardInfo?.metadata as JsonObject)?.show_chart_timestamps ??
       false,
   );
+  const suppressLoadingSpinner = useIsAutoRefreshing();
 
   const isCached: boolean[] = useMemo(
     () =>
@@ -497,6 +500,8 @@ const Chart = (props: ChartProps) => {
       } else if ((queriesResponse?.[0] as JsonObject)?.sql_rowcount != null) {
         actualRowCount = (queriesResponse![0] as JsonObject)
           .sql_rowcount as number;
+      } else if ((queriesResponse?.[0] as JsonObject)?.rowcount != null) {
+        actualRowCount = (queriesResponse![0] as JsonObject).rowcount as number;
       } else {
         actualRowCount = (exportFormData as JsonObject)?.row_limit as
           | number
@@ -708,7 +713,7 @@ const Chart = (props: ChartProps) => {
         className={cx('dashboard-chart')}
         aria-label={slice.description}
       >
-        {isLoading && (
+        {isLoading && !suppressLoadingSpinner && (
           <ChartOverlay
             style={{
               width,
@@ -756,6 +761,8 @@ const Chart = (props: ChartProps) => {
           isInView={props.isInView}
           emitCrossFilters={emitCrossFilters}
           onChartStateChange={handleChartStateChange}
+          suppressLoadingSpinner={suppressLoadingSpinner}
+          filterState={dataMask[props.id]?.filterState}
         />
       </ChartWrapper>
 

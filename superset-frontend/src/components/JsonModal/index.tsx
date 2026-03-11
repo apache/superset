@@ -19,7 +19,7 @@
 
 import { FC, useMemo } from 'react';
 import { JSONTree } from 'react-json-tree';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { useJsonTreeTheme } from 'src/hooks/useJsonTreeTheme';
 import { Button, ModalTrigger } from '@superset-ui/core/components';
 import { CopyToClipboard } from '../CopyToClipboard';

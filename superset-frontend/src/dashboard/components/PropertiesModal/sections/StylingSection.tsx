@@ -17,13 +17,14 @@
  * under the License.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   SupersetClient,
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
-import { styled, Alert } from '@apache-superset/core/ui';
+import { Alert } from '@apache-superset/core/components';
+import { styled } from '@apache-superset/core/theme';
 import { Select, Switch } from '@superset-ui/core/components';
 import { EditorHost } from 'src/core/editors';
 import rison from 'rison';

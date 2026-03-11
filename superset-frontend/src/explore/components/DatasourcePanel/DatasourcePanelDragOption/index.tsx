@@ -19,7 +19,7 @@
 import { RefObject } from 'react';
 import { useDrag } from 'react-dnd';
 import { Metric } from '@superset-ui/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import { DndItemType } from 'src/explore/components/DndItemType';
 import {
