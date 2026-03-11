@@ -29,7 +29,7 @@ import {
   Typography,
   Icons,
 } from '@superset-ui/core/components';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useId } from 'react';
 import { capitalize } from 'lodash/fp';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { useDispatch } from 'react-redux';
@@ -81,6 +81,8 @@ const StyledLabel = styled(Typography.Text)`
 export default function Login() {
   const [form] = Form.useForm<LoginForm>();
   const [loading, setLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
+  const loginErrorId = useId();
   const dispatch = useDispatch();
 
   const bootstrapData = getBootstrapData();
@@ -118,7 +120,11 @@ export default function Login() {
 
     if (loginAttempted === 'true') {
       sessionStorage.removeItem('login_attempted');
-      dispatch(addDangerToast(t('Invalid username or password')));
+      const errorMsg = t(
+        'Invalid login. Please check your username and password and try again.',
+      );
+      setLoginError(errorMsg);
+      dispatch(addDangerToast(errorMsg));
       // Clear password field for security
       form.setFieldsValue({ password: '' });
     }
@@ -204,6 +210,18 @@ export default function Login() {
             <Typography.Text type="secondary">
               {t('Enter your login and password below:')}
             </Typography.Text>
+            {loginError && (
+              <div
+                id={loginErrorId}
+                role="alert"
+                css={css`
+                  color: #cf1322;
+                  margin-bottom: 8px;
+                `}
+              >
+                {loginError}
+              </div>
+            )}
             <Form
               layout="vertical"
               requiredMark="optional"
@@ -222,6 +240,8 @@ export default function Login() {
                   autoComplete="username"
                   prefix={<Icons.UserOutlined iconSize="l" />}
                   data-test="username-input"
+                  aria-invalid={!!loginError}
+                  aria-describedby={loginError ? loginErrorId : undefined}
                 />
               </Form.Item>
               <Form.Item<LoginForm>
@@ -235,6 +255,8 @@ export default function Login() {
                   autoComplete="current-password"
                   prefix={<Icons.KeyOutlined iconSize="l" />}
                   data-test="password-input"
+                  aria-invalid={!!loginError}
+                  aria-describedby={loginError ? loginErrorId : undefined}
                 />
               </Form.Item>
               <Form.Item label={null}>

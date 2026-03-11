@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useMemo } from 'react';
+import { t } from '@apache-superset/core';
 import { css, useTheme } from '@apache-superset/core/ui';
 import { Button, Divider, Dropdown } from '@superset-ui/core/components';
 import { Menu, MenuItemType } from '@superset-ui/core/components/Menu';
@@ -150,6 +151,7 @@ const PanelToolbar = ({
             showMarginRight={false}
             color="primary"
             variant="text"
+            aria-label={t('More actions')}
             css={css`
               padding: 8px;
             `}

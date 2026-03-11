@@ -203,7 +203,7 @@ export default function ChartCard({
               />
             )}
             <Dropdown menu={{ items: menuItems }} trigger={['click', 'hover']}>
-              <Button buttonSize="xsmall" type="link" buttonStyle="link">
+              <Button buttonSize="xsmall" type="link" buttonStyle="link" aria-label={t('More actions')}>
                 <Icons.MoreOutlined iconSize="xl" />
               </Button>
             </Dropdown>

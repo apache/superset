@@ -192,7 +192,7 @@ function DashboardCard({
               />
             )}
             <Dropdown menu={{ items: menuItems }} trigger={['hover', 'click']}>
-              <Button buttonSize="xsmall" buttonStyle="link">
+              <Button buttonSize="xsmall" buttonStyle="link" aria-label={t('More actions')}>
                 <Icons.MoreOutlined iconSize="xl" />
               </Button>
             </Dropdown>

@@ -27,6 +27,7 @@ import { addDangerToast } from 'src/components/MessageToasts/actions';
 import type { SqlLabRootState } from 'src/SqlLab/types';
 import { SqlLabGlobalStyles } from 'src/SqlLab//SqlLabGlobalStyles';
 import App from 'src/SqlLab/components/App';
+import { t } from '@apache-superset/core';
 import { Loading } from '@superset-ui/core/components';
 import EditorAutoSync from 'src/SqlLab/components/EditorAutoSync';
 import useEffectEvent from 'src/hooks/useEffectEvent';
@@ -72,6 +73,7 @@ export default function SqlLab() {
           flex-direction: column;
         `}
       >
+        <h1 className="sr-only">{t('SQL Lab')}</h1>
         <SqlLabGlobalStyles />
         <App />
         {isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) && (

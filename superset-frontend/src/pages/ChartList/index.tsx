@@ -829,7 +829,7 @@ function ChartList(props: ChartListProps) {
           title={t('Import charts')}
           placement="bottomRight"
         >
-          <Icons.DownloadOutlined iconSize="l" data-test="import-button" />
+          <Icons.DownloadOutlined iconSize="l" data-test="import-button" aria-label={t('Import charts')} />
         </Tooltip>
       ),
       buttonStyle: 'link',
@@ -859,6 +859,7 @@ function ChartList(props: ChartListProps) {
 
   return (
     <>
+      <h1 className="sr-only">{t('Charts')}</h1>
       <SubMenu name={t('Charts')} buttons={subMenuButtons} />
       {sliceCurrentlyEditing && (
         <PropertiesModal
