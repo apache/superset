@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
 import { render, userEvent, waitFor } from 'spec/helpers/testing-library';
 import { initialState } from 'src/SqlLab/fixtures';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
-import type { contributions, core } from '@apache-superset/core';
-import ExtensionsManager from 'src/extensions/ExtensionsManager';
+import { views } from 'src/core';
+import { ViewLocations } from 'src/SqlLab/contributions';
 import AppLayout from './index';
 
 jest.mock('src/components/ResizableSidebar/useStoredSidebarWidth');
@@ -57,63 +58,9 @@ const defaultProps = {
   children: <div>Child</div>,
 };
 
-function createMockView(
-  id: string,
-  overrides: Partial<contributions.ViewContribution> = {},
-): contributions.ViewContribution {
-  return {
-    id,
-    name: `${id} View`,
-    ...overrides,
-  };
-}
-
-function setupActivatedExtension(
-  manager: ExtensionsManager,
-  extension: core.Extension,
-) {
-  const context = { disposables: [] };
-  (manager as any).contextIndex.set(extension.id, context);
-  (manager as any).extensionContributions.set(extension.id, {
-    commands: extension.contributions.commands,
-    menus: extension.contributions.menus,
-    views: extension.contributions.views,
-  });
-}
-
-async function createActivatedExtension(
-  manager: ExtensionsManager,
-  extensionOptions: Partial<core.Extension> = {},
-): Promise<core.Extension> {
-  const mockExtension: core.Extension = {
-    id: 'test-extension',
-    name: 'Test Extension',
-    description: 'A test extension',
-    version: '1.0.0',
-    dependencies: [],
-    remoteEntry: '',
-    exposedModules: [],
-    extensionDependencies: [],
-    contributions: {
-      commands: [],
-      menus: {},
-      views: {},
-    },
-    activate: jest.fn(),
-    deactivate: jest.fn(),
-    ...extensionOptions,
-  };
-
-  await manager.initializeExtension(mockExtension);
-  setupActivatedExtension(manager, mockExtension);
-
-  return mockExtension;
-}
-
 beforeEach(() => {
   jest.clearAllMocks();
   (useStoredSidebarWidth as jest.Mock).mockReturnValue([250, jest.fn()]);
-  (ExtensionsManager as any).instance = undefined;
 });
 
 test('renders two panels', () => {
@@ -147,20 +94,12 @@ test('calls setWidth on sidebar resize when not hidden', async () => {
   await waitFor(() => expect(setWidth).toHaveBeenCalled());
 });
 
-test('renders right sidebar when RIGHT_SIDEBAR_VIEW_ID view is contributed', async () => {
-  const manager = ExtensionsManager.getInstance();
-  const viewId = 'test-right-sidebar-view';
-  await createActivatedExtension(manager, {
-    contributions: {
-      commands: [],
-      menus: {},
-      views: {
-        sqllab: {
-          rightSidebar: [createMockView(viewId)],
-        },
-      },
-    },
-  });
+test('renders right sidebar when view is contributed at rightSidebar location', () => {
+  views.registerView(
+    { id: 'test-right-sidebar-view', name: 'Test Right Sidebar View' },
+    ViewLocations.sqllab.rightSidebar,
+    () => React.createElement('div', null, 'Right Sidebar Content'),
+  );
 
   const { getByText, getAllByTestId } = render(
     <AppLayout {...defaultProps} />,

@@ -24,45 +24,32 @@
  * and resolution functions declared in the API types.
  */
 
-import type { contributions } from '@apache-superset/core';
 import { editors as editorsApi } from '@apache-superset/core';
-import ExtensionsManager from 'src/extensions/ExtensionsManager';
 import { Disposable } from '../models';
 import EditorProviders from './EditorProviders';
 
-type EditorLanguage = contributions.EditorLanguage;
+type EditorLanguage = editorsApi.EditorLanguage;
+type Editor = editorsApi.Editor;
 type EditorProvider = editorsApi.EditorProvider;
 type EditorComponent = editorsApi.EditorComponent;
-type EditorProviderRegisteredEvent = editorsApi.EditorProviderRegisteredEvent;
-type EditorProviderUnregisteredEvent =
-  editorsApi.EditorProviderUnregisteredEvent;
+type EditorRegisteredEvent = editorsApi.EditorRegisteredEvent;
+type EditorUnregisteredEvent = editorsApi.EditorUnregisteredEvent;
 
 /**
- * Register an editor provider for specific languages.
- * The contribution metadata is resolved from the extension manifest by ID.
+ * Register an editor provider as a module-level side effect.
+ * Takes the editor descriptor directly rather than looking it up
+ * from a manifest by ID.
  *
- * @param id The editor contribution ID declared in extension.json
- * @param component The React component implementing EditorProps
- * @returns A Disposable to unregister the provider
+ * @param editor The editor descriptor.
+ * @param component The React component implementing the editor.
+ * @returns A Disposable to unregister the provider.
  */
-export const registerEditorProvider = (
-  id: string,
+export const registerEditor = (
+  editor: Editor,
   component: EditorComponent,
 ): Disposable => {
-  const manager = ExtensionsManager.getInstance();
-  const contribution = manager.getEditorContributions().find(c => c.id === id);
-
-  if (!contribution) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      `No editor contribution found in extension.json for id "${id}". ` +
-        'Ensure the editor is declared in the contributions.editors array.',
-    );
-    return new Disposable(() => {});
-  }
-
   const providers = EditorProviders.getInstance();
-  return providers.registerProvider(contribution, component);
+  return providers.registerProvider(editor, component);
 };
 
 /**
@@ -72,7 +59,7 @@ export const registerEditorProvider = (
  * @param language The language to get an editor for
  * @returns The editor provider or undefined if no extension provides one
  */
-export const getEditorProvider = (
+export const getEditor = (
   language: EditorLanguage,
 ): EditorProvider | undefined => {
   const manager = EditorProviders.getInstance();
@@ -85,7 +72,7 @@ export const getEditorProvider = (
  * @param language The language to check
  * @returns True if an extension provides an editor for this language
  */
-export const hasEditorProvider = (language: EditorLanguage): boolean => {
+export const hasEditor = (language: EditorLanguage): boolean => {
   const manager = EditorProviders.getInstance();
   return manager.hasProvider(language);
 };
@@ -95,28 +82,28 @@ export const hasEditorProvider = (language: EditorLanguage): boolean => {
  *
  * @returns Array of all registered editor providers
  */
-export const getAllEditorProviders = (): EditorProvider[] => {
+export const getAllEditors = (): EditorProvider[] => {
   const manager = EditorProviders.getInstance();
   return manager.getAllProviders();
 };
 
 /**
- * Event fired when an editor provider is registered.
+ * Event fired when an editor is registered.
  * Subscribe to this event to react when extensions register new editors.
  */
-export const onDidRegisterEditorProvider = (
-  listener: (e: EditorProviderRegisteredEvent) => void,
+export const onDidRegisterEditor = (
+  listener: (e: EditorRegisteredEvent) => void,
 ): Disposable => {
   const manager = EditorProviders.getInstance();
   return manager.onDidRegister(listener);
 };
 
 /**
- * Event fired when an editor provider is unregistered.
+ * Event fired when an editor is unregistered.
  * Subscribe to this event to react when extensions unregister editors.
  */
-export const onDidUnregisterEditorProvider = (
-  listener: (e: EditorProviderUnregisteredEvent) => void,
+export const onDidUnregisterEditor = (
+  listener: (e: EditorUnregisteredEvent) => void,
 ): Disposable => {
   const manager = EditorProviders.getInstance();
   return manager.onDidUnregister(listener);
@@ -126,12 +113,12 @@ export const onDidUnregisterEditorProvider = (
  * Editors API object for use in the extension system.
  */
 export const editors: typeof editorsApi = {
-  registerEditorProvider,
-  getEditorProvider,
-  hasEditorProvider,
-  getAllEditorProviders,
-  onDidRegisterEditorProvider,
-  onDidUnregisterEditorProvider,
+  registerEditor,
+  getEditor,
+  hasEditor,
+  getAllEditors,
+  onDidRegisterEditor,
+  onDidUnregisterEditor,
 };
 
 export { EditorProviders };

@@ -17,7 +17,8 @@
  * under the License.
  */
 const { execSync } = require('child_process');
-const { google } = require('googleapis');
+const { GoogleAuth } = require('google-auth-library');
+const googleSheets = require('@googleapis/sheets');
 
 const { SPREADSHEET_ID } = process.env;
 const SERVICE_ACCOUNT_KEY = JSON.parse(process.env.SERVICE_ACCOUNT_KEY || '{}');
@@ -25,11 +26,11 @@ const SERVICE_ACCOUNT_KEY = JSON.parse(process.env.SERVICE_ACCOUNT_KEY || '{}');
 // Only set up Google Sheets if we have credentials
 let sheets;
 if (SERVICE_ACCOUNT_KEY.client_email) {
-  const auth = new google.auth.GoogleAuth({
+  const auth = new GoogleAuth({
     credentials: SERVICE_ACCOUNT_KEY,
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
-  sheets = google.sheets({ version: 'v4', auth });
+  sheets = googleSheets.sheets({ version: 'v4', auth });
 }
 
 const DATETIME = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');

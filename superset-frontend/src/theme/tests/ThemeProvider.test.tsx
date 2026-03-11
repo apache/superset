@@ -21,7 +21,7 @@ import {
   type ThemeContextType,
   Theme,
   ThemeMode,
-} from '@apache-superset/core/ui';
+} from '@apache-superset/core/theme';
 import { act, render, screen } from '@superset-ui/core/spec';
 import { renderHook } from '@testing-library/react-hooks';
 import { SupersetThemeProvider, useThemeContext } from '../ThemeProvider';

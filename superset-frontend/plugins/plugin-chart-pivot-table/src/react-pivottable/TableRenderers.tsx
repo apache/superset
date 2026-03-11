@@ -19,7 +19,7 @@
 
 import { Component, ReactNode, MouseEvent } from 'react';
 import { safeHtmlSpan } from '@superset-ui/core';
-import { t } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
 import PropTypes from 'prop-types';
 import { FaSort } from 'react-icons/fa';
 import { FaSortDown as FaSortDesc } from 'react-icons/fa';

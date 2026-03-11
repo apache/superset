@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { ToastMeta } from 'src/components/MessageToasts/types';
 import Toast from './Toast';
 

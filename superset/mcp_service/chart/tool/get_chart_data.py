@@ -25,7 +25,7 @@ from typing import Any, Dict, List, TYPE_CHECKING
 
 from fastmcp import Context
 from flask import current_app
-from superset_core.mcp import tool
+from superset_core.mcp.decorators import tool
 
 if TYPE_CHECKING:
     from superset.models.slice import Slice
@@ -462,6 +462,7 @@ async def get_chart_data(  # noqa: C901
             # Execute the query
             with event_logger.log_context(action="mcp.get_chart_data.query_execution"):
                 command = ChartDataCommand(query_context)
+                command.validate()
                 result = command.run()
 
             # Handle empty query results for certain chart types

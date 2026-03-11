@@ -22,14 +22,19 @@ import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { useQueryParams, BooleanParam } from 'use-query-params';
 import { isEmpty } from 'lodash';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   SupersetClient,
   getExtensionsRegistry,
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
-import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
+import {
+  styled,
+  css,
+  SupersetTheme,
+  useTheme,
+} from '@apache-superset/core/theme';
 import {
   Tag,
   Tooltip,

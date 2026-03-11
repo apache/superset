@@ -10547,7 +10547,7 @@ msgstr "قيد التشغيل"
 
 #, fuzzy, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
-msgstr "جاري تشغيل البيان %(statement_num)s من %(statement_count)s"
+msgstr "جاري تشغيل البيان %(block_num)s من %(block_count)s"
 
 msgid "SAT"
 msgstr "جلس"

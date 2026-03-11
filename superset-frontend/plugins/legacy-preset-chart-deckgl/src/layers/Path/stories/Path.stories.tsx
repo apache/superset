@@ -20,7 +20,7 @@
 /* eslint-disable sort-keys */
 /* eslint-disable no-magic-numbers */
 import { SuperChart } from '@superset-ui/core';
-import { useTheme } from '@apache-superset/core/ui';
+import { useTheme } from '@apache-superset/core/theme';
 import { PathChartPlugin } from '@superset-ui/legacy-preset-chart-deckgl';
 import { withResizableChartDemo, dummyDatasource } from '@storybook-shared';
 import payload from './payload';

@@ -10511,7 +10511,7 @@ msgstr "V teku"
 
 #, fuzzy, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
-msgstr "Poganjanje izraza %(statement_num)s od %(statement_count)s"
+msgstr "Poganjanje izraza %(block_num)s od %(block_count)s"
 
 msgid "SAT"
 msgstr "SOB"

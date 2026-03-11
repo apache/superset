@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { SMART_DATE_ID } from '@superset-ui/core';
 import {
   aggregationControl,

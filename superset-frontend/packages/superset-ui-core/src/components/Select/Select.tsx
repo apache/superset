@@ -30,7 +30,7 @@ import {
   ReactElement,
 } from 'react';
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { ensureIsArray, usePrevious } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
 import {

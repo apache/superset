@@ -460,6 +460,9 @@ function generateDatabaseMDX(name, db) {
     .replace(/\\/g, '\\\\')
     .replace(/"/g, '\\"');
 
+  // Inline the database data directly to avoid importing the full databases.json
+  const inlineData = JSON.stringify(db);
+
   return `---
 title: ${name}
 sidebar_label: ${name}
@@ -487,9 +490,10 @@ under the License.
 */}
 
 import { DatabasePage } from '@site/src/components/databases';
-import databaseData from '@site/src/data/databases.json';
 
-<DatabasePage name="${name}" database={databaseData.databases["${name}"]} />
+export const databaseInfo = ${inlineData};
+
+<DatabasePage name="${name}" database={databaseInfo} />
 `;
 }
 

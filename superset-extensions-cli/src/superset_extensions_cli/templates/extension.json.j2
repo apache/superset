@@ -4,25 +4,5 @@
   "displayName": "{{ display_name }}",
   "version": "{{ version }}",
   "license": "{{ license }}",
-  {% if include_frontend -%}
-  "frontend": {
-    "contributions": {
-      "commands": [],
-      "views": {},
-      "menus": {},
-      "editors": []
-    },
-    "moduleFederation": {
-      "name": "{{ mf_name }}",
-      "exposes": ["./index"]
-    }
-  },
-  {% endif -%}
-  {% if include_backend -%}
-  "backend": {
-    "entryPoints": ["{{ backend_entry }}"],
-    "files": ["backend/src/{{ backend_path|replace('.', '/') }}/**/*.py"]
-  },
-  {% endif -%}
   "permissions": []
 }

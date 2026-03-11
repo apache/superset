@@ -77,8 +77,13 @@ const mockSvg = {
   style: jest.fn().mockReturnThis(),
 };
 
+// Store the last Datamap config for assertions
+let lastDatamapConfig: Record<string, unknown> | null = null;
+
 jest.mock('datamaps/dist/datamaps.all.min', () =>
   jest.fn().mockImplementation(config => {
+    // Store config for test assertions
+    lastDatamapConfig = config;
     // Call the done callback immediately to simulate Datamap initialization
     if (config.done) {
       config.done({
@@ -158,9 +163,11 @@ test('sets up mouseover and mouseout handlers on countries', () => {
   expect(mockSvg.selectAll).toHaveBeenCalledWith('.datamaps-subunit');
   const onCalls = mockSvg.on.mock.calls;
 
-  // Find mouseover and mouseout handler registrations
-  const hasMouseover = onCalls.some(call => call[0] === 'mouseover');
-  const hasMouseout = onCalls.some(call => call[0] === 'mouseout');
+  // Find mouseover and mouseout handler registrations (namespaced events)
+  const hasMouseover = onCalls.some(
+    call => call[0] === 'mouseover.fillPreserve',
+  );
+  const hasMouseout = onCalls.some(call => call[0] === 'mouseout.fillPreserve');
 
   expect(hasMouseover).toBe(true);
   expect(hasMouseout).toBe(true);
@@ -199,9 +206,9 @@ test('stores original fill color on mouseover', () => {
 
   jest.spyOn(d3 as any, 'select').mockReturnValue(mockD3Selection as any);
 
-  // Capture the mouseover handler
+  // Capture the mouseover handler (namespaced event)
   mockSvg.on.mockImplementation((event: string, handler: MouseEventHandler) => {
-    if (event === 'mouseover') {
+    if (event === 'mouseover.fillPreserve') {
       mouseoverHandler = handler;
     }
     return mockSvg;
@@ -254,9 +261,9 @@ test('restores original fill color on mouseout for country with data', () => {
 
   jest.spyOn(d3 as any, 'select').mockReturnValue(mockD3Selection as any);
 
-  // Capture the mouseout handler
+  // Capture the mouseout handler (namespaced event)
   mockSvg.on.mockImplementation((event: string, handler: MouseEventHandler) => {
-    if (event === 'mouseout') {
+    if (event === 'mouseout.fillPreserve') {
       mouseoutHandler = handler;
     }
     return mockSvg;
@@ -310,8 +317,9 @@ test('restores default fill color on mouseout for country with no data', () => {
 
   jest.spyOn(d3 as any, 'select').mockReturnValue(mockD3Selection as any);
 
+  // Capture the mouseout handler (namespaced event)
   mockSvg.on.mockImplementation((event: string, handler: MouseEventHandler) => {
-    if (event === 'mouseout') {
+    if (event === 'mouseout.fillPreserve') {
       mouseoutHandler = handler;
     }
     return mockSvg;
@@ -352,11 +360,12 @@ test('does not handle mouse events when inContextMenu is true', () => {
 
   jest.spyOn(d3 as any, 'select').mockReturnValue(mockD3Selection as any);
 
+  // Capture namespaced event handlers
   mockSvg.on.mockImplementation((event: string, handler: MouseEventHandler) => {
-    if (event === 'mouseover') {
+    if (event === 'mouseover.fillPreserve') {
       mouseoverHandler = handler;
     }
-    if (event === 'mouseout') {
+    if (event === 'mouseout.fillPreserve') {
       mouseoutHandler = handler;
     }
     return mockSvg;
@@ -386,4 +395,116 @@ test('does not handle mouse events when inContextMenu is true', () => {
   // The handlers should return early, so no state changes
   expect(fillChangeCalls.length).toBe(0);
   expect(fillStyleChangeCalls.length).toBe(0);
+});
+
+test('does not throw error when onContextMenu is undefined', () => {
+  const propsWithoutContextMenu = {
+    ...baseProps,
+    onContextMenu: undefined,
+  };
+
+  // Should not throw
+  expect(() => {
+    WorldMap(container, propsWithoutContextMenu as any);
+  }).not.toThrow();
+});
+
+test('calls onContextMenu when provided and right-click occurs', () => {
+  const mockOnContextMenu = jest.fn();
+  const propsWithContextMenu = {
+    ...baseProps,
+    onContextMenu: mockOnContextMenu,
+  };
+
+  let contextMenuHandler: ((source: any) => void) | undefined;
+
+  mockSvg.on.mockImplementation((event: string, handler: any) => {
+    if (event === 'contextmenu') {
+      contextMenuHandler = handler;
+    }
+    return mockSvg;
+  });
+
+  // Mock d3.event
+  (d3 as any).event = {
+    preventDefault: jest.fn(),
+    clientX: 100,
+    clientY: 200,
+  };
+
+  WorldMap(container, propsWithContextMenu);
+
+  expect(contextMenuHandler).toBeDefined();
+  contextMenuHandler!({ country: 'USA' });
+
+  expect(mockOnContextMenu).toHaveBeenCalledWith(100, 200, expect.any(Object));
+});
+
+test('initializes Datamap with keyed object data for tooltip support', () => {
+  WorldMap(container, baseProps);
+
+  // Verify data is an object (not an array) keyed by country codes
+  expect(Array.isArray(lastDatamapConfig?.data)).toBe(false);
+  expect(typeof lastDatamapConfig?.data).toBe('object');
+
+  const data = lastDatamapConfig?.data as Record<string, unknown>;
+
+  // Verify the data is keyed by country code
+  expect(data).toHaveProperty('USA');
+  expect(data).toHaveProperty('CAN');
+
+  // Verify the keyed data contains the expected properties for tooltips
+  expect(data.USA).toMatchObject({
+    country: 'USA',
+    name: 'United States',
+    m1: 100,
+    m2: 200,
+  });
+  expect(data.CAN).toMatchObject({
+    country: 'CAN',
+    name: 'Canada',
+    m1: 50,
+    m2: 100,
+  });
+});
+
+test('popupTemplate returns tooltip HTML when country data exists', () => {
+  WorldMap(container, baseProps);
+
+  const geographyConfig = lastDatamapConfig?.geographyConfig as Record<
+    string,
+    unknown
+  >;
+  const popupTemplate = geographyConfig?.popupTemplate as (
+    geo: unknown,
+    d: unknown,
+  ) => string;
+
+  const mockGeo = { properties: { name: 'United States' } };
+  const mockCountryData = { name: 'United States', m1: 100 };
+
+  const tooltipHtml = popupTemplate(mockGeo, mockCountryData);
+
+  expect(tooltipHtml).toContain('United States');
+  expect(tooltipHtml).toContain('hoverinfo');
+});
+
+test('popupTemplate handles null/undefined country data gracefully', () => {
+  WorldMap(container, baseProps);
+
+  const geographyConfig = lastDatamapConfig?.geographyConfig as Record<
+    string,
+    unknown
+  >;
+  const popupTemplate = geographyConfig?.popupTemplate as (
+    geo: unknown,
+    d: unknown,
+  ) => string | undefined;
+
+  const mockGeo = { properties: { name: 'Antarctica' } };
+
+  // When hovering over a country with no data, 'd' will be undefined
+  const tooltipHtml = popupTemplate(mockGeo, undefined);
+
+  expect(tooltipHtml).toBeFalsy();
 });
