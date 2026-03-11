@@ -145,7 +145,10 @@ export default function transformProps(chartProps: ChartProps) {
     hasCustomMetric = legacy.hasCustomMetric ?? false;
   } else {
     const records: DataRecord[] = (rawData as DataRecord[]) || [];
-    hasCustomMetric = maplibreLabel != null && maplibreLabel.length > 0;
+    hasCustomMetric =
+      maplibreLabel != null &&
+      maplibreLabel.length > 0 &&
+      maplibreLabel[0] !== 'count';
     const labelCol = hasCustomMetric ? maplibreLabel[0] : null;
     const pointRadiusCol =
       pointRadius && pointRadius !== 'Auto' ? pointRadius : null;
