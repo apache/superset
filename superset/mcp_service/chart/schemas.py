@@ -435,7 +435,12 @@ class LegendConfig(BaseModel):
 
 
 class FilterConfig(BaseModel):
-    column: str = Field(..., min_length=1, max_length=255)
+    column: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        pattern=r"^[a-zA-Z0-9_][a-zA-Z0-9_\s\-\.]*$",
+    )
     op: Literal[
         "=",
         ">",

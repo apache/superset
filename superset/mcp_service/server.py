@@ -116,8 +116,7 @@ def create_event_store(config: dict[str, Any] | None = None) -> Any | None:
     if config is None:
         config = MCP_STORE_CONFIG
 
-    redis_url = config.get("CACHE_REDIS_URL")
-    if not redis_url:
+    if not (redis_url := config.get("CACHE_REDIS_URL")):
         logging.info("EventStore: Using in-memory storage (single-pod mode)")
         return None
 
@@ -183,8 +182,7 @@ def _serialize_tools_without_output_schema(
     for tool in tools:
         data = tool.to_mcp_tool().model_dump(mode="json", exclude_none=True)
         data.pop("outputSchema", None)
-        input_schema = data.get("inputSchema")
-        if input_schema:
+        if input_schema := data.get("inputSchema"):
             data["inputSchema"] = _strip_titles(input_schema)
         results.append(data)
     return results
@@ -345,8 +343,7 @@ def run_server(
         middleware_list = []
 
         # Add caching middleware (innermost – runs closest to the tool)
-        caching_middleware = create_response_caching_middleware()
-        if caching_middleware:
+        if caching_middleware := create_response_caching_middleware():
             middleware_list.append(caching_middleware)
 
         # Add response size guard (protects LLM clients from huge responses)
