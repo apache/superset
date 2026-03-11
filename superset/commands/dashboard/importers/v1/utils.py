@@ -143,9 +143,7 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
         # fix chartsInScope references (from PR #26389)
         charts_in_scope = native_filter.get("chartsInScope", [])
         if charts_in_scope:
-            native_filter["chartsInScope"] = _remap_chart_ids(
-                charts_in_scope, id_map
-            )
+            native_filter["chartsInScope"] = _remap_chart_ids(charts_in_scope, id_map)
 
     fixed = update_cross_filter_scoping(fixed, id_map)
     return fixed
