@@ -20,6 +20,7 @@
 import { render } from '@testing-library/react';
 import ScatterPlotGlowOverlay, {
   MIN_CLUSTER_RADIUS_RATIO,
+  MAX_POINT_RADIUS_RATIO,
 } from '../src/ScatterPlotGlowOverlay';
 
 // Mock react-map-gl's CanvasOverlay
@@ -92,17 +93,29 @@ test('renders map with varying radius values in Pixels mode', () => {
     createLocation([300, 300], { radius: 100, cluster: false }),
   ];
 
-  expect(() => {
-    render(
-      <ScatterPlotGlowOverlay
-        {...defaultProps}
-        locations={locations}
-        pointRadiusUnit="Pixels"
-      />,
-    );
-    const redrawParams = createMockRedrawParams();
-    (global as any).mockRedraw(redrawParams);
-  }).not.toThrow();
+  render(
+    <ScatterPlotGlowOverlay
+      {...defaultProps}
+      locations={locations}
+      pointRadiusUnit="Pixels"
+    />,
+  );
+  const redrawParams = createMockRedrawParams();
+  (global as any).mockRedraw(redrawParams);
+
+  const arcCalls = redrawParams.ctx.arc.mock.calls;
+  const minPointRadius = defaultProps.dotRadius * MIN_CLUSTER_RADIUS_RATIO;
+  const maxPointRadius = defaultProps.dotRadius * MAX_POINT_RADIUS_RATIO;
+
+  // All point radii should be within [MIN_CLUSTER_RADIUS_RATIO, MAX_POINT_RADIUS_RATIO] * dotRadius
+  arcCalls.forEach((call: any) => {
+    expect(call[2]).toBeGreaterThanOrEqual(minPointRadius);
+    expect(call[2]).toBeLessThanOrEqual(maxPointRadius);
+  });
+
+  // Ordering should be preserved: radius 10 < 50 < 100
+  expect(arcCalls[0][2]).toBeLessThan(arcCalls[1][2]);
+  expect(arcCalls[1][2]).toBeLessThan(arcCalls[2][2]);
 });
 
 test('handles dataset with uniform radius values', () => {
@@ -499,6 +512,179 @@ test('single cluster with small maxLabel gets full dotRadius', () => {
   const arcCalls = redrawParams.ctx.arc.mock.calls;
   // When there's only one cluster, label=maxLabel, so it gets full radius
   expect(arcCalls[0][2]).toBe(defaultProps.dotRadius);
+});
+
+test('all-negative cluster labels produce differentiated radii by magnitude', () => {
+  const locations = [
+    createLocation([100, 100], {
+      cluster: true,
+      point_count: 3,
+      sum: -100,
+    }),
+    createLocation([200, 200], {
+      cluster: true,
+      point_count: 3,
+      sum: -10,
+    }),
+    createLocation([300, 300], {
+      cluster: true,
+      point_count: 3,
+      sum: -1,
+    }),
+  ];
+
+  render(
+    <ScatterPlotGlowOverlay
+      {...defaultProps}
+      locations={locations}
+      aggregation="sum"
+    />,
+  );
+  const redrawParams = createMockRedrawParams();
+  (global as any).mockRedraw(redrawParams);
+
+  const arcCalls = redrawParams.ctx.arc.mock.calls;
+  const rNeg100 = arcCalls[0][2];
+  const rNeg10 = arcCalls[1][2];
+  const rNeg1 = arcCalls[2][2];
+  const minClusterRadius = defaultProps.dotRadius * MIN_CLUSTER_RADIUS_RATIO;
+
+  // Higher magnitude = bigger circle: |-100| > |-10| > |-1|
+  expect(rNeg1).toBeLessThan(rNeg10);
+  expect(rNeg10).toBeLessThan(rNeg100);
+  expect(Number.isFinite(rNeg100)).toBe(true);
+  expect(Number.isFinite(rNeg10)).toBe(true);
+  expect(Number.isFinite(rNeg1)).toBe(true);
+  expect(rNeg1).toBeGreaterThanOrEqual(minClusterRadius);
+  expect(rNeg100).toBe(defaultProps.dotRadius);
+});
+
+test('mixed positive-and-negative cluster labels size by magnitude', () => {
+  const locations = [
+    createLocation([100, 100], {
+      cluster: true,
+      point_count: 3,
+      sum: -50,
+    }),
+    createLocation([200, 200], {
+      cluster: true,
+      point_count: 3,
+      sum: 0,
+    }),
+    createLocation([300, 300], {
+      cluster: true,
+      point_count: 3,
+      sum: 100,
+    }),
+  ];
+
+  render(
+    <ScatterPlotGlowOverlay
+      {...defaultProps}
+      locations={locations}
+      aggregation="sum"
+    />,
+  );
+  const redrawParams = createMockRedrawParams();
+  (global as any).mockRedraw(redrawParams);
+
+  const arcCalls = redrawParams.ctx.arc.mock.calls;
+  const rNeg50 = arcCalls[0][2];
+  const rZero = arcCalls[1][2];
+  const r100 = arcCalls[2][2];
+  const minClusterRadius = defaultProps.dotRadius * MIN_CLUSTER_RADIUS_RATIO;
+
+  // Magnitude ordering: |0| < |-50| < |100|
+  expect(rZero).toBeLessThan(rNeg50);
+  expect(rNeg50).toBeLessThan(r100);
+  expect(rZero).toBeGreaterThanOrEqual(minClusterRadius);
+  expect(r100).toBe(defaultProps.dotRadius);
+});
+
+test('all-identical negative labels get equal full radii', () => {
+  const locations = [
+    createLocation([100, 100], {
+      cluster: true,
+      point_count: 3,
+      sum: -5,
+    }),
+    createLocation([200, 200], {
+      cluster: true,
+      point_count: 3,
+      sum: -5,
+    }),
+    createLocation([300, 300], {
+      cluster: true,
+      point_count: 3,
+      sum: -5,
+    }),
+  ];
+
+  render(
+    <ScatterPlotGlowOverlay
+      {...defaultProps}
+      locations={locations}
+      aggregation="sum"
+    />,
+  );
+  const redrawParams = createMockRedrawParams();
+  (global as any).mockRedraw(redrawParams);
+
+  const arcCalls = redrawParams.ctx.arc.mock.calls;
+  const r1 = arcCalls[0][2];
+  const r2 = arcCalls[1][2];
+  const r3 = arcCalls[2][2];
+
+  expect(r1).toBe(r2);
+  expect(r2).toBe(r3);
+  expect(r1).toBe(defaultProps.dotRadius);
+});
+
+test('single negative cluster gets full radius', () => {
+  const locations = [
+    createLocation([100, 100], {
+      cluster: true,
+      point_count: 3,
+      sum: -5,
+    }),
+  ];
+
+  render(
+    <ScatterPlotGlowOverlay
+      {...defaultProps}
+      locations={locations}
+      aggregation="sum"
+    />,
+  );
+  const redrawParams = createMockRedrawParams();
+  (global as any).mockRedraw(redrawParams);
+
+  const arcCalls = redrawParams.ctx.arc.mock.calls;
+  expect(arcCalls[0][2]).toBe(defaultProps.dotRadius);
+});
+
+test('large negative cluster labels are abbreviated', () => {
+  const locations = [
+    createLocation([100, 100], {
+      cluster: true,
+      point_count: 3,
+      sum: -50000,
+    }),
+  ];
+
+  render(
+    <ScatterPlotGlowOverlay
+      {...defaultProps}
+      locations={locations}
+      aggregation="sum"
+    />,
+  );
+  const redrawParams = createMockRedrawParams();
+  (global as any).mockRedraw(redrawParams);
+
+  const fillTextCalls = redrawParams.ctx.fillText.mock.calls;
+  const labelArg = fillTextCalls[0][0];
+  expect(labelArg).toBe('-50k');
 });
 
 test('zero-value cluster is visible with minimum radius', () => {
