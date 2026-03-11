@@ -407,6 +407,22 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     [addDangerToast, setPreparingExport],
   );
 
+  const handleSemanticViewDelete = ({ id, table_name: tableName }: Dataset) => {
+    SupersetClient.delete({
+      endpoint: `/api/v1/semantic_view/${id}`,
+    }).then(
+      () => {
+        refreshData();
+        addSuccessToast(t('Deleted: %s', tableName));
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t('There was an issue deleting %s: %s', tableName, errMsg),
+        ),
+      ),
+    );
+  };
+
   const columns = useMemo(
     () => [
       {
@@ -979,22 +995,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       () => {
         refreshData();
         setDatasetCurrentlyDeleting(null);
-        addSuccessToast(t('Deleted: %s', tableName));
-      },
-      createErrorHandler(errMsg =>
-        addDangerToast(
-          t('There was an issue deleting %s: %s', tableName, errMsg),
-        ),
-      ),
-    );
-  };
-
-  const handleSemanticViewDelete = ({ id, table_name: tableName }: Dataset) => {
-    SupersetClient.delete({
-      endpoint: `/api/v1/semantic_view/${id}`,
-    }).then(
-      () => {
-        refreshData();
         addSuccessToast(t('Deleted: %s', tableName));
       },
       createErrorHandler(errMsg =>
