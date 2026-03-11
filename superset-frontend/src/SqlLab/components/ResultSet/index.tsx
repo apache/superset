@@ -51,6 +51,8 @@ import {
   getNumberFormatter,
   getExtensionsRegistry,
   ErrorTypeEnum,
+  isFeatureEnabled,
+  FeatureFlag,
 } from '@superset-ui/core';
 import { tn } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
@@ -361,11 +363,20 @@ const ResultSet = ({
         schema: query?.schema,
       };
 
-      const canExportData = findPermission(
+      const canExportDataLegacy = findPermission(
         'can_export_csv',
         'SQLLab',
         user?.roles,
       );
+      const granularExport = isFeatureEnabled(
+        FeatureFlag.GranularExportControls,
+      );
+      const canExportData = granularExport
+        ? findPermission('can_export_data', 'Superset', user?.roles)
+        : canExportDataLegacy;
+      const canCopyClipboard = granularExport
+        ? findPermission('can_copy_clipboard', 'Superset', user?.roles)
+        : canExportDataLegacy;
 
       const handleDownloadCsv = (event: React.MouseEvent<HTMLElement>) => {
         logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {});
@@ -427,7 +438,7 @@ const ResultSet = ({
               }}
             />
           )}
-          {canExportData && (
+          {canCopyClipboard && (
             <CopyToClipboard
               text={prepareCopyToClipboardTabularData(
                 data,

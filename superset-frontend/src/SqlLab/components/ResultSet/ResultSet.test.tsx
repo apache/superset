@@ -41,6 +41,14 @@ import {
   queryWithNoQueryLimit,
   failedQueryWithFrontendTimeoutErrors,
 } from 'src/SqlLab/fixtures';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn().mockReturnValue(false),
+}));
+
+const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 jest.mock('src/components/ErrorMessage', () => ({
   ErrorMessageWithStackTrace: () => <div data-test="error-message">Error</div>,
@@ -753,4 +761,133 @@ describe('ResultSet', () => {
       );
     },
   );
+
+  test('should show CSV button with granular can_export_data permission when flag is ON', async () => {
+    mockIsFeatureEnabled.mockImplementation(
+      (flag: FeatureFlag) => flag === FeatureFlag.GranularExportControls,
+    );
+    const { queryByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user: {
+          ...user,
+          roles: {
+            sql_lab: [['can_export_data', 'Superset']],
+          },
+        },
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: queries[0],
+          },
+        },
+      }),
+    );
+    expect(queryByTestId('export-csv-button')).toBeInTheDocument();
+    mockIsFeatureEnabled.mockReset();
+  });
+
+  test('should hide CSV button when granular flag is ON and user lacks can_export_data', async () => {
+    mockIsFeatureEnabled.mockImplementation(
+      (flag: FeatureFlag) => flag === FeatureFlag.GranularExportControls,
+    );
+    const { queryByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user: {
+          ...user,
+          roles: {
+            sql_lab: [],
+          },
+        },
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: queries[0],
+          },
+        },
+      }),
+    );
+    expect(queryByTestId('export-csv-button')).not.toBeInTheDocument();
+    mockIsFeatureEnabled.mockReset();
+  });
+
+  test('should show clipboard button with granular can_copy_clipboard permission when flag is ON', async () => {
+    mockIsFeatureEnabled.mockImplementation(
+      (flag: FeatureFlag) => flag === FeatureFlag.GranularExportControls,
+    );
+    const { queryByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user: {
+          ...user,
+          roles: {
+            sql_lab: [['can_copy_clipboard', 'Superset']],
+          },
+        },
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: queries[0],
+          },
+        },
+      }),
+    );
+    expect(queryByTestId('copy-to-clipboard-button')).toBeInTheDocument();
+    mockIsFeatureEnabled.mockReset();
+  });
+
+  test('should hide clipboard button when granular flag is ON and user lacks can_copy_clipboard', async () => {
+    mockIsFeatureEnabled.mockImplementation(
+      (flag: FeatureFlag) => flag === FeatureFlag.GranularExportControls,
+    );
+    const { queryByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user: {
+          ...user,
+          roles: {
+            sql_lab: [['can_export_data', 'Superset']],
+          },
+        },
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: queries[0],
+          },
+        },
+      }),
+    );
+    expect(queryByTestId('copy-to-clipboard-button')).not.toBeInTheDocument();
+    mockIsFeatureEnabled.mockReset();
+  });
+
+  test('should use legacy can_export_csv for both CSV and clipboard when granular flag is OFF', async () => {
+    mockIsFeatureEnabled.mockReturnValue(false);
+    const { queryByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user: {
+          ...user,
+          roles: {
+            sql_lab: [['can_export_csv', 'SQLLab']],
+          },
+        },
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: queries[0],
+          },
+        },
+      }),
+    );
+    expect(queryByTestId('export-csv-button')).toBeInTheDocument();
+    expect(queryByTestId('copy-to-clipboard-button')).toBeInTheDocument();
+    mockIsFeatureEnabled.mockReset();
+  });
 });

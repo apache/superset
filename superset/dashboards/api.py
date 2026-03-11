@@ -39,7 +39,7 @@ from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
-from superset import db
+from superset import db, is_feature_enabled
 from superset.charts.schemas import ChartEntityResponseSchema
 from superset.commands.dashboard.copy import CopyDashboardCommand
 from superset.commands.dashboard.create import CreateDashboardCommand
@@ -114,7 +114,7 @@ from superset.dashboards.schemas import (
     thumbnail_query_schema,
 )
 from superset.exceptions import ScreenshotImageNotAvailableException
-from superset.extensions import event_logger
+from superset.extensions import event_logger, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.security.guest_token import GuestUser
@@ -1389,6 +1389,9 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
+            if not security_manager.can_access("can_export_image", "Superset"):
+                return self.response_403()
         try:
             payload = CacheScreenshotSchema().load(request.json)
         except ValidationError as error:
@@ -1505,6 +1508,9 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
+            if not security_manager.can_access("can_export_image", "Superset"):
+                return self.response_403()
         dashboard = self.datamodel.get(pk, self._base_filters)
 
         # Making sure the dashboard still exists

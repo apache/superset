@@ -48,6 +48,7 @@ export interface UseDownloadMenuItemsProps {
   title: string;
   disabled?: boolean;
   userCanExport?: boolean;
+  canExportImage?: boolean;
 }
 
 export const useDownloadMenuItems = (
@@ -62,6 +63,7 @@ export const useDownloadMenuItems = (
     disabled,
     title,
     userCanExport,
+    canExportImage,
   } = props;
 
   const { addDangerToast, addSuccessToast } = useToasts();
@@ -150,16 +152,22 @@ export const useDownloadMenuItems = (
     }
   };
 
+  const imageDisabled =
+    isFeatureEnabled(FeatureFlag.GranularExportControls) &&
+    canExportImage === false;
+
   const screenshotMenuItems: MenuItem[] = isWebDriverScreenshotEnabled
     ? [
         {
           key: DownloadScreenshotFormat.PDF,
           label: pdfMenuItemTitle,
+          disabled: imageDisabled,
           onClick: () => downloadScreenshot(DownloadScreenshotFormat.PDF),
         },
         {
           key: DownloadScreenshotFormat.PNG,
           label: imageMenuItemTitle,
+          disabled: imageDisabled,
           onClick: () => downloadScreenshot(DownloadScreenshotFormat.PNG),
         },
       ]
@@ -167,11 +175,13 @@ export const useDownloadMenuItems = (
         {
           key: 'download-pdf',
           label: pdfMenuItemTitle,
+          disabled: imageDisabled,
           onClick: (e: any) => onDownloadPdf(e.domEvent),
         },
         {
           key: 'download-image',
           label: imageMenuItemTitle,
+          disabled: imageDisabled,
           onClick: (e: any) => onDownloadImage(e.domEvent),
         },
       ];

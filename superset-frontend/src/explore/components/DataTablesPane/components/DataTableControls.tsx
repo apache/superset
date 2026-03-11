@@ -20,6 +20,7 @@ import { styled, css } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
 import { useMemo } from 'react';
 import { zip } from 'lodash';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import {
   CopyToClipboardButton,
   FilterInput,
@@ -27,6 +28,7 @@ import {
 import { applyFormattingToTabularData } from 'src/utils/common';
 import { getTimeColumns } from 'src/explore/components/DataTableControl/utils';
 import RowCountLabel from 'src/components/RowCountLabel';
+import { usePermissions } from 'src/hooks/usePermissions';
 import { TableControlsProps } from '../types';
 
 export const TableControlsWrapper = styled.div`
@@ -69,6 +71,10 @@ export const TableControls = ({
     () => applyFormattingToTabularData(data, formattedTimeColumns),
     [data, formattedTimeColumns],
   );
+  const { canCopyClipboard: canCopyClipboardPerm } = usePermissions();
+  const showCopyButton = isFeatureEnabled(FeatureFlag.GranularExportControls)
+    ? canCopyClipboardPerm
+    : canDownload;
   return (
     <TableControlsWrapper>
       <FilterInput onChangeHandler={onInputChange} shouldFocus />
@@ -79,7 +85,7 @@ export const TableControls = ({
         `}
       >
         <RowCountLabel rowcount={rowcount} loading={isLoading} />
-        {canDownload && (
+        {showCopyButton && (
           <CopyToClipboardButton data={formattedData} columns={columnNames} />
         )}
       </div>

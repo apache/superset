@@ -174,6 +174,7 @@ interface ExploreState {
   charts?: Record<number, ChartState>;
   explore?: ExploreSlice & {
     chartStates?: Record<number, JsonObject>;
+    can_export_image?: boolean;
   };
   common?: {
     conf?: {
@@ -223,6 +224,7 @@ export const useExploreAdditionalActionsMenu = (
       state.common?.conf?.CSV_STREAMING_ROW_THRESHOLD ||
       DEFAULT_CSV_STREAMING_ROW_THRESHOLD,
   );
+<<<<<<< HEAD
   const exploreChartState = useSelector<
     ExploreState,
     JsonObject | undefined
@@ -232,6 +234,11 @@ export const useExploreAdditionalActionsMenu = (
       ? state.explore?.chartStates?.[chartKey]
       : undefined;
   });
+=======
+  const canExportImage = useSelector<ExploreState, boolean>(
+    state => state.explore?.can_export_image ?? true,
+  );
+>>>>>>> 41f67288f6 (feat(security): add granular export controls - Phase 2 (screenshots & SQL Lab))
 
   // Streaming export state and handlers
   const [isStreamingModalVisible, setIsStreamingModalVisible] = useState(false);
@@ -731,6 +738,7 @@ export const useExploreAdditionalActionsMenu = (
         key: MENU_KEYS.EXPORT_ALL_SCREENSHOT,
         label: t('Export screenshot (jpeg)'),
         icon: <Icons.FileImageOutlined />,
+        disabled: isFeatureEnabled(FeatureFlag.GranularExportControls) && !canExportImage,
         onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
           downloadAsImage(
             '.panel-body .chart-container',
@@ -835,6 +843,7 @@ export const useExploreAdditionalActionsMenu = (
         key: MENU_KEYS.EXPORT_CURRENT_SCREENSHOT,
         label: t('Export screenshot (jpeg)'),
         icon: <Icons.FileImageOutlined />,
+        disabled: isFeatureEnabled(FeatureFlag.GranularExportControls) && !canExportImage,
         onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
           downloadAsImage(
             '.panel-body .chart-container',
@@ -1033,6 +1042,7 @@ export const useExploreAdditionalActionsMenu = (
     theme.sizeUnit,
     ownState,
     hasExportCurrentView,
+    canExportImage,
   ]);
 
   // Return streaming modal state and handlers for parent to render
