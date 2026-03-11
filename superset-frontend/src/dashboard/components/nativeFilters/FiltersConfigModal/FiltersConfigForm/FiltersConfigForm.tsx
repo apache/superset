@@ -1549,6 +1549,67 @@ const FiltersConfigForm = (
                             hidden
                             initialValue={null}
                           />
+                          {!isChartCustomization &&
+                            itemTypeField === 'filter_select' && (
+                              <StyledRowFormItem
+                                expanded={expanded}
+                                name={[
+                                  'filters',
+                                  filterId,
+                                  'controlValues',
+                                  'operatorType',
+                                ]}
+                                initialValue={currentOperatorType}
+                                label={
+                                  <>
+                                    <StyledLabel>{t('Match type')}</StyledLabel>
+                                    &nbsp;
+                                    <InfoTooltip
+                                      placement="top"
+                                      tooltip={t(
+                                        'Warning: ILIKE queries may be slow on large datasets as they cannot use indexes effectively.',
+                                      )}
+                                    />
+                                  </>
+                                }
+                              >
+                                <Select
+                                  ariaLabel={t('Match type')}
+                                  options={[
+                                    {
+                                      value: SelectFilterOperatorType.Exact,
+                                      label: t('Exact match (IN)'),
+                                    },
+                                    ...(selectedColumnIsString
+                                      ? [
+                                          {
+                                            value:
+                                              SelectFilterOperatorType.Contains,
+                                            label: t(
+                                              'Contains text (ILIKE %x%)',
+                                            ),
+                                          },
+                                          {
+                                            value:
+                                              SelectFilterOperatorType.StartsWith,
+                                            label: t('Starts with (ILIKE x%)'),
+                                          },
+                                          {
+                                            value:
+                                              SelectFilterOperatorType.EndsWith,
+                                            label: t('Ends with (ILIKE %x)'),
+                                          },
+                                        ]
+                                      : []),
+                                  ]}
+                                  onChange={value => {
+                                    onOperatorTypeChanged(
+                                      value as SelectFilterOperatorType,
+                                    );
+                                  }}
+                                />
+                              </StyledRowFormItem>
+                            )}
                           <FormItem
                             name={['filters', filterId, 'defaultValue']}
                           >
@@ -1746,67 +1807,6 @@ const FiltersConfigForm = (
                               )}
                             </CollapsibleControl>
                           </FormItem>
-                          {!isChartCustomization &&
-                            itemTypeField === 'filter_select' && (
-                              <StyledRowFormItem
-                                expanded={expanded}
-                                name={[
-                                  'filters',
-                                  filterId,
-                                  'controlValues',
-                                  'operatorType',
-                                ]}
-                                initialValue={currentOperatorType}
-                                label={
-                                  <>
-                                    <StyledLabel>{t('Match type')}</StyledLabel>
-                                    &nbsp;
-                                    <InfoTooltip
-                                      placement="top"
-                                      tooltip={t(
-                                        'Warning: ILIKE queries may be slow on large datasets as they cannot use indexes effectively.',
-                                      )}
-                                    />
-                                  </>
-                                }
-                              >
-                                <Select
-                                  ariaLabel={t('Match type')}
-                                  options={[
-                                    {
-                                      value: SelectFilterOperatorType.Exact,
-                                      label: t('Exact match (IN)'),
-                                    },
-                                    ...(selectedColumnIsString
-                                      ? [
-                                          {
-                                            value:
-                                              SelectFilterOperatorType.Contains,
-                                            label: t(
-                                              'Contains text (ILIKE %x%)',
-                                            ),
-                                          },
-                                          {
-                                            value:
-                                              SelectFilterOperatorType.StartsWith,
-                                            label: t('Starts with (ILIKE x%)'),
-                                          },
-                                          {
-                                            value:
-                                              SelectFilterOperatorType.EndsWith,
-                                            label: t('Ends with (ILIKE %x)'),
-                                          },
-                                        ]
-                                      : []),
-                                  ]}
-                                  onChange={value => {
-                                    onOperatorTypeChanged(
-                                      value as SelectFilterOperatorType,
-                                    );
-                                  }}
-                                />
-                              </StyledRowFormItem>
-                            )}
                           {Object.keys(controlItems)
                             .sort(
                               (a, b) =>
