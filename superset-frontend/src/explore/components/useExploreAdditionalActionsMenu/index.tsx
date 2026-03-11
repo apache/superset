@@ -224,7 +224,6 @@ export const useExploreAdditionalActionsMenu = (
       state.common?.conf?.CSV_STREAMING_ROW_THRESHOLD ||
       DEFAULT_CSV_STREAMING_ROW_THRESHOLD,
   );
-<<<<<<< HEAD
   const exploreChartState = useSelector<
     ExploreState,
     JsonObject | undefined
@@ -234,11 +233,9 @@ export const useExploreAdditionalActionsMenu = (
       ? state.explore?.chartStates?.[chartKey]
       : undefined;
   });
-=======
   const canExportImage = useSelector<ExploreState, boolean>(
     state => state.explore?.can_export_image ?? true,
   );
->>>>>>> 41f67288f6 (feat(security): add granular export controls - Phase 2 (screenshots & SQL Lab))
 
   // Streaming export state and handlers
   const [isStreamingModalVisible, setIsStreamingModalVisible] = useState(false);
