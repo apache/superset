@@ -18,7 +18,7 @@
  */
 import { type ComponentProps } from 'react';
 import { reactify, addAlpha } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import Component from './ParallelCoordinates';
 
 const ReactComponent = reactify(Component);

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   extractTimegrain,
   getNumberFormatter,
@@ -27,7 +27,7 @@ import {
   getValueFormatter,
   tooltipHtml,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { EChartsCoreOption, graphic } from 'echarts/core';
 import { aggregationChoices } from '@superset-ui/chart-controls';
 import { TIMESERIES_CONSTANTS } from '../../constants';

@@ -39,6 +39,7 @@ export {
   AsyncAceEditor,
   CssEditor,
   JsonEditor,
+  JSEditor,
   SQLEditor,
   FullSQLEditor,
   MarkdownEditor,

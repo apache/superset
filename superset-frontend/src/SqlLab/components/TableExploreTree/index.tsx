@@ -24,7 +24,8 @@ import {
   useMemo,
 } from 'react';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
-import { styled, css, t, useTheme } from '@apache-superset/core';
+import { styled, css, useTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import AutoSizer from 'react-virtualized-auto-sizer';
 // Due to performance issues with the virtual list in the existing Ant Design (antd)-based tree view,
 // it has been replaced with react-arborist solution.

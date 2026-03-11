@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { DashboardInfo } from 'src/dashboard/types';
 import MetadataBar, {
   MetadataType,

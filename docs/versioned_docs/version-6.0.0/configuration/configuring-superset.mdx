@@ -37,7 +37,7 @@ ENV SUPERSET_CONFIG_PATH /app/superset_config.py
 ```
 
 Docker compose deployments handle application configuration differently using specific conventions.
-Refer to the [docker compose tips & configuration](/docs/installation/docker-compose#docker-compose-tips--configuration)
+Refer to the [docker compose tips & configuration](/docs/6.0.0/installation/docker-compose#docker-compose-tips--configuration)
 for details.
 
 The following is an example of just a few of the parameters you can set in your `superset_config.py` file:
@@ -246,7 +246,7 @@ flask --app "superset.app:create_app(superset_app_root='/analytics')"
 
 ### Docker builds
 
-The [docker compose](/docs/installation/docker-compose#configuring-further) developer
+The [docker compose](/docs/6.0.0/installation/docker-compose#configuring-further) developer
 configuration includes an additional environmental variable,
 [`SUPERSET_APP_ROOT`](https://github.com/apache/superset/blob/master/docker/.env),
 to simplify the process of setting up a non-default root path across the services.
@@ -441,4 +441,4 @@ FEATURE_FLAGS = {
 }
 ```
 
-A current list of feature flags can be found in the [Feature Flags](/docs/configuration/feature-flags) documentation.
+A current list of feature flags can be found in the [Feature Flags](/docs/6.0.0/configuration/feature-flags) documentation.

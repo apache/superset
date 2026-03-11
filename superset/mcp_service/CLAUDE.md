@@ -80,7 +80,7 @@ superset/mcp_service/
 **Example**:
 ```python
 # superset/mcp_service/chart/tool/my_new_tool.py
-from superset_core.mcp import tool
+from superset_core.api.mcp import tool
 
 @tool
 def my_new_tool(param: str) -> dict:
@@ -110,7 +110,7 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
 **Example**:
 ```python
 # superset/mcp_service/chart/prompts/my_new_prompt.py
-from superset_core.mcp import prompt
+from superset_core.api.mcp import prompt
 
 @prompt("my_new_prompt")
 async def my_new_prompt_handler(ctx: Context) -> str:
@@ -180,7 +180,7 @@ The `mcp_core.py` module provides reusable patterns:
 
 **Example**:
 ```python
-from superset_core.mcp import tool
+from superset_core.api.mcp import tool
 
 from superset.mcp_service.mcp_core import ModelListCore
 from superset.daos.dashboard import DashboardDAO
@@ -205,7 +205,7 @@ def list_dashboards(filters: List[DashboardFilter], page: int = 1) -> DashboardL
 - Audit logging of tool access
 
 ```python
-from superset_core.mcp import tool
+from superset_core.api.mcp import tool
 
 @tool  # REQUIRED - secure=True by default
 def my_tool() -> dict:
@@ -572,14 +572,14 @@ def my_function(param: Optional[str] = None) -> Optional[int]:
 **Solution**: Use `@tool` without parentheses unless passing arguments.
 ```python
 # GOOD
-from superset_core.mcp import tool
+from superset_core.api.mcp import tool
 
 @tool
 def my_tool():
     pass
 
 # BAD
-from superset_core.mcp import tool
+from superset_core.api.mcp import tool
 
 @tool
 def my_tool():
@@ -588,10 +588,10 @@ def my_tool():
 
 ### 10. ❌ Circular Imports
 **Problem**: Importing too many things from `app.py` can create circular dependencies.
-**Solution**: Use the unified `@tool` decorator from `superset_core.mcp`:
+**Solution**: Use the unified `@tool` decorator from `superset_core.api.mcp`:
 ```python
 # GOOD - New pattern
-from superset_core.mcp import tool
+from superset_core.api.mcp import tool
 
 @tool
 def my_tool():

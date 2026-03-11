@@ -24,7 +24,7 @@ import {
   type RefObject,
 } from 'react';
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { Select, AsyncSelect, FormLabel } from '@superset-ui/core/components';
 import { ListViewFilter as Filter, SelectOption } from '../types';
 import type { BaseFilter, FilterHandler } from './types';
