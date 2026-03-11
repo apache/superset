@@ -3283,7 +3283,7 @@ msgid "Clear form"
 msgstr "Effacer le formulaire"
 
 msgid "Clear local theme"
-msgstr "Reinitialiser le thème local"
+msgstr "Réinitialiser le thème local"
 
 msgid "Clear the selection to revert to the system default theme"
 msgstr "Effacer la sélection pour revenir au thème par défaut du système"
@@ -4011,18 +4011,15 @@ msgstr ""
 "Créer un ensemble de données pour commencer à visualiser vos données sous"
 " forme de graphique ou aller à SQL Lab pour interroger vos données."
 
-#, fuzzy
 msgid "Create a new Tag"
-msgstr "créer un nouveau graphique"
+msgstr "Créer une nouvelle balise"
 
 msgid "Create a new chart"
 msgstr "Créer un nouveau graphique"
 
-#, fuzzy
 msgid "Create and explore dataset"
-msgstr "Créer un ensemble de données"
+msgstr "Créer et explorer un ensemble de données"
 
-#, fuzzy
 msgid "Create chart"
 msgstr "Créer un graphique"
 
@@ -4030,7 +4027,6 @@ msgstr "Créer un graphique"
 msgid "Create dataframe index"
 msgstr "Index des cadres de données"
 
-#, fuzzy
 msgid "Create dataset"
 msgstr "Créer un ensemble de données"
 
@@ -4052,14 +4048,12 @@ msgstr "Crée"
 msgid "Created by"
 msgstr "Créé par"
 
-#, fuzzy
 msgid "Created by me"
 msgstr "Créé par moi"
 
 msgid "Created on"
 msgstr "Créé le"
 
-#, fuzzy
 msgid "Creating SSH Tunnel failed for an unknown reason"
 msgstr "La création d'un tunnel SSH a échoué pour une raison inconnue"
 
@@ -6844,9 +6838,8 @@ msgstr ""
 "comparer plusieurs mesures sur l'ensemble des échantillons ou des lignes "
 "de données"
 
-#, fuzzy
 msgid "Folders"
-msgstr "Filtres"
+msgstr "Dossiers"
 
 msgid "Font size"
 msgstr "Taille de la police"
@@ -7165,9 +7158,8 @@ msgstr "Grille"
 msgid "Grid Size"
 msgstr "Taille de la grille"
 
-#, fuzzy
 msgid "Group"
-msgstr "Grouper par"
+msgstr "Grouper"
 
 msgid "Group By"
 msgstr "Grouper par"
@@ -9171,9 +9163,8 @@ msgstr "Pas encore de règles"
 msgid "No SQL query found"
 msgstr "Requête SQL"
 
-#, fuzzy
 msgid "No Tags created"
-msgstr "a été créé"
+msgstr "Aucune balise créée"
 
 #, fuzzy
 msgid "No actions"
@@ -9584,9 +9575,8 @@ msgstr "Sélectionner les colonnes numériques pour dessiner l’histogramme"
 msgid "Numerical range"
 msgstr "Interval numérique"
 
-#, fuzzy
 msgid "OAuth2 client information"
-msgstr "Informations supplémentaires"
+msgstr "Informations client OAuth2"
 
 msgid "OCT"
 msgstr "OCT"
@@ -9594,9 +9584,8 @@ msgstr "OCT"
 msgid "OK"
 msgstr "OK"
 
-#, fuzzy
 msgid "OR"
-msgstr "ou"
+msgstr "OU"
 
 msgid "OVERWRITE"
 msgstr "REMPLACER"
@@ -9610,9 +9599,8 @@ msgstr "Hors ligne"
 msgid "On Grace"
 msgstr "Sur la grâce"
 
-#, fuzzy
 msgid "On dashboards"
-msgstr "tableaux de bord "
+msgstr "Sur tableaux de bords"
 
 msgid ""
 "One or many columns to group by. High cardinality groupings should "
@@ -11687,13 +11675,11 @@ msgstr "Rechercher les mesures et les colonnes"
 msgid "Search all charts"
 msgstr "Rechercher tous les graphiques"
 
-#, fuzzy
 msgid "Search all metrics & columns"
-msgstr "Rechercher les mesures et les colonnes"
+msgstr "Rechercher toutes les mesures et colonnes"
 
-#, fuzzy
 msgid "Search box"
-msgstr "Boîte de echerche"
+msgstr "Zone de recherche"
 
 msgid "Search by query text"
 msgstr "Recherche par texte d'interrogation"
@@ -16160,19 +16146,16 @@ msgid "User registrations"
 msgstr "Imputation nulle"
 
 msgid "Username"
-msgstr "Username"
+msgstr "Nom d'utilisateur"
 
-#, fuzzy
 msgid "Username is required"
-msgstr "Le nom est obligatoire"
+msgstr "Le nom d'utilisateur est obligatoire"
 
-#, fuzzy
 msgid "Username:"
-msgstr "Username"
+msgstr "Nom d'utilisateur:"
 
-#, fuzzy
 msgid "Users"
-msgstr "série"
+msgstr "Utilisateurs"
 
 #, fuzzy
 msgid "Users are not allowed to set a search path for security reasons."
