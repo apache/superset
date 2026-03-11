@@ -70,7 +70,16 @@ def _adjust_string_with_rls(
     if user:
         stringified_rls = ""
         with override_user(user):
-            for datasource in datasources:
+            # Prefetch RLS filters for all datasources in a single batch query
+            table_ids = [
+                datasource.id
+                for datasource in datasources
+                if datasource and getattr(datasource, "is_rls_supported", False)
+            ]
+            if table_ids:
+                security_manager.prefetch_rls_filters(table_ids)
+
+            for datasource in sorted(datasources, key=lambda d: d.id if d else -1):
                 if datasource and getattr(datasource, "is_rls_supported", False):
                     rls_filters = datasource.get_sqla_row_level_filters()
 
@@ -101,7 +110,7 @@ def get_dashboard_digest(dashboard: Dashboard) -> str | None:
         return func(dashboard, executor_type, executor)
 
     unique_string = (
-        f"{dashboard.id}\n{dashboard.charts}\n{dashboard.position_json}\n"
+        f"{dashboard.id}\n{sorted(dashboard.charts)}\n{dashboard.position_json}\n"
         f"{dashboard.css}\n{dashboard.json_metadata}"
     )
 
@@ -128,6 +137,6 @@ def get_chart_digest(chart: Slice) -> str | None:
 
     unique_string = f"{chart.params or ''}.{executor}"
     unique_string = _adjust_string_for_executor(unique_string, executor_type, executor)
-    unique_string = _adjust_string_with_rls(unique_string, [chart.datasource], executor)
+    unique_string = _adjust_string_with_rls(unique_string, [chart.table], executor)
 
     return hash_from_str(unique_string)

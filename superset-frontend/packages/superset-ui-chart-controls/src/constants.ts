@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DTTM_ALIAS, QueryColumn, QueryMode, t } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { t } from '@apache-superset/core/translation';
+import { DTTM_ALIAS, QueryColumn, QueryMode } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { ColumnMeta, SortSeriesData, SortSeriesType } from './types';
 
 export const DEFAULT_MAX_ROW = 100000;

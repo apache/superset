@@ -27,17 +27,17 @@ import {
 
 import { RouteComponentProps, useHistory } from 'react-router-dom';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
+import { t } from '@apache-superset/core/translation';
 import {
   Behavior,
   isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
-  t,
   VizType,
   BinaryQueryObjectFilterClause,
   QueryFormData,
 } from '@superset-ui/core';
-import { css, useTheme, styled } from '@apache-superset/core/ui';
+import { css, useTheme, styled } from '@apache-superset/core/theme';
 import { useSelector } from 'react-redux';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import {
@@ -111,6 +111,7 @@ export interface SliceHeaderControlsProps {
   chartStatus: string;
   isCached: boolean[];
   cachedDttm: string[] | null;
+  queriedDttm?: string | null;
   isExpanded?: boolean;
   updatedDttm: number | null;
   isFullSize?: boolean;
@@ -309,6 +310,7 @@ const SliceHeaderControls = (
     slice,
     isFullSize,
     cachedDttm = [],
+    queriedDttm = null,
     updatedDttm = null,
     addSuccessToast = () => {},
     addDangerToast = () => {},
@@ -341,6 +343,10 @@ const SliceHeaderControls = (
         : item}
     </div>
   ));
+
+  const queriedLabel = queriedDttm
+    ? extendedDayjs.utc(queriedDttm).local().format('L LTS')
+    : null;
   const fullscreenLabel = isFullSize
     ? t('Exit fullscreen')
     : t('Enter fullscreen');
@@ -355,12 +361,17 @@ const SliceHeaderControls = (
     {
       key: MenuKeys.ForceRefresh,
       label: (
-        <>
-          {t('Force refresh')}
-          <RefreshTooltip data-test="dashboard-slice-refresh-tooltip">
-            {refreshTooltip}
-          </RefreshTooltip>
-        </>
+        <Tooltip
+          title={queriedLabel ? `${t('Last queried at')}: ${queriedLabel}` : ''}
+          overlayStyle={{ maxWidth: 'none' }}
+        >
+          <div>
+            {t('Force refresh')}
+            <RefreshTooltip data-test="dashboard-slice-refresh-tooltip">
+              {refreshTooltip}
+            </RefreshTooltip>
+          </div>
+        </Tooltip>
       ),
       disabled: props.chartStatus === 'loading',
       style: { height: 'auto', lineHeight: 'initial' },
@@ -446,6 +457,7 @@ const SliceHeaderControls = (
               isRequest
               isVisible
               canDownload={!!props.supersetCanCSV}
+              columnDisplayNames={datasetWithVerboseMap?.verbose_map}
             />
           }
         />
@@ -571,7 +583,7 @@ const SliceHeaderControls = (
         <Button
           id={`slice_${slice.slice_id}-controls`}
           buttonStyle="link"
-          aria-label="More Options"
+          aria-label={t('More Options')}
           aria-haspopup="true"
           css={theme => css`
             padding: ${theme.sizeUnit * 2}px;

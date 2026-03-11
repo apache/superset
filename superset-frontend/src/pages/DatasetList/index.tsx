@@ -16,16 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getExtensionsRegistry, SupersetClient, t } from '@superset-ui/core';
-import { styled, useTheme, css } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { getExtensionsRegistry, SupersetClient } from '@superset-ui/core';
+import { styled, useTheme, css } from '@apache-superset/core/theme';
 import { FunctionComponent, useState, useMemo, useCallback, Key } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
 import {
   createFetchRelated,
   createFetchDistinct,
+  createFetchOwners,
   createErrorHandler,
 } from 'src/views/CRUD/utils';
+import { OWNER_OPTION_FILTER_PROPS } from 'src/features/owners/OwnerSelectLabel';
 import { ColumnObject } from 'src/features/datasets/types';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
@@ -225,17 +228,19 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           const addCertificationFields = json.result.columns.map(
             (column: ColumnObject) => {
               const {
-                certification: { details = '', certified_by = '' } = {},
+                certification: {
+                  details = '',
+                  certified_by: certifiedBy = '',
+                } = {},
               } = JSON.parse(column.extra || '{}') || {};
               return {
                 ...column,
                 certification_details: details || '',
-                certified_by: certified_by || '',
-                is_certified: details || certified_by,
+                certified_by: certifiedBy || '',
+                is_certified: details || certifiedBy,
               };
             },
           );
-          // eslint-disable-next-line no-param-reassign
           json.result.columns = [...addCertificationFields];
           setDatasetCurrentlyEditing(json.result);
         })
@@ -248,51 +253,53 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     [addDangerToast],
   );
 
-  const openDatasetDeleteModal = (dataset: Dataset) =>
-    SupersetClient.get({
-      endpoint: `/api/v1/dataset/${dataset.id}/related_objects`,
-    })
-      .then(({ json = {} }) => {
-        setDatasetCurrentlyDeleting({
-          ...dataset,
-          charts: json.charts,
-          dashboards: json.dashboards,
-        });
+  const openDatasetDeleteModal = useCallback(
+    (dataset: Dataset) =>
+      SupersetClient.get({
+        endpoint: `/api/v1/dataset/${dataset.id}/related_objects`,
       })
-      .catch(
-        createErrorHandler(errMsg =>
-          t(
-            'An error occurred while fetching dataset related data: %s',
-            errMsg,
+        .then(({ json = {} }) => {
+          setDatasetCurrentlyDeleting({
+            ...dataset,
+            charts: json.charts,
+            dashboards: json.dashboards,
+          });
+        })
+        .catch(
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching dataset related data: %s',
+              errMsg,
+            ),
           ),
         ),
-      );
+    [],
+  );
 
-  const openDatasetDuplicateModal = (dataset: VirtualDataset) => {
+  const openDatasetDuplicateModal = useCallback((dataset: VirtualDataset) => {
     setDatasetCurrentlyDuplicating(dataset);
-  };
+  }, []);
 
-  const handleBulkDatasetExport = async (datasetsToExport: Dataset[]) => {
-    const ids = datasetsToExport.map(({ id }) => id);
-    setPreparingExport(true);
-    try {
-      await handleResourceExport('dataset', ids, () => {
+  const handleBulkDatasetExport = useCallback(
+    async (datasetsToExport: Dataset[]) => {
+      const ids = datasetsToExport.map(({ id }) => id);
+      setPreparingExport(true);
+      try {
+        await handleResourceExport('dataset', ids, () => {
+          setPreparingExport(false);
+        });
+      } catch (error) {
         setPreparingExport(false);
-      });
-    } catch (error) {
-      setPreparingExport(false);
-      addDangerToast(t('There was an issue exporting the selected datasets'));
-    }
-  };
+        addDangerToast(t('There was an issue exporting the selected datasets'));
+      }
+    },
+    [addDangerToast, setPreparingExport],
+  );
 
   const columns = useMemo(
     () => [
       {
-        Cell: ({
-          row: {
-            original: { kind },
-          },
-        }: any) => null,
+        Cell: () => null,
         accessor: 'kind_icon',
         disableSortBy: true,
         size: 'xs',
@@ -429,38 +436,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           }
           return (
             <Actions className="actions">
-              {canDelete && (
-                <Tooltip
-                  id="delete-action-tooltip"
-                  title={t('Delete')}
-                  placement="bottom"
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleDelete}
-                  >
-                    <Icons.DeleteOutlined iconSize="l" />
-                  </span>
-                </Tooltip>
-              )}
-              {canExport && (
-                <Tooltip
-                  id="export-action-tooltip"
-                  title={t('Export')}
-                  placement="bottom"
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleExport}
-                  >
-                    <Icons.UploadOutlined iconSize="l" />
-                  </span>
-                </Tooltip>
-              )}
               {canEdit && (
                 <Tooltip
                   id="edit-action-tooltip"
@@ -483,6 +458,22 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   </span>
                 </Tooltip>
               )}
+              {canExport && (
+                <Tooltip
+                  id="export-action-tooltip"
+                  title={t('Export')}
+                  placement="bottom"
+                >
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleExport}
+                  >
+                    <Icons.UploadOutlined iconSize="l" />
+                  </span>
+                </Tooltip>
+              )}
               {canDuplicate && original.kind === 'virtual' && (
                 <Tooltip
                   id="duplicate-action-tooltip"
@@ -496,6 +487,22 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     onClick={handleDuplicate}
                   >
                     <Icons.CopyOutlined iconSize="l" />
+                  </span>
+                </Tooltip>
+              )}
+              {canDelete && (
+                <Tooltip
+                  id="delete-action-tooltip"
+                  title={t('Delete')}
+                  placement="bottom"
+                >
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleDelete}
+                  >
+                    <Icons.DeleteOutlined iconSize="l" />
                   </span>
                 </Tooltip>
               )}
@@ -513,7 +520,18 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         id: QueryObjectColumns.ChangedBy,
       },
     ],
-    [canEdit, canDelete, canExport, openDatasetEditModal, canDuplicate, user],
+    [
+      canEdit,
+      canDelete,
+      canExport,
+      canDuplicate,
+      openDatasetEditModal,
+      openDatasetDeleteModal,
+      openDatasetDuplicateModal,
+      handleBulkDatasetExport,
+      PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET,
+      user,
+    ],
   );
 
   const filterTypes: ListViewFilters = useMemo(
@@ -578,9 +596,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         input: 'select',
         operator: FilterOperator.RelationManyMany,
         unfilteredLabel: 'All',
-        fetchSelects: createFetchRelated(
+        fetchSelects: createFetchOwners(
           'dataset',
-          'owners',
           createErrorHandler(errMsg =>
             t(
               'An error occurred while fetching dataset owner values: %s',
@@ -589,6 +606,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           ),
           user,
         ),
+        optionFilterProps: OWNER_OPTION_FILTER_PROPS,
         paginate: true,
         dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },

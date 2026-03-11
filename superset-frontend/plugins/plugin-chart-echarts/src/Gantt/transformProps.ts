@@ -24,6 +24,7 @@ import {
   EChartsCoreOption,
   LineSeriesOption,
 } from 'echarts';
+import { t } from '@apache-superset/core/translation';
 import {
   AxisType,
   CategoricalColorNamespace,
@@ -31,11 +32,10 @@ import {
   DataRecordValue,
   getColumnLabel,
   getNumberFormatter,
-  t,
   tooltipHtml,
 } from '@superset-ui/core';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
 import {
   Cartesian2dCoordSys,

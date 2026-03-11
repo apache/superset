@@ -17,7 +17,8 @@
  * under the License.
  */
 import { FC, Suspense } from 'react';
-import { DashboardComponentMetadata, JsonObject, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { DashboardComponentMetadata, JsonObject } from '@superset-ui/core';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import cx from 'classnames';
 import { shallowEqual, useSelector } from 'react-redux';
@@ -110,9 +111,7 @@ const DynamicComponent: FC<DynamicComponentProps> = ({
 
   return (
     <Draggable
-      // @ts-ignore
       component={component}
-      // @ts-ignore
       parentComponent={parentComponent}
       orientation={parentComponent.type === ROW_TYPE ? 'column' : 'row'}
       index={index}

@@ -20,7 +20,7 @@ import { useEffect, useState } from 'react';
 import SyntaxHighlighterBase from 'react-syntax-highlighter/dist/cjs/light';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import tomorrow from 'react-syntax-highlighter/dist/cjs/styles/hljs/tomorrow-night';
-import { isThemeDark, useTheme } from '@apache-superset/core/ui';
+import { isThemeDark, useTheme } from '@apache-superset/core/theme';
 
 export type SupportedLanguage = 'sql' | 'htmlbars' | 'markdown' | 'json';
 

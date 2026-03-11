@@ -97,6 +97,15 @@ class ExportDatabasesCommand(ExportModelsCommand):
             )
             payload["ssh_tunnel"] = mask_password_info(ssh_tunnel_payload)
 
+        # If DB has sensitive fields in Secure Extra, export them masked.
+        # If not, export them as-is.
+        if encrypted_extra := model.encrypted_extra:
+            masked_encrypted_extra = model.masked_encrypted_extra
+            if encrypted_extra != masked_encrypted_extra:
+                payload["masked_encrypted_extra"] = masked_encrypted_extra
+            else:
+                payload["encrypted_extra"] = encrypted_extra
+
         payload["version"] = EXPORT_VERSION
 
         file_content = yaml.safe_dump(payload, sort_keys=False)

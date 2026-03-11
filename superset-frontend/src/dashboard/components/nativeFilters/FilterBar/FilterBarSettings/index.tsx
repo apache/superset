@@ -19,8 +19,8 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { t } from '@superset-ui/core';
-import { styled, useTheme, css } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled, useTheme, css } from '@apache-superset/core/theme';
 import { MenuProps } from '@superset-ui/core/components/Menu';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
@@ -33,8 +33,6 @@ import { Space } from '@superset-ui/core/components/Space';
 import { clearDataMaskState } from 'src/dataMask/actions';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
 import { useFilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink/useFilterConfigModal';
-import { useChartCustomizationModal } from '../../ChartCustomization/useChartCustomizationModal';
-import ChartCustomizationModal from '../../ChartCustomization/ChartCustomizationModal';
 import { useCrossFiltersScopingModal } from '../CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 import FilterConfigurationLink from '../FilterConfigurationLink';
 
@@ -81,15 +79,6 @@ const FilterBarSettings = () => {
   const dashboardId = useSelector<RootState, number>(
     ({ dashboardInfo }) => dashboardInfo.id,
   );
-
-  const {
-    isOpen: isChartCustomizationModalOpen,
-    dashboardId: chartCustomizationDashboardId,
-    chartId: chartCustomizationChartId,
-    openChartCustomizationModal,
-    closeChartCustomizationModal,
-    handleSave: handleChartCustomizationSave,
-  } = useChartCustomizationModal();
 
   const [openScopingModal, scopingModal] = useCrossFiltersScopingModal();
 
@@ -148,7 +137,7 @@ const FilterBarSettings = () => {
       } else if (selectedKey === ADD_EDIT_FILTERS_MENU_KEY) {
         openFilterConfigModal();
       } else if (selectedKey === CHART_CUSTOMIZATION_MENU_KEY) {
-        openChartCustomizationModal();
+        openFilterConfigModal();
       }
     },
     [
@@ -156,7 +145,6 @@ const FilterBarSettings = () => {
       toggleCrossFiltering,
       toggleFilterBarOrientation,
       openFilterConfigModal,
-      openChartCustomizationModal,
     ],
   );
 
@@ -183,7 +171,7 @@ const FilterBarSettings = () => {
         key: ADD_EDIT_FILTERS_MENU_KEY,
         label: (
           <FilterConfigurationLink>
-            {t('Add or edit filters')}
+            {t('Add or edit filters and controls')}
           </FilterConfigurationLink>
         ),
       });
@@ -202,10 +190,6 @@ const FilterBarSettings = () => {
       });
       items.push({ type: 'divider' });
     }
-    items.push({
-      key: CHART_CUSTOMIZATION_MENU_KEY,
-      label: t('Chart customization'),
-    });
     if (canEdit) {
       items.push({
         key: 'placement',
@@ -222,7 +206,7 @@ const FilterBarSettings = () => {
                   <Icons.CheckOutlined
                     iconColor={theme.colorPrimary}
                     iconSize="m"
-                    aria-label="check"
+                    aria-label={t('Selected')}
                   />
                 )}
               </Space>
@@ -240,7 +224,7 @@ const FilterBarSettings = () => {
                     css={css`
                       vertical-align: middle;
                     `}
-                    aria-label="check"
+                    aria-label={t('Selected')}
                   />
                 )}
               </Space>
@@ -299,15 +283,6 @@ const FilterBarSettings = () => {
       </Dropdown>
       {scopingModal}
       {FilterConfigModalComponent}
-      {isChartCustomizationModalOpen && (
-        <ChartCustomizationModal
-          isOpen={isChartCustomizationModalOpen}
-          dashboardId={chartCustomizationDashboardId}
-          chartId={chartCustomizationChartId}
-          onCancel={closeChartCustomizationModal}
-          onSave={handleChartCustomizationSave}
-        />
-      )}
     </>
   );
 };
