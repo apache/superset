@@ -48,3 +48,36 @@ def test_delete_semantic_layer_not_found(mocker: MockerFixture) -> None:
 
     with pytest.raises(SemanticLayerNotFoundError):
         DeleteSemanticLayerCommand("missing-uuid").run()
+
+
+def test_delete_semantic_view_success(mocker: MockerFixture) -> None:
+    """Test successful deletion of a semantic view."""
+    mock_model = MagicMock()
+
+    dao = mocker.patch(
+        "superset.commands.semantic_layer.delete.SemanticViewDAO",
+    )
+    dao.find_by_id.return_value = mock_model
+
+    from superset.commands.semantic_layer.delete import DeleteSemanticViewCommand
+
+    DeleteSemanticViewCommand(42).run()
+
+    dao.find_by_id.assert_called_once_with(42, id_column="id")
+    dao.delete.assert_called_once_with([mock_model])
+
+
+def test_delete_semantic_view_not_found(mocker: MockerFixture) -> None:
+    """Test that SemanticViewNotFoundError is raised when view is missing."""
+    dao = mocker.patch(
+        "superset.commands.semantic_layer.delete.SemanticViewDAO",
+    )
+    dao.find_by_id.return_value = None
+
+    from superset.commands.semantic_layer.delete import DeleteSemanticViewCommand
+    from superset.commands.semantic_layer.exceptions import (
+        SemanticViewNotFoundError,
+    )
+
+    with pytest.raises(SemanticViewNotFoundError):
+        DeleteSemanticViewCommand(999).run()

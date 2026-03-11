@@ -147,3 +147,84 @@ def test_create_semantic_layer_copies_data(mocker: MockerFixture) -> None:
         "type": "snowflake",
         "configuration": {"account": "test"},
     }
+
+
+def test_create_semantic_view_success(mocker: MockerFixture) -> None:
+    """Test successful creation of a semantic view."""
+    mock_layer = MagicMock()
+    dao_layer = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticLayerDAO",
+    )
+    dao_layer.find_by_uuid.return_value = mock_layer
+
+    dao_view = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticViewDAO",
+    )
+    dao_view.validate_uniqueness.return_value = True
+    mock_model = MagicMock()
+    mock_model.uuid = "new-uuid"
+    mock_model.name = "orders"
+    dao_view.create.return_value = mock_model
+
+    from superset.commands.semantic_layer.create import CreateSemanticViewCommand
+
+    result = CreateSemanticViewCommand(
+        {
+            "name": "orders",
+            "semantic_layer_uuid": "layer-uuid",
+            "configuration": {"db": "prod"},
+        }
+    ).run()
+
+    assert result == mock_model
+    dao_view.validate_uniqueness.assert_called_once_with(
+        "orders", "layer-uuid", {"db": "prod"}
+    )
+
+
+def test_create_semantic_view_layer_not_found(mocker: MockerFixture) -> None:
+    """Test CreateSemanticViewCommand raises when layer not found."""
+    dao_layer = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticLayerDAO",
+    )
+    dao_layer.find_by_uuid.return_value = None
+
+    mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticViewDAO",
+    )
+
+    from superset.commands.semantic_layer.create import CreateSemanticViewCommand
+    from superset.commands.semantic_layer.exceptions import (
+        SemanticLayerNotFoundError,
+    )
+
+    with pytest.raises(SemanticLayerNotFoundError):
+        CreateSemanticViewCommand({"name": "v", "semantic_layer_uuid": "missing"}).run()
+
+
+def test_create_semantic_view_duplicate(mocker: MockerFixture) -> None:
+    """Test CreateSemanticViewCommand raises on duplicate view."""
+    mock_layer = MagicMock()
+    dao_layer = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticLayerDAO",
+    )
+    dao_layer.find_by_uuid.return_value = mock_layer
+
+    dao_view = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticViewDAO",
+    )
+    dao_view.validate_uniqueness.return_value = False
+
+    from superset.commands.semantic_layer.create import CreateSemanticViewCommand
+    from superset.commands.semantic_layer.exceptions import (
+        SemanticViewCreateFailedError,
+    )
+
+    with pytest.raises(SemanticViewCreateFailedError):
+        CreateSemanticViewCommand(
+            {
+                "name": "orders",
+                "semantic_layer_uuid": "layer-uuid",
+                "configuration": {"db": "prod"},
+            }
+        ).run()
