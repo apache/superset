@@ -20,6 +20,7 @@ import Supercluster, {
   type Options as SuperclusterOptions,
 } from 'supercluster';
 import { ChartProps } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { DEFAULT_POINT_RADIUS, DEFAULT_MAX_ZOOM } from './MapLibre';
 import roundDecimal from './utils/roundDecimal';
 
@@ -176,7 +177,7 @@ export default function transformProps(chartProps: ChartProps) {
     rgb = /^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/.exec(maplibreColor);
   }
   if (rgb === null) {
-    onError("Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'");
+    onError(t("Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"));
     // Fall back to a safe default color so the chart can still render
     rgb = ['', '0', '0', '0'];
   }
