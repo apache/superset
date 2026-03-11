@@ -152,24 +152,24 @@ Superset provides the capability for dynamic, theme-driven branding of its login
 
 Superset supports the following optional theme tokens to customize the login page appearance:
 
-- `loginPageBackgroundImageUrl`: URL of the login page background image  
-- `loginFormBrandLogoUrl`: URL of the logo displayed on the login form  
+- `loginPageBackgroundImageUrl`: URL of the login page background image
+- `loginFormBrandLogoUrl`: URL of the logo displayed on the login form
 - `loginPageBackgroundOverlayColor`: overlay color applied on top of the background image to improve contrast and readability
-- `loginPageBackgroundBlur`: CSS blur radius applied to the login page background image (e.g., `4px`, `0.25rem`, `1em`, `10vw`)  
+- `loginPageBackgroundBlur`: CSS blur radius applied to the login page background image (e.g., `4px`, `0.25rem`, `1em`, `10vw`)
 
 If these tokens are omitted, Superset’s default login page styling is used.
 
 The `loginPageBackgroundOverlayColor` token accepts any valid CSS color format, including:
 
-- Hex (e.g., `#000000`)  
-- Hex with alpha (e.g., `#00000080`)  
-- RGB/RGBA (e.g., `rgba(0, 0, 0, 0.5)`)  
-- HSL/HSLA (e.g., `hsla(0, 0%, 0%, 0.5)`)  
-- Named colors (e.g., `black`)  
+- Hex (e.g., `#000000`)
+- Hex with alpha (e.g., `#00000080`)
+- RGB/RGBA (e.g., `rgba(0, 0, 0, 0.5)`)
+- HSL/HSLA (e.g., `hsla(0, 0%, 0%, 0.5)`)
+- Named colors (e.g., `black`)
 
 If `loginPageBackgroundImageUrl` is provided but `loginPageBackgroundOverlayColor` is omitted, the overlay defaults to a semi-transparent black: `rgba(0, 0, 0, 0.5)`. The default value for `loginPageBackgroundBlur` is `0px` (no blur effect on the background image).
 
-Tokens for login page customization can be set within the JSON theme configuration defined either in `superset_config.py`: 
+Tokens for login page customization can be set within the JSON theme configuration defined either in `superset_config.py`:
 
 ```python
 # superset_config.py
@@ -204,4 +204,4 @@ Or directly via the CRUD interface on the Themes page.
 - **Per-Dashboard Theming**: Each dashboard can have its own visual identity
 - **JSON Editor**: Edit theme configurations directly within Superset's interface
 - **Custom Fonts**: Load external fonts via configuration without rebuilding
-- **Login Page Customization**: Customize login page visuals through theme tokens 
+- **Login Page Customization**: Customize login page visuals through theme tokens
