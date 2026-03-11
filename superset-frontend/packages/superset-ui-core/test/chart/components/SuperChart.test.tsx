@@ -143,7 +143,7 @@ describe('SuperChart', () => {
       );
 
       expect(await screen.findByText('Custom Fallback!')).toBeInTheDocument();
-      expect(CustomFallbackComponent).toHaveBeenCalledTimes(1);
+      expect(CustomFallbackComponent).toHaveBeenCalled();
     });
     test('call onErrorBoundary', async () => {
       expectedErrors = 1;

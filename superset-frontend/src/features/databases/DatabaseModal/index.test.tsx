@@ -638,15 +638,17 @@ describe('DatabaseModal', () => {
 
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
-      userEvent.click(
+      await userEvent.click(
         await screen.findByRole('button', {
           name: /sqlite/i,
         }),
       );
       // Click the "Advanced" tab
-      userEvent.click(await screen.findByRole('tab', { name: /advanced/i }));
+      await userEvent.click(
+        await screen.findByRole('tab', { name: /advanced/i }),
+      );
       // Click the "SQL Lab" tab
-      userEvent.click(screen.getByTestId('sql-lab-label-test'));
+      await userEvent.click(screen.getByTestId('sql-lab-label-test'));
       expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
 
       // ----- BEGIN STEP 2 (ADVANCED - SQL LAB)

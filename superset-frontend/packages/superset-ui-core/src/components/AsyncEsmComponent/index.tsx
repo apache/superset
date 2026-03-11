@@ -19,12 +19,8 @@
 import {
   useEffect,
   useState,
-  RefObject,
   forwardRef,
   ComponentType,
-  ForwardRefExoticComponent,
-  PropsWithoutRef,
-  RefAttributes,
 } from 'react';
 
 import { Loading } from '../Loading';
@@ -91,15 +87,14 @@ export function AsyncEsmComponent<
     return promise;
   }
 
-  type AsyncComponent = ForwardRefExoticComponent<
-    PropsWithoutRef<FullProps> & RefAttributes<ComponentType<FullProps>>
-  > & {
+  type AsyncComponent = ReturnType<typeof forwardRef> & {
     preload?: typeof waitForPromise;
   };
 
+  // @ts-expect-error -- generic forwardRef has PropsWithoutRef incompatibility with FullProps
   const AsyncComponent: AsyncComponent = forwardRef(function AsyncComponent(
     props: FullProps,
-    ref: RefObject<ComponentType<FullProps>>,
+    ref,
   ) {
     const [loaded, setLoaded] = useState(component !== undefined);
     useEffect(() => {

@@ -440,7 +440,7 @@ describe('Table view with pagination', () => {
     expect(nextPageButton).toBeInTheDocument();
 
     // Click next page
-    userEvent.click(nextPageButton);
+    await userEvent.click(nextPageButton);
 
     // Verify page changed (State0 should not be visible on page 2)
     await waitFor(() => {

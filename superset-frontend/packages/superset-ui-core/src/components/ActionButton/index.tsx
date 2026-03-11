@@ -17,11 +17,10 @@
  * under the License.
  */
 
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import {
   Tooltip,
   type TooltipPlacement,
-  type IconType,
 } from '@superset-ui/core/components';
 import { css, useTheme } from '@apache-superset/core/theme';
 
@@ -29,7 +28,7 @@ export interface ActionProps {
   label: string;
   tooltip?: string | ReactElement;
   placement?: TooltipPlacement;
-  icon: IconType;
+  icon: ReactNode;
   onClick: () => void;
 }
 

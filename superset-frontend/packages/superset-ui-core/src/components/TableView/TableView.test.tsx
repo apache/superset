@@ -16,8 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { fireEvent, act } from '@testing-library/react';
 import { render, screen, userEvent, waitFor } from '@superset-ui/core/spec';
 import { TableView, TableViewProps } from '.';
+
+// Mock window.scrollTo to prevent jsdom "Not implemented" errors
+beforeAll(() => {
+  window.scrollTo = jest.fn();
+});
+afterAll(() => {
+  jest.restoreAllMocks();
+});
 
 const mockedProps: TableViewProps = {
   columns: [
@@ -125,27 +134,31 @@ test('should change page when pagination is clicked', async () => {
   expect(screen.getByText('Emily')).toBeInTheDocument();
   expect(screen.queryByText('Kate')).not.toBeInTheDocument();
 
-  const page2 = screen.getByRole('listitem', { name: '2' });
-  await userEvent.click(page2);
+  const page2Li = screen.getByRole('listitem', { name: '2' });
+  await act(async () => {
+    fireEvent.click(page2Li);
+  });
 
   await waitFor(() => {
-    expect(screen.getAllByRole('cell')).toHaveLength(3);
-    expect(screen.getByText('321')).toBeInTheDocument();
-    expect(screen.getByText('10')).toBeInTheDocument();
     expect(screen.getByText('Kate')).toBeInTheDocument();
-    expect(screen.queryByText('Emily')).not.toBeInTheDocument();
   });
+  expect(screen.getAllByRole('cell')).toHaveLength(3);
+  expect(screen.getByText('321')).toBeInTheDocument();
+  expect(screen.getByText('10')).toBeInTheDocument();
+  expect(screen.queryByText('Emily')).not.toBeInTheDocument();
 
-  const page1 = screen.getByRole('listitem', { name: '1' });
-  await userEvent.click(page1);
+  const page1Li = screen.getByRole('listitem', { name: '1' });
+  await act(async () => {
+    fireEvent.click(page1Li);
+  });
 
   await waitFor(() => {
-    expect(screen.getAllByRole('cell')).toHaveLength(3);
-    expect(screen.getByText('123')).toBeInTheDocument();
-    expect(screen.getByText('27')).toBeInTheDocument();
     expect(screen.getByText('Emily')).toBeInTheDocument();
-    expect(screen.queryByText('Kate')).not.toBeInTheDocument();
   });
+  expect(screen.getAllByRole('cell')).toHaveLength(3);
+  expect(screen.getByText('123')).toBeInTheDocument();
+  expect(screen.getByText('27')).toBeInTheDocument();
+  expect(screen.queryByText('Kate')).not.toBeInTheDocument();
 });
 
 test('should sort by age', async () => {
