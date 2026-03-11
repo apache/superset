@@ -127,10 +127,34 @@ export const GlobalStyles = () => {
 
         /* WCAG 2.4.7: Focus Visible — ensure all interactive elements have a visible
            keyboard focus indicator. Uses :focus-visible to avoid showing on mouse clicks.
-           Individual components can override with their own focus styles. */
+           Uses !important to override Ant Design CSS-in-JS rules that generate a
+           lighter focus color (~1.70:1) with higher specificity. */
         *:focus-visible {
-          outline: 2px solid ${theme.colorPrimary};
-          outline-offset: 2px;
+          outline: 2px solid ${theme.colorPrimary} !important;
+          outline-offset: 2px !important;
+        }
+
+        /* WCAG 1.4.3: Minimum Contrast — override link color from colorPrimary (#2893B3,
+           3.55:1 on white) to a darker shade that meets the 4.5:1 text contrast threshold. */
+        a {
+          color: #0d7090;
+        }
+        a:hover {
+          color: #0a5a73;
+        }
+
+        /* Screen-reader-only utility class for visually hidden but accessible content
+           (WCAG 2.4.6: headings that provide document structure without visual noise) */
+        .sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
         }
       `}
     />

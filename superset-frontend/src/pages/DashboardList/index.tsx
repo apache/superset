@@ -710,7 +710,7 @@ function DashboardList(props: DashboardListProps) {
           title={t('Import dashboards')}
           placement="bottomRight"
         >
-          <Icons.DownloadOutlined iconSize="l" data-test="import-button" />
+          <Icons.DownloadOutlined iconSize="l" data-test="import-button" aria-label={t('Import dashboards')} />
         </Tooltip>
       ),
       buttonStyle: 'link',
@@ -739,6 +739,7 @@ function DashboardList(props: DashboardListProps) {
   }
   return (
     <>
+      <h1 className="sr-only">{t('Dashboards')}</h1>
       <SubMenu name={t('Dashboards')} buttons={subMenuButtons} />
       <ConfirmStatusChange
         title={t('Please confirm')}

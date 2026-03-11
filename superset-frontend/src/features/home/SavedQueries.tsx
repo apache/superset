@@ -348,7 +348,7 @@ export const SavedQueries = ({
                       menu={{ items: menuItems(q) }}
                       trigger={['click', 'hover']}
                     >
-                      <Button buttonSize="xsmall" buttonStyle="link">
+                      <Button buttonSize="xsmall" buttonStyle="link" aria-label={t('More actions')}>
                         <Icons.MoreOutlined iconSize="xl" />
                       </Button>
                     </Dropdown>
