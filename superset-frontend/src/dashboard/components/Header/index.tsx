@@ -107,7 +107,6 @@ type DashboardPropertiesUpdate = {
   owners?: Owner[];
   roles?: Role[];
   tags?: TagType[];
-  themeId?: number | null;
   theme?: { id: number; theme_name: string; json_data: string } | null;
   css?: string;
   title?: string;

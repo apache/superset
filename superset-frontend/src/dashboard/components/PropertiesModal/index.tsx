@@ -386,7 +386,6 @@ const PropertiesModal = ({
       colorNamespace,
       certifiedBy,
       certificationDetails,
-      themeId: selectedThemeId,
       theme: selectedThemeId
         ? themes.find(t => t.id === selectedThemeId)
         : null,
