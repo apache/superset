@@ -100,7 +100,13 @@ test('Renders the modified date', () => {
   expect(modifiedDateElement).toBeInTheDocument();
 });
 
-test('renders without fetching thumbnail when dashboard has no thumbnail_url', () => {
+test('constructs thumbnail URL from dashboard id and changed_on_utc when thumbnail_url is empty', () => {
+  const originalFetch = global.fetch;
+  const mockFetch = jest.fn().mockResolvedValue({
+    blob: () => Promise.resolve(new Blob([''], { type: 'image/png' })),
+  });
+  global.fetch = mockFetch;
+
   render(
     <MemoryRouter>
       <DashboardCard
@@ -118,6 +124,7 @@ test('renders without fetching thumbnail when dashboard has no thumbnail_url', (
         hasPerm={() => true}
         bulkSelectEnabled={false}
         loading={false}
+        showThumbnails
         saveFavoriteStatus={() => {}}
         favoriteStatus={false}
         handleBulkDashboardExport={() => {}}
@@ -125,8 +132,14 @@ test('renders without fetching thumbnail when dashboard has no thumbnail_url', (
       />
     </MemoryRouter>,
   );
-  // Component should render without making any API calls to fetch thumbnail.
-  // The thumbnail URL is now constructed directly from dashboard.id and
-  // dashboard.changed_on_utc instead of fetching via SupersetClient.get.
+
   expect(screen.getByText('No Thumb Dashboard')).toBeInTheDocument();
+  // When thumbnail_url is empty, the component constructs the URL directly
+  // from dashboard.id and dashboard.changed_on_utc instead of fetching
+  // via SupersetClient.get.
+  expect(mockFetch).toHaveBeenCalledWith(
+    '/api/v1/dashboard/2/thumbnail/2024-01-01T00%3A00%3A00/',
+  );
+
+  global.fetch = originalFetch;
 });
