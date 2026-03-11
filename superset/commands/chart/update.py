@@ -87,6 +87,13 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         requested_dashboard_ids = {d.id for d in requested_dashboards}
 
         if new_dashboard_ids := requested_dashboard_ids - existing_dashboard_ids:
+            new_dashboards = [
+                d for d in requested_dashboards if d.id in new_dashboard_ids
+            ]
+            for dash in new_dashboards:
+                if dash.is_managed_externally:
+                    raise DashboardsForbiddenError()
+
             # For NEW dashboard relationships, verify user has ownership
             accessible_dashboards = DashboardDAO.find_by_ids(list(new_dashboard_ids))
             unauthorized_dashboard_ids = new_dashboard_ids - {
