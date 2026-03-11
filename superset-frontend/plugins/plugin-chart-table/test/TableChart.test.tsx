@@ -1572,3 +1572,115 @@ describe('plugin-chart-table', () => {
     });
   });
 });
+
+test('drill-to-detail uses TEMPORAL_RANGE for temporal columns when timeGrain is set', () => {
+  const onContextMenu = jest.fn();
+  const props = transformProps({
+    ...testData.basic,
+    rawFormData: {
+      ...testData.basic.rawFormData,
+      time_grain_sqla: TimeGranularity.MONTH,
+    },
+    hooks: {
+      onAddFilter: jest.fn(),
+      setDataMask: jest.fn(),
+      onContextMenu,
+    },
+  });
+  render(<TableChart {...props} sticky={false} />);
+
+  const tbody = screen.getAllByRole('rowgroup')[1];
+  fireEvent.contextMenu(tbody.querySelectorAll('td')[0]);
+
+  expect(onContextMenu).toHaveBeenCalledTimes(1);
+  const [, , { drillToDetail }] = onContextMenu.mock.calls[0];
+  const timestampFilter = drillToDetail.find(
+    (f: { col: string }) => f.col === '__timestamp',
+  );
+  expect(timestampFilter.op).toBe('TEMPORAL_RANGE');
+  expect(timestampFilter.grain).toBe(TimeGranularity.MONTH);
+  // Row value is 2020-01-01T12:34:56Z; month granularity end is start of next month
+  expect(timestampFilter.val).toBe(
+    '2020-01-01T12:34:56.000Z : 2020-02-01T00:00:00.000Z',
+  );
+});
+
+test('drill-to-detail TEMPORAL_RANGE range end matches granularity boundary for year grain', () => {
+  const onContextMenu = jest.fn();
+  const props = transformProps({
+    ...testData.basic,
+    rawFormData: {
+      ...testData.basic.rawFormData,
+      time_grain_sqla: TimeGranularity.YEAR,
+    },
+    hooks: {
+      onAddFilter: jest.fn(),
+      setDataMask: jest.fn(),
+      onContextMenu,
+    },
+  });
+  render(<TableChart {...props} sticky={false} />);
+
+  const tbody = screen.getAllByRole('rowgroup')[1];
+  fireEvent.contextMenu(tbody.querySelectorAll('td')[0]);
+
+  const [, , { drillToDetail }] = onContextMenu.mock.calls[0];
+  const timestampFilter = drillToDetail.find(
+    (f: { col: string }) => f.col === '__timestamp',
+  );
+  expect(timestampFilter.op).toBe('TEMPORAL_RANGE');
+  // Row value is 2020-01-01T12:34:56Z; year granularity end is start of 2021
+  expect(timestampFilter.val).toBe(
+    '2020-01-01T12:34:56.000Z : 2021-01-01T00:00:00.000Z',
+  );
+});
+
+test('drill-to-detail uses == for non-temporal columns even when timeGrain is set', () => {
+  const onContextMenu = jest.fn();
+  const props = transformProps({
+    ...testData.basic,
+    rawFormData: {
+      ...testData.basic.rawFormData,
+      time_grain_sqla: TimeGranularity.MONTH,
+    },
+    hooks: {
+      onAddFilter: jest.fn(),
+      setDataMask: jest.fn(),
+      onContextMenu,
+    },
+  });
+  render(<TableChart {...props} sticky={false} />);
+
+  const tbody = screen.getAllByRole('rowgroup')[1];
+  fireEvent.contextMenu(tbody.querySelectorAll('td')[0]);
+
+  const [, , { drillToDetail }] = onContextMenu.mock.calls[0];
+  const nameFilter = drillToDetail.find(
+    (f: { col: string }) => f.col === 'name',
+  );
+  expect(nameFilter.op).toBe('==');
+  expect(nameFilter.val).toBe('Michael');
+});
+
+test('drill-to-detail uses == for temporal columns when no timeGrain is set', () => {
+  const onContextMenu = jest.fn();
+  const props = transformProps({
+    ...testData.basic,
+    hooks: {
+      onAddFilter: jest.fn(),
+      setDataMask: jest.fn(),
+      onContextMenu,
+    },
+  });
+  render(<TableChart {...props} sticky={false} />);
+
+  const tbody = screen.getAllByRole('rowgroup')[1];
+  fireEvent.contextMenu(tbody.querySelectorAll('td')[0]);
+
+  expect(onContextMenu).toHaveBeenCalledTimes(1);
+  const [, , { drillToDetail }] = onContextMenu.mock.calls[0];
+  const timestampFilter = drillToDetail.find(
+    (f: { col: string }) => f.col === '__timestamp',
+  );
+  expect(timestampFilter.op).toBe('==');
+});
