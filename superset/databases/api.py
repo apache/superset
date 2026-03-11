@@ -1081,14 +1081,23 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             raise InvalidPayloadSchemaError(ex) from ex
         table_name = str(parameters["name"])
         table = Table(table_name, parameters["schema"], parameters["catalog"])
-        is_partitioned_table, partition_fields = DatabaseDAO.is_odps_partitioned_table(
-            database, table_name
-        )
         try:
             security_manager.raise_for_access(database=database, table=table)
         except SupersetSecurityException as ex:
             # instead of raising 403, raise 404 to hide table existence
             raise TableNotFoundException("No such table") from ex
+        try:
+            is_partitioned_table, partition_fields = (
+                DatabaseDAO.is_odps_partitioned_table(database, table_name)
+            )
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.warning(
+                "Error determining ODPS partition info for table %s: %s; "
+                "falling back to non-partitioned path",
+                table_name,
+                error_msg_from_exception(ex),
+            )
+            is_partitioned_table, partition_fields = False, []
         partition = Partition(is_partitioned_table, partition_fields)
         if is_partitioned_table:
             from superset.db_engine_specs.odps import OdpsEngineSpec

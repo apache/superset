@@ -286,6 +286,11 @@ class DatabaseDAO(BaseDAO[Database]):
                 partition_fields = [partition.name for partition in partition_spec]
                 return True, partition_fields
             return False, []
+        logger.warning(
+            "ODPS sqlalchemy_uri did not match the expected pattern; "
+            "unable to determine partition info for table %r",
+            table_name,
+        )
         return False, []
 
 

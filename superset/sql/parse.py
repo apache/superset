@@ -326,10 +326,10 @@ class Table:
 class Partition:
     """
     Partition object, with two attribute keys:
-    ispartitioned_table and partition_comlumn,
+    is_partitioned_table and partition_column,
     used to provide partition information
     Here is an example of an object:
-    {"ispartitioned_table":true,"partition_column":["month","day"]}
+    {"is_partitioned_table": true, "partition_column": ["month", "day"]}
     """
 
     is_partitioned_table: bool
@@ -337,7 +337,7 @@ class Partition:
 
     def __str__(self) -> str:
         """
-        Return the partition columns of table name.
+        Return a string representation of the Partition object.
         """
         partition_column_str = (
             ", ".join(map(str, self.partition_column))
@@ -348,9 +348,6 @@ class Partition:
             f"Partition(is_partitioned_table={self.is_partitioned_table}, "
             f"partition_column=[{partition_column_str}])"
         )
-
-    def __eq__(self, other: Any) -> bool:
-        return str(self) == str(other)
 
 
 # To avoid unnecessary parsing/formatting of queries, the statement has the concept of

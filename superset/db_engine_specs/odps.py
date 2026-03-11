@@ -17,10 +17,10 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from sqlalchemy import select, text
-from sqlalchemy.engine.base import Engine
+from sqlalchemy.engine import Dialect
 
 from superset.databases.schemas import (
     TableMetadataColumnsResponse,
@@ -47,7 +47,7 @@ class OdpsBaseEngineSpec(BaseEngineSpec):
         cls,
         database: Database,
         table: Table,
-        partition: Optional[Partition] = None,
+        partition: Partition | None = None,
     ) -> TableMetadataResponse:
         """
         Returns basic table metadata
@@ -56,7 +56,7 @@ class OdpsBaseEngineSpec(BaseEngineSpec):
         :param partition: A Table partition info
         :return: Basic table metadata
         """
-        return cls.get_table_metadata(database, table, partition)
+        raise NotImplementedError
 
 
 class OdpsEngineSpec(BasicParametersMixin, OdpsBaseEngineSpec):
@@ -66,7 +66,7 @@ class OdpsEngineSpec(BasicParametersMixin, OdpsBaseEngineSpec):
 
     @classmethod
     def get_table_metadata(
-        cls, database: Any, table: Table, partition: Optional[Partition] = None
+        cls, database: Any, table: Table, partition: Partition | None = None
     ) -> TableMetadataResponse:
         """
         Get table metadata information, including type, pk, fks.
@@ -112,7 +112,7 @@ class OdpsEngineSpec(BasicParametersMixin, OdpsBaseEngineSpec):
                 "selectStar": cls.select_star(
                     database=database,
                     table=table,
-                    engine=engine,
+                    dialect=engine.dialect,
                     limit=100,
                     show_cols=False,
                     indent=True,
@@ -131,13 +131,13 @@ class OdpsEngineSpec(BasicParametersMixin, OdpsBaseEngineSpec):
         cls,
         database: Database,
         table: Table,
-        engine: Engine,
+        dialect: Dialect,
         limit: int = 100,
         show_cols: bool = False,
         indent: bool = True,
         latest_partition: bool = True,
         cols: list[ResultSetColumnType] | None = None,
-        partition: Optional[Partition] = None,
+        partition: Partition | None = None,
     ) -> str:
         """
         Generate a "SELECT * from [schema.]table_name" query with appropriate limit.
@@ -147,7 +147,7 @@ class OdpsEngineSpec(BasicParametersMixin, OdpsBaseEngineSpec):
         :param partition: The table's partition info
         :param database: Database instance
         :param table: Table instance
-        :param engine: SqlAlchemy Engine instance
+        :param dialect: SqlAlchemy Dialect instance
         :param limit: limit to impose on query
         :param show_cols: Show columns in query; otherwise use "*"
         :param indent: Add indentation to query
@@ -163,7 +163,7 @@ class OdpsEngineSpec(BasicParametersMixin, OdpsBaseEngineSpec):
 
         if show_cols:
             fields = cls._get_fields(cols)
-        full_table_name = cls.quote_table(table, engine.dialect)
+        full_table_name = cls.quote_table(table, dialect)
         qry = select(fields).select_from(text(full_table_name))
         if database.backend == "odps":
             if (
