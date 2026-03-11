@@ -21,14 +21,17 @@ import fetchMock from 'fetch-mock';
 import { SupersetClient, SupersetClientClass } from '@superset-ui/core';
 import { LOGIN_GLOB } from './fixtures/constants';
 
-describe('SupersetClient', () => {
-  beforeAll(() => fetchMock.get(LOGIN_GLOB, { result: '' }));
+beforeAll(() => fetchMock.mockGlobal());
+afterAll(() => fetchMock.hardReset());
 
-  afterAll(() => fetchMock.restore());
+describe('SupersetClient', () => {
+  beforeAll(() => fetchMock.get(LOGIN_GLOB, { result: '1234' }));
+
+  afterAll(() => fetchMock.removeRoutes().clearHistory());
 
   afterEach(() => SupersetClient.reset());
 
-  it('exposes configure, init, get, post, postForm, delete, put, request, reset, getGuestToken, getCSRFToken, getUrl, isAuthenticated, and reAuthenticate methods', () => {
+  test('exposes configure, init, get, post, postForm, delete, put, request, reset, getGuestToken, getCSRFToken, getUrl, isAuthenticated, and reAuthenticate methods', () => {
     expect(typeof SupersetClient.configure).toBe('function');
     expect(typeof SupersetClient.init).toBe('function');
     expect(typeof SupersetClient.get).toBe('function');
@@ -45,7 +48,7 @@ describe('SupersetClient', () => {
     expect(typeof SupersetClient.reAuthenticate).toBe('function');
   });
 
-  it('throws if you call init, get, post, postForm, delete, put, request, getGuestToken, getCSRFToken, getUrl, isAuthenticated, or reAuthenticate before configure', () => {
+  test('throws if you call init, get, post, postForm, delete, put, request, getGuestToken, getCSRFToken, getUrl, isAuthenticated, or reAuthenticate before configure', () => {
     expect(SupersetClient.init).toThrow();
     expect(SupersetClient.get).toThrow();
     expect(SupersetClient.post).toThrow();
@@ -62,7 +65,7 @@ describe('SupersetClient', () => {
   });
 
   // this also tests that the ^above doesn't throw if configure is called appropriately
-  it('calls appropriate SupersetClient methods when configured', async () => {
+  test('calls appropriate SupersetClient methods when configured', async () => {
     expect.assertions(18);
     const mockGetUrl = '/mock/get/url';
     const mockPostUrl = '/mock/post/url';
@@ -124,9 +127,11 @@ describe('SupersetClient', () => {
       mockDeleteUrl,
     ];
     networkCalls.map((url: string) =>
-      expect(fetchMock.calls(url)[0][1]?.headers).toStrictEqual({
-        Accept: 'application/json',
-        'X-CSRFToken': '1234',
+      expect(
+        fetchMock.callHistory.calls(url)[0].options?.headers,
+      ).toStrictEqual({
+        accept: 'application/json',
+        'x-csrftoken': '1234',
       }),
     );
 
@@ -154,6 +159,12 @@ describe('SupersetClient', () => {
     csrfSpy.mockRestore();
     getUrlSpy.mockRestore();
 
-    fetchMock.reset();
+    fetchMock.clearHistory().removeRoutes();
+  });
+
+  test('getCSRFToken() returns existing token when already configured', async () => {
+    SupersetClient.configure({ csrfToken: 'my_token' });
+    const token = await SupersetClient.getCSRFToken();
+    expect(token).toBe('my_token');
   });
 });

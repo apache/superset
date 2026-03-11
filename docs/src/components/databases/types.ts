@@ -86,6 +86,17 @@ export interface CompatibleDatabase {
   docs_url?: string;
 }
 
+export interface CustomError {
+  error_type: string;           // e.g., "CONNECTION_INVALID_USERNAME_ERROR"
+  message_template: string;     // e.g., 'The username "%(username)s" does not exist.'
+  regex_pattern?: string;       // The regex pattern that matches this error (optional, for reference)
+  regex_name?: string;          // The name of the regex constant (e.g., "CONNECTION_INVALID_USERNAME_REGEX")
+  invalid_fields?: string[];    // Fields that are invalid, e.g., ["username", "password"]
+  issue_codes?: number[];       // Related issue codes from ISSUE_CODES mapping
+  category?: string;            // Error category: "Authentication", "Connection", "Query", etc.
+  description?: string;         // Human-readable short description of the error type
+}
+
 export interface DatabaseDocumentation {
   description?: string;
   logo?: string;
@@ -111,6 +122,7 @@ export interface DatabaseDocumentation {
   sqlalchemy_docs_url?: string;
   advanced_features?: Record<string, string>;
   compatible_databases?: CompatibleDatabase[];
+  custom_errors?: CustomError[];  // Database-specific error messages and troubleshooting info
 }
 
 export interface TimeGrains {

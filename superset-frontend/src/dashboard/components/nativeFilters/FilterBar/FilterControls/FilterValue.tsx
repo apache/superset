@@ -26,7 +26,7 @@ import {
   useState,
 } from 'react';
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ChartDataResponseResult,
   Behavior,
@@ -41,7 +41,7 @@ import {
   getClientErrorObject,
   isChartCustomization,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { isEqual, isEqualWith } from 'lodash';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
@@ -238,10 +238,10 @@ const FilterValue: FC<FilterValueProps> = ({
             // deal with getChartDataRequest transforming the response data
             const result = 'result' in json ? json.result[0] : json;
             if (response.status === 200) {
-              setState([result]);
+              setState([result as ChartDataResponseResult]);
               handleFilterLoadFinish();
             } else if (response.status === 202) {
-              waitForAsyncData(result)
+              waitForAsyncData(result as Parameters<typeof waitForAsyncData>[0])
                 .then((asyncResult: ChartDataResponseResult[]) => {
                   setState(asyncResult);
                   handleFilterLoadFinish();
@@ -258,7 +258,7 @@ const FilterValue: FC<FilterValueProps> = ({
               );
             }
           } else {
-            setState(json.result);
+            setState(json.result as ChartDataResponseResult[]);
             setError(undefined);
             handleFilterLoadFinish();
           }

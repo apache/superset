@@ -60,7 +60,7 @@ beforeEach(() => {
       parent: { child: 'Nested Value 3' },
     },
   ];
-  // @ts-ignore
+  // @ts-expect-error
   const tableHookResult = renderHook(() => useTable({ columns, data }));
   tableHook = tableHookResult.result.current;
   defaultProps = {

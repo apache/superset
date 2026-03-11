@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   AdhocFilter,
   Behavior,
@@ -136,7 +136,7 @@ export function mergeExtraFormData(
 }
 
 export function isCrossFilter(vizType: string) {
-  // @ts-ignore need export from superset-ui `ItemWithValue`
+  // @ts-expect-error need export from superset-ui `ItemWithValue`
   return getChartMetadataRegistry().items[vizType]?.value.behaviors?.includes(
     Behavior.InteractiveChart,
   );

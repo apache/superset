@@ -17,7 +17,7 @@
  * under the License.
  */
 import { AdhocMetric } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 
 export const NUM_METRIC: AdhocMetric = {
   expressionType: 'SIMPLE',

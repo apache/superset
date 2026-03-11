@@ -23,6 +23,7 @@ import {
   memo,
   ChangeEvent,
   MouseEvent,
+  useMemo,
 } from 'react';
 
 import AutoSizer from 'react-virtualized-auto-sizer';
@@ -36,7 +37,6 @@ import {
   Tooltip,
   Input,
   Label,
-  Loading,
 } from '@superset-ui/core/components';
 import {
   CopyToClipboard,
@@ -44,7 +44,7 @@ import {
   ErrorMessageWithStackTrace,
 } from 'src/components';
 import { nanoid } from 'nanoid';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   QueryState,
   usePrevious,
@@ -52,8 +52,9 @@ import {
   getExtensionsRegistry,
   ErrorTypeEnum,
 } from '@superset-ui/core';
-import { tn } from '@apache-superset/core';
-import { styled, useTheme, css, Alert } from '@apache-superset/core/ui';
+import { tn } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
+import { styled, useTheme, css } from '@apache-superset/core/theme';
 import {
   ISaveableDatasource,
   ISimpleColumn,
@@ -62,7 +63,6 @@ import {
 import { EXPLORE_CHART_DEFAULT, SqlLabRootState } from 'src/SqlLab/types';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
-import ProgressBar from '@superset-ui/core/components/ProgressBar';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
@@ -90,9 +90,8 @@ import { makeUrl } from 'src/utils/pathUtils';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
-import QueryStateLabel from '../QueryStateLabel';
 import PanelToolbar from 'src/components/PanelToolbar';
-import { ViewContribution } from 'src/SqlLab/contributions';
+import { ViewLocations } from 'src/SqlLab/contributions';
 
 enum LimitingFactor {
   Query = 'QUERY',
@@ -119,7 +118,7 @@ export interface ResultSetProps {
 const ResultContainer = styled.div`
   display: flex;
   flex-direction: column;
-  row-gap: ${({ theme }) => theme.sizeUnit * 2}px;
+  row-gap: ${({ theme }) => theme.sizeUnit * 3}px;
   height: 100%;
 `;
 
@@ -157,6 +156,7 @@ const ResultSetButtons = styled.div`
 const GAP = 8;
 
 const extensionsRegistry = getExtensionsRegistry();
+const EMPTY: string[] = [];
 
 const ResultSet = ({
   cache = false,
@@ -218,6 +218,14 @@ const ResultSet = ({
   const [cachedData, setCachedData] = useState<Record<string, unknown>[]>([]);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const [showStreamingModal, setShowStreamingModal] = useState(false);
+  const orderedColumnKeys = useMemo(
+    () => query.results?.columns?.map(col => col.column_name) ?? EMPTY,
+    [query.results?.columns],
+  );
+  const expandedColumns = useMemo(
+    () => query.results?.expanded_columns?.map(col => col.column_name) ?? EMPTY,
+    [query.results?.expanded_columns],
+  );
 
   const history = useHistory();
   const dispatch = useDispatch();
@@ -288,9 +296,16 @@ const ResultSet = ({
 
         all_columns: results.columns.map(column => column.column_name),
       });
-      const url = mountExploreUrl(null, {
-        [URL_PARAMS.formDataKey.name]: key,
-      });
+      const force = false;
+      const includeAppRoot = openInNewWindow;
+      const url = mountExploreUrl(
+        'base',
+        {
+          [URL_PARAMS.formDataKey.name]: key,
+        },
+        force,
+        includeAppRoot,
+      );
       if (openInNewWindow) {
         window.open(url, '_blank', 'noreferrer');
       } else {
@@ -414,7 +429,10 @@ const ResultSet = ({
           )}
           {canExportData && (
             <CopyToClipboard
-              text={prepareCopyToClipboardTabularData(data, columns)}
+              text={prepareCopyToClipboardTabularData(
+                data,
+                columns.map(c => c.column_name),
+              )}
               wrapped={false}
               copyNode={
                 <Button
@@ -449,7 +467,7 @@ const ResultSet = ({
             datasource={datasource}
           />
           <PanelToolbar
-            viewId={ViewContribution.Results}
+            viewId={ViewLocations.sqllab.results}
             defaultPrimaryActions={defaultPrimaryActions}
           />
         </ResultSetButtons>
@@ -514,6 +532,7 @@ const ResultSet = ({
           placement="left"
         >
           <Label
+            monospace
             css={css`
               line-height: ${theme.fontSizeLG}px;
             `}
@@ -655,9 +674,6 @@ const ResultSet = ({
       ({ data } = results);
     }
     if (data && data.length > 0) {
-      const expandedColumns = results.expanded_columns
-        ? results.expanded_columns.map(col => col.column_name)
-        : [];
       const allowHTML = getItem(
         LocalStorageKeys.SqllabIsRenderHtmlEnabled,
         true,
@@ -666,7 +682,7 @@ const ResultSet = ({
       const tableProps = {
         data,
         queryId: query.id,
-        orderedColumnKeys: results.columns.map(col => col.column_name),
+        orderedColumnKeys,
         filterText: searchText,
         expandedColumns,
         allowHTML,
@@ -816,34 +832,20 @@ const ResultSet = ({
     }
   }
 
-  let progressBar;
-  if (query.progress > 0) {
-    progressBar = (
-      <ProgressBar percent={parseInt(query.progress.toFixed(0), 10)} striped />
-    );
-  }
-
   const progressMsg = query?.extra?.progress ?? null;
 
   return (
-    <>
-      <ResultlessStyles>
-        <div>{!progressBar && <Loading position="normal" />}</div>
-        {/* show loading bar whenever progress bar is completed but needs time to render */}
-        <div>{query.progress === 100 && <Loading position="normal" />}</div>
-        <QueryStateLabel query={query} />
-        <div>
-          {progressMsg && <Alert type="success" message={progressMsg} />}
-        </div>
-        <div>{query.progress !== 100 && progressBar}</div>
-        {trackingUrl && <div>{trackingUrl}</div>}
-      </ResultlessStyles>
+    <ResultlessStyles>
+      {progressMsg && (
+        <Alert type="success" message={progressMsg} closable={false} />
+      )}
+      {trackingUrl && <div>{trackingUrl}</div>}
       <StreamingExportModal
         visible={showStreamingModal}
         onCancel={handleCloseStreamingModal}
         progress={progress}
       />
-    </>
+    </ResultlessStyles>
   );
 };
 

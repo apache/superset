@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { JsonValue } from '@superset-ui/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 // eslint-disable-next-line no-restricted-imports
 import { Button } from '@superset-ui/core/components/Button';
 import { Form } from '@superset-ui/core/components/Form';

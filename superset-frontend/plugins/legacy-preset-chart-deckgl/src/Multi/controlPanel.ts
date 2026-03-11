@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { validateNonEmpty } from '@superset-ui/core';
-import { viewport, mapboxStyle } from '../utilities/Shared_DeckGL';
+import { viewport, mapboxStyle, autozoom } from '../utilities/Shared_DeckGL';
 
 export default {
   controlPanelSections: [
@@ -28,6 +28,7 @@ export default {
       controlSetRows: [
         [mapboxStyle],
         [viewport],
+        [autozoom],
         [
           {
             name: 'deck_slices',

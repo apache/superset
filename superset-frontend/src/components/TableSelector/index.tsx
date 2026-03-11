@@ -25,9 +25,9 @@ import {
 } from 'react';
 import type { SelectValue } from '@superset-ui/core/components';
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { SupersetError } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { CertifiedBadge, Select } from '@superset-ui/core/components';
 import { DatabaseSelector, ErrorMessageWithStackTrace } from 'src/components';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -97,7 +97,6 @@ interface TableSelectorProps {
   catalog?: string | null;
   schema?: string;
   onEmptyResults?: (searchText?: string) => void;
-  sqlLabMode?: boolean;
   tableValue?: string | string[];
   onTableSelectChange?: (
     value?: string | string[],
@@ -167,7 +166,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   onEmptyResults,
   catalog,
   schema,
-  sqlLabMode = true,
   tableSelectMode = 'single',
   tableValue = undefined,
   onTableSelectChange,
@@ -306,7 +304,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   function renderTableSelect() {
     const disabled = (currentSchema && !formMode && readOnly) || !currentSchema;
 
-    const label = sqlLabMode ? t('See table schema') : t('Table');
+    const label = t('Table');
 
     const select = (
       <Select
@@ -364,11 +362,10 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         catalog={currentCatalog}
         onSchemaChange={readOnly ? undefined : internalSchemaChange}
         schema={currentSchema}
-        sqlLabMode={sqlLabMode}
         isDatabaseSelectEnabled={isDatabaseSelectEnabled && !readOnly}
         readOnly={readOnly}
       />
-      {sqlLabMode && !formMode && <div className="divider" />}
+      {!formMode && <div className="divider" />}
       {renderError()}
       {renderTableSelect()}
     </TableSelectorWrapper>

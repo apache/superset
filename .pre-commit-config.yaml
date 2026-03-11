@@ -27,6 +27,7 @@ repos:
         args: [--check-untyped-defs]
         exclude: ^superset-extensions-cli/
         additional_dependencies: [
+            types-cachetools,
             types-simplejson,
             types-python-dateutil,
             types-requests,
@@ -82,7 +83,7 @@ repos:
         files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
       - id: eslint-docs
         name: eslint (docs)
-        entry: bash -c 'cd docs && FILES=$(echo "$@" | sed "s|docs/||g") && yarn eslint --fix --quiet $FILES'
+        entry: bash -c 'cd docs && FILES=$(printf "%s\n" "$@" | sed "s|^docs/||" | tr "\n" " ") && yarn eslint --fix --quiet $FILES'
         language: system
         pass_filenames: true
         files: ^docs/.*\.(js|jsx|ts|tsx)$

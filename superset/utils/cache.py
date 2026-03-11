@@ -31,6 +31,7 @@ from superset import db
 from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.extensions import cache_manager
 from superset.models.cache import CacheKey
+from superset.utils.cache_manager import configurable_hash_method
 from superset.utils.hashing import hash_from_dict
 from superset.utils.json import json_int_dttm_ser
 
@@ -273,7 +274,7 @@ def etag_cache(  # noqa: C901
         wrapper.uncached = f  # type: ignore
         wrapper.cache_timeout = timeout  # type: ignore
         wrapper.make_cache_key = cache._memoize_make_cache_key(  # type: ignore # pylint: disable=protected-access
-            make_name=None, timeout=timeout
+            make_name=None, timeout=timeout, hash_method=configurable_hash_method
         )
 
         return wrapper

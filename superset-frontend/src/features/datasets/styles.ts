@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, css, SupersetTheme } from '@apache-superset/core/ui';
+import { styled, css, SupersetTheme } from '@apache-superset/core/theme';
 
 export const StyledLayoutWrapper = styled.div`
   flex-grow: 1;

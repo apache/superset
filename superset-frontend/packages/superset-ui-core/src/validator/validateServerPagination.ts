@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 
 export default function validateServerPagination(
   v: unknown,
   serverPagination: boolean,
   maxValueWithoutServerPagination: number,
   maxServer: number,
-) {
+): string | false {
   if (
     Number(v) > +maxValueWithoutServerPagination &&
     Number(v) <= maxServer &&

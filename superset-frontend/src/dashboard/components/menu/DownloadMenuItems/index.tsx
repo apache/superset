@@ -17,7 +17,8 @@
  * under the License.
  */
 import { SyntheticEvent } from 'react';
-import { logging, t } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
+import { t } from '@apache-superset/core/translation';
 import {
   FeatureFlag,
   isFeatureEnabled,
@@ -35,7 +36,7 @@ import {
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
 } from 'src/logger/LogUtils';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { ensureAppRoot } from 'src/utils/pathUtils';
+
 import { DownloadScreenshotFormat } from './types';
 
 export interface UseDownloadMenuItemsProps {
@@ -104,11 +105,8 @@ export const useDownloadMenuItems = (
 
   const onExportAsExample = async () => {
     try {
-      const endpoint = ensureAppRoot(
-        `/api/v1/dashboard/${dashboardId}/export_as_example/`,
-      );
       const response = await SupersetClient.get({
-        endpoint,
+        endpoint: `/api/v1/dashboard/${dashboardId}/export_as_example/`,
         headers: {
           Accept: 'application/zip',
         },

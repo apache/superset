@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { Tag } from 'src/components';
 import { FC } from 'react';
 import { ExtentTagProps } from './types';
