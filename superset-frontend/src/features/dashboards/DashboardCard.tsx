@@ -16,14 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
-import {
-  isFeatureEnabled,
-  FeatureFlag,
-  SupersetClient,
-} from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { CardStyles } from 'src/views/CRUD/utils';
 import {
   Dropdown,
@@ -69,33 +64,11 @@ function DashboardCard({
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
-  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
-  const [fetchingThumbnail, setFetchingThumbnail] = useState<boolean>(false);
-
-  useEffect(() => {
-    // fetch thumbnail only if it's not already fetched
-    if (
-      !fetchingThumbnail &&
-      dashboard.id &&
-      (thumbnailUrl === undefined || thumbnailUrl === null) &&
-      isFeatureEnabled(FeatureFlag.Thumbnails)
-    ) {
-      // fetch thumbnail
-      if (dashboard.thumbnail_url) {
-        // set to empty string if null so that we don't
-        // keep fetching the thumbnail
-        setThumbnailUrl(dashboard.thumbnail_url || '');
-        return;
-      }
-      setFetchingThumbnail(true);
-      SupersetClient.get({
-        endpoint: `/api/v1/dashboard/${dashboard.id}`,
-      }).then(({ json = {} }) => {
-        setThumbnailUrl(json.result?.thumbnail_url || '');
-        setFetchingThumbnail(false);
-      });
-    }
-  }, [dashboard, thumbnailUrl]);
+  const thumbnailUrl =
+    isFeatureEnabled(FeatureFlag.Thumbnails) && dashboard.id
+      ? dashboard.thumbnail_url ||
+        `/api/v1/dashboard/${dashboard.id}/thumbnail/${encodeURIComponent(dashboard.changed_on_utc || 'default')}/`
+      : '';
 
   const menuItems: MenuItem[] = [];
 
