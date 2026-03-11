@@ -60,12 +60,12 @@ from superset.sql.parse import CTASMethod, extract_tables_from_jinja_sql, Table
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils import json
 from superset.utils.core import (
+    activate_humanize_locale,
     get_column_name,
     LongText,
     MediumText,
     QueryStatus,
     user_label,
-    activate_humanize_locale,
 )
 
 if TYPE_CHECKING:

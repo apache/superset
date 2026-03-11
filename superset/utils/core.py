@@ -38,7 +38,6 @@ import zlib
 from collections.abc import Iterable, Iterator, Sequence
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
-import humanize.i18n
 from datetime import timedelta
 from email.mime.application import MIMEApplication
 from email.mime.image import MIMEImage
@@ -62,6 +61,7 @@ from typing import (
 from urllib.parse import unquote_plus
 from zipfile import ZipFile
 
+import humanize.i18n
 import markdown as md
 import nh3
 import pandas as pd
@@ -88,6 +88,7 @@ from superset.constants import (
     EXTRA_FORM_DATA_APPEND_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
+    LOCALES_LANGUAGE_MAP,
     NO_TIME_RANGE,
 )
 from superset.errors import ErrorLevel, SupersetErrorType
@@ -111,7 +112,6 @@ from superset.utils.backports import StrEnum
 from superset.utils.database import get_example_database
 from superset.utils.date_parser import parse_human_timedelta
 from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
-from superset.constants import LOCALES_LANGUAGE_MAP
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource, TableColumn
@@ -1958,8 +1958,7 @@ def get_user_agent(database: Database, source: QuerySource | None) -> str:
     return DEFAULT_USER_AGENT
 
 
-def activate_humanize_locale():
-    locale = get_locale() or "en"
-    if locale != "en":
+def activate_humanize_locale() -> None:
+    if (locale := get_locale() or "en") != "en":
         language = LOCALES_LANGUAGE_MAP.get(locale, "en_US")
         humanize.i18n.activate(language)

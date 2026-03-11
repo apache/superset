@@ -16,11 +16,11 @@
 # under the License.
 import os
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from typing import Any, Optional
 from unittest.mock import MagicMock, patch
-import humanize
-from datetime import datetime, timedelta
 
+import humanize
 import numpy as np
 import pandas as pd
 import pytest
@@ -30,6 +30,7 @@ from pytest_mock import MockerFixture
 
 from superset.exceptions import SupersetException
 from superset.utils.core import (
+    activate_humanize_locale,
     cast_to_boolean,
     check_is_safe_zip,
     DateColumn,
@@ -48,7 +49,6 @@ from superset.utils.core import (
     QueryObjectFilterClause,
     QuerySource,
     remove_extra_adhoc_filters,
-    activate_humanize_locale,
 )
 from tests.conftest import with_config
 
@@ -1142,9 +1142,13 @@ def test_activate_humanize_locale_changes_naturaltime(mock_locale, expected_phra
     This test mocks flask_babel.get_locale to simulate different user locales and checks
     that humanize.naturaltime returns the expected translation for '1 day ago'.
     """
-    with patch("superset.utils.core.get_locale", return_value=mock_locale), \
-        patch.dict("superset.utils.core.LOCALES_LANGUAGE_MAP", {"en": "en_US", "fr": "fr_FR", "es": "es_ES"}):
+    with (
+        patch("superset.utils.core.get_locale", return_value=mock_locale),
+        patch.dict(
+            "superset.utils.core.LOCALES_LANGUAGE_MAP",
+            {"en": "en_US", "fr": "fr_FR", "es": "es_ES"},
+        ),
+    ):
         activate_humanize_locale()
         result = humanize.naturaltime(datetime.now() - timedelta(days=1))
         assert expected_phrase.lower() in result.lower()
-

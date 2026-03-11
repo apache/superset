@@ -80,6 +80,7 @@ from superset.superset_typing import (
 )
 from superset.utils import core as utils, json
 from superset.utils.core import (
+    activate_humanize_locale,
     GenericDataType,
     get_column_name,
     get_non_base_axis_columns,
@@ -87,7 +88,6 @@ from superset.utils.core import (
     is_adhoc_column,
     MediumText,
     remove_duplicates,
-    activate_humanize_locale,
 )
 from superset.utils.dates import datetime_to_epoch
 from superset.utils.rls import apply_rls
