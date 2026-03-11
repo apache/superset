@@ -82,7 +82,7 @@
     "test-storybook": "test-storybook",
     "test-storybook:ci": "concurrently -k -s first -n \"SB,TEST\" -c \"magenta,blue\" \"npx http-server storybook-static --port 6006 --silent\" \"npx wait-on tcp:127.0.0.1:6006 && npm run test-storybook -- --maxWorkers=2\"",
     "tdd": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=8192\" vitest",
-    "test": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=8192\" vitest --run",
+    "test": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=8192\" vitest --run --silent",
     "test-loud": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=8192\" vitest --run",
     "type": "cross-env NODE_OPTIONS=\"--max-old-space-size=8192\" tsc --noEmit",
     "update-maps": "cd plugins/legacy-plugin-chart-country-map/scripts && jupyter nbconvert --to notebook --execute --inplace --allow-errors --ExecutePreprocessor.timeout=1200 'Country Map GeoJSON Generator.ipynb'",
