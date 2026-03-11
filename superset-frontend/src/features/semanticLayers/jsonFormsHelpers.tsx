@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { Spin } from 'antd';
 import { withJsonFormsControlProps } from '@jsonforms/react';
 import type {
