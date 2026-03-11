@@ -25,18 +25,17 @@ import {
 } from 'react';
 import rison from 'rison';
 
+import { t } from '@apache-superset/core/translation';
 import {
   FeatureFlag,
   JsonResponse,
   SupersetClient,
   isFeatureEnabled,
-  styled,
-  t,
-  useTheme,
 } from '@superset-ui/core';
-import { Select } from 'src/components';
-import { Icons } from 'src/components/Icons';
-import RefreshLabel from 'src/components/RefreshLabel';
+import { styled, useTheme } from '@apache-superset/core/theme';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Input, Select } from '@superset-ui/core/components';
+import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
 import {
   NotificationMethodOption,
   NotificationSetting,
@@ -46,7 +45,7 @@ import { StyledInputContainer } from '../AlertReportModal';
 
 const StyledNotificationMethod = styled.div`
   ${({ theme }) => `
-    margin-bottom: ${theme.gridUnit * 3}px;
+    margin-bottom: ${theme.sizeUnit * 3}px;
 
     .input-container {
       textarea {
@@ -55,50 +54,50 @@ const StyledNotificationMethod = styled.div`
 
       &.error {
         input {
-          border-color: ${theme.colors.error.base};
+          border-color: ${theme.colorError};
         }
       }
 
       .helper {
-        margin-top: ${theme.gridUnit * 2}px;
-        font-size: ${theme.typography.sizes.s}px;
-        color: ${theme.colors.grayscale.base};
+        margin-top: ${theme.sizeUnit * 2}px;
+        font-size: ${theme.fontSizeSM}px;
+        color: ${theme.colorTextSecondary};
       }
     }
 
     .inline-container {
-      margin-bottom: ${theme.gridUnit * 2}px;
+      margin-bottom: ${theme.sizeUnit * 2}px;
 
       > div {
         margin: 0px;
       }
 
       .delete-button {
-        margin-left: ${theme.gridUnit * 2}px;
-        padding-top: ${theme.gridUnit}px;
+        margin-left: ${theme.sizeUnit * 2}px;
+        padding-top: ${theme.sizeUnit}px;
       }
       .anticon {
-        margin-left: ${theme.gridUnit}px;
+        margin-left: ${theme.sizeUnit}px;
       }
     }
 
     .ghost-button {
-      color: ${theme.colors.primary.dark1};
+      color: ${theme.colorPrimaryText};
       display: inline-flex;
       align-items: center;
-      font-size: ${theme.typography.sizes.s}px;
+      font-size: ${theme.fontSizeSM}px;
       cursor: pointer;
 
       .icon {
-        width: ${theme.gridUnit * 3}px;
-        height: ${theme.gridUnit * 3}px;
-        font-size: ${theme.typography.sizes.s}px;
-        margin-right: ${theme.gridUnit}px;
+        width: ${theme.sizeUnit * 3}px;
+        height: ${theme.sizeUnit * 3}px;
+        font-size: ${theme.fontSizeSM}px;
+        margin-right: ${theme.sizeUnit}px;
       }
     }
 
     .ghost-button + .ghost-button {
-      margin-left: ${theme.gridUnit * 4}px;
+      margin-left: ${theme.sizeUnit * 4}px;
     }
 
     .ghost-button:first-child[style*='none'] + .ghost-button {
@@ -339,6 +338,8 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
             ((!isFeatureEnabled(FeatureFlag.AlertReportSlackV2) ||
               useSlackV1) &&
               method === NotificationMethodOption.Slack) ||
+            (isFeatureEnabled(FeatureFlag.AlertReportWebhook) &&
+              method === NotificationMethodOption.Webhook) ||
             method === NotificationMethodOption.Email,
         )
         .map(method => ({
@@ -355,7 +356,9 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     return null;
   }
 
-  const onRecipientsChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+  const onRecipientsChange = (
+    event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
+  ) => {
     const { target } = event;
 
     setRecipientValue(target.value);
@@ -477,15 +480,15 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       </div>
       {method !== undefined ? (
         <>
-          <div className="inline-container">
-            <StyledInputContainer>
-              {method === NotificationMethodOption.Email ? (
+          {method === NotificationMethodOption.Email ? (
+            <div className="inline-container">
+              <StyledInputContainer>
                 <>
                   <div className="control-label">
                     {TRANSLATIONS.EMAIL_SUBJECT_NAME}
                   </div>
                   <div className={`input-container ${error ? 'error' : ''}`}>
-                    <input
+                    <Input
                       type="text"
                       name="email_subject"
                       value={email_subject}
@@ -496,74 +499,95 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                   {error && (
                     <div
                       style={{
-                        color: theme.colors.error.base,
-                        fontSize: theme.gridUnit * 3,
+                        color: theme.colorError,
+                        fontSize: theme.sizeUnit * 3,
                       }}
                     >
                       {TRANSLATIONS.EMAIL_SUBJECT_ERROR_TEXT}
                     </div>
                   )}
                 </>
-              ) : null}
-            </StyledInputContainer>
-          </div>
-          <div className="inline-container">
-            <StyledInputContainer>
-              <div className="control-label">
-                {t(
-                  '%s recipients',
-                  method === NotificationMethodOption.SlackV2
-                    ? NotificationMethodOption.Slack
-                    : method,
-                )}
-                <span className="required">*</span>
-              </div>
-              <div>
-                {[
-                  NotificationMethodOption.Email,
-                  NotificationMethodOption.Slack,
-                ].includes(method) ? (
-                  <>
+              </StyledInputContainer>
+            </div>
+          ) : null}
+          {method !== NotificationMethodOption.Webhook ? (
+            <div className="inline-container">
+              <StyledInputContainer>
+                <div className="control-label">
+                  {t(
+                    '%s recipients',
+                    method === NotificationMethodOption.SlackV2
+                      ? NotificationMethodOption.Slack
+                      : method,
+                  )}
+                  <span className="required">*</span>
+                </div>
+                <div>
+                  {[
+                    NotificationMethodOption.Email,
+                    NotificationMethodOption.Slack,
+                  ].includes(method) ? (
+                    <>
+                      <div className="input-container">
+                        <Input.TextArea
+                          name="To"
+                          data-test="recipients"
+                          value={recipientValue}
+                          onChange={onRecipientsChange}
+                        />
+                      </div>
+                      <div className="input-container">
+                        <div className="helper">
+                          {t('Recipients are separated by "," or ";"')}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    // for SlackV2
                     <div className="input-container">
-                      <textarea
-                        name="To"
+                      <Select
+                        ariaLabel={t('Select channels')}
+                        mode="multiple"
+                        name="recipients"
+                        value={slackRecipients}
+                        options={slackOptions}
+                        onChange={onSlackRecipientsChange}
+                        allowClear
                         data-test="recipients"
-                        value={recipientValue}
-                        onChange={onRecipientsChange}
+                        loading={isSlackChannelsLoading}
+                        allowSelectAll={false}
+                        labelInValue
+                      />
+                      <RefreshLabel
+                        onClick={() => updateSlackOptions({ force: true })}
+                        tooltipContent={t('Force refresh Slack channels list')}
+                        disabled={isSlackChannelsLoading}
                       />
                     </div>
-                    <div className="input-container">
-                      <div className="helper">
-                        {t('Recipients are separated by "," or ";"')}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  // for SlackV2
+                  )}
+                </div>
+              </StyledInputContainer>
+            </div>
+          ) : (
+            <div className="inline-container">
+              <StyledInputContainer>
+                <div className="control-label">
+                  {t('%s URL', method)}
+                  <span className="required">*</span>
+                </div>
+                <div>
                   <div className="input-container">
-                    <Select
-                      ariaLabel={t('Select channels')}
-                      mode="multiple"
-                      name="recipients"
-                      value={slackRecipients}
-                      options={slackOptions}
-                      onChange={onSlackRecipientsChange}
-                      allowClear
+                    <Input
+                      name="To"
                       data-test="recipients"
-                      loading={isSlackChannelsLoading}
-                      allowSelectAll={false}
-                      labelInValue
-                    />
-                    <RefreshLabel
-                      onClick={() => updateSlackOptions({ force: true })}
-                      tooltipContent={t('Force refresh Slack channels list')}
-                      disabled={isSlackChannelsLoading}
+                      value={recipientValue}
+                      onChange={onRecipientsChange}
                     />
                   </div>
-                )}
-              </div>
-            </StyledInputContainer>
-          </div>
+                </div>
+              </StyledInputContainer>
+            </div>
+          )}
           {method === NotificationMethodOption.Email && (
             <StyledInputContainer>
               {/* Render "CC" input field if ccVisible is true */}
@@ -573,7 +597,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                     {TRANSLATIONS.EMAIL_CC_NAME}
                   </div>
                   <div className="input-container">
-                    <textarea
+                    <Input.TextArea
                       name="CC"
                       data-test="cc"
                       value={ccValue}
@@ -594,7 +618,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                     {TRANSLATIONS.EMAIL_BCC_NAME}
                   </div>
                   <div className="input-container">
-                    <textarea
+                    <Input.TextArea
                       name="BCC"
                       data-test="bcc"
                       value={bccValue}

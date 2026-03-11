@@ -26,7 +26,7 @@ from sqlalchemy.orm.exc import DetachedInstanceError
 
 from superset import is_feature_enabled
 from superset.models.sql_lab import Query
-from superset.sql_parse import CtasMethod
+from superset.sql.parse import CTASMethod
 from superset.utils import core as utils, json
 from superset.utils.core import apply_max_row_limit, get_user_id
 from superset.utils.dates import now_as_float
@@ -148,6 +148,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
 
     def create_query(self) -> Query:
         start_time = now_as_float()
+        ctas = cast(CreateTableAsSelect, self.create_table_as_select)
         if self.select_as_cta:
             return Query(
                 database_id=self.database_id,
@@ -155,14 +156,14 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
                 catalog=self.catalog,
                 schema=self.schema,
                 select_as_cta=True,
-                ctas_method=self.create_table_as_select.ctas_method,  # type: ignore
+                ctas_method=ctas.ctas_method.name,
                 start_time=start_time,
                 tab_name=self.tab_name,
                 status=self.status,
                 limit=self.limit,
                 sql_editor_id=self.sql_editor_id,
-                tmp_table_name=self.create_table_as_select.target_table_name,  # type: ignore
-                tmp_schema_name=self.create_table_as_select.target_schema_name,  # type: ignore
+                tmp_table_name=ctas.target_table_name,
+                tmp_schema_name=ctas.target_schema_name,
                 user_id=self.user_id,
                 client_id=self.client_id_or_short_id,
             )
@@ -190,12 +191,12 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
 
 
 class CreateTableAsSelect:  # pylint: disable=too-few-public-methods
-    ctas_method: CtasMethod
+    ctas_method: CTASMethod
     target_schema_name: str | None
     target_table_name: str
 
     def __init__(
-        self, ctas_method: CtasMethod, target_schema_name: str, target_table_name: str
+        self, ctas_method: CTASMethod, target_schema_name: str, target_table_name: str
     ):
         self.ctas_method = ctas_method
         self.target_schema_name = target_schema_name
@@ -203,7 +204,7 @@ class CreateTableAsSelect:  # pylint: disable=too-few-public-methods
 
     @staticmethod
     def create_from(query_params: dict[str, Any]) -> CreateTableAsSelect:
-        ctas_method = query_params.get("ctas_method", CtasMethod.TABLE)
+        ctas_method = CTASMethod[query_params.get("ctas_method", "table").upper()]
         schema = cast(str, query_params.get("schema"))
         tmp_table_name = cast(str, query_params.get("tmp_table_name"))
         return CreateTableAsSelect(ctas_method, schema, tmp_table_name)

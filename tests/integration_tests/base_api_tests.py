@@ -55,10 +55,10 @@ class Model1Api(BaseSupersetModelRestApi):
     }
 
 
-appbuilder.add_api(Model1Api)
-
-
 class TestOpenApiSpec(SupersetTestCase):
+    def setUp(self) -> None:
+        appbuilder.add_api(Model1Api)
+
     def test_open_api_spec(self):
         """
         API: Test validate OpenAPI spec
@@ -231,7 +231,7 @@ class ApiOwnersTestCaseMixin:
             return query.filter_by(username="alpha")
 
         with patch.dict(
-            "superset.views.filters.current_app.config",
+            "flask.current_app.config",
             {"EXTRA_RELATED_QUERY_FILTERS": {"user": _base_filter}},
         ):
             uri = f"api/v1/{self.resource_name}/related/owners"

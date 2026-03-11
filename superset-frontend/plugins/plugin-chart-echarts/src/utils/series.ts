@@ -24,15 +24,15 @@ import {
   DataRecordValue,
   DTTM_ALIAS,
   ensureIsArray,
-  GenericDataType,
   LegendState,
   normalizeTimestamp,
   NumberFormats,
   NumberFormatter,
-  SupersetTheme,
   TimeFormatter,
   ValueFormatter,
 } from '@superset-ui/core';
+import { SupersetTheme } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
 import { format } from 'echarts/core';
 import type { LegendComponentOption } from 'echarts/components';
@@ -171,8 +171,8 @@ export function sortAndFilterSeries(
 
   return orderBy(
     sortedValues,
-    ['value'],
-    [sortSeriesAscending ? 'asc' : 'desc'],
+    ['value', 'name'],
+    [sortSeriesAscending ? 'asc' : 'desc', 'asc'],
   ).map(({ name }) => name);
 }
 
@@ -272,6 +272,7 @@ export function extractSeries(
     sortSeriesAscending?: boolean;
     xAxisSortSeries?: SortSeriesType;
     xAxisSortSeriesAscending?: boolean;
+    xAxisType?: AxisType;
   } = {},
 ): [SeriesOption[], number[], number | undefined] {
   const {
@@ -286,11 +287,15 @@ export function extractSeries(
     sortSeriesAscending,
     xAxisSortSeries,
     xAxisSortSeriesAscending,
+    xAxisType,
   } = opts;
   if (data.length === 0) return [[], [], undefined];
   const rows: DataRecord[] = data.map(datum => ({
     ...datum,
-    [xAxis]: datum[xAxis],
+    [xAxis]:
+      datum[xAxis] === null && xAxisType === AxisType.Category
+        ? NULL_STRING
+        : datum[xAxis],
   }));
   const sortedSeries = sortAndFilterSeries(
     rows,
@@ -432,22 +437,28 @@ export function getLegendProps(
   zoomable = false,
   legendState?: LegendState,
   padding?: LegendPaddingType,
-): LegendComponentOption | LegendComponentOption[] {
-  const legend: LegendComponentOption | LegendComponentOption[] = {
+): LegendComponentOption {
+  const isHorizontal =
+    orientation === LegendOrientation.Top ||
+    orientation === LegendOrientation.Bottom;
+
+  const effectiveType =
+    type === LegendType.Scroll || !isHorizontal ? type : LegendType.Scroll;
+  const legend: LegendComponentOption = {
     orient: [LegendOrientation.Top, LegendOrientation.Bottom].includes(
       orientation,
     )
       ? 'horizontal'
       : 'vertical',
     show,
-    type,
-    selected: legendState,
+    type: effectiveType,
+    selected: legendState ?? {},
     selector: ['all', 'inverse'],
     selectorLabel: {
-      fontFamily: theme.typography.families.sansSerif,
-      fontSize: theme.typography.sizes.s,
-      color: theme.colors.grayscale.base,
-      borderColor: theme.colors.grayscale.base,
+      fontFamily: theme.fontFamily,
+      fontSize: theme.fontSizeSM,
+      color: theme.colorText,
+      borderColor: theme.colorBorder,
     },
   };
   const MIN_LEGEND_WIDTH = 0;
@@ -477,8 +488,14 @@ export function getLegendProps(
       break;
     case LegendOrientation.Bottom:
       legend.bottom = 0;
+      if (padding?.left) {
+        legend.left = padding.left;
+      }
       break;
     case LegendOrientation.Top:
+      legend.top = 0;
+      legend.right = zoomable ? TIMESERIES_CONSTANTS.legendTopRightOffset : 0;
+      break;
     default:
       legend.top = 0;
       legend.right = zoomable ? TIMESERIES_CONSTANTS.legendTopRightOffset : 0;
@@ -684,4 +701,21 @@ export function extractTooltipKeys(
     return forecastValue.map(s => s[TOOLTIP_SERIES_KEY]);
   }
   return [forecastValue[0][TOOLTIP_SERIES_KEY]];
+}
+
+export function groupData(data: DataRecord[], by?: string | null) {
+  const seriesMap: Map<DataRecordValue | undefined, DataRecord[]> = new Map();
+  if (by) {
+    data.forEach(datum => {
+      const value = seriesMap.get(datum[by]);
+      if (value) {
+        value.push(datum);
+      } else {
+        seriesMap.set(datum[by], [datum]);
+      }
+    });
+  } else {
+    seriesMap.set(undefined, data);
+  }
+  return seriesMap;
 }

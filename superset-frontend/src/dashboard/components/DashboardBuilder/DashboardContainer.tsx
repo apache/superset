@@ -27,17 +27,18 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
+import { isEqual } from 'lodash';
 import {
-  Filter,
-  Filters,
+  ChartCustomizationConfiguration,
+  ChartCustomizationType,
   LabelsColorMapSource,
+  NativeFilterType,
   getLabelsColorMap,
 } from '@superset-ui/core';
 import { ParentSize } from '@visx/responsive';
-import { pick } from 'lodash';
-import Tabs from 'src/components/Tabs';
+import Tabs from '@superset-ui/core/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
 import {
   DashboardInfo,
@@ -49,9 +50,9 @@ import {
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_DEPTH,
 } from 'src/dashboard/util/constants';
-import { getChartIdsInFilterScope } from 'src/dashboard/util/getChartIdsInFilterScope';
 import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
 import { setInScopeStatusOfFilters } from 'src/dashboard/actions/nativeFilters';
+import { setInScopeStatusOfCustomizations } from 'src/dashboard/actions/chartCustomizationActions';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
 import {
   applyDashboardLabelsColorOnLoad,
@@ -60,50 +61,48 @@ import {
   ensureSyncedSharedLabelsColors,
   ensureSyncedLabelsColorMap,
 } from 'src/dashboard/actions/dashboardState';
-import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { getColorNamespace, resetColors } from 'src/utils/colorScheme';
+import { calculateScopes } from 'src/dashboard/util/calculateScopes';
+import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
-import { findTabsWithChartsInScope } from '../nativeFilters/utils';
+import { selectFilterConfiguration } from '../nativeFilters/state';
 import { getRootLevelTabsComponent } from './utils';
 
 type DashboardContainerProps = {
   topLevelTabs?: LayoutItem;
 };
 
-export const renderedChartIdsSelector = createSelector(
-  [(state: RootState) => state.charts],
-  charts =>
+interface ScopeData {
+  chartsInScope: number[];
+  tabsInScope: string[];
+}
+
+interface FilterScopeData extends ScopeData {
+  filterId: string;
+}
+
+interface CustomizationScopeData extends ScopeData {
+  customizationId: string;
+}
+
+export const renderedChartIdsSelector: (state: RootState) => number[] =
+  createSelector([(state: RootState) => state.charts], charts =>
     Object.values(charts)
       .filter(chart => chart.chartStatus === 'rendered')
       .map(chart => chart.id),
-);
+  );
 
 const useRenderedChartIds = () => {
   const renderedChartIds = useSelector<RootState, number[]>(
     renderedChartIdsSelector,
+    shallowEqual,
   );
-  return useMemo(() => renderedChartIds, [JSON.stringify(renderedChartIds)]);
-};
-
-const useNativeFilterScopes = () => {
-  const nativeFilters = useSelector<RootState, Filters>(
-    state => state.nativeFilters?.filters,
-  );
-  return useMemo(
-    () =>
-      nativeFilters
-        ? Object.values(nativeFilters).map((filter: Filter) =>
-            pick(filter, ['id', 'scope', 'type']),
-          )
-        : [],
-    [nativeFilters],
-  );
+  return renderedChartIds;
 };
 
 const TOP_OF_PAGE_RANGE = 220;
 
 const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
-  const nativeFilterScopes = useNativeFilterScopes();
   const dispatch = useDispatch();
 
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
@@ -111,6 +110,14 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   );
   const dashboardInfo = useSelector<RootState, DashboardInfo>(
     state => state.dashboardInfo,
+  );
+  const filterItems = useSelector(selectFilterConfiguration);
+  const chartCustomizations = useSelector<
+    RootState,
+    ChartCustomizationConfiguration
+  >(
+    state => state.dashboardInfo?.metadata?.chart_customization_config || [],
+    shallowEqual,
   );
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
@@ -123,6 +130,8 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     useState(false);
   const prevRenderedChartIds = useRef<number[]>([]);
   const prevTabIndexRef = useRef<number>();
+  const prevFilterScopesRef = useRef<FilterScopeData[]>([]);
+  const prevCustomizationScopesRef = useRef<CustomizationScopeData[]>([]);
   const tabIndex = useMemo(() => {
     const nextTabIndex = findTabIndexByComponentId({
       currentComponent: getRootLevelTabsComponent(dashboardLayout),
@@ -148,41 +157,57 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     prevRenderedChartIds.current = [];
   }, [dashboardInfo?.metadata?.color_namespace, dispatch]);
 
+  const chartLayoutItems = useMemo(
+    () =>
+      Object.values(dashboardLayout).filter(item => item?.type === CHART_TYPE),
+    [dashboardLayout],
+  );
+
   useEffect(() => {
-    if (nativeFilterScopes.length === 0) {
+    if (filterItems.length === 0) {
       return;
     }
-    const scopes = nativeFilterScopes.map(filterScope => {
-      if (filterScope.id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX)) {
-        return {
-          filterId: filterScope.id,
-          tabsInScope: [],
-          chartsInScope: [],
-        };
-      }
 
-      const chartLayoutItems = Object.values(dashboardLayout).filter(
-        item => item?.type === CHART_TYPE,
-      );
+    const scopes = calculateScopes(
+      filterItems,
+      chartIds,
+      chartLayoutItems,
+      item =>
+        item.id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX) ||
+        item.type === NativeFilterType.Divider,
+    ).map(scope => ({
+      filterId: scope.id,
+      chartsInScope: scope.chartsInScope,
+      tabsInScope: scope.tabsInScope,
+    }));
 
-      const chartsInScope: number[] = getChartIdsInFilterScope(
-        filterScope.scope,
-        chartIds,
-        chartLayoutItems,
-      );
+    if (!isEqual(scopes, prevFilterScopesRef.current)) {
+      prevFilterScopesRef.current = scopes;
+      dispatch(setInScopeStatusOfFilters(scopes));
+    }
+  }, [chartIds, filterItems, chartLayoutItems, dispatch]);
 
-      const tabsInScope = findTabsWithChartsInScope(
-        chartLayoutItems,
-        chartsInScope,
-      );
-      return {
-        filterId: filterScope.id,
-        tabsInScope: Array.from(tabsInScope),
-        chartsInScope,
-      };
-    });
-    dispatch(setInScopeStatusOfFilters(scopes));
-  }, [chartIds, JSON.stringify(nativeFilterScopes), dashboardLayout, dispatch]);
+  useEffect(() => {
+    if (chartCustomizations.length === 0) {
+      return;
+    }
+
+    const scopes = calculateScopes(
+      chartCustomizations,
+      chartIds,
+      chartLayoutItems,
+      item => item.type === ChartCustomizationType.Divider,
+    ).map(scope => ({
+      customizationId: scope.id,
+      chartsInScope: scope.chartsInScope,
+      tabsInScope: scope.tabsInScope,
+    }));
+
+    if (!isEqual(scopes, prevCustomizationScopesRef.current)) {
+      prevCustomizationScopesRef.current = scopes;
+      dispatch(setInScopeStatusOfCustomizations(scopes));
+    }
+  }, [chartIds, chartCustomizations, chartLayoutItems, dispatch]);
 
   const childIds: string[] = useMemo(
     () => (topLevelTabs ? topLevelTabs.children : [DASHBOARD_GRID_ID]),
@@ -274,40 +299,34 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   }, []);
 
   const renderParentSizeChildren = useCallback(
-    ({ width }) => (
-      /*
-      We use a TabContainer irrespective of whether top-level tabs exist to maintain
-      a consistent React component tree. This avoids expensive mounts/unmounts of
-      the entire dashboard upon adding/removing top-level tabs, which would otherwise
-      happen because of React's diffing algorithm
-    */
-      <Tabs
-        id={DASHBOARD_GRID_ID}
-        activeKey={activeKey}
-        renderTabBar={renderTabBar}
-        fullWidth={false}
-        animated={false}
-        allowOverflow
-        onFocus={handleFocus}
-      >
-        {childIds.map((id, index) => (
-          // Matching the key of the first TabPane irrespective of topLevelTabs
-          // lets us keep the same React component tree when !!topLevelTabs changes.
-          // This avoids expensive mounts/unmounts of the entire dashboard.
-          <Tabs.TabPane
-            key={index === 0 ? DASHBOARD_GRID_ID : index.toString()}
-          >
-            <DashboardGrid
-              gridComponent={dashboardLayout[id]}
-              // see isValidChild for why tabs do not increment the depth of their children
-              depth={DASHBOARD_ROOT_DEPTH + 1} // (topLevelTabs ? 0 : 1)}
-              width={width}
-              isComponentVisible={index === tabIndex}
-            />
-          </Tabs.TabPane>
-        ))}
-      </Tabs>
-    ),
+    ({ width }) => {
+      const tabItems = childIds.map((id, index) => ({
+        key: index === 0 ? DASHBOARD_GRID_ID : index.toString(),
+        label: null,
+        children: (
+          <DashboardGrid
+            gridComponent={dashboardLayout[id]}
+            depth={DASHBOARD_ROOT_DEPTH + 1}
+            width={width}
+            isComponentVisible={index === tabIndex}
+          />
+        ),
+      }));
+
+      return (
+        <Tabs
+          id={DASHBOARD_GRID_ID}
+          activeKey={activeKey}
+          renderTabBar={renderTabBar}
+          animated={false}
+          allowOverflow
+          fullHeight
+          onFocus={handleFocus}
+          items={tabItems}
+          tabBarStyle={{ paddingLeft: 0 }}
+        />
+      );
+    },
     [activeKey, childIds, dashboardLayout, handleFocus, renderTabBar, tabIndex],
   );
 

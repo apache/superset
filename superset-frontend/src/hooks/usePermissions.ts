@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
@@ -30,14 +31,31 @@ export const usePermissions = () => {
   const canDatasourceSamples = useSelector((state: RootState) =>
     findPermission('can_samples', 'Datasource', state.user?.roles),
   );
-  const canDownload = useSelector((state: RootState) =>
+  const canCsvLegacy = useSelector((state: RootState) =>
     findPermission('can_csv', 'Superset', state.user?.roles),
   );
+  const canExportData = useSelector((state: RootState) =>
+    findPermission('can_export_data', 'Superset', state.user?.roles),
+  );
+  const canExportImage = useSelector((state: RootState) =>
+    findPermission('can_export_image', 'Superset', state.user?.roles),
+  );
+  const canCopyClipboard = useSelector((state: RootState) =>
+    findPermission('can_copy_clipboard', 'Superset', state.user?.roles),
+  );
+  const canDownload = isFeatureEnabled(FeatureFlag.GranularExportControls)
+    ? canExportData
+    : canCsvLegacy;
   const canDrill = useSelector((state: RootState) =>
     findPermission('can_drill', 'Dashboard', state.user?.roles),
   );
-  const canDrillBy = (canExplore || canDrill) && canWriteExploreFormData;
-  const canDrillToDetail = (canExplore || canDrill) && canDatasourceSamples;
+  const canGetDrillInfo = useSelector((state: RootState) =>
+    findPermission('can_get_drill_info', 'Dataset', state.user?.roles),
+  );
+  const canDrillBy =
+    (canExplore || canDrill) && canWriteExploreFormData && canGetDrillInfo;
+  const canDrillToDetail =
+    (canExplore || canDrill) && canDatasourceSamples && canGetDrillInfo;
   const canViewQuery = useSelector((state: RootState) =>
     findPermission('can_view_query', 'Dashboard', state.user?.roles),
   );
@@ -50,6 +68,9 @@ export const usePermissions = () => {
     canWriteExploreFormData,
     canDatasourceSamples,
     canDownload,
+    canExportData,
+    canExportImage,
+    canCopyClipboard,
     canDrill,
     canDrillBy,
     canDrillToDetail,

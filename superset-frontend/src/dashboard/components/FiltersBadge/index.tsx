@@ -29,18 +29,18 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { uniqWith } from 'lodash';
 import cx from 'classnames';
+import { t } from '@apache-superset/core/translation';
 import {
   DataMaskStateWithId,
   Filters,
   JsonObject,
-  styled,
-  t,
   usePrevious,
 } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
+import { styled } from '@apache-superset/core/theme';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
-import Badge from 'src/components/Badge';
+import { Badge } from '@superset-ui/core/components';
 import DetailsPanelPopover from './DetailsPanel';
 import {
   Indicator,
@@ -49,6 +49,7 @@ import {
   selectNativeIndicatorsForChart,
 } from '../nativeFilters/selectors';
 import { Chart, RootState } from '../../types';
+import { useIsAutoRefreshing } from '../../contexts/AutoRefreshContext';
 
 export interface FiltersBadgeProps {
   chartId: number;
@@ -60,42 +61,32 @@ const StyledFilterCount = styled.div`
     justify-items: center;
     align-items: center;
     cursor: pointer;
-    margin-right: ${theme.gridUnit}px;
-    padding-left: ${theme.gridUnit * 2}px;
-    padding-right: ${theme.gridUnit * 2}px;
-    background: ${theme.colors.grayscale.light4};
+    margin-right: ${theme.sizeUnit}px;
+    padding-left: ${theme.sizeUnit * 2}px;
+    padding-right: ${theme.sizeUnit * 2}px;
+    background: ${theme.colorBgContainer};
     border-radius: 4px;
     height: 100%;
     .anticon {
       vertical-align: middle;
-      color: ${theme.colors.grayscale.base};
+      color: ${theme.colorIcon};
       &:hover {
-        color: ${theme.colors.grayscale.light1};
+        color: ${theme.colorIconHover};
       }
     }
 
     .incompatible-count {
-      font-size: ${theme.typography.sizes.s}px;
+      font-size: ${theme.fontSizeSM}px;
     }
     &:focus-visible {
-      outline: 2px solid ${theme.colors.primary.dark2};
+      outline: 2px solid ${theme.colorPrimary};
     }
   `}
 `;
 
 const StyledBadge = styled(Badge)`
   ${({ theme }) => `
-    margin-left: ${theme.gridUnit * 2}px;
-    &>sup.antd5-badge-count {
-      padding: 0 ${theme.gridUnit}px;
-      min-width: ${theme.gridUnit * 4}px;
-      height: ${theme.gridUnit * 4}px;
-      line-height: 1.5;
-      font-weight: ${theme.typography.weights.medium};
-      font-size: ${theme.typography.sizes.s - 1}px;
-      box-shadow: none;
-      padding: 0 ${theme.gridUnit}px;
-    }
+    margin-left: ${theme.sizeUnit * 2}px;
   `}
 `;
 
@@ -116,10 +107,14 @@ const indicatorsInitialState: Indicator[] = [];
 
 export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const dispatch = useDispatch();
-  const datasources = useSelector<RootState, any>(state => state.datasources);
-  const dashboardFilters = useSelector<RootState, any>(
-    state => state.dashboardFilters,
+  const isAutoRefreshing = useIsAutoRefreshing();
+  const datasources = useSelector<RootState, RootState['datasources']>(
+    state => state.datasources,
   );
+  const dashboardFilters = useSelector<
+    RootState,
+    RootState['dashboardFilters']
+  >(state => state.dashboardFilters);
   const nativeFilters = useSelector<RootState, Filters>(
     state => state.nativeFilters?.filters,
   );
@@ -171,7 +166,12 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   }, [popoverVisible]);
 
   useEffect(() => {
-    if (!showIndicators && dashboardIndicators.length > 0) {
+    // During auto-refresh, don't clear indicators - preserve previous state
+    if (
+      !showIndicators &&
+      dashboardIndicators.length > 0 &&
+      !isAutoRefreshing
+    ) {
       setDashboardIndicators(indicatorsInitialState);
     } else if (prevChartStatus !== 'success') {
       if (
@@ -198,6 +198,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     dashboardFilters,
     dashboardIndicators.length,
     datasources,
+    isAutoRefreshing,
     prevChart?.queriesResponse,
     prevChartStatus,
     prevDashboardFilters,
@@ -211,36 +212,43 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const prevChartConfig = usePrevious(chartConfiguration);
 
   useEffect(() => {
-    if (!showIndicators && nativeIndicators.length > 0) {
+    // During auto-refresh, don't clear indicators - preserve previous state
+    // Clear indicators when chart is loading/not showing (unless auto-refreshing)
+    const shouldReset =
+      !showIndicators && nativeIndicators.length > 0 && !isAutoRefreshing;
+
+    const shouldRecalculate =
+      chart?.queriesResponse?.[0]?.rejected_filters !==
+        prevChart?.queriesResponse?.[0]?.rejected_filters ||
+      chart?.queriesResponse?.[0]?.applied_filters !==
+        prevChart?.queriesResponse?.[0]?.applied_filters ||
+      nativeFilters !== prevNativeFilters ||
+      chartLayoutItems !== prevChartLayoutItems ||
+      dataMask !== prevDataMask ||
+      prevChartConfig !== chartConfiguration;
+
+    if (shouldReset) {
       setNativeIndicators(indicatorsInitialState);
-    } else if (prevChartStatus !== 'success') {
-      if (
-        chart?.queriesResponse?.[0]?.rejected_filters !==
-          prevChart?.queriesResponse?.[0]?.rejected_filters ||
-        chart?.queriesResponse?.[0]?.applied_filters !==
-          prevChart?.queriesResponse?.[0]?.applied_filters ||
-        nativeFilters !== prevNativeFilters ||
-        chartLayoutItems !== prevChartLayoutItems ||
-        dataMask !== prevDataMask ||
-        prevChartConfig !== chartConfiguration
-      ) {
-        setNativeIndicators(
-          selectNativeIndicatorsForChart(
-            nativeFilters,
-            dataMask,
-            chartId,
-            chart,
-            chartLayoutItems,
-            chartConfiguration,
-          ),
-        );
-      }
+    } else if (
+      showIndicators &&
+      (shouldRecalculate || nativeIndicators.length === 0)
+    ) {
+      const newIndicators = selectNativeIndicatorsForChart(
+        nativeFilters,
+        dataMask,
+        chartId,
+        chart,
+        chartLayoutItems,
+        chartConfiguration,
+      );
+      setNativeIndicators(newIndicators);
     }
   }, [
     chart,
     chartId,
     chartConfiguration,
     dataMask,
+    isAutoRefreshing,
     nativeFilters,
     nativeIndicators.length,
     prevChart?.queriesResponse,
@@ -314,6 +322,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
           data-test="applied-filter-count"
           className="applied-count"
           count={filterCount}
+          size="small"
           showZero
         />
       </StyledFilterCount>

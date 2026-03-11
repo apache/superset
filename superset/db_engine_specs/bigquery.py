@@ -32,6 +32,7 @@ from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
 from sqlalchemy import column, func, types
 from sqlalchemy.engine.base import Engine
+from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql import column as sql_column, select, sqltypes
@@ -40,15 +41,18 @@ from sqlalchemy.sql.expression import table as sql_table
 from superset.constants import TimeGrain
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    BasicPropertiesType,
+    DatabaseCategory,
+)
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.errors import SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
-from superset.sql.parse import SQLScript
-from superset.sql_parse import Table
+from superset.sql.parse import SQLScript, Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils, json
-from superset.utils.hashing import md5_sha_from_str
+from superset.utils.hashing import hash_from_str
 
 if TYPE_CHECKING:
     from sqlalchemy.sql.expression import Select
@@ -130,6 +134,53 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     default_driver = "bigquery"
     sqlalchemy_uri_placeholder = "bigquery://{project_id}"
 
+    metadata = {
+        "description": (
+            "Google BigQuery is a serverless, highly scalable data warehouse."
+        ),
+        "logo": "google-big-query.svg",
+        "homepage_url": "https://cloud.google.com/bigquery/",
+        "categories": [
+            DatabaseCategory.CLOUD_GCP,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["sqlalchemy-bigquery"],
+        "connection_string": "bigquery://{project_id}",
+        "install_instructions": (
+            'echo "sqlalchemy-bigquery" >> ./docker/requirements-local.txt'
+        ),
+        "authentication_methods": [
+            {
+                "name": "Service Account JSON",
+                "description": (
+                    "Upload service account credentials JSON or paste in Secure Extra"
+                ),
+                "secure_extra": {
+                    "credentials_info": {
+                        "type": "service_account",
+                        "project_id": "...",
+                        "private_key_id": "...",
+                        "private_key": "...",
+                        "client_email": "...",
+                        "client_id": "...",
+                        "auth_uri": "...",
+                        "token_uri": "...",
+                    }
+                },
+            },
+        ],
+        "notes": (
+            "Create a Service Account via GCP console with access to "
+            "BigQuery datasets. For CSV/Excel uploads, also install pandas_gbq."
+        ),
+        "warnings": [
+            "Google BigQuery Python SDK is not compatible with gevent. "
+            "Use a worker type other than gevent when deploying with gunicorn.",
+        ],
+        "docs_url": "https://github.com/googleapis/python-bigquery-sqlalchemy",
+    }
+
     # BigQuery doesn't maintain context when running multiple statements in the
     # same cursor, so we need to run all statements at once
     run_multiple_statements_as_one = True
@@ -140,7 +191,9 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
     # when editing the database, mask this field in `encrypted_extra`
     # pylint: disable=invalid-name
-    encrypted_extra_sensitive_fields = {"$.credentials_info.private_key"}
+    encrypted_extra_sensitive_fields = {
+        "$.credentials_info.private_key": "Service Account Private Key",
+    }
 
     """
     https://www.python.org/dev/peps/pep-0249/#arraysize
@@ -269,7 +322,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         :param label: Expected expression label
         :return: Conditionally mutated label
         """
-        label_hashed = "_" + md5_sha_from_str(label)
+        label_hashed = "_" + hash_from_str(label)
 
         # if label starts with number, add underscore as first character
         label_mutated = "_" + label if re.match(r"^\d", label) else label
@@ -291,7 +344,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         :param label: expected expression label
         :return: truncated label
         """
-        return "_" + md5_sha_from_str(label)
+        return "_" + hash_from_str(label)
 
     @classmethod
     def where_latest_partition(
@@ -385,7 +438,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
                 sql = cls.select_star(
                     database,
                     table,
-                    engine,
+                    engine.dialect,
                     indent=False,
                     show_cols=False,
                     latest_partition=True,
@@ -722,7 +775,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         cls,
         database: Database,
         table: Table,
-        engine: Engine,
+        dialect: Dialect,
         limit: int = 100,
         show_cols: bool = False,
         indent: bool = True,
@@ -782,7 +835,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         return super().select_star(
             database,
             table,
-            engine,
+            dialect,
             limit,
             show_cols,
             indent,
@@ -829,3 +882,97 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             # If for some reason we get an exception, for example, no new line
             # We will return the original exception
             return exception
+
+    @classmethod
+    def get_materialized_view_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+        schema: str | None,
+    ) -> set[str]:
+        """
+        Get all materialized views from BigQuery.
+
+        BigQuery materialized views are not returned by the standard
+        get_view_names() method, so we need to query INFORMATION_SCHEMA directly.
+        """
+        if not schema:
+            return set()
+
+        # Construct the query to get materialized views from INFORMATION_SCHEMA
+        if catalog := database.get_default_catalog():
+            information_schema = f"`{catalog}.{schema}.INFORMATION_SCHEMA.TABLES`"
+        else:
+            information_schema = f"`{schema}.INFORMATION_SCHEMA.TABLES`"
+
+        # Use string formatting for the table name since it's not user input
+        # The catalog and schema are from trusted sources (database configuration)
+        query = f"""
+        SELECT table_name
+        FROM {information_schema}
+        WHERE table_type = 'MATERIALIZED VIEW'
+        """  # noqa: S608
+
+        materialized_views = set()
+        try:
+            with database.get_raw_connection(catalog=catalog, schema=schema) as conn:
+                cursor = conn.cursor()
+                cursor.execute(query)
+                materialized_views = {row[0] for row in cursor.fetchall()}
+        except Exception:
+            # If we can't fetch materialized views, return empty set
+            logger.warning(
+                "Unable to fetch materialized views for schema %s",
+                schema,
+                exc_info=True,
+            )
+
+        return materialized_views
+
+    @classmethod
+    def get_view_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+        schema: str | None,
+    ) -> set[str]:
+        """
+        Get all views from BigQuery, excluding materialized views.
+
+        BigQuery's standard view discovery includes materialized views,
+        but we want to separate them for proper categorization.
+        """
+        if not schema:
+            return set()
+
+        # Construct the query to get regular views from INFORMATION_SCHEMA
+        catalog = database.get_default_catalog()
+        if catalog:
+            information_schema = f"`{catalog}.{schema}.INFORMATION_SCHEMA.TABLES`"
+        else:
+            information_schema = f"`{schema}.INFORMATION_SCHEMA.TABLES`"
+
+        # Use string formatting for the table name since it's not user input
+        # The catalog and schema are from trusted sources (database configuration)
+        query = f"""
+        SELECT table_name
+        FROM {information_schema}
+        WHERE table_type = 'VIEW'
+        """  # noqa: S608
+
+        views = set()
+        try:
+            with database.get_raw_connection(catalog=catalog, schema=schema) as conn:
+                cursor = conn.cursor()
+                cursor.execute(query)
+                views = {row[0] for row in cursor.fetchall()}
+        except Exception:
+            # If we can't fetch views, fall back to the default implementation
+            logger.warning(
+                "Unable to fetch views for schema %s, falling back to default",
+                schema,
+                exc_info=True,
+            )
+            return super().get_view_names(database, inspector, schema)
+
+        return views

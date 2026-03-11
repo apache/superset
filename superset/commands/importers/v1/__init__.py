@@ -63,6 +63,9 @@ class ImportModelsCommand(BaseCommand):
         self.ssh_tunnel_priv_key_passwords: dict[str, str] = (
             kwargs.get("ssh_tunnel_priv_key_passwords") or {}
         )
+        self.encrypted_extra_secrets: dict[str, dict[str, str]] = (
+            kwargs.get("encrypted_extra_secrets") or {}
+        )
         self.overwrite: bool = kwargs.get("overwrite", False)
         self._configs: dict[str, Any] = {}
 
@@ -111,14 +114,25 @@ class ImportModelsCommand(BaseCommand):
             self.ssh_tunnel_passwords,
             self.ssh_tunnel_private_keys,
             self.ssh_tunnel_priv_key_passwords,
+            self.encrypted_extra_secrets,
         )
         self._prevent_overwrite_existing_model(exceptions)
 
         if exceptions:
+            detailed_errors = []
             for ex in exceptions:
-                logger.warning("Import Error: %s", ex)
+                # Extract detailed error information
+                if hasattr(ex, "messages") and isinstance(ex.messages, dict):
+                    for file_name, errors in ex.messages.items():
+                        logger.error("Validation failed for %s: %s", file_name, errors)
+                        detailed_errors.append(f"{file_name}: {errors}")
+                else:
+                    logger.error("Import validation error: %s", ex)
+                    detailed_errors.append(str(ex))
+
+            error_summary = "; ".join(detailed_errors)
             raise CommandInvalidError(
-                f"Error importing {self.model_name}",
+                f"Error importing {self.model_name}: {error_summary}",
                 exceptions,
             )
 

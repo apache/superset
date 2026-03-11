@@ -19,12 +19,14 @@ import textwrap
 from functools import partial
 from typing import Any, Optional
 
+from flask import current_app
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
-from superset import app, db, security_manager
+from superset import db, security_manager
 from superset.commands.base import BaseCommand, UpdateMixin
 from superset.commands.dashboard.exceptions import (
+    DashboardChartCustomizationsUpdateFailedError,
     DashboardColorsConfigUpdateFailedError,
     DashboardForbiddenError,
     DashboardInvalidError,
@@ -175,7 +177,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                         to=email,
                         subject=f"[Report: {report.name}] Deactivated",
                         html_content=html_content,
-                        config=app.config,
+                        config=current_app.config,
                     )
 
         def deactivate_reports(reports_list: list[ReportSchedule]) -> None:
@@ -199,6 +201,23 @@ class UpdateDashboardNativeFiltersCommand(UpdateDashboardCommand):
         assert self._model
 
         configuration = DashboardDAO.update_native_filters_config(
+            self._model, self._properties
+        )
+
+        return configuration
+
+
+class UpdateDashboardChartCustomizationsCommand(UpdateDashboardCommand):
+    @transaction(
+        on_error=partial(
+            on_error, reraise=DashboardChartCustomizationsUpdateFailedError
+        )
+    )
+    def run(self) -> Model:
+        super().validate()
+        assert self._model
+
+        configuration = DashboardDAO.update_chart_customizations_config(
             self._model, self._properties
         )
 

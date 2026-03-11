@@ -25,7 +25,7 @@ jest.mock('@superset-ui/core', () => ({
   isFeatureEnabled: jest.fn().mockReturnValue(true),
 }));
 
-jest.mock('src/components/Switch', () => ({
+jest.mock('@superset-ui/core/components/Switch', () => ({
   Switch: ({
     checked,
     onChange,

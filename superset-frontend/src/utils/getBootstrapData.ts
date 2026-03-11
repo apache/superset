@@ -33,11 +33,20 @@ export default function getBootstrapData(): BootstrapData {
   return cachedBootstrapData ?? DEFAULT_BOOTSTRAP_DATA;
 }
 
-const APPLICATION_ROOT_NO_TRAILING_SLASH =
-  getBootstrapData().common.application_root.replace(/\/$/, '');
+const normalizePathWithFallback = (
+  path: string | undefined,
+  fallback: string,
+): string => (path ?? fallback).replace(/\/$/, '');
 
-const STATIC_ASSETS_PREFIX_NO_TRAILING_SLASH =
-  getBootstrapData().common.static_assets_prefix.replace(/\/$/, '');
+const APPLICATION_ROOT_NO_TRAILING_SLASH = normalizePathWithFallback(
+  getBootstrapData().common.application_root,
+  DEFAULT_BOOTSTRAP_DATA.common.application_root,
+);
+
+const STATIC_ASSETS_PREFIX_NO_TRAILING_SLASH = normalizePathWithFallback(
+  getBootstrapData().common.static_assets_prefix,
+  DEFAULT_BOOTSTRAP_DATA.common.static_assets_prefix,
+);
 
 /**
  * @returns The configured application root

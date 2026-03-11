@@ -40,7 +40,7 @@ export function datasetReducer(
   action: DSReducerActionType,
 ): Partial<DatasetObject> | Schema | null {
   const trimmedState = {
-    ...(state || {}),
+    ...state,
   };
 
   switch (action.type) {

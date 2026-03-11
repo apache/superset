@@ -17,11 +17,12 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { t, tn } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { tn } from '@apache-superset/core/translation';
 
-import { ErrorMessageComponentProps } from './types';
-import IssueCode from './IssueCode';
-import ErrorAlert from './ErrorAlert';
+import type { ErrorMessageComponentProps } from './types';
+import { IssueCode } from './IssueCode';
+import { ErrorAlert } from './ErrorAlert';
 
 interface TimeoutErrorExtra {
   issue_codes: {
@@ -32,9 +33,10 @@ interface TimeoutErrorExtra {
   timeout: number;
 }
 
-function TimeoutErrorMessage({
+export function TimeoutErrorMessage({
   error,
   source,
+  closable,
 }: ErrorMessageComponentProps<TimeoutErrorExtra>) {
   const { extra, level } = error;
 
@@ -94,8 +96,7 @@ function TimeoutErrorMessage({
       message={subtitle}
       type={level}
       descriptionDetails={body}
+      closable={closable}
     />
   );
 }
-
-export default TimeoutErrorMessage;

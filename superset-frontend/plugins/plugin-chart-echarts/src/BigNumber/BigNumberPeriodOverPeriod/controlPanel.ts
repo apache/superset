@@ -16,20 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, GenericDataType } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   ControlPanelConfig,
   getStandardizedControls,
   sharedControls,
   sections,
+  ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
+import { noop } from 'lodash';
 import {
   headerFontSize,
   subheaderFontSize,
   subtitleControl,
   subtitleFontSize,
+  showMetricNameControl,
+  metricNameFontSizeWithVisibility,
 } from '../sharedControls';
-import { ColorSchemeEnum } from './types';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -70,6 +74,8 @@ const config: ControlPanelConfig = {
         ],
         [subtitleControl],
         [subtitleFontSize],
+        [showMetricNameControl],
+        [metricNameFontSizeWithVisibility],
         [
           {
             ...subheaderFontSize,
@@ -139,6 +145,7 @@ const config: ControlPanelConfig = {
                 return true;
               },
               mapStateToProps(explore, _, chart) {
+                noop(explore, _, chart);
                 return {
                   columnsPropsObject: {
                     colnames: ['Previous value', 'Delta', 'Percent change'],

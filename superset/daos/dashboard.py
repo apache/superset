@@ -17,8 +17,9 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from datetime import datetime
-from typing import Any
+from typing import Any, Dict, List
 
 from flask import g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -44,9 +45,23 @@ from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
 
 logger = logging.getLogger(__name__)
 
+# Custom filterable fields for dashboards
+DASHBOARD_CUSTOM_FIELDS = {
+    "tags": ["eq", "in_", "like"],
+    "owners": ["eq", "in_"],
+    "published": ["eq"],
+}
+
 
 class DashboardDAO(BaseDAO[Dashboard]):
     base_filter = DashboardAccessFilter
+
+    @classmethod
+    def get_filterable_columns_and_operators(cls) -> Dict[str, List[str]]:
+        filterable = super().get_filterable_columns_and_operators()
+        # Add custom fields for dashboards
+        filterable.update(DASHBOARD_CUSTOM_FIELDS)
+        return filterable
 
     @classmethod
     def get_by_id_or_slug(cls, id_or_slug: int | str) -> Dashboard:
@@ -321,6 +336,23 @@ class DashboardDAO(BaseDAO[Dashboard]):
         return dash
 
     @classmethod
+    def get_native_filter_configuration(
+        cls, id: str
+    ) -> dict[str, list[dict[str, Any]]]:
+        dashboard = cls.get_by_id_or_slug(id)
+        metadata = json.loads(dashboard.json_metadata or "{}")
+        native_filter_configuration = metadata.get("native_filter_configuration", [])
+
+        tab_filters = defaultdict(list)
+        for filter in native_filter_configuration:
+            if tabs_in_scope := filter.get("tabsInScope", []):
+                for tab_key in tabs_in_scope:
+                    tab_filters[tab_key].append(filter)
+            tab_filters["all"].append(filter)
+
+        return tab_filters
+
+    @classmethod
     def update_native_filters_config(
         cls,
         dashboard: Dashboard | None = None,
@@ -387,6 +419,70 @@ class DashboardDAO(BaseDAO[Dashboard]):
                 ]
 
             metadata["native_filter_configuration"] = updated_configuration
+            dashboard.json_metadata = json.dumps(metadata)
+
+        return updated_configuration
+
+    @classmethod
+    def update_chart_customizations_config(
+        cls,
+        dashboard: Dashboard,
+        attributes: dict[str, Any],
+    ) -> list[dict[str, Any]]:
+        metadata = json.loads(dashboard.json_metadata or "{}")
+        updated_configuration = []
+
+        if attributes:
+            chart_customization_config = metadata.get("chart_customization_config", [])
+            reordered_customization_ids: list[str] = attributes.get("reordered", [])
+
+            for conf in chart_customization_config:
+                deleted_customization = next(
+                    (c for c in attributes.get("deleted", []) if c == conf.get("id")),
+                    None,
+                )
+                if deleted_customization:
+                    continue
+
+                modified_customization = next(
+                    (
+                        c
+                        for c in attributes.get("modified", [])
+                        if c.get("id") == conf.get("id")
+                    ),
+                    None,
+                )
+                if modified_customization:
+                    updated_configuration.append(modified_customization)
+                else:
+                    updated_configuration.append(conf)
+
+            for new_customization in attributes.get("modified", []):
+                new_customization_id = new_customization.get("id")
+                if new_customization_id not in [
+                    c.get("id") for c in updated_configuration
+                ]:
+                    updated_configuration.append(new_customization)
+
+                    if (
+                        reordered_customization_ids
+                        and new_customization_id not in reordered_customization_ids
+                    ):
+                        reordered_customization_ids.append(new_customization_id)
+
+            if reordered_customization_ids:
+                customization_map = {
+                    customization_config["id"]: customization_config
+                    for customization_config in updated_configuration
+                }
+
+                updated_configuration = [
+                    customization_map[customization_id]
+                    for customization_id in reordered_customization_ids
+                    if customization_id in customization_map
+                ]
+
+            metadata["chart_customization_config"] = updated_configuration
             dashboard.json_metadata = json.dumps(metadata)
 
         return updated_configuration

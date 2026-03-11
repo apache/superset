@@ -34,7 +34,7 @@ from superset.extensions import event_logger
 from superset.models.core import Database
 from superset.utils import json
 
-BYPASS_VALIDATION_ENGINES = {"bigquery", "snowflake"}
+BYPASS_VALIDATION_ENGINES = {"bigquery", "datastore", "snowflake"}
 
 
 class ValidateDatabaseParametersCommand(BaseCommand):
@@ -124,8 +124,10 @@ class ValidateDatabaseParametersCommand(BaseCommand):
                     "username": url.username,
                     "database": url.database,
                 }
-                errors = database.db_engine_spec.extract_errors(ex, context)
-                raise DatabaseTestConnectionFailedError(errors) from ex
+                errors = database.db_engine_spec.extract_errors(
+                    ex, context, database_name=database.unique_name
+                )
+                raise DatabaseTestConnectionFailedError(errors, status=400) from ex
 
         if not alive:
             raise DatabaseOfflineError(

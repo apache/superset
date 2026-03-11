@@ -17,16 +17,16 @@
  * under the License.
  */
 
+import { t } from '@apache-superset/core/translation';
 import {
   ContributionType,
   ensureIsArray,
-  GenericDataType,
   getColumnLabel,
   getMetricLabel,
   QueryFormColumn,
   QueryFormMetric,
-  t,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   ControlPanelState,
   ControlState,
@@ -40,6 +40,53 @@ import {
 } from '../constants';
 import { checkColumnType } from '../utils/checkColumnType';
 import { isSortable } from '../utils/isSortable';
+
+// Aggregation choices with computation methods for plugins and controls
+export const aggregationChoices = {
+  raw: {
+    label: 'Overall value',
+    compute: (data: number[]) => {
+      if (!data.length) return null;
+      return data[0];
+    },
+  },
+  LAST_VALUE: {
+    label: 'Last Value',
+    compute: (data: number[]) => {
+      if (!data.length) return null;
+      return data[0];
+    },
+  },
+  sum: {
+    label: 'Total (Sum)',
+    compute: (data: number[]) =>
+      data.length ? data.reduce((a, b) => a + b, 0) : null,
+  },
+  mean: {
+    label: 'Average (Mean)',
+    compute: (data: number[]) =>
+      data.length ? data.reduce((a, b) => a + b, 0) / data.length : null,
+  },
+  min: {
+    label: 'Minimum',
+    compute: (data: number[]) => (data.length ? Math.min(...data) : null),
+  },
+  max: {
+    label: 'Maximum',
+    compute: (data: number[]) => (data.length ? Math.max(...data) : null),
+  },
+  median: {
+    label: 'Median',
+    compute: (data: number[]) => {
+      if (!data.length) return null;
+      const sorted = [...data].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return sorted.length % 2 === 0
+        ? (sorted[mid - 1] + sorted[mid]) / 2
+        : sorted[mid];
+    },
+  },
+} as const;
 
 export const contributionModeControl = {
   name: 'contributionMode',
@@ -69,15 +116,13 @@ export const aggregationControl = {
     default: 'LAST_VALUE',
     clearable: false,
     renderTrigger: false,
-    choices: [
-      ['LAST_VALUE', t('Last Value')],
-      ['sum', t('Total (Sum)')],
-      ['mean', t('Average (Mean)')],
-      ['min', t('Minimum')],
-      ['max', t('Maximum')],
-      ['median', t('Median')],
-    ],
-    description: t('Select an aggregation method to apply to the metric.'),
+    choices: Object.entries(aggregationChoices).map(([value, { label }]) => [
+      value,
+      t(label),
+    ]),
+    description: t(
+      'Method to compute the displayed value. "Overall value" calculates a single metric across the entire filtered time period, ideal for non-additive metrics like ratios, averages, or distinct counts. Other methods operate over the time series data points.',
+    ),
     provideFormDataToProps: true,
     mapStateToProps: ({ form_data }: ControlPanelState) => ({
       value: form_data.aggregation || 'LAST_VALUE',
@@ -173,8 +218,25 @@ export const xAxisForceCategoricalControl = {
     label: () => t('Force categorical'),
     default: false,
     description: t('Treat values as categorical.'),
-    initialValue: (control: ControlState, state: ControlPanelState | null) =>
-      state?.form_data?.x_axis_sort !== undefined || control.value,
+    initialValue: (control: ControlState, state: ControlPanelState | null) => {
+      // Check if x-axis is numeric - only numeric columns should have
+      // their categorical behavior influenced by x_axis_sort setting
+      const isNumericXAxis = checkColumnType(
+        getColumnLabel(state?.controls?.x_axis?.value as QueryFormColumn),
+        state?.controls?.datasource?.datasource,
+        [GenericDataType.Numeric],
+      );
+
+      // Non-numeric columns (temporal, text) should not be forced categorical
+      // based on x_axis_sort - just use the control's existing value
+      if (!isNumericXAxis) {
+        return control.value;
+      }
+
+      // For numeric columns, force categorical if x_axis_sort is defined
+      // (user wants to sort) or use the control's existing value
+      return state?.form_data?.x_axis_sort !== undefined || control.value;
+    },
     renderTrigger: true,
     visibility: ({ controls }: { controls: ControlStateMapping }) =>
       checkColumnType(

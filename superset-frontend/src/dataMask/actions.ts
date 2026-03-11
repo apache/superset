@@ -32,6 +32,12 @@ export interface UpdateDataMask {
   dataMask: DataMask;
 }
 
+export const REMOVE_DATA_MASK = 'REMOVE_DATA_MASK';
+export interface RemoveDataMask {
+  type: typeof REMOVE_DATA_MASK;
+  filterId: string | number;
+}
+
 export const INIT_DATAMASK = 'INIT_DATAMASK';
 export interface INITDATAMASK {
   type: typeof INIT_DATAMASK;
@@ -44,16 +50,19 @@ export interface SetDataMaskForFilterChangesComplete {
   type: typeof SET_DATA_MASK_FOR_FILTER_CHANGES_COMPLETE;
   filterChanges: SaveFilterChangesType;
   filters?: Filters;
+  isCustomizationChanges?: boolean;
 }
 
 export function setDataMaskForFilterChangesComplete(
   filterChanges: SaveFilterChangesType,
   filters?: Filters,
+  isCustomizationChanges?: boolean,
 ): SetDataMaskForFilterChangesComplete {
   return {
     type: SET_DATA_MASK_FOR_FILTER_CHANGES_COMPLETE,
     filterChanges,
     filters,
+    isCustomizationChanges,
   };
 }
 
@@ -72,6 +81,13 @@ export function clearDataMask(filterId: string | number) {
   return updateDataMask(filterId, getInitialDataMask(filterId));
 }
 
+export function removeDataMask(filterId: string | number): RemoveDataMask {
+  return {
+    type: REMOVE_DATA_MASK,
+    filterId,
+  };
+}
+
 export function clearDataMaskState(): ClearDataMaskState {
   return {
     type: CLEAR_DATA_MASK_STATE,
@@ -81,4 +97,5 @@ export function clearDataMaskState(): ClearDataMaskState {
 export type AnyDataMaskAction =
   | ClearDataMaskState
   | UpdateDataMask
+  | RemoveDataMask
   | SetDataMaskForFilterChangesComplete;

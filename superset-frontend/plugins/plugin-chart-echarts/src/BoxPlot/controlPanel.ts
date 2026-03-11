@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   isAdhocColumn,
   isPhysicalColumn,
-  t,
   validateNonEmpty,
 } from '@superset-ui/core';
 import {
@@ -78,6 +78,7 @@ const config: ControlPanelConfig = {
         ['adhoc_filters'],
         ['series_limit'],
         ['series_limit_metric'],
+        ['row_limit'],
         [
           {
             name: 'whiskerOptions',
@@ -157,6 +158,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['zoomable'],
       ],
     },
   ],

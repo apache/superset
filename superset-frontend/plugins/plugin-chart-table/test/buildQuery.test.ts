@@ -49,7 +49,7 @@ const extraQueryFormData: TableChartFormData = {
 };
 describe('plugin-chart-table', () => {
   describe('buildQuery', () => {
-    it('should add post-processing and ignore duplicate metrics', () => {
+    test('should add post-processing and ignore duplicate metrics', () => {
       const query = buildQuery({
         ...basicFormData,
         query_mode: QueryMode.Aggregate,
@@ -68,7 +68,7 @@ describe('plugin-chart-table', () => {
       ]);
     });
 
-    it('should not add metrics in raw records mode', () => {
+    test('should not add metrics in raw records mode', () => {
       const query = buildQuery({
         ...basicFormData,
         query_mode: QueryMode.Raw,
@@ -80,7 +80,7 @@ describe('plugin-chart-table', () => {
       expect(query.post_processing).toEqual([]);
     });
 
-    it('should not add post-processing when there is no percent metric', () => {
+    test('should not add post-processing when there is no percent metric', () => {
       const query = buildQuery({
         ...basicFormData,
         query_mode: QueryMode.Aggregate,
@@ -91,7 +91,7 @@ describe('plugin-chart-table', () => {
       expect(query.post_processing).toEqual([]);
     });
 
-    it('should not add post-processing in raw records mode', () => {
+    test('should not add post-processing in raw records mode', () => {
       const query = buildQuery({
         ...basicFormData,
         query_mode: QueryMode.Raw,
@@ -103,7 +103,7 @@ describe('plugin-chart-table', () => {
       expect(query.columns).toEqual(['rawcol']);
       expect(query.post_processing).toEqual([]);
     });
-    it('should prefer extra_form_data.time_grain_sqla over formData.time_grain_sqla', () => {
+    test('should prefer extra_form_data.time_grain_sqla over formData.time_grain_sqla', () => {
       const query = buildQuery({
         ...basicFormData,
         groupby: ['col1'],
@@ -120,7 +120,7 @@ describe('plugin-chart-table', () => {
         expressionType: 'SQL',
       });
     });
-    it('should fallback to formData.time_grain_sqla if extra_form_data.time_grain_sqla is not set', () => {
+    test('should fallback to formData.time_grain_sqla if extra_form_data.time_grain_sqla is not set', () => {
       const query = buildQuery({
         ...basicFormData,
         time_grain_sqla: TimeGranularity.MONTH,
@@ -136,7 +136,7 @@ describe('plugin-chart-table', () => {
         expressionType: 'SQL',
       });
     });
-    it('should include time_grain_sqla in extras if temporal colum is used and keep the rest', () => {
+    test('should include time_grain_sqla in extras if temporal colum is used and keep the rest', () => {
       const { queries } = buildQuery({
         ...extraQueryFormData,
         temporal_columns_lookup: { col1: true },
@@ -147,6 +147,137 @@ describe('plugin-chart-table', () => {
       // Extras in summary query
       expect(queries[1].extras?.time_grain_sqla).toEqual(TimeGranularity.MONTH);
       expect(queries[1].extras?.where).toEqual("(status IN ('In Process'))");
+    });
+
+    describe('Percent Metric Calculation Modes', () => {
+      const baseFormDataWithPercents: TableChartFormData = {
+        ...basicFormData,
+        query_mode: QueryMode.Aggregate,
+        metrics: ['count'],
+        percent_metrics: ['sum_sales'],
+        groupby: ['category'],
+      };
+
+      test('should default to row_limit mode with single query', () => {
+        const { queries } = buildQuery(baseFormDataWithPercents);
+
+        expect(queries).toHaveLength(1);
+        expect(queries[0].metrics).toEqual(['count', 'sum_sales']);
+        expect(queries[0].post_processing).toEqual([
+          {
+            operation: 'contribution',
+            options: {
+              columns: ['sum_sales'],
+              rename_columns: ['%sum_sales'],
+            },
+          },
+        ]);
+      });
+
+      test('should create extra query in all_records mode', () => {
+        const formData = {
+          ...baseFormDataWithPercents,
+          percent_metric_calculation: 'all_records',
+        };
+
+        const { queries } = buildQuery(formData);
+
+        expect(queries).toHaveLength(2);
+
+        expect(queries[0].post_processing).toEqual([
+          {
+            operation: 'contribution',
+            options: {
+              columns: ['sum_sales'],
+              rename_columns: ['%sum_sales'],
+            },
+          },
+        ]);
+
+        expect(queries[1]).toMatchObject({
+          columns: [],
+          metrics: ['sum_sales'],
+          post_processing: [],
+          row_limit: 0,
+          row_offset: 0,
+          orderby: [],
+          is_timeseries: false,
+        });
+      });
+
+      test('should work with show_totals in all_records mode', () => {
+        const formData = {
+          ...baseFormDataWithPercents,
+          percent_metric_calculation: 'all_records',
+          show_totals: true,
+        };
+
+        const { queries } = buildQuery(formData);
+
+        expect(queries).toHaveLength(3);
+        expect(queries[1].metrics).toEqual(['sum_sales']);
+        expect(queries[2].metrics).toEqual(['count', 'sum_sales']);
+      });
+
+      test('should handle empty percent_metrics in all_records mode', () => {
+        const formData = {
+          ...basicFormData,
+          query_mode: QueryMode.Aggregate,
+          metrics: ['count'],
+          percent_metrics: [],
+          percent_metric_calculation: 'all_records',
+          groupby: ['category'],
+        };
+
+        const { queries } = buildQuery(formData);
+
+        expect(queries).toHaveLength(1);
+        expect(queries[0].post_processing).toEqual([]);
+      });
+    });
+
+    describe('Testing for server pagination with search filter', () => {
+      const baseFormDataWithServerPagination: TableChartFormData = {
+        ...basicFormData,
+        query_mode: QueryMode.Aggregate,
+        metrics: ['count'],
+        server_pagination: true,
+        search_filter: 'A',
+        groupby: ['category'],
+      };
+
+      const ownState = {
+        searchText: 'A',
+        searchColumn: 'category',
+      };
+
+      test('includes search filter in query payload when server pagination is enabled', () => {
+        const { queries } = buildQuery(baseFormDataWithServerPagination, {
+          ownState,
+        });
+
+        expect(queries[0].filters).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              col: `${ownState.searchColumn}`,
+              op: 'ILIKE',
+              val: `${ownState.searchText}%`,
+            }),
+          ]),
+        );
+      });
+
+      test('does not include search filter when not provided', () => {
+        const { queries } = buildQuery(
+          {
+            ...baseFormDataWithServerPagination,
+            server_pagination: false,
+          },
+          { ownState },
+        );
+
+        expect(queries[0].filters?.some(f => f.op === 'ILIKE')).toBeFalsy();
+      });
     });
   });
 });

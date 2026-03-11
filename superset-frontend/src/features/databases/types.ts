@@ -1,6 +1,5 @@
 import { JsonObject } from '@superset-ui/core';
-// eslint-disable-next-line no-restricted-imports
-import { InputProps } from 'antd/lib/input'; // TODO: Remove antd
+import { InputProps } from '@superset-ui/core/components';
 import { ChangeEvent, EventHandler, FormEvent } from 'react';
 
 /**
@@ -247,6 +246,7 @@ export interface ExtraJson {
   disable_data_preview?: boolean; // in SQL Lab
   disable_drill_to_detail?: boolean;
   allow_multi_catalog?: boolean;
+  per_user_caching?: boolean; // in Security
   engine_params?: {
     catalog?: Record<string, string>;
     connect_args?: {
@@ -322,6 +322,7 @@ export interface FieldPropTypes {
   sslForced?: boolean;
   defaultDBName?: string;
   editNewDb?: boolean;
+  isValidating: boolean;
 }
 
 type ChangeMethodsType = FieldPropTypes['changeMethods'];
@@ -344,6 +345,7 @@ export interface DatabaseConnectionFormProps {
   editNewDb?: boolean;
   dbModel: DatabaseForm;
   db: Partial<DatabaseObject> | null;
+  isValidating: boolean;
   onParametersChange: (
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;

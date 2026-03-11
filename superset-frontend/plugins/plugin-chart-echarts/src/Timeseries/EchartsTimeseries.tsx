@@ -57,6 +57,7 @@ export default function EchartsTimeseries({
   refs,
   emitCrossFilters,
   coltypeMapping,
+  onLegendScroll,
 }: TimeseriesChartTransformedProps) {
   const { stack } = formData;
   const echartRef = useRef<EchartsHandler | null>(null);
@@ -66,8 +67,32 @@ export default function EchartsTimeseries({
   const extraControlRef = useRef<HTMLDivElement>(null);
   const [extraControlHeight, setExtraControlHeight] = useState(0);
   useEffect(() => {
-    const updatedHeight = extraControlRef.current?.offsetHeight || 0;
-    setExtraControlHeight(updatedHeight);
+    const element = extraControlRef.current;
+    if (!element) {
+      setExtraControlHeight(0);
+      return;
+    }
+
+    const updateHeight = () => {
+      setExtraControlHeight(element.offsetHeight || 0);
+    };
+
+    updateHeight();
+
+    if (typeof ResizeObserver === 'function') {
+      const resizeObserver = new ResizeObserver(() => {
+        updateHeight();
+      });
+      resizeObserver.observe(element);
+      return () => {
+        resizeObserver.disconnect();
+      };
+    }
+
+    window.addEventListener('resize', updateHeight);
+    return () => {
+      window.removeEventListener('resize', updateHeight);
+    };
   }, [formData.showExtraControls]);
 
   const hasDimensions = ensureIsArray(groupby).length > 0;
@@ -129,6 +154,43 @@ export default function EchartsTimeseries({
     [groupby, labelMap, selectedValues],
   );
 
+  // Cross-filter using X-axis value when no dimensions are set (issue #25334)
+  const getXAxisCrossFilterDataMask = useCallback(
+    (xAxisValue: string | number) => {
+      const stringValue = String(xAxisValue);
+      const selected: string[] = Object.values(selectedValues);
+      let values: string[];
+      if (selected.includes(stringValue)) {
+        values = selected.filter(v => v !== stringValue);
+      } else {
+        values = [stringValue];
+      }
+      return {
+        dataMask: {
+          extraFormData: {
+            filters:
+              values.length === 0
+                ? []
+                : [
+                    {
+                      col: xAxis.label,
+                      op: 'IN' as const,
+                      val: values,
+                    },
+                  ],
+          },
+          filterState: {
+            label: values.length ? values : undefined,
+            value: values.length ? values : null,
+            selectedValues: values.length ? values : null,
+          },
+        },
+        isCurrentValueSelected: selected.includes(stringValue),
+      };
+    },
+    [selectedValues, xAxis.label],
+  );
+
   const handleChange = useCallback(
     (value: string) => {
       if (!emitCrossFilters) {
@@ -139,9 +201,25 @@ export default function EchartsTimeseries({
     [emitCrossFilters, setDataMask, getCrossFilterDataMask],
   );
 
+  // Handle cross-filter using X-axis value when no dimensions (issue #25334)
+  const handleXAxisChange = useCallback(
+    (xAxisValue: string | number) => {
+      if (!emitCrossFilters) {
+        return;
+      }
+      setDataMask(getXAxisCrossFilterDataMask(xAxisValue).dataMask);
+    },
+    [emitCrossFilters, setDataMask, getXAxisCrossFilterDataMask],
+  );
+
+  // Determine if X-axis can be used for cross-filtering (categorical axis without dimensions)
+  const canCrossFilterByXAxis =
+    !hasDimensions && xAxis.type === AxisType.Category;
+
   const eventHandlers: EventHandlers = {
     click: props => {
-      if (!hasDimensions) {
+      // Allow cross-filter by dimensions OR by categorical X-axis (issue #25334)
+      if (!hasDimensions && !canCrossFilterByXAxis) {
         return;
       }
       if (clickTimer.current) {
@@ -149,8 +227,14 @@ export default function EchartsTimeseries({
       }
       // Ensure that double-click events do not trigger single click event. So we put it in the timer.
       clickTimer.current = setTimeout(() => {
-        const { seriesName: name } = props;
-        handleChange(name);
+        if (hasDimensions) {
+          // Cross-filter by dimension (original behavior)
+          const { seriesName: name } = props;
+          handleChange(name);
+        } else if (canCrossFilterByXAxis && props.data?.[0] != null) {
+          // Cross-filter by X-axis value when no dimensions (issue #25334)
+          handleXAxisChange(props.data[0]);
+        }
       }, TIMER_DURATION);
     },
     mouseout: () => {
@@ -158,6 +242,9 @@ export default function EchartsTimeseries({
     },
     mouseover: params => {
       onFocusedSeries(params.seriesName);
+    },
+    legendscroll: payload => {
+      onLegendScroll?.(payload.scrollDataIndex);
     },
     legendselectchanged: payload => {
       onLegendStateChanged?.(payload.selected);
@@ -205,12 +292,18 @@ export default function EchartsTimeseries({
           }),
         );
         groupBy.forEach((dimension, i) => {
-          const val = labelMap[seriesName][i];
+          const dimensionValues = labelMap[seriesName] ?? [];
+
+          // Skip the metric values at the beginning and get the actual dimension value
+          // If we have multiple metrics, they come first, then the dimension values
+          const metricsCount = dimensionValues.length - groupBy.length;
+          const val = dimensionValues[metricsCount + i];
+
           drillByFilters.push({
             col: dimension,
             op: '==',
             val,
-            formattedVal: formatSeriesName(values[i], {
+            formattedVal: formatSeriesName(val, {
               timeFormatter: getTimeFormatter(formData.dateFormat),
               numberFormatter: getNumberFormatter(formData.numberFormat),
               coltype: coltypeMapping?.[getColumnLabel(dimension)],
@@ -218,12 +311,18 @@ export default function EchartsTimeseries({
           });
         });
 
+        // Provide cross-filter for dimensions OR categorical X-axis (issue #25334)
+        let crossFilter;
+        if (hasDimensions) {
+          crossFilter = getCrossFilterDataMask(seriesName);
+        } else if (canCrossFilterByXAxis && data?.[0] != null) {
+          crossFilter = getXAxisCrossFilterDataMask(data[0]);
+        }
+
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillToDetailFilters,
           drillBy: { filters: drillByFilters, groupbyFieldName: 'groupby' },
-          crossFilter: hasDimensions
-            ? getCrossFilterDataMask(seriesName)
-            : undefined,
+          crossFilter,
         });
       }
     },
@@ -240,7 +339,7 @@ export default function EchartsTimeseries({
       if (echartInstance?.containPixel('grid', pointInPixel)) {
         // do not trigger if click unstacked chart's blank area
         if (!stack && params.target?.type === 'ec-polygon') return;
-        // @ts-ignore
+        // @ts-expect-error
         const globalModel = echartInstance.getModel();
         const model = getModelInfo(params.target, globalModel);
         if (model) {
@@ -272,6 +371,7 @@ export default function EchartsTimeseries({
         eventHandlers={eventHandlers}
         zrEventHandlers={zrEventHandlers}
         selectedValues={selectedValues}
+        vizType={formData.vizType}
       />
     </>
   );

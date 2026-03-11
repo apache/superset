@@ -119,7 +119,7 @@ const setup = (props = DEFAULT_PROPS) =>
     initialState: INITIAL_STATE,
   });
 
-it('Renders charts scoping list panel', () => {
+test('Renders charts scoping list panel', () => {
   setup();
   expect(screen.getByText('Add custom scoping')).toBeVisible();
   expect(screen.getByText('All charts/global scoping')).toBeVisible();
@@ -131,7 +131,7 @@ it('Renders charts scoping list panel', () => {
   expect(screen.queryByText('[new custom scoping]')).not.toBeInTheDocument();
 });
 
-it('Renders custom scoping item', () => {
+test('Renders custom scoping item', () => {
   setup({
     ...DEFAULT_PROPS,
     activeChartId: -1,
@@ -158,7 +158,7 @@ it('Renders custom scoping item', () => {
   expect(screen.getByText('[new custom scoping]')).toHaveClass('active');
 });
 
-it('Uses callbacks on click', () => {
+test('Uses callbacks on click', () => {
   setup();
 
   userEvent.click(screen.getByText('Add custom scoping'));
@@ -177,7 +177,7 @@ it('Uses callbacks on click', () => {
   expect(DEFAULT_PROPS.removeCustomScope).toHaveBeenCalledWith(4);
 });
 
-it('Renders charts scoping list panel with FilterTitle rendered with role="button"', () => {
+test('Renders charts scoping list panel with FilterTitle rendered with role="button"', () => {
   setup();
   expect(screen.getByText('All charts/global scoping')).toBeVisible();
   expect(screen.getByText('All charts/global scoping')).toHaveAttribute(

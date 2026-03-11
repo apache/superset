@@ -16,9 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ReactElement } from 'react';
 import { VizType } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
+import { css } from '@apache-superset/core/theme';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { VizMeta } from './types';
+
+// Custom icons for non-featured charts
+export const CUSTOM_CHART_ICONS: Record<string, ReactElement> = {
+  deck_multi: <Icons.Multiple iconSize="l" viewBox="5 4 15 20" />,
+};
 
 export const FEATURED_CHARTS: VizMeta[] = [
   {
@@ -33,7 +40,17 @@ export const FEATURED_CHARTS: VizMeta[] = [
   { name: VizType.Table, icon: <Icons.TableOutlined iconSize="l" /> },
   {
     name: VizType.BigNumberTotal,
-    icon: <Icons.BigNumberChartTile />,
+    icon: (
+      <Icons.BigNumberChartTile
+        iconSize="l"
+        viewBox="0 0 16 14"
+        css={css`
+          path {
+            fill: currentColor;
+          }
+        `}
+      />
+    ),
   },
   { name: VizType.Pie, icon: <Icons.PieChartOutlined iconSize="l" /> },
 ];

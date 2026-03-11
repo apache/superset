@@ -47,6 +47,7 @@ export type EchartsPieFormData = QueryFormData &
     dateFormat: string;
     showLabelsThreshold: number;
     roseType: 'radius' | 'area' | null;
+    thresholdForOther: number;
   };
 
 export enum EchartsPieLabelType {
@@ -60,12 +61,11 @@ export enum EchartsPieLabelType {
   Template = 'template',
 }
 
-export interface EchartsPieChartProps
-  extends BaseChartProps<EchartsPieFormData> {
+export interface EchartsPieChartProps extends BaseChartProps<EchartsPieFormData> {
   formData: EchartsPieFormData;
 }
 
-// @ts-ignore
+// @ts-expect-error
 export const DEFAULT_FORM_DATA: EchartsPieFormData = {
   ...DEFAULT_LEGEND_FORM_DATA,
   donut: false,
@@ -82,9 +82,20 @@ export const DEFAULT_FORM_DATA: EchartsPieFormData = {
   showLabelsThreshold: 5,
   dateFormat: 'smart_date',
   roseType: null,
+  thresholdForOther: 0,
 };
 
 export type PieChartTransformedProps =
   BaseTransformedProps<EchartsPieFormData> &
     ContextMenuTransformedProps &
     CrossFilterTransformedProps;
+
+export interface PieChartDataItem {
+  name: string;
+  value: number;
+  itemStyle: {
+    color: string;
+    opacity: number;
+  };
+  isOther?: boolean;
+}

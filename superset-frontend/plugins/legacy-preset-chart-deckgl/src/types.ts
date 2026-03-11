@@ -27,3 +27,9 @@ export interface ColorType {
   b: number;
   a: number;
 }
+
+export interface ColorBreakpointType {
+  color: ColorType;
+  minValue: number;
+  maxValue: number;
+}

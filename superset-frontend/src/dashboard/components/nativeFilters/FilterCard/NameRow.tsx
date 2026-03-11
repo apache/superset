@@ -17,8 +17,9 @@
  * under the License.
  */
 import { useSelector } from 'react-redux';
-import { css, SupersetTheme, useTheme, useTruncation } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
+import { isChartCustomization, useTruncation } from '@superset-ui/core';
+import { css, SupersetTheme, useTheme } from '@apache-superset/core/theme';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { useFilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink/useFilterConfigModal';
 import { RootState } from 'src/dashboard/types';
 import { Row, FilterName, InternalRow } from './Styles';
@@ -46,20 +47,31 @@ export const NameRow = ({
       initialFilterId: filter.id,
     });
 
+  const isCustomization = isChartCustomization(filter);
+
   return (
     <Row
       css={(theme: SupersetTheme) => css`
-        margin-bottom: ${theme.gridUnit * 3}px;
+        margin-bottom: ${theme.sizeUnit * 3}px;
         justify-content: space-between;
       `}
     >
       <InternalRow>
-        <Icons.FilterOutlined
-          iconSize="s"
-          css={(theme: SupersetTheme) => css`
-            margin-right: ${theme.gridUnit}px;
-          `}
-        />
+        {isCustomization ? (
+          <Icons.GroupOutlined
+            iconSize="s"
+            css={theme => css`
+              margin-right: ${theme.sizeUnit}px;
+            `}
+          />
+        ) : (
+          <Icons.FilterOutlined
+            iconSize="s"
+            css={(theme: SupersetTheme) => css`
+              margin-right: ${theme.sizeUnit}px;
+            `}
+          />
+        )}
         <TooltipWithTruncation title={elementsTruncated ? filter.name : null}>
           <FilterName ref={filterNameRef}>{filter.name}</FilterName>
         </TooltipWithTruncation>
@@ -73,7 +85,7 @@ export const NameRow = ({
         >
           <Icons.EditOutlined
             iconSize="l"
-            iconColor={theme.colors.grayscale.light1}
+            iconColor={theme.colorIcon}
             css={() => css`
               cursor: pointer;
             `}

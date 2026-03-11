@@ -18,8 +18,8 @@
 """Unit tests for Superset"""
 
 import re
-import unittest
 from random import random
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 from flask import Response, escape, url_for
@@ -52,7 +52,7 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_data,  # noqa: F401
 )
 
-from .base_tests import SupersetTestCase
+from .base_tests import DEFAULT_PASSWORD, SupersetTestCase
 
 
 class TestDashboard(SupersetTestCase):
@@ -187,6 +187,72 @@ class TestDashboard(SupersetTestCase):
         self.revoke_public_access_to_table(table)
 
     @pytest.mark.usefixtures(
+        "load_energy_table_with_slice",
+        "load_dashboard",
+    )
+    def test_anonymous_user_redirects_to_login_with_next(self):
+        self.logout()
+        target_path = f"/superset/dashboard/{pytest.hidden_dash_slug}/"
+
+        response = self.client.get(target_path, follow_redirects=False)
+
+        assert response.status_code == 302
+
+        redirect_location = response.headers["Location"]
+        parsed = urlparse(redirect_location)
+        assert parsed.path.rstrip("/") == "/login"
+
+        next_values = parse_qs(parsed.query).get("next")
+        assert next_values is not None
+        assert next_values[0].endswith(target_path)
+
+        login_target = (
+            f"{parsed.path}{'?' + parsed.query if parsed.query else ''}"
+            if parsed.scheme or parsed.netloc
+            else redirect_location
+        )
+
+        login_response = self.client.post(
+            login_target,
+            data={"username": ADMIN_USERNAME, "password": DEFAULT_PASSWORD},
+            follow_redirects=False,
+        )
+        assert login_response.status_code == 302
+        assert login_response.headers["Location"].endswith(target_path)
+
+        target_response: Response = self.client.get(target_path, follow_redirects=False)
+        assert target_response.status_code == 200
+
+    def test_anonymous_user_redirects_to_login_for_missing_dashboard(self):
+        self.logout()
+        target_path = "/superset/dashboard/nonexistent-dashboard/"
+
+        response = self.client.get(target_path, follow_redirects=False)
+
+        assert response.status_code == 302
+        parsed = urlparse(response.headers["Location"])
+        assert parsed.path.rstrip("/") == "/login"
+        next_values = parse_qs(parsed.query).get("next")
+        assert next_values is not None
+        assert next_values[0].endswith(target_path)
+
+    @pytest.mark.usefixtures(
+        "public_role_like_gamma",
+        "load_energy_table_with_slice",
+        "load_dashboard",
+    )
+    def test_authenticated_user_without_access_gets_404(self):
+        self.login(GAMMA_USERNAME)
+        target_path = f"/superset/dashboard/{pytest.hidden_dash_slug}/"
+
+        response = self.client.get(
+            target_path,
+            follow_redirects=False,
+            headers={"Accept": "text/html"},
+        )
+        assert response.status_code == 404
+
+    @pytest.mark.usefixtures(
         "public_role_like_gamma",
         "load_energy_table_with_slice",
         "load_dashboard",
@@ -248,7 +314,3 @@ class TestDashboard(SupersetTestCase):
         db.session.commit()
 
         assert f"/superset/dashboard/{slug}/" not in resp
-
-
-if __name__ == "__main__":
-    unittest.main()

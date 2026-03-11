@@ -16,19 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FormItem } from 'src/components/Form';
-import Select from 'src/components/Select/Select';
-import { Input } from 'src/components/Input';
-import { t } from '@superset-ui/core';
-import { FC } from 'react';
-import { FormattedPermission, UserObject } from './types';
+import { FormItem, Input, AsyncSelect } from '@superset-ui/core/components';
+import { t } from '@apache-superset/core/translation';
+import { fetchUserOptions } from '../groups/utils';
+import { fetchGroupOptions, fetchPermissionOptions } from './utils';
 
-interface PermissionsFieldProps {
-  permissions: FormattedPermission[];
+interface AsyncOptionsFieldProps {
+  addDangerToast: (msg: string) => void;
+  loading?: boolean;
 }
 
 interface UsersFieldProps {
-  users: UserObject[];
+  addDangerToast: (msg: string) => void;
+  loading: boolean;
 }
 
 export const RoleNameField = () => (
@@ -41,30 +41,54 @@ export const RoleNameField = () => (
   </FormItem>
 );
 
-export const PermissionsField: FC<PermissionsFieldProps> = ({
-  permissions,
-}) => (
+export const PermissionsField = ({
+  addDangerToast,
+  loading = false,
+}: AsyncOptionsFieldProps) => (
   <FormItem name="rolePermissions" label={t('Permissions')}>
-    <Select
+    <AsyncSelect
       mode="multiple"
       name="rolePermissions"
-      options={permissions.map(permission => ({
-        label: permission.label,
-        value: permission.id,
-      }))}
-      getPopupContainer={trigger => trigger.closest('.antd5-modal-content')}
+      placeholder={t('Select permissions')}
+      options={(filterValue, page, pageSize) =>
+        fetchPermissionOptions(filterValue, page, pageSize, addDangerToast)
+      }
+      loading={loading}
+      getPopupContainer={trigger => trigger.closest('.ant-modal-content')}
       data-test="permissions-select"
     />
   </FormItem>
 );
 
-export const UsersField: FC<UsersFieldProps> = ({ users }) => (
+export const UsersField = ({ addDangerToast, loading }: UsersFieldProps) => (
   <FormItem name="roleUsers" label={t('Users')}>
-    <Select
-      mode="multiple"
+    <AsyncSelect
       name="roleUsers"
-      options={users.map(user => ({ label: user.username, value: user.id }))}
-      data-test="users-select"
+      mode="multiple"
+      placeholder={t('Select users')}
+      options={(filterValue, page, pageSize) =>
+        fetchUserOptions(filterValue, page, pageSize, addDangerToast)
+      }
+      loading={loading}
+      data-test="roles-select"
+    />
+  </FormItem>
+);
+
+export const GroupsField = ({
+  addDangerToast,
+  loading = false,
+}: AsyncOptionsFieldProps) => (
+  <FormItem name="roleGroups" label={t('Groups')}>
+    <AsyncSelect
+      mode="multiple"
+      name="roleGroups"
+      placeholder={t('Select groups')}
+      options={(filterValue, page, pageSize) =>
+        fetchGroupOptions(filterValue, page, pageSize, addDangerToast)
+      }
+      loading={loading}
+      data-test="groups-select"
     />
   </FormItem>
 );
