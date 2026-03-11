@@ -56,7 +56,7 @@ export default function buildQuery(formData: DeckGeoJsonFormData) {
 
     // Add js_columns
     const columnStrings = columns.map(col =>
-      typeof col === 'string' ? col : '',
+      typeof col === 'string' ? col : col.label || col.sqlExpression || '',
     );
     const withJsColumns = addJsColumnsToColumns(columnStrings, js_columns);
     columns = withJsColumns as QueryFormColumn[];
