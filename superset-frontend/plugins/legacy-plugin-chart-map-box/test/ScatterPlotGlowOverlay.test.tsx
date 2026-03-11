@@ -18,7 +18,9 @@
  */
 
 import { render } from '@testing-library/react';
-import ScatterPlotGlowOverlay from '../src/ScatterPlotGlowOverlay';
+import ScatterPlotGlowOverlay, {
+  MIN_CLUSTER_RADIUS_RATIO,
+} from '../src/ScatterPlotGlowOverlay';
 
 // Mock react-map-gl's CanvasOverlay
 jest.mock('react-map-gl', () => ({
@@ -371,14 +373,15 @@ test('cluster radius is always >= individual point radius', () => {
   (global as any).mockRedraw(redrawParams);
 
   const arcCalls = redrawParams.ctx.arc.mock.calls;
-  const singlePointRadius = defaultProps.dotRadius / 6;
+  const minClusterRadius =
+    defaultProps.dotRadius * MIN_CLUSTER_RADIUS_RATIO;
 
   // cluster with label=1 (index 0)
-  expect(arcCalls[0][2]).toBeGreaterThanOrEqual(singlePointRadius);
+  expect(arcCalls[0][2]).toBeGreaterThanOrEqual(minClusterRadius);
   // cluster with label=100 (index 1)
-  expect(arcCalls[1][2]).toBeGreaterThanOrEqual(singlePointRadius);
-  // single point (index 2) gets defaultRadius
-  expect(arcCalls[2][2]).toBe(singlePointRadius);
+  expect(arcCalls[1][2]).toBeGreaterThanOrEqual(minClusterRadius);
+  // single point (index 2) gets minimum cluster radius as default
+  expect(arcCalls[2][2]).toBe(minClusterRadius);
 });
 
 test('largest cluster gets full dotRadius', () => {
@@ -470,7 +473,9 @@ test('negative cluster label produces valid finite radius', () => {
   const arcCalls = redrawParams.ctx.arc.mock.calls;
   const radiusValue = arcCalls[0][2];
   expect(Number.isFinite(radiusValue)).toBe(true);
-  expect(radiusValue).toBeGreaterThanOrEqual(defaultProps.dotRadius / 6);
+  expect(radiusValue).toBeGreaterThanOrEqual(
+    defaultProps.dotRadius * MIN_CLUSTER_RADIUS_RATIO,
+  );
 });
 
 test('single cluster with small maxLabel gets full dotRadius', () => {
@@ -495,4 +500,37 @@ test('single cluster with small maxLabel gets full dotRadius', () => {
   const arcCalls = redrawParams.ctx.arc.mock.calls;
   // When there's only one cluster, label=maxLabel, so it gets full radius
   expect(arcCalls[0][2]).toBe(defaultProps.dotRadius);
+});
+
+test('zero-value cluster is visible with minimum radius', () => {
+  const locations = [
+    createLocation([100, 100], {
+      cluster: true,
+      point_count: 5,
+      sum: 0,
+    }),
+    createLocation([200, 200], {
+      cluster: true,
+      point_count: 10,
+      sum: 100,
+    }),
+  ];
+
+  render(
+    <ScatterPlotGlowOverlay
+      {...defaultProps}
+      locations={locations}
+      aggregation="sum"
+    />,
+  );
+  const redrawParams = createMockRedrawParams();
+  (global as any).mockRedraw(redrawParams);
+
+  const arcCalls = redrawParams.ctx.arc.mock.calls;
+  const zeroClusterRadius = arcCalls[0][2];
+
+  expect(Number.isFinite(zeroClusterRadius)).toBe(true);
+  expect(zeroClusterRadius).toBeGreaterThanOrEqual(
+    defaultProps.dotRadius * MIN_CLUSTER_RADIUS_RATIO,
+  );
 });
