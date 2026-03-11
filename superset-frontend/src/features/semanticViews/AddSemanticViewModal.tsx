@@ -129,31 +129,6 @@ export default function AddSemanticViewModal({
   const [selectedViews, setSelectedViews] = useState<Set<string>>(new Set());
   const [loadingViews, setLoadingViews] = useState(false);
 
-  // Reset state when modal closes
-  useEffect(() => {
-    if (show) {
-      fetchLayers();
-    } else {
-      setStep('layer');
-      setLayers([]);
-      setSelectedLayerUuid(null);
-      setLoading(false);
-      setSaving(false);
-      setRuntimeSchema(null);
-      setRuntimeUiSchema(undefined);
-      setRuntimeData({});
-      setRefreshingSchema(false);
-      setHasRuntimeErrors(false);
-      errorsRef.current = [];
-      lastDepSnapshotRef.current = '';
-      dynamicDepsRef.current = {};
-      setAvailableViews([]);
-      setSelectedViews(new Set());
-      setLoadingViews(false);
-      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-    }
-  }, [show]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const fetchLayers = async () => {
     setLoading(true);
     try {
@@ -172,6 +147,30 @@ export default function AddSemanticViewModal({
       setLoading(false);
     }
   };
+
+  const fetchViews = useCallback(
+    async (uuid: string, rData: Record<string, unknown>) => {
+      setLoadingViews(true);
+      setStep('select');
+      try {
+        const { json } = await SupersetClient.post({
+          endpoint: `/api/v1/semantic_layer/${uuid}/views`,
+          jsonPayload: { runtime_data: rData },
+        });
+        const views: AvailableView[] = json.result ?? [];
+        setAvailableViews(views);
+        // Pre-select views that are already added (disabled anyway)
+        setSelectedViews(
+          new Set(views.filter(v => v.already_added).map(v => v.name)),
+        );
+      } catch {
+        addDangerToast(t('An error occurred while fetching available views'));
+      } finally {
+        setLoadingViews(false);
+      }
+    },
+    [addDangerToast],
+  );
 
   const applyRuntimeSchema = useCallback((rawSchema: JsonSchema) => {
     const schema = sanitizeSchema(rawSchema);
@@ -218,32 +217,33 @@ export default function AddSemanticViewModal({
         else setRefreshingSchema(false);
       }
     },
-    [addDangerToast, applyRuntimeSchema], // eslint-disable-line react-hooks/exhaustive-deps
+    [addDangerToast, applyRuntimeSchema, fetchViews],
   );
 
-  const fetchViews = useCallback(
-    async (uuid: string, rData: Record<string, unknown>) => {
-      setLoadingViews(true);
-      setStep('select');
-      try {
-        const { json } = await SupersetClient.post({
-          endpoint: `/api/v1/semantic_layer/${uuid}/views`,
-          jsonPayload: { runtime_data: rData },
-        });
-        const views: AvailableView[] = json.result ?? [];
-        setAvailableViews(views);
-        // Pre-select views that are already added (disabled anyway)
-        setSelectedViews(
-          new Set(views.filter(v => v.already_added).map(v => v.name)),
-        );
-      } catch {
-        addDangerToast(t('An error occurred while fetching available views'));
-      } finally {
-        setLoadingViews(false);
-      }
-    },
-    [addDangerToast],
-  );
+  // Reset state when modal closes
+  useEffect(() => {
+    if (show) {
+      fetchLayers();
+    } else {
+      setStep('layer');
+      setLayers([]);
+      setSelectedLayerUuid(null);
+      setLoading(false);
+      setSaving(false);
+      setRuntimeSchema(null);
+      setRuntimeUiSchema(undefined);
+      setRuntimeData({});
+      setRefreshingSchema(false);
+      setHasRuntimeErrors(false);
+      errorsRef.current = [];
+      lastDepSnapshotRef.current = '';
+      dynamicDepsRef.current = {};
+      setAvailableViews([]);
+      setSelectedViews(new Set());
+      setLoadingViews(false);
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    }
+  }, [show]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const maybeRefreshRuntimeSchema = useCallback(
     (data: Record<string, unknown>) => {
