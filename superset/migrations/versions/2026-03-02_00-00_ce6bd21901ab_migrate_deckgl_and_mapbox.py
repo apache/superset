@@ -111,7 +111,7 @@ class MigrateMapBox(MigrateViz):
 
             slc.params = json.dumps({**clz.data, **backup})
 
-        except Exception as e:
+        except (ValueError, KeyError, TypeError) as e:
             logger.warning("Failed to migrate slice %s: %s", slc.id, e)
 
 
@@ -153,7 +153,7 @@ def _migrate_deckgl_slices(session: Session, *, upgrade: bool) -> None:
     for slc in slices:
         try:
             fn(slc)
-        except Exception as e:
+        except (ValueError, KeyError, TypeError) as e:
             logger.warning("Failed to migrate deck.gl slice %s: %s", slc.id, e)
     session.commit()
 
