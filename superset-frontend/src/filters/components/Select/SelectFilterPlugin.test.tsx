@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AppSection } from '@superset-ui/core';
+import { AppSection, Behavior, ChartProps } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
 import {
   act,
   fireEvent,
@@ -28,7 +29,13 @@ import {
 import { NULL_STRING } from 'src/utils/common';
 import SelectFilterPlugin from './SelectFilterPlugin';
 import transformProps from './transformProps';
-import { SelectFilterOperatorType } from './types';
+import { FilterState } from '@superset-ui/core';
+import {
+  SelectFilterOperatorType,
+  PluginFilterSelectChartProps,
+  PluginFilterSelectProps,
+  PluginFilterSelectQueryFormData,
+} from './types';
 
 jest.useFakeTimers();
 
@@ -72,9 +79,34 @@ const selectMultipleProps = {
       rejected_filters: [],
     },
   ],
-  behaviors: ['NATIVE_FILTER'],
+  behaviors: [Behavior.NativeFilter],
   isRefreshing: false,
   appSection: AppSection.Dashboard,
+};
+
+type SelectTestOverrides = {
+  formData?: Partial<PluginFilterSelectQueryFormData>;
+  filterState?: Partial<FilterState>;
+  setDataMask?: jest.Mock;
+};
+
+const buildSelectFilterProps = (overrides: SelectTestOverrides = {}) => {
+  const chartProps = new ChartProps({
+    ...selectMultipleProps,
+    formData: { ...selectMultipleProps.formData, ...overrides.formData },
+    ...(overrides.filterState !== undefined && {
+      filterState: overrides.filterState,
+    }),
+    theme: supersetTheme,
+  }) as PluginFilterSelectChartProps;
+
+  return {
+    ...transformProps(chartProps),
+    appSection: AppSection.Dashboard,
+    isRefreshing: false,
+    setDataMask: overrides.setDataMask ?? jest.fn(),
+    showOverflow: false,
+  } as PluginFilterSelectProps;
 };
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -1256,39 +1288,26 @@ test('resets dependent filter to first item when value does not exist in data', 
 test('renders text input instead of dropdown when operatorType is ILIKE contains', () => {
   jest.useFakeTimers();
   const setDataMaskMock = jest.fn();
+  const props = buildSelectFilterProps({
+    formData: { operatorType: SelectFilterOperatorType.Contains },
+    filterState: { value: undefined },
+    setDataMask: setDataMaskMock,
+  });
 
-  render(
-    // @ts-expect-error
-    <SelectFilterPlugin
-      // @ts-expect-error
-      {...transformProps({
-        ...selectMultipleProps,
-        formData: {
-          ...selectMultipleProps.formData,
-          operatorType: SelectFilterOperatorType.Contains,
-        },
-        filterState: { value: undefined },
-      })}
-      setDataMask={setDataMaskMock}
-      showOverflow={false}
-    />,
-    {
-      useRedux: true,
-      initialState: {
-        nativeFilters: {
-          filters: {
-            'test-filter': { name: 'Test Filter' },
-          },
-        },
-        dataMask: {
-          'test-filter': {
-            extraFormData: {},
-            filterState: { value: undefined },
-          },
+  render(<SelectFilterPlugin {...props} />, {
+    useRedux: true,
+    initialState: {
+      nativeFilters: {
+        filters: { 'test-filter': { name: 'Test Filter' } },
+      },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {},
+          filterState: { value: undefined },
         },
       },
     },
-  );
+  });
 
   expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   expect(
@@ -1299,39 +1318,26 @@ test('renders text input instead of dropdown when operatorType is ILIKE contains
 test('renders text input with starts-with placeholder', () => {
   jest.useFakeTimers();
   const setDataMaskMock = jest.fn();
+  const props = buildSelectFilterProps({
+    formData: { operatorType: SelectFilterOperatorType.StartsWith },
+    filterState: { value: undefined },
+    setDataMask: setDataMaskMock,
+  });
 
-  render(
-    // @ts-expect-error
-    <SelectFilterPlugin
-      // @ts-expect-error
-      {...transformProps({
-        ...selectMultipleProps,
-        formData: {
-          ...selectMultipleProps.formData,
-          operatorType: SelectFilterOperatorType.StartsWith,
-        },
-        filterState: { value: undefined },
-      })}
-      setDataMask={setDataMaskMock}
-      showOverflow={false}
-    />,
-    {
-      useRedux: true,
-      initialState: {
-        nativeFilters: {
-          filters: {
-            'test-filter': { name: 'Test Filter' },
-          },
-        },
-        dataMask: {
-          'test-filter': {
-            extraFormData: {},
-            filterState: { value: undefined },
-          },
+  render(<SelectFilterPlugin {...props} />, {
+    useRedux: true,
+    initialState: {
+      nativeFilters: {
+        filters: { 'test-filter': { name: 'Test Filter' } },
+      },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {},
+          filterState: { value: undefined },
         },
       },
     },
-  );
+  });
 
   expect(
     screen.getByPlaceholderText('Type to search (starts with)...'),
@@ -1341,39 +1347,26 @@ test('renders text input with starts-with placeholder', () => {
 test('typing in LIKE input calls setDataMask with ILIKE Contains payload', async () => {
   jest.useFakeTimers();
   const setDataMaskMock = jest.fn();
+  const props = buildSelectFilterProps({
+    formData: { operatorType: SelectFilterOperatorType.Contains },
+    filterState: { value: undefined },
+    setDataMask: setDataMaskMock,
+  });
 
-  render(
-    // @ts-expect-error
-    <SelectFilterPlugin
-      // @ts-expect-error
-      {...transformProps({
-        ...selectMultipleProps,
-        formData: {
-          ...selectMultipleProps.formData,
-          operatorType: SelectFilterOperatorType.Contains,
-        },
-        filterState: { value: undefined },
-      })}
-      setDataMask={setDataMaskMock}
-      showOverflow={false}
-    />,
-    {
-      useRedux: true,
-      initialState: {
-        nativeFilters: {
-          filters: {
-            'test-filter': { name: 'Test Filter' },
-          },
-        },
-        dataMask: {
-          'test-filter': {
-            extraFormData: {},
-            filterState: { value: undefined },
-          },
+  render(<SelectFilterPlugin {...props} />, {
+    useRedux: true,
+    initialState: {
+      nativeFilters: {
+        filters: { 'test-filter': { name: 'Test Filter' } },
+      },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {},
+          filterState: { value: undefined },
         },
       },
     },
-  );
+  });
 
   setDataMaskMock.mockClear();
   const input = screen.getByPlaceholderText('Type to search (contains)...');
@@ -1400,40 +1393,29 @@ test('typing in LIKE input calls setDataMask with ILIKE Contains payload', async
 test('typing in LIKE input with inverse selection calls setDataMask with NOT ILIKE payload', async () => {
   jest.useFakeTimers();
   const setDataMaskMock = jest.fn();
+  const props = buildSelectFilterProps({
+    formData: {
+      operatorType: SelectFilterOperatorType.Contains,
+      inverseSelection: true,
+    },
+    filterState: { value: undefined },
+    setDataMask: setDataMaskMock,
+  });
 
-  render(
-    // @ts-expect-error
-    <SelectFilterPlugin
-      // @ts-expect-error
-      {...transformProps({
-        ...selectMultipleProps,
-        formData: {
-          ...selectMultipleProps.formData,
-          operatorType: SelectFilterOperatorType.Contains,
-          inverseSelection: true,
-        },
-        filterState: { value: undefined },
-      })}
-      setDataMask={setDataMaskMock}
-      showOverflow={false}
-    />,
-    {
-      useRedux: true,
-      initialState: {
-        nativeFilters: {
-          filters: {
-            'test-filter': { name: 'Test Filter' },
-          },
-        },
-        dataMask: {
-          'test-filter': {
-            extraFormData: {},
-            filterState: { value: undefined },
-          },
+  render(<SelectFilterPlugin {...props} />, {
+    useRedux: true,
+    initialState: {
+      nativeFilters: {
+        filters: { 'test-filter': { name: 'Test Filter' } },
+      },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {},
+          filterState: { value: undefined },
         },
       },
     },
-  );
+  });
 
   setDataMaskMock.mockClear();
   const input = screen.getByPlaceholderText('Type to search (contains)...');
@@ -1460,28 +1442,17 @@ test('typing in LIKE input with inverse selection calls setDataMask with NOT ILI
 test('clear-all resets LIKE input value and calls setDataMask with empty state', async () => {
   jest.useFakeTimers();
   const setDataMaskMock = jest.fn();
-
-  const likeProps = {
-    // @ts-expect-error
-    ...transformProps({
-      ...selectMultipleProps,
-      formData: {
-        ...selectMultipleProps.formData,
-        operatorType: SelectFilterOperatorType.Contains,
-      },
-      filterState: { value: ['Jen'] },
-    }),
+  const likeProps = buildSelectFilterProps({
+    formData: { operatorType: SelectFilterOperatorType.Contains },
+    filterState: { value: ['Jen'] },
     setDataMask: setDataMaskMock,
-    showOverflow: false,
-  };
+  });
 
   const reduxState = {
     useRedux: true,
     initialState: {
       nativeFilters: {
-        filters: {
-          'test-filter': { name: 'Test Filter' },
-        },
+        filters: { 'test-filter': { name: 'Test Filter' } },
       },
       dataMask: {
         'test-filter': {
@@ -1495,7 +1466,6 @@ test('clear-all resets LIKE input value and calls setDataMask with empty state',
   };
 
   const { rerender } = render(
-    // @ts-expect-error
     <SelectFilterPlugin {...likeProps} />,
     reduxState,
   );
@@ -1506,7 +1476,6 @@ test('clear-all resets LIKE input value and calls setDataMask with empty state',
   setDataMaskMock.mockClear();
 
   rerender(
-    // @ts-expect-error
     <SelectFilterPlugin
       {...likeProps}
       clearAllTrigger={{ 'test-filter': true }}
@@ -1531,44 +1500,31 @@ test('clear-all resets LIKE input value and calls setDataMask with empty state',
 test('renders standard Select dropdown when operatorType is Exact', () => {
   jest.useFakeTimers();
   const setDataMaskMock = jest.fn();
+  const props = buildSelectFilterProps({
+    formData: { operatorType: SelectFilterOperatorType.Exact },
+    setDataMask: setDataMaskMock,
+  });
 
-  render(
-    // @ts-expect-error
-    <SelectFilterPlugin
-      // @ts-expect-error
-      {...transformProps({
-        ...selectMultipleProps,
-        formData: {
-          ...selectMultipleProps.formData,
-          operatorType: SelectFilterOperatorType.Exact,
-        },
-      })}
-      setDataMask={setDataMaskMock}
-      showOverflow={false}
-    />,
-    {
-      useRedux: true,
-      initialState: {
-        nativeFilters: {
-          filters: {
-            'test-filter': { name: 'Test Filter' },
+  render(<SelectFilterPlugin {...props} />, {
+    useRedux: true,
+    initialState: {
+      nativeFilters: {
+        filters: { 'test-filter': { name: 'Test Filter' } },
+      },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {
+            filters: [{ col: 'gender', op: 'IN', val: ['boy'] }],
           },
-        },
-        dataMask: {
-          'test-filter': {
-            extraFormData: {
-              filters: [{ col: 'gender', op: 'IN', val: ['boy'] }],
-            },
-            filterState: {
-              value: ['boy'],
-              label: 'boy',
-              excludeFilterValues: true,
-            },
+          filterState: {
+            value: ['boy'],
+            label: 'boy',
+            excludeFilterValues: true,
           },
         },
       },
     },
-  );
+  });
 
   expect(screen.getAllByRole('combobox').length).toBeGreaterThan(0);
 });
