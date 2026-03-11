@@ -27,7 +27,11 @@ from superset.extensions import celery_app
 from superset.security.guest_token import GuestToken
 from superset.tasks.utils import get_executor
 from superset.utils.core import override_user
-from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
+from superset.utils.screenshots import (
+    ChartScreenshot,
+    DashboardScreenshot,
+    StatusValues,
+)
 from superset.utils.urls import get_url_path
 from superset.utils.webdriver import WindowSize
 
@@ -90,6 +94,23 @@ def cache_dashboard_thumbnail(
     dashboard = Dashboard.get(dashboard_id)
     url = get_url_path("Superset.dashboard", dashboard_id_or_slug=dashboard.id)
 
+    screenshot = DashboardScreenshot(url, dashboard.digest)
+    resolved_cache_key = cache_key or screenshot.get_cache_key(window_size, thumb_size)
+
+    # Deduplication: check if another task is already computing this thumbnail.
+    # Skip even for force=True to avoid concurrent Selenium sessions for the
+    # same dashboard, which waste resources without benefit.
+    existing = screenshot.get_from_cache_key(resolved_cache_key)
+    if existing and existing.status == StatusValues.COMPUTING:
+        if not existing.is_computing_stale():
+            logger.info(
+                "Skipping duplicate thumbnail task for dashboard %s "
+                "(already computing, cache_key=%s)",
+                dashboard_id,
+                resolved_cache_key,
+            )
+            return
+
     logger.info("Caching dashboard: %s", url)
     _, username = get_executor(
         executors=current_app.config["THUMBNAIL_EXECUTORS"],
@@ -98,7 +119,6 @@ def cache_dashboard_thumbnail(
     )
     user = security_manager.find_user(username)
     with override_user(user):
-        screenshot = DashboardScreenshot(url, dashboard.digest)
         screenshot.compute_and_cache(
             user=user,
             window_size=window_size,
