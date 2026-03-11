@@ -86,132 +86,73 @@ Extensions can replace the default SQL editor with custom implementations (Monac
 
 This example adds a "Data Profiler" panel to SQL Lab:
 
-```json
-{
-  "name": "data_profiler",
-  "version": "1.0.0",
-  "frontend": {
-    "contributions": {
-      "views": {
-        "sqllab": {
-          "panels": [
-            {
-              "id": "data_profiler.main",
-              "name": "Data Profiler"
-            }
-          ]
-        }
-      }
-    }
-  }
-}
-```
-
 ```typescript
-import { core } from '@apache-superset/core';
+import React from 'react';
+import { views } from '@apache-superset/core';
 import DataProfilerPanel from './DataProfilerPanel';
 
-export function activate(context) {
-  // Register the panel view with the ID declared in extension.json
-  const disposable = core.registerView('data_profiler.main', <DataProfilerPanel />);
-  context.subscriptions.push(disposable);
-}
+views.registerView(
+  { id: 'my-extension.data-profiler', name: 'Data Profiler' },
+  'sqllab.panels',
+  () => <DataProfilerPanel />,
+);
 ```
 
 ### Adding Actions to the Editor
 
 This example adds primary, secondary, and context actions to the editor:
 
-```json
-{
-  "name": "query_tools",
-  "version": "1.0.0",
-  "frontend": {
-    "contributions": {
-      "commands": [
-        {
-          "command": "query_tools.format",
-          "title": "Format Query",
-          "icon": "FormatPainterOutlined"
-        },
-        {
-          "command": "query_tools.explain",
-          "title": "Explain Query"
-        },
-        {
-          "command": "query_tools.copy_as_cte",
-          "title": "Copy as CTE"
-        }
-      ],
-      "menus": {
-        "sqllab": {
-          "editor": {
-            "primary": [
-              {
-                "view": "builtin.editor",
-                "command": "query_tools.format"
-              }
-            ],
-            "secondary": [
-              {
-                "view": "builtin.editor",
-                "command": "query_tools.explain"
-              }
-            ],
-            "context": [
-              {
-                "view": "builtin.editor",
-                "command": "query_tools.copy_as_cte"
-              }
-            ]
-          }
-        }
-      }
-    }
-  }
-}
-```
-
 ```typescript
-import { commands, sqlLab } from '@apache-superset/core';
+import { commands, menus, sqlLab } from '@apache-superset/core';
 
-export function activate(context) {
-  // Register the commands declared in extension.json
-  const formatCommand = commands.registerCommand(
-    'query_tools.format',
-    async () => {
-      const tab = sqlLab.getCurrentTab();
-      if (tab) {
-        const editor = await tab.getEditor();
-        // Format the SQL query
-      }
-    },
-  );
+commands.registerCommand(
+  { id: 'my-extension.format', title: 'Format Query', icon: 'FormatPainterOutlined' },
+  async () => {
+    const tab = sqlLab.getCurrentTab();
+    if (tab) {
+      const editor = await tab.getEditor();
+      // Format the SQL query
+    }
+  },
+);
 
-  const explainCommand = commands.registerCommand(
-    'query_tools.explain',
-    async () => {
-      const tab = sqlLab.getCurrentTab();
-      if (tab) {
-        const editor = await tab.getEditor();
-        // Show query explanation
-      }
-    },
-  );
+commands.registerCommand(
+  { id: 'my-extension.explain', title: 'Explain Query' },
+  async () => {
+    const tab = sqlLab.getCurrentTab();
+    if (tab) {
+      const editor = await tab.getEditor();
+      // Show query explanation
+    }
+  },
+);
 
-  const copyAsCteCommand = commands.registerCommand(
-    'query_tools.copy_as_cte',
-    async () => {
-      const tab = sqlLab.getCurrentTab();
-      if (tab) {
-        const editor = await tab.getEditor();
-        // Copy selected text as CTE
-      }
-    },
-  );
+commands.registerCommand(
+  { id: 'my-extension.copy-as-cte', title: 'Copy as CTE' },
+  async () => {
+    const tab = sqlLab.getCurrentTab();
+    if (tab) {
+      const editor = await tab.getEditor();
+      // Copy selected text as CTE
+    }
+  },
+);
 
-  context.subscriptions.push(formatCommand, explainCommand, copyAsCteCommand);
-}
+menus.registerMenuItem(
+  { view: 'builtin.editor', command: 'my-extension.format' },
+  'sqllab.editor',
+  'primary',
+);
+menus.registerMenuItem(
+  { view: 'builtin.editor', command: 'my-extension.explain' },
+  'sqllab.editor',
+  'secondary',
+);
+menus.registerMenuItem(
+  { view: 'builtin.editor', command: 'my-extension.copy-as-cte' },
+  'sqllab.editor',
+  'context',
+);
 ```
 
 ## Next Steps

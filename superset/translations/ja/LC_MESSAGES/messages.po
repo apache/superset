@@ -10018,7 +10018,7 @@ msgstr "実行中"
 
 #, fuzzy, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
-msgstr "%(statement_count)s 個中 %(statement_num)s 個のステートメントを実行中"
+msgstr "%(block_count)s 個中 %(block_num)s 個のステートメントを実行中"
 
 msgid "SAT"
 msgstr "土"
