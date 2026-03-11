@@ -333,6 +333,107 @@ def test_update_id_refs_handles_missing_time_grains():
     assert "time_grains" not in filter_config
 
 
+def test_update_id_refs_cross_filter_uuid_keyed_config_remapped():
+    """
+    Test that UUID-keyed chart_configuration entries (from example exports) are
+    properly remapped to new integer IDs during import, including UUID values in
+    chartsInScope.
+
+    export_example.remap_chart_configuration produces chart_configuration keyed by
+    chart UUIDs with UUID values in crossFilters.chartsInScope.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config: dict[str, Any] = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+            "CHART2": {
+                "id": "CHART2",
+                "meta": {"chartId": 102, "uuid": "uuid2"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "chart_configuration": {
+                # UUID-keyed format from export_example
+                "uuid1": {
+                    "id": "uuid1",
+                    "crossFilters": {
+                        "chartsInScope": ["uuid2"],  # UUID reference
+                        "scope": {"excluded": []},
+                    },
+                },
+                "uuid2": {
+                    "id": "uuid2",
+                    "crossFilters": {
+                        "chartsInScope": ["uuid1"],  # UUID reference
+                        "scope": {"excluded": []},
+                    },
+                },
+            }
+        },
+    }
+
+    chart_ids = {"uuid1": 1, "uuid2": 2}
+    dataset_info: dict[str, dict[str, Any]] = {}
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+
+    chart_cfg = fixed["metadata"]["chart_configuration"]
+    # UUID keys should be remapped to new integer keys
+    assert "1" in chart_cfg
+    assert "2" in chart_cfg
+    assert "uuid1" not in chart_cfg
+    assert "uuid2" not in chart_cfg
+    # Inner id fields should be new integer IDs
+    assert chart_cfg["1"]["id"] == 1
+    assert chart_cfg["2"]["id"] == 2
+    # chartsInScope UUIDs should be remapped to new integer IDs
+    assert chart_cfg["1"]["crossFilters"]["chartsInScope"] == [2]
+    assert chart_cfg["2"]["crossFilters"]["chartsInScope"] == [1]
+
+
+def test_update_id_refs_cross_filter_uuid_keyed_unknown_preserved():
+    """
+    Test that UUID-keyed chart_configuration entries with no matching position
+    entry are preserved unchanged rather than silently dropped.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    unknown_uuid = "ffffffff-0000-0000-0000-000000000000"
+    config: dict[str, Any] = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "chart_configuration": {
+                "101": {"id": 101, "crossFilters": {"scope": {"excluded": []}}},
+                unknown_uuid: {"id": unknown_uuid, "crossFilters": {}},
+            }
+        },
+    }
+
+    chart_ids = {"uuid1": 1}
+    dataset_info: dict[str, dict[str, Any]] = {}
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+
+    chart_cfg = fixed["metadata"]["chart_configuration"]
+    # Integer-keyed entry should be remapped
+    assert "1" in chart_cfg
+    assert "101" not in chart_cfg
+    # Unknown UUID-keyed entry should be preserved unchanged
+    assert unknown_uuid in chart_cfg
+
+
 def test_update_id_refs_cross_filter_charts_in_scope():
     """
     Test that chartsInScope references in cross-filter configurations are updated.
