@@ -199,3 +199,88 @@ def test_update_id_refs_cross_filter_handles_string_excluded():
     fixed = update_id_refs(config, chart_ids, dataset_info)
     # Should not raise and should remap key
     assert "1" in fixed["metadata"]["chart_configuration"]
+
+
+def test_update_id_refs_preserves_time_grains_in_native_filters():
+    """
+    Test that time_grains allowlist is preserved during dashboard import.
+
+    The time_grains field is a top-level filter configuration key that should
+    survive the update_id_refs transformation without modification.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config: dict[str, Any] = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "native_filter_configuration": [
+                {
+                    "id": "NATIVE_FILTER-abc123",
+                    "filterType": "filter_timegrain",
+                    "name": "Time Grain",
+                    "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+                    "targets": [{"datasetId": 201, "column": {"name": "dttm"}}],
+                    "controlValues": {},
+                    "time_grains": ["P1D", "P1W", "P1M"],  # Allowlist should be preserved
+                }
+            ]
+        },
+    }
+
+    chart_ids = {"uuid1": 1}
+    dataset_info: dict[str, dict[str, Any]] = {}
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+
+    # Verify time_grains is preserved unchanged
+    filter_config = fixed["metadata"]["native_filter_configuration"][0]
+    assert filter_config.get("time_grains") == ["P1D", "P1W", "P1M"]
+    assert filter_config.get("filterType") == "filter_timegrain"
+
+
+def test_update_id_refs_handles_missing_time_grains():
+    """
+    Test backward compatibility when time_grains is not present.
+
+    Existing filters without time_grains should not break during import.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config: dict[str, Any] = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "native_filter_configuration": [
+                {
+                    "id": "NATIVE_FILTER-legacy",
+                    "filterType": "filter_timegrain",
+                    "name": "Legacy Time Grain",
+                    "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+                    "targets": [{"datasetId": 201, "column": {"name": "dttm"}}],
+                    "controlValues": {},
+                    # Note: no time_grains key (legacy filter)
+                }
+            ]
+        },
+    }
+
+    chart_ids = {"uuid1": 1}
+    dataset_info: dict[str, dict[str, Any]] = {}
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+
+    # Verify filter is still valid and time_grains is either absent or undefined
+    filter_config = fixed["metadata"]["native_filter_configuration"][0]
+    assert filter_config.get("filterType") == "filter_timegrain"
+    assert filter_config.get("time_grains") is None or "time_grains" not in filter_config

@@ -81,6 +81,7 @@ export type Filter = {
   granularity?: string;
   time_grain_sqla?: string;
   time_range?: string;
+  time_grains?: string[];
   requiredFirst?: boolean;
   tabsInScope?: string[];
   chartsInScope?: number[];

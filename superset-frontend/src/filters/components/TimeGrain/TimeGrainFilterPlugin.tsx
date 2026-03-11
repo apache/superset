@@ -107,15 +107,20 @@ export default function PluginFilterTimegrain(
     );
   }
 
-  const options = (data || []).map(
-    (row: { name: string; duration: string }) => {
+  const options = (data || [])
+    .map((row: { name: string; duration: string }) => {
       const { name, duration } = row;
       return {
         label: name,
         value: duration,
       };
-    },
-  );
+    })
+    // Apply allowlist filter if time_grains is configured
+    .filter(option =>
+      formData.time_grains && formData.time_grains.length > 0
+        ? formData.time_grains.includes(option.value)
+        : true,
+    );
 
   return (
     <FilterPluginStyle height={height} width={width}>
