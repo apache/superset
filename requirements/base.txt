@@ -319,8 +319,6 @@ pyjwt==2.10.1
     #   redis
 pynacl==1.6.2
     # via paramiko
-pyodps==0.12.2
-    # via -r requirements/base.in
 pyopenssl==25.3.0
     # via shillelagh
 pyparsing==3.2.3

@@ -14,9 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
+from sqlalchemy.dialects import sqlite
 
 from superset.db_engine_specs.odps import OdpsBaseEngineSpec, OdpsEngineSpec
 from superset.sql.parse import Partition, Table
@@ -36,8 +38,10 @@ def test_odps_engine_spec_select_star_no_partition() -> None:
     database = MagicMock()
     database.backend = "odps"
     database.get_columns.return_value = []
-    database.compile_sqla_query.return_value = "SELECT * FROM my_table LIMIT 100"
-    dialect = MagicMock()
+    database.compile_sqla_query = lambda query, catalog, schema: str(
+        query.compile(dialect=sqlite.dialect())
+    )
+    dialect = sqlite.dialect()
 
     sql = OdpsEngineSpec.select_star(
         database=database,
@@ -59,10 +63,10 @@ def test_odps_engine_spec_select_star_with_partition() -> None:
     database = MagicMock()
     database.backend = "odps"
     database.get_columns.return_value = []
-    database.compile_sqla_query.return_value = (
-        "SELECT * FROM my_table WHERE CAST(month AS STRING) LIKE '%' LIMIT 100"
+    database.compile_sqla_query = lambda query, catalog, schema: str(
+        query.compile(dialect=sqlite.dialect())
     )
-    dialect = MagicMock()
+    dialect = sqlite.dialect()
     partition = Partition(is_partitioned_table=True, partition_column=["month"])
 
     sql = OdpsEngineSpec.select_star(
@@ -119,13 +123,10 @@ def test_is_odps_partitioned_table_uri_no_match(
     database.sqlalchemy_uri = "odps://invalid-uri-format"
     database.password = "secret"  # noqa: S105
 
-    with patch("superset.daos.database.DatabaseDAO.is_odps_partitioned_table.__func__"):
-        pass
-
-    import logging
-
-    with caplog.at_level(logging.WARNING, logger="superset.daos.database"):
-        result = DatabaseDAO.is_odps_partitioned_table(database, "some_table")
+    mock_odps_module = MagicMock()
+    with patch.dict("sys.modules", {"odps": mock_odps_module}):
+        with caplog.at_level(logging.WARNING, logger="superset.daos.database"):
+            result = DatabaseDAO.is_odps_partitioned_table(database, "some_table")
 
     assert result == (False, [])
     assert "did not match" in caplog.text
@@ -178,7 +179,7 @@ def test_is_odps_partitioned_table_not_partitioned(
     mock_odps_client.get_table.return_value = mock_table
     mock_odps_class = MagicMock(return_value=mock_odps_client)
 
-    with patch("superset.daos.database.ODPS", mock_odps_class, create=True):
+    with patch.dict("sys.modules", {"odps": MagicMock(ODPS=mock_odps_class)}):
         result = DatabaseDAO.is_odps_partitioned_table(database, "my_table")
 
     assert result == (False, [])
