@@ -841,6 +841,15 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
             [],
             True,
         ),
+        (
+            "test_has_extra_cache_keys_cache_key_wrapper_with_fn_arg",
+            """
+            SELECT
+            '{{ cache_key_wrapper(my_func()) }}' as user_id
+            """,
+            {1},
+            True,
+        ),
         ("test_has_no_extra_cache_keys_table", "SELECT 'abc' as user", [], False),
     ],
 )

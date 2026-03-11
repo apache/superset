@@ -1693,3 +1693,27 @@ def test_undefined_template_variable_not_function(mocker: MockerFixture) -> None
     template = "SELECT {{ undefined_variable.some_method() }}"
     with pytest.raises(UndefinedError):
         processor.process_template(template)
+
+
+@pytest.mark.parametrize(
+    "sql,expected",
+    [
+        ("SELECT {{ cache_key_wrapper(abc) }}", True),
+        ("SELECT {{ cache_key_wrapper(myfunc()) }}", True),
+        (
+            "{% set abc = myfunc() %}\nSELECT {{ cache_key_wrapper(abc) }}",
+            True,
+        ),
+        ("SELECT {{ url_param('foo') }}", True),
+        ("SELECT {{ url_param(get_param('foo')) }}", True),
+        ("SELECT {{ current_user_id() }}", True),
+        ("SELECT {{ current_username() }}", True),
+        ("SELECT {{ current_user_email() }}", True),
+        ("SELECT {{ current_user_roles() }}", True),
+        ("SELECT {{ current_user_rls_rules() }}", True),
+        ("SELECT 1", False),
+        ("SELECT '{{ 1 + 1 }}'", False),
+    ],
+)
+def test_extra_cache_regex(sql: str, expected: bool) -> None:
+    assert bool(ExtraCache.regex.search(sql)) is expected
