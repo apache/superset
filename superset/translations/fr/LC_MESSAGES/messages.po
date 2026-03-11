@@ -3232,7 +3232,6 @@ msgstr "Diagramme d'accord"
 msgid "Chosen non-numeric column"
 msgstr "Colonne non numérique choisie"
 
-#, fuzzy
 msgid "Circle"
 msgstr "Cercle"
 
@@ -3262,36 +3261,29 @@ msgstr "Clause"
 msgid "Clear"
 msgstr "Effacer"
 
-#, fuzzy
 msgid "Clear Sort"
 msgstr "Effacer le tri"
 
 msgid "Clear all"
 msgstr "Effacer tout"
 
-#, fuzzy
 msgid "Clear all data"
 msgstr "Effacer toutes les données"
 
-#, fuzzy
 msgid "Clear all filters"
-msgstr "reinitialiser tous les filtres"
+msgstr "Réinitialiser tous les filtres"
 
-#, fuzzy
 msgid "Clear default dark theme"
-msgstr "Horodatage par défaut"
+msgstr "Réinitialiser le thème sombre par défaut"
 
-#, fuzzy
 msgid "Clear default light theme"
-msgstr "Reinitialiser tous les filtres"
+msgstr "Réinitialiser le thème clair par défaut"
 
-#, fuzzy
 msgid "Clear form"
 msgstr "Effacer le formulaire"
 
-#, fuzzy
 msgid "Clear local theme"
-msgstr "Reinitialiser tous les filtres"
+msgstr "Reinitialiser le thème local"
 
 msgid "Clear the selection to revert to the system default theme"
 msgstr "Effacer la sélection pour revenir au thème par défaut du système"
@@ -7485,9 +7477,8 @@ msgstr "Importer des requêtes"
 msgid "Import saved query failed for an unknown reason."
 msgstr "L'import de la requête sauvegardée a échoué pour une raison inconnue."
 
-#, fuzzy
 msgid "Import themes"
-msgstr "Importer des requêtes"
+msgstr "Importer des thèmes"
 
 #, fuzzy
 msgid "In"
@@ -14556,25 +14547,20 @@ msgstr "La largeur des lignes"
 msgid "The width of the lines"
 msgstr "La largeur des lignes"
 
-#, fuzzy
 msgid "Theme"
-msgstr "ici"
+msgstr "Thème"
 
-#, fuzzy
 msgid "Theme imported"
-msgstr "Données importées"
+msgstr "Thème importé"
 
-#, fuzzy
 msgid "Theme not found."
-msgstr "Modèle CSS non trouvé."
+msgstr "Thème non trouvé."
 
-#, fuzzy
 msgid "Themes"
-msgstr "Rues"
+msgstr "Thèmes"
 
-#, fuzzy
 msgid "Themes could not be deleted."
-msgstr "L'ensemble de données n'a pas pu être supprimé."
+msgstr "Les thèmes n'ont pas pu être supprimés."
 
 msgid "There are associated alerts or reports"
 msgstr "Il y a des alertes ou des rapports associés"
