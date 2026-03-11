@@ -19,14 +19,16 @@
 
 import { getTimeFormatter } from '@superset-ui/core';
 
-// Cal-Heatmap timestamps are already adjusted for display by afterLoadData in
-// cal-heatmap.js, so we format them directly without additional timezone offset.
+// Cal-Heatmap provides local timestamps (UTC shifted by the browser's timezone
+// offset). We subtract that offset so the formatter displays the correct UTC
+// date regardless of the browser's timezone.
 export const getFormattedUTCTime = (
   ts: number | string,
   timeFormat?: string,
 ) => {
   const date = new Date(ts);
-  return getTimeFormatter(timeFormat)(date.getTime());
+  const offset = date.getTimezoneOffset() * 60 * 1000;
+  return getTimeFormatter(timeFormat)(date.getTime() - offset);
 };
 
 // The vendor library interprets timestamps as local time but the backend sends UTC timestamps.
