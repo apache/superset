@@ -920,6 +920,19 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         ],
     }
 
+    @classmethod
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
+    ) -> str | None:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.Date):
+            return f"DATE '{dttm.date().isoformat()}'"
+        if isinstance(sqla_type, types.TIMESTAMP):
+            return f"""TIMESTAMP '{dttm.isoformat(timespec="milliseconds", sep=" ")}'"""
+
+        return None
+
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         COLUMN_DOES_NOT_EXIST_REGEX: (
             __(
