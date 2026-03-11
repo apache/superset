@@ -18,7 +18,7 @@
  */
 
 import { ChartProps } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core';
 
 jest.mock('supercluster', () => {
   const MockSupercluster = jest.fn().mockImplementation(() => ({
