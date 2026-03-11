@@ -1696,7 +1696,7 @@ def test_undefined_template_variable_not_function(mocker: MockerFixture) -> None
 
 
 @pytest.mark.parametrize(
-    "sql,expected",
+    ("sql", "expected"),
     [
         ("SELECT {{ cache_key_wrapper(abc) }}", True),
         ("SELECT {{ cache_key_wrapper(myfunc()) }}", True),
