@@ -35,6 +35,7 @@ export interface Dashboard {
   charts: string[]; // just chart names, unfortunately...
   owners: Owner[];
   roles: Role[];
+  is_managed_externally?: boolean;
   theme?: {
     id: number;
     theme_name: string;
