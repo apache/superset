@@ -39,7 +39,7 @@
     "@ant-design/icons": "^5.2.6",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "@testing-library/dom": "^8.20.1",
+    "@testing-library/dom": "^9.3.4",
     "@testing-library/jest-dom": "*",
     "@testing-library/react": "^14.0.0",
     "@testing-library/user-event": "*",
