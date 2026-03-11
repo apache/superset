@@ -1707,7 +1707,7 @@ def test_undefined_template_variable_not_function(mocker: MockerFixture) -> None
         ("SELECT {{ current_user_email() }}", True),
         ("SELECT {{ current_user_roles() }}", True),
         ("SELECT {{ current_user_rls_rules() }}", True),
-        ("SELECT 'cache_key_wrapper(abc)' AS false_positive'", False),
+        ("SELECT 'cache_key_wrapper(abc)' AS false_positive", False),
         ("SELECT 1", False),
         ("SELECT '{{ 1 + 1 }}'", False),
     ],
