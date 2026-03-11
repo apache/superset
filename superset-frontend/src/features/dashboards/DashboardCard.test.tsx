@@ -100,7 +100,7 @@ test('Renders the modified date', () => {
   expect(modifiedDateElement).toBeInTheDocument();
 });
 
-test('constructs thumbnail URL directly when dashboard has no thumbnail_url', () => {
+test('renders without fetching thumbnail when dashboard has no thumbnail_url', () => {
   render(
     <MemoryRouter>
       <DashboardCard
@@ -125,5 +125,8 @@ test('constructs thumbnail URL directly when dashboard has no thumbnail_url', ()
       />
     </MemoryRouter>,
   );
+  // Component should render without making any API calls to fetch thumbnail.
+  // The thumbnail URL is now constructed directly from dashboard.id and
+  // dashboard.changed_on_utc instead of fetching via SupersetClient.get.
   expect(screen.getByText('No Thumb Dashboard')).toBeInTheDocument();
 });
