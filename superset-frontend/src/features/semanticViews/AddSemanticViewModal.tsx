@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { t } from '@apache-superset/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { SupersetClient } from '@superset-ui/core';
 import { Checkbox, Spin } from 'antd';
 import { Select } from '@superset-ui/core/components';
