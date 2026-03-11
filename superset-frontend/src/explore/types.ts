@@ -98,7 +98,10 @@ export interface ExplorePageInitialData {
 }
 
 export interface ExploreResponsePayload {
-  result: ExplorePageInitialData & { message: string };
+  result: ExplorePageInitialData & {
+    message: string;
+    chartState?: JsonObject;
+  };
 }
 
 export interface ExplorePageState {
@@ -112,6 +115,8 @@ export interface ExplorePageState {
   explore: {
     can_add: boolean;
     can_download: boolean;
+    can_export_image: boolean;
+    can_copy_clipboard: boolean;
     can_overwrite: boolean;
     isDatasourceMetaLoading: boolean;
     isStarred: boolean;

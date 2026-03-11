@@ -26,7 +26,7 @@ import { DynamicPluginProvider } from 'src/components';
 import { EmbeddedUiConfigProvider } from 'src/components/UiConfigContext';
 import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
 import { ThemeController } from 'src/theme/ThemeController';
-import type { ThemeStorage } from '@apache-superset/core/ui';
+import { type ThemeStorage } from '@apache-superset/core/theme';
 import { store } from 'src/views/store';
 import querystring from 'query-string';
 

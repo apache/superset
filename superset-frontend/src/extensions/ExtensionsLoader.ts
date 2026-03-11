@@ -17,8 +17,8 @@
  * under the License.
  */
 import { SupersetClient } from '@superset-ui/core';
-import { logging } from '@apache-superset/core';
-import type { core } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
+import type { common as core } from '@apache-superset/core';
 
 type Extension = core.Extension;
 

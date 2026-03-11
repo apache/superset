@@ -23,7 +23,7 @@ import logging
 from typing import Any, Dict, List, Protocol
 
 from fastmcp import Context
-from superset_core.mcp import tool
+from superset_core.mcp.decorators import tool
 
 from superset.commands.exceptions import CommandException
 from superset.exceptions import SupersetException
@@ -160,6 +160,7 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             )
 
             command = ChartDataCommand(query_context)
+            command.validate()
             result = command.run()
 
             data = []
@@ -234,6 +235,7 @@ class TablePreviewStrategy(PreviewFormatStrategy):
             )
 
             command = ChartDataCommand(query_context)
+            command.validate()
             result = command.run()
 
             data = []
@@ -340,6 +342,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
 
             # Execute the query
             command = ChartDataCommand(query_context)
+            command.validate()
             result = command.run()
 
             # Extract data from result

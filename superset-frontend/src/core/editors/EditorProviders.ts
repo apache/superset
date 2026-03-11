@@ -24,8 +24,8 @@ type EditorLanguage = editors.EditorLanguage;
 type EditorProvider = editors.EditorProvider;
 type Editor = editors.Editor;
 type EditorComponent = editors.EditorComponent;
-type EditorProviderRegisteredEvent = editors.EditorProviderRegisteredEvent;
-type EditorProviderUnregisteredEvent = editors.EditorProviderUnregisteredEvent;
+type EditorRegisteredEvent = editors.EditorRegisteredEvent;
+type EditorUnregisteredEvent = editors.EditorUnregisteredEvent;
 
 /**
  * Listener function type for events.
@@ -86,13 +86,12 @@ class EditorProviders {
   /**
    * Event emitter for provider registration events.
    */
-  private registerEmitter = new EventEmitter<EditorProviderRegisteredEvent>();
+  private registerEmitter = new EventEmitter<EditorRegisteredEvent>();
 
   /**
    * Event emitter for provider unregistration events.
    */
-  private unregisterEmitter =
-    new EventEmitter<EditorProviderUnregisteredEvent>();
+  private unregisterEmitter = new EventEmitter<EditorUnregisteredEvent>();
 
   // eslint-disable-next-line no-useless-constructor
   private constructor() {
@@ -145,7 +144,7 @@ class EditorProviders {
     });
 
     // Fire registration event
-    this.registerEmitter.fire({ provider });
+    this.registerEmitter.fire({ editor });
 
     // Return disposable for cleanup
     return new Disposable(() => {
@@ -214,9 +213,7 @@ class EditorProviders {
    * @param listener The listener function.
    * @returns A Disposable to unsubscribe.
    */
-  public onDidRegister(
-    listener: Listener<EditorProviderRegisteredEvent>,
-  ): Disposable {
+  public onDidRegister(listener: Listener<EditorRegisteredEvent>): Disposable {
     return this.registerEmitter.subscribe(listener);
   }
 
@@ -226,7 +223,7 @@ class EditorProviders {
    * @returns A Disposable to unsubscribe.
    */
   public onDidUnregister(
-    listener: Listener<EditorProviderUnregisteredEvent>,
+    listener: Listener<EditorUnregisteredEvent>,
   ): Disposable {
     return this.unregisterEmitter.subscribe(listener);
   }

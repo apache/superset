@@ -18,9 +18,9 @@
  */
 import { memo, useEffect, useCallback, useMemo, useState, useRef } from 'react';
 import { uniq, debounce } from 'lodash';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { ChartCustomizationType, NativeFilterType } from '@superset-ui/core';
-import { styled, css, useTheme } from '@apache-superset/core/ui';
+import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { Constants, Form, Icons, Flex } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components';
 import { testWithId } from 'src/utils/testUtils';
