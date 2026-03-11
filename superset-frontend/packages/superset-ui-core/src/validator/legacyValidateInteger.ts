@@ -17,13 +17,13 @@
  * under the License.
  */
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 
 /**
  * formerly called integer()
  * @param v
  */
-export default function legacyValidateInteger(v: unknown) {
+export default function legacyValidateInteger(v: unknown): string | false {
   if (
     v &&
     (Number.isNaN(Number(v)) || parseInt(v as string, 10) !== Number(v))

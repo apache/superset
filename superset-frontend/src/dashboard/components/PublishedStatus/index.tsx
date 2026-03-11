@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Component } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { Tooltip, PublishedLabel } from '@superset-ui/core/components';
 import { HeaderProps, HeaderDropdownProps } from '../Header/types';
 

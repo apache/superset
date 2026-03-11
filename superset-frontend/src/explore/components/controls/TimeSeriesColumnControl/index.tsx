@@ -17,7 +17,6 @@
  * under the License.
  */
 import { Component } from 'react';
-import PropTypes from 'prop-types';
 import {
   Button,
   Col,
@@ -27,8 +26,8 @@ import {
   Row,
   Select,
 } from '@superset-ui/core/components';
-import { t } from '@apache-superset/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import BoundsControl from '../BoundsControl';
 import CheckboxControl from '../CheckboxControl';
@@ -69,24 +68,6 @@ interface TimeSeriesColumnControlState {
   sparkType: string;
   popoverVisible: boolean;
 }
-
-const propTypes = {
-  label: PropTypes.string,
-  tooltip: PropTypes.string,
-  colType: PropTypes.string,
-  width: PropTypes.string,
-  height: PropTypes.string,
-  timeLag: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  timeRatio: PropTypes.string,
-  comparisonType: PropTypes.string,
-  showYAxis: PropTypes.bool,
-  yAxisBounds: PropTypes.array,
-  bounds: PropTypes.array,
-  d3format: PropTypes.string,
-  dateFormat: PropTypes.string,
-  sparkType: PropTypes.string,
-  onChange: PropTypes.func,
-};
 
 const defaultProps = {
   label: t('Time series columns'),
@@ -151,8 +132,6 @@ export default class TimeSeriesColumnControl extends Component<
   TimeSeriesColumnControlProps,
   TimeSeriesColumnControlState
 > {
-  static propTypes = propTypes;
-
   static defaultProps = defaultProps;
 
   constructor(props: TimeSeriesColumnControlProps) {

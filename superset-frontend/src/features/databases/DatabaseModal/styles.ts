@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { css, styled, SupersetTheme } from '@apache-superset/core/ui';
+import { css, styled, SupersetTheme } from '@apache-superset/core/theme';
 import { Button, JsonEditor } from '@superset-ui/core/components';
 
 const CTAS_CVAS_SCHEMA_FORM_HEIGHT = 108;

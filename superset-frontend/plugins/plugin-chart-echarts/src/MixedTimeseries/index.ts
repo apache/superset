@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { AnnotationType, Behavior } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
@@ -82,7 +82,6 @@ export default class EchartsTimeseriesChartPlugin extends EchartsChartPlugin<
         ],
         queryObjectCount: 2,
       },
-      // @ts-ignore
       transformProps,
     });
   }

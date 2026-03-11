@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
 import thumbnail from './images/thumbnail.png';
 import thumbnailDark from './images/thumbnail-dark.png';
@@ -51,3 +51,5 @@ export default class ContourChartPlugin extends ChartPlugin {
     });
   }
 }
+
+export { getSafeCellSize } from './getSafeCellSize';

@@ -21,10 +21,12 @@ from datetime import datetime
 from typing import Any, Dict, List
 
 import dateutil.parser
+from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Query
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.daos.base import BaseDAO
+from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 from superset.extensions import db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -35,8 +37,10 @@ from superset.views.base import DatasourceFilter
 
 logger = logging.getLogger(__name__)
 
-# Custom filterable fields for datasets
-DATASET_CUSTOM_FIELDS: dict[str, list[str]] = {}
+# Custom filterable fields for datasets (not direct model columns)
+DATASET_CUSTOM_FIELDS: dict[str, list[str]] = {
+    "database_name": ["eq", "like", "ilike"],
+}
 
 
 class DatasetDAO(BaseDAO[SqlaTable]):
@@ -48,6 +52,37 @@ class DatasetDAO(BaseDAO[SqlaTable]):
     """
 
     base_filter = DatasourceFilter
+
+    @classmethod
+    def apply_column_operators(
+        cls,
+        query: Query,
+        column_operators: list[ColumnOperator] | None = None,
+    ) -> Query:
+        """Override to handle database_name filter via subquery on Database.
+
+        database_name lives on Database, not SqlaTable, so we intercept it
+        here and use a subquery to avoid duplicate joins with DatasourceFilter.
+        """
+        if not column_operators:
+            return query
+
+        remaining_operators: list[ColumnOperator] = []
+        for c in column_operators:
+            if not isinstance(c, ColumnOperator):
+                c = ColumnOperator.model_validate(c)
+            if c.col == "database_name":
+                operator_enum = ColumnOperatorEnum(c.opr)
+                subq = select(Database.id).where(
+                    operator_enum.apply(Database.database_name, c.value)
+                )
+                query = query.filter(SqlaTable.database_id.in_(subq))
+            else:
+                remaining_operators.append(c)
+
+        if remaining_operators:
+            query = super().apply_column_operators(query, remaining_operators)
+        return query
 
     @staticmethod
     def get_database_by_id(database_id: int) -> Database | None:

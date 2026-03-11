@@ -25,13 +25,15 @@ import logging
 from urllib.parse import urlencode
 
 from fastmcp import Context
-from superset_core.mcp import tool
+from superset_core.mcp.decorators import tool
 
+from superset.extensions import event_logger
 from superset.mcp_service.sql_lab.schemas import (
     OpenSqlLabRequest,
     SqlLabResponse,
 )
 from superset.mcp_service.utils.schema_utils import parse_request
+from superset.mcp_service.utils.url_utils import get_superset_base_url
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +50,9 @@ def open_sql_lab_with_context(
     try:
         from superset.daos.database import DatabaseDAO
 
-        # Validate database exists and is accessible
-        database = DatabaseDAO.find_by_id(request.database_connection_id)
+        with event_logger.log_context(action="mcp.open_sql_lab.db_validation"):
+            # Validate database exists and is accessible
+            database = DatabaseDAO.find_by_id(request.database_connection_id)
         if not database:
             return SqlLabResponse(
                 url="",
@@ -93,7 +96,7 @@ def open_sql_lab_with_context(
 
         # Construct SQL Lab URL
         query_string = urlencode(params)
-        url = f"/sqllab?{query_string}"
+        url = f"{get_superset_base_url()}/sqllab?{query_string}"
 
         logger.info(
             "Generated SQL Lab URL for database %s", request.database_connection_id

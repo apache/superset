@@ -18,17 +18,17 @@
  */
 
 import { ComparisonTimeRangeType } from '../time-comparison';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { ensureIsArray } from '../utils';
 
 export const validateTimeComparisonRangeValues = (
-  timeRangeValue?: any,
-  controlValue?: any,
-) => {
+  timeRangeValue?: unknown,
+  controlValue?: unknown,
+): string[] => {
   const isCustomTimeRange = timeRangeValue === ComparisonTimeRangeType.Custom;
-  const isCustomControlEmpty = controlValue?.every(
-    (val: any) => ensureIsArray(val).length === 0,
-  );
+  const isCustomControlEmpty =
+    Array.isArray(controlValue) &&
+    controlValue.every((val: unknown) => ensureIsArray(val).length === 0);
   return isCustomTimeRange && isCustomControlEmpty
     ? [t('Filters for comparison must have a value')]
     : [];

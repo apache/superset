@@ -21,6 +21,9 @@ import {
   FilterConfiguration,
   Filters,
   makeApi,
+  Divider,
+  ChartCustomization,
+  ChartCustomizationDivider,
 } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import { RootState } from 'src/dashboard/types';
@@ -44,7 +47,9 @@ export const SET_NATIVE_FILTERS_CONFIG_COMPLETE =
   'SET_NATIVE_FILTERS_CONFIG_COMPLETE';
 export interface SetNativeFiltersConfigComplete {
   type: typeof SET_NATIVE_FILTERS_CONFIG_COMPLETE;
-  filterChanges: Filter[];
+  filterChanges: Array<
+    Filter | Divider | ChartCustomization | ChartCustomizationDivider
+  >;
 }
 
 export const SET_NATIVE_FILTERS_CONFIG_FAIL = 'SET_NATIVE_FILTERS_CONFIG_FAIL';

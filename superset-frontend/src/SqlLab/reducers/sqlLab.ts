@@ -17,7 +17,7 @@
  * under the License.
  */
 import { normalizeTimestamp, QueryState } from '@superset-ui/core';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { isEqual, omit } from 'lodash';
 import { shallowEqual } from 'react-redux';
 import { now } from '@superset-ui/core/utils/dates';
@@ -759,6 +759,13 @@ export default function sqlLabReducer(
                   ? prevState
                   : currentState,
             };
+            if (
+              newQueries[id].state === QueryState.Success &&
+              newQueries[id].runAsync === false &&
+              !newQueries[id].results
+            ) {
+              newQueries[id].state = QueryState.Fetching;
+            }
             if (
               shallowEqual(
                 omit(newQueries[id], ['extra']),
