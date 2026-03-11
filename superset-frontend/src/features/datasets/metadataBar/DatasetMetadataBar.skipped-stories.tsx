@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { useResizeDetector } from 'react-resize-detector';
-import { css, SupersetClient } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/core';
+import { css } from '@apache-superset/core/theme';
 import { useDatasetMetadataBar } from './useDatasetMetadataBar';
 
 export default {
@@ -53,7 +53,23 @@ export default {
 export const DatasetSpecific = () => {
   SupersetClient.reset();
   SupersetClient.configure({ csrfToken: '1234' }).init();
-  const { metadataBar } = useDatasetMetadataBar({ datasetId: 1 });
+
+  const mockDataset = {
+    changed_on: '2023-01-26T12:06:58.733316',
+    changed_on_humanized: 'a month ago',
+    changed_by: { first_name: 'Han', last_name: 'Solo' },
+    created_by: { first_name: 'Luke', last_name: 'Skywalker' },
+    created_on: '2023-01-26T12:06:54.965034',
+    created_on_humanized: 'a month ago',
+    table_name: `This is dataset's name`,
+    owners: [
+      { first_name: 'John', last_name: 'Doe' },
+      { first_name: 'Luke', last_name: 'Skywalker' },
+    ],
+    description: 'This is a dataset description',
+  };
+
+  const { metadataBar } = useDatasetMetadataBar({ dataset: mockDataset });
   const { width, height, ref } = useResizeDetector();
   // eslint-disable-next-line no-param-reassign
   return (
@@ -78,12 +94,4 @@ export const DatasetSpecific = () => {
       >{`${width}x${height}`}</span>
     </div>
   );
-};
-
-DatasetSpecific.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
 };

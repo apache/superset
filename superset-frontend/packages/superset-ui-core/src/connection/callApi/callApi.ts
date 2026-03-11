@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import 'whatwg-fetch';
 import fetchRetry from 'fetch-retry';
 import { CallApi, Payload, JsonValue, JsonObject } from '../types';
 import {
@@ -42,12 +41,14 @@ function tryParsePayload(payload: Payload) {
  */
 function getFullUrl(partialUrl: string, params: CallApi['searchParams']) {
   if (params) {
-    const url = new URL(partialUrl, window.location.href);
     const search =
       params instanceof URLSearchParams ? params : new URLSearchParams(params);
-    // will completely override any existing search params
-    url.search = search.toString();
-    return url.href;
+    const searchString = search.toString();
+    if (searchString) {
+      const url = new URL(partialUrl, window.location.href);
+      url.search = searchString;
+      return url.href;
+    }
   }
   return partialUrl;
 }

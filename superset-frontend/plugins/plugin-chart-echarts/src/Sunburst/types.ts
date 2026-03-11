@@ -25,7 +25,7 @@ import {
   QueryFormData,
   QueryFormMetric,
 } from '@superset-ui/core';
-import { SunburstSeriesNodeItemOption } from 'echarts/types/src/chart/sunburst/SunburstSeries';
+import type { SunburstSeriesNodeItemOption } from 'echarts/types/src/chart/sunburst/SunburstSeries';
 import {
   BaseTransformedProps,
   ContextMenuTransformedProps,
@@ -54,8 +54,7 @@ export const DEFAULT_FORM_DATA: Partial<EchartsSunburstFormData> = {
   dateFormat: 'smart_date',
 };
 
-export interface EchartsSunburstChartProps
-  extends ChartProps<EchartsSunburstFormData> {
+export interface EchartsSunburstChartProps extends ChartProps<EchartsSunburstFormData> {
   formData: EchartsSunburstFormData;
   queriesData: ChartDataResponseResult[];
 }

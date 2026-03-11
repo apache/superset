@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 from datetime import datetime
 from io import BytesIO
 from zipfile import is_zipfile, ZipFile
@@ -30,6 +29,7 @@ from superset.commands.importers.exceptions import (
 from superset.commands.importers.v1.assets import ImportAssetsCommand
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.extensions import event_logger
+from superset.utils import json
 from superset.views.base_api import BaseSupersetApi, requires_form_data, statsd_metrics
 
 
@@ -50,12 +50,12 @@ class ImportExportRestApi(BaseSupersetApi):
         log_to_statsd=False,
     )
     def export(self) -> Response:
-        """
-        Export all assets.
+        """Export all assets.
         ---
         get:
+          summary: Export all assets
           description: >-
-            Returns a ZIP file with all the Superset assets (databases, datasets, charts,
+            Gets a ZIP file with all the Superset assets (databases, datasets, charts,
             dashboards, saved queries) as YAML files.
           responses:
             200:
@@ -80,7 +80,7 @@ class ImportExportRestApi(BaseSupersetApi):
         with ZipFile(buf, "w") as bundle:
             for file_name, file_content in ExportAssetsCommand().run():
                 with bundle.open(f"{root}/{file_name}", "w") as fp:
-                    fp.write(file_content.encode())
+                    fp.write(file_content().encode())
         buf.seek(0)
 
         response = send_file(
@@ -100,9 +100,10 @@ class ImportExportRestApi(BaseSupersetApi):
     )
     @requires_form_data
     def import_(self) -> Response:
-        """Import multiple assets
+        """Import multiple assets.
         ---
         post:
+          summary: Import multiple assets
           requestBody:
             required: true
             content:
@@ -146,6 +147,16 @@ class ImportExportRestApi(BaseSupersetApi):
                         the private_key should be provided in the following format:
                         `{"databases/MyDatabase.yaml": "my_private_key_password"}`.
                       type: string
+                    encrypted_extra_secrets:
+                      description: >-
+                        JSON map of secret values for masked encrypted_extra fields.
+                        Each key is a database file path and the value is a map of
+                        JSONPath expressions to secret values. For example:
+                        `{"databases/db.yaml": {"$.credentials_info.secret": "foo"}}`.
+                      type: string
+                    sparse:
+                      description: allow sparse update of resources
+                      type: boolean
           responses:
             200:
               description: Assets import result
@@ -176,6 +187,7 @@ class ImportExportRestApi(BaseSupersetApi):
 
         if not contents:
             raise NoValidFilesFoundError()
+        sparse = request.form.get("sparse") == "true"
 
         passwords = (
             json.loads(request.form["passwords"])
@@ -197,13 +209,20 @@ class ImportExportRestApi(BaseSupersetApi):
             if "ssh_tunnel_private_key_passwords" in request.form
             else None
         )
+        encrypted_extra_secrets = (
+            json.loads(request.form["encrypted_extra_secrets"])
+            if "encrypted_extra_secrets" in request.form
+            else None
+        )
 
         command = ImportAssetsCommand(
             contents,
+            sparse=sparse,
             passwords=passwords,
             ssh_tunnel_passwords=ssh_tunnel_passwords,
             ssh_tunnel_private_keys=ssh_tunnel_private_keys,
             ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
+            encrypted_extra_secrets=encrypted_extra_secrets,
         )
         command.run()
         return self.response(200, message="OK")

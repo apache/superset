@@ -16,12 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ControlPanelConfig,
   formatSelectOptions,
   D3_FORMAT_OPTIONS,
-  sections,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import {
@@ -40,7 +39,6 @@ import {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,

@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useRef } from 'react';
-import { styled, useTruncation } from '@superset-ui/core';
+import { memo, useMemo } from 'react';
+import { useTruncation } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import { Link } from 'react-router-dom';
 import CrossLinksTooltip from './CrossLinksTooltip';
 
@@ -30,6 +31,7 @@ export type CrossLinksProps = {
   crossLinks: Array<CrossLinkProps>;
   maxLinks?: number;
   linkPrefix?: string;
+  external?: boolean;
 };
 
 const StyledCrossLinks = styled.div`
@@ -53,24 +55,21 @@ const StyledCrossLinks = styled.div`
 
       .count {
         cursor: pointer;
-        color: ${theme.colors.grayscale.base};
-        font-weight: ${theme.typography.weights.bold};
+        color: ${theme.colorTextSecondary};
+        font-weight: ${theme.fontWeightStrong};
       }
     }
   `}
 `;
 
-export default function CrossLinks({
+function CrossLinks({
   crossLinks,
   maxLinks = 20,
   linkPrefix = '/superset/dashboard/',
+  external = false,
 }: CrossLinksProps) {
-  const crossLinksRef = useRef<HTMLDivElement>(null);
-  const plusRef = useRef<HTMLDivElement>(null);
-  const [elementsTruncated, hasHiddenElements] = useTruncation(
-    crossLinksRef,
-    plusRef,
-  );
+  const [crossLinksRef, plusRef, elementsTruncated, hasHiddenElements] =
+    useTruncation();
   const hasMoreItems = useMemo(
     () =>
       crossLinks.length > maxLinks ? crossLinks.length - maxLinks : undefined,
@@ -83,15 +82,14 @@ export default function CrossLinks({
           <Link
             key={link.id}
             to={linkPrefix + link.id}
-            target="_blank"
-            rel="noreferer noopener"
+            {...(external && { target: '_blank', rel: 'noopener noreferrer' })}
           >
             {index === 0 ? link.title : `, ${link.title}`}
           </Link>
         ))}
       </span>
     ),
-    [crossLinks],
+    [crossLinks, crossLinksRef, linkPrefix, external],
   );
   const tooltipLinks = useMemo(
     () =>
@@ -99,7 +97,7 @@ export default function CrossLinks({
         title: l.title,
         to: linkPrefix + l.id,
       })),
-    [crossLinks, maxLinks],
+    [crossLinks, linkPrefix, maxLinks],
   );
 
   return (
@@ -119,3 +117,5 @@ export default function CrossLinks({
     </StyledCrossLinks>
   );
 }
+
+export default memo(CrossLinks);

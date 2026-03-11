@@ -16,12 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SafeMarkdown, styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
+import { SafeMarkdown } from '@superset-ui/core/components';
+import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import Handlebars from 'handlebars';
-import moment from 'moment';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { isPlainObject } from 'lodash';
 import Helpers from 'just-handlebars-helpers';
+import HandlebarsGroupBy from 'handlebars-group-by';
 
 export interface HandlebarsViewerProps {
   templateSource: string;
@@ -74,18 +77,42 @@ export const HandlebarsViewer = ({
   return <p>{t('Loading...')}</p>;
 };
 
-//  usage: {{dateFormat my_date format="MMMM YYYY"}}
+//  usage: {{ dateFormat my_date format="MMMM YYYY" }}
 Handlebars.registerHelper('dateFormat', function (context, block) {
   const f = block.hash.format || 'YYYY-MM-DD';
-  return moment(context).format(f);
+  return dayjs(context).format(f);
 });
 
 // usage: {{  }}
 Handlebars.registerHelper('stringify', (obj: any, obj2: any) => {
   // calling without an argument
   if (obj2 === undefined)
-    throw Error('Please call with an object. Example: `stringify myObj`');
+    throw new Error('Please call with an object. Example: `stringify myObj`');
   return isPlainObject(obj) ? JSON.stringify(obj) : String(obj);
 });
 
+Handlebars.registerHelper(
+  'formatNumber',
+  function (number: any, locale = 'en-US') {
+    if (typeof number !== 'number') {
+      return number;
+    }
+    return number.toLocaleString(locale);
+  },
+);
+
+// usage: {{parseJson jsonString}}
+Handlebars.registerHelper('parseJson', (jsonString: string) => {
+  try {
+    return JSON.parse(jsonString);
+  } catch (error) {
+    if (error instanceof Error) {
+      error.message = `Invalid JSON string: ${error.message}`;
+      throw error;
+    }
+    throw new Error(`Invalid JSON string: ${String(error)}`);
+  }
+});
+
 Helpers.registerHelpers(Handlebars);
+HandlebarsGroupBy.register(Handlebars);

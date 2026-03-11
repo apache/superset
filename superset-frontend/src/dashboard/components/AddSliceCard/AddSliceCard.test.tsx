@@ -17,10 +17,15 @@
  * under the License.
  */
 
-import React from 'react';
-import { FeatureFlag } from '@superset-ui/core';
-import { act, render, screen } from 'spec/helpers/testing-library';
-import AddSliceCard from '.';
+import { FeatureFlag, VizType } from '@superset-ui/core';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'spec/helpers/testing-library';
+import AddSliceCard from './AddSliceCard';
 
 jest.mock('src/components/DynamicPlugins', () => ({
   usePluginContext: () => ({
@@ -29,17 +34,17 @@ jest.mock('src/components/DynamicPlugins', () => ({
 }));
 
 const mockedProps = {
-  visType: 'table',
+  visType: VizType.Table,
   sliceName: '-',
 };
 
-declare const global: {
+declare const globalThis: {
   featureFlags: Record<string, boolean>;
 };
 
 test('do not render thumbnail if feature flag is not set', async () => {
-  global.featureFlags = {
-    [FeatureFlag.THUMBNAILS]: false,
+  globalThis.featureFlags = {
+    [FeatureFlag.Thumbnails]: false,
   };
 
   await act(async () => {
@@ -50,8 +55,8 @@ test('do not render thumbnail if feature flag is not set', async () => {
 });
 
 test('render thumbnail if feature flag is set', async () => {
-  global.featureFlags = {
-    [FeatureFlag.THUMBNAILS]: true,
+  globalThis.featureFlags = {
+    [FeatureFlag.Thumbnails]: true,
   };
 
   await act(async () => {
@@ -59,4 +64,22 @@ test('render thumbnail if feature flag is set', async () => {
   });
 
   expect(screen.queryByTestId('thumbnail')).toBeInTheDocument();
+});
+
+test('does not render the tooltip with anchors', async () => {
+  const mock = jest
+    .spyOn(global.React, 'useState')
+    .mockImplementation(() => [true, jest.fn()]);
+  render(
+    <AddSliceCard
+      {...mockedProps}
+      datasourceUrl="http://test.com"
+      datasourceName="datasource-name"
+    />,
+  );
+  userEvent.hover(screen.getByRole('link', { name: 'datasource-name' }));
+  expect(await screen.findByRole('tooltip')).toBeInTheDocument();
+  const tooltip = await screen.findByRole('tooltip');
+  expect(within(tooltip).queryByRole('link')).not.toBeInTheDocument();
+  mock.mockRestore();
 });

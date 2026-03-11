@@ -15,11 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from flask_appbuilder.security.sqla.models import User
 
-from superset.commands.utils import populate_owners
+from superset.commands.utils import compute_owner_list, populate_owner_list
 
 
 class BaseCommand(ABC):
@@ -45,7 +45,7 @@ class BaseCommand(ABC):
 
 class CreateMixin:  # pylint: disable=too-few-public-methods
     @staticmethod
-    def populate_owners(owner_ids: Optional[List[int]] = None) -> List[User]:
+    def populate_owners(owner_ids: Optional[list[int]] = None) -> list[User]:
         """
         Populate list of owners, defaulting to the current user if `owner_ids` is
         undefined or empty. If current user is missing in `owner_ids`, current user
@@ -55,12 +55,12 @@ class CreateMixin:  # pylint: disable=too-few-public-methods
         :raises OwnersNotFoundValidationError: if at least one owner can't be resolved
         :returns: Final list of owners
         """
-        return populate_owners(owner_ids, default_to_user=True)
+        return populate_owner_list(owner_ids, default_to_user=True)
 
 
-class UpdateMixin:  # pylint: disable=too-few-public-methods
+class UpdateMixin:
     @staticmethod
-    def populate_owners(owner_ids: Optional[List[int]] = None) -> List[User]:
+    def populate_owners(owner_ids: Optional[list[int]] = None) -> list[User]:
         """
         Populate list of owners. If current user is missing in `owner_ids`, current user
         is added unless belonging to the Admin role.
@@ -69,4 +69,18 @@ class UpdateMixin:  # pylint: disable=too-few-public-methods
         :raises OwnersNotFoundValidationError: if at least one owner can't be resolved
         :returns: Final list of owners
         """
-        return populate_owners(owner_ids, default_to_user=False)
+        return populate_owner_list(owner_ids, default_to_user=False)
+
+    @staticmethod
+    def compute_owners(
+        current_owners: Optional[list[User]],
+        new_owners: Optional[list[int]],
+    ) -> list[User]:
+        """
+        Handle list of owners for update events.
+
+        :param current_owners: list of current owners
+        :param new_owners: list of new owners specified in the update payload
+        :returns: Final list of owners
+        """
+        return compute_owner_list(current_owners, new_owners)

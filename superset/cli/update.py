@@ -30,6 +30,7 @@ from flask_appbuilder.api import BaseApi
 from flask_appbuilder.api.manager import resolver
 
 import superset.utils.database as database_utils
+from superset.utils.decorators import transaction
 from superset.utils.encrypt import SecretsMigrator
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,7 @@ logger = logging.getLogger(__name__)
 
 @click.command()
 @with_appcontext
+@transaction()
 @click.option("--database_name", "-d", help="Database name to change")
 @click.option("--uri", "-u", help="Database URI to change")
 @click.option(
@@ -53,6 +55,7 @@ def set_database_uri(database_name: str, uri: str, skip_create: bool) -> None:
 
 @click.command()
 @with_appcontext
+@transaction()
 def sync_tags() -> None:
     """Rebuilds special tags (owner, type, favorited by)."""
     # pylint: disable=no-member
@@ -81,7 +84,7 @@ def update_api_docs() -> None:
         title=current_app.appbuilder.app_name,
         version=api_version,
         openapi_version="3.0.2",
-        info=dict(description=current_app.appbuilder.app_name),
+        info={"description": current_app.appbuilder.app_name},
         plugins=[MarshmallowPlugin(schema_name_resolver=resolver)],
         servers=[{"url": "http://localhost:8088"}],
     )

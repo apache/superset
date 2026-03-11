@@ -18,17 +18,19 @@
  */
 import {
   ControlPanelConfig,
-  sections,
   formatSelectOptions,
 } from '@superset-ui/chart-controls';
+import { t } from '@apache-superset/core/translation';
 import {
-  t,
   validateNonEmpty,
   legacyValidateNumber,
   legacyValidateInteger,
 } from '@superset-ui/core';
 import {
   autozoom,
+  deckGLCategoricalColorSchemeTypeSelect,
+  deckGLFixedColor,
+  deckGLLinearColorSchemeSelect,
   filterNulls,
   jsColumns,
   jsDataMutator,
@@ -37,7 +39,10 @@ import {
   mapboxStyle,
   spatial,
   viewport,
+  tooltipContents,
+  tooltipTemplate,
 } from '../../utilities/Shared_DeckGL';
+import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 
 const INTENSITY_OPTIONS = Array.from(
   { length: 10 },
@@ -50,7 +55,6 @@ const RADIUS_PIXEL_OPTIONS = Array.from(
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -60,12 +64,14 @@ const config: ControlPanelConfig = {
         ['row_limit'],
         [filterNulls],
         ['adhoc_filters'],
+        [tooltipContents],
+        [tooltipTemplate],
         [
           {
             name: 'intensity',
             config: {
               type: 'SelectControl',
-              label: t('Intesity'),
+              label: t('Intensity'),
               description: t(
                 'Intensity is the value multiplied by the weight to obtain the final weight',
               ),
@@ -99,8 +105,23 @@ const config: ControlPanelConfig = {
     {
       label: t('Map'),
       controlSetRows: [
-        [mapboxStyle, viewport],
-        ['linear_color_scheme'],
+        [mapboxStyle],
+        [viewport],
+        [
+          {
+            name: 'color_scheme_type',
+            config: {
+              ...deckGLCategoricalColorSchemeTypeSelect.config,
+              choices: [
+                [COLOR_SCHEME_TYPES.fixed_color, t('Fixed color')],
+                [COLOR_SCHEME_TYPES.linear_palette, t('Linear palette')],
+              ],
+              default: COLOR_SCHEME_TYPES.linear_palette,
+            },
+          },
+        ],
+        [deckGLFixedColor],
+        [deckGLLinearColorSchemeSelect],
         [autozoom],
         [
           {

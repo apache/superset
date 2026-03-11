@@ -18,6 +18,7 @@
  */
 
 import { Behavior, ChartLabel } from '../types/Base';
+import { ParseMethod } from '../../connection';
 
 interface LookupTable {
   [key: string]: boolean;
@@ -25,6 +26,7 @@ interface LookupTable {
 
 export interface ExampleImage {
   url: string;
+  urlDark?: string;
   caption?: string;
 }
 
@@ -35,9 +37,9 @@ export interface ChartMetadataConfig {
   description?: string;
   datasourceCount?: number;
   enableNoResults?: boolean;
-  show?: boolean;
   supportedAnnotationTypes?: string[];
   thumbnail: string;
+  thumbnailDark?: string;
   useLegacyApi?: boolean;
   behaviors?: Behavior[];
   exampleGallery?: ExampleImage[];
@@ -49,6 +51,11 @@ export interface ChartMetadataConfig {
   label?: ChartLabel | null;
   labelExplanation?: string | null;
   queryObjectCount?: number;
+  dynamicQueryObjectCount?: boolean;
+  parseMethod?: ParseMethod;
+  // suppressContextMenu: true hides the default context menu for the chart.
+  // This is useful for viz plugins that define their own context menu.
+  suppressContextMenu?: boolean;
 }
 
 export default class ChartMetadata {
@@ -62,11 +69,11 @@ export default class ChartMetadata {
 
   description: string;
 
-  show: boolean;
-
   supportedAnnotationTypes: string[];
 
   thumbnail: string;
+
+  thumbnailDark?: string;
 
   useLegacyApi: boolean;
 
@@ -90,15 +97,21 @@ export default class ChartMetadata {
 
   queryObjectCount: number;
 
+  dynamicQueryObjectCount: boolean;
+
+  parseMethod: ParseMethod;
+
+  suppressContextMenu?: boolean;
+
   constructor(config: ChartMetadataConfig) {
     const {
       name,
       canBeAnnotationTypes = [],
       credits = [],
       description = '',
-      show = true,
       supportedAnnotationTypes = [],
       thumbnail,
+      thumbnailDark,
       useLegacyApi = false,
       behaviors = [],
       datasourceCount = 1,
@@ -110,12 +123,14 @@ export default class ChartMetadata {
       label = null,
       labelExplanation = null,
       queryObjectCount = 1,
+      dynamicQueryObjectCount = false,
+      parseMethod = 'json-bigint',
+      suppressContextMenu = false,
     } = config;
 
     this.name = name;
     this.credits = credits;
     this.description = description;
-    this.show = show;
     this.canBeAnnotationTypes = canBeAnnotationTypes;
     this.canBeAnnotationTypesLookup = canBeAnnotationTypes.reduce(
       (prev: LookupTable, type: string) => {
@@ -128,6 +143,7 @@ export default class ChartMetadata {
     );
     this.supportedAnnotationTypes = supportedAnnotationTypes;
     this.thumbnail = thumbnail;
+    this.thumbnailDark = thumbnailDark;
     this.useLegacyApi = useLegacyApi;
     this.behaviors = behaviors;
     this.datasourceCount = datasourceCount;
@@ -139,6 +155,9 @@ export default class ChartMetadata {
     this.label = label;
     this.labelExplanation = labelExplanation;
     this.queryObjectCount = queryObjectCount;
+    this.dynamicQueryObjectCount = dynamicQueryObjectCount;
+    this.parseMethod = parseMethod;
+    this.suppressContextMenu = suppressContextMenu;
   }
 
   canBeAnnotationType(type: string): boolean {

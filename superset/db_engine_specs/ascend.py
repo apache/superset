@@ -16,6 +16,8 @@
 # under the License.
 from sqlalchemy.dialects import registry
 
+from superset.constants import TimeGrain
+from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.impala import ImpalaEngineSpec
 
 
@@ -27,14 +29,32 @@ class AscendEngineSpec(ImpalaEngineSpec):
 
     engine_name = "Ascend"
 
+    metadata = {
+        "description": (
+            "Ascend.io is a data automation platform for building data pipelines."
+        ),
+        "logo": "ascend.webp",
+        "homepage_url": "https://www.ascend.io/",
+        "categories": [
+            DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.HOSTED_OPEN_SOURCE,
+        ],
+        "pypi_packages": ["impyla"],
+        "connection_string": (
+            "ascend://{username}:{password}@{hostname}:{port}/{database}"
+            "?auth_mechanism=PLAIN;use_ssl=true"
+        ),
+    }
+
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "DATE_TRUNC('second', {col})",
-        "PT1M": "DATE_TRUNC('minute', {col})",
-        "PT1H": "DATE_TRUNC('hour', {col})",
-        "P1D": "DATE_TRUNC('day', {col})",
-        "P1W": "DATE_TRUNC('week', {col})",
-        "P1M": "DATE_TRUNC('month', {col})",
-        "P3M": "DATE_TRUNC('quarter', {col})",
-        "P1Y": "DATE_TRUNC('year', {col})",
+        TimeGrain.SECOND: "DATE_TRUNC('second', {col})",
+        TimeGrain.MINUTE: "DATE_TRUNC('minute', {col})",
+        TimeGrain.HOUR: "DATE_TRUNC('hour', {col})",
+        TimeGrain.DAY: "DATE_TRUNC('day', {col})",
+        TimeGrain.WEEK: "DATE_TRUNC('week', {col})",
+        TimeGrain.MONTH: "DATE_TRUNC('month', {col})",
+        TimeGrain.QUARTER: "DATE_TRUNC('quarter', {col})",
+        TimeGrain.YEAR: "DATE_TRUNC('year', {col})",
     }

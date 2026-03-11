@@ -29,9 +29,6 @@ from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.extensions import event_logger
 from superset.views.base_api import BaseSupersetApi
 
-config = app.config
-ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
-
 
 class AdvancedDataTypeRestApi(BaseSupersetApi):
     """
@@ -39,7 +36,7 @@ class AdvancedDataTypeRestApi(BaseSupersetApi):
     -Will return available AdvancedDataTypes when the /types endpoint is accessed
     -Will return a AdvancedDataTypeResponse object when the /convert endpoint is accessed
     and is passed in valid arguments
-    """
+    """  # noqa: E501
 
     allow_browser_login = True
     resource_name = "advanced_data_type"
@@ -61,11 +58,12 @@ class AdvancedDataTypeRestApi(BaseSupersetApi):
     )
     @rison(advanced_data_type_convert_schema)
     def get(self, **kwargs: Any) -> Response:
-        """Returns a AdvancedDataTypeResponse object populated with the passed in args
+        """Return an AdvancedDataTypeResponse object populated with the passed in args.
         ---
         get:
-          summary: >-
-            Returns a AdvancedDataTypeResponse object populated with the passed in args.
+          summary: Return an AdvancedDataTypeResponse
+          description: >-
+            Returns an AdvancedDataTypeResponse object populated with the passed in args.
           parameters:
           - in: query
             name: q
@@ -85,15 +83,17 @@ class AdvancedDataTypeRestApi(BaseSupersetApi):
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
-        """
+        """  # noqa: E501
         item = kwargs["rison"]
         advanced_data_type = item["type"]
         values = item["values"]
-        addon = ADVANCED_DATA_TYPES.get(advanced_data_type)
+        addon = app.config["ADVANCED_DATA_TYPES"].get(advanced_data_type)
         if not addon:
             return self.response(
                 400,
@@ -118,11 +118,10 @@ class AdvancedDataTypeRestApi(BaseSupersetApi):
         log_to_statsd=False,  # pylint: disable-arguments-renamed
     )
     def get_types(self) -> Response:
-        """Returns a list of available advanced data types
+        """Return a list of available advanced data types.
         ---
         get:
-          description: >-
-            Returns a list of available advanced data types.
+          summary: Return a list of available advanced data types
           responses:
             200:
               description: >-
@@ -139,10 +138,11 @@ class AdvancedDataTypeRestApi(BaseSupersetApi):
                           type: string
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
         """
-
-        return self.response(200, result=list(ADVANCED_DATA_TYPES.keys()))
+        return self.response(200, result=list(app.config["ADVANCED_DATA_TYPES"].keys()))

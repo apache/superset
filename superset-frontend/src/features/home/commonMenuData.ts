@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+
+/**
+ * Shared popup offset configuration for navbar menu dropdowns.
+ */
+export const NAVBAR_MENU_POPUP_OFFSET: [number, number] = [0, -8];
 
 export const commonMenuData = {
   name: t('SQL'),
@@ -30,7 +35,7 @@ export const commonMenuData = {
     {
       name: 'Query history',
       label: t('Query history'),
-      url: '/superset/sqllab/history/',
+      url: '/sqllab/history/',
       usesRouter: true,
     },
   ],

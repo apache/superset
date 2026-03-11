@@ -19,7 +19,8 @@ under the License.
 
 ## @superset-ui/plugin-chart-pivot-table
 
-[![Version](https://img.shields.io/npm/v/@superset-ui/plugin-chart-pivot-table.svg?style=flat-square)](https://www.npmjs.com/package/@superset-ui/plugin-chart-pivot-table)
+[![Version](https://img.shields.io/npm/v/@superset-ui/plugin-chart-pivot-table.svg?style=flat)](https://www.npmjs.com/package/@superset-ui/plugin-chart-pivot-table)
+[![Libraries.io](https://img.shields.io/librariesio/release/npm/%40superset-ui%2Fplugin-chart-pivot-table?style=flat)](https://libraries.io/npm/@superset-ui%2Fplugin-chart-pivot-table)
 
 This plugin provides Pivot Table for Superset.
 

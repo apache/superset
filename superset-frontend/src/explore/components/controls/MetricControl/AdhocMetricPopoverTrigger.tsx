@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode } from 'react';
-import { Metric, t } from '@superset-ui/core';
+import { PureComponent, ReactNode } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { Metric } from '@superset-ui/core';
 import AdhocMetricEditPopoverTitle from 'src/explore/components/controls/MetricControl/AdhocMetricEditPopoverTitle';
 import { ExplorePopoverContent } from 'src/explore/components/ExploreContentPopover';
 import {
@@ -37,7 +38,7 @@ export type AdhocMetricPopoverTriggerProps = {
   onMetricEdit(newMetric: Metric, oldMetric: Metric): void;
   columns: { column_name: string; type: string }[];
   savedMetricsOptions: savedMetricType[];
-  savedMetric: savedMetricType;
+  savedMetric: savedMetricType | Record<string, never>;
   datasource: Datasource & ISaveableDatasource;
   children: ReactNode;
   isControlledComponent?: boolean;
@@ -57,7 +58,7 @@ export type AdhocMetricPopoverTriggerState = {
   showSaveDatasetModal: boolean;
 };
 
-class AdhocMetricPopoverTrigger extends React.PureComponent<
+class AdhocMetricPopoverTrigger extends PureComponent<
   AdhocMetricPopoverTriggerProps,
   AdhocMetricPopoverTriggerState
 > {
@@ -201,8 +202,8 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
     const { visible, togglePopover, closePopover } = isControlledComponent
       ? {
           visible: this.props.visible,
-          togglePopover: this.props.togglePopover,
-          closePopover: this.props.closePopover,
+          togglePopover: this.props.togglePopover ?? this.togglePopover,
+          closePopover: this.props.closePopover ?? this.closePopover,
         }
       : {
           visible: this.state.popoverVisible,
@@ -216,12 +217,20 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
           adhocMetric={adhocMetric}
           columns={columns}
           savedMetricsOptions={savedMetricsOptions}
-          savedMetric={savedMetric}
-          datasource={datasource}
+          savedMetric={savedMetric as savedMetricType}
+          datasource={
+            datasource as unknown as {
+              type?: string;
+              id?: number | string;
+              extra?: string;
+            }
+          }
           handleDatasetModal={this.handleDatasetModal}
           onResize={this.onPopoverResize}
           onClose={closePopover}
-          onChange={this.onChange}
+          onChange={
+            this.onChange as (newMetric: unknown, oldMetric?: unknown) => void
+          }
           getCurrentTab={this.getCurrentTab}
           getCurrentLabel={this.getCurrentLabel}
           isNewMetric={this.props.isNew}
@@ -259,9 +268,9 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
           placement="right"
           trigger="click"
           content={overlayContent}
-          defaultVisible={visible}
-          visible={visible}
-          onVisibleChange={togglePopover}
+          defaultOpen={visible}
+          open={visible}
+          onOpenChange={togglePopover}
           title={popoverTitle}
           destroyTooltipOnHide
         >

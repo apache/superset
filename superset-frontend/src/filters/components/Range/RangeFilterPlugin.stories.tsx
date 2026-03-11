@@ -16,13 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { action } from '@storybook/addon-actions';
-import {
-  SuperChart,
-  getChartTransformPropsRegistry,
-  GenericDataType,
-} from '@superset-ui/core';
+import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import RangeFilterPlugin from './index';
 import transformProps from './transformProps';
 
@@ -31,7 +27,7 @@ new RangeFilterPlugin().configure({ key: 'filter_range' }).register();
 getChartTransformPropsRegistry().registerValue('filter_range', transformProps);
 
 export default {
-  title: 'Filter Plugins',
+  title: 'Components/Filter Plugins',
 };
 
 export const range = ({ width, height }: { width: number; height: number }) => (
@@ -52,7 +48,7 @@ export const range = ({ width, height }: { width: number; height: number }) => (
           column: {
             column_name: 'SP_POP_TOTL',
             id: 1,
-            type_generic: GenericDataType.NUMERIC,
+            type_generic: GenericDataType.Numeric,
           },
           expressionType: 'SIMPLE',
           hasCustomLabel: true,
@@ -63,7 +59,7 @@ export const range = ({ width, height }: { width: number; height: number }) => (
           column: {
             column_name: 'SP_POP_TOTL',
             id: 2,
-            type_generic: GenericDataType.NUMERIC,
+            type_generic: GenericDataType.Numeric,
           },
           expressionType: 'SIMPLE',
           hasCustomLabel: true,

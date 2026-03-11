@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import React from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { detectOS } from 'src/utils/common';
 
 export const getSliceHeaderTooltip = (sliceName: string | undefined) => {

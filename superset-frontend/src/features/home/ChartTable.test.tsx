@@ -16,30 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { styledMount as mount } from 'spec/helpers/theming';
-import thunk from 'redux-thunk';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import { VizType } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
-import configureStore from 'redux-mock-store';
 import { act } from 'react-dom/test-utils';
-import { ReactWrapper } from 'enzyme';
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+import handleResourceExport from 'src/utils/export';
 import ChartTable from './ChartTable';
 
-const mockStore = configureStore([thunk]);
-const store = mockStore({});
+// Mock the export module
+jest.mock('src/utils/export', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+const mockExport = handleResourceExport as jest.MockedFunction<
+  typeof handleResourceExport
+>;
 
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
 const chartsInfoEndpoint = 'glob:*/api/v1/chart/_info*';
 const chartFavoriteStatusEndpoint = 'glob:*/api/v1/chart/favorite_status*';
 
-const mockCharts = [...new Array(3)].map((_, i) => ({
+const mockCharts = Array.from({ length: 3 }).map((_, i) => ({
   changed_on_utc: new Date().toISOString(),
   created_by: 'super user',
   id: i,
   slice_name: `cool chart ${i}`,
   url: 'url',
-  viz_type: 'bar',
+  viz_type: VizType.Bar,
   datasource_title: `ds${i}`,
   thumbnail_url: '',
 }));
@@ -49,83 +58,123 @@ fetchMock.get(chartsEndpoint, {
 });
 
 fetchMock.get(chartsInfoEndpoint, {
-  permissions: ['can_add', 'can_edit', 'can_delete'],
+  permissions: ['can_add', 'can_edit', 'can_delete', 'can_export'],
 });
 
 fetchMock.get(chartFavoriteStatusEndpoint, {
   result: [],
 });
 
-describe('ChartTable', () => {
-  const mockedProps = {
-    user: {
-      userId: '2',
+const mockedProps = {
+  addDangerToast: jest.fn(),
+  addSuccessToast: jest.fn(),
+  user: {
+    userId: '2',
+  },
+  mine: [],
+  otherTabData: [],
+  otherTabFilters: [],
+  otherTabTitle: 'Other',
+  showThumbnails: false,
+};
+
+const otherTabProps = {
+  ...mockedProps,
+  otherTabData: mockCharts,
+};
+
+const mineTabProps = {
+  ...mockedProps,
+  mine: mockCharts,
+};
+
+const renderOptions = {
+  useRedux: true,
+  useRouter: true,
+};
+
+const renderChartTable = (props: any) =>
+  // Use of act here prevents an error about state updates inside tests
+  act(async () => {
+    render(<ChartTable {...props} />, renderOptions);
+  });
+
+test('renders with EmptyState if no data present', async () => {
+  await renderChartTable(mockedProps);
+  expect(screen.getAllByRole('tab')).toHaveLength(3);
+  expect(screen.getByText(/nothing here yet/i)).toBeInTheDocument();
+});
+
+test('fetches chart favorites and renders chart cards', async () => {
+  await renderChartTable(mockedProps);
+  userEvent.click(screen.getByText(/favorite/i));
+  await waitFor(() => {
+    expect(
+      fetchMock.callHistory.calls(chartFavoriteStatusEndpoint),
+    ).toHaveLength(1);
+    expect(screen.getAllByText(/cool chart/i)).toHaveLength(3);
+  });
+});
+
+test('renders other tab by default', async () => {
+  await renderChartTable(otherTabProps);
+  expect(screen.getAllByText(/cool chart/i)).toHaveLength(3);
+});
+
+test('renders mine tab on click', async () => {
+  await renderChartTable(mineTabProps);
+  userEvent.click(screen.getByText(/mine/i));
+  await waitFor(() => {
+    expect(screen.getAllByText(/cool chart/i)).toHaveLength(3);
+  });
+});
+
+test('handles chart export with correct ID and shows spinner', async () => {
+  // Mock export to take some time before calling the done callback
+  mockExport.mockImplementation(
+    (resource: string, ids: number[], done: () => void) =>
+      new Promise(resolve => {
+        setTimeout(() => {
+          done();
+          resolve();
+        }, 100);
+      }),
+  );
+
+  await renderChartTable(mineTabProps);
+
+  // Click Mine tab to see charts
+  userEvent.click(screen.getByText(/mine/i));
+
+  await waitFor(() => {
+    expect(screen.getAllByText(/cool chart/i)).toHaveLength(3);
+  });
+
+  // Find and click the more options button for the first chart
+  const moreButtons = screen.getAllByRole('img', { name: /more/i });
+  await userEvent.click(moreButtons[0]);
+
+  // Wait for dropdown menu
+  await waitFor(() => {
+    expect(screen.getByText('Export')).toBeInTheDocument();
+  });
+
+  const exportOption = screen.getByText('Export');
+  await userEvent.click(exportOption);
+
+  // Verify spinner appears during export
+  await waitFor(() => {
+    expect(screen.getByRole('status')).toBeInTheDocument();
+  });
+
+  // Verify the export was called with correct parameters
+  expect(mockExport).toHaveBeenCalledWith('chart', [0], expect.any(Function));
+
+  // Wait for export to complete and spinner to disappear
+  await waitFor(
+    () => {
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
     },
-    mine: [],
-    otherTabData: [],
-    otherTabFilters: [],
-    otherTabTitle: 'Other',
-    showThumbnails: false,
-  };
-
-  let wrapper: ReactWrapper;
-
-  beforeEach(async () => {
-    act(() => {
-      wrapper = mount(<ChartTable store={store} {...mockedProps} />);
-    });
-    await waitForComponentToPaint(wrapper);
-  });
-
-  it('renders', () => {
-    expect(wrapper.find(ChartTable)).toExist();
-  });
-
-  it('fetches chart favorites and renders chart cards', async () => {
-    act(() => {
-      const handler = wrapper.find('[role="tab"] a').at(0).prop('onClick');
-      if (handler) {
-        handler({} as any);
-      }
-    });
-    await waitForComponentToPaint(wrapper);
-    expect(fetchMock.calls(chartsEndpoint)).toHaveLength(1);
-    expect(wrapper.find('ChartCard')).toExist();
-  });
-
-  it('renders other tab by default', async () => {
-    await act(async () => {
-      wrapper = mount(
-        <ChartTable
-          user={{ userId: '2' }}
-          mine={[]}
-          otherTabData={mockCharts}
-          otherTabFilters={[]}
-          otherTabTitle="Other"
-          showThumbnails={false}
-          store={store}
-        />,
-      );
-    });
-    await waitForComponentToPaint(wrapper);
-    expect(wrapper.find('EmptyState')).not.toExist();
-    expect(wrapper.find('ChartCard')).toExist();
-  });
-
-  it('display EmptyState if there is no data', async () => {
-    await act(async () => {
-      wrapper = mount(
-        <ChartTable
-          user={{ userId: '2' }}
-          mine={[]}
-          otherTabData={[]}
-          otherTabFilters={[]}
-          otherTabTitle="Other"
-          showThumbnails={false}
-          store={store}
-        />,
-      );
-    });
-    expect(wrapper.find('EmptyState')).toExist();
-  });
+    { timeout: 3000 },
+  );
 });

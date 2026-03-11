@@ -16,15 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import SelectAsyncControl from '.';
 
 const datasetsOwnersEndpoint = 'glob:*/api/v1/dataset/related/owners*';
 
-jest.mock('src/components/Select/Select', () => ({
+jest.mock('@superset-ui/core/components/Select/Select', () => ({
   __esModule: true,
   default: (props: any) => (
     <div
@@ -92,9 +90,9 @@ test('Should send correct props to Select component - value props', async () => 
 test('Should send correct props to Select component - function onChange multi:true', async () => {
   const props = createProps();
   render(<SelectAsyncControl {...props} />, { useRedux: true });
-  expect(props.onChange).toBeCalledTimes(0);
+  expect(props.onChange).toHaveBeenCalledTimes(0);
   userEvent.click(await screen.findByText('onChange'));
-  expect(props.onChange).toBeCalledTimes(1);
+  expect(props.onChange).toHaveBeenCalledTimes(1);
 });
 
 test('Should send correct props to Select component - function onChange multi:false', async () => {
@@ -102,7 +100,7 @@ test('Should send correct props to Select component - function onChange multi:fa
   render(<SelectAsyncControl {...{ ...props, multi: false }} />, {
     useRedux: true,
   });
-  expect(props.onChange).toBeCalledTimes(0);
+  expect(props.onChange).toHaveBeenCalledTimes(0);
   userEvent.click(await screen.findByText('onChange'));
-  expect(props.onChange).toBeCalledTimes(1);
+  expect(props.onChange).toHaveBeenCalledTimes(1);
 });

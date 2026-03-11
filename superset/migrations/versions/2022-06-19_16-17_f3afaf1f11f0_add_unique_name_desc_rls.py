@@ -26,10 +26,10 @@ Create Date: 2022-06-19 16:17:23.318618
 revision = "f3afaf1f11f0"
 down_revision = "e09b4ae78457"
 
-import sqlalchemy as sa
-from alembic import op
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Session
+import sqlalchemy as sa  # noqa: E402
+from alembic import op  # noqa: E402
+from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
+from sqlalchemy.orm import Session  # noqa: E402
 
 Base = declarative_base()
 

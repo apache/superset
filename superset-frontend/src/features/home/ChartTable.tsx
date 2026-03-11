@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useMemo, useState } from 'react';
-import { t } from '@superset-ui/core';
-import { filter } from 'lodash';
+import { useEffect, useMemo, useState } from 'react';
+import { t } from '@apache-superset/core/translation';
 import {
   useChartEditModal,
   useFavoriteStatus,
@@ -43,8 +42,10 @@ import { LoadingCards } from 'src/pages/Home';
 import ChartCard from 'src/features/charts/ChartCard';
 import Chart from 'src/types/Chart';
 import handleResourceExport from 'src/utils/export';
-import Loading from 'src/components/Loading';
-import ErrorBoundary from 'src/components/ErrorBoundary';
+import { Loading } from '@superset-ui/core/components';
+import { ErrorBoundary } from 'src/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { navigateTo } from 'src/utils/navigationUtils';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
 import SubMenu from './SubMenu';
@@ -72,11 +73,11 @@ function ChartTable({
 }: ChartTableProps) {
   const history = useHistory();
   const initialTab = getItem(
-    LocalStorageKeys.homepage_chart_filter,
+    LocalStorageKeys.HomepageChartFilter,
     TableTab.Other,
   );
 
-  const filteredOtherTabData = filter(otherTabData, obj => 'viz_type' in obj);
+  const filteredOtherTabData = otherTabData?.filter(obj => 'viz_type' in obj);
 
   const {
     state: { loading, resourceCollection: charts, bulkSelectEnabled },
@@ -131,12 +132,17 @@ function ChartTable({
     setLoaded(true);
   }, [activeTab]);
 
-  const handleBulkChartExport = (chartsToExport: Chart[]) => {
+  const handleBulkChartExport = async (chartsToExport: Chart[]) => {
     const ids = chartsToExport.map(({ id }) => id);
-    handleResourceExport('chart', ids, () => {
-      setPreparingExport(false);
-    });
     setPreparingExport(true);
+    try {
+      await handleResourceExport('chart', ids, () => {
+        setPreparingExport(false);
+      });
+    } catch (error) {
+      setPreparingExport(false);
+      addDangerToast(t('There was an issue exporting the selected charts'));
+    }
   };
 
   const menuTabs = [
@@ -145,7 +151,7 @@ function ChartTable({
       label: t('Favorite'),
       onClick: () => {
         setActiveTab(TableTab.Favorite);
-        setItem(LocalStorageKeys.homepage_chart_filter, TableTab.Favorite);
+        setItem(LocalStorageKeys.HomepageChartFilter, TableTab.Favorite);
       },
     },
     {
@@ -153,7 +159,7 @@ function ChartTable({
       label: t('Mine'),
       onClick: () => {
         setActiveTab(TableTab.Mine);
-        setItem(LocalStorageKeys.homepage_chart_filter, TableTab.Mine);
+        setItem(LocalStorageKeys.HomepageChartFilter, TableTab.Mine);
       },
     },
   ];
@@ -163,7 +169,7 @@ function ChartTable({
       label: otherTabTitle,
       onClick: () => {
         setActiveTab(TableTab.Other);
-        setItem(LocalStorageKeys.homepage_chart_filter, TableTab.Other);
+        setItem(LocalStorageKeys.HomepageChartFilter, TableTab.Other);
       },
     });
   }
@@ -183,17 +189,19 @@ function ChartTable({
       <SubMenu
         activeChild={activeTab}
         tabs={menuTabs}
+        backgroundColor="transparent"
         buttons={[
           {
-            name: (
-              <>
-                <i className="fa fa-plus" />
-                {t('Chart')}
-              </>
+            icon: (
+              <Icons.PlusOutlined
+                iconSize="m"
+                data-test="add-annotation-layer-button"
+              />
             ),
-            buttonStyle: 'tertiary',
+            name: t('Chart'),
+            buttonStyle: 'secondary',
             onClick: () => {
-              window.location.assign('/chart/add');
+              navigateTo('/chart/add', { assign: true });
             },
           },
           {

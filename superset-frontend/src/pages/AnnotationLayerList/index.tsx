@@ -17,28 +17,35 @@
  * under the License.
  */
 
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import rison from 'rison';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
 import { Link, useHistory } from 'react-router-dom';
-import moment from 'moment';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import ListView, {
-  ListViewProps,
-  Filters,
-  FilterOperator,
-} from 'src/components/ListView';
-import DeleteModal from 'src/components/DeleteModal';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import { Typography } from '@superset-ui/core/components/Typography';
+
+import { DeleteModal, ConfirmStatusChange } from '@superset-ui/core/components';
+import {
+  ModifiedInfo,
+  ListView,
+  ListViewFilterOperator as FilterOperator,
+  ListViewActionsBar,
+  type ListViewActionProps,
+  type ListViewProps,
+  type ListViewFilters,
+} from 'src/components';
 import AnnotationLayerModal from 'src/features/annotationLayers/AnnotationLayerModal';
 import { AnnotationLayerObject } from 'src/features/annotationLayers/types';
+import { QueryObjectColumns } from 'src/views/CRUD/types';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { navigateTo } from 'src/utils/navigationUtils';
+import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 
 const PAGE_SIZE = 25;
-const MOMENT_FORMAT = 'MMM DD, YYYY';
 
 interface AnnotationLayersListProps {
   addDangerToast: (msg: string) => void;
@@ -146,74 +153,34 @@ function AnnotationLayersList({
             return <Link to={`/annotationlayer/${id}/annotation`}>{name}</Link>;
           }
 
-          return <a href={`/annotationlayer/${id}/annotation`}>{name}</a>;
+          return (
+            <Typography.Link href={`/annotationlayer/${id}/annotation`}>
+              {name}
+            </Typography.Link>
+          );
         },
+        size: 'xxl',
+        id: 'name',
       },
       {
         accessor: 'descr',
         Header: t('Description'),
+        size: 'xl',
+        id: 'descr',
       },
       {
         Cell: ({
           row: {
-            original: { changed_on: changedOn },
+            original: {
+              changed_on_delta_humanized: changedOn,
+              changed_by: changedBy,
+            },
           },
-        }: any) => {
-          const date = new Date(changedOn);
-          const utc = new Date(
-            Date.UTC(
-              date.getFullYear(),
-              date.getMonth(),
-              date.getDate(),
-              date.getHours(),
-              date.getMinutes(),
-              date.getSeconds(),
-              date.getMilliseconds(),
-            ),
-          );
-
-          return moment(utc).format(MOMENT_FORMAT);
-        },
+        }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on',
         size: 'xl',
-      },
-      {
-        Cell: ({
-          row: {
-            original: { created_on: createdOn },
-          },
-        }: any) => {
-          const date = new Date(createdOn);
-          const utc = new Date(
-            Date.UTC(
-              date.getFullYear(),
-              date.getMonth(),
-              date.getDate(),
-              date.getHours(),
-              date.getMinutes(),
-              date.getSeconds(),
-              date.getMilliseconds(),
-            ),
-          );
-
-          return moment(utc).format(MOMENT_FORMAT);
-        },
-        Header: t('Created on'),
-        accessor: 'created_on',
-        size: 'xl',
-      },
-      {
-        accessor: 'created_by',
-        disableSortBy: true,
-        Header: t('Created by'),
-        Cell: ({
-          row: {
-            original: { created_by: createdBy },
-          },
-        }: any) =>
-          createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
-        size: 'xl',
+        id: 'changed_on',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -226,7 +193,7 @@ function AnnotationLayersList({
                   label: 'edit-action',
                   tooltip: t('Edit template'),
                   placement: 'bottom',
-                  icon: 'Edit',
+                  icon: 'EditOutlined',
                   onClick: handleEdit,
                 }
               : null,
@@ -235,13 +202,15 @@ function AnnotationLayersList({
                   label: 'delete-action',
                   tooltip: t('Delete template'),
                   placement: 'bottom',
-                  icon: 'Trash',
+                  icon: 'DeleteOutlined',
                   onClick: handleDelete,
                 }
               : null,
           ].filter(item => !!item);
 
-          return <ActionsBar actions={actions as ActionProps[]} />;
+          return (
+            <ListViewActionsBar actions={actions as ListViewActionProps[]} />
+          );
         },
         Header: t('Actions'),
         id: 'actions',
@@ -249,25 +218,16 @@ function AnnotationLayersList({
         hidden: !canEdit && !canDelete,
         size: 'xl',
       },
+      {
+        accessor: QueryObjectColumns.ChangedBy,
+        hidden: true,
+        id: QueryObjectColumns.ChangedBy,
+      },
     ],
     [canDelete, canCreate],
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
-
-  if (canCreate) {
-    subMenuButtons.push({
-      name: (
-        <>
-          <i className="fa fa-plus" /> {t('Annotation layer')}
-        </>
-      ),
-      buttonStyle: 'primary',
-      onClick: () => {
-        handleAnnotationLayerEdit(null);
-      },
-    });
-  }
 
   if (canDelete) {
     subMenuButtons.push({
@@ -277,18 +237,37 @@ function AnnotationLayersList({
     });
   }
 
-  const filters: Filters = useMemo(
+  if (canCreate) {
+    subMenuButtons.push({
+      icon: <Icons.PlusOutlined iconSize="m" />,
+      name: t('Annotation layer'),
+      buttonStyle: 'primary',
+      onClick: () => {
+        handleAnnotationLayerEdit(null);
+      },
+    });
+  }
+
+  const filters: ListViewFilters = useMemo(
     () => [
       {
-        Header: t('Created by'),
-        key: 'created_by',
-        id: 'created_by',
+        Header: t('Name'),
+        key: 'search',
+        id: 'name',
+        input: 'search',
+        operator: FilterOperator.Contains,
+        inputName: 'annotation_layer_list_search',
+      },
+      {
+        Header: t('Changed by'),
+        key: 'changed_by',
+        id: 'changed_by',
         input: 'select',
-        operator: FilterOperator.relationOneMany,
+        operator: FilterOperator.RelationOneMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'annotation_layer',
-          'created_by',
+          'changed_by',
           createErrorHandler(errMsg =>
             t(
               'An error occurred while fetching dataset datasource values: %s',
@@ -298,13 +277,7 @@ function AnnotationLayersList({
           user,
         ),
         paginate: true,
-      },
-      {
-        Header: t('Search'),
-        key: 'search',
-        id: 'name',
-        input: 'search',
-        operator: FilterOperator.contains,
+        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ],
     [],
@@ -314,15 +287,12 @@ function AnnotationLayersList({
     title: t('No annotation layers yet'),
     image: 'filter-results.svg',
     buttonAction: () => handleAnnotationLayerEdit(null),
-    buttonText: (
-      <>
-        <i className="fa fa-plus" /> {t('Annotation layer')}
-      </>
-    ),
+    buttonText: t('Annotation layer'),
+    buttonIcon: <Icons.PlusOutlined iconSize="m" />,
   };
 
   const onLayerAdd = (id?: number) => {
-    window.location.href = `/annotationlayer/${id}/annotation`;
+    navigateTo(`/annotationlayer/${id}/annotation`);
   };
 
   const onModalHide = () => {
@@ -384,7 +354,10 @@ function AnnotationLayersList({
               bulkActions={bulkActions}
               bulkSelectEnabled={bulkSelectEnabled}
               disableBulkSelect={toggleBulkSelect}
+              addDangerToast={addDangerToast}
+              addSuccessToast={addSuccessToast}
               emptyState={emptyState}
+              refreshData={refreshData}
             />
           );
         }}

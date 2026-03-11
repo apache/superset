@@ -22,7 +22,7 @@ import ChartMetadata from '../models/ChartMetadata';
 
 class ChartMetadataRegistry extends Registry<ChartMetadata, ChartMetadata> {
   constructor() {
-    super({ name: 'ChartMetadata', overwritePolicy: OverwritePolicy.WARN });
+    super({ name: 'ChartMetadata', overwritePolicy: OverwritePolicy.Warn });
   }
 }
 

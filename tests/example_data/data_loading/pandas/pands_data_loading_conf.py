@@ -16,7 +16,7 @@
 #  under the License.
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 default_pandas_data_loader_config = {
     "if_exists": "replace",
@@ -54,7 +54,7 @@ class PandasLoaderConfigurations:
         self.support_datetime_type = support_datetime_type
 
     @classmethod
-    def make_from_dict(cls, _dict: Dict[str, Any]) -> PandasLoaderConfigurations:
+    def make_from_dict(cls, _dict: dict[str, Any]) -> PandasLoaderConfigurations:
         copy_dict = default_pandas_data_loader_config.copy()
         copy_dict.update(_dict)
         return PandasLoaderConfigurations(**copy_dict)  # type: ignore

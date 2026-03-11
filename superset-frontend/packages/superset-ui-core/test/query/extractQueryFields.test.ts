@@ -16,14 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { configure, QueryMode, DTTM_ALIAS } from '@superset-ui/core';
+import { QueryMode } from '@superset-ui/core';
+import { configure } from '@apache-superset/core/translation';
 import extractQueryFields from '../../src/query/extractQueryFields';
 import { NUM_METRIC } from '../fixtures';
 
 configure();
 
 describe('extractQueryFields', () => {
-  it('should return default object', () => {
+  test('should return default object', () => {
     expect(extractQueryFields({})).toEqual({
       columns: [],
       metrics: [],
@@ -31,7 +32,7 @@ describe('extractQueryFields', () => {
     });
   });
 
-  it('should group single value to arrays', () => {
+  test('should group single value to arrays', () => {
     expect(
       extractQueryFields({
         metric: 'my_metric',
@@ -45,7 +46,7 @@ describe('extractQueryFields', () => {
     });
   });
 
-  it('should combine field aliases', () => {
+  test('should combine field aliases', () => {
     expect(
       extractQueryFields(
         {
@@ -58,7 +59,7 @@ describe('extractQueryFields', () => {
     ).toEqual(['metric_1', 'metric_2', 'my_custom_metric']);
   });
 
-  it('should extract columns', () => {
+  test('should extract columns', () => {
     expect(extractQueryFields({ columns: 'col_1' })).toEqual({
       columns: ['col_1'],
       metrics: [],
@@ -66,7 +67,7 @@ describe('extractQueryFields', () => {
     });
   });
 
-  it('should extract groupby as columns and set empty metrics', () => {
+  test('should extract groupby as columns and set empty metrics', () => {
     expect(extractQueryFields({ groupby: 'col_1' })).toEqual({
       columns: ['col_1'],
       metrics: [],
@@ -74,7 +75,7 @@ describe('extractQueryFields', () => {
     });
   });
 
-  it('should remove duplicate metrics', () => {
+  test('should remove duplicate metrics', () => {
     expect(
       extractQueryFields({
         metrics: ['col_1', { ...NUM_METRIC }, { ...NUM_METRIC }],
@@ -86,7 +87,7 @@ describe('extractQueryFields', () => {
     });
   });
 
-  it('should extract custom columns fields', () => {
+  test('should extract custom columns fields', () => {
     expect(
       extractQueryFields(
         { series: 'col_1', metric: 'metric_1' },
@@ -99,7 +100,7 @@ describe('extractQueryFields', () => {
     });
   });
 
-  it('should merge custom groupby into columns', () => {
+  test('should merge custom groupby into columns', () => {
     expect(
       extractQueryFields(
         { groupby: 'col_1', series: 'col_2', metric: 'metric_1' },
@@ -112,31 +113,19 @@ describe('extractQueryFields', () => {
     });
   });
 
-  it('should include time', () => {
-    expect(
-      extractQueryFields({ groupby: 'col_1', include_time: true }).columns,
-    ).toEqual([DTTM_ALIAS, 'col_1']);
-    expect(
-      extractQueryFields({
-        groupby: ['col_1', DTTM_ALIAS, ''],
-        include_time: true,
-      }).columns,
-    ).toEqual(['col_1', DTTM_ALIAS]);
-  });
-
-  it('should ignore null values', () => {
+  test('should ignore null values', () => {
     expect(
       extractQueryFields({ series: ['a'], columns: null }).columns,
     ).toEqual(['a']);
   });
 
-  it('should ignore groupby and metrics when in raw QueryMode', () => {
+  test('should ignore groupby and metrics when in raw QueryMode', () => {
     expect(
       extractQueryFields({
         columns: ['a'],
         groupby: ['b'],
         metric: ['m'],
-        query_mode: QueryMode.raw,
+        query_mode: QueryMode.Raw,
       }),
     ).toEqual({
       columns: ['a'],
@@ -145,13 +134,13 @@ describe('extractQueryFields', () => {
     });
   });
 
-  it('should ignore columns when in aggregate QueryMode', () => {
+  test('should ignore columns when in aggregate QueryMode', () => {
     expect(
       extractQueryFields({
         columns: ['a'],
         groupby: [],
         metric: ['m'],
-        query_mode: QueryMode.aggregate,
+        query_mode: QueryMode.Aggregate,
       }),
     ).toEqual({
       metrics: ['m'],
@@ -163,7 +152,7 @@ describe('extractQueryFields', () => {
         columns: ['a'],
         groupby: ['b'],
         metric: ['m'],
-        query_mode: QueryMode.aggregate,
+        query_mode: QueryMode.Aggregate,
       }),
     ).toEqual({
       metrics: ['m'],
@@ -172,7 +161,7 @@ describe('extractQueryFields', () => {
     });
   });
 
-  it('should parse orderby if needed', () => {
+  test('should parse orderby if needed', () => {
     expect(
       extractQueryFields({
         columns: ['a'],
@@ -190,7 +179,7 @@ describe('extractQueryFields', () => {
     });
   });
 
-  it('should throw error if parse orderby failed', () => {
+  test('should throw error if parse orderby failed', () => {
     expect(() => {
       extractQueryFields({
         orderby: ['ccc'],

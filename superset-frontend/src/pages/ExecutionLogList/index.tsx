@@ -17,21 +17,25 @@
  * under the License.
  */
 
-import { css, styled, t } from '@superset-ui/core';
-import moment from 'moment';
-import React, { useEffect, useMemo } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { css, styled } from '@apache-superset/core/theme';
+import {
+  extendedDayjs as dayjs,
+  fDuration,
+} from '@superset-ui/core/utils/dates';
+import { useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import ListView from 'src/components/ListView';
-import { Tooltip } from 'src/components/Tooltip';
+import { Label, Tooltip } from '@superset-ui/core/components';
+import { ListView } from 'src/components';
 import SubMenu from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { fDuration } from 'src/utils/dates';
 import AlertStatusIcon from 'src/features/alerts/components/AlertStatusIcon';
 import {
   useListViewResource,
   useSingleViewResource,
 } from 'src/views/CRUD/hooks';
 import { AlertObject, LogObject } from 'src/features/alerts/types';
+import { AnnotationObject } from 'src/features/annotations/types';
 
 const PAGE_SIZE = 25;
 
@@ -42,9 +46,9 @@ const StyledHeader = styled.div`
 
     a,
     Link {
-      margin-left: ${theme.gridUnit * 4}px;
-      font-size: ${theme.typography.sizes.s};
-      font-weight: ${theme.typography.weights.normal};
+      margin-left: ${theme.sizeUnit * 4}px;
+      font-size: ${theme.fontSizeSM};
+      font-weight: ${theme.fontWeightNormal};
       text-decoration: underline;
     }
   `}
@@ -56,7 +60,11 @@ interface ExecutionLogProps {
   isReportEnabled: boolean;
 }
 
-function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
+function ExecutionLog({
+  addDangerToast,
+  addSuccessToast,
+  isReportEnabled,
+}: ExecutionLogProps) {
   const { alertId }: any = useParams();
   const {
     state: { loading, resourceCount: logCount, resourceCollection: logs },
@@ -97,6 +105,7 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
         Header: t('State'),
         size: 'xs',
         disableSortBy: true,
+        id: 'state',
       },
       {
         Cell: ({
@@ -108,6 +117,7 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
         Header: t('Execution ID'),
         size: 'xs',
         disableSortBy: true,
+        id: 'uuid',
       },
       {
         Cell: ({
@@ -115,32 +125,46 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
             original: { scheduled_dttm: scheduledDttm },
           },
         }: any) =>
-          moment(new Date(scheduledDttm)).format('YYYY-MM-DD hh:mm:ss a'),
+          dayjs(new Date(scheduledDttm)).format('YYYY-MM-DD hh:mm:ss a'),
         accessor: 'scheduled_dttm',
         Header: t('Scheduled at (UTC)'),
+        id: 'scheduled_dttm',
       },
       {
         Cell: ({
           row: {
             original: { start_dttm: startDttm },
           },
-        }: any) => moment(new Date(startDttm)).format('YYYY-MM-DD hh:mm:ss a'),
+        }: {
+          row: { original: AnnotationObject };
+        }) => dayjs(new Date(startDttm)).format('YYYY-MM-DD hh:mm:ss a'),
         Header: t('Start at (UTC)'),
         accessor: 'start_dttm',
+        id: 'start_dttm',
       },
       {
         Cell: ({
           row: {
             original: { start_dttm: startDttm, end_dttm: endDttm },
           },
-        }: any) =>
-          fDuration(new Date(startDttm).getTime(), new Date(endDttm).getTime()),
+        }: {
+          row: { original: AnnotationObject };
+        }) => (
+          <Label monospace>
+            {fDuration(
+              new Date(startDttm).getTime(),
+              new Date(endDttm).getTime(),
+            )}
+          </Label>
+        ),
         Header: t('Duration'),
         disableSortBy: true,
+        id: 'duration',
       },
       {
         accessor: 'value',
         Header: t('Value'),
+        id: 'value',
       },
       {
         accessor: 'error_message',
@@ -154,6 +178,7 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
             <span>{error_message}</span>
           </Tooltip>
         ),
+        id: 'error_message',
       },
     ],
     [isReportEnabled],
@@ -172,8 +197,8 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
                 ? alertResource.type === 'Alert'
                   ? `${ALERT_TEXT}:`
                   : alertResource.type === 'Report'
-                  ? `${REPORT_TEXT}:`
-                  : null
+                    ? `${REPORT_TEXT}:`
+                    : null
                 : null}{' '}
               {alertResource?.name}
             </span>
@@ -191,6 +216,9 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
         fetchData={fetchData}
         initialSort={initialSort}
         loading={loading}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        refreshData={() => {}}
         pageSize={PAGE_SIZE}
       />
     </>

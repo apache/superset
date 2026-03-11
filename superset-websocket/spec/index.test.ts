@@ -19,15 +19,26 @@
 const jwt = require('jsonwebtoken');
 const config = require('../config.test.json');
 
-import { describe, expect, test, beforeEach, afterEach } from '@jest/globals';
+import {
+  describe,
+  expect,
+  test,
+  beforeEach,
+  afterEach,
+  jest,
+} from '@jest/globals';
 import * as http from 'http';
 import * as net from 'net';
 import { WebSocket } from 'ws';
 
+interface MockedRedisXrange {
+  (): Promise<server.StreamResult[]>;
+}
+
 // NOTE: these mock variables needs to start with "mock" due to
 // calls to `jest.mock` being hoisted to the top of the file.
 // https://jestjs.io/docs/es6-class-mocks#calling-jestmock-with-the-module-factory-parameter
-const mockRedisXrange = jest.fn();
+const mockRedisXrange = jest.fn() as jest.MockedFunction<MockedRedisXrange>;
 
 jest.mock('ws');
 jest.mock('ioredis', () => {
@@ -59,7 +70,7 @@ import * as server from '../src/index';
 import { statsd } from '../src/index';
 
 describe('server', () => {
-  let statsdIncrementMock: jest.SpyInstance;
+  let statsdIncrementMock: jest.SpiedFunction<typeof statsd.increment>;
 
   beforeEach(() => {
     mockRedisXrange.mockClear();
@@ -89,12 +100,15 @@ describe('server', () => {
         end: endMock,
       };
 
-      server.httpRequest(request as any, response as any);
+      server.httpRequest(
+        request as unknown as http.IncomingMessage,
+        response as unknown as http.ServerResponse<http.IncomingMessage>,
+      );
 
-      expect(writeHeadMock).toBeCalledTimes(1);
+      expect(writeHeadMock).toHaveBeenCalledTimes(1);
       expect(writeHeadMock).toHaveBeenLastCalledWith(200);
 
-      expect(endMock).toBeCalledTimes(1);
+      expect(endMock).toHaveBeenCalledTimes(1);
       expect(endMock).toHaveBeenLastCalledWith('OK');
     });
 
@@ -115,12 +129,15 @@ describe('server', () => {
         end: endMock,
       };
 
-      server.httpRequest(request as any, response as any);
+      server.httpRequest(
+        request as unknown as http.IncomingMessage,
+        response as unknown as http.ServerResponse<http.IncomingMessage>,
+      );
 
-      expect(writeHeadMock).toBeCalledTimes(1);
+      expect(writeHeadMock).toHaveBeenCalledTimes(1);
       expect(writeHeadMock).toHaveBeenLastCalledWith(404);
 
-      expect(endMock).toBeCalledTimes(1);
+      expect(endMock).toHaveBeenCalledTimes(1);
       expect(endMock).toHaveBeenLastCalledWith('Not Found');
     });
   });
@@ -138,36 +155,53 @@ describe('server', () => {
   describe('redisUrlFromConfig', () => {
     test('it builds a valid Redis URL from defaults', () => {
       expect(
-        server.redisUrlFromConfig({
+        server.buildRedisOpts({
           port: 6379,
           host: '127.0.0.1',
+          username: 'test-user',
           password: '',
           db: 0,
           ssl: false,
+          validateHostname: false,
         }),
-      ).toEqual('redis://127.0.0.1:6379/0');
+      ).toEqual({ db: 0, host: '127.0.0.1', port: 6379 });
     });
     test('it builds a valid Redis URL with a password', () => {
       expect(
-        server.redisUrlFromConfig({
+        server.buildRedisOpts({
           port: 6380,
           host: 'redis.local',
+          username: 'cool-user',
           password: 'foo',
           db: 1,
           ssl: false,
+          validateHostname: false,
         }),
-      ).toEqual('redis://:foo@redis.local:6380/1');
+      ).toEqual({
+        db: 1,
+        host: 'redis.local',
+        password: 'foo',
+        port: 6380,
+        username: 'cool-user',
+      });
     });
     test('it builds a valid Redis URL with SSL', () => {
       expect(
-        server.redisUrlFromConfig({
+        server.buildRedisOpts({
           port: 6379,
           host: '127.0.0.1',
           password: '',
+          username: 'cool-user',
           db: 0,
           ssl: true,
+          validateHostname: false,
         }),
-      ).toEqual('rediss://127.0.0.1:6379/0');
+      ).toEqual({
+        db: 0,
+        host: '127.0.0.1',
+        port: 6379,
+        tls: { checkServerIdentity: expect.anything() },
+      });
     });
   });
 
@@ -177,16 +211,16 @@ describe('server', () => {
       const sendMock = jest.spyOn(ws, 'send');
       const socketInstance = { ws: ws, channel: channelId, pongTs: Date.now() };
 
-      expect(statsdIncrementMock).toBeCalledTimes(0);
+      expect(statsdIncrementMock).toHaveBeenCalledTimes(0);
       server.trackClient(channelId, socketInstance);
-      expect(statsdIncrementMock).toBeCalledTimes(1);
+      expect(statsdIncrementMock).toHaveBeenCalledTimes(1);
       expect(statsdIncrementMock).toHaveBeenNthCalledWith(
         1,
         'ws_connected_client',
       );
 
       server.processStreamResults(streamReturnValue);
-      expect(statsdIncrementMock).toBeCalledTimes(1);
+      expect(statsdIncrementMock).toHaveBeenCalledTimes(1);
 
       const message1 = `{"id":"1615426152415-0","channel_id":"${channelId}","job_id":"c9b99965-8f1e-4ce5-aa43-d6fc94d6a510","user_id":"1","status":"done","errors":[],"result_url":"/superset/explore_json/data/ejr-37281682b1282cdb8f25e0de0339b386"}`;
       const message2 = `{"id":"1615426152516-0","channel_id":"${channelId}","job_id":"f1e5bb1f-f2f1-4f21-9b2f-c9b91dcc9b59","user_id":"1","status":"done","errors":[],"result_url":"/api/v1/chart/data/qc-64e8452dc9907dd77746cb75a19202de"}`;
@@ -198,9 +232,9 @@ describe('server', () => {
       const ws = new wsMock('localhost');
       const sendMock = jest.spyOn(ws, 'send');
 
-      expect(statsdIncrementMock).toBeCalledTimes(0);
+      expect(statsdIncrementMock).toHaveBeenCalledTimes(0);
       server.processStreamResults(streamReturnValue);
-      expect(statsdIncrementMock).toBeCalledTimes(0);
+      expect(statsdIncrementMock).toHaveBeenCalledTimes(0);
 
       expect(sendMock).not.toHaveBeenCalled();
     });
@@ -213,16 +247,16 @@ describe('server', () => {
       const cleanChannelMock = jest.spyOn(server, 'cleanChannel');
       const socketInstance = { ws: ws, channel: channelId, pongTs: Date.now() };
 
-      expect(statsdIncrementMock).toBeCalledTimes(0);
+      expect(statsdIncrementMock).toHaveBeenCalledTimes(0);
       server.trackClient(channelId, socketInstance);
-      expect(statsdIncrementMock).toBeCalledTimes(1);
+      expect(statsdIncrementMock).toHaveBeenCalledTimes(1);
       expect(statsdIncrementMock).toHaveBeenNthCalledWith(
         1,
         'ws_connected_client',
       );
 
       server.processStreamResults(streamReturnValue);
-      expect(statsdIncrementMock).toBeCalledTimes(2);
+      expect(statsdIncrementMock).toHaveBeenCalledTimes(2);
       expect(statsdIncrementMock).toHaveBeenNthCalledWith(
         2,
         'ws_client_send_error',
@@ -296,10 +330,12 @@ describe('server', () => {
 
   describe('wsConnection', () => {
     let ws: WebSocket;
-    let wsEventMock: jest.SpyInstance;
-    let trackClientSpy: jest.SpyInstance;
-    let fetchRangeFromStreamSpy: jest.SpyInstance;
-    let dateNowSpy: jest.SpyInstance;
+    let wsEventMock: jest.SpiedFunction<typeof ws.on>;
+    let trackClientSpy: jest.SpiedFunction<typeof server.trackClient>;
+    let fetchRangeFromStreamSpy: jest.SpiedFunction<
+      typeof server.fetchRangeFromStream
+    >;
+    let dateNowSpy: jest.SpiedFunction<typeof Date.now>;
     let socketInstanceExpected: server.SocketInstance;
 
     const getRequest = (token: string, url: string): http.IncomingMessage => {
@@ -408,8 +444,8 @@ describe('server', () => {
 
   describe('httpUpgrade', () => {
     let socket: net.Socket;
-    let socketDestroySpy: jest.SpyInstance;
-    let wssUpgradeSpy: jest.SpyInstance;
+    let socketDestroySpy: jest.SpiedFunction<typeof socket.destroy>;
+    let wssUpgradeSpy: jest.SpiedFunction<typeof server.wss.handleUpgrade>;
 
     const getRequest = (token: string, url: string): http.IncomingMessage => {
       const request = new http.IncomingMessage(new net.Socket());
@@ -473,8 +509,8 @@ describe('server', () => {
 
   describe('checkSockets', () => {
     let ws: WebSocket;
-    let pingSpy: jest.SpyInstance;
-    let terminateSpy: jest.SpyInstance;
+    let pingSpy: jest.SpiedFunction<typeof ws.ping>;
+    let terminateSpy: jest.SpiedFunction<typeof ws.terminate>;
     let socketInstance: server.SocketInstance;
 
     beforeEach(() => {

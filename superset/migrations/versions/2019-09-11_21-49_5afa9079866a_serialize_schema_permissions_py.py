@@ -22,7 +22,6 @@ Create Date: 2019-09-11 21:49:00.608346
 
 """
 
-
 # revision identifiers, used by Alembic.
 from alembic import op
 from sqlalchemy import Column, ForeignKey, Integer, String

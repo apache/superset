@@ -26,10 +26,12 @@ Create Date: 2017-03-16 18:10:57.193035
 revision = "db527d8c4c78"
 down_revision = "b318dfe5fb6c"
 
-import logging
+import logging  # noqa: E402
 
-import sqlalchemy as sa
-from alembic import op
+import sqlalchemy as sa  # noqa: E402
+from alembic import op  # noqa: E402
+
+logger = logging.getLogger("alembic.env")
 
 
 def upgrade():
@@ -44,7 +46,7 @@ def upgrade():
         op.create_unique_constraint(None, "dbs", ["verbose_name"])
         op.create_unique_constraint(None, "clusters", ["verbose_name"])
     except Exception:
-        logging.info("Constraint not created, expected when using sqlite")
+        logger.info("Constraint not created, expected when using sqlite")
 
 
 def downgrade():
@@ -52,4 +54,4 @@ def downgrade():
         op.drop_column("dbs", "verbose_name")
         op.drop_column("clusters", "verbose_name")
     except Exception as ex:
-        logging.exception(ex)
+        logger.exception(ex)

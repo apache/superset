@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import sinon, { SinonStub } from 'sinon';
-import { Behavior, FeatureFlag } from '@superset-ui/core';
-import * as core from '@superset-ui/core';
+import { Behavior, getChartMetadataRegistry, VizType } from '@superset-ui/core';
 import { getCrossFiltersConfiguration } from './crossFilters';
 import { DEFAULT_CROSS_FILTER_SCOPING } from '../constants';
 
@@ -56,8 +54,9 @@ const CHARTS = {
     id: 1,
     form_data: {
       datasource: '2__table',
-      viz_type: 'echarts_timeseries_line',
+      viz_type: VizType.Line,
       slice_id: 1,
+      color_scheme: 'supersetColors',
     },
     chartAlert: null,
     chartStatus: 'rendered' as const,
@@ -67,7 +66,7 @@ const CHARTS = {
     latestQueryFormData: {},
     sliceFormData: {
       datasource: '2__table',
-      viz_type: 'echarts_timeseries_line',
+      viz_type: VizType.Line,
     },
     queryController: null,
     queriesResponse: [{}],
@@ -76,8 +75,9 @@ const CHARTS = {
   '2': {
     id: 2,
     form_data: {
+      color_scheme: 'supersetColors',
       datasource: '2__table',
-      viz_type: 'echarts_timeseries_line',
+      viz_type: VizType.Line,
       slice_id: 2,
     },
     chartAlert: null,
@@ -88,7 +88,7 @@ const CHARTS = {
     latestQueryFormData: {},
     sliceFormData: {
       datasource: '2__table',
-      viz_type: 'echarts_timeseries_line',
+      viz_type: VizType.Line,
     },
     queryController: null,
     queriesResponse: [{}],
@@ -126,30 +126,27 @@ const CHART_CONFIG_METADATA = {
   global_chart_configuration: GLOBAL_CHART_CONFIG,
 };
 
-let metadataRegistryStub: SinonStub;
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  getChartMetadataRegistry: jest.fn(),
+}));
+
+const mockedGetChartMetadataRegistry = getChartMetadataRegistry as jest.Mock;
 
 beforeEach(() => {
-  metadataRegistryStub = sinon
-    .stub(core, 'getChartMetadataRegistry')
-    .callsFake(() => ({
-      // @ts-ignore
-      get: () => ({
-        behaviors: [Behavior.INTERACTIVE_CHART],
-      }),
-    }));
+  mockedGetChartMetadataRegistry.mockImplementation(() => ({
+    get: () => ({
+      behaviors: [Behavior.InteractiveChart],
+    }),
+  }));
 });
 
 afterEach(() => {
-  metadataRegistryStub.restore();
+  mockedGetChartMetadataRegistry.mockRestore();
 });
 
 test('Generate correct cross filters configuration without initial configuration', () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.DASHBOARD_CROSS_FILTERS]: true,
-  };
-
-  // @ts-ignore
+  // @ts-expect-error
   expect(getCrossFiltersConfiguration(DASHBOARD_LAYOUT, {}, CHARTS)).toEqual({
     chartConfiguration: {
       '1': {
@@ -175,15 +172,9 @@ test('Generate correct cross filters configuration without initial configuration
       chartsInScope: [1, 2],
     },
   });
-  metadataRegistryStub.restore();
 });
 
 test('Generate correct cross filters configuration with initial configuration', () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.DASHBOARD_CROSS_FILTERS]: true,
-  };
-
   expect(
     getCrossFiltersConfiguration(
       DASHBOARD_LAYOUT,
@@ -218,19 +209,84 @@ test('Generate correct cross filters configuration with initial configuration', 
       chartsInScope: [1, 2],
     },
   });
-  metadataRegistryStub.restore();
 });
 
-test('Return undefined if DASHBOARD_CROSS_FILTERS feature flag is disabled', () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.DASHBOARD_CROSS_FILTERS]: false,
-  };
+test('Recalculate charts in global filter scope when charts change', () => {
   expect(
     getCrossFiltersConfiguration(
-      DASHBOARD_LAYOUT,
+      {
+        ...DASHBOARD_LAYOUT,
+        'CHART-3': {
+          children: [],
+          id: 'CHART-3',
+          meta: {
+            chartId: 3,
+            sliceName: 'Test chart 3',
+            height: 1,
+            width: 1,
+            uuid: '3',
+          },
+          parents: ['ROOT_ID', 'GRID_ID', 'ROW-6XUMf1rV76'],
+          type: 'CHART',
+        },
+      },
       CHART_CONFIG_METADATA,
-      CHARTS,
+      {
+        ...CHARTS,
+        '3': {
+          id: 3,
+          form_data: {
+            slice_id: 3,
+            datasource: '3__table',
+            viz_type: VizType.Line,
+            color_scheme: 'supersetColors',
+          },
+          chartAlert: null,
+          chartStatus: 'rendered' as const,
+          chartUpdateEndTime: 0,
+          chartUpdateStartTime: 0,
+          lastRendered: 0,
+          latestQueryFormData: {},
+          sliceFormData: {
+            datasource: '3__table',
+            viz_type: VizType.Line,
+          },
+          queryController: null,
+          queriesResponse: [{}],
+          triggerQuery: false,
+        },
+      },
     ),
-  ).toEqual(undefined);
+  ).toEqual({
+    chartConfiguration: {
+      '1': {
+        id: 1,
+        crossFilters: {
+          scope: { rootPath: ['ROOT_ID'], excluded: [1, 2] },
+          chartsInScope: [3],
+        },
+      },
+      '2': {
+        id: 2,
+        crossFilters: {
+          scope: 'global',
+          chartsInScope: [1, 3],
+        },
+      },
+      '3': {
+        id: 3,
+        crossFilters: {
+          scope: 'global',
+          chartsInScope: [1, 2],
+        },
+      },
+    },
+    globalChartConfiguration: {
+      scope: {
+        excluded: [],
+        rootPath: ['ROOT_ID'],
+      },
+      chartsInScope: [1, 2, 3],
+    },
+  });
 });

@@ -32,6 +32,8 @@ export interface OptionProps {
   isExtra?: boolean;
   datasourceWarningMessage?: string;
   canDelete?: boolean;
+  tooltipOverlay?: ReactNode;
+  multiValueWarningMessage?: string;
 }
 
 export interface OptionItemInterface {

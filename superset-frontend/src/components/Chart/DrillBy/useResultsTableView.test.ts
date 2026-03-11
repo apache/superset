@@ -18,9 +18,32 @@
  */
 
 import { renderHook } from '@testing-library/react-hooks';
-import userEvent from '@testing-library/user-event';
-import { render, screen, within, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  within,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { useResultsTableView } from './useResultsTableView';
+
+const capturedProps: any[] = [];
+
+jest.mock(
+  'src/explore/components/DataTablesPane/components/SingleQueryResultPane',
+  () => {
+    const actual = jest.requireActual(
+      'src/explore/components/DataTablesPane/components/SingleQueryResultPane',
+    );
+    return {
+      ...actual,
+      SingleQueryResultPane: (props: any) => {
+        capturedProps.push(props);
+        return actual.SingleQueryResultPane(props);
+      },
+    };
+  },
+);
 
 const MOCK_CHART_DATA_RESULT = [
   {
@@ -65,18 +88,18 @@ const MOCK_CHART_DATA_RESULT = [
 
 test('Displays results table for 1 query', () => {
   const { result } = renderHook(() =>
-    useResultsTableView(MOCK_CHART_DATA_RESULT.slice(0, 1), '1__table'),
+    useResultsTableView(MOCK_CHART_DATA_RESULT.slice(0, 1), '1__table', true),
   );
   render(result.current, { useRedux: true });
   expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
   expect(screen.getByRole('table')).toBeInTheDocument();
-  expect(screen.getAllByRole('columnheader')).toHaveLength(2);
+  expect(screen.getAllByTestId('sort-header')).toHaveLength(2);
   expect(screen.getAllByTestId('table-row')).toHaveLength(4);
 });
 
 test('Displays results for 2 queries', async () => {
   const { result } = renderHook(() =>
-    useResultsTableView(MOCK_CHART_DATA_RESULT, '1__table'),
+    useResultsTableView(MOCK_CHART_DATA_RESULT, '1__table', true),
   );
   render(result.current, { useRedux: true });
   const getActiveTabElement = () =>
@@ -89,7 +112,7 @@ test('Displays results for 2 queries', async () => {
 
   expect(within(getActiveTabElement()).getByRole('table')).toBeInTheDocument();
   expect(
-    within(getActiveTabElement()).getAllByRole('columnheader'),
+    within(getActiveTabElement()).getAllByTestId('sort-header'),
   ).toHaveLength(2);
   expect(
     within(getActiveTabElement()).getAllByTestId('table-row'),
@@ -99,10 +122,40 @@ test('Displays results for 2 queries', async () => {
 
   await waitFor(() => {
     expect(
-      within(getActiveTabElement()).getAllByRole('columnheader'),
+      within(getActiveTabElement()).getAllByTestId('sort-header'),
     ).toHaveLength(3);
   });
   expect(
     within(getActiveTabElement()).getAllByTestId('table-row'),
   ).toHaveLength(2);
+});
+
+test('passes isPaginationSticky={false} to SingleQueryResultPane for single query', () => {
+  capturedProps.length = 0;
+  const { result } = renderHook(() =>
+    useResultsTableView(MOCK_CHART_DATA_RESULT.slice(0, 1), '1__table', true),
+  );
+  render(result.current, { useRedux: true });
+
+  expect(capturedProps.length).toBeGreaterThan(0);
+  capturedProps.forEach(props => {
+    expect(props).toMatchObject({
+      isPaginationSticky: false,
+    });
+  });
+});
+
+test('passes isPaginationSticky={false} to SingleQueryResultPane for multiple queries', () => {
+  capturedProps.length = 0;
+  const { result } = renderHook(() =>
+    useResultsTableView(MOCK_CHART_DATA_RESULT, '1__table', true),
+  );
+  render(result.current, { useRedux: true });
+
+  expect(capturedProps.length).toBeGreaterThanOrEqual(2);
+  capturedProps.forEach(props => {
+    expect(props).toMatchObject({
+      isPaginationSticky: false,
+    });
+  });
 });

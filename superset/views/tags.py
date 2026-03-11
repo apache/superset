@@ -14,22 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
 
-import simplejson as json
 from flask_appbuilder import expose
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
-from jinja2.sandbox import SandboxedEnvironment
 from werkzeug.exceptions import NotFound
 
-from superset import db, is_feature_enabled, utils
-from superset.jinja_context import ExtraCache
+from superset import db, is_feature_enabled
 from superset.superset_typing import FlaskResponse
 from superset.tags.models import Tag
+from superset.utils import json
 from superset.views.base import SupersetModelView
 
 from .base import BaseSupersetView, json_success
@@ -37,20 +34,11 @@ from .base import BaseSupersetView, json_success
 logger = logging.getLogger(__name__)
 
 
-def process_template(content: str) -> str:
-    env = SandboxedEnvironment()
-    template = env.from_string(content)
-    context = {
-        "current_user_id": ExtraCache.current_user_id,
-        "current_username": ExtraCache.current_username,
-    }
-    return template.render(context)
-
-
 class TagModelView(SupersetModelView):
     route_base = "/superset/tags"
     datamodel = SQLAInterface(Tag)
     class_permission_name = "Tags"
+    include_route_methods = {"list"}
 
     @has_access
     @expose("/")
@@ -73,7 +61,7 @@ class TagView(BaseSupersetView):
 
     @has_access_api
     @expose("/tags/", methods=("GET",))
-    def tags(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def tags(self) -> FlaskResponse:
         query = db.session.query(Tag).all()
         results = [
             {
@@ -86,4 +74,4 @@ class TagView(BaseSupersetView):
             }
             for obj in query
         ]
-        return json_success(json.dumps(results, default=utils.core.json_int_dttm_ser))
+        return json_success(json.dumps(results, default=json.json_int_dttm_ser))

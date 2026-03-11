@@ -17,9 +17,8 @@
  * under the License.
  */
 
-import React from 'react';
 import { Global } from '@emotion/react';
-import { css } from '@superset-ui/core';
+import { css } from '@apache-superset/core/theme';
 
 export const SqlLabGlobalStyles = () => (
   <Global
@@ -27,7 +26,7 @@ export const SqlLabGlobalStyles = () => (
       body {
         min-height: max(
           100vh,
-          ${theme.gridUnit * 125}px
+          ${theme.sizeUnit * 125}px
         ); // Set a min height so the gutter is always visible when resizing
         overflow: hidden;
       }

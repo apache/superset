@@ -16,12 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  buildQueryContext,
-  GenericDataType,
-  QueryFormData,
-  t,
-} from '@superset-ui/core';
+import { buildQueryContext, QueryFormData } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 
 /**
  * The buildQuery function is used to create an instance of QueryContext that's
@@ -40,7 +36,7 @@ import {
 export default function buildQuery(formData: QueryFormData) {
   const { groupby } = formData;
   const [column = ''] = groupby || [];
-  // @ts-ignore (need update interface Column )
+  // @ts-expect-error (need update interface Column )
   return buildQueryContext(formData, baseQueryObject => [
     {
       ...baseQueryObject,
@@ -51,22 +47,22 @@ export default function buildQuery(formData: QueryFormData) {
           column: {
             column_name: column,
             id: 1,
-            type_generic: GenericDataType.NUMERIC,
+            type_generic: GenericDataType.Numeric,
           },
           expressionType: 'SIMPLE',
           hasCustomLabel: true,
-          label: t('min'),
+          label: 'min',
         },
         {
           aggregate: 'MAX',
           column: {
             column_name: column,
             id: 2,
-            type_generic: GenericDataType.NUMERIC,
+            type_generic: GenericDataType.Numeric,
           },
           expressionType: 'SIMPLE',
           hasCustomLabel: true,
-          label: t('max'),
+          label: 'max',
         },
       ],
     },

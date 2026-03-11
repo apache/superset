@@ -120,7 +120,7 @@ def test_should_raise_exception_duplication():
         )
 
 
-def test_should_raise_exception_duplication_on_multiindx():
+def test_should_raise_exception_duplication_on_multiindex():
     iterables = [["m1", "m2"], ["a", "b"], ["x", "y"]]
     columns = pd.MultiIndex.from_product(iterables, names=[None, "level1", "level2"])
     df = pd.DataFrame(index=[0, 1, 2], columns=columns, data=1)
@@ -133,7 +133,7 @@ def test_should_raise_exception_duplication_on_multiindx():
     2       1  1  1  1  1  1  1  1
     """
 
-    with pytest.raises(InvalidPostProcessingError):
+    with pytest.raises(InvalidPostProcessingError):  # noqa: PT012
         pp.rename(
             df=df,
             columns={
@@ -151,7 +151,7 @@ def test_should_raise_exception_duplication_on_multiindx():
 
 
 def test_should_raise_exception_invalid_level():
-    with pytest.raises(InvalidPostProcessingError):
+    with pytest.raises(InvalidPostProcessingError):  # noqa: PT012
         pp.rename(
             df=categories_df,
             columns={

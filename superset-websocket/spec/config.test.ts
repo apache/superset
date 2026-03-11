@@ -17,6 +17,7 @@
  * under the License.
  */
 import { buildConfig } from '../src/config';
+import { expect, test } from '@jest/globals';
 
 test('buildConfig() builds configuration and applies env var overrides', () => {
   let config = buildConfig();
@@ -26,7 +27,7 @@ test('buildConfig() builds configuration and applies env var overrides', () => {
   );
   expect(config.redis.host).toEqual('127.0.0.1');
   expect(config.redis.port).toEqual(6379);
-  expect(config.redis.password).toEqual('');
+  expect(config.redis.password).toEqual('some pwd');
   expect(config.redis.db).toEqual(10);
   expect(config.redis.ssl).toEqual(false);
   expect(config.statsd.host).toEqual('127.0.0.1');
@@ -64,4 +65,12 @@ test('buildConfig() builds configuration and applies env var overrides', () => {
   delete process.env.STATSD_HOST;
   delete process.env.STATSD_PORT;
   delete process.env.STATSD_GLOBAL_TAGS;
+});
+
+test('buildConfig() performs deep merge between configs', () => {
+  const config = buildConfig();
+  // We left the ssl setting the default
+  expect(config.redis.ssl).toEqual(false);
+  // We overrode the pwd
+  expect(config.redis.password).toEqual('some pwd');
 });

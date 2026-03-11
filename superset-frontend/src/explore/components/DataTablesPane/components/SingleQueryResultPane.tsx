@@ -16,9 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
-import { t } from '@superset-ui/core';
-import TableView, { EmptyWrapperType } from 'src/components/TableView';
+import { useState, useCallback } from 'react';
+import { t } from '@apache-superset/core/translation';
+import {
+  TableView,
+  TableSize,
+  EmptyWrapperType,
+} from '@superset-ui/core/components';
 import {
   useFilteredTableData,
   useTableColumns,
@@ -30,9 +34,13 @@ export const SingleQueryResultPane = ({
   data,
   colnames,
   coltypes,
+  rowcount,
   datasourceId,
   dataSize = 50,
   isVisible,
+  canDownload,
+  columnDisplayNames,
+  isPaginationSticky = true,
 }: SingleQueryResultPaneProp) => {
   const [filterText, setFilterText] = useState('');
 
@@ -44,8 +52,16 @@ export const SingleQueryResultPane = ({
     data,
     datasourceId,
     isVisible,
+    {}, // moreConfig
+    true, // allowHTML
+    columnDisplayNames,
   );
   const filteredData = useFilteredTableData(filterText, data);
+
+  const handleInputChange = useCallback(
+    (input: string) => setFilterText(input),
+    [],
+  );
 
   return (
     <>
@@ -53,18 +69,21 @@ export const SingleQueryResultPane = ({
         data={filteredData}
         columnNames={colnames}
         columnTypes={coltypes}
+        rowcount={rowcount}
         datasourceId={datasourceId}
-        onInputChange={input => setFilterText(input)}
+        onInputChange={handleInputChange}
         isLoading={false}
+        canDownload={canDownload}
       />
       <TableView
         columns={columns}
+        size={TableSize.Small}
         data={filteredData}
         pageSize={dataSize}
         noDataText={t('No results')}
         emptyWrapperType={EmptyWrapperType.Small}
         className="table-condensed"
-        isPaginationSticky
+        isPaginationSticky={isPaginationSticky}
         showRowCount={false}
         small
       />

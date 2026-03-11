@@ -105,7 +105,7 @@ class DatasetSchema(Schema):
 class SliceSchema(Schema):
     cache_timeout = fields.Integer(
         metadata={
-            "description": "Duration (in seconds) of the caching timeout for this chart."
+            "description": "Duration (in seconds) of the caching timeout for this chart."  # noqa: E501
         }
     )
     certification_details = fields.String(
@@ -114,7 +114,7 @@ class SliceSchema(Schema):
     certified_by = fields.String(
         metadata={"description": "Person or group that has certified this dashboard."}
     )
-    changed_on = fields.String(
+    changed_on = fields.DateTime(
         metadata={"description": "Timestamp of the last modification."}
     )
     changed_on_humanized = fields.String(

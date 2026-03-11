@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import datetime
-from typing import Any, List, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -29,9 +29,24 @@ if TYPE_CHECKING:
 def left_join_df(
     left_df: pd.DataFrame,
     right_df: pd.DataFrame,
-    join_keys: List[str],
+    join_keys: list[str],
+    lsuffix: str = "",
+    rsuffix: str = "",
 ) -> pd.DataFrame:
-    df = left_df.set_index(join_keys).join(right_df.set_index(join_keys))
+    df = left_df.set_index(join_keys).join(
+        right_df.set_index(join_keys), lsuffix=lsuffix, rsuffix=rsuffix
+    )
+    df.reset_index(inplace=True)
+    return df
+
+
+def full_outer_join_df(
+    left_df: pd.DataFrame,
+    right_df: pd.DataFrame,
+    lsuffix: str = "",
+    rsuffix: str = "",
+) -> pd.DataFrame:
+    df = left_df.join(right_df, lsuffix=lsuffix, rsuffix=rsuffix, how="outer")
     df.reset_index(inplace=True)
     return df
 

@@ -17,11 +17,11 @@
  * under the License.
  */
 import { isDerivedSeries } from '@superset-ui/chart-controls';
-import { SqlaFormData, ComparisonType } from '@superset-ui/core';
+import { SqlaFormData, ComparisonType, VizType } from '@superset-ui/core';
 
 const formData: SqlaFormData = {
   datasource: 'foo',
-  viz_type: 'table',
+  viz_type: VizType.Table,
 };
 const series = {
   id: 'metric__1 month ago',
@@ -96,4 +96,25 @@ test('should be false if series name invalid', () => {
     time_compare: ['1 month ago', '1 month later'],
   };
   expect(isDerivedSeries(series, formDataWithActualTypes)).toEqual(false);
+});
+
+test('should be true for exact match when seriesName parameter is provided', () => {
+  const exactMatchSeries = {
+    id: '1 week ago',
+    name: '1 week ago',
+    data: [100],
+  };
+  const formDataWithTimeCompare = {
+    ...formData,
+    comparison_type: ComparisonType.Values,
+    time_compare: ['1 week ago'],
+  };
+  // Without seriesName parameter, exact match is not detected via hasTimeOffset
+  expect(isDerivedSeries(exactMatchSeries, formDataWithTimeCompare)).toEqual(
+    false,
+  );
+  // With seriesName parameter, exact match is detected
+  expect(
+    isDerivedSeries(exactMatchSeries, formDataWithTimeCompare, '1 week ago'),
+  ).toEqual(true);
 });

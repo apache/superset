@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import URLShortLinkButton from 'src/dashboard/components/URLShortLinkButton';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
@@ -41,10 +39,10 @@ fetchMock.get(
   FILTER_STATE_PAYLOAD,
 );
 
-fetchMock.post(
-  `glob:*/api/v1/dashboard/${DASHBOARD_ID}/permalink`,
-  PERMALINK_PAYLOAD,
-);
+const postDashboardPermanentlinkMockUrl = `glob:*/api/v1/dashboard/${DASHBOARD_ID}/permalink`;
+fetchMock.post(postDashboardPermanentlinkMockUrl, PERMALINK_PAYLOAD, {
+  name: postDashboardPermanentlinkMockUrl,
+});
 
 test('renders with default props', () => {
   render(<URLShortLinkButton {...props} />, { useRedux: true });
@@ -86,9 +84,8 @@ test('creates email anchor', async () => {
 });
 
 test('renders error message on short url error', async () => {
-  fetchMock.mock(`glob:*/api/v1/dashboard/${DASHBOARD_ID}/permalink`, 500, {
-    overwriteRoutes: true,
-  });
+  fetchMock.removeRoute(postDashboardPermanentlinkMockUrl);
+  fetchMock.route(`glob:*/api/v1/dashboard/${DASHBOARD_ID}/permalink`, 500);
 
   render(
     <>

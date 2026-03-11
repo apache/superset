@@ -17,13 +17,12 @@
 
 
 import pytest
-from pkg_resources import EntryPoint
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 
 from superset.db_engine_specs import get_available_engine_specs
 
 
-def test_get_available_engine_specs(mocker: MockFixture) -> None:
+def test_get_available_engine_specs(mocker: MockerFixture) -> None:
     """
     get_available_engine_specs should return all engine specs
     """
@@ -56,7 +55,7 @@ def test_get_available_engine_specs(mocker: MockFixture) -> None:
     [{"DBS_AVAILABLE_DENYLIST": {"databricks": {"pyhive", "pyodbc"}}}],
     indirect=True,
 )
-def test_get_available_engine_specs_with_denylist(mocker: MockFixture) -> None:
+def test_get_available_engine_specs_with_denylist(mocker: MockerFixture) -> None:
     """
     The denylist removes items from the db engine spec list
     """

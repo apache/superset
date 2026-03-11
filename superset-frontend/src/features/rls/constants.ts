@@ -17,9 +17,9 @@
  * under the License.
  */
 
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 
-export const FilterOptions = [
+export const FILTER_OPTIONS = [
   {
     label: t('Regular'),
     value: 'Regular',

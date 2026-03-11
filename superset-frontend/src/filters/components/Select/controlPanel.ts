@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, validateNonEmpty } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
-  sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
@@ -28,6 +28,7 @@ const {
   enableEmptyFilter,
   inverseSelection,
   multiSelect,
+  creatable,
   defaultToFirstItem,
   searchAllOptions,
   sortAscending,
@@ -35,8 +36,6 @@ const {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    // @ts-ignore
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -66,6 +65,18 @@ const config: ControlPanelConfig = {
               label: t('Sort ascending'),
               default: sortAscending,
               description: t('Check for sorting ascending'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'creatable',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Allow creation of new values'),
+              default: creatable,
+              affectsDataMask: true,
+              renderTrigger: true,
             },
           },
         ],
@@ -108,7 +119,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               requiredFirst: true,
               description: t(
-                'When using this option, default value can’t be set',
+                'When using this option, default value can’t be set. Using this option may impact the load times for your dashboard.',
               ),
             },
           },

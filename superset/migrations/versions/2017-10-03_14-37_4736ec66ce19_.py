@@ -37,6 +37,8 @@ from superset.utils.core import (
 revision = "4736ec66ce19"
 down_revision = "f959a6652acd"
 
+logger = logging.getLogger("alembic.env")
+
 conv = {
     "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
     "uq": "uq_%(table_name)s_%(column_0_name)s",
@@ -69,7 +71,7 @@ def upgrade():
             batch_op.add_column(sa.Column("datasource_id", sa.Integer))
 
             batch_op.create_foreign_key(
-                "fk_{}_datasource_id_datasources".format(foreign),
+                f"fk_{foreign}_datasource_id_datasources",
                 "datasources",
                 ["datasource_id"],
                 ["id"],
@@ -102,7 +104,7 @@ def upgrade():
 
             for name in names:
                 batch_op.drop_constraint(
-                    name or "fk_{}_datasource_name_datasources".format(foreign),
+                    name or f"fk_{foreign}_datasource_name_datasources",
                     type_="foreignkey",
                 )
 
@@ -119,13 +121,13 @@ def upgrade():
                 type_="unique",
             )
     except Exception as ex:
-        logging.warning(
+        logger.warning(
             "Constraint drop failed, you may want to do this "
             "manually on your database. For context, this is a known "
             "issue around nondeterministic constraint names on Postgres "
             "and perhaps more databases through SQLAlchemy."
         )
-        logging.exception(ex)
+        logger.exception(ex)
 
 
 def downgrade():
@@ -148,7 +150,7 @@ def downgrade():
             batch_op.add_column(sa.Column("datasource_name", sa.String(255)))
 
             batch_op.create_foreign_key(
-                "fk_{}_datasource_name_datasources".format(foreign),
+                f"fk_{foreign}_datasource_name_datasources",
                 "datasources",
                 ["datasource_name"],
                 ["datasource_name"],
@@ -174,7 +176,7 @@ def downgrade():
         with op.batch_alter_table(foreign, naming_convention=conv) as batch_op:
             # Drop the datasource_id column and associated constraint.
             batch_op.drop_constraint(
-                "fk_{}_datasource_id_datasources".format(foreign), type_="foreignkey"
+                f"fk_{foreign}_datasource_id_datasources", type_="foreignkey"
             )
 
             batch_op.drop_column("datasource_id")
@@ -201,7 +203,7 @@ def downgrade():
 
         # Re-create the foreign key associated with the cluster_name column.
         batch_op.create_foreign_key(
-            "fk_{}_datasource_id_datasources".format(foreign),
+            f"fk_{foreign}_datasource_id_datasources",
             "clusters",
             ["cluster_name"],
             ["cluster_name"],

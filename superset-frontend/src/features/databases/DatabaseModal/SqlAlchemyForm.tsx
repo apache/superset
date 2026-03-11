@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { EventHandler, ChangeEvent, MouseEvent, ReactNode } from 'react';
-import { t, SupersetTheme } from '@superset-ui/core';
+import { EventHandler, ChangeEvent, MouseEvent, ReactNode } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { SupersetTheme } from '@apache-superset/core/theme';
 import SupersetText from 'src/utils/textUtils';
-import Button from 'src/components/Button';
-import { StyledInputContainer, wideButton } from './styles';
+import { Input, Button } from '@superset-ui/core/components';
+import { StyledInputContainer, wideButton, marginBottom } from './styles';
 import { DatabaseObject } from '../types';
 
 const SqlAlchemyTab = ({
@@ -38,17 +39,13 @@ const SqlAlchemyTab = ({
   testInProgress?: boolean;
   children?: ReactNode;
 }) => {
-  let fallbackDocsUrl;
-  let fallbackDisplayText;
-  if (SupersetText) {
-    fallbackDocsUrl =
-      SupersetText.DB_MODAL_SQLALCHEMY_FORM?.SQLALCHEMY_DOCS_URL;
-    fallbackDisplayText =
-      SupersetText.DB_MODAL_SQLALCHEMY_FORM?.SQLALCHEMY_DISPLAY_TEXT;
-  } else {
-    fallbackDocsUrl = 'https://docs.sqlalchemy.org/en/13/core/engines.html';
-    fallbackDisplayText = 'SQLAlchemy docs';
-  }
+  const fallbackDocsUrl =
+    SupersetText?.DB_MODAL_SQLALCHEMY_FORM?.SQLALCHEMY_DOCS_URL ||
+    'https://docs.sqlalchemy.org/en/13/core/engines.html';
+  const fallbackDisplayText =
+    SupersetText?.DB_MODAL_SQLALCHEMY_FORM?.SQLALCHEMY_DISPLAY_TEXT ||
+    'SQLAlchemy docs';
+
   return (
     <>
       <StyledInputContainer>
@@ -57,8 +54,7 @@ const SqlAlchemyTab = ({
           <span className="required">*</span>
         </div>
         <div className="input-container">
-          <input
-            type="text"
+          <Input
             name="database_name"
             data-test="database-name-input"
             value={db?.database_name || ''}
@@ -76,15 +72,15 @@ const SqlAlchemyTab = ({
           <span className="required">*</span>
         </div>
         <div className="input-container">
-          <input
-            type="text"
+          <Input
             name="sqlalchemy_uri"
             data-test="sqlalchemy-uri-input"
             value={db?.sqlalchemy_uri || ''}
             autoComplete="off"
-            placeholder={t(
-              'dialect+driver://username:password@host:port/database',
-            )}
+            placeholder={
+              db?.sqlalchemy_uri_placeholder ||
+              t('dialect+driver://username:password@host:port/database')
+            }
             onChange={onInputChange}
           />
         </div>
@@ -106,7 +102,7 @@ const SqlAlchemyTab = ({
         loading={testInProgress}
         cta
         buttonStyle="link"
-        css={(theme: SupersetTheme) => wideButton(theme)}
+        css={(theme: SupersetTheme) => [wideButton(theme), marginBottom(theme)]}
       >
         {t('Test connection')}
       </Button>

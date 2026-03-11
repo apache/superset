@@ -16,8 +16,6 @@
 # under the License.
 # flake8: noqa
 # type: ignore
-import os
-from copy import copy
 
 from .superset_test_config import *
 

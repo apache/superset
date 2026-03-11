@@ -18,12 +18,12 @@
  */
 
 import {
-  GenericDataType,
   getNumberFormatter,
   getTimeFormatter,
   NumberFormats,
   TimeFormats,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   getDataRecordFormatter,
   getRangeExtraFormData,
@@ -31,9 +31,11 @@ import {
 } from 'src/filters/utils';
 import { FALSE_STRING, NULL_STRING, TRUE_STRING } from 'src/utils/common';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Filter utils', () => {
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('getRangeExtraFormData', () => {
-    it('getRangeExtraFormData - col: "testCol", lower: 1, upper: 2', () => {
+    test('getRangeExtraFormData - col: "testCol", lower: 1, upper: 2', () => {
       expect(getRangeExtraFormData('testCol', 1, 2)).toEqual({
         filters: [
           {
@@ -49,7 +51,7 @@ describe('Filter utils', () => {
         ],
       });
     });
-    it('getRangeExtraFormData - col: "testCol", lower: 0, upper: 0', () => {
+    test('getRangeExtraFormData - col: "testCol", lower: 0, upper: 0', () => {
       expect(getRangeExtraFormData('testCol', 0, 0)).toEqual({
         filters: [
           {
@@ -60,7 +62,7 @@ describe('Filter utils', () => {
         ],
       });
     });
-    it('getRangeExtraFormData - col: "testCol", lower: null, upper: 2', () => {
+    test('getRangeExtraFormData - col: "testCol", lower: null, upper: 2', () => {
       expect(getRangeExtraFormData('testCol', null, 2)).toEqual({
         filters: [
           {
@@ -71,7 +73,7 @@ describe('Filter utils', () => {
         ],
       });
     });
-    it('getRangeExtraFormData - col: "testCol", lower: 1, upper: undefined', () => {
+    test('getRangeExtraFormData - col: "testCol", lower: 1, upper: undefined', () => {
       expect(getRangeExtraFormData('testCol', 1, undefined)).toEqual({
         filters: [
           {
@@ -83,8 +85,9 @@ describe('Filter utils', () => {
       });
     });
   });
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('getSelectExtraFormData', () => {
-    it('getSelectExtraFormData - col: "testCol", value: ["value"], emptyFilter: false, inverseSelection: false', () => {
+    test('getSelectExtraFormData - col: "testCol", value: ["value"], emptyFilter: false, inverseSelection: false', () => {
       expect(
         getSelectExtraFormData('testCol', ['value'], false, false),
       ).toEqual({
@@ -97,7 +100,7 @@ describe('Filter utils', () => {
         ],
       });
     });
-    it('getSelectExtraFormData - col: "testCol", value: ["value"], emptyFilter: true, inverseSelection: false', () => {
+    test('getSelectExtraFormData - col: "testCol", value: ["value"], emptyFilter: true, inverseSelection: false', () => {
       expect(getSelectExtraFormData('testCol', ['value'], true, false)).toEqual(
         {
           adhoc_filters: [
@@ -110,7 +113,7 @@ describe('Filter utils', () => {
         },
       );
     });
-    it('getSelectExtraFormData - col: "testCol", value: ["value"], emptyFilter: false, inverseSelection: true', () => {
+    test('getSelectExtraFormData - col: "testCol", value: ["value"], emptyFilter: false, inverseSelection: true', () => {
       expect(getSelectExtraFormData('testCol', ['value'], false, true)).toEqual(
         {
           filters: [
@@ -123,96 +126,97 @@ describe('Filter utils', () => {
         },
       );
     });
-    it('getSelectExtraFormData - col: "testCol", value: [], emptyFilter: false, inverseSelection: false', () => {
+    test('getSelectExtraFormData - col: "testCol", value: [], emptyFilter: false, inverseSelection: false', () => {
       expect(getSelectExtraFormData('testCol', [], false, false)).toEqual({});
     });
-    it('getSelectExtraFormData - col: "testCol", value: undefined, emptyFilter: false, inverseSelection: false', () => {
+    test('getSelectExtraFormData - col: "testCol", value: undefined, emptyFilter: false, inverseSelection: false', () => {
       expect(
         getSelectExtraFormData('testCol', undefined, false, false),
       ).toEqual({});
     });
-    it('getSelectExtraFormData - col: "testCol", value: null, emptyFilter: false, inverseSelection: false', () => {
+    test('getSelectExtraFormData - col: "testCol", value: null, emptyFilter: false, inverseSelection: false', () => {
       expect(getSelectExtraFormData('testCol', null, false, false)).toEqual({});
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('getDataRecordFormatter', () => {
-    it('default formatter returns expected values', () => {
+    test('default formatter returns expected values', () => {
       const formatter = getDataRecordFormatter();
-      expect(formatter(null, GenericDataType.STRING)).toEqual(NULL_STRING);
-      expect(formatter(null, GenericDataType.NUMERIC)).toEqual(NULL_STRING);
-      expect(formatter(null, GenericDataType.TEMPORAL)).toEqual(NULL_STRING);
-      expect(formatter(null, GenericDataType.BOOLEAN)).toEqual(NULL_STRING);
-      expect(formatter('foo', GenericDataType.STRING)).toEqual('foo');
-      expect(formatter('foo', GenericDataType.NUMERIC)).toEqual('foo');
-      expect(formatter('foo', GenericDataType.TEMPORAL)).toEqual('foo');
-      expect(formatter('foo', GenericDataType.BOOLEAN)).toEqual(FALSE_STRING);
-      expect(formatter(true, GenericDataType.BOOLEAN)).toEqual(TRUE_STRING);
-      expect(formatter(false, GenericDataType.BOOLEAN)).toEqual(FALSE_STRING);
-      expect(formatter('true', GenericDataType.BOOLEAN)).toEqual(TRUE_STRING);
-      expect(formatter('false', GenericDataType.BOOLEAN)).toEqual(FALSE_STRING);
-      expect(formatter('TRUE', GenericDataType.BOOLEAN)).toEqual(TRUE_STRING);
-      expect(formatter('FALSE', GenericDataType.BOOLEAN)).toEqual(FALSE_STRING);
-      expect(formatter(0, GenericDataType.BOOLEAN)).toEqual(FALSE_STRING);
-      expect(formatter(1, GenericDataType.BOOLEAN)).toEqual(TRUE_STRING);
-      expect(formatter(2, GenericDataType.BOOLEAN)).toEqual(TRUE_STRING);
-      expect(formatter(0, GenericDataType.STRING)).toEqual('0');
-      expect(formatter(0, GenericDataType.NUMERIC)).toEqual('0');
-      expect(formatter(0, GenericDataType.TEMPORAL)).toEqual('0');
-      expect(formatter(1234567.89, GenericDataType.STRING)).toEqual(
+      expect(formatter(null, GenericDataType.String)).toEqual(NULL_STRING);
+      expect(formatter(null, GenericDataType.Numeric)).toEqual(NULL_STRING);
+      expect(formatter(null, GenericDataType.Temporal)).toEqual(NULL_STRING);
+      expect(formatter(null, GenericDataType.Boolean)).toEqual(NULL_STRING);
+      expect(formatter('foo', GenericDataType.String)).toEqual('foo');
+      expect(formatter('foo', GenericDataType.Numeric)).toEqual('foo');
+      expect(formatter('foo', GenericDataType.Temporal)).toEqual('foo');
+      expect(formatter('foo', GenericDataType.Boolean)).toEqual(FALSE_STRING);
+      expect(formatter(true, GenericDataType.Boolean)).toEqual(TRUE_STRING);
+      expect(formatter(false, GenericDataType.Boolean)).toEqual(FALSE_STRING);
+      expect(formatter('true', GenericDataType.Boolean)).toEqual(TRUE_STRING);
+      expect(formatter('false', GenericDataType.Boolean)).toEqual(FALSE_STRING);
+      expect(formatter('TRUE', GenericDataType.Boolean)).toEqual(TRUE_STRING);
+      expect(formatter('FALSE', GenericDataType.Boolean)).toEqual(FALSE_STRING);
+      expect(formatter(0, GenericDataType.Boolean)).toEqual(FALSE_STRING);
+      expect(formatter(1, GenericDataType.Boolean)).toEqual(TRUE_STRING);
+      expect(formatter(2, GenericDataType.Boolean)).toEqual(TRUE_STRING);
+      expect(formatter(0, GenericDataType.String)).toEqual('0');
+      expect(formatter(0, GenericDataType.Numeric)).toEqual('0');
+      expect(formatter(0, GenericDataType.Temporal)).toEqual('0');
+      expect(formatter(1234567.89, GenericDataType.String)).toEqual(
         '1234567.89',
       );
-      expect(formatter(1234567.89, GenericDataType.NUMERIC)).toEqual(
+      expect(formatter(1234567.89, GenericDataType.Numeric)).toEqual(
         '1234567.89',
       );
-      expect(formatter(1234567.89, GenericDataType.TEMPORAL)).toEqual(
+      expect(formatter(1234567.89, GenericDataType.Temporal)).toEqual(
         '1234567.89',
       );
-      expect(formatter(1234567.89, GenericDataType.BOOLEAN)).toEqual(
+      expect(formatter(1234567.89, GenericDataType.Boolean)).toEqual(
         TRUE_STRING,
       );
     });
 
-    it('formatter with defined formatters returns expected values', () => {
+    test('formatter with defined formatters returns expected values', () => {
       const formatter = getDataRecordFormatter({
         timeFormatter: getTimeFormatter(TimeFormats.DATABASE_DATETIME),
         numberFormatter: getNumberFormatter(NumberFormats.SMART_NUMBER),
       });
-      expect(formatter(null, GenericDataType.STRING)).toEqual(NULL_STRING);
-      expect(formatter(null, GenericDataType.NUMERIC)).toEqual(NULL_STRING);
-      expect(formatter(null, GenericDataType.TEMPORAL)).toEqual(NULL_STRING);
-      expect(formatter(null, GenericDataType.BOOLEAN)).toEqual(NULL_STRING);
-      expect(formatter('foo', GenericDataType.STRING)).toEqual('foo');
-      expect(formatter('foo', GenericDataType.NUMERIC)).toEqual('foo');
-      expect(formatter('foo', GenericDataType.TEMPORAL)).toEqual('foo');
-      expect(formatter('foo', GenericDataType.BOOLEAN)).toEqual(FALSE_STRING);
-      expect(formatter(0, GenericDataType.STRING)).toEqual('0');
-      expect(formatter(0, GenericDataType.NUMERIC)).toEqual('0');
-      expect(formatter(0, GenericDataType.TEMPORAL)).toEqual(
+      expect(formatter(null, GenericDataType.String)).toEqual(NULL_STRING);
+      expect(formatter(null, GenericDataType.Numeric)).toEqual(NULL_STRING);
+      expect(formatter(null, GenericDataType.Temporal)).toEqual(NULL_STRING);
+      expect(formatter(null, GenericDataType.Boolean)).toEqual(NULL_STRING);
+      expect(formatter('foo', GenericDataType.String)).toEqual('foo');
+      expect(formatter('foo', GenericDataType.Numeric)).toEqual('foo');
+      expect(formatter('foo', GenericDataType.Temporal)).toEqual('foo');
+      expect(formatter('foo', GenericDataType.Boolean)).toEqual(FALSE_STRING);
+      expect(formatter(0, GenericDataType.String)).toEqual('0');
+      expect(formatter(0, GenericDataType.Numeric)).toEqual('0');
+      expect(formatter(0, GenericDataType.Temporal)).toEqual(
         '1970-01-01 00:00:00',
       );
-      expect(formatter(0, GenericDataType.BOOLEAN)).toEqual(FALSE_STRING);
-      expect(formatter(1234567.89, GenericDataType.STRING)).toEqual(
+      expect(formatter(0, GenericDataType.Boolean)).toEqual(FALSE_STRING);
+      expect(formatter(1234567.89, GenericDataType.String)).toEqual(
         '1234567.89',
       );
-      expect(formatter(1234567.89, GenericDataType.NUMERIC)).toEqual('1.23M');
-      expect(formatter(1234567.89, GenericDataType.TEMPORAL)).toEqual(
+      expect(formatter(1234567.89, GenericDataType.Numeric)).toEqual('1.23M');
+      expect(formatter(1234567.89, GenericDataType.Temporal)).toEqual(
         '1970-01-01 00:20:34',
       );
-      expect(formatter(1234567.89, GenericDataType.BOOLEAN)).toEqual(
+      expect(formatter(1234567.89, GenericDataType.Boolean)).toEqual(
         TRUE_STRING,
       );
-      expect(formatter('1970-01-01 00:00:00', GenericDataType.STRING)).toEqual(
+      expect(formatter('1970-01-01 00:00:00', GenericDataType.String)).toEqual(
         '1970-01-01 00:00:00',
       );
-      expect(formatter('1970-01-01 00:00:00', GenericDataType.NUMERIC)).toEqual(
+      expect(formatter('1970-01-01 00:00:00', GenericDataType.Numeric)).toEqual(
         '1970-01-01 00:00:00',
       );
-      expect(formatter('1970-01-01 00:00:00', GenericDataType.BOOLEAN)).toEqual(
+      expect(formatter('1970-01-01 00:00:00', GenericDataType.Boolean)).toEqual(
         FALSE_STRING,
       );
       expect(
-        formatter('1970-01-01 00:00:00', GenericDataType.TEMPORAL),
+        formatter('1970-01-01 00:00:00', GenericDataType.Temporal),
       ).toEqual('1970-01-01 00:00:00');
     });
   });

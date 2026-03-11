@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { action } from '@storybook/addon-actions';
-import { boolean, withKnobs } from '@storybook/addon-knobs';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
 import { mockQueryDataForCountries } from 'spec/fixtures/mockNativeFilters';
 import SelectFilterPlugin from './index';
@@ -29,14 +27,24 @@ new SelectFilterPlugin().configure({ key: 'filter_select' }).register();
 getChartTransformPropsRegistry().registerValue('filter_select', transformProps);
 
 export default {
-  title: 'Filter Plugins',
-  decorators: [withKnobs],
+  title: 'Components/Filter Plugins',
+  argTypes: {
+    creatable: { control: 'boolean', defaultValue: true },
+    multiSelect: { control: 'boolean', defaultValue: true },
+    inverseSelection: { control: 'boolean', defaultValue: false },
+  },
 };
 
 export const Select = ({
+  creatable,
+  multiSeelct,
+  inverseSelection,
   width,
   height,
 }: {
+  creatable: boolean;
+  multiSeelct: boolean;
+  inverseSelection: boolean;
   width: number;
   height: number;
 }) => (
@@ -48,8 +56,9 @@ export const Select = ({
     formData={{
       adhoc_filters: [],
       extra_filters: [],
-      multiSelect: boolean('Multi select', true),
-      inverseSelection: boolean('Inverse selection', false),
+      creatable,
+      multiSelect: { multiSeelct },
+      inverseSelection: { inverseSelection },
       row_limit: 1000,
       viz_type: 'filter_select',
       groupby: ['country_name'],

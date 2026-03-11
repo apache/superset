@@ -23,22 +23,6 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
 
-from superset.annotation_layers.commands.bulk_delete import (
-    BulkDeleteAnnotationLayerCommand,
-)
-from superset.annotation_layers.commands.create import CreateAnnotationLayerCommand
-from superset.annotation_layers.commands.delete import DeleteAnnotationLayerCommand
-from superset.annotation_layers.commands.exceptions import (
-    AnnotationLayerBulkDeleteFailedError,
-    AnnotationLayerBulkDeleteIntegrityError,
-    AnnotationLayerCreateFailedError,
-    AnnotationLayerDeleteFailedError,
-    AnnotationLayerDeleteIntegrityError,
-    AnnotationLayerInvalidError,
-    AnnotationLayerNotFoundError,
-    AnnotationLayerUpdateFailedError,
-)
-from superset.annotation_layers.commands.update import UpdateAnnotationLayerCommand
 from superset.annotation_layers.filters import AnnotationLayerAllTextFilter
 from superset.annotation_layers.schemas import (
     AnnotationLayerPostSchema,
@@ -46,6 +30,17 @@ from superset.annotation_layers.schemas import (
     get_delete_ids_schema,
     openapi_spec_methods_override,
 )
+from superset.commands.annotation_layer.create import CreateAnnotationLayerCommand
+from superset.commands.annotation_layer.delete import DeleteAnnotationLayerCommand
+from superset.commands.annotation_layer.exceptions import (
+    AnnotationLayerCreateFailedError,
+    AnnotationLayerDeleteFailedError,
+    AnnotationLayerDeleteIntegrityError,
+    AnnotationLayerInvalidError,
+    AnnotationLayerNotFoundError,
+    AnnotationLayerUpdateFailedError,
+)
+from superset.commands.annotation_layer.update import UpdateAnnotationLayerCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.extensions import event_logger
 from superset.models.annotations import AnnotationLayer
@@ -104,7 +99,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
     ]
 
     search_filters = {"name": [AnnotationLayerAllTextFilter]}
-    allowed_rel_fields = {"created_by"}
+    allowed_rel_fields = {"created_by", "changed_by"}
 
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
@@ -122,11 +117,10 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
     )
     @permission_name("delete")
     def delete(self, pk: int) -> Response:
-        """Delete an annotation layer
+        """Delete an annotation layer.
         ---
         delete:
-          description: >-
-            Delete an annotation layer
+          summary: Delete an annotation layer
           parameters:
           - in: path
             schema:
@@ -151,7 +145,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            DeleteAnnotationLayerCommand(pk).run()
+            DeleteAnnotationLayerCommand([pk]).run()
             return self.response(200, message="OK")
         except AnnotationLayerNotFoundError:
             return self.response_404()
@@ -177,11 +171,10 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
     )
     @requires_json
     def post(self) -> Response:
-        """Creates a new Annotation Layer
+        """Create a new annotation layer.
         ---
         post:
-          description: >-
-            Create a new Annotation
+          summary: Create a new annotation layer
           requestBody:
             description: Annotation Layer schema
             required: true
@@ -242,11 +235,10 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
     )
     @requires_json
     def put(self, pk: int) -> Response:
-        """Updates an Annotation Layer
+        """Update an annotation layer.
         ---
         put:
-          description: >-
-            Update an annotation layer
+          summary: Update an annotation layer
           parameters:
           - in: path
             schema:
@@ -313,11 +305,10 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
-        """Delete bulk Annotation layers
+        """Bulk delete annotation layers.
         ---
         delete:
-          description: >-
-            Deletes multiple annotation layers in a bulk operation.
+          summary: Delete multiple annotation layers in a bulk operation
           parameters:
           - in: query
             name: q
@@ -346,7 +337,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteAnnotationLayerCommand(item_ids).run()
+            DeleteAnnotationLayerCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(
@@ -357,7 +348,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
             )
         except AnnotationLayerNotFoundError:
             return self.response_404()
-        except AnnotationLayerBulkDeleteIntegrityError as ex:
+        except AnnotationLayerDeleteIntegrityError as ex:
             return self.response_422(message=str(ex))
-        except AnnotationLayerBulkDeleteFailedError as ex:
+        except AnnotationLayerDeleteFailedError as ex:
             return self.response_422(message=str(ex))

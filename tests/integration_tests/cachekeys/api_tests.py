@@ -16,7 +16,8 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
-from typing import Dict, Any
+
+from typing import Any
 
 import pytest
 
@@ -27,11 +28,15 @@ from tests.integration_tests.base_tests import (
     SupersetTestCase,
     post_assert_metric,
 )
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
+)
 
 
 @pytest.fixture
 def invalidate(test_client, login_as_admin):
-    def _invalidate(params: Dict[str, Any]):
+    def _invalidate(params: dict[str, Any]):
         return post_assert_metric(
             test_client, "api/v1/cachekey/invalidate", params, "invalidate"
         )
@@ -52,7 +57,7 @@ def test_invalidate_existing_cache(invalidate):
     rv = invalidate({"datasource_uids": ["3__table"]})
 
     assert rv.status_code == 201
-    assert cache_manager.cache.get("cache_key") == None
+    assert cache_manager.cache.get("cache_key") is None  # noqa: E711
     assert (
         not db.session.query(CacheKey).filter(CacheKey.cache_key == "cache_key").first()
     )
@@ -95,6 +100,7 @@ def test_invalidate_cache_bad_request(invalidate):
     assert rv.status_code == 400
 
 
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 def test_invalidate_existing_caches(invalidate):
     schema = get_example_default_schema() or ""
     bn = SupersetTestCase.get_birth_names_dataset()

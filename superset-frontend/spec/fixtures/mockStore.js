@@ -127,7 +127,7 @@ export const stateWithNativeFilters = {
     },
   },
   dashboardInfo: {
-    filterBarOrientation: FilterBarOrientation.VERTICAL,
+    filterBarOrientation: FilterBarOrientation.Vertical,
   },
 };
 
@@ -135,6 +135,17 @@ export const getMockStoreWithNativeFilters = () =>
   setupStore({
     disableDebugger: true,
     initialState: stateWithNativeFilters,
+  });
+
+export const stateWithNativeFiltersButNoValues = {
+  ...stateWithNativeFilters,
+  dataMask: {},
+};
+
+export const getMockStoreWithNativeFiltersButNoValues = () =>
+  setupStore({
+    disableDebugger: true,
+    initialState: stateWithNativeFiltersButNoValues,
   });
 
 export const stateWithoutNativeFilters = {
@@ -160,11 +171,11 @@ export const stateWithoutNativeFilters = {
   },
   dashboardInfo: {
     dash_edit_perm: true,
-    filterBarOrientation: FilterBarOrientation.VERTICAL,
+    filterBarOrientation: FilterBarOrientation.Vertical,
     metadata: {
       native_filter_configuration: [],
     },
   },
   dataMask: {},
-  nativeFilters: { filters: {}, filterSets: {} },
+  nativeFilters: { filters: {} },
 };

@@ -15,11 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from sqlalchemy import types
 
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.constants import TimeGrain
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 
 
 class FireboltEngineSpec(BaseEngineSpec):
@@ -29,21 +30,58 @@ class FireboltEngineSpec(BaseEngineSpec):
     engine_name = "Firebolt"
     default_driver = "firebolt"
 
+    metadata = {
+        "description": (
+            "Firebolt is a cloud data warehouse designed for "
+            "high-performance analytics."
+        ),
+        "logo": "firebolt.png",
+        "homepage_url": "https://www.firebolt.io/",
+        "categories": [
+            DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["firebolt-sqlalchemy"],
+        "connection_string": (
+            "firebolt://{client_id}:{client_secret}@{database}/{engine_name}"
+            "?account_name={account_name}"
+        ),
+        "parameters": {
+            "client_id": "Service account client ID",
+            "client_secret": "Service account client secret",
+            "database": "Database name",
+            "engine_name": "Engine name",
+            "account_name": "Account name",
+        },
+        "drivers": [
+            {
+                "name": "firebolt-sqlalchemy",
+                "pypi_package": "firebolt-sqlalchemy",
+                "connection_string": (
+                    "firebolt://{client_id}:{client_secret}@{database}/{engine_name}"
+                    "?account_name={account_name}"
+                ),
+                "is_recommended": True,
+            },
+        ],
+    }
+
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "date_trunc('second', CAST({col} AS TIMESTAMP))",
-        "PT1M": "date_trunc('minute', CAST({col} AS TIMESTAMP))",
-        "PT1H": "date_trunc('hour', CAST({col} AS TIMESTAMP))",
-        "P1D": "date_trunc('day', CAST({col} AS TIMESTAMP))",
-        "P1W": "date_trunc('week', CAST({col} AS TIMESTAMP))",
-        "P1M": "date_trunc('month', CAST({col} AS TIMESTAMP))",
-        "P3M": "date_trunc('quarter', CAST({col} AS TIMESTAMP))",
-        "P1Y": "date_trunc('year', CAST({col} AS TIMESTAMP))",
+        TimeGrain.SECOND: "date_trunc('second', CAST({col} AS TIMESTAMP))",
+        TimeGrain.MINUTE: "date_trunc('minute', CAST({col} AS TIMESTAMP))",
+        TimeGrain.HOUR: "date_trunc('hour', CAST({col} AS TIMESTAMP))",
+        TimeGrain.DAY: "date_trunc('day', CAST({col} AS TIMESTAMP))",
+        TimeGrain.WEEK: "date_trunc('week', CAST({col} AS TIMESTAMP))",
+        TimeGrain.MONTH: "date_trunc('month', CAST({col} AS TIMESTAMP))",
+        TimeGrain.QUARTER: "date_trunc('quarter', CAST({col} AS TIMESTAMP))",
+        TimeGrain.YEAR: "date_trunc('year', CAST({col} AS TIMESTAMP))",
     }
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
         sqla_type = cls.get_sqla_column_type(target_type)
 

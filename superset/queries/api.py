@@ -23,10 +23,10 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset import db, event_logger
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.daos.query import QueryDAO
 from superset.databases.filters import DatabaseFilter
 from superset.exceptions import SupersetException
 from superset.models.sql_lab import Query
-from superset.queries.dao import QueryDAO
 from superset.queries.filters import QueryFilter
 from superset.queries.schemas import (
     openapi_spec_methods_override,
@@ -71,11 +71,19 @@ class QueryRestApi(BaseSupersetModelRestApi):
     list_columns = [
         "id",
         "changed_on",
+        "client_id",
+        "database.id",
         "database.database_name",
         "executed_sql",
+        "error_message",
+        "limit",
+        "limiting_factor",
+        "progress",
         "rows",
         "schema",
+        "select_as_cta",
         "sql",
+        "sql_editor_id",
         "sql_tables",
         "status",
         "tab_name",
@@ -83,9 +91,11 @@ class QueryRestApi(BaseSupersetModelRestApi):
         "user.id",
         "user.last_name",
         "start_time",
+        "start_running_time",
         "end_time",
         "tmp_table_name",
         "tracking_url",
+        "results_key",
     ]
     show_columns = [
         "id",
@@ -135,15 +145,26 @@ class QueryRestApi(BaseSupersetModelRestApi):
     ]
     base_related_field_filters = {
         "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
         "user": [["id", BaseFilterRelatedUsers, lambda: []]],
         "database": [["id", DatabaseFilter, lambda: []]],
     }
     related_field_filters = {
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "user": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
 
-    search_columns = ["changed_on", "database", "sql", "status", "user", "start_time"]
+    search_columns = [
+        "changed_on",
+        "database",
+        "sql",
+        "status",
+        "user",
+        "start_time",
+        "sql_editor_id",
+        "uuid",
+    ]
 
     allowed_rel_fields = {"database", "user"}
     allowed_distinct_fields = {"status"}
@@ -159,7 +180,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def get_updated_since(self, **kwargs: Any) -> FlaskResponse:
-        """Get a list of queries that changed after last_updated_ms
+        """Get a list of queries that changed after last_updated_ms.
         ---
         get:
           summary: Get a list of queries that changed after last_updated_ms
@@ -206,21 +227,20 @@ class QueryRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".stop_query",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.stop_query",
         log_to_statsd=False,
     )
     @backoff.on_exception(
         backoff.constant,
         Exception,
         interval=1,
-        on_backoff=lambda details: db.session.rollback(),
-        on_giveup=lambda details: db.session.rollback(),
+        on_backoff=lambda details: db.session.rollback(),  # pylint: disable=consider-using-transaction
+        on_giveup=lambda details: db.session.rollback(),  # pylint: disable=consider-using-transaction
         max_tries=5,
     )
     @requires_json
     def stop_query(self) -> FlaskResponse:
-        """Manually stop a query with client_id
+        """Manually stop a query with client_id.
         ---
         post:
           summary: Manually stop a query with client_id

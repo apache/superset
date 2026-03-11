@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC } from 'react';
+import { FC } from 'react';
 import DraggableNewComponent from './DraggableNewComponent';
 import { DYNAMIC_TYPE } from '../../../util/componentTypes';
 import { NEW_DYNAMIC_COMPONENT } from '../../../util/constants';
@@ -36,7 +36,6 @@ const DraggableNewDynamicComponent: FC<DraggableNewDynamicComponent> = ({
     type={DYNAMIC_TYPE}
     label={metadata.name}
     meta={{ metadata, componentKey }}
-    className={`fa fa-${metadata.iconName}`}
   />
 );
 

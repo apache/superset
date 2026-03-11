@@ -21,6 +21,7 @@ Revises: 11c737c17cc6
 Create Date: 2019-09-19 13:40:25.293907
 
 """
+
 import re
 
 from alembic import op

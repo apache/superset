@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, useCallback } from 'react';
-import { SupersetClient, logging, t } from '@superset-ui/core';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import rison from 'rison';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';
-import { DatabaseObject } from 'src/components/DatabaseSelector';
+import type { DatabaseObject } from 'src/components';
 
 /**
  * Retrieves all pages of dataset results
@@ -65,6 +67,7 @@ const useDatasetsList = (
       } catch (error) {
         addDangerToast(t('There was an error fetching dataset'));
         logging.error(t('There was an error fetching dataset'), error);
+        break;
       }
     }
 
@@ -78,12 +81,15 @@ const useDatasetsList = (
       { col: 'sql', opr: 'dataset_is_null_or_empty', value: true },
     ];
 
-    if (schema) {
+    if (schema && db?.id !== undefined) {
       getDatasetsList(filters);
     }
   }, [db?.id, schema, encodedSchema, getDatasetsList]);
 
-  const datasetNames = datasets?.map(dataset => dataset.table_name);
+  const datasetNames = useMemo(
+    () => datasets?.map(dataset => dataset.table_name),
+    [datasets],
+  );
 
   return { datasets, datasetNames };
 };

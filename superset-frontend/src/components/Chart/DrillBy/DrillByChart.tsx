@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import {
   BaseFormData,
   QueryData,
   SuperChart,
-  css,
   ContextMenuFilters,
 } from '@superset-ui/core';
+import { css } from '@apache-superset/core/theme';
 import { Dataset } from '../types';
 
 interface DrillByChartProps {

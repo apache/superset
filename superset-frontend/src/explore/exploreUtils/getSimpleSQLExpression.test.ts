@@ -16,9 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { cleanup } from 'spec/helpers/testing-library';
 import { EMPTY_STRING, NULL_STRING } from 'src/utils/common';
 import { getSimpleSQLExpression } from '.';
 import { Operators } from '../constants';
+
+// Add cleanup after each test
+afterEach(async () => {
+  cleanup();
+  // Wait for any pending effects to complete
+  await new Promise(resolve => setTimeout(resolve, 0));
+});
 
 const params = {
   subject: 'subject',
@@ -30,25 +38,19 @@ test('Should return "" if subject is falsy', () => {
   expect(getSimpleSQLExpression('', params.operator, params.comparator)).toBe(
     '',
   );
-  expect(getSimpleSQLExpression(null, params.operator, params.comparator)).toBe(
-    '',
-  );
   expect(
     getSimpleSQLExpression(undefined, params.operator, params.comparator),
   ).toBe('');
 });
 
 test('Should return null string and empty string', () => {
-  expect(getSimpleSQLExpression(params.subject, Operators.IN, [null, ''])).toBe(
-    `subject ${Operators.IN} (${NULL_STRING}, ${EMPTY_STRING})`,
+  expect(getSimpleSQLExpression(params.subject, Operators.In, [null, ''])).toBe(
+    `subject ${Operators.In} (${NULL_STRING}, ${EMPTY_STRING})`,
   );
 });
 
 test('Should return subject if operator is falsy', () => {
   expect(getSimpleSQLExpression(params.subject, '', params.comparator)).toBe(
-    params.subject,
-  );
-  expect(getSimpleSQLExpression(params.subject, null, params.comparator)).toBe(
     params.subject,
   );
   expect(

@@ -14,14 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from unittest import mock, skip
+from unittest import mock
 from unittest.mock import Mock, patch
 
 import pandas as pd
 import pytest
+from flask import current_app
 from flask_babel import gettext as __
 
-from superset import app, db, sql_lab
+from superset import db, sql_lab
+from superset.commands.sql_lab import estimate, export, results
 from superset.common.db_query_status import QueryStatus
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -30,9 +32,8 @@ from superset.exceptions import (
     SupersetSecurityException,
     SupersetTimeoutException,
 )
-from superset.models.core import Database
+from superset.models.core import Database  # noqa: F401
 from superset.models.sql_lab import Query
-from superset.sqllab.commands import estimate, export, results
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.schemas import EstimateQueryCostSchema
 from superset.utils import core as utils
@@ -47,7 +48,7 @@ class TestQueryEstimationCommand(SupersetTestCase):
         data: EstimateQueryCostSchema = schema.dump(params)
         command = estimate.QueryEstimationCommand(data)
 
-        with mock.patch("superset.sqllab.commands.estimate.db") as mock_superset_db:
+        with mock.patch("superset.commands.sql_lab.estimate.db") as mock_superset_db:
             mock_superset_db.session.query().get.return_value = None
             with pytest.raises(SupersetErrorException) as ex_info:
                 command.validate()
@@ -79,7 +80,7 @@ class TestQueryEstimationCommand(SupersetTestCase):
         db_mock.db_engine_spec.query_cost_formatter = mock.Mock(return_value=None)
         is_feature_enabled.return_value = False
 
-        with mock.patch("superset.sqllab.commands.estimate.db") as mock_superset_db:
+        with mock.patch("superset.commands.sql_lab.estimate.db") as mock_superset_db:
             mock_superset_db.session.query().get.return_value = db_mock
             with pytest.raises(SupersetErrorException) as ex_info:
                 command.run()
@@ -87,9 +88,9 @@ class TestQueryEstimationCommand(SupersetTestCase):
                 ex_info.value.error.error_type == SupersetErrorType.SQLLAB_TIMEOUT_ERROR
             )
             assert ex_info.value.error.message == __(
-                "The query estimation was killed after %(sqllab_timeout)s seconds. It might "
+                "The query estimation was killed after %(sqllab_timeout)s seconds. It might "  # noqa: E501
                 "be too complex, or the database might be under heavy load.",
-                sqllab_timeout=app.config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"],
+                sqllab_timeout=current_app.config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"],
             )
 
     def test_run_success(self) -> None:
@@ -105,14 +106,14 @@ class TestQueryEstimationCommand(SupersetTestCase):
         db_mock.db_engine_spec.estimate_query_cost = mock.Mock(return_value=100)
         db_mock.db_engine_spec.query_cost_formatter = mock.Mock(return_value=payload)
 
-        with mock.patch("superset.sqllab.commands.estimate.db") as mock_superset_db:
+        with mock.patch("superset.commands.sql_lab.estimate.db") as mock_superset_db:
             mock_superset_db.session.query().get.return_value = db_mock
             result = command.run()
             assert result == payload
 
 
 class TestSqlResultExportCommand(SupersetTestCase):
-    @pytest.fixture()
+    @pytest.fixture
     def create_database_and_query(self):
         with self.create_app().app_context():
             database = get_example_database()
@@ -177,7 +178,7 @@ class TestSqlResultExportCommand(SupersetTestCase):
         get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
         result = command.run()
 
-        assert result["data"] == "foo\n1\n2\n3\n"
+        assert result["data"] == b"\xef\xbb\xbffoo\n1\n2\n3\n"
         assert result["count"] == 3
         assert result["query"].client_id == "test"
 
@@ -195,7 +196,7 @@ class TestSqlResultExportCommand(SupersetTestCase):
         get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
         result = command.run()
 
-        assert result["data"] == "foo\n1\n2\n"
+        assert result["data"] == b"\xef\xbb\xbffoo\n1\n2\n"
         assert result["count"] == 2
         assert result["query"].client_id == "test"
 
@@ -217,13 +218,13 @@ class TestSqlResultExportCommand(SupersetTestCase):
 
         result = command.run()
 
-        assert result["data"] == "foo\n1\n"
+        assert result["data"] == b"\xef\xbb\xbffoo\n1\n"
         assert result["count"] == 1
         assert result["query"].client_id == "test"
 
     @pytest.mark.usefixtures("create_database_and_query")
     @patch("superset.models.sql_lab.Query.raise_for_access", lambda _: None)
-    @patch("superset.sqllab.commands.export.results_backend_use_msgpack", False)
+    @patch("superset.commands.sql_lab.export.results_backend_use_msgpack", False)
     def test_run_with_results_backend(self) -> None:
         command = export.SqlResultExportCommand("test")
 
@@ -240,13 +241,13 @@ class TestSqlResultExportCommand(SupersetTestCase):
 
         result = command.run()
 
-        assert result["data"] == "foo\n0\n1\n2\n3\n4\n"
+        assert result["data"] == b"\xef\xbb\xbffoo\n0\n1\n2\n3\n4\n"
         assert result["count"] == 5
         assert result["query"].client_id == "test"
 
 
 class TestSqlExecutionResultsCommand(SupersetTestCase):
-    @pytest.fixture()
+    @pytest.fixture
     def create_database_and_query(self):
         with self.create_app().app_context():
             database = get_example_database()
@@ -273,8 +274,8 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
             db.session.delete(query_obj)
             db.session.commit()
 
-    @patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
-    @patch("superset.sqllab.commands.results.results_backend", None)
+    @patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
+    @patch("superset.commands.sql_lab.results.results_backend", None)
     def test_validation_no_results_backend(self) -> None:
         command = results.SqlExecutionResultsCommand("test", 1000)
 
@@ -285,7 +286,7 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
             == SupersetErrorType.RESULTS_BACKEND_NOT_CONFIGURED_ERROR
         )
 
-    @patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
+    @patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
     def test_validation_data_cannot_be_retrieved(self) -> None:
         results.results_backend = mock.Mock()
         results.results_backend.get.return_value = None
@@ -296,7 +297,7 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
             command.run()
         assert ex_info.value.error.error_type == SupersetErrorType.RESULTS_BACKEND_ERROR
 
-    @patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
+    @patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
     def test_validation_data_not_found(self) -> None:
         data = [{"col_0": i} for i in range(100)]
         payload = {
@@ -317,7 +318,7 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
         assert ex_info.value.error.error_type == SupersetErrorType.RESULTS_BACKEND_ERROR
 
     @pytest.mark.usefixtures("create_database_and_query")
-    @patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
+    @patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
     def test_validation_query_not_found(self) -> None:
         data = [{"col_0": i} for i in range(104)]
         payload = {
@@ -335,7 +336,7 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
             "superset.views.utils._deserialize_results_payload",
             side_effect=SerializationError(),
         ):
-            with pytest.raises(SupersetErrorException) as ex_info:
+            with pytest.raises(SupersetErrorException) as ex_info:  # noqa: PT012
                 command = results.SqlExecutionResultsCommand("test_other", 1000)
                 command.run()
             assert (
@@ -344,7 +345,7 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
             )
 
     @pytest.mark.usefixtures("create_database_and_query")
-    @patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
+    @patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
     def test_run_succeeds(self) -> None:
         data = [{"col_0": i} for i in range(104)]
         payload = {

@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import React, {
+import {
   Dispatch,
   SetStateAction,
   useCallback,
@@ -27,23 +27,30 @@ import React, {
   useState,
 } from 'react';
 import { useSelector } from 'react-redux';
+import { editors } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   AdhocColumn,
   isAdhocColumn,
-  t,
-  styled,
-  css,
   DatasourceType,
+  Metric,
+  QueryFormMetric,
 } from '@superset-ui/core';
+import { styled, css } from '@apache-superset/core/theme';
 import { ColumnMeta, isSavedExpression } from '@superset-ui/chart-controls';
-import Tabs from 'src/components/Tabs';
-import Button from 'src/components/Button';
-import { Select } from 'src/components';
+import Tabs from '@superset-ui/core/components/Tabs';
+import {
+  Button,
+  Form,
+  FormItem,
+  Select,
+  EmptyState,
+} from '@superset-ui/core/components';
 
-import { Form, FormItem } from 'src/components/Form';
-import { SQLEditor } from 'src/components/AsyncAceEditor';
-import { EmptyStateSmall } from 'src/components/EmptyState';
+import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
+import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
+import SQLEditorWithValidation from 'src/components/SQLEditorWithValidation';
 import {
   POPOVER_INITIAL_HEIGHT,
   POPOVER_INITIAL_WIDTH,
@@ -51,10 +58,16 @@ import {
 import { ExplorePageState } from 'src/explore/types';
 import useResizeButton from './useResizeButton';
 
+const TABS_KEYS = {
+  SAVED: 'saved',
+  SIMPLE: 'simple',
+  SQL_EXPRESSION: 'sqlExpression',
+};
+
 const StyledSelect = styled(Select)`
   .metric-option {
     & > svg {
-      min-width: ${({ theme }) => `${theme.gridUnit * 4}px`};
+      min-width: ${({ theme }) => `${theme.sizeUnit * 4}px`};
     }
     & > .option-label {
       overflow: hidden;
@@ -63,16 +76,35 @@ const StyledSelect = styled(Select)`
   }
 `;
 
-interface ColumnSelectPopoverProps {
+const MetricOptionContainer = styled.div`
+  display: flex;
+  align-items: center;
+`;
+
+const MetricIcon = styled.span`
+  margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
+  color: ${({ theme }) => theme.colorSuccess};
+`;
+
+const MetricLabel = styled.span`
+  color: ${({ theme }) => theme.colorText};
+`;
+
+export interface ColumnSelectPopoverProps {
   columns: ColumnMeta[];
   editedColumn?: ColumnMeta | AdhocColumn;
-  onChange: (column: ColumnMeta | AdhocColumn) => void;
+  onChange: (column: ColumnMeta | AdhocColumn | Metric) => void;
   onClose: () => void;
+  hasCustomLabel: boolean;
   setLabel: (title: string) => void;
   getCurrentTab: (tab: string) => void;
   label: string;
   isTemporal?: boolean;
   setDatasetModal?: Dispatch<SetStateAction<boolean>>;
+  disabledTabs?: Set<string>;
+  metrics?: Metric[];
+  selectedMetrics?: QueryFormMetric[];
+  datasource?: any;
 }
 
 const getInitialColumnValues = (
@@ -93,14 +125,20 @@ const getInitialColumnValues = (
 const ColumnSelectPopover = ({
   columns,
   editedColumn,
+  getCurrentTab,
+  hasCustomLabel,
+  isTemporal,
+  label,
   onChange,
   onClose,
   setDatasetModal,
   setLabel,
-  getCurrentTab,
-  label,
-  isTemporal,
+  disabledTabs = new Set<'saved' | 'simple' | 'sqlExpression'>(),
+  metrics = [],
+  selectedMetrics = [],
+  datasource,
 }: ColumnSelectPopoverProps) => {
+  // const theme = useTheme(); // Unused variable
   const datasourceType = useSelector<ExplorePageState, string | undefined>(
     state => state.explore.datasource.type,
   );
@@ -117,13 +155,17 @@ const ColumnSelectPopover = ({
   const [selectedSimpleColumn, setSelectedSimpleColumn] = useState<
     ColumnMeta | undefined
   >(initialSimpleColumn);
+  const [selectedMetric, setSelectedMetric] = useState<Metric | undefined>(
+    undefined,
+  );
+  const [selectedTab, setSelectedTab] = useState<string | null>(null);
 
   const [resizeButton, width, height] = useResizeButton(
     POPOVER_INITIAL_WIDTH,
     POPOVER_INITIAL_HEIGHT,
   );
 
-  const sqlEditorRef = useRef(null);
+  const sqlEditorRef = useRef<editors.EditorHandle>(null);
 
   const [calculatedColumns, simpleColumns] = useMemo(
     () =>
@@ -141,11 +183,31 @@ const ColumnSelectPopover = ({
     [columns],
   );
 
+  // Filter metrics that are already selected in the chart
+  const availableMetrics = useMemo(() => {
+    if (!metrics?.length) return [];
+    const selectedMetricsSet = new Set(selectedMetrics);
+    return metrics.filter(metric => selectedMetricsSet.has(metric.metric_name));
+  }, [metrics, selectedMetrics]);
+
+  const columnMap = useMemo(
+    () => Object.fromEntries(simpleColumns.map(col => [col.column_name, col])),
+    [simpleColumns],
+  );
+  const metricMap = useMemo(
+    () =>
+      Object.fromEntries(
+        availableMetrics.map(metric => [metric.metric_name, metric]),
+      ),
+    [availableMetrics],
+  );
+
   const onSqlExpressionChange = useCallback(
     sqlExpression => {
       setAdhocColumn({ label, sqlExpression, expressionType: 'SQL' });
       setSelectedSimpleColumn(undefined);
       setSelectedCalculatedColumn(undefined);
+      setSelectedMetric(undefined);
     },
     [label],
   );
@@ -157,6 +219,7 @@ const ColumnSelectPopover = ({
       );
       setSelectedCalculatedColumn(selectedColumn);
       setSelectedSimpleColumn(undefined);
+      setSelectedMetric(undefined);
       setAdhocColumn(undefined);
       setLabel(
         selectedColumn?.verbose_name || selectedColumn?.column_name || '',
@@ -172,6 +235,7 @@ const ColumnSelectPopover = ({
       );
       setSelectedCalculatedColumn(undefined);
       setSelectedSimpleColumn(selectedColumn);
+      setSelectedMetric(undefined);
       setAdhocColumn(undefined);
       setLabel(
         selectedColumn?.verbose_name || selectedColumn?.column_name || '',
@@ -180,15 +244,74 @@ const ColumnSelectPopover = ({
     [setLabel, simpleColumns],
   );
 
+  const onSimpleMetricChange = useCallback(
+    selectedMetricName => {
+      const selectedMetric = availableMetrics.find(
+        metric => metric.metric_name === selectedMetricName,
+      );
+      setSelectedCalculatedColumn(undefined);
+      setSelectedSimpleColumn(undefined);
+      setSelectedMetric(selectedMetric);
+      setAdhocColumn(undefined);
+      setLabel(
+        selectedMetric?.verbose_name || selectedMetric?.metric_name || '',
+      );
+    },
+    [setLabel, availableMetrics],
+  );
+
+  const onSimpleItemChange = useCallback(
+    selectedValue => {
+      const selectedColumn = columnMap[selectedValue];
+      if (selectedColumn) {
+        onSimpleColumnChange(selectedValue);
+        return;
+      }
+
+      const selectedMetric = metricMap[selectedValue];
+      if (selectedMetric) {
+        onSimpleMetricChange(selectedValue);
+      }
+    },
+    [columnMap, metricMap, onSimpleColumnChange, onSimpleMetricChange],
+  );
+
   const defaultActiveTabKey = initialAdhocColumn
     ? 'sqlExpression'
-    : initialSimpleColumn || calculatedColumns.length === 0
-    ? 'simple'
-    : 'saved';
+    : selectedCalculatedColumn
+      ? 'saved'
+      : 'simple';
 
   useEffect(() => {
     getCurrentTab(defaultActiveTabKey);
-  }, [defaultActiveTabKey, getCurrentTab]);
+    setSelectedTab(defaultActiveTabKey);
+  }, [defaultActiveTabKey, getCurrentTab, setSelectedTab]);
+
+  useEffect(() => {
+    /* if the adhoc column is not set (because it was never edited) but the
+     * tab is selected and the label has changed, then we need to set the
+     * adhoc column manually */
+    if (
+      adhocColumn === undefined &&
+      selectedTab === 'sqlExpression' &&
+      hasCustomLabel
+    ) {
+      const sqlExpression =
+        selectedSimpleColumn?.column_name ||
+        selectedCalculatedColumn?.expression ||
+        '';
+      setAdhocColumn({ label, sqlExpression, expressionType: 'SQL' });
+    }
+  }, [
+    adhocColumn,
+    defaultActiveTabKey,
+    hasCustomLabel,
+    getCurrentTab,
+    label,
+    selectedCalculatedColumn,
+    selectedSimpleColumn,
+    selectedTab,
+  ]);
 
   const onSave = useCallback(() => {
     if (adhocColumn && adhocColumn.label !== label) {
@@ -196,10 +319,11 @@ const ColumnSelectPopover = ({
     }
     const selectedColumn =
       adhocColumn || selectedCalculatedColumn || selectedSimpleColumn;
-    if (!selectedColumn) {
+    const selectedItem = selectedColumn || selectedMetric;
+    if (!selectedItem) {
       return;
     }
-    onChange(selectedColumn);
+    onChange(selectedItem);
     onClose();
   }, [
     adhocColumn,
@@ -208,11 +332,13 @@ const ColumnSelectPopover = ({
     onClose,
     selectedCalculatedColumn,
     selectedSimpleColumn,
+    selectedMetric,
   ]);
 
   const onResetStateAndClose = useCallback(() => {
     setSelectedCalculatedColumn(initialCalculatedColumn);
     setSelectedSimpleColumn(initialSimpleColumn);
+    setSelectedMetric(undefined);
     setAdhocColumn(initialAdhocColumn);
     onClose();
   }, [
@@ -225,16 +351,11 @@ const ColumnSelectPopover = ({
   const onTabChange = useCallback(
     tab => {
       getCurrentTab(tab);
-      // @ts-ignore
-      sqlEditorRef.current?.editor.focus();
+      setSelectedTab(tab);
+      sqlEditorRef.current?.focus();
     },
     [getCurrentTab],
   );
-
-  const onSqlEditorFocus = useCallback(() => {
-    // @ts-ignore
-    sqlEditorRef.current?.editor.resize();
-  }, []);
 
   const setDatasetAndClose = () => {
     if (setDatasetModal) {
@@ -244,16 +365,24 @@ const ColumnSelectPopover = ({
   };
 
   const stateIsValid =
-    adhocColumn || selectedCalculatedColumn || selectedSimpleColumn;
+    adhocColumn ||
+    selectedCalculatedColumn ||
+    selectedSimpleColumn ||
+    selectedMetric;
   const hasUnsavedChanges =
     initialLabel !== label ||
     selectedCalculatedColumn?.column_name !==
       initialCalculatedColumn?.column_name ||
     selectedSimpleColumn?.column_name !== initialSimpleColumn?.column_name ||
+    selectedMetric?.metric_name !== undefined ||
     adhocColumn?.sqlExpression !== initialAdhocColumn?.sqlExpression;
 
   const savedExpressionsLabel = t('Saved expressions');
-  const simpleColumnsLabel = t('Column');
+  const simpleColumnsLabel = t('Columns and metrics');
+  const keywords = useMemo(
+    () => sqlKeywords.concat(getColumnKeywords(columns)),
+    [columns],
+  );
 
   return (
     <Form layout="vertical" id="metrics-edit-popover">
@@ -267,150 +396,226 @@ const ColumnSelectPopover = ({
           height: ${height}px;
           width: ${width}px;
         `}
-      >
-        <Tabs.TabPane key="saved" tab={t('Saved')}>
-          {calculatedColumns.length > 0 ? (
-            <FormItem label={savedExpressionsLabel}>
-              <StyledSelect
-                ariaLabel={savedExpressionsLabel}
-                value={selectedCalculatedColumn?.column_name}
-                onChange={onCalculatedColumnChange}
-                allowClear
-                autoFocus={!selectedCalculatedColumn}
-                placeholder={t('%s column(s)', calculatedColumns.length)}
-                options={calculatedColumns.map(calculatedColumn => ({
-                  value: calculatedColumn.column_name,
-                  label:
-                    calculatedColumn.verbose_name ||
-                    calculatedColumn.column_name,
-                  customLabel: (
-                    <StyledColumnOption column={calculatedColumn} showType />
+        items={[
+          // Only show Saved tab if not disabled
+          ...(disabledTabs.has('saved')
+            ? []
+            : [
+                {
+                  key: TABS_KEYS.SAVED,
+                  label: t('Saved'),
+                  children: (
+                    <>
+                      {calculatedColumns.length > 0 ? (
+                        <FormItem label={savedExpressionsLabel}>
+                          <StyledSelect
+                            ariaLabel={savedExpressionsLabel}
+                            value={selectedCalculatedColumn?.column_name}
+                            onChange={onCalculatedColumnChange}
+                            allowClear
+                            autoFocus={!selectedCalculatedColumn}
+                            placeholder={t(
+                              '%s column(s)',
+                              calculatedColumns.length,
+                            )}
+                            options={calculatedColumns.map(
+                              calculatedColumn => ({
+                                value: calculatedColumn.column_name,
+                                label: (
+                                  <StyledColumnOption
+                                    column={calculatedColumn}
+                                    showType
+                                  />
+                                ),
+                                key: calculatedColumn.column_name,
+                                column_name: calculatedColumn.column_name,
+                                verbose_name:
+                                  calculatedColumn.verbose_name ?? '',
+                              }),
+                            )}
+                            optionFilterProps={['column_name', 'verbose_name']}
+                          />
+                        </FormItem>
+                      ) : datasourceType === DatasourceType.Table ? (
+                        <EmptyState
+                          image="empty.svg"
+                          size="small"
+                          title={
+                            isTemporal
+                              ? t('No temporal columns found')
+                              : t('No saved expressions found')
+                          }
+                          description={
+                            isTemporal
+                              ? t(
+                                  'Add calculated temporal columns to dataset in "Edit datasource" modal',
+                                )
+                              : t(
+                                  'Add calculated columns to dataset in "Edit datasource" modal',
+                                )
+                          }
+                        />
+                      ) : (
+                        <EmptyState
+                          image="empty.svg"
+                          size="small"
+                          title={
+                            isTemporal
+                              ? t('No temporal columns found')
+                              : t('No saved expressions found')
+                          }
+                          description={
+                            isTemporal ? (
+                              <>
+                                <span
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={setDatasetAndClose}
+                                >
+                                  {t('Create a dataset')}
+                                </span>{' '}
+                                {t(' to mark a column as a time column')}
+                              </>
+                            ) : (
+                              <>
+                                <span
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={setDatasetAndClose}
+                                >
+                                  {t('Create a dataset')}
+                                </span>{' '}
+                                {t(' to add calculated columns')}
+                              </>
+                            )
+                          }
+                        />
+                      )}
+                    </>
                   ),
-                  key: calculatedColumn.column_name,
-                }))}
-              />
-            </FormItem>
-          ) : datasourceType === DatasourceType.Table ? (
-            <EmptyStateSmall
-              image="empty.svg"
-              title={
-                isTemporal
-                  ? t('No temporal columns found')
-                  : t('No saved expressions found')
-              }
-              description={
-                isTemporal
-                  ? t(
-                      'Add calculated temporal columns to dataset in "Edit datasource" modal',
-                    )
-                  : t(
-                      'Add calculated columns to dataset in "Edit datasource" modal',
-                    )
-              }
-            />
-          ) : (
-            <EmptyStateSmall
-              image="empty.svg"
-              title={
-                isTemporal
-                  ? t('No temporal columns found')
-                  : t('No saved expressions found')
-              }
-              description={
-                isTemporal ? (
-                  <>
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={setDatasetAndClose}
-                    >
-                      {t('Create a dataset')}
-                    </span>{' '}
-                    {t(' to mark a column as a time column')}
-                  </>
+                },
+              ]),
+          {
+            key: TABS_KEYS.SIMPLE,
+            label: t('Simple'),
+            children: (
+              <>
+                {isTemporal && simpleColumns.length === 0 ? (
+                  <EmptyState
+                    image="empty.svg"
+                    size="small"
+                    title={t('No temporal columns found')}
+                    description={
+                      datasourceType === DatasourceType.Table ? (
+                        t(
+                          'Mark a column as temporal in "Edit datasource" modal',
+                        )
+                      ) : (
+                        <>
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            onClick={setDatasetAndClose}
+                          >
+                            {t('Create a dataset')}
+                          </span>{' '}
+                          {t(' to mark a column as a time column')}
+                        </>
+                      )
+                    }
+                  />
                 ) : (
-                  <>
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={setDatasetAndClose}
-                    >
-                      {t('Create a dataset')}
-                    </span>{' '}
-                    {t(' to add calculated columns')}
-                  </>
-                )
-              }
-            />
-          )}
-        </Tabs.TabPane>
-        <Tabs.TabPane key="simple" tab={t('Simple')}>
-          {isTemporal && simpleColumns.length === 0 ? (
-            <EmptyStateSmall
-              image="empty.svg"
-              title={t('No temporal columns found')}
-              description={
-                datasourceType === DatasourceType.Table ? (
-                  t('Mark a column as temporal in "Edit datasource" modal')
-                ) : (
-                  <>
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={setDatasetAndClose}
-                    >
-                      {t('Create a dataset')}
-                    </span>{' '}
-                    {t(' to mark a column as a time column')}
-                  </>
-                )
-              }
-            />
-          ) : (
-            <FormItem label={simpleColumnsLabel}>
-              <Select
-                ariaLabel={simpleColumnsLabel}
-                value={selectedSimpleColumn?.column_name}
-                onChange={onSimpleColumnChange}
-                allowClear
-                autoFocus={!selectedSimpleColumn}
-                placeholder={t('%s column(s)', simpleColumns.length)}
-                options={simpleColumns.map(simpleColumn => ({
-                  value: simpleColumn.column_name,
-                  label: simpleColumn.verbose_name || simpleColumn.column_name,
-                  customLabel: (
-                    <StyledColumnOption column={simpleColumn} showType />
-                  ),
-                  key: simpleColumn.column_name,
-                }))}
-              />
-            </FormItem>
-          )}
-        </Tabs.TabPane>
+                  <FormItem label={simpleColumnsLabel}>
+                    <Select
+                      ariaLabel={simpleColumnsLabel}
+                      value={
+                        selectedSimpleColumn?.column_name ||
+                        selectedMetric?.metric_name
+                      }
+                      onChange={onSimpleItemChange}
+                      allowClear
+                      autoFocus={!selectedSimpleColumn && !selectedMetric}
+                      placeholder={t(
+                        '%s item(s)',
+                        simpleColumns.length + availableMetrics.length,
+                      )}
+                      options={[
+                        ...simpleColumns.map(simpleColumn => ({
+                          value: simpleColumn.column_name,
+                          label: (
+                            <StyledColumnOption
+                              column={simpleColumn}
+                              showType
+                            />
+                          ),
+                          key: `column-${simpleColumn.column_name}`,
+                          column_name: simpleColumn.column_name,
+                          verbose_name: simpleColumn.verbose_name ?? '',
+                        })),
+                        ...availableMetrics.map(metric => ({
+                          value: metric.metric_name,
+                          label: (
+                            <MetricOptionContainer>
+                              <MetricIcon>ƒ</MetricIcon>
+                              <MetricLabel>
+                                {metric.verbose_name || metric.metric_name}
+                              </MetricLabel>
+                            </MetricOptionContainer>
+                          ),
+                          key: `metric-${metric.metric_name}`,
+                          metric_name: metric.metric_name,
+                          verbose_name: metric.verbose_name ?? '',
+                        })),
+                      ]}
+                      optionFilterProps={[
+                        'column_name',
+                        'verbose_name',
+                        'metric_name',
+                      ]}
+                    />
+                  </FormItem>
+                )}
+              </>
+            ),
+          },
+          {
+            key: TABS_KEYS.SQL_EXPRESSION,
+            label: t('Custom SQL'),
+            disabled: disabledTabs.has('sqlExpression'),
+            children: (
+              <>
+                <SQLEditorWithValidation
+                  value={
+                    adhocColumn?.sqlExpression ||
+                    selectedSimpleColumn?.column_name ||
+                    selectedCalculatedColumn?.expression ||
+                    ''
+                  }
+                  ref={sqlEditorRef}
+                  onChange={onSqlExpressionChange}
+                  width="100%"
+                  height={`${height - 120}px`}
+                  lineNumbers={false}
+                  wordWrap
+                  keywords={keywords}
+                  showValidation
+                  expressionType="column"
+                  datasourceId={datasource?.id}
+                  datasourceType={datasourceType}
+                />
+              </>
+            ),
+          },
+        ]}
+      />
 
-        <Tabs.TabPane key="sqlExpression" tab={t('Custom SQL')}>
-          <SQLEditor
-            value={
-              adhocColumn?.sqlExpression ||
-              selectedSimpleColumn?.column_name ||
-              selectedCalculatedColumn?.expression
-            }
-            onFocus={onSqlEditorFocus}
-            showLoadingForImport
-            onChange={onSqlExpressionChange}
-            width="100%"
-            height={`${height - 80}px`}
-            showGutter={false}
-            editorProps={{ $blockScrolling: true }}
-            enableLiveAutocompletion
-            className="filter-sql-editor"
-            wrapEnabled
-            ref={sqlEditorRef}
-          />
-        </Tabs.TabPane>
-      </Tabs>
       <div>
-        <Button buttonSize="small" onClick={onResetStateAndClose} cta>
+        <Button
+          buttonSize="small"
+          buttonStyle="secondary"
+          onClick={onResetStateAndClose}
+          cta
+        >
           {t('Close')}
         </Button>
         <Button

@@ -16,19 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
-import { getChartMetadataRegistry, t } from '@superset-ui/core';
+import { useMemo } from 'react';
+import { t } from '@apache-superset/core/translation';
+import {
+  getChartMetadataRegistry,
+  isChartCustomization,
+} from '@superset-ui/core';
 import { Row, RowLabel, RowValue } from './Styles';
 import { FilterCardRowProps } from './types';
 
 export const TypeRow = ({ filter }: FilterCardRowProps) => {
+  const isCustomization = isChartCustomization(filter);
   const metadata = useMemo(
     () => getChartMetadataRegistry().get(filter.filterType),
     [filter.filterType],
   );
   return (
     <Row>
-      <RowLabel>{t('Filter type')}</RowLabel>
+      <RowLabel>{isCustomization ? t('Type') : t('Filter type')}</RowLabel>
       <RowValue>{metadata?.name}</RowValue>
     </Row>
   );

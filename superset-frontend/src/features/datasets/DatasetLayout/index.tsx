@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactElement, JSXElementConstructor } from 'react';
+import { ReactElement, JSXElementConstructor } from 'react';
+import { useTheme } from '@apache-superset/core/theme';
+import ResizableSidebar from 'src/components/ResizableSidebar';
+
 import {
   StyledLayoutWrapper,
   LeftColumn,
@@ -46,14 +49,25 @@ export default function DatasetLayout({
   rightPanel,
   footer,
 }: DatasetLayoutProps) {
+  const theme = useTheme();
+
   return (
     <StyledLayoutWrapper data-test="dataset-layout-wrapper">
       {header && <StyledLayoutHeader>{header}</StyledLayoutHeader>}
       <OuterRow>
         {leftPanel && (
-          <LeftColumn>
-            <StyledLayoutLeftPanel>{leftPanel}</StyledLayoutLeftPanel>
-          </LeftColumn>
+          <ResizableSidebar
+            id="dataset"
+            initialWidth={theme.sizeUnit * 80}
+            minWidth={theme.sizeUnit * 80}
+            enable
+          >
+            {adjustedWidth => (
+              <LeftColumn width={adjustedWidth}>
+                <StyledLayoutLeftPanel>{leftPanel}</StyledLayoutLeftPanel>
+              </LeftColumn>
+            )}
+          </ResizableSidebar>
         )}
         <RightColumn>
           <PanelRow>

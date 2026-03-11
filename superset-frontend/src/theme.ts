@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import './assets/stylesheets/superset.less';
+import 'src/public-path';
 
-// Importing Antd under its own stylesheet to prevent unintentional theming.
-import './assets/stylesheets/antd/index.less';
+// Accept HMR updates for this entry point
+declare const module: { hot?: { accept: () => void } };
+if (module.hot) {
+  module.hot.accept();
+}

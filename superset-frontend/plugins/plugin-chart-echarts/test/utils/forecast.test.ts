@@ -17,16 +17,18 @@
  * under the License.
  */
 import { getNumberFormatter, NumberFormats } from '@superset-ui/core';
+import { SeriesOption } from 'echarts';
 import {
   extractForecastSeriesContext,
   extractForecastValuesFromTooltipParams,
   formatForecastTooltipSeries,
   rebaseForecastDatum,
+  reorderForecastSeries,
 } from '../../src/utils/forecast';
 import { ForecastSeriesEnum } from '../../src/types';
 
 describe('extractForecastSeriesContext', () => {
-  it('should extract the correct series name and type', () => {
+  test('should extract the correct series name and type', () => {
     expect(extractForecastSeriesContext('abcd')).toEqual({
       name: 'abcd',
       type: ForecastSeriesEnum.Observation,
@@ -46,8 +48,49 @@ describe('extractForecastSeriesContext', () => {
   });
 });
 
+describe('reorderForecastSeries', () => {
+  test('should reorder the forecast series and preserve values', () => {
+    const input: SeriesOption[] = [
+      { id: `series${ForecastSeriesEnum.Observation}`, data: [10, 20, 30] },
+      { id: `series${ForecastSeriesEnum.ForecastTrend}`, data: [15, 25, 35] },
+      { id: `series${ForecastSeriesEnum.ForecastLower}`, data: [5, 15, 25] },
+      { id: `series${ForecastSeriesEnum.ForecastUpper}`, data: [25, 35, 45] },
+    ];
+    const expectedOutput: SeriesOption[] = [
+      { id: `series${ForecastSeriesEnum.ForecastLower}`, data: [5, 15, 25] },
+      { id: `series${ForecastSeriesEnum.ForecastUpper}`, data: [25, 35, 45] },
+      { id: `series${ForecastSeriesEnum.ForecastTrend}`, data: [15, 25, 35] },
+      { id: `series${ForecastSeriesEnum.Observation}`, data: [10, 20, 30] },
+    ];
+    expect(reorderForecastSeries(input)).toEqual(expectedOutput);
+  });
+
+  test('should handle an empty array', () => {
+    expect(reorderForecastSeries([])).toEqual([]);
+  });
+
+  test('should not reorder if no relevant series are present', () => {
+    const input: SeriesOption[] = [{ id: 'some-other-series' }];
+    expect(reorderForecastSeries(input)).toEqual(input);
+  });
+
+  test('should handle undefined ids', () => {
+    const input: SeriesOption[] = [
+      { id: `series${ForecastSeriesEnum.ForecastLower}` },
+      { id: undefined },
+      { id: `series${ForecastSeriesEnum.ForecastTrend}` },
+    ];
+    const expectedOutput: SeriesOption[] = [
+      { id: `series${ForecastSeriesEnum.ForecastLower}` },
+      { id: `series${ForecastSeriesEnum.ForecastTrend}` },
+      { id: undefined },
+    ];
+    expect(reorderForecastSeries(input)).toEqual(expectedOutput);
+  });
+});
+
 describe('rebaseForecastDatum', () => {
-  it('should subtract lower confidence level from upper value', () => {
+  test('should subtract lower confidence level from upper value', () => {
     expect(
       rebaseForecastDatum([
         {
@@ -103,7 +146,7 @@ describe('rebaseForecastDatum', () => {
     ]);
   });
 
-  it('should rename all series based on verboseMap but leave __timestamp alone', () => {
+  test('should rename all series based on verboseMap but leave __timestamp alone', () => {
     expect(
       rebaseForecastDatum(
         [
@@ -234,7 +277,7 @@ test('formatForecastTooltipSeries should apply format to value', () => {
       observation: 10.1,
       formatter,
     }),
-  ).toEqual('<img>abc: 10');
+  ).toEqual(['<img>abc', '10']);
 });
 
 test('formatForecastTooltipSeries should show falsy value', () => {
@@ -245,7 +288,7 @@ test('formatForecastTooltipSeries should show falsy value', () => {
       observation: 0,
       formatter,
     }),
-  ).toEqual('<img>abc: 0');
+  ).toEqual(['<img>abc', '0']);
 });
 
 test('formatForecastTooltipSeries should format full forecast', () => {
@@ -259,7 +302,7 @@ test('formatForecastTooltipSeries should format full forecast', () => {
       forecastUpper: 7.1,
       formatter,
     }),
-  ).toEqual('<img>qwerty: 10, ŷ = 20 (5, 12)');
+  ).toEqual(['<img>qwerty', '10, ŷ = 20 (5, 12)']);
 });
 
 test('formatForecastTooltipSeries should format forecast without observation', () => {
@@ -272,7 +315,7 @@ test('formatForecastTooltipSeries should format forecast without observation', (
       forecastUpper: 7,
       formatter,
     }),
-  ).toEqual('<img>qwerty: ŷ = 20 (5, 12)');
+  ).toEqual(['<img>qwerty', 'ŷ = 20 (5, 12)']);
 });
 
 test('formatForecastTooltipSeries should format forecast without point estimate', () => {
@@ -285,7 +328,7 @@ test('formatForecastTooltipSeries should format forecast without point estimate'
       forecastUpper: 7,
       formatter,
     }),
-  ).toEqual('<img>qwerty: 10 (6, 13)');
+  ).toEqual(['<img>qwerty', '10 (6, 13)']);
 });
 
 test('formatForecastTooltipSeries should format forecast with only confidence band', () => {
@@ -297,5 +340,5 @@ test('formatForecastTooltipSeries should format forecast with only confidence ba
       forecastUpper: 8,
       formatter,
     }),
-  ).toEqual('<img>qwerty: (7, 15)');
+  ).toEqual(['<img>qwerty', '(7, 15)']);
 });

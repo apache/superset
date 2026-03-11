@@ -17,7 +17,12 @@
  * under the License.
  */
 
-import { isUrlExternal, parseUrl } from './urlUtils';
+import {
+  isUrlExternal,
+  parseUrl,
+  toQueryString,
+  getDashboardUrlParams,
+} from './urlUtils';
 
 test('isUrlExternal', () => {
   expect(isUrlExternal('http://google.com')).toBeTruthy();
@@ -51,4 +56,92 @@ test('parseUrl', () => {
 
   expect(parseUrl('/about')).toEqual('/about');
   expect(parseUrl('#anchor')).toEqual('#anchor');
+});
+
+// toQueryString
+test('toQueryString should return an empty string if the input is an empty object', () => {
+  expect(toQueryString({})).toBe('');
+});
+
+test('toQueryString should correctly convert a single key-value pair to a query string', () => {
+  expect(toQueryString({ key: 'value' })).toBe('?key=value');
+});
+
+test('toQueryString should correctly convert multiple key-value pairs to a query string', () => {
+  expect(toQueryString({ key1: 'value1', key2: 'value2' })).toBe(
+    '?key1=value1&key2=value2',
+  );
+});
+
+test('toQueryString should encode URI components', () => {
+  expect(toQueryString({ 'a key': 'a value', email: 'test@example.com' })).toBe(
+    '?a%20key=a%20value&email=test%40example.com',
+  );
+});
+
+test('toQueryString should omit keys with undefined values', () => {
+  expect(toQueryString({ key1: 'value1', key2: undefined })).toBe(
+    '?key1=value1',
+  );
+});
+
+test('toQueryString should omit keys with null values', () => {
+  expect(toQueryString({ key1: 'value1', key2: null })).toBe('?key1=value1');
+});
+
+test('toQueryString should handle numbers and boolean values as parameter values', () => {
+  expect(toQueryString({ number: 123, truth: true, lie: false })).toBe(
+    '?number=123&truth=true&lie=false',
+  );
+});
+
+test('toQueryString should handle special characters in keys and values', () => {
+  expect(toQueryString({ 'user@domain': 'me&you' })).toBe(
+    '?user%40domain=me%26you',
+  );
+});
+
+test('getDashboardUrlParams should exclude edit parameter by default', () => {
+  // Mock window.location.search to include edit parameter
+  const originalLocation = window.location;
+  Object.defineProperty(window, 'location', {
+    value: {
+      ...originalLocation,
+      search: '?edit=true&standalone=false&expand_filters=1',
+    },
+    writable: true,
+  });
+
+  const urlParams = getDashboardUrlParams(['edit']);
+  const paramNames = urlParams.map(([key]) => key);
+
+  expect(paramNames).not.toContain('edit');
+  expect(paramNames).toContain('standalone');
+  expect(paramNames).toContain('expand_filters');
+
+  // Restore original location
+  window.location = originalLocation;
+});
+
+test('getDashboardUrlParams should exclude multiple parameters when provided', () => {
+  // Mock window.location.search with multiple parameters
+  const originalLocation = window.location;
+  Object.defineProperty(window, 'location', {
+    value: {
+      ...originalLocation,
+      search: '?edit=true&standalone=false&debug=true&test=value',
+    },
+    writable: true,
+  });
+
+  const urlParams = getDashboardUrlParams(['edit', 'debug']);
+  const paramNames = urlParams.map(([key]) => key);
+
+  expect(paramNames).not.toContain('edit');
+  expect(paramNames).not.toContain('debug');
+  expect(paramNames).toContain('standalone');
+  expect(paramNames).toContain('test');
+
+  // Restore original location
+  window.location = originalLocation;
 });

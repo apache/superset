@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { withKnobs, number } from '@storybook/addon-knobs';
-import FacePile from '.';
+import { FacePile } from '.';
 
 export default {
-  title: 'FacePile',
+  title: 'Components/FacePile',
   component: FacePile,
-  decorators: [withKnobs],
+  argTypes: {
+    maxCount: { control: 'number', defaultValue: 4 },
+  },
 };
 
 const firstNames = [
@@ -49,12 +49,12 @@ const lastNames = [
   'Tzu',
 ];
 
-const users = [...new Array(10)].map((_, i) => ({
+const users = Array.from({ length: 10 }, (_, i) => ({
   first_name: firstNames[Math.floor(Math.random() * firstNames.length)],
   last_name: lastNames[Math.floor(Math.random() * lastNames.length)],
   id: i,
 }));
 
-export const SupersetFacePile = () => (
-  <FacePile users={users} maxCount={number('maxCount', 4)} />
+export const SupersetFacePile = ({ maxCount }: { maxCount: number }) => (
+  <FacePile users={users} maxCount={maxCount} />
 );

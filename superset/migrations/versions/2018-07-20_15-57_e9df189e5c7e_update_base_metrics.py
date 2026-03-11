@@ -29,12 +29,12 @@ Create Date: 2018-07-20 15:57:48.118304
 revision = "e9df189e5c7e"
 down_revision = "7f2635b51f5d"
 
-from alembic import op
-from sqlalchemy import Column, engine, Integer, String, Text
-from sqlalchemy.ext.declarative import declarative_base
+from alembic import op  # noqa: E402
+from sqlalchemy import Column, engine, Integer, String, Text  # noqa: E402
+from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 
-from superset import db
-from superset.utils.core import generic_find_uq_constraint_name
+from superset import db  # noqa: E402
+from superset.utils.core import generic_find_uq_constraint_name  # noqa: E402
 
 Base = declarative_base()
 

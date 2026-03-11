@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import fetchMock from 'fetch-mock';
 import { render, screen } from 'spec/helpers/testing-library';
 import EditDataset from './index';
@@ -36,7 +35,7 @@ test('should render edit dataset view with tabs', async () => {
   const metricsTab = screen.getByRole('tab', { name: /metrics/i });
   const usageTab = screen.getByRole('tab', { name: /usage/i });
 
-  expect(fetchMock.calls(DATASET_ENDPOINT)).toBeTruthy();
+  expect(fetchMock.callHistory.calls(DATASET_ENDPOINT)).toBeTruthy();
   expect(columnTab).toBeInTheDocument();
   expect(metricsTab).toBeInTheDocument();
   expect(usageTab).toBeInTheDocument();

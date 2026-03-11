@@ -16,14 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { mount } from 'enzyme';
-import {
-  ThemeProvider,
-  supersetTheme,
-  promiseTimeout,
-} from '@superset-ui/core';
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import Control, { ControlProps } from 'src/explore/components/Control';
 
 const defaultProps: ControlProps = {
@@ -35,60 +28,52 @@ const defaultProps: ControlProps = {
   },
 };
 
-const setup = (overrides = {}) => (
-  <ThemeProvider theme={supersetTheme}>
-    <Control {...defaultProps} {...overrides} />
-  </ThemeProvider>
-);
+const setup = (overrides = {}) => <Control {...defaultProps} {...overrides} />;
 
-describe('Control', () => {
-  it('render a control', () => {
-    render(setup());
+test('render a control', () => {
+  render(setup());
 
-    const checkbox = screen.getByRole('checkbox');
-    expect(checkbox).toBeVisible();
-  });
+  const checkbox = screen.getByRole('checkbox');
+  expect(checkbox).toBeInTheDocument();
+});
 
-  it('render null if type is not exit', () => {
-    render(
-      setup({
-        type: undefined,
-      }),
-    );
-    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
-  });
+test('render null if type is not exit', () => {
+  render(
+    setup({
+      type: undefined,
+    }),
+  );
+  expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+});
 
-  it('render null if type is not valid', () => {
-    render(
-      setup({
-        type: 'UnknownControl',
-      }),
-    );
-    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
-  });
+test('render null if type is not valid', () => {
+  render(
+    setup({
+      type: 'UnknownControl',
+    }),
+  );
+  expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+});
 
-  it('render null if isVisible is false', () => {
-    render(
-      setup({
-        isVisible: false,
-      }),
-    );
-    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
-  });
-
-  it('call setControlValue if isVisible is false', () => {
-    const wrapper = mount(
-      setup({
-        isVisible: true,
-        default: false,
-      }),
-    );
-    wrapper.setProps({
+test('render null if isVisible is false', () => {
+  render(
+    setup({
       isVisible: false,
+    }),
+  );
+  expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+});
+
+test('call setControlValue if isVisible is false', async () => {
+  const { rerender } = render(
+    setup({
+      isVisible: true,
       default: false,
-    });
-    promiseTimeout(() => {
-      expect(defaultProps.actions.setControlValue).toBeCalled();
-    }, 100);
-  });
+    }),
+  );
+  expect(defaultProps.actions.setControlValue).not.toHaveBeenCalled();
+  rerender(setup({ isVisible: false, default: false }));
+  await waitFor(() =>
+    expect(defaultProps.actions.setControlValue).toHaveBeenCalled(),
+  );
 });

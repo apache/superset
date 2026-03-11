@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import FilterableTable, { FilterableTableProps } from '.';
+import type { FilterableTableProps } from './types';
+import { FilterableTable } from '.';
 
 export default {
-  title: 'FilterableTable',
+  title: 'Components/FilterableTable',
   component: FilterableTable,
 };
 
@@ -63,11 +63,3 @@ InteractiveTable.args = {
 };
 
 InteractiveTable.argTypes = {};
-
-InteractiveTable.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

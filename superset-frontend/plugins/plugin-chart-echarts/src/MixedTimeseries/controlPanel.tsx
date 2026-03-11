@@ -16,22 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { ensureIsArray, hasGenericChartAxes, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { ensureIsArray } from '@superset-ui/core';
 import { cloneDeep } from 'lodash';
 import {
+  ControlPanelsContainerProps,
   ControlPanelConfig,
   ControlPanelSectionConfig,
   ControlSetRow,
+  ControlSubSectionHeader,
   CustomControlItem,
   getStandardizedControls,
   sections,
   sharedControls,
+  DEFAULT_SORT_SERIES_DATA,
+  SORT_SERIES_CHOICES,
 } from '@superset-ui/chart-controls';
 
 import { DEFAULT_FORM_DATA } from './types';
 import { EchartsTimeseriesSeriesType } from '../Timeseries/types';
-import { legendSection, richTooltipSection } from '../controls';
+import {
+  legendSection,
+  minorTicks,
+  richTooltipSection,
+  truncateXAxis,
+  xAxisBounds,
+  xAxisLabelRotation,
+  xAxisLabelInterval,
+  forceMaxInterval,
+} from '../controls';
 
 const {
   area,
@@ -47,8 +60,6 @@ const {
   stack,
   truncateYAxis,
   yAxisBounds,
-  zoomable,
-  xAxisLabelRotation,
   yAxisIndex,
 } = DEFAULT_FORM_DATA;
 
@@ -128,7 +139,7 @@ function createCustomizeSection(
   controlSuffix: string,
 ): ControlSetRow[] {
   return [
-    [<div className="section-header">{label}</div>],
+    [<ControlSubSectionHeader>{label}</ControlSubSectionHeader>],
     [
       {
         name: `seriesType${controlSuffix}`,
@@ -187,6 +198,23 @@ function createCustomizeSection(
           description: t(
             'Whether to display the numerical values within the cells',
           ),
+        },
+      },
+    ],
+    [
+      {
+        name: `only_total${controlSuffix}`,
+        config: {
+          type: 'CheckboxControl',
+          label: t('Only Total'),
+          default: true,
+          renderTrigger: true,
+          description: t(
+            'Only show the total value on the stacked chart, and not show on the selected category',
+          ),
+          visibility: ({ controls }: ControlPanelsContainerProps) =>
+            Boolean(controls?.show_value?.value) &&
+            Boolean(controls?.stack?.value),
         },
       },
     ],
@@ -252,6 +280,35 @@ function createCustomizeSection(
         },
       },
     ],
+    [<ControlSubSectionHeader>{t('Series Order')}</ControlSubSectionHeader>],
+    [
+      {
+        name: `sort_series_type${controlSuffix}`,
+        config: {
+          type: 'SelectControl',
+          freeForm: false,
+          label: t('Sort Series By'),
+          choices: SORT_SERIES_CHOICES,
+          default: DEFAULT_SORT_SERIES_DATA.sort_series_type,
+          renderTrigger: true,
+          description: t(
+            'Based on what should series be ordered on the chart and legend',
+          ),
+        },
+      },
+    ],
+    [
+      {
+        name: `sort_series_ascending${controlSuffix}`,
+        config: {
+          type: 'CheckboxControl',
+          label: t('Sort Series Ascending'),
+          default: DEFAULT_SORT_SERIES_DATA.sort_series_ascending,
+          renderTrigger: true,
+          description: t('Sort series in ascending order'),
+        },
+      },
+    ],
   ];
 }
 
@@ -277,14 +334,11 @@ function createAdvancedAnalyticsSection(
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.genericTime,
-    hasGenericChartAxes
-      ? {
-          label: t('Shared query fields'),
-          expanded: true,
-          controlSetRows: [['x_axis'], ['time_grain_sqla']],
-        }
-      : null,
+    {
+      label: t('Shared query fields'),
+      expanded: true,
+      controlSetRows: [['x_axis'], ['time_grain_sqla']],
+    },
     createQuerySection(t('Query A'), ''),
     createAdvancedAnalyticsSection(t('Advanced analytics Query A'), ''),
     createQuerySection(t('Query B'), '_b'),
@@ -296,46 +350,35 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ['color_scheme'],
+        ['time_shift_color'],
         ...createCustomizeSection(t('Query A'), ''),
         ...createCustomizeSection(t('Query B'), 'B'),
+        ['zoomable'],
+        [minorTicks],
+        ...legendSection,
+        [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
+        ['x_axis_time_format'],
+        [xAxisLabelRotation],
+        [xAxisLabelInterval],
+        [forceMaxInterval],
+        [<ControlSubSectionHeader>{t('Tooltip')}</ControlSubSectionHeader>],
         [
           {
-            name: 'zoomable',
+            name: 'show_query_identifiers',
             config: {
               type: 'CheckboxControl',
-              label: t('Data Zoom'),
-              default: zoomable,
-              renderTrigger: true,
-              description: t('Enable data zooming controls'),
-            },
-          },
-        ],
-        ...legendSection,
-        [<div className="section-header">{t('X Axis')}</div>],
-        ['x_axis_time_format'],
-        [
-          {
-            name: 'xAxisLabelRotation',
-            config: {
-              type: 'SelectControl',
-              freeForm: true,
-              clearable: false,
-              label: t('Rotate x axis label'),
-              choices: [
-                [0, '0°'],
-                [45, '45°'],
-              ],
-              default: xAxisLabelRotation,
-              renderTrigger: true,
+              label: t('Show query identifiers'),
               description: t(
-                'Input field supports custom rotation. e.g. 30 for 30°',
+                'Add Query A and Query B identifiers to tooltips to help differentiate series',
               ),
+              default: false,
+              renderTrigger: true,
             },
           },
         ],
-        ...richTooltipSection,
+        ...richTooltipSection.slice(1), // Skip the tooltip header since we added our own
         // eslint-disable-next-line react/jsx-key
-        [<div className="section-header">{t('Y Axis')}</div>],
+        [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
         [
           {
             name: 'minorSplitLine',
@@ -348,6 +391,8 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [truncateXAxis],
+        [xAxisBounds],
         [
           {
             name: 'truncateYAxis',
@@ -388,6 +433,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['currency_format'],
         [
           {
             name: 'logAxis',
@@ -428,6 +474,15 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'currency_format_secondary',
+            config: {
+              ...sharedControls.currency_format,
+              label: t('Secondary currency format'),
+            },
+          },
+        ],
+        [
+          {
             name: 'yAxisTitleSecondary',
             config: {
               type: 'TextControl',
@@ -450,6 +505,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['echart_options'],
       ],
     },
   ],

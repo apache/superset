@@ -14,15 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict
+from typing import Any
 
 from superset import cache
-from superset.charts.commands.exceptions import ChartDataCacheLoadError
+from superset.commands.chart.exceptions import ChartDataCacheLoadError
 
 
 class QueryContextCacheLoader:  # pylint: disable=too-few-public-methods
     @staticmethod
-    def load(cache_key: str) -> Dict[str, Any]:
+    def load(cache_key: str) -> dict[str, Any]:
         cache_value = cache.get(cache_key)
         if not cache_value:
             raise ChartDataCacheLoadError("Cached data not found")

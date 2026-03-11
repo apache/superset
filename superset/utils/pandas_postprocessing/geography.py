@@ -14,9 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Optional, Tuple
+from typing import Optional
 
-import geohash as geohash_lib
+import pygeohash as geohash_lib
 from flask_babel import gettext as _
 from geopy.point import Point
 from pandas import DataFrame
@@ -40,7 +40,7 @@ def geohash_decode(
     try:
         lonlat_df = DataFrame()
         lonlat_df["latitude"], lonlat_df["longitude"] = zip(
-            *df[geohash].apply(geohash_lib.decode)
+            *df[geohash].apply(geohash_lib.decode), strict=False
         )
         return _append_columns(
             df, lonlat_df, {"latitude": latitude, "longitude": longitude}
@@ -68,7 +68,9 @@ def geohash_encode(
         encode_df = df[[latitude, longitude]]
         encode_df.columns = ["latitude", "longitude"]
         encode_df["geohash"] = encode_df.apply(
-            lambda row: geohash_lib.encode(row["latitude"], row["longitude"]),
+            lambda row: geohash_lib.encode(
+                latitude=row["latitude"], longitude=row["longitude"]
+            ),
             axis=1,
         )
         return _append_columns(df, encode_df, {"geohash": geohash})
@@ -95,7 +97,7 @@ def geodetic_parse(
     :return: DataFrame with decoded longitudes and latitudes
     """
 
-    def _parse_location(location: str) -> Tuple[float, float, float]:
+    def _parse_location(location: str) -> tuple[float, float, float]:
         """
         Parse a string containing a geodetic point and return latitude, longitude
         and altitude
@@ -109,7 +111,7 @@ def geodetic_parse(
             geodetic_df["latitude"],
             geodetic_df["longitude"],
             geodetic_df["altitude"],
-        ) = zip(*df[geodetic].apply(_parse_location))
+        ) = zip(*df[geodetic].apply(_parse_location), strict=False)
         columns = {"latitude": latitude, "longitude": longitude}
         if altitude:
             columns["altitude"] = altitude

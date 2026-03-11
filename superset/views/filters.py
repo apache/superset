@@ -17,7 +17,7 @@
 import logging
 from typing import Any, cast, Optional
 
-from flask import current_app
+from flask import current_app as app
 from flask_appbuilder.models.filters import BaseFilter
 from flask_babel import lazy_gettext
 from sqlalchemy import and_, or_
@@ -29,7 +29,6 @@ logger = logging.getLogger(__name__)
 
 
 class FilterRelatedOwners(BaseFilter):  # pylint: disable=too-few-public-methods
-
     """
     A filter to allow searching for related owners of a resource.
 
@@ -55,7 +54,6 @@ class FilterRelatedOwners(BaseFilter):  # pylint: disable=too-few-public-methods
 
 
 class BaseFilterRelatedUsers(BaseFilter):  # pylint: disable=too-few-public-methods
-
     """
     Filter to apply on related users. Will exclude users in EXCLUDE_USERS_FROM_LISTS
 
@@ -72,15 +70,15 @@ class BaseFilterRelatedUsers(BaseFilter):  # pylint: disable=too-few-public-meth
     arg_name = "username"
 
     def apply(self, query: Query, value: Optional[Any]) -> Query:
-        if extra_filters := current_app.config["EXTRA_RELATED_QUERY_FILTERS"].get(
+        if extra_filters := app.config["EXTRA_RELATED_QUERY_FILTERS"].get(
             "user",
         ):
             query = extra_filters(query)
 
         exclude_users = (
             security_manager.get_exclude_users_from_lists()
-            if current_app.config["EXCLUDE_USERS_FROM_LISTS"] is None
-            else current_app.config["EXCLUDE_USERS_FROM_LISTS"]
+            if app.config["EXCLUDE_USERS_FROM_LISTS"] is None
+            else app.config["EXCLUDE_USERS_FROM_LISTS"]
         )
         if exclude_users:
             user_model = security_manager.user_model
@@ -98,9 +96,28 @@ class BaseFilterRelatedRoles(BaseFilter):  # pylint: disable=too-few-public-meth
     arg_name = "role"
 
     def apply(self, query: Query, value: Optional[Any]) -> Query:
-        if extra_filters := current_app.config["EXTRA_RELATED_QUERY_FILTERS"].get(
+        if extra_filters := app.config["EXTRA_RELATED_QUERY_FILTERS"].get(
             "role",
         ):
             return extra_filters(query)
 
         return query
+
+
+class FilterRelatedTables(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    A filter to allow searching for related tables.
+    Use in the api by adding something like:
+    related_field_filters = {
+      "tables": RelatedFieldFilter("table_name", FilterRelatedTables),
+    }
+    """
+
+    name = lazy_gettext("Table")
+    arg_name = "tables"
+
+    def apply(self, query: Query, value: Optional[Any]) -> Query:
+        from superset.connectors.sqla.models import SqlaTable
+
+        like_value = "%" + cast(str, value) + "%"
+        return query.filter(SqlaTable.table_name.ilike(like_value))

@@ -17,37 +17,35 @@
  * under the License.
  */
 import {
-  NumberFormatter,
-  TimeFormatter,
   TimeGranularity,
   QueryFormMetric,
   ChartProps,
   DataRecord,
-  DataRecordValue,
   DataRecordFilters,
-  GenericDataType,
   QueryMode,
   ChartDataResponseResult,
   QueryFormData,
   SetDataMaskHook,
   ContextMenuFilters,
 } from '@superset-ui/core';
-import { ColorFormatters, ColumnConfig } from '@superset-ui/chart-controls';
+import type {
+  BasicColorFormatterType,
+  ColorFormatters,
+  DataColumnMeta,
+  ServerPaginationData,
+  TableColumnConfig,
+} from '@superset-ui/chart-controls';
 
-export type CustomFormatter = (value: DataRecordValue) => string;
-
-export interface DataColumnMeta {
-  // `key` is what is called `label` in the input props
-  key: string;
-  // `label` is verbose column name used for rendering
-  label: string;
-  dataType: GenericDataType;
-  formatter?: TimeFormatter | NumberFormatter | CustomFormatter;
-  isMetric?: boolean;
-  isPercentMetric?: boolean;
-  isNumeric?: boolean;
-  config?: ColumnConfig;
-}
+// Re-export shared types used by internal plugin files that import from './types'
+// Types used locally in this file - re-export from local binding
+export type {
+  BasicColorFormatterType,
+  DataColumnMeta,
+  ServerPaginationData,
+  TableColumnConfig,
+};
+// Types only re-exported, not used locally - direct re-export
+export type { SearchOption, SortByItem } from '@superset-ui/chart-controls';
 
 export interface TableChartData {
   records: DataRecord[];
@@ -70,7 +68,7 @@ export type TableChartFormData = QueryFormData & {
   show_cell_bars?: boolean;
   table_timestamp_format?: string;
   time_grain_sqla?: TimeGranularity;
-  column_config?: Record<string, ColumnConfig>;
+  column_config?: Record<string, TableColumnConfig>;
   allow_rearrange_columns?: boolean;
 };
 
@@ -89,7 +87,7 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   width: number;
   rowCount?: number;
   serverPagination: boolean;
-  serverPaginationData: { pageSize?: number; currentPage?: number };
+  serverPaginationData: ServerPaginationData;
   setDataMask: SetDataMaskHook;
   isRawRecords?: boolean;
   data: D[];
@@ -111,11 +109,21 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   onChangeFilter?: ChartProps['hooks']['onAddFilter'];
   columnColorFormatters?: ColorFormatters;
   allowRearrangeColumns?: boolean;
+  allowRenderHtml?: boolean;
   onContextMenu?: (
     clientX: number,
     clientY: number,
     filters?: ContextMenuFilters,
   ) => void;
+  isUsingTimeComparison?: boolean;
+  basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
+  basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];
+  startDateOffset?: string;
+  // For explore page to reset the server Pagination data
+  // if server page length is changed from control panel
+  hasServerPageLengthChanged: boolean;
+  serverPageLength: number;
+  slice_id: number;
 }
 
 export default {};

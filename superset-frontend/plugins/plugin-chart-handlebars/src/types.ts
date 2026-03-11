@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ColumnConfig } from '@superset-ui/chart-controls';
 import {
   QueryFormData,
   QueryFormMetric,
@@ -53,7 +52,6 @@ export type HandlebarsQueryFormData = QueryFormData &
     table_timestamp_format?: string;
     granularitySqla?: string;
     time_grain_sqla?: TimeGranularity;
-    column_config?: Record<string, ColumnConfig>;
   };
 
 export type HandlebarsProps = HandlebarsStylesProps &

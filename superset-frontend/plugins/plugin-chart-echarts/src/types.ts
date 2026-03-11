@@ -16,19 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { RefObject } from 'react';
+import { RefObject, Ref } from 'react';
+
 import {
   ChartDataResponseResult,
   ChartProps,
   ContextMenuFilters,
   FilterState,
   HandlerFunction,
+  LegendState,
   PlainObject,
   QueryFormColumn,
   SetDataMaskHook,
+  ChartPlugin,
+  SqlaFormData,
+  ChartMetadata,
 } from '@superset-ui/core';
-import { EChartsCoreOption, ECharts } from 'echarts';
-import { TooltipMarker } from 'echarts/types/src/util/format';
+import type { EChartsCoreOption, EChartsType } from 'echarts/core';
+import type { TooltipMarker } from 'echarts/types/src/util/format';
 import { StackControlsValue } from './constants';
 
 export type EchartsStylesProps = {
@@ -37,7 +42,7 @@ export type EchartsStylesProps = {
 };
 
 export type Refs = {
-  echartRef?: React.Ref<EchartsHandler>;
+  echartRef?: Ref<EchartsHandler>;
   divRef?: RefObject<HTMLDivElement>;
 };
 
@@ -50,10 +55,11 @@ export interface EchartsProps {
   selectedValues?: Record<number, string>;
   forceClear?: boolean;
   refs: Refs;
+  vizType?: string;
 }
 
 export interface EchartsHandler {
-  getEchartInstance: () => ECharts | undefined;
+  getEchartInstance: () => EChartsType | undefined;
 }
 
 export enum ForecastSeriesEnum {
@@ -93,6 +99,7 @@ export type LegendFormData = {
   legendOrientation: LegendOrientation;
   legendType: LegendType;
   showLegend: boolean;
+  legendSort: 'asc' | 'desc' | null;
 };
 
 export type EventHandlers = Record<string, { (props: any): void }>;
@@ -121,17 +128,20 @@ export interface BaseTransformedProps<F> {
   echartOptions: EChartsCoreOption;
   formData: F;
   height: number;
+  isRefreshing?: boolean;
   onContextMenu?: (
     clientX: number,
     clientY: number,
     filters?: ContextMenuFilters,
   ) => void;
   setDataMask?: SetDataMaskHook;
+  onLegendStateChanged?: (state: LegendState) => void;
   filterState?: FilterState;
   refs: Refs;
   width: number;
   emitCrossFilters?: boolean;
   coltypeMapping?: Record<string, number>;
+  onLegendScroll?: (currentIndex: number) => void;
 }
 
 export type CrossFilterTransformedProps = {
@@ -166,6 +176,22 @@ export interface TreePathInfo {
   name: string;
   dataIndex: number;
   value: number | number[];
+}
+
+export class EchartsChartPlugin<
+  T extends SqlaFormData = SqlaFormData,
+  P extends ChartProps = ChartProps,
+> extends ChartPlugin<T, P> {
+  constructor(props: any) {
+    const { metadata, ...restProps } = props;
+    super({
+      ...restProps,
+      metadata: new ChartMetadata({
+        parseMethod: 'json',
+        ...metadata,
+      }),
+    });
+  }
 }
 
 export * from './Timeseries/types';

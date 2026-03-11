@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { t } from '@superset-ui/core';
-import { ControlPanelSectionConfig } from '@superset-ui/chart-controls';
+import { t } from '@apache-superset/core/translation';
+import {
+  ControlPanelSectionConfig,
+  ControlSubSectionHeader,
+} from '@superset-ui/chart-controls';
 
 export const datasourceAndVizType: ControlPanelSectionConfig = {
   controlSetRows: [
@@ -97,7 +99,8 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
       ['metrics'],
       ['adhoc_filters'],
       ['groupby'],
-      ['limit', 'timeseries_limit_metric'],
+      ['limit', 'group_others_when_limit_reached'],
+      ['timeseries_limit_metric'],
       ['order_desc'],
       [
         {
@@ -122,7 +125,11 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
         'of query results',
     ),
     controlSetRows: [
-      [<div className="section-header">{t('Rolling window')}</div>],
+      [
+        <ControlSubSectionHeader>
+          {t('Rolling window')}
+        </ControlSubSectionHeader>,
+      ],
       [
         {
           name: 'rolling_type',
@@ -171,7 +178,11 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
           },
         },
       ],
-      [<div className="section-header">{t('Time comparison')}</div>],
+      [
+        <ControlSubSectionHeader>
+          {t('Time comparison')}
+        </ControlSubSectionHeader>,
+      ],
       [
         {
           name: 'time_compare',
@@ -220,7 +231,7 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
           },
         },
       ],
-      [<div className="section-header">{t('Resample')}</div>],
+      [<ControlSubSectionHeader>{t('Resample')}</ControlSubSectionHeader>],
       [
         {
           name: 'resample_rule',
@@ -262,3 +273,62 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
     ],
   },
 ];
+
+function buildMatrixifySection(
+  axis: 'columns' | 'rows',
+): ControlPanelSectionConfig {
+  const baseControls = [
+    [`matrixify_mode_${axis}`],
+    [`matrixify_${axis}`],
+    [`matrixify_dimension_selection_mode_${axis}`],
+    [`matrixify_dimension_${axis}`],
+    [`matrixify_topn_dimension_${axis}`],
+    [`matrixify_topn_value_${axis}`],
+    [`matrixify_topn_metric_${axis}`],
+    [`matrixify_topn_order_${axis}`],
+  ];
+
+  // Add enable checkbox at the beginning of each section
+  const enableControl =
+    axis === 'rows'
+      ? 'matrixify_enable_vertical_layout'
+      : 'matrixify_enable_horizontal_layout';
+
+  baseControls.unshift([enableControl]);
+
+  // Add specific controls for each axis
+  if (axis === 'rows') {
+    // Add show row labels after enable
+    baseControls.splice(1, 0, ['matrixify_show_row_labels']);
+  } else if (axis === 'columns') {
+    // Add show column headers after enable
+    baseControls.splice(1, 0, ['matrixify_show_column_headers']);
+  }
+
+  return {
+    label:
+      axis === 'columns'
+        ? t('Horizontal layout (columns)')
+        : t('Vertical layout (rows)'),
+    expanded: true,
+    tabOverride: 'matrixify',
+    controlSetRows: baseControls,
+  };
+}
+
+export const matrixifyRows = buildMatrixifySection('rows');
+export const matrixifyColumns = buildMatrixifySection('columns');
+
+export const matrixifyCells: ControlPanelSectionConfig = {
+  label: t('Cell layout & styling'),
+  expanded: true,
+  tabOverride: 'matrixify',
+  visibility: ({ controls }) =>
+    controls?.matrixify_enable_vertical_layout?.value === true ||
+    controls?.matrixify_enable_horizontal_layout?.value === true,
+  controlSetRows: [
+    ['matrixify_row_height', 'matrixify_fit_columns_dynamically'],
+    ['matrixify_charts_per_row'],
+    ['matrixify_cell_title_template'],
+  ],
+};
