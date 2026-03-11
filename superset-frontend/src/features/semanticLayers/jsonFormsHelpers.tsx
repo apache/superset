@@ -72,8 +72,51 @@ function ConstControl({ data, handleChange, path, schema }: ControlProps) {
 }
 const ConstRenderer = withJsonFormsControlProps(ConstControl);
 const constEntry = {
-  tester: rankWith(10, schemaMatches(s => s !== undefined && 'const' in s)),
+  tester: rankWith(
+    10,
+    schemaMatches(
+      s =>
+        s !== undefined &&
+        'const' in s &&
+        !(s as Record<string, unknown>).readOnly,
+    ),
+  ),
   renderer: ConstRenderer,
+};
+
+/**
+ * Renderer for read-only fields (e.g. a fixed database that the admin locked).
+ * Renders a disabled input showing the current value. Also ensures the default
+ * value is injected into form data (like ConstControl does for hidden fields).
+ */
+function ReadOnlyControl({
+  data,
+  handleChange,
+  path,
+  schema,
+  ...rest
+}: ControlProps) {
+  const defaultValue =
+    (schema as Record<string, unknown>).const ??
+    (schema as Record<string, unknown>).default;
+  useEffect(() => {
+    if (defaultValue !== undefined && data !== defaultValue) {
+      handleChange(path, defaultValue);
+    }
+  }, [defaultValue, data, handleChange, path]);
+
+  return TextControl({ ...rest, data, handleChange, path, schema, enabled: false });
+}
+const ReadOnlyRenderer = withJsonFormsControlProps(ReadOnlyControl);
+const readOnlyEntry = {
+  tester: rankWith(
+    11,
+    schemaMatches(
+      s =>
+        s !== undefined && (s as Record<string, unknown>).readOnly === true,
+    ),
+  ),
+  renderer: ReadOnlyRenderer,
 };
 
 /**
@@ -138,6 +181,7 @@ export const renderers = [
   ...rendererRegistryEntries,
   passwordEntry,
   constEntry,
+  readOnlyEntry,
   dynamicFieldEntry,
 ];
 
@@ -163,7 +207,7 @@ export function sanitizeSchema(schema: JsonSchema): JsonSchema {
       properties[key] = prop as JsonSchema;
     }
   }
-  return { ...schema, properties };
+  return { ...schema, properties } as JsonSchema;
 }
 
 /**
