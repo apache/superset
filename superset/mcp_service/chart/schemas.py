@@ -749,6 +749,14 @@ class XYChartConfig(BaseModel):
             "If not specified, Superset will use its default behavior."
         ),
     )
+    orientation: Literal["vertical", "horizontal"] | None = Field(
+        None,
+        description=(
+            "Bar chart orientation. Only applies when kind='bar'. "
+            "'vertical' (default): bars extend upward. "
+            "'horizontal': bars extend rightward, useful for long category names."
+        ),
+    )
     stacked: bool = Field(
         False,
         description="Stack bars/areas on top of each other instead of side-by-side",
