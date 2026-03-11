@@ -23,6 +23,8 @@ import pytest
 from marshmallow import fields, Schema, ValidationError
 from pytest_mock import MockerFixture
 
+from superset.utils import json
+
 if TYPE_CHECKING:
     from superset.databases.schemas import DatabaseParametersSchemaMixin
 
@@ -59,6 +61,24 @@ def dummy_engine(mocker: MockerFixture) -> None:
         default_driver = "dummy"
 
     mocker.patch("superset.databases.schemas.get_engine_spec", return_value=DummyEngine)
+
+
+@pytest.fixture
+def mock_bq_engine(mocker: MockerFixture) -> None:
+    """
+    Fixture providing a mocked BQ engine spec.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    mock_url = mocker.MagicMock()
+    mock_url.get_backend_name.return_value = "bigquery"
+    mock_url.get_driver_name.return_value = "bigquery"
+
+    mocker.patch("superset.databases.schemas.make_url_safe", return_value=mock_url)
+    mocker.patch(
+        "superset.databases.schemas.get_engine_spec",
+        return_value=BigQueryEngineSpec,
+    )
 
 
 def test_database_parameters_schema_mixin(
@@ -272,3 +292,89 @@ def test_oauth2_schema_extra() -> None:
         }
     )
     assert payload == {"code": "SECRET", "state": "12345"}
+
+
+def test_import_schema_rejects_both_encrypted_and_masked() -> None:
+    """
+    Test that ImportV1DatabaseSchema rejects configs with both
+    encrypted_extra and masked_encrypted_extra.
+    """
+    from superset.databases.schemas import ImportV1DatabaseSchema
+
+    schema = ImportV1DatabaseSchema()
+    config = {
+        "database_name": "test_db",
+        "sqlalchemy_uri": "bigquery://test/",
+        "uuid": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+        "encrypted_extra": json.dumps({"secret": "value"}),
+        "masked_encrypted_extra": json.dumps({"secret": "XXXXXXXXXX"}),
+        "extra": {},
+        "version": "1.0.0",
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(config)
+    assert "File contains both" in str(exc_info.value)
+
+
+def test_import_schema_rejects_masked_fields_for_new_db(
+    mock_bq_engine: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that ImportV1DatabaseSchema rejects configs with PASSWORD_MASK
+    values for a new DB (no existing UUID match).
+    """
+    from superset.databases.schemas import ImportV1DatabaseSchema
+
+    mock_session = mocker.patch("superset.databases.schemas.db.session")
+    mock_session.query.return_value.filter_by.return_value.first.return_value = None
+
+    schema = ImportV1DatabaseSchema()
+    config = {
+        "database_name": "test_db",
+        "sqlalchemy_uri": "bigquery://test/",
+        "uuid": "bbbbbbbb-aaaa-cccc-dddd-eeeeeeeeeeff",
+        "masked_encrypted_extra": json.dumps(
+            {"credentials_info": {"private_key": "XXXXXXXXXX"}}
+        ),
+        "extra": {},
+        "version": "1.0.0",
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(config)
+    error_messages = str(exc_info.value)
+    assert "Must provide value for masked_encrypted_extra field" in error_messages
+    assert "$.credentials_info.private_key" in error_messages
+
+
+def test_import_schema_allows_masked_fields_for_existing_db(
+    mock_bq_engine: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that ImportV1DatabaseSchema allows PASSWORD_MASK values when
+    the DB already exists (UUID match). The reveal will happen later
+    in import_database().
+    """
+    from superset.databases.schemas import ImportV1DatabaseSchema
+
+    mock_session = mocker.patch("superset.databases.schemas.db.session")
+    mock_existing_db = mocker.MagicMock()
+    mock_session = mocker.patch("superset.databases.schemas.db.session")
+    mock_session.query.return_value.filter_by.return_value.first.return_value = (
+        mock_existing_db
+    )
+
+    schema = ImportV1DatabaseSchema()
+    config = {
+        "database_name": "test_db",
+        "sqlalchemy_uri": "bigquery://test/",
+        "uuid": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+        "masked_encrypted_extra": json.dumps(
+            {"credentials_info": {"private_key": "XXXXXXXXXX"}}
+        ),
+        "extra": {},
+        "version": "1.0.0",
+    }
+    # Should not raise - masked values are allowed for existing DBs
+    schema.load(config)

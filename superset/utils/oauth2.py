@@ -31,8 +31,8 @@ from flask import current_app as app, url_for
 from marshmallow import EXCLUDE, fields, post_load, Schema, validate
 
 from superset import db
-from superset.distributed_lock import KeyValueDistributedLock
-from superset.exceptions import CreateKeyValueDistributedLockFailedException
+from superset.distributed_lock import DistributedLock
+from superset.exceptions import AcquireDistributedLockFailedException
 from superset.superset_typing import OAuth2ClientConfig, OAuth2State
 
 if TYPE_CHECKING:
@@ -77,7 +77,7 @@ def generate_code_challenge(code_verifier: str) -> str:
 
 @backoff.on_exception(
     backoff.expo,
-    CreateKeyValueDistributedLockFailedException,
+    AcquireDistributedLockFailedException,
     factor=10,
     base=2,
     max_tries=5,
@@ -128,8 +128,10 @@ def refresh_oauth2_token(
     db_engine_spec: type[BaseEngineSpec],
     token: DatabaseUserOAuth2Tokens,
 ) -> str | None:
-    with KeyValueDistributedLock(
+    # Use longer TTL for OAuth2 token refresh (may involve network calls)
+    with DistributedLock(
         namespace="refresh_oauth2_token",
+        ttl_seconds=30,
         user_id=user_id,
         database_id=database_id,
     ):
@@ -165,6 +167,10 @@ def refresh_oauth2_token(
         token.access_token_expiration = datetime.now() + timedelta(
             seconds=token_response["expires_in"]
         )
+        # Support single-use refresh tokens
+        if new_refresh_token := token_response.get("refresh_token"):
+            token.refresh_token = new_refresh_token
+
         db.session.add(token)
 
     return token.access_token

@@ -32,6 +32,7 @@ from marshmallow.validate import Length, OneOf
 from superset import security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetMarshmallowValidationError
+from superset.models.sql_types import parse_currency_string
 from superset.utils import json
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -97,6 +98,20 @@ class DatasetMetricCurrencyPutSchema(Schema):
     symbolPosition = fields.String(validate=Length(1, 128))  # noqa: N815
 
 
+class CurrencyField(fields.Nested):
+    """
+    Nested field that tolerates legacy string payloads for currency.
+    """
+
+    def _deserialize(
+        self, value: Any, attr: str | None, data: dict[str, Any], **kwargs: Any
+    ) -> Any:
+        if isinstance(value, str):
+            value = parse_currency_string(value)
+
+        return super()._deserialize(value, attr, data, **kwargs)
+
+
 class DatasetMetricsPutSchema(Schema):
     id = fields.Integer()
     expression = fields.String(required=True)
@@ -105,7 +120,7 @@ class DatasetMetricsPutSchema(Schema):
     metric_name = fields.String(required=True, validate=Length(1, 255))
     metric_type = fields.String(allow_none=True, validate=Length(1, 32))
     d3format = fields.String(allow_none=True, validate=Length(1, 128))
-    currency = fields.Nested(DatasetMetricCurrencyPutSchema, allow_none=True)
+    currency = CurrencyField(DatasetMetricCurrencyPutSchema, allow_none=True)
     verbose_name = fields.String(allow_none=True, metadata={Length: (1, 1024)})
     warning_text = fields.String(allow_none=True)
     uuid = fields.UUID(allow_none=True)
@@ -276,9 +291,6 @@ class ImportV1MetricSchema(Schema):
         if isinstance(data.get("extra"), str):
             data["extra"] = json.loads(data["extra"])
 
-        if isinstance(data.get("currency"), str):
-            data["currency"] = json.loads(data["currency"])
-
         return data
 
     metric_name = fields.String(required=True)
@@ -287,7 +299,7 @@ class ImportV1MetricSchema(Schema):
     expression = fields.String(required=True)
     description = fields.String(allow_none=True)
     d3format = fields.String(allow_none=True)
-    currency = fields.Nested(ImportMetricCurrencySchema, allow_none=True)
+    currency = CurrencyField(ImportMetricCurrencySchema, allow_none=True)
     extra = fields.Dict(allow_none=True)
     warning_text = fields.String(allow_none=True)
 
@@ -414,6 +426,7 @@ class DatasetColumnDrillInfoSchema(Schema):
 class UserSchema(Schema):
     first_name = fields.String()
     last_name = fields.String()
+    email = fields.String()
 
 
 class DatasetDrillInfoSchema(Schema):

@@ -181,7 +181,8 @@ test('getChartDataPayloads generates payloads for charts with state converters',
 
   jest
     .spyOn(exploreUtils, 'buildV1ChartDataPayload')
-    .mockResolvedValue(mockPayload);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .mockResolvedValue(mockPayload as any);
 
   const result = await getChartDataPayloads(mockState as RootState);
 
@@ -211,7 +212,8 @@ test('getChartDataPayloads filters by specific chartId when provided', async () 
 
   jest
     .spyOn(exploreUtils, 'buildV1ChartDataPayload')
-    .mockResolvedValue(mockPayload);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .mockResolvedValue(mockPayload as any);
 
   const result = await getChartDataPayloads(mockState as RootState, {
     chartId: 123,
@@ -254,11 +256,12 @@ test('getChartDataPayloads handles errors during payload generation gracefully',
 
   jest
     .spyOn(exploreUtils, 'buildV1ChartDataPayload')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .mockImplementation((params: any) => {
       if (params.formData.viz_type === 'ag-grid-table') {
         return Promise.reject(new Error('Failed to build payload'));
       }
-      return Promise.resolve(mockPayload);
+      return Promise.resolve(mockPayload as any);
     });
 
   const result = await getChartDataPayloads(mockState as RootState);
@@ -287,7 +290,8 @@ test('getChartDataPayloads merges baseOwnState with converted chart state', asyn
 
   const mockBuildPayload = jest
     .spyOn(exploreUtils, 'buildV1ChartDataPayload')
-    .mockResolvedValue(mockPayload);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .mockResolvedValue(mockPayload as any);
 
   await getChartDataPayloads(mockState as RootState, { chartId: 123 });
 

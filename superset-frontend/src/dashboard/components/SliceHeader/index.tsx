@@ -24,9 +24,14 @@ import {
   useRef,
   useState,
 } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { getExtensionsRegistry, QueryData } from '@superset-ui/core';
-import { css, styled, SupersetTheme, useTheme } from '@apache-superset/core/ui';
+import {
+  css,
+  styled,
+  SupersetTheme,
+  useTheme,
+} from '@apache-superset/core/theme';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { Tooltip, EditableTitle, Icons } from '@superset-ui/core/components';
@@ -190,12 +195,30 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       state => state.charts[slice.slice_id].queriesResponse?.[0],
     );
 
+    const secondQueryResponse = useSelector<RootState, QueryData | undefined>(
+      state => state.charts[slice.slice_id].queriesResponse?.[1],
+    );
+
     const theme = useTheme();
 
-    const rowLimit = Number(formData.row_limit || -1);
-    const sqlRowCount = Number(firstQueryResponse?.sql_rowcount || 0);
+    const rowLimit = Number(formData.row_limit ?? 0);
+
+    const isTableChart = formData.viz_type === 'table';
+    const countFromSecondQuery =
+      isTableChart && secondQueryResponse?.data?.[0]?.rowcount;
+
+    const sqlRowCount =
+      countFromSecondQuery != null
+        ? countFromSecondQuery
+        : Number(
+            firstQueryResponse?.sql_rowcount ??
+              firstQueryResponse?.rowcount ??
+              0,
+          );
 
     const canExplore = !editMode && supersetCanExplore;
+    const showRowLimitWarning =
+      shouldShowRowLimitWarning && sqlRowCount >= rowLimit && rowLimit > 0;
 
     useEffect(() => {
       const headerElement = headerRef.current;
@@ -304,7 +327,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                 <FiltersBadge chartId={slice.slice_id} />
               )}
 
-              {shouldShowRowLimitWarning && sqlRowCount === rowLimit && (
+              {showRowLimitWarning && (
                 <RowCountLabel
                   rowcount={sqlRowCount}
                   limit={rowLimit}

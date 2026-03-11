@@ -56,12 +56,12 @@ describe('LabelsColorMap', () => {
     getLabelsColorMap().reset();
   });
 
-  it('has default value out-of-the-box', () => {
+  test('has default value out-of-the-box', () => {
     expect(getLabelsColorMap()).toBeInstanceOf(LabelsColorMap);
   });
 
   describe('.addSlice(value, color, sliceId)', () => {
-    it('should add to sliceLabelColorMap when first adding label', () => {
+    test('should add to sliceLabelColorMap when first adding label', () => {
       const labelsColorMap = getLabelsColorMap();
       labelsColorMap.addSlice('a', 'red', 1, 'preset');
       expect(labelsColorMap.chartsLabelsMap.has(1)).toEqual(true);
@@ -71,7 +71,7 @@ describe('LabelsColorMap', () => {
       expect(Object.fromEntries(colorMap)).toEqual({ a: 'red' });
     });
 
-    it('should add to sliceLabelColorMap when slice exist', () => {
+    test('should add to sliceLabelColorMap when slice exist', () => {
       const labelsColorMap = getLabelsColorMap();
       labelsColorMap.addSlice('a', 'red', 1);
       labelsColorMap.addSlice('b', 'blue', 1);
@@ -81,7 +81,7 @@ describe('LabelsColorMap', () => {
       expect(Object.fromEntries(colorMap)).toEqual({ a: 'red', b: 'blue' });
     });
 
-    it('should use last color if adding label repeatedly', () => {
+    test('should use last color if adding label repeatedly', () => {
       const labelsColorMap = getLabelsColorMap();
       labelsColorMap.addSlice('b', 'blue', 1);
       labelsColorMap.addSlice('b', 'green', 1);
@@ -92,7 +92,7 @@ describe('LabelsColorMap', () => {
       expect(Object.fromEntries(colorMap)).toEqual({ b: 'green' });
     });
 
-    it('should set a new color only when source is dashboard', () => {
+    test('should set a new color only when source is dashboard', () => {
       const labelsColorMap = getLabelsColorMap();
       labelsColorMap.source = LabelsColorMapSource.Explore;
       labelsColorMap.addSlice('a', 'red', 1);
@@ -107,14 +107,14 @@ describe('LabelsColorMap', () => {
   });
 
   describe('.remove(sliceId)', () => {
-    it('should remove sliceId', () => {
+    test('should remove sliceId', () => {
       const labelsColorMap = getLabelsColorMap();
       labelsColorMap.addSlice('a', 'red', 1);
       labelsColorMap.removeSlice(1);
       expect(labelsColorMap.chartsLabelsMap.has(1)).toEqual(false);
     });
 
-    it('should update colorMap', () => {
+    test('should update colorMap', () => {
       const labelsColorMap = getLabelsColorMap();
       labelsColorMap.addSlice('a', 'red', 1);
       labelsColorMap.addSlice('b', 'blue', 2);
@@ -123,7 +123,7 @@ describe('LabelsColorMap', () => {
       expect(Object.fromEntries(colorMap)).toEqual({ b: 'blue' });
     });
 
-    it('should do nothing when source is not dashboard', () => {
+    test('should do nothing when source is not dashboard', () => {
       const labelsColorMap = getLabelsColorMap();
       labelsColorMap.addSlice('a', 'red', 1);
       labelsColorMap.source = LabelsColorMapSource.Explore;
@@ -147,32 +147,32 @@ describe('LabelsColorMap', () => {
       };
     });
 
-    it('should clear color map when not merge', () => {
+    test('should clear color map when not merge', () => {
       labelsColorMap.addSlice('a', 'red', 1);
       labelsColorMap.updateColorMap(mockedNamespace, 'testColors2', false);
       expect(labelsColorMap.colorMap).toEqual(new Map([['a', 'mockColor']]));
     });
 
-    it('should not clear color map when merge', () => {
+    test('should not clear color map when merge', () => {
       labelsColorMap.addSlice('a', 'red', 1);
       labelsColorMap.updateColorMap(mockedNamespace, 'testColors2', true);
       expect(labelsColorMap.colorMap).not.toEqual(new Map());
     });
 
-    it('should use provided color scheme', () => {
+    test('should use provided color scheme', () => {
       labelsColorMap.addSlice('a', 'red', 1);
       labelsColorMap.updateColorMap(mockedNamespace, 'testColors2');
       expect(mockedNamespace.getScale).toHaveBeenCalledWith('testColors2');
     });
 
-    it('should fallback to undefined if no color scheme is provided', () => {
+    test('should fallback to undefined if no color scheme is provided', () => {
       labelsColorMap.addSlice('a', 'red', 1);
       labelsColorMap.addSlice('b', 'blue', 2);
       labelsColorMap.updateColorMap(mockedNamespace);
       expect(mockedNamespace.getScale).toHaveBeenCalledWith(undefined);
     });
 
-    it('should update color map', () => {
+    test('should update color map', () => {
       // override color with forcedItems
       categoricalNamespace.setColor('b', 'green');
       // testColors2: 'yellow', 'green', 'blue'
@@ -193,7 +193,7 @@ describe('LabelsColorMap', () => {
       });
     });
 
-    it('should update only new labels in the color map when merge', () => {
+    test('should update only new labels in the color map when merge', () => {
       labelsColorMap.colorMap = new Map();
 
       labelsColorMap.addSlice('a', 'yellow', 1);
@@ -210,7 +210,7 @@ describe('LabelsColorMap', () => {
       });
     });
 
-    it('should use recycle colors', () => {
+    test('should use recycle colors', () => {
       window.featureFlags = {
         [FeatureFlag.UseAnalogousColors]: false,
       };
@@ -224,7 +224,7 @@ describe('LabelsColorMap', () => {
       expect(getAnalogousColorsSpy).not.toHaveBeenCalled();
     });
 
-    it('should use analogous colors', () => {
+    test('should use analogous colors', () => {
       window.featureFlags = {
         [FeatureFlag.UseAnalogousColors]: true,
       };
@@ -241,7 +241,7 @@ describe('LabelsColorMap', () => {
   });
 
   describe('.getColorMap()', () => {
-    it('should get color map', () => {
+    test('should get color map', () => {
       const labelsColorMap = getLabelsColorMap();
       labelsColorMap.addSlice('a', 'red', 1);
       labelsColorMap.addSlice('b', 'blue', 2);
@@ -251,7 +251,7 @@ describe('LabelsColorMap', () => {
   });
 
   describe('.reset()', () => {
-    it('should reset color map', () => {
+    test('should reset color map', () => {
       const labelsColorMap = getLabelsColorMap();
       labelsColorMap.addSlice('a', 'red', 1);
       labelsColorMap.addSlice('b', 'blue', 2);
@@ -262,7 +262,7 @@ describe('LabelsColorMap', () => {
   });
 
   describe('setOwnColorScheme(sliceId, ownScheme)', () => {
-    it('should update the scheme in the config', () => {
+    test('should update the scheme in the config', () => {
       const labelsColorMap = getLabelsColorMap();
       labelsColorMap.source = LabelsColorMapSource.Explore;
       const sliceId = 1;
@@ -278,7 +278,7 @@ describe('LabelsColorMap', () => {
         ownScheme: 'newScheme',
       });
     });
-    it('should update ownScheme when source is not Explore', () => {
+    test('should update ownScheme when source is not Explore', () => {
       const labelsColorMap = getLabelsColorMap();
       labelsColorMap.source = LabelsColorMapSource.Dashboard;
       const sliceId = 1;
@@ -294,7 +294,7 @@ describe('LabelsColorMap', () => {
         ownScheme: 'newScheme',
       });
     });
-    it('should do nothing when chart config does not exist', () => {
+    test('should do nothing when chart config does not exist', () => {
       const labelsColorMap = getLabelsColorMap();
       labelsColorMap.source = LabelsColorMapSource.Explore;
       const sliceId = 1;

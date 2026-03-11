@@ -30,6 +30,7 @@ import {
 } from 'spec/helpers/testing-library';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import GroupsList from './index';
 
 const mockStore = configureStore([thunk]);
@@ -66,7 +67,7 @@ fetchMock.get(rolesEndpoint, {
   count: 3,
 });
 
-fetchMock.get(groupsEndpoint, { result: [] });
+fetchMock.get(groupsEndpoint, { result: [] }, { name: groupsEndpoint });
 
 jest.mock('src/dashboard/util/permissionUtils', () => ({
   ...jest.requireActual('src/dashboard/util/permissionUtils'),
@@ -79,7 +80,7 @@ describe('GroupsList', () => {
     await act(async () => {
       render(
         <MemoryRouter>
-          <QueryParamProvider>
+          <QueryParamProvider adapter={ReactRouter5Adapter}>
             <GroupsList user={mockUser} />
           </QueryParamProvider>
         </MemoryRouter>,
@@ -113,7 +114,7 @@ describe('GroupsList', () => {
     expect(await screen.findByTestId('Add Group-modal')).toBeInTheDocument();
   });
 
-  test.only('renders actions column for admin', async () => {
+  test('renders actions column for admin', async () => {
     await renderComponent();
     expect(screen.getAllByText('Actions')[0]).toBeInTheDocument();
   });
@@ -129,7 +130,7 @@ describe('GroupsList', () => {
     expect(within(filtersSelect).getByText(/users/i)).toBeInTheDocument();
   });
 
-  test.only('renders correct columns in the table', async () => {
+  test('renders correct columns in the table', async () => {
     await renderComponent();
     const table = screen.getByRole('table');
 
@@ -147,6 +148,7 @@ describe('GroupsList', () => {
   });
 
   test('opens edit modal on edit button click', async () => {
+    fetchMock.removeRoute(groupsEndpoint);
     fetchMock.get('glob:*/security/groups/?*', {
       result: [
         {

@@ -42,6 +42,7 @@ import {
   MarkdownEditor,
   CssEditor,
   ConfigEditor,
+  JSEditor,
   type AceCompleterKeyword,
 } from '@superset-ui/core/components';
 import { Disposable } from '../models';
@@ -70,6 +71,8 @@ const getEditorComponent = (language: string) => {
       return CssEditor;
     case 'yaml':
       return ConfigEditor;
+    case 'javascript':
+      return JSEditor;
     default:
       console.warn(
         `Unknown editor language "${language}", falling back to SQL editor`,
@@ -179,6 +182,10 @@ const createAceEditorHandle = (
       completionProviders.current.delete(provider.id);
     });
   },
+
+  resize: () => {
+    aceEditorRef.current?.editor?.resize();
+  },
 });
 
 /**
@@ -189,6 +196,8 @@ const toAceKeyword = (keyword: EditorKeyword): AceCompleterKeyword => ({
   value: keyword.value ?? keyword.name,
   score: keyword.score ?? 0,
   meta: keyword.meta ?? '',
+  docText: keyword.detail,
+  docHTML: keyword.documentation,
 });
 
 /**
@@ -251,18 +260,6 @@ const AceEditorProvider = forwardRef<EditorHandle, EditorProps>(
     // Track if event listeners have been registered to prevent duplicates
     const listenersRegisteredRef = useRef(false);
 
-    // Notify when ready (only once)
-    useEffect(() => {
-      if (
-        onReady &&
-        aceEditorRef.current?.editor &&
-        !onReadyCalledRef.current
-      ) {
-        onReadyCalledRef.current = true;
-        onReady(handle);
-      }
-    }, [onReady, handle]);
-
     // Handle editor load
     const onEditorLoad = useCallback(
       (editor: AceEditor['editor']) => {
@@ -306,10 +303,16 @@ const AceEditorProvider = forwardRef<EditorHandle, EditorProps>(
           });
         }
 
+        // Notify when ready (only once) - must be done here after editor is loaded
+        if (onReady && !onReadyCalledRef.current) {
+          onReadyCalledRef.current = true;
+          onReady(handle);
+        }
+
         // Focus the editor
         editor.focus();
       },
-      [hotkeys, handle],
+      [hotkeys, handle, onReady],
     );
 
     // Handle blur

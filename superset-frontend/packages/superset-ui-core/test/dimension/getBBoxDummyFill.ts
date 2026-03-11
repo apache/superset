@@ -28,10 +28,10 @@ const textToWidth = {
 export const SAMPLE_TEXT = Object.keys(textToWidth);
 
 export function addDummyFill() {
-  // @ts-ignore - fix jsdom
+  // @ts-expect-error - fix jsdom
   originalFn = SVGElement.prototype.getBBox;
 
-  // @ts-ignore - fix jsdom
+  // @ts-expect-error - fix jsdom
   SVGElement.prototype.getBBox = function getBBox() {
     let width =
       textToWidth[this.textContent as keyof typeof textToWidth] || 200;
@@ -78,6 +78,6 @@ export function addDummyFill() {
 }
 
 export function removeDummyFill() {
-  // @ts-ignore - fix jsdom
+  // @ts-expect-error - fix jsdom
   SVGElement.prototype.getBBox = originalFn;
 }

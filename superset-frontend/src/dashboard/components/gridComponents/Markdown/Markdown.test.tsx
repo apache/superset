@@ -25,7 +25,7 @@ import {
   userEvent,
   RenderResult,
 } from 'spec/helpers/testing-library';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { mockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 import MarkdownConnected from './Markdown';
@@ -281,6 +281,9 @@ test('should handle markdown errors gracefully', async () => {
 
     await new Promise(resolve => setTimeout(resolve, 100));
   });
+
+  // Verify component still renders after error events
+  expect(screen.getByTestId('dashboard-markdown-editor')).toBeInTheDocument();
 });
 
 test('should resize editor when width changes', async () => {
@@ -307,6 +310,11 @@ test('should resize editor when width changes', async () => {
 
     await new Promise(resolve => setTimeout(resolve, 100));
   });
+
+  // Verify component still renders after resize
+  expect(
+    screen.getByTestId('dashboard-component-chart-holder'),
+  ).toBeInTheDocument();
 });
 
 test('should update content when undo/redo changes occur', async () => {
@@ -395,6 +403,27 @@ test('shouldFocusMarkdown returns false when clicking outside markdown container
   expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
 });
 
+test('should re-enter edit mode on a single click after clicking outside', async () => {
+  await setup({ editMode: true });
+
+  const markdownContainer = screen.getByTestId(
+    'dashboard-component-chart-holder',
+  );
+
+  // Click to enter edit mode
+  userEvent.click(markdownContainer);
+  expect(await screen.findByRole('textbox')).toBeInTheDocument();
+
+  // Click outside to exit edit mode
+  userEvent.click(document.body);
+  await new Promise(resolve => setTimeout(resolve, 50));
+  expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+
+  // Click back inside — editor should appear on a single click
+  userEvent.click(markdownContainer);
+  expect(await screen.findByRole('textbox')).toBeInTheDocument();
+});
+
 test('shouldFocusMarkdown keeps focus when clicking on menu items', async () => {
   await setup({ editMode: true });
 
@@ -409,9 +438,8 @@ test('shouldFocusMarkdown keeps focus when clicking on menu items', async () => 
   const editButton = screen.getByText('Edit');
 
   userEvent.click(editButton);
-  await new Promise(resolve => setTimeout(resolve, 50));
 
-  expect(screen.queryByRole('textbox')).toBeInTheDocument();
+  expect(await screen.findByRole('textbox')).toBeInTheDocument();
 });
 
 test('should exit edit mode when clicking outside in same row', async () => {

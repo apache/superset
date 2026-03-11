@@ -22,6 +22,11 @@ import { denormalizeTimestamp } from '@superset-ui/core';
 import { LOCALSTORAGE_MAX_QUERY_AGE_MS } from 'src/SqlLab/constants';
 import Results from './Results';
 
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: (flag: string) => flag === 'SQLLAB_BACKEND_PERSISTENCE',
+}));
+
 const mockedProps = {
   queryEditorId: defaultQueryEditor.id,
   latestQueryId: 'LCly_kkIN',
@@ -41,6 +46,11 @@ const mockedEmptyProps = {
 const mockedExpiredProps = {
   ...mockedEmptyProps,
   latestQueryId: 'expired_query_id',
+};
+
+const mockedNoStoredResultsProps = {
+  ...mockedEmptyProps,
+  latestQueryId: 'no_stored_results_query_id',
 };
 
 const latestQueryProgressMsg = 'LATEST QUERY MESSAGE - LCly_kkIN';
@@ -103,6 +113,19 @@ const mockState = {
         sqlEditorId: defaultQueryEditor.id,
         sql: 'select * from table4',
       },
+      no_stored_results_query_id: {
+        cached: false,
+        changed_on: denormalizeTimestamp(new Date().toISOString()),
+        db: 'main',
+        dbId: 1,
+        id: 'no_stored_results_query_id',
+        startDttm: Date.now(),
+        sqlEditorId: defaultQueryEditor.id,
+        sql: 'select * from table5',
+        state: 'success',
+        resultsKey: null,
+        results: null,
+      },
     },
   },
 };
@@ -131,4 +154,15 @@ test('should pass latest query down to ResultSet component', async () => {
     initialState: mockState,
   });
   expect(getByText(latestQueryProgressMsg)).toBeVisible();
+});
+
+test('Renders alert when query succeeded but has no stored results', async () => {
+  const { getByText } = render(<Results {...mockedNoStoredResultsProps} />, {
+    useRedux: true,
+    initialState: mockState,
+  });
+  const alertText = getByText(
+    /no stored results found, you need to re-run your query/i,
+  );
+  expect(alertText).toBeVisible();
 });

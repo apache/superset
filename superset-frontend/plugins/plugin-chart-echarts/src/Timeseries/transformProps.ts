@@ -18,7 +18,7 @@
  */
 /* eslint-disable camelcase */
 import { invert } from 'lodash';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   AnnotationLayer,
   AxisType,
@@ -39,9 +39,10 @@ import {
   isTimeseriesAnnotationLayer,
   resolveAutoCurrency,
   TimeseriesChartDataResponseResult,
+  TimeseriesDataRecord,
   NumberFormats,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   extractExtraMetrics,
   getOriginalSeries,
@@ -112,6 +113,8 @@ import {
   getXAxisFormatter,
   getYAxisFormatter,
 } from '../utils/formatters';
+import { safeParseEChartOptions } from '../utils/safeEChartOptionsParser';
+import { mergeCustomEChartOptions } from '../utils/mergeCustomEChartOptions';
 
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
@@ -121,7 +124,7 @@ export default function transformProps(
     height,
     filterState,
     legendState,
-    formData,
+    formData: { echartOptions: _echartOptions, ...formData },
     hooks,
     queriesData,
     datasource,
@@ -174,6 +177,7 @@ export default function transformProps(
     seriesType,
     showLegend,
     showValue,
+    colorByPrimaryAxis,
     sliceId,
     sortSeriesType,
     sortSeriesAscending,
@@ -420,6 +424,7 @@ export default function transformProps(
         timeShiftColor,
         theme,
         hasDimensions: (groupBy?.length ?? 0) > 0,
+        colorByPrimaryAxis,
       },
     );
     if (transformedSeries) {
@@ -436,6 +441,59 @@ export default function transformProps(
       }
     }
   });
+
+  // Add x-axis color legend when colorByPrimaryAxis is enabled
+  if (colorByPrimaryAxis && groupBy.length === 0 && series.length > 0) {
+    // Hide original series from legend
+    series.forEach(s => {
+      s.legendHoverLink = false;
+    });
+
+    // Get x-axis values from the first series
+    const firstSeries = series[0];
+    if (firstSeries && Array.isArray(firstSeries.data)) {
+      const xAxisValues: (string | number)[] = [];
+
+      // Extract primary axis values (category axis)
+      // For horizontal charts the category is at index 1, for vertical at index 0
+      const primaryAxisIndex = isHorizontal ? 1 : 0;
+      (firstSeries.data as any[]).forEach(point => {
+        let xValue;
+        if (point && typeof point === 'object' && 'value' in point) {
+          const val = point.value;
+          xValue = Array.isArray(val) ? val[primaryAxisIndex] : val;
+        } else if (Array.isArray(point)) {
+          xValue = point[primaryAxisIndex];
+        } else {
+          xValue = point;
+        }
+        xAxisValues.push(xValue);
+      });
+
+      // Create hidden series for legend (using 'line' type to not affect bar width)
+      // Deduplicate x-axis values to avoid duplicate legend entries and unnecessary series
+      const uniqueXAxisValues = Array.from(
+        new Set(xAxisValues.map(v => String(v))),
+      );
+      uniqueXAxisValues.forEach(xValue => {
+        const colorKey = xValue;
+        series.push({
+          name: xValue,
+          type: 'line', // Use line type to not affect bar positioning
+          data: [], // Empty - doesn't render
+          itemStyle: {
+            color: colorScale(colorKey, sliceId),
+          },
+          lineStyle: {
+            color: colorScale(colorKey, sliceId),
+          },
+          silent: true,
+          legendHoverLink: false,
+          showSymbol: false,
+        });
+      });
+    }
+  }
 
   if (stack === StackControlsValue.Stream) {
     const baselineSeries = getBaselineSeriesForStream(
@@ -463,7 +521,7 @@ export default function transformProps(
         series.push(
           transformFormulaAnnotation(
             layer,
-            data,
+            rebasedData as TimeseriesDataRecord[],
             xAxisLabel,
             xAxisType,
             colorScale,
@@ -561,7 +619,7 @@ export default function transformProps(
       : String;
   const xAxisFormatter =
     xAxisDataType === GenericDataType.Temporal
-      ? getXAxisFormatter(xAxisTimeFormat)
+      ? getXAxisFormatter(xAxisTimeFormat, timeGrainSqla)
       : xAxisDataType === GenericDataType.Numeric
         ? getNumberFormatter(xAxisNumberFormat)
         : String;
@@ -574,8 +632,10 @@ export default function transformProps(
     onLegendScroll,
   } = hooks;
 
-  const addYAxisLabelOffset = !!yAxisTitle;
-  const addXAxisLabelOffset = !!xAxisTitle;
+  const addYAxisLabelOffset =
+    !!yAxisTitle && convertInteger(yAxisTitleMargin) !== 0;
+  const addXAxisLabelOffset =
+    !!xAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
   const padding = getPadding(
     showLegend,
     legendOrientation,
@@ -589,14 +649,43 @@ export default function transformProps(
     isHorizontal,
   );
 
-  const legendData = rawSeries
-    .filter(
-      entry =>
-        extractForecastSeriesContext(entry.name || '').type ===
-        ForecastSeriesEnum.Observation,
-    )
-    .map(entry => entry.name || '')
-    .concat(extractAnnotationLabels(annotationLayers));
+  const legendData =
+    colorByPrimaryAxis && groupBy.length === 0 && series.length > 0
+      ? // When colorByPrimaryAxis is enabled, show only primary axis values (deduped + filtered)
+        (() => {
+          const firstSeries = series[0];
+          // For horizontal charts the category is at index 1, for vertical at index 0
+          const primaryAxisIndex = isHorizontal ? 1 : 0;
+          if (firstSeries && Array.isArray(firstSeries.data)) {
+            const names = (firstSeries.data as any[])
+              .map(point => {
+                if (point && typeof point === 'object' && 'value' in point) {
+                  const val = point.value;
+                  return String(
+                    Array.isArray(val) ? val[primaryAxisIndex] : val,
+                  );
+                }
+                if (Array.isArray(point)) {
+                  return String(point[primaryAxisIndex]);
+                }
+                return String(point);
+              })
+              .filter(
+                name => name !== '' && name !== 'undefined' && name !== 'null',
+              );
+            return Array.from(new Set(names));
+          }
+          return [];
+        })()
+      : // Otherwise show original series names
+        rawSeries
+          .filter(
+            entry =>
+              extractForecastSeriesContext(entry.name || '').type ===
+              ForecastSeriesEnum.Observation,
+          )
+          .map(entry => entry.name || '')
+          .concat(extractAnnotationLabels(annotationLayers));
 
   let xAxis: any = {
     type: xAxisType,
@@ -604,14 +693,24 @@ export default function transformProps(
     nameGap: convertInteger(xAxisTitleMargin),
     nameLocation: 'middle',
     axisLabel: {
-      hideOverlap: true,
+      // When rotation is applied on time axes, hideOverlap can
+      // aggressively hide the last label. Rotated labels already
+      // have less overlap, so disabling hideOverlap is safe.
+      // At 0° rotation, keep hideOverlap to prevent long labels
+      // from overlapping each other, with showMaxLabel to ensure
+      // the last data point label stays visible (#37181).
+      hideOverlap: !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0),
       formatter: xAxisFormatter,
       rotate: xAxisLabelRotation,
       interval: xAxisLabelInterval,
-      ...(xAxisType === AxisType.Time && {
-        showMaxLabel: true,
-        alignMaxLabel: 'right',
-      }),
+      // Force last label on non-rotated time axes to prevent
+      // hideOverlap from hiding it. Skipped when rotated to
+      // avoid phantom labels at the axis boundary.
+      ...(xAxisType === AxisType.Time &&
+        xAxisLabelRotation === 0 && {
+          showMaxLabel: true,
+          alignMaxLabel: 'right',
+        }),
     },
     minorTick: { show: minorTicks },
     minInterval:
@@ -656,6 +755,22 @@ export default function transformProps(
     nameGap: convertInteger(yAxisTitleMargin),
     nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
   };
+
+  // Increase right padding for rotated time axis labels to prevent
+  // the last label from being clipped at the chart boundary.
+  if (
+    xAxisType === AxisType.Time &&
+    xAxisLabelRotation !== 0 &&
+    !isHorizontal
+  ) {
+    padding.right = Math.max(
+      padding.right || 0,
+      TIMESERIES_CONSTANTS.gridOffsetRight +
+        Math.ceil(
+          Math.abs(Math.sin((xAxisLabelRotation * Math.PI) / 180)) * 80,
+        ),
+    );
+  }
 
   if (isHorizontal) {
     [xAxis, yAxis] = [yAxis, xAxis];
@@ -789,10 +904,27 @@ export default function transformProps(
         padding,
       ),
       scrollDataIndex: legendIndex || 0,
-      data: legendData.sort((a: string, b: string) => {
-        if (!legendSort) return 0;
-        return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
-      }) as string[],
+      data:
+        colorByPrimaryAxis && groupBy.length === 0
+          ? // When colorByPrimaryAxis, configure legend items with roundRect icons
+            legendData.map(name => ({
+              name,
+              icon: 'roundRect',
+            }))
+          : // Otherwise use normal legend data
+            legendData.sort((a: string, b: string) => {
+              if (!legendSort) return 0;
+              return legendSort === 'asc'
+                ? a.localeCompare(b)
+                : b.localeCompare(a);
+            }),
+      // Disable legend selection and buttons when colorByPrimaryAxis is enabled
+      ...(colorByPrimaryAxis && groupBy.length === 0
+        ? {
+            selectedMode: false, // Disable clicking legend items
+            selector: false, // Hide All/Invert buttons
+          }
+        : {}),
     },
     series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
     toolbox: {
@@ -837,8 +969,23 @@ export default function transformProps(
   const onFocusedSeries = (seriesName: string | null) => {
     focusedSeries = seriesName;
   };
+
+  let customEchartOptions;
+  try {
+    // Parse custom EChart options safely using AST analysis
+    // This replaces the unsafe `new Function()` approach with a secure parser
+    // that only allows static data structures (no function callbacks)
+    customEchartOptions = safeParseEChartOptions(_echartOptions);
+  } catch (_) {
+    customEchartOptions = undefined;
+  }
+
+  const mergedEchartOptions = customEchartOptions
+    ? mergeCustomEChartOptions(echartOptions, customEchartOptions)
+    : echartOptions;
+
   return {
-    echartOptions,
+    echartOptions: mergedEchartOptions,
     emitCrossFilters,
     formData,
     groupby: groupBy,

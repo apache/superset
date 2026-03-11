@@ -286,7 +286,6 @@ describe('ResultSet', () => {
       store,
     );
 
-    // @ts-ignore
     rerender(<ResultSet {...mockedProps} {...newProps} />);
     expect(store.getActions()).toHaveLength(1);
     expect(store.getActions()[0].query.results).toEqual(cachedQuery.results);

@@ -27,7 +27,7 @@ import fetchMock from 'fetch-mock';
 import { createMemoryHistory } from 'history';
 import { ChartCreation } from 'src/pages/ChartCreation';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 
 jest.mock('src/components/DynamicPlugins', () => ({
   usePluginContext: () => ({
@@ -260,7 +260,7 @@ test('handles special characters in dataset name from URL parameter', async () =
 
   await renderComponent();
 
-  await screen.findByText('flightsÆ test');
+  expect(await screen.findByText('flightsÆ test')).toBeInTheDocument();
 
   Object.defineProperty(window, 'location', {
     value: originalLocation,
@@ -294,7 +294,7 @@ test('pre-selects the dataset from URL parameter and shows it in dropdown', asyn
 
   await renderComponent();
 
-  await screen.findByText('flights');
+  expect(await screen.findByText('flights')).toBeInTheDocument();
 
   Object.defineProperty(window, 'location', {
     value: originalLocation,
