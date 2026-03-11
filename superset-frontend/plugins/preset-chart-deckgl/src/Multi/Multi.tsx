@@ -405,7 +405,7 @@ const DeckMulti = (props: DeckMultiProps) => {
         mapStyle={
           formData.map_renderer === 'mapbox'
             ? formData.mapbox_style
-            : formData.maplibre_style || formData.mapbox_style
+            : formData.maplibre_style
         }
         mapProvider={formData.map_renderer === 'mapbox' ? 'mapbox' : 'maplibre'}
         mapboxApiKey={getMapboxApiKey()}

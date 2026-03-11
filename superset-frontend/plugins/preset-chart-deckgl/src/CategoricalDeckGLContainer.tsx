@@ -328,7 +328,7 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
         mapStyle={
           props.formData.map_renderer === 'mapbox'
             ? props.formData.mapbox_style
-            : props.formData.maplibre_style || props.formData.mapbox_style
+            : props.formData.maplibre_style
         }
         mapProvider={
           props.formData.map_renderer === 'mapbox' ? 'mapbox' : 'maplibre'
