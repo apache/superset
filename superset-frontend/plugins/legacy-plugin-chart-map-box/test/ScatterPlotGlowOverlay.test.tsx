@@ -373,8 +373,7 @@ test('cluster radius is always >= individual point radius', () => {
   (global as any).mockRedraw(redrawParams);
 
   const arcCalls = redrawParams.ctx.arc.mock.calls;
-  const minClusterRadius =
-    defaultProps.dotRadius * MIN_CLUSTER_RADIUS_RATIO;
+  const minClusterRadius = defaultProps.dotRadius * MIN_CLUSTER_RADIUS_RATIO;
 
   // cluster with label=1 (index 0)
   expect(arcCalls[0][2]).toBeGreaterThanOrEqual(minClusterRadius);
