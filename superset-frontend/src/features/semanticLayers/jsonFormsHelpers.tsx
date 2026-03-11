@@ -77,6 +77,23 @@ const constEntry = {
 };
 
 /**
+ * Checks whether all dependency values are filled (non-empty).
+ * Handles nested objects (like auth) by checking they have at least one key.
+ */
+export function areDependenciesSatisfied(
+  dependencies: string[],
+  data: Record<string, unknown>,
+): boolean {
+  return dependencies.every(dep => {
+    const value = data[dep];
+    if (value === null || value === undefined || value === '') return false;
+    if (typeof value === 'object' && Object.keys(value).length === 0)
+      return false;
+    return true;
+  });
+}
+
+/**
  * Renderer for fields marked `x-dynamic` in the JSON Schema.
  * Shows a loading spinner inside the input while the schema is being
  * refreshed with dynamic values from the backend.
@@ -216,23 +233,6 @@ export function getDynamicDependencies(
     }
   }
   return deps;
-}
-
-/**
- * Checks whether all dependency values are filled (non-empty).
- * Handles nested objects (like auth) by checking they have at least one key.
- */
-export function areDependenciesSatisfied(
-  dependencies: string[],
-  data: Record<string, unknown>,
-): boolean {
-  return dependencies.every(dep => {
-    const value = data[dep];
-    if (value === null || value === undefined || value === '') return false;
-    if (typeof value === 'object' && Object.keys(value).length === 0)
-      return false;
-    return true;
-  });
 }
 
 /**
