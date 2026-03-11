@@ -349,8 +349,13 @@ export const DropdownContainer = forwardRef(
               }}
               content={popoverContent}
               trigger="click"
-              open={popoverVisible}
-              onOpenChange={visible => setPopoverVisible(visible)}
+              open={popoverVisible && !!popoverContent}
+              onOpenChange={visible => {
+                // When alwaysShowDropdownButton is set but there is no content
+                // yet (e.g. during layout recalculation), ignore open attempts
+                // so the button stays visible without opening an empty popover.
+                if (popoverContent) setPopoverVisible(visible);
+              }}
               placement="bottom"
               forceRender={forceRender}
             >

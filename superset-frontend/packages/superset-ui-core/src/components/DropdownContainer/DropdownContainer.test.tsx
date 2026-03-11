@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { screen, render } from '@superset-ui/core/spec';
+import { screen, render, fireEvent } from '@superset-ui/core/spec';
 import { Button, DropdownContainer, Icons } from '..';
 
 const generateItems = (n: number) =>
@@ -163,6 +163,17 @@ test('shows dropdown button when alwaysShowDropdownButton is true even without o
     <DropdownContainer items={generateItems(3)} alwaysShowDropdownButton />,
   );
   expect(screen.getByTestId('dropdown-container-btn')).toBeInTheDocument();
+});
+
+test('does not open popover when alwaysShowDropdownButton is true but there is no popover content', () => {
+  render(
+    <DropdownContainer items={generateItems(3)} alwaysShowDropdownButton />,
+  );
+  const btn = screen.getByTestId('dropdown-container-btn');
+  expect(btn).toBeInTheDocument();
+  fireEvent.click(btn);
+  // No popover content exists, so the popover should not open
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 });
 
 test('does not show dropdown button when alwaysShowDropdownButton is false and not overflowing', () => {
