@@ -24,7 +24,7 @@ import { ErrorMessageWithStackTrace } from 'src/components';
 import { ChartSource } from 'src/types/ChartSource';
 
 export type Props = {
-  chartId: string;
+  chartId: number;
   error?: SupersetError;
   subtitle: React.ReactNode;
   link?: string;
@@ -49,6 +49,7 @@ export const ChartErrorMessage: FC<Props> = ({ chartId, error, ...props }) => {
       {...props}
       error={ownedError}
       title={DEFAULT_CHART_ERROR}
+      closable={false}
     />
   );
 };

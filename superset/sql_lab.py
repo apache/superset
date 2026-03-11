@@ -45,6 +45,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2RedirectError,
     SupersetDisallowedSQLFunctionException,
+    SupersetDisallowedSQLTableException,
     SupersetDMLNotAllowedException,
     SupersetErrorException,
     SupersetErrorsException,
@@ -111,7 +112,9 @@ def handle_query_error(
     elif isinstance(ex, SupersetErrorsException):
         errors = ex.errors
     else:
-        errors = query.database.db_engine_spec.extract_errors(str(ex))
+        errors = query.database.db_engine_spec.extract_errors(
+            str(ex), database_name=query.database.unique_name
+        )
 
     errors_payload = [dataclasses.asdict(error) for error in errors]
     if errors:
@@ -127,12 +130,11 @@ def handle_query_error(
 def get_query_backoff_handler(details: dict[Any, Any]) -> None:
     stats_logger = app.config["STATS_LOGGER"]
     query_id = details["kwargs"]["query_id"]
-    logger.error(
-        "Query with id `%s` could not be retrieved", str(query_id), exc_info=True
-    )
     stats_logger.incr(f"error_attempting_orm_query_{details['tries'] - 1}")
-    logger.error(
-        "Query %s: Sleeping for a sec before retrying...", str(query_id), exc_info=True
+    logger.warning(
+        "Query with id `%s` could not be retrieved, sleeping for a sec before retrying",
+        str(query_id),
+        exc_info=True,
     )
 
 
@@ -410,6 +412,20 @@ def execute_sql_statements(  # noqa: C901
     ):
         raise SupersetDisallowedSQLFunctionException(disallowed_functions)
 
+    disallowed_tables = app.config["DISALLOWED_SQL_TABLES"].get(
+        db_engine_spec.engine,
+        set(),
+    )
+    if disallowed_tables and parsed_script.check_tables_present(disallowed_tables):
+        # Report only the tables actually found in the query
+        found_tables = set()
+        for statement in parsed_script.statements:
+            present = {table.table.lower() for table in statement.tables}
+            for table in disallowed_tables:
+                if table.lower() in present:
+                    found_tables.add(table)
+        raise SupersetDisallowedSQLTableException(found_tables or disallowed_tables)
+
     if parsed_script.has_mutation() and not database.allow_dml:
         raise SupersetDMLNotAllowedException()
 
@@ -581,10 +597,50 @@ def execute_sql_statements(  # noqa: C901
                 "*** serialized payload size: %i", getsizeof(serialized_payload)
             )
             logger.debug("*** compressed payload size: %i", getsizeof(compressed))
-            results_backend.set(key, compressed, cache_timeout)
-        query.results_key = key
 
-    query.status = QueryStatus.SUCCESS
+            # Store results in backend and check if write succeeded
+            write_success = results_backend.set(key, compressed, cache_timeout)
+            if not write_success:
+                # Backend write failed - log error and don't set results_key
+                logger.error(
+                    "Query %s: Failed to store results in backend, key: %s",
+                    str(query_id),
+                    key,
+                )
+                stats_logger.incr("sqllab.results_backend.write_failure")
+                # Don't set results_key to prevent 410 errors when fetching
+                query.results_key = None
+
+                # For async queries (not returning results inline), mark as FAILED
+                # because results are inaccessible to the user
+                if not return_results:
+                    query.status = QueryStatus.FAILED
+                    query.error_message = (
+                        "Failed to store query results in the results backend. "
+                        "Please try again or contact your administrator."
+                    )
+                    db.session.commit()
+                    raise SupersetErrorException(
+                        SupersetError(
+                            message=__(
+                                "Failed to store query results. Please try again."
+                            ),
+                            error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
+                            level=ErrorLevel.ERROR,
+                        )
+                    )
+            else:
+                # Write succeeded - set results_key in database
+                query.results_key = key
+                logger.info(
+                    "Query %s: Successfully stored results in backend, key: %s",
+                    str(query_id),
+                    key,
+                )
+
+    # Only set SUCCESS if we didn't already set FAILED above
+    if query.status != QueryStatus.FAILED:
+        query.status = QueryStatus.SUCCESS
     db.session.commit()
 
     if return_results:

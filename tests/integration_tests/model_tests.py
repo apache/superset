@@ -448,11 +448,14 @@ class TestSqlaTableModel(SupersetTestCase):
             return None
         old_inner_join = spec.allows_joins
         spec.allows_joins = inner_join
+
+        # Use database-specific string concatenation syntax
         arbitrary_gby = (
-            "state OR gender OR '_test'"
+            "CONCAT(state, gender, '_test')"
             if get_example_database().backend == "mysql"
             else "state || gender || '_test'"
         )
+
         arbitrary_metric = dict(  # noqa: C408
             label="arbitrary", expressionType="SQL", sqlExpression="SUM(num_boys)"
         )
@@ -675,7 +678,7 @@ class TestSqlaTableModel(SupersetTestCase):
             datasource_id=tbl.id,
         )
         dashboard.slices.append(slc)
-        datasource_info = slc.datasource.data_for_slices([slc])
+        datasource_info = tbl.data_for_slices([slc])
         assert "database" in datasource_info
 
         # clean up and auto commit

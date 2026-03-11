@@ -17,7 +17,8 @@
  * under the License.
  */
 import { Component, cloneElement, ReactElement } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { css, SupersetTheme } from '@apache-superset/core/theme';
 import copyTextToClipboard from 'src/utils/copy';
 import { Tooltip } from '@superset-ui/core/components';
 import withToasts from '../MessageToasts/withToasts';
@@ -104,7 +105,14 @@ class CopyToClip extends Component<CopyToClipboardProps> {
     return (
       <span css={{ display: 'inline-flex', alignItems: 'center' }}>
         {this.props.shouldShowText && this.props.text && (
-          <span data-test="short-url">{this.props.text}</span>
+          <span
+            data-test="short-url"
+            css={(theme: SupersetTheme) => css`
+              margin-right: ${theme.sizeUnit}px;
+            `}
+          >
+            {this.props.text}
+          </span>
         )}
         {this.renderTooltip('pointer')}
       </span>

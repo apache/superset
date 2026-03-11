@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ControlPanelConfig } from '@superset-ui/chart-controls';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import {
   filterNulls,
   autozoom,
@@ -30,6 +30,8 @@ import {
   lineType,
   reverseLongLat,
   mapboxStyle,
+  tooltipContents,
+  tooltipTemplate,
 } from '../../utilities/Shared_DeckGL';
 import { dndLineColumn } from '../../utilities/sharedDndControls';
 
@@ -55,6 +57,8 @@ const config: ControlPanelConfig = {
         ['row_limit'],
         [filterNulls],
         ['adhoc_filters'],
+        [tooltipContents],
+        [tooltipTemplate],
       ],
     },
     {
@@ -71,7 +75,7 @@ const config: ControlPanelConfig = {
             config: {
               type: 'SelectControl',
               label: t('Line width unit'),
-              default: 'pixels',
+              default: 'meters',
               choices: [
                 ['meters', t('meters')],
                 ['pixels', t('pixels')],

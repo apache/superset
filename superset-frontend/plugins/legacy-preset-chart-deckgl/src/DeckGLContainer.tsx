@@ -29,13 +29,16 @@ import {
   useEffect,
   useImperativeHandle,
   useState,
+  isValidElement,
   useRef,
 } from 'react';
 import { isEqual } from 'lodash';
 import { StaticMap } from 'react-map-gl';
 import DeckGL from '@deck.gl/react';
 import type { Layer } from '@deck.gl/core';
-import { JsonObject, JsonValue, styled, usePrevious } from '@superset-ui/core';
+import { JsonObject, JsonValue, usePrevious } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
+import { Device } from '@luma.gl/core';
 import Tooltip, { TooltipProps } from './components/Tooltip';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Viewport } from './utils/fitViewport';
@@ -110,7 +113,9 @@ export const DeckGLContainer = memo(
     const layers = useCallback(() => {
       if (
         (props.mapStyle?.startsWith(TILE_LAYER_PREFIX) ||
-          OSM_LAYER_KEYWORDS.some(tilek => props.mapStyle?.includes(tilek))) &&
+          OSM_LAYER_KEYWORDS.some((tilek: string) =>
+            props.mapStyle?.includes(tilek),
+          )) &&
         props.layers.some(
           l => typeof l !== 'function' && l?.id === 'tile-layer',
         ) === false
@@ -132,6 +137,20 @@ export const DeckGLContainer = memo(
       return props.layers as Layer[];
     }, [props.layers, props.mapStyle]);
 
+    const isCustomTooltip = (content: ReactNode): boolean =>
+      isValidElement(content) &&
+      content.props?.['data-tooltip-type'] === 'custom';
+
+    const renderTooltip = (tooltipState: TooltipProps['tooltip']) => {
+      if (!tooltipState) return null;
+
+      if (isCustomTooltip(tooltipState.content)) {
+        return <Tooltip tooltip={tooltipState} variant="custom" />;
+      }
+
+      return <Tooltip tooltip={tooltipState} />;
+    };
+
     const { children = null, height, width } = props;
 
     return (
@@ -150,7 +169,10 @@ export const DeckGLContainer = memo(
             layers={layers()}
             viewState={viewState}
             onViewStateChange={onViewStateChange}
-            onAfterRender={context => {
+            onAfterRender={(context: {
+              device: Device;
+              gl: WebGL2RenderingContext;
+            }) => {
               glContextRef.current = context.gl;
             }}
           >
@@ -164,7 +186,7 @@ export const DeckGLContainer = memo(
           </DeckGL>
           {children}
         </div>
-        <Tooltip tooltip={tooltip} />
+        {renderTooltip(tooltip)}
       </>
     );
   }),

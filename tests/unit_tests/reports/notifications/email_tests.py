@@ -47,6 +47,7 @@ def test_render_description_with_html() -> None:
             "chart_id": None,
             "dashboard_id": None,
             "slack_channels": None,
+            "execution_id": "test-execution-id",
         },
     )
     email_body = (
@@ -91,6 +92,7 @@ def test_email_subject_with_datetime() -> None:
             "chart_id": None,
             "dashboard_id": None,
             "slack_channels": None,
+            "execution_id": "test-execution-id",
         },
     )
     subject = EmailNotification(

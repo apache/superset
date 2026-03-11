@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
+// Type augmentation for dayjs plugins
+import 'dayjs/plugin/utc';
 import {
   getTimeFormatter,
   getTimeFormatterForGranularity,
@@ -29,8 +29,7 @@ import {
   SMART_DATE_ID,
   TimeGranularity,
 } from '@superset-ui/core';
-
-dayjs.extend(utc);
+import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 
 export const parseMetricValue = (metricValue: number | string | null) => {
   if (typeof metricValue === 'string') {

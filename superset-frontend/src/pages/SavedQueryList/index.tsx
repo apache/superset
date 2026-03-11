@@ -17,13 +17,13 @@
  * under the License.
  */
 
+import { t } from '@apache-superset/core/translation';
 import {
   FeatureFlag,
   isFeatureEnabled,
-  styled,
   SupersetClient,
-  t,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import { useCallback, useMemo, useState, MouseEvent } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
@@ -61,9 +61,11 @@ import { QueryObjectColumns, SavedQueryObject } from 'src/views/CRUD/types';
 import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
 import { Icons } from '@superset-ui/core/components/Icons';
+import copyTextToClipboard from 'src/utils/copy';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from 'src/features/queries/SavedQueryPreviewModal';
 import { findPermission } from 'src/utils/findPermission';
+import { makeUrl } from 'src/utils/pathUtils';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -99,7 +101,7 @@ const StyledTableLabel = styled.div`
 `;
 
 const StyledPopoverItem = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark2};
+  color: ${({ theme }) => theme.colorText};
 `;
 
 function SavedQueryList({
@@ -221,7 +223,7 @@ function SavedQueryList({
     name: t('Query'),
     buttonStyle: 'primary',
     onClick: () => {
-      history.push('/sqllab?new=true');
+      history.push(makeUrl('/sqllab?new=true'));
     },
   });
 
@@ -229,10 +231,21 @@ function SavedQueryList({
 
   // Action methods
   const openInSqlLab = (id: number, openInNewWindow: boolean) => {
+    copyTextToClipboard(() =>
+      Promise.resolve(
+        `${window.location.origin}${makeUrl(`/sqllab?savedQueryId=${id}`)}`,
+      ),
+    )
+      .then(() => {
+        addSuccessToast(t('Link Copied!'));
+      })
+      .catch(() => {
+        addDangerToast(t('Sorry, your browser does not support copying.'));
+      });
     if (openInNewWindow) {
-      window.open(`/sqllab?savedQueryId=${id}`);
+      window.open(makeUrl(`/sqllab?savedQueryId=${id}`));
     } else {
-      history.push(`/sqllab?savedQueryId=${id}`);
+      history.push(makeUrl(`/sqllab?savedQueryId=${id}`));
     }
   };
 
@@ -281,14 +294,19 @@ function SavedQueryList({
     );
   };
 
-  const handleBulkSavedQueryExport = (
+  const handleBulkSavedQueryExport = async (
     savedQueriesToExport: SavedQueryObject[],
   ) => {
     const ids = savedQueriesToExport.map(({ id }) => id);
-    handleResourceExport('saved_query', ids, () => {
-      setPreparingExport(false);
-    });
     setPreparingExport(true);
+    try {
+      await handleResourceExport('saved_query', ids, () => {
+        setPreparingExport(false);
+      });
+    } catch (error) {
+      setPreparingExport(false);
+      addDangerToast(t('There was an issue exporting the selected queries'));
+    }
   };
 
   const handleBulkQueryDelete = (queriesToDelete: SavedQueryObject[]) => {
@@ -320,7 +338,9 @@ function SavedQueryList({
           row: {
             original: { id, label },
           },
-        }: any) => <Link to={`/sqllab?savedQueryId=${id}`}>{label}</Link>,
+        }: any) => (
+          <Link to={makeUrl(`/sqllab?savedQueryId=${id}`)}>{label}</Link>
+        ),
         id: 'label',
       },
       {
@@ -431,19 +451,19 @@ function SavedQueryList({
           const handleDelete = () => setQueryCurrentlyDeleting(original);
 
           const actions = [
-            {
-              label: 'preview-action',
-              tooltip: t('Query preview'),
-              placement: 'bottom',
-              icon: 'Binoculars',
-              onClick: handlePreview,
-            },
             canEdit && {
               label: 'edit-action',
               tooltip: t('Edit query'),
               placement: 'bottom',
               icon: 'EditOutlined',
               onClick: handleEdit,
+            },
+            {
+              label: 'preview-action',
+              tooltip: t('Query preview'),
+              placement: 'bottom',
+              icon: 'Binoculars',
+              onClick: handlePreview,
             },
             {
               label: 'copy-action',

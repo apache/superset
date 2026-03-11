@@ -469,6 +469,10 @@ an account first if you don't have one, and reference your username
 while requesting access to push packages.
 
 ```bash
+# Run this first to make sure you are uploading the right version.
+# Pypi does not allow you to delete or retract once uplaoded.
+twine check dist/*
+
 twine upload dist/*
 ```
 
@@ -517,6 +521,8 @@ and re-push the proper images and tags through this interface. The action
 takes the version (ie `3.1.1`), the git reference (any SHA, tag or branch
 reference), and whether to force the `latest` Docker tag on the
 generated images.
+
+**NOTE:** If the docker image isn't built, you'll need to run this [GH action](https://github.com/apache/superset/actions/workflows/tag-release.yml) where you provide it the tag sha.
 
 ### Npm Release
 

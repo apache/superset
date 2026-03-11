@@ -119,7 +119,6 @@ function renderControlItems(
   controlItemsMap: ReturnType<typeof getControlItemsMap>,
 ) {
   return render(
-    // @ts-ignore
     <>
       {Object.values(controlItemsMap.controlItems).map(value => value.element)}
     </>,
@@ -209,6 +208,7 @@ test('Clicking on checkbox when resetConfig:false', () => {
   expect(setNativeFilterFieldValues).not.toHaveBeenCalled();
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ColumnSelect filterValues behavior', () => {
   beforeEach(() => {
     (getControlItems as jest.Mock).mockReturnValue([
@@ -225,7 +225,7 @@ describe('ColumnSelect filterValues behavior', () => {
       ...createProps(),
       formFilter: { filterType: 'filterType' },
     };
-    // @ts-ignore: bypass incomplete formFilter type for test
+    // @ts-expect-error: bypass incomplete formFilter type for test
     const element = getControlItemsMap(props).mainControlItems.groupby
       .element as React.ReactElement;
     render(element);
@@ -240,7 +240,7 @@ describe('ColumnSelect filterValues behavior', () => {
       ...createProps(),
       formFilter: { filterType: 'filterType' },
     };
-    // @ts-ignore: bypass incomplete formFilter type for test
+    // @ts-expect-error: bypass incomplete formFilter type for test
     const element = getControlItemsMap(props).mainControlItems.groupby
       .element as React.ReactElement;
     render(element);

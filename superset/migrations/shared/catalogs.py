@@ -154,8 +154,12 @@ def print_processed_batch(
     elapsed_formatted = f"{int(elapsed_seconds // 3600):02}:{int((elapsed_seconds % 3600) // 60):02}:{int(elapsed_seconds % 60):02}"  # noqa: E501
     rows_processed = min(offset + batch_size, total_rows)
     logger.info(
-        f"{elapsed_formatted} - {rows_processed:,} of {total_rows:,} {model.__tablename__} rows processed "  # noqa: E501
-        f"({(rows_processed / total_rows) * 100:.2f}%)"
+        "%s - %s of %s %s rows processed (%s%%)",
+        elapsed_formatted,
+        f"{rows_processed:,}",
+        f"{total_rows:,}",
+        model.__tablename__,
+        f"{(rows_processed / total_rows) * 100:.2f}",
     )
 
 
@@ -180,7 +184,7 @@ def update_catalog_column(
     """
     start_time = datetime.now()
 
-    logger.info(f"Updating {database.database_name} models to catalog {catalog}")
+    logger.info("Updating %s models to catalog %s", database.database_name, catalog)
 
     for model, column in MODELS:
         # Get the total number of rows that match the condition
@@ -192,7 +196,9 @@ def update_catalog_column(
         )
 
         logger.info(
-            f"Total rows to be processed for {model.__tablename__}: {total_rows:,}"
+            "Total rows to be processed for %s: %s",
+            model.__tablename__,
+            f"{total_rows:,}",
         )
 
         batch_size = get_batch_size(session)
@@ -302,7 +308,7 @@ def delete_models_non_default_catalog(
     """
     start_time = datetime.now()
 
-    logger.info(f"Deleting models not in the default catalog: {catalog}")
+    logger.info("Deleting models not in the default catalog: %s", catalog)
 
     for model, column in MODELS:
         # Get the total number of rows that match the condition
@@ -314,7 +320,9 @@ def delete_models_non_default_catalog(
         )
 
         logger.info(
-            f"Total rows to be processed for {model.__tablename__}: {total_rows:,}"
+            "Total rows to be processed for %s: %s",
+            model.__tablename__,
+            f"{total_rows:,}",
         )
 
         batch_size = get_batch_size(session)

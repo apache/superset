@@ -1,0 +1,19 @@
+{
+  // Extend the base configuration
+  "extends": "../devcontainer-base.json",
+
+  "name": "Apache Superset Development (Default)",
+
+  // Forward ports for development
+  "forwardPorts": [9001],
+  "portsAttributes": {
+    "9001": {
+      "label": "Superset (via Webpack Dev Server)",
+      "onAutoForward": "notify",
+      "visibility": "public"
+    }
+  },
+
+  // Auto-start Superset on Codespace resume
+  "postStartCommand": ".devcontainer/start-superset.sh"
+}

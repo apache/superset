@@ -17,11 +17,12 @@
 from typing import Any, Optional, TypedDict
 
 
-class DashboardPermalinkState(TypedDict):
+class DashboardPermalinkState(TypedDict, total=False):
     dataMask: Optional[dict[str, Any]]
     activeTabs: Optional[list[str]]
     anchor: Optional[str]
     urlParams: Optional[list[tuple[str, str]]]
+    chartStates: Optional[dict[str, Any]]
 
 
 class DashboardPermalinkValue(TypedDict):

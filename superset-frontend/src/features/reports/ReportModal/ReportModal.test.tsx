@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import {
   render,
@@ -57,6 +56,7 @@ jest.mock('@superset-ui/core', () => ({
 }));
 
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Email Report Modal', () => {
   beforeEach(() => {
     mockedIsFeatureEnabled.mockImplementation(
@@ -65,7 +65,7 @@ describe('Email Report Modal', () => {
     render(<ReportModal {...defaultProps} />, { useRedux: true });
   });
 
-  it('inputs respond correctly', () => {
+  test('inputs respond correctly', () => {
     // ----- Report name textbox
     // Initial value
     const reportNameTextbox = screen.getByTestId('report-name-test');
@@ -92,7 +92,7 @@ describe('Email Report Modal', () => {
     expect(crontabInputs).toHaveLength(5);
   });
 
-  it('does not allow user to create a report without a name', () => {
+  test('does not allow user to create a report without a name', () => {
     // Grab name textbox and add button
     const reportNameTextbox = screen.getByTestId('report-name-test');
     const addButton = screen.getByRole('button', { name: /add/i });
@@ -109,14 +109,15 @@ describe('Email Report Modal', () => {
     expect(addButton).toBeDisabled();
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Email Report Modal', () => {
     let dispatch: any;
 
     beforeEach(async () => {
-      dispatch = sinon.spy();
+      dispatch = jest.fn();
     });
 
-    it('creates a new email report', async () => {
+    test('creates a new email report', async () => {
       // ---------- Render/value setup ----------
       const reportValues = {
         id: 1,
@@ -158,9 +159,11 @@ describe('Email Report Modal', () => {
       // 🐞 ----- There are 2 POST calls at this point ----- 🐞
 
       // addReport's mocked POST return should match the mocked values
-      expect(fetchMock.lastOptions()?.body).toEqual(stringyReportValues);
-      expect(dispatch.callCount).toBe(2);
-      const reportCalls = fetchMock.calls(REPORT_ENDPOINT);
+      expect(fetchMock.callHistory.lastCall()?.options?.body).toEqual(
+        stringyReportValues,
+      );
+      expect(dispatch).toHaveBeenCalledTimes(2);
+      const reportCalls = fetchMock.callHistory.calls(REPORT_ENDPOINT);
       expect(reportCalls).toHaveLength(2);
     });
   });

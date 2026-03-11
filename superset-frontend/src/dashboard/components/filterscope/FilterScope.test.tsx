@@ -16,14 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { supersetTheme } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
 import {
   cleanup,
   render,
   screen,
   userEvent,
 } from 'spec/helpers/testing-library';
-import FilterScopeSelector from './FilterScopeSelector';
+import React from 'react';
+import FilterScopeSelectorComponent from './FilterScopeSelector';
+
+// Cast to accept partial mock props in tests
+const FilterScopeSelector = FilterScopeSelectorComponent as unknown as React.FC<
+  Record<string, any>
+>;
 
 // Add afterEach cleanup
 afterEach(async () => {
@@ -170,7 +176,7 @@ function getCheckboxState(name: string): CheckboxState {
   const fill = svgPath.getAttribute('fill');
   return fill === supersetTheme.colorPrimary
     ? CHECKED
-    : fill === supersetTheme.colors.grayscale.light1
+    : fill === supersetTheme.colorTextSecondary
       ? INDETERMINATE
       : UNCHECKED;
 }

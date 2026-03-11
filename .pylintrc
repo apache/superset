@@ -53,7 +53,7 @@ extension-pkg-whitelist=pyarrow
 
 [MESSAGES CONTROL]
 disable=all
-enable=disallowed-json-import,disallowed-sql-import,consider-using-transaction
+enable=json-import,disallowed-sql-import,consider-using-transaction
 
 
 [REPORTS]

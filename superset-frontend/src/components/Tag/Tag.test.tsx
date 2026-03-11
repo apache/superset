@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen } from 'spec/helpers/testing-library';
-import TagType from 'src/types/TagType';
+import type { TagType } from 'src/types/TagType';
 import { Tag } from '.';
 
 const mockedProps: TagType = {

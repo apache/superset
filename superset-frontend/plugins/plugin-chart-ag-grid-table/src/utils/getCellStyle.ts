@@ -18,7 +18,7 @@
  */
 
 import { ColorFormatters } from '@superset-ui/chart-controls';
-import { CellClassParams } from 'ag-grid-community';
+import { CellClassParams } from '@superset-ui/core/components/ThemedAgGridReact';
 import { BasicColorFormatterType, InputColumn } from '../types';
 
 type CellStyleParams = CellClassParams & {

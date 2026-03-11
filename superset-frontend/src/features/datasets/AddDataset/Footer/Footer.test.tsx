@@ -37,6 +37,11 @@ const mockCreateResource = jest.fn();
 jest.mock('src/views/CRUD/hooks', () => ({
   useSingleViewResource: () => ({
     createResource: mockCreateResource,
+    state: { loading: false },
+  }),
+  getDatabaseDocumentationLinks: () => ({
+    support:
+      'https://superset.apache.org/docs/databases/installing-database-drivers',
   }),
 }));
 
@@ -59,6 +64,7 @@ const mockPropsWithDataset = {
   hasColumns: true,
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Footer', () => {
   beforeEach(() => {
     jest.clearAllMocks();

@@ -17,7 +17,8 @@
  * under the License.
  */
 import { forwardRef, RefObject } from 'react';
-import { css, QueryData, SupersetTheme } from '@superset-ui/core';
+import { QueryData } from '@superset-ui/core';
+import { css, SupersetTheme } from '@apache-superset/core/theme';
 import {
   CachedLabel,
   type LabelType,
@@ -29,15 +30,24 @@ const CHART_STATUS_MAP = {
   failed: 'danger' as LabelType,
   loading: 'warning' as LabelType,
   success: 'success' as LabelType,
+  rendered: 'default' as LabelType,
+  stopped: 'danger' as LabelType,
+  unknown: 'default' as LabelType,
 };
 
 export type ChartPillsProps = {
-  queriesResponse: QueryData[];
-  chartStatus: keyof typeof CHART_STATUS_MAP;
+  queriesResponse?: QueryData[];
+  chartStatus?: keyof typeof CHART_STATUS_MAP;
   chartUpdateStartTime: number;
-  chartUpdateEndTime: number;
+  chartUpdateEndTime?: number;
   refreshCachedQuery: () => void;
-  rowLimit: string | number;
+  rowLimit?: string | number;
+  hideRowCount?: boolean;
+  formData?: {
+    viz_type?: string;
+    server_pagination?: boolean;
+    [key: string]: unknown;
+  };
 };
 
 export const ChartPills = forwardRef(
@@ -49,11 +59,29 @@ export const ChartPills = forwardRef(
       chartUpdateEndTime,
       refreshCachedQuery,
       rowLimit,
+      hideRowCount = false,
+      formData,
     }: ChartPillsProps,
     ref: RefObject<HTMLDivElement>,
   ) => {
     const isLoading = chartStatus === 'loading';
     const firstQueryResponse = queriesResponse?.[0];
+
+    // For table charts with server pagination, check second query for total count
+    const isTableChart = formData?.viz_type === 'table';
+    const hasCountQuery = queriesResponse && queriesResponse.length > 1;
+    const countFromSecondQuery = hasCountQuery
+      ? queriesResponse[1]?.data?.[0]?.rowcount
+      : null;
+
+    const actualRowCount =
+      isTableChart && countFromSecondQuery != null
+        ? countFromSecondQuery
+        : Number(
+            firstQueryResponse?.sql_rowcount ??
+              firstQueryResponse?.rowcount ??
+              0,
+          );
 
     return (
       <div ref={ref}>
@@ -64,10 +92,10 @@ export const ChartPills = forwardRef(
             padding-bottom: ${theme.sizeUnit * 4}px;
           `}
         >
-          {!isLoading && firstQueryResponse && (
+          {!isLoading && !hideRowCount && firstQueryResponse && (
             <RowCountLabel
-              rowcount={Number(firstQueryResponse.sql_rowcount) || 0}
-              limit={Number(rowLimit) || 0}
+              rowcount={actualRowCount}
+              limit={Number(rowLimit ?? 0)}
             />
           )}
           {!isLoading && firstQueryResponse?.is_cached && (
@@ -80,7 +108,7 @@ export const ChartPills = forwardRef(
             startTime={chartUpdateStartTime}
             endTime={chartUpdateEndTime}
             isRunning={isLoading}
-            status={CHART_STATUS_MAP[chartStatus]}
+            status={CHART_STATUS_MAP[chartStatus ?? 'unknown']}
           />
         </div>
       </div>

@@ -17,7 +17,8 @@
  * under the License.
  */
 import { kebabCase } from 'lodash';
-import { t, useTheme, styled } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { useTheme, styled } from '@apache-superset/core/theme';
 import { Tooltip } from '@superset-ui/core/components';
 
 interface CertifiedIconWithTooltipProps {

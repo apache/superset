@@ -17,7 +17,8 @@
  * under the License.
  */
 import { ControlPanelConfig } from '@superset-ui/chart-controls';
-import { t, validateNonEmpty } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { validateNonEmpty } from '@superset-ui/core';
 import timeGrainSqlaAnimationOverrides from '../../utilities/controls';
 import {
   filterNulls,
@@ -34,8 +35,9 @@ import {
   multiplier,
   mapboxStyle,
   generateDeckGLColorSchemeControls,
+  tooltipContents,
+  tooltipTemplate,
 } from '../../utilities/Shared_DeckGL';
-import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 
 const config: ControlPanelConfig = {
   onInit: controlState => ({
@@ -57,6 +59,8 @@ const config: ControlPanelConfig = {
         [spatial, null],
         ['row_limit', filterNulls],
         ['adhoc_filters'],
+        [tooltipContents],
+        [tooltipTemplate],
       ],
     },
     {
@@ -130,9 +134,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [legendPosition],
         [legendFormat],
-        ...generateDeckGLColorSchemeControls({
-          defaultSchemeType: COLOR_SCHEME_TYPES.fixed_color,
-        }),
+        ...generateDeckGLColorSchemeControls({}),
       ],
     },
     {

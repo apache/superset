@@ -18,7 +18,9 @@
  */
 import { useRef, FC } from 'react';
 
-import { NativeFilterType, styled, t, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { NativeFilterType } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { Button } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 

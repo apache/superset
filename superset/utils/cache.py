@@ -28,17 +28,29 @@ from flask_caching.backends import NullCache
 from werkzeug.wrappers import Response
 
 from superset import db
+from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.extensions import cache_manager
 from superset.models.cache import CacheKey
-from superset.utils.hashing import md5_sha_from_dict
+from superset.utils.cache_manager import configurable_hash_method
+from superset.utils.hashing import hash_from_dict
 from superset.utils.json import json_int_dttm_ser
 
 logger = logging.getLogger(__name__)
 
 
 def generate_cache_key(values_dict: dict[str, Any], key_prefix: str = "") -> str:
-    hash_str = md5_sha_from_dict(values_dict, default=json_int_dttm_ser)
-    return f"{key_prefix}{hash_str}"
+    hash_str = hash_from_dict(values_dict, default=json_int_dttm_ser)
+    cache_key = f"{key_prefix}{hash_str}"
+
+    if logger.isEnabledFor(logging.DEBUG):
+        # Log cache key generation for debugging
+        logger.debug(
+            "Cache key generated: %s from dict keys: %s",
+            cache_key,
+            list(values_dict.keys()),
+        )
+
+    return cache_key
 
 
 def set_and_log_cache(
@@ -56,12 +68,24 @@ def set_and_log_cache(
         if cache_timeout is not None
         else app.config["CACHE_DEFAULT_TIMEOUT"]
     )
+
+    # Skip caching if timeout is CACHE_DISABLED_TIMEOUT (no caching requested)
+    if timeout == CACHE_DISABLED_TIMEOUT:
+        return
     try:
         dttm = datetime.utcnow().isoformat().split(".")[0]
         value = {**cache_value, "dttm": dttm}
         cache_instance.set(cache_key, value, timeout=timeout)
         stats_logger = app.config["STATS_LOGGER"]
         stats_logger.incr("set_cache_key")
+
+        # Log cache key details for debugging
+        logger.debug(
+            "CACHE SET - Key: %s, Datasource: %s, Timeout: %s",
+            cache_key,
+            datasource_uid,
+            timeout,
+        )
 
         if datasource_uid and app.config["STORE_CACHE_KEYS_IN_METADATA_DB"]:
             ck = CacheKey(
@@ -81,8 +105,6 @@ def set_and_log_cache(
 # resource? Flask-Caching will cache forever, but for the HTTP header we need
 # to specify a "far future" date.
 ONE_YEAR = 365 * 24 * 60 * 60  # 1 year in seconds
-
-logger = logging.getLogger(__name__)
 
 
 def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[..., Any]:
@@ -134,7 +156,10 @@ def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[...,
             if not force and obj is not None:
                 return obj
             obj = f(*args, **kwargs)
-            cache.set(cache_key, obj, timeout=cache_timeout)
+
+            # Skip caching if timeout is CACHE_DISABLED_TIMEOUT (no caching requested)
+            if cache_timeout != CACHE_DISABLED_TIMEOUT:
+                cache.set(cache_key, obj, timeout=cache_timeout)
             return obj
 
         return wrapped_f
@@ -249,7 +274,7 @@ def etag_cache(  # noqa: C901
         wrapper.uncached = f  # type: ignore
         wrapper.cache_timeout = timeout  # type: ignore
         wrapper.make_cache_key = cache._memoize_make_cache_key(  # type: ignore # pylint: disable=protected-access
-            make_name=None, timeout=timeout
+            make_name=None, timeout=timeout, hash_method=configurable_hash_method
         )
 
         return wrapper

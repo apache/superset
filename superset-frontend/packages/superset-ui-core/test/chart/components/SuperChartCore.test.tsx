@@ -19,7 +19,8 @@
 
 import '@testing-library/jest-dom';
 import mockConsole, { RestoreConsole } from 'jest-mock-console';
-import { ChartProps, supersetTheme } from '@superset-ui/core';
+import { ChartProps } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { render, screen, waitFor } from '@superset-ui/core/spec';
 import SuperChartCore from '../../../src/chart/components/SuperChartCore';
 import {
@@ -61,7 +62,7 @@ describe('SuperChartCore', () => {
   });
 
   describe('registered charts', () => {
-    it('renders registered chart', async () => {
+    test('renders registered chart', async () => {
       const { container } = render(
         <SuperChartCore
           chartType={ChartKeys.DILIGENT}
@@ -74,7 +75,7 @@ describe('SuperChartCore', () => {
       });
     });
 
-    it('renders registered chart with lazy loading', async () => {
+    test('renders registered chart with lazy loading', async () => {
       const { container } = render(
         <SuperChartCore chartType={ChartKeys.LAZY} />,
       );
@@ -84,8 +85,8 @@ describe('SuperChartCore', () => {
       });
     });
 
-    it('does not render if chartType is not set', async () => {
-      // @ts-ignore chartType is required
+    test('does not render if chartType is not set', async () => {
+      // @ts-expect-error chartType is required
       const { container } = render(<SuperChartCore />);
 
       await waitFor(() => {
@@ -94,7 +95,7 @@ describe('SuperChartCore', () => {
       });
     });
 
-    it('adds id to container if specified', async () => {
+    test('adds id to container if specified', async () => {
       const { container } = render(
         <SuperChartCore chartType={ChartKeys.DILIGENT} id="the-chart" />,
       );
@@ -106,7 +107,7 @@ describe('SuperChartCore', () => {
       });
     });
 
-    it('adds class to container if specified', async () => {
+    test('adds class to container if specified', async () => {
       const { container } = render(
         <SuperChartCore chartType={ChartKeys.DILIGENT} className="the-chart" />,
       );
@@ -118,7 +119,7 @@ describe('SuperChartCore', () => {
       });
     });
 
-    it('uses overrideTransformProps when specified', async () => {
+    test('uses overrideTransformProps when specified', async () => {
       render(
         <SuperChartCore
           chartType={ChartKeys.DILIGENT}
@@ -131,7 +132,7 @@ describe('SuperChartCore', () => {
       });
     });
 
-    it('uses preTransformProps when specified', async () => {
+    test('uses preTransformProps when specified', async () => {
       const chartPropsWithPayload = new ChartProps({
         queriesData: [{ message: 'hulk' }],
         theme: supersetTheme,
@@ -150,7 +151,7 @@ describe('SuperChartCore', () => {
       });
     });
 
-    it('uses postTransformProps when specified', async () => {
+    test('uses postTransformProps when specified', async () => {
       render(
         <SuperChartCore
           chartType={ChartKeys.DILIGENT}
@@ -163,7 +164,7 @@ describe('SuperChartCore', () => {
       });
     });
 
-    it('renders if chartProps is not specified', async () => {
+    test('renders if chartProps is not specified', async () => {
       const { container } = render(
         <SuperChartCore chartType={ChartKeys.DILIGENT} />,
       );
@@ -173,7 +174,7 @@ describe('SuperChartCore', () => {
       });
     });
 
-    it('does not render anything while waiting for Chart code to load', () => {
+    test('does not render anything while waiting for Chart code to load', () => {
       const { container } = render(
         <SuperChartCore chartType={ChartKeys.SLOW} />,
       );
@@ -182,7 +183,7 @@ describe('SuperChartCore', () => {
       expect(testComponent).not.toBeInTheDocument();
     });
 
-    it('eventually renders after Chart is loaded', async () => {
+    test('eventually renders after Chart is loaded', async () => {
       const { container } = render(
         <SuperChartCore chartType={ChartKeys.SLOW} />,
       );
@@ -197,19 +198,25 @@ describe('SuperChartCore', () => {
       );
     });
 
-    it('does not render if chartProps is null', async () => {
+    test('does not render if chartProps is null', async () => {
       const { container } = render(
         <SuperChartCore chartType={ChartKeys.DILIGENT} chartProps={null} />,
       );
 
       await waitFor(() => {
-        expect(container).toBeEmptyDOMElement();
+        // Should not render any chart content, only the antd App wrapper
+        expect(
+          container.querySelector('.test-component'),
+        ).not.toBeInTheDocument();
+        expect(
+          container.querySelector('[data-test="chart-container"]'),
+        ).not.toBeInTheDocument();
       });
     });
   });
 
   describe('unregistered charts', () => {
-    it('renders error message', async () => {
+    test('renders error message', async () => {
       render(
         <SuperChartCore chartType="4d-pie-chart" chartProps={chartProps} />,
       );
@@ -221,7 +228,7 @@ describe('SuperChartCore', () => {
   });
 
   describe('.processChartProps()', () => {
-    it('use identity functions for unspecified transforms', () => {
+    test('use identity functions for unspecified transforms', () => {
       const chart = new SuperChartCore({
         chartType: ChartKeys.DILIGENT,
       });

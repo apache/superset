@@ -18,19 +18,19 @@
  */
 /* eslint-disable no-param-reassign */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { t } from '@apache-superset/core/translation';
 import {
   AppSection,
   DataMask,
   ensureIsArray,
   ExtraFormData,
-  GenericDataType,
   getColumnLabel,
   JsonObject,
   finestTemporalGrainFormatter,
-  t,
-  tn,
-  styled,
 } from '@superset-ui/core';
+import { tn } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import { debounce, isUndefined } from 'lodash';
 import { useImmerReducer } from 'use-immer';
 import {
@@ -151,7 +151,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const [col] = groupby;
   const [initialColtypeMap] = useState(coltypeMap);
   const [search, setSearch] = useState('');
-  const isChangedByUser = useRef(false);
   const prevDataRef = useRef(data);
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
     extraFormData: {},
@@ -273,8 +272,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       } else {
         updateDataMask(values);
       }
-
-      isChangedByUser.current = true;
     },
     [updateDataMask, formData.nativeFilterId, clearAllTrigger],
   );
@@ -296,7 +293,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }, [filterState.validateMessage, filterState.validateStatus]);
 
   const uniqueOptions = useMemo(() => {
-    const allOptions = new Set([...data.map(el => el[col])]);
+    const allOptions = new Set(data.map(el => el[col]));
     return [...allOptions].map((value: string) => ({
       label: labelFormatter(value, datatype),
       value,
@@ -317,13 +314,20 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   const sortComparator = useCallback(
     (a: LabeledValue, b: LabeledValue) => {
+      // When sortMetric is specified, the backend already sorted the data correctly
+      // Don't override the backend's metric-based sorting with frontend alphabetical sorting
+      if (formData.sortMetric) {
+        return 0; // Preserve the original order from the backend
+      }
+
+      // Only apply alphabetical sorting when no sortMetric is specified
       const labelComparator = propertyComparator('label');
       if (formData.sortAscending) {
         return labelComparator(a, b);
       }
       return labelComparator(b, a);
     },
-    [formData.sortAscending],
+    [formData.sortAscending, formData.sortMetric],
   );
 
   // Use effect for initialisation for filter plugin
@@ -349,17 +353,21 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     }
 
     // Handle the default to first Value case
-    if (defaultToFirstItem) {
-      // Set to first item if defaultToFirstItem is true
-      const firstItem: SelectValue = data[0]
-        ? (groupby.map(col => data[0][col]) as string[])
-        : null;
-      if (firstItem?.[0] !== undefined) {
-        updateDataMask(firstItem);
+    // Skip default values when clearAllTrigger is active to prevent
+    // defaults from being applied during Clear All operation
+    if (!clearAllTrigger) {
+      if (defaultToFirstItem) {
+        // Set to first item if defaultToFirstItem is true
+        const firstItem: SelectValue = data[0]
+          ? (groupby.map(col => data[0][col]) as string[])
+          : null;
+        if (firstItem?.[0] !== undefined) {
+          updateDataMask(firstItem);
+        }
+      } else if (formData?.defaultValue) {
+        // Handle defalut value case
+        updateDataMask(formData.defaultValue);
       }
-    } else if (formData?.defaultValue) {
-      // Handle defalut value case
-      updateDataMask(formData.defaultValue);
     }
   }, [
     isDisabled,
@@ -370,6 +378,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     groupby,
     col,
     inverseSelection,
+    clearAllTrigger,
   ]);
 
   useEffect(() => {
@@ -388,16 +397,13 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
     // If data actually changed (e.g., due to parent filter), reset flag
     if (hasDataChanged) {
-      isChangedByUser.current = false;
       prevDataRef.current = data;
     }
   }, [data, col]);
 
   useEffect(() => {
     if (
-      isChangedByUser.current &&
-      filterState.value &&
-      filterState.value.every((value?: any) =>
+      filterState.value?.every((value?: any) =>
         data.some(row => row[col] === value),
       )
     )
@@ -407,7 +413,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       ? (groupby.map(col => data[0][col]) as string[])
       : null;
 
+    // Skip default value update when clearAllTrigger is active
     if (
+      !clearAllTrigger &&
       defaultToFirstItem &&
       Object.keys(formData?.extraFormData || {}).length &&
       filterState.value !== undefined &&
@@ -424,7 +432,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     formData,
     data,
     JSON.stringify(filterState.value),
-    isChangedByUser.current,
+    clearAllTrigger,
   ]);
 
   useEffect(() => {
@@ -501,7 +509,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             allowClear
             allowNewOptions={!searchAllOptions && creatable !== false}
             allowSelectAll={!searchAllOptions}
-            value={filterState.value || []}
+            value={multiSelect ? filterState.value || [] : filterState.value}
             disabled={isDisabled}
             getPopupContainer={
               showOverflow
@@ -518,7 +526,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             onFocus={setFocusedFilter}
             onMouseEnter={setHoveredFilter}
             onMouseLeave={unsetHoveredFilter}
-            // @ts-ignore
+            // @ts-expect-error
             onChange={handleChange}
             ref={inputRef}
             loading={isRefreshing}

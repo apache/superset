@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { ensureIsArray } from '@superset-ui/core';
 import { cloneDeep } from 'lodash';
 import {
   ControlPanelsContainerProps,
@@ -42,6 +43,7 @@ import {
   xAxisBounds,
   xAxisLabelRotation,
   xAxisLabelInterval,
+  forceMaxInterval,
 } from '../controls';
 
 const {
@@ -358,6 +360,7 @@ const config: ControlPanelConfig = {
         ['x_axis_time_format'],
         [xAxisLabelRotation],
         [xAxisLabelInterval],
+        [forceMaxInterval],
         [<ControlSubSectionHeader>{t('Tooltip')}</ControlSubSectionHeader>],
         [
           {
@@ -502,6 +505,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['echart_options'],
       ],
     },
   ],

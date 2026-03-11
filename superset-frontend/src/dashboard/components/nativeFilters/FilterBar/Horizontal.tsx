@@ -18,7 +18,9 @@
  */
 
 import { FC, memo, useMemo } from 'react';
-import { DataMaskStateWithId, styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { DataMaskStateWithId } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import { Loading } from '@superset-ui/core/components';
 import { RootState } from 'src/dashboard/types';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
@@ -36,7 +38,7 @@ const HorizontalBar = styled.div`
       theme.sizeUnit * 3
     }px ${theme.sizeUnit * 4}px;
     background: ${theme.colorBgBase};
-    box-shadow: inset 0px -2px 2px -1px ${theme.colors.grayscale.light2};
+    box-shadow: inset 0px -2px 2px -1px ${theme.colorSplit};
   `}
 `;
 
@@ -57,7 +59,7 @@ const HorizontalBarContent = styled.div`
 const FilterBarEmptyStateContainer = styled.div`
   ${({ theme }) => `
     font-weight: ${theme.fontWeightStrong};
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorText};
     font-size: ${theme.fontSizeSM}px;
     padding-left: ${theme.sizeUnit * 2}px;
   `}
@@ -67,8 +69,10 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
   actions,
   dataMaskSelected,
   filterValues,
+  chartCustomizationValues,
   isInitialized,
   onSelectionChange,
+  onPendingCustomizationDataMaskChange,
   clearAllTriggers,
   onClearAllComplete,
 }) => {
@@ -90,13 +94,16 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
     [chartIds, chartLayoutItems, dataMask, verboseMaps],
   );
 
-  const hasFilters = filterValues.length > 0 || selectedCrossFilters.length > 0;
+  const hasFilters =
+    filterValues.length > 0 ||
+    selectedCrossFilters.length > 0 ||
+    chartCustomizationValues.length > 0;
 
   return (
     <HorizontalBar {...getFilterBarTestId()}>
       <HorizontalBarContent>
         {!isInitialized ? (
-          <Loading position="inline-centered" />
+          <Loading position="inline-centered" size="s" muted />
         ) : (
           <>
             <FilterBarSettings />
@@ -109,6 +116,10 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
               <FilterControls
                 dataMaskSelected={dataMaskSelected}
                 onFilterSelectionChange={onSelectionChange}
+                onPendingCustomizationDataMaskChange={
+                  onPendingCustomizationDataMaskChange
+                }
+                chartCustomizationValues={chartCustomizationValues}
                 clearAllTriggers={clearAllTriggers}
                 onClearAllComplete={onClearAllComplete}
               />

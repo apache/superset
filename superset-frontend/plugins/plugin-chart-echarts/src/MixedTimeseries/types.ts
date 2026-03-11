@@ -57,6 +57,7 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   truncateYAxis: boolean;
   truncateYAxisSecondary: boolean;
   timeGrainSqla?: TimeGranularity;
+  forceMaxInterval?: boolean;
   tooltipTimeFormat?: string;
   zoomable: boolean;
   richTooltip: boolean;
@@ -92,7 +93,7 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
 } & LegendFormData &
   TitleFormData;
 
-// @ts-ignore
+// @ts-expect-error
 export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   ...DEFAULT_LEGEND_FORM_DATA,
   annotationLayers: [],
@@ -140,8 +141,7 @@ export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   ...DEFAULT_TITLE_FORM_DATA,
 };
 
-export interface EchartsMixedTimeseriesProps
-  extends BaseChartProps<EchartsMixedTimeseriesFormData> {
+export interface EchartsMixedTimeseriesProps extends BaseChartProps<EchartsMixedTimeseriesFormData> {
   formData: EchartsMixedTimeseriesFormData;
 }
 

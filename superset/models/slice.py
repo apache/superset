@@ -37,6 +37,8 @@ from sqlalchemy import (
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.mapper import Mapper
+from sqlalchemy.sql.elements import BinaryExpression
+from superset_core.common.models import Chart as CoreChart
 
 from superset import db, is_feature_enabled, security_manager
 from superset.legacy import update_time_range
@@ -64,7 +66,7 @@ logger = logging.getLogger(__name__)
 
 
 class Slice(  # pylint: disable=too-many-public-methods
-    Model, AuditMixinNullable, ImportExportMixin
+    CoreChart, AuditMixinNullable, ImportExportMixin
 ):
     """A slice is essentially a report or a view on data"""
 
@@ -140,15 +142,8 @@ class Slice(  # pylint: disable=too-many-public-methods
         return self.slice_name or str(self.id)
 
     @property
-    def cls_model(self) -> type[SqlaTable]:
-        # pylint: disable=import-outside-toplevel
-        from superset.daos.datasource import DatasourceDAO
-
-        return DatasourceDAO.sources[self.datasource_type]
-
-    @property
     def datasource(self) -> SqlaTable | None:
-        return self.get_datasource
+        return self.table
 
     def clone(self) -> Slice:
         return Slice(
@@ -160,15 +155,6 @@ class Slice(  # pylint: disable=too-many-public-methods
             params=self.params,
             description=self.description,
             cache_timeout=self.cache_timeout,
-        )
-
-    # pylint: disable=using-constant-test
-    @datasource.getter  # type: ignore
-    def get_datasource(self) -> SqlaTable | None:
-        return (
-            db.session.query(self.cls_model)
-            .filter_by(id=self.datasource_id)
-            .one_or_none()
         )
 
     @renders("datasource_name")
@@ -199,8 +185,6 @@ class Slice(  # pylint: disable=too-many-public-methods
         datasource = self.datasource
         return datasource.url if datasource else None
 
-    # pylint: enable=using-constant-test
-
     @property
     def viz(self) -> BaseViz | None:
         form_data = json.loads(self.params)
@@ -212,7 +196,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @property
     def description_markeddown(self) -> str:
-        return utils.markdown(self.description)
+        return utils.markdown(self.description or "")
 
     @property
     def data(self) -> dict[str, Any]:
@@ -361,13 +345,24 @@ class Slice(  # pylint: disable=too-many-public-methods
         return self.query_context_factory
 
     @classmethod
-    def get(cls, id_: int) -> Slice:
-        qry = db.session.query(Slice).filter_by(id=id_)
+    def get(cls, id_or_uuid: str) -> Slice:
+        qry = db.session.query(Slice).filter(id_or_uuid_filter(id_or_uuid))
         return qry.one_or_none()
 
 
+def id_or_uuid_filter(id_or_uuid: str | int) -> BinaryExpression:
+    if isinstance(id_or_uuid, int):
+        return Slice.id == id_or_uuid
+    if id_or_uuid.isdigit():
+        return Slice.id == int(id_or_uuid)
+    return Slice.uuid == id_or_uuid
+
+
 def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) -> None:
-    src_class = target.cls_model
+    # pylint: disable=import-outside-toplevel
+    from superset.daos.datasource import DatasourceDAO
+
+    src_class = DatasourceDAO.sources[target.datasource_type]
     if id_ := target.datasource_id:
         ds = db.session.query(src_class).filter_by(id=int(id_)).first()
         if ds:

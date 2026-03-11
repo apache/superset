@@ -116,6 +116,10 @@ class SupersetTestCases(SupersetTestCase):
         )
         assert base_result_expected == base_result
 
+    def test_get_column_description_limit_size(self):
+        base_result = BaseEngineSpec.get_column_description_limit_size()
+        assert base_result == 1
+
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_column_datatype_to_string(self):
         example_db = get_example_database()

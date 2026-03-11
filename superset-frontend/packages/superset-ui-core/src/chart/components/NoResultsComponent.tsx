@@ -18,8 +18,8 @@
  */
 
 import { CSSProperties } from 'react';
-import { css, styled } from '../../theme';
-import { t } from '../../translation';
+import { css, styled } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 
 const MESSAGE_STYLES: CSSProperties = { maxWidth: 800 };
 const MIN_WIDTH_FOR_BODY = 250;

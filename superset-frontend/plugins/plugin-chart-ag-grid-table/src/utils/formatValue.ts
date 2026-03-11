@@ -19,13 +19,16 @@
 import {
   CurrencyFormatter,
   DataRecordValue,
-  GenericDataType,
   getNumberFormatter,
   isDefined,
   isProbablyHTML,
   sanitizeHtml,
 } from '@superset-ui/core';
-import { ValueFormatterParams, ValueGetterParams } from 'ag-grid-community';
+import { GenericDataType } from '@apache-superset/core/common';
+import {
+  ValueFormatterParams,
+  ValueGetterParams,
+} from '@superset-ui/core/components/ThemedAgGridReact';
 import { DataColumnMeta, InputColumn } from '../types';
 import DateWithFormatter from './DateWithFormatter';
 
@@ -100,7 +103,7 @@ export const valueFormatter = (
 };
 
 export const valueGetter = (params: ValueGetterParams, col: InputColumn) => {
-  // @ts-ignore
+  // @ts-expect-error
   if (params?.colDef?.isMain) {
     const modifiedColId = `Main ${params.column.getColId()}`;
     return params.data[modifiedColId];

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, css } from '@superset-ui/core';
+import { styled, css } from '@apache-superset/core/theme';
 import { IconTooltip } from '@superset-ui/core/components';
 
 export const StaticPosition = css`
@@ -33,9 +33,16 @@ export const verticalAlign = css`
 export const StyledTooltip = styled(IconTooltip)`
   padding-right: ${({ theme }) => theme.sizeUnit * 2}px;
   span {
-    color: ${({ theme }) => theme.colors.grayscale.base};
+    color: ${({ theme }) => theme.colorIcon};
     &: hover {
       color: ${({ theme }) => theme.colorPrimary};
     }
   }
+`;
+
+export const ModalResultSetWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: 50vh;
 `;

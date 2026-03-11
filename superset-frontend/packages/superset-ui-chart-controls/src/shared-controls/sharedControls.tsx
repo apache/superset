@@ -17,7 +17,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 /**
  * This file exports all controls available for use in chart plugins internal to Superset.
  * It is not recommended to use the controls here for any third-party plugins.
@@ -34,8 +33,8 @@
  * control interface.
  */
 import { isEmpty } from 'lodash';
+import { t } from '@apache-superset/core/translation';
 import {
-  t,
   getCategoricalSchemeRegistry,
   getSequentialSchemeRegistry,
   SequentialScheme,
@@ -86,6 +85,7 @@ import {
   dndTooltipColumnsControl,
   dndTooltipMetricsControl,
 } from './dndControls';
+import { matrixifyControls } from './matrixifyControls';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
@@ -250,7 +250,7 @@ const order_desc: SharedControlConfig<'CheckboxControl'> = {
   visibility: ({ controls }) =>
     Boolean(
       controls?.timeseries_limit_metric.value &&
-        !isEmpty(controls?.timeseries_limit_metric.value),
+      !isEmpty(controls?.timeseries_limit_metric.value),
     ),
 };
 
@@ -325,6 +325,9 @@ const currency_format: SharedControlConfig<'CurrencyControl'> = {
   type: 'CurrencyControl',
   label: t('Currency format'),
   renderTrigger: true,
+  description: t(
+    "Format metrics or columns with currency symbols as prefixes or suffixes. Choose a symbol manually or use 'Auto-detect' to apply the correct symbol based on the dataset's currency code column. When multiple currencies are present, formatting falls back to neutral numbers.",
+  ),
 };
 
 const x_axis_time_format: SharedControlConfig<
@@ -340,6 +343,31 @@ const x_axis_time_format: SharedControlConfig<
   description: D3_TIME_FORMAT_DOCS,
   filterOption: ({ data: option }, search) =>
     option.label.includes(search) || option.value.includes(search),
+};
+
+const x_axis_number_format: SharedControlConfig<
+  'SelectControl',
+  SelectDefaultOption
+> = {
+  type: 'SelectControl',
+  freeForm: true,
+  label: t('X Axis Number Format'),
+  renderTrigger: true,
+  default: DEFAULT_NUMBER_FORMAT,
+  choices: D3_FORMAT_OPTIONS,
+  description: D3_FORMAT_DOCS,
+  tokenSeparators: ['\n', '\t', ';'],
+  filterOption: ({ data: option }, search) =>
+    option.label.includes(search) || option.value.includes(search),
+  mapStateToProps: state => {
+    const isPercentage =
+      state.controls?.comparison_type?.value === ComparisonType.Percentage;
+    return {
+      choices: isPercentage
+        ? D3_FORMAT_OPTIONS.filter(option => option[0].includes('%'))
+        : D3_FORMAT_OPTIONS,
+    };
+  },
 };
 
 const color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
@@ -415,19 +443,31 @@ const order_by_cols: SharedControlConfig<'SelectControl'> = {
   default: [],
   shouldMapStateToProps: () => true,
   mapStateToProps: ({ datasource }) => ({
-    choices: (datasource?.columns || [])
-      .map(col =>
-        [true, false].map(asc => [
-          JSON.stringify([col.column_name, asc]),
-          `${getColumnLabel(col.column_name)} [${asc ? 'asc' : 'desc'}]`,
-        ]),
-      )
-      .flat(),
+    choices: (datasource?.columns || []).flatMap(col =>
+      [true, false].map(asc => [
+        JSON.stringify([col.column_name, asc]),
+        `${getColumnLabel(col.column_name)} [${asc ? 'asc' : 'desc'}]`,
+      ]),
+    ),
   }),
   resetOnHide: false,
 };
 
-export default {
+const echart_options: SharedControlConfig<'JSEditorControl'> = {
+  type: 'JSEditorControl',
+  label: t('ECharts Options (JS object literals)'),
+  description: t(
+    'A JavaScript object that adheres to the ECharts options specification, ' +
+      'overriding other control options with higher precedence. ' +
+      '(i.e. { title: { text: "My Chart" }, tooltip: { trigger: "item" } }). ' +
+      'Details: https://echarts.apache.org/en/option.html. ',
+  ),
+  default: '{}',
+  renderTrigger: true,
+  validators: [],
+};
+
+const sharedControls: Record<string, SharedControlConfig<any>> = {
   metrics: dndAdhocMetricsControl,
   metric: dndAdhocMetricControl,
   datasource: datasourceControl,
@@ -456,6 +496,7 @@ export default {
   size: dndSizeControl,
   y_axis_format,
   x_axis_time_format,
+  x_axis_number_format,
   adhoc_filters: dndAdhocFilterControl,
   color_scheme,
   time_shift_color,
@@ -472,4 +513,10 @@ export default {
   currency_format,
   sort_by_metric,
   order_by_cols,
+  echart_options,
+
+  // Add all Matrixify controls
+  ...matrixifyControls,
 };
+
+export default sharedControls;

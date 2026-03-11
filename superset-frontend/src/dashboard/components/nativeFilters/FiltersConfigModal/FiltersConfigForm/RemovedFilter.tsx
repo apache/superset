@@ -18,7 +18,8 @@
  */
 import { Button, type OnClickHandler } from '@superset-ui/core/components';
 import { FC } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 
 const RemovedContent = styled.div`
   display: flex;
@@ -27,7 +28,7 @@ const RemovedContent = styled.div`
   text-align: center;
   justify-content: center;
   align-items: center;
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorText};
 `;
 
 type RemovedFilterProps = {

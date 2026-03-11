@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, styled } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
+import { styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { Alert, Image } from '@superset-ui/core/components';
+import { Loading } from '@superset-ui/core/components';
 import Table, {
   ColumnsType,
   TableSize,
 } from '@superset-ui/core/components/Table';
-// @ts-ignore
-import LOADING_GIF from 'src/assets/images/loading.gif';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';
 import { ITableColumn } from './types';
 import MessageContent from './MessageContent';
@@ -50,19 +50,18 @@ interface StyledHeaderProps {
   position: EPosition;
 }
 
-const LOADER_WIDTH = 200;
-const SPINNER_WIDTH = 120;
-const HALF = 0.5;
 const MARGIN_MULTIPLIER = 3;
 
 const StyledHeader = styled.div<StyledHeaderProps>`
   ${({ theme, position }) => `
   position: ${position};
+  display: flex;
+  align-items: center;
   margin: ${theme.sizeUnit * (MARGIN_MULTIPLIER + 1)}px
     ${theme.sizeUnit * MARGIN_MULTIPLIER}px
     ${theme.sizeUnit * MARGIN_MULTIPLIER}px
     ${theme.sizeUnit * (MARGIN_MULTIPLIER + 3)}px;
-  font-size: ${theme.sizeUnit * 6}px;
+  font-size: ${theme.sizeUnit * 5}px;
   font-weight: ${theme.fontWeightStrong};
   padding-bottom: ${theme.sizeUnit * MARGIN_MULTIPLIER}px;
 
@@ -72,7 +71,6 @@ const StyledHeader = styled.div<StyledHeaderProps>`
 
   .anticon:first-of-type {
     margin-right: ${theme.sizeUnit * 2}px;
-    vertical-align: text-top;
   }
 
   `}
@@ -105,20 +103,15 @@ const LoaderContainer = styled.div`
 
 const StyledLoader = styled.div`
   ${({ theme }) => `
-  max-width: 50%;
-  width: ${LOADER_WIDTH}px;
-
-  .ant-image {
-    width: ${SPINNER_WIDTH}px;
-    margin-left: ${(LOADER_WIDTH - SPINNER_WIDTH) * HALF}px;
-  }
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 
   div {
-    width: 100%;
     margin-top: ${theme.sizeUnit * MARGIN_MULTIPLIER}px;
     text-align: center;
     font-weight: ${theme.fontWeightNormal};
-    font-size: ${theme.fontSizeLG}px;
+    font-size: ${theme.fontSize}px;
     color: ${theme.colorTextSecondary};
   }
   `}
@@ -173,7 +166,6 @@ const StyledAlert = styled(Alert)`
 
 export const REFRESHING = t('Refreshing columns');
 export const COLUMN_TITLE = t('Table columns');
-export const ALT_LOADING = t('Loading');
 
 const pageSizeOptions = ['5', '10', '15', '25'];
 const DEFAULT_PAGE_SIZE = 25;
@@ -270,7 +262,7 @@ const DatasetPanel = ({
     loader = (
       <LoaderContainer>
         <StyledLoader>
-          <Image preview={false} alt={ALT_LOADING} src={LOADING_GIF} />
+          <Loading position="inline-centered" size="m" />
           <div>{REFRESHING}</div>
         </StyledLoader>
       </LoaderContainer>
@@ -280,7 +272,7 @@ const DatasetPanel = ({
     if (!loading && tableName && hasColumns && !hasError) {
       component = (
         <>
-          <StyledTitle>{COLUMN_TITLE}</StyledTitle>
+          <StyledTitle title={COLUMN_TITLE}>{COLUMN_TITLE}</StyledTitle>
           {tableWithDataset ? (
             <TableContainerWithBanner>
               <TableScrollContainer>
@@ -333,7 +325,7 @@ const DatasetPanel = ({
             }
             title={tableName || ''}
           >
-            <Icons.InsertRowAboveOutlined />
+            <Icons.InsertRowAboveOutlined iconSize="xl" />
             {tableName}
           </StyledHeader>
         </>

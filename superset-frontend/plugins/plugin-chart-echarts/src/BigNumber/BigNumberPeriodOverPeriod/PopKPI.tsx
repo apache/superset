@@ -17,20 +17,20 @@
  * under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
+import { t } from '@apache-superset/core/translation';
 import {
-  css,
   ensureIsArray,
   fetchTimeRange,
   getTimeOffset,
-  styled,
-  t,
-  useTheme,
 } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Tooltip } from '@superset-ui/core/components';
-import { DEFAULT_DATE_PATTERN } from '@superset-ui/chart-controls';
+import {
+  DEFAULT_DATE_PATTERN,
+  ColorSchemeEnum,
+} from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
 import {
-  ColorSchemeEnum,
   PopKPIComparisonSymbolStyleProps,
   PopKPIComparisonValueStyleProps,
   PopKPIProps,
@@ -169,7 +169,7 @@ export default function PopKPI(props: PopKPIProps) {
 
   const getArrowIndicatorColor = () => {
     if (!comparisonColorEnabled || percentDifferenceNumber === 0) {
-      return theme.colors.grayscale.base;
+      return theme.colorTextTertiary;
     }
 
     if (percentDifferenceNumber > 0) {
@@ -190,7 +190,7 @@ export default function PopKPI(props: PopKPIProps) {
   `;
 
   const defaultBackgroundColor = theme.colorBgContainer;
-  const defaultTextColor = theme.colors.grayscale.base;
+  const defaultTextColor = theme.colorTextTertiary;
   const { backgroundColor, textColor } = useMemo(() => {
     let bgColor = defaultBackgroundColor;
     let txtColor = defaultTextColor;

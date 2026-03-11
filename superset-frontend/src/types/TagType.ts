@@ -39,5 +39,3 @@ export interface TagType {
   css?: SerializedStyles;
   closable?: boolean;
 }
-
-export default TagType;
