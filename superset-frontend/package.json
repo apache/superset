@@ -343,7 +343,7 @@
     "jsdom": "^28.1.0",
     "lerna": "^8.2.3",
     "lightningcss": "^1.32.0",
-    "mini-css-extract-plugin": "^2.10.0",
+    "mini-css-extract-plugin": "^2.10.1",
     "open-cli": "^8.0.0",
     "oxlint": "^1.51.0",
     "po2json": "^0.4.5",
