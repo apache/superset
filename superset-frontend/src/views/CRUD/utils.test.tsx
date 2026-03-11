@@ -20,6 +20,7 @@ import rison from 'rison';
 import {
   checkUploadExtensions,
   getAlreadyExists,
+  getEncryptedExtraFieldsNeeded,
   getFilterValues,
   getPasswordsNeeded,
   getSSHPasswordsNeeded,
@@ -27,6 +28,7 @@ import {
   getSSHPrivateKeyPasswordsNeeded,
   hasTerminalValidation,
   isAlreadyExists,
+  isNeedsEncryptedExtraField,
   isNeedsPassword,
   isNeedsSSHPassword,
   isNeedsSSHPrivateKey,
@@ -171,6 +173,79 @@ const sshTunnelPrivateKeyPasswordNeededErrors = {
       extra: {
         'databases/imported_database.yaml': {
           _schema: ['Must provide a private key password for the ssh tunnel'],
+        },
+        issue_codes: [
+          {
+            code: 1010,
+            message:
+              'Issue 1010 - Superset encountered an error while running a command.',
+          },
+        ],
+      },
+    },
+  ],
+};
+
+const encryptedExtraFieldNeededErrors = {
+  errors: [
+    {
+      message: 'Error importing database',
+      error_type: 'GENERIC_COMMAND_ERROR',
+      level: 'warning',
+      extra: {
+        'databases/imported_database.yaml': {
+          _schema: [
+            'Must provide value for masked_encrypted_extra field: $.credentials_info.private_key (Service Account Private Key)',
+          ],
+        },
+        issue_codes: [
+          {
+            code: 1010,
+            message:
+              'Issue 1010 - Superset encountered an error while running a command.',
+          },
+        ],
+      },
+    },
+  ],
+};
+
+const multipleEncryptedExtraFieldsNeededErrors = {
+  errors: [
+    {
+      message: 'Error importing database',
+      error_type: 'GENERIC_COMMAND_ERROR',
+      level: 'warning',
+      extra: {
+        'databases/snowflake_db.yaml': {
+          _schema: [
+            'Must provide value for masked_encrypted_extra field: $.auth_params.privatekey_body (Private Key Body)',
+            'Must provide value for masked_encrypted_extra field: $.auth_params.privatekey_pass (Private Key Password)',
+          ],
+        },
+        issue_codes: [
+          {
+            code: 1010,
+            message:
+              'Issue 1010 - Superset encountered an error while running a command.',
+          },
+        ],
+      },
+    },
+  ],
+};
+
+const encryptedExtraFieldNoLabelErrors = {
+  errors: [
+    {
+      message: 'Error importing database',
+      error_type: 'GENERIC_COMMAND_ERROR',
+      level: 'warning',
+      extra: {
+        'databases/imported_database.yaml': {
+          _schema: [
+            'Must provide value for masked_encrypted_extra field: $.some.field',
+          ],
         },
         issue_codes: [
           {
@@ -364,6 +439,85 @@ test('does not ask for password when the import type is wrong', () => {
     ],
   };
   expect(hasTerminalValidation(error.errors)).toBe(true);
+});
+
+test('identifies error payloads indicating that encrypted extra fields are needed', () => {
+  expect(
+    isNeedsEncryptedExtraField({
+      _schema: [
+        'Must provide value for masked_encrypted_extra field: $.credentials_info.private_key (Service Account Private Key)',
+      ],
+    }),
+  ).toBe(true);
+
+  expect(
+    isNeedsEncryptedExtraField(
+      'Database already exists and `overwrite=true` was not passed',
+    ),
+  ).toBe(false);
+
+  expect(
+    isNeedsEncryptedExtraField({ type: ['Must be equal to Database.'] }),
+  ).toBe(false);
+
+  expect(
+    isNeedsEncryptedExtraField({
+      _schema: ['Must provide a password for the database'],
+    }),
+  ).toBe(false);
+});
+
+test('extracts encrypted extra fields needed with path and label', () => {
+  const result = getEncryptedExtraFieldsNeeded(
+    encryptedExtraFieldNeededErrors.errors,
+  );
+  expect(result).toEqual([
+    {
+      fileName: 'databases/imported_database.yaml',
+      fields: [
+        {
+          path: '$.credentials_info.private_key',
+          label: 'Service Account Private Key',
+        },
+      ],
+    },
+  ]);
+});
+
+test('extracts multiple encrypted extra fields from a single file', () => {
+  const result = getEncryptedExtraFieldsNeeded(
+    multipleEncryptedExtraFieldsNeededErrors.errors,
+  );
+  expect(result).toEqual([
+    {
+      fileName: 'databases/snowflake_db.yaml',
+      fields: [
+        { path: '$.auth_params.privatekey_body', label: 'Private Key Body' },
+        {
+          path: '$.auth_params.privatekey_pass',
+          label: 'Private Key Password',
+        },
+      ],
+    },
+  ]);
+});
+
+test('falls back to path as label when no parenthetical label is present', () => {
+  const result = getEncryptedExtraFieldsNeeded(
+    encryptedExtraFieldNoLabelErrors.errors,
+  );
+  expect(result).toEqual([
+    {
+      fileName: 'databases/imported_database.yaml',
+      fields: [{ path: '$.some.field', label: '$.some.field' }],
+    },
+  ]);
+});
+
+test('encrypted extra field errors are non-terminal', () => {
+  expect(hasTerminalValidation(encryptedExtraFieldNeededErrors.errors)).toBe(
+    false,
+  );
 });
 
 test('successfully modified rison to encode correctly', () => {

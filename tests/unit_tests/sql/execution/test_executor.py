@@ -37,7 +37,7 @@ import pandas as pd
 import pytest
 from flask import current_app
 from pytest_mock import MockerFixture
-from superset_core.api.types import (
+from superset_core.queries.types import (
     CacheOptions,
     QueryOptions,
     QueryStatus,
@@ -348,6 +348,64 @@ def test_execute_allowed_functions(
     result = database.execute("SELECT COUNT(*) FROM users")
 
     assert result.status == QueryStatus.SUCCESS
+
+
+def test_execute_disallowed_tables(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test that disallowed SQL tables are blocked."""
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": None,
+            "SQLLAB_TIMEOUT": 30,
+            "DISALLOWED_SQL_FUNCTIONS": {},
+            "DISALLOWED_SQL_TABLES": {"sqlite": {"pg_stat_activity", "pg_roles"}},
+        },
+    )
+
+    result = database.execute("SELECT * FROM pg_stat_activity")
+
+    assert result.status == QueryStatus.FAILED
+    assert result.error_message is not None
+    assert "Disallowed SQL tables: pg_stat_activity" == result.error_message
+
+
+def test_execute_allowed_tables(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test that allowed SQL tables work normally."""
+    mock_query_execution(mocker, database, return_data=[(1,)], column_names=["id"])
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": None,
+            "SQLLAB_TIMEOUT": 30,
+            "SQL_MAX_ROW": None,
+            "DISALLOWED_SQL_FUNCTIONS": {},
+            "DISALLOWED_SQL_TABLES": {"sqlite": {"pg_stat_activity", "pg_roles"}},
+            "QUERY_LOGGER": None,
+        },
+    )
+
+    result = database.execute("SELECT * FROM users")
+
+    assert result.status == QueryStatus.SUCCESS
+
+
+def test_check_disallowed_tables_no_config(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test disallowed tables check when no config exists."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    mocker.patch.dict(current_app.config, {"DISALLOWED_SQL_TABLES": {}})
+
+    executor = SQLExecutor(database)
+    script = MagicMock()
+    result = executor._check_disallowed_tables(script)
+
+    assert result is None
 
 
 # =============================================================================
@@ -1293,7 +1351,8 @@ def test_async_handle_get_result_query_not_found(
     query_result = result.get_result()
 
     assert query_result.status == QueryStatus.FAILED
-    assert "not found" in query_result.error_message.lower()  # type: ignore[union-attr]
+    assert query_result.error_message is not None
+    assert "not found" in query_result.error_message.lower()
 
 
 def test_async_handle_get_result_pending(
@@ -1434,7 +1493,8 @@ def test_async_handle_get_result_backend_load_error(
     query_result = result.get_result()
 
     assert query_result.status == QueryStatus.FAILED
-    assert "Error loading results" in query_result.error_message  # type: ignore[operator]
+    assert query_result.error_message is not None
+    assert "Error loading results" in query_result.error_message
 
 
 def test_async_handle_get_result_no_results_key(
@@ -1465,7 +1525,8 @@ def test_async_handle_get_result_no_results_key(
     query_result = result.get_result()
 
     assert query_result.status == QueryStatus.FAILED
-    assert "Results not available" in query_result.error_message  # type: ignore[operator]
+    assert query_result.error_message is not None
+    assert "Results not available" in query_result.error_message
 
 
 def test_async_handle_get_status_query_not_found(
@@ -1846,7 +1907,7 @@ def test_store_in_cache_with_failed_status(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
     """Test that failed queries are not cached."""
-    from superset_core.api.types import QueryResult as QueryResultType
+    from superset_core.queries.types import QueryResult as QueryResultType
 
     from superset.sql.execution.executor import SQLExecutor
 
@@ -1869,7 +1930,10 @@ def test_store_in_cache_with_no_data(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
     """Test that DML queries (with no data) are cached."""
-    from superset_core.api.types import QueryResult as QueryResultType, StatementResult
+    from superset_core.queries.types import (
+        QueryResult as QueryResultType,
+        StatementResult,
+    )
 
     from superset.sql.execution.executor import SQLExecutor
 
@@ -1899,7 +1963,10 @@ def test_create_cached_async_result_cancel(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
     """Test that cached async result cancel returns False."""
-    from superset_core.api.types import QueryResult as QueryResultType, StatementResult
+    from superset_core.queries.types import (
+        QueryResult as QueryResultType,
+        StatementResult,
+    )
 
     from superset.sql.execution.executor import SQLExecutor
 
@@ -1970,7 +2037,8 @@ def test_async_handle_get_result_with_empty_blob(
 
     # Should return failure when blob not found
     assert query_result.status == QueryStatus.FAILED
-    assert "Results not available" in query_result.error_message  # type: ignore[operator]
+    assert query_result.error_message is not None
+    assert "Results not available" in query_result.error_message
 
 
 def test_async_handle_get_result_no_results_backend(
@@ -2010,7 +2078,8 @@ def test_async_handle_get_result_no_results_backend(
 
     # Should return failure when no results backend
     assert query_result.status == QueryStatus.FAILED
-    assert "Results not available" in query_result.error_message  # type: ignore[operator]
+    assert query_result.error_message is not None
+    assert "Results not available" in query_result.error_message
 
 
 def test_create_query_record_with_user(
@@ -2081,7 +2150,10 @@ def test_cached_async_result_get_result_returns_cached(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
     """Test that cached async result returns the original cached result."""
-    from superset_core.api.types import QueryResult as QueryResultType, StatementResult
+    from superset_core.queries.types import (
+        QueryResult as QueryResultType,
+        StatementResult,
+    )
 
     from superset.sql.execution.executor import SQLExecutor
 

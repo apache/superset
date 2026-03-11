@@ -19,8 +19,9 @@
 /* eslint-env browser */
 import cx from 'classnames';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { addAlpha, JsonObject, t, useElementOnScreen } from '@superset-ui/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { addAlpha, JsonObject, useElementOnScreen } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { ErrorBoundary, BasicErrorAlert } from 'src/components';
@@ -249,11 +250,6 @@ const DashboardContentWrapper = styled.div`
         z-index: ${EMPTY_CONTAINER_Z_INDEX};
         position: absolute;
         width: 100%;
-        pointer-events: none;
-
-        & > .drop-indicator {
-          pointer-events: auto;
-        }
       }
 
       & > .empty-droptarget:first-child:not(.empty-droptarget--full) {
@@ -507,9 +503,9 @@ const DashboardBuilder = () => {
     currentTopLevelTabs.current = topLevelTabs;
   }, [topLevelTabs]);
 
-  const renderDraggableContent = useCallback(
-    ({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) => (
-      <div>
+  const headerContent = useMemo(
+    () => (
+      <>
         {!hideDashboardHeader && <DashboardHeader />}
         {showFilterBar &&
           filterBarOrientation === FilterBarOrientation.Horizontal && (
@@ -518,6 +514,14 @@ const DashboardBuilder = () => {
               hidden={isReport}
             />
           )}
+      </>
+    ),
+    [hideDashboardHeader, showFilterBar, filterBarOrientation, isReport],
+  );
+
+  const renderDraggableContent = useCallback(
+    ({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) => (
+      <div>
         {dropIndicatorProps && <div {...dropIndicatorProps} />}
         {!isReport && topLevelTabs && !uiConfig.hideNav && (
           <WithPopoverMenu
@@ -532,7 +536,6 @@ const DashboardBuilder = () => {
             ]}
             editMode={editMode}
           >
-            {/* @ts-ignore */}
             <DashboardComponent
               id={topLevelTabs?.id}
               parentId={DASHBOARD_ROOT_ID}
@@ -547,12 +550,9 @@ const DashboardBuilder = () => {
       </div>
     ),
     [
-      nativeFiltersEnabled,
-      filterBarOrientation,
       editMode,
       handleChangeTab,
       handleDeleteTopLevelTabs,
-      hideDashboardHeader,
       isReport,
       topLevelTabs,
       uiConfig.hideNav,
@@ -627,7 +627,7 @@ const DashboardBuilder = () => {
         ref={headerRef}
         filterBarWidth={headerFilterBarWidth}
       >
-        {/* @ts-ignore */}
+        {headerContent}
         <Droppable
           data-test="top-level-tabs"
           className={cx(!topLevelTabs && editMode && 'empty-droptarget')}

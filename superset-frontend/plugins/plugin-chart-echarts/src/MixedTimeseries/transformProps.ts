@@ -36,12 +36,13 @@ import {
   isTimeseriesAnnotationLayer,
   QueryFormData,
   QueryFormMetric,
+  resolveAutoCurrency,
   TimeseriesChartDataResponseResult,
   TimeseriesDataRecord,
   tooltipHtml,
   ValueFormatter,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { getOriginalSeries } from '@superset-ui/chart-controls';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { SeriesOption } from 'echarts';
@@ -57,6 +58,7 @@ import {
   Refs,
 } from '../types';
 import { parseAxisBound } from '../utils/controls';
+import { safeParseEChartOptions } from '../utils/safeEChartOptionsParser';
 import {
   dedupSeries,
   extractDataTotalValues,
@@ -98,6 +100,7 @@ import {
   getYAxisFormatter,
 } from '../utils/formatters';
 import { getMetricDisplayName } from '../utils/metricDisplayName';
+import { mergeCustomEChartOptions } from '../utils/mergeCustomEChartOptions';
 
 const getFormatter = (
   customFormatters: Record<string, ValueFormatter>,
@@ -121,7 +124,7 @@ export default function transformProps(
   const {
     width,
     height,
-    formData,
+    formData: { echartOptions: _echartOptions, ...formData },
     queriesData,
     hooks,
     filterState,
@@ -138,10 +141,11 @@ export default function transformProps(
     verboseMap = {},
     currencyFormats = {},
     columnFormats = {},
+    currencyCodeColumn,
   } = datasource;
-  const { label_map: labelMap } =
+  const { label_map: labelMap, detected_currency: backendDetectedCurrency } =
     queriesData[0] as TimeseriesChartDataResponseResult;
-  const { label_map: labelMapB } =
+  const { label_map: labelMapB, detected_currency: backendDetectedCurrencyB } =
     queriesData[1] as TimeseriesChartDataResponseResult;
   const data1 = (queriesData[0].data || []) as TimeseriesDataRecord[];
   const data2 = (queriesData[1].data || []) as TimeseriesDataRecord[];
@@ -244,8 +248,10 @@ export default function transformProps(
     },
   );
 
-  const MetricDisplayNameA = getMetricDisplayName(metrics[0], verboseMap);
-  const MetricDisplayNameB = getMetricDisplayName(metricsB[0], verboseMap);
+  const MetricDisplayNameA: string =
+    getMetricDisplayName(metrics[0], verboseMap) || '';
+  const MetricDisplayNameB: string =
+    getMetricDisplayName(metricsB[0], verboseMap) || '';
 
   const dataTypes = getColtypesMapping(queriesData[0]);
   const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
@@ -279,20 +285,34 @@ export default function transformProps(
     xAxisType,
   });
   const series: SeriesOption[] = [];
+
+  const resolvedCurrency = resolveAutoCurrency(
+    currencyFormat,
+    backendDetectedCurrency,
+    data1,
+    currencyCodeColumn,
+  );
+  const resolvedCurrencySecondary = resolveAutoCurrency(
+    currencyFormatSecondary,
+    backendDetectedCurrencyB,
+    data2,
+    currencyCodeColumn,
+  );
+
   const formatter = contributionMode
     ? getNumberFormatter(',.0%')
-    : currencyFormat?.symbol
+    : resolvedCurrency?.symbol
       ? new CurrencyFormatter({
           d3Format: yAxisFormat,
-          currency: currencyFormat,
+          currency: resolvedCurrency,
         })
       : getNumberFormatter(yAxisFormat);
   const formatterSecondary = contributionMode
     ? getNumberFormatter(',.0%')
-    : currencyFormatSecondary?.symbol
+    : resolvedCurrencySecondary?.symbol
       ? new CurrencyFormatter({
           d3Format: yAxisFormatSecondary,
-          currency: currencyFormatSecondary,
+          currency: resolvedCurrencySecondary,
         })
       : getNumberFormatter(yAxisFormatSecondary);
   const customFormatters = buildCustomFormatters(
@@ -300,14 +320,18 @@ export default function transformProps(
     currencyFormats,
     columnFormats,
     yAxisFormat,
-    currencyFormat,
+    resolvedCurrency,
+    data1,
+    currencyCodeColumn,
   );
   const customFormattersSecondary = buildCustomFormatters(
     [...ensureIsArray(metrics), ...ensureIsArray(metricsB)],
     currencyFormats,
     columnFormats,
     yAxisFormatSecondary,
-    currencyFormatSecondary,
+    resolvedCurrencySecondary,
+    data2,
+    currencyCodeColumn,
   );
 
   const primarySeries = new Set<string>();
@@ -338,7 +362,7 @@ export default function transformProps(
         series.push(
           transformFormulaAnnotation(
             layer,
-            data1,
+            rebasedDataA as TimeseriesDataRecord[],
             xAxisLabel,
             xAxisType,
             colorScale,
@@ -400,10 +424,12 @@ export default function transformProps(
 
     if (groupby.length > 0) {
       // When we have groupby, format as "metric, dimension"
-      const metricPart = showQueryIdentifiers
+      const metricPart: string = showQueryIdentifiers
         ? `${MetricDisplayNameA} (Query A)`
         : MetricDisplayNameA;
-      displayName = `${metricPart}, ${entryName}`;
+      displayName = entryName.includes(metricPart)
+        ? entryName
+        : `${metricPart}, ${entryName}`;
     } else {
       // When no groupby, format as just the entry name with optional query identifier
       displayName = showQueryIdentifiers ? `${entryName} (Query A)` : entryName;
@@ -471,10 +497,12 @@ export default function transformProps(
 
     if (groupbyB.length > 0) {
       // When we have groupby, format as "metric, dimension"
-      const metricPart = showQueryIdentifiers
+      const metricPart: string = showQueryIdentifiers
         ? `${MetricDisplayNameB} (Query B)`
         : MetricDisplayNameB;
-      displayName = `${metricPart}, ${entryName}`;
+      displayName = entryName.includes(metricPart)
+        ? entryName
+        : `${metricPart}, ${entryName}`;
     } else {
       // When no groupby, format as just the entry name with optional query identifier
       displayName = showQueryIdentifiers ? `${entryName} (Query B)` : entryName;
@@ -550,8 +578,11 @@ export default function transformProps(
       ? getXAxisFormatter(xAxisTimeFormat)
       : String;
 
-  const addYAxisTitleOffset = !!(yAxisTitle || yAxisTitleSecondary);
-  const addXAxisTitleOffset = !!xAxisTitle;
+  const addYAxisTitleOffset =
+    !!(yAxisTitle || yAxisTitleSecondary) &&
+    convertInteger(yAxisTitleMargin) !== 0;
+  const addXAxisTitleOffset =
+    !!xAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
 
   const chartPadding = getPadding(
     showLegend,
@@ -730,7 +761,6 @@ export default function transformProps(
         legendState,
         chartPadding,
       ),
-      // @ts-ignore
       data: series
         .filter(
           entry =>
@@ -775,11 +805,25 @@ export default function transformProps(
     focusedSeries = seriesName;
   };
 
+  let customEchartOptions;
+  try {
+    // Parse custom EChart options safely using AST analysis
+    // This replaces the unsafe `new Function()` approach with a secure parser
+    // that only allows static data structures (no function callbacks)
+    customEchartOptions = safeParseEChartOptions(_echartOptions);
+  } catch (_) {
+    customEchartOptions = undefined;
+  }
+
+  const mergedEchartOptions = customEchartOptions
+    ? mergeCustomEChartOptions(echartOptions, customEchartOptions)
+    : echartOptions;
+
   return {
     formData,
     width,
     height,
-    echartOptions,
+    echartOptions: mergedEchartOptions,
     setDataMask,
     emitCrossFilters,
     labelMap,

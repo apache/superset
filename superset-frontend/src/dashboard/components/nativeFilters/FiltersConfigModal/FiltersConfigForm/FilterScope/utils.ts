@@ -23,7 +23,9 @@ import {
   TAB_TYPE,
 } from 'src/dashboard/util/componentTypes';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
-import { logging, NativeFilterScope, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { NativeFilterScope } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import { BuildTreeLeafTitle, TreeItem } from './types';
 
 export const isShowTypeInTree = ({ type }: LayoutItem) =>
@@ -113,7 +115,7 @@ export const buildTree = (
   ) {
     const title = buildTreeLeafTitle(
       getNodeTitle(node),
-      initiallyExcludedCharts?.includes?.(node.meta?.chartId),
+      initiallyExcludedCharts?.includes?.(node.meta?.chartId as number),
       t(
         "This chart might be incompatible with the filter (datasets don't match)",
       ),
@@ -200,7 +202,7 @@ const checkTreeItem = (
     );
     if (
       layout[item]?.type === CHART_TYPE &&
-      !excluded.includes(layout[item]?.meta.chartId)
+      !excluded.includes(layout[item]?.meta.chartId as number)
     ) {
       checkedItems.push(item);
     }
@@ -304,7 +306,7 @@ export const findFilterScope = (
       value.type === CHART_TYPE &&
       [DASHBOARD_ROOT_ID, ...parents]?.find(parent => isExcluded(parent, key))
     ) {
-      excluded.push(value.meta.chartId);
+      excluded.push(value.meta.chartId as number);
     }
   });
 

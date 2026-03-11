@@ -18,8 +18,8 @@
  */
 import { useEffect, useState, DetailedHTMLProps, HTMLAttributes } from 'react';
 
-import { logging } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { logging } from '@apache-superset/core/utils';
+import { styled } from '@apache-superset/core/theme';
 
 export type BackgroundPosition = 'top' | 'bottom';
 interface ImageContainerProps {

@@ -66,7 +66,7 @@ from sqlalchemy.sql.elements import ColumnClause, TextClause
 from sqlalchemy.sql.expression import Label
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy.types import JSON
-from superset_core.api.models import Dataset as CoreDataset
+from superset_core.common.models import Dataset as CoreDataset
 
 from superset import db, is_feature_enabled, security_manager
 from superset.commands.dataset.exceptions import DatasetNotFoundError
@@ -76,6 +76,7 @@ from superset.connectors.sqla.utils import (
     get_physical_table_metadata,
     get_virtual_table_metadata,
 )
+from superset.daos.exceptions import DatasourceNotFound
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 from superset.exceptions import (
     ColumnNotFoundException,
@@ -102,6 +103,7 @@ from superset.models.helpers import (
     SQLA_QUERY_KEYS,
 )
 from superset.models.slice import Slice
+from superset.models.sql_types.base import CurrencyType
 from superset.sql.parse import Table
 from superset.superset_typing import (
     AdhocColumn,
@@ -513,7 +515,13 @@ class BaseDatasource(
             # for legacy dashboard imports which have the wrong query_context in them
             try:
                 query_context = slc.get_query_context()
-            except DatasetNotFoundError:
+            except (DatasetNotFoundError, DatasourceNotFound):
+                logger.warning(
+                    "Failed to load query_context for chart '%s' (id=%s): "
+                    "referenced datasource not found",
+                    slc.slice_name,
+                    slc.id,
+                )
                 query_context = None
 
             # legacy charts don't have query_context charts
@@ -1086,7 +1094,7 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
     metric_type = Column(String(32))
     description = Column(utils.MediumText())
     d3format = Column(String(128))
-    currency = Column(JSON, nullable=True)
+    currency = Column(CurrencyType, nullable=True)
     warning_text = Column(Text)
     table_id = Column(Integer, ForeignKey("tables.id", ondelete="CASCADE"))
     expression = Column(utils.MediumText(), nullable=False)
@@ -1221,6 +1229,7 @@ class SqlaTable(
 
     table_name = Column(String(250), nullable=False)
     main_dttm_col = Column(String(250))
+    currency_code_column = Column(String(250))
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
     fetch_values_predicate = Column(Text)
     owners = relationship(owner_class, secondary=sqlatable_user, backref="tables")
@@ -1244,6 +1253,7 @@ class SqlaTable(
     export_fields = [
         "table_name",
         "main_dttm_col",
+        "currency_code_column",
         "description",
         "default_endpoint",
         "database_id",
@@ -1331,7 +1341,8 @@ class SqlaTable(
     @property
     def link(self) -> Markup:
         name = escape(self.name)
-        anchor = f'<a target="_blank" href="{self.explore_url}">{name}</a>'
+        url = escape(self.explore_url)
+        anchor = f'<a target="_blank" href="{url}">{name}</a>'
         return Markup(anchor)
 
     def get_catalog_perm(self) -> str | None:
@@ -1448,6 +1459,7 @@ class SqlaTable(
             data_["granularity_sqla"] = self.granularity_sqla
             data_["time_grain_sqla"] = self.time_grain_sqla
             data_["main_dttm_col"] = self.main_dttm_col
+            data_["currency_code_column"] = self.currency_code_column
             data_["fetch_values_predicate"] = self.fetch_values_predicate
             data_["template_params"] = self.template_params
             data_["is_sqllab_view"] = self.is_sqllab_view

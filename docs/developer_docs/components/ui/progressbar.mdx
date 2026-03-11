@@ -1,0 +1,206 @@
+---
+title: ProgressBar
+sidebar_label: ProgressBar
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# ProgressBar
+
+Progress bar component for displaying completion status. Supports line, circle, and dashboard display types.
+
+## Live Example
+
+<StoryWithControls
+  component="ProgressBar"
+  props={{
+  percent: 75,
+  status: "normal",
+  type: "line",
+  striped: false,
+  showInfo: true,
+  strokeLinecap: "round"
+}}
+  controls={[
+  {
+    name: "percent",
+    label: "Percent",
+    type: "number",
+    description: "Completion percentage (0-100)."
+  },
+  {
+    name: "status",
+    label: "Status",
+    type: "select",
+    options: [
+      "normal",
+      "success",
+      "exception",
+      "active"
+    ],
+    description: "Current status of the progress bar."
+  },
+  {
+    name: "type",
+    label: "Type",
+    type: "select",
+    options: [
+      "line",
+      "circle",
+      "dashboard"
+    ],
+    description: "Display type: line, circle, or dashboard gauge."
+  },
+  {
+    name: "striped",
+    label: "Striped",
+    type: "boolean",
+    description: "Whether to show striped animation on the bar."
+  },
+  {
+    name: "showInfo",
+    label: "Show Info",
+    type: "boolean",
+    description: "Whether to show the percentage text."
+  },
+  {
+    name: "strokeLinecap",
+    label: "Stroke Linecap",
+    type: "select",
+    options: [
+      "round",
+      "butt",
+      "square"
+    ],
+    description: "Shape of the progress bar endpoints."
+  },
+  {
+    name: "strokeColor",
+    label: "Stroke Color",
+    type: "color",
+    description: "Color of the progress bar fill."
+  },
+  {
+    name: "trailColor",
+    label: "Trail Color",
+    type: "color",
+    description: "Color of the unfilled portion."
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <ProgressBar
+      percent={75}
+      status="normal"
+      type="line"
+      showInfo
+    />
+  );
+}
+```
+
+## All Progress Types
+
+```tsx live
+function AllTypesDemo() {
+  return (
+    <div style={{ display: 'flex', gap: 40, alignItems: 'center' }}>
+      <div style={{ flex: 1 }}>
+        <h4>Line</h4>
+        <ProgressBar percent={75} type="line" />
+      </div>
+      <div>
+        <h4>Circle</h4>
+        <ProgressBar percent={75} type="circle" />
+      </div>
+      <div>
+        <h4>Dashboard</h4>
+        <ProgressBar percent={75} type="dashboard" />
+      </div>
+    </div>
+  );
+}
+```
+
+## Status Variants
+
+```tsx live
+function StatusDemo() {
+  const statuses = ['normal', 'success', 'exception', 'active'];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {statuses.map(status => (
+        <div key={status} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <span style={{ width: 80 }}>{status}</span>
+          <ProgressBar percent={75} status={status} type="line" style={{ flex: 1 }} />
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+## Custom Colors
+
+```tsx live
+function CustomColors() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <ProgressBar percent={50} strokeColor="#1890ff" />
+      <ProgressBar percent={70} strokeColor="#52c41a" />
+      <ProgressBar percent={30} strokeColor="#faad14" trailColor="#f0f0f0" />
+      <ProgressBar percent={90} strokeColor="#ff4d4f" />
+    </div>
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `percent` | `number` | `75` | Completion percentage (0-100). |
+| `status` | `string` | `"normal"` | Current status of the progress bar. |
+| `type` | `string` | `"line"` | Display type: line, circle, or dashboard gauge. |
+| `striped` | `boolean` | `false` | Whether to show striped animation on the bar. |
+| `showInfo` | `boolean` | `true` | Whether to show the percentage text. |
+| `strokeLinecap` | `string` | `"round"` | Shape of the progress bar endpoints. |
+
+## Import
+
+```tsx
+import { ProgressBar } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/ProgressBar/ProgressBar.stories.tsx).
+:::

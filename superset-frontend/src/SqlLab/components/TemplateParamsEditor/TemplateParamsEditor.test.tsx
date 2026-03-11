@@ -38,8 +38,8 @@ jest.mock('@superset-ui/core/components/Select/Select', () => () => (
 jest.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
   <div data-test="mock-async-select" />
 ));
-jest.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
-  ConfigEditor: ({ value }: { value: string }) => (
+jest.mock('src/core/editors', () => ({
+  EditorHost: ({ value }: { value: string }) => (
     <div data-test="mock-async-ace-editor">{value}</div>
   ),
 }));
