@@ -24,6 +24,8 @@ import roundDecimal from './utils/roundDecimal';
 import luminanceFromRGB from './utils/luminanceFromRGB';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
+export const MIN_CLUSTER_RADIUS_RATIO = 1 / 6;
+
 interface GeoJSONLocation {
   geometry: {
     coordinates: [number, number];
@@ -239,7 +241,7 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
             const safeNumericLabel = Number.isFinite(numericLabel)
               ? numericLabel
               : 0;
-            const minClusterRadius = radius / 6;
+            const minClusterRadius = radius * MIN_CLUSTER_RADIUS_RATIO;
             const clampedLabel = Math.max(0, safeNumericLabel);
             const scaledRadius = roundDecimal(
               minClusterRadius +
