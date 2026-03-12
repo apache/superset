@@ -3134,3 +3134,38 @@ def test_backtick_invalid_sql_still_fails() -> None:
     sql = "SELECT * FROM `table` WHERE"
     with pytest.raises(SupersetParseError):
         SQLScript(sql, "base")
+
+
+def test_has_subquery_redundant_parentheses() -> None:
+    """
+    Test that has_subquery correctly identifies subqueries even with
+    redundant parentheses.
+    """
+    sql = "SELECT 1 FROM ((((SELECT 1 FROM table1)))) AS sub"
+    assert SQLStatement(sql, "postgresql").has_subquery() is True
+
+    sql = "SELECT 1 WHERE x IN (((SELECT 1 FROM table1)))"
+    assert SQLStatement(sql, "postgresql").has_subquery() is True
+
+
+def test_is_mutating_nested_dml() -> None:
+    """
+    Test that is_mutating correctly identifies DML nested in CTEs or subqueries.
+    """
+    # CTE-wrapped DELETE
+    sql = """
+    WITH deleted AS (
+      DELETE FROM secret_table WHERE id = 1 RETURNING *
+    )
+    SELECT * FROM deleted;
+    """
+    assert SQLStatement(sql, "postgresql").is_mutating() is True
+
+    # CTE-wrapped UPDATE
+    sql = """
+    WITH updated AS (
+      UPDATE secret_table SET col = 1 WHERE id = 1 RETURNING *
+    )
+    SELECT * FROM updated;
+    """
+    assert SQLStatement(sql, "postgresql").is_mutating() is True

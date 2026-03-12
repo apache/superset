@@ -683,8 +683,8 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             exp.Alter,
         )
 
-        for node_type in mutating_nodes:
-            if self._parsed.find(node_type):
+        for node in self._parsed.walk():
+            if isinstance(node, mutating_nodes):
                 return True
 
         # depending on the dialect (Oracle, MS SQL) the `ALTER` is parsed as a
@@ -879,14 +879,12 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         :return: True if the statement has a subquery.
         """
-        return bool(self._parsed.find(exp.Subquery)) or (
-            isinstance(self._parsed, exp.Select)
-            and any(
-                isinstance(expression, exp.Select)
-                for expression in self._parsed.walk()
-                if expression != self._parsed
-            )
-        )
+        for node in self._parsed.walk():
+            if isinstance(node, exp.Subquery):
+                return True
+            if isinstance(node, exp.Select) and node != self._parsed:
+                return True
+        return False
 
     def parse_predicate(self, predicate: str) -> exp.Expression:
         """

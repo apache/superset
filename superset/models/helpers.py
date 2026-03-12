@@ -190,6 +190,7 @@ def validate_adhoc_subquery(
     catalog: str | None,
     default_schema: str,
     engine: str,
+    is_predicate: bool = False,
 ) -> str:
     """
     Check if adhoc SQL contains sub-queries or nested sub-queries with table.
@@ -197,11 +198,19 @@ def validate_adhoc_subquery(
     If sub-queries are allowed, the adhoc SQL is modified to insert any applicable RLS
     predicates to it.
 
-    :param sql: adhoc sql expression
+    :param sql: adhoc sql expression or predicate
+    :param is_predicate: if True, sql is treated as a predicate
+        (fragment of a WHERE clause).
     :raise SupersetSecurityException if sql contains sub-queries or
     nested sub-queries with table
     """
-    parsed_statement = SQLStatement(sql, engine)
+    if is_predicate:
+        # Use specialized predicate parsing for SQL fragments
+        # This is more robust for RLS clauses like 'column = value'
+        parsed_statement = SQLStatement(f"SELECT * WHERE {sql}", engine)
+    else:
+        parsed_statement = SQLStatement(sql, engine)
+
     if parsed_statement.has_subquery():
         if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
             raise SupersetSecurityException(

@@ -759,9 +759,22 @@ class BaseDatasource(
         filter_groups: dict[Union[int, str], list[TextClause]] = defaultdict(list)
         try:
             for filter_ in security_manager.get_rls_filters(self):
-                clause = self.text(
-                    f"({template_processor.process_template(filter_.clause)})"
-                )
+                if hasattr(self, "_process_select_expression"):
+                    clause_processed = str(
+                        self._process_select_expression(
+                            expression=filter_.clause,
+                            database_id=self.database_id,
+                            engine=self.database.backend,
+                            schema=self.schema,
+                            template_processor=template_processor,
+                        )
+                        or ""
+                    )
+                else:
+                    clause_processed = template_processor.process_template(
+                        filter_.clause
+                    )
+                clause = self.text(f"({clause_processed})")
                 if filter_.group_key:
                     filter_groups[filter_.group_key].append(clause)
                 else:
@@ -771,9 +784,23 @@ class BaseDatasource(
                 for rule in security_manager.get_guest_rls_filters(self):
                     if not include_global_guest_rls and not rule.get("dataset"):
                         continue
-                    clause = self.text(
-                        f"({template_processor.process_template(rule['clause'])})"
-                    )
+
+                    if hasattr(self, "_process_select_expression"):
+                        clause_processed = str(
+                            self._process_select_expression(
+                                expression=rule["clause"],
+                                database_id=self.database_id,
+                                engine=self.database.backend,
+                                schema=self.schema,
+                                template_processor=template_processor,
+                            )
+                            or ""
+                        )
+                    else:
+                        clause_processed = template_processor.process_template(
+                            rule["clause"]
+                        )
+                    clause = self.text(f"({clause_processed})")
                     all_filters.append(clause)
 
             grouped_filters = [or_(*clauses) for clauses in filter_groups.values()]
