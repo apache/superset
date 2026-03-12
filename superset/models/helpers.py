@@ -903,7 +903,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def get_sqla_row_level_filters(
         self,
         template_processor: Optional[BaseTemplateProcessor] = None,  # pylint: disable=unused-argument
-        include_guest_rls: bool = True,  # pylint: disable=unused-argument
+        include_global_guest_rls: bool = True,  # pylint: disable=unused-argument
     ) -> list[TextClause]:
         # TODO: We should refactor this mixin and remove this method
         # as it exists in the BaseDatasource and is not applicable
@@ -2055,7 +2055,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         self.catalog,
                         self.schema or default_schema or "",
                         statement,
-                        include_guest_rls=False,
                     )
                 # Regenerate the SQL after RLS application
                 from_sql = parsed_script.format()
