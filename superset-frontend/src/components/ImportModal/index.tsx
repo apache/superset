@@ -29,7 +29,6 @@ import { Button, Input, Modal } from '@superset-ui/core/components';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { ImportErrorAlert } from './ImportErrorAlert';
 import type { ImportModelsModalProps } from './types';
-import { databaseLabel } from 'src/utils/semanticLayerLabels';
 
 const HelperMessage = styled.div`
   display: block;
@@ -248,7 +247,7 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
 
     return (
       <>
-        <h5>{t('%s passwords', databaseLabel())}</h5>
+        <h5>{t('Database passwords')}</h5>
         <HelperMessage>{passwordsNeededMessage}</HelperMessage>
         {files.map(fileName => (
           <>
