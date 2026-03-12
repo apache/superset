@@ -115,6 +115,7 @@ import {
   INPUT_WIDTH,
 } from './constants';
 import DependencyList from './DependencyList';
+import { datasetLabel } from 'src/utils/semanticLayerLabels';
 
 const FORM_ITEM_WIDTH = 260;
 
@@ -972,7 +973,7 @@ const FiltersConfigForm = (
                       <StyledFormItem
                         expanded={expanded}
                         name={['filters', filterId, 'dataset']}
-                        label={<StyledLabel>{t('Dataset')}</StyledLabel>}
+                        label={<StyledLabel>{datasetLabel()}</StyledLabel>}
                         initialValue={
                           datasetDetails
                             ? {
@@ -992,7 +993,7 @@ const FiltersConfigForm = (
                         rules={[
                           {
                             required: !isRemoved,
-                            message: t('Dataset is required'),
+                            message: t('%s is required', datasetLabel()),
                           },
                         ]}
                         {...getFiltersConfigModalTestId('datasource-input')}
@@ -1018,7 +1019,7 @@ const FiltersConfigForm = (
                     ) : (
                       <StyledFormItem
                         expanded={expanded}
-                        label={<StyledLabel>{t('Dataset')}</StyledLabel>}
+                        label={<StyledLabel>{datasetLabel()}</StyledLabel>}
                       >
                         <Loading position="inline-centered" />
                       </StyledFormItem>

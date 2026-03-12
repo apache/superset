@@ -38,6 +38,7 @@ import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetr
 import MetricDefinitionValue from 'src/explore/components/controls/MetricControl/MetricDefinitionValue';
 import ColumnSelectPopoverTrigger from './ColumnSelectPopoverTrigger';
 import { DndControlProps } from './types';
+import { datasetLabelLower } from 'src/utils/semanticLayerLabels';
 
 const AGGREGATED_DECK_GL_CHART_TYPES = [
   'deck_screengrid',
@@ -326,7 +327,10 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
             typeof item === 'object' &&
             'error_text' in item &&
             item.error_text)
-            ? t('This metric might be incompatible with current dataset')
+            ? t(
+                'This metric might be incompatible with current %s',
+                datasetLabelLower(),
+              )
             : undefined;
 
         return (
