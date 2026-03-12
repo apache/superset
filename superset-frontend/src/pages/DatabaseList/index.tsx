@@ -70,6 +70,11 @@ import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import type Owner from 'src/types/Owner';
+import {
+  databaseLabel,
+  databaseLabelLower,
+  databasesLabel,
+} from 'src/utils/semanticLayerLabels';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DatabaseDeleteRelatedExtension = extensionsRegistry.get(
@@ -141,7 +146,7 @@ function DatabaseList({
     refreshData: dbRefreshData,
   } = useListViewResource<DatabaseObject>(
     'database',
-    t('database'),
+    databaseLabelLower(),
     addDangerToast,
   );
 
@@ -427,7 +432,7 @@ function DatabaseList({
   const menuData: SubMenuProps = {
     activeChild: 'Databases',
     dropDownLinks: filteredDropDown,
-    name: t('Databases'),
+    name: databasesLabel(),
   };
 
   if (canCreate) {
@@ -445,7 +450,7 @@ function DatabaseList({
                 items: [
                   {
                     key: 'database',
-                    label: t('Database'),
+                    label: databaseLabel(),
                     onClick: openDatabaseModal,
                   },
                   {
@@ -482,7 +487,7 @@ function DatabaseList({
         {
           'data-test': 'btn-create-database',
           icon: <Icons.PlusOutlined iconSize="m" />,
-          name: t('Database'),
+          name: databaseLabel(),
           buttonStyle: 'primary',
           onClick: openDatabaseModal,
         },
@@ -503,7 +508,9 @@ function DatabaseList({
         });
       } catch {
         setPreparingExport(false);
-        addDangerToast(t('There was an issue exporting the database'));
+        addDangerToast(
+          t('There was an issue exporting the %s', databaseLabelLower()),
+        );
       }
     },
     [addDangerToast, setPreparingExport],
@@ -783,7 +790,7 @@ function DatabaseList({
                 >
                   <Tooltip
                     id="delete-action-tooltip"
-                    title={t('Delete database')}
+                    title={t('Delete %s', databaseLabelLower())}
                     placement="bottom"
                   >
                     <Icons.DeleteOutlined iconSize="l" />
@@ -841,7 +848,7 @@ function DatabaseList({
         operator: FilterOperator.Equals,
         unfilteredLabel: t('All'),
         selects: [
-          { label: t('Database'), value: 'database' },
+          { label: databaseLabel(), value: 'database' },
           { label: t('Semantic Layer'), value: 'semantic_layer' },
         ],
       });
@@ -893,7 +900,8 @@ function DatabaseList({
             'changed_by',
             createErrorHandler(errMsg =>
               t(
-                'An error occurred while fetching dataset datasource values: %s',
+                'An error occurred while fetching %s values: %s',
+                databaseLabelLower(),
                 errMsg,
               ),
             ),
@@ -996,7 +1004,7 @@ function DatabaseList({
           description={
             <>
               <p>
-                {t('The database')}{' '}
+                {t('The %s', databaseLabelLower())}{' '}
                 <b>{databaseCurrentlyDeleting.database_name}</b>{' '}
                 {t(
                   'is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.',
@@ -1104,7 +1112,7 @@ function DatabaseList({
           title={
             <ModalTitleWithIcon
               icon={<Icons.DeleteOutlined />}
-              title={t('Delete Database?')}
+              title={t('Delete %s?', databaseLabel())}
             />
           }
         />
