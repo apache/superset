@@ -112,7 +112,7 @@ const formData: EchartsMixedTimeseriesFormData = {
   yAxisBounds: [undefined, undefined],
   yAxisBoundsSecondary: [undefined, undefined],
   yAxisTitle: '',
-  yAxisTitleMargin: 0,
+  yAxisTitleMargin: 15,
   yAxisTitlePosition: '',
   yAxisTitleSecondary: '',
   zoomable: false,
