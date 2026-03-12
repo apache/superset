@@ -613,3 +613,149 @@ describe('DeckMulti Component Rendering', () => {
     });
   });
 });
+
+test('includes parent_slice_id in child slice requests when parent has slice_id', async () => {
+  jest.clearAllMocks();
+  const mockGet = jest.fn().mockResolvedValue({
+    json: {
+      result: {
+        form_data: {
+          viz_type: 'deck_scatter',
+          datasource: '1__table',
+        },
+      },
+      data: {
+        features: [],
+      },
+    },
+  });
+  (SupersetClient.get as jest.Mock) = mockGet;
+  const parentSliceId = 99;
+  const dashboardId = 5;
+
+  const props = {
+    ...baseMockProps,
+    formData: {
+      ...baseMockProps.formData,
+      slice_id: parentSliceId,
+      dashboardId,
+    },
+  };
+
+  renderWithProviders(<DeckMulti {...props} />);
+
+  await waitFor(() => {
+    expect(mockGet).toHaveBeenCalled();
+  });
+
+  // Check that the child slice requests include parent_slice_id
+  const exploreCalls = mockGet.mock.calls.filter(call =>
+    call[0].endpoint.includes('explore_json'),
+  );
+  expect(exploreCalls.length).toBeGreaterThan(0);
+  exploreCalls.forEach(call => {
+    const url = call[0].endpoint;
+    const formData = JSON.parse(
+      new URLSearchParams(url.split('?')[1]).get('form_data') || '{}',
+    );
+    expect(formData).toMatchObject({
+      dashboardId,
+      parent_slice_id: parentSliceId,
+    });
+  });
+});
+
+test('includes parent_slice_id in embedded mode', async () => {
+  jest.clearAllMocks();
+  const mockGet = jest.fn().mockResolvedValue({
+    json: {
+      result: {
+        form_data: {
+          viz_type: 'deck_scatter',
+          datasource: '1__table',
+        },
+      },
+      data: {
+        features: [],
+      },
+    },
+  });
+  (SupersetClient.get as jest.Mock) = mockGet;
+  const parentSliceId = 200;
+  const dashboardId = 10;
+
+  const props = {
+    ...baseMockProps,
+    formData: {
+      ...baseMockProps.formData,
+      slice_id: parentSliceId,
+      dashboardId,
+      embedded: true,
+    },
+  };
+
+  renderWithProviders(<DeckMulti {...props} />);
+
+  await waitFor(() => {
+    expect(mockGet).toHaveBeenCalled();
+  });
+
+  // Verify parent_slice_id is included in embedded mode
+  const exploreCalls = mockGet.mock.calls.filter(call =>
+    call[0].endpoint.includes('explore_json'),
+  );
+  expect(exploreCalls.length).toBeGreaterThan(0);
+  exploreCalls.forEach(call => {
+    const url = call[0].endpoint;
+    const formData = JSON.parse(
+      new URLSearchParams(url.split('?')[1]).get('form_data') || '{}',
+    );
+    expect(formData.parent_slice_id).toBe(parentSliceId);
+  });
+});
+
+test('does not include parent_slice_id when parent has no slice_id', async () => {
+  jest.clearAllMocks();
+  const mockGet = jest.fn().mockResolvedValue({
+    json: {
+      result: {
+        form_data: {
+          viz_type: 'deck_scatter',
+          datasource: '1__table',
+        },
+      },
+      data: {
+        features: [],
+      },
+    },
+  });
+  (SupersetClient.get as jest.Mock) = mockGet;
+
+  const props = {
+    ...baseMockProps,
+    formData: {
+      ...baseMockProps.formData,
+      // No slice_id in parent
+      dashboardId: 5,
+    },
+  };
+
+  renderWithProviders(<DeckMulti {...props} />);
+
+  await waitFor(() => {
+    expect(mockGet).toHaveBeenCalled();
+  });
+
+  // Verify parent_slice_id is not included when parent has no slice_id
+  const exploreCalls = mockGet.mock.calls.filter(call =>
+    call[0].endpoint.includes('explore_json'),
+  );
+  expect(exploreCalls.length).toBeGreaterThan(0);
+  exploreCalls.forEach(call => {
+    const url = call[0].endpoint;
+    const formData = JSON.parse(
+      new URLSearchParams(url.split('?')[1]).get('form_data') || '{}',
+    );
+    expect(formData.parent_slice_id).toBeUndefined();
+  });
+});
