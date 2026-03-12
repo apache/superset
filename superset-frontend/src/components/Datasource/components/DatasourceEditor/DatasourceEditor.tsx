@@ -101,7 +101,6 @@ import {
 } from '../../FoldersEditor/treeUtils';
 import FoldersEditor from '../../FoldersEditor';
 import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
-import { datasetLabel } from 'src/utils/semanticLayerLabels';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -1907,7 +1906,7 @@ class DatasourceEditor extends PureComponent<
                             onChange={table => {
                               this.onDatasourcePropChange('table_name', table);
                             }}
-                            placeholder={t('%s name', datasetLabel())}
+                            placeholder={t('Dataset name')}
                             disabled={!this.state.isEditMode}
                           />
                         }
