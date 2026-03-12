@@ -214,12 +214,17 @@ class Superset(BaseSupersetView):
     def _generate_xlsx(viz_obj: BaseViz) -> FlaskResponse:
         import pandas as pd
 
-        from superset.utils.excel import df_to_excel
+        from superset.utils.excel import apply_column_types, df_to_excel
 
         payload = viz_obj.get_df_payload()
         df = payload.get("df")
         if df is None:
             df = pd.DataFrame()
+            coltypes = []
+        else:
+            coltypes = payload.get("coltypes") or []
+            if coltypes:
+                df = apply_column_types(df, coltypes)
         xlsx_data = df_to_excel(df, index=False)
         return XlsxResponse(xlsx_data, headers=generate_download_headers("xlsx"))
 
