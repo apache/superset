@@ -117,10 +117,14 @@ const createAceEditorHandle = (
   },
 
   moveCursorToPosition: (position: Position) => {
-    aceEditorRef.current?.editor?.moveCursorToPosition({
-      row: position.line,
-      column: position.column,
-    });
+    const editor = aceEditorRef.current?.editor;
+    if (editor) {
+      editor.clearSelection();
+      editor.moveCursorToPosition({
+        row: position.line,
+        column: position.column,
+      });
+    }
   },
 
   getSelections: (): Selection[] => {
@@ -185,6 +189,19 @@ const createAceEditorHandle = (
 
   resize: () => {
     aceEditorRef.current?.editor?.resize();
+  },
+
+  onDidChangeContent: (listener, thisArgs?) => {
+    const editor = aceEditorRef.current?.editor;
+    if (!editor) return new Disposable(() => {});
+    const bound = (
+      thisArgs ? listener.bind(thisArgs) : listener
+    ) as (value: string) => void;
+    const handler = () => bound(editor.getValue());
+    editor.session.on('change', handler);
+    return new Disposable(() => {
+      editor.session.off('change', handler);
+    });
   },
 });
 

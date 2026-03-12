@@ -694,6 +694,12 @@ const setSchema: typeof sqlLabApi.setSchema = async (schema: string | null) => {
   store.dispatch(queryEditorSetSchema(queryEditor ?? null, schema));
 };
 
+const setActivePanel: typeof sqlLabApi.setActivePanel = async (
+  panelId: string,
+) => {
+  store.dispatch({ type: SET_ACTIVE_SOUTHPANE_TAB, tabId: panelId });
+};
+
 export const sqlLab: typeof sqlLabApi = {
   CTASMethod,
   getActivePanel,
@@ -719,6 +725,7 @@ export const sqlLab: typeof sqlLabApi = {
   setDatabase,
   setCatalog,
   setSchema,
+  setActivePanel,
 };
 
 // Export all models

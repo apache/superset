@@ -492,6 +492,23 @@ export interface EditorHandle {
    * - CodeMirror: editor.requestMeasure()
    */
   resize(): void;
+
+  /**
+   * Subscribe to content changes in the editor.
+   * The listener is called with the full editor content each time it changes.
+   *
+   * @param listener Called with the new full content on every change
+   * @param thisArgs Optional `this` context for the listener
+   * @returns A Disposable that unsubscribes the listener when disposed
+   *
+   * @example
+   * const disposable = editor.onDidChangeContent(sql => {
+   *   setStatements(parseStatements(sql));
+   * });
+   * // Later, to unsubscribe:
+   * disposable.dispose();
+   */
+  onDidChangeContent: Event<string>;
 }
 
 /**
