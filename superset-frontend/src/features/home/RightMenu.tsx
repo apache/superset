@@ -66,6 +66,10 @@ import {
   RightMenuProps,
 } from './types';
 import { NAVBAR_MENU_POPUP_OFFSET } from './commonMenuData';
+import {
+  datasetLabelLower,
+  databaseLabelLower,
+} from 'src/utils/semanticLayerLabels';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -176,12 +180,12 @@ const RightMenu = ({
       icon: <Icons.DatabaseOutlined data-test={`menu-item-${t('Data')}`} />,
       childs: [
         {
-          label: t('Connect database'),
+          label: t('Connect %s', databaseLabelLower()),
           name: GlobalMenuDataOptions.DbConnection,
           perm: canDatabase && !nonExamplesDBConnected,
         },
         {
-          label: t('Create dataset'),
+          label: t('Create %s', datasetLabelLower()),
           name: GlobalMenuDataOptions.DatasetCreation,
           url: '/dataset/add/',
           perm: canDataset && nonExamplesDBConnected,
@@ -192,19 +196,19 @@ const RightMenu = ({
           perm: canDatabase && HAS_GSHEETS_INSTALLED,
         },
         {
-          label: t('Upload CSV to database'),
+          label: t('Upload CSV to %s', databaseLabelLower()),
           name: GlobalMenuDataOptions.CSVUpload,
           perm: canUploadCSV && showUploads,
           disable: isAdmin && !allowUploads,
         },
         {
-          label: t('Upload Excel to database'),
+          label: t('Upload Excel to %s', databaseLabelLower()),
           name: GlobalMenuDataOptions.ExcelUpload,
           perm: canUploadExcel && showUploads,
           disable: isAdmin && !allowUploads,
         },
         {
-          label: t('Upload Columnar file to database'),
+          label: t('Upload Columnar file to %s', databaseLabelLower()),
           name: GlobalMenuDataOptions.ColumnarUpload,
           perm: canUploadColumnar && showUploads,
           disable: isAdmin && !allowUploads,
