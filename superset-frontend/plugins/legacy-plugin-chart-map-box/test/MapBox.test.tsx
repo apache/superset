@@ -211,6 +211,27 @@ test('restores only cleared viewport props, keeps the rest', () => {
   expect(lastMapGLProps.zoom).toBe(5);
 });
 
+test('applies changed viewport props even when another is cleared simultaneously', () => {
+  const { rerender } = render(
+    <MapBox
+      {...defaultProps}
+      viewportLongitude={-122.4}
+      viewportLatitude={37.8}
+      viewportZoom={5}
+    />,
+  );
+
+  // Clear longitude, change latitude simultaneously
+  rerender(
+    <MapBox {...defaultProps} viewportLatitude={40.0} viewportZoom={5} />,
+  );
+
+  // Longitude reverts to fitBounds, latitude should be the NEW value
+  expect(lastMapGLProps.longitude).toBe(-73.95);
+  expect(lastMapGLProps.latitude).toBe(40.0);
+  expect(lastMapGLProps.zoom).toBe(5);
+});
+
 test('falls back to default viewport when cleared with undefined bounds', () => {
   const { rerender } = render(
     <MapBox

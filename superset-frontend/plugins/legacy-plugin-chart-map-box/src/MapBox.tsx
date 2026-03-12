@@ -142,9 +142,11 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
           ...viewport,
           longitude: longitudeCleared
             ? fitBounds.longitude
-            : viewport.longitude,
-          latitude: latitudeCleared ? fitBounds.latitude : viewport.latitude,
-          zoom: zoomCleared ? fitBounds.zoom : viewport.zoom,
+            : (viewportLongitude ?? viewport.longitude),
+          latitude: latitudeCleared
+            ? fitBounds.latitude
+            : (viewportLatitude ?? viewport.latitude),
+          zoom: zoomCleared ? fitBounds.zoom : (viewportZoom ?? viewport.zoom),
         },
       });
       return;
