@@ -121,7 +121,7 @@ export default function Login() {
     if (loginAttempted === 'true') {
       sessionStorage.removeItem('login_attempted');
       const errorMsg = t(
-        'Invalid login. Please check your username and password and try again.',
+        'Login failed. Please verify your credentials and try again. If the problem persists, contact your administrator.',
       );
       setLoginError(errorMsg);
       dispatch(addDangerToast(errorMsg));
