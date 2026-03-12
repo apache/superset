@@ -194,9 +194,9 @@ const createAceEditorHandle = (
   onDidChangeContent: (listener, thisArgs?) => {
     const editor = aceEditorRef.current?.editor;
     if (!editor) return new Disposable(() => {});
-    const bound = (
-      thisArgs ? listener.bind(thisArgs) : listener
-    ) as (value: string) => void;
+    const bound = (thisArgs ? listener.bind(thisArgs) : listener) as (
+      value: string,
+    ) => void;
     const handler = () => bound(editor.getValue());
     editor.session.on('change', handler);
     return new Disposable(() => {
