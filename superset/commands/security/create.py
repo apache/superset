@@ -44,7 +44,7 @@ class CreateRLSRuleCommand(BaseCommand):
 
     def validate(self) -> None:
         roles = populate_roles(self._roles)
-        tables = (
+        tables: list[SqlaTable] = (
             db.session.query(SqlaTable)
             .filter(SqlaTable.id.in_(self._tables))  # type: ignore[attr-defined]
             .all()
@@ -61,7 +61,7 @@ class CreateRLSRuleCommand(BaseCommand):
                     clause,
                     table.database,
                     table.catalog,
-                    table.schema,
+                    table.schema or "",
                     table.database.backend,
                     is_predicate=True,
                 )

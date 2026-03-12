@@ -54,12 +54,12 @@ class UpdateRLSRuleCommand(BaseCommand):
 
         # If tables are provided in properties, validate them.
         # Otherwise, use existing tables from the model for validation.
-        table_ids = (
+        table_ids: list[int] = (
             self._tables
             if "tables" in self._properties
             else [t.id for t in self._model.tables]
         )
-        tables = (
+        tables: list[SqlaTable] = (
             db.session.query(SqlaTable)
             .filter(SqlaTable.id.in_(table_ids))  # type: ignore[attr-defined]
             .all()
@@ -76,7 +76,7 @@ class UpdateRLSRuleCommand(BaseCommand):
                     clause,
                     table.database,
                     table.catalog,
-                    table.schema,
+                    table.schema or "",
                     table.database.backend,
                     is_predicate=True,
                 )

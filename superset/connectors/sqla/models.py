@@ -755,26 +755,30 @@ class BaseDatasource(
         """
         template_processor = template_processor or self.get_template_processor()
 
+        def _get_processed_rls_clause(clause: str) -> TextClause:
+            processed = None
+            if hasattr(self, "_process_select_expression"):
+                processed = self._process_select_expression(
+                    expression=clause,
+                    database_id=self.database_id,
+                    engine=self.database.backend,
+                    schema=self.schema,
+                    template_processor=template_processor,
+                )
+
+            if not processed:
+                processed = (
+                    template_processor.process_template(clause)
+                    if template_processor
+                    else clause
+                )
+            return self.text(f"({processed})")
+
         all_filters: list[TextClause] = []
         filter_groups: dict[Union[int, str], list[TextClause]] = defaultdict(list)
         try:
             for filter_ in security_manager.get_rls_filters(self):
-                if hasattr(self, "_process_select_expression"):
-                    clause_processed = str(
-                        self._process_select_expression(
-                            expression=filter_.clause,
-                            database_id=self.database_id,
-                            engine=self.database.backend,
-                            schema=self.schema,
-                            template_processor=template_processor,
-                        )
-                        or ""
-                    )
-                else:
-                    clause_processed = template_processor.process_template(
-                        filter_.clause
-                    )
-                clause = self.text(f"({clause_processed})")
+                clause = _get_processed_rls_clause(filter_.clause)
                 if filter_.group_key:
                     filter_groups[filter_.group_key].append(clause)
                 else:
@@ -785,23 +789,7 @@ class BaseDatasource(
                     if not include_global_guest_rls and not rule.get("dataset"):
                         continue
 
-                    if hasattr(self, "_process_select_expression"):
-                        clause_processed = str(
-                            self._process_select_expression(
-                                expression=rule["clause"],
-                                database_id=self.database_id,
-                                engine=self.database.backend,
-                                schema=self.schema,
-                                template_processor=template_processor,
-                            )
-                            or ""
-                        )
-                    else:
-                        clause_processed = template_processor.process_template(
-                            rule["clause"]
-                        )
-                    clause = self.text(f"({clause_processed})")
-                    all_filters.append(clause)
+                    all_filters.append(_get_processed_rls_clause(rule["clause"]))
 
             grouped_filters = [or_(*clauses) for clauses in filter_groups.values()]
             all_filters.extend(grouped_filters)

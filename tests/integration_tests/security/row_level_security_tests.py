@@ -68,10 +68,10 @@ class TestRowLevelSecurity(SupersetTestCase):
     )
     NAME_AB_ROLE = "NameAB"
     NAME_Q_ROLE = "NameQ"
-    NAMES_A_REGEX = re.compile(r"name like 'A%'")
-    NAMES_B_REGEX = re.compile(r"name like 'B%'")
-    NAMES_Q_REGEX = re.compile(r"name like 'Q%'")
-    BASE_FILTER_REGEX = re.compile(r"gender = 'boy'")
+    NAMES_A_REGEX = re.compile(r"name like 'A%'", re.IGNORECASE)
+    NAMES_B_REGEX = re.compile(r"name like 'B%'", re.IGNORECASE)
+    NAMES_Q_REGEX = re.compile(r"name like 'Q%'", re.IGNORECASE)
+    BASE_FILTER_REGEX = re.compile(r"gender = 'boy'", re.IGNORECASE)
 
     def setUp(self):
         # Create roles

@@ -125,8 +125,6 @@ def test_validate_rls_simple_clause_passes():
 
 
 def test_validate_rls_jinja_passes():
-    from unittest.mock import MagicMock
-
     from superset.models.helpers import validate_adhoc_subquery
 
     mock_db = MagicMock()
@@ -150,9 +148,6 @@ def test_validate_rls_jinja_passes():
 
 
 def test_validate_rls_jinja_with_subquery_fails():
-    from unittest.mock import MagicMock
-
-    from superset.exceptions import SupersetSecurityException
     from superset.models.helpers import validate_adhoc_subquery
 
     mock_db = MagicMock()
@@ -169,9 +164,6 @@ def test_validate_rls_jinja_with_subquery_fails():
 
 
 def test_validate_rls_set_operations_fail():
-    from unittest.mock import MagicMock
-
-    from superset.exceptions import SupersetSecurityException
     from superset.models.helpers import validate_adhoc_subquery
 
     mock_db = MagicMock()
