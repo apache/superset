@@ -311,11 +311,18 @@ class Superset(BaseSupersetView):
         if response_type in (
             ChartDataResultFormat.CSV,
             ChartDataResultFormat.XLSX,
-        ) and not security_manager.can_access("can_csv", "Superset"):
-            return json_error_response(
-                _("You don't have the rights to export data"),
-                status=403,
-            )
+        ):
+            if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
+                can_export = security_manager.can_access(
+                    "can_export_data", "Superset"
+                )
+            else:
+                can_export = security_manager.can_access("can_csv", "Superset")
+            if not can_export:
+                return json_error_response(
+                    _("You don't have the rights to export data"),
+                    status=403,
+                )
 
         form_data = get_form_data()[0]
         try:
