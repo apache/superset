@@ -740,6 +740,7 @@ class BaseDatasource(
     def get_sqla_row_level_filters(
         self,
         template_processor: Optional[BaseTemplateProcessor] = None,
+        include_guest_rls: bool = True,
     ) -> list[TextClause]:
         """
         Return the appropriate row level security filters for this table and the
@@ -747,6 +748,9 @@ class BaseDatasource(
         Flask global namespace.
 
         :param template_processor: The template processor to apply to the filters.
+        :param include_guest_rls: Whether to include guest token RLS filters.
+            Set to False when applying RLS to inner tables of virtual datasets,
+            since guest RLS is applied at the outer query level.
         :returns: A list of SQL clauses to be ANDed together.
         """  # noqa: E501
         template_processor = template_processor or self.get_template_processor()
@@ -763,7 +767,7 @@ class BaseDatasource(
                 else:
                     all_filters.append(clause)
 
-            if is_feature_enabled("EMBEDDED_SUPERSET"):
+            if include_guest_rls and is_feature_enabled("EMBEDDED_SUPERSET"):
                 for rule in security_manager.get_guest_rls_filters(self):
                     clause = self.text(
                         f"({template_processor.process_template(rule['clause'])})"

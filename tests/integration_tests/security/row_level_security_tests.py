@@ -845,3 +845,47 @@ class GuestTokenRowLevelSecurityTests(SupersetTestCase):
         sql = dataset.get_query_str(self.query_obj)
 
         assert re.search(RLS_ALICE_REGEX, sql)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_global_rls_not_applied_to_virtual_dataset_inner_tables(self):
+        """
+        Global guest RLS (no dataset ID) should only be applied to the outer
+        query of a virtual dataset, not to individual inner tables. This
+        prevents SQL errors when the RLS column doesn't exist on all inner
+        tables (e.g., a virtual dataset JOINing tables where only one has the
+        filtered column).
+        """
+        birth_names = self.get_table(name="birth_names")
+
+        virtual_dataset = SqlaTable(
+            table_name="virtual_birth_names_rls_test",
+            database=birth_names.database,
+            schema=birth_names.schema,
+            sql=f"SELECT * FROM {birth_names.table_name}",  # noqa: S608
+        )
+        db.session.add(virtual_dataset)
+        db.session.commit()
+
+        try:
+            # Global RLS rule (no dataset ID) — should only apply to outer
+            # query, not to the inner birth_names table reference
+            g.user = self.guest_user_with_rls(rules=[{"clause": "name = 'Alice'"}])
+            query_obj = {
+                "groupby": [],
+                "metrics": None,
+                "filter": [],
+                "is_timeseries": False,
+                "columns": ["name"],
+                "granularity": None,
+                "from_dttm": None,
+                "to_dttm": None,
+                "extras": {},
+            }
+            sql = virtual_dataset.get_query_str(query_obj)
+
+            # Guest RLS should appear in the outer WHERE clause
+            assert re.search(RLS_ALICE_REGEX, sql)
+        finally:
+            db.session.delete(virtual_dataset)
+            db.session.commit()

@@ -34,9 +34,14 @@ def apply_rls(
     catalog: str | None,
     schema: str,
     parsed_statement: BaseSQLStatement[Any],
+    include_guest_rls: bool = True,
 ) -> None:
     """
     Modify statement inplace to ensure RLS rules are applied.
+
+    :param include_guest_rls: Whether to include guest token RLS filters.
+        Set to False when applying RLS to inner tables of virtual datasets,
+        since guest RLS is applied at the outer query level.
     """
     # There are two ways to insert RLS: either replacing the table with a subquery
     # that has the RLS, or appending the RLS to the ``WHERE`` clause. The former is
@@ -53,6 +58,7 @@ def apply_rls(
                 table,
                 database,
                 database.get_default_catalog(),
+                include_guest_rls=include_guest_rls,
             )
             if predicate
         ]
@@ -64,6 +70,7 @@ def get_predicates_for_table(
     table: Table,
     database: Database,
     default_catalog: str | None,
+    include_guest_rls: bool = True,
 ) -> list[str]:
     """
     Get the RLS predicates for a table.
@@ -71,6 +78,9 @@ def get_predicates_for_table(
     This is used to inject RLS rules into SQL statements run in SQL Lab. Note that the
     table must be fully qualified, with catalog (null if the DB doesn't support) and
     schema.
+
+    :param include_guest_rls: Whether to include guest token RLS filters.
+        Set to False when applying RLS to inner tables of virtual datasets.
     """
     from superset.connectors.sqla.models import SqlaTable
 
@@ -105,7 +115,9 @@ def get_predicates_for_table(
                 compile_kwargs={"literal_binds": True},
             )
         )
-        for predicate in dataset.get_sqla_row_level_filters()
+        for predicate in dataset.get_sqla_row_level_filters(
+            include_guest_rls=include_guest_rls,
+        )
     ]
 
 

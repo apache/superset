@@ -326,3 +326,53 @@ def test_get_predicates_for_table(mocker: MockerFixture) -> None:
 
     table = Table("t1", "public", "examples")
     assert get_predicates_for_table(table, database, "examples") == ["c1 = 1"]
+
+
+def test_apply_rls_exclude_guest_rls(mocker: MockerFixture) -> None:
+    """
+    Test that ``apply_rls`` passes ``include_guest_rls`` to
+    ``get_predicates_for_table``.
+    """
+    database = mocker.MagicMock()
+    database.get_default_schema_for_query.return_value = "public"
+    database.get_default_catalog.return_value = "examples"
+    database.db_engine_spec = PostgresEngineSpec
+    mock_get_predicates = mocker.patch(
+        "superset.utils.rls.get_predicates_for_table",
+        return_value=[],
+    )
+
+    parsed_statement = SQLStatement("SELECT * FROM t1", "postgresql")
+
+    apply_rls(database, "examples", "public", parsed_statement, include_guest_rls=False)
+
+    mock_get_predicates.assert_called_once_with(
+        Table("t1", "public", "examples"),
+        database,
+        "examples",
+        include_guest_rls=False,
+    )
+
+
+def test_get_predicates_for_table_exclude_guest_rls(mocker: MockerFixture) -> None:
+    """
+    Test that ``get_predicates_for_table`` passes ``include_guest_rls`` to
+    ``dataset.get_sqla_row_level_filters``.
+    """
+    database = mocker.MagicMock()
+    dataset = mocker.MagicMock()
+    predicate = mocker.MagicMock()
+    predicate.compile.return_value = "c1 = 1"
+    dataset.get_sqla_row_level_filters.return_value = [predicate]
+    db = mocker.patch("superset.utils.rls.db")
+    db.session.query().filter().one_or_none.return_value = dataset
+
+    table = Table("t1", "public", "examples")
+    result = get_predicates_for_table(
+        table, database, "examples", include_guest_rls=False
+    )
+
+    assert result == ["c1 = 1"]
+    dataset.get_sqla_row_level_filters.assert_called_once_with(
+        include_guest_rls=False,
+    )
