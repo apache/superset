@@ -21,7 +21,7 @@ import logging
 from typing import Any, Callable, TYPE_CHECKING
 from urllib.parse import urlparse
 
-from flask import current_app, Flask, request, Response, session
+from flask import current_app as app, Flask, request, Response, session
 from flask_login import login_user
 from selenium.webdriver.remote.webdriver import WebDriver
 from werkzeug.http import parse_cookie
@@ -86,7 +86,7 @@ class MachineAuthProvider:
         if self._auth_webdriver_func_override:
             return self._auth_webdriver_func_override(browser_context, user)
 
-        url = urlparse(current_app.config["WEBDRIVER_BASEURL"])
+        url = urlparse(app.config["WEBDRIVER_BASEURL"])
 
         # Setting cookies requires doing a request first
         page = browser_context.new_page()
@@ -122,13 +122,13 @@ class MachineAuthProvider:
     @staticmethod
     def get_auth_cookies(user: User) -> dict[str, str]:
         # Login with the user specified to get the reports
-        with current_app.test_request_context("/login"):
+        with app.test_request_context("/login"):
             login_user(user)
             # A mock response object to get the cookie information from
             response = Response()
             # To ensure all `after_request` functions are called i.e Websockets JWT Auth
-            current_app.process_response(response)
-            current_app.session_interface.save_session(current_app, session, response)
+            app.process_response(response)
+            app.session_interface.save_session(app, session, response)
 
         cookies = {}
 

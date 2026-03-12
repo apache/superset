@@ -68,14 +68,12 @@ SQLLAB_CTAS_NO_LIMIT = True  # SQL_MAX_ROW will not take effect for the CTA quer
 FEATURE_FLAGS = {
     **FEATURE_FLAGS,  # noqa: F405
     "foo": "bar",
-    "KV_STORE": True,
-    "SHARE_QUERIES_VIA_KV_STORE": True,
     "ENABLE_TEMPLATE_PROCESSING": True,
     "ALERT_REPORTS": True,
     "AVOID_COLORS_COLLISION": True,
     "DRILL_TO_DETAIL": True,
     "DRILL_BY": True,
-    "HORIZONTAL_FILTER_BAR": True,
+    "GLOBAL_TASK_FRAMEWORK": True,
 }
 
 WEBDRIVER_BASEURL = "http://0.0.0.0:8081/"
@@ -151,3 +149,8 @@ CUSTOM_TEMPLATE_PROCESSORS = {
 }
 
 PRESERVE_CONTEXT_ON_EXCEPTION = False
+
+# Dashboard API: Return only custom tags (performance optimization)
+DASHBOARD_LIST_CUSTOM_TAGS_ONLY = True
+
+print("Loaded TEST config for INTEGRATION tests")

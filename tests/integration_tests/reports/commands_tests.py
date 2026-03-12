@@ -21,7 +21,6 @@ from unittest.mock import call, Mock, patch
 from uuid import uuid4
 
 import pytest
-from flask import current_app
 from flask.ctx import AppContext
 from flask_appbuilder.security.sqla.models import User
 from flask_sqlalchemy import BaseQuery
@@ -308,7 +307,10 @@ def create_report_slack_chart():
 def create_report_slack_chartv2():
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
-        slack_channel="slack_channel_id", chart=chart, name="report_slack_chartv2"
+        slack_channel="slack_channel_id",
+        chart=chart,
+        name="report_slack_chartv2",
+        use_slack_v2=True,
     )
     yield report_schedule
 
@@ -773,7 +775,7 @@ def test_email_chart_report_schedule_alpha_owner(
     ExecuteReport Command: Test chart email report schedule with screenshot
     executed as the chart owner
     """
-    config_key = "ALERT_REPORTS_EXECUTE_AS"
+    config_key = "ALERT_REPORTS_EXECUTORS"
     original_config_value = app.config[config_key]
     app.config[config_key] = [ExecutorType.OWNER]
 
@@ -1160,7 +1162,9 @@ def test_email_dashboard_report_schedule(
     screenshot_mock.return_value = SCREENSHOT_FILE
 
     with freeze_time("2020-01-01T00:00:00Z"):
-        with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
+        with patch(
+            "superset.extensions.stats_logger_manager.instance.gauge"
+        ) as statsd_mock:
             AsyncExecuteReportScheduleCommand(
                 TEST_ID, create_report_email_dashboard.id, datetime.utcnow()
             ).run()
@@ -1192,14 +1196,23 @@ def test_email_dashboard_report_schedule_with_tab_anchor(
     ExecuteReport Command: Test dashboard email report schedule with tab metadata
     """
     with freeze_time("2020-01-01T00:00:00Z"):
-        with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
+        with patch(
+            "superset.extensions.stats_logger_manager.instance.gauge"
+        ) as statsd_mock:
             # get tabbed dashboard fixture
             dashboard = db.session.query(Dashboard).all()[1]
             # build report_schedule
             report_schedule = create_report_notification(
                 email_target="target@email.com",
                 dashboard=dashboard,
-                extra={"dashboard": {"anchor": "TAB-L2AB"}},
+                extra={
+                    "dashboard": {
+                        "anchor": "TAB-L2AB",
+                        "activeTabs": None,
+                        "dataMask": None,
+                        "urlParams": [["native_filters", "()"]],
+                    }
+                },
             )
             AsyncExecuteReportScheduleCommand(
                 TEST_ID, report_schedule.id, datetime.utcnow()
@@ -1239,14 +1252,23 @@ def test_email_dashboard_report_schedule_disabled_tabs(
     ExecuteReport Command: Test dashboard email report schedule with tab metadata
     """
     with freeze_time("2020-01-01T00:00:00Z"):
-        with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
+        with patch(
+            "superset.extensions.stats_logger_manager.instance.gauge"
+        ) as statsd_mock:
             # get tabbed dashboard fixture
             dashboard = db.session.query(Dashboard).all()[1]
             # build report_schedule
             report_schedule = create_report_notification(
                 email_target="target@email.com",
                 dashboard=dashboard,
-                extra={"dashboard": {"anchor": "TAB-L2AB"}},
+                extra={
+                    "dashboard": {
+                        "anchor": "TAB-L2AB",
+                        "activeTabs": None,
+                        "dataMask": None,
+                        "urlParams": [["native_filters", "()"]],
+                    }
+                },
             )
             AsyncExecuteReportScheduleCommand(
                 TEST_ID, report_schedule.id, datetime.utcnow()
@@ -1300,9 +1322,7 @@ def test_email_dashboard_report_schedule_force_screenshot(
         assert_log(ReportState.SUCCESS)
 
 
-@pytest.mark.usefixtures(
-    "load_birth_names_dashboard_with_slices", "create_report_slack_chart"
-)
+@pytest.mark.usefixtures("create_report_slack_chart")
 @patch("superset.commands.report.execute.get_channels_with_search")
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
 @patch("superset.reports.notifications.slackv2.get_slack_client")
@@ -1316,16 +1336,24 @@ def test_slack_chart_report_schedule_converts_to_v2(
 ):
     """
     ExecuteReport Command: Test chart slack report schedule
+    while converting the recipients list to SlackV2.
     """
     # setup screenshot mock
     screenshot_mock.return_value = SCREENSHOT_FILE
-
     channel_id = "slack_channel_id"
-
-    get_channels_with_search_mock.return_value = channel_id
+    get_channels_with_search_mock.return_value = [
+        {
+            "id": channel_id,
+            "name": "slack_channel",
+            "is_member": True,
+            "is_private": False,
+        },
+    ]
 
     with freeze_time("2020-01-01T00:00:00Z"):
-        with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
+        with patch(
+            "superset.extensions.stats_logger_manager.instance.gauge"
+        ) as statsd_mock:
             AsyncExecuteReportScheduleCommand(
                 TEST_ID, create_report_slack_chart.id, datetime.utcnow()
             ).run()
@@ -1357,33 +1385,42 @@ def test_slack_chart_report_schedule_converts_to_v2(
             assert statsd_mock.call_args_list[1] == call("reports.slack.send.ok", 1)
 
 
-@pytest.mark.usefixtures(
-    "load_birth_names_dashboard_with_slices", "create_report_slack_chartv2"
-)
 @patch("superset.commands.report.execute.get_channels_with_search")
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
 @patch("superset.reports.notifications.slackv2.get_slack_client")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
-def test_slack_chart_report_schedule_v2(
+def test_slack_chart_report_schedule_converts_to_v2_channel_with_hash(
     screenshot_mock,
     slack_client_mock,
     slack_should_use_v2_api_mock,
     get_channels_with_search_mock,
-    create_report_slack_chart,
 ):
     """
-    ExecuteReport Command: Test chart slack report schedule
+    ExecuteReport Command: Test converting a Slack report to v2 when
+    the channel name includes the leading hash (supported in v1).
     """
     # setup screenshot mock
     screenshot_mock.return_value = SCREENSHOT_FILE
     channel_id = "slack_channel_id"
-
-    get_channels_with_search_mock.return_value = channel_id
+    chart = db.session.query(Slice).first()
+    report_schedule = create_report_notification(
+        slack_channel="#slack_channel", chart=chart
+    )
+    get_channels_with_search_mock.return_value = [
+        {
+            "id": channel_id,
+            "name": "slack_channel",
+            "is_member": True,
+            "is_private": False,
+        },
+    ]
 
     with freeze_time("2020-01-01T00:00:00Z"):
-        with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
+        with patch(
+            "superset.extensions.stats_logger_manager.instance.gauge"
+        ) as statsd_mock:
             AsyncExecuteReportScheduleCommand(
-                TEST_ID, create_report_slack_chart.id, datetime.utcnow()
+                TEST_ID, report_schedule.id, datetime.utcnow()
             ).run()
 
             assert (
@@ -1395,6 +1432,12 @@ def test_slack_chart_report_schedule_v2(
                 == SCREENSHOT_FILE
             )
 
+            # Assert that the report recipients were updated
+            assert report_schedule.recipients[0].recipient_config_json == json.dumps(
+                {"target": channel_id}
+            )
+            assert report_schedule.recipients[0].type == ReportRecipientType.SLACKV2
+
             # Assert logs are correct
             assert_log(ReportState.SUCCESS)
             # this will send a warning
@@ -1402,6 +1445,96 @@ def test_slack_chart_report_schedule_v2(
                 "reports.slack.send.warning", 1
             )
             assert statsd_mock.call_args_list[1] == call("reports.slack.send.ok", 1)
+
+    cleanup_report_schedule(report_schedule)
+
+
+@patch("superset.commands.report.execute.get_channels_with_search")
+@patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
+@patch("superset.reports.notifications.slackv2.get_slack_client")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_slack_chart_report_schedule_fails_to_converts_to_v2(
+    screenshot_mock,
+    slack_client_mock,
+    slack_should_use_v2_api_mock,
+    get_channels_with_search_mock,
+):
+    """
+    ExecuteReport Command: Test converting a Slack report to v2 fails.
+    """
+    # setup screenshot mock
+    screenshot_mock.return_value = SCREENSHOT_FILE
+    channel_id = "slack_channel_id"
+    chart = db.session.query(Slice).first()
+    report_schedule = create_report_notification(
+        slack_channel="#slack_channel,my_member_ID", chart=chart
+    )
+    get_channels_with_search_mock.return_value = [
+        {
+            "id": channel_id,
+            "name": "slack_channel",
+            "is_member": True,
+            "is_private": False,
+        },
+    ]
+
+    with pytest.raises(ReportScheduleSystemErrorsException):
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID, report_schedule.id, datetime.utcnow()
+        ).run()
+
+    # Assert failuer with proper log
+    expected_message = (
+        "Failed to update slack recipients to v2: "
+        "Could not find the following channels: my_member_ID"
+    )
+    assert_log(ReportState.ERROR, error_message=expected_message)
+
+    # Assert that previous configuration was kept for manual correction
+    assert report_schedule.recipients[0].recipient_config_json == json.dumps(
+        {"target": "#slack_channel,my_member_ID"}
+    )
+    assert report_schedule.recipients[0].type == ReportRecipientType.SLACK
+
+    cleanup_report_schedule(report_schedule)
+
+
+@pytest.mark.usefixtures("create_report_slack_chartv2")
+@patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
+@patch("superset.reports.notifications.slackv2.get_slack_client")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_slack_chart_report_schedule_v2(
+    screenshot_mock,
+    slack_client_mock,
+    slack_should_use_v2_api_mock,
+    create_report_slack_chartv2,
+):
+    """
+    ExecuteReport Command: Test chart slack report schedule using Slack v2.
+    """
+    # setup screenshot mock
+    screenshot_mock.return_value = SCREENSHOT_FILE
+
+    with freeze_time("2020-01-01T00:00:00Z"):
+        with patch(
+            "superset.extensions.stats_logger_manager.instance.gauge"
+        ) as statsd_mock:
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID, create_report_slack_chartv2.id, datetime.utcnow()
+            ).run()
+
+            assert (
+                slack_client_mock.return_value.files_upload_v2.call_args[1]["channel"]
+                == "slack_channel_id"
+            )
+            assert (
+                slack_client_mock.return_value.files_upload_v2.call_args[1]["file"]
+                == SCREENSHOT_FILE
+            )
+
+            # Assert logs are correct
+            assert_log(ReportState.SUCCESS)
+            assert statsd_mock.call_args_list[0] == call("reports.slack.send.ok", 1)
 
 
 @pytest.mark.usefixtures(
@@ -1861,17 +1994,18 @@ def test_slack_token_callable_chart_report(
         "channels": [{"id": channel_id, "name": channel_name}]
     }
 
-    app.config["SLACK_API_TOKEN"] = Mock(return_value="cool_code")
-    # setup screenshot mock
-    screenshot_mock.return_value = SCREENSHOT_FILE
+    slack_token_mock = Mock(return_value="cool_code")
+    with patch.dict("flask.current_app.config", {"SLACK_API_TOKEN": slack_token_mock}):
+        # setup screenshot mock
+        screenshot_mock.return_value = SCREENSHOT_FILE
 
-    with freeze_time("2020-01-01T00:00:00Z"):
-        AsyncExecuteReportScheduleCommand(
-            TEST_ID, create_report_slack_chart.id, datetime.utcnow()
-        ).run()
-        app.config["SLACK_API_TOKEN"].assert_called()
-        assert slack_client_mock_class.called_with(token="cool_code", proxy="")  # noqa: S106
-        assert_log(ReportState.SUCCESS)
+        with freeze_time("2020-01-01T00:00:00Z"):
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID, create_report_slack_chart.id, datetime.utcnow()
+            ).run()
+            slack_token_mock.assert_called()
+            slack_client_mock_class.assert_called_with(token="cool_code", proxy=None)  # noqa: S106
+            assert_log(ReportState.SUCCESS)
 
 
 @pytest.mark.usefixtures("app_context")

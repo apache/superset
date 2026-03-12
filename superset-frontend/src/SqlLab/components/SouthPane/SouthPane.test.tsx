@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from 'spec/helpers/testing-library';
+import { render, waitFor, screen } from 'spec/helpers/testing-library';
 import SouthPane from 'src/SqlLab/components/SouthPane';
-import '@testing-library/jest-dom';
 import { STATUS_OPTIONS } from 'src/SqlLab/constants';
 import { initialState, table, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import { denormalizeTimestamp } from '@superset-ui/core';
+import userEvent from '@testing-library/user-event';
 
 const mockedProps = {
   queryEditorId: defaultQueryEditor.id,
@@ -49,12 +49,14 @@ const mockState = {
     tables: [
       {
         ...table,
+        id: 't3',
         name: 'table3',
         dataPreviewQueryId: '2g2_iRFMl',
         queryEditorId: defaultQueryEditor.id,
       },
       {
         ...table,
+        id: 't4',
         name: 'table4',
         dataPreviewQueryId: 'erWdqEWPm',
         queryEditorId: defaultQueryEditor.id,
@@ -123,29 +125,59 @@ test('should render offline when the state is offline', async () => {
 });
 
 test('should render empty result state when latestQuery is empty', () => {
-  const { getAllByRole } = render(
-    <SouthPane {...mockedProps} latestQueryId={undefined} />,
-    {
-      useRedux: true,
-      initialState: mockState,
-    },
-  );
-
-  const resultPanel = getAllByRole('tabpanel')[0];
-  expect(resultPanel).toHaveTextContent('Run a query to display results');
-});
-
-test('should render tabs for table preview queries', () => {
-  const { getAllByRole } = render(<SouthPane {...mockedProps} />, {
+  render(<SouthPane {...mockedProps} latestQueryId={undefined} />, {
     useRedux: true,
     initialState: mockState,
   });
 
-  const tabs = getAllByRole('tab');
+  const resultPanel = screen.getByText('Run a query to display results');
+  expect(resultPanel).toBeInTheDocument();
+});
+
+test('should render tabs for table metadata view', () => {
+  const { container } = render(<SouthPane {...mockedProps} />, {
+    useRedux: true,
+    initialState: mockState,
+  });
+
+  const tabs = Array.from(container.querySelectorAll('[role="tab"]')).filter(
+    tab => !tab.classList.contains('ant-tabs-tab-remove'),
+  );
+
   expect(tabs).toHaveLength(mockState.sqlLab.tables.length + 2);
   expect(tabs[0]).toHaveTextContent('Results');
   expect(tabs[1]).toHaveTextContent('Query history');
-  mockState.sqlLab.tables.forEach(({ name }, index) => {
-    expect(tabs[index + 2]).toHaveTextContent(`Preview: \`${name}\``);
+  mockState.sqlLab.tables.forEach(({ name, schema }, index) => {
+    expect(tabs[index + 2]).toHaveTextContent(`${schema}.${name}`);
+  });
+});
+test('should remove tab', async () => {
+  const { container } = await render(<SouthPane {...mockedProps} />, {
+    useRedux: true,
+    initialState: mockState,
+  });
+
+  let tabs = Array.from(container.querySelectorAll('[role="tab"]')).filter(
+    tab => !tab.classList.contains('ant-tabs-tab-remove'),
+  );
+  const totalTabs = mockState.sqlLab.tables.length + 2;
+  expect(tabs).toHaveLength(totalTabs);
+
+  console.log(tabs[2].parentElement?.innerHTML); // debug
+
+  const removeButton = tabs[2].parentElement?.querySelector(
+    'button[aria-label="remove"]',
+  );
+  expect(removeButton).toBeTruthy();
+
+  if (removeButton) {
+    userEvent.click(removeButton);
+  }
+
+  await waitFor(() => {
+    tabs = Array.from(container.querySelectorAll('[role="tab"]')).filter(
+      tab => !tab.classList.contains('ant-tabs-tab-remove'),
+    );
+    expect(tabs).toHaveLength(totalTabs - 1);
   });
 });

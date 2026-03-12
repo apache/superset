@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useEffect } from 'react';
-import { t } from '@superset-ui/core';
-import { Radio } from 'src/components/Radio';
+import { t } from '@apache-superset/core/translation';
+import { Radio } from '@superset-ui/core/components/Radio';
 import {
   CURRENT_RANGE_OPTIONS,
   CURRENT_CALENDAR_RANGE_SET,
@@ -41,25 +41,22 @@ export function CurrentCalendarFrame({ onChange, value }: FrameComponentProps) {
       <div className="section-title">
         {t('Configure Time Range: Current...')}
       </div>
-      <Radio.Group
-        value={value}
+      <Radio.GroupWrapper
+        spaceConfig={{
+          direction: 'vertical',
+          size: 15,
+          align: 'start',
+          wrap: true,
+        }}
+        size="large"
         onChange={(e: any) => {
           let newValue = e.target.value;
-          // Sanitization: Trim whitespace
           newValue = newValue.trim();
-          // Validation: Check if the value is non-empty
-          if (newValue === '') {
-            return;
-          }
+          if (newValue === '') return;
           onChange(newValue);
         }}
-      >
-        {CURRENT_RANGE_OPTIONS.map(({ value, label }) => (
-          <Radio key={value} value={value} className="vertical-radio">
-            {label}
-          </Radio>
-        ))}
-      </Radio.Group>
+        options={CURRENT_RANGE_OPTIONS}
+      />
     </>
   );
 }

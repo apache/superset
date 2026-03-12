@@ -59,8 +59,14 @@ embedDashboard({
           // ...
       }
   },
-    // optional additional iframe sandbox attributes
-  iframeSandboxExtras: ['allow-top-navigation', 'allow-popups-to-escape-sandbox']
+  // optional additional iframe sandbox attributes
+  iframeSandboxExtras: ['allow-top-navigation', 'allow-popups-to-escape-sandbox'],
+  // optional Permissions Policy features
+  iframeAllowExtras: ['clipboard-write', 'fullscreen'],
+  // optional config to enforce a particular referrerPolicy
+  referrerPolicy: "same-origin",
+  // optional callback to customize permalink URLs
+  resolvePermalinkUrl: ({ key }) => `https://my-app.com/analytics/share/${key}`
 });
 ```
 
@@ -114,8 +120,11 @@ Example `POST /security/guest_token` payload:
 }
 ```
 
-Alternatively, a guest token can be created directly in your app with a json like the following, and then signed
-with the secret set in configuration variable `GUEST_TOKEN_JWT_SECRET` (see configuration file config.py)
+Alternatively, a guest token can be created directly in your app without interacting with the Superset API.
+To do this, you should update the `GUEST_TOKEN_JWT_SECRET`
+in the Superset [config.py](https://github.com/apache/superset/blob/master/superset/config.py). Also set the
+`GUEST_TOKEN_JWT_AUDIENCE` variable that matches what is set for the `aud` in the JSON payload:
+
 ```
 {
   "user": {
@@ -137,6 +146,13 @@ with the secret set in configuration variable `GUEST_TOKEN_JWT_SECRET` (see conf
 }
 ```
 
+In this example, the configuration file includes the following setting:
+
+```python
+GUEST_TOKEN_JWT_AUDIENCE="superset"
+```
+
+
 ### Sandbox iframe
 
 The Embedded SDK creates an iframe with [sandbox](https://developer.mozilla.org/es/docs/Web/HTML/Element/iframe#sandbox) mode by default
@@ -145,4 +161,65 @@ To pass additional sandbox attributes you can use `iframeSandboxExtras`:
 ```js
   // optional additional iframe sandbox attributes
   iframeSandboxExtras: ['allow-top-navigation', 'allow-popups-to-escape-sandbox']
+```
+
+### Permissions Policy
+
+To enable specific browser features within the embedded iframe, use `iframeAllowExtras` to set the iframe's [Permissions Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Permissions_Policy) (the `allow` attribute):
+
+```js
+  // optional Permissions Policy features
+  iframeAllowExtras: ['clipboard-write', 'fullscreen']
+```
+
+Common permissions you might need:
+- `clipboard-write` - Required for "Copy permalink to clipboard" functionality
+- `fullscreen` - Required for fullscreen chart viewing
+- `camera`, `microphone` - If your dashboards include media capture features
+
+### Enforcing a ReferrerPolicy on the request triggered by the iframe
+
+By default, the Embedded SDK creates an `iframe` element without a `referrerPolicy` value enforced. This means that a policy defined for `iframe` elements at the host app level would reflect to it.
+
+This can be an issue as during the embedded enablement for a dashboard it's possible to specify which domain(s) are allowed to embed the dashboard, and this validation happens throuth the `Referrer` header. That said, in case the hosting app has a more restrictive policy that would omit this header, this validation would fail.
+
+Use the `referrerPolicy` parameter in the `embedDashboard` method to specify [a particular policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Referrer-Policy) that works for your implementation.
+
+### Customizing Permalink URLs
+
+When users click share buttons inside an embedded dashboard, Superset generates permalinks using Superset's domain. If you want to use your own domain and URL format for these permalinks, you can provide a `resolvePermalinkUrl` callback:
+
+```js
+embedDashboard({
+  id: "abc123",
+  supersetDomain: "https://superset.example.com",
+  mountPoint: document.getElementById("my-superset-container"),
+  fetchGuestToken: () => fetchGuestTokenFromBackend(),
+
+  // Customize permalink URLs
+  resolvePermalinkUrl: ({ key }) => {
+    // key: the permalink key (e.g., "xyz789")
+    return `https://my-app.com/analytics/share/${key}`;
+  }
+});
+```
+
+To restore the dashboard state from a permalink in your app:
+
+```js
+// In your route handler for /analytics/share/:key
+const permalinkKey = routeParams.key;
+
+embedDashboard({
+  id: "abc123",
+  supersetDomain: "https://superset.example.com",
+  mountPoint: document.getElementById("my-superset-container"),
+  fetchGuestToken: () => fetchGuestTokenFromBackend(),
+  resolvePermalinkUrl: ({ key }) => `https://my-app.com/analytics/share/${key}`,
+  dashboardUiConfig: {
+    urlParams: {
+      permalink_key: permalinkKey,  // Restores filters, tabs, chart states, and scrolls to anchor
+    }
+  }
+});
 ```

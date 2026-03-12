@@ -308,4 +308,4 @@ class TestSupersetResultSet(SupersetTestCase):
             ("emptytwo", "int", None, None, None, None, True),
         ]
         results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
-        assert results.columns == []
+        assert len(results.columns) == 2

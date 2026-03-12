@@ -20,7 +20,7 @@
 {{- with .Values.supersetCeleryBeat.podDisruptionBudget }}
 {{- if .enabled -}}
 {{- if and .minAvailable .maxUnavailable }}
-{{- fail "Only one of minAvailable or maxUnavailable should be set" }}
+  {{- fail "Only one of minAvailable or maxUnavailable should be set" }}
 {{- end}}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
@@ -35,12 +35,12 @@ metadata:
       {{- toYaml $.Values.extraLabels | nindent 4 }}
     {{- end }}
 spec:
-{{- if .minAvailable }}
+  {{- if .minAvailable }}
   minAvailable: {{ .minAvailable }}
-{{- end }}
-{{- if .maxUnavailable }}
+  {{- end }}
+  {{- if .maxUnavailable }}
   maxUnavailable: {{ .maxUnavailable }}
-{{- end }}
+  {{- end }}
   selector:
     matchLabels:
     {{- include "supersetCeleryBeat.selectorLabels" $ | nindent 6 }}

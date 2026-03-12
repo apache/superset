@@ -42,12 +42,12 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        build_preset: ["dev", "lean", "py310", "websocket", "dockerize", "py311"]
+        build_preset: ["dev", "lean", "py310", "websocket", "dockerize", "py311", "py312"]
       fail-fast: false
     steps:
 
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -60,7 +60,7 @@ jobs:
           build: "true"
 
       - name: Use Node.js 20
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
 
@@ -107,12 +107,12 @@ jobs:
     steps:
 
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Use Node.js 20
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
 

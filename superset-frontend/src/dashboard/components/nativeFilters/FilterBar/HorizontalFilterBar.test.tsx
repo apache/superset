@@ -26,8 +26,10 @@ const defaultProps = {
   dashboardId: 1,
   dataMaskSelected: {},
   filterValues: [],
+  chartCustomizationValues: [],
   isInitialized: true,
   onSelectionChange: jest.fn(),
+  onPendingCustomizationDataMaskChange: jest.fn(),
 };
 
 const renderWrapper = (overrideProps?: Record<string, any>) =>
@@ -35,8 +37,16 @@ const renderWrapper = (overrideProps?: Record<string, any>) =>
     render(<HorizontalBar {...defaultProps} {...overrideProps} />, {
       useRedux: true,
       initialState: {
+        dashboardState: {
+          sliceIds: [],
+        },
         dashboardInfo: {
           dash_edit_perm: true,
+        },
+        dashboardLayout: {
+          present: {},
+          past: [],
+          future: [],
         },
       },
     }),

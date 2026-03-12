@@ -16,6 +16,8 @@
 # under the License.
 # pylint: disable=import-outside-toplevel, unused-argument, unused-import
 
+from uuid import UUID
+
 from sqlalchemy.orm.session import Session
 
 from superset import db
@@ -47,6 +49,7 @@ def test_export(session: Session) -> None:
             type="INTEGER",
             expression="revenue-expenses",
             extra=json.dumps({"certified_by": "User"}),
+            uuid=UUID("00000000-0000-0000-0000-000000000005"),
         ),
     ]
     metrics = [
@@ -54,6 +57,7 @@ def test_export(session: Session) -> None:
             metric_name="cnt",
             expression="COUNT(*)",
             extra=json.dumps({"warning_markdown": None}),
+            uuid=UUID("00000000-0000-0000-0000-000000000004"),
         ),
     ]
 
@@ -61,6 +65,46 @@ def test_export(session: Session) -> None:
         table_name="my_table",
         columns=columns,
         metrics=metrics,
+        folders=[
+            {
+                "uuid": "00000000-0000-0000-0000-000000000000",
+                "type": "folder",
+                "name": "Engineering",
+                "children": [
+                    {
+                        "uuid": "00000000-0000-0000-0000-000000000001",
+                        "type": "folder",
+                        "name": "Core",
+                        "children": [
+                            {
+                                "uuid": "00000000-0000-0000-0000-000000000004",
+                                "type": "metric",
+                                "name": "cnt",
+                            },
+                        ],
+                    },
+                ],
+            },
+            {
+                "uuid": "00000000-0000-0000-0000-000000000002",
+                "type": "folder",
+                "name": "Sales",
+                "children": [
+                    {
+                        "uuid": "00000000-0000-0000-0000-000000000003",
+                        "type": "folder",
+                        "name": "Core",
+                        "children": [
+                            {
+                                "uuid": "00000000-0000-0000-0000-000000000005",
+                                "type": "column",
+                                "name": "profit",
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
         main_dttm_col="ds",
         database=database,
         offset=-8,
@@ -88,6 +132,10 @@ def test_export(session: Session) -> None:
         extra=json.dumps({"warning_markdown": "*WARNING*"}),
     )
 
+    # Add the table to the session and flush to get an ID
+    db.session.add(sqla_table)
+    db.session.flush()
+
     export = [
         (file[0], file[1]())
         for file in list(
@@ -104,9 +152,10 @@ def test_export(session: Session) -> None:
 
     assert export == [
         (
-            "datasets/my_database/my_table.yaml",
+            f"datasets/my_database/my_table_{sqla_table.id}.yaml",
             f"""table_name: my_table
 main_dttm_col: ds
+currency_code_column: null
 description: This is the description
 default_endpoint: null
 offset: -8
@@ -126,7 +175,30 @@ extra:
   warning_markdown: '*WARNING*'
 normalize_columns: false
 always_filter_main_dttm: false
-uuid: {payload['uuid']}
+folders:
+- uuid: 00000000-0000-0000-0000-000000000000
+  type: folder
+  name: Engineering
+  children:
+  - uuid: 00000000-0000-0000-0000-000000000001
+    type: folder
+    name: Core
+    children:
+    - uuid: 00000000-0000-0000-0000-000000000004
+      type: metric
+      name: cnt
+- uuid: 00000000-0000-0000-0000-000000000002
+  type: folder
+  name: Sales
+  children:
+  - uuid: 00000000-0000-0000-0000-000000000003
+    type: folder
+    name: Core
+    children:
+    - uuid: 00000000-0000-0000-0000-000000000005
+      type: column
+      name: profit
+uuid: {payload["uuid"]}
 metrics:
 - metric_name: cnt
   verbose_name: null
@@ -150,6 +222,7 @@ columns:
   expression: revenue-expenses
   description: null
   python_date_format: null
+  datetime_format: null
   extra:
     certified_by: User
 - column_name: ds
@@ -163,6 +236,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
+  datetime_format: null
   extra: null
 - column_name: user_id
   verbose_name: null
@@ -175,6 +249,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
+  datetime_format: null
   extra: null
 - column_name: expenses
   verbose_name: null
@@ -187,6 +262,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
+  datetime_format: null
   extra: null
 - column_name: revenue
   verbose_name: null
@@ -199,6 +275,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
+  datetime_format: null
   extra: null
 version: 1.0.0
 database_uuid: {database.uuid}
@@ -221,6 +298,7 @@ extra:
   metadata_cache_timeout: {{}}
   schemas_allowed_for_file_upload: []
 impersonate_user: false
+configuration_method: sqlalchemy_form
 uuid: {database.uuid}
 version: 1.0.0
 """,

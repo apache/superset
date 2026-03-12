@@ -24,6 +24,7 @@ from superset.commands.chart.exceptions import (
     ChartDataCacheLoadError,
     ChartDataQueryFailedError,
 )
+from superset.common.chart_data import ChartDataResultType
 from superset.common.query_context import QueryContext
 from superset.exceptions import CacheLoadError
 
@@ -48,8 +49,13 @@ class ChartDataCommand(BaseCommand):
         except CacheLoadError as ex:
             raise ChartDataCacheLoadError(ex.message) from ex
 
+        # Skip error check for query-only requests - errors are returned in payload
+        # This allows View Query modal to display validation errors
         for query in payload["queries"]:
-            if query.get("error"):
+            if (
+                query.get("error")
+                and self._query_context.result_type != ChartDataResultType.QUERY
+            ):
                 raise ChartDataQueryFailedError(
                     _("Error: %(error)s", error=query["error"])
                 )

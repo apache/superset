@@ -14,31 +14,35 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 import textwrap
 from typing import Union
 
 import pandas as pd
+from flask import current_app
 from sqlalchemy import DateTime, inspect, String
 from sqlalchemy.sql import column
 
-from superset import app, db, security_manager
+from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import DatasourceType
 
-from ..utils.database import get_example_database
+from ..utils.database import get_example_database  # noqa: TID252
 from .helpers import (
-    get_example_url,
     get_slice_json,
     get_table_connector_registry,
     merge_slice,
     misc_dash_slices,
+    read_example_data,
     update_slice_ids,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def gen_filter(
@@ -54,8 +58,8 @@ def gen_filter(
 
 
 def load_data(tbl_name: str, database: Database, sample: bool = False) -> None:
-    url = get_example_url("birth_names2.json.gz")
-    pdf = pd.read_json(url, compression="gzip")
+    pdf = read_example_data("examples://birth_names2.json.gz", compression="gzip")
+
     # TODO(bkyryliuk): move load examples data into the pytest fixture
     if database.backend == "presto":
         pdf.ds = pd.to_datetime(pdf.ds, unit="ms")
@@ -83,8 +87,8 @@ def load_data(tbl_name: str, database: Database, sample: bool = False) -> None:
             method="multi",
             index=False,
         )
-    print("Done loading table!")
-    print("-" * 80)
+    logger.debug("Done loading table!")
+    logger.debug("-" * 80)
 
 
 def load_birth_names(
@@ -104,7 +108,7 @@ def load_birth_names(
     table = get_table_connector_registry()
     obj = db.session.query(table).filter_by(table_name=tbl_name, schema=schema).first()
     if not obj:
-        print(f"Creating table [{tbl_name}] reference")
+        logger.debug("Creating table [%s] reference", tbl_name)
         obj = table(table_name=tbl_name, schema=schema)
         db.session.add(obj)
 
@@ -134,13 +138,14 @@ def _add_table_metrics(datasource: SqlaTable) -> None:
         columns.append(
             TableColumn(
                 column_name="num_california",
-                expression=f"CASE WHEN {col_state} = 'CA' THEN {col_num} ELSE 0 END",
+                expression="CASE WHEN %s = 'CA' THEN %s ELSE 0 END"
+                % (col_state, col_num),
             )
         )
 
     if not any(col.metric_name == "sum__num" for col in metrics):
         col = str(column("num").compile(db.engine))
-        metrics.append(SqlMetric(metric_name="sum__num", expression=f"SUM({col})"))
+        metrics.append(SqlMetric(metric_name="sum__num", expression="SUM(%s)" % col))
 
     for col in columns:
         if col.column_name == "ds":  # type: ignore
@@ -170,7 +175,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
         "limit": "25",
         "granularity_sqla": "ds",
         "groupby": [],
-        "row_limit": app.config["ROW_LIMIT"],
+        "row_limit": current_app.config["ROW_LIMIT"],
         "time_range": "100 years ago : now",
         "viz_type": "table",
         "markup_type": "markdown",
@@ -196,7 +201,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
         "datasource_type": DatasourceType.TABLE,
     }
 
-    print("Creating some slices")
+    logger.debug("Creating some slices")
     slices = [
         Slice(
             **slice_kwargs,
@@ -224,10 +229,10 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
         Slice(
             **slice_kwargs,
             slice_name="Trends",
-            viz_type="line",
+            viz_type="echarts_timeseries_line",
             params=get_slice_json(
                 defaults,
-                viz_type="line",
+                viz_type="echarts_timeseries_line",
                 groupby=["name"],
                 granularity_sqla="ds",
                 rich_tooltip=True,
@@ -239,7 +244,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
         Slice(
             **slice_kwargs,
             slice_name="Genders by State",
-            viz_type="dist_bar",
+            viz_type="echarts_timeseries_bar",
             params=get_slice_json(
                 defaults,
                 adhoc_filters=[
@@ -252,7 +257,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                         "subject": "state",
                     }
                 ],
-                viz_type="dist_bar",
+                viz_type="echarts_timeseries_bar",
                 metrics=[
                     {
                         "expressionType": "SIMPLE",
@@ -338,7 +343,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
         Slice(
             **slice_kwargs,
             slice_name="Top 10 Girl Name Share",
-            viz_type="area",
+            viz_type="echarts_area",
             params=get_slice_json(
                 defaults,
                 adhoc_filters=[gen_filter("gender", "girl")],
@@ -347,7 +352,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 limit=10,
                 stacked_style="expand",
                 time_grain_sqla="P1D",
-                viz_type="area",
+                viz_type="echarts_area",
                 x_axis_forma="smart_date",
                 metrics=metrics,
             ),
@@ -356,7 +361,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
         Slice(
             **slice_kwargs,
             slice_name="Top 10 Boy Name Share",
-            viz_type="area",
+            viz_type="echarts_area",
             params=get_slice_json(
                 defaults,
                 adhoc_filters=[gen_filter("gender", "boy")],
@@ -365,7 +370,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 limit=10,
                 stacked_style="expand",
                 time_grain_sqla="P1D",
-                viz_type="area",
+                viz_type="echarts_area",
                 x_axis_forma="smart_date",
                 metrics=metrics,
             ),
@@ -421,8 +426,10 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
         Slice(
             **slice_kwargs,
             slice_name="Num Births Trend",
-            viz_type="line",
-            params=get_slice_json(defaults, viz_type="line", metrics=metrics),
+            viz_type="echarts_timeseries_line",
+            params=get_slice_json(
+                defaults, viz_type="echarts_timeseries_line", metrics=metrics
+            ),
             owners=[],
         ),
         Slice(
@@ -471,7 +478,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
         Slice(
             **slice_kwargs,
             slice_name="Top 10 California Names Timeseries",
-            viz_type="line",
+            viz_type="echarts_timeseries_line",
             params=get_slice_json(
                 defaults,
                 metrics=[
@@ -485,7 +492,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                         "label": "SUM(num_california)",
                     }
                 ],
-                viz_type="line",
+                viz_type="echarts_timeseries_line",
                 granularity_sqla="ds",
                 groupby=["name"],
                 timeseries_limit_metric={
@@ -561,7 +568,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
 
 
 def create_dashboard(slices: list[Slice]) -> Dashboard:
-    print("Creating a dashboard")
+    logger.debug("Creating a dashboard")
     dash = db.session.query(Dashboard).filter_by(slug="births").first()
     if not dash:
         dash = Dashboard()
@@ -579,7 +586,6 @@ def create_dashboard(slices: list[Slice]) -> Dashboard:
         }
     }"""
     )
-    # pylint: disable=line-too-long
     pos = json.loads(
         textwrap.dedent(
             """\
@@ -854,11 +860,10 @@ def create_dashboard(slices: list[Slice]) -> Dashboard:
         """  # noqa: E501
         )
     )
-    # pylint: enable=line-too-long
     # dashboard v2 doesn't allow add markup slice
     dash.slices = [slc for slc in slices if slc.viz_type != "markup"]
     update_slice_ids(pos)
     dash.dashboard_title = "USA Births Names"
-    dash.position_json = json.dumps(pos, indent=4)
+    dash.position_json = json.dumps(pos, indent=4)  # noqa: TID251
     dash.slug = "births"
     return dash

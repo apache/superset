@@ -19,19 +19,21 @@ from textwrap import dedent
 from unittest import mock, skipUnless
 
 import pandas as pd
+import pytest
 from flask.ctx import AppContext
 from sqlalchemy import types  # noqa: F401
+from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.sql import select
 
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.database import get_example_database
-from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
+from tests.integration_tests.base_tests import SupersetTestCase
 
 
-class TestPrestoDbEngineSpec(TestDbEngineSpec):
-    @skipUnless(TestDbEngineSpec.is_module_installed("pyhive"), "pyhive not installed")
+class TestPrestoDbEngineSpec(SupersetTestCase):
+    @skipUnless(SupersetTestCase.is_module_installed("pyhive"), "pyhive not installed")
     def test_get_datatype_presto(self):
         assert "STRING" == PrestoEngineSpec.get_datatype("string")
 
@@ -87,7 +89,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         inspector.bind.execute.return_value.fetchall = mock.Mock(return_value=[row])
         results = PrestoEngineSpec.get_columns(inspector, Table("", ""))
         assert len(expected_results) == len(results)
-        for expected_result, result in zip(expected_results, results):
+        for expected_result, result in zip(expected_results, results, strict=False):
             assert expected_result[0] == result["column_name"]
             assert expected_result[1] == str(result["type"])
 
@@ -191,7 +193,9 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                 "label": 'column."quoted.nested obj"',
             },
         ]
-        for actual_result, expected_result in zip(actual_results, expected_results):
+        for actual_result, expected_result in zip(
+            actual_results, expected_results, strict=False
+        ):
             assert actual_result.element.name == expected_result["column_name"]
             assert actual_result.name == expected_result["label"]
 
@@ -567,6 +571,27 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         )
         assert result["partitions"]["cols"] == ["ds", "hour"]
         assert result["partitions"]["latest"] == {"ds": "01-01-19", "hour": 1}
+
+    def test_get_extra_table_metadata_no_table_found(self):
+        """
+        Test get_extra_table_metadata when a NoSuchTableError (simulating NoTableFound)
+        is raised by the database.get_df method.
+        """
+        # Setup a fake database
+        database = mock.MagicMock()
+        database.get_indexes.return_value = [
+            {"column_names": ["ds"]}
+        ]  # Return indexes so get_df is called
+        database.get_extra.return_value = {}
+        # Simulate that the table is not found
+        database.get_df.side_effect = NoSuchTableError("Table not found")
+
+        from superset.db_engine_specs.exceptions import SupersetDBAPIProgrammingError
+
+        with pytest.raises(SupersetDBAPIProgrammingError):
+            PrestoEngineSpec.get_extra_table_metadata(
+                database, Table("test_table", "test_schema")
+            )
 
     def test_presto_where_latest_partition(self):
         db = mock.Mock()

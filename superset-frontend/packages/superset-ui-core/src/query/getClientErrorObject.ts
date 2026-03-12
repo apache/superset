@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import {
   COMMON_ERR_MESSAGES,
   JsonObject,
   SupersetClientResponse,
-  t,
   SupersetError,
   ErrorTypeEnum,
   isProbablyHTML,
@@ -105,7 +105,7 @@ export function parseStringResponse(str: string): string {
 }
 
 export function getErrorFromStatusCode(status: number): string | null {
-  return ERROR_CODE_LOOKUP[status] || null;
+  return ERROR_CODE_LOOKUP[status as keyof typeof ERROR_CODE_LOOKUP] || null;
 }
 
 export function retrieveErrorMessage(

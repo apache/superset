@@ -17,8 +17,8 @@
 """Unit tests for Superset with caching"""
 
 import pytest
+from flask import current_app as app
 
-from superset import app, db  # noqa: F401
 from superset.common.db_query_status import QueryStatus
 from superset.extensions import cache_manager
 from superset.utils import json
@@ -47,20 +47,29 @@ class TestCache(SupersetTestCase):
         app.config["DATA_CACHE_CONFIG"] = {"CACHE_TYPE": "NullCache"}
         cache_manager.init_app(app)
 
-        slc = self.get_slice("Top 10 Girl Name Share")
-        json_endpoint = "/superset/explore_json/{}/{}/".format(
-            slc.datasource_type, slc.datasource_id
-        )
+        slc = self.get_slice("Pivot Table v2")
+
+        # Get chart metadata
+        metadata = self.get_json_resp(f"api/v1/chart/{slc.id}")
+        query_context = json.loads(metadata.get("result").get("query_context"))
+        query_context["form_data"] = slc.form_data
+
+        # Request chart for the first time
         resp = self.get_json_resp(
-            json_endpoint, {"form_data": json.dumps(slc.viz.form_data)}
+            "api/v1/chart/data",
+            json_=query_context,
         )
+
+        # Request chart for the second time
         resp_from_cache = self.get_json_resp(
-            json_endpoint, {"form_data": json.dumps(slc.viz.form_data)}
+            "api/v1/chart/data",
+            json_=query_context,
         )
+
         # restore DATA_CACHE_CONFIG
         app.config["DATA_CACHE_CONFIG"] = data_cache_config
-        assert not resp["is_cached"]
-        assert not resp_from_cache["is_cached"]
+        assert resp.get("result")[0].get("cached_dttm") is None
+        assert resp_from_cache.get("result")[0].get("cached_dttm") is None
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_data_cache(self):
@@ -74,30 +83,45 @@ class TestCache(SupersetTestCase):
         }
         cache_manager.init_app(app)
 
-        slc = self.get_slice("Top 10 Girl Name Share")
-        json_endpoint = "/superset/explore_json/{}/{}/".format(
-            slc.datasource_type, slc.datasource_id
-        )
+        slc = self.get_slice("Pivot Table v2")
+
+        # Get chart metadata
+        metadata = self.get_json_resp(f"api/v1/chart/{slc.id}")
+        query_context = json.loads(metadata.get("result").get("query_context"))
+        query_context["form_data"] = slc.form_data
+
+        # Request chart for the first time
         resp = self.get_json_resp(
-            json_endpoint, {"form_data": json.dumps(slc.viz.form_data)}
+            "api/v1/chart/data",
+            json_=query_context,
         )
+
+        # Request chart for the second time
         resp_from_cache = self.get_json_resp(
-            json_endpoint, {"form_data": json.dumps(slc.viz.form_data)}
+            "api/v1/chart/data",
+            json_=query_context,
         )
-        assert not resp["is_cached"]
-        assert resp_from_cache["is_cached"]
+
+        result = resp.get("result")[0]
+        cached_result = resp_from_cache.get("result")[0]
+
+        assert result.get("cached_dttm") is None
+        assert cached_result.get("cached_dttm") is not None
+
         # should fallback to default cache timeout
-        assert resp_from_cache["cache_timeout"] == 10
-        assert resp_from_cache["status"] == QueryStatus.SUCCESS
-        assert resp["data"] == resp_from_cache["data"]
-        assert resp["query"] == resp_from_cache["query"]
+        assert cached_result["cache_timeout"] == 10
+        assert cached_result["status"] == QueryStatus.SUCCESS
+        assert result["data"] == cached_result["data"]
+        assert result["query"] == cached_result["query"]
+
         # should exists in `data_cache`
         assert (
-            cache_manager.data_cache.get(resp_from_cache["cache_key"])["query"]
-            == resp_from_cache["query"]
+            cache_manager.data_cache.get(cached_result["cache_key"])["query"]
+            == cached_result["query"]
         )
+
         # should not exists in `cache`
-        assert cache_manager.cache.get(resp_from_cache["cache_key"]) is None
+        assert cache_manager.cache.get(cached_result["cache_key"]) is None
 
         # reset cache config
         app.config["DATA_CACHE_CONFIG"] = data_cache_config

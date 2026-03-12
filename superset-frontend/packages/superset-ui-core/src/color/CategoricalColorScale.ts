@@ -27,6 +27,8 @@ import getLabelsColorMap, {
 import { getAnalogousColors } from './utils';
 import { FeatureFlag, isFeatureEnabled } from '../utils';
 
+/* eslint-disable @typescript-eslint/no-unsafe-declaration-merging */
+
 // Use type augmentation to correct the fact that
 // an instance of CategoricalScale is also a function
 interface CategoricalColorScale {
@@ -65,7 +67,7 @@ class CategoricalColorScale extends ExtensibleFunction {
     );
     // holds original color scheme colors
     this.originColors = colors;
-    // holds the extended color range (includes analagous colors)
+    // holds the extended color range (includes analogous colors)
     this.colors = colors;
     // holds the values of this specific slice (label+color)
     this.chartLabelsColorMap = new Map();
@@ -139,7 +141,7 @@ class CategoricalColorScale extends ExtensibleFunction {
 
     // a forced color will always be used independently of the usage count
     if (!forcedColor && !isExistingLabel) {
-      if (isFeatureEnabled(FeatureFlag.UseAnalagousColors)) {
+      if (isFeatureEnabled(FeatureFlag.UseAnalogousColors)) {
         this.incrementColorRange();
       }
       if (

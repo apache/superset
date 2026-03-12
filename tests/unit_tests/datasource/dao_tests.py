@@ -76,7 +76,7 @@ def test_get_datasource_sqlatable(session_with_data: Session) -> None:
 
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.TABLE,
-        datasource_id=1,
+        database_id_or_uuid=1,
     )
 
     assert 1 == result.id
@@ -89,7 +89,7 @@ def test_get_datasource_query(session_with_data: Session) -> None:
     from superset.models.sql_lab import Query
 
     result = DatasourceDAO.get_datasource(
-        datasource_type=DatasourceType.QUERY, datasource_id=1
+        datasource_type=DatasourceType.QUERY, database_id_or_uuid=1
     )
 
     assert result.id == 1
@@ -102,7 +102,7 @@ def test_get_datasource_saved_query(session_with_data: Session) -> None:
 
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.SAVEDQUERY,
-        datasource_id=1,
+        database_id_or_uuid=1,
     )
 
     assert result.id == 1
@@ -116,7 +116,7 @@ def test_get_datasource_w_str_param(session_with_data: Session) -> None:
     assert isinstance(
         DatasourceDAO.get_datasource(
             datasource_type="table",
-            datasource_id=1,
+            database_id_or_uuid=1,
         ),
         SqlaTable,
     )
@@ -136,5 +136,5 @@ def test_not_found_datasource(session_with_data: Session) -> None:
     with pytest.raises(DatasourceNotFound):
         DatasourceDAO.get_datasource(
             datasource_type="table",
-            datasource_id=500000,
+            database_id_or_uuid=500000,
         )

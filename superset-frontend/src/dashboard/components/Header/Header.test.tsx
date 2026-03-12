@@ -17,14 +17,19 @@
  * under the License.
  */
 import * as redux from 'redux';
-import { render, screen, fireEvent } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
+import { screen, userEvent, within, waitFor } from '@superset-ui/core/spec';
+import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import fetchMock from 'fetch-mock';
 import { getExtensionsRegistry, JsonObject } from '@superset-ui/core';
-import setupExtensions from 'src/setup/setupExtensions';
+import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import getOwnerName from 'src/utils/getOwnerName';
+import { render, createStore } from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import Header from '.';
 import { DASHBOARD_HEADER_ID } from '../../util/constants';
+import { UPDATE_COMPONENTS } from '../../actions/dashboardLayout';
+import { AutoRefreshStatus } from '../../types/autoRefresh';
 
 const initialState = {
   dashboardInfo: {
@@ -110,15 +115,7 @@ const undoState = {
   ...editableState,
   dashboardLayout: {
     ...initialState.dashboardLayout,
-    past: [{}],
-  },
-};
-
-const redoState = {
-  ...editableState,
-  dashboardLayout: {
-    ...initialState.dashboardLayout,
-    future: [{}],
+    past: [initialState.dashboardLayout.present],
   },
 };
 
@@ -129,12 +126,16 @@ function setup(overrideState: JsonObject = {}) {
     <div className="dashboard">
       <Header />
     </div>,
-    { useRedux: true, initialState: { ...initialState, ...overrideState } },
+    {
+      useRedux: true,
+      useTheme: true,
+      initialState: { ...initialState, ...overrideState },
+    },
   );
 }
 
 async function openActionsDropdown() {
-  const btn = screen.getByRole('img', { name: 'more-horiz' });
+  const btn = screen.getByRole('img', { name: 'ellipsis' });
   userEvent.click(btn);
   expect(await screen.findByTestId('header-actions-menu')).toBeInTheDocument();
 }
@@ -161,7 +162,38 @@ const setRefreshFrequency = jest.fn();
 const onRefresh = jest.fn();
 const dashboardInfoChanged = jest.fn();
 const dashboardTitleChanged = jest.fn();
+const startAutoRefresh = jest.fn();
+const endAutoRefresh = jest.fn();
+const setRefreshInFlight = jest.fn();
+const setStatus = jest.fn();
+const setFetchStartTime = jest.fn();
+const recordSuccess = jest.fn();
+const recordError = jest.fn();
+const setPaused = jest.fn();
+const setPausedByTab = jest.fn();
 
+jest.mock('src/hooks/useUnsavedChangesPrompt', () => ({
+  useUnsavedChangesPrompt: jest.fn(),
+}));
+jest.mock('src/dashboard/contexts/AutoRefreshContext', () => ({
+  useAutoRefreshContext: jest.fn(),
+}));
+jest.mock('src/dashboard/hooks/useRealTimeDashboard', () => ({
+  useRealTimeDashboard: jest.fn(),
+}));
+jest.mock('src/dashboard/hooks/useAutoRefreshTabPause', () => ({
+  useAutoRefreshTabPause: jest.fn(),
+}));
+
+const useAutoRefreshContextMock = jest.requireMock(
+  'src/dashboard/contexts/AutoRefreshContext',
+).useAutoRefreshContext as jest.Mock;
+const useRealTimeDashboardMock = jest.requireMock(
+  'src/dashboard/hooks/useRealTimeDashboard',
+).useRealTimeDashboard as jest.Mock;
+const useAutoRefreshTabPauseMock = jest.requireMock(
+  'src/dashboard/hooks/useAutoRefreshTabPause',
+).useAutoRefreshTabPause as jest.Mock;
 beforeAll(() => {
   jest.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
     addSuccessToast,
@@ -191,6 +223,32 @@ beforeAll(() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: false,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal: jest.fn(),
+  });
+  useAutoRefreshContextMock.mockReturnValue({
+    startAutoRefresh,
+    endAutoRefresh,
+    setRefreshInFlight,
+  });
+  useRealTimeDashboardMock.mockReturnValue({
+    isPaused: false,
+    setStatus,
+    setPaused,
+    setPausedByTab,
+    recordSuccess,
+    recordError,
+    setFetchStartTime,
+  });
+  useAutoRefreshTabPauseMock.mockImplementation(() => {});
+  fetchCharts.mockImplementation(() => undefined);
+  onRefresh.mockResolvedValue(undefined);
+
+  window.history.pushState({}, 'Test page', '/dashboard?standalone=1');
 });
 
 test('should render', () => {
@@ -200,7 +258,7 @@ test('should render', () => {
 
 test('should render the title', () => {
   setup();
-  expect(screen.getByTestId('editable-title')).toHaveTextContent(
+  expect(screen.getByTestId('editable-title-input')).toHaveDisplayValue(
     'Dashboard Title',
   );
 });
@@ -257,19 +315,15 @@ test('should render the "Undo" action as disabled', () => {
   expect(screen.getByTestId('undo-action').parentElement).toBeDisabled();
 });
 
-test('should undo', () => {
+test('should undo when past actions exist', () => {
   setup(undoState);
   const undo = screen.getByTestId('undo-action');
-  expect(onUndo).not.toHaveBeenCalled();
-  userEvent.click(undo);
-  expect(onUndo).toHaveBeenCalledTimes(1);
-});
+  const undoButton = undo.parentElement;
 
-test('should undo with key listener', () => {
-  onUndo.mockReset();
-  setup(undoState);
+  expect(undoButton).toBeEnabled();
   expect(onUndo).not.toHaveBeenCalled();
-  fireEvent.keyDown(document.body, { key: 'z', code: 'KeyZ', ctrlKey: true });
+
+  userEvent.click(undo);
   expect(onUndo).toHaveBeenCalledTimes(1);
 });
 
@@ -278,19 +332,157 @@ test('should render the "Redo" action as disabled', () => {
   expect(screen.getByTestId('redo-action').parentElement).toBeDisabled();
 });
 
-test('should redo', () => {
-  setup(redoState);
+test('should have correct redo button structure', () => {
+  setup(editableState);
+
   const redo = screen.getByTestId('redo-action');
+  const redoButton = redo.parentElement;
+
+  expect(redoButton).toBeInTheDocument();
+  expect(redo).toBeInTheDocument();
+  expect(redoButton).toBeDisabled();
+});
+
+test('should enable undo button when past actions exist', () => {
+  setup(undoState);
+
+  const undoButton = screen.getByTestId('undo-action').parentElement;
+  const redoButton = screen.getByTestId('redo-action').parentElement;
+
+  expect(undoButton).toBeEnabled();
+  expect(redoButton).toBeDisabled();
+  expect(onUndo).not.toHaveBeenCalled();
+
+  userEvent.click(screen.getByTestId('undo-action'));
+  expect(onUndo).toHaveBeenCalledTimes(1);
+});
+
+test('should enable redo button after undo creates future history', async () => {
+  const testStore = createStore(
+    {
+      ...initialState,
+      ...editableState,
+      dashboardLayout: {
+        present: {
+          [DASHBOARD_HEADER_ID]: {
+            meta: { text: 'Original Title' },
+          },
+        },
+        past: [],
+        future: [],
+      },
+    },
+    reducerIndex,
+  );
+
+  render(
+    <div className="dashboard">
+      <Header />
+    </div>,
+    {
+      useRedux: true,
+      useTheme: true,
+      store: testStore,
+    },
+  );
+
+  testStore.dispatch({
+    type: UPDATE_COMPONENTS,
+    payload: {
+      nextComponents: {
+        [DASHBOARD_HEADER_ID]: {
+          meta: { text: 'Updated Title' },
+        },
+      },
+    },
+  });
+
+  await waitFor(() => {
+    expect(screen.getByTestId('undo-action').parentElement).toBeEnabled();
+  });
+
+  testStore.dispatch(UndoActionCreators.undo());
+
+  await waitFor(() => {
+    const redoButton = screen.getByTestId('redo-action').parentElement;
+    expect(redoButton).toBeEnabled();
+  });
+
   expect(onRedo).not.toHaveBeenCalled();
-  userEvent.click(redo);
+
+  userEvent.click(screen.getByTestId('redo-action'));
   expect(onRedo).toHaveBeenCalledTimes(1);
 });
 
-test('should redo with key listener', () => {
-  setup(redoState);
+test('should enable undo button when real actions create past history', async () => {
+  const testStore = createStore(
+    {
+      ...initialState,
+      ...editableState,
+      dashboardLayout: {
+        present: {
+          [DASHBOARD_HEADER_ID]: {
+            meta: { text: 'Original Title' },
+          },
+        },
+        past: [],
+        future: [],
+      },
+    },
+    reducerIndex,
+  );
+
+  render(
+    <div className="dashboard">
+      <Header />
+    </div>,
+    {
+      useRedux: true,
+      useTheme: true,
+      store: testStore,
+    },
+  );
+
+  const undoButton = screen.getByTestId('undo-action').parentElement;
+  expect(undoButton).toBeDisabled();
+
+  testStore.dispatch({
+    type: UPDATE_COMPONENTS,
+    payload: {
+      nextComponents: {
+        [DASHBOARD_HEADER_ID]: {
+          meta: { text: 'Updated Title' },
+        },
+      },
+    },
+  });
+
+  await waitFor(() => {
+    expect(screen.getByTestId('undo-action').parentElement).toBeEnabled();
+  });
+
+  expect(onUndo).not.toHaveBeenCalled();
+
+  userEvent.click(screen.getByTestId('undo-action'));
+  expect(onUndo).toHaveBeenCalledTimes(1);
+});
+
+test('should disable both buttons when no actions available', () => {
+  setup(editableState);
+
+  const undoButton = screen.getByTestId('undo-action').parentElement;
+  const redoButton = screen.getByTestId('redo-action').parentElement;
+
+  expect(undoButton).toBeDisabled();
+  expect(redoButton).toBeDisabled();
+  expect(onUndo).not.toHaveBeenCalled();
   expect(onRedo).not.toHaveBeenCalled();
-  fireEvent.keyDown(document.body, { key: 'y', code: 'KeyY', ctrlKey: true });
-  expect(onRedo).toHaveBeenCalledTimes(1);
+
+  userEvent.click(screen.getByTestId('undo-action'));
+  userEvent.click(screen.getByTestId('redo-action'));
+
+  expect(onUndo).not.toHaveBeenCalled();
+  expect(onRedo).not.toHaveBeenCalled();
 });
 
 test('should render the "Discard changes" button', () => {
@@ -333,9 +525,7 @@ test('should NOT render the "Draft" status', () => {
 test('should render the unselected fave icon', () => {
   setup();
   expect(fetchFaveStar).toHaveBeenCalled();
-  expect(
-    screen.getByRole('img', { name: 'favorite-unselected' }),
-  ).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'unstarred' })).toBeInTheDocument();
 });
 
 test('should render the selected fave icon', () => {
@@ -346,9 +536,7 @@ test('should render the selected fave icon', () => {
     },
   };
   setup(favedState);
-  expect(
-    screen.getByRole('img', { name: 'favorite-selected' }),
-  ).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'starred' })).toBeInTheDocument();
 });
 
 test('should NOT render the fave icon on anonymous user', () => {
@@ -356,17 +544,17 @@ test('should NOT render the fave icon on anonymous user', () => {
     user: undefined,
   };
   setup(anonymousUserState);
-  expect(() =>
-    screen.getByRole('img', { name: 'favorite-unselected' }),
-  ).toThrow('Unable to find');
-  expect(() => screen.getByRole('img', { name: 'favorite-selected' })).toThrow(
+  expect(() => screen.getByRole('img', { name: 'unstarred' })).toThrow(
+    'Unable to find',
+  );
+  expect(() => screen.getByRole('img', { name: 'starred' })).toThrow(
     'Unable to find',
   );
 });
 
 test('should fave', async () => {
   setup();
-  const fave = screen.getByRole('img', { name: 'favorite-unselected' });
+  const fave = screen.getByRole('img', { name: 'unstarred' });
   expect(saveFaveStar).not.toHaveBeenCalled();
   userEvent.click(fave);
   expect(saveFaveStar).toHaveBeenCalledTimes(1);
@@ -388,14 +576,95 @@ test('should toggle the edit mode', () => {
 
 test('should render the dropdown icon', () => {
   setup();
-  expect(screen.getByRole('img', { name: 'more-horiz' })).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'ellipsis' })).toBeInTheDocument();
 });
 
 test('should refresh the charts', async () => {
-  setup();
+  setup({
+    dashboardState: {
+      ...initialState.dashboardState,
+      sliceIds: [1],
+    },
+    charts: {
+      1: { latestQueryFormData: { metric: 'value' } },
+    },
+  });
   await openActionsDropdown();
   userEvent.click(screen.getByText('Refresh dashboard'));
   expect(onRefresh).toHaveBeenCalledTimes(1);
+});
+
+test('auto-refresh uses onRefresh with skipped filters and toggles refresh state', async () => {
+  jest.useFakeTimers();
+  onRefresh.mockResolvedValue(undefined);
+
+  const originalRequestAnimationFrame = window.requestAnimationFrame;
+  window.requestAnimationFrame = callback => {
+    callback(0);
+    return 0;
+  };
+
+  try {
+    setup({
+      dashboardState: {
+        ...initialState.dashboardState,
+        refreshFrequency: 10,
+        sliceIds: [1, 2],
+      },
+      charts: {
+        1: { latestQueryFormData: { metric: 'a' }, chartStatus: 'success' },
+        2: { latestQueryFormData: { metric: 'b' }, chartStatus: 'success' },
+      },
+    });
+
+    jest.advanceTimersByTime(10000);
+    await waitFor(() =>
+      expect(onRefresh).toHaveBeenCalledWith([1, 2], true, 2000, 1, true),
+    );
+
+    expect(fetchCharts).not.toHaveBeenCalled();
+    expect(startAutoRefresh).toHaveBeenCalled();
+    expect(setStatus).toHaveBeenCalledWith(AutoRefreshStatus.Fetching);
+    expect(setRefreshInFlight).toHaveBeenCalledWith(true);
+    expect(setRefreshInFlight).toHaveBeenCalledWith(false);
+    expect(endAutoRefresh).toHaveBeenCalled();
+  } finally {
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+    jest.useRealTimers();
+  }
+});
+
+test('resume clears tab pause flag', () => {
+  useRealTimeDashboardMock.mockReturnValue({
+    isRealTimeDashboard: true,
+    isPaused: true,
+    isPausedByTab: true,
+    effectiveStatus: AutoRefreshStatus.Paused,
+    lastSuccessfulRefresh: null,
+    lastAutoRefreshTime: null,
+    refreshErrorCount: 0,
+    refreshFrequency: 10,
+    setStatus,
+    setPaused,
+    setPausedByTab,
+    recordSuccess,
+    recordError,
+    setFetchStartTime,
+    autoRefreshPauseOnInactiveTab: true,
+    setPauseOnInactiveTab: jest.fn(),
+  });
+
+  setup({
+    dashboardState: {
+      ...initialState.dashboardState,
+      refreshFrequency: 10,
+    },
+  });
+
+  userEvent.click(screen.getByTestId('auto-refresh-toggle'));
+
+  expect(setPaused).toHaveBeenCalledWith(false);
+  expect(setPausedByTab).toHaveBeenCalledWith(false);
 });
 
 test('should render an extension component if one is supplied', () => {
@@ -403,7 +672,7 @@ test('should render an extension component if one is supplied', () => {
   extensionsRegistry.set('dashboard.nav.right', () => (
     <>dashboard.nav.right extension component</>
   ));
-  setupExtensions();
+  setupCodeOverrides();
 
   setup();
   expect(
@@ -438,6 +707,36 @@ test('should NOT render MetadataBar when embedded', () => {
   ).not.toBeInTheDocument();
 });
 
+test('should hide edit button and navbar, and show Exit fullscreen when in fullscreen mode', () => {
+  const fullscreenState = {
+    ...initialState,
+    dashboardState: {
+      ...initialState.dashboardState,
+      isFullscreenMode: true,
+    },
+  };
+
+  setup(fullscreenState);
+  expect(screen.queryByTestId('edit-dashboard-button')).not.toBeInTheDocument();
+  expect(screen.getByTestId('actions-trigger')).toBeInTheDocument();
+  expect(screen.queryByTestId('main-navigation')).not.toBeInTheDocument();
+});
+
+test('should show Exit fullscreen when in fullscreen mode', async () => {
+  setup();
+
+  userEvent.click(screen.getByTestId('actions-trigger'));
+
+  expect(await screen.findByText('Exit fullscreen')).toBeInTheDocument();
+});
+
+test('should have fullscreen option in dropdown', async () => {
+  setup();
+  await openActionsDropdown();
+  expect(screen.getByText('Exit fullscreen')).toBeInTheDocument();
+  expect(screen.queryByText('Enter fullscreen')).not.toBeInTheDocument();
+});
+
 test('should render MetadataBar when not in edit mode and not embedded', () => {
   const state = {
     dashboardInfo: {
@@ -449,4 +748,223 @@ test('should render MetadataBar when not in edit mode and not embedded', () => {
   expect(
     screen.getByText(state.dashboardInfo.changed_on_delta_humanized),
   ).toBeInTheDocument();
+});
+
+test('should show UnsavedChangesModal when there are unsaved changes and user tries to navigate', async () => {
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: true,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal: jest.fn(),
+  });
+
+  setup({ ...editableState });
+
+  const modalTitle: HTMLElement = await screen.findByText(
+    'Save changes to your dashboard?',
+  );
+
+  const modalBody: HTMLElement = await screen.findByText(
+    "If you don't save, changes will be lost.",
+  );
+
+  expect(modalTitle).toBeInTheDocument();
+  expect(modalBody).toBeInTheDocument();
+});
+
+test('should call handleSaveAndCloseModal when Save is clicked in UnsavedChangesModal', async () => {
+  const handleSaveAndCloseModal = jest.fn();
+
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: true,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal,
+  });
+
+  setup({ ...editableState });
+
+  const modal: HTMLElement = await screen.findByRole('dialog');
+  const saveButton: HTMLElement = within(modal).getByRole('button', {
+    name: /save/i,
+  });
+
+  userEvent.click(saveButton);
+
+  expect(handleSaveAndCloseModal).toHaveBeenCalled();
+});
+
+test('should call handleConfirmNavigation when user confirms navigation in UnsavedChangesModal', async () => {
+  const handleConfirmNavigation = jest.fn();
+
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: true,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation,
+    handleSaveAndCloseModal: jest.fn(),
+  });
+
+  setup({ ...editableState });
+
+  const modal: HTMLElement = await screen.findByRole('dialog');
+  const discardButton: HTMLElement = within(modal).getByRole('button', {
+    name: /discard/i,
+  });
+
+  userEvent.click(discardButton);
+
+  expect(handleConfirmNavigation).toHaveBeenCalled();
+});
+
+test('should call setShowUnsavedChangesModal(false) on cancel', async () => {
+  const setShowModal = jest.fn();
+
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: true,
+    setShowModal,
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal: jest.fn(),
+  });
+
+  setup({ ...editableState });
+
+  const modal: HTMLElement = await screen.findByRole('dialog');
+  const closeButton: HTMLElement = within(modal).getByRole('button', {
+    name: /close/i,
+  });
+
+  userEvent.click(closeButton);
+
+  expect(setShowModal).toHaveBeenCalledWith(false);
+});
+
+test('should clear history and unsaved changes when entering edit mode', () => {
+  const clearDashboardHistory = jest.fn();
+
+  jest.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
+    addSuccessToast,
+    addDangerToast,
+    addWarningToast,
+    onUndo,
+    onRedo,
+    setEditMode,
+    setUnsavedChanges,
+    fetchFaveStar,
+    saveFaveStar,
+    savePublished,
+    fetchCharts,
+    updateDashboardTitle,
+    updateCss,
+    onChange,
+    onSave,
+    setMaxUndoHistoryExceeded,
+    maxUndoHistoryToast,
+    logEvent,
+    setRefreshFrequency,
+    onRefresh,
+    dashboardInfoChanged,
+    dashboardTitleChanged,
+    clearDashboardHistory,
+  }));
+
+  const canEditState = {
+    dashboardInfo: {
+      ...initialState.dashboardInfo,
+      dash_edit_perm: true,
+    },
+  };
+
+  setup(canEditState);
+
+  const editButton = screen.getByText('Edit dashboard');
+  userEvent.click(editButton);
+
+  expect(clearDashboardHistory).toHaveBeenCalledTimes(1);
+  expect(setUnsavedChanges).toHaveBeenCalledWith(false);
+});
+
+test('should mark theme change as unsaved when in edit mode', async () => {
+  const testStore = createStore(
+    {
+      ...initialState,
+      ...editableState,
+      dashboardInfo: {
+        ...editableState.dashboardInfo,
+        theme: 'LIGHT',
+      },
+    },
+    reducerIndex,
+  );
+
+  render(
+    <div className="dashboard">
+      <Header />
+    </div>,
+    {
+      useRedux: true,
+      useTheme: true,
+      store: testStore,
+    },
+  );
+
+  expect(setUnsavedChanges).not.toHaveBeenCalledWith(true);
+
+  testStore.dispatch({
+    type: 'DASHBOARD_INFO_UPDATED',
+    newInfo: {
+      theme: 'DARK',
+    },
+  });
+
+  await waitFor(() => {
+    expect(setUnsavedChanges).toHaveBeenCalledWith(true);
+  });
+});
+
+test('should not mark initial theme as unsaved change', () => {
+  setup({
+    ...editableState,
+    dashboardInfo: {
+      ...editableState.dashboardInfo,
+      theme: 'LIGHT',
+    },
+  });
+
+  expect(setUnsavedChanges).not.toHaveBeenCalledWith(true);
+});
+
+test('should sync theme ref when navigating between dashboards', async () => {
+  const testStore = createStore(
+    {
+      ...initialState,
+      dashboardInfo: {
+        ...initialState.dashboardInfo,
+        theme: 'LIGHT',
+      },
+    },
+    reducerIndex,
+  );
+
+  render(
+    <div className="dashboard">
+      <Header />
+    </div>,
+    {
+      useRedux: true,
+      useTheme: true,
+      store: testStore,
+    },
+  );
+
+  testStore.dispatch({
+    type: 'DASHBOARD_INFO_UPDATED',
+    newInfo: {
+      id: 2,
+      theme: 'DARK',
+    },
+  });
+
+  await waitFor(() => {
+    expect(setUnsavedChanges).toHaveBeenCalledTimes(0);
+  });
 });
