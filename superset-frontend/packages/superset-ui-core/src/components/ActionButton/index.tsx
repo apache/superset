@@ -18,10 +18,7 @@
  */
 
 import type { ReactElement, ReactNode } from 'react';
-import {
-  Tooltip,
-  type TooltipPlacement,
-} from '@superset-ui/core/components';
+import { Tooltip, type TooltipPlacement } from '@superset-ui/core/components';
 import { css, useTheme } from '@apache-superset/core/theme';
 
 export interface ActionProps {

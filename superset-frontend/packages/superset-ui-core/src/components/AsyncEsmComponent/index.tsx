@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  useEffect,
-  useState,
-  forwardRef,
-  ComponentType,
-} from 'react';
+import React, { useEffect, useState, forwardRef, ComponentType } from 'react';
 
 import { Loading } from '../Loading';
 import type { PlaceholderProps } from './types';
@@ -87,7 +82,9 @@ export function AsyncEsmComponent<
     return promise;
   }
 
-  type AsyncComponent = ReturnType<typeof forwardRef> & {
+  type AsyncComponent = React.ForwardRefExoticComponent<
+    React.PropsWithoutRef<FullProps> & React.RefAttributes<unknown>
+  > & {
     preload?: typeof waitForPromise;
   };
 
