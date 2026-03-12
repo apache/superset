@@ -35,8 +35,8 @@ from superset.exceptions import (
     QueryObjectValidationError,
 )
 from superset.extensions import event_logger
-from superset.sql.parse import sanitize_clause
-from superset.superset_typing import Column, Metric, OrderBy
+from superset.sql.parse import sanitize_clause, transpile_to_dialect
+from superset.superset_typing import Column, Metric, OrderBy, QueryObjectDict
 from superset.utils import json, pandas_postprocessing
 from superset.utils.core import (
     DTTM_ALIAS,
@@ -46,7 +46,7 @@ from superset.utils.core import (
     is_adhoc_metric,
     QueryObjectFilterClause,
 )
-from superset.utils.hashing import md5_sha_from_dict
+from superset.utils.hashing import hash_from_dict
 from superset.utils.json import json_int_dttm_ser
 
 if TYPE_CHECKING:
@@ -337,6 +337,8 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     def _sanitize_filters(self) -> None:
         from superset.jinja_context import get_template_processor
 
+        needs_transpilation = self.extras.get("transpile_to_dialect", False)
+
         for param in ("where", "having"):
             clause = self.extras.get(param)
             if clause and self.datasource:
@@ -352,7 +354,12 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                                 msg=ex.message,
                             )
                         ) from ex
+
                     engine = database.db_engine_spec.engine
+
+                    if needs_transpilation:
+                        clause = transpile_to_dialect(clause, engine)
+
                     sanitized_clause = sanitize_clause(clause, engine)
                     if sanitized_clause != clause:
                         self.extras[param] = sanitized_clause
@@ -370,8 +377,8 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 )
             )
 
-    def to_dict(self) -> dict[str, Any]:
-        query_object_dict = {
+    def to_dict(self) -> QueryObjectDict:
+        query_object_dict: QueryObjectDict = {
             "apply_fetch_values_predicate": self.apply_fetch_values_predicate,
             "columns": self.columns,
             "extras": self.extras,
@@ -385,6 +392,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             "metrics": self.metrics,
             "order_desc": self.order_desc,
             "orderby": self.orderby,
+            "post_processing": self.post_processing,
             "row_limit": self.row_limit,
             "row_offset": self.row_offset,
             "series_columns": self.series_columns,
@@ -412,7 +420,8 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         the use-provided inputs to bounds, which may be time-relative (as in
         "5 days ago" or "now").
         """
-        cache_dict = self.to_dict()
+        # Cast to dict[str, Any] for mutation operations
+        cache_dict: dict[str, Any] = dict(self.to_dict())
         cache_dict.update(extra)
 
         # TODO: the below KVs can all be cleaned up and moved to `to_dict()` at some
@@ -427,7 +436,18 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         if self.time_range:
             cache_dict["time_range"] = self.time_range
         if self.post_processing:
-            cache_dict["post_processing"] = self.post_processing
+            # Exclude contribution_totals from post_processing as it's computed at
+            # runtime and varies per request, which would cause cache key mismatches
+            post_processing_for_cache = []
+            for pp in self.post_processing:
+                pp_copy = dict(pp)
+                if pp_copy.get("operation") == "contribution" and "options" in pp_copy:
+                    options = dict(pp_copy["options"])
+                    # Remove contribution_totals as it's dynamically calculated
+                    options.pop("contribution_totals", None)
+                    pp_copy["options"] = options
+                post_processing_for_cache.append(pp_copy)
+            cache_dict["post_processing"] = post_processing_for_cache
         if self.time_offsets:
             cache_dict["time_offsets"] = self.time_offsets
 
@@ -479,7 +499,17 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             # datasource or database do not exist
             pass
 
-        return md5_sha_from_dict(cache_dict, default=json_int_dttm_ser, ignore_nan=True)
+        cache_key = hash_from_dict(
+            cache_dict, default=json_int_dttm_ser, ignore_nan=True
+        )
+        # Log QueryObject cache key generation for debugging
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(
+                "QueryObject CACHE KEY generated: %s from dict with keys: %s",
+                cache_key,
+                sorted(cache_dict.keys()),
+            )
+        return cache_key
 
     def exec_post_processing(self, df: DataFrame) -> DataFrame:
         """

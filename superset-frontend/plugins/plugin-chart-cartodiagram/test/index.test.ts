@@ -27,7 +27,7 @@ import { CartodiagramPlugin } from '../src';
  * properly transform the data and/or any resulting props).
  */
 describe('CartodiagramPlugin', () => {
-  it('exists', () => {
+  test('exists', () => {
     expect(CartodiagramPlugin).toBeDefined();
   });
 });

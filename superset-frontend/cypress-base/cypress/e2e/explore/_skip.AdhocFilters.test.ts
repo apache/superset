@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-describe.skip('AdhocFilters', () => {
+describe('AdhocFilters', () => {
   beforeEach(() => {
     cy.intercept('GET', '**/api/v1/datasource/table/*/column/name/values').as(
       'filterValues',

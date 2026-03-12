@@ -17,9 +17,10 @@
  * under the License.
  */
 import { useState } from 'react';
-import { t, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
+import { useTheme } from '@apache-superset/core/theme';
 import {
-  Alert,
   Icons,
   Modal,
   Tooltip,

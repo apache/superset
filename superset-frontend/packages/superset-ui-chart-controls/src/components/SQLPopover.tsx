@@ -22,7 +22,8 @@ import {
   SQLEditor,
 } from '@superset-ui/core/components';
 import { CalculatorOutlined } from '@ant-design/icons';
-import { css, styled, useTheme, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 
 const StyledCalculatorIcon = styled(CalculatorOutlined)`
   ${({ theme }) => css`

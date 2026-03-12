@@ -132,7 +132,7 @@ export const NATIVE_FILTER_ID = 'NATIVE_FILTER-p4LImrSgA';
 export const singleNativeFiltersState = {
   filters: {
     [NATIVE_FILTER_ID]: {
-      id: [NATIVE_FILTER_ID],
+      id: NATIVE_FILTER_ID,
       name: 'eth',
       type: 'text',
       filterType: 'filter_select',

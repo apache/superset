@@ -18,18 +18,19 @@
  */
 import { ReactNode, CSSProperties, PureComponent } from 'react';
 import cx from 'classnames';
-import { addAlpha, css, styled } from '@superset-ui/core';
+import { addAlpha } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/theme';
 
 type ShouldFocusContainer = HTMLDivElement & {
-  contains: (event_target: EventTarget & HTMLElement) => Boolean;
+  contains: (event_target: EventTarget & HTMLElement) => boolean;
 };
 
 interface WithPopoverMenuProps {
   children: ReactNode;
-  disableClick: Boolean;
+  disableClick: boolean;
   menuItems: ReactNode[];
-  onChangeFocus: (focus: Boolean) => void;
-  isFocused: Boolean;
+  onChangeFocus: (focus: boolean) => void;
+  isFocused: boolean;
   // Event argument is left as "any" because of the clash. In defaultProps it seems
   // like it should be React.FocusEvent<>, however from handleClick() we can also
   // derive that type is EventListenerOrEventListenerObject.
@@ -37,13 +38,13 @@ interface WithPopoverMenuProps {
     event: any,
     container: ShouldFocusContainer,
     menuRef: HTMLDivElement | null,
-  ) => Boolean;
-  editMode: Boolean;
+  ) => boolean;
+  editMode: boolean;
   style: CSSProperties;
 }
 
 interface WithPopoverMenuState {
-  isFocused: Boolean;
+  isFocused: boolean;
 }
 
 const WithPopoverMenuStyles = styled.div`
@@ -111,6 +112,8 @@ export default class WithPopoverMenu extends PureComponent<
 
   menuRef: HTMLDivElement | null;
 
+  focusEvent: Event | null;
+
   static defaultProps = {
     children: null,
     disableClick: false,
@@ -135,6 +138,7 @@ export default class WithPopoverMenu extends PureComponent<
       isFocused: props.isFocused!,
     };
     this.menuRef = null;
+    this.focusEvent = null;
     this.setRef = this.setRef.bind(this);
     this.setMenuRef = this.setMenuRef.bind(this);
     this.handleClick = this.handleClick.bind(this);
@@ -165,7 +169,7 @@ export default class WithPopoverMenu extends PureComponent<
     this.menuRef = ref;
   }
 
-  shouldHandleFocusChange(shouldFocus: Boolean): boolean {
+  shouldHandleFocusChange(shouldFocus: boolean): boolean {
     const { disableClick } = this.props;
     const { isFocused } = this.state;
 
@@ -177,6 +181,17 @@ export default class WithPopoverMenu extends PureComponent<
 
   handleClick(event: any) {
     if (!this.props.editMode) {
+      return;
+    }
+
+    // Skip if this is the same event that just triggered focus via onClick.
+    // The document-level listener registered during focus will see the same
+    // event bubble up; by that time a re-render may have detached the
+    // original event.target, causing shouldFocus to return false and
+    // immediately undoing the focus.
+    const nativeEvent = event.nativeEvent || event;
+    if (this.focusEvent === nativeEvent) {
+      this.focusEvent = null;
       return;
     }
 
@@ -193,6 +208,7 @@ export default class WithPopoverMenu extends PureComponent<
     if (!disableClick && shouldFocus && !this.state.isFocused) {
       document.addEventListener('click', this.handleClick);
       document.addEventListener('drag', this.handleClick);
+      this.focusEvent = event.nativeEvent || event;
 
       this.setState(() => ({ isFocused: true }));
 
@@ -225,7 +241,7 @@ export default class WithPopoverMenu extends PureComponent<
         {children}
         {editMode && isFocused && (menuItems?.length ?? 0) > 0 && (
           <PopoverMenuStyles ref={this.setMenuRef}>
-            {menuItems.map((node: ReactNode, i: Number) => (
+            {menuItems.map((node: ReactNode, i: number) => (
               <div className="menu-item" key={`menu-item-${i}`}>
                 {node}
               </div>

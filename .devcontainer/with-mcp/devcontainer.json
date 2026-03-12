@@ -1,0 +1,29 @@
+{
+  // Extend the base configuration
+  "extends": "../devcontainer-base.json",
+
+  "name": "Apache Superset Development with MCP",
+
+  // Forward ports for development
+  "forwardPorts": [9001, 5008],
+  "portsAttributes": {
+    "9001": {
+      "label": "Superset (via Webpack Dev Server)",
+      "onAutoForward": "notify",
+      "visibility": "public"
+    },
+    "5008": {
+      "label": "MCP Service (Model Context Protocol)",
+      "onAutoForward": "notify",
+      "visibility": "private"
+    }
+  },
+
+  // Auto-start Superset with MCP on Codespace resume
+  "postStartCommand": "ENABLE_MCP=true .devcontainer/start-superset.sh",
+
+  // Environment variables
+  "containerEnv": {
+    "ENABLE_MCP": "true"
+  }
+}

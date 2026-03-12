@@ -18,7 +18,8 @@
  */
 
 import cls from 'classnames';
-import { styled, useTheme } from '../../theme';
+import { t } from '@apache-superset/core/translation';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { Loading as LoaderSvg } from '../assets';
 import type { LoadingProps, SizeOption } from './types';
 
@@ -49,7 +50,9 @@ const LoaderWrapper = styled.div<{
 
   &.inline-centered {
     margin: 0 auto;
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   &.floating {
     position: absolute;
@@ -77,14 +80,14 @@ export function Loading({
   const renderSpinner = () => {
     // Precedence: explicit image prop > brandSpinnerSvg > brandSpinnerUrl > default SVG
     if (image) {
-      return <img src={image} alt="Loading..." />;
+      return <img src={image} alt={`${t('Loading')}...`} />;
     }
     if (theme.brandSpinnerSvg) {
       const svgDataUri = `data:image/svg+xml;base64,${btoa(theme.brandSpinnerSvg)}`;
-      return <img src={svgDataUri} alt="Loading..." />;
+      return <img src={svgDataUri} alt={`${t('Loading')}...`} />;
     }
     if (theme.brandSpinnerUrl) {
-      return <img src={theme.brandSpinnerUrl} alt="Loading..." />;
+      return <img src={theme.brandSpinnerUrl} alt={`${t('Loading')}...`} />;
     }
     // Default: use the imported SVG component
     return <LoaderSvg />;
@@ -98,7 +101,7 @@ export function Loading({
       className={cls('loading', position, className)}
       role="status"
       aria-live="polite"
-      aria-label="Loading"
+      aria-label={t('Loading')}
       data-test="loading-indicator"
     >
       {renderSpinner()}

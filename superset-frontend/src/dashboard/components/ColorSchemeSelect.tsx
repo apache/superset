@@ -17,15 +17,14 @@
  * under the License.
  */
 import { ReactNode, useMemo } from 'react';
+import { t } from '@apache-superset/core/translation';
 import {
-  css,
   ColorScheme,
   ColorSchemeGroup,
-  t,
-  useTheme,
   getCategoricalSchemeRegistry,
   CategoricalScheme,
 } from '@superset-ui/core';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { sortBy } from 'lodash';
 import { Select, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';

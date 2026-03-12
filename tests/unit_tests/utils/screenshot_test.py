@@ -22,7 +22,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from pytest_mock import MockerFixture
 
-from superset.utils.hashing import md5_sha_from_dict
+from superset.utils.hashing import hash_from_dict
 from superset.utils.screenshots import (
     BaseScreenshot,
     ChartScreenshot,
@@ -74,9 +74,9 @@ def test_get_screenshot(mocker: MockerFixture, screenshot_obj):
     assert screenshot_data == fake_bytes
 
 
-def test_get_cache_key(screenshot_obj):
+def test_get_cache_key(app_context, screenshot_obj):
     """Test get_cache_key method"""
-    expected_cache_key = md5_sha_from_dict(
+    expected_cache_key = hash_from_dict(
         {
             "thumbnail_type": "",
             "digest": screenshot_obj.digest,
@@ -91,7 +91,7 @@ def test_get_cache_key(screenshot_obj):
 
 def test_get_from_cache_key(mocker: MockerFixture, screenshot_obj):
     """get_from_cache_key should always return a ScreenshotCachePayload Object"""
-    # backwards compatability test for retrieving plain bytes
+    # backwards compatibility test for retrieving plain bytes
     fake_bytes = b"fake_screenshot_data"
     BaseScreenshot.cache = MockCache()
     BaseScreenshot.cache.set("key", fake_bytes)

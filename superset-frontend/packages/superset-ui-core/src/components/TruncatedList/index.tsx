@@ -19,7 +19,9 @@
 
 import { ReactNode, Key, useMemo } from 'react';
 
-import { styled, t, useTruncation } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { useTruncation } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import { Tooltip } from '@superset-ui/core/components';
 
 export type TruncatedListProps<ListItemType> = {

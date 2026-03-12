@@ -160,6 +160,7 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
       echartOptions={echartOptions}
       eventHandlers={eventHandlers}
       selectedValues={selectedValues}
+      vizType={formData.vizType}
     />
   );
 }

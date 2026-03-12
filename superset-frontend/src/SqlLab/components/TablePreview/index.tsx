@@ -19,21 +19,16 @@
 import { type FC, useCallback, useMemo, useRef, useState } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { nanoid } from 'nanoid';
-import {
-  ClientErrorObject,
-  css,
-  getExtensionsRegistry,
-  styled,
-  t,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { ClientErrorObject, getExtensionsRegistry } from '@superset-ui/core';
+import { Alert } from '@apache-superset/core/components';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import {
   SafeMarkdown,
-  Alert,
   Breadcrumb,
-  Button,
   Card,
-  Dropdown,
   Skeleton,
+  Flex,
 } from '@superset-ui/core/components';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -47,7 +42,8 @@ import {
   useTableMetadataQuery,
 } from 'src/hooks/apiResources';
 import { runTablePreviewQuery } from 'src/SqlLab/actions/sqlLab';
-import { Menu } from '@superset-ui/core/components/Menu';
+import { PREVIEW_QUERY_LIMIT } from 'src/SqlLab/constants';
+import { ActionButton } from '@superset-ui/core/components/ActionButton';
 import ResultSet from '../ResultSet';
 import ShowSQL from '../ShowSQL';
 
@@ -68,25 +64,7 @@ const TABS_KEYS = {
   INDEXES: 'indexes',
   SAMPLE: 'sample',
 };
-const MENUS = [
-  {
-    key: 'refresh-table',
-    label: t('Refresh table schema'),
-    icon: <Icons.SyncOutlined iconSize="s" aria-hidden />,
-  },
-  {
-    key: 'copy-select-statement',
-    label: t('Copy SELECT statement'),
-    icon: <Icons.CopyOutlined iconSize="s" aria-hidden />,
-  },
-  {
-    key: 'show-create-view-statement',
-    label: t('Show CREATE VIEW statement'),
-    icon: <Icons.EyeOutlined iconSize="s" aria-hidden />,
-  },
-];
 const TAB_HEADER_HEIGHT = 80;
-const PREVIEW_QUERY_LIMIT = 100;
 
 const Title = styled.div`
   ${({ theme }) => css`
@@ -133,6 +111,7 @@ const renderWell = (partitions: TableMetaData['partitions']) => {
 
 const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
   const dispatch = useDispatch();
+  const theme = useTheme();
   const [databaseName, backend, disableDataPreview] = useSelector<
     SqlLabRootState,
     string[]
@@ -240,16 +219,37 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
     ],
   );
 
-  const dropdownMenu = useMemo(() => {
-    let menus = [...MENUS];
-    if (!tableData.selectStar) {
-      menus = menus.filter(({ key }) => key !== 'copy-select-statement');
-    }
-    if (!tableData.view) {
-      menus = menus.filter(({ key }) => key !== 'show-create-view-statement');
-    }
-    return menus;
-  }, [tableData.view, tableData.selectStar]);
+  const titleActions = () => (
+    <Flex
+      align="center"
+      css={css`
+        padding-left: ${theme.sizeUnit * 2}px;
+      `}
+    >
+      <ActionButton
+        label={t('Refresh table schema')}
+        tooltip={t('Refresh table schema')}
+        icon={<Icons.SyncOutlined iconSize="m" />}
+        onClick={refreshTableMetadata}
+      />
+      {tableData.selectStar && (
+        <ActionButton
+          label={t('Copy SELECT statement')}
+          icon={<Icons.CopyOutlined iconSize="m" />}
+          tooltip={t('Copy SELECT statement')}
+          onClick={() => copyStatementActionRef.current?.click()}
+        />
+      )}
+      {tableData.view && (
+        <ActionButton
+          label={t('Show CREATE VIEW statement')}
+          icon={<Icons.EyeOutlined iconSize="m" />}
+          tooltip={t('Show CREATE VIEW statement')}
+          onClick={() => showViewStatementActionRef.current?.click()}
+        />
+      )}
+    </Flex>
+  );
 
   if (isMetadataLoading) {
     return <Skeleton active />;
@@ -289,11 +289,11 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
         {schema && <Breadcrumb.Item>{schema}</Breadcrumb.Item>}
         <Breadcrumb.Item> </Breadcrumb.Item>
       </Breadcrumb>
-      <div style={{ display: 'none' }}>
+      <div style={{ display: 'none' }} aria-hidden="true">
         <CopyToClipboard
           copyNode={
             <button type="button" ref={copyStatementActionRef}>
-              invisible button
+              {t('Copy')}
             </button>
           }
           text={tableData.selectStar}
@@ -306,7 +306,7 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
             title={t('CREATE VIEW statement')}
             triggerNode={
               <button type="button" ref={showViewStatementActionRef}>
-                invisible button
+                {t('Show SQL')}
               </button>
             }
           />
@@ -315,33 +315,7 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
       <Title>
         <Icons.InsertRowAboveOutlined iconSize="l" />
         {tableName}
-        <Dropdown
-          popupRender={() => (
-            <Menu
-              onClick={({ key }) => {
-                if (key === 'refresh-table') {
-                  refreshTableMetadata();
-                }
-                if (key === 'copy-select-statement') {
-                  copyStatementActionRef.current?.click();
-                }
-                if (key === 'show-create-view-statement') {
-                  showViewStatementActionRef.current?.click();
-                }
-              }}
-              items={dropdownMenu}
-            />
-          )}
-          trigger={['click']}
-        >
-          <Button buttonSize="xsmall" buttonStyle="link">
-            <Icons.DownSquareOutlined
-              iconSize="m"
-              style={{ marginTop: 2, marginLeft: 4 }}
-              aria-label={t('Table actions')}
-            />
-          </Button>
-        </Dropdown>
+        {titleActions()}
       </Title>
       {isMetadataRefreshing ? (
         <Skeleton active />
@@ -440,6 +414,7 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
                     css={css`
                       height: ${height}px;
                     `}
+                    tabBarStyle={{ paddingLeft: theme.sizeUnit * 4 }}
                     items={tabItems}
                   />
                 );

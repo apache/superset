@@ -16,24 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  FormItem,
-  Input,
-  Select,
-  AsyncSelect,
-} from '@superset-ui/core/components';
-import { t } from '@superset-ui/core';
-import { FC } from 'react';
-import { GroupObject } from 'src/pages/GroupsList';
-import { FormattedPermission } from './types';
+import { FormItem, Input, AsyncSelect } from '@superset-ui/core/components';
+import { t } from '@apache-superset/core/translation';
 import { fetchUserOptions } from '../groups/utils';
+import { fetchGroupOptions, fetchPermissionOptions } from './utils';
 
-interface PermissionsFieldProps {
-  permissions: FormattedPermission[];
-}
-
-interface GroupsFieldProps {
-  groups: GroupObject[];
+interface AsyncOptionsFieldProps {
+  addDangerToast: (msg: string) => void;
+  loading?: boolean;
 }
 
 interface UsersFieldProps {
@@ -51,17 +41,19 @@ export const RoleNameField = () => (
   </FormItem>
 );
 
-export const PermissionsField: FC<PermissionsFieldProps> = ({
-  permissions,
-}) => (
+export const PermissionsField = ({
+  addDangerToast,
+  loading = false,
+}: AsyncOptionsFieldProps) => (
   <FormItem name="rolePermissions" label={t('Permissions')}>
-    <Select
+    <AsyncSelect
       mode="multiple"
       name="rolePermissions"
-      options={permissions.map(permission => ({
-        label: permission.label,
-        value: permission.id,
-      }))}
+      placeholder={t('Select permissions')}
+      options={(filterValue, page, pageSize) =>
+        fetchPermissionOptions(filterValue, page, pageSize, addDangerToast)
+      }
+      loading={loading}
       getPopupContainer={trigger => trigger.closest('.ant-modal-content')}
       data-test="permissions-select"
     />
@@ -83,12 +75,19 @@ export const UsersField = ({ addDangerToast, loading }: UsersFieldProps) => (
   </FormItem>
 );
 
-export const GroupsField: FC<GroupsFieldProps> = ({ groups }) => (
+export const GroupsField = ({
+  addDangerToast,
+  loading = false,
+}: AsyncOptionsFieldProps) => (
   <FormItem name="roleGroups" label={t('Groups')}>
-    <Select
+    <AsyncSelect
       mode="multiple"
       name="roleGroups"
-      options={groups.map(group => ({ label: group.name, value: group.id }))}
+      placeholder={t('Select groups')}
+      options={(filterValue, page, pageSize) =>
+        fetchGroupOptions(filterValue, page, pageSize, addDangerToast)
+      }
+      loading={loading}
       data-test="groups-select"
     />
   </FormItem>

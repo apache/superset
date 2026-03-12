@@ -46,3 +46,23 @@ test('Sort starts with first', async () => {
 test('Sort same case first', async () => {
   expect(['%f %B', '%F %b'].sort(searchSort('%F'))).toEqual(['%F %b', '%f %B']);
 });
+
+test('returns localeCompare result when no search term provided', () => {
+  expect(rankedSearchCompare('banana', 'apple', '')).toBeGreaterThan(0);
+  expect(rankedSearchCompare('apple', 'banana', '')).toBeLessThan(0);
+});
+
+test('handles empty string a', () => {
+  const result = rankedSearchCompare('', 'hello', 'hello');
+  expect(typeof result).toBe('number');
+});
+
+test('handles empty string b', () => {
+  const result = rankedSearchCompare('hello', '', 'hello');
+  expect(typeof result).toBe('number');
+});
+
+test('falls back to localeCompare when strings have no match relationship to search', () => {
+  expect(rankedSearchCompare('abc', 'def', 'xyz')).toBeLessThan(0);
+  expect(rankedSearchCompare('def', 'abc', 'xyz')).toBeGreaterThan(0);
+});
