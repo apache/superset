@@ -20,6 +20,7 @@ import { t } from '@apache-superset/core/translation';
 
 import type { ErrorMessageComponentProps } from './types';
 import { ErrorAlert } from './ErrorAlert';
+import { datasetLabelLower } from 'src/utils/semanticLayerLabels';
 
 export function DatasetNotFoundErrorMessage({
   error,
@@ -29,7 +30,7 @@ export function DatasetNotFoundErrorMessage({
   const { level, message } = error;
   return (
     <ErrorAlert
-      errorType={t('Missing dataset')}
+      errorType={t('Missing %s', datasetLabelLower())}
       message={subtitle}
       description={message}
       type={level}
