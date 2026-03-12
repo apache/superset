@@ -1,0 +1,106 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+suite: Security context tests
+templates:
+  - templates/deployment.yaml
+  - templates/deployment-worker.yaml
+tests:
+  - it: should set seccomp profile on superset node
+    template: templates/deployment.yaml
+    set:
+      runAsUser: 1000
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.seccompProfile.type
+          value: RuntimeDefault
+
+  - it: should set runAsNonRoot when runAsUser is not root
+    template: templates/deployment.yaml
+    set:
+      runAsUser: 1000
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.runAsNonRoot
+          value: true
+      - equal:
+          path: spec.template.spec.securityContext.runAsUser
+          value: 1000
+
+  - it: should not set runAsNonRoot when runAsUser is root
+    template: templates/deployment.yaml
+    set:
+      runAsUser: 0
+    asserts:
+      - isNull:
+          path: spec.template.spec.securityContext.runAsNonRoot
+
+  - it: should set allowPrivilegeEscalation to false on containers
+    template: templates/deployment.yaml
+    set:
+      runAsUser: 1000
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+
+  - it: should drop all capabilities on containers
+    template: templates/deployment.yaml
+    set:
+      runAsUser: 1000
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].securityContext.capabilities.drop
+          content: ALL
+
+  - it: should allow custom pod security context
+    template: templates/deployment.yaml
+    set:
+      supersetNode:
+        podSecurityContext:
+          runAsUser: 2000
+          runAsGroup: 2000
+          fsGroup: 2000
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.runAsUser
+          value: 2000
+      - equal:
+          path: spec.template.spec.securityContext.runAsGroup
+          value: 2000
+
+  - it: should allow custom container security context
+    template: templates/deployment.yaml
+    set:
+      supersetNode:
+        containerSecurityContext:
+          readOnlyRootFilesystem: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem
+          value: true
+
+  - it: should set security context on worker deployment
+    template: templates/deployment-worker.yaml
+    set:
+      runAsUser: 1000
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.seccompProfile.type
+          value: RuntimeDefault
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false

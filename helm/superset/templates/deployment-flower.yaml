@@ -24,49 +24,60 @@ metadata:
   name: {{ template "superset.fullname" . }}-flower
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "superset.name" . }}-flower
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
-    {{- if .Values.extraLabels }}
-      {{- toYaml .Values.extraLabels | nindent 4 }}
-    {{- end }}
+    {{- include "superset.componentLabels" (dict "component" "flower" "root" .) | nindent 4 }}
   {{- if .Values.supersetCeleryFlower.deploymentAnnotations }}
   annotations: {{- toYaml .Values.supersetCeleryFlower.deploymentAnnotations | nindent 4 }}
   {{- end }}
 spec:
   replicas: {{ .Values.supersetCeleryFlower.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
     {{- include "supersetCeleryFlower.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       annotations:
-        checksum/config: {{ include "superset-config" . | sha256sum }}
+        checksum/config: {{ include "superset.config" . | sha256sum }}
         checksum/secrets: {{ tpl (toJson .Values.extraSecretEnv) . | sha256sum }}
-        {{- if .Values.supersetCeleryFlower.podAnnotations }}
-          {{- toYaml .Values.supersetCeleryFlower.podAnnotations | nindent 8 }}
+        {{- with .Values.globalPodAnnotations }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.supersetCeleryFlower.podAnnotations }}
+          {{- toYaml . | nindent 8 }}
         {{- end }}
       labels:
-        app: "{{ template "superset.name" . }}-flower"
-        release: {{ .Release.Name }}
-        {{- if .Values.extraLabels }}
-          {{- toYaml .Values.extraLabels | nindent 8 }}
-        {{- end }}
+        {{- include "supersetCeleryFlower.selectorLabels" . | nindent 8 }}
         {{- if .Values.supersetCeleryFlower.podLabels }}
           {{- toYaml .Values.supersetCeleryFlower.podLabels | nindent 8 }}
         {{- end }}
     spec:
-      {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
+      {{- if or .Values.serviceAccount.create .Values.serviceAccount.name }}
       serviceAccountName: {{ template "superset.serviceAccountName" . }}
       {{- end }}
       securityContext:
-        runAsUser: {{ .Values.runAsUser }}
         {{- if .Values.supersetCeleryFlower.podSecurityContext }}
           {{- toYaml .Values.supersetCeleryFlower.podSecurityContext | nindent 8 }}
+        {{- else }}
+        runAsUser: {{ .Values.runAsUser }}
+        {{- if ne (int .Values.runAsUser) 0 }}
+        runAsNonRoot: true
         {{- end }}
+        fsGroup: {{ .Values.runAsUser }}
+        seccompProfile:
+          type: RuntimeDefault
+        {{- end }}
+      terminationGracePeriodSeconds: 60
       {{- if .Values.supersetCeleryFlower.initContainers }}
-      initContainers: {{-  tpl (toYaml .Values.supersetCeleryFlower.initContainers) . | nindent 6 }}
+      initContainers: {{- tpl (toYaml .Values.supersetCeleryFlower.initContainers) . | nindent 6 }}
+      {{- else }}
+      {{- $defaultInitContainers := include "superset.defaultInitContainers" . }}
+      {{- if $defaultInitContainers }}
+      initContainers: {{- $defaultInitContainers | nindent 6 }}
+      {{- end }}
       {{- end }}
       {{- with .Values.hostAliases }}
       hostAliases: {{- toYaml . | nindent 6 }}
@@ -75,17 +86,23 @@ spec:
         - name: "{{ .Chart.Name }}-flower"
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- if .Values.supersetCeleryFlower.containerSecurityContext }}
-          securityContext: {{- toYaml .Values.supersetCeleryFlower.containerSecurityContext | nindent 12 }}
-          {{- end }}
+          securityContext:
+            {{- if .Values.supersetCeleryFlower.containerSecurityContext }}
+              {{- toYaml .Values.supersetCeleryFlower.containerSecurityContext | nindent 12 }}
+            {{- else }}
+            allowPrivilegeEscalation: false
+            {{- if ne (int .Values.runAsUser) 0 }}
+            runAsNonRoot: true
+            {{- end }}
+            runAsUser: {{ .Values.runAsUser }}
+            capabilities:
+              drop:
+                - ALL
+            {{- end }}
           command: {{  tpl (toJson .Values.supersetCeleryFlower.command) . }}
           env:
-            {{- range $key, $value := .Values.extraEnv }}
-            - name: {{ $key | quote}}
-              value: {{ $value | quote }}
-            {{- end }}
-            {{- if .Values.extraEnvRaw }}
-              {{- toYaml .Values.extraEnvRaw | nindent 12 }}
+            {{- with .Values.extraEnv }}
+              {{- toYaml . | nindent 12 }}
             {{- end }}
           envFrom:
             - secretRef:
@@ -102,6 +119,11 @@ spec:
             - name: superset-config
               mountPath: {{ .Values.configMountPath | quote }}
               readOnly: true
+            {{- if .Values.extraConfigs }}
+            - name: superset-extra-config
+              mountPath: {{ .Values.extraConfigMountPath | quote }}
+              readOnly: true
+            {{- end }}
             {{- with .Values.extraVolumeMounts }}
               {{- tpl (toYaml .) $ | nindent 12 -}}
             {{- end }}
@@ -157,6 +179,12 @@ spec:
         - name: superset-config
           secret:
             secretName: {{ tpl .Values.configFromSecret . }}
+            defaultMode: 0400  # SECURITY: Read-only for owner only
+        {{- if .Values.extraConfigs }}
+        - name: superset-extra-config
+          configMap:
+            name: {{ template "superset.fullname" . }}-extra-config
+        {{- end }}
         {{- with .Values.extraVolumes }}
           {{- tpl (toYaml .) $ | nindent 8 -}}
         {{- end }}

@@ -17,7 +17,7 @@
 
 */}}
 
-{{ if .Values.ingress.enabled -}}
+{{- if .Values.ingress.enabled }}
 {{- $fullName := include "superset.fullname" . -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -25,13 +25,7 @@ metadata:
   name: {{ $fullName }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "superset.name" . }}
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
-    {{- if .Values.extraLabels }}
-      {{- toYaml .Values.extraLabels | nindent 4 }}
-    {{- end }}
+    {{- include "superset.componentLabels" (dict "component" "ingress" "root" .) | nindent 4 }}
   {{- with .Values.ingress.annotations }}
   annotations: {{- toYaml . | nindent 4 }}
   {{- end }}

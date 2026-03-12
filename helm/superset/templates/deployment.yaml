@@ -23,15 +23,9 @@ metadata:
   name: {{ template "superset.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "superset.name" . }}
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
-    {{- if .Values.extraLabels }}
-      {{- toYaml .Values.extraLabels | nindent 4 }}
-    {{- end }}
-    {{- if .Values.supersetNode.deploymentLabels }}
-      {{- toYaml .Values.supersetNode.deploymentLabels | nindent 4 }}
+    {{- include "superset.componentLabels" (dict "component" "web" "root" .) | nindent 4 }}
+    {{- with .Values.supersetNode.deploymentLabels }}
+      {{- toYaml . | nindent 4 }}
     {{- end }}
   {{- if .Values.supersetNode.deploymentAnnotations }}
   annotations: {{- toYaml .Values.supersetNode.deploymentAnnotations | nindent 4 }}
@@ -40,9 +34,15 @@ spec:
   {{- if and (not .Values.supersetNode.autoscaling.enabled) .Values.supersetNode.replicas.enabled }}
   replicas: {{ .Values.supersetNode.replicas.replicaCount }}
   {{- end }}
-  {{- if .Values.supersetNode.strategy }}
-  strategy: {{- toYaml .Values.supersetNode.strategy | nindent 4 }}
-  {{- end }}
+  strategy:
+    {{- if .Values.supersetNode.strategy }}
+      {{- toYaml .Values.supersetNode.strategy | nindent 6 }}
+    {{- else }}
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    {{- end }}
   selector:
     matchLabels:
     {{- include "supersetNode.selectorLabels" . | nindent 6 }}
@@ -50,10 +50,13 @@ spec:
     metadata:
       annotations:
         # Force reload on config changes
-        checksum/superset_config.py: {{ include "superset-config" . | sha256sum }}
-        checksum/superset_init.sh: {{ tpl .Values.init.initscript . | sha256sum }}
+        checksum/superset_config.py: {{ include "superset.config" . | sha256sum }}
+        checksum/superset_init.sh: {{ include "superset.initScript" . | sha256sum }}
         checksum/superset_bootstrap.sh: {{ tpl .Values.bootstrapScript . | sha256sum }}
-        checksum/connections: {{ .Values.supersetNode.connections | toYaml | sha256sum }}
+        checksum/database: {{ .Values.database | toYaml | sha256sum }}
+        checksum/redis: {{ .Values.redis | toYaml | sha256sum }}
+        checksum/config: {{ .Values.config | toYaml | sha256sum }}
+        checksum/featureFlags: {{ .Values.featureFlags | toYaml | sha256sum }}
         checksum/extraConfigs: {{ .Values.extraConfigs | toYaml | sha256sum }}
         checksum/extraSecrets: {{ .Values.extraSecrets | toYaml | sha256sum }}
         checksum/extraSecretEnv: {{ .Values.extraSecretEnv | toYaml | sha256sum }}
@@ -63,29 +66,41 @@ spec:
         # Optionally force the thing to reload
         force-reload: {{ randAlphaNum 5 | quote }}
         {{- end }}
-        {{- if .Values.supersetNode.podAnnotations }}
-          {{- toYaml .Values.supersetNode.podAnnotations | nindent 8 }}
+        {{- with .Values.globalPodAnnotations }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.supersetNode.podAnnotations }}
+          {{- toYaml . | nindent 8 }}
         {{- end }}
       labels:
-        app: {{ template "superset.name" . }}
-        release: {{ .Release.Name }}
-        {{- if .Values.extraLabels }}
-          {{- toYaml .Values.extraLabels | nindent 8 }}
-        {{- end }}
-        {{- if .Values.supersetNode.podLabels }}
-          {{- toYaml .Values.supersetNode.podLabels | nindent 8 }}
+        {{- include "supersetNode.selectorLabels" . | nindent 8 }}
+        {{- with .Values.supersetNode.podLabels }}
+          {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
-      {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
+      {{- if or .Values.serviceAccount.create .Values.serviceAccount.name }}
       serviceAccountName: {{ template "superset.serviceAccountName" . }}
       {{- end }}
       securityContext:
-        runAsUser: {{ .Values.runAsUser }}
         {{- if .Values.supersetNode.podSecurityContext }}
           {{- toYaml .Values.supersetNode.podSecurityContext | nindent 8 }}
+        {{- else }}
+        runAsUser: {{ .Values.runAsUser }}
+        {{- if ne (int .Values.runAsUser) 0 }}
+        runAsNonRoot: true
         {{- end }}
+        fsGroup: {{ .Values.runAsUser }}
+        seccompProfile:
+          type: RuntimeDefault
+        {{- end }}
+      terminationGracePeriodSeconds: 60
       {{- if .Values.supersetNode.initContainers }}
       initContainers: {{- tpl (toYaml .Values.supersetNode.initContainers) . | nindent 6 }}
+      {{- else }}
+      {{- $defaultInitContainers := include "superset.defaultInitContainers" . }}
+      {{- if $defaultInitContainers }}
+      initContainers: {{- $defaultInitContainers | nindent 6 }}
+      {{- end }}
       {{- end }}
       {{- with .Values.hostAliases }}
       hostAliases: {{- toYaml . | nindent 6 }}
@@ -94,23 +109,29 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- if .Values.supersetNode.containerSecurityContext }}
-          securityContext: {{- toYaml .Values.supersetNode.containerSecurityContext | nindent 12 }}
-          {{- end }}
+          securityContext:
+            {{- if .Values.supersetNode.containerSecurityContext }}
+              {{- toYaml .Values.supersetNode.containerSecurityContext | nindent 12 }}
+            {{- else }}
+            allowPrivilegeEscalation: false
+            {{- if ne (int .Values.runAsUser) 0 }}
+            runAsNonRoot: true
+            {{- end }}
+            runAsUser: {{ .Values.runAsUser }}
+            capabilities:
+              drop:
+                - ALL
+            {{- end }}
           command: {{  tpl (toJson .Values.supersetNode.command) . }}
           env:
             - name: "SUPERSET_PORT"
-              value: {{ .Values.service.port | quote}}
-            {{- range $key, $value := .Values.extraEnv }}
-            - name: {{ $key | quote}}
-              value: {{ $value | quote }}
+              value: {{ .Values.service.port | quote }}
+            {{- with .Values.extraEnv }}
+              {{- toYaml . | nindent 12 }}
             {{- end }}
             {{- range $key, $value := .Values.supersetNode.env }}
-            - name: {{ $key | quote}}
+            - name: {{ $key | quote }}
               value: {{ $value | quote }}
-            {{- end }}
-            {{- if .Values.extraEnvRaw }}
-              {{- toYaml .Values.extraEnvRaw | nindent 12 }}
             {{- end }}
           envFrom:
             - secretRef:
@@ -187,6 +208,7 @@ spec:
         - name: superset-config
           secret:
             secretName: {{ tpl .Values.configFromSecret . }}
+            defaultMode: 0400  # SECURITY: Read-only for owner only (was 0755)
         {{- if .Values.extraConfigs }}
         - name: superset-extra-config
           configMap:
