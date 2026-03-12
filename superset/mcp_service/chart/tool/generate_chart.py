@@ -118,7 +118,7 @@ def _compile_chart(
         return CompileResult(success=False, error=str(exc))
 
 
-@tool(tags=["mutate"])
+@tool(tags=["mutate"], class_permission_name="Chart")
 @parse_request(GenerateChartRequest)
 async def generate_chart(  # noqa: C901
     request: GenerateChartRequest, ctx: Context
