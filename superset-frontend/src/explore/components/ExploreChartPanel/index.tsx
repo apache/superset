@@ -31,6 +31,7 @@ import {
   getExtensionsRegistry,
 } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
+import { datasetLabelLower } from 'src/utils/semanticLayerLabels';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import {
@@ -325,7 +326,7 @@ const ExploreChartPanel = ({
       >
         {vizTypeNeedsDataset && (
           <Alert
-            message={t('Chart type requires a dataset')}
+            message={t('Chart type requires a %s', datasetLabelLower())}
             type="error"
             css={theme => css`
               margin: 0 0 ${theme.sizeUnit * 4}px 0;
@@ -341,7 +342,7 @@ const ExploreChartPanel = ({
                   onClick={() => setShowDatasetModal(true)}
                   css={{ textDecoration: 'underline' }}
                 >
-                  {t('Create a dataset')}
+                  {t('Create a %s', datasetLabelLower())}
                 </span>
                 {t(' to visualize your data.')}
               </>

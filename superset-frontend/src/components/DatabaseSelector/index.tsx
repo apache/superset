@@ -52,6 +52,10 @@ import type {
   DatabaseObject,
 } from './types';
 import { StyledFormLabel } from './styles';
+import {
+  databaseLabel,
+  databasesLabelLower,
+} from 'src/utils/semanticLayerLabels';
 
 const DatabaseSelectorWrapper = styled.div<{ horizontal?: boolean }>`
   ${({ theme, horizontal }) =>
@@ -431,7 +435,11 @@ export function DatabaseSelector({
   function renderDatabaseSelect() {
     if (sqlLabMode) {
       return renderSelectRow(
-        t('Select database or type to search databases'),
+        t(
+          'Select %s or type to search %s',
+          databaseLabel().toLowerCase(),
+          databasesLabelLower(),
+        ),
         null,
         null,
         {
@@ -448,16 +456,24 @@ export function DatabaseSelector({
     return (
       <div>
         {renderSelectRow(
-          t('Database'),
+          databaseLabel(),
           <AsyncSelect
-            ariaLabel={t('Select database or type to search databases')}
+            ariaLabel={t(
+              'Select %s or type to search %s',
+              databaseLabel().toLowerCase(),
+              databasesLabelLower(),
+            )}
             optionFilterProps={['database_name', 'value']}
             data-test="select-database"
             lazyLoading={false}
             notFoundContent={emptyState}
             onChange={changeDatabase}
             value={currentDb}
-            placeholder={t('Select database or type to search databases')}
+            placeholder={t(
+              'Select %s or type to search %s',
+              databaseLabel().toLowerCase(),
+              databasesLabelLower(),
+            )}
             disabled={!isDatabaseSelectEnabled || readOnly}
             options={loadDatabases}
             sortComparator={sortComparator}

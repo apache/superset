@@ -41,6 +41,7 @@ import { DndItemType } from 'src/explore/components/DndItemType';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
 import { AGGREGATES } from 'src/explore/constants';
+import { datasetLabelLower } from 'src/utils/semanticLayerLabels';
 
 const EMPTY_OBJECT = {};
 const DND_ACCEPTED_TYPES = [DndItemType.Column, DndItemType.Metric];
@@ -77,7 +78,10 @@ const coerceMetrics = (
     ) {
       return {
         metric_name: metric,
-        error_text: t('This metric might be incompatible with current dataset'),
+        error_text: t(
+          'This metric might be incompatible with current %s',
+          datasetLabelLower(),
+        ),
         uuid: nanoid(),
       };
     }
@@ -296,7 +300,10 @@ const DndMetricSelect = (props: any) => {
         multi={multi}
         datasourceWarningMessage={
           option instanceof AdhocMetric && option.datasourceWarning
-            ? t('This metric might be incompatible with current dataset')
+            ? t(
+                'This metric might be incompatible with current %s',
+                datasetLabelLower(),
+              )
             : undefined
         }
       />

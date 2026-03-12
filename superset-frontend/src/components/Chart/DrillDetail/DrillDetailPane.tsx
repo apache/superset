@@ -53,6 +53,7 @@ import { Dataset } from '../types';
 import TableControls from './DrillDetailTableControls';
 import { getDrillPayload } from './utils';
 import { ResultsPage } from './types';
+import { datasetLabelLower } from 'src/utils/semanticLayerLabels';
 
 const PAGE_SIZE = 50;
 
@@ -303,7 +304,7 @@ export default function DrillDetailPane({
     tableContent = <Loading />;
   } else if (resultsPage?.total === 0) {
     // Render empty state if no results are returned for page
-    const title = t('No rows were returned for this dataset');
+    const title = t('No rows were returned for this %s', datasetLabelLower());
     tableContent = <EmptyState image="document.svg" title={title} />;
   } else {
     // Render table if at least one page has successfully loaded

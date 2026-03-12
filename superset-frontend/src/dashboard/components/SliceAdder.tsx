@@ -55,6 +55,7 @@ import type { ConnectDragSource } from 'react-dnd';
 import AddSliceCard from './AddSliceCard';
 import AddSliceDragPreview from './dnd/AddSliceDragPreview';
 import { DragDroppable } from './dnd/DragDroppable';
+import { datasetLabelLower } from 'src/utils/semanticLayerLabels';
 
 export type SliceAdderProps = {
   theme: Theme;
@@ -88,7 +89,7 @@ const KEYS_TO_FILTERS = ['slice_name', 'viz_type', 'datasource_name'];
 const KEYS_TO_SORT = {
   slice_name: t('name'),
   viz_type: t('viz type'),
-  datasource_name: t('dataset'),
+  datasource_name: datasetLabelLower(),
   changed_on: t('recent'),
 };
 
