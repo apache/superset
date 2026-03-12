@@ -51,6 +51,7 @@ import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import { dispatchChartCustomizationHoverAction } from './utils';
 import { mergeExtraFormData } from '../../utils';
+import { datasetLabel, datasetLabelLower } from 'src/utils/semanticLayerLabels';
 
 interface ColumnApiResponse {
   column_name?: string;
@@ -262,7 +263,7 @@ const GroupByFilterCardContent: FC<{
       </Row>
 
       <Row>
-        <RowLabel>{t('Dataset')}</RowLabel>
+        <RowLabel>{datasetLabel()}</RowLabel>
         <RowValue>
           {typeof datasetLabel === 'string' ? datasetLabel : 'Dataset'}
         </RowValue>
@@ -475,7 +476,13 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
       } catch (error) {
         setColumnOptions([]);
         dispatch(
-          addDangerToast(t('Failed to load columns for dataset %s', datasetId)),
+          addDangerToast(
+            t(
+              'Failed to load columns for %s %s',
+              datasetLabelLower(),
+              datasetId,
+            ),
+          ),
         );
       } finally {
         setLoading(false);
