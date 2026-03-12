@@ -51,7 +51,7 @@ import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import { dispatchChartCustomizationHoverAction } from './utils';
 import { mergeExtraFormData } from '../../utils';
-import { datasetLabel, datasetLabelLower } from 'src/utils/semanticLayerLabels';
+import { datasetLabel as getDatasetLabel, datasetLabelLower } from 'src/utils/semanticLayerLabels';
 
 interface ColumnApiResponse {
   column_name?: string;
@@ -263,7 +263,7 @@ const GroupByFilterCardContent: FC<{
       </Row>
 
       <Row>
-        <RowLabel>{datasetLabel()}</RowLabel>
+        <RowLabel>{getDatasetLabel()}</RowLabel>
         <RowValue>
           {typeof datasetLabel === 'string' ? datasetLabel : 'Dataset'}
         </RowValue>
