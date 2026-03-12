@@ -21,7 +21,9 @@ import 'src/public-path';
 import { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
+import { Global } from '@emotion/react';
 import {
+  css,
   type SupersetThemeConfig,
   ThemeMode,
   makeApi,
@@ -93,6 +95,16 @@ const EmbededLazyDashboardPage = () => {
 
 const EmbeddedRoute = () => (
   <EmbeddedContextProviders>
+    <Global
+      styles={css`
+        /* Apply box-sizing reset for embedded dashboards to fix layout issues */
+        *,
+        *::before,
+        *::after {
+          box-sizing: border-box;
+        }
+      `}
+    />
     <Suspense fallback={<Loading />}>
       <ErrorBoundary>
         <EmbededLazyDashboardPage />
