@@ -38,7 +38,7 @@ from superset.mcp_service.utils.url_utils import get_superset_base_url
 logger = logging.getLogger(__name__)
 
 
-@tool(tags=["explore"])
+@tool(tags=["explore"], class_permission_name="SQLLab", method_permission_name="read")
 @parse_request(OpenSqlLabRequest)
 def open_sql_lab_with_context(
     request: OpenSqlLabRequest, ctx: Context
