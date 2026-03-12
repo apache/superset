@@ -2148,6 +2148,8 @@ async def _get_chart_preview_internal(  # noqa: C901
             result.format = "vega_lite"
         elif isinstance(content, URLPreview):
             result.format = "url"
+            result.width = content.width
+            result.height = content.height
 
         return result
 
