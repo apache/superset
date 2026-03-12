@@ -304,7 +304,7 @@ def _ensure_layout_structure(
         layout["DASHBOARD_VERSION_KEY"] = "v2"
 
 
-@tool(tags=["mutate"])
+@tool(tags=["mutate"], class_permission_name="Dashboard")
 @parse_request(AddChartToDashboardRequest)
 def add_chart_to_existing_dashboard(
     request: AddChartToDashboardRequest, ctx: Context
