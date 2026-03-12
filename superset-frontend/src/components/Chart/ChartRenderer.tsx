@@ -35,8 +35,8 @@ import {
   ContextMenuFilters,
   DataRecordFilters,
 } from '@superset-ui/core';
-import { logging } from '@apache-superset/core';
-import { t } from '@apache-superset/core/ui';
+import { logging } from '@apache-superset/core/utils';
+import { t } from '@apache-superset/core/translation';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyState } from '@superset-ui/core/components';
 import { ChartSource } from 'src/types/ChartSource';
@@ -134,6 +134,7 @@ export interface ChartRendererProps {
   emitCrossFilters?: boolean;
   cacheBusterProp?: string;
   onChartStateChange?: (chartState: AgGridChartState) => void;
+  suppressLoadingSpinner?: boolean;
 }
 
 // State interface
@@ -411,9 +412,18 @@ class ChartRenderer extends Component<ChartRendererProps, ChartRendererState> {
   render(): ReactNode {
     const { chartAlert, chartStatus, chartId, emitCrossFilters } = this.props;
 
-    // Skip chart rendering
-    if (chartStatus === 'loading' || !!chartAlert || chartStatus === null) {
+    const hasAnyErrors = this.props.queriesResponse?.some(item => item?.error);
+    const hasValidPreviousData =
+      (this.props.queriesResponse?.length ?? 0) > 0 && !hasAnyErrors;
+
+    if (!!chartAlert || chartStatus === null) {
       return null;
+    }
+
+    if (chartStatus === 'loading') {
+      if (!this.props.suppressLoadingSpinner || !hasValidPreviousData) {
+        return null;
+      }
     }
 
     this.renderStartTime = Logger.getTimestamp();
@@ -548,6 +558,10 @@ class ChartRenderer extends Component<ChartRendererProps, ChartRendererState> {
             legendState={this.state.legendState}
             enableNoResults={bypassNoResult}
             legendIndex={this.state.legendIndex}
+            isRefreshing={
+              Boolean(this.props.suppressLoadingSpinner) &&
+              chartStatus === 'loading'
+            }
             {...drillToDetailProps}
           />
         </div>

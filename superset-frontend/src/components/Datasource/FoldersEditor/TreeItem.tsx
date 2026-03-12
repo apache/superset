@@ -21,7 +21,8 @@ import { CSSProperties, useState, memo, useMemo } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { css, t } from '@apache-superset/core/ui';
+import { css } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import {
   Checkbox,
   Input,
@@ -35,7 +36,7 @@ import {
   ColumnTypeLabel,
   Metric,
 } from '@superset-ui/chart-controls';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   OptionControlContainer,
   Label,
@@ -262,8 +263,6 @@ function TreeItemComponent({
     <>
       {isFolder && (
         <DragHandle
-          {...attributes}
-          {...listeners}
           css={theme => css`
             margin-right: ${theme.marginSM}px;
           `}
@@ -348,9 +347,12 @@ function TreeItemComponent({
         {isFolder ? (
           <TreeFolderContainer
             {...restContainerProps}
+            {...attributes}
+            {...listeners}
             data-folder-id={id}
             data-drop-target={isDropTarget ? 'true' : undefined}
             isForbiddenDropTarget={isForbiddenDrop}
+            css={{ cursor: 'grab', '&:active': { cursor: 'grabbing' } }}
           >
             {containerContent}
           </TreeFolderContainer>

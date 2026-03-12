@@ -26,7 +26,8 @@ import logging
 from datetime import datetime, timezone
 
 from fastmcp import Context
-from superset_core.mcp import tool
+from sqlalchemy.orm import joinedload, subqueryload
+from superset_core.mcp.decorators import tool
 
 from superset.extensions import event_logger
 from superset.mcp_service.dataset.schemas import (
@@ -41,7 +42,7 @@ from superset.mcp_service.utils.schema_utils import parse_request
 logger = logging.getLogger(__name__)
 
 
-@tool(tags=["discovery"])
+@tool(tags=["discovery"], class_permission_name="Dataset")
 @parse_request(GetDatasetInfoRequest)
 async def get_dataset_info(
     request: GetDatasetInfoRequest, ctx: Context
@@ -82,7 +83,17 @@ async def get_dataset_info(
     )
 
     try:
+        from superset.connectors.sqla.models import SqlaTable
         from superset.daos.dataset import DatasetDAO
+
+        # Eager load columns, metrics, and database to avoid N+1 queries.
+        # Without this, serialize_dataset_object triggers lazy loads for each
+        # relationship, which can time out on datasets with many columns.
+        eager_options = [
+            subqueryload(SqlaTable.columns),
+            subqueryload(SqlaTable.metrics),
+            joinedload(SqlaTable.database),
+        ]
 
         with event_logger.log_context(action="mcp.get_dataset_info.lookup"):
             tool = ModelGetInfoCore(
@@ -92,6 +103,7 @@ async def get_dataset_info(
                 serializer=serialize_dataset_object,
                 supports_slug=False,  # Datasets don't have slugs
                 logger=logger,
+                query_options=eager_options,
             )
 
             result = tool.run_tool(request.identifier)

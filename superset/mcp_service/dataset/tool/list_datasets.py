@@ -26,7 +26,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from fastmcp import Context
-from superset_core.mcp import tool
+from superset_core.mcp.decorators import tool
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -61,7 +61,7 @@ SORTABLE_DATASET_COLUMNS = [
 ]
 
 
-@tool(tags=["core"])
+@tool(tags=["core"], class_permission_name="Dataset")
 @parse_request(ListDatasetsRequest)
 async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetList:
     """List datasets with filtering and search.

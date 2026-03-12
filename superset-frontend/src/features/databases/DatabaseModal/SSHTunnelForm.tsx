@@ -17,9 +17,9 @@
  * under the License.
  */
 import { useState } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { JsonObject } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import {
   Form,
   FormLabel,
@@ -173,6 +173,18 @@ const SSHTunnelForm = ({
                 errorMessage={sshErrors?.password}
                 isValidating={isValidating}
                 data-test="ssh-tunnel-password-input"
+                iconRender={visible =>
+                  visible ? (
+                    <Tooltip title={t('Hide password.')}>
+                      <Icons.EyeInvisibleOutlined />
+                    </Tooltip>
+                  ) : (
+                    <Tooltip title={t('Show password.')}>
+                      <Icons.EyeOutlined />
+                    </Tooltip>
+                  )
+                }
+                role="textbox"
               />
             </StyledDiv>
           </Col>
@@ -226,6 +238,18 @@ const SSHTunnelForm = ({
                   errorMessage={sshErrors?.private_key_password}
                   isValidating={isValidating}
                   data-test="ssh-tunnel-private_key_password-input"
+                  iconRender={visible =>
+                    visible ? (
+                      <Tooltip title={t('Hide password.')}>
+                        <Icons.EyeInvisibleOutlined />
+                      </Tooltip>
+                    ) : (
+                      <Tooltip title={t('Show password.')}>
+                        <Icons.EyeOutlined />
+                      </Tooltip>
+                    )
+                  }
+                  role="textbox"
                 />
               </StyledDiv>
             </Col>

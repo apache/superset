@@ -569,6 +569,87 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         db.session.delete(dashboard)
         db.session.commit()
 
+    def test_get_dashboard_with_columns(self):
+        """
+        Dashboard API: Test get dashboard with column selection via q param
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [admin.id], created_by=admin
+        )
+        self.login(ADMIN_USERNAME)
+        params = prison.dumps({"columns": ["id", "dashboard_title"]})
+        uri = f"api/v1/dashboard/{dashboard.id}?q={params}"
+        rv = self.get_assert_metric(uri, "get")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        assert result["id"] == dashboard.id
+        assert result["dashboard_title"] == "title"
+        assert "thumbnail_url" not in result
+        assert "slug" not in result
+        assert "owners" not in result
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    def test_get_dashboard_with_invalid_rison_q(self):
+        """
+        Dashboard API: Test get dashboard with malformed rison returns 400
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [admin.id], created_by=admin
+        )
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard.id}?q=(("
+        rv = self.get_assert_metric(uri, "get")
+        assert rv.status_code == 400
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    def test_get_dashboard_with_non_dict_q(self):
+        """
+        Dashboard API: Test get dashboard with non-dict rison returns full response
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [admin.id], created_by=admin
+        )
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard.id}?q=a_string"
+        rv = self.get_assert_metric(uri, "get")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        # non-dict q is ignored, full response returned
+        assert "thumbnail_url" in data["result"]
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    def test_get_dashboard_with_columns_data_key_mapping(self):
+        """
+        Dashboard API: Test that data_key columns like changed_on_delta_humanized work
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [admin.id], created_by=admin
+        )
+        self.login(ADMIN_USERNAME)
+        params = prison.dumps({"columns": ["id", "changed_on_delta_humanized"]})
+        uri = f"api/v1/dashboard/{dashboard.id}?q={params}"
+        rv = self.get_assert_metric(uri, "get")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        assert "id" in result
+        assert "changed_on_delta_humanized" in result
+        assert "dashboard_title" not in result
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
     @patch("superset.dashboards.schemas.security_manager.has_guest_access")
     @patch("superset.dashboards.schemas.security_manager.is_guest_user")
     def test_get_dashboard_as_guest(self, is_guest_user, has_guest_access):

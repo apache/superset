@@ -23,7 +23,7 @@ import logging
 from typing import cast, TYPE_CHECKING
 
 from fastmcp import Context
-from superset_core.mcp import tool
+from superset_core.mcp.decorators import tool
 
 if TYPE_CHECKING:
     from superset.models.slice import Slice
@@ -61,7 +61,7 @@ SORTABLE_CHART_COLUMNS = [
 ]
 
 
-@tool(tags=["core"])
+@tool(tags=["core"], class_permission_name="Chart")
 @parse_request(ListChartsRequest)
 async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
     """List charts with filtering and search.
