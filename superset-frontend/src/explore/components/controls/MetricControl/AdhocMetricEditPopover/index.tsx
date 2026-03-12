@@ -49,6 +49,7 @@ import {
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 import SQLEditorWithValidation from 'src/components/SQLEditorWithValidation';
 import type { RefObject } from 'react';
+import { datasetLabelLower } from 'src/utils/semanticLayerLabels';
 
 interface ColumnType {
   column_name: string;
@@ -475,7 +476,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
                             this.props.onClose();
                           }}
                         >
-                          {t('Create a dataset')}
+                          {t('Create a %s', datasetLabelLower())}
                         </span>
                         {t(' to add metrics')}
                       </>

@@ -44,6 +44,7 @@ import {
   DatasetSelectLabel,
 } from 'src/features/datasets/DatasetSelectLabel';
 import { Icons } from '@superset-ui/core/components/Icons';
+import { datasetLabel, datasetLabelLower } from 'src/utils/semanticLayerLabels';
 
 export interface ChartCreationProps extends RouteComponentProps {
   user: UserWithPermissionsAndRoles;
@@ -210,7 +211,9 @@ export class ChartCreation extends PureComponent<
         .catch(() => {
           this.setState({ loading: false });
         });
-      this.props.addSuccessToast(t('The dataset has been saved'));
+      this.props.addSuccessToast(
+        t('The %s has been saved', datasetLabelLower()),
+      );
     }
   }
 
@@ -295,7 +298,7 @@ export class ChartCreation extends PureComponent<
     const datasetHelpText = this.state.canCreateDataset ? (
       <span data-test="dataset-write">
         <Link to="/dataset/add/" data-test="add-chart-new-dataset">
-          {t('Add a dataset')}
+          {t('Add a %s', datasetLabelLower())}
         </Link>{' '}
         {t('or')}{' '}
         <a
@@ -332,18 +335,22 @@ export class ChartCreation extends PureComponent<
         <h3>{t('Create a new chart')}</h3>
         <Steps direction="vertical" size="small">
           <Steps.Step
-            title={<StyledStepTitle>{t('Choose a dataset')}</StyledStepTitle>}
+            title={
+              <StyledStepTitle>
+                {t('Choose a %s', datasetLabelLower())}
+              </StyledStepTitle>
+            }
             status={this.state.datasource?.value ? 'finish' : 'process'}
             description={
               <StyledStepDescription className="dataset">
                 <AsyncSelect
                   autoFocus
-                  ariaLabel={t('Dataset')}
+                  ariaLabel={datasetLabel()}
                   name="select-datasource"
                   onChange={this.changeDatasource}
                   options={this.loadDatasources}
                   optionFilterProps={['id', 'table_name']}
-                  placeholder={t('Choose a dataset')}
+                  placeholder={t('Choose a %s', datasetLabelLower())}
                   showSearch
                   value={this.state.datasource}
                 />
@@ -370,7 +377,10 @@ export class ChartCreation extends PureComponent<
         <div className="footer">
           {isButtonDisabled && (
             <span>
-              {t('Please select both a Dataset and a Chart type to proceed')}
+              {t(
+                'Please select both a %s and a Chart type to proceed',
+                datasetLabel(),
+              )}
             </span>
           )}
           <Button

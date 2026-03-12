@@ -83,6 +83,7 @@ import { findPermission } from 'src/utils/findPermission';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { Tag } from 'src/components/Tag';
+import { datasetLabel } from 'src/utils/semanticLayerLabels';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -430,7 +431,7 @@ function ChartList(props: ChartListProps) {
             </Tooltip>
           );
         },
-        Header: t('Dataset'),
+        Header: datasetLabel(),
         accessor: 'datasource_id',
         disableSortBy: true,
         size: 'xl',
@@ -658,7 +659,7 @@ function ChartList(props: ChartListProps) {
           }),
       },
       {
-        Header: t('Dataset'),
+        Header: datasetLabel(),
         key: 'dataset',
         id: 'datasource_id',
         input: 'select',

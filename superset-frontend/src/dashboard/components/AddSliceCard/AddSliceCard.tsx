@@ -36,6 +36,7 @@ import { Tooltip, ImageLoader } from '@superset-ui/core/components';
 import { GenericLink, usePluginContext } from 'src/components';
 import { assetUrl } from 'src/utils/assetUrl';
 import { Theme } from '@emotion/react';
+import { datasetLabel } from 'src/utils/semanticLayerLabels';
 
 const FALLBACK_THUMBNAIL_URL = assetUrl(
   '/static/assets/images/chart-card-fallback.svg',
@@ -283,7 +284,7 @@ const AddSliceCard: FC<{
             >
               <MetadataItem label={t('Viz type')} value={vizName} />
               <MetadataItem
-                label={t('Dataset')}
+                label={datasetLabel()}
                 value={
                   datasourceUrl ? (
                     <GenericLink to={datasourceUrl}>

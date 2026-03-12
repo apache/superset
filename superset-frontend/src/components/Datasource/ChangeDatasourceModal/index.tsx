@@ -53,6 +53,7 @@ import {
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { InputRef } from 'antd';
 import type { Datasource, ChangeDatasourceModalProps } from '../types';
+import { datasetLabelLower } from 'src/utils/semanticLayerLabels';
 
 const CONFIRM_WARNING_MESSAGE = t(
   'Warning! Changing the dataset may break the chart if the metadata does not exist.',
@@ -109,7 +110,11 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   const {
     state: { loading, resourceCollection, resourceCount },
     fetchData,
-  } = useListViewResource<Dataset>('dataset', t('dataset'), addDangerToast);
+  } = useListViewResource<Dataset>(
+    'dataset',
+    datasetLabelLower(),
+    addDangerToast,
+  );
 
   const selectDatasource = useCallback((datasource: Datasource) => {
     setConfirmChange(true);
@@ -187,7 +192,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         );
       });
     onHide();
-    addSuccessToast(t('Successfully changed dataset!'));
+    addSuccessToast(t('Successfully changed %s!', datasetLabelLower()));
   };
 
   const handlerCancelConfirm = () => {
@@ -253,7 +258,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       onHide={onHide}
       responsive
       name="Swap dataset"
-      title={t('Swap dataset')}
+      title={t('Swap %s', datasetLabelLower())}
       width={confirmChange ? '432px' : ''}
       height={confirmChange ? 'auto' : '540px'}
       hideFooter={!confirmChange}
