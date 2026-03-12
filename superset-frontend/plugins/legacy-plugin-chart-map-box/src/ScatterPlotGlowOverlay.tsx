@@ -246,11 +246,9 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
               ? numericLabel
               : 0;
             const minClusterRadius = radius * MIN_CLUSTER_RADIUS_RATIO;
-            const ratio =
-              Math.abs(safeNumericLabel) / safeMaxAbsLabel;
+            const ratio = Math.abs(safeNumericLabel) / safeMaxAbsLabel;
             const scaledRadius = roundDecimal(
-              minClusterRadius +
-                ratio ** 0.5 * (radius - minClusterRadius),
+              minClusterRadius + ratio ** 0.5 * (radius - minClusterRadius),
               1,
             );
             const fontHeight = roundDecimal(scaledRadius * 0.5, 1);
