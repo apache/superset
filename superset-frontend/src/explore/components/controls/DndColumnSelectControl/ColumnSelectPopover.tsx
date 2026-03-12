@@ -57,7 +57,6 @@ import {
 } from 'src/explore/constants';
 import { ExplorePageState } from 'src/explore/types';
 import useResizeButton from './useResizeButton';
-import { datasetLabelLower } from 'src/utils/semanticLayerLabels';
 
 const TABS_KEYS = {
   SAVED: 'saved',
@@ -473,7 +472,7 @@ const ColumnSelectPopover = ({
                                   tabIndex={0}
                                   onClick={setDatasetAndClose}
                                 >
-                                  {t('Create a %s', datasetLabelLower())}
+                                  {t('Create a dataset')}
                                 </span>{' '}
                                 {t(' to mark a column as a time column')}
                               </>
@@ -484,7 +483,7 @@ const ColumnSelectPopover = ({
                                   tabIndex={0}
                                   onClick={setDatasetAndClose}
                                 >
-                                  {t('Create a %s', datasetLabelLower())}
+                                  {t('Create a dataset')}
                                 </span>{' '}
                                 {t(' to add calculated columns')}
                               </>
@@ -518,7 +517,7 @@ const ColumnSelectPopover = ({
                             tabIndex={0}
                             onClick={setDatasetAndClose}
                           >
-                            {t('Create a %s', datasetLabelLower())}
+                            {t('Create a dataset')}
                           </span>{' '}
                           {t(' to mark a column as a time column')}
                         </>

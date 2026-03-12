@@ -211,9 +211,7 @@ export class ChartCreation extends PureComponent<
         .catch(() => {
           this.setState({ loading: false });
         });
-      this.props.addSuccessToast(
-        t('The %s has been saved', datasetLabelLower()),
-      );
+      this.props.addSuccessToast(t('The dataset has been saved'));
     }
   }
 
@@ -298,7 +296,7 @@ export class ChartCreation extends PureComponent<
     const datasetHelpText = this.state.canCreateDataset ? (
       <span data-test="dataset-write">
         <Link to="/dataset/add/" data-test="add-chart-new-dataset">
-          {t('Add a %s', datasetLabelLower())}
+          {t('Add a dataset')}
         </Link>{' '}
         {t('or')}{' '}
         <a
