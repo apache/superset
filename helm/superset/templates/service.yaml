@@ -23,13 +23,7 @@ metadata:
   name: {{ template "superset.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "superset.name" . }}
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
-    {{- if .Values.extraLabels }}
-      {{- toYaml .Values.extraLabels | nindent 4 }}
-    {{- end }}
+    {{- include "superset.componentLabels" (dict "component" "web" "root" .) | nindent 4 }}
   {{- with .Values.service.annotations }}
   annotations: {{- toYaml . | nindent 4 }}
   {{- end }}
@@ -44,8 +38,7 @@ spec:
       nodePort: {{ .Values.service.nodePort.http }}
       {{- end }}
   selector:
-    app: {{ template "superset.name" . }}
-    release: {{ .Release.Name }}
+    {{- include "supersetNode.selectorLabels" . | nindent 4 }}
   {{- if .Values.service.loadBalancerIP }}
   loadBalancerIP: {{ .Values.service.loadBalancerIP }}
   {{- end }}

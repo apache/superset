@@ -23,13 +23,8 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: {{ include "superset.fullname" . }}-hpa-worker
   labels:
-    app: {{ template "superset.name" . }}
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
-    {{- if .Values.extraLabels }}
-      {{- toYaml .Values.extraLabels | nindent 4 }}
-    {{- end }}
+    {{- include "superset.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -37,6 +32,23 @@ spec:
     name: {{ include "superset.fullname" . }}-worker
   minReplicas: {{ .Values.supersetWorker.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.supersetWorker.autoscaling.maxReplicas }}
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+      - type: Pods
+        value: 2
+        periodSeconds: 15
+      selectPolicy: Max
   metrics:
     {{- if .Values.supersetWorker.autoscaling.targetCPUUtilizationPercentage }}
     - type: Resource
@@ -53,5 +65,13 @@ spec:
         target:
           type: Utilization
           averageUtilization: {{ .Values.supersetWorker.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.supersetWorker.autoscaling.targetAverageValue }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: AverageValue
+          averageValue: {{ .Values.supersetWorker.autoscaling.targetAverageValue }}
     {{- end }}
 {{- end }}

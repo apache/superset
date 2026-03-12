@@ -18,19 +18,22 @@
 */}}
 
 {{- if .Values.supersetWebsockets.enabled }}
+{{- /* SECURITY: Validate JWT secret is set - this validation runs when websocket deployment is created */}}
+{{- /* Note: This is separate from validation in _helpers.tpl because websocket config is in a separate secret */}}
+{{- if or (not .Values.supersetWebsockets.config.jwtSecret) (eq .Values.supersetWebsockets.config.jwtSecret "") (eq .Values.supersetWebsockets.config.jwtSecret "CHANGE-ME") }}
+{{- fail "SECURITY ERROR: supersetWebsockets.enabled is true but jwtSecret is empty or default. You must set a secure JWT secret using --set supersetWebsockets.config.jwtSecret='your-secret' or via external secret." }}
+{{- end }}
+{{- /* BEST PRACTICE WARNING: Check for floating image tags per https://helm.sh/docs/chart_best_practices/pods */}}
+{{- if eq .Values.supersetWebsockets.image.tag "latest" }}
+{{- /* NOTE: Using 'latest' tag is not recommended for production. Override with --set supersetWebsockets.image.tag=<version> */}}
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: "{{ template "superset.fullname" . }}-ws"
   namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ template "superset.name" . }}-ws"
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
-    {{- if .Values.extraLabels }}
-      {{- toYaml .Values.extraLabels | nindent 4 }}
-    {{- end }}
+    {{- include "superset.componentLabels" (dict "component" "websocket" "root" .) | nindent 4 }}
   {{- if .Values.supersetWebsockets.deploymentAnnotations }}
   annotations: {{- toYaml .Values.supersetWebsockets.deploymentAnnotations | nindent 4 }}
   {{- end }}
@@ -41,33 +44,54 @@ spec:
     {{- include "supersetWebsockets.selectorLabels" . | nindent 6 }}
   {{- if .Values.supersetWebsockets.strategy }}
   strategy: {{- toYaml .Values.supersetWebsockets.strategy | nindent 4 }}
+  {{- else }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   {{- end }}
   template:
     metadata:
       annotations:
         checksum/wsconfig: {{ tpl (toJson .Values.supersetWebsockets.config) . | sha256sum }}
         checksum/secrets: {{ tpl (toJson .Values.extraSecretEnv) . | sha256sum }}
-        {{- if .Values.supersetWebsockets.podAnnotations }}
-          {{- toYaml .Values.supersetWebsockets.podAnnotations | nindent 8 }}
+        {{- with .Values.globalPodAnnotations }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.supersetWebsockets.podAnnotations }}
+          {{- toYaml . | nindent 8 }}
         {{- end }}
       labels:
-        app: "{{ template "superset.name" . }}-ws"
-        release: {{ .Release.Name }}
-        {{- if .Values.extraLabels }}
-          {{- toYaml .Values.extraLabels | nindent 8 }}
-        {{- end }}
+        {{- include "supersetWebsockets.selectorLabels" . | nindent 8 }}
         {{- if .Values.supersetWebsockets.podLabels }}
           {{- toYaml .Values.supersetWebsockets.podLabels | nindent 8 }}
         {{- end }}
     spec:
-      {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
+      {{- if or .Values.serviceAccount.create .Values.serviceAccount.name }}
       serviceAccountName: {{ template "superset.serviceAccountName" . }}
       {{- end }}
       securityContext:
-        runAsUser: {{ .Values.runAsUser }}
         {{- if .Values.supersetWebsockets.podSecurityContext }}
           {{- toYaml .Values.supersetWebsockets.podSecurityContext | nindent 8 }}
+        {{- else }}
+        runAsUser: {{ .Values.runAsUser }}
+        {{- if ne (int .Values.runAsUser) 0 }}
+        runAsNonRoot: true
         {{- end }}
+        fsGroup: {{ .Values.runAsUser }}
+        seccompProfile:
+          type: RuntimeDefault
+        {{- end }}
+      terminationGracePeriodSeconds: 60
+      {{- if .Values.supersetWebsockets.initContainers }}
+      initContainers: {{- tpl (toYaml .Values.supersetWebsockets.initContainers) . | nindent 6 }}
+      {{- else }}
+      {{- $defaultInitContainers := include "superset.defaultInitContainers" . }}
+      {{- if $defaultInitContainers }}
+      initContainers: {{- $defaultInitContainers | nindent 6 }}
+      {{- end }}
+      {{- end }}
       {{- with .Values.hostAliases }}
       hostAliases: {{- toYaml . | nindent 6 }}
       {{- end }}
@@ -75,18 +99,24 @@ spec:
         - name: "{{ .Chart.Name }}-ws"
           image: "{{ .Values.supersetWebsockets.image.repository }}:{{ .Values.supersetWebsockets.image.tag }}"
           imagePullPolicy: {{ .Values.supersetWebsockets.image.pullPolicy }}
-          {{- if .Values.supersetWebsockets.containerSecurityContext }}
-          securityContext: {{- toYaml .Values.supersetWebsockets.containerSecurityContext | nindent 12 }}
-          {{- end }}
+          securityContext:
+            {{- if .Values.supersetWebsockets.containerSecurityContext }}
+              {{- toYaml .Values.supersetWebsockets.containerSecurityContext | nindent 12 }}
+            {{- else }}
+            allowPrivilegeEscalation: false
+            {{- if ne (int .Values.runAsUser) 0 }}
+            runAsNonRoot: true
+            {{- end }}
+            runAsUser: {{ .Values.runAsUser }}
+            capabilities:
+              drop:
+                - ALL
+            {{- end }}
           command: {{  tpl (toJson .Values.supersetWebsockets.command) . }}
           # Passing all the envs is a bit blunt... we only need a few (see https://github.com/apache/superset/blob/master/superset-websocket/src/config.ts)...
           env:
-            {{- range $key, $value := .Values.extraEnv }}
-            - name: {{ $key | quote}}
-              value: {{ $value | quote }}
-            {{- end }}
-            {{- if .Values.extraEnvRaw }}
-              {{- toYaml .Values.extraEnvRaw | nindent 12 }}
+            {{- with .Values.extraEnv }}
+              {{- toYaml . | nindent 12 }}
             {{- end }}
           envFrom:
             - secretRef:
@@ -104,6 +134,14 @@ spec:
               mountPath: /home/superset-websocket/config.json
               subPath: config.json
               readOnly: true
+            {{- if .Values.extraConfigs }}
+            - name: superset-extra-config
+              mountPath: {{ .Values.extraConfigMountPath | quote }}
+              readOnly: true
+            {{- end }}
+            {{- with .Values.extraVolumeMounts }}
+              {{- tpl (toYaml .) $ | nindent 12 -}}
+            {{- end }}
           resources:
             {{- if .Values.supersetWebsockets.resources }}
               {{- toYaml .Values.supersetWebsockets.resources | nindent 12 }}
@@ -147,7 +185,7 @@ spec:
         {{- end }}
       {{- end }}
       {{- with .Values.tolerations }}
-      tolerations:  {{- toYaml . | nindent 8 }}
+      tolerations: {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets: {{- toYaml .Values.imagePullSecrets | nindent 8 }}
@@ -156,4 +194,13 @@ spec:
         - name: superset-ws-config
           secret:
             secretName: "{{ template "superset.fullname" . }}-ws-config"
+            defaultMode: 0400  # SECURITY: Read-only for owner only
+        {{- if .Values.extraConfigs }}
+        - name: superset-extra-config
+          configMap:
+            name: {{ template "superset.fullname" . }}-extra-config
+        {{- end }}
+        {{- with .Values.extraVolumes }}
+          {{- tpl (toYaml .) $ | nindent 8 -}}
+        {{- end }}
 {{- end }}

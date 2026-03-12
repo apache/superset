@@ -1,0 +1,354 @@
+suite: Label Consistency Tests
+templates:
+  - deployment.yaml
+  - deployment-worker.yaml
+  - deployment-beat.yaml
+  - deployment-flower.yaml
+  - deployment-ws.yaml
+  - service.yaml
+  - service-ws.yaml
+  - service-flower.yaml
+  - init-job.yaml
+  - ingress.yaml
+  - networkpolicy.yaml
+
+# These tests validate that Kubernetes recommended labels are consistently applied
+# across all chart resources per https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/
+#
+# Required Labels (app.kubernetes.io/):
+#   - name: The name of the application
+#   - instance: A unique name identifying the instance of an application
+#   - version: The current version of the application
+#   - component: The component within the architecture
+#   - part-of: The name of a higher level application this one is part of
+#   - managed-by: The tool being used to manage the operation of an application
+#
+# Helm-specific Labels:
+#   - helm.sh/chart: The chart name and version
+
+tests:
+  # =============================================================================
+  # Main Deployment Labels
+  # =============================================================================
+  - it: should have all recommended labels on main deployment
+    template: deployment.yaml
+    asserts:
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/name"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/instance"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/version"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/managed-by"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/part-of"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/component"]
+      - isNotNull:
+          path: metadata.labels["helm.sh/chart"]
+
+  - it: should have correct component label on main deployment
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/component"]
+          value: web
+
+  - it: should have part-of label set to superset on main deployment
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/part-of"]
+          value: superset
+
+  # =============================================================================
+  # Worker Deployment Labels
+  # =============================================================================
+  - it: should have all recommended labels on worker deployment
+    template: deployment-worker.yaml
+    asserts:
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/name"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/instance"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/version"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/managed-by"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/part-of"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/component"]
+
+  - it: should have correct component label on worker deployment
+    template: deployment-worker.yaml
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/component"]
+          value: worker
+
+  # =============================================================================
+  # Celery Beat Deployment Labels
+  # =============================================================================
+  - it: should have all recommended labels on celerybeat deployment
+    template: deployment-beat.yaml
+    set:
+      supersetCeleryBeat.enabled: true
+    asserts:
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/name"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/instance"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/component"]
+
+  - it: should have correct component label on celerybeat deployment
+    template: deployment-beat.yaml
+    set:
+      supersetCeleryBeat.enabled: true
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/component"]
+          value: celerybeat
+
+  # =============================================================================
+  # Flower Deployment Labels
+  # =============================================================================
+  - it: should have all recommended labels on flower deployment
+    template: deployment-flower.yaml
+    set:
+      supersetCeleryFlower.enabled: true
+    asserts:
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/name"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/instance"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/component"]
+
+  - it: should have correct component label on flower deployment
+    template: deployment-flower.yaml
+    set:
+      supersetCeleryFlower.enabled: true
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/component"]
+          value: flower
+
+  # =============================================================================
+  # WebSocket Deployment Labels
+  # =============================================================================
+  - it: should have all recommended labels on websocket deployment
+    template: deployment-ws.yaml
+    set:
+      supersetWebsockets.enabled: true
+      supersetWebsockets.config.jwtSecret: "test-secret-for-unit-test"
+    asserts:
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/name"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/instance"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/component"]
+
+  - it: should have correct component label on websocket deployment
+    template: deployment-ws.yaml
+    set:
+      supersetWebsockets.enabled: true
+      supersetWebsockets.config.jwtSecret: "test-secret-for-unit-test"
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/component"]
+          value: websocket
+
+  # =============================================================================
+  # Service Labels
+  # =============================================================================
+  - it: should have all recommended labels on main service
+    template: service.yaml
+    asserts:
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/name"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/instance"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/component"]
+
+  - it: should have correct component label on main service
+    template: service.yaml
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/component"]
+          value: web
+
+  - it: should have all recommended labels on websocket service
+    template: service-ws.yaml
+    set:
+      supersetWebsockets.enabled: true
+      supersetWebsockets.config.jwtSecret: "test-secret-for-unit-test"
+    asserts:
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/name"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/instance"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/component"]
+
+  - it: should have correct component label on websocket service
+    template: service-ws.yaml
+    set:
+      supersetWebsockets.enabled: true
+      supersetWebsockets.config.jwtSecret: "test-secret-for-unit-test"
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/component"]
+          value: websocket
+
+  - it: should have all recommended labels on flower service
+    template: service-flower.yaml
+    set:
+      supersetCeleryFlower.enabled: true
+    asserts:
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/name"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/instance"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/component"]
+
+  - it: should have correct component label on flower service
+    template: service-flower.yaml
+    set:
+      supersetCeleryFlower.enabled: true
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/component"]
+          value: flower
+
+  # =============================================================================
+  # Init Job Labels
+  # =============================================================================
+  - it: should have all recommended labels on init job
+    template: init-job.yaml
+    set:
+      init.enabled: true
+      init.createAdmin: true
+      init.adminUser.password: "test-password"
+    asserts:
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/name"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/instance"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/component"]
+
+  - it: should have correct component label on init job
+    template: init-job.yaml
+    set:
+      init.enabled: true
+      init.createAdmin: true
+      init.adminUser.password: "test-password"
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/component"]
+          value: init
+
+  # =============================================================================
+  # Ingress Labels
+  # =============================================================================
+  - it: should have all recommended labels on ingress
+    template: ingress.yaml
+    set:
+      ingress.enabled: true
+      ingress.hosts:
+        - host: superset.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/name"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/instance"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/component"]
+
+  - it: should have correct component label on ingress
+    template: ingress.yaml
+    set:
+      ingress.enabled: true
+      ingress.hosts:
+        - host: superset.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/component"]
+          value: ingress
+
+  # =============================================================================
+  # NetworkPolicy Labels
+  # =============================================================================
+  - it: should have all recommended labels on networkpolicy
+    template: networkpolicy.yaml
+    set:
+      networkPolicy.enabled: true
+    asserts:
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/name"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/instance"]
+
+  # =============================================================================
+  # Selector Label Consistency
+  # =============================================================================
+  - it: should have matching selector labels between deployment and service
+    template: deployment.yaml
+    asserts:
+      - isNotNull:
+          path: spec.selector.matchLabels["app.kubernetes.io/name"]
+      - isNotNull:
+          path: spec.selector.matchLabels["app.kubernetes.io/instance"]
+      - isNotNull:
+          path: spec.selector.matchLabels["app.kubernetes.io/component"]
+
+  - it: should have component in pod template labels for main deployment
+    template: deployment.yaml
+    asserts:
+      - isNotNull:
+          path: spec.template.metadata.labels["app.kubernetes.io/component"]
+
+  - it: should have component in pod template labels for worker deployment
+    template: deployment-worker.yaml
+    asserts:
+      - isNotNull:
+          path: spec.template.metadata.labels["app.kubernetes.io/component"]
+
+  # =============================================================================
+  # Extra Labels Support
+  # =============================================================================
+  - it: should include extraLabels when specified
+    template: deployment.yaml
+    set:
+      extraLabels:
+        custom-label: custom-value
+        environment: production
+    asserts:
+      - equal:
+          path: metadata.labels.custom-label
+          value: custom-value
+      - equal:
+          path: metadata.labels.environment
+          value: production
+
+  - it: should include extraLabels in service
+    template: service.yaml
+    set:
+      extraLabels:
+        custom-label: custom-value
+    asserts:
+      - equal:
+          path: metadata.labels.custom-label
+          value: custom-value

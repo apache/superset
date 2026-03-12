@@ -1,0 +1,67 @@
+{{/*
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/}}
+{{- if and .Values.supersetWorker.replicas.enabled .Values.supersetWorker.keda.enabled .Values.cache.enabled }}
+{{- /* Build Redis address from cache configuration */}}
+{{- $redisHost := .Values.cache.host }}
+{{- if not $redisHost }}
+{{- if .Values.cluster.redisServiceName }}
+{{- $redisHost = .Values.cluster.redisServiceName }}
+{{- else }}
+{{- $redisHost = printf "%s-redis-headless" .Release.Name }}
+{{- end }}
+{{- end }}
+{{- $redisPort := .Values.cache.port | default 6379 }}
+{{- $redisPassword := .Values.cache.password }}
+{{- $useSSL := and (hasKey .Values.cache "ssl") .Values.cache.ssl.enabled }}
+{{- $redisProto := "redis" }}
+{{- if $useSSL }}
+{{- $redisProto = "rediss" }}
+{{- end }}
+{{- $celeryDb := .Values.cache.celeryDb | default 0 }}
+{{- $redisAddress := "" }}
+{{- if $redisPassword }}
+{{- $redisAddress = printf "%s://:%s@%s:%d/%d" $redisProto $redisPassword $redisHost (int $redisPort) (int $celeryDb) }}
+{{- else }}
+{{- $redisAddress = printf "%s://%s:%d/%d" $redisProto $redisHost (int $redisPort) (int $celeryDb) }}
+{{- end }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ template "superset.fullname" . }}-worker
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    meta.helm.sh/release-name: {{ .Release.Name }}
+    meta.helm.sh/release-namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "superset.labels" . | nindent 4 }}
+    {{- if .Values.extraLabels }}
+      {{- toYaml .Values.extraLabels | nindent 4 }}
+    {{- end }}
+spec:
+  scaleTargetRef:
+    name: {{ template "superset.fullname" . }}-worker
+  minReplicaCount: {{ .Values.supersetWorker.keda.minReplicaCount }}
+  maxReplicaCount: {{ .Values.supersetWorker.keda.maxReplicaCount }}
+  pollingInterval: {{ .Values.supersetWorker.keda.pollingInterval }}
+  cooldownPeriod: {{ .Values.supersetWorker.keda.cooldownPeriod }}
+  triggers:
+    - type: redis
+      metadata:
+        address: {{ $redisAddress | quote }}
+        listName: {{ .Values.supersetWorker.keda.listName | default "celery" | quote }}
+        listLength: {{ .Values.supersetWorker.keda.listLength | default "10" | quote }}
+{{- end }}

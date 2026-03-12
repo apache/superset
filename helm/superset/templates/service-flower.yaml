@@ -24,13 +24,7 @@ metadata:
   name: "{{ template "superset.fullname" . }}-flower"
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "superset.name" . }}
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
-    {{- if .Values.extraLabels }}
-      {{- toYaml .Values.extraLabels | nindent 4 }}
-    {{- end }}
+    {{- include "superset.componentLabels" (dict "component" "flower" "root" .) | nindent 4 }}
   {{- with .Values.supersetCeleryFlower.service.annotations }}
   annotations: {{- toYaml . | nindent 4 }}
   {{- end }}
@@ -45,8 +39,7 @@ spec:
       nodePort: {{ .Values.supersetCeleryFlower.service.nodePort.http }}
       {{- end }}
   selector:
-    app: {{ template "superset.name" . }}-flower
-    release: {{ .Release.Name }}
+    {{- include "supersetCeleryFlower.selectorLabels" . | nindent 4 }}
   {{- if .Values.supersetCeleryFlower.service.loadBalancerIP }}
   loadBalancerIP: {{ .Values.supersetCeleryFlower.service.loadBalancerIP }}
   {{- end }}

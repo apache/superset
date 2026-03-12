@@ -1,0 +1,262 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+suite: New features tests
+tests:
+  # VPA Tests
+  - it: should not create VPA by default
+    template: templates/vpa.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create VPA when enabled
+    template: templates/vpa.yaml
+    set:
+      vpa:
+        enabled: true
+    asserts:
+      - isKind:
+          of: VerticalPodAutoscaler
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-superset
+      - equal:
+          path: spec.updatePolicy.updateMode
+          value: Auto
+
+  - it: should configure VPA resource policies
+    template: templates/vpa.yaml
+    set:
+      vpa:
+        enabled: true
+        minAllowed:
+          cpu: 200m
+          memory: 512Mi
+        maxAllowed:
+          cpu: 2
+          memory: 4Gi
+    asserts:
+      - equal:
+          path: spec.resourcePolicy.containerPolicies[0].minAllowed.cpu
+          value: 200m
+      - equal:
+          path: spec.resourcePolicy.containerPolicies[0].maxAllowed.memory
+          value: 4Gi
+
+  # Gateway API Tests
+  - it: should not create HTTPRoute by default
+    template: templates/httproute.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create HTTPRoute when enabled
+    template: templates/httproute.yaml
+    set:
+      gateway:
+        enabled: true
+        hostnames:
+          - superset.example.com
+    asserts:
+      - isKind:
+          of: HTTPRoute
+      - equal:
+          path: apiVersion
+          value: gateway.networking.k8s.io/v1
+      - contains:
+          path: spec.hostnames
+          content: superset.example.com
+
+  - it: should configure Gateway parentRefs
+    template: templates/httproute.yaml
+    set:
+      gateway:
+        enabled: true
+        parentRefs:
+          - name: custom-gateway
+            namespace: custom-ns
+    asserts:
+      - contains:
+          path: spec.parentRefs
+          content:
+            name: custom-gateway
+            namespace: custom-ns
+
+  # ServiceMonitor Tests
+  - it: should not create ServiceMonitor by default
+    template: templates/servicemonitor.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create ServiceMonitor when enabled
+    template: templates/servicemonitor.yaml
+    set:
+      metrics:
+        enabled: true
+        serviceMonitor:
+          enabled: true
+    asserts:
+      - isKind:
+          of: ServiceMonitor
+      - equal:
+          path: apiVersion
+          value: monitoring.coreos.com/v1
+
+  - it: should configure ServiceMonitor scrape settings
+    template: templates/servicemonitor.yaml
+    set:
+      metrics:
+        enabled: true
+        serviceMonitor:
+          enabled: true
+          interval: 60s
+          scrapeTimeout: 30s
+          path: /custom-metrics
+    asserts:
+      - equal:
+          path: spec.endpoints[0].interval
+          value: 60s
+      - equal:
+          path: spec.endpoints[0].scrapeTimeout
+          value: 30s
+      - equal:
+          path: spec.endpoints[0].path
+          value: /custom-metrics
+
+  # External Secrets Tests
+  - it: should not create ExternalSecret by default
+    template: templates/external-secret.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create ExternalSecret when enabled
+    template: templates/external-secret.yaml
+    set:
+      externalSecrets:
+        enabled: true
+        secretStoreRef:
+          name: vault-backend
+          kind: ClusterSecretStore
+    asserts:
+      - isKind:
+          of: ExternalSecret
+      - equal:
+          path: spec.secretStoreRef.name
+          value: vault-backend
+      - equal:
+          path: spec.secretStoreRef.kind
+          value: ClusterSecretStore
+
+  # KEDA ScaledObject Tests
+  - it: should not create ScaledObject by default
+    template: templates/scaledobject-worker.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create ScaledObject when KEDA is enabled
+    template: templates/scaledobject-worker.yaml
+    set:
+      supersetWorker:
+        replicas:
+          enabled: true
+        keda:
+          enabled: true
+          minReplicaCount: 2
+          maxReplicaCount: 20
+    asserts:
+      - isKind:
+          of: ScaledObject
+      - equal:
+          path: spec.minReplicaCount
+          value: 2
+      - equal:
+          path: spec.maxReplicaCount
+          value: 20
+
+  # Network Policy Tests
+  - it: should not create NetworkPolicy by default
+    template: templates/networkpolicy.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create NetworkPolicy when enabled
+    template: templates/networkpolicy.yaml
+    set:
+      networkPolicy:
+        enabled: true
+    asserts:
+      - isKind:
+          of: NetworkPolicy
+      - contains:
+          path: spec.policyTypes
+          content: Ingress
+      - contains:
+          path: spec.policyTypes
+          content: Egress
+
+  # Init/Upgrade Job Separation Tests
+  - it: init job should have post-install hook only
+    template: templates/init-job.yaml
+    asserts:
+      - equal:
+          path: metadata.annotations["helm.sh/hook"]
+          value: post-install
+      - equal:
+          path: metadata.annotations["helm.sh/hook-weight"]
+          value: "1"
+
+  - it: upgrade job runs on both install and upgrade (before init job)
+    template: templates/upgrade-job.yaml
+    asserts:
+      - isKind:
+          of: Job
+      - equal:
+          path: metadata.annotations["helm.sh/hook"]
+          value: post-install,post-upgrade
+      - equal:
+          path: metadata.annotations["helm.sh/hook-weight"]
+          value: "0"
+
+  - it: upgrade job handles DB migrations and role init only
+    template: templates/upgrade-job.yaml
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].command[2]
+          pattern: "superset db upgrade"
+      - matchRegex:
+          path: spec.template.spec.containers[0].command[2]
+          pattern: "superset init"
+      - notMatchRegex:
+          path: spec.template.spec.containers[0].command[2]
+          pattern: "create-admin"
+      - notMatchRegex:
+          path: spec.template.spec.containers[0].command[2]
+          pattern: "load_examples"
+
+  - it: upgrade job can be disabled
+    template: templates/upgrade-job.yaml
+    set:
+      init:
+        upgradeJob:
+          enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0

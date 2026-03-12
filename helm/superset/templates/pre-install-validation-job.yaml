@@ -1,0 +1,182 @@
+{{/*
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/}}
+
+{{- if .Values.preInstallValidation.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ template "superset.fullname" . }}-pre-install-validation
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "superset.componentLabels" (dict "component" "validation" "root" .) | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 300
+  template:
+    metadata:
+      name: {{ template "superset.fullname" . }}-pre-install-validation
+      {{- if .Values.preInstallValidation.podAnnotations }}
+      annotations: {{- toYaml .Values.preInstallValidation.podAnnotations | nindent 8 }}
+      {{- end }}
+      {{- if or .Values.extraLabels .Values.preInstallValidation.podLabels }}
+      labels:
+        {{- if .Values.extraLabels }}
+          {{- toYaml .Values.extraLabels | nindent 8 }}
+        {{- end }}
+        {{- if .Values.preInstallValidation.podLabels }}
+          {{- toYaml .Values.preInstallValidation.podLabels | nindent 8 }}
+        {{- end }}
+      {{- end }}
+    spec:
+      terminationGracePeriodSeconds: 30
+      {{- if or .Values.serviceAccount.create .Values.serviceAccount.name }}
+      serviceAccountName: {{ template "superset.serviceAccountName" . }}
+      {{- end }}
+      securityContext:
+        {{- if .Values.preInstallValidation.podSecurityContext }}
+          {{- toYaml .Values.preInstallValidation.podSecurityContext | nindent 8 }}
+        {{- else }}
+        runAsUser: {{ .Values.runAsUser }}
+        {{- if ne (int .Values.runAsUser) 0 }}
+        runAsNonRoot: true
+        {{- end }}
+        fsGroup: {{ .Values.runAsUser }}
+        seccompProfile:
+          type: RuntimeDefault
+        {{- end }}
+      {{- if .Values.preInstallValidation.initContainers }}
+      initContainers: {{- tpl (toYaml .Values.preInstallValidation.initContainers) . | nindent 6 }}
+      {{- else }}
+      {{- /* Optional dependencies are now installed in bootstrap script, not in init containers */}}
+      {{- /* Pre-install validation will use the base image - optional deps should be pre-installed in custom image for production */}}
+      {{- end }}
+      containers:
+      - name: validation
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        securityContext:
+          {{- if .Values.preInstallValidation.containerSecurityContext }}
+            {{- toYaml .Values.preInstallValidation.containerSecurityContext | nindent 12 }}
+          {{- else }}
+          allowPrivilegeEscalation: false
+          {{- if ne (int .Values.runAsUser) 0 }}
+          runAsNonRoot: true
+          {{- end }}
+          runAsUser: {{ .Values.runAsUser }}
+          capabilities:
+            drop:
+              - ALL
+          {{- end }}
+        env:
+          {{- if .Values.database.uri }}
+          - name: SQLALCHEMY_DATABASE_URI
+            value: {{ .Values.database.uri | quote }}
+          {{- else }}
+          {{- $dbHost := .Values.database.host }}
+          {{- if not $dbHost }}
+            {{- if .Values.cluster.databaseServiceName }}
+              {{- $dbHost = .Values.cluster.databaseServiceName }}
+            {{- else }}
+              {{- $dbHost = printf "%s-postgresql" .Release.Name }}
+            {{- end }}
+          {{- end }}
+          - name: DB_HOST
+            value: {{ $dbHost | quote }}
+          - name: DB_PORT
+            value: {{ .Values.database.port | quote }}
+          - name: DB_USER
+            value: {{ .Values.database.user | quote }}
+          {{- if .Values.database.password }}
+          - name: DB_PASS
+            value: {{ .Values.database.password | quote }}
+          {{- end }}
+          - name: DB_NAME
+            value: {{ .Values.database.name | quote }}
+          - name: DB_DRIVER
+            value: {{ .Values.database.driver | quote }}
+          {{- if and (hasKey .Values.database "ssl") .Values.database.ssl.enabled }}
+          - name: DB_SSL_MODE
+            value: {{ .Values.database.ssl.mode | default "require" | quote }}
+          {{- end }}
+          {{- end }}
+          {{- if and .Values.cache.enabled .Values.preInstallValidation.checkRedis }}
+          {{- if .Values.cache.host }}
+          - name: REDIS_HOST
+            value: {{ tpl .Values.cache.host . | quote }}
+          {{- end }}
+          {{- if .Values.cache.port }}
+          - name: REDIS_PORT
+            value: {{ .Values.cache.port | quote }}
+          {{- end }}
+          {{- if .Values.cache.user }}
+          - name: REDIS_USER
+            value: {{ .Values.cache.user | quote }}
+          {{- end }}
+          {{- if .Values.cache.password }}
+          - name: REDIS_PASSWORD
+            value: {{ .Values.cache.password | quote }}
+          {{- end }}
+          {{- if and (hasKey .Values.cache "ssl") .Values.cache.ssl.enabled }}
+          - name: REDIS_PROTO
+            value: "rediss"
+          {{- end }}
+          {{- end }}
+        {{- /* Note: envFrom secret may not exist during pre-install hook, so we set env vars directly above */}}
+        {{- /* envFrom is kept for compatibility but may be empty during pre-install */}}
+        {{- if false }}
+        {{- /* Disabled during pre-install - secret may not exist yet */}}
+        envFrom:
+          - secretRef:
+              name: {{ tpl .Values.envFromSecret . | quote }}
+          {{- range .Values.envFromSecrets }}
+          - secretRef:
+              name: {{ tpl . $ | quote }}
+          {{- end }}
+        {{- end }}
+        command:
+          - python3
+          - "{{ .Values.configMountPath }}/pre_install_validation.py"
+        volumeMounts:
+          - name: validation-script
+            mountPath: {{ .Values.configMountPath | quote }}
+            readOnly: true
+        resources:
+          {{- if .Values.preInstallValidation.resources }}
+            {{- toYaml .Values.preInstallValidation.resources | nindent 12 }}
+          {{- else }}
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          {{- end }}
+      restartPolicy: Never
+      volumes:
+        - name: validation-script
+          secret:
+            secretName: {{ tpl .Values.configFromSecret . | quote }}
+            defaultMode: 0400
+        - name: superset-config
+          secret:
+            secretName: {{ tpl .Values.configFromSecret . | quote }}
+            defaultMode: 0400
+{{- end }}

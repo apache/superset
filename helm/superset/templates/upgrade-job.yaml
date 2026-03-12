@@ -17,25 +17,26 @@
 
 */}}
 
-{{- /* SECURITY: Admin password validation happens in _helpers.tpl (superset.config template) */}}
-{{- /* This ensures validation occurs when the config secret is created, before this job runs */}}
+{{- /* Upgrade job for DB migrations and role initialization */}}
+{{- /* Runs on EVERY deployment (install and upgrade) before init job */}}
+{{- /* Init job only runs on install for admin creation and examples */}}
 
-{{- if .Values.init.enabled }}
+{{- if and .Values.init.enabled .Values.init.upgradeJob.enabled }}
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ template "superset.fullname" . }}-init-db
+  name: {{ template "superset.fullname" . }}-upgrade-db
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "superset.componentLabels" (dict "component" "init" "root" .) | nindent 4 }}
-  {{- if .Values.init.jobAnnotations }}
-  annotations: {{- toYaml .Values.init.jobAnnotations | nindent 4 }}
+    {{- include "superset.componentLabels" (dict "component" "upgrade" "root" .) | nindent 4 }}
+  {{- if .Values.init.upgradeJob.jobAnnotations }}
+  annotations: {{- toYaml .Values.init.upgradeJob.jobAnnotations | nindent 4 }}
   {{- end }}
 spec:
-  backoffLimit: 3  # SECURITY: Prevent infinite retry loops on permanent failures
+  backoffLimit: 3
   template:
     metadata:
-      name: {{ template "superset.fullname" . }}-init-db
+      name: {{ template "superset.fullname" . }}-upgrade-db
       {{- if .Values.init.podAnnotations }}
       annotations: {{- toYaml .Values.init.podAnnotations | nindent 8 }}
       {{- end }}
@@ -74,7 +75,7 @@ spec:
       {{- end }}
       {{- end }}
       containers:
-      - name: {{ template "superset.name" . }}-init-db
+      - name: {{ template "superset.name" . }}-upgrade-db
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
         env:
           {{- with .Values.extraEnv }}
@@ -113,11 +114,18 @@ spec:
           {{- with .Values.extraVolumeMounts }}
             {{- tpl (toYaml .) $ | nindent 10 -}}
           {{- end }}
-        command: {{  tpl (toJson .Values.init.command) . }}
+        # Only run DB migrations, not admin creation or examples loading
+        command:
+          - "/bin/sh"
+          - "-c"
+          - |
+            set -eu
+            echo "Upgrading DB schema..."
+            superset db upgrade
+            echo "Initializing roles..."
+            superset init
+            echo "Upgrade complete."
         resources: {{- toYaml .Values.init.resources | nindent 10 }}
-      {{- if .Values.init.extraContainers }}
-          {{- toYaml .Values.init.extraContainers | nindent 6 }}
-      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -152,12 +160,12 @@ spec:
         - name: superset-config
           secret:
             secretName: {{ tpl .Values.configFromSecret . }}
-            defaultMode: 0400  # SECURITY: Read-only for owner only
+            defaultMode: 0400
         {{- if .Values.extraConfigs }}
         - name: superset-extra-config
           configMap:
             name: {{ template "superset.fullname" . }}-extra-config
-            defaultMode: 0444  # Read-only for all
+            defaultMode: 0444
         {{- end }}
         {{- with .Values.extraVolumes }}
           {{- tpl (toYaml .) $ | nindent 8 -}}

@@ -1,0 +1,254 @@
+suite: Pods and PodTemplates Best Practices Tests
+templates:
+  - deployment.yaml
+  - deployment-worker.yaml
+  - deployment-beat.yaml
+  - deployment-flower.yaml
+  - deployment-ws.yaml
+  - init-job.yaml
+
+# These tests validate Helm best practices for Pods and PodTemplates
+# per https://helm.sh/docs/chart_best_practices/pods
+#
+# Best Practices:
+# 1. Images should use fixed tags (not "latest", "head", "canary")
+# 2. Images should be defined in values.yaml to make swapping easy
+# 3. ImagePullPolicy should be configurable via values.yaml
+# 4. PodTemplates should declare selectors matching the pod template labels
+
+tests:
+  # =============================================================================
+  # Image Configuration - Main Deployment
+  # =============================================================================
+  - it: should use image from values.yaml in main deployment
+    template: deployment.yaml
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ".+:.+"
+
+  - it: should use imagePullPolicy from values.yaml in main deployment
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: IfNotPresent
+
+  - it: should allow overriding image tag in main deployment
+    template: deployment.yaml
+    set:
+      image.tag: "6.0.0"
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ".*:6.0.0$"
+
+  - it: should allow overriding image repository in main deployment
+    template: deployment.yaml
+    set:
+      image.repository: "my-custom-repo/superset"
+      image.tag: "custom"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "my-custom-repo/superset:custom"
+
+  - it: should allow overriding imagePullPolicy in main deployment
+    template: deployment.yaml
+    set:
+      image.pullPolicy: Always
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: Always
+
+  # =============================================================================
+  # Image Configuration - Worker Deployment
+  # =============================================================================
+  - it: should use image from values.yaml in worker deployment
+    template: deployment-worker.yaml
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ".+:.+"
+
+  - it: should allow overriding image tag in worker deployment
+    template: deployment-worker.yaml
+    set:
+      image.tag: "6.0.0"
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ".*:6.0.0$"
+
+  # =============================================================================
+  # Image Configuration - Celery Beat Deployment
+  # =============================================================================
+  - it: should use image from values.yaml in celerybeat deployment
+    template: deployment-beat.yaml
+    set:
+      supersetCeleryBeat.enabled: true
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ".+:.+"
+
+  # =============================================================================
+  # Image Configuration - Flower Deployment
+  # =============================================================================
+  - it: should use image from values.yaml in flower deployment
+    template: deployment-flower.yaml
+    set:
+      supersetCeleryFlower.enabled: true
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ".+:.+"
+
+  # =============================================================================
+  # Image Configuration - WebSocket Deployment
+  # =============================================================================
+  - it: should use image from values.yaml in websocket deployment
+    template: deployment-ws.yaml
+    set:
+      supersetWebsockets.enabled: true
+      supersetWebsockets.config.jwtSecret: "test-secret-for-unit-test"
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ".+:.+"
+
+  - it: should allow overriding websocket image
+    template: deployment-ws.yaml
+    set:
+      supersetWebsockets.enabled: true
+      supersetWebsockets.config.jwtSecret: "test-secret-for-unit-test"
+      supersetWebsockets.image.repository: "my-ws-repo/websocket"
+      supersetWebsockets.image.tag: "v1.0.0"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "my-ws-repo/websocket:v1.0.0"
+
+  # =============================================================================
+  # Image Configuration - Init Job
+  # =============================================================================
+  - it: should use image from values.yaml in init job
+    template: init-job.yaml
+    set:
+      init.enabled: true
+      init.createAdmin: true
+      init.adminUser.password: "test-password"
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ".+:.+"
+
+  # =============================================================================
+  # ImagePullSecrets Support
+  # =============================================================================
+  - it: should not include imagePullSecrets by default
+    template: deployment.yaml
+    asserts:
+      - isNull:
+          path: spec.template.spec.imagePullSecrets
+
+  - it: should include imagePullSecrets when specified
+    template: deployment.yaml
+    set:
+      imagePullSecrets:
+        - name: my-registry-secret
+    asserts:
+      - equal:
+          path: spec.template.spec.imagePullSecrets[0].name
+          value: my-registry-secret
+
+  # =============================================================================
+  # PodTemplates Should Declare Selectors (matching pod template labels)
+  # =============================================================================
+  - it: should have selector matching pod template labels in main deployment
+    template: deployment.yaml
+    asserts:
+      - isNotNull:
+          path: spec.selector.matchLabels
+      - isNotNull:
+          path: spec.template.metadata.labels
+
+  - it: should have selector matching pod template labels in worker deployment
+    template: deployment-worker.yaml
+    asserts:
+      - isNotNull:
+          path: spec.selector.matchLabels
+      - isNotNull:
+          path: spec.template.metadata.labels
+
+  - it: should have selector matching pod template labels in celerybeat deployment
+    template: deployment-beat.yaml
+    set:
+      supersetCeleryBeat.enabled: true
+    asserts:
+      - isNotNull:
+          path: spec.selector.matchLabels
+      - isNotNull:
+          path: spec.template.metadata.labels
+
+  - it: should have selector matching pod template labels in flower deployment
+    template: deployment-flower.yaml
+    set:
+      supersetCeleryFlower.enabled: true
+    asserts:
+      - isNotNull:
+          path: spec.selector.matchLabels
+      - isNotNull:
+          path: spec.template.metadata.labels
+
+  - it: should have selector matching pod template labels in websocket deployment
+    template: deployment-ws.yaml
+    set:
+      supersetWebsockets.enabled: true
+      supersetWebsockets.config.jwtSecret: "test-secret-for-unit-test"
+    asserts:
+      - isNotNull:
+          path: spec.selector.matchLabels
+      - isNotNull:
+          path: spec.template.metadata.labels
+
+  # =============================================================================
+  # Selector Labels Include app.kubernetes.io/name (as per best practice example)
+  # =============================================================================
+  - it: should use app.kubernetes.io/name in selector for main deployment
+    template: deployment.yaml
+    asserts:
+      - isNotNull:
+          path: spec.selector.matchLabels["app.kubernetes.io/name"]
+
+  - it: should use app.kubernetes.io/name in selector for worker deployment
+    template: deployment-worker.yaml
+    asserts:
+      - isNotNull:
+          path: spec.selector.matchLabels["app.kubernetes.io/name"]
+
+  - it: should use app.kubernetes.io/name in selector for celerybeat deployment
+    template: deployment-beat.yaml
+    set:
+      supersetCeleryBeat.enabled: true
+    asserts:
+      - isNotNull:
+          path: spec.selector.matchLabels["app.kubernetes.io/name"]
+
+  - it: should use app.kubernetes.io/name in selector for flower deployment
+    template: deployment-flower.yaml
+    set:
+      supersetCeleryFlower.enabled: true
+    asserts:
+      - isNotNull:
+          path: spec.selector.matchLabels["app.kubernetes.io/name"]
+
+  - it: should use app.kubernetes.io/name in selector for websocket deployment
+    template: deployment-ws.yaml
+    set:
+      supersetWebsockets.enabled: true
+      supersetWebsockets.config.jwtSecret: "test-secret-for-unit-test"
+    asserts:
+      - isNotNull:
+          path: spec.selector.matchLabels["app.kubernetes.io/name"]

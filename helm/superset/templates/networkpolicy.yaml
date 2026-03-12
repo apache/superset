@@ -1,0 +1,102 @@
+{{/*
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/}}
+
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ template "superset.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "superset.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- /* Selects all Superset pods using the common app.kubernetes.io labels */}}
+      app.kubernetes.io/name: {{ include "superset.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    {{- if .Values.ingress.enabled }}
+    # Allow ingress from ingress controller
+    - from:
+        {{- if .Values.networkPolicy.ingress.namespaceSelector }}
+        namespaceSelector:
+          {{- toYaml .Values.networkPolicy.ingress.namespaceSelector | nindent 10 }}
+        {{- end }}
+        {{- if .Values.networkPolicy.ingress.podSelector }}
+        podSelector:
+          {{- toYaml .Values.networkPolicy.ingress.podSelector | nindent 10 }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.service.port }}
+    {{- end }}
+    # Allow internal communication between Superset components
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ include "superset.name" . }}
+              app.kubernetes.io/instance: {{ .Release.Name }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.service.port }}
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow database access
+    {{- if .Values.database.host }}
+    - to:
+        {{- if .Values.networkPolicy.database.namespaceSelector }}
+        namespaceSelector:
+          {{- toYaml .Values.networkPolicy.database.namespaceSelector | nindent 10 }}
+        {{- end }}
+        {{- if .Values.networkPolicy.database.podSelector }}
+        podSelector:
+          {{- toYaml .Values.networkPolicy.database.podSelector | nindent 10 }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.database.port | int }}
+    {{- end }}
+    # Allow Redis cache access
+    {{- if and .Values.cache.enabled .Values.cache.host }}
+    - to:
+        {{- if .Values.networkPolicy.redis.namespaceSelector }}
+        namespaceSelector:
+          {{- toYaml .Values.networkPolicy.redis.namespaceSelector | nindent 10 }}
+        {{- end }}
+        {{- if .Values.networkPolicy.redis.podSelector }}
+        podSelector:
+          {{- toYaml .Values.networkPolicy.redis.podSelector | nindent 10 }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.cache.port | int }}
+    {{- end }}
+    # Allow HTTPS for external APIs (Mapbox, etc.)
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443
+{{- end }}

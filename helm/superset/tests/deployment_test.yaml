@@ -1,0 +1,153 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+suite: Deployment tests
+templates:
+  - templates/deployment.yaml
+tests:
+  - it: should create deployment with default values
+    asserts:
+      - isKind:
+          of: Deployment
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-superset
+
+  - it: should set correct replica count
+    set:
+      supersetNode:
+        replicas:
+          enabled: true
+          replicaCount: 3
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 3
+
+  - it: should not set replicas when autoscaling is enabled
+    set:
+      supersetNode:
+        autoscaling:
+          enabled: true
+    asserts:
+      - isNull:
+          path: spec.replicas
+
+  - it: should use correct image tag from appVersion when not specified
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ".*:6\\.0\\.0$"
+
+  - it: should use custom image tag when specified
+    set:
+      image:
+        repository: custom/superset
+        tag: custom-tag
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: custom/superset:custom-tag
+
+  - it: should apply global pod annotations
+    set:
+      globalPodAnnotations:
+        custom-annotation: custom-value
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations.custom-annotation
+          value: custom-value
+
+  - it: should apply component-specific pod annotations
+    set:
+      supersetNode:
+        podAnnotations:
+          node-specific: annotation-value
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations.node-specific
+          value: annotation-value
+
+  - it: should set service account when specified
+    set:
+      serviceAccount:
+        create: true
+        name: custom-sa
+    asserts:
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: custom-sa
+
+  - it: should apply node selector
+    set:
+      nodeSelector:
+        disktype: ssd
+    asserts:
+      - equal:
+          path: spec.template.spec.nodeSelector.disktype
+          value: ssd
+
+  - it: should apply tolerations
+    set:
+      tolerations:
+        - key: "example-key"
+          operator: "Exists"
+          effect: "NoSchedule"
+    asserts:
+      - contains:
+          path: spec.template.spec.tolerations
+          content:
+            key: "example-key"
+            operator: "Exists"
+            effect: "NoSchedule"
+
+  - it: should apply affinity
+    set:
+      supersetNode:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/os
+                      operator: In
+                      values:
+                        - linux
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.affinity
+
+  - it: should use default RollingUpdate strategy
+    asserts:
+      - equal:
+          path: spec.strategy.type
+          value: RollingUpdate
+      - equal:
+          path: spec.strategy.rollingUpdate.maxSurge
+          value: 1
+      - equal:
+          path: spec.strategy.rollingUpdate.maxUnavailable
+          value: 0
+
+  - it: should override strategy when specified
+    set:
+      supersetNode:
+        strategy:
+          type: Recreate
+    asserts:
+      - equal:
+          path: spec.strategy.type
+          value: Recreate
