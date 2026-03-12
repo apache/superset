@@ -3174,3 +3174,48 @@ def test_is_mutating_nested_dml() -> None:
     SELECT * FROM updated;
     """
     assert SQLStatement(sql, "postgresql").is_mutating() is True
+
+
+def test_strip_jinja() -> None:
+    """
+    Test the strip_jinja helper function.
+    """
+    from superset.sql.parse import strip_jinja
+
+    # Basic variable
+    assert strip_jinja("{{ var }}") == "__JINJA_VAR__"
+    # Basic statement
+    assert strip_jinja("{% set x = 1 %}") == "__JINJA_VAR__"
+    # Comment should be removed
+    assert strip_jinja("{# comment #}") == ""
+    # Mixed content
+    assert strip_jinja("SELECT * FROM table WHERE col = {{ var }} {# comment #}") == (
+        "SELECT * FROM table WHERE col = __JINJA_VAR__ "
+    )
+    # Malicious content in variable
+    assert strip_jinja("{{ (SELECT 1) }}") == "(SELECT 1)"
+    # Malicious keyword in statement (processed as separate tags)
+    assert (
+        strip_jinja("{% if SELECT 1 %} x {% endif %}") == "(SELECT 1) x __JINJA_VAR__"
+    )
+    # Multiple blocks
+    assert strip_jinja("{{ x }} and {{ y }}") == "__JINJA_VAR__ and __JINJA_VAR__"
+    # Nested-like or complex blocks
+    assert strip_jinja("{{ 'select' if True else 'delete' }}") == "(SELECT 1)"
+
+
+def test_has_subquery_with_jinja() -> None:
+    """
+    Test has_subquery with Jinja templates.
+    """
+    from superset.sql.parse import SQLStatement, strip_jinja
+
+    # Normal Jinja should not be a subquery
+    sql = "SELECT 1 FROM table WHERE col = {{ var }}"
+    clean_sql = strip_jinja(sql)
+    assert SQLStatement(clean_sql, "postgresql").has_subquery() is False
+
+    # Malicious Jinja should be flagged
+    sql = "SELECT 1 FROM table WHERE col = 1 OR {{ 'EXISTS (SELECT 1 FROM users)' }}"
+    clean_sql = strip_jinja(sql)
+    assert SQLStatement(clean_sql, "postgresql").has_subquery() is True

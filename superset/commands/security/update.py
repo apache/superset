@@ -68,6 +68,9 @@ class UpdateRLSRuleCommand(BaseCommand):
             raise DatasourceNotFoundValidationError()
 
         if clause := self._properties.get("clause"):
+            if not tables:
+                raise DatasourceNotFoundValidationError()
+
             for table in tables:
                 validate_adhoc_subquery(
                     clause,

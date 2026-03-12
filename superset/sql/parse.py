@@ -137,14 +137,28 @@ class CTASMethod(enum.Enum):
 
 def strip_jinja(sql: str) -> str:
     """
-    Replaces Jinja tags {{ ... }} and {% ... %} with a dummy SQL identifier.
-    This allows the SQL parser to evaluate the structure of the query
-    without being choked by Jinja syntax.
+    Replaces Jinja tags with parser-safe placeholders.
+
+    If a tag contains SQL keywords that could indicate a subquery or mutation,
+    it is replaced with a synthetic subquery to ensure it is flagged by
+    security checks. Otherwise, it is replaced with a dummy identifier.
     """
-    # Replace {{ ... }} with a dummy identifier
-    sql = re.sub(r"\{\{.*?\}\}", "__JINJA_VAR__", sql, flags=re.DOTALL)
-    # Replace {% ... %} with a dummy statement
-    sql = re.sub(r"\{%.*?%\}", "__JINJA_VAR__", sql, flags=re.DOTALL)
+    sql_keyword_pattern = re.compile(
+        r"\b(select|union|except|intersect|insert|update|delete|merge|create|drop|alter|truncate)\b",
+        flags=re.IGNORECASE,
+    )
+
+    def _replace(match: re.Match[str]) -> str:
+        body = match.group(1)
+        if sql_keyword_pattern.search(body):
+            return "(SELECT 1)"
+        return "__JINJA_VAR__"
+
+    # Replace comments {# ... #} with empty string
+    sql = re.sub(r"\{#.*?#\}", "", sql, flags=re.DOTALL)
+    # Replace {{ ... }} and {% ... %} using the keyword-aware replacer
+    sql = re.sub(r"\{\{(.*?)\}\}", _replace, sql, flags=re.DOTALL)
+    sql = re.sub(r"\{%(.*?)%\}", _replace, sql, flags=re.DOTALL)
     return sql
 
 
