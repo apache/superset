@@ -24,10 +24,13 @@ import pytest
 from pytest_mock import MockerFixture
 
 from superset.commands.report.exceptions import (
+    ReportScheduleForbiddenError,
     ReportScheduleInvalidError,
 )
 from superset.commands.report.update import UpdateReportScheduleCommand
-from superset.reports.models import ReportScheduleType
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetSecurityException
+from superset.reports.models import ReportScheduleType, ReportState
 
 
 def _make_model(
@@ -252,3 +255,71 @@ def test_report_to_alert_with_db_accepted(mocker: MockerFixture) -> None:
         data={"type": ReportScheduleType.ALERT, "database": 5},
     )
     cmd.validate()  # should not raise
+
+
+# --- Deactivation state reset ---
+
+
+def test_deactivation_resets_working_state_to_noop(mocker: MockerFixture) -> None:
+    """Deactivating a report in WORKING state should reset last_state to NOOP."""
+    model = _make_model(mocker, model_type=ReportScheduleType.REPORT, database_id=None)
+    model.last_state = ReportState.WORKING
+    _setup_mocks(mocker, model)
+
+    cmd = UpdateReportScheduleCommand(model_id=1, data={"active": False})
+    cmd.validate()
+    assert cmd._properties["last_state"] == ReportState.NOOP
+
+
+def test_deactivation_from_non_working_does_not_reset(mocker: MockerFixture) -> None:
+    """Deactivating a report NOT in WORKING state should not touch last_state."""
+    model = _make_model(mocker, model_type=ReportScheduleType.REPORT, database_id=None)
+    model.last_state = ReportState.SUCCESS
+    _setup_mocks(mocker, model)
+
+    cmd = UpdateReportScheduleCommand(model_id=1, data={"active": False})
+    cmd.validate()
+    assert "last_state" not in cmd._properties
+
+
+# --- Ownership check ---
+
+
+def test_ownership_check_raises_forbidden(mocker: MockerFixture) -> None:
+    """Non-owner should get ReportScheduleForbiddenError."""
+    model = _make_model(mocker, model_type=ReportScheduleType.REPORT, database_id=None)
+    _setup_mocks(mocker, model)
+    mocker.patch(
+        "superset.commands.report.update.security_manager.raise_for_ownership",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                message="Forbidden",
+                error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+
+    cmd = UpdateReportScheduleCommand(model_id=1, data={})
+    with pytest.raises(ReportScheduleForbiddenError):
+        cmd.validate()
+
+
+# --- Database not found for alert ---
+
+
+def test_alert_with_nonexistent_database_rejected(mocker: MockerFixture) -> None:
+    """Alert with a database ID that doesn't exist should fail validation."""
+    model = _make_model(mocker, model_type=ReportScheduleType.ALERT, database_id=None)
+    _setup_mocks(mocker, model)
+    mocker.patch(
+        "superset.commands.report.update.DatabaseDAO.find_by_id",
+        return_value=None,
+    )
+
+    cmd = UpdateReportScheduleCommand(model_id=1, data={"database": 99999})
+    with pytest.raises(ReportScheduleInvalidError) as exc_info:
+        cmd.validate()
+    messages = _get_validation_messages(exc_info)
+    assert "database" in messages
+    assert "does not exist" in messages["database"].lower()

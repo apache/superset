@@ -16,23 +16,39 @@
 # under the License.
 
 import json  # noqa: TID251
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import patch
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 from pytest_mock import MockerFixture
 
 from superset.app import SupersetApp
 from superset.commands.exceptions import UpdateFailedError
-from superset.commands.report.execute import BaseReportState
+from superset.commands.report.exceptions import (
+    ReportScheduleAlertGracePeriodError,
+    ReportScheduleCsvFailedError,
+    ReportSchedulePreviousWorkingError,
+    ReportScheduleScreenshotFailedError,
+    ReportScheduleScreenshotTimeout,
+    ReportScheduleUnexpectedError,
+    ReportScheduleWorkingTimeoutError,
+)
+from superset.commands.report.execute import (
+    BaseReportState,
+    ReportNotTriggeredErrorState,
+    ReportSuccessState,
+    ReportWorkingState,
+)
 from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.reports.models import (
+    ReportDataFormat,
     ReportRecipients,
     ReportRecipientType,
     ReportSchedule,
     ReportScheduleType,
     ReportSourceFormat,
+    ReportState,
 )
 from superset.utils.core import HeaderDataType
 from superset.utils.screenshots import ChartScreenshot
@@ -343,6 +359,123 @@ def test_get_dashboard_urls_with_exporting_dashboard_only(
     assert expected_url == result[0]
 
 
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_dashboard_urls_with_filters_and_tabs(
+    mock_permalink_cls,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.chart = False
+    mock_report_schedule.chart_id = None
+    mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.type = "report_type"
+    mock_report_schedule.report_format = "report_format"
+    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.recipients = []
+    native_filter_rison = "(NATIVE_FILTER-1:(filterType:filter_select))"
+    mock_report_schedule.extra = {
+        "dashboard": {
+            "anchor": json.dumps(["TAB-1", "TAB-2"]),
+            "dataMask": {"NATIVE_FILTER-1": {"filterState": {"value": ["Sales"]}}},
+            "activeTabs": ["TAB-1", "TAB-2"],
+            "urlParams": None,
+            "nativeFilters": [  # type: ignore[typeddict-unknown-key]
+                {
+                    "nativeFilterId": "NATIVE_FILTER-1",
+                    "filterType": "filter_select",
+                    "columnName": "department",
+                    "filterValues": ["Sales"],
+                }
+            ],
+        }
+    }
+    mock_report_schedule.get_native_filters_params.return_value = native_filter_rison  # type: ignore[attr-defined]
+    mock_permalink_cls.return_value.run.side_effect = ["key1", "key2"]
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+
+    result: list[str] = class_instance.get_dashboard_urls()
+
+    import urllib.parse
+
+    base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
+    assert result == [
+        urllib.parse.urljoin(base_url, "superset/dashboard/p/key1/"),
+        urllib.parse.urljoin(base_url, "superset/dashboard/p/key2/"),
+    ]
+    mock_report_schedule.get_native_filters_params.assert_called_once()  # type: ignore[attr-defined]
+    assert mock_permalink_cls.call_count == 2
+    for call in mock_permalink_cls.call_args_list:
+        state = call.kwargs["state"]
+        assert state["urlParams"] == [["native_filters", native_filter_rison]]
+    assert mock_permalink_cls.call_args_list[0].kwargs["state"]["anchor"] == "TAB-1"
+    assert mock_permalink_cls.call_args_list[1].kwargs["state"]["anchor"] == "TAB-2"
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_dashboard_urls_with_filters_no_tabs(
+    mock_permalink_cls,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.chart = False
+    mock_report_schedule.chart_id = None
+    mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.type = "report_type"
+    mock_report_schedule.report_format = "report_format"
+    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.recipients = []
+    native_filter_rison = "(NATIVE_FILTER-1:(filterType:filter_select))"
+    mock_report_schedule.extra = {
+        "dashboard": {
+            "anchor": "",
+            "dataMask": {"NATIVE_FILTER-1": {"filterState": {"value": ["Sales"]}}},
+            "activeTabs": None,
+            "urlParams": None,
+            "nativeFilters": [  # type: ignore[typeddict-unknown-key]
+                {
+                    "nativeFilterId": "NATIVE_FILTER-1",
+                    "filterType": "filter_select",
+                    "columnName": "department",
+                    "filterValues": ["Sales"],
+                }
+            ],
+        }
+    }
+    mock_report_schedule.get_native_filters_params.return_value = native_filter_rison  # type: ignore[attr-defined]
+    mock_permalink_cls.return_value.run.return_value = "key1"
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+
+    result: list[str] = class_instance.get_dashboard_urls()
+
+    import urllib.parse
+
+    base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
+    assert result == [
+        urllib.parse.urljoin(base_url, "superset/dashboard/p/key1/"),
+    ]
+    mock_report_schedule.get_native_filters_params.assert_called_once()  # type: ignore[attr-defined]
+    assert mock_permalink_cls.call_count == 1
+    state = mock_permalink_cls.call_args_list[0].kwargs["state"]
+    # BUG: {urlParams: [...], **dashboard_state} lets dashboard_state["urlParams"]
+    # overwrite the native_filters param. The tabs path (_get_tabs_urls) does not
+    # have this issue because it builds the dict without **dashboard_state.
+    assert (
+        state["urlParams"] is None
+    )  # should be [["native_filters", native_filter_rison]]
+
+
 @patch(
     "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
 )
@@ -582,3 +715,314 @@ def test_update_recipient_to_slack_v2_missing_channels(mocker: MockerFixture):
     )
     with pytest.raises(UpdateFailedError):
         mock_cmmd.update_report_schedule_slack_v2()
+
+
+# ---------------------------------------------------------------------------
+# Tier 1: _update_query_context + create_log
+# ---------------------------------------------------------------------------
+
+
+def test_update_query_context_wraps_screenshot_failure(mocker: MockerFixture) -> None:
+    """_update_query_context wraps ScreenshotFailedError as CsvFailedError."""
+    schedule = mocker.Mock(spec=ReportSchedule)
+    state = BaseReportState(schedule, datetime.utcnow(), uuid4())
+    state._report_schedule = schedule
+    mocker.patch.object(
+        state,
+        "_get_screenshots",
+        side_effect=ReportScheduleScreenshotFailedError("boom"),
+    )
+    with pytest.raises(ReportScheduleCsvFailedError, match="query context"):
+        state._update_query_context()
+
+
+def test_update_query_context_wraps_screenshot_timeout(mocker: MockerFixture) -> None:
+    """_update_query_context wraps ScreenshotTimeout as CsvFailedError."""
+    schedule = mocker.Mock(spec=ReportSchedule)
+    state = BaseReportState(schedule, datetime.utcnow(), uuid4())
+    state._report_schedule = schedule
+    mocker.patch.object(
+        state,
+        "_get_screenshots",
+        side_effect=ReportScheduleScreenshotTimeout(),
+    )
+    with pytest.raises(ReportScheduleCsvFailedError, match="query context"):
+        state._update_query_context()
+
+
+def test_create_log_stale_data_raises_unexpected_error(mocker: MockerFixture) -> None:
+    """StaleDataError during create_log should rollback and raise UnexpectedError."""
+    from sqlalchemy.orm.exc import StaleDataError
+
+    schedule = mocker.Mock(spec=ReportSchedule)
+    schedule.last_value = None
+    schedule.last_value_row_json = None
+    schedule.last_state = ReportState.WORKING
+
+    state = BaseReportState(schedule, datetime.utcnow(), uuid4())
+    state._report_schedule = schedule
+
+    mock_db = mocker.patch("superset.commands.report.execute.db")
+    mock_db.session.commit.side_effect = StaleDataError("stale")
+    # Prevent SQLAlchemy from inspecting the mock schedule during log creation
+    mocker.patch(
+        "superset.commands.report.execute.ReportExecutionLog",
+        return_value=mocker.Mock(),
+    )
+
+    with pytest.raises(ReportScheduleUnexpectedError):
+        state.create_log()
+    mock_db.session.rollback.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# Tier 2: _get_notification_content branches
+# ---------------------------------------------------------------------------
+
+
+def _make_notification_state(
+    mocker: MockerFixture,
+    *,
+    report_format: ReportDataFormat = ReportDataFormat.PNG,
+    schedule_type: ReportScheduleType = ReportScheduleType.REPORT,
+    has_chart: bool = True,
+    email_subject: str | None = None,
+    chart_name: str = "My Chart",
+    dashboard_title: str = "My Dashboard",
+) -> BaseReportState:
+    """Build a BaseReportState with a mock schedule for notification tests."""
+    schedule = mocker.Mock(spec=ReportSchedule)
+    schedule.type = schedule_type
+    schedule.report_format = report_format
+    schedule.name = "Test Schedule"
+    schedule.description = "desc"
+    schedule.email_subject = email_subject
+    schedule.force_screenshot = False
+    schedule.recipients = []
+    schedule.owners = []
+
+    if has_chart:
+        schedule.chart = mocker.Mock()
+        schedule.chart.slice_name = chart_name
+        schedule.dashboard = None
+    else:
+        schedule.chart = None
+        schedule.dashboard = mocker.Mock()
+        schedule.dashboard.dashboard_title = dashboard_title
+        schedule.dashboard.uuid = "dash-uuid"
+        schedule.dashboard.id = 1
+
+    schedule.extra = {}
+
+    state = BaseReportState(schedule, datetime.utcnow(), uuid4())
+    state._report_schedule = schedule
+
+    # Stub helpers that _get_notification_content calls
+    mocker.patch.object(state, "_get_log_data", return_value={})
+    mocker.patch.object(state, "_get_url", return_value="http://example.com")
+
+    return state
+
+
+@patch("superset.commands.report.execute.feature_flag_manager")
+def test_get_notification_content_png_screenshot(
+    mock_ff, mocker: MockerFixture
+) -> None:
+    mock_ff.is_feature_enabled.return_value = False
+    state = _make_notification_state(mocker, report_format=ReportDataFormat.PNG)
+    mocker.patch.object(state, "_get_screenshots", return_value=[b"img1", b"img2"])
+
+    content = state._get_notification_content()
+    assert content.screenshots == [b"img1", b"img2"]
+    assert content.text is None
+
+
+@patch("superset.commands.report.execute.feature_flag_manager")
+def test_get_notification_content_png_empty_returns_error(
+    mock_ff, mocker: MockerFixture
+) -> None:
+    mock_ff.is_feature_enabled.return_value = False
+    state = _make_notification_state(mocker, report_format=ReportDataFormat.PNG)
+    mocker.patch.object(state, "_get_screenshots", return_value=[])
+
+    content = state._get_notification_content()
+    assert content.text == "Unexpected missing screenshot"
+
+
+@patch("superset.commands.report.execute.feature_flag_manager")
+def test_get_notification_content_csv_format(mock_ff, mocker: MockerFixture) -> None:
+    mock_ff.is_feature_enabled.return_value = False
+    state = _make_notification_state(
+        mocker, report_format=ReportDataFormat.CSV, has_chart=True
+    )
+    mocker.patch.object(state, "_get_csv_data", return_value=b"col1,col2\n1,2")
+
+    content = state._get_notification_content()
+    assert content.csv == b"col1,col2\n1,2"
+
+
+@patch("superset.commands.report.execute.feature_flag_manager")
+def test_get_notification_content_text_format(mock_ff, mocker: MockerFixture) -> None:
+    import pandas as pd
+
+    mock_ff.is_feature_enabled.return_value = False
+    state = _make_notification_state(
+        mocker, report_format=ReportDataFormat.TEXT, has_chart=True
+    )
+    df = pd.DataFrame({"a": [1]})
+    mocker.patch.object(state, "_get_embedded_data", return_value=df)
+
+    content = state._get_notification_content()
+    assert content.embedded_data is not None
+    assert list(content.embedded_data.columns) == ["a"]
+
+
+@pytest.mark.parametrize(
+    "email_subject,has_chart,expected_name",
+    [
+        ("Custom Subject", True, "Custom Subject"),
+        (None, True, "Test Schedule: My Chart"),
+        (None, False, "Test Schedule: My Dashboard"),
+    ],
+    ids=["email_subject", "chart_name", "dashboard_name"],
+)
+@patch("superset.commands.report.execute.feature_flag_manager")
+def test_get_notification_content_name(
+    mock_ff,
+    mocker: MockerFixture,
+    email_subject: str | None,
+    has_chart: bool,
+    expected_name: str,
+) -> None:
+    """Notification name comes from email_subject, chart, or dashboard."""
+    mock_ff.is_feature_enabled.return_value = False
+    state = _make_notification_state(
+        mocker,
+        report_format=ReportDataFormat.PNG,
+        email_subject=email_subject,
+        has_chart=has_chart,
+    )
+    mocker.patch.object(state, "_get_screenshots", return_value=[b"img"])
+
+    content = state._get_notification_content()
+    assert content.name == expected_name
+
+
+# ---------------------------------------------------------------------------
+# Tier 3: State machine top-level branches
+# ---------------------------------------------------------------------------
+
+
+def _make_state_instance(
+    mocker: MockerFixture,
+    cls: type,
+    *,
+    schedule_type: ReportScheduleType = ReportScheduleType.ALERT,
+    last_state: ReportState = ReportState.NOOP,
+    grace_period: int = 3600,
+    working_timeout: int = 3600,
+) -> BaseReportState:
+    """Create a state-machine state instance with a mocked schedule."""
+    schedule = mocker.Mock(spec=ReportSchedule)
+    schedule.type = schedule_type
+    schedule.last_state = last_state
+    schedule.grace_period = grace_period
+    schedule.working_timeout = working_timeout
+    schedule.last_eval_dttm = datetime.utcnow()
+    schedule.name = "Test"
+    schedule.owners = []
+    schedule.recipients = []
+    schedule.force_screenshot = False
+    schedule.extra = {}
+
+    instance = cls(schedule, datetime.utcnow(), uuid4())
+    instance._report_schedule = schedule
+    return instance
+
+
+def test_working_state_timeout_raises_timeout_error(mocker: MockerFixture) -> None:
+    """Working state past timeout should raise WorkingTimeoutError and log ERROR."""
+    state = _make_state_instance(mocker, ReportWorkingState)
+    mocker.patch.object(state, "is_on_working_timeout", return_value=True)
+
+    mock_log = mocker.Mock()
+    mock_log.end_dttm = datetime.utcnow() - timedelta(hours=2)
+    mocker.patch(
+        "superset.commands.report.execute.ReportScheduleDAO.find_last_entered_working_log",
+        return_value=mock_log,
+    )
+    mocker.patch.object(state, "update_report_schedule_and_log")
+
+    with pytest.raises(ReportScheduleWorkingTimeoutError):
+        state.next()
+
+    state.update_report_schedule_and_log.assert_called_once_with(  # type: ignore[attr-defined]
+        ReportState.ERROR,
+        error_message=str(ReportScheduleWorkingTimeoutError()),
+    )
+
+
+def test_working_state_still_working_raises_previous_working(
+    mocker: MockerFixture,
+) -> None:
+    """Working state not yet timed out should raise PreviousWorkingError."""
+    state = _make_state_instance(mocker, ReportWorkingState)
+    mocker.patch.object(state, "is_on_working_timeout", return_value=False)
+    mocker.patch.object(state, "update_report_schedule_and_log")
+
+    with pytest.raises(ReportSchedulePreviousWorkingError):
+        state.next()
+
+    state.update_report_schedule_and_log.assert_called_once_with(  # type: ignore[attr-defined]
+        ReportState.WORKING,
+        error_message=str(ReportSchedulePreviousWorkingError()),
+    )
+
+
+def test_success_state_grace_period_returns_without_sending(
+    mocker: MockerFixture,
+) -> None:
+    """Alert in grace period should set GRACE state and not send."""
+    state = _make_state_instance(
+        mocker,
+        ReportSuccessState,
+        schedule_type=ReportScheduleType.ALERT,
+    )
+    mocker.patch.object(state, "is_in_grace_period", return_value=True)
+    mocker.patch.object(state, "update_report_schedule_and_log")
+    mock_send = mocker.patch.object(state, "send")
+
+    state.next()
+
+    mock_send.assert_not_called()
+    state.update_report_schedule_and_log.assert_called_once_with(  # type: ignore[attr-defined]
+        ReportState.GRACE,
+        error_message=str(ReportScheduleAlertGracePeriodError()),
+    )
+
+
+def test_not_triggered_error_state_send_failure_logs_error_and_reraises(
+    mocker: MockerFixture,
+) -> None:
+    """When send() fails in NOOP/ERROR state, error should be logged and re-raised."""
+    state = _make_state_instance(
+        mocker,
+        ReportNotTriggeredErrorState,
+        schedule_type=ReportScheduleType.REPORT,
+    )
+    send_error = RuntimeError("send failed")
+    mocker.patch.object(state, "send", side_effect=send_error)
+    mocker.patch.object(state, "update_report_schedule_and_log")
+    mocker.patch.object(state, "is_in_error_grace_period", return_value=True)
+
+    with pytest.raises(RuntimeError, match="send failed"):
+        state.next()
+
+    # Should have logged WORKING, then ERROR
+    calls = state.update_report_schedule_and_log.call_args_list  # type: ignore[attr-defined]
+    assert calls[0].args[0] == ReportState.WORKING
+    assert calls[1].args[0] == ReportState.ERROR
+    error_msg = calls[1].kwargs.get("error_message") or (
+        calls[1].args[1] if len(calls[1].args) > 1 else ""
+    )
+    assert "send failed" in error_msg
