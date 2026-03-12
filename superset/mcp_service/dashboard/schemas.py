@@ -87,6 +87,7 @@ from superset.mcp_service.common.cache_schemas import MetadataCacheControl
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
     RoleInfo,
+    serialize_user_object,
     TagInfo,
     UserInfo,
 )
@@ -109,19 +110,8 @@ class DashboardError(BaseModel):
         return cls(error=error, error_type=error_type, timestamp=datetime.now())
 
 
-def serialize_user_object(user: Any) -> UserInfo | None:
-    """Serialize a user object to UserInfo"""
-    if not user:
-        return None
-
-    return UserInfo(
-        id=getattr(user, "id", None),
-        username=getattr(user, "username", None),
-        first_name=getattr(user, "first_name", None),
-        last_name=getattr(user, "last_name", None),
-        email=getattr(user, "email", None),
-        active=getattr(user, "active", None),
-    )
+# serialize_user_object is imported from system.schemas and re-exported here
+# for backward compatibility with dashboard tool modules.
 
 
 def serialize_tag_object(tag: Any) -> TagInfo | None:
@@ -502,8 +492,9 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
         changed_on_humanized=dashboard.changed_on_humanized,
         chart_count=len(dashboard.slices) if dashboard.slices else 0,
         owners=[
-            UserInfo.model_validate(owner, from_attributes=True)
+            info
             for owner in dashboard.owners
+            if (info := serialize_user_object(owner)) is not None
         ]
         if dashboard.owners
         else [],
