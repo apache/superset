@@ -86,6 +86,7 @@ from superset.utils import core as utils, json
 from superset.utils.cache import etag_cache
 from superset.utils.core import (
     DatasourceType,
+    GenericDataType,
     get_user_id,
     ReservedUrlParameters,
 )
@@ -220,7 +221,7 @@ class Superset(BaseSupersetView):
         df = payload.get("df")
         if df is None:
             df = pd.DataFrame()
-            coltypes = []
+            coltypes: list[GenericDataType] = []
         else:
             coltypes = payload.get("coltypes") or []
             if coltypes:
