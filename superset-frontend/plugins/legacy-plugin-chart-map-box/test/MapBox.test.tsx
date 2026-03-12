@@ -170,3 +170,63 @@ test('applies partial viewport props on update', () => {
   expect(lastMapGLProps.latitude).toBe(40.75);
   expect(lastMapGLProps.zoom).toBe(10);
 });
+
+test('restores fitBounds when viewport props are cleared', () => {
+  const { rerender } = render(
+    <MapBox
+      {...defaultProps}
+      viewportLongitude={-122.4}
+      viewportLatitude={37.8}
+      viewportZoom={5}
+    />,
+  );
+
+  // Clear all viewport props (simulates user clearing the controls)
+  rerender(<MapBox {...defaultProps} />);
+
+  // Should revert to fitBounds values
+  expect(lastMapGLProps.longitude).toBe(-73.95);
+  expect(lastMapGLProps.latitude).toBe(40.75);
+  expect(lastMapGLProps.zoom).toBe(10);
+});
+
+test('restores only cleared viewport props, keeps the rest', () => {
+  const { rerender } = render(
+    <MapBox
+      {...defaultProps}
+      viewportLongitude={-122.4}
+      viewportLatitude={37.8}
+      viewportZoom={5}
+    />,
+  );
+
+  // Clear only longitude, keep lat/zoom
+  rerender(
+    <MapBox {...defaultProps} viewportLatitude={37.8} viewportZoom={5} />,
+  );
+
+  // Longitude reverts to fitBounds, lat/zoom stay
+  expect(lastMapGLProps.longitude).toBe(-73.95);
+  expect(lastMapGLProps.latitude).toBe(37.8);
+  expect(lastMapGLProps.zoom).toBe(5);
+});
+
+test('falls back to default viewport when cleared with undefined bounds', () => {
+  const { rerender } = render(
+    <MapBox
+      {...defaultProps}
+      bounds={undefined}
+      viewportLongitude={-122.4}
+      viewportLatitude={37.8}
+      viewportZoom={5}
+    />,
+  );
+
+  // Clear viewport props — no bounds to fitBounds to
+  rerender(<MapBox {...defaultProps} bounds={undefined} />);
+
+  // Should fall back to {0, 0, 1}
+  expect(lastMapGLProps.longitude).toBe(0);
+  expect(lastMapGLProps.latitude).toBe(0);
+  expect(lastMapGLProps.zoom).toBe(1);
+});

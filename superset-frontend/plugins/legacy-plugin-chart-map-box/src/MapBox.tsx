@@ -85,35 +85,15 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
   constructor(props: MapBoxProps) {
     super(props);
 
-    const { width = 400, height = 400, bounds } = this.props;
-    // Get a viewport that fits the given bounds, which all marks to be clustered.
-    // Derive lat, lon and zoom from this viewport. This is only done on initial
-    // render as the bounds don't update as we pan/zoom in the current design.
-
-    let latitude = 0;
-    let longitude = 0;
-    let zoom = 1;
-
-    // Guard against empty datasets where bounds may be undefined
-    if (bounds && bounds[0] && bounds[1]) {
-      const mercator = new WebMercatorViewport({
-        width,
-        height,
-      }).fitBounds(bounds);
-      ({ latitude, longitude, zoom } = mercator);
-    }
-
-    // Override with explicit viewport props when provided (e.g., saved chart controls)
+    // Start from fitBounds, then override with explicit viewport props if provided
+    const fitBounds = this.computeFitBoundsViewport();
     const { viewportLongitude, viewportLatitude, viewportZoom } = this.props;
-    if (viewportLongitude !== undefined) longitude = viewportLongitude;
-    if (viewportLatitude !== undefined) latitude = viewportLatitude;
-    if (viewportZoom !== undefined) zoom = viewportZoom;
 
     this.state = {
       viewport: {
-        longitude,
-        latitude,
-        zoom,
+        longitude: viewportLongitude ?? fitBounds.longitude,
+        latitude: viewportLatitude ?? fitBounds.latitude,
+        zoom: viewportZoom ?? fitBounds.zoom,
       },
     };
     this.handleViewportChange = this.handleViewportChange.bind(this);
@@ -125,9 +105,50 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
     onViewportChange!(viewport);
   }
 
+  computeFitBoundsViewport(): Viewport {
+    const { width = 400, height = 400, bounds } = this.props;
+    if (bounds && bounds[0] && bounds[1]) {
+      const mercator = new WebMercatorViewport({ width, height }).fitBounds(
+        bounds,
+      );
+      return {
+        latitude: mercator.latitude,
+        longitude: mercator.longitude,
+        zoom: mercator.zoom,
+      };
+    }
+    return { latitude: 0, longitude: 0, zoom: 1 };
+  }
+
   componentDidUpdate(prevProps: MapBoxProps) {
     const { viewportLongitude, viewportLatitude, viewportZoom } = this.props;
     const { viewport } = this.state;
+
+    // Detect when viewport props are cleared (changed from defined to undefined)
+    // to restore fitBounds behavior
+    const longitudeCleared =
+      prevProps.viewportLongitude !== undefined &&
+      viewportLongitude === undefined;
+    const latitudeCleared =
+      prevProps.viewportLatitude !== undefined &&
+      viewportLatitude === undefined;
+    const zoomCleared =
+      prevProps.viewportZoom !== undefined && viewportZoom === undefined;
+
+    if (longitudeCleared || latitudeCleared || zoomCleared) {
+      const fitBounds = this.computeFitBoundsViewport();
+      this.setState({
+        viewport: {
+          ...viewport,
+          longitude: longitudeCleared
+            ? fitBounds.longitude
+            : viewport.longitude,
+          latitude: latitudeCleared ? fitBounds.latitude : viewport.latitude,
+          zoom: zoomCleared ? fitBounds.zoom : viewport.zoom,
+        },
+      });
+      return;
+    }
 
     const longitudeChanged =
       prevProps.viewportLongitude !== viewportLongitude &&
