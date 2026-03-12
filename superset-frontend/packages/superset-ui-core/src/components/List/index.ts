@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled } from '@apache-superset/core/ui';
+import { css, styled } from '@apache-superset/core/theme';
 import { List as AntdList } from 'antd';
 import type { ListProps, ListItemProps, ListItemMetaProps } from './types';
 

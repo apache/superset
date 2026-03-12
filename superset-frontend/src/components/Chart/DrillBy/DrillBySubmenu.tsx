@@ -26,7 +26,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   BaseFormData,
   Behavior,
@@ -35,7 +35,7 @@ import {
   ensureIsArray,
   getChartMetadataRegistry,
 } from '@superset-ui/core';
-import { css, useTheme } from '@apache-superset/core/ui';
+import { css, useTheme } from '@apache-superset/core/theme';
 import {
   Constants,
   Input,

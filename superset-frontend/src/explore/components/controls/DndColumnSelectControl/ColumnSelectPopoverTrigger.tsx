@@ -19,7 +19,7 @@
 import { useCallback, useEffect, useMemo, useState, ReactNode } from 'react';
 import { useSelector } from 'react-redux';
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   AdhocColumn,
   isAdhocColumn,
@@ -50,16 +50,6 @@ interface ColumnSelectPopoverTriggerProps {
   metrics?: Metric[];
   selectedMetrics?: QueryFormMetric[];
 }
-
-const ColumnSelectPopoverTriggerWrapper = (
-  props: ColumnSelectPopoverTriggerProps,
-) => {
-  const datasource = useSelector(
-    (state: any) => state?.explore?.datasource || null,
-  );
-
-  return <ColumnSelectPopoverTriggerInner {...props} datasource={datasource} />;
-};
 
 interface ColumnSelectPopoverTriggerInnerProps extends ColumnSelectPopoverTriggerProps {
   datasource?: any;
@@ -215,6 +205,16 @@ const ColumnSelectPopoverTriggerInner = ({
       </ControlPopover>
     </>
   );
+};
+
+const ColumnSelectPopoverTriggerWrapper = (
+  props: ColumnSelectPopoverTriggerProps,
+) => {
+  const datasource = useSelector(
+    (state: any) => state?.explore?.datasource || null,
+  );
+
+  return <ColumnSelectPopoverTriggerInner {...props} datasource={datasource} />;
 };
 
 export default ColumnSelectPopoverTriggerWrapper;

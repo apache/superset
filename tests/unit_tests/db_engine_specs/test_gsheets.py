@@ -757,6 +757,26 @@ def test_needs_oauth2_with_credentials_error(mocker: MockerFixture) -> None:
     assert GSheetsEngineSpec.needs_oauth2(ex) is True
 
 
+def test_needs_oauth2_with_default_credentials_not_found(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that needs_oauth2 returns True when Application Default Credentials
+    are not configured.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user = mocker.MagicMock()
+
+    ex = Exception(
+        "Your default credentials were not found. To set up Application Default "
+        "Credentials, see https://cloud.google.com/docs/authentication/external/"
+        "set-up-adc for more information."
+    )
+    assert GSheetsEngineSpec.needs_oauth2(ex) is True
+
+
 def test_needs_oauth2_with_other_error(mocker: MockerFixture) -> None:
     """
     Test that needs_oauth2 returns False for other errors.

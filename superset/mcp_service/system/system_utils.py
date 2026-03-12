@@ -22,15 +22,19 @@ This module contains helper functions used by system tools for calculating
 instance metrics, dashboard breakdowns, database breakdowns, and activity summaries.
 """
 
+import logging
 from typing import Any, Dict
 
 from superset.mcp_service.system.schemas import (
     DashboardBreakdown,
     DatabaseBreakdown,
+    FeatureAvailability,
     InstanceSummary,
     PopularContent,
     RecentActivity,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def calculate_dashboard_breakdown(
@@ -193,4 +197,29 @@ def calculate_popular_content(
     return PopularContent(
         top_tags=[],
         top_creators=[],
+    )
+
+
+def calculate_feature_availability(
+    base_counts: Dict[str, int],
+    time_metrics: Dict[str, Dict[str, int]],
+    dao_classes: Dict[str, Any],
+) -> FeatureAvailability:
+    """Detect available features dynamically from menus.
+
+    Queries the FAB security manager for menu items accessible to the
+    current user.
+    """
+    accessible_menus: list[str] = []
+
+    try:
+        from superset import security_manager
+
+        menu_names = security_manager.user_view_menu_names("menu_access")
+        accessible_menus = sorted(menu_names)
+    except Exception as exc:
+        logger.debug("Could not retrieve accessible menus: %s", exc)
+
+    return FeatureAvailability(
+        accessible_menus=accessible_menus,
     )

@@ -42,6 +42,7 @@ import {
   MarkdownEditor,
   CssEditor,
   ConfigEditor,
+  JSEditor,
   type AceCompleterKeyword,
 } from '@superset-ui/core/components';
 import { Disposable } from '../models';
@@ -70,6 +71,8 @@ const getEditorComponent = (language: string) => {
       return CssEditor;
     case 'yaml':
       return ConfigEditor;
+    case 'javascript':
+      return JSEditor;
     default:
       console.warn(
         `Unknown editor language "${language}", falling back to SQL editor`,
@@ -179,6 +182,10 @@ const createAceEditorHandle = (
       completionProviders.current.delete(provider.id);
     });
   },
+
+  resize: () => {
+    aceEditorRef.current?.editor?.resize();
+  },
 });
 
 /**
@@ -189,6 +196,8 @@ const toAceKeyword = (keyword: EditorKeyword): AceCompleterKeyword => ({
   value: keyword.value ?? keyword.name,
   score: keyword.score ?? 0,
   meta: keyword.meta ?? '',
+  docText: keyword.detail,
+  docHTML: keyword.documentation,
 });
 
 /**
