@@ -19,6 +19,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { ensureIsArray } from '@superset-ui/core';
+import { datasetLabelLower } from 'src/utils/semanticLayerLabels';
 import { styled } from '@apache-superset/core/theme';
 import {
   TableView,
@@ -135,7 +136,10 @@ export const SamplesPane = ({
   }
 
   if (data.length === 0) {
-    const title = t('No samples were returned for this dataset');
+    const title = t(
+      'No samples were returned for this %s',
+      datasetLabelLower(),
+    );
     return <EmptyState image="document.svg" title={title} />;
   }
 
