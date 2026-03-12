@@ -43,6 +43,14 @@ export const GlobalStyles = () => {
           height: 100%;
         }
 
+        /* WCAG 1.4.4: Text Resize — ensure html root uses percentage-based font-size
+           so the base respects user browser font-size preferences. Combined with the
+           theme token system (which centralizes all font sizes), this allows text to
+           scale up to 200% via browser zoom without loss of content. */
+        html {
+          font-size: 100%;
+        }
+
         body {
           background-color: ${theme.colorBgBase};
           color: ${theme.colorText};

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, Children, isValidElement, cloneElement, useId } from 'react';
+import { ReactNode, Children, isValidElement, cloneElement, useState } from 'react';
 import { css, styled } from '@apache-superset/core/ui';
 import { InfoTooltip } from '@superset-ui/core/components';
 
@@ -128,7 +128,7 @@ export function ModalFormField({
   validateStatus,
   hasFeedback = false,
 }: ModalFormFieldProps) {
-  const uniqueId = useId();
+  const [uniqueId] = useState(() => `field-${Math.random().toString(36).slice(2, 8)}`);
   const errorId = error ? `${uniqueId}-error` : undefined;
 
   // Clone the first child element to inject aria-invalid and aria-describedby

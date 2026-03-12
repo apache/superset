@@ -29,7 +29,7 @@ import {
   Typography,
   Icons,
 } from '@superset-ui/core/components';
-import { useState, useEffect, useMemo, useId } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { capitalize } from 'lodash/fp';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { useDispatch } from 'react-redux';
@@ -82,7 +82,7 @@ export default function Login() {
   const [form] = Form.useForm<LoginForm>();
   const [loading, setLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
-  const loginErrorId = useId();
+  const [loginErrorId] = useState(() => `login-error-${Math.random().toString(36).slice(2, 8)}`);
   const dispatch = useDispatch();
 
   const bootstrapData = getBootstrapData();
