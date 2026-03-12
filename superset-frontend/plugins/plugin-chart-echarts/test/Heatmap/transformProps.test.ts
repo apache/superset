@@ -359,4 +359,171 @@ describe('Heatmap transformProps', () => {
     );
     expect((resultWithoutLegend.echartOptions.legend as any).show).toBe(false);
   });
+
+  test('tooltip formatter should display actual axis values, not indices', () => {
+    const chartProps = createChartProps({
+      sortXAxis: 'alpha_asc',
+      sortYAxis: 'alpha_asc',
+    });
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    const tooltipFormatter = (result.echartOptions.tooltip as any).formatter;
+    expect(typeof tooltipFormatter).toBe('function');
+
+    // Simulate tooltip data: [xIndex, yIndex, value]
+    // With alpha_asc sorting: xAxis = ['Friday', 'Monday', 'Thursday', 'Tuesday', 'Wednesday']
+    // yAxis = [9, 10, 11, 14, 15, 16]
+    // So index [1, 2, 15] should map to 'Monday' and hour 11
+    const mockParams = {
+      value: [1, 2, 15],
+    };
+
+    const tooltipHtml = tooltipFormatter(mockParams);
+
+    // Tooltip should contain the actual day name 'Monday', not the index '1'
+    expect(tooltipHtml).toContain('Monday');
+    // Tooltip should contain the actual hour '11', not the index '2'
+    expect(tooltipHtml).toContain('11');
+    // Should not contain raw indices
+    expect(tooltipHtml).not.toMatch(/\b1\s*\(/);
+    expect(tooltipHtml).not.toMatch(/\(\s*2\b/);
+  });
+
+  test('tooltip formatter should work with different sort orders', () => {
+    // Test with descending sort
+    const chartProps = createChartProps({
+      sortXAxis: 'alpha_desc',
+      sortYAxis: 'alpha_desc',
+    });
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    const tooltipFormatter = (result.echartOptions.tooltip as any).formatter;
+
+    // With alpha_desc sorting: xAxis = ['Wednesday', 'Tuesday', 'Thursday', 'Monday', 'Friday']
+    // yAxis = [16, 15, 14, 11, 10, 9]
+    // So index [4, 5, 20] should map to 'Friday' and hour 9
+    const mockParams = {
+      value: [4, 5, 20],
+    };
+
+    const tooltipHtml = tooltipFormatter(mockParams);
+
+    expect(tooltipHtml).toContain('Friday');
+    expect(tooltipHtml).toContain('9');
+  });
+
+  test('tooltip formatter should work with value-based sorting', () => {
+    const chartProps = createChartProps({
+      sortXAxis: 'value_asc',
+      sortYAxis: 'value_asc',
+    });
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    const tooltipFormatter = (result.echartOptions.tooltip as any).formatter;
+
+    // With value_asc sorting on X: ['Wednesday', 'Tuesday', 'Thursday', 'Friday', 'Monday']
+    // With value_asc sorting on Y: [11, 9, 10, 14, 15, 16]
+    // So index [0, 0, 8] should map to 'Wednesday' and hour 11
+    const mockParams = {
+      value: [0, 0, 8],
+    };
+
+    const tooltipHtml = tooltipFormatter(mockParams);
+
+    expect(tooltipHtml).toContain('Wednesday');
+    expect(tooltipHtml).toContain('11');
+  });
+
+  test('tooltip percentage calculation should use actual values, not indices', () => {
+    const testData = [
+      { day_of_week: 'Monday', hour: 9, count: 10 },
+      { day_of_week: 'Monday', hour: 10, count: 20 },
+      { day_of_week: 'Tuesday', hour: 9, count: 30 },
+    ];
+
+    // Test normalizeAcross: 'x'
+    const chartPropsX = createChartProps(
+      {
+        sortXAxis: 'alpha_asc',
+        showPercentage: true,
+        normalizeAcross: 'x',
+      },
+      testData,
+    );
+    const resultX = transformProps(chartPropsX as HeatmapChartProps);
+    const tooltipFormatterX = (resultX.echartOptions.tooltip as any).formatter;
+
+    // With alpha_asc: xAxis = ['Monday', 'Tuesday'], yAxis = [9, 10]
+    // Monday total = 30, Tuesday total = 30
+    // Point [0, 0, 10] = Monday/9 with value 10
+    // Percentage should be 10/30 = 33.33%, not based on index
+    const mockParamsX = {
+      value: [0, 0, 10],
+    };
+
+    const tooltipHtmlX = tooltipFormatterX(mockParamsX);
+    expect(tooltipHtmlX).toContain('33');
+    expect(tooltipHtmlX).toContain('%');
+
+    // Test normalizeAcross: 'y'
+    const chartPropsY = createChartProps(
+      {
+        sortXAxis: 'alpha_asc',
+        showPercentage: true,
+        normalizeAcross: 'y',
+      },
+      testData,
+    );
+    const resultY = transformProps(chartPropsY as HeatmapChartProps);
+    const tooltipFormatterY = (resultY.echartOptions.tooltip as any).formatter;
+
+    // Hour 9 total = 40 (10 + 30)
+    // Point [0, 0, 10] = Monday/9 with value 10
+    // Percentage should be 10/40 = 25%
+    const mockParamsY = {
+      value: [0, 0, 10],
+    };
+
+    const tooltipHtmlY = tooltipFormatterY(mockParamsY);
+    expect(tooltipHtmlY).toContain('25');
+    expect(tooltipHtmlY).toContain('%');
+  });
+
+  test('tooltip formatter should handle numeric axes correctly', () => {
+    const numericData = [
+      { year: 2020, quarter: 1, revenue: 100 },
+      { year: 2021, quarter: 2, revenue: 150 },
+      { year: 2022, quarter: 3, revenue: 200 },
+    ];
+
+    const chartProps = createChartProps(
+      {
+        sortXAxis: 'alpha_asc',
+        sortYAxis: 'alpha_asc',
+        xAxis: 'year',
+        groupby: ['quarter'],
+      },
+      numericData,
+    );
+
+    (chartProps as any).queriesData[0].colnames = [
+      'year',
+      'quarter',
+      'revenue',
+    ];
+
+    const result = transformProps(chartProps as HeatmapChartProps);
+    const tooltipFormatter = (result.echartOptions.tooltip as any).formatter;
+
+    // With alpha_asc: xAxis = [2020, 2021, 2022], yAxis = [1, 2, 3]
+    // Index [1, 1, 150] should map to year 2021 and quarter 2
+    const mockParams = {
+      value: [1, 1, 150],
+    };
+
+    const tooltipHtml = tooltipFormatter(mockParams);
+
+    expect(tooltipHtml).toContain('2021');
+    expect(tooltipHtml).toContain('2');
+  });
 });

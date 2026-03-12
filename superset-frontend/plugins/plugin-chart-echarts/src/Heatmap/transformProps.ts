@@ -18,8 +18,6 @@
  */
 import {
   NumberFormats,
-  QueryFormColumn,
-  getColumnLabel,
   getMetricLabel,
   getSequentialSchemeRegistry,
   getTimeFormatter,
@@ -180,8 +178,6 @@ export default function transformProps(
     chartProps;
   const {
     bottomMargin,
-    xAxis,
-    groupby,
     linearColorScheme,
     leftMargin,
     legendType = 'continuous',
@@ -204,9 +200,6 @@ export default function transformProps(
     sortYAxis,
   } = formData;
   const metricLabel = getMetricLabel(metric);
-  const xAxisLabel = getColumnLabel(xAxis);
-  // groupby is overridden to be a single value
-  const yAxisLabel = getColumnLabel(groupby as unknown as QueryFormColumn);
   const {
     data,
     colnames,
@@ -365,8 +358,8 @@ export default function transformProps(
       formatter: (params: CallbackDataParams) => {
         const totals = calculateTotals(
           data,
-          xAxisLabel,
-          yAxisLabel,
+          xAxisColumnName,
+          yAxisColumnName,
           metricLabel,
         );
         const paramsValue = params.value as (string | number)[];
@@ -392,10 +385,14 @@ export default function transformProps(
         let suffix = 'heatmap';
         if (typeof value === 'number') {
           if (normalizeAcross === 'x') {
-            percentage = value / totals.x[String(xValue)];
+            // Convert xValue to a key type (string or number) for totals lookup
+            const xKey = xValue as string | number;
+            percentage = value / totals.x[xKey];
             suffix = formattedX;
           } else if (normalizeAcross === 'y') {
-            percentage = value / totals.y[String(yValue)];
+            // Convert yValue to a key type (string or number) for totals lookup
+            const yKey = yValue as string | number;
+            percentage = value / totals.y[yKey];
             suffix = formattedY;
           } else {
             percentage = value / totals.total;
