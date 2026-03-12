@@ -56,6 +56,9 @@ interface CalendarProps {
   valueFormatter: (value: number) => string;
   verboseMap: Record<string, string>;
   theme: SupersetTheme;
+  colorRangeEnd?: number;
+  colorRangeStart?: number;
+  useCustomColorRange?: boolean;
 }
 
 function Calendar(element: HTMLElement, props: CalendarProps) {
