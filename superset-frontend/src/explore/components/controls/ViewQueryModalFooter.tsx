@@ -22,7 +22,6 @@ import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
 import { Button } from '@superset-ui/core/components';
 import { useHistory } from 'react-router-dom';
-import { datasetLabel } from 'src/utils/semanticLayerLabels';
 
 interface SimpleDataSource {
   id: string;
@@ -37,7 +36,7 @@ interface ViewQueryModalFooterProps {
 }
 
 const CLOSE = t('Close');
-const SAVE_AS_DATASET = t('Save as %s', datasetLabel());
+const SAVE_AS_DATASET = t('Save as Dataset');
 const OPEN_IN_SQL_LAB = t('Open in SQL Lab');
 
 const ViewQueryModalFooter: FC<ViewQueryModalFooterProps> = (props: {
