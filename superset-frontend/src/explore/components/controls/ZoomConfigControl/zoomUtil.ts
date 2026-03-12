@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import * as echarts from 'echarts';
+import { util } from 'echarts';
 import { isZoomConfigsFixed, isZoomConfigsLinear } from './typeguards';
 import {
   CreateDragGraphicOption,
@@ -76,6 +76,8 @@ export const createDragGraphicOption = ({
   barWidth,
   chart,
   add,
+  fillColor = 'white',
+  strokeColor = 'gray',
 }: CreateDragGraphicOption) => {
   const position = getDragGraphicPosition({
     chart,
@@ -95,20 +97,18 @@ export const createDragGraphicOption = ({
     y: position[1],
     invisible: false,
     style: {
-      // eslint-disable-next-line theme-colors/no-literal-colors
-      fill: '#ffffff',
-      // eslint-disable-next-line theme-colors/no-literal-colors
-      stroke: '#aaa',
+      fill: fillColor,
+      stroke: strokeColor,
     },
     cursor: 'ew-resize',
     draggable: 'horizontal',
     // Give a big z value, which makes the circle cover the symbol
     // in bar series.
     z: 100,
-    // Util method `echarts.util.curry` is used here to generate a
+    // Util method `util.curry` (from echarts) is used here to generate a
     // new function the same as `onDrag`, except that the
     // first parameter is fixed to be the `dataIndex` here.
-    ondrag: echarts.util.curry(onDrag, dataIndex),
+    ondrag: util.curry(onDrag, dataIndex),
   };
 };
 
@@ -129,6 +129,8 @@ export const createDragGraphicOptions = ({
   onHeightDrag,
   barWidth,
   chart,
+  fillColor,
+  strokeColor,
 }: CreateDragGraphicOptions) => {
   const graphics: any[] = [];
   data.forEach((dataItem: number[], dataIndex: number) => {
@@ -140,6 +142,8 @@ export const createDragGraphicOptions = ({
       dataItemIndex: 0,
       onDrag: onWidthDrag,
       add: false,
+      fillColor,
+      strokeColor,
     });
     graphics.push(widthGraphic);
     const heightGraphic = createDragGraphicOption({
@@ -150,6 +154,8 @@ export const createDragGraphicOptions = ({
       dataItemIndex: 1,
       onDrag: onHeightDrag,
       add: true,
+      fillColor,
+      strokeColor,
     });
     graphics.push(heightGraphic);
   });

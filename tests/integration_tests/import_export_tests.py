@@ -153,7 +153,7 @@ class TestImportExport(SupersetTestCase):
         assert len(expected_dash.slices) == len(actual_dash.slices)
         expected_slices = sorted(expected_dash.slices, key=lambda s: s.slice_name or "")
         actual_slices = sorted(actual_dash.slices, key=lambda s: s.slice_name or "")
-        for e_slc, a_slc in zip(expected_slices, actual_slices):
+        for e_slc, a_slc in zip(expected_slices, actual_slices, strict=False):
             self.assert_slice_equals(e_slc, a_slc)
         if check_position:
             assert expected_dash.position_json == actual_dash.position_json
@@ -212,7 +212,7 @@ class TestImportExport(SupersetTestCase):
         """
         expected_slices = sorted(expected_dash.slices, key=lambda s: s.slice_name or "")
         actual_slices = sorted(actual_dash.slices, key=lambda s: s.slice_name or "")
-        for e_slc, a_slc in zip(expected_slices, actual_slices):
+        for e_slc, a_slc in zip(expected_slices, actual_slices, strict=False):
             params = a_slc.params_dict
             assert e_slc.datasource.name == params["datasource_name"]
             assert e_slc.datasource.schema == params["schema"]

@@ -18,9 +18,11 @@
 
 import prison
 import pytest
-from flask import escape  # noqa: F401
+from flask import (
+    current_app,
+    escape,  # noqa: F401
+)
 
-from superset import app
 from superset.daos.dashboard import DashboardDAO
 from superset.utils import json
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
@@ -37,7 +39,7 @@ from tests.integration_tests.fixtures.energy_dashboard import (
 class TestDashboardDatasetSecurity(DashboardTestCase):
     @pytest.fixture
     def load_dashboard(self):
-        with app.app_context():
+        with current_app.app_context():
             table = (
                 db.session.query(SqlaTable).filter_by(table_name="energy_usage").one()  # noqa: F405
             )

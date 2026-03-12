@@ -29,7 +29,9 @@ import {
 } from 'src/utils/localStorageHelpers';
 import { RootState } from 'src/dashboard/types';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
+import { getAllActiveFilters } from 'src/dashboard/util/activeAllDashboardFilters';
 import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
+import { Divider, Filter } from '@superset-ui/core';
 
 type Props = { dashboardPageId: string };
 
@@ -64,12 +66,25 @@ const selectDashboardContextForExplore = createSelector(
     (state: RootState) => state.dashboardState?.colorScheme,
     (state: RootState) => state.nativeFilters?.filters,
     (state: RootState) => state.dataMask,
+    (state: RootState) => state.dashboardState?.sliceIds || [],
   ],
-  (metadata, dashboardId, colorScheme, filters, dataMask) => {
-    const nativeFilters = Object.keys(filters).reduce((acc, key) => {
-      acc[key] = pick(filters[key], ['chartsInScope']);
+  (metadata, dashboardId, colorScheme, filters, dataMask, sliceIds) => {
+    const nativeFilters = Object.keys(filters).reduce<
+      Record<string, Pick<Filter | Divider, 'chartsInScope'>>
+    >((acc, key) => {
+      const filter = filters[key];
+      if ('chartsInScope' in filter) {
+        acc[key] = pick(filter, ['chartsInScope']);
+      }
       return acc;
     }, {});
+
+    const activeFilters = getAllActiveFilters({
+      chartConfiguration: metadata?.chart_configuration || EMPTY_OBJECT,
+      nativeFilters: filters,
+      dataMask,
+      allSliceIds: sliceIds,
+    });
 
     return {
       labelsColor: metadata?.label_colors || EMPTY_OBJECT,
@@ -83,6 +98,7 @@ const selectDashboardContextForExplore = createSelector(
       dataMask,
       dashboardId,
       filterBoxFilters: getActiveFilters(),
+      activeFilters,
     };
   },
 );

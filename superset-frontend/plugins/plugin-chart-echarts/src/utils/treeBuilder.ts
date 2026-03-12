@@ -17,7 +17,7 @@
  * under the License.
  */
 import { DataRecord, DataRecordValue } from '@superset-ui/core';
-import { groupBy as _groupBy, isNumber, transform } from 'lodash';
+import { groupBy as _groupBy, transform } from 'lodash';
 
 export type TreeNode = {
   name: DataRecordValue;
@@ -28,7 +28,7 @@ export type TreeNode = {
 };
 
 function getMetricValue(datum: DataRecord, metric: string) {
-  return isNumber(datum[metric]) ? (datum[metric] as number) : 0;
+  return typeof datum[metric] === 'number' ? (datum[metric] as number) : 0;
 }
 
 export function treeBuilder(

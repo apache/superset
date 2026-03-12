@@ -19,6 +19,7 @@
 import {
   configureStore,
   ConfigureStoreOptions,
+  createListenerMiddleware,
   StoreEnhancer,
 } from '@reduxjs/toolkit';
 import thunk from 'redux-thunk';
@@ -38,7 +39,6 @@ import logger from 'src/middleware/loggerMiddleware';
 import saveModal from 'src/explore/reducers/saveModalReducer';
 import explore from 'src/explore/reducers/exploreReducer';
 import exploreDatasources from 'src/explore/reducers/datasourcesReducer';
-
 import { persistSqlLabStateEnhancer } from 'src/SqlLab/middlewares/persistSqlLabStateEnhancer';
 import sqlLabReducer from 'src/SqlLab/reducers/sqlLab';
 import getInitialState from 'src/SqlLab/reducers/getInitialState';
@@ -57,6 +57,7 @@ import { AnyDatasourcesAction } from 'src/explore/actions/datasourcesActions';
 import { HydrateExplore } from 'src/explore/actions/hydrateExplore';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { Dataset } from '@superset-ui/chart-controls';
+import databaseReducer from 'src/database/reducers';
 
 // Some reducers don't do anything, and redux is just used to reference the initial "state".
 // This may change later, as the client application takes on more responsibilities.
@@ -84,6 +85,8 @@ export const userReducer = (
   return user;
 };
 
+export const listenerMiddleware = createListenerMiddleware();
+
 const getMiddleware: ConfigureStoreOptions['middleware'] =
   getDefaultMiddleware =>
     process.env.REDUX_DEFAULT_MIDDLEWARE
@@ -97,8 +100,8 @@ const getMiddleware: ConfigureStoreOptions['middleware'] =
             ignoredPaths: [/queryController/g],
             warnAfter: 200,
           },
-        }).concat(logger, api.middleware)
-      : [thunk, logger, api.middleware];
+        }).concat(listenerMiddleware.middleware, logger, api.middleware)
+      : [listenerMiddleware.middleware, thunk, logger, api.middleware];
 
 // TODO: This reducer is a combination of the Dashboard and Explore reducers.
 // The correct way of handling this is to unify the actions and reducers from both
@@ -139,6 +142,7 @@ const reducers = {
   reports,
   saveModal,
   explore,
+  database: databaseReducer,
 };
 
 /* In some cases the jinja template injects two separate React apps into basic.html

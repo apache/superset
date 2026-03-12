@@ -170,6 +170,23 @@ params_v2_other_than_custom_false: dict[str, Any] = {
     "time_compare": [],
 }
 
+params_v1_with_custom_and_no_comparator: dict[str, Any] = {
+    **params_v1_with_custom,
+    "adhoc_custom": [
+        {
+            "expressionType": "SIMPLE",
+            "subject": "ds",
+            "operator": "TEMPORAL_RANGE",
+            "comparator": None,
+            "clause": "WHERE",
+            "sqlExpression": None,
+            "isExtra": False,
+            "isNew": False,
+            "datasourceWarning": False,
+        }
+    ],
+}
+
 
 def test_upgrade_chart_params_with_custom():
     """
@@ -229,3 +246,26 @@ def test_downgrade_chart_params_other_than_custom_false():
     original_params = deepcopy(params_v2_other_than_custom_false)
     downgraded_params = downgrade_comparison_params(original_params)
     assert downgraded_params == params_v1_other_than_custom_false
+
+
+def test_upgrade_chart_params_empty():
+    """
+    Ensure that the migration does not fail when params is None or empty.
+    """
+    assert upgrade_comparison_params(None) == {}
+    assert upgrade_comparison_params({}) == {}
+    assert upgrade_comparison_params("") == {}
+    assert downgrade_comparison_params(None) == {}
+    assert downgrade_comparison_params({}) == {}
+    assert downgrade_comparison_params("") == {}
+
+
+def test_upgrade_chart_params_with_custom_no_comparator():
+    """
+    ensure that the new time comparison params are added but no start_date_offset
+    """
+    original_params = deepcopy(params_v1_with_custom_and_no_comparator)
+    expected_after_upgrade = deepcopy(params_v2_with_custom)
+    expected_after_upgrade.pop("start_date_offset")
+    upgraded_params = upgrade_comparison_params(original_params)
+    assert upgraded_params == expected_after_upgrade

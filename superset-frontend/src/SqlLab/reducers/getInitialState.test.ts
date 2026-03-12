@@ -52,23 +52,25 @@ const apiDataWithTabState = {
     latest_query: null,
   },
 };
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('getInitialState', () => {
   afterEach(() => {
     localStorage.clear();
   });
 
-  it('should output the user that is passed in', () => {
+  test('should output the user that is passed in', () => {
     expect(getInitialState(apiData).user?.userId).toEqual(1);
   });
-  it('should return undefined instead of null for templateParams', () => {
+  test('should return undefined instead of null for templateParams', () => {
     expect(
       getInitialState(apiDataWithTabState).sqlLab?.queryEditors?.[0]
         ?.templateParams,
     ).toBeUndefined();
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('dedupeTabHistory', () => {
-    it('should dedupe the tab history', () => {
+    test('should dedupe the tab history', () => {
       [
         { value: [], expected: [] },
         {
@@ -136,8 +138,9 @@ describe('getInitialState', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('dedupe tables schema', () => {
-    it('should dedupe the table schema', () => {
+    test('should dedupe the table schema', () => {
       localStorage.setItem(
         'redux',
         JSON.stringify({
@@ -167,9 +170,10 @@ describe('getInitialState', () => {
               table: 'table1',
               tab_state_id: 1,
               description: {
+                name: 'table1',
                 columns: [
-                  { name: 'id', type: 'INT' },
-                  { name: 'column2', type: 'STRING' },
+                  { name: 'id', type: 'INT', longType: 'INT()' },
+                  { name: 'column2', type: 'STRING', longType: 'STRING()' },
                 ],
               },
             },
@@ -178,9 +182,10 @@ describe('getInitialState', () => {
               table: 'table2',
               tab_state_id: 1,
               description: {
+                name: 'table2',
                 columns: [
-                  { name: 'id', type: 'INT' },
-                  { name: 'column2', type: 'STRING' },
+                  { name: 'id', type: 'INT', longType: 'INT()' },
+                  { name: 'column2', type: 'STRING', longType: 'STRING()' },
                 ],
               },
             },
@@ -193,7 +198,7 @@ describe('getInitialState', () => {
       expect(initializedTables.map(({ id }) => id)).toEqual([1, 2, 6]);
     });
 
-    it('should parse the float dttm value', () => {
+    test('should parse the float dttm value', () => {
       const startDttmInStr = '1693433503447.166992';
       const endDttmInStr = '1693433503500.23132';
 
@@ -247,6 +252,7 @@ describe('getInitialState', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('restore unsaved changes for PERSISTENCE mode', () => {
     const lastUpdatedTime = Date.now();
     const expectedValue = 'updated editor value';
@@ -282,7 +288,7 @@ describe('getInitialState', () => {
       );
     });
 
-    it('restore unsaved changes for PERSISTENCE mode', () => {
+    test('restore unsaved changes for PERSISTENCE mode', () => {
       const apiDataWithLocalStorage = {
         ...apiData,
         active_tab: {
@@ -319,7 +325,7 @@ describe('getInitialState', () => {
       ).toEqual(apiDataWithTabState.active_tab.id.toString());
     });
 
-    it('skip unsaved changes for expired data', () => {
+    test('skip unsaved changes for expired data', () => {
       const apiDataWithLocalStorage = {
         ...apiData,
         active_tab: {
@@ -343,7 +349,7 @@ describe('getInitialState', () => {
       );
     });
 
-    it('skip unsaved changes for legacy cache data', () => {
+    test('skip unsaved changes for legacy cache data', () => {
       const apiDataWithLocalStorage = {
         ...apiData,
         active_tab: {

@@ -19,19 +19,26 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from io import BytesIO
 from typing import Any, cast
 from zipfile import is_zipfile, ZipFile
 
 from deprecation import deprecated
-from flask import make_response, render_template, request, Response, send_file
+from flask import (
+    current_app as app,
+    make_response,
+    render_template,
+    request,
+    Response,
+    send_file,
+)
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 
-from superset import app, event_logger
+from superset import event_logger
 from superset.commands.database.create import CreateDatabaseCommand
 from superset.commands.database.delete import DeleteDatabaseCommand
 from superset.commands.database.exceptions import (
@@ -46,16 +53,20 @@ from superset.commands.database.exceptions import (
 )
 from superset.commands.database.export import ExportDatabasesCommand
 from superset.commands.database.importers.dispatcher import ImportDatabasesCommand
-from superset.commands.database.ssh_tunnel.delete import DeleteSSHTunnelCommand
+from superset.commands.database.oauth2 import OAuth2StoreTokenCommand
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelDatabasePortError,
-    SSHTunnelDeleteFailedError,
     SSHTunnelingNotEnabledError,
 )
+from superset.commands.database.sync_permissions import SyncPermissionsCommand
 from superset.commands.database.tables import TablesDatabaseCommand
 from superset.commands.database.test_connection import TestConnectionDatabaseCommand
 from superset.commands.database.update import UpdateDatabaseCommand
-from superset.commands.database.uploaders.base import UploadCommand
+from superset.commands.database.uploaders.base import (
+    BaseDataReader,
+    UploadCommand,
+    UploadFileType,
+)
 from superset.commands.database.uploaders.columnar_reader import ColumnarReader
 from superset.commands.database.uploaders.csv_reader import CSVReader
 from superset.commands.database.uploaders.excel_reader import ExcelReader
@@ -67,15 +78,11 @@ from superset.commands.importers.exceptions import (
 )
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.daos.database import DatabaseDAO, DatabaseUserOAuth2TokensDAO
+from superset.daos.database import DatabaseDAO
 from superset.databases.decorators import check_table_access
 from superset.databases.filters import DatabaseFilter, DatabaseUploadEnabledFilter
 from superset.databases.schemas import (
     CatalogsResponseSchema,
-    ColumnarMetadataUploadFilePostSchema,
-    ColumnarUploadPostSchema,
-    CSVMetadataUploadFilePostSchema,
-    CSVUploadPostSchema,
     database_catalogs_query_schema,
     database_schemas_query_schema,
     database_tables_query_schema,
@@ -88,8 +95,6 @@ from superset.databases.schemas import (
     DatabaseTablesResponse,
     DatabaseTestConnectionSchema,
     DatabaseValidateParametersSchema,
-    ExcelMetadataUploadFilePostSchema,
-    ExcelUploadPostSchema,
     get_export_ids_schema,
     OAuth2ProviderResponseSchema,
     openapi_spec_methods_override,
@@ -99,6 +104,8 @@ from superset.databases.schemas import (
     TableExtraMetadataResponseSchema,
     TableMetadataResponseSchema,
     UploadFileMetadata,
+    UploadFileMetadataPostSchema,
+    UploadPostSchema,
     ValidateSQLRequest,
     ValidateSQLResponse,
 )
@@ -108,7 +115,6 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     DatabaseNotFoundException,
     InvalidPayloadSchemaError,
-    OAuth2Error,
     OAuth2RedirectError,
     SupersetErrorsException,
     SupersetException,
@@ -117,10 +123,14 @@ from superset.exceptions import (
 )
 from superset.extensions import security_manager
 from superset.models.core import Database
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
-from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
+from superset.utils.core import (
+    error_msg_from_exception,
+    get_username,
+    parse_js_uri_path_item,
+)
 from superset.utils.decorators import transaction
 from superset.utils.oauth2 import decode_oauth2_state
 from superset.utils.ssh_tunnel import mask_password_info
@@ -162,13 +172,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "delete_ssh_tunnel",
         "schemas_access_for_file_upload",
         "get_connection",
-        "csv_upload",
-        "csv_metadata",
-        "excel_upload",
-        "excel_metadata",
-        "columnar_upload",
-        "columnar_metadata",
+        "upload_metadata",
+        "upload",
         "oauth2",
+        "sync_permissions",
     }
 
     resource_name = "database"
@@ -211,6 +218,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "changed_by.last_name",
         "created_by.first_name",
         "created_by.last_name",
+        "configuration_method",
         "database_name",
         "explore_database_id",
         "expose_in_sqllab",
@@ -282,8 +290,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     openapi_spec_tag = "Database"
     openapi_spec_component_schemas = (
         CatalogsResponseSchema,
-        ColumnarUploadPostSchema,
-        CSVUploadPostSchema,
         DatabaseConnectionSchema,
         DatabaseFunctionNamesResponse,
         DatabaseSchemaAccessForFileUploadResponse,
@@ -291,15 +297,13 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         DatabaseTablesResponse,
         DatabaseTestConnectionSchema,
         DatabaseValidateParametersSchema,
-        ExcelUploadPostSchema,
         TableExtraMetadataResponseSchema,
         TableMetadataResponseSchema,
         SelectStarResponseSchema,
         SchemasResponseSchema,
-        CSVMetadataUploadFilePostSchema,
-        ExcelMetadataUploadFilePostSchema,
-        ColumnarMetadataUploadFilePostSchema,
+        UploadFileMetadataPostSchema,
         UploadFileMetadata,
+        UploadPostSchema,
         ValidateSQLRequest,
         ValidateSQLResponse,
     )
@@ -351,8 +355,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             "result": database_connection_schema.dump(database, many=False),
         }
         try:
-            if ssh_tunnel := DatabaseDAO.get_ssh_tunnel(pk):
-                response["result"]["ssh_tunnel"] = ssh_tunnel.data
+            if database and database.ssh_tunnel:
+                response["result"]["ssh_tunnel"] = database.ssh_tunnel.data
             return self.response(200, **response)
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
@@ -389,9 +393,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         """
         data = self.get_headless(pk, **kwargs)
         try:
-            if ssh_tunnel := DatabaseDAO.get_ssh_tunnel(pk):
+            database = DatabaseDAO.find_by_id(pk)
+            if database and database.ssh_tunnel:
                 payload = data.json
-                payload["result"]["ssh_tunnel"] = ssh_tunnel.data
+                payload["result"]["ssh_tunnel"] = database.ssh_tunnel.data
                 return payload
             return data
         except SupersetException as ex:
@@ -442,7 +447,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             item = self.add_model_schema.load(request.json)
         # This validates custom Schema with custom validations
         except ValidationError as error:
-            return self.response_400(message=error.messages)
+            return self.response_422(message=error.messages)
         try:
             new_model = CreateDatabaseCommand(item).run()
             item["uuid"] = new_model.uuid
@@ -459,7 +464,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
             # Return SSH Tunnel and hide passwords if any
             if item.get("ssh_tunnel"):
-                item["ssh_tunnel"] = mask_password_info(new_model.ssh_tunnel)
+                item["ssh_tunnel"] = mask_password_info(item["ssh_tunnel"])
 
             return self.response(201, id=new_model.id, result=item)
         except OAuth2RedirectError:
@@ -547,7 +552,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 item["parameters"] = changed_model.parameters
             # Return SSH Tunnel and hide passwords if any
             if item.get("ssh_tunnel"):
-                item["ssh_tunnel"] = mask_password_info(changed_model.ssh_tunnel)
+                item["ssh_tunnel"] = mask_password_info(item["ssh_tunnel"])
             return self.response(200, id=changed_model.id, result=item)
         except DatabaseNotFoundError:
             return self.response_404()
@@ -571,7 +576,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".delete",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
         log_to_statsd=False,
     )
     def delete(self, pk: int) -> Response:
@@ -621,12 +626,59 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
+    @expose("/<int:pk>/sync_permissions/", methods=("POST",))
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".sync-permissions",
+        log_to_statsd=False,
+    )
+    def sync_permissions(self, pk: int, **kwargs: Any) -> FlaskResponse:
+        """Sync all permissions for a database connection.
+        ---
+        post:
+          summary: Re-sync all permissions for a database connection
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The database connection ID
+          responses:
+            200:
+              description: Task created to sync permissions.
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        current_username = get_username()
+        SyncPermissionsCommand(
+            pk,
+            current_username,
+        ).run()
+        if app.config["SYNC_DB_PERMISSIONS_IN_ASYNC_MODE"]:
+            return self.response(202, message="Async task created to sync permissions")
+        return self.response(200, message="Permissions successfully synced")
+
     @expose("/<int:pk>/catalogs/")
     @protect()
     @rison(database_catalogs_query_schema)
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".catalogs",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.catalogs",
         log_to_statsd=False,
     )
     def catalogs(self, pk: int, **kwargs: Any) -> FlaskResponse:
@@ -691,7 +743,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @rison(database_schemas_query_schema)
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".schemas",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.schemas",
         log_to_statsd=False,
     )
     def schemas(self, pk: int, **kwargs: Any) -> FlaskResponse:
@@ -731,18 +783,35 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         if not database:
             return self.response_404()
         try:
-            catalog = kwargs["rison"].get("catalog")
+            params = kwargs["rison"]
+            catalog = params.get("catalog")
             schemas = database.get_all_schema_names(
                 catalog=catalog,
                 cache=database.schema_cache_enabled,
                 cache_timeout=database.schema_cache_timeout or None,
-                force=kwargs["rison"].get("force", False),
+                force=params.get("force", False),
             )
             schemas = security_manager.get_schemas_accessible_by_user(
                 database,
                 catalog,
                 schemas,
             )
+            if params.get("upload_allowed"):
+                if not database.allow_file_upload:
+                    return self.response(200, result=[])
+                if allowed_schemas := database.get_schema_access_for_file_upload():
+                    # some databases might return the list of schemas in uppercase,
+                    # while the list of allowed schemas is manually inputted so
+                    # could be lowercase
+                    allowed_schemas = {schema.lower() for schema in allowed_schemas}
+                    return self.response(
+                        200,
+                        result=[
+                            schema
+                            for schema in schemas
+                            if schema.lower() in allowed_schemas
+                        ],
+                    )
             return self.response(200, result=list(schemas))
         except OperationalError:
             return self.response(
@@ -759,7 +828,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @handle_api_exception
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".tables",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.tables",
         log_to_statsd=False,
     )
     def tables(self, pk: int, **kwargs: Any) -> FlaskResponse:
@@ -882,7 +951,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @check_table_access
     @safe
     @statsd_metrics
-    @deprecated(deprecated_in="4.0", removed_in="5.0")
+    @deprecated(deprecated_in="4.0")
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".table_extra_metadata_deprecated",
@@ -971,7 +1040,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
           - in: query
             schema:
               type: string
-            name: table
+            name: name
             required: true
             description: Table name
           - in: query
@@ -1388,51 +1457,15 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         parameters = OAuth2ProviderResponseSchema().load(request.args)
+        command = OAuth2StoreTokenCommand(parameters)
+        command.run()
 
-        if "error" in parameters:
-            raise OAuth2Error(parameters["error"])
-
-        # note that when decoding the state we will perform JWT validation, preventing a
-        # malicious payload that would insert a bogus database token, or delete an
-        # existing one.
         state = decode_oauth2_state(parameters["state"])
+        tab_id = state["tab_id"]
 
-        # exchange code for access/refresh tokens
-        database = DatabaseDAO.find_by_id(state["database_id"])
-        if database is None:
-            return self.response_404()
-
-        oauth2_config = database.get_oauth2_config()
-        if oauth2_config is None:
-            raise OAuth2Error("No configuration found for OAuth2")
-
-        token_response = database.db_engine_spec.get_oauth2_token(
-            oauth2_config,
-            parameters["code"],
-        )
-
-        # delete old tokens
-        existing = DatabaseUserOAuth2TokensDAO.find_one_or_none(
-            user_id=state["user_id"],
-            database_id=state["database_id"],
-        )
-        if existing:
-            DatabaseUserOAuth2TokensDAO.delete([existing])
-
-        # store tokens
-        expiration = datetime.now() + timedelta(seconds=token_response["expires_in"])
-        DatabaseUserOAuth2TokensDAO.create(
-            attributes={
-                "user_id": state["user_id"],
-                "database_id": state["database_id"],
-                "access_token": token_response["access_token"],
-                "access_token_expiration": expiration,
-                "refresh_token": token_response.get("refresh_token"),
-            },
-        )
         # return blank page that closes itself
         return make_response(
-            render_template("superset/oauth2.html", tab_id=state["tab_id"]),
+            render_template("superset/oauth2.html", tab_id=tab_id),
             200,
         )
 
@@ -1558,6 +1591,14 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                         the private_key should be provided in the following format:
                         `{"databases/MyDatabase.yaml": "my_private_key_password"}`.
                       type: string
+                    encrypted_extra_secrets:
+                      description: >-
+                        JSON map of sensitive values for masked_encrypted_extra fields.
+                        Keys are file paths (e.g., "databases/db.yaml") and values
+                        are JSON objects mapping JSONPath expressions to secrets.
+                        (e.g., `{"databases/MyDatabase.yaml":
+                        {"$.credentials_info.private_key": "actual_key"}}`).
+                      type: string
           responses:
             200:
               description: Database import result
@@ -1609,6 +1650,11 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             if "ssh_tunnel_private_key_passwords" in request.form
             else None
         )
+        encrypted_extra_secrets = (
+            json.loads(request.form["encrypted_extra_secrets"])
+            if "encrypted_extra_secrets" in request.form
+            else None
+        )
 
         command = ImportDatabasesCommand(
             contents,
@@ -1617,34 +1663,35 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             ssh_tunnel_passwords=ssh_tunnel_passwords,
             ssh_tunnel_private_keys=ssh_tunnel_private_keys,
             ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
+            encrypted_extra_secrets=encrypted_extra_secrets,
         )
         command.run()
         return self.response(200, message="OK")
 
-    @expose("/csv_metadata/", methods=("POST",))
+    @expose("/upload_metadata/", methods=("POST",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=(
-            lambda self, *args, **kwargs: f"{self.__class__.__name__}" ".csv_metadata"
+            lambda self, *args, **kwargs: f"{self.__class__.__name__}.upload_metadata"
         ),
         log_to_statsd=False,
     )
     @requires_form_data
-    def csv_metadata(self) -> Response:
-        """Upload a CSV file and returns file metadata.
+    def upload_metadata(self) -> Response:
+        """Upload a file and returns file metadata.
         ---
         post:
-          summary: Upload a CSV file and returns file metadata
+          summary: Upload a file and returns file metadata
           requestBody:
             required: true
             content:
               multipart/form-data:
                 schema:
-                  $ref: '#/components/schemas/CSVMetadataUploadFilePostSchema'
+                  $ref: '#/components/schemas/UploadFileMetadataPostSchema'
           responses:
             200:
-              description: Columnar upload response
+              description: Upload response
               content:
                 application/json:
                   schema:
@@ -1664,25 +1711,32 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         try:
             request_form = request.form.to_dict()
             request_form["file"] = request.files.get("file")
-            parameters = CSVMetadataUploadFilePostSchema().load(request_form)
+            parameters = UploadFileMetadataPostSchema().load(request_form)
         except ValidationError as error:
             return self.response_400(message=error.messages)
-        metadata = CSVReader(parameters).file_metadata(parameters["file"])
+        if parameters["type"] == UploadFileType.CSV.value:
+            metadata = CSVReader(parameters).file_metadata(parameters["file"])
+        elif parameters["type"] == UploadFileType.EXCEL.value:
+            metadata = ExcelReader(parameters).file_metadata(parameters["file"])
+        elif parameters["type"] == UploadFileType.COLUMNAR.value:
+            metadata = ColumnarReader(parameters).file_metadata(parameters["file"])
+        else:
+            self.response_400(message="Unexpected Invalid file type")
         return self.response(200, result=UploadFileMetadata().dump(metadata))
 
-    @expose("/<int:pk>/csv_upload/", methods=("POST",))
+    @expose("/<int:pk>/upload/", methods=("POST",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.csv_upload",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.upload",
         log_to_statsd=False,
     )
     @requires_form_data
-    def csv_upload(self, pk: int) -> Response:
-        """Upload a CSV file into a database.
+    def upload(self, pk: int) -> Response:
+        """Upload a file into a database.
         ---
         post:
-          summary: Upload a CSV file to a database table
+          summary: Upload a file to a database table
           parameters:
           - in: path
             schema:
@@ -1693,7 +1747,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             content:
               multipart/form-data:
                 schema:
-                  $ref: '#/components/schemas/CSVUploadPostSchema'
+                  $ref: '#/components/schemas/UploadPostSchema'
           responses:
             201:
               description: CSV upload response
@@ -1718,232 +1772,22 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         try:
             request_form = request.form.to_dict()
             request_form["file"] = request.files.get("file")
-            parameters = CSVUploadPostSchema().load(request_form)
+            parameters = UploadPostSchema().load(request_form)
+            reader: BaseDataReader
+            if parameters["type"] == UploadFileType.CSV.value:
+                reader = CSVReader(parameters)
+            elif parameters["type"] == UploadFileType.EXCEL.value:
+                reader = ExcelReader(parameters)
+            elif parameters["type"] == UploadFileType.COLUMNAR.value:
+                reader = ColumnarReader(parameters)
+            else:
+                return self.response_400(message="Unexpected Invalid file type")
             UploadCommand(
                 pk,
                 parameters["table_name"],
                 parameters["file"],
                 parameters.get("schema"),
-                CSVReader(parameters),
-            ).run()
-        except ValidationError as error:
-            return self.response_400(message=error.messages)
-        return self.response(201, message="OK")
-
-    @expose("/excel_metadata/", methods=("POST",))
-    @protect()
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=(
-            lambda self, *args, **kwargs: f"{self.__class__.__name__}" ".excel_metadata"
-        ),
-        log_to_statsd=False,
-    )
-    @requires_form_data
-    def excel_metadata(self) -> Response:
-        """Upload an Excel file and returns file metadata.
-        ---
-        post:
-          summary: Upload an Excel file and returns file metadata
-          requestBody:
-            required: true
-            content:
-              multipart/form-data:
-                schema:
-                  $ref: '#/components/schemas/ExcelMetadataUploadFilePostSchema'
-          responses:
-            200:
-              description: Columnar upload response
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      result:
-                        $ref: '#/components/schemas/UploadFileMetadata'
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        try:
-            request_form = request.form.to_dict()
-            request_form["file"] = request.files.get("file")
-            parameters = ExcelMetadataUploadFilePostSchema().load(request_form)
-        except ValidationError as error:
-            return self.response_400(message=error.messages)
-        metadata = ExcelReader().file_metadata(parameters["file"])
-        return self.response(200, result=UploadFileMetadata().dump(metadata))
-
-    @expose("/<int:pk>/excel_upload/", methods=("POST",))
-    @protect()
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.excel_upload",
-        log_to_statsd=False,
-    )
-    @requires_form_data
-    def excel_upload(self, pk: int) -> Response:
-        """Upload an Excel file into a database.
-        ---
-        post:
-          summary: Upload an Excel file to a database table
-          parameters:
-          - in: path
-            schema:
-              type: integer
-            name: pk
-          requestBody:
-            required: true
-            content:
-              multipart/form-data:
-                schema:
-                  $ref: '#/components/schemas/ExcelUploadPostSchema'
-          responses:
-            201:
-              description: Excel upload response
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      message:
-                        type: string
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        try:
-            request_form = request.form.to_dict()
-            request_form["file"] = request.files.get("file")
-            parameters = ExcelUploadPostSchema().load(request_form)
-            UploadCommand(
-                pk,
-                parameters["table_name"],
-                parameters["file"],
-                parameters.get("schema"),
-                ExcelReader(parameters),
-            ).run()
-        except ValidationError as error:
-            return self.response_400(message=error.messages)
-        return self.response(201, message="OK")
-
-    @expose("/columnar_metadata/", methods=("POST",))
-    @protect()
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        ".columnar_metadata",
-        log_to_statsd=False,
-    )
-    @requires_form_data
-    def columnar_metadata(self) -> Response:
-        """Upload a Columnar file and returns file metadata.
-        ---
-        post:
-          summary: Upload a Columnar file and returns file metadata
-          requestBody:
-            required: true
-            content:
-              multipart/form-data:
-                schema:
-                  $ref: '#/components/schemas/ColumnarMetadataUploadFilePostSchema'
-          responses:
-            200:
-              description: Columnar upload response
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      result:
-                        $ref: '#/components/schemas/UploadFileMetadata'
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        try:
-            request_form = request.form.to_dict()
-            request_form["file"] = request.files.get("file")
-            parameters = ColumnarMetadataUploadFilePostSchema().load(request_form)
-        except ValidationError as error:
-            return self.response_400(message=error.messages)
-        metadata = ColumnarReader().file_metadata(parameters["file"])
-        return self.response(200, result=UploadFileMetadata().dump(metadata))
-
-    @expose("/<int:pk>/columnar_upload/", methods=("POST",))
-    @protect()
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.columnar_upload",
-        log_to_statsd=False,
-    )
-    @requires_form_data
-    def columnar_upload(self, pk: int) -> Response:
-        """Upload a Columnar file into a database.
-        ---
-        post:
-          summary: Upload a Columnar file to a database table
-          parameters:
-          - in: path
-            schema:
-              type: integer
-            name: pk
-          requestBody:
-            required: true
-            content:
-              multipart/form-data:
-                schema:
-                  $ref: '#/components/schemas/ColumnarUploadPostSchema'
-          responses:
-            201:
-              description: Columnar upload response
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      message:
-                        type: string
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        try:
-            request_form = request.form.to_dict()
-            request_form["file"] = request.files.get("file")
-            parameters = ColumnarUploadPostSchema().load(request_form)
-            UploadCommand(
-                pk,
-                parameters["table_name"],
-                parameters["file"],
-                parameters.get("schema"),
-                ColumnarReader(parameters),
+                reader,
             ).run()
         except ValidationError as error:
             return self.response_400(message=error.messages)
@@ -1994,7 +1838,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".available",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.available",
         log_to_statsd=False,
     )
     def available(self) -> Response:
@@ -2160,73 +2004,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         command = ValidateDatabaseParametersCommand(payload)
         command.run()
         return self.response(200, message="OK")
-
-    @expose("/<int:pk>/ssh_tunnel/", methods=("DELETE",))
-    @protect()
-    @statsd_metrics
-    @deprecated(deprecated_in="4.0")
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".delete_ssh_tunnel",
-        log_to_statsd=False,
-    )
-    def delete_ssh_tunnel(self, pk: int) -> Response:
-        """Delete a SSH tunnel.
-        ---
-        delete:
-          summary: Delete a SSH tunnel
-          parameters:
-          - in: path
-            schema:
-              type: integer
-            name: pk
-          responses:
-            200:
-              description: SSH Tunnel deleted
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      message:
-                        type: string
-            401:
-              $ref: '#/components/responses/401'
-            403:
-              $ref: '#/components/responses/403'
-            404:
-              $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-
-        database = DatabaseDAO.find_by_id(pk)
-        if not database:
-            return self.response_404()
-        try:
-            existing_ssh_tunnel_model = database.ssh_tunnels
-            if existing_ssh_tunnel_model:
-                DeleteSSHTunnelCommand(existing_ssh_tunnel_model.id).run()
-                return self.response(200, message="OK")
-            return self.response_404()
-        except SSHTunnelDeleteFailedError as ex:
-            logger.error(
-                "Error deleting SSH Tunnel %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_422(message=str(ex))
-        except SSHTunnelingNotEnabledError as ex:
-            logger.error(
-                "Error deleting SSH Tunnel %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_400(message=str(ex))
 
     @expose("/<int:pk>/schemas_access_for_file_upload/")
     @protect()

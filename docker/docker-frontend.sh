@@ -28,15 +28,17 @@ if [ "$BUILD_SUPERSET_FRONTEND_IN_DOCKER" = "true" ]; then
     cd /app/superset-frontend
 
     if [ "$NPM_RUN_PRUNE" = "true" ]; then
-        echo "Running `npm run prune`"
+        echo "Running \"npm run prune\""
         npm run prune
     fi
 
-    echo "Running `npm install`"
+    echo "Running \"npm install\""
     npm install
 
     echo "Start webpack dev server"
-    npm run dev
+    # start the webpack dev server, serving dynamically at http://localhost:9000
+    # it proxies to the backend served at http://localhost:8088
+    npm run dev-server
 
 else
     echo "Skipping frontend build steps - YOU NEED TO RUN IT MANUALLY ON THE HOST!"

@@ -16,13 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import * as Core from '@superset-ui/core';
+import { getChartMetadataRegistry } from '@superset-ui/core';
 import { getQuerySettings } from '.';
 
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  getChartMetadataRegistry: jest.fn(),
+}));
+
+const mockedGetChartMetadataRegistry = getChartMetadataRegistry as jest.Mock;
+
 test('Should return false', () => {
-  const spy = jest.spyOn(Core, 'getChartMetadataRegistry');
   const get = jest.fn();
-  spy.mockReturnValue({ get } as any);
+  mockedGetChartMetadataRegistry.mockReturnValue({ get } as any);
   expect(get).toHaveBeenCalledTimes(0);
   const [useLegacyApi] = getQuerySettings({ viz_type: 'name_test' });
   expect(useLegacyApi).toBe(false);
@@ -31,10 +37,9 @@ test('Should return false', () => {
 });
 
 test('Should return true', () => {
-  const spy = jest.spyOn(Core, 'getChartMetadataRegistry');
   const get = jest.fn();
   get.mockReturnValue({ useLegacyApi: true });
-  spy.mockReturnValue({ get } as any);
+  mockedGetChartMetadataRegistry.mockReturnValue({ get } as any);
   expect(get).toHaveBeenCalledTimes(0);
   const [useLegacyApi] = getQuerySettings({ viz_type: 'name_test' });
   expect(useLegacyApi).toBe(true);
@@ -43,10 +48,9 @@ test('Should return true', () => {
 });
 
 test('Should return false when useLegacyApi:false', () => {
-  const spy = jest.spyOn(Core, 'getChartMetadataRegistry');
   const get = jest.fn();
   get.mockReturnValue({ useLegacyApi: false });
-  spy.mockReturnValue({ get } as any);
+  mockedGetChartMetadataRegistry.mockReturnValue({ get } as any);
   expect(get).toHaveBeenCalledTimes(0);
   const [useLegacyApi] = getQuerySettings({ viz_type: 'name_test' });
   expect(useLegacyApi).toBe(false);

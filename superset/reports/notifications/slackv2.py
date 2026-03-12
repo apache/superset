@@ -42,7 +42,7 @@ from superset.reports.notifications.exceptions import (
 )
 from superset.reports.notifications.slack_mixin import SlackMixin
 from superset.utils import json
-from superset.utils.core import get_email_address_list
+from superset.utils.core import recipients_string_to_list
 from superset.utils.decorators import statsd_gauge
 from superset.utils.slack import get_slack_client
 
@@ -64,18 +64,18 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
         """  # noqa: E501
         recipient_str = json.loads(self._recipient.recipient_config_json)["target"]
 
-        return get_email_address_list(recipient_str)
+        return recipients_string_to_list(recipient_str)
 
     def _get_inline_files(
         self,
-    ) -> Sequence[Union[str, IOBase, bytes]]:
+    ) -> tuple[Union[str, None], Sequence[Union[str, IOBase, bytes]]]:
         if self._content.csv:
-            return [self._content.csv]
+            return ("csv", [self._content.csv])
         if self._content.screenshots:
-            return self._content.screenshots
+            return ("png", self._content.screenshots)
         if self._content.pdf:
-            return [self._content.pdf]
-        return []
+            return ("pdf", [self._content.pdf])
+        return (None, [])
 
     @backoff.on_exception(backoff.expo, SlackApiError, factor=10, base=2, max_tries=5)
     @statsd_gauge("reports.slack.send")
@@ -91,7 +91,8 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
             if not channels:
                 raise NotificationParamException("No recipients saved in the report")
 
-            files = self._get_inline_files()
+            file_type, files = self._get_inline_files()
+            file_name = f"{title}.{file_type}"
 
             # files_upload returns SlackResponse as we run it in sync mode.
             for channel in channels:
@@ -102,6 +103,7 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
                             file=file,
                             initial_comment=body,
                             title=title,
+                            filename=file_name,
                         )
                 else:
                     client.chat_postMessage(channel=channel, text=body)

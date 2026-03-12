@@ -21,7 +21,7 @@ from typing import Any
 from urllib import request
 
 import pandas as pd
-from flask import current_app
+from flask import current_app as app
 from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, String, Text
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.sql.visitors import VisitableType
@@ -31,7 +31,7 @@ from superset.commands.dataset.exceptions import DatasetForbiddenDataURI
 from superset.commands.exceptions import ImportFailedError
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import get_user
 
@@ -88,7 +88,7 @@ def validate_data_uri(data_uri: str) -> None:
     :param data_uri:
     :return:
     """
-    allowed_urls = current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"]
+    allowed_urls = app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"]
     for allowed_url in allowed_urls:
         try:
             match = re.match(allowed_url, data_uri)
@@ -113,10 +113,18 @@ def import_dataset(  # noqa: C901
         "Dataset",
     )
     existing = db.session.query(SqlaTable).filter_by(uuid=config["uuid"]).first()
+    user = get_user()
     if existing:
+        if overwrite and can_write and user:
+            if user not in existing.owners and not security_manager.is_admin():
+                raise ImportFailedError(
+                    "A dataset already exists and user doesn't "
+                    "have permissions to overwrite it"
+                )
         if not overwrite or not can_write:
             return existing
         config["id"] = existing.id
+
     elif not can_write:
         raise ImportFailedError(
             "Dataset doesn't exist and user doesn't have permission to create datasets"
@@ -191,6 +199,11 @@ def load_data(data_uri: str, dataset: SqlaTable, database: Database) -> None:
     :raises DatasetUnAllowedDataURI: If a dataset is trying
     to load data from a URI that is not allowed.
     """
+    from superset.examples.helpers import normalize_example_data_url
+
+    # Convert example URLs to align with configuration
+    data_uri = normalize_example_data_url(data_uri)
+
     validate_data_uri(data_uri)
     logger.info("Downloading data from %s", data_uri)
     data = request.urlopen(data_uri)  # pylint: disable=consider-using-with  # noqa: S310
@@ -205,7 +218,7 @@ def load_data(data_uri: str, dataset: SqlaTable, database: Database) -> None:
             df[column_name] = pd.to_datetime(df[column_name])
 
     # reuse session when loading data if possible, to make import atomic
-    if database.sqlalchemy_uri == current_app.config.get("SQLALCHEMY_DATABASE_URI"):
+    if database.sqlalchemy_uri == app.config.get("SQLALCHEMY_DATABASE_URI"):
         logger.info("Loading data inside the import transaction")
         connection = db.session.connection()
         df.to_sql(

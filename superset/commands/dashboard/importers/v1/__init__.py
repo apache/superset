@@ -15,11 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from __future__ import annotations
+
+import logging
 from typing import Any
 
 from marshmallow import Schema
 from sqlalchemy.orm import Session  # noqa: F401
-from sqlalchemy.sql import select
+from sqlalchemy.sql import delete, select
 
 from superset import db
 from superset.charts.schemas import ImportV1ChartSchema
@@ -34,13 +37,19 @@ from superset.commands.dashboard.importers.v1.utils import (
 from superset.commands.database.importers.v1.utils import import_database
 from superset.commands.dataset.importers.v1.utils import import_dataset
 from superset.commands.importers.v1 import ImportModelsCommand
+from superset.commands.importers.v1.utils import import_tag
+from superset.commands.theme.import_themes import import_theme
 from superset.commands.utils import update_chart_config_dataset
 from superset.daos.dashboard import DashboardDAO
 from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
+from superset.extensions import feature_flag_manager
 from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.dashboard import Dashboard, dashboard_slices
+from superset.themes.schemas import ImportV1ThemeSchema
+
+logger = logging.getLogger(__name__)
 
 
 class ImportDashboardsCommand(ImportModelsCommand):
@@ -54,22 +63,33 @@ class ImportDashboardsCommand(ImportModelsCommand):
         "dashboards/": ImportV1DashboardSchema(),
         "datasets/": ImportV1DatasetSchema(),
         "databases/": ImportV1DatabaseSchema(),
+        "themes/": ImportV1ThemeSchema(),
     }
     import_error = DashboardImportError
 
     # TODO (betodealmeida): refactor to use code from other commands
-    # pylint: disable=too-many-branches, too-many-locals
+    # pylint: disable=too-many-branches, too-many-locals, too-many-statements
     @staticmethod
-    def _import(configs: dict[str, Any], overwrite: bool = False) -> None:  # noqa: C901
-        # discover charts and datasets associated with dashboards
+    # ruff: noqa: C901
+    def _import(
+        configs: dict[str, Any],
+        overwrite: bool = False,
+        contents: dict[str, Any] | None = None,
+    ) -> None:
+        contents = {} if contents is None else contents
+        # discover charts, datasets, and themes associated with dashboards
         chart_uuids: set[str] = set()
         dataset_uuids: set[str] = set()
+        theme_uuids: set[str] = set()
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
                 chart_uuids.update(find_chart_uuids(config["position"]))
                 dataset_uuids.update(
                     find_native_filter_datasets(config.get("metadata", {}))
                 )
+                # discover theme associated with dashboard
+                if config.get("theme_uuid"):
+                    theme_uuids.add(config["theme_uuid"])
 
         # discover datasets associated with charts
         for file_name, config in configs.items():
@@ -81,6 +101,14 @@ class ImportDashboardsCommand(ImportModelsCommand):
         for file_name, config in configs.items():
             if file_name.startswith("datasets/") and config["uuid"] in dataset_uuids:
                 database_uuids.add(config["database_uuid"])
+
+        # import related themes
+        theme_ids: dict[str, int] = {}
+        for file_name, config in configs.items():
+            if file_name.startswith("themes/") and config["uuid"] in theme_uuids:
+                theme = import_theme(config, overwrite=False)
+                if theme:
+                    theme_ids[str(theme.uuid)] = theme.id
 
         # import related databases
         database_ids: dict[str, int] = {}
@@ -120,10 +148,23 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 charts.append(chart)
                 chart_ids[str(chart.uuid)] = chart.id
 
+                # Handle tags using import_tag function
+                if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+                    if "tags" in config:
+                        target_tag_names = config["tags"]
+                        import_tag(
+                            target_tag_names, contents, chart.id, "chart", db.session
+                        )
+
         # store the existing relationship between dashboards and charts
-        existing_relationships = db.session.execute(
-            select([dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id])
-        ).fetchall()
+        # (only used when overwrite=False to avoid inserting duplicates)
+        existing_relationships: set[tuple[int, int]] = set()
+        if not overwrite:
+            existing_relationships = set(
+                db.session.execute(
+                    select(dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id)
+                ).fetchall()
+            )
 
         # import dashboards
         dashboards: list[Dashboard] = []
@@ -131,21 +172,56 @@ class ImportDashboardsCommand(ImportModelsCommand):
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
                 config = update_id_refs(config, chart_ids, dataset_info)
+                # Handle theme UUID to ID mapping
+                if "theme_uuid" in config and config["theme_uuid"] in theme_ids:
+                    config["theme_id"] = theme_ids[config["theme_uuid"]]
+                    del config["theme_uuid"]
+                elif "theme_uuid" in config:
+                    # Theme not found, set to None for graceful fallback
+                    config["theme_id"] = None
+                    del config["theme_uuid"]
                 dashboard = import_dashboard(config, overwrite=overwrite)
                 dashboards.append(dashboard)
+
+                # When overwriting, first delete all existing chart relationships
+                # so the dashboard is replaced rather than merged
+                if overwrite:
+                    db.session.execute(
+                        delete(dashboard_slices).where(
+                            dashboard_slices.c.dashboard_id == dashboard.id
+                        )
+                    )
+
+                # Collect chart IDs to associate with this dashboard
                 for uuid in find_chart_uuids(config["position"]):
                     if uuid not in chart_ids:
-                        break
+                        continue
                     chart_id = chart_ids[uuid]
-                    if (dashboard.id, chart_id) not in existing_relationships:
+                    if (
+                        overwrite
+                        or (dashboard.id, chart_id) not in existing_relationships
+                    ):
                         dashboard_chart_ids.append((dashboard.id, chart_id))
 
+                # Handle tags using import_tag function
+                if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+                    if "tags" in config:
+                        target_tag_names = config["tags"]
+                        import_tag(
+                            target_tag_names,
+                            contents,
+                            dashboard.id,
+                            "dashboard",
+                            db.session,
+                        )
+
         # set ref in the dashboard_slices table
-        values = [
-            {"dashboard_id": dashboard_id, "slice_id": chart_id}
-            for (dashboard_id, chart_id) in dashboard_chart_ids
-        ]
-        db.session.execute(dashboard_slices.insert(), values)
+        if dashboard_chart_ids:
+            values = [
+                {"dashboard_id": dashboard_id, "slice_id": chart_id}
+                for (dashboard_id, chart_id) in dashboard_chart_ids
+            ]
+            db.session.execute(dashboard_slices.insert(), values)
 
         # Migrate any filter-box charts to native dashboard filters.
         for dashboard in dashboards:

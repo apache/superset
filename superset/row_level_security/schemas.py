@@ -78,7 +78,7 @@ class RLSListSchema(Schema):
     tables = fields.List(fields.Nested(TablesSchema))
     clause = fields.String(metadata={"description": "clause_description"})
     changed_on_delta_humanized = fields.Function(
-        RowLevelSecurityFilter.created_on_delta_humanized
+        RowLevelSecurityFilter.changed_on_delta_humanized
     )
     group_key = fields.String(metadata={"description": "group_key_description"})
     description = fields.String(metadata={"description": "description_description"})

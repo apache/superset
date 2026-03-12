@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
-import * as echarts from 'echarts';
+import { t } from '@apache-superset/core/translation';
+import { init as echartsInit } from 'echarts';
 import { createRef, FC, useEffect } from 'react';
 import { ZoomConfigsChartProps } from './types';
 import {
@@ -48,7 +48,7 @@ export const ZoomConfigsChart: FC<ZoomConfigsChartProps> = ({
     const barWidth = 15;
     const data = zoomConfigsToData(value.values);
 
-    const chart = echarts.init(ref.current);
+    const chart = echartsInit(ref.current);
 
     const option = {
       xAxis: {

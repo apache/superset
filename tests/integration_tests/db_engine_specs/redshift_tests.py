@@ -23,12 +23,12 @@ from sqlalchemy.types import NVARCHAR
 
 from superset.db_engine_specs.redshift import RedshiftEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.sql_parse import Table
-from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
+from superset.sql.parse import Table
+from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.test_app import app
 
 
-class TestRedshiftDbEngineSpec(TestDbEngineSpec):
+class TestRedshiftDbEngineSpec(SupersetTestCase):
     def test_extract_errors(self):
         """
         Test that custom error messages are extracted correctly.

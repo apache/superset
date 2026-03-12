@@ -22,7 +22,7 @@ describe('SqlLab query tabs', () => {
   });
 
   const tablistSelector = '[data-test="sql-editor-tabs"] > [role="tablist"]';
-  const tabSelector = `${tablistSelector} [role="tab"]`;
+  const tabSelector = `${tablistSelector} [role="tab"]:not([type="button"])`;
 
   it('allows you to create and close a tab', () => {
     cy.get(tabSelector).then(tabs => {
@@ -61,8 +61,8 @@ describe('SqlLab query tabs', () => {
   });
 
   it('opens a new tab by a button and a shortcut', () => {
-    const editorContent = '#ace-editor .ace_content';
-    const editorInput = '#ace-editor textarea';
+    const editorContent = '.ace_editor .ace_content';
+    const editorInput = '.ace_editor textarea';
     const queryLimitSelector = '#js-sql-toolbar .limitDropdown';
     cy.get(tabSelector).then(tabs => {
       const initialTabCount = tabs.length;

@@ -31,6 +31,8 @@ import logging  # noqa: E402
 import sqlalchemy as sa  # noqa: E402
 from alembic import op  # noqa: E402
 
+logger = logging.getLogger("alembic.env")
+
 
 def upgrade():
     op.add_column(
@@ -44,7 +46,7 @@ def upgrade():
         op.create_unique_constraint(None, "dbs", ["verbose_name"])
         op.create_unique_constraint(None, "clusters", ["verbose_name"])
     except Exception:
-        logging.info("Constraint not created, expected when using sqlite")
+        logger.info("Constraint not created, expected when using sqlite")
 
 
 def downgrade():
@@ -52,4 +54,4 @@ def downgrade():
         op.drop_column("dbs", "verbose_name")
         op.drop_column("clusters", "verbose_name")
     except Exception as ex:
-        logging.exception(ex)
+        logger.exception(ex)

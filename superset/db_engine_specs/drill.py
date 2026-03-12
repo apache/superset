@@ -18,15 +18,19 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from urllib import parse
 
 from sqlalchemy import types
 from sqlalchemy.engine.url import URL
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.db_engine_specs.exceptions import SupersetDBAPIProgrammingError
+from superset.utils.hashing import hash_from_str
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
 
 
 class DrillEngineSpec(BaseEngineSpec):
@@ -37,6 +41,61 @@ class DrillEngineSpec(BaseEngineSpec):
     default_driver = "sadrill"
 
     supports_dynamic_schema = True
+
+    metadata = {
+        "description": (
+            "Apache Drill is a schema-free SQL query engine for Hadoop and NoSQL."
+        ),
+        "logo": "apache-drill.png",
+        "homepage_url": "https://drill.apache.org/",
+        "categories": [
+            DatabaseCategory.APACHE_PROJECTS,
+            DatabaseCategory.QUERY_ENGINES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["sqlalchemy-drill"],
+        "connection_string": (
+            "drill+sadrill://{username}:{password}@{host}:{port}/"
+            "{storage_plugin}?use_ssl=True"
+        ),
+        "default_port": 8047,
+        "drivers": [
+            {
+                "name": "SQLAlchemy (REST)",
+                "pypi_package": "sqlalchemy-drill",
+                "connection_string": (
+                    "drill+sadrill://{username}:{password}@{host}:{port}/"
+                    "{storage_plugin}?use_ssl=True"
+                ),
+                "is_recommended": True,
+            },
+            {
+                "name": "JDBC",
+                "pypi_package": "sqlalchemy-drill",
+                "connection_string": (
+                    "drill+jdbc://{username}:{password}@{host}:{port}"
+                ),
+                "is_recommended": False,
+                "notes": "Requires Drill JDBC Driver installation.",
+                "docs_url": "https://drill.apache.org/docs/using-the-jdbc-driver/",
+            },
+            {
+                "name": "ODBC",
+                "pypi_package": "sqlalchemy-drill",
+                "is_recommended": False,
+                "notes": "See Apache Drill documentation for ODBC setup.",
+                "docs_url": (
+                    "https://drill.apache.org/docs/installing-the-driver-on-linux/"
+                ),
+            },
+        ],
+        "connection_examples": [
+            {
+                "description": "Local embedded mode",
+                "connection_string": "drill+sadrill://localhost:8047/dfs?use_ssl=False",
+            },
+        ],
+    }
 
     _time_grain_expressions = {
         None: "{col}",
@@ -99,31 +158,27 @@ class DrillEngineSpec(BaseEngineSpec):
         return parse.unquote(sqlalchemy_uri.database).replace("/", ".")
 
     @classmethod
-    def get_url_for_impersonation(
+    def impersonate_user(
         cls,
-        url: URL,
-        impersonate_user: bool,
+        database: Database,
         username: str | None,
-        access_token: str | None,
-    ) -> URL:
-        """
-        Return a modified URL with the username set.
+        user_token: str | None,
+        url: URL,
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
+        if username is None:
+            return url, engine_kwargs
 
-        :param url: SQLAlchemy URL object
-        :param impersonate_user: Flag indicating if impersonation is enabled
-        :param username: Effective username
-        """
-        if impersonate_user and username is not None:
-            if url.drivername == "drill+odbc":
-                url = url.update_query_dict({"DelegationUID": username})
-            elif url.drivername in ["drill+sadrill", "drill+jdbc"]:
-                url = url.update_query_dict({"impersonation_target": username})
-            else:
-                raise SupersetDBAPIProgrammingError(
-                    f"impersonation is not supported for {url.drivername}"
-                )
+        if url.drivername == "drill+odbc":
+            url = url.update_query_dict({"DelegationUID": username})
+        elif url.drivername in {"drill+sadrill", "drill+jdbc"}:
+            url = url.update_query_dict({"impersonation_target": username})
+        else:
+            raise SupersetDBAPIProgrammingError(
+                f"impersonation is not supported for {url.drivername}"
+            )
 
-        return url
+        return url, engine_kwargs
 
     @classmethod
     def fetch_data(
@@ -144,3 +199,14 @@ class DrillEngineSpec(BaseEngineSpec):
             if str(ex) == "generator raised StopIteration":
                 return []
             raise
+
+    @staticmethod
+    def _mutate_label(label: str) -> str:
+        """
+        Suffix with the first six characters from the md5 of the label to avoid
+        collisions with original column names
+
+        :param label: Expected expression label
+        :return: Conditionally mutated label
+        """
+        return f"{label}_{hash_from_str(label)[:6]}"

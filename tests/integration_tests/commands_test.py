@@ -169,7 +169,7 @@ class TestImportAssetsCommand(SupersetTestCase):
 
         assert dashboard.owners == [self.user]
 
-        mock_add_permissions.assert_called_with(database, None)
+        mock_add_permissions.assert_called_with(database)
 
         db.session.delete(dashboard)
         db.session.delete(chart)
@@ -214,7 +214,7 @@ class TestImportAssetsCommand(SupersetTestCase):
         dataset = chart.table
         database = dataset.database
 
-        mock_add_permissions.assert_called_with(database, None)
+        mock_add_permissions.assert_called_with(database)
 
         db.session.delete(dashboard)
         db.session.delete(chart)

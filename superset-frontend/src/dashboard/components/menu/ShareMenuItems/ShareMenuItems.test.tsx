@@ -17,12 +17,17 @@
  * under the License.
  */
 
-import { Menu } from 'src/components/Menu';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import * as copyTextToClipboard from 'src/utils/copy';
 import fetchMock from 'fetch-mock';
-import ShareMenuItems from '.';
+import { ComponentProps } from 'react';
+import { useShareMenuItems, ShareMenuItemProps } from '.';
 
 const spy = jest.spyOn(copyTextToClipboard, 'default');
 
@@ -36,19 +41,21 @@ const createProps = () => ({
   emailSubject: 'Superset dashboard COVID Vaccine Dashboard',
   emailBody: 'Check out this dashboard: ',
   dashboardId: DASHBOARD_ID,
+  title: 'Test Dashboard',
+  submenuKey: 'share',
 });
 
 const { location } = window;
 
+const postDashboardPermalinkMockUrl = `http://localhost/api/v1/dashboard/${DASHBOARD_ID}/permalink`;
+
 beforeAll((): void => {
-  // @ts-ignore
+  // @ts-expect-error
   delete window.location;
   fetchMock.post(
-    `http://localhost/api/v1/dashboard/${DASHBOARD_ID}/permalink`,
+    postDashboardPermalinkMockUrl,
     { key: '123', url: 'http://localhost/superset/dashboard/p/123/' },
-    {
-      sendAsJson: true,
-    },
+    { name: postDashboardPermalinkMockUrl },
   );
 });
 
@@ -63,35 +70,40 @@ afterAll((): void => {
   window.location = location;
 });
 
+const MenuWrapper = (
+  props: ComponentProps<typeof Menu> & { shareProps: ShareMenuItemProps },
+) => {
+  const shareMenuItems = useShareMenuItems(props.shareProps);
+  const menuItems: MenuItem[] = [shareMenuItems];
+  return <Menu {...props} items={menuItems} />;
+};
+
 test('Should render menu items', () => {
-  const props = createProps();
   render(
-    <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
-      <ShareMenuItems {...props} />
-    </Menu>,
+    <MenuWrapper
+      onClick={jest.fn()}
+      selectable={false}
+      data-test="main-menu"
+      forceSubMenuRender
+      shareProps={createProps()}
+    />,
     { useRedux: true },
   );
-  expect(
-    screen.getByRole('menuitem', { name: 'Copy dashboard URL' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('menuitem', { name: 'Share dashboard by email' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('button', { name: 'Copy dashboard URL' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('button', { name: 'Share dashboard by email' }),
-  ).toBeInTheDocument();
+  expect(screen.getByText('Copy dashboard URL')).toBeInTheDocument();
+  expect(screen.getByText('Share dashboard by email')).toBeInTheDocument();
 });
 
 test('Click on "Copy dashboard URL" and succeed', async () => {
   spy.mockResolvedValue(undefined);
   const props = createProps();
   render(
-    <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
-      <ShareMenuItems {...props} />
-    </Menu>,
+    <MenuWrapper
+      onClick={jest.fn()}
+      selectable={false}
+      data-test="main-menu"
+      forceSubMenuRender
+      shareProps={props}
+    />,
     { useRedux: true },
   );
 
@@ -101,7 +113,7 @@ test('Click on "Copy dashboard URL" and succeed', async () => {
     expect(props.addDangerToast).toHaveBeenCalledTimes(0);
   });
 
-  userEvent.click(screen.getByRole('button', { name: 'Copy dashboard URL' }));
+  userEvent.click(screen.getByText('Copy dashboard URL'));
 
   await waitFor(async () => {
     expect(spy).toHaveBeenCalledTimes(1);
@@ -117,9 +129,13 @@ test('Click on "Copy dashboard URL" and fail', async () => {
   spy.mockRejectedValue(undefined);
   const props = createProps();
   render(
-    <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
-      <ShareMenuItems {...props} />
-    </Menu>,
+    <MenuWrapper
+      onClick={jest.fn()}
+      selectable={false}
+      data-test="main-menu"
+      forceSubMenuRender
+      shareProps={props}
+    />,
     { useRedux: true },
   );
 
@@ -129,7 +145,7 @@ test('Click on "Copy dashboard URL" and fail', async () => {
     expect(props.addDangerToast).toHaveBeenCalledTimes(0);
   });
 
-  userEvent.click(screen.getByRole('button', { name: 'Copy dashboard URL' }));
+  userEvent.click(screen.getByText('Copy dashboard URL'));
 
   await waitFor(async () => {
     expect(spy).toHaveBeenCalledTimes(1);
@@ -146,9 +162,13 @@ test('Click on "Copy dashboard URL" and fail', async () => {
 test('Click on "Share dashboard by email" and succeed', async () => {
   const props = createProps();
   render(
-    <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
-      <ShareMenuItems {...props} />
-    </Menu>,
+    <MenuWrapper
+      onClick={jest.fn()}
+      selectable={false}
+      data-test="main-menu"
+      forceSubMenuRender
+      shareProps={props}
+    />,
     { useRedux: true },
   );
 
@@ -157,9 +177,7 @@ test('Click on "Share dashboard by email" and succeed', async () => {
     expect(window.location.href).toBe('');
   });
 
-  userEvent.click(
-    screen.getByRole('button', { name: 'Share dashboard by email' }),
-  );
+  userEvent.click(screen.getByText('Share dashboard by email'));
 
   await waitFor(() => {
     expect(props.addDangerToast).toHaveBeenCalledTimes(0);
@@ -170,16 +188,21 @@ test('Click on "Share dashboard by email" and succeed', async () => {
 });
 
 test('Click on "Share dashboard by email" and fail', async () => {
+  fetchMock.removeRoute(postDashboardPermalinkMockUrl);
   fetchMock.post(
     `http://localhost/api/v1/dashboard/${DASHBOARD_ID}/permalink`,
     { status: 404 },
-    { overwriteRoutes: true },
+    { name: postDashboardPermalinkMockUrl },
   );
   const props = createProps();
   render(
-    <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
-      <ShareMenuItems {...props} />
-    </Menu>,
+    <MenuWrapper
+      onClick={jest.fn()}
+      selectable={false}
+      data-test="main-menu"
+      forceSubMenuRender
+      shareProps={props}
+    />,
     { useRedux: true },
   );
 
@@ -188,9 +211,7 @@ test('Click on "Share dashboard by email" and fail', async () => {
     expect(window.location.href).toBe('');
   });
 
-  userEvent.click(
-    screen.getByRole('button', { name: 'Share dashboard by email' }),
-  );
+  userEvent.click(screen.getByText('Share dashboard by email'));
 
   await waitFor(() => {
     expect(window.location.href).toBe('');
@@ -199,4 +220,119 @@ test('Click on "Share dashboard by email" and fail', async () => {
       'Sorry, something went wrong. Try again later.',
     );
   });
+});
+
+test('Should show "Embed code" menu item when feature flag is enabled and chart has data', () => {
+  window.featureFlags = {
+    EMBEDDABLE_CHARTS: true,
+  };
+  const props = createProps();
+  const propsWithFormData = {
+    ...props,
+    latestQueryFormData: {
+      datasource: '1__table',
+      viz_type: 'table',
+    },
+  };
+  render(
+    <MenuWrapper
+      onClick={jest.fn()}
+      selectable={false}
+      data-test="main-menu"
+      forceSubMenuRender
+      shareProps={propsWithFormData}
+    />,
+    { useRedux: true },
+  );
+  expect(screen.getByText('Embed code')).toBeInTheDocument();
+});
+
+test('Should NOT show "Embed code" when feature flag is disabled', () => {
+  window.featureFlags = {
+    EMBEDDABLE_CHARTS: false,
+  };
+  const props = createProps();
+  const propsWithFormData = {
+    ...props,
+    latestQueryFormData: {
+      datasource: '1__table',
+      viz_type: 'table',
+    },
+  };
+  render(
+    <MenuWrapper
+      onClick={jest.fn()}
+      selectable={false}
+      data-test="main-menu"
+      forceSubMenuRender
+      shareProps={propsWithFormData}
+    />,
+    { useRedux: true },
+  );
+  expect(screen.queryByText('Embed code')).not.toBeInTheDocument();
+});
+
+test('Should NOT show "Embed code" when chart has no data', () => {
+  window.featureFlags = {
+    EMBEDDABLE_CHARTS: true,
+  };
+  const props = createProps();
+  render(
+    <MenuWrapper
+      onClick={jest.fn()}
+      selectable={false}
+      data-test="main-menu"
+      forceSubMenuRender
+      shareProps={props}
+    />,
+    { useRedux: true },
+  );
+  expect(screen.queryByText('Embed code')).not.toBeInTheDocument();
+});
+
+test('Should NOT show "Embed code" when latestQueryFormData is empty object', () => {
+  window.featureFlags = {
+    EMBEDDABLE_CHARTS: true,
+  };
+  const props = createProps();
+  const propsWithEmptyFormData = {
+    ...props,
+    latestQueryFormData: {},
+  };
+  render(
+    <MenuWrapper
+      onClick={jest.fn()}
+      selectable={false}
+      data-test="main-menu"
+      forceSubMenuRender
+      shareProps={propsWithEmptyFormData}
+    />,
+    { useRedux: true },
+  );
+  expect(screen.queryByText('Embed code')).not.toBeInTheDocument();
+});
+
+test('Should render "Embed code" with data-test attribute', () => {
+  window.featureFlags = {
+    EMBEDDABLE_CHARTS: true,
+  };
+  const props = createProps();
+  const propsWithFormData = {
+    ...props,
+    latestQueryFormData: {
+      datasource: '1__table',
+      viz_type: 'table',
+    },
+  };
+  render(
+    <MenuWrapper
+      onClick={jest.fn()}
+      selectable={false}
+      data-test="main-menu"
+      forceSubMenuRender
+      shareProps={propsWithFormData}
+    />,
+    { useRedux: true },
+  );
+  expect(screen.getByTestId('embed-code-button')).toBeInTheDocument();
 });

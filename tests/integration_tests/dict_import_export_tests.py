@@ -27,7 +27,6 @@ from superset import db
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.utils.database import get_example_database
-from superset.utils.dict_import_export import export_to_dict
 from superset.utils import json
 
 from .base_tests import SupersetTestCase
@@ -80,7 +79,8 @@ class TestDictImportExport(SupersetTestCase):
             "id": id,
             "params": json.dumps(params),
             "columns": [
-                {"column_name": c, "uuid": u} for c, u in zip(cols_names, cols_uuids)
+                {"column_name": c, "uuid": u}
+                for c, u in zip(cols_names, cols_uuids, strict=False)
             ],
             "metrics": [{"metric_name": c, "expression": ""} for c in metric_names],
         }
@@ -88,7 +88,7 @@ class TestDictImportExport(SupersetTestCase):
         table = SqlaTable(
             id=id, schema=schema, table_name=name, params=json.dumps(params)
         )
-        for col_name, uuid in zip(cols_names, cols_uuids):
+        for col_name, uuid in zip(cols_names, cols_uuids, strict=False):
             table.columns.append(TableColumn(column_name=col_name, uuid=uuid))
         for metric_name in metric_names:
             table.metrics.append(SqlMetric(metric_name=metric_name, expression=""))
@@ -245,28 +245,6 @@ class TestDictImportExport(SupersetTestCase):
         self.assert_table_equals(copy_table, self.get_table_by_id(imported_table.id))
         self.yaml_compare(
             imported_copy_table.export_to_dict(), imported_table.export_to_dict()
-        )
-
-    def test_export_datasource_ui_cli(self):
-        # TODO(bkyryliuk): find fake db is leaking from
-        self.delete_fake_db()
-
-        cli_export = export_to_dict(
-            recursive=True,
-            back_references=False,
-            include_defaults=False,
-        )
-        self.get_resp("/login/", data=dict(username="admin", password="general"))  # noqa: S106, C408
-        resp = self.get_resp(
-            "/databaseview/action_post", {"action": "yaml_export", "rowid": 1}
-        )
-        ui_export = yaml.safe_load(resp)
-        assert (
-            ui_export["databases"][0]["database_name"]
-            == cli_export["databases"][0]["database_name"]
-        )
-        assert (
-            ui_export["databases"][0]["tables"] == cli_export["databases"][0]["tables"]
         )
 
 

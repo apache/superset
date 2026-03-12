@@ -17,7 +17,16 @@
 
 # https://cwiki.apache.org/confluence/display/INFRA/.asf.yaml+features+for+git+repositories
 ---
+notifications:
+  commits: commits@superset.apache.org
+  issues: notifications@superset.apache.org
+  pullrequests: notifications@superset.apache.org
+  discussions: notifications@superset.apache.org
+
 github:
+  pull_requests:
+    del_branch_on_merge: true
+    allow_update_branch: true
   description: "Apache Superset is a Data Visualization and Data Exploration Platform"
   homepage: https://superset.apache.org/
   labels:
@@ -47,6 +56,8 @@ github:
     projects: true
     # Enable wiki for documentation
     wiki: true
+    # Enable discussions
+    discussions: true
 
   enabled_merge_buttons:
     squash: true
@@ -74,6 +85,7 @@ github:
           - cypress-matrix (5, chrome)
           - dependency-review
           - frontend-build
+          - playwright-tests (chromium)
           - pre-commit (current)
           - pre-commit (previous)
           - test-mysql

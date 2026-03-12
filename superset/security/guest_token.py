@@ -16,7 +16,7 @@
 # under the License.
 from typing import Optional, TypedDict, Union
 
-from flask_appbuilder.security.sqla.models import Role
+from flask_appbuilder.security.sqla.models import Group, Role
 from flask_login import AnonymousUserMixin
 
 from superset.utils.backports import StrEnum
@@ -59,6 +59,8 @@ class GuestUser(AnonymousUserMixin):
     """
 
     is_guest_user = True
+    # FAB 5.0 renamed active to is_active, keeping both for backwards compatibility
+    active = is_active = True
 
     @property
     def is_authenticated(self) -> bool:
@@ -84,5 +86,6 @@ class GuestUser(AnonymousUserMixin):
         self.first_name = user.get("first_name", "Guest")
         self.last_name = user.get("last_name", "User")
         self.roles = roles
+        self.groups: list[Group] = []  # Guest users don't belong to any groups
         self.resources = token["resources"]
         self.rls = token.get("rls_rules", [])

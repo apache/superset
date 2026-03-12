@@ -25,9 +25,11 @@
 #  under the License.
 from __future__ import annotations
 
-from typing import Callable, TYPE_CHECKING
+import functools
+from typing import Any, Callable, TYPE_CHECKING
 from unittest.mock import MagicMock, Mock, PropertyMock
 
+from flask import current_app
 from pytest import fixture  # noqa: PT013
 
 from tests.example_data.data_loading.pandas.pandas_data_loader import PandasDataLoader
@@ -103,6 +105,38 @@ def data_loader(
     pandas_loader_configuration: PandasLoaderConfigurations,
     table_to_df_convertor: TableToDfConvertor,
 ) -> DataLoader:
+    if example_db_engine.dialect.name == PRESTO:
+        example_db_engine.dialect.get_view_names = Mock(return_value=[])
     return PandasDataLoader(
         example_db_engine, pandas_loader_configuration, table_to_df_convertor
     )
+
+
+def with_config(override_config: dict[str, Any]):
+    """
+    Use this decorator to mock specific config keys.
+
+    Usage:
+
+        class TestYourFeature(SupersetTestCase):
+
+            @with_config({"SOME_CONFIG": True})
+            def test_your_config(self):
+                self.assertEqual(curren_app.config["SOME_CONFIG"), True)
+
+    """
+
+    def decorate(test_fn):
+        config_backup = {}
+
+        def wrapper(*args, **kwargs):
+            for key, value in override_config.items():
+                config_backup[key] = current_app.config[key]
+                current_app.config[key] = value
+            test_fn(*args, **kwargs)
+            for key, value in config_backup.items():
+                current_app.config[key] = value
+
+        return functools.update_wrapper(wrapper, test_fn)
+
+    return decorate

@@ -48,6 +48,7 @@ export const nativeFilters: NativeFiltersState = {
         excluded: [],
       },
       controlValues: {
+        creatable: false,
         multiSelect: false,
         enableEmptyFilter: false,
         inverseSelection: false,
@@ -79,6 +80,7 @@ export const nativeFilters: NativeFiltersState = {
         excluded: [],
       },
       controlValues: {
+        creatable: false,
         multiSelect: false,
         enableEmptyFilter: false,
         inverseSelection: false,
@@ -130,7 +132,7 @@ export const NATIVE_FILTER_ID = 'NATIVE_FILTER-p4LImrSgA';
 export const singleNativeFiltersState = {
   filters: {
     [NATIVE_FILTER_ID]: {
-      id: [NATIVE_FILTER_ID],
+      id: NATIVE_FILTER_ID,
       name: 'eth',
       type: 'text',
       filterType: 'filter_select',
@@ -463,6 +465,7 @@ export const buildNativeFilter = (
 ) => ({
   id,
   controlValues: {
+    creatable: true,
     multiSelect: true,
     enableEmptyFilter: false,
     defaultToFirstItem: false,

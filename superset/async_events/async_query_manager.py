@@ -18,10 +18,9 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal, Optional
 
 import jwt
-import redis
 from flask import Flask, Request, request, Response, session
 from flask_caching.backends.base import BaseCache
 
@@ -40,6 +39,10 @@ class CacheBackendNotInitialized(Exception):  # noqa: N818
 
 
 class AsyncQueryTokenException(Exception):  # noqa: N818
+    pass
+
+
+class UnsupportedCacheBackendError(Exception):  # noqa: N818
     pass
 
 
@@ -77,7 +80,7 @@ def increment_id(entry_id: str) -> str:
 
 def get_cache_backend(
     config: dict[str, Any],
-) -> Union[RedisCacheBackend, RedisSentinelCacheBackend, redis.Redis]:  # type: ignore
+) -> RedisCacheBackend | RedisSentinelCacheBackend:
     cache_config = config.get("GLOBAL_ASYNC_QUERIES_CACHE_BACKEND", {})
     cache_type = cache_config.get("CACHE_TYPE")
 
@@ -87,11 +90,8 @@ def get_cache_backend(
     if cache_type == "RedisSentinelCache":
         return RedisSentinelCacheBackend.from_config(cache_config)
 
-    # TODO: Deprecate hardcoded plain Redis code and expand cache backend options.
-    # Maintain backward compatibility with 'GLOBAL_ASYNC_QUERIES_REDIS_CONFIG' until it is deprecated.  # noqa: E501
-    return redis.Redis(
-        **config["GLOBAL_ASYNC_QUERIES_REDIS_CONFIG"], decode_responses=True
-    )
+    # TODO: Expand cache backend options.
+    raise UnsupportedCacheBackendError("Unsupported cache backend configuration")
 
 
 class AsyncQueryManager:
@@ -117,9 +117,8 @@ class AsyncQueryManager:
         self._load_explore_json_into_cache_job: Any = None
 
     def init_app(self, app: Flask) -> None:
-        config = app.config
-        cache_type = config.get("CACHE_CONFIG", {}).get("CACHE_TYPE")
-        data_cache_type = config.get("DATA_CACHE_CONFIG", {}).get("CACHE_TYPE")
+        cache_type = app.config.get("CACHE_CONFIG", {}).get("CACHE_TYPE")
+        data_cache_type = app.config.get("DATA_CACHE_CONFIG", {}).get("CACHE_TYPE")
         if cache_type in [None, "null"] or data_cache_type in [None, "null"]:
             raise Exception(  # pylint: disable=broad-exception-raised
                 """
@@ -128,26 +127,28 @@ class AsyncQueryManager:
                 """
             )
 
-        self._cache = get_cache_backend(config)
+        self._cache = get_cache_backend(app.config)
         logger.debug("Using GAQ Cache backend as %s", type(self._cache).__name__)
 
-        if len(config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]) < 32:
+        if len(app.config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]) < 32:
             raise AsyncQueryTokenException(
                 "Please provide a JWT secret at least 32 bytes long"
             )
 
-        self._stream_prefix = config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX"]
-        self._stream_limit = config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT"]
-        self._stream_limit_firehose = config[
+        self._stream_prefix = app.config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX"]
+        self._stream_limit = app.config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT"]
+        self._stream_limit_firehose = app.config[
             "GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE"
         ]
-        self._jwt_cookie_name = config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"]
-        self._jwt_cookie_secure = config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE"]
-        self._jwt_cookie_samesite = config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE"]
-        self._jwt_cookie_domain = config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN"]
-        self._jwt_secret = config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]
+        self._jwt_cookie_name = app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"]
+        self._jwt_cookie_secure = app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE"]
+        self._jwt_cookie_samesite = app.config[
+            "GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE"
+        ]
+        self._jwt_cookie_domain = app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN"]
+        self._jwt_secret = app.config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]
 
-        if config["GLOBAL_ASYNC_QUERIES_REGISTER_REQUEST_HANDLERS"]:
+        if app.config["GLOBAL_ASYNC_QUERIES_REGISTER_REQUEST_HANDLERS"]:
             self.register_request_handlers(app)
 
         # pylint: disable=import-outside-toplevel
