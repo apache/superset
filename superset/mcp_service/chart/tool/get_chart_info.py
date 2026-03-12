@@ -56,7 +56,7 @@ def _get_cached_form_data(form_data_key: str) -> str | None:
         return None
 
 
-@tool(tags=["discovery"])
+@tool(tags=["discovery"], class_permission_name="Chart")
 @parse_request(GetChartInfoRequest)
 async def get_chart_info(
     request: GetChartInfoRequest, ctx: Context
