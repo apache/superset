@@ -145,6 +145,17 @@ describe('RoleListEditModal', () => {
 
     render(<RoleListEditModal {...mockProps} />);
 
+    // Wait for user hydration to complete before submitting
+    await waitFor(() => {
+      expect(
+        (SupersetClient.get as jest.Mock).mock.calls.some(([call]) =>
+          call.endpoint.includes('/api/v1/security/users/'),
+        ),
+      ).toBe(true);
+    });
+    // Allow the setFieldsValue effect to fire after loading state updates
+    await waitFor(() => Promise.resolve());
+
     fireEvent.change(screen.getByTestId('role-name-input'), {
       target: { value: 'Updated Role' },
     });

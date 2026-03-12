@@ -17,6 +17,7 @@
  * under the License.
  */
 import * as reactRedux from 'react-redux';
+import { act } from 'react';
 import {
   cleanup,
   fireEvent,
@@ -136,7 +137,7 @@ describe('SaveDatasetModal', () => {
     const overwriteRadioBtn = screen.getByRole('radio', {
       name: /overwrite existing/i,
     });
-    userEvent.click(overwriteRadioBtn);
+    await userEvent.click(overwriteRadioBtn);
 
     // Overwrite confirmation button should be disabled at this point
     const overwriteConfirmationBtn = screen.getByRole('button', {
@@ -146,15 +147,21 @@ describe('SaveDatasetModal', () => {
 
     // Click the overwrite select component
     const select = screen.getByRole('combobox', { name: /existing dataset/i })!;
-    userEvent.click(select);
+    await userEvent.click(select);
 
-    await waitFor(() =>
-      expect(screen.queryByText('Loading...')).not.toBeVisible(),
-    );
+    // Advance timers to flush debounced fetches in AsyncSelect
+    await act(async () => {
+      jest.runAllTimers();
+    });
+
+    await waitFor(() => {
+      const loading = screen.queryByText('Loading...');
+      expect(loading === null || !loading.checkVisibility()).toBe(true);
+    });
 
     // Select the first "existing dataset" from the listbox
     const option = screen.getAllByText('coolest table 0')[1];
-    userEvent.click(option);
+    await userEvent.click(option);
 
     // Overwrite button should now be enabled
     expect(overwriteConfirmationBtn).toBeEnabled();
@@ -168,25 +175,31 @@ describe('SaveDatasetModal', () => {
     const overwriteRadioBtn = screen.getByRole('radio', {
       name: /overwrite existing/i,
     });
-    userEvent.click(overwriteRadioBtn);
+    await userEvent.click(overwriteRadioBtn);
 
     // Click the overwrite select component
     const select = screen.getByRole('combobox', { name: /existing dataset/i });
-    userEvent.click(select);
+    await userEvent.click(select);
 
-    await waitFor(() =>
-      expect(screen.queryByText('Loading...')).not.toBeVisible(),
-    );
+    // Advance timers to flush debounced fetches in AsyncSelect
+    await act(async () => {
+      jest.runAllTimers();
+    });
+
+    await waitFor(() => {
+      const loading = screen.queryByText('Loading...');
+      expect(loading === null || !loading.checkVisibility()).toBe(true);
+    });
 
     // Select the first "existing dataset" from the listbox
     const option = screen.getAllByText('coolest table 0')[1];
-    userEvent.click(option);
+    await userEvent.click(option);
 
     // Click the overwrite button to access the confirmation screen
     const overwriteConfirmationBtn = screen.getByRole('button', {
       name: /overwrite/i,
     });
-    userEvent.click(overwriteConfirmationBtn);
+    await userEvent.click(overwriteConfirmationBtn);
 
     // Overwrite screen text
     expect(screen.getByText(/save or overwrite dataset/i)).toBeInTheDocument();
