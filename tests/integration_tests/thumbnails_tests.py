@@ -67,14 +67,14 @@ class TestThumbnailsSeleniumLive(LiveServerTestCase):
         """
         Thumbnails: Simple get async dashboard screenshot
         """
-        with patch("superset.dashboards.api.DashboardRestApi.get") as mock_get:  # noqa: F841
-            rv = self.client.get(DASHBOARD_URL)
-            resp = json.loads(rv.data.decode("utf-8"))
-            obj_id = resp["result"][0]["id"]
-            rv = self.client.get(f"{DASHBOARD_URL}{obj_id}")
-            resp = json.loads(rv.data.decode("utf-8"))
-            thumbnail_url = resp["result"]["thumbnail_url"]
+        rv = self.client.get(DASHBOARD_URL)
+        resp = json.loads(rv.data.decode("utf-8"))
+        obj_id = resp["result"][0]["id"]
+        rv = self.client.get(f"{DASHBOARD_URL}{obj_id}")
+        resp = json.loads(rv.data.decode("utf-8"))
+        thumbnail_url = resp["result"]["thumbnail_url"]
 
+        with patch("superset.dashboards.api.DashboardRestApi.get"):
             response = self.url_open_auth(
                 ADMIN_USERNAME,
                 thumbnail_url,
