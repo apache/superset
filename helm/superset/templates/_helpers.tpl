@@ -32,6 +32,16 @@ This validates that users have migrated from deprecated configuration patterns.
 {{- end -}}
 
 {{/*
+URL-encode a string for use in URI userinfo (e.g. database user or password).
+Reserved characters (@, :, /, #, ?, etc.) are percent-encoded so credentials
+with special characters produce a valid connection string.
+*/}}
+{{- define "superset.urlencodeUserinfo" -}}
+{{- $v := . | default "" | toString -}}
+{{- $v | regexReplaceAll "%" "%25" | regexReplaceAll ":" "%3A" | regexReplaceAll "@" "%40" | regexReplaceAll "/" "%2F" | regexReplaceAll "\\?" "%3F" | regexReplaceAll "#" "%23" | regexReplaceAll "\\[" "%5B" | regexReplaceAll "\\]" "%5D" | regexReplaceAll " " "%20" | regexReplaceAll "\\\\" "%5C" -}}
+{{- end -}}
+
+{{/*
 Expand the name of the chart.
 */}}
 {{- define "superset.name" -}}
@@ -161,12 +171,22 @@ SQLALCHEMY_DATABASE_URI = {{ .Values.database.uri | quote }}
 {{- $sslMode := .Values.database.ssl.mode | default "require" }}
 {{- $sslParams = printf "?sslmode=%s" $sslMode }}
 {{- end }}
-SQLALCHEMY_DATABASE_URI = f"{{ $driver }}://{{ .Values.database.user }}:{{ .Values.database.password }}@{{ $dbHost }}:{{ .Values.database.port }}/{{ .Values.database.name }}{{ $sslParams }}"
+SQLALCHEMY_DATABASE_URI = f"{{ $driver }}://{{ include "superset.urlencodeUserinfo" .Values.database.user }}:{{ include "superset.urlencodeUserinfo" .Values.database.password }}@{{ $dbHost }}:{{ .Values.database.port }}/{{ .Values.database.name }}{{ $sslParams }}"
 {{- end }}
 {{- if hasKey .Values.config "SQLALCHEMY_TRACK_MODIFICATIONS" }}
 SQLALCHEMY_TRACK_MODIFICATIONS = {{ if .Values.config.SQLALCHEMY_TRACK_MODIFICATIONS }}True{{ else }}False{{ end }}
 {{- else }}
 SQLALCHEMY_TRACK_MODIFICATIONS = False
+{{- end }}
+
+{{- /* Cache/Redis host fallback - reuse same logic for results backend and GAQ backends so null host does not break runtime */}}
+{{- $cacheHost := .Values.cache.host }}
+{{- if not $cacheHost }}
+{{- if .Values.cluster.redisServiceName }}
+{{- $cacheHost = .Values.cluster.redisServiceName }}
+{{- else }}
+{{- $cacheHost = printf "%s-redis-headless" .Release.Name }}
+{{- end }}
 {{- end }}
 
 {{- /* Redis Configuration - only if Redis cache is configured */}}
@@ -383,7 +403,7 @@ CELERY_WORKER_HEALTH_CHECK_ENABLED = False
 RESULTS_BACKEND = {{ .Values.config.resultsBackend }}
 {{- else }}
 RESULTS_BACKEND = RedisCache(
-    host={{ .Values.cache.host | quote }},
+    host={{ $cacheHost | quote }},
     {{- if .Values.cache.password }}
     password={{ .Values.cache.password | quote }},
     {{- end }}
@@ -397,7 +417,7 @@ RESULTS_BACKEND = RedisCache(
 {{- end }}
 {{- else if .Values.cache.enabled }}
 RESULTS_BACKEND = RedisCache(
-    host={{ .Values.cache.host | quote }},
+    host={{ $cacheHost | quote }},
     {{- if .Values.cache.password }}
     password={{ .Values.cache.password | quote }},
     {{- end }}
@@ -410,13 +430,13 @@ RESULTS_BACKEND = RedisCache(
 )
 {{- end }}
 
-{{- /* Global Async Queries Cache Backend - Required when using GLOBAL_ASYNC_QUERIES feature flag */}}
+{{- /* Global Async Queries Cache Backend - Required when using GLOBAL_ASYNC_QUERIES feature flag. Uses $cacheHost (same fallback as results backend). */}}
 {{- if .Values.config.GLOBAL_ASYNC_QUERIES_CACHE_BACKEND }}
 GLOBAL_ASYNC_QUERIES_CACHE_BACKEND = {{ .Values.config.GLOBAL_ASYNC_QUERIES_CACHE_BACKEND | toJson | indent 2 }}
 {{- else if .Values.cache.enabled }}
 GLOBAL_ASYNC_QUERIES_CACHE_BACKEND = {
     "CACHE_TYPE": "RedisCache",
-    "CACHE_REDIS_HOST": {{ .Values.cache.host | quote }},
+    "CACHE_REDIS_HOST": {{ $cacheHost | quote }},
     "CACHE_REDIS_PORT": {{ .Values.cache.port | int }},
     "CACHE_REDIS_USER": {{ .Values.cache.user | default "" | quote }},
     {{- if .Values.cache.password }}
@@ -462,7 +482,7 @@ GLOBAL_ASYNC_QUERIES_RESULTS_BACKEND = {{ .Values.config.GLOBAL_ASYNC_QUERIES_RE
 {{- else if .Values.cache.enabled }}
 GLOBAL_ASYNC_QUERIES_RESULTS_BACKEND = {
     "backend": "redis",
-    "host": {{ .Values.cache.host | quote }},
+    "host": {{ $cacheHost | quote }},
     "port": {{ .Values.cache.port | int }},
     "prefix": {{ .Values.cache.asyncQueries.keyPrefix | default "qc-" | quote }},
     "db": {{ .Values.cache.asyncQueries.db | default .Values.cache.cacheDb | default 0 | int }},
