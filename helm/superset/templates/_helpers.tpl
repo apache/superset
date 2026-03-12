@@ -164,7 +164,7 @@ SQLALCHEMY_DATABASE_URI = {{ .Values.database.uri | quote }}
 SQLALCHEMY_DATABASE_URI = f"{{ $driver }}://{{ .Values.database.user }}:{{ .Values.database.password }}@{{ $dbHost }}:{{ .Values.database.port }}/{{ .Values.database.name }}{{ $sslParams }}"
 {{- end }}
 {{- if hasKey .Values.config "SQLALCHEMY_TRACK_MODIFICATIONS" }}
-SQLALCHEMY_TRACK_MODIFICATIONS = {{ .Values.config.SQLALCHEMY_TRACK_MODIFICATIONS | lower }}
+SQLALCHEMY_TRACK_MODIFICATIONS = {{ if .Values.config.SQLALCHEMY_TRACK_MODIFICATIONS }}True{{ else }}False{{ end }}
 {{- else }}
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 {{- end }}
@@ -260,7 +260,7 @@ class CeleryConfig:
     {{ $key }} = {{ $value | toJson }}
 {{- end }}
 
-CELERY_IMPORTS = CeleryConfig.imports
+CELERY_IMPORTS = getattr(CeleryConfig, "imports", ())
 CELERY_CONFIG = CeleryConfig
 {{- end }}
 {{- else if .Values.cache.enabled }}
@@ -427,7 +427,7 @@ GLOBAL_ASYNC_QUERIES_CACHE_BACKEND = {
     "CACHE_REDIS_DB": {{ .Values.cache.asyncQueries.db | default .Values.cache.cacheDb | default 0 | int }},
     "CACHE_KEY_PREFIX": {{ .Values.cache.asyncQueries.keyPrefix | default "qc-" | quote }},
     "CACHE_DEFAULT_TIMEOUT": {{ .Values.cache.asyncQueries.timeout | default 86400 | int }},
-    {{- if .Values.cache.sentinel }}
+    {{- if and .Values.cache.sentinel (ne (index .Values.cache.sentinel "enabled") false) }}
     {{- if .Values.cache.sentinel.sentinels }}
     "CACHE_REDIS_SENTINELS": {{ .Values.cache.sentinel.sentinels | toJson }},
     {{- else }}
@@ -442,10 +442,10 @@ GLOBAL_ASYNC_QUERIES_CACHE_BACKEND = {
     {{- end }}
     {{- if and (hasKey .Values.cache "ssl") .Values.cache.ssl.enabled }}
     "CACHE_REDIS_SSL": True,
-    "CACHE_REDIS_SSL_CERTFILE": {{ .Values.cache.ssl.certfile | default "None" }},
-    "CACHE_REDIS_SSL_KEYFILE": {{ .Values.cache.ssl.keyfile | default "None" }},
+    "CACHE_REDIS_SSL_CERTFILE": {{ if .Values.cache.ssl.certfile }}{{ .Values.cache.ssl.certfile | quote }}{{ else }}None{{ end }},
+    "CACHE_REDIS_SSL_KEYFILE": {{ if .Values.cache.ssl.keyfile }}{{ .Values.cache.ssl.keyfile | quote }}{{ else }}None{{ end }},
     "CACHE_REDIS_SSL_CERT_REQS": {{ .Values.cache.ssl.ssl_cert_reqs | default "required" | quote }},
-    "CACHE_REDIS_SSL_CA_CERTS": {{ .Values.cache.ssl.ca_certs | default "None" }},
+    "CACHE_REDIS_SSL_CA_CERTS": {{ if .Values.cache.ssl.ca_certs }}{{ .Values.cache.ssl.ca_certs | quote }}{{ else }}None{{ end }},
     {{- else }}
     "CACHE_REDIS_SSL": False,
     "CACHE_REDIS_SSL_CERTFILE": None,
@@ -539,7 +539,7 @@ GLOBAL_ASYNC_QUERIES_JWT_SECRET = {{ .Values.supersetWebsockets.config.jwtSecret
 
 {{- /* Global Async Queries JWT Cookie Settings - Important for HTTPS/WSS */}}
 {{- /* SECURE: Must be True when using HTTPS/WSS, otherwise browser won't send the cookie */}}
-{{- if .Values.config.GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE }}
+{{- if hasKey .Values.config "GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE" }}
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = {{ if .Values.config.GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE }}True{{ else }}False{{ end }}
 {{- else if and .Values.supersetWebsockets.enabled (or (hasPrefix "wss://" $wsUrl) .Values.ingress.tls) }}
 {{- /* Auto-detect: Enable secure cookies when using wss:// or when TLS is configured */}}
