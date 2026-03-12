@@ -40,7 +40,6 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import { ErrorMessageWithStackTrace } from 'src/components';
 import type { DatasetObject } from 'src/features/datasets/types';
 import type { DatasourceModalProps } from '../types';
-import { datasetLabel, datasetLabelLower } from 'src/utils/semanticLayerLabels';
 
 const DatasourceEditor = AsyncEsmComponent(
   () => import('../components/DatasourceEditor'),
@@ -204,7 +203,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         endpoint: `/api/v1/dataset/${currentDatasource?.id}`,
       });
 
-      addSuccessToast(t('The %s has been saved', datasetLabelLower()));
+      addSuccessToast(t('The dataset has been saved'));
       // eslint-disable-next-line no-param-reassign
       json.result.type = 'table';
       onDatasourceSave({
@@ -225,7 +224,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         errorText = error.error;
       }
       modal.error({
-        title: t('Error saving %s', datasetLabelLower()),
+        title: t('Error saving dataset'),
         okButtonProps: { danger: true, className: 'btn-danger' },
         content: (
           <ErrorMessageWithStackTrace
@@ -335,7 +334,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             `}
             data-test="edit-alt"
           />
-          {t('Edit %s ', datasetLabel())}
+          {t('Edit Dataset ')}
           <strong>{currentDatasource.table_name}</strong>
         </span>
       }
