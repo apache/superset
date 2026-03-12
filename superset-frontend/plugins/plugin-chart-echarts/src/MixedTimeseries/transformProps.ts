@@ -430,24 +430,18 @@ rawSeriesA.forEach(entry => {
   let displayName: string;
 
   if (truncateMetric && groupby.length > 0) {
-    // Truncate metric: show only the group-by values
     const groupbyValues = labelMap?.[seriesName] || [];
-    displayName = groupbyValues.join(', ');
-    console.log(
-      'Query A - entryName:',
-      entryName,
-      'seriesName:',
-      seriesName,
-      'groupbyValues:',
-      groupbyValues,
-      'displayName:',
-      displayName,
-    );
+    displayName = groupbyValues.length > 0 ? groupbyValues.join(', ') : entryName;
   } else {
-    // No truncation: use the original series name (already includes metric)
-    displayName = entryName;
-    if (showQueryIdentifiers) {
-      displayName += ' (Query A)';
+    if (groupby.length > 0) {
+      const metricPart: string = showQueryIdentifiers
+        ? `${MetricDisplayNameA} (Query A)`
+        : MetricDisplayNameA;
+      displayName = entryName.includes(metricPart)
+        ? entryName
+        : `${metricPart}, ${entryName}`;
+    } else {
+      displayName = showQueryIdentifiers ? `${entryName} (Query A)` : entryName;
     }
   }
 
@@ -504,30 +498,28 @@ rawSeriesA.forEach(entry => {
 });
 
 
+
 rawSeriesB.forEach(entry => {
   const entryName = String(entry.name || '');
   const seriesEntry = inverted[entryName] || entryName;
+  const seriesName = `${seriesEntry} (1)`;
   const colorScaleKey = getOriginalSeries(seriesEntry, array);
 
   let displayName: string;
 
   if (truncateMetricB && groupbyB.length > 0) {
-    // Truncate metric: show only the group-by values
-    const groupbyValues = labelMapB?.[entryName] || [];
-    displayName = groupbyValues.join(', ');
-    console.log(
-      'Query B - entryName:',
-      entryName,
-      'groupbyValues:',
-      groupbyValues,
-      'displayName:',
-      displayName,
-    );
+    const groupbyValues = labelMapB?.[seriesEntry] || labelMapB?.[entryName] || [];
+    displayName = groupbyValues.length > 0 ? groupbyValues.join(', ') : entryName;
   } else {
-    // No truncation: use the original series name
-    displayName = entryName;
-    if (showQueryIdentifiers) {
-      displayName += ' (Query B)';
+    if (groupbyB.length > 0) {
+      const metricPart: string = showQueryIdentifiers
+        ? `${MetricDisplayNameB} (Query B)`
+        : MetricDisplayNameB;
+      displayName = entryName.includes(metricPart)
+        ? entryName
+        : `${metricPart}, ${entryName}`;
+    } else {
+      displayName = showQueryIdentifiers ? `${entryName} (Query B)` : entryName;
     }
   }
 
@@ -535,7 +527,7 @@ rawSeriesB.forEach(entry => {
     customFormattersSecondary,
     formatterSecondary,
     metricsB,
-    labelMapB?.[entryName]?.[0],
+    labelMapB?.[seriesName]?.[0],
     !!contributionMode,
   );
 
@@ -582,6 +574,8 @@ rawSeriesB.forEach(entry => {
     mapSeriesIdToAxis(transformedSeries, yAxisIndexB);
   }
 });
+
+ 
 
   // default to 0-100% range when doing row-level contribution chart
   if (contributionMode === 'row' && stack) {
