@@ -313,9 +313,7 @@ class Superset(BaseSupersetView):
             ChartDataResultFormat.XLSX,
         ):
             if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
-                can_export = security_manager.can_access(
-                    "can_export_data", "Superset"
-                )
+                can_export = security_manager.can_access("can_export_data", "Superset")
             else:
                 can_export = security_manager.can_access("can_csv", "Superset")
             if not can_export:
