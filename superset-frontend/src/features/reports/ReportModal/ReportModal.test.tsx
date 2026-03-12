@@ -269,6 +269,18 @@ test('edit mode dispatches editReport via PUT on save', async () => {
     expect(calls.length).toBeGreaterThan(0);
   });
 
+  const calls = fetchMock.callHistory.calls('put-report-42');
+  const body = JSON.parse(calls[calls.length - 1].options.body as string);
+
+  // Pin critical payload fields to catch regressions
+  expect(body.type).toBe('Report');
+  expect(body.name).toBe('Existing Report');
+  expect(body.crontab).toBe('0 12 * * 1');
+  expect(body.report_format).toBe('PNG');
+  expect(body.dashboard).toBe(1);
+  expect(body.recipients).toBeDefined();
+  expect(body.recipients[0].type).toBe('Email');
+
   fetchMock.removeRoute('put-report-42');
 });
 

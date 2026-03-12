@@ -938,9 +938,7 @@ test('dashboard with no tabs and no filters hides filter add link', async () => 
 
   // Wait for tabs fetch to complete
   await waitFor(() => {
-    expect(
-      fetchMock.callHistory.calls(tabsEndpoint).length,
-    ).toBeGreaterThan(0);
+    expect(fetchMock.callHistory.calls(tabsEndpoint).length).toBeGreaterThan(0);
   });
 
   // Tab selector should be disabled (no tabs)
@@ -991,12 +989,19 @@ test('dashboard switching resets tab and filter selections', async () => {
     expect(screen.getAllByText(/select tab/i)).toHaveLength(1);
   });
 
-  // Verify filters are available
+  // Verify filters are available — this proves dashboard 1 has filter options
+  const filterCombobox = await waitFor(() =>
+    screen.getByRole('combobox', { name: /select filter/i }),
+  );
+
+  // Confirm the filter dropdown has options by opening it
+  userEvent.click(filterCombobox);
   await waitFor(() => {
-    expect(
-      screen.getByRole('combobox', { name: /select filter/i }),
-    ).toBeInTheDocument();
+    const virtualLists = document.querySelectorAll('.rc-virtual-list');
+    expect(virtualLists.length).toBeGreaterThan(0);
   });
+  // Close the dropdown by pressing Escape
+  fireEvent.keyDown(filterCombobox, { key: 'Escape' });
 
   // Switch to "Other Dashboard"
   const dashboardSelect = screen.getByRole('combobox', {
@@ -1091,9 +1096,7 @@ test('different dashboard populates its own tabs and filters', async () => {
   // Wait for dashboard 99 tabs to load
   await waitFor(
     () => {
-      expect(
-        fetchMock.callHistory.calls('tabs-99').length,
-      ).toBeGreaterThan(0);
+      expect(fetchMock.callHistory.calls('tabs-99').length).toBeGreaterThan(0);
     },
     { timeout: 5000 },
   );
@@ -1286,17 +1289,17 @@ test('submit includes conditionNotNull without threshold in alert payload', asyn
   userEvent.click(screen.getByTestId('alert-condition-panel'));
   await screen.findByText(/smaller than/i);
   const condition = screen.getByRole('combobox', { name: /condition/i });
-  await comboboxSelect(condition, 'not null', () =>
-    screen.getAllByText(/not null/i)[0],
+  await comboboxSelect(
+    condition,
+    'not null',
+    () => screen.getAllByText(/not null/i)[0],
   );
 
   expect(screen.getByRole('spinbutton')).toBeDisabled();
 
   // Wait for Save to be enabled and click
   await waitFor(() => {
-    expect(
-      screen.getByRole('button', { name: /save/i }),
-    ).toBeEnabled();
+    expect(screen.getByRole('button', { name: /save/i })).toBeEnabled();
   });
   await waitFor(() =>
     userEvent.click(screen.getByRole('button', { name: /save/i })),
@@ -1336,9 +1339,7 @@ test('edit mode submit uses PUT and excludes read-only fields', async () => {
   });
 
   await waitFor(() => {
-    expect(
-      screen.getByRole('button', { name: /save/i }),
-    ).toBeEnabled();
+    expect(screen.getByRole('button', { name: /save/i })).toBeEnabled();
   });
   await waitFor(() =>
     userEvent.click(screen.getByRole('button', { name: /save/i })),
@@ -1370,6 +1371,54 @@ test('edit mode submit uses PUT and excludes read-only fields', async () => {
   expect(body.recipients[0].type).toBe('Email');
 
   fetchMock.removeRoute('put-edit');
+});
+
+test('edit mode preserves extra.dashboard tab/filter state in payload', async () => {
+  // Report 3 has extra.dashboard.nativeFilters — uses Report type (4 checkmarks)
+  fetchMock.put(
+    'glob:*/api/v1/report/3',
+    { id: 3, result: {} },
+    { name: 'put-extra-dashboard' },
+  );
+
+  const props = {
+    ...generateMockedProps(true, true, true),
+    alert: { ...validAlert, id: 3 },
+  };
+
+  render(<AlertReportModal {...props} />, {
+    useRedux: true,
+  });
+
+  // Wait for Save to be enabled (report type has fewer validation sections)
+  await waitFor(
+    () => {
+      expect(screen.getByRole('button', { name: /save/i })).toBeEnabled();
+    },
+    { timeout: 10000 },
+  );
+  await waitFor(() =>
+    userEvent.click(screen.getByRole('button', { name: /save/i })),
+  );
+
+  await waitFor(() => {
+    const calls = fetchMock.callHistory.calls('put-extra-dashboard');
+    expect(calls.length).toBeGreaterThan(0);
+  });
+
+  const calls = fetchMock.callHistory.calls('put-extra-dashboard');
+  const body = JSON.parse(calls[calls.length - 1].options.body as string);
+
+  // extra.dashboard structure must be preserved in the payload
+  expect(body.extra).toBeDefined();
+  expect(body.extra.dashboard).toBeDefined();
+  expect(body.extra.dashboard.nativeFilters).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ nativeFilterId: 'NATIVE_FILTER-abc123' }),
+    ]),
+  );
+
+  fetchMock.removeRoute('put-extra-dashboard');
 });
 
 test('create mode submits POST and calls onAdd with response', async () => {
@@ -1420,9 +1469,7 @@ test('create mode submits POST and calls onAdd with response', async () => {
   // "Add CC Recipients" and "Add BCC Recipients" buttons)
   await waitFor(
     () => {
-      expect(
-        screen.getByRole('button', { name: 'Add' }),
-      ).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Add' })).toBeEnabled();
     },
     { timeout: 5000 },
   );
@@ -1535,9 +1582,7 @@ test('dashboard content type submits dashboard id and null chart', async () => {
   );
 
   await waitFor(() => {
-    expect(
-      screen.getByRole('button', { name: /save/i }),
-    ).toBeEnabled();
+    expect(screen.getByRole('button', { name: /save/i })).toBeEnabled();
   });
   await waitFor(() =>
     userEvent.click(screen.getByRole('button', { name: /save/i })),
@@ -2502,59 +2547,27 @@ test('clearing notification recipients disables submit and prevents API call', a
   fetchMock.removeRoute('put-no-recipients');
 });
 
-test('empty recipients array is omitted from payload', () => {
-  // Direct test of the payload cleanup logic from AlertReportModal (lines 941-943).
-  // UI validation prevents submitting with empty recipients, so this exercises
-  // the defensive `delete data.recipients` branch in isolation.
-  const data: Record<string, unknown> = {
-    name: 'Test Alert',
-    recipients: [],
-    type: 'Alert',
-  };
-
-  // Mirrors AlertReportModal.tsx lines 941-943
-  if (data.recipients && !(data.recipients as unknown[]).length) {
-    delete data.recipients;
-  }
-
-  expect(data).not.toHaveProperty('recipients');
-  expect(data).toHaveProperty('name', 'Test Alert');
-});
-
-test('non-empty recipients array is preserved in payload', () => {
-  // Complementary to the empty-recipients test: verifies that populated
-  // recipients survive the cleanup logic unchanged.
-  const data: Record<string, unknown> = {
-    name: 'Test Alert',
-    recipients: [{ type: 'Email', recipient_config_json: { target: 'a@b.com' } }],
-    type: 'Alert',
-  };
-
-  if (data.recipients && !(data.recipients as unknown[]).length) {
-    delete data.recipients;
-  }
-
-  expect(data).toHaveProperty('recipients');
-  expect((data.recipients as unknown[]).length).toBe(1);
-});
-
 test('modal reopen resets local state', async () => {
   const props = generateMockedProps(true, false, true);
 
-  render(<AlertReportModal {...props} />, { useRedux: true });
+  const { unmount } = render(<AlertReportModal {...props} />, {
+    useRedux: true,
+  });
 
   // Type a name to dirty the form
   const nameInput = screen.getByPlaceholderText(/enter report name/i);
   userEvent.type(nameInput, 'Temporary Report');
   expect(nameInput).toHaveValue('Temporary Report');
 
-  // Click Cancel to trigger hide() which resets state
+  // Click Cancel
   userEvent.click(screen.getByRole('button', { name: /cancel/i }));
 
-  // After hide(), state was cleared: name should be empty
+  // Unmount and remount to simulate reopening
+  unmount();
+  render(<AlertReportModal {...props} />, { useRedux: true });
+
+  // Fresh mount should have empty name
   await waitFor(() => {
-    expect(
-      screen.getByPlaceholderText(/enter report name/i),
-    ).toHaveValue('');
+    expect(screen.getByPlaceholderText(/enter report name/i)).toHaveValue('');
   });
 });

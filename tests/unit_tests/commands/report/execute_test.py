@@ -418,6 +418,11 @@ def test_get_dashboard_urls_with_filters_and_tabs(
     assert mock_permalink_cls.call_args_list[1].kwargs["state"]["anchor"] == "TAB-2"
 
 
+@pytest.mark.xfail(
+    reason="BUG: {urlParams: [...], **dashboard_state} overwrites native_filters. "
+    "Will pass when execute.py:281-291 is fixed.",
+    strict=False,
+)
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
 @with_feature_flags(ALERT_REPORT_TABS=True)
 def test_get_dashboard_urls_with_filters_no_tabs(
@@ -469,12 +474,7 @@ def test_get_dashboard_urls_with_filters_no_tabs(
     mock_report_schedule.get_native_filters_params.assert_called_once()  # type: ignore[attr-defined]
     assert mock_permalink_cls.call_count == 1
     state = mock_permalink_cls.call_args_list[0].kwargs["state"]
-    # BUG: {urlParams: [...], **dashboard_state} lets dashboard_state["urlParams"]
-    # overwrite the native_filters param. The tabs path (_get_tabs_urls) does not
-    # have this issue because it builds the dict without **dashboard_state.
-    assert (
-        state["urlParams"] is None
-    )  # should be [["native_filters", native_filter_rison]]
+    assert state["urlParams"] == [["native_filters", native_filter_rison]]
 
 
 @patch(
