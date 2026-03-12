@@ -22,7 +22,6 @@ import { DatasourceType, Metric, QueryFormData } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 
-import { datasetLabelLower } from 'src/utils/semanticLayerLabels';
 import { ControlConfig } from '@superset-ui/chart-controls';
 import AutoSizer from 'react-virtualized-auto-sizer';
 
@@ -292,7 +291,7 @@ export default function DataSourcePanel({
                       onClick={() => setShowSaveDatasetModal(true)}
                       className="add-dataset-alert-description"
                     >
-                      {t('Create a %s', datasetLabelLower())}
+                      {t('Create a dataset')}
                     </span>
                     {t(' to edit or add columns and metrics.')}
                   </>

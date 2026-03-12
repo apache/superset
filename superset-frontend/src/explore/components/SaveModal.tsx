@@ -59,7 +59,6 @@ import {
 import { Dashboard } from 'src/types/Dashboard';
 import { TabNode, TabTreeNode } from '../types';
 import { CHART_WIDTH, CHART_HEIGHT } from 'src/dashboard/constants';
-import { datasetLabel } from 'src/utils/semanticLayerLabels';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
@@ -636,12 +635,11 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
           <FormItem
             label={
               <Flex align="center" gap={this.props.theme.sizeUnit}>
-                {t('%s Name', datasetLabel())}
+                {t('Dataset Name')}
                 <InfoTooltip
                   data-test="info-tooltip-icon"
                   tooltip={t(
-                    'A reusable %s will be saved with your chart.',
-                    datasetLabel().toLowerCase(),
+                    'A reusable dataset will be saved with your chart.',
                   )}
                   placement="right"
                 />
@@ -652,7 +650,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
             <Input
               name="dataset_name"
               type="text"
-              placeholder={t('%s Name', datasetLabel())}
+              placeholder={t('Dataset Name')}
               value={this.state.datasetName}
               onChange={this.handleDatasetNameChange}
               data-test="new-dataset-name"
