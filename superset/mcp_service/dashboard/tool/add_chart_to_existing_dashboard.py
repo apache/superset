@@ -225,7 +225,7 @@ def _ensure_layout_structure(
 
 
 @mcp.tool(tags=["mutate"])
-@mcp_auth_hook
+@mcp_auth_hook(class_permission_name="Dashboard", method_permission_name="write")
 @parse_request(AddChartToDashboardRequest)
 def add_chart_to_existing_dashboard(
     request: AddChartToDashboardRequest, ctx: Context

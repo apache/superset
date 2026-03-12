@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 
 @mcp.tool(tags=["explore"])
-@mcp_auth_hook
+@mcp_auth_hook(class_permission_name="SQLLab")
 @parse_request(OpenSqlLabRequest)
 def open_sql_lab_with_context(
     request: OpenSqlLabRequest, ctx: Context

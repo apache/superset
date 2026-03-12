@@ -16,20 +16,21 @@
 # under the License.
 
 """
-Minimal authentication hooks for MCP tools.
-This is a placeholder implementation that provides basic user context.
+Authentication and authorization hooks for MCP tools.
 
-Future enhancements (to be added in separate PRs):
-- JWT token authentication and validation
-- User impersonation support
-- Permission checking with scopes
-- Comprehensive audit logging
-- Field-level permissions
+This module provides:
+- User authentication from JWT or configured dev user
+- RBAC permission checking aligned with Superset's REST API permissions
+- Dataset access validation
+- Session lifecycle management
+
+The RBAC enforcement mirrors Flask-AppBuilder's @protect() decorator,
+ensuring MCP tools respect the same permission model as the REST API.
 """
 
 import logging
 from contextlib import AbstractContextManager
-from typing import Any, Callable, TYPE_CHECKING, TypeVar
+from typing import Any, Callable, overload, TYPE_CHECKING, TypeVar
 
 from flask import g
 from flask_appbuilder.security.sqla.models import Group, User
@@ -41,6 +42,90 @@ if TYPE_CHECKING:
 F = TypeVar("F", bound=Callable[..., Any])
 
 logger = logging.getLogger(__name__)
+
+# Constants for RBAC permission attributes (mirrors FAB conventions)
+PERMISSION_PREFIX = "can_"
+CLASS_PERMISSION_ATTR = "_class_permission_name"
+METHOD_PERMISSION_ATTR = "_method_permission_name"
+
+
+class MCPPermissionDeniedError(Exception):
+    """Raised when user lacks required RBAC permission for an MCP tool."""
+
+    def __init__(
+        self,
+        permission_name: str,
+        view_name: str,
+        user: str | None = None,
+        tool_name: str | None = None,
+    ):
+        self.permission_name = permission_name
+        self.view_name = view_name
+        self.user = user
+        self.tool_name = tool_name
+        message = (
+            f"Permission denied: {permission_name} on {view_name}"
+            + (f" for user {user}" if user else "")
+            + (f" (tool: {tool_name})" if tool_name else "")
+        )
+        super().__init__(message)
+
+
+def check_tool_permission(func: Callable[..., Any]) -> bool:
+    """Check if the current user has RBAC permission for an MCP tool.
+
+    Reads permission metadata stored on the function by the @tool decorator
+    and uses Superset's security_manager to verify access.
+
+    Controlled by the ``MCP_RBAC_ENABLED`` config flag (default True).
+    Set to False in superset_config.py to disable RBAC checking.
+
+    Args:
+        func: The tool function with optional permission attributes.
+
+    Returns:
+        True if user has permission or no permission is required.
+    """
+    try:
+        from flask import current_app
+
+        if not current_app.config.get("MCP_RBAC_ENABLED", True):
+            return True
+
+        from superset import security_manager
+
+        if not hasattr(g, "user") or not g.user:
+            logger.warning(
+                "No user context for permission check on tool: %s", func.__name__
+            )
+            return False
+
+        class_permission_name = getattr(func, CLASS_PERMISSION_ATTR, None)
+        if not class_permission_name:
+            # No RBAC configured for this tool; allow by default.
+            return True
+
+        method_permission_name = getattr(func, METHOD_PERMISSION_ATTR, "read")
+        permission_str = f"{PERMISSION_PREFIX}{method_permission_name}"
+
+        has_permission = security_manager.can_access(
+            permission_str, class_permission_name
+        )
+
+        if not has_permission:
+            logger.warning(
+                "Permission denied for user %s: %s on %s (tool: %s)",
+                g.user.username,
+                permission_str,
+                class_permission_name,
+                func.__name__,
+            )
+
+        return has_permission
+
+    except (AttributeError, ValueError, RuntimeError) as e:
+        logger.warning("Error checking tool permission: %s", e)
+        return False
 
 
 def load_user_with_relationships(
@@ -215,18 +300,43 @@ def _cleanup_session_on_error() -> None:
         logger.warning("Error cleaning up session after exception: %s", e)
 
 
-def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
+@overload
+def mcp_auth_hook(tool_func: F) -> F: ...
+
+
+@overload
+def mcp_auth_hook(
+    tool_func: None = None,
+    *,
+    class_permission_name: str | None = None,
+    method_permission_name: str | None = None,
+) -> Callable[[F], F]: ...
+
+
+def mcp_auth_hook(  # noqa: C901
+    tool_func: F | None = None,
+    *,
+    class_permission_name: str | None = None,
+    method_permission_name: str | None = None,
+) -> F | Callable[[F], F]:
     """
     Authentication and authorization decorator for MCP tools.
 
-    This decorator pushes Flask application context and sets up g.user
-    for MCP tool execution.
+    This decorator pushes Flask application context, sets up g.user,
+    and enforces RBAC permission checks for MCP tool execution.
+
+    Can be used as a bare decorator or with keyword arguments::
+
+        @mcp_auth_hook                        # no RBAC metadata
+        @mcp_auth_hook(class_permission_name="Chart")  # read-only RBAC
+        @mcp_auth_hook(class_permission_name="Chart",
+                       method_permission_name="write")  # write RBAC
+
+    If ``class_permission_name`` is provided, the permission attributes are
+    stored on the wrapped function so that ``check_tool_permission()`` can
+    verify the user has the required FAB permission before the tool runs.
 
     Supports both sync and async tool functions.
-
-    TODO (future PR): Add permission checking
-    TODO (future PR): Add JWT scope validation
-    TODO (future PR): Add comprehensive audit logging
     """
     import contextlib
     import functools
@@ -237,134 +347,165 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
 
     from superset.mcp_service.flask_singleton import get_flask_app
 
-    def _get_app_context_manager() -> AbstractContextManager[None]:
-        """Return app context manager only if not already in one."""
-        if has_app_context():
-            # Already in app context (e.g., in tests), use null context
-            return contextlib.nullcontext()
-        # Push new app context for standalone MCP server
-        app = get_flask_app()
-        return app.app_context()
+    def _wrap(func: F) -> F:  # noqa: C901
+        # Store RBAC permission metadata on the function
+        if class_permission_name is not None:
+            setattr(func, CLASS_PERMISSION_ATTR, class_permission_name)
+        if method_permission_name is not None:
+            setattr(func, METHOD_PERMISSION_ATTR, method_permission_name)
 
-    is_async = inspect.iscoroutinefunction(tool_func)
+        def _get_app_context_manager() -> AbstractContextManager[None]:
+            """Return app context manager only if not already in one."""
+            if has_app_context():
+                return contextlib.nullcontext()
+            app = get_flask_app()
+            return app.app_context()
 
-    if is_async:
+        is_async = inspect.iscoroutinefunction(func)
 
-        @functools.wraps(tool_func)
-        async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
-            with _get_app_context_manager():
-                user = _setup_user_context()
+        if is_async:
 
-                # No Flask context - this is a FastMCP internal operation
-                # (e.g., tool discovery, prompt listing) that doesn't require auth
-                if user is None:
-                    logger.debug(
-                        "MCP internal call without Flask context: tool=%s",
-                        tool_func.__name__,
-                    )
-                    return await tool_func(*args, **kwargs)
+            @functools.wraps(func)
+            async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
+                with _get_app_context_manager():
+                    user = _setup_user_context()
 
-                try:
-                    logger.debug(
-                        "MCP tool call: user=%s, tool=%s",
-                        user.username,
-                        tool_func.__name__,
-                    )
-                    result = await tool_func(*args, **kwargs)
-                    return result
-                except Exception:
-                    _cleanup_session_on_error()
-                    raise
+                    # No Flask context - this is a FastMCP internal operation
+                    # (e.g., tool discovery, prompt listing) that doesn't require auth
+                    if user is None:
+                        logger.debug(
+                            "MCP internal call without Flask context: tool=%s",
+                            func.__name__,
+                        )
+                        return await func(*args, **kwargs)
 
-        wrapper = async_wrapper
+                    # RBAC permission check
+                    if not check_tool_permission(func):
+                        method_name = getattr(func, METHOD_PERMISSION_ATTR, "read")
+                        raise MCPPermissionDeniedError(
+                            permission_name=f"{PERMISSION_PREFIX}{method_name}",
+                            view_name=getattr(func, CLASS_PERMISSION_ATTR, "unknown"),
+                            user=user.username,
+                            tool_name=func.__name__,
+                        )
 
-    else:
+                    try:
+                        logger.debug(
+                            "MCP tool call: user=%s, tool=%s",
+                            user.username,
+                            func.__name__,
+                        )
+                        result = await func(*args, **kwargs)
+                        return result
+                    except Exception:
+                        _cleanup_session_on_error()
+                        raise
 
-        @functools.wraps(tool_func)
-        def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
-            with _get_app_context_manager():
-                user = _setup_user_context()
+            wrapper = async_wrapper
 
-                # No Flask context - this is a FastMCP internal operation
-                # (e.g., tool discovery, prompt listing) that doesn't require auth
-                if user is None:
-                    logger.debug(
-                        "MCP internal call without Flask context: tool=%s",
-                        tool_func.__name__,
-                    )
-                    return tool_func(*args, **kwargs)
+        else:
 
-                try:
-                    logger.debug(
-                        "MCP tool call: user=%s, tool=%s",
-                        user.username,
-                        tool_func.__name__,
-                    )
-                    result = tool_func(*args, **kwargs)
-                    return result
-                except Exception:
-                    _cleanup_session_on_error()
-                    raise
+            @functools.wraps(func)
+            def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
+                with _get_app_context_manager():
+                    user = _setup_user_context()
 
-        wrapper = sync_wrapper
+                    # No Flask context - this is a FastMCP internal operation
+                    # (e.g., tool discovery, prompt listing) that doesn't require auth
+                    if user is None:
+                        logger.debug(
+                            "MCP internal call without Flask context: tool=%s",
+                            func.__name__,
+                        )
+                        return func(*args, **kwargs)
 
-    # Merge original function's __globals__ into wrapper's __globals__
-    # This allows get_type_hints() to resolve type annotations from the
-    # original module (e.g., Context from fastmcp)
-    # FastMCP 2.13.2+ uses get_type_hints() which needs access to these types
-    merged_globals = {**wrapper.__globals__, **tool_func.__globals__}  # type: ignore[attr-defined]
-    new_wrapper = types.FunctionType(
-        wrapper.__code__,  # type: ignore[attr-defined]
-        merged_globals,
-        wrapper.__name__,
-        wrapper.__defaults__,  # type: ignore[attr-defined]
-        wrapper.__closure__,  # type: ignore[attr-defined]
-    )
-    # Copy __dict__ but exclude __wrapped__
-    # NOTE: We intentionally do NOT preserve __wrapped__ here.
-    # Setting __wrapped__ causes inspect.signature() to follow the chain
-    # and find 'ctx' in the original function's signature, even after
-    # FastMCP's create_function_without_params removes it from annotations.
-    # This breaks Pydantic's TypeAdapter which expects signature params
-    # to match type_hints.
-    new_wrapper.__dict__.update(
-        {k: v for k, v in wrapper.__dict__.items() if k != "__wrapped__"}
-    )
-    new_wrapper.__module__ = wrapper.__module__
-    new_wrapper.__qualname__ = wrapper.__qualname__
-    new_wrapper.__annotations__ = wrapper.__annotations__
-    # Copy docstring from original function (not wrapper, which may have lost it)
-    new_wrapper.__doc__ = tool_func.__doc__
+                    # RBAC permission check
+                    if not check_tool_permission(func):
+                        method_name = getattr(func, METHOD_PERMISSION_ATTR, "read")
+                        raise MCPPermissionDeniedError(
+                            permission_name=f"{PERMISSION_PREFIX}{method_name}",
+                            view_name=getattr(func, CLASS_PERMISSION_ATTR, "unknown"),
+                            user=user.username,
+                            tool_name=func.__name__,
+                        )
 
-    # Set __signature__ from the original function, but:
-    # 1. Remove ctx parameter - FastMCP tools don't expose it to clients
-    # 2. Skip if original has *args (parse_request output has its own handling)
-    from fastmcp import Context as FMContext
+                    try:
+                        logger.debug(
+                            "MCP tool call: user=%s, tool=%s",
+                            user.username,
+                            func.__name__,
+                        )
+                        result = func(*args, **kwargs)
+                        return result
+                    except Exception:
+                        _cleanup_session_on_error()
+                        raise
 
-    tool_sig = inspect.signature(tool_func)
-    has_var_positional = any(
-        p.kind == inspect.Parameter.VAR_POSITIONAL for p in tool_sig.parameters.values()
-    )
+            wrapper = sync_wrapper
 
-    if not has_var_positional:
-        # For functions without *args, preserve signature but remove ctx
-        new_params = []
-        for _name, param in tool_sig.parameters.items():
-            # Skip ctx parameter - FastMCP tools don't expose it to clients
-            if param.annotation is FMContext or (
-                hasattr(param.annotation, "__name__")
-                and param.annotation.__name__ == "Context"
-            ):
-                continue
-            new_params.append(param)
-        new_wrapper.__signature__ = tool_sig.replace(  # type: ignore[attr-defined]
-            parameters=new_params
+        # Merge original function's __globals__ into wrapper's __globals__
+        # This allows get_type_hints() to resolve type annotations from the
+        # original module (e.g., Context from fastmcp)
+        # FastMCP 2.13.2+ uses get_type_hints() which needs access to these types
+        merged_globals = {**wrapper.__globals__, **func.__globals__}  # type: ignore[attr-defined]
+        new_wrapper = types.FunctionType(
+            wrapper.__code__,  # type: ignore[attr-defined]
+            merged_globals,
+            wrapper.__name__,
+            wrapper.__defaults__,  # type: ignore[attr-defined]
+            wrapper.__closure__,  # type: ignore[attr-defined]
+        )
+        # Copy __dict__ but exclude __wrapped__
+        # NOTE: We intentionally do NOT preserve __wrapped__ here.
+        # Setting __wrapped__ causes inspect.signature() to follow the chain
+        # and find 'ctx' in the original function's signature, even after
+        # FastMCP's create_function_without_params removes it from annotations.
+        # This breaks Pydantic's TypeAdapter which expects signature params
+        # to match type_hints.
+        new_wrapper.__dict__.update(
+            {k: v for k, v in wrapper.__dict__.items() if k != "__wrapped__"}
+        )
+        new_wrapper.__module__ = wrapper.__module__
+        new_wrapper.__qualname__ = wrapper.__qualname__
+        new_wrapper.__annotations__ = wrapper.__annotations__
+        # Copy docstring from original function (not wrapper, which may have lost it)
+        new_wrapper.__doc__ = func.__doc__
+
+        # Set __signature__ from the original function, but:
+        # 1. Remove ctx parameter - FastMCP tools don't expose it to clients
+        # 2. Skip if original has *args (parse_request output has its own handling)
+        from fastmcp import Context as FMContext
+
+        tool_sig = inspect.signature(func)
+        has_var_positional = any(
+            p.kind == inspect.Parameter.VAR_POSITIONAL
+            for p in tool_sig.parameters.values()
         )
 
-        # Also remove ctx from annotations to match signature
-        if "ctx" in new_wrapper.__annotations__:
-            del new_wrapper.__annotations__["ctx"]
-    # For functions with *args (parse_request output), the signature
-    # is already set by parse_request without ctx.
+        if not has_var_positional:
+            # For functions without *args, preserve signature but remove ctx
+            new_params = []
+            for _name, param in tool_sig.parameters.items():
+                # Skip ctx parameter - FastMCP tools don't expose it to clients
+                if param.annotation is FMContext or (
+                    hasattr(param.annotation, "__name__")
+                    and param.annotation.__name__ == "Context"
+                ):
+                    continue
+                new_params.append(param)
+            new_wrapper.__signature__ = tool_sig.replace(  # type: ignore[attr-defined]
+                parameters=new_params
+            )
 
-    return new_wrapper  # type: ignore[return-value]
+            # Also remove ctx from annotations to match signature
+            if "ctx" in new_wrapper.__annotations__:
+                del new_wrapper.__annotations__["ctx"]
+        # For functions with *args (parse_request output), the signature
+        # is already set by parse_request without ctx.
+
+        return new_wrapper  # type: ignore[return-value]
+
+    # Dual-mode dispatch: bare @mcp_auth_hook vs @mcp_auth_hook(...)
+    if tool_func is not None:
+        return _wrap(tool_func)
+    return _wrap

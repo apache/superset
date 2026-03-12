@@ -41,7 +41,7 @@ from superset.mcp_service.utils.schema_utils import parse_request
 
 
 @mcp.tool(tags=["explore"])
-@mcp_auth_hook
+@mcp_auth_hook(class_permission_name="Explore")
 @parse_request(GenerateExploreLinkRequest)
 async def generate_explore_link(
     request: GenerateExploreLinkRequest, ctx: Context

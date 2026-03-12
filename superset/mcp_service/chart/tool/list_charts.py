@@ -63,7 +63,7 @@ SORTABLE_CHART_COLUMNS = [
 
 
 @mcp.tool(tags=["core"])
-@mcp_auth_hook
+@mcp_auth_hook(class_permission_name="Chart")
 @parse_request(ListChartsRequest)
 async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
     """List charts with filtering and search.

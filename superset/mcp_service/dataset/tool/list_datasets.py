@@ -63,7 +63,7 @@ SORTABLE_DATASET_COLUMNS = [
 
 
 @mcp.tool(tags=["core"])
-@mcp_auth_hook
+@mcp_auth_hook(class_permission_name="Dataset")
 @parse_request(ListDatasetsRequest)
 async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetList:
     """List datasets with filtering and search.

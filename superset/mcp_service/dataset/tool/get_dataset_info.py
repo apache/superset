@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 
 
 @mcp.tool(tags=["discovery"])
-@mcp_auth_hook
+@mcp_auth_hook(class_permission_name="Dataset")
 @parse_request(GetDatasetInfoRequest)
 async def get_dataset_info(
     request: GetDatasetInfoRequest, ctx: Context

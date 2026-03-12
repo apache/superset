@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 
 @mcp.tool(tags=["mutate"])
-@mcp_auth_hook
+@mcp_auth_hook(class_permission_name="Chart", method_permission_name="write")
 @parse_request(UpdateChartPreviewRequest)
 def update_chart_preview(
     request: UpdateChartPreviewRequest, ctx: Context

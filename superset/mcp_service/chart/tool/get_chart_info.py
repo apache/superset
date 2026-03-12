@@ -58,7 +58,7 @@ def _get_cached_form_data(form_data_key: str) -> str | None:
 
 
 @mcp.tool(tags=["discovery"])
-@mcp_auth_hook
+@mcp_auth_hook(class_permission_name="Chart")
 @parse_request(GetChartInfoRequest)
 async def get_chart_info(
     request: GetChartInfoRequest, ctx: Context

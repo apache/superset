@@ -179,7 +179,7 @@ def _generate_title_from_charts(chart_objects: List[Any]) -> str:
 
 
 @mcp.tool(tags=["mutate"])
-@mcp_auth_hook
+@mcp_auth_hook(class_permission_name="Dashboard", method_permission_name="write")
 @parse_request(GenerateDashboardRequest)
 def generate_dashboard(
     request: GenerateDashboardRequest, ctx: Context

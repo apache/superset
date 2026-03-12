@@ -40,7 +40,9 @@ logger = logging.getLogger(__name__)
 
 
 @mcp.tool(tags=["mutate"])
-@mcp_auth_hook
+@mcp_auth_hook(
+    class_permission_name="SQLLab", method_permission_name="execute_sql_query"
+)
 @parse_request(ExecuteSqlRequest)
 async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlResponse:
     """Execute SQL query against database.

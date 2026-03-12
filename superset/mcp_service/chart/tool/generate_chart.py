@@ -119,7 +119,7 @@ def _compile_chart(
 
 
 @mcp.tool(tags=["mutate"])
-@mcp_auth_hook
+@mcp_auth_hook(class_permission_name="Chart", method_permission_name="write")
 @parse_request(GenerateChartRequest)
 async def generate_chart(  # noqa: C901
     request: GenerateChartRequest, ctx: Context
