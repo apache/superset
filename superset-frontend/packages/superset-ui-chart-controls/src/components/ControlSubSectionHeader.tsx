@@ -20,7 +20,7 @@ import { styled, css } from '@apache-superset/core/theme';
 
 export const ControlSubSectionHeader = styled.div`
   ${({ theme }) => css`
-    font-weight: ${theme.typography.weights.medium};
+    font-weight: ${theme.fontWeightStrong};
     margin-bottom: ${theme.gridUnit * 2}px;
     font-size: ${theme.fontSizeSM}px;
   `}
