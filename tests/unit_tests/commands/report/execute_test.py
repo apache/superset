@@ -40,6 +40,7 @@ from superset.commands.report.execute import (
     ReportSuccessState,
     ReportWorkingState,
 )
+from superset.daos.report import REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER
 from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.reports.models import (
     ReportDataFormat,
@@ -1026,3 +1027,88 @@ def test_not_triggered_error_state_send_failure_logs_error_and_reraises(
         calls[1].args[1] if len(calls[1].args) > 1 else ""
     )
     assert "send failed" in error_msg
+
+
+# ---------------------------------------------------------------------------
+# Phase 1 remaining gaps
+# ---------------------------------------------------------------------------
+
+
+def test_get_dashboard_urls_no_state_fallback(
+    mocker: MockerFixture, app: SupersetApp
+) -> None:
+    """No dashboard state in extra -> standard dashboard URL, not permalink."""
+    mock_report_schedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.chart = False
+    mock_report_schedule.force_screenshot = False
+    mock_report_schedule.extra = {}  # no dashboard state
+    mock_report_schedule.dashboard = mocker.Mock()
+    mock_report_schedule.dashboard.uuid = "dash-uuid-123"
+    mock_report_schedule.dashboard.id = 42
+    mock_report_schedule.recipients = []
+
+    state = BaseReportState(mock_report_schedule, "Jan 1", "exec_id")
+    state._report_schedule = mock_report_schedule
+
+    result = state.get_dashboard_urls()
+
+    assert len(result) == 1
+    assert "superset/dashboard/" in result[0]
+    assert "dashboard/p/" not in result[0]  # not a permalink
+
+
+def test_success_state_alert_command_error_sends_error_and_reraises(
+    mocker: MockerFixture,
+) -> None:
+    """AlertCommand exception -> send_error + ERROR state with marker."""
+    state = _make_state_instance(
+        mocker, ReportSuccessState, schedule_type=ReportScheduleType.ALERT
+    )
+    mocker.patch.object(state, "is_in_grace_period", return_value=False)
+    mocker.patch.object(state, "update_report_schedule_and_log")
+    mocker.patch.object(state, "send_error")
+    mocker.patch(
+        "superset.commands.report.execute.AlertCommand"
+    ).return_value.run.side_effect = RuntimeError("alert boom")
+
+    with pytest.raises(RuntimeError, match="alert boom"):
+        state.next()
+
+    state.send_error.assert_called_once()  # type: ignore[attr-defined]
+    calls = state.update_report_schedule_and_log.call_args_list  # type: ignore[attr-defined]
+    # First call: WORKING, second call: ERROR with marker
+    assert calls[0].args[0] == ReportState.WORKING
+    assert calls[1].args[0] == ReportState.ERROR
+    assert (
+        calls[1].kwargs.get("error_message")
+        == REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER
+    )
+
+
+def test_success_state_send_error_logs_and_reraises(
+    mocker: MockerFixture,
+) -> None:
+    """send() exception for REPORT type -> ERROR state + re-raise."""
+    state = _make_state_instance(
+        mocker, ReportSuccessState, schedule_type=ReportScheduleType.REPORT
+    )
+    mocker.patch.object(state, "send", side_effect=RuntimeError("send boom"))
+    mocker.patch.object(state, "update_report_schedule_and_log")
+
+    with pytest.raises(RuntimeError, match="send boom"):
+        state.next()
+
+    calls = state.update_report_schedule_and_log.call_args_list  # type: ignore[attr-defined]
+    assert calls[-1].args[0] == ReportState.ERROR
+
+
+@patch("superset.commands.report.execute.feature_flag_manager")
+def test_get_notification_content_pdf_format(mock_ff, mocker: MockerFixture) -> None:
+    """PDF report format branch produces pdf content."""
+    mock_ff.is_feature_enabled.return_value = False
+    state = _make_notification_state(mocker, report_format=ReportDataFormat.PDF)
+    mocker.patch.object(state, "_get_pdf", return_value=b"%PDF-fake")
+
+    content = state._get_notification_content()
+    assert content.pdf == b"%PDF-fake"
+    assert content.text is None
