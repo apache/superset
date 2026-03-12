@@ -46,7 +46,6 @@ import { Dispatch } from 'redux';
 import ChartRenderer from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
 import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
-import { databaseLabelLower } from 'src/utils/semanticLayerLabels';
 
 export type ChartErrorType = Partial<ClientErrorObject>;
 export interface ChartProps {
@@ -313,7 +312,7 @@ class Chart extends PureComponent<ChartProps, {}> {
   renderSpinner(databaseName: string | undefined) {
     const message = databaseName
       ? t('Waiting on %s', databaseName)
-      : t('Waiting on %s...', databaseLabelLower());
+      : t('Waiting on database...');
 
     return (
       <LoadingDiv>
