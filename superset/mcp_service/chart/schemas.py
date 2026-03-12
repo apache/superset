@@ -45,6 +45,7 @@ from superset.mcp_service.common.cache_schemas import (
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
+    serialize_user_object,
     TagInfo,
     UserInfo,
 )
@@ -304,8 +305,9 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         if getattr(chart, "tags", None)
         else [],
         owners=[
-            UserInfo.model_validate(owner, from_attributes=True)
+            info
             for owner in getattr(chart, "owners", [])
+            if (info := serialize_user_object(owner)) is not None
         ]
         if getattr(chart, "owners", None)
         else [],
