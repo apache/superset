@@ -26,6 +26,7 @@ import logging
 import re
 import uuid
 from collections.abc import Hashable
+from contextvars import ContextVar
 from datetime import datetime, timedelta
 from typing import (
     Any,
@@ -146,6 +147,8 @@ OFFSET_JOIN_COLUMN_SUFFIX = "__offset_join_column_"
 # Right suffix used for joining offset results
 R_SUFFIX = "__right_suffix"
 
+RLS_RECURSION_DEPTH: ContextVar[int] = ContextVar("rls_recursion_depth", default=0)
+
 
 class CachedTimeOffset(TypedDict):
     """Result type for time offset processing"""
@@ -204,12 +207,18 @@ def validate_adhoc_subquery(
     :raise SupersetSecurityException if sql contains sub-queries or
     nested sub-queries with table
     """
+    from superset.sql.parse import strip_jinja
+
+    # NEW: Strip Jinja before parsing to avoid syntax errors
+    # while maintaining visibility of the SQL structure.
+    clean_sql = strip_jinja(sql)
+
     if is_predicate:
         # Use specialized predicate parsing for SQL fragments
         # This is more robust for RLS clauses like 'column = value'
-        parsed_statement = SQLStatement(f"SELECT * WHERE {sql}", engine)
+        parsed_statement = SQLStatement(f"SELECT * WHERE {clean_sql}", engine)
     else:
-        parsed_statement = SQLStatement(sql, engine)
+        parsed_statement = SQLStatement(clean_sql, engine)
 
     if parsed_statement.has_subquery():
         if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
@@ -222,7 +231,14 @@ def validate_adhoc_subquery(
             )
 
         # enforce RLS rules in any relevant tables
-        apply_rls(database, catalog, default_schema, parsed_statement)
+        # Use ContextVar to surgically break infinite recursion loops
+        depth = RLS_RECURSION_DEPTH.get()
+        if depth < 1:
+            token = RLS_RECURSION_DEPTH.set(depth + 1)
+            try:
+                apply_rls(database, catalog, default_schema, parsed_statement)
+            finally:
+                RLS_RECURSION_DEPTH.reset(token)
 
     return parsed_statement.format()
 

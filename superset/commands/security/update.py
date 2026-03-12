@@ -51,12 +51,20 @@ class UpdateRLSRuleCommand(BaseCommand):
         if not self._model:
             raise RLSRuleNotFoundError()
         roles = populate_roles(self._roles)
+
+        # If tables are provided in properties, validate them.
+        # Otherwise, use existing tables from the model for validation.
+        table_ids = (
+            self._tables
+            if "tables" in self._properties
+            else [t.id for t in self._model.tables]
+        )
         tables = (
             db.session.query(SqlaTable)
-            .filter(SqlaTable.id.in_(self._tables))  # type: ignore[attr-defined]
+            .filter(SqlaTable.id.in_(table_ids))  # type: ignore[attr-defined]
             .all()
         )
-        if len(tables) != len(self._tables):
+        if len(tables) != len(table_ids):
             raise DatasourceNotFoundValidationError()
 
         if clause := self._properties.get("clause"):

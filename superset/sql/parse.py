@@ -135,6 +135,19 @@ class CTASMethod(enum.Enum):
     VIEW = enum.auto()
 
 
+def strip_jinja(sql: str) -> str:
+    """
+    Replaces Jinja tags {{ ... }} and {% ... %} with a dummy SQL identifier.
+    This allows the SQL parser to evaluate the structure of the query
+    without being choked by Jinja syntax.
+    """
+    # Replace {{ ... }} with a dummy identifier
+    sql = re.sub(r"\{\{.*?\}\}", "__JINJA_VAR__", sql, flags=re.DOTALL)
+    # Replace {% ... %} with a dummy statement
+    sql = re.sub(r"\{%.*?%\}", "__JINJA_VAR__", sql, flags=re.DOTALL)
+    return sql
+
+
 class RLSMethod(enum.Enum):
     """
     Methods for enforcing RLS.
@@ -879,10 +892,24 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         :return: True if the statement has a subquery.
         """
+        # A subquery is any Select or set operation (Union, Except, Intersect)
+        # that is contained within another expression (like Subquery, In, Exists).
         for node in self._parsed.walk():
             if isinstance(node, exp.Subquery):
                 return True
-            if isinstance(node, exp.Select) and node != self._parsed:
+
+            # If we find a Select or set operation that isn't the root, it's a subquery.
+            if (
+                isinstance(node, (exp.Select, exp.Union, exp.Except, exp.Intersect))
+                and node != self._parsed
+            ):
+                # If the root is a set operation, its direct children are its
+                # components, not subqueries in the security sense.
+                if (
+                    isinstance(self._parsed, (exp.Union, exp.Except, exp.Intersect))
+                    and node.parent == self._parsed
+                ):
+                    continue
                 return True
         return False
 

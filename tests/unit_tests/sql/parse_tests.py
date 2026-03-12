@@ -3034,6 +3034,11 @@ def test_tokenize_kql(kql: str, expected: list[tuple[KQLTokenType, str]]) -> Non
             "postgresql",
             True,
         ),
+        ("SELECT 1 UNION SELECT 2", "postgresql", False),
+        ("SELECT 1 UNION ALL SELECT 2", "postgresql", False),
+        ("SELECT 1 EXCEPT SELECT 2", "postgresql", False),
+        ("SELECT 1 INTERSECT SELECT 2", "postgresql", False),
+        ("SELECT * FROM (SELECT 1 UNION SELECT 2)", "postgresql", True),
     ],
 )
 def test_has_subquery(sql: str, engine: str, expected: bool) -> None:

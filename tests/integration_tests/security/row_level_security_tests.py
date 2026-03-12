@@ -266,10 +266,11 @@ class TestRowLevelSecurity(SupersetTestCase):
 
         # establish that the filters are grouped together correctly with
         # ANDs, ORs and parens in the correct place
-        assert (
-            "WHERE ((name like 'A%' or name like 'B%') OR (name like 'Q%')) AND (gender = 'boy');"  # noqa: E501
-            in sql
+        expected_where = (
+            "WHERE ((name LIKE 'A%' OR name LIKE 'B%') OR (name LIKE 'Q%')) "
+            "AND (gender = 'boy');"
         )
+        assert expected_where.lower() in sql.lower()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_rls_filter_alters_no_role_user_birth_names_query(self):

@@ -122,3 +122,66 @@ def test_validate_rls_simple_clause_passes():
         "postgresql",
         is_predicate=True,
     )
+
+
+def test_validate_rls_jinja_passes():
+    from unittest.mock import MagicMock
+
+    from superset.models.helpers import validate_adhoc_subquery
+
+    mock_db = MagicMock()
+    # Jinja templates should not break the parser
+    validate_adhoc_subquery(
+        "client_id = {{ current_user_id() }}",
+        mock_db,
+        None,
+        "public",
+        "postgresql",
+        is_predicate=True,
+    )
+    validate_adhoc_subquery(
+        "dept IN ({{ \"'IT', 'HR'\" }})",
+        mock_db,
+        None,
+        "public",
+        "postgresql",
+        is_predicate=True,
+    )
+
+
+def test_validate_rls_jinja_with_subquery_fails():
+    from unittest.mock import MagicMock
+
+    from superset.exceptions import SupersetSecurityException
+    from superset.models.helpers import validate_adhoc_subquery
+
+    mock_db = MagicMock()
+    # Malicious subquery WITH Jinja should still be blocked
+    with pytest.raises(SupersetSecurityException):
+        validate_adhoc_subquery(
+            "1=1 OR EXISTS (SELECT 1 FROM users) -- {{ ignore_me }}",
+            mock_db,
+            None,
+            "public",
+            "postgresql",
+            is_predicate=True,
+        )
+
+
+def test_validate_rls_set_operations_fail():
+    from unittest.mock import MagicMock
+
+    from superset.exceptions import SupersetSecurityException
+    from superset.models.helpers import validate_adhoc_subquery
+
+    mock_db = MagicMock()
+    # UNION/EXCEPT/INTERSECT should be treated as subqueries/complex SQL
+    with pytest.raises(SupersetSecurityException):
+        validate_adhoc_subquery(
+            "id IN (SELECT id FROM table1 UNION SELECT id FROM table2)",
+            mock_db,
+            None,
+            "public",
+            "postgresql",
+            is_predicate=True,
+        )
