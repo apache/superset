@@ -43,18 +43,12 @@ describe('Polygon transformProps', () => {
       {
         data: [
           {
-            geom: JSON.stringify({
-              type: 'Polygon',
-              coordinates: [
-                [
-                  [-122.4, 37.8],
-                  [-122.3, 37.8],
-                  [-122.3, 37.9],
-                  [-122.4, 37.9],
-                  [-122.4, 37.8],
-                ],
-              ],
-            }),
+            geom: JSON.stringify([
+              [-122.4, 37.8],
+              [-122.3, 37.8],
+              [-122.3, 37.9],
+              [-122.4, 37.9],
+            ]),
             'AVG(elevation)': 150.5,
             population: 50000,
           },
