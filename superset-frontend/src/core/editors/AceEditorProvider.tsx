@@ -205,7 +205,9 @@ const createAceEditorHandle = (
       lines: string[];
     }) => {
       const rangeOffset = editor.session.doc.positionToIndex(delta.start);
-      const changeText = delta.lines.join(editor.session.doc.getNewLineCharacter());
+      const changeText = delta.lines.join(
+        editor.session.doc.getNewLineCharacter(),
+      );
       const change: ContentChange =
         delta.action === 'insert'
           ? { rangeOffset, rangeLength: 0, text: changeText }
