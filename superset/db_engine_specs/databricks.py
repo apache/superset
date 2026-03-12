@@ -252,6 +252,54 @@ class DatabricksBaseEngineSpec(BaseEngineSpec):
     def epoch_to_dttm(cls) -> str:
         return HiveEngineSpec.epoch_to_dttm()
 
+    @classmethod
+    def handle_boolean_in_clause(
+        cls, sqla_col: Any, values: list[Any]
+    ) -> Any:
+        """
+        Handle boolean values in IN clauses for Databricks.
+
+        Databricks requires boolean literals (True/False) in IN clauses,
+        not integers (0/1). This method uses OR conditions with equality
+        checks to ensure boolean literals are used instead of integers.
+
+        :param sqla_col: SQLAlchemy column element
+        :param values: List of values for the IN clause
+        :return: SQLAlchemy expression for the boolean IN clause
+        """
+        from sqlalchemy import or_
+
+        # Convert values to proper boolean types
+        boolean_values = []
+        for val in values:
+            if val is None:
+                continue
+            # Ensure boolean values are properly typed
+            if isinstance(val, bool):
+                boolean_values.append(val)
+            elif isinstance(val, (int, float)):
+                # Convert 0/1 to False/True
+                boolean_values.append(bool(val))
+            elif isinstance(val, str):
+                # Handle string representations
+                if val.lower() in ("true", "1"):
+                    boolean_values.append(True)
+                elif val.lower() in ("false", "0"):
+                    boolean_values.append(False)
+            else:
+                # For other types, try to convert to boolean
+                boolean_values.append(bool(val))
+
+        if not boolean_values:
+            # If all values are None, return a condition that's always false
+            from sqlalchemy import false
+            return false()
+
+        # Use OR conditions with equality checks for boolean values
+        # This ensures boolean literals (True/False) are used instead of integers
+        conditions = [sqla_col == val for val in boolean_values]
+        return or_(*conditions)
+
 
 class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
     """Databricks engine spec using ODBC driver for SQL Endpoints."""
