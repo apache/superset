@@ -155,17 +155,21 @@ def create_event_store(config: dict[str, Any] | None = None) -> Any | None:
         return None
 
 
-def _strip_titles(obj: Any) -> Any:
-    """Recursively strip 'title' keys from JSON Schema objects.
+def _strip_titles(obj: Any, in_properties_map: bool = False) -> Any:
+    """Recursively strip schema metadata ``title`` keys.
 
-    Pydantic auto-generates 'title' for every field and model (e.g.
-    "title": "Chart Type" for a field named chart_type). These are
-    redundant with property names and inflate schema size by ~12%.
+    Keeps real field names inside ``properties`` (e.g. a property literally
+    named ``title``), while removing auto-generated schema title metadata.
     """
     if isinstance(obj, dict):
-        return {k: _strip_titles(v) for k, v in obj.items() if k != "title"}
+        result: dict[str, Any] = {}
+        for key, value in obj.items():
+            if key == "title" and not in_properties_map:
+                continue
+            result[key] = _strip_titles(value, in_properties_map=(key == "properties"))
+        return result
     if isinstance(obj, list):
-        return [_strip_titles(item) for item in obj]
+        return [_strip_titles(item, in_properties_map=False) for item in obj]
     return obj
 
 
