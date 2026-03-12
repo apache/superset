@@ -126,7 +126,7 @@ def test_get_data_xlsx(
     result = processor.get_data(df, coltypes)
     assert result == b"binary data"
     mock_apply_column_types.assert_called_once_with(df, coltypes)
-    mock_df_to_excel.assert_called_once_with(df)
+    mock_df_to_excel.assert_called_once_with(df, index=False)
 
 
 def test_get_data_json(processor, mock_query_context):
@@ -201,7 +201,7 @@ def test_get_data_empty_dataframe_xlsx(
     result = processor.get_data(df, coltypes)
     assert result == b"binary data empty"
     mock_apply_column_types.assert_called_once_with(df, coltypes)
-    mock_df_to_excel.assert_called_once_with(df)
+    mock_df_to_excel.assert_called_once_with(df, index=False)
 
 
 def test_get_data_nan_values_json(processor, mock_query_context):
@@ -1311,3 +1311,71 @@ def test_force_cached_normalizes_totals_query_row_limit():
 
     assert captured_limits == [None], "Totals query should be normalized before caching"
     mock_query_context.get_query_result.assert_not_called()
+
+
+def test_get_df_payload_invalidates_cache_missing_applied_filter_columns():
+    """
+    Test that get_df_payload invalidates cache when cache is loaded but missing
+    applied_filter_columns and query has filters.
+
+    This ensures that old cache entries without applied_filter_columns are
+    invalidated and fresh queries are executed to populate the field correctly.
+    """
+    from superset.common.query_object import QueryObject
+
+    # Minimal setup
+    mock_query_context = MagicMock()
+    mock_query_context.force = False
+    mock_datasource = MagicMock()
+    mock_datasource.column_names = ["col1"]
+
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+
+    # Create query object with filters (note: `filters` kwarg, not `filter`)
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=["col1"],
+        filters=[{"col": "col1", "op": "IN", "val": ["value1"]}],
+    )
+
+    # Simple cache class that tracks is_loaded changes
+    class MockCache:
+        def __init__(self):
+            self.is_loaded = True
+            self.applied_filter_columns = []  # Empty = missing
+            self.df = pd.DataFrame()
+            self.query = ""
+            self.status = "success"
+            self.cache_dttm = "2024-01-01T00:00:00"
+            self.queried_dttm = "2024-01-01T00:00:00"
+            self.stacktrace = None
+            self.error_message = None
+            self.is_cached = True
+            self.sql_rowcount = 0
+            self.cache_value = None
+            self.cache_timeout = 3600
+            self.datasource_uid = "test_datasource"
+            self.applied_template_filters = []
+            self.rejected_filter_columns = []
+            self.annotation_data = {}
+            self.set_query_result = MagicMock()
+
+    mock_cache = MockCache()
+
+    with patch(
+        "superset.common.query_context_processor.QueryCacheManager"
+    ) as mock_cache_manager:
+        mock_cache_manager.get.return_value = mock_cache
+
+        # Prevent validate from doing any heavy work; it shouldn't modify filters
+        with patch.object(query_obj, "validate", return_value=None):
+            with patch.object(processor, "query_cache_key", return_value="key"):
+                with patch.object(processor, "get_cache_timeout", return_value=3600):
+                    # Call get_df_payload - should invalidate cache
+                    processor.get_df_payload(query_obj, force_cached=False)
+
+    # Verify cache was invalidated
+    assert mock_cache.is_loaded is False, (
+        "Cache should be inv when no applied_filter_columns and query has filters"
+    )

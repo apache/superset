@@ -18,8 +18,8 @@
  */
 
 import { ReactNode } from 'react';
-import { t } from '@superset-ui/core';
-import { useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
 import { Button } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 

@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, t } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { ensureIsArray } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { ContentType, MetadataType } from '.';
 
@@ -131,7 +132,7 @@ const config = (contentType: ContentType) => {
       };
 
     default:
-      throw Error(`Invalid type provided: ${type}`);
+      throw new Error(`Invalid type provided: ${type}`);
   }
 };
 

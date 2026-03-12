@@ -21,7 +21,14 @@ import fetchMock from 'fetch-mock';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import { getExtensionsRegistry } from '@superset-ui/core';
+import * as CoreTheme from '@apache-superset/core/theme';
 import { Menu } from './Menu';
+import * as getBootstrapData from 'src/utils/getBootstrapData';
+
+jest.mock('@apache-superset/core/theme', () => ({
+  ...jest.requireActual('@apache-superset/core/theme'),
+  useTheme: jest.fn(),
+}));
 
 const dropdownItems = [
   {
@@ -238,6 +245,12 @@ const notanonProps = {
 };
 
 const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
+const staticAssetsPrefixMock = jest.spyOn(
+  getBootstrapData,
+  'staticAssetsPrefix',
+);
+const applicationRootMock = jest.spyOn(getBootstrapData, 'applicationRoot');
+const useThemeMock = CoreTheme.useTheme as jest.Mock;
 
 fetchMock.get(
   'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))',
@@ -247,6 +260,11 @@ fetchMock.get(
 beforeEach(() => {
   // setup a DOM element as a render target
   useSelectorMock.mockClear();
+  // By default use empty static assets prefix and default app root
+  staticAssetsPrefixMock.mockReturnValue('');
+  applicationRootMock.mockReturnValue('');
+  // By default useTheme returns the real default theme (brandLogoUrl is falsy)
+  useThemeMock.mockReturnValue(CoreTheme.supersetTheme);
 });
 
 test('should render', async () => {
@@ -272,23 +290,27 @@ test('should render the navigation', async () => {
   expect(await screen.findByRole('navigation')).toBeInTheDocument();
 });
 
-test('should render the brand', async () => {
-  useSelectorMock.mockReturnValue({ roles: user.roles });
-  const {
-    data: {
-      brand: { alt, icon },
-    },
-  } = mockedProps;
-  render(<Menu {...mockedProps} />, {
-    useRedux: true,
-    useQueryParams: true,
-    useRouter: true,
-    useTheme: true,
-  });
-  expect(await screen.findByAltText(alt)).toBeInTheDocument();
-  const image = screen.getByAltText(alt);
-  expect(image).toHaveAttribute('src', icon);
-});
+test.each(['', '/myapp'])(
+  'should render the brand, including app_root "%s"',
+  async app_root => {
+    staticAssetsPrefixMock.mockReturnValue(app_root);
+    useSelectorMock.mockReturnValue({ roles: user.roles });
+    const {
+      data: {
+        brand: { alt, icon },
+      },
+    } = mockedProps;
+    render(<Menu {...mockedProps} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+    expect(await screen.findByAltText(alt)).toBeInTheDocument();
+    const image = screen.getByAltText(alt);
+    expect(image).toHaveAttribute('src', `${app_root}${icon}`);
+  },
+);
 
 test('should render the environment tag', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
@@ -663,4 +685,106 @@ test('should not render the brand text if not available', async () => {
 
   const brandText = screen.queryByText(text);
   expect(brandText).not.toBeInTheDocument();
+});
+
+test('brand logo href should not be prefixed with app root when brandLogoHref is an absolute URL', async () => {
+  applicationRootMock.mockReturnValue('/superset');
+  useThemeMock.mockReturnValue({
+    ...CoreTheme.supersetTheme,
+    brandLogoUrl: '/static/assets/images/custom-logo.png',
+    brandLogoHref: 'https://external.example.com',
+  });
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+
+  const brandLink = await screen.findByRole('link', {
+    name: /apache superset/i,
+  });
+  expect(brandLink).toHaveAttribute('href', 'https://external.example.com');
+});
+
+test('brand logo href should not be prefixed with app root when brandLogoHref is protocol-relative', async () => {
+  applicationRootMock.mockReturnValue('/superset');
+  useThemeMock.mockReturnValue({
+    ...CoreTheme.supersetTheme,
+    brandLogoUrl: '/static/assets/images/custom-logo.png',
+    brandLogoHref: '//external.example.com',
+  });
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+
+  const brandLink = await screen.findByRole('link', {
+    name: /apache superset/i,
+  });
+  expect(brandLink).toHaveAttribute('href', '//external.example.com');
+});
+
+test('brand path should be prefixed with app root in subdirectory deployment', async () => {
+  applicationRootMock.mockReturnValue('/superset');
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+
+  const propsWithSimplePath = {
+    ...mockedProps,
+    data: {
+      ...mockedProps.data,
+      brand: {
+        ...mockedProps.data.brand,
+        path: '/welcome/',
+      },
+    },
+  };
+
+  render(<Menu {...propsWithSimplePath} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+
+  const brandLink = await screen.findByRole('link', {
+    name: new RegExp(propsWithSimplePath.data.brand.alt, 'i'),
+  });
+  expect(brandLink).toHaveAttribute('href', '/superset/welcome/');
+});
+
+test('brand link falls back to brand.path when theme brandLogoUrl is absent', async () => {
+  // useThemeMock default returns supersetTheme with brandLogoUrl undefined (falsy)
+  applicationRootMock.mockReturnValue('/superset');
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+
+  const propsWithFallbackPath = {
+    ...mockedProps,
+    data: {
+      ...mockedProps.data,
+      brand: {
+        ...mockedProps.data.brand,
+        path: '/welcome/',
+      },
+    },
+  };
+
+  render(<Menu {...propsWithFallbackPath} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+
+  const brandLink = await screen.findByRole('link', {
+    name: new RegExp(propsWithFallbackPath.data.brand.alt, 'i'),
+  });
+  // ensureAppRoot must have been applied: /welcome/ → /superset/welcome/
+  expect(brandLink).toHaveAttribute('href', '/superset/welcome/');
 });

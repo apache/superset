@@ -38,7 +38,6 @@ jest.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
 
 const defaultProps = {
   queryEditorId: defaultQueryEditor.id,
-  allowAsync: false,
   dbId: 1,
   queryState: 'ready',
   runQuery: () => {},

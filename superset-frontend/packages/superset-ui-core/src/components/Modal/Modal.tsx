@@ -18,8 +18,8 @@
  */
 import { isValidElement, cloneElement, useMemo, useRef, useState } from 'react';
 import { isNil } from 'lodash';
-import { t } from '@superset-ui/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Modal as AntdModal, ModalProps as AntdModalProps } from 'antd';
 import { Resizable } from 're-resizable';
 import Draggable, {
@@ -280,7 +280,7 @@ const CustomModal = ({
   const shouldShowMask = !(resizable || draggable);
 
   const onDragStart = (_: DraggableEvent, uiData: DraggableData) => {
-    const { clientWidth, clientHeight } = window?.document?.documentElement;
+    const { clientWidth, clientHeight } = document.documentElement;
     const targetRect = draggableRef?.current?.getBoundingClientRect();
 
     if (targetRect) {
