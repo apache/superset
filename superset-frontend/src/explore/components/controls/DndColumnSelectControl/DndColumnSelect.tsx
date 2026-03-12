@@ -29,6 +29,7 @@ import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/t
 import { DndItemType } from 'src/explore/components/DndItemType';
 import ColumnSelectPopoverTrigger from './ColumnSelectPopoverTrigger';
 import { DndControlProps } from './types';
+import { datasetLabelLower } from 'src/utils/semanticLayerLabels';
 
 export type DndColumnSelectProps = DndControlProps<QueryFormColumn> & {
   options: ColumnMeta[];
@@ -103,7 +104,10 @@ function DndColumnSelect(props: DndColumnSelectProps) {
       optionSelector.values.map((column, idx) => {
         const datasourceWarningMessage =
           isAdhocColumn(column) && column.datasourceWarning
-            ? t('This column might be incompatible with current dataset')
+            ? t(
+                'This column might be incompatible with current %s',
+                datasetLabelLower(),
+              )
             : undefined;
         const withCaret = isAdhocColumn(column) || !column.error_text;
 
