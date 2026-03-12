@@ -64,6 +64,7 @@ export function Button(props: ButtonProps) {
 
   const theme = useTheme();
   const { fontSizeSM, fontWeightStrong } = theme;
+  const buttonTokens = theme.components?.Button;
 
   let height = 32;
   let padding = 18;
@@ -132,12 +133,24 @@ export function Button(props: ButtonProps) {
         '& > span > :first-of-type': {
           marginRight: firstChildMargin,
         },
-        ':not(:hover)': effectiveButtonStyle === 'secondary' &&
-          !disabled && {
-            // NOTE: This is the best we can do contrast wise for the secondary button using antd tokens
-            // and abusing the semantics. Should be revisited when possible. https://github.com/apache/superset/pull/34253#issuecomment-3104834692
-            color: `${theme.colorPrimaryTextHover} !important`,
-          },
+        // Secondary button styling via customizable tokens
+        ...(effectiveButtonStyle === 'secondary' &&
+          !disabled &&
+          buttonTokens && {
+            color: buttonTokens.secondaryColor,
+            backgroundColor: buttonTokens.secondaryBg,
+            borderColor: buttonTokens.secondaryBorderColor,
+            '&:hover': {
+              color: buttonTokens.secondaryHoverColor,
+              backgroundColor: buttonTokens.secondaryHoverBg,
+              borderColor: buttonTokens.secondaryHoverBorderColor,
+            },
+            '&:active': {
+              color: buttonTokens.secondaryActiveColor,
+              backgroundColor: buttonTokens.secondaryActiveBg,
+              borderColor: buttonTokens.secondaryActiveBorderColor,
+            },
+          }),
       }}
       icon={icon}
       {...restProps}
