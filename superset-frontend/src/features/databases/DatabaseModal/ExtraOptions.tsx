@@ -63,6 +63,29 @@ const ExtraOptions = ({
   onExtraEditorChange: Function;
   extraExtension: DatabaseConnectionExtension | undefined;
 }) => {
+  const onExtraInputChangeNonNegative = (
+    e: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const { name, value } = e.target;
+    if (
+      (name === 'schema_cache_timeout' || name === 'table_cache_timeout') &&
+      Number(value) < 0
+    ) {
+      return;
+    }
+    onExtraInputChange(e);
+  };
+
+  const onInputChangeValidateTimeout = (
+    e: CheckboxChangeEvent | ChangeEvent<HTMLInputElement>,
+  ) => {
+    const target = e.target as HTMLInputElement;
+    if (target.name === 'cache_timeout' && Number(target.value) < -1) {
+      return;
+    }
+    onInputChange(e);
+  };
+
   const expandableModalIsOpen = !!db?.expose_in_sqllab;
   const createAsOpen = !!(db?.allow_ctas || db?.allow_cvas);
   const isFileUploadSupportedByEngine =
@@ -348,9 +371,10 @@ const ExtraOptions = ({
                   <Input
                     type="number"
                     name="cache_timeout"
-                    value={db?.cache_timeout || ''}
+                    min={-1}
+                    value={db?.cache_timeout ?? ''}
                     placeholder={t('Enter duration in seconds')}
-                    onChange={onInputChange}
+                    onChange={onInputChangeValidateTimeout}
                     data-test="cache-timeout-test"
                   />
                 </div>
@@ -368,12 +392,13 @@ const ExtraOptions = ({
                   <Input
                     type="number"
                     name="schema_cache_timeout"
+                    min={0}
                     value={
-                      extraJson?.metadata_cache_timeout?.schema_cache_timeout ||
+                      extraJson?.metadata_cache_timeout?.schema_cache_timeout ??
                       ''
                     }
                     placeholder={t('Enter duration in seconds')}
-                    onChange={onExtraInputChange}
+                    onChange={onExtraInputChangeNonNegative}
                     data-test="schema-cache-timeout-test"
                   />
                 </div>
@@ -390,12 +415,13 @@ const ExtraOptions = ({
                   <Input
                     type="number"
                     name="table_cache_timeout"
+                    min={0}
                     value={
-                      extraJson?.metadata_cache_timeout?.table_cache_timeout ||
+                      extraJson?.metadata_cache_timeout?.table_cache_timeout ??
                       ''
                     }
                     placeholder={t('Enter duration in seconds')}
-                    onChange={onExtraInputChange}
+                    onChange={onExtraInputChangeNonNegative}
                     data-test="table-cache-timeout-test"
                   />
                 </div>
