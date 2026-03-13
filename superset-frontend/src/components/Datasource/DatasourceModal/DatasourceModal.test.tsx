@@ -17,7 +17,6 @@
  * under the License.
  */
 import {
-  act,
   render,
   screen,
   waitFor,

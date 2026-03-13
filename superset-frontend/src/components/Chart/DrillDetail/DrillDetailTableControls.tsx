@@ -58,7 +58,7 @@ export default function TableControls({
   );
 
   const removeFilter = useCallback(
-    colName => {
+    (colName: string) => {
       const updatedFilterMap = { ...filterMap };
       delete updatedFilterMap[colName];
       setFilters(Object.values(updatedFilterMap));
