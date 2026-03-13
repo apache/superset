@@ -36,6 +36,53 @@ function escapeHtml(text: string): string {
   return div.innerHTML;
 }
 
+// Note: should we accept only RGB HEX codes for ease of configuring and handling it?
+function normalizeColorKeyword(color) {
+  if (color == null) return '#000000';
+  const c = String(color).trim();
+
+  // Hex colors (#RGB, #RRGGBB, #RGBA, #RRGGBBAA)
+  if (/^#([0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(c)) return c;
+
+  // CSS color functions (rgb, rgba, hsl, hsla) with flexible spacing and alpha
+  const colorFuncRegex =
+    /^(rgb|rgba)\(\s*(\d{1,3}%?\s*,\s*){2}\d{1,3}%?(?:\s*,\s*(\d*\.?\d+))?\s*\)$/i;
+  const colorFuncHslRegex =
+    /^(hsl|hsla)\(\s*\d+\s*,\s*\d+%\s*,\s*\d+%(?:\s*,\s*(\d*\.?\d+))?\s*\)$/i;
+  if (colorFuncRegex.test(c) || colorFuncHslRegex.test(c)) return c;
+
+  // Named CSS colors and system colors - guard for non-browser environments
+  try {
+    if (typeof Option !== 'undefined') {
+      const s = new Option().style;
+      s.color = c.toLowerCase();
+      if (s.color) return c;
+    }
+  } catch {
+    // ignore environment where Option is not available
+  }
+
+  // Fallback
+  return '#000000';
+}
+
+function safeNumber(v) {
+  if (v === null || v === undefined || v === '') return NaN;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function normalizeScale(scale) {
+  if (Array.isArray(scale)) return scale;
+  if (typeof scale === 'string') {
+    try {
+      return JSON.parse(scale);
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
 interface CountryMapDataItem {
   country_id: string;
   metric: number;
@@ -63,6 +110,7 @@ interface CountryMapProps {
   numberFormat: string;
   colorScheme: string;
   sliceId: number;
+  customColorScale: string | string[];
 }
 
 const maps: Record<string, GeoData> = {};
@@ -75,6 +123,7 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
     country,
     linearColorScheme,
     numberFormat,
+    customColorScale = props.customColorScale || [],
     colorScheme,
     sliceId,
   } = props;
@@ -92,12 +141,135 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
     : () => '#ccc'; // fallback if scheme not found
   const colorScale = CategoricalColorNamespace.getScale(colorScheme);
 
+  const normalizedScale = normalizeScale(customColorScale);
+  const normalizedScaleWithColors = Array.isArray(normalizedScale)
+    ? normalizedScale.map(e => {
+        if (!e || typeof e !== 'object') return e;
+        return { ...e, color: normalizeColorKeyword(e.color) };
+      })
+    : [];
+
+  const parsedData = Array.isArray(data)
+    ? data.map(r => ({ ...r, metric: safeNumber(r.metric) }))
+    : [];
+
+  const numericValues = parsedData
+    .map(r => r.metric)
+    .filter(v => Number.isFinite(v));
+
+  let minValue = 0;
+  let maxValue = 1;
+  if (numericValues.length > 0) {
+    const extent = d3Extent(numericValues);
+    minValue = extent[0];
+    maxValue = extent[1];
+  }
+  const valueRange = maxValue - minValue;
+  const valueRangeNonZero = valueRange === 0 ? 1 : valueRange;
+
+  let percentColorScale = null;
+  if (
+    Array.isArray(normalizedScaleWithColors) &&
+    normalizedScaleWithColors.length >= 2
+  ) {
+    const sorted = normalizedScaleWithColors
+      .filter(
+        e =>
+          e &&
+          typeof e.percent === 'number' &&
+          e.percent >= 0 &&
+          e.percent <= 100 &&
+          typeof e.color === 'string',
+      )
+      .slice()
+      .sort((a, b) => a.percent - b.percent);
+
+    if (sorted.length >= 2) {
+      const domainPerc = sorted.map(e => e.percent);
+      const rangeColors = sorted.map(e => e.color);
+      percentColorScale = d3.scale
+        .linear()
+        .domain(domainPerc)
+        .range(rangeColors)
+        .clamp(true)
+        // Remove interpolation to avoid blending between steps - always return lower boundary
+        .interpolate(function (a, b) {
+          return function (t) {
+            return a;
+          };
+        });
+    }
+  }
+
+  let linearPaletteScale = null;
+  if (linearColorScheme) {
+    try {
+      const seq = getSequentialSchemeRegistry().get(linearColorScheme);
+      if (seq && typeof seq.createLinearScale === 'function') {
+        linearPaletteScale = seq.createLinearScale([minValue, maxValue]);
+      } else if (seq && Array.isArray(seq.colors) && seq.colors.length >= 2) {
+        linearPaletteScale = d3.scale
+          .linear()
+          .domain([minValue, maxValue])
+          .range([seq.colors[0], seq.colors[seq.colors.length - 1]])
+          .interpolate(d3.interpolateRgb);
+      }
+    } catch {
+      linearPaletteScale = null;
+    }
+  }
+
   const colorMap: Record<string, string> = {};
-  data.forEach(d => {
-    colorMap[d.country_id] = colorScheme
-      ? colorScale(d.country_id, sliceId)
-      : (linearColorScale(d.metric) ?? '');
-  });
+
+  if (parsedData) {
+    parsedData.forEach(r => {
+      const iso = r.country_id;
+      const value = r.metric;
+      if (!iso) return;
+      if (!Number.isFinite(value)) {
+        colorMap[iso] = 'none';
+        return;
+      }
+
+      if (percentColorScale) {
+        if (minValue === maxValue) {
+          // All values are the same; map to central color (e.g., 50%)
+          try {
+            colorMap[iso] = percentColorScale(50);
+            return;
+          } catch {
+            // continue regardless of error
+          }
+        } else {
+          const percentNormalized =
+            ((value - minValue) / valueRangeNonZero) * 100;
+          const p = Math.max(0, Math.min(100, percentNormalized));
+          try {
+            colorMap[iso] = percentColorScale(p);
+            return;
+          } catch {
+            // continue regardless of error
+          }
+        }
+      } else if (linearPaletteScale) {
+        try {
+          colorMap[iso] = linearPaletteScale(value);
+          return;
+        } catch {
+          // continue regardless of error
+        }
+      } else {
+        colorMap[iso] = 'none';
+      }
+    });
+  } else {
+    data.forEach(d => {
+      colorMap[d.country_id] = colorScheme
+        ? colorScale(d.country_id, sliceId)
+        : (linearColorScale(d.metric) ?? '');
+    });
+  }
+
   const colorFn = (d: GeoFeature) => colorMap[d.properties.ISO] || 'none';
 
   const path = d3.geo.path();
