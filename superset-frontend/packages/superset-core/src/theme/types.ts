@@ -129,7 +129,7 @@ export interface SupersetSpecificTokens {
   brandLogoHeight: string;
 
   // Direction-related
-  direction: DirectionType;
+  direction?: DirectionType;
 
   // Spinner-related
   brandSpinnerUrl?: string;

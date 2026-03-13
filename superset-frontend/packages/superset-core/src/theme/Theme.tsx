@@ -177,9 +177,9 @@ export class Theme {
   }
 
   setDirection(direction: DirectionType): void {
-    // Update the providers with the fully formed theme
+    this.theme = { ...this.theme, direction };
     this.updateProviders(
-      { ...this.theme, direction },
+      this.theme,
       this.antdConfig,
       this.createCache(),
     );

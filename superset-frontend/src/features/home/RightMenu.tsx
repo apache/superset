@@ -368,6 +368,7 @@ const RightMenu = ({
   const languageMenuItem = useLanguageMenuItems({
     locale: navbarRight.locale || 'en',
     languages: navbarRight.languages || {},
+    setDirection,
   });
 
   // Build main menu items

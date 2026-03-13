@@ -358,6 +358,7 @@ export class ThemeController {
     this.validateThemeUpdatePermission();
 
     this.globalTheme.setDirection(direction);
+    this.notifyListeners();
   }
 
   /**
