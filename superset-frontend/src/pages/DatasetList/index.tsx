@@ -769,6 +769,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   return (
     <>
+      <h1 className="sr-only">{t('Datasets')}</h1>
       <SubMenu {...menuData} />
       {datasetCurrentlyDeleting && (
         <DeleteModal
