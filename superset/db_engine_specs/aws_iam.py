@@ -30,9 +30,8 @@ from __future__ import annotations
 
 import logging
 import threading
+from collections.abc import MutableMapping
 from typing import Any, TYPE_CHECKING, TypedDict
-
-from cachetools import TTLCache
 
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -54,9 +53,14 @@ DEFAULT_REDSHIFT_PORT = 5439
 # Cache STS credentials: key = (role_arn, region, external_id), TTL = 10 min
 # Using a TTL shorter than the minimum supported session duration (900s) avoids
 # reusing expired STS credentials when a short session_duration is configured.
-_credentials_cache: TTLCache[tuple[str, str, str | None], dict[str, Any]] = TTLCache(
-    maxsize=100, ttl=600
-)
+try:
+    from cachetools import TTLCache
+
+    _credentials_cache: MutableMapping[
+        tuple[str, str, str | None], dict[str, Any]
+    ] = TTLCache(maxsize=100, ttl=600)
+except ImportError:
+    _credentials_cache = {}
 _credentials_lock = threading.RLock()
 
 
