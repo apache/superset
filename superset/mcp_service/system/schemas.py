@@ -25,7 +25,7 @@ system-level info.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -167,6 +167,29 @@ class UserInfo(BaseModel):
             "Role names assigned to the user (e.g., Admin, Alpha, Gamma, Viewer). "
             "Use this to determine what actions the user can perform."
         ),
+    )
+
+
+def serialize_user_object(user: Any) -> UserInfo | None:
+    """Serialize a user ORM object to UserInfo, extracting role names as strings."""
+    if not user:
+        return None
+
+    user_roles: list[str] = []
+    if (raw_roles := getattr(user, "roles", None)) is not None:
+        try:
+            user_roles = [role.name for role in raw_roles if hasattr(role, "name")]
+        except TypeError:
+            user_roles = []
+
+    return UserInfo(
+        id=getattr(user, "id", None),
+        username=getattr(user, "username", None),
+        first_name=getattr(user, "first_name", None),
+        last_name=getattr(user, "last_name", None),
+        email=getattr(user, "email", None),
+        active=getattr(user, "active", None),
+        roles=user_roles,
     )
 
 
