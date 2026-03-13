@@ -47,7 +47,7 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
     font-weight: ${({ theme }) => theme.fontWeightStrong};
     margin-right: ${({ theme }) => theme.sizeUnit * 3}px;
     text-align: left;
-    font-size: 18px;
+    font-size: 1.125rem; /* WCAG 1.4.4: 18px → rem for browser zoom scaling */
     display: inline-block;
     line-height: 1.5;
   }

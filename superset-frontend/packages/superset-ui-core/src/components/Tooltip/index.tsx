@@ -16,17 +16,60 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useCallback, useEffect, useState } from 'react';
 import { Tooltip as AntdTooltip } from 'antd';
 
 import type { TooltipProps, TooltipPlacement } from './types';
 
-export const Tooltip = ({ overlayStyle, ...props }: TooltipProps) => (
-  <AntdTooltip
-    styles={{
-      body: { overflow: 'hidden', textOverflow: 'ellipsis' },
-      root: overlayStyle ?? {},
-    }}
-    {...props}
-  />
-);
+/**
+ * WCAG 1.4.13 compliant Tooltip wrapper.
+ *
+ * - Dismissable: pressing Escape closes the tooltip.
+ * - Hoverable: Ant Design 5 tooltips already allow the pointer to move
+ *   over the overlay without closing it, satisfying the "hoverable" requirement.
+ * - Non-obscuring: tooltip placement avoids covering the trigger by default.
+ */
+export const Tooltip = ({ overlayStyle, open, onOpenChange, ...props }: TooltipProps) => {
+  const [visible, setVisible] = useState(false);
+
+  // Respect external control if provided
+  const isControlled = open !== undefined;
+  const isVisible = isControlled ? open : visible;
+
+  const handleOpenChange = useCallback(
+    (newOpen: boolean) => {
+      if (!isControlled) {
+        setVisible(newOpen);
+      }
+      onOpenChange?.(newOpen);
+    },
+    [isControlled, onOpenChange],
+  );
+
+  // WCAG 1.4.13: Dismiss tooltip on Escape key
+  useEffect(() => {
+    if (!isVisible) return undefined;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleOpenChange(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isVisible, handleOpenChange]);
+
+  return (
+    <AntdTooltip
+      styles={{
+        body: { overflow: 'hidden', textOverflow: 'ellipsis' },
+        root: overlayStyle ?? {},
+      }}
+      open={isVisible}
+      onOpenChange={handleOpenChange}
+      {...props}
+    />
+  );
+};
 export type { TooltipProps, TooltipPlacement };

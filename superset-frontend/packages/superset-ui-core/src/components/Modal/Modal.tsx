@@ -135,7 +135,7 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
       margin-top: 0;
 
       .btn {
-        font-size: 12px;
+        font-size: 0.75rem; /* WCAG 1.4.4: 12px → rem */
       }
 
       .btn + .btn {

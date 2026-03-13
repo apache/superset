@@ -59,9 +59,7 @@ export const GlobalStyles = () => {
           font-family: ${theme.fontFamily};
         }
 
-        a {
-          color: ${theme.colorLink};
-        }
+        /* Link color is set via WCAG 1.4.3 override below (a { color: #0d7090 }) */
 
         h1,
         h2,
@@ -127,10 +125,31 @@ export const GlobalStyles = () => {
           border-color: ${theme.colorTextQuaternary};
         }
 
+        /* WCAG 1.4.11: Checkbox/Radio/Switch borders need 3:1 against background.
+           Ant Design default uses colorBorder (~1.34:1 on white). Override to
+           colorTextTertiary (~3.54:1) for unchecked state borders. */
+        .ant-checkbox .ant-checkbox-inner {
+          border-color: ${theme.colorTextTertiary};
+        }
+        .ant-radio .ant-radio-inner {
+          border-color: ${theme.colorTextTertiary};
+        }
+        .ant-switch {
+          background-color: ${theme.colorTextTertiary};
+        }
+
         /* WCAG 1.4.11: Divider/separator contrast — colorSplit (~#f0f0f0) is ~1.04:1 on white.
            Override to colorTextTertiary (~3.54:1). */
         .ant-divider {
           border-color: ${theme.colorTextTertiary};
+        }
+
+        /* WCAG 1.4.11: Table borders and progress bars */
+        .ant-table-bordered .ant-table-cell {
+          border-color: ${theme.colorTextQuaternary};
+        }
+        .ant-progress-bg {
+          min-width: 2px;
         }
 
         /* WCAG 2.4.7: Focus Visible — ensure all interactive elements have a visible

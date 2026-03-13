@@ -29,7 +29,7 @@ import {
 import { css } from '@apache-superset/core/ui';
 
 /**
- * StatusAnnouncer - WCAG 4.1.2 Name, Role, Value
+ * StatusAnnouncer - WCAG 4.1.3 Status Messages
  * Provides an ARIA live region for announcing dynamic content updates
  * to assistive technologies (screen readers).
  */
