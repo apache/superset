@@ -547,6 +547,10 @@ export function dbReducer(
             catalog: payloadCatalog,
           },
           // eslint-disable-next-line camelcase
+          engine_information:
+            action.payload.engine_information ||
+            trimmedState.engine_information,
+          // eslint-disable-next-line camelcase
           query_input,
         };
       }
@@ -557,6 +561,9 @@ export function dbReducer(
         configuration_method: action.payload.configuration_method,
         parameters: action.payload.parameters || trimmedState.parameters,
         ssh_tunnel: action.payload.ssh_tunnel || trimmedState.ssh_tunnel,
+        // eslint-disable-next-line camelcase
+        engine_information:
+          action.payload.engine_information || trimmedState.engine_information,
         // eslint-disable-next-line camelcase
         query_input,
       };
