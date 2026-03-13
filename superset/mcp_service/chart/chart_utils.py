@@ -967,13 +967,17 @@ def _mixed_timeseries_what(config: MixedTimeseriesChartConfig) -> str:
 
 
 def _handlebars_chart_what(config: HandlebarsChartConfig) -> str:
-    """Build the 'what' portion for a handlebars chart name."""
+    """Build the 'what' portion for a handlebars chart name.
+
+    Uses parentheses instead of en-dash to avoid collision with
+    ``generate_chart_name``'s ``\u2013`` context separator.
+    """
     if config.query_mode == "raw" and config.columns:
         cols = ", ".join(col.name for col in config.columns[:3])
-        return f"Handlebars – {cols}"
+        return f"Handlebars ({cols})"
     elif config.metrics:
         metrics = ", ".join(col.name for col in config.metrics[:3])
-        return f"Handlebars – {metrics}"
+        return f"Handlebars ({metrics})"
     return "Handlebars Chart"
 
 
