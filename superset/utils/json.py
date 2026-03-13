@@ -219,6 +219,7 @@ def dumps(  # pylint: disable=too-many-arguments
         "separators": separators,
         "cls": cls,
         "encoding": encoding,
+        "ensure_ascii": False,
     }
     try:
         results_string = simplejson.dumps(obj, **dumps_kwargs)
