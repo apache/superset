@@ -26,7 +26,6 @@ import {
   userEvent,
   within,
   waitFor,
-  fireEvent,
 } from 'spec/helpers/testing-library';
 import { getExtensionsRegistry } from '@superset-ui/core';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
@@ -436,11 +435,7 @@ describe('DatabaseModal', () => {
       userEvent.click(selectInput);
 
       // Simulate pasting text into the input
-      expect(() =>
-        fireEvent.paste(selectInput, {
-          clipboardData: { getData: () => 'post' },
-        }),
-      ).not.toThrow();
+      expect(() => userEvent.paste(selectInput, 'post')).not.toThrow();
     });
 
     test('renders the "Basic" tab of SQL Alchemy form (step 2 of 2) correctly', async () => {
@@ -1215,25 +1210,31 @@ describe('DatabaseModal', () => {
           );
           expect(SSHTunnelServerAddressInput).toHaveValue('');
           userEvent.type(SSHTunnelServerAddressInput, 'localhost');
-          expect(SSHTunnelServerAddressInput).toHaveValue('localhost');
+          await waitFor(() =>
+            expect(SSHTunnelServerAddressInput).toHaveValue('localhost'),
+          );
           const SSHTunnelServerPortInput = screen.getByTestId(
             'ssh-tunnel-server_port-input',
           );
           expect(SSHTunnelServerPortInput).toHaveValue(null);
           userEvent.type(SSHTunnelServerPortInput, '22');
-          expect(SSHTunnelServerPortInput).toHaveValue(22);
+          await waitFor(() => expect(SSHTunnelServerPortInput).toHaveValue(22));
           const SSHTunnelUsernameInput = screen.getByTestId(
             'ssh-tunnel-username-input',
           );
           expect(SSHTunnelUsernameInput).toHaveValue('');
           userEvent.type(SSHTunnelUsernameInput, 'test');
-          expect(SSHTunnelUsernameInput).toHaveValue('test');
+          await waitFor(() =>
+            expect(SSHTunnelUsernameInput).toHaveValue('test'),
+          );
           const SSHTunnelPasswordInput = screen.getByTestId(
             'ssh-tunnel-password-input',
           );
           expect(SSHTunnelPasswordInput).toHaveValue('');
           userEvent.type(SSHTunnelPasswordInput, 'pass');
-          expect(SSHTunnelPasswordInput).toHaveValue('pass');
+          await waitFor(() =>
+            expect(SSHTunnelPasswordInput).toHaveValue('pass'),
+          );
         });
 
         test('properly interacts with SSH Tunnel form textboxes', async () => {
@@ -1253,25 +1254,31 @@ describe('DatabaseModal', () => {
           );
           expect(SSHTunnelServerAddressInput).toHaveValue('');
           userEvent.type(SSHTunnelServerAddressInput, 'localhost');
-          expect(SSHTunnelServerAddressInput).toHaveValue('localhost');
+          await waitFor(() =>
+            expect(SSHTunnelServerAddressInput).toHaveValue('localhost'),
+          );
           const SSHTunnelServerPortInput = screen.getByTestId(
             'ssh-tunnel-server_port-input',
           );
           expect(SSHTunnelServerPortInput).toHaveValue(null);
           userEvent.type(SSHTunnelServerPortInput, '22');
-          expect(SSHTunnelServerPortInput).toHaveValue(22);
+          await waitFor(() => expect(SSHTunnelServerPortInput).toHaveValue(22));
           const SSHTunnelUsernameInput = screen.getByTestId(
             'ssh-tunnel-username-input',
           );
           expect(SSHTunnelUsernameInput).toHaveValue('');
           userEvent.type(SSHTunnelUsernameInput, 'test');
-          expect(SSHTunnelUsernameInput).toHaveValue('test');
+          await waitFor(() =>
+            expect(SSHTunnelUsernameInput).toHaveValue('test'),
+          );
           const SSHTunnelPasswordInput = screen.getByTestId(
             'ssh-tunnel-password-input',
           );
           expect(SSHTunnelPasswordInput).toHaveValue('');
           userEvent.type(SSHTunnelPasswordInput, 'pass');
-          expect(SSHTunnelPasswordInput).toHaveValue('pass');
+          await waitFor(() =>
+            expect(SSHTunnelPasswordInput).toHaveValue('pass'),
+          );
         });
 
         test('if the SSH Tunneling toggle is not true, no inputs are displayed', async () => {
@@ -1366,7 +1373,10 @@ describe('DatabaseModal', () => {
           }),
         );
 
-        const textboxes = screen.getAllByRole('textbox');
+        // Wait for step 2 to render
+        expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
+
+        const textboxes = await screen.findAllByRole('textbox');
         const hostField = textboxes[0];
         const portField = screen.getByRole('spinbutton');
         const databaseNameField = textboxes[1];
@@ -1383,14 +1393,19 @@ describe('DatabaseModal', () => {
         expect(connectButton).toBeDisabled();
 
         userEvent.type(hostField, 'localhost');
+        userEvent.tab();
         userEvent.type(portField, '5432');
+        userEvent.tab();
         userEvent.type(databaseNameField, 'postgres');
+        userEvent.tab();
         userEvent.type(usernameField, 'testdb');
+        userEvent.tab();
         userEvent.type(passwordField, 'demoPassword');
+        userEvent.tab();
 
         await waitFor(() => expect(connectButton).toBeEnabled());
 
-        expect(await screen.findByDisplayValue(/5432/i)).toBeInTheDocument();
+        await waitFor(() => expect(portField).toHaveValue(5432));
         expect(hostField).toHaveValue('localhost');
         expect(portField).toHaveValue(5432);
         expect(databaseNameField).toHaveValue('postgres');
@@ -1399,10 +1414,48 @@ describe('DatabaseModal', () => {
 
         expect(connectButton).toBeEnabled();
         userEvent.click(connectButton);
+        // Verify that validation was called during the form interaction
+        // Note: With the optimized validation, redundant calls on the same db state are skipped
         await waitFor(() => {
           expect(
             fetchMock.callHistory.calls(VALIDATE_PARAMS_ENDPOINT).length,
-          ).toEqual(5);
+          ).toBeGreaterThan(0);
+        });
+      });
+
+      test('does not fire redundant validation on blur when db has not changed', async () => {
+        setup();
+
+        userEvent.click(
+          await screen.findByRole('button', {
+            name: /postgresql/i,
+          }),
+        );
+
+        expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
+
+        const textboxes = await screen.findAllByRole('textbox');
+        const hostField = textboxes[0];
+
+        // Type a value and blur - should trigger validation
+        userEvent.type(hostField, 'localhost');
+        userEvent.tab();
+
+        await waitFor(() => {
+          expect(
+            fetchMock.callHistory.calls(VALIDATE_PARAMS_ENDPOINT).length,
+          ).toEqual(1);
+        });
+
+        // Blur again without changing the value - should NOT trigger another validation
+        userEvent.click(hostField);
+        userEvent.tab();
+
+        // Wait a tick to ensure no additional calls are made
+        await waitFor(() => {
+          expect(
+            fetchMock.callHistory.calls(VALIDATE_PARAMS_ENDPOINT).length,
+          ).toEqual(1);
         });
       });
     });

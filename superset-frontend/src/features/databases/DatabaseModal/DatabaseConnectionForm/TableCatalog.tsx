@@ -33,6 +33,7 @@ export const TableCatalog = ({
   getValidation,
   validationErrors,
   db,
+  isValidating,
 }: FieldPropTypes) => {
   const tableCatalog = db?.catalog || [];
   const catalogError = validationErrors || {};
@@ -51,6 +52,7 @@ export const TableCatalog = ({
               <ValidatedInput
                 className="catalog-name-input"
                 required={required}
+                isValidating={isValidating}
                 validationMethods={{ onBlur: getValidation }}
                 errorMessage={catalogError[idx]?.name}
                 placeholder={t('Enter a name for this sheet')}
@@ -84,6 +86,7 @@ export const TableCatalog = ({
             <ValidatedInput
               className="catalog-name-url"
               required={required}
+              isValidating={isValidating}
               validationMethods={{ onBlur: getValidation }}
               errorMessage={catalogError[idx]?.url}
               placeholder={t('Paste the shareable Google Sheet URL here')}

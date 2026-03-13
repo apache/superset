@@ -79,7 +79,7 @@ export const LabeledErrorBoundInput = ({
           isValidating ? 'validating' : hasError ? 'error' : 'success'
         }
         help={errorMessage || helpText}
-        hasFeedback={!!hasError}
+        hasFeedback={isValidating || !!hasError}
       >
         {visibilityToggle || props.name === 'password' ? (
           <StyledInputPassword
