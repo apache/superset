@@ -88,6 +88,7 @@ const basicQueryResult: ChartDataResponseResult = {
   status: 'success',
   from_dttm: null,
   to_dttm: null,
+  label_map: {},
 };
 
 /**
