@@ -29,6 +29,7 @@ from fastmcp import Context
 from superset_core.mcp.decorators import tool
 
 from superset.extensions import event_logger
+from superset.mcp_service.chart.schemas import serialize_chart_object
 from superset.mcp_service.dashboard.constants import (
     generate_id,
     GRID_COLUMN_COUNT,
@@ -431,7 +432,10 @@ def add_chart_to_existing_dashboard(
                 if serialize_tag_object(tag) is not None
             ],
             roles=[],
-            charts=[],
+            charts=[
+                serialize_chart_object(chart)
+                for chart in getattr(updated_dashboard, "slices", [])
+            ],
         )
 
         dashboard_url = (

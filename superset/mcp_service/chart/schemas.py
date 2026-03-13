@@ -1200,7 +1200,8 @@ class GetChartPreviewRequest(QueryCacheControl):
     format: Literal["url", "ascii", "table", "vega_lite"] = Field(
         default="url",
         description=(
-            "Preview format: 'url' for image URL, 'ascii' for text art, "
+            "Preview format: 'url' for explore link (default), "
+            "'ascii' for text art, "
             "'table' for data table, "
             "'vega_lite' for interactive JSON specification"
         ),
