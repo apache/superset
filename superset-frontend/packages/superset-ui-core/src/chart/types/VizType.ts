@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// Display names for these viz types are maintained in
+// Display names for frontend-only viz types are maintained in
 // superset/mcp_service/chart/viz_type_display_names.json
 export enum VizType {
   Area = 'echarts_area',
