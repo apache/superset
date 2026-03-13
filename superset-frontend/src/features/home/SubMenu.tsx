@@ -160,6 +160,7 @@ export interface ButtonProps {
   name: ReactNode;
   onClick?: OnClickHandler;
   'data-test'?: string;
+  'aria-label'?: string;
   buttonStyle: 'primary' | 'secondary' | 'dashed' | 'link' | 'tertiary';
   loading?: boolean;
   icon?: IconType;
@@ -320,6 +321,7 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
               icon={btn.icon}
               onClick={btn.onClick}
               data-test={btn['data-test']}
+              aria-label={btn['aria-label']}
               loading={btn.loading ?? false}
             >
               {btn.name}

@@ -206,6 +206,7 @@ const ViewModeToggle = ({
       <div
         role="button"
         tabIndex={0}
+        aria-label={t('Grid view')}
         aria-pressed={mode === 'card'}
         onClick={(e: React.MouseEvent<HTMLDivElement>) => {
           e.currentTarget.blur();
@@ -220,6 +221,7 @@ const ViewModeToggle = ({
       <div
         role="button"
         tabIndex={0}
+        aria-label={t('List view')}
         aria-pressed={mode === 'table'}
         onClick={(e: React.MouseEvent<HTMLDivElement>) => {
           e.currentTarget.blur();

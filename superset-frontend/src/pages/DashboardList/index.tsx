@@ -450,6 +450,7 @@ function DashboardList(props: DashboardListProps) {
                     role="button"
                     tabIndex={0}
                     className="action-button"
+                    aria-label={t('Edit')}
                     onClick={handleEdit}
                   >
                     <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
@@ -466,6 +467,7 @@ function DashboardList(props: DashboardListProps) {
                     role="button"
                     tabIndex={0}
                     className="action-button"
+                    aria-label={t('Export')}
                     onClick={handleExport}
                   >
                     <Icons.UploadOutlined iconSize="l" />
@@ -493,6 +495,7 @@ function DashboardList(props: DashboardListProps) {
                         role="button"
                         tabIndex={0}
                         className="action-button"
+                        aria-label={t('Delete')}
                         onClick={confirmDelete}
                       >
                         <Icons.DeleteOutlined
@@ -714,6 +717,7 @@ function DashboardList(props: DashboardListProps) {
         </Tooltip>
       ),
       buttonStyle: 'link',
+      'aria-label': t('Import dashboards'),
       onClick: openDashboardImportModal,
     });
   }

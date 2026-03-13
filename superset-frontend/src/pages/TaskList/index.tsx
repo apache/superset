@@ -514,6 +514,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
                     role="button"
                     tabIndex={0}
                     className="action-button"
+                    aria-label={t('Cancel')}
                     onClick={() => openCancelModal(original)}
                   >
                     <Icons.StopOutlined iconSize="l" />

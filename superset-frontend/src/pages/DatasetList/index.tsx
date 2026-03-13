@@ -452,6 +452,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     role="button"
                     tabIndex={0}
                     className={`action-button ${allowEdit ? '' : 'disabled'}`}
+                    aria-label={t('Edit')}
                     onClick={allowEdit ? handleEdit : undefined}
                   >
                     <Icons.EditOutlined iconSize="l" />
@@ -468,6 +469,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     role="button"
                     tabIndex={0}
                     className="action-button"
+                    aria-label={t('Export')}
                     onClick={handleExport}
                   >
                     <Icons.UploadOutlined iconSize="l" />
@@ -484,6 +486,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     role="button"
                     tabIndex={0}
                     className="action-button"
+                    aria-label={t('Duplicate')}
                     onClick={handleDuplicate}
                   >
                     <Icons.CopyOutlined iconSize="l" />
@@ -500,6 +503,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     role="button"
                     tabIndex={0}
                     className="action-button"
+                    aria-label={t('Delete')}
                     onClick={handleDelete}
                   >
                     <Icons.DeleteOutlined iconSize="l" />

@@ -90,7 +90,14 @@ function SearchFilter(
         {toolTipDescription && <InfoTooltip tooltip={toolTipDescription} />}
       </Flex>
       <Input
-        allowClear
+        allowClear={{
+          clearIcon: (
+            <Icons.CloseCircleOutlined
+              aria-label={t('Clear filter')}
+              iconSize="s"
+            />
+          ),
+        }}
         data-test="filters-search"
         placeholder={t('Type a value')}
         autoComplete={autoComplete}

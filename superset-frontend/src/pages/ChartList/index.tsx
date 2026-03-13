@@ -523,6 +523,7 @@ function ChartList(props: ChartListProps) {
                     role="button"
                     tabIndex={0}
                     className="action-button"
+                    aria-label={t('Edit')}
                     onClick={openEditModal}
                   >
                     <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
@@ -539,6 +540,7 @@ function ChartList(props: ChartListProps) {
                     role="button"
                     tabIndex={0}
                     className="action-button"
+                    aria-label={t('Export')}
                     onClick={handleExport}
                   >
                     <Icons.UploadOutlined iconSize="l" />
@@ -566,6 +568,7 @@ function ChartList(props: ChartListProps) {
                         role="button"
                         tabIndex={0}
                         className="action-button"
+                        aria-label={t('Delete')}
                         onClick={confirmDelete}
                       >
                         <Icons.DeleteOutlined iconSize="l" />
@@ -833,6 +836,7 @@ function ChartList(props: ChartListProps) {
         </Tooltip>
       ),
       buttonStyle: 'link',
+      'aria-label': t('Import charts'),
       onClick: openChartImportModal,
     });
   }

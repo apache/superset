@@ -968,6 +968,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
               role="button"
               tabIndex={0}
               className="action-button"
+              aria-label={t('Collapse datasource panel')}
               onClick={toggleCollapse}
             >
               <Icons.VerticalAlignTopOutlined
@@ -998,7 +999,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
             role="button"
             tabIndex={0}
           >
-            <span role="button" tabIndex={0} className="action-button">
+            <span role="button" tabIndex={0} className="action-button" aria-label={t('Open Datasource tab')}>
               <Tooltip title={t('Open Datasource tab')}>
                 <Icons.VerticalAlignTopOutlined
                   iconSize="xl"
