@@ -70,7 +70,7 @@ Chart Management:
 
 SQL Lab Integration:
 - execute_sql: Execute SQL queries and get results (requires database_id)
-- open_sql_lab_with_context: Generate SQL Lab URL with pre-filled query
+- open_sql_lab_with_context: Generate SQL Lab URL with pre-filled sql
 
 Schema Discovery:
 - get_schema: Get schema metadata for chart/dataset/dashboard (columns, filters)
@@ -103,7 +103,7 @@ To find your own charts/dashboards:
    "opr": "eq", "value": current_user.id}}])
 
 To explore data with SQL:
-1. get_instance_info -> find database_id
+1. list_datasets -> find a dataset and note its database_id
 2. execute_sql(database_id, sql) -> run query
 3. open_sql_lab_with_context(database_id) -> open SQL Lab UI
 
