@@ -177,9 +177,14 @@ class AsyncQueryManager:
                 session["async_channel_id"] = async_channel_id
                 session["async_user_id"] = user_id
 
-                sub = str(user_id) if user_id else None
+                # Conditionally include 'sub' claim only when user_id is present.
+                # RFC 7519 specifies 'sub' as optional; when present it must be
+                # a string, so omit it entirely for guest/anonymous users.
+                payload = {"channel": async_channel_id}
+                if user_id is not None:
+                    payload["sub"] = str(user_id)
                 token = jwt.encode(
-                    {"channel": async_channel_id, "sub": sub},
+                    payload,
                     self._jwt_secret,
                     algorithm="HS256",
                 )

@@ -122,6 +122,58 @@ def test_submit_chart_data_job_as_guest_user(
     job_mock.reset_mock()  # Reset the mock for the next iteration
 
 
+def test_parse_channel_id_from_request_sub_none(async_query_manager):
+    """Regression: token with sub=None must not break parse (PyJWT 2.10.1+)."""
+    encoded_token = encode(
+        {"channel": "test_channel_id", "sub": None},
+        JWT_TOKEN_SECRET,
+        algorithm="HS256",
+    )
+
+    request = Mock()
+    request.cookies = {JWT_TOKEN_COOKIE_NAME: encoded_token}
+
+    with raises(AsyncQueryTokenException):
+        async_query_manager.parse_channel_id_from_request(request)
+
+
+def test_validate_session_guest_user_creates_valid_token(async_query_manager):
+    """Regression: validate_session must create decodable tokens when user_id is None."""
+    from flask import Flask
+
+    async_query_manager._jwt_cookie_secure = False
+    async_query_manager._jwt_cookie_domain = None
+    async_query_manager._jwt_cookie_samesite = "Lax"
+
+    app = Flask(__name__)
+    app.secret_key = "test_secret_key_for_testing"  # noqa: S105
+    async_query_manager.register_request_handlers(app)
+
+    @app.route("/test")
+    def test_view():
+        return "ok"
+
+    with mock.patch(
+        "superset.async_events.async_query_manager.get_user_id",
+        return_value=None,
+    ):
+        client = app.test_client()
+        resp = client.get("/test")
+
+        cookie_header = [
+            v
+            for k, v in resp.headers
+            if k == "Set-Cookie" and JWT_TOKEN_COOKIE_NAME in v
+        ]
+        assert cookie_header, "JWT cookie was not set"
+        token = cookie_header[0].split("=", 1)[1].split(";")[0]
+
+        mock_request = Mock()
+        mock_request.cookies = {JWT_TOKEN_COOKIE_NAME: token}
+        channel = async_query_manager.parse_channel_id_from_request(mock_request)
+        assert channel  # valid UUID string
+
+
 @mark.parametrize(
     "cache_type, cache_backend",
     [
