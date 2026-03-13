@@ -81,7 +81,7 @@ export function getAnnotationJsonUrl(slice_id, force) {
 export function getURIDirectory(endpointType = 'base') {
   // Building the directory part of the URI
   if (
-    ['full', 'json', 'csv', 'query', 'results', 'samples'].includes(
+    ['full', 'json', 'csv', 'xlsx', 'query', 'results', 'samples'].includes(
       endpointType,
     )
   ) {
@@ -135,6 +135,7 @@ export function getExploreUrl({
   requestParams = {},
   allowDomainSharding = false,
   method = 'POST',
+  relative = false,
 }) {
   if (!formData.datasource) {
     return null;
@@ -144,10 +145,12 @@ export function getExploreUrl({
   // eslint-disable-next-line no-param-reassign
   delete formData.label_colors;
 
-  let uri = getChartDataUri({
-    path: '/',
-    allowDomainSharding,
-  });
+  let uri = relative
+    ? new URI('/')
+    : getChartDataUri({
+        path: '/',
+        allowDomainSharding,
+      });
   if (curUrl) {
     uri = URI(URI(curUrl).search());
   }
@@ -175,6 +178,9 @@ export function getExploreUrl({
   }
   if (endpointType === 'csv') {
     search.csv = 'true';
+  }
+  if (endpointType === 'xlsx') {
+    search.xlsx = 'true';
   }
   if (endpointType === URL_PARAMS.standalone.name) {
     search.standalone = '1';
@@ -240,7 +246,7 @@ export const buildV1ChartDataPayload = async ({
 };
 
 export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
-  resultFormat === 'csv' ? resultFormat : resultType;
+  resultFormat === 'csv' || resultFormat === 'xlsx' ? resultFormat : resultType;
 
 export const exportChart = async ({
   formData,
@@ -258,7 +264,9 @@ export const exportChart = async ({
     url = getExploreUrl({
       formData,
       endpointType,
+      force,
       allowDomainSharding: false,
+      relative: true,
     });
     payload = formData;
   } else {
