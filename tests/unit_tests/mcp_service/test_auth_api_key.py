@@ -47,8 +47,11 @@ def _enable_api_keys(app):
 @pytest.fixture
 def _disable_api_keys(app):
     app.config["FAB_API_KEY_ENABLED"] = False
+    old_dev = app.config.pop("MCP_DEV_USERNAME", None)
     yield
     app.config.pop("FAB_API_KEY_ENABLED", None)
+    if old_dev is not None:
+        app.config["MCP_DEV_USERNAME"] = old_dev
 
 
 # -- Valid API key -> user loaded --
@@ -131,8 +134,11 @@ def test_no_request_context_skips_api_key_auth(app) -> None:
         app.appbuilder = MagicMock()
         app.appbuilder.sm = mock_sm
 
-        with pytest.raises(ValueError, match="No authenticated user found"):
-            get_user_from_request()
+        # Explicitly mock has_request_context to False because the test
+        # framework's app fixture may implicitly provide a request context.
+        with patch("superset.mcp_service.auth.has_request_context", return_value=False):
+            with pytest.raises(ValueError, match="No authenticated user found"):
+                get_user_from_request()
 
     mock_sm._extract_api_key_from_request.assert_not_called()
 
