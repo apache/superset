@@ -45,6 +45,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
     def create(  # pylint: disable=too-many-arguments
         self,
         *,
+        current_slice: Slice | None = None,
         datasource: DatasourceDict,
         queries: list[dict[str, Any]],
         form_data: dict[str, Any] | None = None,
@@ -58,7 +59,9 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             datasource_model_instance = self._convert_to_model(datasource)
 
         slice_ = None
-        if form_data and form_data.get("slice_id") is not None:
+        if current_slice:
+            slice_ = current_slice
+        elif form_data and form_data.get("slice_id") is not None:
             slice_ = self._get_slice(form_data.get("slice_id"))
 
         result_type = result_type or ChartDataResultType.FULL
