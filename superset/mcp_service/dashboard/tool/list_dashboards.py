@@ -160,6 +160,10 @@ async def list_dashboards(
         dao_columns = request.select_columns
         if dao_columns:
             dao_columns = [c for c in dao_columns if c != "popularity_score"]
+            # Ensure id is loaded when popularity_score was requested
+            # (scores are keyed by id)
+            if "popularity_score" in request.select_columns and "id" not in dao_columns:
+                dao_columns = ["id"] + dao_columns
 
         with event_logger.log_context(action="mcp.list_dashboards.query"):
             result = list_core.run_tool(
@@ -187,6 +191,15 @@ async def list_dashboards(
 
     # Apply field filtering via serialization context
     columns_to_filter = result.columns_requested
+    # Re-add popularity_score if it was originally requested
+    # (it was stripped before the DAO query since it's computed)
+    if (
+        request.select_columns
+        and "popularity_score" in request.select_columns
+        and columns_to_filter
+        and "popularity_score" not in columns_to_filter
+    ):
+        columns_to_filter = list(columns_to_filter) + ["popularity_score"]
     await ctx.debug(
         "Applying field filtering via serialization context: columns=%s"
         % (columns_to_filter,)
