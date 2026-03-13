@@ -47,11 +47,13 @@ export const getOriginalSeries = (
 ): string => {
   let result = seriesName;
   timeCompare.forEach(compare => {
-    // offset is represented as <offset>, group by list
+    // offset in the middle: <metric>, <offset>, <dimension>
+    result = result.replace(`, ${compare},`, ',');
+    // offset at start: <offset>, <dimension>
     result = result.replace(`${compare},`, '');
-    // offset is represented as <metric>__<offset>
+    // offset with double underscore: <metric>__<offset>
     result = result.replace(`__${compare}`, '');
-    // offset is represented as <metric>, <offset>
+    // offset at end: <metric>, <offset>
     result = result.replace(`, ${compare}`, '');
   });
   return result.trim();

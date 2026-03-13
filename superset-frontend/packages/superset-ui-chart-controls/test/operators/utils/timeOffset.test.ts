@@ -51,6 +51,22 @@ test('getOriginalSeries handles multiple time compares', () => {
   expect(getOriginalSeries(seriesName, timeCompare)).toEqual('count');
 });
 
+test('getOriginalSeries strips offset in the middle with dimension', () => {
+  const seriesName = 'SUM(sales), 28 days ago, Medium';
+  const timeCompare = ['28 days ago'];
+  expect(getOriginalSeries(seriesName, timeCompare)).toEqual(
+    'SUM(sales), Medium',
+  );
+});
+
+test('getOriginalSeries strips offset in the middle with multiple dimensions', () => {
+  const seriesName = 'SUM(sales), 1 year ago, Medium, 11';
+  const timeCompare = ['1 year ago'];
+  expect(getOriginalSeries(seriesName, timeCompare)).toEqual(
+    'SUM(sales), Medium, 11',
+  );
+});
+
 test('getTimeOffset returns undefined when no time offset pattern matches', () => {
   const series = { name: 'count' };
   const timeCompare = ['1 year ago'];
@@ -73,6 +89,12 @@ test('getTimeOffset detects , <offset> pattern', () => {
   const series = { name: 'AVG(price_each), 1 year ago' };
   const timeCompare = ['1 year ago'];
   expect(getTimeOffset(series, timeCompare)).toEqual('1 year ago');
+});
+
+test('getTimeOffset detects , <offset>, pattern (offset in middle)', () => {
+  const series = { name: 'SUM(sales), 28 days ago, Medium' };
+  const timeCompare = ['28 days ago'];
+  expect(getTimeOffset(series, timeCompare)).toEqual('28 days ago');
 });
 
 test('hasTimeOffset returns false for original series', () => {
