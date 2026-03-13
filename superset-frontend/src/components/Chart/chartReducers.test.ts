@@ -35,36 +35,35 @@ describe('chart reducers', () => {
   });
 
   test('should update endtime on fail', () => {
-    const controller = new AbortController();
-    charts[chartKey] = {
-      ...charts[chartKey],
-      queryController: controller,
-    };
-    const newState = chartReducer(
-      charts,
-      actions.chartUpdateStopped(chartKey, controller),
-    );
+    const newState = chartReducer(charts, actions.chartUpdateStopped(chartKey));
     expect(newState[chartKey].chartUpdateEndTime).toBeGreaterThan(0);
     expect(newState[chartKey].chartStatus).toEqual('stopped');
   });
 
-  test('should ignore stopped updates from stale controllers', () => {
-    const controller = new AbortController();
-    const staleController = new AbortController();
-    charts[chartKey] = {
-      ...charts[chartKey],
-      chartStatus: 'loading',
-      queryController: controller,
-    };
-
-    const newState = chartReducer(
-      charts,
-      actions.chartUpdateStopped(chartKey, staleController),
+  test('should handle chartUpdateStopped without queryController', () => {
+    const newState = chartReducer(charts, actions.chartUpdateStopped(chartKey));
+    expect(newState[chartKey].chartStatus).toEqual('stopped');
+    expect(newState[chartKey].chartAlert).toContain(
+      'Updating chart was stopped',
     );
+    expect(newState[chartKey].chartUpdateEndTime).toBeGreaterThan(0);
+  });
 
-    expect(newState[chartKey].chartStatus).toEqual('loading');
-    expect(newState[chartKey].chartUpdateEndTime).toEqual(
-      charts[chartKey].chartUpdateEndTime,
+  test('chartUpdateStopped sets state correctly', () => {
+    const chartsWithController = {
+      [chartKey]: {
+        ...testChart,
+        queryController: new AbortController(),
+      },
+    };
+    const newState = chartReducer(
+      chartsWithController,
+      actions.chartUpdateStopped(chartKey),
+    );
+    // Verify the chart status and alert are set
+    expect(newState[chartKey].chartStatus).toEqual('stopped');
+    expect(newState[chartKey].chartAlert).toContain(
+      'Updating chart was stopped',
     );
   });
 
