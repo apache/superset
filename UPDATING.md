@@ -238,6 +238,7 @@ See `superset/mcp_service/PRODUCTION.md` for deployment guides.
 
 - [35621](https://github.com/apache/superset/pull/35621): The default hash algorithm has changed from MD5 to SHA-256 for improved security and FedRAMP compliance. This affects cache keys for thumbnails, dashboard digests, chart digests, and filter option names. Existing cached data will be invalidated upon upgrade. To opt out of this change and maintain backward compatibility, set `HASH_ALGORITHM = "md5"` in your `superset_config.py`.
 - [35062](https://github.com/apache/superset/pull/35062): Changed the function signature of `setupExtensions` to `setupCodeOverrides` with options as arguments.
+- [38358](https://github.com/apache/superset/pull/38358): Switched CrateDB PyPI package from `crate[sqlalchemy]` to `sqlalchemy-cratedb`.
 
 ### Breaking Changes
 - [37370](https://github.com/apache/superset/pull/37370): The `APP_NAME` configuration variable no longer controls the browser window/tab title or other frontend branding. Application names should now be configured using the theme system with the `brandAppName` token. The `APP_NAME` config is still used for backend contexts (MCP service, logs, etc.) and serves as a fallback if `brandAppName` is not set.
