@@ -217,10 +217,13 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
     multi_statement_warning: str | None = None
     if data_bearing_count > 1:
         multi_statement_warning = (
-            f"This query contained {data_bearing_count} data-bearing statements. "
-            "The top-level rows/columns contain only the last data-bearing statement's results. "
-            "Check the 'data' field in each entry of the 'statements' array "
-            "to see results from ALL statements."
+            f"This query contained {data_bearing_count} "
+            "data-bearing statements. "
+            "The top-level rows/columns contain only the "
+            "last data-bearing statement's results. "
+            "Check the 'data' field in each entry of the "
+            "'statements' array to see results from ALL "
+            "statements."
         )
 
     return ExecuteSqlResponse(
