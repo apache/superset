@@ -1,0 +1,139 @@
+---
+title: Layout
+sidebar_label: Layout
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# Layout
+
+Ant Design Layout component with configurable Sider, Header, Footer, and Content.
+
+## Live Example
+
+<StoryWithControls
+  component="Layout"
+  props={{
+  hasSider: false,
+  style: {
+    minHeight: 200
+  }
+}}
+  controls={[
+  {
+    name: "hasSider",
+    label: "Has Sider",
+    type: "boolean",
+    description: "Whether the layout contains a Sider sub-component."
+  }
+]}
+  sampleChildren={[{"component":"Layout.Header","props":{"children":"Header","style":{"background":"#001529","color":"#fff","padding":"0 24px","lineHeight":"64px"}}},{"component":"Layout.Content","props":{"children":"Content Area","style":{"padding":"24px","background":"#fff","flex":1}}},{"component":"Layout.Footer","props":{"children":"Footer","style":{"textAlign":"center","background":"#f5f5f5","padding":"12px"}}}]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <Layout style={{ minHeight: '300px' }}>
+      <Layout.Sider theme="dark" width={200}>
+        <div style={{ color: '#fff', padding: '16px' }}>Sidebar</div>
+      </Layout.Sider>
+      <Layout>
+        <Layout.Header style={{ background: '#fff', padding: '0 16px' }}>
+          Header
+        </Layout.Header>
+        <Layout.Content style={{ margin: '16px', padding: '24px', background: '#fff' }}>
+          Content
+        </Layout.Content>
+        <Layout.Footer style={{ textAlign: 'center' }}>
+          Footer
+        </Layout.Footer>
+      </Layout>
+    </Layout>
+  );
+}
+```
+
+## Content Only
+
+```tsx live
+function ContentOnly() {
+  return (
+    <Layout>
+      <Layout.Header style={{ background: '#001529', color: '#fff', padding: '0 24px', lineHeight: '64px' }}>
+        Application Header
+      </Layout.Header>
+      <Layout.Content style={{ padding: '24px', minHeight: '200px', background: '#fff' }}>
+        Main content area without a sidebar
+      </Layout.Content>
+      <Layout.Footer style={{ textAlign: 'center', background: '#f5f5f5' }}>
+        Footer Content
+      </Layout.Footer>
+    </Layout>
+  );
+}
+```
+
+## Right Sidebar
+
+```tsx live
+function RightSidebar() {
+  return (
+    <Layout style={{ minHeight: '300px' }}>
+      <Layout>
+        <Layout.Header style={{ background: '#fff', padding: '0 24px' }}>
+          Header
+        </Layout.Header>
+        <Layout.Content style={{ padding: '24px', background: '#fff' }}>
+          Content with right sidebar
+        </Layout.Content>
+      </Layout>
+      <Layout.Sider theme="light" width={200} style={{ background: '#fafafa' }}>
+        <div style={{ padding: '16px' }}>Right Sidebar</div>
+      </Layout.Sider>
+    </Layout>
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `hasSider` | `boolean` | `false` | Whether the layout contains a Sider sub-component. |
+| `style` | `any` | `{"minHeight":200}` | - |
+
+## Import
+
+```tsx
+import { Layout } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/Layout/Layout.stories.tsx).
+:::

@@ -155,6 +155,7 @@ def test_export(session: Session) -> None:
             f"datasets/my_database/my_table_{sqla_table.id}.yaml",
             f"""table_name: my_table
 main_dttm_col: ds
+currency_code_column: null
 description: This is the description
 default_endpoint: null
 offset: -8
@@ -297,6 +298,7 @@ extra:
   metadata_cache_timeout: {{}}
   schemas_allowed_for_file_upload: []
 impersonate_user: false
+configuration_method: sqlalchemy_form
 uuid: {database.uuid}
 version: 1.0.0
 """,

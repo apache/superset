@@ -19,13 +19,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useLocation } from 'react-router-dom';
+import { t } from '@apache-superset/core/translation';
 import {
   getLabelsColorMap,
   isDefined,
   JsonObject,
   makeApi,
   LabelsColorMapSource,
-  t,
   getClientErrorObject,
 } from '@superset-ui/core';
 import { Loading } from '@superset-ui/core/components';
@@ -150,11 +150,27 @@ export default function ExplorePage() {
               )
             : result.form_data;
 
+          let chartStates: Record<number, JsonObject> | undefined;
+          if (result.chartState) {
+            const sliceId =
+              getUrlParam(URL_PARAMS.sliceId) ||
+              (formData as JsonObject).slice_id ||
+              0;
+            chartStates = {
+              [sliceId]: {
+                chartId: sliceId,
+                state: result.chartState,
+                lastModified: Date.now(),
+              },
+            };
+          }
+
           dispatch(
             hydrateExplore({
               ...result,
               form_data: formData,
               saveAction,
+              chartStates,
             }),
           );
         })

@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const { v4: uuidv4 } = require('uuid');
 const Redis = require('ioredis');
 const config = require('../config.json');
+const { randomUUID } = require('crypto');
 const redis = new Redis(config.redis);
 
 const numClients = 256;
@@ -30,7 +30,7 @@ function pushData() {
     const streamId = `${config.redisStreamPrefix}${channelId}`;
     const data = {
       channel_id: channelId,
-      job_id: uuidv4(),
+      job_id: randomUUID(),
       status: 'pending',
     };
 

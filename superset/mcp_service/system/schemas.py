@@ -22,8 +22,10 @@ This module contains Pydantic models for serializing Superset instance metadata 
 system-level info.
 """
 
+from __future__ import annotations
+
 from datetime import datetime
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -106,6 +108,22 @@ class PopularContent(BaseModel):
     top_creators: List[str] = Field(..., description="Most active creators")
 
 
+class FeatureAvailability(BaseModel):
+    """Dynamic feature availability for the current user and deployment.
+
+    Menus are detected at request time from the security manager,
+    so they reflect the actual permissions of the requesting user.
+    """
+
+    accessible_menus: List[str] = Field(
+        default_factory=list,
+        description=(
+            "UI menu items accessible to the current user, "
+            "derived from FAB role permissions"
+        ),
+    )
+
+
 class InstanceInfo(BaseModel):
     instance_summary: InstanceSummary = Field(
         ..., description="Instance summary information"
@@ -122,6 +140,17 @@ class InstanceInfo(BaseModel):
     popular_content: PopularContent = Field(
         ..., description="Popular content information"
     )
+    current_user: UserInfo | None = Field(
+        None,
+        description="The authenticated user making the request. "
+        "Use current_user.id with created_by_fk filter to find your own assets.",
+    )
+    feature_availability: FeatureAvailability = Field(
+        ...,
+        description=(
+            "Dynamic feature availability for the current user and deployment"
+        ),
+    )
     timestamp: datetime = Field(..., description="Response timestamp")
 
 
@@ -132,6 +161,36 @@ class UserInfo(BaseModel):
     last_name: str | None = None
     email: str | None = None
     active: bool | None = None
+    roles: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Role names assigned to the user (e.g., Admin, Alpha, Gamma, Viewer). "
+            "Use this to determine what actions the user can perform."
+        ),
+    )
+
+
+def serialize_user_object(user: Any) -> UserInfo | None:
+    """Serialize a user ORM object to UserInfo, extracting role names as strings."""
+    if not user:
+        return None
+
+    user_roles: list[str] = []
+    if (raw_roles := getattr(user, "roles", None)) is not None:
+        try:
+            user_roles = [role.name for role in raw_roles if hasattr(role, "name")]
+        except TypeError:
+            user_roles = []
+
+    return UserInfo(
+        id=getattr(user, "id", None),
+        username=getattr(user, "username", None),
+        first_name=getattr(user, "first_name", None),
+        last_name=getattr(user, "last_name", None),
+        email=getattr(user, "email", None),
+        active=getattr(user, "active", None),
+        roles=user_roles,
+    )
 
 
 class TagInfo(BaseModel):

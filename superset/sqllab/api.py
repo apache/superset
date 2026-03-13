@@ -234,7 +234,34 @@ class SqlLabRestApi(BaseSupersetApi):
         """
         try:
             model = self.format_model_schema.load(request.json)
-            result = SQLScript(model["sql"], model.get("engine")).format()
+            sql = model["sql"]
+            template_params = model.get("template_params")
+            database_id = model.get("database_id")
+
+            # Process Jinja templates if template_params and database_id are provided
+            if template_params and database_id is not None:
+                database = DatabaseDAO.find_by_id(database_id)
+                if database:
+                    try:
+                        template_params = (
+                            json.loads(template_params)
+                            if isinstance(template_params, str)
+                            else template_params
+                        )
+                        if template_params:
+                            template_processor = get_template_processor(
+                                database=database
+                            )
+                            sql = template_processor.process_template(
+                                sql, **template_params
+                            )
+                    except json.JSONDecodeError:
+                        logger.warning(
+                            "Invalid template parameter %s. Skipping processing",
+                            str(template_params),
+                        )
+
+            result = SQLScript(sql, model.get("engine")).format()
             return self.response(200, result=result)
         except ValidationError as error:
             return self.response_400(message=error.messages)

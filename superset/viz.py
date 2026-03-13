@@ -32,10 +32,10 @@ from datetime import datetime, timedelta
 from itertools import product
 from typing import Any, cast, Optional, TYPE_CHECKING
 
-import geohash
 import numpy as np
 import pandas as pd
 import polyline
+import pygeohash
 from dateutil import relativedelta as rdelta
 from deprecation import deprecated
 from flask import current_app, request
@@ -78,7 +78,7 @@ from superset.utils.core import (
     simple_filter_to_adhoc,
 )
 from superset.utils.date_parser import get_since_until, parse_past_timedelta
-from superset.utils.hashing import md5_sha_from_str
+from superset.utils.hashing import hash_from_str
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
@@ -473,7 +473,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         cache_dict["rls"] = security_manager.get_rls_cache_key(self.datasource)
         cache_dict["changed_on"] = self.datasource.changed_on
         json_data = self.json_dumps(cache_dict, sort_keys=True)
-        return md5_sha_from_str(json_data)
+        return hash_from_str(json_data)
 
     @deprecated(deprecated_in="3.0")
     def get_payload(self, query_obj: QueryObjectDict | None = None) -> VizPayload:
@@ -514,6 +514,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         ] + rejected_time_columns
         if df is not None:
             payload["colnames"] = list(df.columns)
+
         return payload
 
     @deprecated(deprecated_in="3.0")
@@ -1829,7 +1830,7 @@ class BaseDeckGLViz(BaseViz):
     @staticmethod
     @deprecated(deprecated_in="3.0")
     def reverse_geohash_decode(geohash_code: str) -> tuple[str, str]:
-        lat, lng = geohash.decode(geohash_code)
+        lat, lng = pygeohash.decode(geohash_code)
         return (lng, lat)
 
     @staticmethod
@@ -2132,13 +2133,21 @@ class DeckGrid(BaseDeckGLViz):
 
 @deprecated(deprecated_in="3.0")
 def geohash_to_json(geohash_code: str) -> list[list[float]]:
-    bbox = geohash.bbox(geohash_code)
+    # Get the center and the error margins
+    lat, lon, lat_err, lon_err = pygeohash.decode_exactly(geohash_code)
+    # Calculate the Bounding Box
+    bbox = {
+        "n": lat + lat_err,
+        "s": lat - lat_err,
+        "e": lon + lon_err,
+        "w": lon - lon_err,
+    }
     return [
-        [bbox.get("w"), bbox.get("n")],
-        [bbox.get("e"), bbox.get("n")],
-        [bbox.get("e"), bbox.get("s")],
-        [bbox.get("w"), bbox.get("s")],
-        [bbox.get("w"), bbox.get("n")],
+        [bbox["w"], bbox["n"]],
+        [bbox["e"], bbox["n"]],
+        [bbox["e"], bbox["s"]],
+        [bbox["w"], bbox["s"]],
+        [bbox["w"], bbox["n"]],
     ]
 
 
@@ -2816,15 +2825,19 @@ class PartitionViz(NVD3TimeSeriesViz):
         return self.nest_values(levels)
 
 
+def _get_subclasses(cls: type[BaseViz]) -> set[type[BaseViz]]:
+    return set(cls.__subclasses__()).union(
+        [sc for c in cls.__subclasses__() for sc in _get_subclasses(c)]
+    )
+
+
 @deprecated(deprecated_in="3.0")
 def get_subclasses(cls: type[BaseViz]) -> set[type[BaseViz]]:
-    return set(cls.__subclasses__()).union(
-        [sc for c in cls.__subclasses__() for sc in get_subclasses(c)]
-    )
+    return _get_subclasses(cls)
 
 
 viz_types = {
     o.viz_type: o
-    for o in get_subclasses(BaseViz)
+    for o in _get_subclasses(BaseViz)
     if o.viz_type not in current_app.config["VIZ_TYPE_DENYLIST"]
 }

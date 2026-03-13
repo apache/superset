@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   getColumnLabel,
   getNumberFormatter,
   isEqualArray,
   NumberFormats,
-  t,
 } from '@superset-ui/core';
-import { styled, useTheme, css } from '@apache-superset/core/ui';
+import { styled, useTheme, css } from '@apache-superset/core/theme';
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { FilterBarOrientation } from 'src/dashboard/types';
 // import Metadata from '@superset-ui/core/components/Metadata';
@@ -232,7 +232,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   } = props;
 
   const [row] = data;
-  // @ts-ignore
+  // @ts-expect-error
   const { min, max }: { min: number; max: number } = row;
   const { groupby, enableSingleValue, enableEmptyFilter, defaultValue } =
     formData;
