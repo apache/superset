@@ -46,6 +46,35 @@ import HoverMenu from '../../menu/HoverMenu';
 import DragHandle from '../../dnd/DragHandle';
 import DeleteComponentButton from '../../DeleteComponentButton';
 
+const isInteractiveElement = (element: HTMLElement | null): boolean => {
+  if (!element) return false;
+  const tagName = element.tagName.toUpperCase();
+  if (
+    tagName === 'INPUT' ||
+    tagName === 'TEXTAREA' ||
+    element.isContentEditable
+  ) {
+    return true;
+  }
+  return isInteractiveElement(element.parentElement);
+};
+
+PointerSensor.activators = [
+  {
+    eventName: 'onPointerDown' as const,
+    handler: ({ nativeEvent: event }, { onActivation }) => {
+      if (
+        event.button !== 0 ||
+        isInteractiveElement(event.target as HTMLElement)
+      ) {
+        return false;
+      }
+      onActivation?.({ event });
+      return true;
+    },
+  },
+];
+
 const StyledTabsContainer = styled.div<{ isDragging?: boolean }>`
   width: 100%;
   background-color: ${({ theme }) => theme.colorBgContainer};
@@ -235,7 +264,6 @@ const TabsRenderer = memo<TabsRendererProps>(
           type={editMode ? 'editable-card' : 'card'}
           items={tabItems}
           tabBarStyle={{ paddingLeft: tabBarPaddingLeft }}
-          fullHeight
           {...(editMode && {
             renderTabBar: (tabBarProps, DefaultTabBar) => (
               <DndContext
