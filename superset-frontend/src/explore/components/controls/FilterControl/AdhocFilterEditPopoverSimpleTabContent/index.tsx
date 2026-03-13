@@ -118,6 +118,8 @@ export const useSimpleTabFilterProps = (props: Props) => {
     const isColumnNumber =
       !!column && (column.type === 'INT' || column.type === 'INTEGER');
     const isColumnFunction = !!column && !!column.expression;
+    // DSPM: SO-82
+    const isColumnArray = !!column && column.type?.startsWith('ARRAY');
 
     if (operator && operator === Operators.LatestPartition) {
       const { partitionColumn } = props;
@@ -132,6 +134,15 @@ export const useSimpleTabFilterProps = (props: Props) => {
     }
     if (isColumnBoolean) {
       return operator === Operators.IsNull || operator === Operators.IsNotNull;
+    }
+    // DSPM: SO-82
+    if (isColumnArray) {
+      return [
+        Operators.Contains,
+        Operators.NotContains,
+        Operators.Equals,
+        Operators.NotEquals,
+      ].includes(operator);
     }
     return (
       props.adhocFilter.clause !== Clauses.Having ||
