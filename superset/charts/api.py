@@ -440,6 +440,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
             response = self.response_404()
         except ChartForbiddenError:
             response = self.response_403()
+        except DashboardsForbiddenError as ex:
+            response = self.response(ex.status, message=ex.message)
         except TagForbiddenError as ex:
             response = self.response(403, message=str(ex))
         except ChartInvalidError as ex:
