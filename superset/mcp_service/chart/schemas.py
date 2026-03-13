@@ -728,16 +728,36 @@ class HandlebarsChartConfig(BaseModel):
     @model_validator(mode="after")
     def validate_query_fields(self) -> "HandlebarsChartConfig":
         """Validate that the right fields are provided for the query mode."""
-        if self.query_mode == "raw" and not self.columns:
-            raise ValueError(
-                "Handlebars chart in 'raw' query mode requires 'columns' field. "
-                "Specify which columns to include in the query results."
-            )
-        if self.query_mode == "aggregate" and not self.metrics:
-            raise ValueError(
-                "Handlebars chart in 'aggregate' query mode requires 'metrics' field. "
-                "Specify at least one metric with an aggregate function."
-            )
+        if self.query_mode == "raw":
+            if not self.columns:
+                raise ValueError(
+                    "Handlebars chart in 'raw' query mode requires 'columns' field. "
+                    "Specify which columns to include in the query results."
+                )
+            if self.metrics:
+                raise ValueError(
+                    "Handlebars chart in 'raw' query mode does not use 'metrics'. "
+                    "Remove 'metrics' or switch to 'aggregate' query mode."
+                )
+            if self.groupby:
+                raise ValueError(
+                    "Handlebars chart in 'raw' query mode does not use 'groupby'. "
+                    "Remove 'groupby' or switch to 'aggregate' query mode."
+                )
+        if self.query_mode == "aggregate":
+            if not self.metrics:
+                raise ValueError(
+                    "Handlebars chart in 'aggregate' query mode requires 'metrics' "
+                    "field. Specify at least one metric with an aggregate function."
+                )
+            missing_agg = [m.name for m in self.metrics if not m.aggregate]
+            if missing_agg:
+                raise ValueError(
+                    f"Handlebars chart in 'aggregate' query mode requires an "
+                    f"aggregate function on every metric. Missing aggregate for: "
+                    f"{', '.join(missing_agg)}. "
+                    f"Use one of: SUM, COUNT, AVG, MIN, MAX, COUNT_DISTINCT, etc."
+                )
         return self
 
 

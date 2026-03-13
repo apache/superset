@@ -89,6 +89,35 @@ class TestHandlebarsChartConfig:
                 metrics=[ColumnRef(name="sales", aggregate="SUM")],
             )
 
+    def test_raw_mode_rejects_metrics(self) -> None:
+        with pytest.raises(ValueError, match="does not use 'metrics'"):
+            HandlebarsChartConfig(
+                chart_type="handlebars",
+                handlebars_template="<p>test</p>",
+                query_mode="raw",
+                columns=[ColumnRef(name="product")],
+                metrics=[ColumnRef(name="sales", aggregate="SUM")],
+            )
+
+    def test_raw_mode_rejects_groupby(self) -> None:
+        with pytest.raises(ValueError, match="does not use 'groupby'"):
+            HandlebarsChartConfig(
+                chart_type="handlebars",
+                handlebars_template="<p>test</p>",
+                query_mode="raw",
+                columns=[ColumnRef(name="product")],
+                groupby=[ColumnRef(name="region")],
+            )
+
+    def test_aggregate_mode_requires_aggregate_function(self) -> None:
+        with pytest.raises(ValueError, match="Missing aggregate for"):
+            HandlebarsChartConfig(
+                chart_type="handlebars",
+                handlebars_template="<p>test</p>",
+                query_mode="aggregate",
+                metrics=[ColumnRef(name="sales")],
+            )
+
     def test_extra_fields_forbidden(self) -> None:
         with pytest.raises(ValueError, match="Extra inputs"):
             HandlebarsChartConfig(
