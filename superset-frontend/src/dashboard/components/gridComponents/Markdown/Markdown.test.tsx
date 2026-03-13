@@ -195,9 +195,7 @@ test('should call updateComponents when switching from edit to preview with chan
   });
 
   // Enter edit mode
-  const markdownHolder = screen.getByTestId(
-    'dashboard-component-chart-holder',
-  );
+  const markdownHolder = screen.getByTestId('dashboard-component-chart-holder');
   await act(async () => {
     fireEvent.click(markdownHolder);
   });
