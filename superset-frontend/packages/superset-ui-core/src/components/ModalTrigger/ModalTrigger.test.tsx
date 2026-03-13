@@ -74,3 +74,45 @@ test('should render a modal after click', async () => {
   await userEvent.click(screen.getByRole('button'));
   expect(screen.getByRole('dialog')).toBeInTheDocument();
 });
+
+test('trigger click should stopPropagation instead of preventDefault', async () => {
+  render(<ModalTrigger {...mockedProps} />);
+  const trigger = screen.getByTestId('span-modal-trigger');
+
+  const clickEvent = new MouseEvent('click', {
+    bubbles: true,
+    cancelable: true,
+  });
+  const stopSpy = jest.spyOn(clickEvent, 'stopPropagation');
+
+  trigger.dispatchEvent(clickEvent);
+
+  expect(stopSpy).toHaveBeenCalled();
+  // preventDefault should NOT be called — it blocks the parent
+  // dropdown menu from closing, leaving rc-menu's keyboard handler
+  // active and intercepting arrow/Home/End keys (#37948)
+  expect(clickEvent.defaultPrevented).toBe(false);
+});
+
+test('should not block arrow key default behavior inside modal input', async () => {
+  render(
+    <ModalTrigger
+      triggerNode={<span>Trigger</span>}
+      modalBody={<input aria-label="test-input" />}
+    />,
+  );
+
+  await userEvent.click(screen.getByRole('button'));
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+  const input = screen.getByRole('textbox', { name: 'test-input' });
+
+  // Simulate pressing ArrowLeft — default should NOT be prevented
+  const arrowEvent = new KeyboardEvent('keydown', {
+    key: 'ArrowLeft',
+    bubbles: true,
+    cancelable: true,
+  });
+  const wasPrevented = !input.dispatchEvent(arrowEvent);
+  expect(wasPrevented).toBe(false);
+});
