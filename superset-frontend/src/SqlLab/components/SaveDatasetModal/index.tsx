@@ -140,6 +140,10 @@ const Styles = styled.div`
     .sdm-form-field {
       margin-left: 0;
       max-width: 400px;
+
+      @media (max-width: 480px) {
+        max-width: 100%;
+      }
     }
 
     .sdm-overwrite-msg {

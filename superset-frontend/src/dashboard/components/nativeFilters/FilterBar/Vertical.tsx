@@ -61,6 +61,11 @@ const BarWrapper = styled.div<{ width: number }>`
   &.open {
     width: ${({ width }) => width}px; // arbitrary...
   }
+
+  /* WCAG 1.4.10 Reflow: hide at narrow viewports (parent also hides via DashboardBuilder) */
+  @media (max-width: 768px) {
+    display: none;
+  }
 `;
 
 const Bar = styled.div<{ width: number }>`
