@@ -211,7 +211,7 @@ class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         sqla_type = cls.get_sqla_column_type(target_type)
 
         if isinstance(sqla_type, types.DateTime):
-            return f"""'{dttm.isoformat(timespec="seconds")}'"""
+            return f"""'{dttm.isoformat(sep=" ", timespec="seconds")}'"""
         return None
 
     @staticmethod
