@@ -37,6 +37,7 @@ from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import MetadataCacheControl
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
+    serialize_user_object,
     TagInfo,
     UserInfo,
 )
@@ -338,8 +339,9 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         if getattr(dataset, "tags", None)
         else [],
         owners=[
-            UserInfo.model_validate(owner, from_attributes=True)
+            info
             for owner in getattr(dataset, "owners", [])
+            if (info := serialize_user_object(owner)) is not None
         ]
         if getattr(dataset, "owners", None)
         else [],

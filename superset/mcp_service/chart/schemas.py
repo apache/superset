@@ -45,6 +45,7 @@ from superset.mcp_service.common.cache_schemas import (
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
+    serialize_user_object,
     TagInfo,
     UserInfo,
 )
@@ -278,8 +279,9 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         if getattr(chart, "tags", None)
         else [],
         owners=[
-            UserInfo.model_validate(owner, from_attributes=True)
+            info
             for owner in getattr(chart, "owners", [])
+            if (info := serialize_user_object(owner)) is not None
         ]
         if getattr(chart, "owners", None)
         else [],
@@ -747,6 +749,14 @@ class XYChartConfig(BaseModel):
             "Common values: PT1S (second), PT1M (minute), PT1H (hour), "
             "P1D (day), P1W (week), P1M (month), P3M (quarter), P1Y (year). "
             "If not specified, Superset will use its default behavior."
+        ),
+    )
+    orientation: Literal["vertical", "horizontal"] | None = Field(
+        None,
+        description=(
+            "Bar chart orientation. Only applies when kind='bar'. "
+            "'vertical' (default): bars extend upward. "
+            "'horizontal': bars extend rightward, useful for long category names."
         ),
     )
     stacked: bool = Field(

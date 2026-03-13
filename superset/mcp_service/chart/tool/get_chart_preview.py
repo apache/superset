@@ -160,6 +160,7 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             )
 
             command = ChartDataCommand(query_context)
+            command.validate()
             result = command.run()
 
             data = []
@@ -234,6 +235,7 @@ class TablePreviewStrategy(PreviewFormatStrategy):
             )
 
             command = ChartDataCommand(query_context)
+            command.validate()
             result = command.run()
 
             data = []
@@ -340,6 +342,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
 
             # Execute the query
             command = ChartDataCommand(query_context)
+            command.validate()
             result = command.run()
 
             # Extract data from result
@@ -2062,7 +2065,7 @@ async def _get_chart_preview_internal(  # noqa: C901
         )
 
 
-@tool(tags=["data"])
+@tool(tags=["data"], class_permission_name="Chart")
 @parse_request(GetChartPreviewRequest)
 async def get_chart_preview(
     request: GetChartPreviewRequest, ctx: Context
