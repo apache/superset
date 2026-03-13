@@ -242,7 +242,7 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
                 </div>
                 <Input
                   name={`password-${fileName}`}
-                  autoComplete={`password-${fileName}`}
+                  autoComplete="off"
                   type="password"
                   value={passwords[fileName]}
                   onChange={event =>
@@ -262,7 +262,7 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
                 </div>
                 <Input
                   name={`ssh_tunnel_password-${fileName}`}
-                  autoComplete={`ssh_tunnel_password-${fileName}`}
+                  autoComplete="off"
                   type="password"
                   value={sshTunnelPasswords[fileName]}
                   onChange={event =>
@@ -283,7 +283,7 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
                 </div>
                 <Input.TextArea
                   name={`ssh_tunnel_private_key-${fileName}`}
-                  autoComplete={`ssh_tunnel_private_key-${fileName}`}
+                  autoComplete="off"
                   value={sshTunnelPrivateKeys[fileName]}
                   onChange={event =>
                     setSSHTunnelPrivateKeys({
@@ -305,7 +305,7 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
                 </div>
                 <Input
                   name={`ssh_tunnel_private_key_password-${fileName}`}
-                  autoComplete={`ssh_tunnel_private_key_password-${fileName}`}
+                  autoComplete="off"
                   type="password"
                   value={sshTunnelPrivateKeyPasswords[fileName]}
                   onChange={event =>
