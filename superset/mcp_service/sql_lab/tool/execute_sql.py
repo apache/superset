@@ -190,7 +190,20 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
 
     if data_stmt is not None and data_stmt.data is not None:
         # SELECT query - convert DataFrame
+        import pandas as pd
+
         df = data_stmt.data
+        if not isinstance(df, pd.DataFrame):
+            logger.error(
+                "Expected DataFrame but got %s for statement data",
+                type(df).__name__,
+            )
+            return ExecuteSqlResponse(
+                success=False,
+                error=f"Internal error: unexpected data type ({type(df).__name__})",
+                error_type="data_conversion_error",
+                statements=statements,
+            )
         rows = df.to_dict(orient="records")
         columns = [ColumnInfo(name=col, type=str(df[col].dtype)) for col in df.columns]
         row_count = len(df)
