@@ -67,7 +67,7 @@ function DashboardCard({
   const thumbnailUrl =
     isFeatureEnabled(FeatureFlag.Thumbnails) && dashboard.id
       ? dashboard.thumbnail_url ||
-        `/api/v1/dashboard/${dashboard.id}/thumbnail/${encodeURIComponent(dashboard.changed_on_utc || 'default')}/`
+        `/api/v1/dashboard/${dashboard.id}/thumbnail/${encodeURIComponent(dashboard.changed_on_utc || dashboard.changed_on || 'default')}/`
       : '';
 
   const menuItems: MenuItem[] = [];

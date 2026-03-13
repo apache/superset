@@ -55,6 +55,7 @@ export interface Dashboard {
   certified_by?: string;
   certification_details?: string;
   changed_by_name: string;
+  changed_on?: string;
   changed_on_delta_humanized?: string;
   changed_on_utc?: string;
   changed_by: string;
