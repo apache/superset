@@ -401,6 +401,22 @@ def _is_parse_request_enabled() -> bool:
     return True
 
 
+def _safe_parse(parse_fn: Callable[..., Any], request: Any) -> Any:
+    """Call parse_fn and convert ValidationError/JSONParseError to ToolError."""
+    from fastmcp.exceptions import ToolError
+
+    try:
+        return parse_fn(request)
+    except ValidationError as e:
+        details = "; ".join(
+            f"{' -> '.join(str(loc) for loc in err['loc'])}: {err['msg']}"
+            for err in e.errors()
+        )
+        raise ToolError(f"Invalid request parameters: {details}") from None
+    except JSONParseError as e:
+        raise ToolError(str(e)) from None
+
+
 def parse_request(
     request_class: Type[BaseModel],
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
@@ -476,7 +492,8 @@ def parse_request(
                 from fastmcp.server.dependencies import get_context
 
                 ctx = get_context()
-                return await func(_maybe_parse(request), ctx, *args, **kwargs)
+                parsed = _safe_parse(_maybe_parse, request)
+                return await func(parsed, ctx, *args, **kwargs)
 
             wrapper = async_wrapper
         else:
@@ -486,7 +503,8 @@ def parse_request(
                 from fastmcp.server.dependencies import get_context
 
                 ctx = get_context()
-                return func(_maybe_parse(request), ctx, *args, **kwargs)
+                parsed = _safe_parse(_maybe_parse, request)
+                return func(parsed, ctx, *args, **kwargs)
 
             wrapper = sync_wrapper
 

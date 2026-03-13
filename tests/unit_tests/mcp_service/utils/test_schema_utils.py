@@ -481,8 +481,8 @@ class TestParseRequestDecorator:
             result = sync_tool('{"name": "test", "count": 5}', extra="data")
         assert result == "test:5:data"
 
-    def test_decorator_raises_tool_error_for_invalid_data_async(self):
-        """Should raise ToolError with field details for invalid data."""
+    def test_decorator_raises_tool_error_for_validation_error_async(self):
+        """Should raise ToolError (not ValidationError) for invalid data in async."""
         from unittest.mock import MagicMock, patch
 
         from fastmcp.exceptions import ToolError
@@ -495,11 +495,11 @@ class TestParseRequestDecorator:
 
         mock_ctx = MagicMock()
         with patch("fastmcp.server.dependencies.get_context", return_value=mock_ctx):
-            with pytest.raises(ToolError, match="Required fields for RequestModel"):
+            with pytest.raises(ToolError, match="Invalid request parameters"):
                 asyncio.run(async_tool('{"name": "test"}'))  # Missing count
 
-    def test_decorator_raises_tool_error_for_invalid_data_sync(self):
-        """Should raise ToolError with field details for invalid data."""
+    def test_decorator_raises_tool_error_for_validation_error_sync(self):
+        """Should raise ToolError (not ValidationError) for invalid data in sync."""
         from unittest.mock import MagicMock, patch
 
         from fastmcp.exceptions import ToolError
@@ -510,7 +510,7 @@ class TestParseRequestDecorator:
 
         mock_ctx = MagicMock()
         with patch("fastmcp.server.dependencies.get_context", return_value=mock_ctx):
-            with pytest.raises(ToolError, match="Required fields for RequestModel"):
+            with pytest.raises(ToolError, match="Invalid request parameters"):
                 sync_tool('{"name": "test"}')  # Missing count
 
     def test_decorator_with_complex_model_async(self):
@@ -564,3 +564,65 @@ class TestParseRequestDecorator:
         with patch("fastmcp.server.dependencies.get_context", return_value=mock_ctx):
             result = sync_tool(json_str)
         assert result == "test:42"
+
+    def test_tool_error_includes_field_details_sync(self):
+        """ToolError message should include which field is missing."""
+        from unittest.mock import MagicMock, patch
+
+        from fastmcp.exceptions import ToolError
+
+        @parse_request(self.RequestModel)
+        def sync_tool(request, ctx=None):
+            return f"{request.name}:{request.count}"
+
+        mock_ctx = MagicMock()
+        with patch("fastmcp.server.dependencies.get_context", return_value=mock_ctx):
+            with pytest.raises(ToolError, match="count"):
+                sync_tool({"name": "test"})  # Missing count
+
+    def test_tool_error_includes_field_details_async(self):
+        """ToolError message should include which field is missing (async)."""
+        import asyncio
+        from unittest.mock import MagicMock, patch
+
+        from fastmcp.exceptions import ToolError
+
+        @parse_request(self.RequestModel)
+        async def async_tool(request, ctx=None):
+            return f"{request.name}:{request.count}"
+
+        mock_ctx = MagicMock()
+        with patch("fastmcp.server.dependencies.get_context", return_value=mock_ctx):
+            with pytest.raises(ToolError, match="count"):
+                asyncio.run(async_tool({"name": "test"}))  # Missing count
+
+    def test_tool_error_for_invalid_json_sync(self):
+        """Should raise ToolError for unparseable JSON string (sync)."""
+        from unittest.mock import MagicMock, patch
+
+        from fastmcp.exceptions import ToolError
+
+        @parse_request(self.RequestModel)
+        def sync_tool(request, ctx=None):
+            return f"{request.name}:{request.count}"
+
+        mock_ctx = MagicMock()
+        with patch("fastmcp.server.dependencies.get_context", return_value=mock_ctx):
+            with pytest.raises(ToolError, match="Failed to parse"):
+                sync_tool("not valid json at all")
+
+    def test_tool_error_for_invalid_json_async(self):
+        """Should raise ToolError for unparseable JSON string (async)."""
+        import asyncio
+        from unittest.mock import MagicMock, patch
+
+        from fastmcp.exceptions import ToolError
+
+        @parse_request(self.RequestModel)
+        async def async_tool(request, ctx=None):
+            return f"{request.name}:{request.count}"
+
+        mock_ctx = MagicMock()
+        with patch("fastmcp.server.dependencies.get_context", return_value=mock_ctx):
+            with pytest.raises(ToolError, match="Failed to parse"):
+                asyncio.run(async_tool("not valid json at all"))
