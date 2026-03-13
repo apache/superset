@@ -228,24 +228,25 @@ def run_server(
         auth_provider = _create_auth_provider(flask_app)
 
         # Build middleware list
-        # FastMCP wraps handlers so that the LAST-added middleware is
-        # outermost.  Order here is innermost → outermost.
+        # FastMCP 2.14+ uses reversed(middleware) when building the chain,
+        # so the FIRST-added middleware becomes the outermost wrapper.
+        # Order here is outermost → innermost.
         middleware_list = []
 
-        # Add caching middleware (innermost – runs closest to the tool)
-        caching_middleware = create_response_caching_middleware()
-        if caching_middleware:
-            middleware_list.append(caching_middleware)
+        # Add global error handler (outermost – catches all exceptions)
+        middleware_list.append(GlobalErrorHandlerMiddleware())
+
+        # Add logging middleware (logs all tool calls with duration tracking)
+        middleware_list.append(LoggingMiddleware())
 
         # Add response size guard (protects LLM clients from huge responses)
         if size_guard_middleware := create_response_size_guard_middleware():
             middleware_list.append(size_guard_middleware)
 
-        # Add logging middleware (logs all tool calls with duration tracking)
-        middleware_list.append(LoggingMiddleware())
-
-        # Add global error handler (outermost – catches all exceptions)
-        middleware_list.append(GlobalErrorHandlerMiddleware())
+        # Add caching middleware (innermost – runs closest to the tool)
+        caching_middleware = create_response_caching_middleware()
+        if caching_middleware:
+            middleware_list.append(caching_middleware)
 
         mcp_instance = init_fastmcp_server(
             auth=auth_provider,
