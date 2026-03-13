@@ -83,6 +83,65 @@ class ExecuteSqlResponse(BaseModel):
     error_type: str | None = Field(None, description="Type of error if failed")
 
 
+class SaveSqlQueryRequest(BaseModel):
+    """Request schema for saving a SQL query."""
+
+    database_id: int = Field(
+        ..., description="Database connection ID the query runs against"
+    )
+    label: str = Field(
+        ...,
+        description="Name for the saved query (shown in Saved Queries list)",
+        min_length=1,
+        max_length=256,
+    )
+    sql: str = Field(
+        ...,
+        description="SQL query text to save",
+    )
+    schema_name: str | None = Field(
+        None,
+        description="Schema the query targets",
+        alias="schema",
+    )
+    catalog: str | None = Field(None, description="Catalog name (if applicable)")
+    description: str | None = Field(
+        None, description="Optional description of the query"
+    )
+
+    @field_validator("sql")
+    @classmethod
+    def sql_not_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("SQL query cannot be empty")
+        return v.strip()
+
+    @field_validator("label")
+    @classmethod
+    def label_not_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Label cannot be empty")
+        return v.strip()
+
+
+class SaveSqlQueryResponse(BaseModel):
+    """Response schema for a saved SQL query."""
+
+    id: int = Field(..., description="Saved query ID")
+    label: str = Field(..., description="Query name")
+    sql: str = Field(..., description="SQL query text")
+    database_id: int = Field(..., description="Database ID")
+    schema_name: str | None = Field(None, description="Schema name", alias="schema")
+    catalog: str | None = Field(None, description="Catalog name (if applicable)")
+    description: str | None = Field(None, description="Query description")
+    url: str = Field(
+        ...,
+        description=(
+            "URL to open this saved query in SQL Lab (e.g., /sqllab?savedQueryId=42)"
+        ),
+    )
+
+
 class OpenSqlLabRequest(BaseModel):
     """Request schema for opening SQL Lab with context."""
 
