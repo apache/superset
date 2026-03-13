@@ -261,11 +261,16 @@ class BaseReportState:
         Retrieve the URL for the dashboard tabs, or return the dashboard URL if no tabs are available.
         """  # noqa: E501
         force = "true" if self._report_schedule.force_screenshot else "false"
+        dashboard_state = self._report_schedule.extra.get("dashboard")
 
-        if (
-            dashboard_state := self._report_schedule.extra.get("dashboard")
-        ) and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS"):
+        # Compute native filters when the ALERT_REPORTS_FILTER feature is enabled
+        native_filter_params: str | None = None
+        if feature_flag_manager.is_feature_enabled("ALERT_REPORTS_FILTER"):
             native_filter_params = self._report_schedule.get_native_filters_params()
+
+        if dashboard_state and feature_flag_manager.is_feature_enabled(
+            "ALERT_REPORT_TABS"
+        ):
             if anchor := dashboard_state.get("anchor"):
                 try:
                     anchor_list: list[str] = json.loads(anchor)
@@ -301,6 +306,7 @@ class BaseReportState:
                 user_friendly=user_friendly,
                 dashboard_id_or_slug=dashboard_id_or_slug,
                 force=force,
+                native_filters=native_filter_params,
                 **kwargs,
             )
         ]
