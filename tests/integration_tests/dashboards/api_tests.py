@@ -32,7 +32,7 @@ from freezegun import freeze_time
 from sqlalchemy import and_
 from superset import db, security_manager  # noqa: F401
 from superset.models.dashboard import Dashboard
-from superset.models.core import FavStar, FavStarClassName
+from superset.models.core import FavStar, FavStarClassName, Log
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
 from superset.tags.models import Tag, TaggedObject, TagType, ObjectType
@@ -1373,6 +1373,16 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         model = db.session.query(Dashboard).get(dashboard_id)
         assert model is None
 
+        # Verify audit log
+        log = (
+            db.session.query(Log)
+            .filter_by(action="DashboardRestApi.delete", dashboard_id=dashboard_id)
+            .order_by(Log.dttm.desc())
+            .first()
+        )
+        assert log is not None
+        assert log.dashboard_id == dashboard_id
+
     def test_delete_bulk_dashboards(self):
         """
         Dashboard API: Test delete bulk
@@ -1830,6 +1840,16 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert model.published == self.dashboard_data["published"]
         assert model.owners == [admin]
         assert model.roles == [admin_role]
+
+        # Verify audit log
+        log = (
+            db.session.query(Log)
+            .filter_by(action="DashboardRestApi.put", dashboard_id=dashboard_id)
+            .order_by(Log.dttm.desc())
+            .first()
+        )
+        assert log is not None
+        assert log.dashboard_id == dashboard_id
 
         db.session.delete(model)
         db.session.commit()

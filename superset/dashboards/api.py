@@ -687,9 +687,13 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
     @requires_json
-    def post(self) -> Response:
+    def post(
+        self,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> Response:
         """Create a new dashboard.
         ---
         post:
@@ -729,6 +733,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         try:
             new_model = CreateDashboardCommand(item).run()
+            add_extra_log_payload(dashboard_id=new_model.id)
             return self.response(201, id=new_model.id, result=item)
         except DashboardInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
@@ -748,9 +753,14 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
     @requires_json
-    def put(self, pk: int) -> Response:
+    def put(
+        self,
+        pk: int,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> Response:
         """Update a dashboard.
         ---
         put:
@@ -804,6 +814,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             last_modified_time = changed_model.changed_on.replace(
                 microsecond=0
             ).timestamp()
+            add_extra_log_payload(dashboard_id=changed_model.id)
             response = self.response(
                 200,
                 id=changed_model.id,
@@ -835,9 +846,14 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put_filters",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
     @requires_json
-    def put_filters(self, pk: int) -> Response:
+    def put_filters(
+        self,
+        pk: int,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> Response:
         """
         Modify native filters configuration for a dashboard.
         ---
@@ -885,6 +901,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
 
         try:
             configuration = UpdateDashboardNativeFiltersCommand(pk, item).run()
+            add_extra_log_payload(dashboard_id=pk)
             response = self.response(
                 200,
                 result=configuration,
@@ -916,9 +933,14 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             f"{self.__class__.__name__}.put_chart_customizations"
         ),
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
     @requires_json
-    def put_chart_customizations(self, pk: int) -> Response:
+    def put_chart_customizations(
+        self,
+        pk: int,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> Response:
         """
         Modify chart customizations configuration for a dashboard.
         ---
@@ -969,6 +991,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
 
         try:
             configuration = UpdateDashboardChartCustomizationsCommand(pk, item).run()
+            add_extra_log_payload(dashboard_id=pk)
             response = self.response(
                 200,
                 result=configuration,
@@ -998,9 +1021,14 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put_colors",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
     @requires_json
-    def put_colors(self, pk: int) -> Response:
+    def put_colors(
+        self,
+        pk: int,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> Response:
         """
         Modify colors configuration for a dashboard.
         ---
@@ -1056,6 +1084,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
                 request.args.get("mark_updated", "true")
             )
             UpdateDashboardColorsConfigCommand(pk, item, mark_updated).run()
+            add_extra_log_payload(dashboard_id=pk)
             response = self.response(200)
         except DashboardNotFoundError:
             response = self.response_404()
@@ -1080,8 +1109,13 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
-    def delete(self, pk: int) -> Response:
+    def delete(
+        self,
+        pk: int,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> Response:
         """Delete a dashboard.
         ---
         delete:
@@ -1113,6 +1147,8 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
+            # Capture dashboard_id before deletion (row gone after DeleteCommand.run())
+            add_extra_log_payload(dashboard_id=pk)
             DeleteDashboardCommand([pk]).run()
             return self.response(200, message="OK")
         except DashboardNotFoundError:
@@ -1136,8 +1172,13 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
-    def bulk_delete(self, **kwargs: Any) -> Response:
+    def bulk_delete(
+        self,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+        **kwargs: Any,
+    ) -> Response:
         """Bulk delete dashboards.
         ---
         delete:
@@ -1172,6 +1213,8 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
+            # Store IDs in the json payload column for audit traceability
+            add_extra_log_payload(dashboard_ids=item_ids)
             DeleteDashboardCommand(item_ids).run()
             return self.response(
                 200,
