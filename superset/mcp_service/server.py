@@ -373,6 +373,11 @@ def run_server(
         )
         if tool_search_config.get("enabled", False):
             _apply_tool_search_transform(mcp_instance, tool_search_config)
+            # Ensure the configured search tool name is excluded from the
+            # response size guard (search results are intentionally large)
+            if size_guard_middleware:
+                search_name = tool_search_config.get("search_tool_name", "search_tools")
+                size_guard_middleware.excluded_tools.add(search_name)
 
     # Create EventStore for session management (Redis for multi-pod, None for in-memory)
     event_store = create_event_store(event_store_config)
