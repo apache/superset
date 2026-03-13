@@ -25,14 +25,14 @@ from flask import g
 from superset.mcp_service.auth import get_user_from_request
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_user():
     user = MagicMock()
     user.username = "api_key_user"
     return user
 
 
-@pytest.fixture()
+@pytest.fixture
 def _enable_api_keys(app):
     """Enable FAB API key auth and clear MCP_DEV_USERNAME so the API key
     path is exercised instead of falling through to the dev-user fallback."""
@@ -44,7 +44,7 @@ def _enable_api_keys(app):
         app.config["MCP_DEV_USERNAME"] = old_dev
 
 
-@pytest.fixture()
+@pytest.fixture
 def _disable_api_keys(app):
     app.config["FAB_API_KEY_ENABLED"] = False
     yield
@@ -61,9 +61,7 @@ def test_valid_api_key_returns_user(app, mock_user) -> None:
     mock_sm._extract_api_key_from_request.return_value = "sst_abc123"
     mock_sm.validate_api_key.return_value = mock_user
 
-    with app.test_request_context(
-        headers={"Authorization": "Bearer sst_abc123"}
-    ):
+    with app.test_request_context(headers={"Authorization": "Bearer sst_abc123"}):
         g.user = None
         app.appbuilder = MagicMock()
         app.appbuilder.sm = mock_sm
@@ -88,9 +86,7 @@ def test_invalid_api_key_raises(app) -> None:
     mock_sm._extract_api_key_from_request.return_value = "sst_bad_key"
     mock_sm.validate_api_key.return_value = None
 
-    with app.test_request_context(
-        headers={"Authorization": "Bearer sst_bad_key"}
-    ):
+    with app.test_request_context(headers={"Authorization": "Bearer sst_bad_key"}):
         g.user = None
         app.appbuilder = MagicMock()
         app.appbuilder.sm = mock_sm
@@ -107,9 +103,7 @@ def test_api_key_disabled_skips_auth(app) -> None:
     """When FAB_API_KEY_ENABLED is False, API key auth is skipped entirely."""
     mock_sm = MagicMock()
 
-    with app.test_request_context(
-        headers={"Authorization": "Bearer sst_abc123"}
-    ):
+    with app.test_request_context(headers={"Authorization": "Bearer sst_abc123"}):
         g.user = None
         app.appbuilder = MagicMock()
         app.appbuilder.sm = mock_sm
@@ -152,9 +146,7 @@ def test_existing_g_user_takes_precedence(app, mock_user) -> None:
     should not be attempted."""
     mock_sm = MagicMock()
 
-    with app.test_request_context(
-        headers={"Authorization": "Bearer sst_abc123"}
-    ):
+    with app.test_request_context(headers={"Authorization": "Bearer sst_abc123"}):
         g.user = mock_user
         app.appbuilder = MagicMock()
         app.appbuilder.sm = mock_sm
@@ -193,16 +185,12 @@ def test_fab_without_validate_method_raises(app) -> None:
     mock_sm = MagicMock(spec=["_extract_api_key_from_request"])
     mock_sm._extract_api_key_from_request.return_value = "sst_abc123"
 
-    with app.test_request_context(
-        headers={"Authorization": "Bearer sst_abc123"}
-    ):
+    with app.test_request_context(headers={"Authorization": "Bearer sst_abc123"}):
         g.user = None
         app.appbuilder = MagicMock()
         app.appbuilder.sm = mock_sm
 
-        with pytest.raises(
-            ValueError, match="API key validation is not available"
-        ):
+        with pytest.raises(ValueError, match="API key validation is not available"):
             get_user_from_request()
 
 
@@ -210,18 +198,14 @@ def test_fab_without_validate_method_raises(app) -> None:
 
 
 @pytest.mark.usefixtures("_enable_api_keys")
-def test_relationship_reload_failure_returns_original_user(
-    app, mock_user
-) -> None:
+def test_relationship_reload_failure_returns_original_user(app, mock_user) -> None:
     """If load_user_with_relationships fails, the original user from
     validate_api_key should be returned as fallback."""
     mock_sm = MagicMock()
     mock_sm._extract_api_key_from_request.return_value = "sst_abc123"
     mock_sm.validate_api_key.return_value = mock_user
 
-    with app.test_request_context(
-        headers={"Authorization": "Bearer sst_abc123"}
-    ):
+    with app.test_request_context(headers={"Authorization": "Bearer sst_abc123"}):
         g.user = None
         app.appbuilder = MagicMock()
         app.appbuilder.sm = mock_sm
