@@ -150,7 +150,11 @@ const DndMetricSelect = (props: any) => {
       const optionValues = transformedOpts
         .map(option => {
           // pre-defined metric
-          if (typeof option === 'object' && 'metric_name' in option && option.metric_name) {
+          if (
+            typeof option === 'object' &&
+            'metric_name' in option &&
+            option.metric_name
+          ) {
             return option.metric_name;
           }
           return option;
