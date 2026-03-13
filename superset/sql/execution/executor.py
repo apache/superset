@@ -77,6 +77,7 @@ from superset.sql.parse import SQLScript
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
+    import pandas as pd
     from superset_core.queries.types import (
         AsyncQueryHandle,
         QueryOptions,
@@ -779,6 +780,44 @@ class SQLExecutor:
 
         return query
 
+    @staticmethod
+    def _deserialize_cached_data(raw: Any) -> pd.DataFrame | None:
+        """
+        Deserialize the ``data`` field stored in the query result cache.
+
+        Handles three formats:
+        - **New format** (dict): ``{"records": [...], "columns": [...]}``
+        - **In-memory format** (DataFrame): returned as-is (e.g. SimpleCache)
+        - **None**: DML statements with no result data
+
+        Any other type (e.g. bytes from legacy cache entries) is discarded
+        and treated as a cache miss. We intentionally avoid pickle
+        deserialization to prevent code-execution attacks from a
+        compromised cache backend.
+
+        :param raw: The raw value read from the cache
+        :returns: A pandas DataFrame, or None
+        """
+        import pandas as pd
+
+        if raw is None:
+            return None
+
+        if isinstance(raw, pd.DataFrame):
+            return raw
+
+        if isinstance(raw, dict):
+            return pd.DataFrame(
+                raw["records"],
+                columns=raw["columns"],
+            )
+
+        logger.warning(
+            "Unexpected cached data type %s, discarding cache entry",
+            type(raw).__name__,
+        )
+        return None
+
     def _get_from_cache(self, sql: str, opts: QueryOptions) -> QueryResult | None:
         """
         Check results cache for existing result.
@@ -796,12 +835,14 @@ class SQLExecutor:
         cache_key = self._generate_cache_key(sql, opts)
 
         if (cached := cache_manager.data_cache.get(cache_key)) is not None:
-            # Reconstruct statement results from cached data
+            # Reconstruct statement results from cached data.
+            # New entries store DataFrames as {"records": [...], "columns": [...]}
+            # dicts; legacy entries may contain raw bytes (pickle) or DataFrames.
             statements = [
                 StatementResult(
                     original_sql=stmt_data["original_sql"],
                     executed_sql=stmt_data["executed_sql"],
-                    data=stmt_data["data"],
+                    data=self._deserialize_cached_data(stmt_data.get("data")),
                     row_count=stmt_data["row_count"],
                     execution_time_ms=stmt_data["execution_time_ms"],
                 )
@@ -845,7 +886,14 @@ class SQLExecutor:
                 {
                     "original_sql": stmt.original_sql,
                     "executed_sql": stmt.executed_sql,
-                    "data": stmt.data,
+                    "data": (
+                        {
+                            "records": stmt.data.to_dict(orient="records"),
+                            "columns": list(stmt.data.columns),
+                        }
+                        if stmt.data is not None
+                        else None
+                    ),
                     "row_count": stmt.row_count,
                     "execution_time_ms": stmt.execution_time_ms,
                 }
