@@ -640,7 +640,7 @@ const DashboardBuilder = () => {
           editMode={editMode}
           // you cannot drop on/displace tabs if they already exist
           disableDragDrop={!!topLevelTabs}
-          css={draggableStyle}
+          style={draggableStyle}
         >
           {renderDraggableContent}
         </Droppable>
