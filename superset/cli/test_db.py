@@ -40,6 +40,7 @@ from sqlalchemy import (
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import NoSuchModuleError
 
+from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs import load_engine_specs
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -138,7 +139,7 @@ def test_datetime(console: Console, engine: Engine) -> None:
     "raw_engine_kwargs",
     help="Connect args as JSON or YAML",
 )
-def test_db(sqlalchemy_uri: str, raw_engine_kwargs: str | None = None) -> None:
+def test_db(sqlalchemy_uri: str, raw_engine_kwargs: str | None = None) -> None:  # noqa: PT028
     """
     Run a series of tests against an analytical database.
 
@@ -181,7 +182,13 @@ def collect_connection_info(
     """
     Collect ``engine_kwargs`` if needed.
     """
-    console.print(f"[green]SQLAlchemy URI: [bold]{sqlalchemy_uri}")
+    try:
+        safe_uri = make_url_safe(str(sqlalchemy_uri)).render_as_string(
+            hide_password=True
+        )
+    except DatabaseInvalidError:
+        safe_uri = "<invalid database URI>"
+    console.print(f"[green]SQLAlchemy URI: [bold]{safe_uri}")
     if raw_engine_kwargs is None:
         configure_engine_kwargs = input(
             "> Do you want to configure connection arguments? [y/N] "

@@ -16,7 +16,7 @@
 # under the License.
 
 import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, PropertyMock
 
 from sqlalchemy.exc import OperationalError
 
@@ -188,6 +188,36 @@ class TestSupersetAppInitializer:
             app_initializer._db_uri_cache
             == "postgresql://realuser:realpass@realhost:5432/realdb"
         )
+
+    def test_check_and_warn_database_connection_masking(self):
+        """Test that passwords are masked when database connection fails."""
+        # Setup
+        mock_app = MagicMock()
+        mock_app.app_context.return_value.__enter__.return_value = MagicMock()
+
+        # Mock db.engine.execute to fail
+        with patch("superset.initialization.db") as mock_db:
+            mock_db.engine.execute.side_effect = Exception("Connection Failed")
+
+            # Mock database_uri to return a URI with a password
+            with patch.object(
+                SupersetAppInitializer,
+                "database_uri",
+                new_callable=PropertyMock,
+            ) as mock_uri:
+                mock_uri.return_value = "postgresql://user:pass@host/db"
+                app_initializer = SupersetAppInitializer(mock_app)
+
+                # Execute
+                with patch("builtins.print") as mock_print:
+                    app_initializer.check_and_warn_database_connection()
+
+                # Assert
+                mock_print.assert_called_once()
+                output = mock_print.call_args[0][0]
+                assert "pass" not in output
+                assert "***" in output
+                assert "host" in output
 
 
 class TestCreateAppRoot:
