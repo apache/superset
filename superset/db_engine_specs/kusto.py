@@ -16,9 +16,9 @@
 # under the License.
 import re
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
-from sqlalchemy import types
+from sqlalchemy import text, types
 from sqlalchemy.dialects.mssql.base import SMALLDATETIME
 
 from superset.constants import TimeGrain
@@ -28,6 +28,9 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
 from superset.sql.parse import LimitMethod
 from superset.utils.core import GenericDataType
 
@@ -190,6 +193,14 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     type_code_map: dict[int, str] = {}  # loaded from get_datatype only if needed
 
+    column_type_mappings = (
+        (
+            re.compile(r"^array.*", re.IGNORECASE),
+            types.String(),
+            GenericDataType.STRING,
+        ),
+    )
+
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
         # pylint: disable=import-outside-toplevel,import-error
@@ -200,6 +211,46 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             kusto_exceptions.OperationalError: SupersetDBAPIOperationalError,
             kusto_exceptions.ProgrammingError: SupersetDBAPIProgrammingError,
         }
+
+    @classmethod
+    def handle_null_filter(
+        cls,
+        sqla_col: Any,
+        op: Any,
+    ) -> Any:
+        """
+        Handle null/not null filter operations for KQL.
+
+        In KQL, null checks use functions:
+        - isnull(col) for IS NULL
+        - isnotnull(col) for IS NOT NULL
+
+        :param sqla_col: SQLAlchemy column element
+        :param op: Filter operator (IS_NULL or IS_NOT_NULL)
+        :return: SQLAlchemy expression for the null filter
+        """
+        from superset.utils import core as utils
+
+        if op == utils.FilterOperator.IS_NULL:
+            return text(f"isnull({sqla_col})")
+        if op == utils.FilterOperator.IS_NOT_NULL:
+            return text(f"isnotnull({sqla_col})")
+
+        raise ValueError(f"Invalid null filter operator: {op}")
+
+    @classmethod
+    def epoch_to_dttm(cls) -> str:
+        """
+        Convert from number of seconds since the epoch to a timestamp.
+        """
+        return "unixtime_seconds_todatetime({col})"
+
+    @classmethod
+    def epoch_ms_to_dttm(cls) -> str:
+        """
+        Convert from number of milliseconds since the epoch to a timestamp.
+        """
+        return "unixtime_milliseconds_todatetime({col})"
 
     @classmethod
     def convert_dttm(
@@ -213,3 +264,35 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             return f"""datetime({dttm.isoformat(timespec="microseconds")})"""
 
         return None
+
+    @classmethod
+    def execute(
+        cls,
+        cursor: Any,
+        query: str,
+        database: "Database",
+        **kwargs: Any,
+    ) -> None:
+        """
+        Execute a KQL query, fixing ARRAY() wrappers around
+        bracket-quoted identifiers.
+
+        Example:
+            ARRAY(["age"]) -> ["age"]
+            ARRAY(["user_name"]) -> ["user_name"]
+        """
+        import logging
+        import re
+
+        logger = logging.getLogger(__name__)
+        logger.debug("execute: input query: %s", query)
+
+        # Replace ARRAY(["identifier"]) with ["identifier"]
+        processed_query = re.sub(
+            r'ARRAY\(\[("[^"]+")\]\)',
+            r"[\1]",
+            query,
+        )
+
+        logger.debug("execute: processed query: %s", processed_query)
+        super().execute(cursor, processed_query, database, **kwargs)
