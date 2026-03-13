@@ -34,3 +34,4 @@ export { default as createDurationFormatter } from './factories/createDurationFo
 export { default as createMemoryFormatter } from './factories/createMemoryFormatter';
 export { default as createSiAtMostNDigitFormatter } from './factories/createSiAtMostNDigitFormatter';
 export { default as createSmartNumberFormatter } from './factories/createSmartNumberFormatter';
+export { default as getSmallNumberFormatter } from './getSmallNumberFormatter';
