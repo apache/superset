@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useCallback, useEffect, useState } from 'react';
 import { Popover as AntdPopover } from 'antd';
 import { PopoverProps as AntdPopoverProps } from 'antd/es/popover';
 
@@ -23,4 +24,48 @@ export interface PopoverProps extends AntdPopoverProps {
   forceRender?: boolean;
 }
 
-export const Popover = (props: PopoverProps) => <AntdPopover {...props} />;
+/**
+ * WCAG 1.4.13 compliant Popover wrapper.
+ *
+ * - Dismissable: pressing Escape closes the popover.
+ * - Hoverable: Ant Design 5 popovers already keep the overlay visible
+ *   while the pointer is over it.
+ */
+export const Popover = ({ open, onOpenChange, ...props }: PopoverProps) => {
+  const [visible, setVisible] = useState(false);
+
+  const isControlled = open !== undefined;
+  const isVisible = isControlled ? open : visible;
+
+  const handleOpenChange = useCallback(
+    (newOpen: boolean) => {
+      if (!isControlled) {
+        setVisible(newOpen);
+      }
+      onOpenChange?.(newOpen);
+    },
+    [isControlled, onOpenChange],
+  );
+
+  // WCAG 1.4.13: Dismiss popover on Escape key
+  useEffect(() => {
+    if (!isVisible) return undefined;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleOpenChange(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isVisible, handleOpenChange]);
+
+  return (
+    <AntdPopover
+      open={isVisible}
+      onOpenChange={handleOpenChange}
+      {...props}
+    />
+  );
+};

@@ -383,13 +383,13 @@ export const CredentialInfoForm = styled.div`
 
   .label-select {
     color: ${({ theme }) => theme.colorText};
-    font-size: 11px;
+    font-size: 0.6875rem; /* WCAG 1.4.4: 11px → rem */
     margin: 0 5px ${({ theme }) => theme.sizeUnit * 2}px;
   }
 
   .label-paste {
     color: ${({ theme }) => theme.colorTextSecondary};
-    font-size: 11px;
+    font-size: 0.6875rem; /* WCAG 1.4.4: 11px → rem */
     line-height: 16px;
   }
 

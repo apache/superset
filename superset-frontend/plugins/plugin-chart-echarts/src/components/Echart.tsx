@@ -221,6 +221,10 @@ function Echart(
           tooltip: {
             backgroundColor: antdTheme.colorBgContainer,
             textStyle: { color: antdTheme.colorText },
+            // WCAG 1.4.13: Make chart tooltips hoverable (persistent while
+            // pointer is over the tooltip itself) so users can interact with
+            // or read the content without it disappearing.
+            enterable: true,
           },
           axisPointer: {
             lineStyle: { color: antdTheme.colorPrimary },
@@ -282,6 +286,23 @@ function Echart(
         ariaOptions,
       );
 
+      // WCAG 1.4.11: Ensure chart series lines have sufficient visual weight.
+      // Thin lines (1px) with lighter colors may fail the 3:1 non-text contrast
+      // ratio. Enforce a minimum lineWidth of 2 for all line-type series.
+      if (Array.isArray(themedEchartOptions.series)) {
+        themedEchartOptions.series = themedEchartOptions.series.map(
+          (s: any) => {
+            if (s?.type === 'line' && (!s.lineStyle?.width || s.lineStyle?.width < 2)) {
+              return {
+                ...s,
+                lineStyle: { ...s.lineStyle, width: 2 },
+              };
+            }
+            return s;
+          },
+        );
+      }
+
       const notMerge = !isDashboardRefreshing;
       if (!notMerge) {
         chartRef.current?.dispatchAction({ type: 'hideTip' });
@@ -296,6 +317,21 @@ function Echart(
   }, [didMount, echartOptions, eventHandlers, zrEventHandlers, theme, vizType]);
 
   useEffect(() => () => chartRef.current?.dispose(), []);
+
+  // WCAG 1.4.13: Dismiss ECharts tooltip on Escape key
+  useEffect(() => {
+    const el = divRef.current;
+    if (!el) return undefined;
+
+    const handleKeyDown = (e: Event) => {
+      if ((e as globalThis.KeyboardEvent).key === 'Escape' && chartRef.current) {
+        chartRef.current.dispatchAction({ type: 'hideTip' });
+      }
+    };
+
+    el.addEventListener('keydown', handleKeyDown);
+    return () => el.removeEventListener('keydown', handleKeyDown);
+  }, [didMount]);
 
   // highlighting
   useEffect(() => {

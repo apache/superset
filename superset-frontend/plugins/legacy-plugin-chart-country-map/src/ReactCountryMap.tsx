@@ -67,7 +67,7 @@ export default styled(CountryMap)`
       border-radius: 1px;
       background-color: ${theme.colorBgElevated};
       box-shadow: ${theme.boxShadow};
-      font-size: 12px;
+      font-size: 0.75rem; /* WCAG 1.4.4: 12px → rem */
       border: 1px solid ${theme.colorBorder};
       z-index: 10001;
     }
