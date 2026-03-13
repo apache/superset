@@ -298,10 +298,12 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     };
 
     const handleColumnHeaderClick = useCallback(
-      params => {
+      (params: { column?: { colId?: string; sort?: string } }) => {
         const colId = params?.column?.colId;
         const sortDir = params?.column?.sort;
-        handleColSort(colId, sortDir);
+        if (colId && sortDir) {
+          handleColSort(colId, sortDir);
+        }
       },
       [serverPagination, gridInitialState, percentMetrics, onSortChange],
     );
