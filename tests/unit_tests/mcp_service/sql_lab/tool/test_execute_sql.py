@@ -705,6 +705,41 @@ class TestExecuteSql:
     @patch("superset.security_manager")
     @patch("superset.db")
     @pytest.mark.asyncio
+    async def test_execute_sql_no_limit_respects_sql(
+        self, mock_db, mock_security_manager, mcp_server
+    ):
+        """Test that omitting limit lets the SQL LIMIT clause be respected."""
+        mock_database = _mock_database()
+        mock_database.execute.return_value = _create_select_result(
+            rows=[{"id": i} for i in range(5)],
+            columns=["id"],
+            original_sql="SELECT id FROM users LIMIT 5",
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.can_access_database.return_value = True
+
+        # No 'limit' key — should default to None (no override)
+        request = {
+            "database_id": 1,
+            "sql": "SELECT id FROM users LIMIT 5",
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+
+            data = result.structured_content
+            assert data["success"] is True
+
+            # Verify limit=None was passed to QueryOptions (no override)
+            call_args = mock_database.execute.call_args
+            options = call_args[0][1]
+            assert options.limit is None
+
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
     async def test_execute_sql_force_refresh(
         self, mock_db, mock_security_manager, mcp_server
     ):

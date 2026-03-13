@@ -932,7 +932,7 @@ def _export_data_as_csv(
         chart_id=chart.id,
         chart_name=chart.slice_name or f"Chart {chart.id}",
         chart_type=chart.viz_type or "unknown",
-        columns=[],  # Not needed for CSV export
+        columns=[],  # Column names are embedded in CSV content
         data=[],  # CSV content is in csv_data field
         row_count=len(data),
         total_rows=len(data),
@@ -1087,7 +1087,7 @@ def _create_excel_chart_data(
         chart_id=chart.id,
         chart_name=chart_name,
         chart_type=chart.viz_type or "unknown",
-        columns=[],
+        columns=[],  # Column names are embedded in the Excel file
         data=[],
         row_count=len(data),
         total_rows=len(data),
@@ -1120,7 +1120,7 @@ def _create_excel_chart_data_xlsxwriter(
         chart_id=chart.id,
         chart_name=chart_name,
         chart_type=chart.viz_type or "unknown",
-        columns=[],
+        columns=[],  # Column names are embedded in the Excel file
         data=[],
         row_count=len(data),
         total_rows=len(data),

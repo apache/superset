@@ -162,8 +162,9 @@ class DashboardFilter(ColumnOperator):
     col: Literal[
         "dashboard_title",
         "published",
-        "favorite",
         "created_by_fk",
+        "owner",
+        "favorite",
     ] = Field(
         ...,
         description=(
@@ -469,6 +470,12 @@ class GenerateDashboardResponse(BaseModel):
 
 
 def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
+    from superset.mcp_service.utils.url_utils import get_superset_base_url
+
+    base_url = get_superset_base_url()
+    relative_url = dashboard.url  # e.g. "/superset/dashboard/{slug_or_id}/"
+    absolute_url = f"{base_url}{relative_url}" if relative_url else None
+
     return DashboardInfo(
         id=dashboard.id,
         dashboard_title=dashboard.dashboard_title or "Untitled",
@@ -491,7 +498,7 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
         if dashboard.changed_by
         else None,
         uuid=str(dashboard.uuid) if dashboard.uuid else None,
-        url=dashboard.url,
+        url=absolute_url,
         created_on_humanized=dashboard.created_on_humanized,
         changed_on_humanized=dashboard.changed_on_humanized,
         chart_count=len(dashboard.slices) if dashboard.slices else 0,
@@ -520,16 +527,28 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
 
 def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
     """Simple dashboard serializer that safely handles object attributes."""
+    from superset.mcp_service.utils.url_utils import get_superset_base_url
+
+    # Construct URL from id/slug (the model's @property isn't available on
+    # column-only query tuples returned by DAO.list with select_columns)
+    dashboard_id = getattr(dashboard, "id", None)
+    slug = getattr(dashboard, "slug", None)
+    dashboard_url = None
+    if dashboard_id is not None:
+        dashboard_url = (
+            f"{get_superset_base_url()}/superset/dashboard/{slug or dashboard_id}/"
+        )
+
     return DashboardInfo(
-        id=getattr(dashboard, "id", None),
+        id=dashboard_id,
         dashboard_title=getattr(dashboard, "dashboard_title", None),
-        slug=getattr(dashboard, "slug", None),
-        url=getattr(dashboard, "url", None),
+        slug=slug,
+        url=dashboard_url,
         published=getattr(dashboard, "published", None),
-        changed_by_name=getattr(dashboard, "changed_by_name", None),
+        changed_by=getattr(dashboard, "changed_by_name", None),
         changed_on=getattr(dashboard, "changed_on", None),
         changed_on_humanized=getattr(dashboard, "changed_on_humanized", None),
-        created_by_name=getattr(dashboard, "created_by_name", None),
+        created_by=getattr(dashboard, "created_by_name", None),
         created_on=getattr(dashboard, "created_on", None),
         created_on_humanized=getattr(dashboard, "created_on_humanized", None),
         description=getattr(dashboard, "description", None),
@@ -544,9 +563,24 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
         if getattr(dashboard, "uuid", None)
         else None,
         chart_count=len(getattr(dashboard, "slices", [])),
-        owners=getattr(dashboard, "owners", []),
-        tags=getattr(dashboard, "tags", []),
-        roles=getattr(dashboard, "roles", []),
+        owners=[
+            UserInfo.model_validate(owner, from_attributes=True)
+            for owner in getattr(dashboard, "owners", [])
+        ]
+        if getattr(dashboard, "owners", None)
+        else [],
+        tags=[
+            TagInfo.model_validate(tag, from_attributes=True)
+            for tag in getattr(dashboard, "tags", [])
+        ]
+        if getattr(dashboard, "tags", None)
+        else [],
+        roles=[
+            RoleInfo.model_validate(role, from_attributes=True)
+            for role in getattr(dashboard, "roles", [])
+        ]
+        if getattr(dashboard, "roles", None)
+        else [],
         charts=[
             serialize_chart_object(chart) for chart in getattr(dashboard, "slices", [])
         ]
