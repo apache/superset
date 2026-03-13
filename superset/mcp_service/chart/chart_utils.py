@@ -489,6 +489,8 @@ def configure_temporal_handling(
     For temporal columns, enables standard time series handling.
     For non-temporal columns (e.g., BIGINT year), disables DATE_TRUNC
     by setting categorical sorting options.
+
+    Stores any warnings in ``form_data["_mcp_warnings"]``.
     """
     if x_is_temporal:
         if time_grain:
@@ -499,6 +501,12 @@ def configure_temporal_handling(
         form_data["x_axis_sort_series_ascending"] = True
         form_data["time_grain_sqla"] = None
         form_data["granularity_sqla"] = None
+        if time_grain:
+            form_data.setdefault("_mcp_warnings", []).append(
+                f"time_grain='{time_grain}' was ignored because the x-axis "
+                f"column is not a temporal type. time_grain only applies to "
+                f"DATE/DATETIME/TIMESTAMP columns."
+            )
 
 
 def map_xy_config(

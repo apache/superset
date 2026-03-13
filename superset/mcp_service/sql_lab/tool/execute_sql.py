@@ -50,7 +50,11 @@ from superset.mcp_service.utils.schema_utils import parse_request
 logger = logging.getLogger(__name__)
 
 
-@tool(tags=["mutate"])
+@tool(
+    tags=["mutate"],
+    class_permission_name="SQLLab",
+    method_permission_name="execute_sql_query",
+)
 @parse_request(ExecuteSqlRequest)
 async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlResponse:
     """Execute SQL query against database using the unified Database.execute() API."""
@@ -186,7 +190,20 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
 
     if data_stmt is not None and data_stmt.data is not None:
         # SELECT query - convert DataFrame
+        import pandas as pd
+
         df = data_stmt.data
+        if not isinstance(df, pd.DataFrame):
+            logger.error(
+                "Expected DataFrame but got %s for statement data",
+                type(df).__name__,
+            )
+            return ExecuteSqlResponse(
+                success=False,
+                error=f"Internal error: unexpected data type ({type(df).__name__})",
+                error_type="data_conversion_error",
+                statements=statements,
+            )
         rows = df.to_dict(orient="records")
         columns = [ColumnInfo(name=col, type=str(df[col].dtype)) for col in df.columns]
         row_count = len(df)

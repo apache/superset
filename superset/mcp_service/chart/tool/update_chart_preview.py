@@ -44,7 +44,7 @@ from superset.mcp_service.utils.schema_utils import parse_request
 logger = logging.getLogger(__name__)
 
 
-@tool(tags=["mutate"])
+@tool(tags=["mutate"], class_permission_name="Chart", method_permission_name="write")
 @parse_request(UpdateChartPreviewRequest)
 def update_chart_preview(
     request: UpdateChartPreviewRequest, ctx: Context
@@ -72,6 +72,7 @@ def update_chart_preview(
             new_form_data = map_config_to_form_data(
                 request.config, dataset_id=request.dataset_id
             )
+            new_form_data.pop("_mcp_warnings", None)
 
             # Generate new explore link with updated form_data
             explore_url = generate_explore_link(request.dataset_id, new_form_data)

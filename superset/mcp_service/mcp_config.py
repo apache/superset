@@ -45,6 +45,10 @@ MCP_SERVICE_PORT = 5008
 # MCP Debug mode - shows suppressed initialization output in stdio mode
 MCP_DEBUG = False
 
+# MCP RBAC - when True, tools with class_permission_name are checked
+# against the FAB security_manager before execution.
+MCP_RBAC_ENABLED = True
+
 # MCP JWT Debug Errors - controls server-side JWT debug logging.
 # When False (default), uses the default JWTVerifier with minimal logging.
 # When True, uses DetailedJWTVerifier with tiered logging:
@@ -319,6 +323,7 @@ def get_mcp_config(app_config: Dict[str, Any] | None = None) -> Dict[str, Any]:
         "MCP_SERVICE_HOST": MCP_SERVICE_HOST,
         "MCP_SERVICE_PORT": MCP_SERVICE_PORT,
         "MCP_DEBUG": MCP_DEBUG,
+        "MCP_RBAC_ENABLED": MCP_RBAC_ENABLED,
         **MCP_SESSION_CONFIG,
         **MCP_CSRF_CONFIG,
     }

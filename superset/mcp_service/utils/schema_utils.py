@@ -448,7 +448,25 @@ def parse_request(
 
         def _maybe_parse(request: Any) -> Any:
             if _is_parse_request_enabled():
-                return parse_json_or_model(request, request_class, "request")
+                try:
+                    return parse_json_or_model(request, request_class, "request")
+                except ValidationError as e:
+                    from fastmcp.exceptions import ToolError
+
+                    details = []
+                    for err in e.errors():
+                        field = " -> ".join(str(loc) for loc in err["loc"])
+                        details.append(f"{field}: {err['msg']}")
+                    required_fields = [
+                        f.alias or name
+                        for name, f in request_class.model_fields.items()
+                        if f.is_required()
+                    ]
+                    raise ToolError(
+                        f"Invalid request parameters: {'; '.join(details)}. "
+                        f"Required fields for {request_class.__name__}: "
+                        f"{', '.join(required_fields)}"
+                    ) from None
             return request
 
         if asyncio.iscoroutinefunction(func):
