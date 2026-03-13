@@ -19,14 +19,25 @@
 import { ChartProps } from '@superset-ui/core';
 
 export default function transformProps(chartProps: ChartProps) {
-  const { width, height, formData, queriesData } = chartProps;
   const {
+    width,
+    height,
+    formData,
+    queriesData,
+    hooks = {},
+    filterState,
+    emitCrossFilters,
+  } = chartProps;
+  const {
+    entity,
     linearColorScheme,
     numberFormat,
     selectCountry,
     colorScheme,
     sliceId,
   } = formData;
+
+  const { onContextMenu, setDataMask } = hooks;
 
   return {
     width,
@@ -37,5 +48,10 @@ export default function transformProps(chartProps: ChartProps) {
     numberFormat,
     colorScheme,
     sliceId,
+    entity,
+    onContextMenu,
+    setDataMask,
+    emitCrossFilters,
+    filterState,
   };
 }
