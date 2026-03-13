@@ -74,7 +74,7 @@ describe('useJsonValidation', () => {
   });
 
   test('falls back to "syntax error" when thrown error has no message (line 59 || branch)', () => {
-    const spy = jest.spyOn(JSON, 'parse').mockImplementationOnce(() => {
+    const spy = vi.spyOn(JSON, 'parse').mockImplementationOnce(() => {
       throw {}; // no .message property → error.message is undefined → falsy
     });
 
@@ -86,7 +86,7 @@ describe('useJsonValidation', () => {
   });
 
   test('extracts row and column from error when message contains (line X column Y)', () => {
-    const spy = jest.spyOn(JSON, 'parse').mockImplementationOnce(() => {
+    const spy = vi.spyOn(JSON, 'parse').mockImplementationOnce(() => {
       throw new SyntaxError('Unexpected token (line 3 column 5)');
     });
 

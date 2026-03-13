@@ -27,11 +27,11 @@ import ExploreContainer, { DropzoneContext } from '../../ExploreContainer';
 const defaultProps: DndSelectLabelProps = {
   name: 'Column',
   accept: 'Column' as DndItemType,
-  onDrop: jest.fn(),
+  onDrop: vi.fn(),
   canDrop: () => false,
   valuesRenderer: () => <span />,
   ghostButtonText: 'Drop columns here or click',
-  onClickGhostButton: jest.fn(),
+  onClickGhostButton: vi.fn(),
 };
 const MockChildren = () => {
   const [zones] = useContext(DropzoneContext);

@@ -41,8 +41,8 @@ const mockEmptyBreakpoint: ColorBreakpointType = {
 
 const createProps = (): ColorBreakpointsPopoverControlProps => ({
   value: mockBreakpoint,
-  onSave: jest.fn(),
-  onClose: jest.fn(),
+  onSave: vi.fn(),
+  onClose: vi.fn(),
   colorBreakpoints: mockBreakpoints,
 });
 
@@ -53,7 +53,7 @@ const renderComponent = (
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ColorBreakpointPopoverControl', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('should render with default props', () => {
@@ -79,7 +79,7 @@ describe('ColorBreakpointPopoverControl', () => {
   });
 
   test('should call onClose when close button is clicked', async () => {
-    const onClose = jest.fn();
+    const onClose = vi.fn();
     renderComponent({ onClose });
 
     const closeButton = screen.getByTestId('close-button');
@@ -111,8 +111,8 @@ describe('ColorBreakpointPopoverControl', () => {
   });
 
   test('should call onSave with correct values when save button is clicked', async () => {
-    const onSave = jest.fn();
-    const onClose = jest.fn();
+    const onSave = vi.fn();
+    const onClose = vi.fn();
 
     renderComponent({
       onSave,

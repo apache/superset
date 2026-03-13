@@ -39,14 +39,14 @@ import DatabaseModal, {
   DatabaseModalProps,
 } from './index';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
   isFeatureEnabled: () => true,
 }));
 
-const mockHistoryPush = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+const mockHistoryPush = vi.fn();
+vi.mock('react-router-dom', async importActual => ({
+  ...(await importActual()),
   useHistory: () => ({
     push: mockHistoryPush,
   }),
@@ -317,7 +317,7 @@ describe('DatabaseModal', () => {
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
   afterEach(() => fetchMock.clearHistory().removeRoutes());
 
@@ -1137,7 +1137,7 @@ describe('DatabaseModal', () => {
         /* ---------- 🐞 TODO (lyndsiWilliams): function mock is not currently working 🐞 ----------
 
         // Mock useSingleViewResource
-        const mockUseSingleViewResource = jest.fn();
+        const mockUseSingleViewResource = vi.fn();
         mockUseSingleViewResource.mockImplementation(useSingleViewResource);
 
         const { fetchResource } = mockUseSingleViewResource('database');
@@ -1181,7 +1181,7 @@ describe('DatabaseModal', () => {
           /* ---------- 🐞 TODO (lyndsiWilliams): function mock is not currently working 🐞 ----------
 
           // Mock testDatabaseConnection
-          const mockTestDatabaseConnection = jest.fn();
+          const mockTestDatabaseConnection = vi.fn();
           mockTestDatabaseConnection.mockImplementation(testDatabaseConnection);
 
           userEvent.click(
@@ -1512,9 +1512,9 @@ describe('DatabaseModal', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('DatabaseModal w errors as objects', () => {
-    jest.mock('src/views/CRUD/hooks', () => ({
-      ...jest.requireActual('src/views/CRUD/hooks'),
-      useSingleViewResource: jest.fn(),
+    vi.mock('src/views/CRUD/hooks', async importActual => ({
+      ...(await importActual()),
+      useSingleViewResource: vi.fn(),
     }));
 
     test('Error displays when it is an object', async () => {
@@ -1528,14 +1528,11 @@ describe('DatabaseModal', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('DatabaseModal w errors as strings', () => {
-    jest.mock('src/views/CRUD/hooks', () => ({
-      ...jest.requireActual('src/views/CRUD/hooks'),
-      useSingleViewResource: jest.fn(),
+    vi.mock('src/views/CRUD/hooks', async importActual => ({
+      ...(await importActual()),
+      useSingleViewResource: vi.fn(),
     }));
-    const useSingleViewResourceMock = jest.spyOn(
-      hooks,
-      'useSingleViewResource',
-    );
+    const useSingleViewResourceMock = vi.spyOn(hooks, 'useSingleViewResource');
 
     useSingleViewResourceMock.mockReturnValue({
       state: {
@@ -1543,11 +1540,11 @@ describe('DatabaseModal', () => {
         resource: null,
         error: 'Test Error With String',
       },
-      fetchResource: jest.fn(),
-      createResource: jest.fn(),
-      updateResource: jest.fn(),
-      clearError: jest.fn(),
-      setResource: jest.fn(),
+      fetchResource: vi.fn(),
+      createResource: vi.fn(),
+      updateResource: vi.fn(),
+      clearError: vi.fn(),
+      setResource: vi.fn(),
     });
 
     test('Error displays when it is a string', async () => {
@@ -1586,13 +1583,13 @@ describe('DatabaseModal', () => {
 });
 
 test('handleChangeWithValidation function clears validation errors when called', () => {
-  const mockSetValidationErrors = jest.fn();
-  const mockSetHasValidated = jest.fn();
-  const mockClearError = jest.fn();
-  const mockOnChange = jest.fn();
+  const mockSetValidationErrors = vi.fn();
+  const mockSetHasValidated = vi.fn();
+  const mockClearError = vi.fn();
+  const mockOnChange = vi.fn();
 
   // Test the handleClearValidationErrors function directly
-  const handleClearValidationErrors = jest.fn(() => {
+  const handleClearValidationErrors = vi.fn(() => {
     mockSetValidationErrors(null);
     mockSetHasValidated(false);
     mockClearError();
@@ -1624,9 +1621,9 @@ test('validates fix by testing all form field types clear validation errors', ()
   // This test validates that all the different types of form fields changed in the fix
   // (TextChange, ExtraInputChange, ExtraEditorChange, InputChange, ParametersChange, etc.)
   // properly call the validation clearing functions
-  const mockSetValidationErrors = jest.fn();
-  const mockSetHasValidated = jest.fn();
-  const mockClearError = jest.fn();
+  const mockSetValidationErrors = vi.fn();
+  const mockSetHasValidated = vi.fn();
+  const mockClearError = vi.fn();
 
   const handleClearValidationErrors = () => {
     mockSetValidationErrors(null);

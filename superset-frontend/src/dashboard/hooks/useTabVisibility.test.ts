@@ -46,8 +46,8 @@ test('returns initial visibility state as hidden', () => {
 
 test('calls onHidden when tab becomes hidden', () => {
   mockVisibilityState('visible');
-  const onHidden = jest.fn();
-  const onVisible = jest.fn();
+  const onHidden = vi.fn();
+  const onVisible = vi.fn();
 
   renderHook(() => useTabVisibility({ onHidden, onVisible }));
 
@@ -63,8 +63,8 @@ test('calls onHidden when tab becomes hidden', () => {
 
 test('calls onVisible when tab becomes visible', () => {
   mockVisibilityState('hidden');
-  const onHidden = jest.fn();
-  const onVisible = jest.fn();
+  const onHidden = vi.fn();
+  const onVisible = vi.fn();
 
   renderHook(() => useTabVisibility({ onHidden, onVisible }));
 
@@ -101,7 +101,7 @@ test('updates isVisible state when visibility changes', () => {
 
 test('does not add listener when disabled', () => {
   mockVisibilityState('visible');
-  const addEventListenerSpy = jest.spyOn(document, 'addEventListener');
+  const addEventListenerSpy = vi.spyOn(document, 'addEventListener');
 
   renderHook(() => useTabVisibility({ enabled: false }));
 
@@ -115,7 +115,7 @@ test('does not add listener when disabled', () => {
 
 test('removes listener on unmount', () => {
   mockVisibilityState('visible');
-  const removeEventListenerSpy = jest.spyOn(document, 'removeEventListener');
+  const removeEventListenerSpy = vi.spyOn(document, 'removeEventListener');
 
   const { unmount } = renderHook(() => useTabVisibility());
   unmount();
@@ -130,8 +130,8 @@ test('removes listener on unmount', () => {
 
 test('does not call callbacks on same visibility state', () => {
   mockVisibilityState('visible');
-  const onHidden = jest.fn();
-  const onVisible = jest.fn();
+  const onHidden = vi.fn();
+  const onVisible = vi.fn();
 
   renderHook(() => useTabVisibility({ onHidden, onVisible }));
 
@@ -147,8 +147,8 @@ test('does not call callbacks on same visibility state', () => {
 
 test('handles multiple visibility changes', () => {
   mockVisibilityState('visible');
-  const onHidden = jest.fn();
-  const onVisible = jest.fn();
+  const onHidden = vi.fn();
+  const onVisible = vi.fn();
 
   renderHook(() => useTabVisibility({ onHidden, onVisible }));
 

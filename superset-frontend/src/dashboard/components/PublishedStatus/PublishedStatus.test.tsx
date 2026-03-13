@@ -22,7 +22,7 @@ import PublishedStatus from '.';
 const defaultProps = {
   dashboardId: 1,
   isPublished: false,
-  savePublished: jest.fn(),
+  savePublished: vi.fn(),
   userCanEdit: false,
   userCanSave: false,
 };
@@ -39,7 +39,7 @@ test('renders with unpublished status and readonly permissions', async () => {
 test('renders with unpublished status and write permissions', async () => {
   const tooltip =
     /This dashboard is not published, it will not show up in the list of dashboards/;
-  const savePublished = jest.fn();
+  const savePublished = vi.fn();
   render(
     <PublishedStatus
       {...defaultProps}
@@ -63,7 +63,7 @@ test('renders with published status and readonly permissions', () => {
 
 test('renders with published status and write permissions', async () => {
   const tooltip = /This dashboard is published. Click to make it a draft/;
-  const savePublished = jest.fn();
+  const savePublished = vi.fn();
   render(
     <PublishedStatus
       {...defaultProps}

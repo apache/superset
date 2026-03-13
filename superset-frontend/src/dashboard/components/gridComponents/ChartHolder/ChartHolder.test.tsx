@@ -398,7 +398,7 @@ describe('ChartHolder', () => {
   });
 
   test('should call deleteComponent when deleted', async () => {
-    const deleteComponent = jest.fn();
+    const deleteComponent = vi.fn();
     const store = createMockStore();
     const { rerender } = renderWrapper(store, {
       editMode: false,

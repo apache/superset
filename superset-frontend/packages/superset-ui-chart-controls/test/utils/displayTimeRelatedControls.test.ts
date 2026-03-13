@@ -21,7 +21,7 @@ import { displayTimeRelatedControls } from '../../src';
 
 const mockData = {
   actions: {
-    setDatasource: jest.fn(),
+    setDatasource: vi.fn(),
   },
   controls: {
     x_axis: {

@@ -23,12 +23,12 @@ import { useGetTimeRangeLabel } from './useGetTimeRangeLabel';
 import AdhocFilter from '../AdhocFilter';
 import { Clauses, ExpressionTypes } from '../types';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  fetchTimeRange: jest.fn(),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  fetchTimeRange: vi.fn(),
 }));
 
-const mockedFetchTimeRange = fetchTimeRange as jest.Mock;
+const mockedFetchTimeRange = fetchTimeRange as Mock;
 
 test('should return empty object if operator is not TEMPORAL_RANGE', () => {
   const adhocFilter = new AdhocFilter({

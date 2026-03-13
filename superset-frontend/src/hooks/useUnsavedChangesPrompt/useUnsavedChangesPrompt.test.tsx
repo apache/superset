@@ -38,7 +38,7 @@ test('should not show modal initially', () => {
     () =>
       useUnsavedChangesPrompt({
         hasUnsavedChanges: true,
-        onSave: jest.fn(),
+        onSave: vi.fn(),
       }),
     { wrapper },
   );
@@ -51,7 +51,7 @@ test('should block navigation and show modal if there are unsaved changes', () =
     () =>
       useUnsavedChangesPrompt({
         hasUnsavedChanges: true,
-        onSave: jest.fn(),
+        onSave: vi.fn(),
       }),
     { wrapper },
   );
@@ -65,7 +65,7 @@ test('should block navigation and show modal if there are unsaved changes', () =
 });
 
 test('should trigger onSave and hide modal on handleSaveAndCloseModal', async () => {
-  const onSave = jest.fn().mockResolvedValue(undefined);
+  const onSave = vi.fn().mockResolvedValue(undefined);
 
   const { result } = renderHook(
     () =>
@@ -83,7 +83,7 @@ test('should trigger onSave and hide modal on handleSaveAndCloseModal', async ()
 });
 
 test('should trigger manual save and not show modal again', async () => {
-  const onSave = jest.fn().mockResolvedValue(undefined);
+  const onSave = vi.fn().mockResolvedValue(undefined);
 
   const { result } = renderHook(
     () =>
@@ -101,7 +101,7 @@ test('should trigger manual save and not show modal again', async () => {
 });
 
 test('should close modal when handleConfirmNavigation is called', () => {
-  const onSave = jest.fn();
+  const onSave = vi.fn();
 
   const { result } = renderHook(
     () =>
@@ -126,7 +126,7 @@ test('should close modal when handleConfirmNavigation is called', () => {
 });
 
 test('should preserve pathname and state when confirming navigation', () => {
-  const onSave = jest.fn();
+  const onSave = vi.fn();
   const history = createMemoryHistory();
   const wrapper = ({ children }: any) => (
     <Router history={history}>{children}</Router>
@@ -140,7 +140,7 @@ test('should preserve pathname and state when confirming navigation', () => {
     { wrapper },
   );
 
-  const pushSpy = jest.spyOn(history, 'push');
+  const pushSpy = vi.spyOn(history, 'push');
 
   // Simulate a blocked navigation (the hook sets up history.block internally)
   act(() => {

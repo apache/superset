@@ -29,11 +29,11 @@ const defaultProps = {
 };
 
 beforeEach(() => {
-  jest.useFakeTimers();
+  vi.useFakeTimers();
 });
 
 afterEach(() => {
-  jest.useRealTimers();
+  vi.useRealTimers();
 });
 
 describe('OptionDescription', () => {
@@ -48,7 +48,7 @@ describe('OptionDescription', () => {
 
     // Perform delayed mouse hovering so tooltip could pop out
     fireEvent.mouseOver(tooltipTrigger);
-    act(() => jest.runAllTimers());
+    act(() => vi.runAllTimers());
 
     const tooltip = screen.getByRole('tooltip');
     expect(tooltip).toBeInTheDocument();

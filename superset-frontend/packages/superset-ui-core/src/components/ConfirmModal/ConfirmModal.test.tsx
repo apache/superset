@@ -22,8 +22,8 @@ import { ConfirmModal } from '.';
 
 const defaultProps = {
   show: true,
-  onHide: jest.fn(),
-  onConfirm: jest.fn(),
+  onHide: vi.fn(),
+  onConfirm: vi.fn(),
   title: 'Confirm Action',
   body: 'Are you sure you want to proceed?',
 };
@@ -57,7 +57,7 @@ test('renders custom button text', () => {
 });
 
 test('calls onConfirm when confirm button is clicked', () => {
-  const onConfirm = jest.fn();
+  const onConfirm = vi.fn();
   renderWithTheme(<ConfirmModal {...defaultProps} onConfirm={onConfirm} />);
 
   userEvent.click(screen.getByRole('button', { name: 'Confirm' }));
@@ -66,7 +66,7 @@ test('calls onConfirm when confirm button is clicked', () => {
 });
 
 test('calls onHide when cancel button is clicked', () => {
-  const onHide = jest.fn();
+  const onHide = vi.fn();
   renderWithTheme(<ConfirmModal {...defaultProps} onHide={onHide} />);
 
   userEvent.click(screen.getByRole('button', { name: 'Cancel' }));

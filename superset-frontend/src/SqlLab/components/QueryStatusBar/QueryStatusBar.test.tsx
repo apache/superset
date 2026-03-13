@@ -21,7 +21,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import { QueryState, type QueryResponse } from '@superset-ui/core';
 import QueryStatusBar from '.';
 
-jest.mock('../QueryStateLabel', () => ({
+vi.mock('../QueryStateLabel', () => ({
   __esModule: true,
   default: ({ query }: { query: { state: QueryState } }) => (
     <div data-test="query-state-label">{query.state}</div>

@@ -30,9 +30,9 @@ import { DateFilterTestKey } from '../utils';
 const mockStore = configureStore([thunk]);
 
 const defaultProps = {
-  onChange: jest.fn(),
-  onClosePopover: jest.fn(),
-  onOpenPopover: jest.fn(),
+  onChange: vi.fn(),
+  onClosePopover: vi.fn(),
+  onOpenPopover: vi.fn(),
 };
 
 function setup(

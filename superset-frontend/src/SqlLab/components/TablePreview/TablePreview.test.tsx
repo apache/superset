@@ -27,7 +27,7 @@ import {
 } from 'spec/helpers/testing-library';
 import TablePreview from '.';
 
-jest.mock('src/components/FilterableTable', () => ({
+vi.mock('src/components/FilterableTable', () => ({
   __esModule: true,
   FilterableTable: ({ data }: { data: Record<string, any>[] }) => (
     <div>
@@ -39,13 +39,13 @@ jest.mock('src/components/FilterableTable', () => ({
     </div>
   ),
 }));
-jest.mock(
+vi.mock(
   'react-virtualized-auto-sizer',
   () =>
     ({ children }: { children: (params: { height: number }) => ReactChild }) =>
       children({ height: 500 }),
 );
-jest.mock('@superset-ui/core/components/IconTooltip', () => ({
+vi.mock('@superset-ui/core/components/IconTooltip', () => ({
   IconTooltip: ({
     onClick,
     tooltip,

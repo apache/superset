@@ -28,16 +28,15 @@ import { store } from 'src/views/store';
 import { isFeatureEnabled } from '@superset-ui/core';
 import { FacePile } from '.';
 import { getRandomColor } from './utils';
+import { Mock } from 'vitest';
 
 // Mock the feature flag
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
 
-const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
-  typeof isFeatureEnabled
->;
+const mockIsFeatureEnabled = isFeatureEnabled as Mock<typeof isFeatureEnabled>;
 
 const users = Array.from({ length: 10 }, (_, i) => ({
   first_name: 'user',
@@ -46,13 +45,13 @@ const users = Array.from({ length: 10 }, (_, i) => ({
 }));
 
 beforeEach(() => {
-  jest.useFakeTimers();
+  vi.useFakeTimers();
   // Default to Slack avatars disabled
   mockIsFeatureEnabled.mockImplementation(() => false);
 });
 
 afterEach(() => {
-  jest.useRealTimers();
+  vi.useRealTimers();
   mockIsFeatureEnabled.mockReset();
   cleanup();
 });
@@ -115,7 +114,9 @@ describe('FacePile', () => {
 
     const firstAvatar = within(container).getByText('U0');
     fireEvent.mouseEnter(firstAvatar);
-    act(() => jest.runAllTimers());
+    act(() => {
+      vi.runAllTimers();
+    });
 
     expect(screen.getByRole('tooltip')).toHaveTextContent('user 0');
   });

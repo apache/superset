@@ -29,12 +29,10 @@ import { useResultsTableView } from './useResultsTableView';
 
 const capturedProps: any[] = [];
 
-jest.mock(
+vi.mock(
   'src/explore/components/DataTablesPane/components/SingleQueryResultPane',
-  () => {
-    const actual = jest.requireActual(
-      'src/explore/components/DataTablesPane/components/SingleQueryResultPane',
-    );
+  async (importActual) => {
+    const actual = await importActual() as any;
     return {
       ...actual,
       SingleQueryResultPane: (props: any) => {

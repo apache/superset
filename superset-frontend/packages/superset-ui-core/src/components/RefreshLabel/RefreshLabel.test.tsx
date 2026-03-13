@@ -20,7 +20,7 @@ import { render, screen, userEvent } from '@superset-ui/core/spec';
 import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
 
 test('renders with default props', async () => {
-  render(<RefreshLabel tooltipContent="Tooltip" onClick={jest.fn()} />);
+  render(<RefreshLabel tooltipContent="Tooltip" onClick={vi.fn()} />);
   const refresh = await screen.findByRole('button');
   expect(refresh).toBeInTheDocument();
   await userEvent.hover(refresh);
@@ -28,7 +28,7 @@ test('renders with default props', async () => {
 
 test('renders tooltip on hover', async () => {
   const tooltipText = 'Tooltip';
-  render(<RefreshLabel tooltipContent={tooltipText} onClick={jest.fn()} />);
+  render(<RefreshLabel tooltipContent={tooltipText} onClick={vi.fn()} />);
   const refresh = screen.getByRole('button');
   await userEvent.hover(refresh);
   const tooltip = await screen.findByRole('tooltip');
@@ -37,7 +37,7 @@ test('renders tooltip on hover', async () => {
 });
 
 test('triggers on click event', async () => {
-  const onClick = jest.fn();
+  const onClick = vi.fn();
   render(<RefreshLabel tooltipContent="Tooltip" onClick={onClick} />);
   const refresh = await screen.findByRole('button');
   await userEvent.click(refresh);

@@ -38,11 +38,11 @@ interface MockedRedisXrange {
 // NOTE: these mock variables needs to start with "mock" due to
 // calls to `jest.mock` being hoisted to the top of the file.
 // https://jestjs.io/docs/es6-class-mocks#calling-jestmock-with-the-module-factory-parameter
-const mockRedisXrange = jest.fn() as jest.MockedFunction<MockedRedisXrange>;
+const mockRedisXrange = vi.fn() as jest.MockedFunction<MockedRedisXrange>;
 
 jest.mock('ws');
 jest.mock('ioredis', () => {
-  return jest.fn().mockImplementation(() => {
+  return vi.fn().mockImplementation(() => {
     return { xrange: mockRedisXrange };
   });
 });
@@ -75,7 +75,7 @@ describe('server', () => {
   beforeEach(() => {
     mockRedisXrange.mockClear();
     server.resetState();
-    statsdIncrementMock = jest.spyOn(statsd, 'increment').mockReturnValue();
+    statsdIncrementMock = vi.spyOn(statsd, 'increment').mockReturnValue();
   });
 
   afterEach(() => {
@@ -84,8 +84,8 @@ describe('server', () => {
 
   describe('HTTP requests', () => {
     test('services health checks', () => {
-      const endMock = jest.fn();
-      const writeHeadMock = jest.fn();
+      const endMock = vi.fn();
+      const writeHeadMock = vi.fn();
 
       const request = {
         url: '/health',
@@ -113,8 +113,8 @@ describe('server', () => {
     });
 
     test('responds with a 404 when not found', () => {
-      const endMock = jest.fn();
-      const writeHeadMock = jest.fn();
+      const endMock = vi.fn();
+      const writeHeadMock = vi.fn();
 
       const request = {
         url: '/unsupported',
@@ -208,7 +208,7 @@ describe('server', () => {
   describe('processStreamResults', () => {
     test('sends data to channel', async () => {
       const ws = new wsMock('localhost');
-      const sendMock = jest.spyOn(ws, 'send');
+      const sendMock = vi.spyOn(ws, 'send');
       const socketInstance = { ws: ws, channel: channelId, pongTs: Date.now() };
 
       expect(statsdIncrementMock).toHaveBeenCalledTimes(0);
@@ -230,7 +230,7 @@ describe('server', () => {
 
     test('channel not present', async () => {
       const ws = new wsMock('localhost');
-      const sendMock = jest.spyOn(ws, 'send');
+      const sendMock = vi.spyOn(ws, 'send');
 
       expect(statsdIncrementMock).toHaveBeenCalledTimes(0);
       server.processStreamResults(streamReturnValue);
@@ -241,10 +241,10 @@ describe('server', () => {
 
     test('error sending data to client', async () => {
       const ws = new wsMock('localhost');
-      const sendMock = jest.spyOn(ws, 'send').mockImplementation(() => {
+      const sendMock = vi.spyOn(ws, 'send').mockImplementation(() => {
         throw new Error();
       });
-      const cleanChannelMock = jest.spyOn(server, 'cleanChannel');
+      const cleanChannelMock = vi.spyOn(server, 'cleanChannel');
       const socketInstance = { ws: ws, channel: channelId, pongTs: Date.now() };
 
       expect(statsdIncrementMock).toHaveBeenCalledTimes(0);
@@ -276,7 +276,7 @@ describe('server', () => {
 
     test('success with results', async () => {
       mockRedisXrange.mockResolvedValueOnce(streamReturnValue);
-      const cb = jest.fn();
+      const cb = vi.fn();
       await server.fetchRangeFromStream({
         sessionId: '123',
         startId: '-',
@@ -293,7 +293,7 @@ describe('server', () => {
     });
 
     test('success no results', async () => {
-      const cb = jest.fn();
+      const cb = vi.fn();
       await server.fetchRangeFromStream({
         sessionId: '123',
         startId: '-',
@@ -310,7 +310,7 @@ describe('server', () => {
     });
 
     test('error', async () => {
-      const cb = jest.fn();
+      const cb = vi.fn();
       mockRedisXrange.mockRejectedValueOnce(new Error());
       await server.fetchRangeFromStream({
         sessionId: '123',
@@ -348,10 +348,10 @@ describe('server', () => {
 
     beforeEach(() => {
       ws = new wsMock('localhost');
-      wsEventMock = jest.spyOn(ws, 'on');
-      trackClientSpy = jest.spyOn(server, 'trackClient');
-      fetchRangeFromStreamSpy = jest.spyOn(server, 'fetchRangeFromStream');
-      dateNowSpy = jest
+      wsEventMock = vi.spyOn(ws, 'on');
+      trackClientSpy = vi.spyOn(server, 'trackClient');
+      fetchRangeFromStreamSpy = vi.spyOn(server, 'fetchRangeFromStream');
+      dateNowSpy = vi
         .spyOn(global.Date, 'now')
         .mockImplementation(() =>
           new Date('2021-03-10T11:01:58.135Z').valueOf(),
@@ -457,8 +457,8 @@ describe('server', () => {
 
     beforeEach(() => {
       socket = new net.Socket();
-      socketDestroySpy = jest.spyOn(socket, 'destroy');
-      wssUpgradeSpy = jest.spyOn(server.wss, 'handleUpgrade');
+      socketDestroySpy = vi.spyOn(socket, 'destroy');
+      wssUpgradeSpy = vi.spyOn(server.wss, 'handleUpgrade');
     });
 
     afterEach(() => {
@@ -515,8 +515,8 @@ describe('server', () => {
 
     beforeEach(() => {
       ws = new wsMock('localhost');
-      pingSpy = jest.spyOn(ws, 'ping');
-      terminateSpy = jest.spyOn(ws, 'terminate');
+      pingSpy = vi.spyOn(ws, 'ping');
+      terminateSpy = vi.spyOn(ws, 'terminate');
       socketInstance = { ws: ws, channel: channelId, pongTs: Date.now() };
     });
 

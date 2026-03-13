@@ -28,23 +28,24 @@ import * as SupersetCore from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import PropertiesModal from '.';
+import { Mock } from 'vitest';
 
 // Increase timeout for CI environment
-jest.setTimeout(60000);
+vi.setConfig({ testTimeout: 60000 });
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
-  getCategoricalSchemeRegistry: jest.fn(() => ({
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
+  getCategoricalSchemeRegistry: vi.fn(() => ({
     keys: () => ['supersetColors'],
     get: () => ['#FFFFFF', '#000000'],
     getDefaultKey: () => 'supersetColors',
   })),
 }));
 
-const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+const mockedIsFeatureEnabled = isFeatureEnabled as Mock;
 
-const spyColorSchemeSelect = jest.spyOn(ColorSchemeSelect, 'default');
+const spyColorSchemeSelect = vi.spyOn(ColorSchemeSelect, 'default');
 const mockedJsonMetadata =
   '{"timed_refresh_immune_slices": [], "expanded_slices": {}, "refresh_frequency": 0, "default_filters": "{}", "color_scheme": "supersetColors", "label_colors": {"0": "#D3B3DA", "1": "#9EE5E5", "0. Pre-clinical": "#1FA8C9", "2. Phase II or Combined I/II": "#454E7C", "1. Phase I": "#5AC189", "3. Phase III": "#FF7F44", "4. Authorized": "#666666", "root": "#1FA8C9", "Protein subunit": "#454E7C", "Phase II": "#5AC189", "Pre-clinical": "#FF7F44", "Phase III": "#666666", "Phase I": "#E04355", "Phase I/II": "#FCC700", "Inactivated virus": "#A868B7", "Virus-like particle": "#3CCCCB", "Replicating bacterial vector": "#A38F79", "DNA-based": "#8FD3E4", "RNA-based vaccine": "#A1A6BD", "Authorized": "#ACE1C4", "Non-replicating viral vector": "#FEC0A1", "Replicating viral vector": "#B2B2B2", "Unknown": "#EFA1AA", "Live attenuated virus": "#FDE380", "COUNT(*)": "#D1C6BC"}, "filter_scopes": {"358": {"Country_Name": {"scope": ["ROOT_ID"], "immune": []}, "Product_Category": {"scope": ["ROOT_ID"], "immune": []}, "Clinical Stage": {"scope": ["ROOT_ID"], "immune": []}}}}';
 
@@ -168,13 +169,13 @@ const createProps = () => ({
   show: true,
   colorScheme: 'supersetColors',
   onlyApply: false,
-  onHide: jest.fn(),
-  onSubmit: jest.fn(),
-  addSuccessToast: jest.fn(),
+  onHide: vi.fn(),
+  onSubmit: vi.fn(),
+  addSuccessToast: vi.fn(),
 });
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 afterAll(() => {
@@ -183,7 +184,7 @@ afterAll(() => {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('PropertiesModal', () => {
-  jest.setTimeout(60000); // Increased timeout for complex modal rendering
+  vi.setConfig({ testTimeout: 60000 }); // Increased timeout for complex modal rendering
 
   test('should render - FeatureFlag disabled', async () => {
     mockedIsFeatureEnabled.mockReturnValue(false);
@@ -341,7 +342,7 @@ describe('PropertiesModal', () => {
   });
 
   test('submitting with onlyApply:false', async () => {
-    const put = jest.spyOn(SupersetCore.SupersetClient, 'put');
+    const put = vi.spyOn(SupersetCore.SupersetClient, 'put');
     put.mockResolvedValue({
       json: {
         result: {
@@ -624,7 +625,7 @@ describe('PropertiesModal', () => {
       useRedux: true,
     });
 
-    const getSpy = jest.spyOn(SupersetCore.SupersetClient, 'get');
+    const getSpy = vi.spyOn(SupersetCore.SupersetClient, 'get');
     let resolveFetch: any;
     const fetchPromise = new Promise(resolve => {
       resolveFetch = resolve;

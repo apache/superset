@@ -29,23 +29,21 @@ import {
 } from './ChartList.testHelpers';
 
 // Increase default timeout for all tests
-jest.setTimeout(30000);
+vi.setConfig({ testTimeout: 30000 });
 
 // Mock the feature flag
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
 
 // Mock the export utility
-jest.mock('src/utils/export', () => ({
+vi.mock('src/utils/export', () => ({
   __esModule: true,
-  default: jest.fn(),
+  default: vi.fn(),
 }));
 
-const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
-  typeof isFeatureEnabled
->;
+const mockIsFeatureEnabled = isFeatureEnabled as Mock<typeof isFeatureEnabled>;
 
 const mockUser = {
   userId: 1,

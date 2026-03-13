@@ -94,8 +94,8 @@ const options = [
 ];
 
 const getAdvancedDataTypeTestProps = (overrides?: Record<string, unknown>) => {
-  const onChange = jest.fn();
-  const validHandler = jest.fn();
+  const onChange = vi.fn();
+  const validHandler = vi.fn();
   const props = {
     adhocFilter: advancedTypeTestAdhocFilterTest,
     onChange,
@@ -114,9 +114,9 @@ const getAdvancedDataTypeTestProps = (overrides?: Record<string, unknown>) => {
 };
 
 function setup(overrides?: Record<string, unknown>) {
-  const onChange = jest.fn();
-  const validHandler = jest.fn();
-  const spy = jest.spyOn(redux, 'useSelector');
+  const onChange = vi.fn();
+  const validHandler = vi.fn();
+  const spy = vi.spyOn(redux, 'useSelector');
   spy.mockReturnValue({});
   const props = {
     adhocFilter: simpleAdhocFilter,
@@ -138,12 +138,12 @@ function setup(overrides?: Record<string, unknown>) {
   return props;
 }
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
 
-const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+const mockedIsFeatureEnabled = isFeatureEnabled as Mock;
 
 const ADVANCED_DATA_TYPE_ENDPOINT_VALID =
   'glob:*/api/v1/advanced_data_type/convert?q=(type:type,values:!(v))';
@@ -170,7 +170,7 @@ fetchMock.get(ADVANCED_DATA_TYPE_ENDPOINT_INVALID, {
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
-let isFeatureEnabledMock: jest.SpyInstance;
+let isFeatureEnabledMock: vi.SpyInstance;
 
 beforeEach(() => {
   fetchMock.clearHistory();
@@ -647,9 +647,9 @@ test('advanced data type operator list should update after API response', async 
 });
 
 test('dropdown should remain open when clicked after filter is configured', async () => {
-  const onChange = jest.fn();
-  const validHandler = jest.fn();
-  const spy = jest.spyOn(redux, 'useSelector');
+  const onChange = vi.fn();
+  const validHandler = vi.fn();
+  const spy = vi.spyOn(redux, 'useSelector');
   spy.mockReturnValue({});
 
   const filterWithSubjectAndOperator = new AdhocFilter({

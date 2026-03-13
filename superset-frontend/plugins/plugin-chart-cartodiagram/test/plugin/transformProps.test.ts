@@ -94,11 +94,11 @@ describe('CartodiagramPlugin transformProps', () => {
     theme: supersetTheme,
   });
 
-  let chartTransformPropsPieMock: jest.MockedFunction<any>;
-  let chartTransformPropsTimeseriesMock: jest.MockedFunction<any>;
+  let chartTransformPropsPieMock: Mock<any>;
+  let chartTransformPropsTimeseriesMock: Mock<any>;
   beforeEach(() => {
-    chartTransformPropsPieMock = jest.fn();
-    chartTransformPropsTimeseriesMock = jest.fn();
+    chartTransformPropsPieMock = vi.fn();
+    chartTransformPropsTimeseriesMock = vi.fn();
     const registry = getChartTransformPropsRegistry();
     registry.registerValue('pie', chartTransformPropsPieMock);
     registry.registerValue(

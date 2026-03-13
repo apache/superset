@@ -37,9 +37,9 @@ import { DrillBySubmenu, DrillBySubmenuProps } from './DrillBySubmenu';
 
 const { form_data: defaultFormData } = chartQueries[sliceId];
 
-jest.mock('lodash/debounce', () => (fn: Function & { debounce: Function }) => {
+vi.mock('lodash/debounce', () => (fn: Function & { debounce: Function }) => {
   // eslint-disable-next-line no-param-reassign
-  fn.debounce = jest.fn();
+  fn.debounce = vi.fn();
   return fn;
 });
 
@@ -251,7 +251,7 @@ test('Do not display excluded column in the menu', async () => {
 });
 
 test('When menu item is clicked, call onSelection with clicked column and drill by filters', async () => {
-  const onSelectionMock = jest.fn();
+  const onSelectionMock = vi.fn();
   renderSubmenu({
     dataset: mockDataset,
     onSelection: onSelectionMock,

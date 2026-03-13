@@ -24,10 +24,11 @@ import { getExtensionsRegistry } from '@superset-ui/core';
 import * as CoreTheme from '@apache-superset/core/theme';
 import { Menu } from './Menu';
 import * as getBootstrapData from 'src/utils/getBootstrapData';
+import { Mock } from 'vitest';
 
-jest.mock('@apache-superset/core/theme', () => ({
-  ...jest.requireActual('@apache-superset/core/theme'),
-  useTheme: jest.fn(),
+vi.mock('@apache-superset/core/theme', async importActual => ({
+  ...(await importActual()),
+  useTheme: vi.fn(),
 }));
 
 const dropdownItems = [
@@ -244,13 +245,10 @@ const notanonProps = {
   },
 };
 
-const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
-const staticAssetsPrefixMock = jest.spyOn(
-  getBootstrapData,
-  'staticAssetsPrefix',
-);
-const applicationRootMock = jest.spyOn(getBootstrapData, 'applicationRoot');
-const useThemeMock = CoreTheme.useTheme as jest.Mock;
+const useSelectorMock = vi.spyOn(reactRedux, 'useSelector');
+const staticAssetsPrefixMock = vi.spyOn(getBootstrapData, 'staticAssetsPrefix');
+const applicationRootMock = vi.spyOn(getBootstrapData, 'applicationRoot');
+const useThemeMock = CoreTheme.useTheme as Mock;
 
 fetchMock.get(
   'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))',

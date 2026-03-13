@@ -25,14 +25,14 @@ import transformProps from '../src/transformProps';
 import { ProviderWrapper } from '../../plugin-chart-table/test/testHelpers';
 import testData from '../../plugin-chart-table/test/testData';
 
-const mockSetDataMask = jest.fn();
+const mockSetDataMask = vi.fn();
 
 beforeAll(() => {
   setupAGGridModules();
 });
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 test('transformProps parses pageLength to pageSize', () => {

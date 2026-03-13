@@ -21,7 +21,7 @@ import { cacheWrapper } from 'src/utils/cacheWrapper';
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('cacheWrapper', () => {
   const fnResult = 'fnResult';
-  const fn = jest.fn<string, [number, number]>().mockReturnValue(fnResult);
+  const fn = vi.fn<string, [number, number]>().mockReturnValue(fnResult);
 
   let wrappedFn: (a: number, b: number) => string;
 
@@ -31,7 +31,7 @@ describe('cacheWrapper', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('calls fn with its arguments once when the key is not found', () => {

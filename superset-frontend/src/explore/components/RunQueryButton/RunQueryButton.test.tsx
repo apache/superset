@@ -22,8 +22,8 @@ import { RunQueryButton } from './index';
 
 const createProps = (overrides: Record<string, any> = {}) => ({
   loading: false,
-  onQuery: jest.fn(),
-  onStop: jest.fn(),
+  onQuery: vi.fn(),
+  onStop: vi.fn(),
   errorMessage: null,
   isNewChart: false,
   canStopQuery: true,

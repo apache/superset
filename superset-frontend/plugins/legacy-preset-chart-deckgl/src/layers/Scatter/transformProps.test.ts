@@ -28,9 +28,9 @@ interface ScatterFeature {
   extraProps?: Record<string, unknown>;
 }
 
-jest.mock('../spatialUtils', () => ({
-  ...jest.requireActual('../spatialUtils'),
-  getMapboxApiKey: jest.fn(() => 'mock-mapbox-key'),
+vi.mock('../spatialUtils', async importActual => ({
+  ...(await importActual()),
+  getMapboxApiKey: vi.fn(() => 'mock-mapbox-key'),
 }));
 
 const mockChartProps: Partial<ChartProps> = {

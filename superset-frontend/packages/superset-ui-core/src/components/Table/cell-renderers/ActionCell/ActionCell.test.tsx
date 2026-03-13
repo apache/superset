@@ -21,7 +21,7 @@ import ActionCell, { appendDataToMenu } from './index';
 import { exampleMenuOptions, exampleRow } from './fixtures';
 
 test('renders with default props', async () => {
-  const clickHandler = jest.fn();
+  const clickHandler = vi.fn();
   exampleMenuOptions[0].onClick = clickHandler;
   render(<ActionCell menuOptions={exampleMenuOptions} row={exampleRow} />);
   // Open the menu

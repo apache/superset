@@ -32,7 +32,7 @@ test('should return undefined if column is not temporal', async () => {
     useDatePickerInAdhocFilter({
       columnName: 'gender',
       datasource: TestDataset,
-      onChange: jest.fn(),
+      onChange: vi.fn(),
     }),
   );
   expect(result.current).toBeUndefined();
@@ -44,7 +44,7 @@ test('should return JSX', async () => {
     useDatePickerInAdhocFilter({
       columnName: 'ds',
       datasource: TestDataset,
-      onChange: jest.fn(),
+      onChange: vi.fn(),
     }),
   );
   expect(result.current).not.toBeUndefined();

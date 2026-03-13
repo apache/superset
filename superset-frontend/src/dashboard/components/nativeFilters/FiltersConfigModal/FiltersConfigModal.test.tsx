@@ -185,8 +185,8 @@ const DEFAULT_VALUE_INVALID_REGEX = /choose.*valid value/i;
 const props: FiltersConfigModalProps = {
   isOpen: true,
   createNewOnOpen: true,
-  onSave: jest.fn(),
-  onCancel: jest.fn(),
+  onSave: vi.fn(),
+  onCancel: vi.fn(),
 };
 
 beforeAll(() => {
@@ -198,9 +198,9 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  jest.runOnlyPendingTimers();
-  jest.useRealTimers();
-  jest.restoreAllMocks();
+  vi.runOnlyPendingTimers();
+  vi.useRealTimers();
+  vi.restoreAllMocks();
   fetchMock.removeRoutes();
 });
 
@@ -458,7 +458,7 @@ test('deletes a filter', async () => {
     },
     dashboardLayout,
   };
-  const onSave = jest.fn();
+  const onSave = vi.fn();
 
   defaultRender(state, {
     ...props,
@@ -500,7 +500,7 @@ test('deletes a filter including dependencies', async () => {
     },
     dashboardLayout,
   };
-  const onSave = jest.fn();
+  const onSave = vi.fn();
   defaultRender(state, {
     ...props,
     createNewOnOpen: false,
@@ -548,7 +548,7 @@ test('reorders filters via keyboard (Space, ArrowDown, Space)', async () => {
     dashboardLayout,
   };
 
-  const onSave = jest.fn();
+  const onSave = vi.fn();
 
   const originalOffsetHeight = Object.getOwnPropertyDescriptor(
     HTMLElement.prototype,
@@ -587,7 +587,7 @@ test('reorders filters via keyboard (Space, ArrowDown, Space)', async () => {
     sortableElements.forEach((el, index) => {
       const sortableNode = el.parentElement;
       if (sortableNode) {
-        jest.spyOn(sortableNode, 'getBoundingClientRect').mockImplementation(
+        vi.spyOn(sortableNode, 'getBoundingClientRect').mockImplementation(
           () =>
             ({
               bottom: (index + 1) * SORTABLE_ITEM_HEIGHT,
@@ -694,7 +694,7 @@ test('updates sidebar title when filter name changes', async () => {
 });
 
 test('modifies the name of a filter', async () => {
-  jest.useFakeTimers();
+  vi.useFakeTimers();
   try {
     const nativeFilterConfig = [
       buildNativeFilter('NATIVE_FILTER-1', 'state', []),
@@ -711,7 +711,7 @@ test('modifies the name of a filter', async () => {
       dashboardLayout,
     };
 
-    const onSave = jest.fn();
+    const onSave = vi.fn();
 
     defaultRender(state, {
       ...props,
@@ -726,7 +726,7 @@ test('modifies the name of a filter', async () => {
     await userEvent.clear(filterNameInput);
     await userEvent.type(filterNameInput, 'New Filter Name');
 
-    jest.runAllTimers();
+    vi.runAllTimers();
 
     await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
 
@@ -742,7 +742,7 @@ test('modifies the name of a filter', async () => {
       ),
     );
   } finally {
-    jest.useRealTimers();
+    vi.useRealTimers();
   }
 });
 

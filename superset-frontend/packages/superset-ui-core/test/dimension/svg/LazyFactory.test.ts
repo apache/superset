@@ -29,7 +29,7 @@ describe('LazyFactory', () => {
       expect(innerDiv.parentNode).toEqual(div);
     });
     test('reuses existing', () => {
-      const factoryFn = jest.fn(() => document.createElement('div'));
+      const factoryFn = vi.fn(() => document.createElement('div'));
       const factory = new LazyFactory(factoryFn);
       const div1 = factory.createInContainer();
       const div2 = factory.createInContainer();

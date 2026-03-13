@@ -46,9 +46,9 @@ test('should render the UnsavedChangesModal component if showModal is true', asy
 });
 
 test('should only call onConfirmNavigation when clicking the Discard button', async () => {
-  const mockOnHide = jest.fn();
-  const mockHandleSave = jest.fn();
-  const mockOnConfirmNavigation = jest.fn();
+  const mockOnHide = vi.fn();
+  const mockHandleSave = vi.fn();
+  const mockOnConfirmNavigation = vi.fn();
 
   render(
     <UnsavedChangesModal
@@ -71,9 +71,9 @@ test('should only call onConfirmNavigation when clicking the Discard button', as
 });
 
 test('should only call handleSave when clicking the Save button', async () => {
-  const mockOnHide = jest.fn();
-  const mockHandleSave = jest.fn();
-  const mockOnConfirmNavigation = jest.fn();
+  const mockOnHide = vi.fn();
+  const mockHandleSave = vi.fn();
+  const mockOnConfirmNavigation = vi.fn();
 
   render(
     <UnsavedChangesModal

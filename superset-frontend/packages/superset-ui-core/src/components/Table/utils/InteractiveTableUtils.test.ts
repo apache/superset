@@ -45,7 +45,7 @@ afterEach(() => {
 
 test('constructor initializes with correct defaults', () => {
   const table = createMockTable();
-  const setDerivedColumns = jest.fn();
+  const setDerivedColumns = vi.fn();
   const utils = new InteractiveTableUtils(
     table,
     mockColumns,
@@ -62,7 +62,7 @@ test('constructor initializes with correct defaults', () => {
 
 test('setTableRef updates tableRef', () => {
   const table = createMockTable();
-  const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
+  const utils = new InteractiveTableUtils(table, mockColumns, vi.fn());
   const newTable = createMockTable();
   utils.setTableRef(newTable);
   expect(utils.tableRef).toBe(newTable);
@@ -70,14 +70,14 @@ test('setTableRef updates tableRef', () => {
 
 test('getColumnIndex returns -1 when columnRef has no parent', () => {
   const table = createMockTable();
-  const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
+  const utils = new InteractiveTableUtils(table, mockColumns, vi.fn());
   utils.columnRef = null;
   expect(utils.getColumnIndex()).toBe(-1);
 });
 
 test('getColumnIndex returns correct index when columnRef is in a row', () => {
   const table = createMockTable(3);
-  const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
+  const utils = new InteractiveTableUtils(table, mockColumns, vi.fn());
   const row = table.rows[0];
   utils.columnRef = row.cells[1] as unknown as typeof utils.columnRef;
   expect(utils.getColumnIndex()).toBe(1);
@@ -85,15 +85,15 @@ test('getColumnIndex returns correct index when columnRef is in a row', () => {
 
 test('allowDrop calls preventDefault on the event', () => {
   const table = createMockTable();
-  const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
-  const event = { preventDefault: jest.fn() } as unknown as DragEvent;
+  const utils = new InteractiveTableUtils(table, mockColumns, vi.fn());
+  const event = { preventDefault: vi.fn() } as unknown as DragEvent;
   utils.allowDrop(event);
   expect(event.preventDefault).toHaveBeenCalledTimes(1);
 });
 
 test('handleMouseup clears mouseDown and resets dragging state', () => {
   const table = createMockTable();
-  const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
+  const utils = new InteractiveTableUtils(table, mockColumns, vi.fn());
   const th = document.createElement('th') as unknown as typeof utils.columnRef;
   utils.columnRef = th;
   (th as any).mouseDown = true;
@@ -107,7 +107,7 @@ test('handleMouseup clears mouseDown and resets dragging state', () => {
 
 test('handleMouseup works when columnRef is null', () => {
   const table = createMockTable();
-  const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
+  const utils = new InteractiveTableUtils(table, mockColumns, vi.fn());
   utils.columnRef = null;
   utils.isDragging = true;
 
@@ -118,7 +118,7 @@ test('handleMouseup works when columnRef is null', () => {
 
 test('handleMouseDown sets mouseDown and oldX when within resize range', () => {
   const table = createMockTable();
-  const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
+  const utils = new InteractiveTableUtils(table, mockColumns, vi.fn());
   const target = document.createElement('th') as any;
   Object.defineProperty(target, 'offsetWidth', {
     value: 100,
@@ -141,7 +141,7 @@ test('handleMouseDown sets mouseDown and oldX when within resize range', () => {
 
 test('handleMouseDown sets draggable when outside resize range and reorderable', () => {
   const table = createMockTable();
-  const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
+  const utils = new InteractiveTableUtils(table, mockColumns, vi.fn());
   utils.reorderable = true;
 
   const target = document.createElement('th') as any;
@@ -163,9 +163,9 @@ test('handleMouseDown sets draggable when outside resize range and reorderable',
 
 test('initializeResizableColumns adds event listeners when resizable is true', () => {
   const table = createMockTable(2);
-  const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
+  const utils = new InteractiveTableUtils(table, mockColumns, vi.fn());
   const cell = table.rows[0].cells[0];
-  const addEventSpy = jest.spyOn(cell, 'addEventListener');
+  const addEventSpy = vi.spyOn(cell, 'addEventListener');
 
   utils.initializeResizableColumns(true, table);
 
@@ -180,9 +180,9 @@ test('initializeResizableColumns adds event listeners when resizable is true', (
 
 test('initializeResizableColumns removes event listeners when resizable is false', () => {
   const table = createMockTable(2);
-  const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
+  const utils = new InteractiveTableUtils(table, mockColumns, vi.fn());
   const cell = table.rows[0].cells[0];
-  const removeEventSpy = jest.spyOn(cell, 'removeEventListener');
+  const removeEventSpy = vi.spyOn(cell, 'removeEventListener');
 
   utils.initializeResizableColumns(false, table);
 
@@ -200,9 +200,9 @@ test('initializeResizableColumns removes event listeners when resizable is false
 
 test('initializeDragDropColumns adds event listeners when reorderable is true', () => {
   const table = createMockTable(2);
-  const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
+  const utils = new InteractiveTableUtils(table, mockColumns, vi.fn());
   const cell = table.rows[0].cells[0];
-  const addEventSpy = jest.spyOn(cell, 'addEventListener');
+  const addEventSpy = vi.spyOn(cell, 'addEventListener');
 
   utils.initializeDragDropColumns(true, table);
 
@@ -216,9 +216,9 @@ test('initializeDragDropColumns adds event listeners when reorderable is true', 
 
 test('initializeDragDropColumns removes event listeners when reorderable is false', () => {
   const table = createMockTable(2);
-  const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
+  const utils = new InteractiveTableUtils(table, mockColumns, vi.fn());
   const cell = table.rows[0].cells[0];
-  const removeEventSpy = jest.spyOn(cell, 'removeEventListener');
+  const removeEventSpy = vi.spyOn(cell, 'removeEventListener');
 
   utils.initializeDragDropColumns(false, table);
 
@@ -232,11 +232,11 @@ test('initializeDragDropColumns removes event listeners when reorderable is fals
 
 test('handleColumnDragStart sets isDragging and calls setData', () => {
   const table = createMockTable(2);
-  const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
+  const utils = new InteractiveTableUtils(table, mockColumns, vi.fn());
 
   const row = table.rows[0];
   const target = row.cells[0] as any;
-  const setDataMock = jest.fn();
+  const setDataMock = vi.fn();
   const event = {
     currentTarget: target,
     dataTransfer: { setData: setDataMock },
@@ -253,7 +253,7 @@ test('handleColumnDragStart sets isDragging and calls setData', () => {
 
 test('handleDragDrop reorders columns when valid drag data exists', () => {
   const table = createMockTable(2);
-  const setDerivedColumns = jest.fn();
+  const setDerivedColumns = vi.fn();
   const utils = new InteractiveTableUtils(
     table,
     mockColumns,
@@ -268,8 +268,8 @@ test('handleDragDrop reorders columns when valid drag data exists', () => {
   const dropTarget = row.cells[1];
   const event = {
     currentTarget: dropTarget,
-    dataTransfer: { getData: jest.fn().mockReturnValue(dragData) },
-    preventDefault: jest.fn(),
+    dataTransfer: { getData: vi.fn().mockReturnValue(dragData) },
+    preventDefault: vi.fn(),
   } as unknown as DragEvent;
 
   utils.handleDragDrop(event);
@@ -280,7 +280,7 @@ test('handleDragDrop reorders columns when valid drag data exists', () => {
 
 test('handleDragDrop does nothing when no drag data', () => {
   const table = createMockTable(2);
-  const setDerivedColumns = jest.fn();
+  const setDerivedColumns = vi.fn();
   const utils = new InteractiveTableUtils(
     table,
     mockColumns,
@@ -290,8 +290,8 @@ test('handleDragDrop does nothing when no drag data', () => {
   const row = table.rows[0];
   const event = {
     currentTarget: row.cells[0],
-    dataTransfer: { getData: jest.fn().mockReturnValue('') },
-    preventDefault: jest.fn(),
+    dataTransfer: { getData: vi.fn().mockReturnValue('') },
+    preventDefault: vi.fn(),
   } as unknown as DragEvent;
 
   utils.handleDragDrop(event);
@@ -302,7 +302,7 @@ test('handleDragDrop does nothing when no drag data', () => {
 
 test('handleMouseMove updates cursor to col-resize when within resize range', () => {
   const table = createMockTable(2);
-  const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
+  const utils = new InteractiveTableUtils(table, mockColumns, vi.fn());
   utils.resizable = true;
 
   const target = document.createElement('th') as any;
@@ -325,7 +325,7 @@ test('handleMouseMove updates cursor to col-resize when within resize range', ()
 
 test('handleMouseMove sets default cursor when outside resize range', () => {
   const table = createMockTable(2);
-  const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
+  const utils = new InteractiveTableUtils(table, mockColumns, vi.fn());
   utils.resizable = true;
 
   const target = document.createElement('th') as any;
@@ -348,7 +348,7 @@ test('handleMouseMove sets default cursor when outside resize range', () => {
 
 test('handleMouseMove resizes column when mouseDown and within bounds', () => {
   const table = createMockTable(2);
-  const setDerivedColumns = jest.fn();
+  const setDerivedColumns = vi.fn();
   const utils = new InteractiveTableUtils(
     table,
     mockColumns,
@@ -384,7 +384,7 @@ test('handleMouseMove resizes column when mouseDown and within bounds', () => {
 
 test('handleMouseMove skips resize when not resizable', () => {
   const table = createMockTable(2);
-  const setDerivedColumns = jest.fn();
+  const setDerivedColumns = vi.fn();
   const utils = new InteractiveTableUtils(
     table,
     mockColumns,
@@ -406,7 +406,7 @@ test('handleMouseMove skips resize when not resizable', () => {
 
 test('handleMouseMove handles negative diff by keeping original width', () => {
   const table = createMockTable(2);
-  const setDerivedColumns = jest.fn();
+  const setDerivedColumns = vi.fn();
   const utils = new InteractiveTableUtils(
     table,
     mockColumns,
@@ -442,11 +442,11 @@ test('handleMouseMove handles negative diff by keeping original width', () => {
 
 test('handleColumnDragStart does not set columnRef when currentTarget is null (line 82 false)', () => {
   const table = createMockTable(2);
-  const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
+  const utils = new InteractiveTableUtils(table, mockColumns, vi.fn());
 
   const event = {
     currentTarget: null,
-    dataTransfer: { setData: jest.fn() },
+    dataTransfer: { setData: vi.fn() },
   } as unknown as DragEvent;
 
   utils.handleColumnDragStart(event);
@@ -457,7 +457,7 @@ test('handleColumnDragStart does not set columnRef when currentTarget is null (l
 
 test('handleMouseDown does nothing when currentTarget is null (line 118 false)', () => {
   const table = createMockTable();
-  const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
+  const utils = new InteractiveTableUtils(table, mockColumns, vi.fn());
 
   const event = {
     currentTarget: null,
@@ -472,7 +472,7 @@ test('handleMouseDown does nothing when currentTarget is null (line 118 false)',
 
 test('handleMouseDown does nothing to draggable when outside resize range and not reorderable (line 132 false)', () => {
   const table = createMockTable();
-  const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
+  const utils = new InteractiveTableUtils(table, mockColumns, vi.fn());
   utils.reorderable = false;
 
   const target = document.createElement('th') as any;
@@ -494,7 +494,7 @@ test('handleMouseDown does nothing to draggable when outside resize range and no
 
 test('handleMouseMove skips column update when getColumnIndex returns NaN (line 162 false)', () => {
   const table = createMockTable(2);
-  const setDerivedColumns = jest.fn();
+  const setDerivedColumns = vi.fn();
   const utils = new InteractiveTableUtils(
     table,
     mockColumns,
@@ -509,7 +509,7 @@ test('handleMouseMove skips column update when getColumnIndex returns NaN (line 
   col.oldX = 50;
   utils.columnRef = col;
 
-  jest.spyOn(utils, 'getColumnIndex').mockReturnValueOnce(NaN);
+  vi.spyOn(utils, 'getColumnIndex').mockReturnValueOnce(NaN);
 
   const target = document.createElement('th') as any;
   Object.defineProperty(target, 'offsetWidth', {
@@ -531,7 +531,7 @@ test('handleMouseMove skips column update when getColumnIndex returns NaN (line 
 
 test('initializeResizableColumns does nothing when table is null (lines 182-187 false)', () => {
   const table = createMockTable();
-  const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
+  const utils = new InteractiveTableUtils(table, mockColumns, vi.fn());
 
   expect(() => utils.initializeResizableColumns(true, null)).not.toThrow();
   expect(utils.tableRef).toBeNull();
@@ -539,7 +539,7 @@ test('initializeResizableColumns does nothing when table is null (lines 182-187 
 
 test('initializeResizableColumns uses default resizable=false when first arg is undefined (line 182 default branch)', () => {
   const table = createMockTable(2);
-  const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
+  const utils = new InteractiveTableUtils(table, mockColumns, vi.fn());
 
   utils.initializeResizableColumns(undefined, table);
 
@@ -548,7 +548,7 @@ test('initializeResizableColumns uses default resizable=false when first arg is 
 
 test('initializeDragDropColumns does nothing when table is null (lines 206-211 false)', () => {
   const table = createMockTable();
-  const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
+  const utils = new InteractiveTableUtils(table, mockColumns, vi.fn());
 
   expect(() => utils.initializeDragDropColumns(true, null)).not.toThrow();
   expect(utils.tableRef).toBeNull();
@@ -556,7 +556,7 @@ test('initializeDragDropColumns does nothing when table is null (lines 206-211 f
 
 test('initializeDragDropColumns uses default reorderable=false when first arg is undefined (line 206 default branch)', () => {
   const table = createMockTable(2);
-  const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
+  const utils = new InteractiveTableUtils(table, mockColumns, vi.fn());
 
   utils.initializeDragDropColumns(undefined, table);
 
@@ -565,8 +565,8 @@ test('initializeDragDropColumns uses default reorderable=false when first arg is
 
 test('clearListeners removes document mouseup listener', () => {
   const table = createMockTable();
-  const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
-  const removeEventSpy = jest.spyOn(document, 'removeEventListener');
+  const utils = new InteractiveTableUtils(table, mockColumns, vi.fn());
+  const removeEventSpy = vi.spyOn(document, 'removeEventListener');
 
   utils.clearListeners();
 

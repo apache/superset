@@ -30,12 +30,13 @@ import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFro
 import emptyDashboardLayout from 'src/dashboard/fixtures/emptyDashboardLayout';
 import React from 'react';
 import TabsComponent from './Tabs';
+import { Mock } from 'vitest';
 
 // Cast to accept partial mock props in tests
 const Tabs = TabsComponent as unknown as React.FC<Record<string, unknown>>;
 
-jest.mock('src/dashboard/containers/DashboardComponent', () =>
-  jest.fn(props => (
+vi.mock('src/dashboard/containers/DashboardComponent', () =>
+  vi.fn(props => (
     <button
       type="button"
       onClick={() =>
@@ -48,8 +49,8 @@ jest.mock('src/dashboard/containers/DashboardComponent', () =>
   )),
 );
 
-jest.mock('src/dashboard/components/DeleteComponentButton', () =>
-  jest.fn(props => (
+vi.mock('src/dashboard/components/DeleteComponentButton', () =>
+  vi.fn(props => (
     <button
       type="button"
       data-test="DeleteComponentButton"
@@ -59,10 +60,10 @@ jest.mock('src/dashboard/components/DeleteComponentButton', () =>
     </button>
   )),
 );
-jest.mock('src/dashboard/util/getLeafComponentIdFromPath', () => jest.fn());
+vi.mock('src/dashboard/util/getLeafComponentIdFromPath', () => vi.fn());
 
-jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
-  Draggable: jest.fn(props => {
+vi.mock('src/dashboard/components/dnd/DragDroppable', () => ({
+  Draggable: vi.fn(props => {
     const mockElement = { tagName: 'DIV', dataset: {} };
     const childProps = props.editMode
       ? {
@@ -112,19 +113,19 @@ const createProps = () => ({
   focusedFilterScope: null,
   renderTabContent: true,
   renderHoverMenu: true,
-  logEvent: jest.fn(),
-  setActiveTab: jest.fn(),
-  createComponent: jest.fn(),
-  handleComponentDrop: jest.fn(),
-  onChangeTab: jest.fn(),
-  deleteComponent: jest.fn(),
-  updateComponents: jest.fn(),
+  logEvent: vi.fn(),
+  setActiveTab: vi.fn(),
+  createComponent: vi.fn(),
+  handleComponentDrop: vi.fn(),
+  onChangeTab: vi.fn(),
+  deleteComponent: vi.fn(),
+  updateComponents: vi.fn(),
   dashboardLayout: emptyDashboardLayout,
   nativeFilters: nativeFiltersInfo.filters,
 });
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 test('Should render editMode:true', () => {
@@ -191,7 +192,7 @@ test('Should render editMode:false', () => {
 
 test('Update component props', () => {
   const props = createProps();
-  (getLeafComponentIdFromPath as jest.Mock).mockResolvedValueOnce('none');
+  (getLeafComponentIdFromPath as Mock).mockResolvedValueOnce('none');
   props.editMode = false;
   const { rerender } = render(<Tabs {...props} />, {
     useRedux: true,

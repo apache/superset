@@ -34,7 +34,7 @@ import { omit } from 'lodash';
 const mockStore = configureStore([thunk]);
 const defaultProps = {
   queryEditorId: 'qe1',
-  addDangerToast: jest.fn(),
+  addDangerToast: vi.fn(),
 };
 const mockQueryEditor = {
   id: defaultProps.queryEditorId,
@@ -59,12 +59,12 @@ const mockState = {
 };
 const store = mockStore(mockState);
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
 
-const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+const mockedIsFeatureEnabled = isFeatureEnabled as Mock;
 
 const unsavedQueryEditor = {
   id: defaultProps.queryEditorId,
@@ -89,7 +89,7 @@ describe('ShareSqlLabQuery', () => {
       { name: storeQueryUrl },
     );
     fetchMock.clearHistory();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterAll(() => fetchMock.hardReset());

@@ -29,7 +29,7 @@ const VALID_METRIC = {
   expression: 'SUM(energy_usage.value)',
 };
 
-const mockSetControlValue = jest.fn();
+const mockSetControlValue = vi.fn();
 
 const defaultProps = {
   name: 'metrics',
@@ -54,7 +54,7 @@ const defaultProps = {
 };
 
 function verify(sourceProp: string) {
-  const mock = jest.fn();
+  const mock = vi.fn();
   mock.mockImplementation(async (props: ControlPropsWithExtras) => ({
     [sourceProp]: props.validMetrics || [VALID_METRIC],
   }));
@@ -103,7 +103,7 @@ describe('VerifiedMetricsControl', () => {
 
   test('should trigger onChange event', async () => {
     expect.assertions(2);
-    const mockOnChange = jest.fn();
+    const mockOnChange = vi.fn();
     const { verifier, props } = await setup({
       baseControl: 'MetricsControl',
       onChange: mockOnChange,

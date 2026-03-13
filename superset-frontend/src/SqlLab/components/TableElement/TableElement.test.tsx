@@ -25,17 +25,17 @@ import { render, waitFor, fireEvent } from 'spec/helpers/testing-library';
 import * as sqlLabActions from 'src/SqlLab/actions/sqlLab';
 import { QueryEditor } from 'src/SqlLab/types';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
 
-const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+const mockedIsFeatureEnabled = isFeatureEnabled as Mock;
 
-jest.mock('@superset-ui/core/components/Loading', () => ({
+vi.mock('@superset-ui/core/components/Loading', () => ({
   Loading: () => <div data-test="mock-loading" />,
 }));
-jest.mock('@superset-ui/core/components/IconTooltip', () => ({
+vi.mock('@superset-ui/core/components/IconTooltip', () => ({
   IconTooltip: ({
     onClick,
     tooltip,
@@ -48,7 +48,7 @@ jest.mock('@superset-ui/core/components/IconTooltip', () => ({
     </button>
   ),
 }));
-jest.mock(
+vi.mock(
   'src/SqlLab/components/ColumnElement',
   () =>
     ({ column }: { column: Column }) => (
@@ -88,7 +88,7 @@ const createStateWithQueryEditor = (queryEditor: Partial<QueryEditor>) => ({
 });
 
 const setupSyncTableTest = () => {
-  const spy = jest.spyOn(sqlLabActions, 'syncTable');
+  const spy = vi.spyOn(sqlLabActions, 'syncTable');
   mockedIsFeatureEnabled.mockImplementation(
     featureFlag => featureFlag === FeatureFlag.SqllabBackendPersistence,
   );

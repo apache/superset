@@ -26,13 +26,13 @@ import DynamicComponent from './DynamicComponent';
 const mockComponent = () => (
   <div data-test="mock-dynamic-component">Test Component</div>
 );
-jest.mock('src/visualizations/presets/dashboardComponents', () => ({
-  get: jest.fn(() => ({ Component: mockComponent })),
+vi.mock('src/visualizations/presets/dashboardComponents', () => ({
+  get: vi.fn(() => ({ Component: mockComponent })),
 }));
 
 // Mock other dependencies
-jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
-  Draggable: jest.fn(({ children, editMode }) => {
+vi.mock('src/dashboard/components/dnd/DragDroppable', () => ({
+  Draggable: vi.fn(({ children, editMode }) => {
     const mockElement = { tagName: 'DIV', dataset: {} };
     const mockDragSourceRef = { current: mockElement };
     return (
@@ -43,8 +43,8 @@ jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
   }),
 }));
 
-jest.mock('src/dashboard/components/menu/WithPopoverMenu', () =>
-  jest.fn(({ children, menuItems, editMode }) => (
+vi.mock('src/dashboard/components/menu/WithPopoverMenu', () =>
+  vi.fn(({ children, menuItems, editMode }) => (
     <div data-test="mock-popover-menu">
       {editMode &&
         menuItems &&
@@ -58,26 +58,26 @@ jest.mock('src/dashboard/components/menu/WithPopoverMenu', () =>
   )),
 );
 
-jest.mock('src/dashboard/components/resizable/ResizableContainer', () =>
-  jest.fn(({ children }) => (
+vi.mock('src/dashboard/components/resizable/ResizableContainer', () =>
+  vi.fn(({ children }) => (
     <div data-test="mock-resizable-container">{children}</div>
   )),
 );
 
-jest.mock('src/dashboard/components/menu/HoverMenu', () =>
-  jest.fn(({ children }) => <div data-test="mock-hover-menu">{children}</div>),
+vi.mock('src/dashboard/components/menu/HoverMenu', () =>
+  vi.fn(({ children }) => <div data-test="mock-hover-menu">{children}</div>),
 );
 
-jest.mock('src/dashboard/components/DeleteComponentButton', () =>
-  jest.fn(({ onDelete }) => (
+vi.mock('src/dashboard/components/DeleteComponentButton', () =>
+  vi.fn(({ onDelete }) => (
     <button type="button" data-test="mock-delete-button" onClick={onDelete}>
       Delete
     </button>
   )),
 );
 
-jest.mock('src/dashboard/components/menu/BackgroundStyleDropdown', () =>
-  jest.fn(({ onChange, value }) => (
+vi.mock('src/dashboard/components/menu/BackgroundStyleDropdown', () =>
+  vi.fn(({ onChange, value }) => (
     <select
       data-test="mock-background-dropdown"
       value={value}
@@ -109,15 +109,15 @@ const createProps = (overrides = {}) => ({
   },
   index: 0,
   depth: 1,
-  handleComponentDrop: jest.fn(),
+  handleComponentDrop: vi.fn(),
   editMode: false,
   columnWidth: 100,
   availableColumnCount: 12,
-  onResizeStart: jest.fn(),
-  onResizeStop: jest.fn(),
-  onResize: jest.fn(),
-  deleteComponent: jest.fn(),
-  updateComponents: jest.fn(),
+  onResizeStart: vi.fn(),
+  onResizeStop: vi.fn(),
+  onResize: vi.fn(),
+  deleteComponent: vi.fn(),
+  updateComponents: vi.fn(),
   parentId: 'ROW_1',
   id: 'DYNAMIC_COMPONENT_1',
   ...overrides,
@@ -135,7 +135,7 @@ const renderWithRedux = (component: React.ReactElement) =>
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DynamicComponent', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('should render the component with basic structure', () => {

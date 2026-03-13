@@ -28,8 +28,8 @@ import { Menu } from '@superset-ui/core/components';
 import { ThemeSubMenuProps, useThemeMenuItems } from './useThemeMenuItems';
 
 // Mock the translation function
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
   t: (key: string) => key,
 }));
 
@@ -42,10 +42,10 @@ const TestComponent = (props: ThemeSubMenuProps) => {
 describe('useThemeMenuItems', () => {
   const defaultProps = {
     allowOSPreference: true,
-    setThemeMode: jest.fn(),
+    setThemeMode: vi.fn(),
     themeMode: ThemeMode.DEFAULT,
     hasLocalOverride: false,
-    onClearLocalSettings: jest.fn(),
+    onClearLocalSettings: vi.fn(),
   };
 
   const renderThemeMenu = (props = defaultProps) =>
@@ -64,7 +64,7 @@ describe('useThemeMenuItems', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('renders Light and Dark theme options by default', async () => {
@@ -96,7 +96,7 @@ describe('useThemeMenuItems', () => {
   });
 
   test('renders clear option when both hasLocalOverride and onClearLocalSettings are provided', async () => {
-    const mockClear = jest.fn();
+    const mockClear = vi.fn();
     renderThemeMenu({
       ...defaultProps,
       hasLocalOverride: true,
@@ -110,7 +110,7 @@ describe('useThemeMenuItems', () => {
   });
 
   test('does not render clear option when hasLocalOverride is false', async () => {
-    const mockClear = jest.fn();
+    const mockClear = vi.fn();
     renderThemeMenu({
       ...defaultProps,
       hasLocalOverride: false,
@@ -125,7 +125,7 @@ describe('useThemeMenuItems', () => {
   });
 
   test('calls setThemeMode with DEFAULT when Light is clicked', async () => {
-    const mockSet = jest.fn();
+    const mockSet = vi.fn();
     renderThemeMenu({ ...defaultProps, setThemeMode: mockSet });
 
     await userEvent.hover(await screen.findByRole('menuitem'));
@@ -136,7 +136,7 @@ describe('useThemeMenuItems', () => {
   });
 
   test('calls setThemeMode with DARK when Dark is clicked', async () => {
-    const mockSet = jest.fn();
+    const mockSet = vi.fn();
     renderThemeMenu({ ...defaultProps, setThemeMode: mockSet });
 
     await userEvent.hover(await screen.findByRole('menuitem'));
@@ -147,7 +147,7 @@ describe('useThemeMenuItems', () => {
   });
 
   test('calls setThemeMode with SYSTEM when Match system is clicked', async () => {
-    const mockSet = jest.fn();
+    const mockSet = vi.fn();
     renderThemeMenu({ ...defaultProps, setThemeMode: mockSet });
 
     await userEvent.hover(await screen.findByRole('menuitem'));
@@ -158,7 +158,7 @@ describe('useThemeMenuItems', () => {
   });
 
   test('calls onClearLocalSettings when Clear local theme is clicked', async () => {
-    const mockClear = jest.fn();
+    const mockClear = vi.fn();
     renderThemeMenu({
       ...defaultProps,
       hasLocalOverride: true,
@@ -237,7 +237,7 @@ describe('useThemeMenuItems', () => {
     renderThemeMenu({
       ...defaultProps,
       hasLocalOverride: true,
-      onClearLocalSettings: jest.fn(),
+      onClearLocalSettings: vi.fn(),
     });
 
     await userEvent.hover(await screen.findByRole('menuitem'));
@@ -253,7 +253,7 @@ describe('useThemeMenuItems', () => {
     renderThemeMenu({
       ...defaultProps,
       hasLocalOverride: true,
-      onClearLocalSettings: jest.fn(),
+      onClearLocalSettings: vi.fn(),
     });
 
     await userEvent.hover(await screen.findByRole('menuitem'));

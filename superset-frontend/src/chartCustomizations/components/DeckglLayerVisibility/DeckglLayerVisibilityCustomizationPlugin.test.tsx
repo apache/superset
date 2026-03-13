@@ -21,15 +21,16 @@ import userEvent from '@testing-library/user-event';
 import { SupersetClient } from '@superset-ui/core';
 import DeckglLayerVisibilityCustomizationPlugin from './DeckglLayerVisibilityCustomizationPlugin';
 import { PluginDeckglLayerVisibilityProps } from './types';
+import { Mock } from 'vitest';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
   SupersetClient: {
-    get: jest.fn(),
+    get: vi.fn(),
   },
 }));
 
-const mockSupersetClientGet = SupersetClient.get as jest.Mock;
+const mockSupersetClientGet = SupersetClient.get as Mock;
 
 const defaultProps: PluginDeckglLayerVisibilityProps = {
   formData: {
@@ -40,7 +41,7 @@ const defaultProps: PluginDeckglLayerVisibilityProps = {
   height: 400,
   width: 600,
   filterState: {},
-  setDataMask: jest.fn(),
+  setDataMask: vi.fn(),
 };
 
 const mockCharts = {
@@ -152,7 +153,7 @@ test('collects unique layer IDs from multiple deck_multi charts', async () => {
 
 test('handles layer selection and calls setDataMask', async () => {
   mockSupersetClientGet.mockResolvedValue(mockApiResponse);
-  const setDataMaskMock = jest.fn();
+  const setDataMaskMock = vi.fn();
 
   render(
     <DeckglLayerVisibilityCustomizationPlugin
@@ -225,7 +226,7 @@ test('initializes with filterState value when provided', async () => {
 
 test('initializes all layers visible when defaultToAllLayersVisible is true and no prior state', async () => {
   mockSupersetClientGet.mockResolvedValue(mockApiResponse);
-  const setDataMaskMock = jest.fn();
+  const setDataMaskMock = vi.fn();
 
   render(
     <DeckglLayerVisibilityCustomizationPlugin
@@ -259,7 +260,7 @@ test('initializes all layers visible when defaultToAllLayersVisible is true and 
 
 test('does not auto-initialize when defaultToAllLayersVisible is false', async () => {
   mockSupersetClientGet.mockResolvedValue(mockApiResponse);
-  const setDataMaskMock = jest.fn();
+  const setDataMaskMock = vi.fn();
 
   render(
     <DeckglLayerVisibilityCustomizationPlugin
@@ -288,7 +289,7 @@ test('does not auto-initialize when defaultToAllLayersVisible is false', async (
 
 test('handles multiple layer selection', async () => {
   mockSupersetClientGet.mockResolvedValue(mockApiResponse);
-  const setDataMaskMock = jest.fn();
+  const setDataMaskMock = vi.fn();
 
   render(
     <DeckglLayerVisibilityCustomizationPlugin
@@ -449,7 +450,7 @@ test('deduplicates layer IDs from multiple charts', async () => {
 
 test('respects existing visible_deckgl_layers from Redux state', async () => {
   mockSupersetClientGet.mockResolvedValue(mockApiResponse);
-  const setDataMaskMock = jest.fn();
+  const setDataMaskMock = vi.fn();
 
   render(
     <DeckglLayerVisibilityCustomizationPlugin

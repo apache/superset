@@ -41,7 +41,7 @@ const defaultProps = {
   adhocMetric: sumValueAdhocMetric,
   savedMetric: {},
   savedMetricsOptions: [],
-  onMetricEdit: jest.fn(),
+  onMetricEdit: vi.fn(),
   columns,
   datasource: {
     type: 'table',
@@ -50,8 +50,8 @@ const defaultProps = {
     columnFormats: {},
     verboseMap: {},
   },
-  onMoveLabel: jest.fn(),
-  onDropLabel: jest.fn(),
+  onMoveLabel: vi.fn(),
+  onDropLabel: vi.fn(),
   index: 0,
 };
 

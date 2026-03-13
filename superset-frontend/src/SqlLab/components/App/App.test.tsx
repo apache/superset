@@ -33,15 +33,15 @@ import {
 } from 'src/logger/LogUtils';
 
 // eslint-disable-next-line react/display-name
-jest.mock('src/SqlLab/components/PopEditorTab', () => () => (
+vi.mock('src/SqlLab/components/PopEditorTab', () => () => (
   <div data-test="mock-pop-editor-tab" />
 ));
 // eslint-disable-next-line react/display-name
-jest.mock('src/SqlLab/components/QueryAutoRefresh', () => () => (
+vi.mock('src/SqlLab/components/QueryAutoRefresh', () => () => (
   <div data-test="mock-query-auto-refresh" />
 ));
-jest.mock('mousetrap', () => ({
-  reset: jest.fn(),
+vi.mock('mousetrap', () => ({
+  reset: vi.fn(),
 }));
 
 const sqlLabReducer = combineReducers({
@@ -56,11 +56,11 @@ describe('SqlLab App', () => {
   const store = mockStore(sqlLabReducer(undefined, mockAction));
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    jest.useFakeTimers();
+    vi.clearAllMocks();
+    vi.useFakeTimers();
   });
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   test('is valid', () => {

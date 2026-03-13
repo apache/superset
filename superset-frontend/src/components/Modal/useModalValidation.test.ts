@@ -27,17 +27,17 @@ const mockSections = [
   {
     key: 'section1',
     name: 'Section One',
-    validator: jest.fn<string[], []>(() => []),
+    validator: vi.fn<string[], []>(() => []),
   },
   {
     key: 'section2',
     name: 'Section Two',
-    validator: jest.fn<string[], []>(() => []),
+    validator: vi.fn<string[], []>(() => []),
   },
 ];
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 test('initializes with no errors', () => {
@@ -123,7 +123,7 @@ test('returns true when all sections are valid', () => {
 });
 
 test('calls onValidationChange when validation state changes', () => {
-  const onValidationChange = jest.fn();
+  const onValidationChange = vi.fn();
   mockSections[0].validator.mockReturnValue(['Error']);
 
   const { result } = renderHook(() =>

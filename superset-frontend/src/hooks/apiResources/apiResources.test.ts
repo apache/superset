@@ -25,31 +25,31 @@ import {
   useTransformedResource,
 } from './apiResources';
 
-const fakeApiResult = {
-  id: 1,
-  name: 'fake api result',
-};
+const { fakeApiResult } = vi.hoisted(() => ({
+  fakeApiResult: {
+    id: 1,
+    name: 'fake api result',
+  },
+}));
 
 const nameToAllCaps = (thing: any) => ({
   ...thing,
   name: thing.name.toUpperCase(),
 });
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual<any>('@superset-ui/core'),
-  makeApi: jest
-    .fn()
-    .mockReturnValue(jest.fn().mockResolvedValue(fakeApiResult)),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  makeApi: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(fakeApiResult)),
 }));
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('apiResource hooks', () => {
   beforeAll(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
 
   afterAll(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -64,7 +64,7 @@ describe('apiResource hooks', () => {
         error: null,
       });
       await act(async () => {
-        jest.runAllTimers();
+        vi.runAllTimers();
       });
     });
 
@@ -73,7 +73,7 @@ describe('apiResource hooks', () => {
         useApiResourceFullBody('/test/endpoint'),
       );
       await act(async () => {
-        jest.runAllTimers();
+        vi.runAllTimers();
       });
       expect(result.current).toEqual({
         status: ResourceStatus.Complete,
@@ -84,12 +84,12 @@ describe('apiResource hooks', () => {
 
     test('handles api errors', async () => {
       const fakeError = new Error('fake api error');
-      (makeApi as any).mockReturnValue(jest.fn().mockRejectedValue(fakeError));
+      (makeApi as any).mockReturnValue(vi.fn().mockRejectedValue(fakeError));
       const { result } = renderHook(() =>
         useApiResourceFullBody('/test/endpoint'),
       );
       await act(async () => {
-        jest.runAllTimers();
+        vi.runAllTimers();
       });
       expect(result.current).toEqual({
         status: ResourceStatus.Error,
@@ -149,7 +149,7 @@ describe('apiResource hooks', () => {
   describe('useApiV1Endpoint', () => {
     test('resolves to the value from the api', async () => {
       (makeApi as any).mockReturnValue(
-        jest.fn().mockResolvedValue({
+        vi.fn().mockResolvedValue({
           meta: 'data',
           count: 1,
           result: fakeApiResult,
@@ -157,7 +157,7 @@ describe('apiResource hooks', () => {
       );
       const { result } = renderHook(() => useApiV1Resource('/test/endpoint'));
       await act(async () => {
-        jest.runAllTimers();
+        vi.runAllTimers();
       });
       expect(result.current).toEqual({
         status: ResourceStatus.Complete,

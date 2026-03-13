@@ -28,13 +28,13 @@ import DetailsPanel from '.';
 
 const mockPopoverContentRef = {
   current: {
-    focus: jest.fn(),
+    focus: vi.fn(),
   },
 } as unknown as RefObject<HTMLDivElement>;
 
 const mockPopoverTriggerRef = {
   current: {
-    focus: jest.fn(),
+    focus: vi.fn(),
   },
 } as unknown as RefObject<HTMLDivElement>;
 
@@ -42,7 +42,7 @@ const createProps = () => ({
   popoverVisible: true,
   popoverContentRef: mockPopoverContentRef,
   popoverTriggerRef: mockPopoverTriggerRef,
-  setPopoverVisible: jest.fn(),
+  setPopoverVisible: vi.fn(),
   appliedCrossFilterIndicators: [
     {
       column: 'clinical_stage',
@@ -103,7 +103,7 @@ const createProps = () => ({
       ],
     },
   ] as Indicator[],
-  onHighlightFilterSource: jest.fn(),
+  onHighlightFilterSource: vi.fn(),
 });
 
 test('Should render "appliedCrossFilterIndicators"', async () => {

@@ -70,12 +70,12 @@ const fakeApiResult = {
   ],
 };
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
 
-const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+const mockedIsFeatureEnabled = isFeatureEnabled as Mock;
 
 const setup = (overrides = {}) => (
   <QueryHistory {...mockedProps} {...overrides} />

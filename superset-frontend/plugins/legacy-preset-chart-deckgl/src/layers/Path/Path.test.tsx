@@ -20,14 +20,14 @@
 import '@testing-library/jest-dom';
 import { getLayer, getPoints, getHighlightLayer } from './Path';
 
-jest.mock('../../DeckGLContainer', () => ({
+vi.mock('../../DeckGLContainer', () => ({
   DeckGLContainerStyledWrapper: ({ children }: any) => (
     <div data-testid="deckgl-container">{children}</div>
   ),
 }));
 
-jest.mock('../../factory', () => ({
-  createDeckGLComponent: jest.fn(() => () => null),
+vi.mock('../../factory', () => ({
+  createDeckGLComponent: vi.fn(() => () => null),
   GetLayerType: {},
 }));
 
@@ -57,10 +57,10 @@ test('getLayer uses line_width_unit from formData', () => {
   const layer = getLayer({
     formData: mockFormData,
     payload: mockPayload,
-    onContextMenu: jest.fn(),
+    onContextMenu: vi.fn(),
     filterState: undefined,
-    setDataMask: jest.fn(),
-    setTooltip: jest.fn(),
+    setDataMask: vi.fn(),
+    setTooltip: vi.fn(),
     emitCrossFilters: false,
   });
 
@@ -71,10 +71,10 @@ test('getLayer uses pixels when line_width_unit is pixels', () => {
   const layer = getLayer({
     formData: { ...mockFormData, line_width_unit: 'pixels' },
     payload: mockPayload,
-    onContextMenu: jest.fn(),
+    onContextMenu: vi.fn(),
     filterState: undefined,
-    setDataMask: jest.fn(),
-    setTooltip: jest.fn(),
+    setDataMask: vi.fn(),
+    setTooltip: vi.fn(),
     emitCrossFilters: false,
   });
 
@@ -86,9 +86,9 @@ test('getHighlightLayer uses line_width_unit from formData', () => {
     formData: mockFormData,
     payload: mockPayload,
     filterState: { value: [] },
-    onContextMenu: jest.fn(),
-    setDataMask: jest.fn(),
-    setTooltip: jest.fn(),
+    onContextMenu: vi.fn(),
+    setDataMask: vi.fn(),
+    setTooltip: vi.fn(),
     emitCrossFilters: false,
   });
 

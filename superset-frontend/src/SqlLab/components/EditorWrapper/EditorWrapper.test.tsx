@@ -39,22 +39,22 @@ fetchMock.get('glob:*/api/v1/database/*/function_names/', {
   function_names: [],
 });
 
-jest.mock('@superset-ui/core/components/Select/Select', () => () => (
+vi.mock('@superset-ui/core/components/Select/Select', () => () => (
   <div data-test="mock-deprecated-select-select" />
 ));
-jest.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
+vi.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
   <div data-test="mock-deprecated-async-select" />
 ));
 
 // Mock EditorHost from the editors module
-const MockEditorHost = jest
+const MockEditorHost = vi
   .fn()
   .mockImplementation((props: editors.EditorProps) => (
     <div data-test="editor-host">{JSON.stringify(props)}</div>
   ));
 
-jest.mock('src/core/editors', () => ({
-  ...jest.requireActual('src/core/editors'),
+vi.mock('src/core/editors', () => ({
+  ...vi.requireActual('src/core/editors'),
   EditorHost: (props: editors.EditorProps) => MockEditorHost(props),
 }));
 
@@ -64,10 +64,10 @@ const setup = (queryEditor: QueryEditor, store?: Store) =>
       queryEditorId={queryEditor.id}
       height="100px"
       hotkeys={[]}
-      onChange={jest.fn()}
-      onBlur={jest.fn()}
+      onChange={vi.fn()}
+      onBlur={vi.fn()}
       autocomplete
-      onCursorPositionChange={jest.fn()}
+      onCursorPositionChange={vi.fn()}
     />,
     {
       useRedux: true,
@@ -148,12 +148,12 @@ describe('EditorWrapper', () => {
 
     // Simulate editor ready with a mock handle that returns empty selection
     const mockHandle = {
-      getSelectedText: jest.fn().mockReturnValue(''),
-      getValue: jest.fn().mockReturnValue(''),
-      setValue: jest.fn(),
-      focus: jest.fn(),
-      moveCursorToPosition: jest.fn(),
-      scrollToLine: jest.fn(),
+      getSelectedText: vi.fn().mockReturnValue(''),
+      getValue: vi.fn().mockReturnValue(''),
+      setValue: vi.fn(),
+      focus: vi.fn(),
+      moveCursorToPosition: vi.fn(),
+      scrollToLine: vi.fn(),
     };
     act(() => {
       onReady(mockHandle);

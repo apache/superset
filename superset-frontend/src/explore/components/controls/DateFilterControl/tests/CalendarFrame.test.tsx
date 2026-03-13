@@ -25,21 +25,21 @@ import { CALENDAR_RANGE_OPTIONS } from '../utils/constants';
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('CalendarFrame', () => {
   test('calls onChange with PreviousCalendarWeek if value is not in CALENDAR_RANGE_SET', () => {
-    const mockOnChange = jest.fn();
+    const mockOnChange = vi.fn();
     render(<CalendarFrame onChange={mockOnChange} value="invalid-value" />);
 
     expect(mockOnChange).toHaveBeenCalledWith(PreviousCalendarWeek);
   });
 
   test('renders null if value is not in CALENDAR_RANGE_SET', () => {
-    render(<CalendarFrame onChange={jest.fn()} value="invalid-value" />);
+    render(<CalendarFrame onChange={vi.fn()} value="invalid-value" />);
     expect(
       screen.queryByText('Configure Time Range: Previous...'),
     ).not.toBeInTheDocument();
   });
 
   test('renders the correct number of radio options', () => {
-    render(<CalendarFrame onChange={jest.fn()} value={PreviousCalendarWeek} />);
+    render(<CalendarFrame onChange={vi.fn()} value={PreviousCalendarWeek} />);
     const radios = screen.getAllByRole('radio');
     expect(radios).toHaveLength(CALENDAR_RANGE_OPTIONS.length);
     CALENDAR_RANGE_OPTIONS.forEach(option => {
@@ -48,7 +48,7 @@ describe('CalendarFrame', () => {
   });
 
   test('calls onChange with the correct value when a radio button is selected', () => {
-    const mockOnChange = jest.fn();
+    const mockOnChange = vi.fn();
     render(
       <CalendarFrame
         onChange={mockOnChange}
@@ -66,7 +66,7 @@ describe('CalendarFrame', () => {
   test('renders the section title correctly', () => {
     render(
       <CalendarFrame
-        onChange={jest.fn()}
+        onChange={vi.fn()}
         value={CALENDAR_RANGE_OPTIONS[0].value}
       />,
     );
@@ -78,7 +78,7 @@ describe('CalendarFrame', () => {
   test('ensures the third option is PreviousCalendarQuarter', () => {
     render(
       <CalendarFrame
-        onChange={jest.fn()}
+        onChange={vi.fn()}
         value={CALENDAR_RANGE_OPTIONS[0].value}
       />,
     );

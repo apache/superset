@@ -24,11 +24,11 @@ import Chart from './Chart';
 import type { Actions } from './Chart';
 
 const mockActions: Actions = {
-  logEvent: jest.fn() as unknown as Actions['logEvent'],
-  chartRenderingFailed: jest.fn() as unknown as Actions['chartRenderingFailed'],
+  logEvent: vi.fn() as unknown as Actions['logEvent'],
+  chartRenderingFailed: vi.fn() as unknown as Actions['chartRenderingFailed'],
   chartRenderingSucceeded:
-    jest.fn() as unknown as Actions['chartRenderingSucceeded'],
-  postChartFormData: jest.fn() as unknown as Actions['postChartFormData'],
+    vi.fn() as unknown as Actions['chartRenderingSucceeded'],
+  postChartFormData: vi.fn() as unknown as Actions['postChartFormData'],
 };
 
 const baseProps = {
@@ -38,7 +38,7 @@ const baseProps = {
   actions: mockActions,
   formData: { datasource: '1__table', viz_type: 'table' },
   vizType: 'table',
-  setControlValue: jest.fn(),
+  setControlValue: vi.fn(),
 };
 
 test('shows backend error instead of loading spinner when datasource is still a placeholder', () => {

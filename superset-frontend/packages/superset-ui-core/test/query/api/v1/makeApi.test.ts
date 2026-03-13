@@ -47,7 +47,7 @@ describe('makeApi()', () => {
     });
     const client = new SupersetClientClass({ appRoot: '/foo' });
     const mockResponse = { yes: 'ok' };
-    const mockRequest = jest.fn(() =>
+    const mockRequest = vi.fn(() =>
       Promise.resolve(
         new Response(JSON.stringify(mockResponse), {
           headers: { 'Content-Type': 'application/json' },

@@ -27,9 +27,9 @@ interface PolygonFeature {
   metrics?: Record<string, number | string>;
 }
 
-jest.mock('../spatialUtils', () => ({
-  ...jest.requireActual('../spatialUtils'),
-  getMapboxApiKey: jest.fn(() => 'mock-mapbox-key'),
+vi.mock('../spatialUtils', async importActual => ({
+  ...(await importActual()),
+  getMapboxApiKey: vi.fn(() => 'mock-mapbox-key'),
 }));
 
 describe('Polygon transformProps', () => {

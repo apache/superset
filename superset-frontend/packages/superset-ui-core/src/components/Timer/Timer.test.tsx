@@ -17,6 +17,7 @@
  * under the License.
  */
 import { render, waitFor } from '@superset-ui/core/spec';
+// import { render, waitFor } from '@testing-library/react';
 import { Timer, TimerProps } from '.';
 import { now } from '../../utils/dates';
 

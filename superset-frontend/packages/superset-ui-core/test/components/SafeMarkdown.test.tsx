@@ -25,7 +25,7 @@ import {
 /**
  * NOTE: react-markdown is mocked globally in spec/helpers/shim.tsx (line 89)
  * to return children as-is without processing. This is intentional to avoid
- * ESM parsing issues with hast-* packages in Jest.
+ * ESM parsing issues with hast-* packages in vi.
  *
  * These tests verify that the SafeMarkdown component renders without errors,
  * which is the main goal: ensuring remark-gfm v4+ doesn't break the component

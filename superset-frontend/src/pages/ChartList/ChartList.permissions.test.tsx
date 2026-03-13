@@ -28,11 +28,11 @@ import ChartList from 'src/pages/ChartList';
 import { API_ENDPOINTS, mockCharts, setupMocks } from './ChartList.testHelpers';
 
 // Increase default timeout for all tests
-jest.setTimeout(30000);
+vi.setConfig({ testTimeout: 30000 });
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
 
 // Permission configurations
@@ -131,14 +131,14 @@ const renderWithPermissions = async (
   userId: number | undefined = 1,
   featureFlags: { tagging?: boolean; cardView?: boolean } = {},
 ) => {
-  (
-    isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
-  ).mockImplementation((feature: string) => {
-    if (feature === 'TAGGING_SYSTEM') return featureFlags.tagging === true;
-    if (feature === 'LISTVIEWS_DEFAULT_CARD_VIEW')
-      return featureFlags.cardView === true;
-    return false;
-  });
+  (isFeatureEnabled as Mock<typeof isFeatureEnabled>).mockImplementation(
+    (feature: string) => {
+      if (feature === 'TAGGING_SYSTEM') return featureFlags.tagging === true;
+      if (feature === 'LISTVIEWS_DEFAULT_CARD_VIEW')
+        return featureFlags.cardView === true;
+      return false;
+    },
+  );
 
   // Convert role permissions to API permissions
   setupMocks({ [API_ENDPOINTS.CHARTS_INFO]: permissions.map(perm => perm[0]) });
@@ -166,9 +166,7 @@ const renderWithPermissions = async (
 describe('ChartList - Permission-based UI Tests', () => {
   beforeEach(() => {
     fetchMock.clearHistory().removeRoutes();
-    (
-      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
-    ).mockReset();
+    (isFeatureEnabled as Mock<typeof isFeatureEnabled>).mockReset();
   });
 
   test('shows all UI elements for admin users with full permissions', async () => {

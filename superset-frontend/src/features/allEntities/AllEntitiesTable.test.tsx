@@ -22,7 +22,7 @@ import AllEntitiesTable from './AllEntitiesTable';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AllEntitiesTable', () => {
-  const mockSetShowTagModal = jest.fn();
+  const mockSetShowTagModal = vi.fn();
 
   const mockObjects = {
     dashboard: [],
@@ -82,7 +82,7 @@ describe('AllEntitiesTable', () => {
   };
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   test('renders when empty with button to tag if user has perm', () => {

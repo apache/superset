@@ -24,17 +24,17 @@ import {
 } from 'spec/helpers/testing-library';
 import Footer from 'src/features/datasets/AddDataset/Footer';
 
-const mockHistoryPush = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+const mockHistoryPush = vi.fn();
+vi.mock('react-router-dom', () => ({
+  ...vi.requireActual('react-router-dom'),
   useHistory: () => ({
     push: mockHistoryPush,
   }),
 }));
 
 // Mock the API call
-const mockCreateResource = jest.fn();
-jest.mock('src/views/CRUD/hooks', () => ({
+const mockCreateResource = vi.fn();
+vi.mock('src/views/CRUD/hooks', () => ({
   useSingleViewResource: () => ({
     createResource: mockCreateResource,
     state: { loading: false },
@@ -67,7 +67,7 @@ const mockPropsWithDataset = {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Footer', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('renders a Footer with a cancel button and a disabled create button', () => {

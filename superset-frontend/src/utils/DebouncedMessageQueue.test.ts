@@ -28,7 +28,7 @@ describe('DebouncedMessageQueue', () => {
   });
 
   test('should accept custom configuration options', () => {
-    const mockCallback = jest.fn();
+    const mockCallback = vi.fn();
     const queue = new DebouncedMessageQueue({
       callback: mockCallback,
       sizeThreshold: 500,
@@ -38,7 +38,7 @@ describe('DebouncedMessageQueue', () => {
   });
 
   test('should append items to the queue', () => {
-    const mockCallback = jest.fn();
+    const mockCallback = vi.fn();
     const queue = new DebouncedMessageQueue({ callback: mockCallback });
 
     const testEvent = { id: 1, message: 'test' };
@@ -54,7 +54,7 @@ describe('DebouncedMessageQueue', () => {
       data: string;
     }
 
-    const mockCallback = jest.fn();
+    const mockCallback = vi.fn();
     const queue = new DebouncedMessageQueue<TestEvent>({
       callback: mockCallback,
     });

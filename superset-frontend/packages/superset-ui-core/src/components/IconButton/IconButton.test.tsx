@@ -45,7 +45,7 @@ describe('IconButton', () => {
   });
 
   test('handles Enter and Space key presses', () => {
-    const mockOnClick = jest.fn();
+    const mockOnClick = vi.fn();
     render(<IconButton {...defaultProps} onClick={mockOnClick} />);
 
     const button = screen.getByRole('button');
@@ -79,7 +79,7 @@ describe('IconButton', () => {
   });
 
   test('calls onClick handler when clicked', () => {
-    const mockOnClick = jest.fn();
+    const mockOnClick = vi.fn();
     render(<IconButton {...defaultProps} onClick={mockOnClick} />);
 
     const button = screen.getByRole('button');

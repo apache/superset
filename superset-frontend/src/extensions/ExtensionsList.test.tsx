@@ -44,8 +44,8 @@ const mockInitialState = {
 };
 
 const defaultProps = {
-  addDangerToast: jest.fn(),
-  addSuccessToast: jest.fn(),
+  addDangerToast: vi.fn(),
+  addSuccessToast: vi.fn(),
 };
 
 const renderWithStore = (props = {}) =>
@@ -74,8 +74,8 @@ test('displays extension names in the list', async () => {
 });
 
 test('calls toast functions when provided', () => {
-  const addDangerToast = jest.fn();
-  const addSuccessToast = jest.fn();
+  const addDangerToast = vi.fn();
+  const addSuccessToast = vi.fn();
 
   renderWithStore({
     addDangerToast,

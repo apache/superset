@@ -20,12 +20,12 @@
 import { ControlPanelState } from '../../src/types';
 
 // Mock the utilities to avoid complex dependencies
-jest.mock('../../src/utils', () => ({
-  formatSelectOptions: jest.fn((options: any[]) =>
+vi.mock('../../src/utils', () => ({
+  formatSelectOptions: vi.fn((options: any[]) =>
     options.map((opt: any) => [opt, opt]),
   ),
-  displayTimeRelatedControls: jest.fn(() => true),
-  getColorControlsProps: jest.fn(() => ({})),
+  displayTimeRelatedControls: vi.fn(() => true),
+  getColorControlsProps: vi.fn(() => ({})),
   D3_FORMAT_OPTIONS: [],
   D3_FORMAT_DOCS: '',
   D3_TIME_FORMAT_OPTIONS: [],

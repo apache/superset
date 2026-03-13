@@ -17,6 +17,6 @@
  * under the License.
  */
 
-export const isMatrixifyEnabled = jest.fn(() => false);
+export const isMatrixifyEnabled = vi.fn(() => false);
 
-export const MatrixifyGridRenderer = jest.fn(() => null);
+export const MatrixifyGridRenderer = vi.fn(() => null);

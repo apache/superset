@@ -22,7 +22,7 @@ import BasicInfoSection from './BasicInfoSection';
 
 const defaultProps = {
   form: {
-    getFieldValue: jest.fn(() => 'Test Dashboard'),
+    getFieldValue: vi.fn(() => 'Test Dashboard'),
   } as any,
   validationStatus: {
     basic: { hasErrors: false, errors: [], name: 'Basic' },
@@ -53,7 +53,7 @@ test('shows required asterisk for name field', () => {
 
 test('shows error message when name is empty and has validation errors', () => {
   const mockForm = {
-    getFieldValue: jest.fn(field => (field === 'title' ? '' : 'test')),
+    getFieldValue: vi.fn(field => (field === 'title' ? '' : 'test')),
   };
 
   const validationStatus = {
@@ -79,7 +79,7 @@ test('shows error message when name is empty and has validation errors', () => {
 
 test('does not show error when name is provided', () => {
   const mockForm = {
-    getFieldValue: jest.fn(() => 'Test Dashboard'),
+    getFieldValue: vi.fn(() => 'Test Dashboard'),
   };
 
   const validationStatus = {

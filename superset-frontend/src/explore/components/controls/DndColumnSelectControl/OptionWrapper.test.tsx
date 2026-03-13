@@ -24,9 +24,9 @@ test('renders with default props', async () => {
   const { container } = render(
     <OptionWrapper
       index={1}
-      clickClose={jest.fn()}
+      clickClose={vi.fn()}
       type={'Column' as DndItemType}
-      onShiftOptions={jest.fn()}
+      onShiftOptions={vi.fn()}
       label="Option"
     />,
     { useDnd: true },
@@ -36,19 +36,19 @@ test('renders with default props', async () => {
 });
 
 test('triggers onShiftOptions on drop', async () => {
-  const onShiftOptions = jest.fn();
+  const onShiftOptions = vi.fn();
   render(
     <>
       <OptionWrapper
         index={1}
-        clickClose={jest.fn()}
+        clickClose={vi.fn()}
         type={'Column' as DndItemType}
         onShiftOptions={onShiftOptions}
         label="Option 1"
       />
       <OptionWrapper
         index={2}
-        clickClose={jest.fn()}
+        clickClose={vi.fn()}
         type={'Column' as DndItemType}
         onShiftOptions={onShiftOptions}
         label="Option 2"

@@ -21,29 +21,30 @@ import { GenericDataType } from '@apache-superset/core/common';
 import { getColorFormatters } from '@superset-ui/chart-controls';
 import { BigNumberTotalChartProps } from '../types';
 import transformProps from './transformProps';
+import { Mock } from 'vitest';
 
-jest.mock('@superset-ui/chart-controls', () => ({
-  getColorFormatters: jest.fn(),
+vi.mock('@superset-ui/chart-controls', () => ({
+  getColorFormatters: vi.fn(),
 }));
 
-jest.mock('@superset-ui/core', () => ({
+vi.mock('@superset-ui/core', async importActual => ({
   GenericDataType: { Temporal: 2, String: 1 },
-  getMetricLabel: jest.fn(metric => metric),
-  extractTimegrain: jest.fn(() => 'P1D'),
-  getValueFormatter: jest.fn(() => (v: any) => `$${v}`),
+  getMetricLabel: vi.fn(metric => metric),
+  extractTimegrain: vi.fn(() => 'P1D'),
+  getValueFormatter: vi.fn(() => (v: any) => `$${v}`),
 }));
 
-jest.mock('../utils', () => ({
-  getDateFormatter: jest.fn(() => (v: any) => `${v}pm`),
-  parseMetricValue: jest.fn(val => Number(val)),
-  getOriginalLabel: jest.fn((metric, metrics) => {
+vi.mock('../utils', () => ({
+  getDateFormatter: vi.fn(() => (v: any) => `${v}pm`),
+  parseMetricValue: vi.fn(val => Number(val)),
+  getOriginalLabel: vi.fn((metric, metrics) => {
     console.log(metrics);
     return metric;
   }),
 }));
 
 describe('BigNumberTotal transformProps', () => {
-  const onContextMenu = jest.fn();
+  const onContextMenu = vi.fn();
   const baseFormData = {
     headerFontSize: 20,
     metric: 'value',
@@ -112,7 +113,7 @@ describe('BigNumberTotal transformProps', () => {
     height: 300,
     queriesData: [{ data: [], coltypes: [] }],
     rawFormData: { dummy: 'raw' },
-    hooks: { onContextMenu: jest.fn() },
+    hooks: { onContextMenu: vi.fn() },
     datasource: {
       currencyFormats: { value: '$0,0.00' },
       columnFormats: { value: '$0,0.00' },
@@ -234,7 +235,7 @@ describe('BigNumberTotal transformProps', () => {
   test('should propagate colorThresholdFormatters from getColorFormatters', () => {
     // Override the getColorFormatters mock to return specific value
     const mockFormatters = [{ formatter: 'red' }];
-    (getColorFormatters as jest.Mock).mockReturnValueOnce(mockFormatters);
+    (getColorFormatters as Mock).mockReturnValueOnce(mockFormatters);
 
     const chartProps = {
       width: 800,

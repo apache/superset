@@ -25,14 +25,14 @@ const defaultProps: PageHeaderWithActionsProps = {
   editableTitleProps: {
     title: 'Test title',
     placeholder: 'Test placeholder',
-    onSave: jest.fn(),
+    onSave: vi.fn(),
     canEdit: true,
     label: 'Title',
   },
   showTitlePanelItems: true,
   certificatiedBadgeProps: {},
   showFaveStar: true,
-  faveStarProps: { itemId: 1, saveFaveStar: jest.fn() },
+  faveStarProps: { itemId: 1, saveFaveStar: vi.fn() },
   titlePanelAdditionalItems: <button type="button">Title panel button</button>,
   rightPanelAdditionalItems: <button type="button">Save</button>,
   additionalActionsMenu: (
@@ -41,7 +41,7 @@ const defaultProps: PageHeaderWithActionsProps = {
       data-test="additional-actions-menu"
     />
   ),
-  menuDropdownProps: { onVisibleChange: jest.fn(), visible: true },
+  menuDropdownProps: { onVisibleChange: vi.fn(), visible: true },
 };
 
 test('Renders', async () => {

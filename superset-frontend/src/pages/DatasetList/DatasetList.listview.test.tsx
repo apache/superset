@@ -36,10 +36,10 @@ import {
   getDeleteRouteName,
 } from './DatasetList.testHelpers';
 
-const mockAddDangerToast = jest.fn();
-const mockAddSuccessToast = jest.fn();
+const mockAddDangerToast = vi.fn();
+const mockAddSuccessToast = vi.fn();
 
-jest.mock('src/components/MessageToasts/actions', () => ({
+vi.mock('src/components/MessageToasts/actions', () => ({
   addDangerToast: (msg: string) => {
     mockAddDangerToast(msg);
     return () => ({ type: '@@toast/danger' });
@@ -50,10 +50,10 @@ jest.mock('src/components/MessageToasts/actions', () => ({
   },
 }));
 
-jest.mock('src/utils/export');
+vi.mock('src/utils/export');
 
 // Increase default timeout for tests that involve multiple async operations
-jest.setTimeout(15000);
+vi.setConfig({ testTimeout: 15000 });
 
 const buildSupersetClientError = ({
   status,
@@ -102,7 +102,7 @@ const setupErrorTestScenario = ({
       ? SupersetClient.get.bind(SupersetClient)
       : SupersetClient.post.bind(SupersetClient);
 
-  jest.spyOn(SupersetClient, method).mockImplementation(async request => {
+  vi.spyOn(SupersetClient, method).mockImplementation(async request => {
     if (request.endpoint?.includes(endpoint)) {
       throw buildSupersetClientError({
         status: errorStatus,
@@ -125,7 +125,7 @@ const setupErrorTestScenario = ({
 
 beforeEach(() => {
   setupMocks();
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 afterEach(async () => {
@@ -135,7 +135,7 @@ afterEach(async () => {
   });
 
   // Restore real timers in case a test threw early
-  jest.useRealTimers();
+  vi.useRealTimers();
 
   // Reset browser history state to prevent query params leaking between tests
   // QueryParamProvider reads from window.history, which persists across renders
@@ -143,7 +143,7 @@ afterEach(async () => {
 
   fetchMock.clearHistory();
   fetchMock.removeRoutes();
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 test('required API endpoints are called and no unmocked calls on initial render', async () => {
@@ -1719,7 +1719,7 @@ test('edit action shows error toast when dataset fetch fails', async () => {
   fetchMock.get(API_ENDPOINTS.DATASETS, { result: [ownedDataset], count: 1 });
 
   // Mock SupersetClient.get to fail for the specific dataset endpoint
-  jest.spyOn(SupersetClient, 'get').mockImplementation(async request => {
+  vi.spyOn(SupersetClient, 'get').mockImplementation(async request => {
     if (request.endpoint?.includes(`/api/v1/dataset/${dataset.id}`)) {
       throw buildSupersetClientError({
         status: 500,

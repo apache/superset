@@ -34,23 +34,23 @@ interface MockIntersectionObserverEntry {
   isIntersecting: boolean;
 }
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(() => true),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(() => true),
   FeatureFlag: {
     DashboardVirtualization: 'DASHBOARD_VIRTUALIZATION',
   },
 }));
 
-jest.mock('src/utils/isBot', () => ({
-  isCurrentUserBot: jest.fn(() => false),
+vi.mock('src/utils/isBot', () => ({
+  isCurrentUserBot: vi.fn(() => false),
 }));
 
-jest.mock('src/dashboard/util/isEmbedded', () => ({
-  isEmbedded: jest.fn(() => false),
+vi.mock('src/dashboard/util/isEmbedded', () => ({
+  isEmbedded: vi.fn(() => false),
 }));
 
-jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
+vi.mock('src/dashboard/components/dnd/DragDroppable', () => ({
   Draggable: ({
     children,
   }: {
@@ -70,7 +70,7 @@ jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
   ),
 }));
 
-jest.mock(
+vi.mock(
   'src/dashboard/containers/DashboardComponent',
   () =>
     ({
@@ -86,7 +86,7 @@ jest.mock(
     ),
 );
 
-jest.mock(
+vi.mock(
   'src/dashboard/components/menu/WithPopoverMenu',
   () =>
     ({ children }: { children: React.ReactNode }) => (
@@ -94,7 +94,7 @@ jest.mock(
     ),
 );
 
-jest.mock(
+vi.mock(
   'src/dashboard/components/DeleteComponentButton',
   () =>
     ({ onDelete }: { onDelete: () => void }) => (
@@ -234,7 +234,7 @@ test.skip('should render a BackgroundStyleDropdown when focused', () => {
 });
 
 test('should call deleteComponent when deleted', () => {
-  const deleteComponent = jest.fn();
+  const deleteComponent = vi.fn();
   const { getByTestId } = setup({ editMode: true, deleteComponent });
   fireEvent.click(getByTestId('mock-delete-component-button'));
   expect(deleteComponent).toHaveBeenCalledTimes(1);
@@ -257,21 +257,21 @@ test('should increment the depth of its children', () => {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('visibility handling for intersection observers', () => {
-  const mockIntersectionObserver = jest.fn();
-  const mockObserve = jest.fn();
-  const mockDisconnect = jest.fn();
+  const mockIntersectionObserver = vi.fn();
+  const mockObserve = vi.fn();
+  const mockDisconnect = vi.fn();
 
   beforeAll(() => {
     mockIntersectionObserver.mockReturnValue({
       observe: mockObserve,
-      unobserve: jest.fn(),
+      unobserve: vi.fn(),
       disconnect: mockDisconnect,
     });
     window.IntersectionObserver = mockIntersectionObserver;
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterAll(() => {
@@ -302,10 +302,10 @@ describe('visibility handling for intersection observers', () => {
   });
 
   test('should not create intersection observers when feature is disabled', () => {
-    const coreMock = jest.requireMock('@superset-ui/core');
+    const coreMock = vi.requireMock('@superset-ui/core');
     coreMock.isFeatureEnabled.mockReturnValue(false);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     setup({ isComponentVisible: true });
 
     expect(mockIntersectionObserver).not.toHaveBeenCalled();

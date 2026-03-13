@@ -26,9 +26,10 @@ import { act, render, screen } from '@superset-ui/core/spec';
 import { renderHook } from '@testing-library/react-hooks';
 import { SupersetThemeProvider, useThemeContext } from '../ThemeProvider';
 import { ThemeController } from '../ThemeController';
+import { Mock } from 'vitest';
 
-jest.mock('../ThemeController');
-const MockThemeController = ThemeController as jest.MockedClass<
+vi.mock('../ThemeController');
+const MockThemeController = ThemeController as Mock<
   typeof ThemeController
 >;
 
@@ -58,7 +59,7 @@ const mockDarkTheme = {
 } as unknown as Theme;
 
 const createWrapper =
-  (controller: jest.Mocked<ThemeController>) =>
+  (controller: any) =>
   ({ children }: { children: ReactNode }) => (
     <SupersetThemeProvider themeController={controller}>
       {children}
@@ -67,33 +68,33 @@ const createWrapper =
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SupersetThemeProvider', () => {
-  let mockThemeController: jest.Mocked<ThemeController>;
-  let mockOnChangeCallback: jest.Mock;
+  let mockThemeController: any;
+  let mockOnChangeCallback: any;
 
   beforeEach(() => {
-    mockOnChangeCallback = jest.fn();
+    mockOnChangeCallback = vi.fn();
     mockThemeController = {
-      getTheme: jest.fn().mockReturnValue(mockTheme),
-      getCurrentMode: jest.fn().mockReturnValue(ThemeMode.DEFAULT),
-      setTheme: jest.fn(),
-      setThemeMode: jest.fn(),
-      resetTheme: jest.fn(),
-      onChange: jest.fn().mockReturnValue(jest.fn()),
-      canUpdateTheme: jest.fn().mockReturnValue(true),
-      canUpdateMode: jest.fn().mockReturnValue(true),
-      destroy: jest.fn(),
-    } as unknown as jest.Mocked<ThemeController>;
+      getTheme: vi.fn().mockReturnValue(mockTheme),
+      getCurrentMode: vi.fn().mockReturnValue(ThemeMode.DEFAULT),
+      setTheme: vi.fn(),
+      setThemeMode: vi.fn(),
+      resetTheme: vi.fn(),
+      onChange: vi.fn().mockReturnValue(vi.fn()),
+      canUpdateTheme: vi.fn().mockReturnValue(true),
+      canUpdateMode: vi.fn().mockReturnValue(true),
+      destroy: vi.fn(),
+    } as unknown as Mock;
 
-    mockThemeController.onChange.mockImplementation(callback => {
+    mockThemeController.onChange.mockImplementation((callback: any) => {
       mockOnChangeCallback.mockImplementation(callback);
-      return jest.fn();
+      return vi.fn();
     });
 
     MockThemeController.mockImplementation(() => mockThemeController);
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -133,7 +134,7 @@ describe('SupersetThemeProvider', () => {
     });
 
     test('should unregister onChange listener on unmount', () => {
-      const unsubscribeMock = jest.fn();
+      const unsubscribeMock = vi.fn();
       mockThemeController.onChange.mockReturnValue(unsubscribeMock);
 
       const wrapper = createWrapper(mockThemeController);

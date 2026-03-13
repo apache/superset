@@ -26,22 +26,20 @@ import {
   setupMocks,
   renderDashboardList,
 } from './DashboardList.testHelpers';
+import { Mock } from 'vitest';
 
-jest.setTimeout(30000);
+vi.setConfig({ testTimeout: 30000 });
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
 
-jest.mock('src/utils/export', () => ({
-  __esModule: true,
-  default: jest.fn(),
+vi.mock('src/utils/export', () => ({
+  default: vi.fn(),
 }));
 
-const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
-  typeof isFeatureEnabled
->;
+const mockIsFeatureEnabled = isFeatureEnabled as Mock<typeof isFeatureEnabled>;
 
 const mockUser = {
   userId: 1,
@@ -138,7 +136,7 @@ test('can unfavorite a dashboard', async () => {
     result: [],
     count: 0,
   });
-  global.URL.createObjectURL = jest.fn();
+  global.URL.createObjectURL = vi.fn();
   fetchMock.get('/thumbnail', { body: new Blob(), sendAsJson: false });
   fetchMock.get('glob:*', (callLog: any) => {
     const reqUrl =
@@ -255,7 +253,7 @@ test('can edit dashboard title via properties modal', async () => {
     result: [],
     count: 0,
   });
-  global.URL.createObjectURL = jest.fn();
+  global.URL.createObjectURL = vi.fn();
   fetchMock.get(API_ENDPOINTS.THUMBNAIL, {
     body: new Blob(),
     sendAsJson: false,

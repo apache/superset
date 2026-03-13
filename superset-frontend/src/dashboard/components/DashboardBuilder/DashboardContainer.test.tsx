@@ -30,7 +30,7 @@ fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 fetchMock.put('glob:*/api/v1/dashboard/*/colors*', {});
 fetchMock.post('glob:*/superset/log/?*', {});
 
-jest.mock('@visx/responsive', () => ({
+vi.mock('@visx/responsive', () => ({
   ParentSize: ({
     children,
   }: {
@@ -38,7 +38,7 @@ jest.mock('@visx/responsive', () => ({
   }) => children({ width: 800 }),
 }));
 
-jest.mock('src/dashboard/containers/DashboardGrid', () => ({
+vi.mock('src/dashboard/containers/DashboardGrid', () => ({
   __esModule: true,
   default: () => <div data-test="mock-dashboard-grid" />,
 }));
@@ -131,11 +131,11 @@ function setupWithStore(overrideState = {}) {
   return { store, ...renderResult };
 }
 
-let setInScopeStatusMock: jest.SpyInstance;
+let setInScopeStatusMock: vi.SpyInstance;
 const originalSetInScopeStatus = nativeFiltersActions.setInScopeStatusOfFilters;
 
 beforeEach(() => {
-  setInScopeStatusMock = jest.spyOn(
+  setInScopeStatusMock = vi.spyOn(
     nativeFiltersActions,
     'setInScopeStatusOfFilters',
   );

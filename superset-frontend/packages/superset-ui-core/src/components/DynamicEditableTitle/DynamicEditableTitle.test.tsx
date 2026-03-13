@@ -23,7 +23,7 @@ const createProps = (overrides: Record<string, any> = {}) => ({
   title: 'Chart title',
   placeholder: 'Add the name of the chart',
   canEdit: true,
-  onSave: jest.fn(),
+  onSave: vi.fn(),
   label: 'Chart title',
   ...overrides,
 });

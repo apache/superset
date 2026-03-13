@@ -21,7 +21,7 @@ import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 
 const defaultProps = {
   name: 'show_legend',
-  onChange: jest.fn(),
+  onChange: vi.fn(),
   value: false,
   label: 'checkbox label',
 };

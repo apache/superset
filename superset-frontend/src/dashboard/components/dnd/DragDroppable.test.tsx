@@ -65,7 +65,7 @@ describe('DragDroppable', () => {
   }
 
   test('should call its child function', () => {
-    const renderChild = jest.fn((provided: Record<string, unknown>) => (
+    const renderChild = vi.fn((provided: Record<string, unknown>) => (
       <div data-test="child-content" {...provided}>
         Test Content
       </div>
@@ -81,7 +81,7 @@ describe('DragDroppable', () => {
   });
 
   test('should call its child function with "dragSourceRef" if editMode=true', () => {
-    const renderChild = jest.fn().mockImplementation(provided => (
+    const renderChild = vi.fn().mockImplementation(provided => (
       <div data-test="child-content" {...provided}>
         Test Content
       </div>
@@ -105,7 +105,7 @@ describe('DragDroppable', () => {
   });
 
   test('should call its child function with "dropIndicatorProps" dependent on editMode and isDraggingOver', () => {
-    const renderChild = jest.fn((provided: Record<string, unknown>) => (
+    const renderChild = vi.fn((provided: Record<string, unknown>) => (
       <div data-test="child-content" {...provided}>
         Test Content
       </div>
@@ -140,8 +140,8 @@ describe('DragDroppable', () => {
   });
 
   test('should call props.dragPreviewRef and props.droppableRef on mount', () => {
-    const dragPreviewRef = jest.fn();
-    const droppableRef = jest.fn();
+    const dragPreviewRef = vi.fn();
+    const droppableRef = vi.fn();
 
     setup({ dragPreviewRef, droppableRef });
     expect(dragPreviewRef).toHaveBeenCalledTimes(1);
@@ -149,7 +149,7 @@ describe('DragDroppable', () => {
   });
 
   test('should handle forbidden drops correctly', () => {
-    const renderChild = jest.fn((provided: Record<string, unknown>) => (
+    const renderChild = vi.fn((provided: Record<string, unknown>) => (
       <div data-test="child-content" {...provided}>
         Test Content
       </div>
@@ -191,7 +191,7 @@ describe('DragDroppable', () => {
   });
 
   test('should handle disabled drag and drop', () => {
-    const renderChild = jest.fn((provided: Record<string, unknown>) => (
+    const renderChild = vi.fn((provided: Record<string, unknown>) => (
       <div data-test="child-content" {...provided}>
         Test Content
       </div>
@@ -226,7 +226,7 @@ describe('DragDroppable', () => {
 
   // Later in the file, remove the require and use the imported getEmptyImage
   test('should handle empty drag preview correctly', () => {
-    const dragPreviewRef = jest.fn();
+    const dragPreviewRef = vi.fn();
 
     setup({
       dragPreviewRef,
@@ -242,7 +242,7 @@ describe('DragDroppable', () => {
   });
 
   test('should call onDropIndicatorChange when appropriate', () => {
-    const onDropIndicatorChange = jest.fn();
+    const onDropIndicatorChange = vi.fn();
     const { rerender } = setup({
       component: newComponentFactory(TAB_TYPE),
       onDropIndicatorChange,

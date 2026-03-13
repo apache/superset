@@ -147,9 +147,9 @@ const createProps = () => ({
       parents: [ROOT_ID, GRID, TABS, TAB_B],
     },
   },
-  updateDashboardFiltersScope: jest.fn(),
-  setUnsavedChanges: jest.fn(),
-  onCloseModal: jest.fn(),
+  updateDashboardFiltersScope: vi.fn(),
+  setUnsavedChanges: vi.fn(),
+  onCloseModal: vi.fn(),
 });
 
 type CheckboxState = 'checked' | 'unchecked' | 'indeterminate';
@@ -337,7 +337,7 @@ test('selects all charts', async () => {
 });
 
 test('triggers onClose', () => {
-  const onCloseModal = jest.fn();
+  const onCloseModal = vi.fn();
   render(
     <FilterScopeSelector {...createProps()} onCloseModal={onCloseModal} />,
     {
@@ -350,9 +350,9 @@ test('triggers onClose', () => {
 });
 
 test('triggers onSave', () => {
-  const updateDashboardFiltersScope = jest.fn();
-  const setUnsavedChanges = jest.fn();
-  const onCloseModal = jest.fn();
+  const updateDashboardFiltersScope = vi.fn();
+  const setUnsavedChanges = vi.fn();
+  const onCloseModal = vi.fn();
   render(
     <FilterScopeSelector
       {...createProps()}

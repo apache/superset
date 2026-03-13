@@ -28,8 +28,8 @@ import {
 import { CustomFrame } from '../components';
 
 const TODAY = '2024-06-03';
-jest.useFakeTimers();
-jest.setSystemTime(new Date(TODAY).getTime());
+vi.useFakeTimers();
+vi.setSystemTime(new Date(TODAY).getTime());
 
 const emptyValue = '';
 const nowValue = 'now : now';
@@ -51,7 +51,7 @@ const emptyStore = mockStore({});
 const invalidStore = mockStore({ common: { locale: 'invalid_locale' } });
 
 test('renders with default props', async () => {
-  render(<CustomFrame onChange={jest.fn()} value={emptyValue} />, {
+  render(<CustomFrame onChange={vi.fn()} value={emptyValue} />, {
     store,
   });
   expect(screen.getByLabelText('Loading')).toBeVisible();
@@ -65,7 +65,7 @@ test('renders with default props', async () => {
 });
 
 test('renders with empty store', () => {
-  render(<CustomFrame onChange={jest.fn()} value={emptyValue} />, {
+  render(<CustomFrame onChange={vi.fn()} value={emptyValue} />, {
     store: emptyStore,
   });
   expect(screen.getByText('Configure custom time range')).toBeInTheDocument();
@@ -77,7 +77,7 @@ test('renders with empty store', () => {
 });
 
 test('renders since and until with specific date/time with default locale', () => {
-  render(<CustomFrame onChange={jest.fn()} value={specificValue} />, {
+  render(<CustomFrame onChange={vi.fn()} value={specificValue} />, {
     store: emptyStore,
   });
   expect(screen.getAllByText('Specific Date/Time').length).toBe(2);
@@ -85,7 +85,7 @@ test('renders since and until with specific date/time with default locale', () =
 });
 
 test('renders with invalid locale', () => {
-  render(<CustomFrame onChange={jest.fn()} value={emptyValue} />, {
+  render(<CustomFrame onChange={vi.fn()} value={emptyValue} />, {
     store: invalidStore,
   });
   expect(screen.getByText('Configure custom time range')).toBeInTheDocument();
@@ -97,7 +97,7 @@ test('renders with invalid locale', () => {
 });
 
 test('renders since and until with specific date/time with invalid locale', () => {
-  render(<CustomFrame onChange={jest.fn()} value={specificValue} />, {
+  render(<CustomFrame onChange={vi.fn()} value={specificValue} />, {
     store: invalidStore,
   });
   expect(screen.getAllByText('Specific Date/Time').length).toBe(2);
@@ -105,7 +105,7 @@ test('renders since and until with specific date/time with invalid locale', () =
 });
 
 test('renders since and until with specific date/time', async () => {
-  render(<CustomFrame onChange={jest.fn()} value={specificValue} />, {
+  render(<CustomFrame onChange={vi.fn()} value={specificValue} />, {
     store,
   });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
@@ -114,7 +114,7 @@ test('renders since and until with specific date/time', async () => {
 });
 
 test('renders since and until with relative date/time', async () => {
-  render(<CustomFrame onChange={jest.fn()} value={relativeNowValue} />, {
+  render(<CustomFrame onChange={vi.fn()} value={relativeNowValue} />, {
     store,
   });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
@@ -125,7 +125,7 @@ test('renders since and until with relative date/time', async () => {
 });
 
 test('renders since and until with Now option', async () => {
-  render(<CustomFrame onChange={jest.fn()} value={nowValue} />, {
+  render(<CustomFrame onChange={vi.fn()} value={nowValue} />, {
     store,
   });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
@@ -133,7 +133,7 @@ test('renders since and until with Now option', async () => {
 });
 
 test('renders since and until with Midnight option', async () => {
-  render(<CustomFrame onChange={jest.fn()} value={todayValue} />, {
+  render(<CustomFrame onChange={vi.fn()} value={todayValue} />, {
     store,
   });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
@@ -141,7 +141,7 @@ test('renders since and until with Midnight option', async () => {
 });
 
 test('renders anchor with now option', async () => {
-  render(<CustomFrame onChange={jest.fn()} value={relativeNowValue} />, {
+  render(<CustomFrame onChange={vi.fn()} value={relativeNowValue} />, {
     store,
   });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
@@ -152,7 +152,7 @@ test('renders anchor with now option', async () => {
 });
 
 test('renders anchor with date/time option', async () => {
-  render(<CustomFrame onChange={jest.fn()} value={relativeTodayValue} />, {
+  render(<CustomFrame onChange={vi.fn()} value={relativeTodayValue} />, {
     store,
   });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
@@ -163,7 +163,7 @@ test('renders anchor with date/time option', async () => {
 });
 
 test('triggers onChange when the anchor changes', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(<CustomFrame onChange={onChange} value={relativeNowValue} />, {
     store,
   });
@@ -173,7 +173,7 @@ test('triggers onChange when the anchor changes', async () => {
 });
 
 test('triggers onChange when the value changes', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(<CustomFrame onChange={onChange} value={emptyValue} />, {
     store,
   });
@@ -183,7 +183,7 @@ test('triggers onChange when the value changes', async () => {
 });
 
 test('triggers onChange when the mode changes', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(<CustomFrame onChange={onChange} value={todayNowValue} />, {
     store,
   });
@@ -200,7 +200,7 @@ test('triggers onChange when the mode changes', async () => {
 });
 
 test('triggers onChange when the grain changes', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(<CustomFrame onChange={onChange} value={relativeNowValue} />, {
     store,
   });
@@ -215,7 +215,7 @@ test('triggers onChange when the grain changes', async () => {
 });
 
 test('triggers onChange when the date changes', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(<CustomFrame onChange={onChange} value={specificValue} />, {
     store,
   });
@@ -229,7 +229,7 @@ test('triggers onChange when the date changes', async () => {
 });
 
 test('should translate Date Picker', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   const store = mockStore({
     common: { locale: 'fr' },
   });
@@ -250,7 +250,7 @@ test('should translate Date Picker', async () => {
 });
 
 test('calls onChange when START Specific Date/Time is selected', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(
     <CustomFrame
       onChange={onChange}
@@ -278,7 +278,7 @@ test('calls onChange when START Specific Date/Time is selected', async () => {
 });
 
 test('calls onChange when END Specific Date/Time is selected', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(
     <CustomFrame
       onChange={onChange}
@@ -306,7 +306,7 @@ test('calls onChange when END Specific Date/Time is selected', async () => {
 });
 
 test('calls onChange when a date is picked from anchor mode date picker', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(
     <CustomFrame
       onChange={onChange}

@@ -24,7 +24,7 @@ import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import { DASHBOARD_GRID_TYPE } from 'src/dashboard/util/componentTypes';
 import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
 
-jest.mock('src/dashboard/containers/DashboardComponent', () => {
+vi.mock('src/dashboard/containers/DashboardComponent', () => {
   const MockDashboardComponent = ({
     onResizeStart,
     onResizeStop,
@@ -100,7 +100,7 @@ test('should render grid column guides when resizing', () => {
 });
 
 test('should call resizeComponent when a child DashboardComponent calls resizeStop', () => {
-  const resizeComponent = jest.fn();
+  const resizeComponent = vi.fn();
   const { getAllByTestId } = setup({ resizeComponent });
   const dashboardComponent = getAllByTestId('mock-dashboard-component')[0];
   fireEvent.blur(dashboardComponent);
@@ -118,7 +118,7 @@ test('should apply flexbox centering and absolute positioning to empty state', (
     gridComponent: { ...props.gridComponent, children: [] },
     editMode: true,
     canEdit: true,
-    setEditMode: jest.fn(),
+    setEditMode: vi.fn(),
     dashboardId: 1,
   });
 
@@ -139,7 +139,7 @@ test('should render empty state in both edit and view modes', () => {
     gridComponent: { ...props.gridComponent, children: [] },
     editMode: true,
     canEdit: true,
-    setEditMode: jest.fn(),
+    setEditMode: vi.fn(),
     dashboardId: 1,
   });
 
@@ -147,7 +147,7 @@ test('should render empty state in both edit and view modes', () => {
     gridComponent: { ...props.gridComponent, children: [] },
     editMode: false,
     canEdit: true,
-    setEditMode: jest.fn(),
+    setEditMode: vi.fn(),
     dashboardId: 1,
   });
 

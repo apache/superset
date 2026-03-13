@@ -47,7 +47,7 @@ test('generator-superset:plugin-chart:creates files', async () => {
   result.assertFile([
     '.gitignore',
     'babel.config.js',
-    'jest.config.js',
+    'vi.config.js',
     'package.json',
     'README.md',
     'src/plugin/buildQuery.ts',

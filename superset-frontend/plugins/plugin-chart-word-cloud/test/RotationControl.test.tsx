@@ -24,7 +24,7 @@ const setup = (props = {}) => {
   const defaultProps = {
     name: 'rotation',
     value: 'square',
-    onChange: jest.fn(),
+    onChange: vi.fn(),
   };
   return render(<RotationControl {...defaultProps} {...props} />);
 };
@@ -41,7 +41,7 @@ test('renders select with default value', () => {
 });
 
 test('calls onChange when value changes', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   setup({ onChange, value: 'square' });
 
   // Find the select input and open the dropdown

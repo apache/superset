@@ -27,9 +27,10 @@ import {
   LabelsColorMap,
 } from '@superset-ui/core';
 
-const actual = jest.requireActual('../../src/color/utils');
-const getAnalogousColorsSpy = jest
-  .spyOn(actual, 'getAnalogousColors')
+import * as colorUtils from '../../src/color/utils';
+
+const getAnalogousColorsSpy = vi
+  .spyOn(colorUtils, 'getAnalogousColors')
   .mockImplementation(() => ['red', 'green', 'blue']);
 
 describe('LabelsColorMap', () => {
@@ -141,8 +142,8 @@ describe('LabelsColorMap', () => {
       labelsColorMap = getLabelsColorMap();
       categoricalNamespace = CategoricalColorNamespace.getNamespace(undefined);
       mockedNamespace = {
-        getScale: jest.fn().mockReturnValue({
-          getColor: jest.fn(() => 'mockColor'),
+        getScale: vi.fn().mockReturnValue({
+          getColor: vi.fn(() => 'mockColor'),
         }),
       };
     });

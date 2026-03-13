@@ -23,7 +23,7 @@ import NewHeader from 'src/dashboard/components/gridComponents/new/NewHeader';
 import { NEW_HEADER_ID } from 'src/dashboard/util/constants';
 import { HEADER_TYPE } from 'src/dashboard/util/componentTypes';
 
-jest.mock(
+vi.mock(
   'src/dashboard/components/gridComponents/new/DraggableNewComponent',
   () =>
     ({ type, id }: { type: string; id: string }) => (

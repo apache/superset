@@ -43,8 +43,8 @@ describe('Header', () => {
     embeddedMode: boolean;
     filters: Record<string, any>;
     handleComponentDrop: () => void;
-    deleteComponent: jest.Mock;
-    updateComponents: jest.Mock;
+    deleteComponent: Mock;
+    updateComponents: Mock;
   }
 
   const baseComponent = newComponentFactory(HEADER_TYPE);
@@ -67,8 +67,8 @@ describe('Header', () => {
     embeddedMode: false,
     filters: {},
     handleComponentDrop: () => {},
-    deleteComponent: jest.fn(),
-    updateComponents: jest.fn(),
+    deleteComponent: vi.fn(),
+    updateComponents: vi.fn(),
   };
 
   function setup(overrideProps: Partial<HeaderTestProps> = {}) {
@@ -113,7 +113,7 @@ describe('Header', () => {
   });
 
   test('should call updateComponents when EditableTitle changes', () => {
-    const updateComponents = jest.fn();
+    const updateComponents = vi.fn();
     setup({ editMode: true, updateComponents });
 
     // First click to enter edit mode
@@ -141,7 +141,7 @@ describe('Header', () => {
   });
 
   test('should call deleteComponent when deleted', () => {
-    const deleteComponent = jest.fn();
+    const deleteComponent = vi.fn();
     setup({ editMode: true, deleteComponent });
 
     const trashButton = screen.getByRole('button', { name: 'delete' });

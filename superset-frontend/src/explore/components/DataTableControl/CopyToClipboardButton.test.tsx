@@ -32,7 +32,7 @@ test('Render a button', () => {
 });
 
 test('Should copy to clipboard', async () => {
-  const callback = jest.fn();
+  const callback = vi.fn();
   document.execCommand = callback;
 
   const originalClipboard = { ...global.navigator.clipboard };
@@ -50,7 +50,7 @@ test('Should copy to clipboard', async () => {
     expect(callback).toHaveBeenCalled();
   });
 
-  jest.resetAllMocks();
+  vi.resetAllMocks();
   // @ts-expect-error
   global.navigator.clipboard = originalClipboard;
 });

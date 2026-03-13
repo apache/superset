@@ -24,7 +24,7 @@ const setup = (props = {}) => {
   const defaultProps = {
     name: 'color_scheme',
     value: '',
-    onChange: jest.fn(),
+    onChange: vi.fn(),
   };
   return render(<ColorSchemeControl {...defaultProps} {...props} />);
 };
@@ -50,7 +50,7 @@ test('renders select with value', () => {
 });
 
 test('calls onChange when value changes', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   const { getCategoricalSchemeRegistry } = require('@superset-ui/core');
   const registry = getCategoricalSchemeRegistry();
   const schemes = registry.keys();

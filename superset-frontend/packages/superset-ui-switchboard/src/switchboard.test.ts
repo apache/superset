@@ -113,8 +113,8 @@ describe('comms', () => {
   });
 
   beforeEach(() => {
-    console.debug = jest.fn(); // silencio bruno
-    console.error = jest.fn();
+    console.debug = vi.fn(); // silencio bruno
+    console.error = vi.fn();
   });
 
   afterEach(() => {
@@ -158,7 +158,7 @@ describe('comms', () => {
       const channel = new MessageChannel();
       const ours = new Switchboard({ port: channel.port1, name: 'ours' });
       const theirs = new Switchboard({ port: channel.port2, name: 'theirs' });
-      const handler = jest.fn();
+      const handler = vi.fn();
 
       theirs.defineMethod('someEvent', handler);
       theirs.start();
@@ -173,7 +173,7 @@ describe('comms', () => {
       const ours = new Switchboard({ port: channel.port1, name: 'ours' });
       const theirs = new Switchboard({ port: channel.port2, name: 'theirs' });
       theirs.start();
-      channel.port2.onmessageerror = jest.fn();
+      channel.port2.onmessageerror = vi.fn();
       ours.emit('fakemethod');
       await new Promise(setImmediate);
       expect(channel.port2.onmessageerror).not.toHaveBeenCalled();
@@ -277,7 +277,7 @@ describe('comms', () => {
       });
       theirs.start();
 
-      console.error = jest.fn(); // will be restored by the afterEach
+      console.error = vi.fn(); // will be restored by the afterEach
       await expect(ours.get('failing')).rejects.toThrow(
         '[theirs] Method "failing" threw an error',
       );

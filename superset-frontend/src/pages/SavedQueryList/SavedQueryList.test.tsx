@@ -31,7 +31,7 @@ import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import SavedQueryList from '.';
 
 // Increase default timeout
-jest.setTimeout(30000);
+vi.setConfig({ testTimeout: 30000 });
 
 const mockQueries = Array.from({ length: 3 }, (_, i) => ({
   created_by: { id: i, first_name: 'user', last_name: `${i}` },

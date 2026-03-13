@@ -244,7 +244,7 @@ describe('SavedQuery', () => {
       resolveSave = resolve;
     });
 
-    const mockOnSave = jest.fn().mockImplementation(() => savePromise);
+    const mockOnSave = vi.fn().mockImplementation(() => savePromise);
 
     render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
       useRedux: true,
@@ -283,7 +283,7 @@ describe('SavedQuery', () => {
   });
 
   test('handles save with a new tab that has no changes', async () => {
-    const mockOnSave = jest.fn().mockResolvedValue(undefined);
+    const mockOnSave = vi.fn().mockResolvedValue(undefined);
 
     // Mock state for a new tab with default SQL
     const newTabState = {

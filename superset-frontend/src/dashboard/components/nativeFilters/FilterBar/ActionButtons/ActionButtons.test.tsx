@@ -21,8 +21,8 @@ import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import ActionButtons from './index';
 
 const createProps = () => ({
-  onApply: jest.fn(),
-  onClearAll: jest.fn(),
+  onApply: vi.fn(),
+  onClearAll: vi.fn(),
   dataMaskSelected: {
     DefaultsID: {
       filterState: {

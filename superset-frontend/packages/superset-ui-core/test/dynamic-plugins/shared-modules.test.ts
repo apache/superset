@@ -26,7 +26,7 @@ describe('shared modules', () => {
 
   test('assigns to window', async () => {
     const fakeModule = { foo: 'bar' };
-    const fetchModule = jest.fn().mockResolvedValue(fakeModule);
+    const fetchModule = vi.fn().mockResolvedValue(fakeModule);
 
     await defineSharedModule('test-module', fetchModule);
 
@@ -37,7 +37,7 @@ describe('shared modules', () => {
 
   test('resolves to the same reference every time', async () => {
     const fakeModule = { foo: 'bar' };
-    const fetchModule = jest.fn().mockResolvedValue(fakeModule);
+    const fetchModule = vi.fn().mockResolvedValue(fakeModule);
 
     const result1 = await defineSharedModule('test-module', fetchModule);
     const result2 = await defineSharedModule('test-module', fetchModule);
@@ -48,8 +48,8 @@ describe('shared modules', () => {
 
   test('does not redefine unnecessarily', async () => {
     const fakeModule = { foo: 'bar' };
-    const fetchModule = jest.fn().mockResolvedValue(fakeModule);
-    const duplicateFetchModule = jest.fn().mockResolvedValue(fakeModule);
+    const fetchModule = vi.fn().mockResolvedValue(fakeModule);
+    const duplicateFetchModule = vi.fn().mockResolvedValue(fakeModule);
 
     const result1 = await defineSharedModule('test-module', fetchModule);
     const result2 = await defineSharedModule(
@@ -65,7 +65,7 @@ describe('shared modules', () => {
   test('deduplicates in-progress definitions', async () => {
     const fakeModule = { foo: 'bar' };
     // get a promise that actually takes a moment;
-    const fetchModule = jest
+    const fetchModule = vi
       .fn()
       .mockImplementation(() =>
         Promise.resolve(setImmediate).then(() => fakeModule),

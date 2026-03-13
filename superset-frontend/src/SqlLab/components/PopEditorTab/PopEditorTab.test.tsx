@@ -60,9 +60,9 @@ afterEach(() => {
   fetchMock.clearHistory().removeRoutes();
 });
 
-let replaceState = jest.spyOn(window.history, 'replaceState');
+let replaceState = vi.spyOn(window.history, 'replaceState');
 beforeEach(() => {
-  replaceState = jest.spyOn(window.history, 'replaceState');
+  replaceState = vi.spyOn(window.history, 'replaceState');
 });
 afterEach(() => {
   replaceState.mockReset();

@@ -27,15 +27,15 @@ const sumValueAdhocMetric = new AdhocMetric({
 });
 
 const defaultProps = {
-  onMetricEdit: jest.fn(),
+  onMetricEdit: vi.fn(),
   option: sumValueAdhocMetric as AdhocMetric,
   index: 1,
   columns: [],
   savedMetrics: [],
   savedMetricsOptions: [],
   datasource: undefined,
-  onMoveLabel: jest.fn(),
-  onDropLabel: jest.fn(),
+  onMoveLabel: vi.fn(),
+  onDropLabel: vi.fn(),
 };
 
 const setup = (propOverrides: Record<string, unknown> = {}) => {

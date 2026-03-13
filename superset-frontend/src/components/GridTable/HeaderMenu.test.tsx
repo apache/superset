@@ -24,53 +24,56 @@ import {
   userEvent,
 } from 'spec/helpers/testing-library';
 import { HeaderMenu, type HeaderMenuProps } from './HeaderMenu';
+import { Mock } from 'vitest';
 
-jest.mock('src/utils/copy', () => jest.fn().mockImplementation(f => f()));
+vi.mock('src/utils/copy', () => ({
+  default: vi.fn().mockImplementation(f => f()),
+}));
 
 const mockInvisibleColumn = {
-  getColId: jest.fn().mockReturnValue('column2'),
-  getColDef: jest.fn().mockReturnValue({ headerName: 'column2' }),
-  getDataAsCsv: jest.fn().mockReturnValue('csv'),
+  getColId: vi.fn().mockReturnValue('column2'),
+  getColDef: vi.fn().mockReturnValue({ headerName: 'column2' }),
+  getDataAsCsv: vi.fn().mockReturnValue('csv'),
 } as any as Column;
 
 const mockInvisibleColumn3 = {
-  getColId: jest.fn().mockReturnValue('column3'),
-  getColDef: jest.fn().mockReturnValue({ headerName: 'column3' }),
-  getDataAsCsv: jest.fn().mockReturnValue('csv'),
+  getColId: vi.fn().mockReturnValue('column3'),
+  getColDef: vi.fn().mockReturnValue({ headerName: 'column3' }),
+  getDataAsCsv: vi.fn().mockReturnValue('csv'),
 } as any as Column;
 
 const mockGridApi = {
-  autoSizeColumns: jest.fn(),
-  autoSizeAllColumns: jest.fn(),
-  getColumn: jest.fn().mockReturnValue({
-    getColDef: jest.fn().mockReturnValue({}),
+  autoSizeColumns: vi.fn(),
+  autoSizeAllColumns: vi.fn(),
+  getColumn: vi.fn().mockReturnValue({
+    getColDef: vi.fn().mockReturnValue({}),
   }),
-  getColumns: jest.fn().mockReturnValue([]),
-  getDataAsCsv: jest.fn().mockReturnValue('csv'),
-  exportDataAsCsv: jest.fn().mockReturnValue('csv'),
-  getAllDisplayedColumns: jest.fn().mockReturnValue([]),
-  setColumnsPinned: jest.fn(),
-  setColumnsVisible: jest.fn(),
-  setColumnVisible: jest.fn(),
-  moveColumns: jest.fn(),
+  getColumns: vi.fn().mockReturnValue([]),
+  getDataAsCsv: vi.fn().mockReturnValue('csv'),
+  exportDataAsCsv: vi.fn().mockReturnValue('csv'),
+  getAllDisplayedColumns: vi.fn().mockReturnValue([]),
+  setColumnsPinned: vi.fn(),
+  setColumnsVisible: vi.fn(),
+  setColumnVisible: vi.fn(),
+  moveColumns: vi.fn(),
 } as any as GridApi;
 
 const mockedProps = {
   colId: 'column1',
   invisibleColumns: [],
   api: mockGridApi,
-  onVisibleChange: jest.fn(),
+  onVisibleChange: vi.fn(),
 };
 
 afterEach(() => {
-  (mockGridApi.getDataAsCsv as jest.Mock).mockClear();
-  (mockGridApi.setColumnsPinned as jest.Mock).mockClear();
-  (mockGridApi.setColumnsVisible as jest.Mock).mockClear();
-  (mockGridApi.setColumnsVisible as jest.Mock).mockClear();
-  (mockGridApi.setColumnsPinned as jest.Mock).mockClear();
-  (mockGridApi.autoSizeColumns as jest.Mock).mockClear();
-  (mockGridApi.autoSizeAllColumns as jest.Mock).mockClear();
-  (mockGridApi.moveColumns as jest.Mock).mockClear();
+  (mockGridApi.getDataAsCsv as Mock).mockClear();
+  (mockGridApi.setColumnsPinned as Mock).mockClear();
+  (mockGridApi.setColumnsVisible as Mock).mockClear();
+  (mockGridApi.setColumnsVisible as Mock).mockClear();
+  (mockGridApi.setColumnsPinned as Mock).mockClear();
+  (mockGridApi.autoSizeColumns as Mock).mockClear();
+  (mockGridApi.autoSizeAllColumns as Mock).mockClear();
+  (mockGridApi.moveColumns as Mock).mockClear();
 });
 
 const setup = (props: HeaderMenuProps = mockedProps) => {

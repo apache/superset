@@ -27,11 +27,11 @@ import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetr
 import AdhocMetricEditPopover from '.';
 
 const createProps = () => ({
-  onChange: jest.fn(),
-  onClose: jest.fn(),
-  onResize: jest.fn(),
-  getCurrentTab: jest.fn(),
-  getCurrentLabel: jest.fn(),
+  onChange: vi.fn(),
+  onClose: vi.fn(),
+  onResize: vi.fn(),
+  getCurrentTab: vi.fn(),
+  getCurrentLabel: vi.fn(),
   savedMetric: {
     id: 64,
     metric_name: 'count',

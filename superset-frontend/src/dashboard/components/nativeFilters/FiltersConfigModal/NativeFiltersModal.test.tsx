@@ -21,20 +21,20 @@ import FiltersConfigModal from 'src/dashboard/components/nativeFilters/FiltersCo
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: jest.fn().mockImplementation(query => ({
+  value: vi.fn().mockImplementation(query => ({
     matches: false,
     media: query,
     onchange: null,
-    addListener: jest.fn(), // deprecated
-    removeListener: jest.fn(), // deprecated
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
+    addListener: vi.fn(), // deprecated
+    removeListener: vi.fn(), // deprecated
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
   })),
 });
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
   getChartMetadataRegistry: () => ({
     items: {
       filter_select: {
@@ -51,8 +51,8 @@ const mockedProps = {
   isOpen: true,
   initialFilterId: 'NATIVE_FILTER-1',
   createNewOnOpen: true,
-  onCancel: jest.fn(),
-  onSave: jest.fn(),
+  onCancel: vi.fn(),
+  onSave: vi.fn(),
 };
 function setup(overridesProps?: any) {
   return render(<FiltersConfigModal {...mockedProps} {...overridesProps} />, {
@@ -74,7 +74,7 @@ test('should be a valid react element', () => {
 });
 
 test('the form validates required fields', async () => {
-  const onSave = jest.fn();
+  const onSave = vi.fn();
   const { getByRole } = setup({ save: onSave });
   fireEvent.change(getByRole('textbox', { name: 'Description' }), {
     target: { value: 'test name' },
@@ -87,14 +87,14 @@ test('the form validates required fields', async () => {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('createNewOnOpen', () => {
   test('does not show alert when there is no unsaved filters', async () => {
-    const onCancel = jest.fn();
+    const onCancel = vi.fn();
     const { getByRole } = setup({ onCancel, createNewOnOpen: false });
     fireEvent.click(getByRole('button', { name: 'Cancel' }));
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
   test('shows correct alert message for unsaved filters', async () => {
-    const onCancel = jest.fn();
+    const onCancel = vi.fn();
     const { getByRole, getByTestId, findByRole } = setup({
       onCancel,
       createNewOnOpen: false,

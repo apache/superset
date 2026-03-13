@@ -89,6 +89,7 @@ test('returns api response mapping json result', async () => {
 });
 
 test('returns cached data without api request', async () => {
+  fetchMock.clearHistory();
   const { result, waitFor, rerender } = renderHook(
     () => useSqlLabInitialState(),
     {

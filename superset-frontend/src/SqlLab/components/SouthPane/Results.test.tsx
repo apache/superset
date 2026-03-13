@@ -22,8 +22,8 @@ import { denormalizeTimestamp } from '@superset-ui/core';
 import { LOCALSTORAGE_MAX_QUERY_AGE_MS } from 'src/SqlLab/constants';
 import Results from './Results';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+vi.mock('@superset-ui/core', async (importActual) => ({
+  ...(await importActual()),
   isFeatureEnabled: (flag: string) => flag === 'SQLLAB_BACKEND_PERSISTENCE',
 }));
 

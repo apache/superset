@@ -39,16 +39,16 @@ const mockStoreForCustomization = {
   },
 };
 
-jest.mock('react-redux', () => ({
-  ...jest.requireActual('react-redux'),
-  useSelector: jest.fn(selector => selector(mockStoreForCustomization)),
-  useDispatch: () => jest.fn(),
+vi.mock('react-redux', () => ({
+  ...vi.requireActual('react-redux'),
+  useSelector: vi.fn(selector => selector(mockStoreForCustomization)),
+  useDispatch: () => vi.fn(),
 }));
 
 const defaultProps = {
   dataMaskSelected: {},
-  onFilterSelectionChange: jest.fn(),
-  onPendingCustomizationDataMaskChange: jest.fn(),
+  onFilterSelectionChange: vi.fn(),
+  onPendingCustomizationDataMaskChange: vi.fn(),
   chartCustomizationValues: [],
 };
 
@@ -109,7 +109,7 @@ test('renders chart customization divider in horizontal mode', () => {
     },
   };
 
-  const { useSelector } = jest.requireMock('react-redux');
+  const { useSelector } = vi.requireMock('react-redux');
   useSelector.mockImplementation(
     (selector: (state: typeof horizontalStore) => unknown) =>
       selector(horizontalStore),
@@ -293,8 +293,8 @@ function setupWithFilters(overrideState: any = {}, props: any = {}) {
     <Provider store={store}>
       <FilterControls
         dataMaskSelected={{}}
-        onFilterSelectionChange={jest.fn()}
-        onPendingCustomizationDataMaskChange={jest.fn()}
+        onFilterSelectionChange={vi.fn()}
+        onPendingCustomizationDataMaskChange={vi.fn()}
         chartCustomizationValues={[]}
         {...props}
       />
@@ -348,8 +348,8 @@ test('FilterControls overflowedByIndex calculation respects filter bar orientati
     <Provider store={mockStore(horizontalState) as Store}>
       <FilterControls
         dataMaskSelected={{}}
-        onFilterSelectionChange={jest.fn()}
-        onPendingCustomizationDataMaskChange={jest.fn()}
+        onFilterSelectionChange={vi.fn()}
+        onPendingCustomizationDataMaskChange={vi.fn()}
         chartCustomizationValues={[]}
       />
     </Provider>,
@@ -400,8 +400,8 @@ test('FilterControls overflowedByIndex updates when filters change scope', () =>
     <Provider store={mockStore(updatedState) as Store}>
       <FilterControls
         dataMaskSelected={{}}
-        onFilterSelectionChange={jest.fn()}
-        onPendingCustomizationDataMaskChange={jest.fn()}
+        onFilterSelectionChange={vi.fn()}
+        onPendingCustomizationDataMaskChange={vi.fn()}
         chartCustomizationValues={[]}
       />
     </Provider>,

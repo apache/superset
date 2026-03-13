@@ -37,15 +37,15 @@ type MockedListViewProps = Omit<
   | 'disableBulkSelect'
   | 'bulkActions'
 > & {
-  fetchData: jest.Mock<unknown[], [ListViewFetchDataConfig]>;
-  refreshData: jest.Mock;
-  addSuccessToast: jest.Mock;
-  addDangerToast: jest.Mock;
-  disableBulkSelect: jest.Mock;
+  fetchData: Mock<unknown[], [ListViewFetchDataConfig]>;
+  refreshData: Mock;
+  addSuccessToast: Mock;
+  addDangerToast: Mock;
+  disableBulkSelect: Mock;
   bulkActions: Array<{
     key: string;
     name: ReactNode;
-    onSelect: jest.Mock;
+    onSelect: Mock;
     type?: 'primary' | 'secondary' | 'danger';
   }>;
 };
@@ -53,7 +53,7 @@ type MockedListViewProps = Omit<
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 
-const fetchSelectsMock = jest.fn(() =>
+const fetchSelectsMock = vi.fn(() =>
   Promise.resolve({ data: [], totalCount: 0 }),
 );
 
@@ -121,19 +121,19 @@ const mockedPropsComprehensive: MockedListViewProps = {
   ],
   count: 2,
   pageSize: 1,
-  fetchData: jest.fn<unknown[], [ListViewFetchDataConfig]>(() => []),
+  fetchData: vi.fn<unknown[], [ListViewFetchDataConfig]>(() => []),
   loading: false,
-  refreshData: jest.fn(),
-  addSuccessToast: jest.fn(),
-  addDangerToast: jest.fn(),
+  refreshData: vi.fn(),
+  addSuccessToast: vi.fn(),
+  addDangerToast: vi.fn(),
   bulkSelectEnabled: true,
-  disableBulkSelect: jest.fn(),
+  disableBulkSelect: vi.fn(),
   bulkActions: [
     {
       key: 'something',
       name: 'do something',
       type: 'danger',
-      onSelect: jest.fn(),
+      onSelect: vi.fn(),
     },
   ],
   cardSortSelectOptions: [
@@ -177,13 +177,13 @@ const mockedPropsSimple = {
   count: 2,
   pageSize: 1,
   loading: false,
-  refreshData: jest.fn(),
-  addSuccessToast: jest.fn(),
-  addDangerToast: jest.fn(),
+  refreshData: vi.fn(),
+  addSuccessToast: vi.fn(),
+  addDangerToast: vi.fn(),
 };
 
 test('redirects to first page when page index is invalid', async () => {
-  const fetchData = jest.fn();
+  const fetchData = vi.fn();
   window.history.pushState({}, '', '/?pageIndex=9');
   render(<ListView {...mockedPropsSimple} fetchData={fetchData} />, {
     useRouter: true,
@@ -218,7 +218,7 @@ const factory = (overrides?: Partial<ListViewProps>) => {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ListView', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     factory();
   });
 
@@ -337,7 +337,7 @@ describe('ListView', () => {
 
   test('calls fetchData on card view sort', async () => {
     factory({
-      renderCard: jest.fn(),
+      renderCard: vi.fn(),
       initialSort: [{ id: 'something' }],
     });
 

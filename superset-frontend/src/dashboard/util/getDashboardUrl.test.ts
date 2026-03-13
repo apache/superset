@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { vi } from 'vitest';
 import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
 import { DASHBOARD_FILTER_SCOPE_GLOBAL } from 'src/dashboard/reducers/dashboardFilters';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
@@ -31,6 +32,7 @@ describe('getChartIdsFromLayout', () => {
 
   const globalLocation = window.location;
   afterEach(() => {
+    // @ts-ignore
     window.location = globalLocation;
   });
 
@@ -93,7 +95,7 @@ describe('getChartIdsFromLayout', () => {
   });
 
   test('should preserve unknown filters', () => {
-    const windowSpy = jest.spyOn(window, 'window', 'get');
+    const windowSpy = vi.spyOn(window, 'window', 'get');
     windowSpy.mockImplementation(
       () =>
         ({
@@ -116,7 +118,7 @@ describe('getChartIdsFromLayout', () => {
   });
 
   test('should process native filters key', () => {
-    const windowSpy = jest.spyOn(window, 'window', 'get');
+    const windowSpy = vi.spyOn(window, 'window', 'get');
     windowSpy.mockImplementation(
       () =>
         ({

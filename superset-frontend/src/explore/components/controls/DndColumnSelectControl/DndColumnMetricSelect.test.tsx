@@ -252,7 +252,7 @@ test('shows warning for aggregated DeckGL charts', () => {
 
 test('handles single selection mode', () => {
   const values = ['column_a'];
-  const onChange = jest.fn();
+  const onChange = vi.fn();
 
   render(
     <DndColumnMetricSelect
@@ -283,7 +283,7 @@ test('handles custom ghost button text', () => {
 
 test('can remove items by clicking close button', () => {
   const values = ['column_a', 'metric_a'];
-  const onChange = jest.fn();
+  const onChange = vi.fn();
 
   render(
     <DndColumnMetricSelect

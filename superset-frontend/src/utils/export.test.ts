@@ -20,37 +20,42 @@ import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import contentDisposition from 'content-disposition';
 import handleResourceExport from './export';
+import { Mock } from 'vitest';
 
 // Mock dependencies
-jest.mock('@superset-ui/core', () => ({
+vi.mock('@superset-ui/core', async importActual => ({
   SupersetClient: {
-    get: jest.fn(),
+    get: vi.fn(),
   },
 }));
 
-jest.mock('@apache-superset/core/utils', () => ({
+vi.mock('@apache-superset/core/utils', () => ({
   logging: {
-    warn: jest.fn(),
-    error: jest.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
-jest.mock('content-disposition');
+vi.mock('content-disposition');
+
+const { ensureAppRootMock } = vi.hoisted(() => ({
+  ensureAppRootMock: vi.fn((path: string) => path),
+}));
 
 // Default no-op mock for pathUtils; specific tests customize ensureAppRoot to simulate app root prefixing
-jest.mock('./pathUtils', () => ({
-  ensureAppRoot: jest.fn((path: string) => path),
+vi.mock('./pathUtils', () => ({
+  ensureAppRoot: ensureAppRootMock,
 }));
 
 let mockBlob: Blob;
 let mockResponse: Response;
-let createElementSpy: jest.SpyInstance;
-let createObjectURLSpy: jest.SpyInstance;
-let revokeObjectURLSpy: jest.SpyInstance;
+let createElementSpy: Mock;
+let createObjectURLSpy: Mock;
+let revokeObjectURLSpy: Mock;
 
 beforeEach(() => {
   // Reset all mocks
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
   // Mock Blob
   mockBlob = new Blob(['test data'], { type: 'application/zip' });
@@ -60,31 +65,31 @@ beforeEach(() => {
     headers: new Headers({
       'Content-Disposition': 'attachment; filename="dashboard_export.zip"',
     }),
-    blob: jest.fn().mockResolvedValue(mockBlob),
+    blob: vi.fn().mockResolvedValue(mockBlob),
   } as unknown as Response;
 
   // Mock SupersetClient.get
-  (SupersetClient.get as jest.Mock).mockResolvedValue(mockResponse);
+  (SupersetClient.get as Mock).mockResolvedValue(mockResponse);
 
   // Mock DOM APIs
   const mockAnchor = document.createElement('a');
-  mockAnchor.click = jest.fn();
-  createElementSpy = jest
+  mockAnchor.click = vi.fn();
+  createElementSpy = vi
     .spyOn(document, 'createElement')
     .mockReturnValue(mockAnchor);
-  jest.spyOn(document.body, 'appendChild').mockImplementation(() => mockAnchor);
-  jest.spyOn(document.body, 'removeChild').mockImplementation(() => mockAnchor);
+  vi.spyOn(document.body, 'appendChild').mockImplementation(() => mockAnchor);
+  vi.spyOn(document.body, 'removeChild').mockImplementation(() => mockAnchor);
 
   // Mock URL.createObjectURL and revokeObjectURL
-  createObjectURLSpy = jest
+  createObjectURLSpy = vi
     .spyOn(window.URL, 'createObjectURL')
     .mockReturnValue('blob:mock-url');
 
   // Create revokeObjectURL if it doesn't exist
   if (!window.URL.revokeObjectURL) {
-    window.URL.revokeObjectURL = jest.fn();
+    window.URL.revokeObjectURL = vi.fn();
   }
-  revokeObjectURLSpy = jest.spyOn(window.URL, 'revokeObjectURL');
+  revokeObjectURLSpy = vi.spyOn(window.URL, 'revokeObjectURL');
 });
 
 afterEach(() => {
@@ -96,7 +101,7 @@ afterEach(() => {
 });
 
 test('exports resource with correct endpoint and headers', async () => {
-  const doneMock = jest.fn();
+  const doneMock = vi.fn();
   await handleResourceExport('dashboard', [1, 2, 3], doneMock);
 
   expect(SupersetClient.get).toHaveBeenCalledWith({
@@ -109,7 +114,7 @@ test('exports resource with correct endpoint and headers', async () => {
 });
 
 test('creates blob and triggers download', async () => {
-  const doneMock = jest.fn();
+  const doneMock = vi.fn();
   await handleResourceExport('dashboard', [1], doneMock);
 
   // Check that blob was created
@@ -135,7 +140,7 @@ test('creates blob and triggers download', async () => {
 });
 
 test('calls done callback on success', async () => {
-  const doneMock = jest.fn();
+  const doneMock = vi.fn();
   await handleResourceExport('dashboard', [1], doneMock);
 
   expect(doneMock).toHaveBeenCalled();
@@ -144,11 +149,11 @@ test('calls done callback on success', async () => {
 test('uses default filename when Content-Disposition is missing', async () => {
   mockResponse = {
     headers: new Headers(),
-    blob: jest.fn().mockResolvedValue(mockBlob),
+    blob: vi.fn().mockResolvedValue(mockBlob),
   } as unknown as Response;
-  (SupersetClient.get as jest.Mock).mockResolvedValue(mockResponse);
+  (SupersetClient.get as Mock).mockResolvedValue(mockResponse);
 
-  const doneMock = jest.fn();
+  const doneMock = vi.fn();
   await handleResourceExport('chart', [42], doneMock);
 
   const anchor = document.createElement('a');
@@ -156,11 +161,11 @@ test('uses default filename when Content-Disposition is missing', async () => {
 });
 
 test('handles Content-Disposition parsing errors gracefully', async () => {
-  (contentDisposition.parse as jest.Mock).mockImplementationOnce(() => {
+  (contentDisposition.parse as Mock).mockImplementationOnce(() => {
     throw new Error('Invalid header');
   });
 
-  const doneMock = jest.fn();
+  const doneMock = vi.fn();
   await handleResourceExport('dashboard', [1], doneMock);
 
   // Should fall back to default filename
@@ -171,9 +176,9 @@ test('handles Content-Disposition parsing errors gracefully', async () => {
 
 test('handles API errors and calls done callback', async () => {
   const apiError = new Error('API Error');
-  (SupersetClient.get as jest.Mock).mockRejectedValue(apiError);
+  (SupersetClient.get as Mock).mockRejectedValue(apiError);
 
-  const doneMock = jest.fn();
+  const doneMock = vi.fn();
 
   await expect(
     handleResourceExport('dashboard', [1], doneMock),
@@ -184,10 +189,10 @@ test('handles API errors and calls done callback', async () => {
 
 test('handles blob conversion errors', async () => {
   const blobError = new Error('Blob conversion failed');
-  mockResponse.blob = jest.fn().mockRejectedValue(blobError);
-  (SupersetClient.get as jest.Mock).mockResolvedValue(mockResponse);
+  mockResponse.blob = vi.fn().mockRejectedValue(blobError);
+  (SupersetClient.get as Mock).mockResolvedValue(mockResponse);
 
-  const doneMock = jest.fn();
+  const doneMock = vi.fn();
 
   await expect(
     handleResourceExport('dashboard', [1], doneMock),
@@ -197,7 +202,7 @@ test('handles blob conversion errors', async () => {
 });
 
 test('exports multiple resources with correct IDs', async () => {
-  const doneMock = jest.fn();
+  const doneMock = vi.fn();
   await handleResourceExport('dataset', [10, 20, 30, 40], doneMock);
 
   expect(SupersetClient.get).toHaveBeenCalledWith(
@@ -208,12 +213,12 @@ test('exports multiple resources with correct IDs', async () => {
 });
 
 test('parses filename from Content-Disposition with quotes', async () => {
-  (contentDisposition.parse as jest.Mock).mockReturnValueOnce({
+  (contentDisposition.parse as Mock).mockReturnValueOnce({
     type: 'attachment',
     parameters: { filename: 'my_custom_export.zip' },
   });
 
-  const doneMock = jest.fn();
+  const doneMock = vi.fn();
   await handleResourceExport('dashboard', [1], doneMock);
 
   const anchor = document.createElement('a');
@@ -228,11 +233,11 @@ test('warns when export exceeds maximum blob size', async () => {
       'Content-Length': largeFileSize.toString(),
       'Content-Disposition': 'attachment; filename="large_export.zip"',
     }),
-    blob: jest.fn().mockResolvedValue(mockBlob),
+    blob: vi.fn().mockResolvedValue(mockBlob),
   } as unknown as Response;
-  (SupersetClient.get as jest.Mock).mockResolvedValue(mockResponse);
+  (SupersetClient.get as Mock).mockResolvedValue(mockResponse);
 
-  const doneMock = jest.fn();
+  const doneMock = vi.fn();
   await handleResourceExport('dashboard', [1], doneMock);
 
   expect(logging.warn).toHaveBeenCalledWith(
@@ -242,7 +247,7 @@ test('warns when export exceeds maximum blob size', async () => {
 });
 
 test('handles various resource types', async () => {
-  const doneMock = jest.fn();
+  const doneMock = vi.fn();
 
   await handleResourceExport('dashboard', [1], doneMock);
   expect(SupersetClient.get).toHaveBeenCalledWith(
@@ -284,9 +289,9 @@ test('handles various resource types', async () => {
 
 test('handles network errors and logs them', async () => {
   const networkError = new Error('Network request failed');
-  (SupersetClient.get as jest.Mock).mockRejectedValue(networkError);
+  (SupersetClient.get as Mock).mockRejectedValue(networkError);
 
-  const doneMock = jest.fn();
+  const doneMock = vi.fn();
 
   await expect(
     handleResourceExport('dashboard', [1], doneMock),
@@ -301,9 +306,9 @@ test('handles network errors and logs them', async () => {
 
 test('handles 404 errors when resource not found', async () => {
   const notFoundError = new Error('Not found');
-  (SupersetClient.get as jest.Mock).mockRejectedValue(notFoundError);
+  (SupersetClient.get as Mock).mockRejectedValue(notFoundError);
 
-  const doneMock = jest.fn();
+  const doneMock = vi.fn();
 
   await expect(
     handleResourceExport('dashboard', [999], doneMock),
@@ -318,11 +323,11 @@ test('handles empty response from server', async () => {
     headers: new Headers({
       'Content-Disposition': 'attachment; filename="empty.zip"',
     }),
-    blob: jest.fn().mockResolvedValue(emptyBlob),
+    blob: vi.fn().mockResolvedValue(emptyBlob),
   } as unknown as Response;
-  (SupersetClient.get as jest.Mock).mockResolvedValue(mockResponse);
+  (SupersetClient.get as Mock).mockResolvedValue(mockResponse);
 
-  const doneMock = jest.fn();
+  const doneMock = vi.fn();
   await handleResourceExport('dashboard', [1], doneMock);
 
   expect(window.URL.createObjectURL).toHaveBeenCalledWith(emptyBlob);
@@ -331,16 +336,16 @@ test('handles empty response from server', async () => {
 
 test('cleans up blob URL even when download fails', async () => {
   const mockAnchor = document.createElement('a');
-  mockAnchor.click = jest.fn().mockImplementation(() => {
+  mockAnchor.click = vi.fn().mockImplementation(() => {
     throw new Error('Click failed');
   });
 
   createElementSpy.mockRestore();
-  createElementSpy = jest
+  createElementSpy = vi
     .spyOn(document, 'createElement')
     .mockReturnValue(mockAnchor);
 
-  const doneMock = jest.fn();
+  const doneMock = vi.fn();
 
   await expect(
     handleResourceExport('dashboard', [1], doneMock),
@@ -356,15 +361,15 @@ test('handles malformed Content-Disposition header', async () => {
     headers: new Headers({
       'Content-Disposition': 'not-a-valid-header',
     }),
-    blob: jest.fn().mockResolvedValue(mockBlob),
+    blob: vi.fn().mockResolvedValue(mockBlob),
   } as unknown as Response;
-  (SupersetClient.get as jest.Mock).mockResolvedValue(mockResponse);
+  (SupersetClient.get as Mock).mockResolvedValue(mockResponse);
 
-  (contentDisposition.parse as jest.Mock).mockImplementationOnce(() => {
+  (contentDisposition.parse as Mock).mockImplementationOnce(() => {
     throw new Error('Parse error');
   });
 
-  const doneMock = jest.fn();
+  const doneMock = vi.fn();
   await handleResourceExport('dataset', [5], doneMock);
 
   // Should fall back to default filename
@@ -379,11 +384,11 @@ test('handles malformed Content-Disposition header', async () => {
 test('handles missing headers object', async () => {
   mockResponse = {
     headers: new Headers(),
-    blob: jest.fn().mockResolvedValue(mockBlob),
+    blob: vi.fn().mockResolvedValue(mockBlob),
   } as unknown as Response;
-  (SupersetClient.get as jest.Mock).mockResolvedValue(mockResponse);
+  (SupersetClient.get as Mock).mockResolvedValue(mockResponse);
 
-  const doneMock = jest.fn();
+  const doneMock = vi.fn();
   await handleResourceExport('chart', [7], doneMock);
 
   const anchor = document.createElement('a');
@@ -392,7 +397,7 @@ test('handles missing headers object', async () => {
 });
 
 test('handles export with empty IDs array', async () => {
-  const doneMock = jest.fn();
+  const doneMock = vi.fn();
   await handleResourceExport('dashboard', [], doneMock);
 
   expect(SupersetClient.get).toHaveBeenCalledWith(
@@ -401,8 +406,6 @@ test('handles export with empty IDs array', async () => {
     }),
   );
 });
-
-const { ensureAppRoot } = jest.requireMock('./pathUtils');
 
 const doublePrefixTestCases = [
   {
@@ -429,11 +432,9 @@ test.each(doublePrefixTestCases)(
   'handleResourceExport endpoint should not include app prefix: $name',
   async ({ appRoot, resource, ids }) => {
     // Simulate real ensureAppRoot behavior: prepend the appRoot
-    (ensureAppRoot as jest.Mock).mockImplementation(
-      (path: string) => `${appRoot}${path}`,
-    );
+    ensureAppRootMock.mockImplementation((path: string) => `${appRoot}${path}`);
 
-    const doneMock = jest.fn();
+    const doneMock = vi.fn();
     await handleResourceExport(resource, ids, doneMock);
 
     // The endpoint passed to SupersetClient.get should NOT have the appRoot prefix
@@ -441,13 +442,11 @@ test.each(doublePrefixTestCases)(
     const expectedEndpoint = `/api/v1/${resource}/export/?q=!(${ids.join(',')})`;
 
     // Explicitly verify no prefix in endpoint - this will fail if ensureAppRoot is used
-    const callArgs = (SupersetClient.get as jest.Mock).mock.calls.slice(
-      -1,
-    )[0][0];
+    const callArgs = (SupersetClient.get as Mock).mock.calls.slice(-1)[0][0];
     expect(callArgs.endpoint).not.toContain(appRoot);
     expect(callArgs.endpoint).toBe(expectedEndpoint);
 
     // Reset mock for next test
-    (ensureAppRoot as jest.Mock).mockImplementation((path: string) => path);
+    ensureAppRootMock.mockImplementation((path: string) => path);
   },
 );

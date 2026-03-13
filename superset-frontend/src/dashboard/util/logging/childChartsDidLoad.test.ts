@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { vi, type Mock } from 'vitest';
 import { ChartState } from 'src/explore/types';
 import { Layout } from 'src/dashboard/types';
 import childChartsDidLoad from './childChartsDidLoad';
@@ -23,20 +24,18 @@ import childChartsDidLoad from './childChartsDidLoad';
 import mockFindNonTabChildChartIdsImport from './findNonTabChildChartIds';
 
 // Mock the findNonTabChildChartIds dependency
-jest.mock('./findNonTabChildChartIds', () => ({
-  __esModule: true,
-  default: jest.fn(),
+vi.mock('./findNonTabChildChartIds', () => ({
+  default: vi.fn(),
 }));
 
-const mockFindNonTabChildChartIds =
-  mockFindNonTabChildChartIdsImport as jest.MockedFunction<
-    typeof mockFindNonTabChildChartIdsImport
-  >;
+const mockFindNonTabChildChartIds = mockFindNonTabChildChartIdsImport as Mock<
+  typeof mockFindNonTabChildChartIdsImport
+>;
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('childChartsDidLoad', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('returns didLoad true when all charts are in completed states', () => {

@@ -18,7 +18,7 @@
  */
 import { getHostName } from '.';
 
-jest.mock('src/utils/hostNamesConfig', () => ({
+vi.mock('src/utils/hostNamesConfig', () => ({
   availableDomains: [
     'domain-a',
     'domain-b',

@@ -25,17 +25,18 @@ import {
 import { SupersetClient } from '@superset-ui/core';
 import { SqlExpressionType } from '../../types/SqlExpression';
 import SQLEditorWithValidation from './index';
+import { Mock } from 'vitest';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
   SupersetClient: {
-    post: jest.fn(),
+    post: vi.fn(),
   },
 }));
 
 const defaultProps = {
   value: 'SELECT * FROM users',
-  onChange: jest.fn(),
+  onChange: vi.fn(),
   showValidation: true,
   datasourceId: 1,
   datasourceType: 'table',
@@ -44,7 +45,7 @@ const defaultProps = {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SQLEditorWithValidation', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('renders SQLEditor with validation bar when showValidation is true', () => {
@@ -93,9 +94,7 @@ describe('SQLEditorWithValidation', () => {
   });
 
   test('shows validating state when validation is in progress', async () => {
-    const mockPost = SupersetClient.post as jest.MockedFunction<
-      typeof SupersetClient.post
-    >;
+    const mockPost = SupersetClient.post as Mock<typeof SupersetClient.post>;
 
     // Mock a slow API response
     mockPost.mockImplementation(
@@ -119,9 +118,7 @@ describe('SQLEditorWithValidation', () => {
   });
 
   test('shows success state when validation passes', async () => {
-    const mockPost = SupersetClient.post as jest.MockedFunction<
-      typeof SupersetClient.post
-    >;
+    const mockPost = SupersetClient.post as Mock<typeof SupersetClient.post>;
     mockPost.mockResolvedValue({ json: { result: [] } } as any);
 
     render(<SQLEditorWithValidation {...defaultProps} />);
@@ -140,9 +137,7 @@ describe('SQLEditorWithValidation', () => {
   });
 
   test('shows error state when validation fails', async () => {
-    const mockPost = SupersetClient.post as jest.MockedFunction<
-      typeof SupersetClient.post
-    >;
+    const mockPost = SupersetClient.post as Mock<typeof SupersetClient.post>;
     mockPost.mockResolvedValue({
       json: {
         result: [
@@ -171,9 +166,7 @@ describe('SQLEditorWithValidation', () => {
   });
 
   test('handles API errors gracefully', async () => {
-    const mockPost = SupersetClient.post as jest.MockedFunction<
-      typeof SupersetClient.post
-    >;
+    const mockPost = SupersetClient.post as Mock<typeof SupersetClient.post>;
     mockPost.mockRejectedValue(new Error('Network error'));
 
     render(<SQLEditorWithValidation {...defaultProps} />);
@@ -191,9 +184,7 @@ describe('SQLEditorWithValidation', () => {
   });
 
   test('sends correct payload for column expression', async () => {
-    const mockPost = SupersetClient.post as jest.MockedFunction<
-      typeof SupersetClient.post
-    >;
+    const mockPost = SupersetClient.post as Mock<typeof SupersetClient.post>;
     mockPost.mockResolvedValue({ json: { result: [] } } as any);
 
     render(
@@ -223,9 +214,7 @@ describe('SQLEditorWithValidation', () => {
   });
 
   test('sends correct payload for WHERE expression', async () => {
-    const mockPost = SupersetClient.post as jest.MockedFunction<
-      typeof SupersetClient.post
-    >;
+    const mockPost = SupersetClient.post as Mock<typeof SupersetClient.post>;
     mockPost.mockResolvedValue({ json: { result: [] } } as any);
 
     render(
@@ -254,9 +243,7 @@ describe('SQLEditorWithValidation', () => {
   });
 
   test('sends correct payload for HAVING expression', async () => {
-    const mockPost = SupersetClient.post as jest.MockedFunction<
-      typeof SupersetClient.post
-    >;
+    const mockPost = SupersetClient.post as Mock<typeof SupersetClient.post>;
     mockPost.mockResolvedValue({ json: { result: [] } } as any);
 
     render(
@@ -306,7 +293,7 @@ describe('SQLEditorWithValidation', () => {
   });
 
   test('calls onChange when editor value changes', () => {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     render(<SQLEditorWithValidation {...defaultProps} onChange={onChange} />);
 
     // This would require mocking the SQLEditor component to properly test onChange
@@ -315,10 +302,8 @@ describe('SQLEditorWithValidation', () => {
   });
 
   test('calls onValidationComplete callback when provided', async () => {
-    const onValidationComplete = jest.fn();
-    const mockPost = SupersetClient.post as jest.MockedFunction<
-      typeof SupersetClient.post
-    >;
+    const onValidationComplete = vi.fn();
+    const mockPost = SupersetClient.post as Mock<typeof SupersetClient.post>;
     mockPost.mockResolvedValue({ json: { result: [] } } as any);
 
     render(
@@ -339,10 +324,8 @@ describe('SQLEditorWithValidation', () => {
   });
 
   test('calls onValidationComplete with errors when validation fails', async () => {
-    const onValidationComplete = jest.fn();
-    const mockPost = SupersetClient.post as jest.MockedFunction<
-      typeof SupersetClient.post
-    >;
+    const onValidationComplete = vi.fn();
+    const mockPost = SupersetClient.post as Mock<typeof SupersetClient.post>;
     const validationError = {
       message: "Column 'invalid_col' does not exist",
       line_number: 1,
@@ -376,9 +359,7 @@ describe('SQLEditorWithValidation', () => {
     const longErrorMessage =
       'This is a very long error message that should be truncated in the display but shown in full in the tooltip when user hovers over it';
 
-    const mockPost = SupersetClient.post as jest.MockedFunction<
-      typeof SupersetClient.post
-    >;
+    const mockPost = SupersetClient.post as Mock<typeof SupersetClient.post>;
     mockPost.mockResolvedValue({
       json: {
         result: [
@@ -412,9 +393,7 @@ describe('SQLEditorWithValidation', () => {
   });
 
   test('handles empty response gracefully', async () => {
-    const mockPost = SupersetClient.post as jest.MockedFunction<
-      typeof SupersetClient.post
-    >;
+    const mockPost = SupersetClient.post as Mock<typeof SupersetClient.post>;
     mockPost.mockResolvedValue({ json: { result: null } } as any);
 
     render(<SQLEditorWithValidation {...defaultProps} />);

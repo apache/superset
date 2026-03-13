@@ -20,8 +20,7 @@ import type { ReactNode } from 'react';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import JSEditorControl from 'src/explore/components/controls/JSEditorControl';
 
-jest.mock('react-virtualized-auto-sizer', () => ({
-  __esModule: true,
+vi.mock('react-virtualized-auto-sizer', () => ({
   default: ({
     children,
   }: {
@@ -29,7 +28,7 @@ jest.mock('react-virtualized-auto-sizer', () => ({
   }) => children({ width: 500, height: 250 }),
 }));
 
-jest.mock('src/core/editors', () => ({
+vi.mock('src/core/editors', () => ({
   EditorHost: ({
     value,
     onChange,
@@ -45,19 +44,19 @@ jest.mock('src/core/editors', () => ({
   ),
 }));
 
-jest.mock('src/hooks/useDebounceValue', () => ({
+vi.mock('src/hooks/useDebounceValue', () => ({
   useDebounceValue: (value: string) => value,
 }));
 
 const defaultProps = {
   name: 'echartOptions',
   label: 'EChart Options',
-  onChange: jest.fn(),
+  onChange: vi.fn(),
   value: '',
 };
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 test('renders the control with label', () => {

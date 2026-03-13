@@ -19,7 +19,7 @@
 import { render } from '@superset-ui/core/spec';
 import { IconTooltip } from '.';
 
-jest.mock('@superset-ui/core/components/Tooltip', () => ({
+vi.mock('@superset-ui/core/components/Tooltip', () => ({
   Tooltip: () => <div data-test="mock-tooltip" />,
 }));
 

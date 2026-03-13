@@ -32,12 +32,12 @@ import {
 
 // Increase default timeout for tests that involve multiple async operations
 // CI parallel load can cause timeouts with default 15s
-jest.setTimeout(30000);
+vi.setConfig({ testTimeout: 30000 });
 
 beforeEach(() => {
-  jest.useRealTimers();
+  vi.useRealTimers();
   setupMocks();
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 afterEach(async () => {
@@ -47,14 +47,14 @@ afterEach(async () => {
   });
 
   // Restore real timers in case a test threw early
-  jest.useRealTimers();
+  vi.useRealTimers();
 
   // Reset browser history to prevent query param leakage
   window.history.replaceState({}, '', '/');
 
   fetchMock.clearHistory();
   fetchMock.removeRoutes();
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 test('admin users see all UI elements', async () => {

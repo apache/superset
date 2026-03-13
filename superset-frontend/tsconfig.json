@@ -9,8 +9,8 @@
     "module": "esnext",
     "moduleResolution": "bundler",
 
-    "types": ["jest", "node"],
-    "typeRoots": ["src/types", "node_modules/@types"],
+    "types": ["vitest/globals", "node"],
+    "typeRoots": ["src/types", "node_modules/@types", "./node_modules"],
 
     /* Emit */
     "declaration": true,

@@ -27,15 +27,15 @@ import RoleListDuplicateModal from './RoleListDuplicateModal';
 import { createRole, updateRolePermissions } from './utils';
 
 const mockToasts = {
-  addDangerToast: jest.fn(),
-  addSuccessToast: jest.fn(),
+  addDangerToast: vi.fn(),
+  addSuccessToast: vi.fn(),
 };
 
-jest.mock('./utils');
-const mockCreateRole = jest.mocked(createRole);
-const mockUpdateRolePermissions = jest.mocked(updateRolePermissions);
+vi.mock('./utils');
+const mockCreateRole = vi.mocked(createRole);
+const mockUpdateRolePermissions = vi.mocked(updateRolePermissions);
 
-jest.mock('src/components/MessageToasts/withToasts', () => ({
+vi.mock('src/components/MessageToasts/withToasts', () => ({
   __esModule: true,
   default: (Component: any) => Component,
   useToasts: () => mockToasts,
@@ -53,8 +53,8 @@ describe('RoleListDuplicateModal', () => {
   const mockProps = {
     role: mockRole,
     show: true,
-    onHide: jest.fn(),
-    onSave: jest.fn(),
+    onHide: vi.fn(),
+    onSave: vi.fn(),
   };
 
   test('renders modal with form fields', () => {

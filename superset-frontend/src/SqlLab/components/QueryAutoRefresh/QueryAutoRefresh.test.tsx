@@ -53,14 +53,14 @@ describe('QueryAutoRefresh', () => {
   const refreshApi = 'glob:*/api/v1/query/updated_since?*';
 
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
     fetchMock.clearHistory().removeRoutes();
     cleanup();
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
+    vi.runOnlyPendingTimers();
+    vi.useRealTimers();
   });
 
   test('isQueryRunning returns true for valid running query', () => {
@@ -125,7 +125,7 @@ describe('QueryAutoRefresh', () => {
     );
 
     await act(async () => {
-      jest.advanceTimersByTime(QUERY_UPDATE_FREQ + 100);
+      vi.advanceTimersByTime(QUERY_UPDATE_FREQ + 100);
     });
 
     await waitFor(() =>
@@ -149,7 +149,7 @@ describe('QueryAutoRefresh', () => {
     );
 
     await act(async () => {
-      jest.advanceTimersByTime(QUERY_UPDATE_FREQ + 100);
+      vi.advanceTimersByTime(QUERY_UPDATE_FREQ + 100);
     });
 
     await waitFor(() =>
@@ -181,7 +181,7 @@ describe('QueryAutoRefresh', () => {
     );
 
     await act(async () => {
-      jest.advanceTimersByTime(QUERY_UPDATE_FREQ + 100);
+      vi.advanceTimersByTime(QUERY_UPDATE_FREQ + 100);
     });
 
     await waitFor(() =>
@@ -207,7 +207,7 @@ describe('QueryAutoRefresh', () => {
     );
 
     await act(async () => {
-      jest.advanceTimersByTime(QUERY_UPDATE_FREQ + 100);
+      vi.advanceTimersByTime(QUERY_UPDATE_FREQ + 100);
     });
 
     await waitFor(() =>
@@ -258,7 +258,7 @@ describe('QueryAutoRefresh', () => {
     );
 
     await act(async () => {
-      jest.advanceTimersByTime(QUERY_UPDATE_FREQ + 100);
+      vi.advanceTimersByTime(QUERY_UPDATE_FREQ + 100);
     });
 
     await waitFor(() =>

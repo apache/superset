@@ -46,13 +46,13 @@ const getControl = (controlName: string) => {
 };
 
 // Mock getStandardizedControls
-jest.mock('@superset-ui/chart-controls', () => {
-  const actual = jest.requireActual('@superset-ui/chart-controls');
+vi.mock('@superset-ui/chart-controls', async importActual => {
+  const actual = await importActual();
   return {
-    ...actual,
-    getStandardizedControls: jest.fn(() => ({
-      popAllMetrics: jest.fn(() => []),
-      popAllColumns: jest.fn(() => []),
+    ...(actual as any),
+    getStandardizedControls: vi.fn(() => ({
+      popAllMetrics: vi.fn(() => []),
+      popAllColumns: vi.fn(() => []),
     })),
   };
 });

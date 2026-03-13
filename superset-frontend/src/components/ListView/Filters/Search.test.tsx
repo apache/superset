@@ -27,7 +27,7 @@ import { createRef } from 'react';
 import SearchFilter from './Search';
 import type { FilterHandler } from './types';
 
-const mockOnSubmit = jest.fn();
+const mockOnSubmit = vi.fn();
 
 const defaultProps = {
   Header: 'Search Header',

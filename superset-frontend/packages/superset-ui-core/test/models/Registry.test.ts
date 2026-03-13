@@ -17,11 +17,12 @@
  * under the License.
  */
 
-/* eslint no-console: 0 */
-import mockConsole from 'jest-mock-console';
 import { Registry, OverwritePolicy } from '@superset-ui/core';
 
 const loader = () => 'testValue';
+
+const consoleWarnSpy = vi.spyOn(console, 'warn');
+const consoleErrorSpy = vi.spyOn(console, 'error');
 
 describe('Registry', () => {
   test('exists', () => {
@@ -308,33 +309,28 @@ describe('Registry', () => {
     describe('=ALLOW', () => {
       describe('.registerValue(key, value)', () => {
         test('registers normally', () => {
-          const restoreConsole = mockConsole();
           const registry = new Registry();
           registry.registerValue('a', 'testValue');
           expect(() => registry.registerValue('a', 'testValue2')).not.toThrow();
           expect(registry.get('a')).toEqual('testValue2');
-          expect(console.warn).not.toHaveBeenCalled();
-          restoreConsole();
+          expect(consoleWarnSpy).not.toHaveBeenCalled();
         });
       });
       describe('.registerLoader(key, loader)', () => {
         test('registers normally', () => {
-          const restoreConsole = mockConsole();
           const registry = new Registry();
           registry.registerLoader('a', () => 'testValue');
           expect(() =>
             registry.registerLoader('a', () => 'testValue2'),
           ).not.toThrow();
           expect(registry.get('a')).toEqual('testValue2');
-          expect(console.warn).not.toHaveBeenCalled();
-          restoreConsole();
+          expect(consoleWarnSpy).not.toHaveBeenCalled();
         });
       });
     });
     describe('=WARN', () => {
       describe('.registerValue(key, value)', () => {
         test('warns when overwrite', () => {
-          const restoreConsole = mockConsole();
           const registry = new Registry({
             overwritePolicy: OverwritePolicy.Warn,
           });
@@ -342,12 +338,10 @@ describe('Registry', () => {
           expect(() => registry.registerValue('a', 'testValue2')).not.toThrow();
           expect(registry.get('a')).toEqual('testValue2');
           expect(console.warn).toHaveBeenCalled();
-          restoreConsole();
         });
       });
       describe('.registerLoader(key, loader)', () => {
         test('warns when overwrite', () => {
-          const restoreConsole = mockConsole();
           const registry = new Registry({
             overwritePolicy: OverwritePolicy.Warn,
           });
@@ -356,8 +350,7 @@ describe('Registry', () => {
             registry.registerLoader('a', () => 'testValue2'),
           ).not.toThrow();
           expect(registry.get('a')).toEqual('testValue2');
-          expect(console.warn).toHaveBeenCalled();
-          restoreConsole();
+          expect(consoleWarnSpy).toHaveBeenCalled();
         });
       });
     });
@@ -387,10 +380,10 @@ describe('Registry', () => {
 
   describe('listeners', () => {
     let registry = new Registry();
-    let listener = jest.fn();
+    let listener = vi.fn();
     beforeEach(() => {
       registry = new Registry();
-      listener = jest.fn();
+      listener = vi.fn();
       registry.addListener(listener);
     });
 
@@ -438,19 +431,11 @@ describe('Registry', () => {
     });
 
     describe('with a broken listener', () => {
-      let restoreConsole: any;
-      beforeEach(() => {
-        restoreConsole = mockConsole();
-      });
-      afterEach(() => {
-        restoreConsole();
-      });
-
       test('keeps working', () => {
-        const errorListener = jest.fn().mockImplementation(() => {
+        const errorListener = vi.fn().mockImplementation(() => {
           throw new Error('test error');
         });
-        const lastListener = jest.fn();
+        const lastListener = vi.fn();
 
         registry.addListener(errorListener);
         registry.addListener(lastListener);
@@ -459,7 +444,7 @@ describe('Registry', () => {
         expect(listener).toHaveBeenCalledWith(['foo']);
         expect(errorListener).toHaveBeenCalledWith(['foo']);
         expect(lastListener).toHaveBeenCalledWith(['foo']);
-        expect(console.error).toHaveBeenCalled();
+        expect(consoleErrorSpy).toHaveBeenCalled();
       });
     });
   });

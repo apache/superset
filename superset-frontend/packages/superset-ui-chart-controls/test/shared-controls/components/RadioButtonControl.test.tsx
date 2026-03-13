@@ -31,7 +31,7 @@ const defaultProps: RadioButtonControlProps = {
     ['option2', 'Option 2'],
     ['option3', 'Option 3'],
   ],
-  onChange: jest.fn(),
+  onChange: vi.fn(),
 };
 
 const setup = (props: Partial<RadioButtonControlProps> = {}) =>
@@ -89,7 +89,7 @@ test('respects initial value prop', () => {
 });
 
 test('calls onChange when radio button is clicked', () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   setup({ onChange });
 
   const secondOption = screen.getByText('Option 2');
@@ -100,7 +100,7 @@ test('calls onChange when radio button is clicked', () => {
 });
 
 test('handles multiple clicks correctly', () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   setup({ onChange });
 
   fireEvent.click(screen.getByText('Option 2'));
@@ -130,7 +130,7 @@ test('disables specific options when disabled flag is set', () => {
 });
 
 test('disabled options do not trigger onChange when clicked', () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   const optionsWithDisabled: RadioButtonOption[] = [
     { value: 'opt1', label: 'Enabled' },
     { value: 'opt2', label: 'Disabled', disabled: true },
@@ -240,7 +240,7 @@ test('focuses button when clicked', () => {
 });
 
 test('handles numeric values in options', () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   const numericOptions: RadioButtonOption[] = [
     [1, 'One'],
     [2, 'Two'],
@@ -254,7 +254,7 @@ test('handles numeric values in options', () => {
 });
 
 test('handles boolean values in options', () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   const booleanOptions: RadioButtonOption[] = [
     [true, 'True'],
     [false, 'False'],
@@ -267,7 +267,7 @@ test('handles boolean values in options', () => {
 });
 
 test('handles null values in options', () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   const nullOptions: RadioButtonOption[] = [
     [null, 'None'],
     ['value', 'Value'],
@@ -310,7 +310,7 @@ test('does not set aria-selected to true for unselected buttons', () => {
 });
 
 test('backward compatibility with legacy array format', () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   const legacyOptions: RadioButtonOption[] = [
     ['val1', 'Label 1'],
     ['val2', 'Label 2'],
@@ -327,7 +327,7 @@ test('backward compatibility with legacy array format', () => {
 
 test('normalizeOption handles array format correctly', () => {
   const arrayOption: RadioButtonOption = ['value', 'Label'];
-  const onChange = jest.fn();
+  const onChange = vi.fn();
 
   setup({ options: [arrayOption], onChange });
 
@@ -343,7 +343,7 @@ test('normalizeOption handles object format correctly', () => {
     label: 'Label',
     disabled: false,
   };
-  const onChange = jest.fn();
+  const onChange = vi.fn();
 
   setup({ options: [objectOption], onChange });
 

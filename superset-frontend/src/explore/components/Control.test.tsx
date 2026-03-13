@@ -24,7 +24,7 @@ const defaultProps: ControlProps = {
   name: 'checkbox',
   value: true,
   actions: {
-    setControlValue: jest.fn(),
+    setControlValue: vi.fn(),
   },
 };
 

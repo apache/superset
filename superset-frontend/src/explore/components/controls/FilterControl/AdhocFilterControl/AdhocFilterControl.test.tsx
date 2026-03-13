@@ -21,6 +21,7 @@ import userEvent from '@testing-library/user-event';
 import AdhocFilterControl from '.';
 import AdhocFilter from '../AdhocFilter';
 import { Clauses, ExpressionTypes } from '../types';
+import { Mock } from 'vitest';
 
 interface TestProps {
   name: string;
@@ -38,7 +39,7 @@ interface TestProps {
     type?: string;
     [key: string]: unknown;
   }>;
-  onChange: jest.Mock;
+  onChange: Mock;
   sections: string[];
   operators: string[];
   [key: string]: unknown;
@@ -58,7 +59,7 @@ const createProps = (): TestProps => ({
     { column_name: 'column1', type: 'STRING' },
     { column_name: 'column2', type: 'NUMBER' },
   ],
-  onChange: jest.fn(),
+  onChange: vi.fn(),
   sections: ['WHERE', 'HAVING'],
   operators: ['==', '>', '<'],
 });
@@ -103,7 +104,7 @@ describe('AdhocFilterControl', () => {
       comparator: 'test',
       clause: Clauses.Where,
     });
-    const onChange = jest.fn();
+    const onChange = vi.fn();
 
     renderComponent({ value: [existingFilter], onChange });
 
@@ -136,13 +137,13 @@ describe('AdhocFilterControl', () => {
         }),
       });
 
-      jest
-        .spyOn(response, 'json')
-        .mockImplementation(() => Promise.resolve(mockResponse));
+      vi.spyOn(response, 'json').mockImplementation(() =>
+        Promise.resolve(mockResponse),
+      );
       return response;
     };
 
-    global.fetch = jest
+    global.fetch = vi
       .fn()
       .mockImplementation(() => Promise.resolve(createMockResponse()));
 

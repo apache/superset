@@ -20,12 +20,12 @@
 afterEach(() => {
   // Clean up the DOM
   document.body.innerHTML = '';
-  jest.resetModules();
+  vi.resetModules();
 });
 
 test('ensureAppRoot should add application root prefix to path with default root', async () => {
   document.body.innerHTML = '';
-  jest.resetModules();
+  vi.resetModules();
 
   const { ensureAppRoot } = await import('./pathUtils');
   expect(ensureAppRoot('/sqllab')).toBe('/sqllab');
@@ -39,7 +39,7 @@ test('ensureAppRoot should add application root prefix to path with custom subdi
     },
   };
   document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify(customData)}'></div>`;
-  jest.resetModules();
+  vi.resetModules();
 
   // Import getBootstrapData first to initialize the cache
   await import('./getBootstrapData');
@@ -56,7 +56,7 @@ test('ensureAppRoot should handle paths without leading slash', async () => {
     },
   };
   document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify(customData)}'></div>`;
-  jest.resetModules();
+  vi.resetModules();
 
   await import('./getBootstrapData');
   const { ensureAppRoot } = await import('./pathUtils');
@@ -72,7 +72,7 @@ test('ensureAppRoot should handle paths with query strings', async () => {
     },
   };
   document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify(customData)}'></div>`;
-  jest.resetModules();
+  vi.resetModules();
 
   await import('./getBootstrapData');
   const { ensureAppRoot } = await import('./pathUtils');
@@ -85,7 +85,7 @@ test('ensureAppRoot should handle paths with query strings', async () => {
 
 test('makeUrl should create URL with default application root', async () => {
   document.body.innerHTML = '';
-  jest.resetModules();
+  vi.resetModules();
 
   const { makeUrl } = await import('./pathUtils');
   expect(makeUrl('/sqllab')).toBe('/sqllab');
@@ -99,7 +99,7 @@ test('makeUrl should create URL with subdirectory prefix', async () => {
     },
   };
   document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify(customData)}'></div>`;
-  jest.resetModules();
+  vi.resetModules();
 
   await import('./getBootstrapData');
   const { makeUrl } = await import('./pathUtils');
@@ -118,7 +118,7 @@ test('makeUrl should handle paths without leading slash', async () => {
     },
   };
   document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify(customData)}'></div>`;
-  jest.resetModules();
+  vi.resetModules();
 
   await import('./getBootstrapData');
   const { makeUrl } = await import('./pathUtils');
@@ -133,7 +133,7 @@ test('makeUrl should work with different subdirectory paths', async () => {
     },
   };
   document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify(customData)}'></div>`;
-  jest.resetModules();
+  vi.resetModules();
 
   await import('./getBootstrapData');
   const { makeUrl } = await import('./pathUtils');
@@ -149,7 +149,7 @@ test('makeUrl should handle URLs with anchors', async () => {
     },
   };
   document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify(customData)}'></div>`;
-  jest.resetModules();
+  vi.resetModules();
 
   await import('./getBootstrapData');
   const { makeUrl } = await import('./pathUtils');
@@ -172,7 +172,7 @@ const TEL_URL = 'tel:+1234567890';
 async function loadPathUtils(appRoot = '') {
   const bootstrapData = { common: { application_root: appRoot } };
   document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify(bootstrapData)}'></div>`;
-  jest.resetModules();
+  vi.resetModules();
   await import('./getBootstrapData');
   return import('./pathUtils');
 }

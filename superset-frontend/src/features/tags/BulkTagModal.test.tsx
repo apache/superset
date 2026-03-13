@@ -24,10 +24,10 @@ import fetchMock from 'fetch-mock';
 import BulkTagModal from './BulkTagModal';
 
 const mockedProps = {
-  onHide: jest.fn(),
-  refreshData: jest.fn(),
-  addSuccessToast: jest.fn(),
-  addDangerToast: jest.fn(),
+  onHide: vi.fn(),
+  refreshData: vi.fn(),
+  addSuccessToast: vi.fn(),
+  addDangerToast: vi.fn(),
   show: true,
   selected: [
     { original: { id: 1, name: 'Dashboard 1' } },
@@ -40,7 +40,7 @@ const mockedProps = {
 describe('BulkTagModal', () => {
   afterEach(() => {
     fetchMock.clearHistory().removeRoutes();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('should render', () => {

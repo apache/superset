@@ -22,11 +22,11 @@ import { OptionControlLabel } from 'src/explore/components/controls/OptionContro
 import DashboardWrapper from './DashboardWrapper';
 
 beforeAll(() => {
-  jest.useFakeTimers();
+  vi.useFakeTimers();
 });
 
 afterAll(() => {
-  jest.useRealTimers();
+  vi.useRealTimers();
 });
 
 test('should render children', () => {
@@ -43,9 +43,9 @@ test('should update the style on dragging state', async () => {
   const defaultProps = {
     label: <span>Test label</span>,
     tooltipTitle: 'This is a tooltip title',
-    onRemove: jest.fn(),
-    onMoveLabel: jest.fn(),
-    onDropLabel: jest.fn(),
+    onRemove: vi.fn(),
+    onMoveLabel: vi.fn(),
+    onDropLabel: vi.fn(),
     type: 'test',
     index: 0,
   };
@@ -76,7 +76,7 @@ test('should update the style on dragging state', async () => {
     container.getElementsByClassName('dragdroppable--dragging'),
   ).toHaveLength(0);
   fireEvent.dragStart(getByText('Label 1'));
-  jest.runAllTimers();
+  vi.runAllTimers();
   expect(
     container.getElementsByClassName('dragdroppable--dragging'),
   ).toHaveLength(1);

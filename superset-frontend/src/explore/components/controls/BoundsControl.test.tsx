@@ -27,7 +27,7 @@ import BoundsControl from 'src/explore/components/controls/BoundsControl';
 const defaultProps = {
   name: 'y_axis_bounds',
   label: 'Bounds of the y axis',
-  onChange: jest.fn(),
+  onChange: vi.fn(),
 };
 
 test('renders two inputs', () => {

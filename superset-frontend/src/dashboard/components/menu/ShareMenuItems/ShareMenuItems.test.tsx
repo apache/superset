@@ -29,12 +29,12 @@ import fetchMock from 'fetch-mock';
 import { ComponentProps } from 'react';
 import { useShareMenuItems, ShareMenuItemProps } from '.';
 
-const spy = jest.spyOn(copyTextToClipboard, 'default');
+const spy = vi.spyOn(copyTextToClipboard, 'default');
 
 const DASHBOARD_ID = '26';
 const createProps = () => ({
-  addDangerToast: jest.fn(),
-  addSuccessToast: jest.fn(),
+  addDangerToast: vi.fn(),
+  addSuccessToast: vi.fn(),
   url: `/superset/dashboard/${DASHBOARD_ID}`,
   copyMenuItemTitle: 'Copy dashboard URL',
   emailMenuItemTitle: 'Share dashboard by email',
@@ -60,7 +60,7 @@ beforeAll((): void => {
 });
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   window.location = {
     href: '',
   } as any;
@@ -81,7 +81,7 @@ const MenuWrapper = (
 test('Should render menu items', () => {
   render(
     <MenuWrapper
-      onClick={jest.fn()}
+      onClick={vi.fn()}
       selectable={false}
       data-test="main-menu"
       forceSubMenuRender
@@ -98,7 +98,7 @@ test('Click on "Copy dashboard URL" and succeed', async () => {
   const props = createProps();
   render(
     <MenuWrapper
-      onClick={jest.fn()}
+      onClick={vi.fn()}
       selectable={false}
       data-test="main-menu"
       forceSubMenuRender
@@ -130,7 +130,7 @@ test('Click on "Copy dashboard URL" and fail', async () => {
   const props = createProps();
   render(
     <MenuWrapper
-      onClick={jest.fn()}
+      onClick={vi.fn()}
       selectable={false}
       data-test="main-menu"
       forceSubMenuRender
@@ -163,7 +163,7 @@ test('Click on "Share dashboard by email" and succeed', async () => {
   const props = createProps();
   render(
     <MenuWrapper
-      onClick={jest.fn()}
+      onClick={vi.fn()}
       selectable={false}
       data-test="main-menu"
       forceSubMenuRender
@@ -197,7 +197,7 @@ test('Click on "Share dashboard by email" and fail', async () => {
   const props = createProps();
   render(
     <MenuWrapper
-      onClick={jest.fn()}
+      onClick={vi.fn()}
       selectable={false}
       data-test="main-menu"
       forceSubMenuRender
@@ -236,7 +236,7 @@ test('Should show "Embed code" menu item when feature flag is enabled and chart 
   };
   render(
     <MenuWrapper
-      onClick={jest.fn()}
+      onClick={vi.fn()}
       selectable={false}
       data-test="main-menu"
       forceSubMenuRender
@@ -261,7 +261,7 @@ test('Should NOT show "Embed code" when feature flag is disabled', () => {
   };
   render(
     <MenuWrapper
-      onClick={jest.fn()}
+      onClick={vi.fn()}
       selectable={false}
       data-test="main-menu"
       forceSubMenuRender
@@ -279,7 +279,7 @@ test('Should NOT show "Embed code" when chart has no data', () => {
   const props = createProps();
   render(
     <MenuWrapper
-      onClick={jest.fn()}
+      onClick={vi.fn()}
       selectable={false}
       data-test="main-menu"
       forceSubMenuRender
@@ -301,7 +301,7 @@ test('Should NOT show "Embed code" when latestQueryFormData is empty object', ()
   };
   render(
     <MenuWrapper
-      onClick={jest.fn()}
+      onClick={vi.fn()}
       selectable={false}
       data-test="main-menu"
       forceSubMenuRender
@@ -326,7 +326,7 @@ test('Should render "Embed code" with data-test attribute', () => {
   };
   render(
     <MenuWrapper
-      onClick={jest.fn()}
+      onClick={vi.fn()}
       selectable={false}
       data-test="main-menu"
       forceSubMenuRender

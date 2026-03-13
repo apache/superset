@@ -18,10 +18,11 @@
  */
 import { ModuleRegistry } from 'ag-grid-community';
 import { setupAGGridModules, defaultModules } from './setupAGGridModules';
+import { Mock } from 'vitest';
 
-jest.mock('ag-grid-community', () => ({
+vi.mock('ag-grid-community', () => ({
   ModuleRegistry: {
-    registerModules: jest.fn(),
+    registerModules: vi.fn(),
   },
   ColumnAutoSizeModule: {
     moduleName: 'ColumnAutoSizeModule',
@@ -52,7 +53,7 @@ jest.mock('ag-grid-community', () => ({
 }));
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 test('defaultModules exports an array of AG Grid modules', () => {
@@ -88,7 +89,7 @@ test('setupAGGridModules registers default + additional modules when provided', 
 
   expect(ModuleRegistry.registerModules).toHaveBeenCalledTimes(1);
 
-  const registeredModules = (ModuleRegistry.registerModules as jest.Mock).mock
+  const registeredModules = (ModuleRegistry.registerModules as Mock).mock
     .calls[0][0];
 
   // Should contain all default modules

@@ -19,7 +19,6 @@
 
 import '@testing-library/jest-dom';
 import { render, screen } from '@superset-ui/core/spec';
-import mockConsole, { RestoreConsole } from 'jest-mock-console';
 import { triggerResizeObserver } from 'resize-observer-polyfill';
 import { ErrorBoundary } from 'react-error-boundary';
 
@@ -34,18 +33,19 @@ import {
 
 import { isMatrixifyEnabled } from '../../../src/chart/types/matrixify';
 import MatrixifyGridRenderer from '../../../src/chart/components/Matrixify/MatrixifyGridRenderer';
+import { Mock } from 'vitest';
 
 // Mock Matrixify imports
-jest.mock('../../../src/chart/types/matrixify', () => ({
-  isMatrixifyEnabled: jest.fn(() => false),
-  getMatrixifyConfig: jest.fn(() => null),
+vi.mock('../../../src/chart/types/matrixify', () => ({
+  isMatrixifyEnabled: vi.fn(() => false),
+  getMatrixifyConfig: vi.fn(() => null),
 }));
 
-jest.mock(
+vi.mock(
   '../../../src/chart/components/Matrixify/MatrixifyGridRenderer',
   () => ({
     __esModule: true,
-    default: jest.fn(() => null),
+    default: vi.fn(() => null),
   }),
 );
 
@@ -63,9 +63,7 @@ function getDimensionText(container: HTMLElement) {
 }
 
 describe('SuperChart', () => {
-  jest.setTimeout(5000);
-
-  let restoreConsole: RestoreConsole;
+  vi.setConfig({ testTimeout: 5000 });
 
   const plugins = [
     new DiligentChartPlugin().configure({ key: ChartKeys.DILIGENT }),
@@ -76,15 +74,6 @@ describe('SuperChart', () => {
     plugins.forEach(p => {
       p.unregister().register();
     });
-  });
-
-  beforeEach(() => {
-    restoreConsole = mockConsole();
-    triggerResizeObserver([]); // Reset any pending resize observers
-  });
-
-  afterEach(() => {
-    restoreConsole();
   });
 
   describe('includes ErrorBoundary', () => {
@@ -128,9 +117,7 @@ describe('SuperChart', () => {
 
     test('renders custom FallbackComponent', async () => {
       expectedErrors = 1;
-      const CustomFallbackComponent = jest.fn(() => (
-        <div>Custom Fallback!</div>
-      ));
+      const CustomFallbackComponent = vi.fn(() => <div>Custom Fallback!</div>);
 
       render(
         <SuperChart
@@ -147,7 +134,7 @@ describe('SuperChart', () => {
     });
     test('call onErrorBoundary', async () => {
       expectedErrors = 1;
-      const handleError = jest.fn();
+      const handleError = vi.fn();
       render(
         <SuperChart
           chartType={ChartKeys.BUGGY}
@@ -165,8 +152,8 @@ describe('SuperChart', () => {
     // Update the test cases
     test('does not include ErrorBoundary if told so', async () => {
       expectedErrors = 1;
-      const inactiveErrorHandler = jest.fn();
-      const activeErrorHandler = jest.fn();
+      const inactiveErrorHandler = vi.fn();
+      const activeErrorHandler = vi.fn();
       render(
         <ErrorBoundary
           fallbackRender={() => <div>Error!</div>}
@@ -195,7 +182,7 @@ describe('SuperChart', () => {
 
   // Update test cases
   // Update timeout for all async tests
-  jest.setTimeout(10000);
+  vi.setConfig({ testTimeout: 10000 });
 
   // Update the props test to wait for component to render
   test('passes the props to renderer correctly', async () => {
@@ -229,7 +216,7 @@ describe('SuperChart', () => {
 
   // Update dimension tests to wait for resize observer
   // First, increase the timeout for all tests
-  jest.setTimeout(20000);
+  vi.setConfig({ testTimeout: 20000 });
 
   // Update the waitForDimensions helper to include a retry mechanism
   // Update waitForDimensions to avoid await in loop
@@ -460,13 +447,12 @@ describe('SuperChart', () => {
   });
 
   test('should render MatrixifyGridRenderer when matrixify is enabled with empty data', () => {
-    const mockIsMatrixifyEnabled = isMatrixifyEnabled as jest.MockedFunction<
+    const mockIsMatrixifyEnabled = isMatrixifyEnabled as Mock<
       typeof isMatrixifyEnabled
     >;
-    const mockMatrixifyGridRenderer =
-      MatrixifyGridRenderer as jest.MockedFunction<
-        typeof MatrixifyGridRenderer
-      >;
+    const mockMatrixifyGridRenderer = MatrixifyGridRenderer as Mock<
+      typeof MatrixifyGridRenderer
+    >;
 
     mockIsMatrixifyEnabled.mockReturnValue(true);
 
@@ -485,13 +471,12 @@ describe('SuperChart', () => {
   });
 
   test('should render MatrixifyGridRenderer when matrixify is enabled with null data', () => {
-    const mockIsMatrixifyEnabled = isMatrixifyEnabled as jest.MockedFunction<
+    const mockIsMatrixifyEnabled = isMatrixifyEnabled as Mock<
       typeof isMatrixifyEnabled
     >;
-    const mockMatrixifyGridRenderer =
-      MatrixifyGridRenderer as jest.MockedFunction<
-        typeof MatrixifyGridRenderer
-      >;
+    const mockMatrixifyGridRenderer = MatrixifyGridRenderer as Mock<
+      typeof MatrixifyGridRenderer
+    >;
 
     mockIsMatrixifyEnabled.mockReturnValue(true);
 
@@ -510,13 +495,12 @@ describe('SuperChart', () => {
   });
 
   test('should ignore custom noResults component when matrixify is enabled', () => {
-    const mockIsMatrixifyEnabled = isMatrixifyEnabled as jest.MockedFunction<
+    const mockIsMatrixifyEnabled = isMatrixifyEnabled as Mock<
       typeof isMatrixifyEnabled
     >;
-    const mockMatrixifyGridRenderer =
-      MatrixifyGridRenderer as jest.MockedFunction<
-        typeof MatrixifyGridRenderer
-      >;
+    const mockMatrixifyGridRenderer = MatrixifyGridRenderer as Mock<
+      typeof MatrixifyGridRenderer
+    >;
 
     mockIsMatrixifyEnabled.mockReturnValue(true);
 
@@ -540,16 +524,15 @@ describe('SuperChart', () => {
   });
 
   test('should apply error boundary to matrixify grid renderer', () => {
-    const mockIsMatrixifyEnabled = isMatrixifyEnabled as jest.MockedFunction<
+    const mockIsMatrixifyEnabled = isMatrixifyEnabled as Mock<
       typeof isMatrixifyEnabled
     >;
-    const mockMatrixifyGridRenderer =
-      MatrixifyGridRenderer as jest.MockedFunction<
-        typeof MatrixifyGridRenderer
-      >;
+    const mockMatrixifyGridRenderer = MatrixifyGridRenderer as Mock<
+      typeof MatrixifyGridRenderer
+    >;
 
     mockIsMatrixifyEnabled.mockReturnValue(true);
-    const onErrorBoundary = jest.fn();
+    const onErrorBoundary = vi.fn();
 
     render(
       <SuperChart

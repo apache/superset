@@ -35,25 +35,23 @@ import Markdown from '../Markdown';
 // Cast to loosely-typed component to avoid needing every required prop in test mocks
 const Tab = ActualTab as unknown as FC<Record<string, unknown>>;
 
-jest.mock('src/dashboard/util/getChartIdsFromComponent', () =>
-  jest.fn(() => []),
-);
+vi.mock('src/dashboard/util/getChartIdsFromComponent', () => vi.fn(() => []));
 
-jest.mock('src/dashboard/containers/DashboardComponent', () =>
-  jest.fn(() => <div data-test="DashboardComponent" />),
+vi.mock('src/dashboard/containers/DashboardComponent', () =>
+  vi.fn(() => <div data-test="DashboardComponent" />),
 );
-jest.mock('@superset-ui/core/components/EditableTitle', () => ({
+vi.mock('@superset-ui/core/components/EditableTitle', () => ({
   __esModule: true,
-  EditableTitle: jest.fn(props => (
+  EditableTitle: vi.fn(props => (
     <button type="button" data-test="EditableTitle" onClick={props.onSaveTitle}>
       {props.title}
     </button>
   )),
 }));
 
-jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
-  ...jest.requireActual('src/dashboard/components/dnd/DragDroppable'),
-  Droppable: jest.fn(props => {
+vi.mock('src/dashboard/components/dnd/DragDroppable', () => ({
+  ...vi.requireActual('src/dashboard/components/dnd/DragDroppable'),
+  Droppable: vi.fn(props => {
     const childProps = props.editMode
       ? {
           dragSourceRef: props.dragSourceRef,
@@ -93,11 +91,11 @@ jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
     );
   }),
 }));
-jest.mock('src/dashboard/actions/dashboardState', () => ({
-  setEditMode: jest.fn(() => ({
+vi.mock('src/dashboard/actions/dashboardState', () => ({
+  setEditMode: vi.fn(() => ({
     type: 'SET_EDIT_MODE',
   })),
-  onRefresh: jest.fn(() => ({
+  onRefresh: vi.fn(() => ({
     type: 'ON_REFRESH',
   })),
 }));
@@ -135,17 +133,17 @@ const createProps = () => ({
   dashboardId: 23,
   focusedFilterScope: null,
   isComponentVisible: true,
-  onDropOnTab: jest.fn(),
-  handleComponentDrop: jest.fn(),
-  updateComponents: jest.fn(),
-  setDirectPathToChild: jest.fn(),
-  onResizeStart: jest.fn(),
-  onResize: jest.fn(),
-  onResizeStop: jest.fn(),
+  onDropOnTab: vi.fn(),
+  handleComponentDrop: vi.fn(),
+  updateComponents: vi.fn(),
+  setDirectPathToChild: vi.fn(),
+  onResizeStart: vi.fn(),
+  onResize: vi.fn(),
+  onResizeStop: vi.fn(),
 });
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 test('Render tab (no content)', () => {
@@ -175,7 +173,7 @@ test('Render tab (no content) editMode:true', () => {
 
 test('Drop on a tab', async () => {
   const props = createProps();
-  const mockOnDropOnTab = jest.fn();
+  const mockOnDropOnTab = vi.fn();
   render(
     <>
       <Tab {...props} renderType="RENDER_TAB" editMode />
@@ -214,14 +212,14 @@ test('Drop on a tab', async () => {
           id: 'MARKDOWN-1',
           meta: { code: 'Dashboard Component' } as any,
         }}
-        logEvent={jest.fn()}
-        deleteComponent={jest.fn()}
-        handleComponentDrop={jest.fn()}
-        onResizeStart={jest.fn()}
-        onResize={jest.fn()}
-        onResizeStop={jest.fn()}
-        updateComponents={jest.fn()}
-        addDangerToast={jest.fn()}
+        logEvent={vi.fn()}
+        deleteComponent={vi.fn()}
+        handleComponentDrop={vi.fn()}
+        onResizeStart={vi.fn()}
+        onResize={vi.fn()}
+        onResizeStop={vi.fn()}
+        updateComponents={vi.fn()}
+        addDangerToast={vi.fn()}
       />
     </>,
     {
@@ -454,7 +452,7 @@ test('Drag to empty state, editMode: true, canEdit: true', async () => {
   const props = createProps();
   props.editMode = true;
   props.component.children = [];
-  const mockHandleComponentDrop = jest.fn();
+  const mockHandleComponentDrop = vi.fn();
   props.handleComponentDrop = mockHandleComponentDrop;
 
   render(<Tab {...props} />, {
@@ -532,7 +530,7 @@ test('AnchorLink does not render in embedded mode', () => {
 });
 
 test('Should refresh charts when tab becomes active after dashboard refresh', async () => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   const getChartIdsFromComponent = require('src/dashboard/util/getChartIdsFromComponent');
   getChartIdsFromComponent.mockReturnValue([101, 102]);
 
@@ -584,7 +582,7 @@ test('Should refresh charts when tab becomes active after dashboard refresh', as
 });
 
 test('Should not refresh charts when tab becomes active if no dashboard refresh occurred', async () => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   const getChartIdsFromComponent = require('src/dashboard/util/getChartIdsFromComponent');
   getChartIdsFromComponent.mockReturnValue([101]);
 
@@ -622,7 +620,7 @@ test('Should not refresh charts when tab becomes active if no dashboard refresh 
 });
 
 test('Should not cause infinite refresh loop with nested tabs - regression test', async () => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   const getChartIdsFromComponent = require('src/dashboard/util/getChartIdsFromComponent');
   getChartIdsFromComponent.mockReset();
   getChartIdsFromComponent.mockReturnValue([201, 202]);
@@ -664,7 +662,7 @@ test('Should not cause infinite refresh loop with nested tabs - regression test'
   );
 
   // Clear the mock to track subsequent calls
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
   // REGRESSION TEST: Multiple re-renders should NOT trigger additional refreshes
   // This simulates the infinite loop scenario that was happening with nested tabs
@@ -677,7 +675,7 @@ test('Should not cause infinite refresh loop with nested tabs - regression test'
 });
 
 test('Should use isLazyLoad flag for tab refreshes', async () => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   const getChartIdsFromComponent = require('src/dashboard/util/getChartIdsFromComponent');
   getChartIdsFromComponent.mockReset();
   getChartIdsFromComponent.mockReturnValue([401, 402]);

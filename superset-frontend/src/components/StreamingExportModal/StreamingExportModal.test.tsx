@@ -32,15 +32,15 @@ const defaultProgress: StreamingProgress = {
 
 const defaultProps = {
   visible: true,
-  onCancel: jest.fn(),
-  onRetry: jest.fn(),
+  onCancel: vi.fn(),
+  onRetry: vi.fn(),
   progress: defaultProgress,
 };
 
 beforeEach(() => {
-  jest.clearAllMocks();
-  URL.revokeObjectURL = jest.fn();
-  URL.createObjectURL = jest.fn(() => 'blob:mock-url');
+  vi.clearAllMocks();
+  URL.revokeObjectURL = vi.fn();
+  URL.createObjectURL = vi.fn(() => 'blob:mock-url');
 });
 
 test('renders modal with streaming state', () => {
@@ -112,7 +112,7 @@ test('shows cancelled state when export is cancelled', () => {
 });
 
 test('calls onCancel when cancel button is clicked during streaming', async () => {
-  const onCancel = jest.fn();
+  const onCancel = vi.fn();
   render(<StreamingExportModal {...defaultProps} onCancel={onCancel} />);
 
   await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
@@ -120,7 +120,7 @@ test('calls onCancel when cancel button is clicked during streaming', async () =
 });
 
 test('calls onRetry when retry button is clicked after error', async () => {
-  const onRetry = jest.fn();
+  const onRetry = vi.fn();
   const progress = {
     ...defaultProgress,
     status: ExportStatus.ERROR,
@@ -149,7 +149,7 @@ test('triggers download when download button is clicked', async () => {
     filename: 'test_export.csv',
   };
 
-  const onCancel = jest.fn();
+  const onCancel = vi.fn();
   render(
     <StreamingExportModal
       {...defaultProps}
@@ -225,7 +225,7 @@ test('handles retry button visibility based on onRetry prop', () => {
     <StreamingExportModal
       {...defaultProps}
       progress={progress}
-      onRetry={jest.fn()}
+      onRetry={vi.fn()}
     />,
   );
 

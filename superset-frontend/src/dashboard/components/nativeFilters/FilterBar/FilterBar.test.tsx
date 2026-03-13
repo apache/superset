@@ -32,15 +32,16 @@ import { FILTER_BAR_TEST_ID } from './utils';
 import FilterBar from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 import * as dataMaskActions from 'src/dataMask/actions';
+import { Mock } from 'vitest';
 
-jest.useFakeTimers();
+vi.useFakeTimers();
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  makeApi: jest.fn(),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  makeApi: vi.fn(),
 }));
 
-const mockedMakeApi = makeApi as jest.Mock;
+const mockedMakeApi = makeApi as Mock;
 
 // Register preset once for all tests
 class MainPreset extends Preset {
@@ -73,22 +74,22 @@ fetchMock.get('glob:*/api/v1/dataset/7', {
 
 // Cleanup between tests
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 const getTestId = testWithId<string>(FILTER_BAR_TEST_ID, true);
 const getModalTestId = testWithId<string>(FILTERS_CONFIG_MODAL_TEST_ID, true);
 
-function createClosedBarProps(toggleFiltersBar = jest.fn()) {
+function createClosedBarProps(toggleFiltersBar = vi.fn()) {
   return { filtersOpen: false, toggleFiltersBar };
 }
 
-function createOpenedBarProps(toggleFiltersBar = jest.fn()) {
+function createOpenedBarProps(toggleFiltersBar = vi.fn()) {
   return { filtersOpen: true, toggleFiltersBar };
 }
 
 function createMockApi(filterName = 'Time filter 1') {
-  return jest.fn(async data => {
+  return vi.fn(async data => {
     if (!data?.modified?.length) {
       return { id: 1234, result: [] };
     }
@@ -224,7 +225,7 @@ function setupTimeRangeMocks() {
 }
 
 function renderFilterBar(
-  props: { filtersOpen: boolean; toggleFiltersBar: jest.Mock },
+  props: { filtersOpen: boolean; toggleFiltersBar: Mock },
   state?: object,
 ) {
   return render(
@@ -285,7 +286,7 @@ test('FilterBar renders filter icon', () => {
 });
 
 test('FilterBar calls toggleFiltersBar when collapse icon is clicked', () => {
-  const toggleFiltersBar = jest.fn();
+  const toggleFiltersBar = vi.fn();
   const props = createClosedBarProps(toggleFiltersBar);
   renderFilterBar(props);
 
@@ -297,7 +298,7 @@ test('FilterBar calls toggleFiltersBar when collapse icon is clicked', () => {
 });
 
 test('FilterBar opens when expand button is clicked', () => {
-  const toggleFiltersBar = jest.fn();
+  const toggleFiltersBar = vi.fn();
   const props = createClosedBarProps(toggleFiltersBar);
   renderFilterBar(props);
 
@@ -323,7 +324,7 @@ test('FilterBar hides edit filter button when user lacks permissions', () => {
 });
 
 test('FilterBar closes when collapse button is clicked', () => {
-  const toggleFiltersBar = jest.fn();
+  const toggleFiltersBar = vi.fn();
   const props = createOpenedBarProps(toggleFiltersBar);
   renderFilterBar(props);
 
@@ -362,7 +363,7 @@ test('FilterBar renders dividers with title and description', async () => {
   renderFilterBar(props, stateWithDivider);
 
   await act(async () => {
-    jest.advanceTimersByTime(1000);
+    vi.advanceTimersByTime(1000);
   });
 
   const title = await screen.findByText('Select time range');
@@ -413,7 +414,7 @@ test('FilterBar renders without errors when filter has required controlValues', 
 
 test('FilterBar does not crash when filter has value but empty extraFormData', async () => {
   const filterId = 'test-filter-auto-apply';
-  const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+  const updateDataMaskSpy = vi.spyOn(dataMaskActions, 'updateDataMask');
   const props = createOpenedBarProps();
 
   const filter = createFilter({
@@ -432,7 +433,7 @@ test('FilterBar does not crash when filter has value but empty extraFormData', a
   renderFilterBar(props, state);
 
   await act(async () => {
-    jest.advanceTimersByTime(300);
+    vi.advanceTimersByTime(300);
   });
 
   expect(screen.getByTestId(getTestId('filter-icon'))).toBeInTheDocument();
@@ -465,7 +466,7 @@ test('FilterBar renders correctly when filter has complete extraFormData', async
   renderFilterBar(props, state);
 
   await act(async () => {
-    jest.advanceTimersByTime(100);
+    vi.advanceTimersByTime(100);
   });
 
   expect(screen.getByTestId(getTestId('filter-icon'))).toBeInTheDocument();
@@ -473,7 +474,7 @@ test('FilterBar renders correctly when filter has complete extraFormData', async
 
 test('handleClearAll dispatches updateDataMask with value undefined for filter_select', async () => {
   const filterId = 'NATIVE_FILTER-clear-select';
-  const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+  const updateDataMaskSpy = vi.spyOn(dataMaskActions, 'updateDataMask');
   const selectFilter = createFilter({
     id: filterId,
     name: 'Region',
@@ -509,7 +510,7 @@ test('handleClearAll dispatches updateDataMask with value undefined for filter_s
   const props = createOpenedBarProps();
   renderFilterBar(props, stateWithSelect);
   await act(async () => {
-    jest.advanceTimersByTime(300);
+    vi.advanceTimersByTime(300);
   });
 
   const clearBtn = screen.getByTestId(getTestId('clear-button'));
@@ -530,7 +531,7 @@ test('handleClearAll dispatches updateDataMask with [null, null] for filter_rang
     result: [{ data: [{ min: 0, max: 100 }] }],
   });
   const filterId = 'NATIVE_FILTER-clear-range';
-  const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+  const updateDataMaskSpy = vi.spyOn(dataMaskActions, 'updateDataMask');
   const rangeFilter = createFilter({
     id: filterId,
     name: 'Age',
@@ -566,7 +567,7 @@ test('handleClearAll dispatches updateDataMask with [null, null] for filter_rang
   const props = createOpenedBarProps();
   renderFilterBar(props, stateWithRange);
   await act(async () => {
-    jest.advanceTimersByTime(300);
+    vi.advanceTimersByTime(300);
   });
 
   const clearBtn = screen.getByTestId(getTestId('clear-button'));
@@ -585,7 +586,7 @@ test('handleClearAll dispatches updateDataMask with [null, null] for filter_rang
 test('handleClearAll only dispatches for filters present in dataMask', async () => {
   const idInMask = 'NATIVE_FILTER-has-value';
   const idNotInMask = 'NATIVE_FILTER-no-value';
-  const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+  const updateDataMaskSpy = vi.spyOn(dataMaskActions, 'updateDataMask');
   const filterInMask = createFilter({
     id: idInMask,
     name: 'A',
@@ -630,7 +631,7 @@ test('handleClearAll only dispatches for filters present in dataMask', async () 
   const props = createOpenedBarProps();
   renderFilterBar(props, stateWithTwoFilters);
   await act(async () => {
-    jest.advanceTimersByTime(300);
+    vi.advanceTimersByTime(300);
   });
 
   const clearBtn = screen.getByTestId(getTestId('clear-button'));
@@ -651,7 +652,7 @@ test('FilterBar Clear All only clears in-scope filters, not out-of-scope ones', 
   const outOfScopeRequiredFilterId = 'NATIVE_FILTER-out-of-scope-required';
   const outOfScopeNonRequiredFilterId =
     'NATIVE_FILTER-out-of-scope-non-required';
-  const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+  const updateDataMaskSpy = vi.spyOn(dataMaskActions, 'updateDataMask');
 
   const dashboardLayoutWithTabs = {
     ROOT_ID: { id: 'ROOT_ID', type: 'ROOT', children: ['TABS-1'] },
@@ -766,7 +767,7 @@ test('FilterBar Clear All only clears in-scope filters, not out-of-scope ones', 
   renderFilterBar(props, stateWithTabsAndFilters);
 
   await act(async () => {
-    jest.advanceTimersByTime(300);
+    vi.advanceTimersByTime(300);
   });
 
   const clearButton = screen.getByTestId(getTestId('clear-button'));

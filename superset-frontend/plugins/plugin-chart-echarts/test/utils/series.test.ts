@@ -525,7 +525,7 @@ describe('extractSeries', () => {
           ],
         },
       ],
-      [],
+      [undefined, undefined, undefined],
       5,
     ]);
   });

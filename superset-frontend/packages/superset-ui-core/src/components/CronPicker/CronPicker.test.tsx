@@ -21,7 +21,7 @@ import { render } from '@superset-ui/core/spec';
 import * as ReactCronPicker from 'react-js-cron';
 import { CronPicker } from '.';
 
-const spy = jest.spyOn(ReactCronPicker, 'default');
+const spy = vi.spyOn(ReactCronPicker, 'default');
 
 test('Should send correct props to ReactCronPicker', () => {
   const props = {

@@ -20,8 +20,8 @@ import { render, fireEvent } from 'spec/helpers/testing-library';
 import UndoRedoKeyListeners from '.';
 
 const defaultProps = {
-  onUndo: jest.fn(),
-  onRedo: jest.fn(),
+  onUndo: vi.fn(),
+  onRedo: vi.fn(),
 };
 
 test('renders nothing', () => {
@@ -30,22 +30,22 @@ test('renders nothing', () => {
 });
 
 test('triggers onUndo', () => {
-  const onUndo = jest.fn();
+  const onUndo = vi.fn();
   render(<UndoRedoKeyListeners {...defaultProps} onUndo={onUndo} />);
   fireEvent.keyDown(document.body, { key: 'z', keyCode: 90, ctrlKey: true });
   expect(onUndo).toHaveBeenCalledTimes(1);
 });
 
 test('triggers onRedo', () => {
-  const onRedo = jest.fn();
+  const onRedo = vi.fn();
   render(<UndoRedoKeyListeners {...defaultProps} onRedo={onRedo} />);
   fireEvent.keyDown(document.body, { key: 'y', keyCode: 89, ctrlKey: true });
   expect(onRedo).toHaveBeenCalledTimes(1);
 });
 
 test('does not trigger when it is another key', () => {
-  const onUndo = jest.fn();
-  const onRedo = jest.fn();
+  const onUndo = vi.fn();
+  const onRedo = vi.fn();
   render(<UndoRedoKeyListeners onUndo={onUndo} onRedo={onRedo} />);
   fireEvent.keyDown(document.body, { key: 'x', keyCode: 88, ctrlKey: true });
   expect(onUndo).not.toHaveBeenCalled();
@@ -53,7 +53,7 @@ test('does not trigger when it is another key', () => {
 });
 
 test('removes the event listener when unmounts', () => {
-  document.removeEventListener = jest.fn();
+  document.removeEventListener = vi.fn();
   const { unmount } = render(<UndoRedoKeyListeners {...defaultProps} />);
   unmount();
   expect(document.removeEventListener).toHaveBeenCalledWith(

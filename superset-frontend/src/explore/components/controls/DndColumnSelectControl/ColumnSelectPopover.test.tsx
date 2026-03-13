@@ -32,8 +32,8 @@ import ColumnSelectPopover, {
 } from 'src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover';
 
 // Mock SQLEditorWithValidation to capture props for testing
-const mockSQLEditorProps = jest.fn();
-jest.mock('src/components/SQLEditorWithValidation', () => ({
+const mockSQLEditorProps = vi.fn();
+vi.mock('src/components/SQLEditorWithValidation', () => ({
   __esModule: true,
   default: (mockProps: Record<string, unknown>) => {
     mockSQLEditorProps(mockProps);
@@ -67,9 +67,9 @@ const renderPopover = (
       hasCustomLabel
       isTemporal
       label="Custom Label"
-      onClose={jest.fn()}
-      setDatasetModal={jest.fn()}
-      setLabel={jest.fn()}
+      onClose={vi.fn()}
+      setDatasetModal={vi.fn()}
+      setLabel={vi.fn()}
       {...props}
     />,
     { store },
@@ -78,8 +78,8 @@ const renderPopover = (
 
 test('updates adhocColumn when switching to sqlExpression tab with custom label', () => {
   const mockColumns = [{ column_name: 'year' }];
-  const mockOnChange = jest.fn();
-  const mockGetCurrentTab = jest.fn();
+  const mockOnChange = vi.fn();
+  const mockGetCurrentTab = vi.fn();
 
   const { container, getByText } = renderPopover({
     columns: mockColumns,
@@ -108,8 +108,8 @@ test('open with Simple tab selected when there is no column selected', () => {
   const { getByText } = renderPopover({
     columns: [{ column_name: 'year' }],
     editedColumn: undefined,
-    getCurrentTab: jest.fn(),
-    onChange: jest.fn(),
+    getCurrentTab: vi.fn(),
+    onChange: vi.fn(),
   });
   expect(getByText('Saved')).toHaveAttribute('aria-selected', 'false');
   expect(getByText('Simple')).toHaveAttribute('aria-selected', 'true');
@@ -120,8 +120,8 @@ test('open with Saved tab selected when there is a saved column selected', () =>
   const { getByText } = renderPopover({
     columns: [{ column_name: 'year' }],
     editedColumn: { column_name: 'year', expression: 'year - 1' },
-    getCurrentTab: jest.fn(),
-    onChange: jest.fn(),
+    getCurrentTab: vi.fn(),
+    onChange: vi.fn(),
   });
   expect(getByText('Saved')).toHaveAttribute('aria-selected', 'true');
   expect(getByText('Simple')).toHaveAttribute('aria-selected', 'false');
@@ -136,8 +136,8 @@ test('open with Custom SQL tab selected when there is a custom SQL selected', ()
       label: 'Custom SQL',
       sqlExpression: 'year - 1',
     },
-    getCurrentTab: jest.fn(),
-    onChange: jest.fn(),
+    getCurrentTab: vi.fn(),
+    onChange: vi.fn(),
   });
   expect(getByText('Saved')).toHaveAttribute('aria-selected', 'false');
   expect(getByText('Simple')).toHaveAttribute('aria-selected', 'false');
@@ -160,8 +160,8 @@ test('passes keywords as objects to SQLEditorWithValidation for autocomplete', (
       label: 'test',
       expressionType: 'SQL',
     },
-    getCurrentTab: jest.fn(),
-    onChange: jest.fn(),
+    getCurrentTab: vi.fn(),
+    onChange: vi.fn(),
   });
 
   // Verify SQLEditorWithValidation was called
@@ -204,8 +204,8 @@ test('Should filter simple columns by column_name and verbose_name', async () =>
       { column_name: 'updated_at', verbose_name: 'Last Update' },
     ],
     editedColumn: undefined,
-    getCurrentTab: jest.fn(),
-    onChange: jest.fn(),
+    getCurrentTab: vi.fn(),
+    onChange: vi.fn(),
   });
 
   const combobox = screen.getByRole('combobox', {
@@ -274,8 +274,8 @@ test('Should filter saved expressions by column_name and verbose_name', async ()
       },
     ],
     editedColumn: undefined,
-    getCurrentTab: jest.fn(),
-    onChange: jest.fn(),
+    getCurrentTab: vi.fn(),
+    onChange: vi.fn(),
   });
 
   const savedTab = container.querySelector('#adhoc-metric-edit-tabs-tab-saved');

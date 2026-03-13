@@ -36,8 +36,8 @@ interface MockSuperChartProps {
   [key: string]: unknown;
 }
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
   SuperChart: ({
     postTransformProps = (x: JsonObject) => x,
     isRefreshing = false,
@@ -52,10 +52,9 @@ jest.mock('@superset-ui/core', () => ({
   ),
 }));
 
-jest.mock(
-  'src/components/Chart/ChartContextMenu/ChartContextMenu',
-  () => () => <div data-test="mock-chart-context-menu" />,
-);
+vi.mock('src/components/Chart/ChartContextMenu/ChartContextMenu', () => ({
+  default: () => <div data-test="mock-chart-context-menu" />,
+}));
 
 interface MockActions {
   chartRenderingSucceeded: (chartId: number) => Dispatch;
@@ -68,15 +67,13 @@ interface MockActions {
 }
 
 const mockActions: MockActions = {
-  chartRenderingSucceeded: jest.fn() as unknown as (
-    chartId: number,
-  ) => Dispatch,
-  chartRenderingFailed: jest.fn() as unknown as (
+  chartRenderingSucceeded: vi.fn() as unknown as (chartId: number) => Dispatch,
+  chartRenderingFailed: vi.fn() as unknown as (
     error: string,
     chartId: number,
     componentStack: string | null,
   ) => Dispatch,
-  logEvent: jest.fn() as unknown as (
+  logEvent: vi.fn() as unknown as (
     eventName: string,
     payload: JsonObject,
   ) => Dispatch,
@@ -187,7 +184,7 @@ test('should detect changes in matrixify properties', () => {
 });
 
 test('should detect changes in postTransformProps', () => {
-  const postTransformProps = jest.fn((x: JsonObject) => x);
+  const postTransformProps = vi.fn((x: JsonObject) => x);
   const initialProps: Partial<ChartRendererProps> = {
     ...requiredProps,
     queriesResponse: [{ data: 'initial' } as unknown as JsonObject],

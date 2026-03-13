@@ -71,7 +71,7 @@ describe('CollapsibleControl', () => {
   });
 
   test('calls onChange handler when toggled', async () => {
-    const onChangeMock = jest.fn();
+    const onChangeMock = vi.fn();
     renderCollapsibleControl({ onChange: onChangeMock });
     const checkbox = screen.getByRole('checkbox', { name: /Test Control/i });
 
@@ -83,7 +83,7 @@ describe('CollapsibleControl', () => {
   });
 
   test('respects disabled prop', async () => {
-    const onChangeMock = jest.fn();
+    const onChangeMock = vi.fn();
     renderCollapsibleControl({
       disabled: true,
       onChange: onChangeMock,

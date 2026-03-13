@@ -30,12 +30,12 @@ import chartQueries, {
 import Chart from './Chart';
 
 let capturedChartContainerProps: Record<string, unknown> = {};
-jest.mock('src/components/Chart/ChartContainer', () => {
+vi.mock('src/components/Chart/ChartContainer', () => {
   const MockChartContainer = (props: Record<string, unknown>) => {
     capturedChartContainerProps = props;
     return <div data-test="chart-container" />;
   };
-  return { __esModule: true, default: MockChartContainer };
+  return { default: MockChartContainer };
 });
 
 const props = {
@@ -110,16 +110,16 @@ function setup(
   });
 }
 
-const refreshChart = jest.fn();
-const logEvent = jest.fn();
-const changeFilter = jest.fn();
-const addSuccessToast = jest.fn();
-const addDangerToast = jest.fn();
-const toggleExpandSlice = jest.fn();
-const setFocusedFilterField = jest.fn();
-const unsetFocusedFilterField = jest.fn();
+const refreshChart = vi.fn();
+const logEvent = vi.fn();
+const changeFilter = vi.fn();
+const addSuccessToast = vi.fn();
+const addDangerToast = vi.fn();
+const toggleExpandSlice = vi.fn();
+const setFocusedFilterField = vi.fn();
+const unsetFocusedFilterField = vi.fn();
 beforeAll(() => {
-  jest.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
+  vi.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
     refreshChart,
     logEvent,
     changeFilter,
@@ -132,7 +132,7 @@ beforeAll(() => {
 });
 
 afterEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 test('should render a SliceHeader', () => {
@@ -168,14 +168,14 @@ test('should call refreshChart when SliceHeader calls forceRefresh', () => {
 
 /* oxlint-disable-next-line jest/no-disabled-tests */
 test.skip('should call changeFilter when ChartContainer calls changeFilter', () => {
-  const mockChangeFilter = jest.fn();
+  const mockChangeFilter = vi.fn();
   const wrapper = setup({ changeFilter: mockChangeFilter }) as any;
   wrapper.instance().changeFilter();
   expect((mockChangeFilter as any).callCount).toBe(1);
 });
 
 test('should call exportChart when exportCSV is clicked', async () => {
-  const stubbedExportCSV = jest
+  const stubbedExportCSV = vi
     .spyOn(exploreUtils, 'exportChart')
     .mockImplementation((() => {}) as any);
   const { findByText, getByRole } = setup(
@@ -205,7 +205,7 @@ test('should call exportChart with row_limit props.maxRows when exportFullCSV is
   (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: true,
   };
-  const stubbedExportCSV = jest
+  const stubbedExportCSV = vi
     .spyOn(exploreUtils, 'exportChart')
     .mockImplementation((() => {}) as any);
   const { findByText, getByRole } = setup(
@@ -233,7 +233,7 @@ test('should call exportChart with row_limit props.maxRows when exportFullCSV is
 });
 
 test('should call exportChart when exportXLSX is clicked', async () => {
-  const stubbedExportXLSX = jest
+  const stubbedExportXLSX = vi
     .spyOn(exploreUtils, 'exportChart')
     .mockImplementation((() => {}) as any);
   const { findByText, getByRole } = setup(
@@ -260,7 +260,7 @@ test('should call exportChart with row_limit props.maxRows when exportFullXLSX i
   (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: true,
   };
-  const stubbedExportXLSX = jest
+  const stubbedExportXLSX = vi
     .spyOn(exploreUtils, 'exportChart')
     .mockImplementation((() => {}) as any);
   const { findByText, getByRole } = setup(
@@ -408,7 +408,7 @@ test('should handle chart state when no converter exists', () => {
   jest
     .spyOn(chartStateConverter, 'hasChartStateConverter')
     .mockReturnValue(false);
-  jest.spyOn(chartStateConverter, 'convertChartStateToOwnState');
+  vi.spyOn(chartStateConverter, 'convertChartStateToOwnState');
 
   const { getByTestId } = setup(
     {},

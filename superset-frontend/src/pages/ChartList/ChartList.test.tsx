@@ -31,13 +31,13 @@ import {
   setupMocks,
 } from './ChartList.testHelpers';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
 
 // Increase default timeout for all tests
-jest.setTimeout(30000);
+vi.setConfig({ testTimeout: 30000 });
 
 const mockUser = {
   userId: 1,
@@ -75,9 +75,7 @@ describe('ChartList', () => {
   afterEach(() => {
     fetchMock.clearHistory();
     // Reset feature flag mock
-    (
-      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
-    ).mockReset();
+    (isFeatureEnabled as Mock<typeof isFeatureEnabled>).mockReset();
   });
 
   test('renders component with basic structure', async () => {
@@ -248,9 +246,7 @@ describe('ChartList - Global Filter Interactions', () => {
   afterEach(() => {
     fetchMock.clearHistory();
     // Reset feature flag mock
-    (
-      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
-    ).mockReset();
+    (isFeatureEnabled as Mock<typeof isFeatureEnabled>).mockReset();
   });
 
   test('renders all standard filters', async () => {
@@ -283,9 +279,7 @@ describe('ChartList - Global Filter Interactions', () => {
 
   test('renders Tags filter when TAGGING_SYSTEM is enabled', async () => {
     // Mock feature flag to enable tags
-    (
-      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
-    ).mockImplementation(
+    (isFeatureEnabled as Mock<typeof isFeatureEnabled>).mockImplementation(
       (feature: string) =>
         feature === 'TAGGING_SYSTEM' ||
         feature !== 'LISTVIEWS_DEFAULT_CARD_VIEW',
@@ -312,9 +306,7 @@ describe('ChartList - Global Filter Interactions', () => {
   });
 
   test('does not render Tags filter when TAGGING_SYSTEM is disabled', async () => {
-    (
-      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
-    ).mockImplementation(
+    (isFeatureEnabled as Mock<typeof isFeatureEnabled>).mockImplementation(
       (feature: string) =>
         feature !== 'LISTVIEWS_DEFAULT_CARD_VIEW' &&
         feature !== 'TAGGING_SYSTEM',

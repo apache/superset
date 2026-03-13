@@ -97,11 +97,11 @@ describe('getAggFunc', () => {
 });
 
 describe('commonLayerProps', () => {
-  const mockSetTooltip = jest.fn();
-  const mockSetTooltipContent = jest.fn(
+  const mockSetTooltip = vi.fn();
+  const mockSetTooltipContent = vi.fn(
     () => (o: JsonObject) => `Tooltip for ${o}`,
   );
-  const mockOnSelect = jest.fn();
+  const mockOnSelect = vi.fn();
 
   test('returns correct props when js_tooltip is provided', () => {
     const formData = {

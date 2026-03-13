@@ -23,12 +23,12 @@ const TODAY = '2024-06-03';
 
 // Mock Date to always return 2024-06-03
 beforeEach(() => {
-  jest.useFakeTimers();
-  jest.setSystemTime(new Date(TODAY).getTime());
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date(TODAY).getTime());
 });
 
 afterEach(() => {
-  jest.useRealTimers();
+  vi.useRealTimers();
 });
 
 test('should return the current date for "now"', () => {

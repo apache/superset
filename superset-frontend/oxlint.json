@@ -19,7 +19,8 @@
     "__webpack_public_path__": "writable",
     "__webpack_init_sharing__": "readonly",
     "__webpack_share_scopes__": "readonly",
-    "jest": "readonly"
+    "jest": "readonly",
+    "vi": "readonly"
   },
   "settings": {
     "react": {

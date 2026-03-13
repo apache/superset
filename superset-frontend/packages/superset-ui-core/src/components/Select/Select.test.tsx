@@ -412,7 +412,7 @@ test('removes a new option if the user does not select it', async () => {
 });
 
 test('clear all the values', async () => {
-  const onClear = jest.fn();
+  const onClear = vi.fn();
   render(
     <Select
       {...defaultProps}
@@ -493,7 +493,7 @@ test('multiple selections in multiple mode', async () => {
 });
 
 test('changes the selected item in single mode', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(<Select {...defaultProps} onChange={onChange} />);
   await open();
   const [firstOption, secondOption] = OPTIONS;
@@ -602,7 +602,7 @@ test('searches for an item', async () => {
 });
 
 test('triggers getPopupContainer if passed', async () => {
-  const getPopupContainer = jest.fn();
+  const getPopupContainer = vi.fn();
   render(<Select {...defaultProps} getPopupContainer={getPopupContainer} />);
   await open();
   expect(getPopupContainer).toHaveBeenCalled();
@@ -916,7 +916,7 @@ test('"Select all" does not affect disabled options', async () => {
 });
 
 test('does not fire onChange when searching but no selection', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(
     <div role="main">
       <Select
@@ -935,7 +935,7 @@ test('does not fire onChange when searching but no selection', async () => {
 });
 
 test('fires onChange when clearing the selection in single mode', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(
     <Select
       {...defaultProps}
@@ -949,7 +949,7 @@ test('fires onChange when clearing the selection in single mode', async () => {
 });
 
 test('fires onChange when clearing the selection in multiple mode', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(
     <Select
       {...defaultProps}
@@ -963,7 +963,7 @@ test('fires onChange when clearing the selection in multiple mode', async () => 
 });
 
 test('fires onChange when pasting a selection', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(<Select {...defaultProps} onChange={onChange} />);
   await open();
   const input = getElementByClassName('.ant-select-selection-search-input');
@@ -1045,7 +1045,7 @@ test('pasting an non-existent option should not add it if allowNewOptions is fal
 });
 
 test('does not fire onChange if the same value is selected in single mode', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(<Select {...defaultProps} onChange={onChange} />);
   const optionText = 'Emma';
   await open();
@@ -1058,25 +1058,25 @@ test('does not fire onChange if the same value is selected in single mode', asyn
 
 // Reference for the bug this tests: https://github.com/apache/superset/pull/33043#issuecomment-2809419640
 test('typing and deleting the last character for a new option displays correctly', async () => {
-  jest.useFakeTimers();
+  vi.useFakeTimers();
   render(<Select {...defaultProps} allowNewOptions />);
 
   await open();
   await type('aaa', 0, false);
 
-  jest.runAllTimers();
+  vi.runAllTimers();
 
   await type('{backspace}', 0, false);
   await type('a', 0, false);
 
-  jest.runAllTimers();
+  vi.runAllTimers();
 
   expect(
     screen.queryByText(NO_DATA, { selector: '.ant-empty-description' }),
   ).not.toBeInTheDocument();
   expect(await findSelectOption('aaa')).toBeInTheDocument();
 
-  jest.useRealTimers();
+  vi.useRealTimers();
 });
 
 describe('grouped options search', () => {

@@ -19,18 +19,19 @@
 import { renderHook } from '@testing-library/react-hooks';
 import { SupersetClient } from '@superset-ui/core';
 import { useDeckLayerMetadata } from './useDeckLayerMetadata';
+import { Mock } from 'vitest';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
   SupersetClient: {
-    get: jest.fn(),
+    get: vi.fn(),
   },
 }));
 
-const mockSupersetClientGet = SupersetClient.get as jest.Mock;
+const mockSupersetClientGet = SupersetClient.get as Mock;
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 test('returns empty layers when sliceIds is empty', () => {

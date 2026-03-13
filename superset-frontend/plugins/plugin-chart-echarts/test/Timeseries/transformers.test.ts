@@ -31,9 +31,10 @@ import {
 import transformProps from '../../src/Timeseries/transformProps';
 import { EchartsTimeseriesChartProps } from '../../src/types';
 import * as seriesUtils from '../../src/utils/series';
+import { Mock } from 'vitest';
 
 // Mock the colorScale function
-const mockColorScale = jest.fn(
+const mockColorScale = vi.fn(
   (key: string, sliceId?: number) => `color-for-${key}-${sliceId}`,
 ) as unknown as CategoricalColorScale;
 
@@ -366,9 +367,9 @@ test('no phantom date label appears at the axis boundary', () => {
   expect(axisLabel.showMinLabel).toBeUndefined();
 });
 
-function setupGetChartPaddingMock(): jest.SpyInstance {
+function setupGetChartPaddingMock(): Mock {
   // Mock getChartPadding to return the padding object as-is for easier testing
-  const getChartPaddingSpy = jest.spyOn(seriesUtils, 'getChartPadding');
+  const getChartPaddingSpy = vi.spyOn(seriesUtils, 'getChartPadding');
   getChartPaddingSpy.mockImplementation(
     (
       show: boolean,

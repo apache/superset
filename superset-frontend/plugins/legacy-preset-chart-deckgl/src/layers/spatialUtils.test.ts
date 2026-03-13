@@ -32,17 +32,20 @@ import {
   transformSpatialProps,
   SpatialFormData,
 } from './spatialUtils';
+import { Mock } from 'vitest';
 
-jest.mock('ngeohash', () => ({
-  decode: jest.fn(),
+vi.mock('ngeohash', () => ({
+  decode: vi.fn(),
 }));
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  buildQueryContext: jest.fn(),
-  getMetricLabel: jest.fn(),
-  ensureIsArray: jest.fn(arr => arr || []),
-  normalizeOrderBy: jest.fn(({ orderby }) => ({ orderby })),
+const { mockBuildQueryContext, mockGetMetricLabel } = vi.hoisted(() => ({ mockBuildQueryContext: vi.fn(), mockGetMetricLabel: vi.fn() }));
+
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  buildQueryContext: mockBuildQueryContext,
+  getMetricLabel: mockGetMetricLabel,
+  ensureIsArray: vi.fn(arr => arr || []),
+  normalizeOrderBy: vi.fn(({ orderby }) => ({ orderby })),
 }));
 
 // Mock DOM element for bootstrap data
@@ -55,13 +58,13 @@ const mockBootstrapData = {
 };
 
 Object.defineProperty(document, 'getElementById', {
-  value: jest.fn().mockReturnValue({
-    getAttribute: jest.fn().mockReturnValue(JSON.stringify(mockBootstrapData)),
+  value: vi.fn().mockReturnValue({
+    getAttribute: vi.fn().mockReturnValue(JSON.stringify(mockBootstrapData)),
   }),
   writable: true,
 });
 
-const mockDecode = decode as jest.MockedFunction<typeof decode>;
+const mockDecode = decode as Mock<typeof decode>;
 
 describe('spatialUtils', () => {
   test('getSpatialColumns returns correct columns for latlong type', () => {
@@ -190,8 +193,6 @@ describe('spatialUtils', () => {
   });
 
   test('buildSpatialQuery calls buildQueryContext with correct parameters', () => {
-    const mockBuildQueryContext =
-      jest.requireMock('@superset-ui/core').buildQueryContext;
     const formData: SpatialFormData = {
       spatial: {
         type: 'latlong',
@@ -417,8 +418,6 @@ describe('spatialUtils', () => {
   });
 
   test('transformSpatialProps transforms chart props correctly', () => {
-    const mockGetMetricLabel =
-      jest.requireMock('@superset-ui/core').getMetricLabel;
     mockGetMetricLabel.mockReturnValue('count_label');
 
     const chartProps: ChartProps = {
@@ -432,10 +431,10 @@ describe('spatialUtils', () => {
       height: 400,
       width: 600,
       hooks: {
-        onAddFilter: jest.fn(),
-        onContextMenu: jest.fn(),
-        setControlValue: jest.fn(),
-        setDataMask: jest.fn(),
+        onAddFilter: vi.fn(),
+        onContextMenu: vi.fn(),
+        setControlValue: vi.fn(),
+        setDataMask: vi.fn(),
       },
       queriesData: [
         {
@@ -557,8 +556,6 @@ describe('spatialUtils', () => {
   });
 
   test('transformSpatialProps handles missing metric', () => {
-    const mockGetMetricLabel =
-      jest.requireMock('@superset-ui/core').getMetricLabel;
     mockGetMetricLabel.mockReturnValue(undefined);
 
     const chartProps: ChartProps = {

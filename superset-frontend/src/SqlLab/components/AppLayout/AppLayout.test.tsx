@@ -23,9 +23,10 @@ import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSide
 import { views } from 'src/core';
 import { ViewLocations } from 'src/SqlLab/contributions';
 import AppLayout from './index';
+import { Mock } from 'vitest';
 
-jest.mock('src/components/ResizableSidebar/useStoredSidebarWidth');
-jest.mock('src/components/Splitter', () => {
+vi.mock('src/components/ResizableSidebar/useStoredSidebarWidth');
+vi.mock('src/components/Splitter', () => {
   const Splitter = ({
     onResizeEnd,
     children,
@@ -49,9 +50,9 @@ jest.mock('src/components/Splitter', () => {
   );
   return { Splitter };
 });
-jest.mock('@superset-ui/core/components/Grid', () => ({
-  ...jest.requireActual('@superset-ui/core/components/Grid'),
-  useBreakpoint: jest.fn().mockReturnValue(true),
+vi.mock('@superset-ui/core/components/Grid', async importActual => ({
+  ...(await importActual()),
+  useBreakpoint: vi.fn().mockReturnValue(true),
 }));
 
 const defaultProps = {
@@ -59,8 +60,8 @@ const defaultProps = {
 };
 
 beforeEach(() => {
-  jest.clearAllMocks();
-  (useStoredSidebarWidth as jest.Mock).mockReturnValue([250, jest.fn()]);
+  vi.clearAllMocks();
+  (useStoredSidebarWidth as Mock).mockReturnValue([250, vi.fn()]);
 });
 
 test('renders two panels', () => {
@@ -80,8 +81,8 @@ test('renders children', () => {
 });
 
 test('calls setWidth on sidebar resize when not hidden', async () => {
-  const setWidth = jest.fn();
-  (useStoredSidebarWidth as jest.Mock).mockReturnValue([250, setWidth]);
+  const setWidth = vi.fn();
+  (useStoredSidebarWidth as Mock).mockReturnValue([250, setWidth]);
   const { getByRole } = render(<AppLayout {...defaultProps} />, {
     useRedux: true,
     initialState,

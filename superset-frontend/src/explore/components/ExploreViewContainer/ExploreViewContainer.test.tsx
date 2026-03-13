@@ -39,10 +39,9 @@ import reducerIndex from 'spec/helpers/reducerIndex';
 import * as exploreActions from 'src/explore/actions/exploreActions';
 import ExploreViewContainer from '.';
 
-jest.doMock('@superset-ui/core', () => ({
-  __esModule: true,
-  ...jest.requireActual('@superset-ui/core'),
-  isMatrixifyEnabled: jest.fn(() => false),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  isMatrixifyEnabled: vi.fn(() => false),
 }));
 
 const reduxState = {
@@ -95,7 +94,7 @@ const reduxState = {
 const KEY = 'aWrs7w29sd';
 const SEARCH = `?form_data_key=${KEY}&dataset_id=1`;
 
-jest.mock(
+vi.mock(
   'src/explore/components/ExploreChartPanel/useResizeDetectorByObserver',
   () => ({
     __esModule: true,
@@ -103,7 +102,7 @@ jest.mock(
   }),
 );
 
-jest.mock('lodash/debounce', () => ({
+vi.mock('lodash/debounce', () => ({
   __esModule: true,
   default: (fuc: Function) => fuc,
 }));
@@ -155,7 +154,7 @@ test('generates a new form_data param when none is available', async () => {
       useLegacyApi: false,
     }),
   );
-  const replaceState = jest.spyOn(window.history, 'replaceState');
+  const replaceState = vi.spyOn(window.history, 'replaceState');
   await waitFor(() => renderWithRouter());
   expect(replaceState).toHaveBeenCalledWith(
     expect.anything(),
@@ -181,7 +180,7 @@ test('renders chart in standalone mode', () => {
 });
 
 test('generates a different form_data param when one is provided and is mounting', async () => {
-  const replaceState = jest.spyOn(window.history, 'replaceState');
+  const replaceState = vi.spyOn(window.history, 'replaceState');
   await waitFor(() => renderWithRouter({ search: SEARCH }));
   expect(replaceState).not.toHaveBeenLastCalledWith(
     0,
@@ -201,8 +200,8 @@ test('reuses the same form_data param when updating', async () => {
   getChartControlPanelRegistry().registerValue('table', {
     controlPanelSections: [],
   });
-  const replaceState = jest.spyOn(window.history, 'replaceState');
-  const pushState = jest.spyOn(window.history, 'pushState');
+  const replaceState = vi.spyOn(window.history, 'replaceState');
+  const pushState = vi.spyOn(window.history, 'pushState');
   await waitFor(() => renderWithRouter({ search: SEARCH }));
   expect(replaceState.mock.calls.length).toBe(1);
   userEvent.click(screen.getByText('Update chart'));
@@ -222,14 +221,14 @@ test('doesnt call replaceState when pathname is not /explore', async () => {
       useLegacyApi: false,
     }),
   );
-  const replaceState = jest.spyOn(window.history, 'replaceState');
+  const replaceState = vi.spyOn(window.history, 'replaceState');
   await waitFor(() => renderWithRouter({ overridePathname: '/dashboard' }));
   expect(replaceState).not.toHaveBeenCalled();
   replaceState.mockRestore();
 });
 
 test('preserves unknown parameters', async () => {
-  const replaceState = jest.spyOn(window.history, 'replaceState');
+  const replaceState = vi.spyOn(window.history, 'replaceState');
   const unknownParam = 'test=123';
   await waitFor(() =>
     renderWithRouter({ search: `${SEARCH}&${unknownParam}` }),
@@ -494,7 +493,7 @@ function setupTableChartControlPanel() {
 test('automatic axis title margin adjustment sets X axis margin to 30 when title is added', async () => {
   setupTableChartControlPanel();
   try {
-    const setControlValueSpy = jest.spyOn(exploreActions, 'setControlValue');
+    const setControlValueSpy = vi.spyOn(exploreActions, 'setControlValue');
 
     const initialState = {
       ...reduxState,
@@ -532,14 +531,14 @@ test('automatic axis title margin adjustment sets X axis margin to 30 when title
     });
   } finally {
     getChartControlPanelRegistry().remove('table');
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   }
 });
 
 test('automatic axis title margin adjustment sets Y axis margin to 30 when title is added', async () => {
   setupTableChartControlPanel();
   try {
-    const setControlValueSpy = jest.spyOn(exploreActions, 'setControlValue');
+    const setControlValueSpy = vi.spyOn(exploreActions, 'setControlValue');
 
     const initialState = {
       ...reduxState,
@@ -577,14 +576,14 @@ test('automatic axis title margin adjustment sets Y axis margin to 30 when title
     });
   } finally {
     getChartControlPanelRegistry().remove('table');
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   }
 });
 
 test('automatic axis title margin adjustment resets X axis margin to 0 when title is removed', async () => {
   setupTableChartControlPanel();
   try {
-    const setControlValueSpy = jest.spyOn(exploreActions, 'setControlValue');
+    const setControlValueSpy = vi.spyOn(exploreActions, 'setControlValue');
 
     const initialState = {
       ...reduxState,
@@ -617,14 +616,14 @@ test('automatic axis title margin adjustment resets X axis margin to 0 when titl
     });
   } finally {
     getChartControlPanelRegistry().remove('table');
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   }
 });
 
 test('automatic axis title margin adjustment resets Y axis margin to 0 when title is removed', async () => {
   setupTableChartControlPanel();
   try {
-    const setControlValueSpy = jest.spyOn(exploreActions, 'setControlValue');
+    const setControlValueSpy = vi.spyOn(exploreActions, 'setControlValue');
 
     const initialState = {
       ...reduxState,
@@ -657,14 +656,14 @@ test('automatic axis title margin adjustment resets Y axis margin to 0 when titl
     });
   } finally {
     getChartControlPanelRegistry().remove('table');
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   }
 });
 
 test('automatic axis title margin adjustment does not change X axis margin when title is added but margin is already non-zero', async () => {
   setupTableChartControlPanel();
   try {
-    const setControlValueSpy = jest.spyOn(exploreActions, 'setControlValue');
+    const setControlValueSpy = vi.spyOn(exploreActions, 'setControlValue');
 
     const initialState = {
       ...reduxState,
@@ -708,14 +707,14 @@ test('automatic axis title margin adjustment does not change X axis margin when 
     );
   } finally {
     getChartControlPanelRegistry().remove('table');
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   }
 });
 
 test('automatic axis title margin adjustment changes X axis margin when title is added and margin is less than 30', async () => {
   setupTableChartControlPanel();
   try {
-    const setControlValueSpy = jest.spyOn(exploreActions, 'setControlValue');
+    const setControlValueSpy = vi.spyOn(exploreActions, 'setControlValue');
 
     const initialState = {
       ...reduxState,
@@ -756,14 +755,14 @@ test('automatic axis title margin adjustment changes X axis margin when title is
     expect(setControlValueSpy).toHaveBeenCalledWith('x_axis_title_margin', 30);
   } finally {
     getChartControlPanelRegistry().remove('table');
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   }
 });
 
 test('automatic axis title margin adjustment does not change Y axis margin when title is added but margin is already non-zero', async () => {
   setupTableChartControlPanel();
   try {
-    const setControlValueSpy = jest.spyOn(exploreActions, 'setControlValue');
+    const setControlValueSpy = vi.spyOn(exploreActions, 'setControlValue');
 
     const initialState = {
       ...reduxState,
@@ -807,14 +806,14 @@ test('automatic axis title margin adjustment does not change Y axis margin when 
     );
   } finally {
     getChartControlPanelRegistry().remove('table');
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   }
 });
 
 test('automatic axis title margin adjustment changes Y axis margin when title is added and margin is less than 30', async () => {
   setupTableChartControlPanel();
   try {
-    const setControlValueSpy = jest.spyOn(exploreActions, 'setControlValue');
+    const setControlValueSpy = vi.spyOn(exploreActions, 'setControlValue');
 
     const initialState = {
       ...reduxState,
@@ -855,14 +854,14 @@ test('automatic axis title margin adjustment changes Y axis margin when title is
     expect(setControlValueSpy).toHaveBeenCalledWith('y_axis_title_margin', 30);
   } finally {
     getChartControlPanelRegistry().remove('table');
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   }
 });
 
 test('automatic axis title margin adjustment handles both X and Y axis titles being set simultaneously', async () => {
   setupTableChartControlPanel();
   try {
-    const setControlValueSpy = jest.spyOn(exploreActions, 'setControlValue');
+    const setControlValueSpy = vi.spyOn(exploreActions, 'setControlValue');
 
     const initialState = {
       ...reduxState,
@@ -909,6 +908,6 @@ test('automatic axis title margin adjustment handles both X and Y axis titles be
     });
   } finally {
     getChartControlPanelRegistry().remove('table');
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   }
 });

@@ -73,18 +73,18 @@ describe('SupersetClient', () => {
     fetchMock.put(mockPutUrl, mockPutPayload);
     fetchMock.get(mockRequestUrl, mockGetPayload);
 
-    const initSpy = jest.spyOn(SupersetClientClass.prototype, 'init');
-    const getSpy = jest.spyOn(SupersetClientClass.prototype, 'get');
-    const postSpy = jest.spyOn(SupersetClientClass.prototype, 'post');
-    const putSpy = jest.spyOn(SupersetClientClass.prototype, 'put');
-    const deleteSpy = jest.spyOn(SupersetClientClass.prototype, 'delete');
-    const authenticatedSpy = jest.spyOn(
+    const initSpy = vi.spyOn(SupersetClientClass.prototype, 'init');
+    const getSpy = vi.spyOn(SupersetClientClass.prototype, 'get');
+    const postSpy = vi.spyOn(SupersetClientClass.prototype, 'post');
+    const putSpy = vi.spyOn(SupersetClientClass.prototype, 'put');
+    const deleteSpy = vi.spyOn(SupersetClientClass.prototype, 'delete');
+    const authenticatedSpy = vi.spyOn(
       SupersetClientClass.prototype,
       'isAuthenticated',
     );
-    const csrfSpy = jest.spyOn(SupersetClientClass.prototype, 'fetchCSRFToken');
-    const requestSpy = jest.spyOn(SupersetClientClass.prototype, 'request');
-    const getGuestTokenSpy = jest.spyOn(
+    const csrfSpy = vi.spyOn(SupersetClientClass.prototype, 'fetchCSRFToken');
+    const requestSpy = vi.spyOn(SupersetClientClass.prototype, 'request');
+    const getGuestTokenSpy = vi.spyOn(
       SupersetClientClass.prototype,
       'getGuestToken',
     );

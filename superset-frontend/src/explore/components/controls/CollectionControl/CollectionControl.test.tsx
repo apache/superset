@@ -19,7 +19,7 @@
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import CollectionControl from '.';
 
-jest.mock('@superset-ui/chart-controls', () => ({
+vi.mock('@superset-ui/chart-controls', () => ({
   InfoTooltip: (props: any) => (
     <button
       onClick={props.onClick}
@@ -32,7 +32,7 @@ jest.mock('@superset-ui/chart-controls', () => ({
   ),
 }));
 
-jest.mock('..', () => ({
+vi.mock('..', () => ({
   __esModule: true,
   default: {
     TestControl: (props: any) => (
@@ -49,37 +49,37 @@ jest.mock('..', () => ({
 
 const createProps = () => ({
   actions: {
-    addDangerToast: jest.fn(),
-    addInfoToast: jest.fn(),
-    addSuccessToast: jest.fn(),
-    addWarningToast: jest.fn(),
-    createNewSlice: jest.fn(),
-    fetchDatasourcesStarted: jest.fn(),
-    fetchDatasourcesSucceeded: jest.fn(),
-    fetchFaveStar: jest.fn(),
-    saveFaveStar: jest.fn(),
-    setControlValue: jest.fn(),
-    setDatasource: jest.fn(),
-    setDatasourceType: jest.fn(),
-    setDatasources: jest.fn(),
-    setExploreControls: jest.fn(),
-    sliceUpdated: jest.fn(),
-    toggleFaveStar: jest.fn(),
-    updateChartTitle: jest.fn(),
+    addDangerToast: vi.fn(),
+    addInfoToast: vi.fn(),
+    addSuccessToast: vi.fn(),
+    addWarningToast: vi.fn(),
+    createNewSlice: vi.fn(),
+    fetchDatasourcesStarted: vi.fn(),
+    fetchDatasourcesSucceeded: vi.fn(),
+    fetchFaveStar: vi.fn(),
+    saveFaveStar: vi.fn(),
+    setControlValue: vi.fn(),
+    setDatasource: vi.fn(),
+    setDatasourceType: vi.fn(),
+    setDatasources: vi.fn(),
+    setExploreControls: vi.fn(),
+    sliceUpdated: vi.fn(),
+    toggleFaveStar: vi.fn(),
+    updateChartTitle: vi.fn(),
   },
   addTooltip: 'Add an item',
   controlName: 'TestControl',
   description: null,
   hovered: false,
-  itemGenerator: jest.fn(),
-  keyAccessor: jest.fn(() => 'hrYAZ5iBH'),
+  itemGenerator: vi.fn(),
+  keyAccessor: vi.fn(() => 'hrYAZ5iBH'),
   label: 'Time series columns',
   name: 'column_collection',
-  onChange: jest.fn(),
+  onChange: vi.fn(),
   placeholder: 'Empty collection',
   type: 'CollectionControl',
   validationErrors: [],
-  validators: [jest.fn()],
+  validators: [vi.fn()],
   value: [{ key: 'hrYAZ5iBH' }],
 });
 

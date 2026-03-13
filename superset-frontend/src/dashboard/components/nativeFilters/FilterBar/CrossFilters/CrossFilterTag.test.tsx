@@ -36,7 +36,7 @@ const mockedProps: {
     path: ['test-path'],
   },
   orientation: FilterBarOrientation.Horizontal,
-  removeCrossFilter: jest.fn(),
+  removeCrossFilter: vi.fn(),
 };
 
 const setup = (props: typeof mockedProps) =>
@@ -85,7 +85,7 @@ test('Tag should be closable', () => {
 test('Close icon should have role="button"', () => {
   setup({
     ...mockedProps,
-    onClick: jest.fn(),
+    onClick: vi.fn(),
   });
   const button = screen.getByLabelText('Close');
   expect(button).toBeInTheDocument();

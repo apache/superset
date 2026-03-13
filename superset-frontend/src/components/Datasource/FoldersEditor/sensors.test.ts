@@ -20,20 +20,18 @@
 import { rectIntersection, pointerWithin, closestCenter } from '@dnd-kit/core';
 import type { CollisionDescriptor } from '@dnd-kit/core';
 import { getCollisionDetection } from './sensors';
+import { Mock } from 'vitest';
 
-jest.mock('@dnd-kit/core', () => {
-  const actual = jest.requireActual('@dnd-kit/core');
-  return {
-    ...actual,
-    rectIntersection: jest.fn(),
-    pointerWithin: jest.fn(),
-    closestCenter: jest.fn(),
-  };
-});
+vi.mock('@dnd-kit/core', async importActual => ({
+  ...((await importActual()) as any),
+  rectIntersection: vi.fn(),
+  pointerWithin: vi.fn(),
+  closestCenter: vi.fn(),
+}));
 
-const mockRectIntersection = rectIntersection as jest.Mock;
-const mockPointerWithin = pointerWithin as jest.Mock;
-const mockClosestCenter = closestCenter as jest.Mock;
+const mockRectIntersection = rectIntersection as Mock;
+const mockPointerWithin = pointerWithin as Mock;
+const mockClosestCenter = closestCenter as Mock;
 
 const collision = (id: string): CollisionDescriptor => ({
   id,

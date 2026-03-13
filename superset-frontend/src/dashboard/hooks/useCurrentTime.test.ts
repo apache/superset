@@ -60,9 +60,9 @@ test('syncTrigger causes immediate time update', () => {
 });
 
 test('syncTrigger update keeps ticking interval in sync', () => {
-  jest.useFakeTimers();
+  vi.useFakeTimers();
   const nowRef = { value: 1000 };
-  const nowSpy = jest.spyOn(Date, 'now').mockImplementation(() => nowRef.value);
+  const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => nowRef.value);
 
   const { result, rerender } = renderHook(
     ({ syncTrigger }) => useCurrentTime(true, syncTrigger),
@@ -79,13 +79,13 @@ test('syncTrigger update keeps ticking interval in sync', () => {
 
   nowRef.value = 3000;
   act(() => {
-    jest.advanceTimersByTime(1000);
+    vi.advanceTimersByTime(1000);
   });
   expect(result.current).toBe(3000);
 
   nowSpy.mockRestore();
-  jest.runOnlyPendingTimers();
-  jest.useRealTimers();
+  vi.runOnlyPendingTimers();
+  vi.useRealTimers();
 });
 
 test('backward compatibility - works without syncTrigger parameter', () => {
@@ -160,7 +160,7 @@ test('changing syncTrigger value triggers sync each time', () => {
 });
 
 test('cleanup clears interval on unmount', () => {
-  const clearIntervalSpy = jest.spyOn(globalThis, 'clearInterval');
+  const clearIntervalSpy = vi.spyOn(globalThis, 'clearInterval');
 
   const { unmount } = renderHook(() => useCurrentTime(true));
 
@@ -171,7 +171,7 @@ test('cleanup clears interval on unmount', () => {
 });
 
 test('disabled hook does not set up interval', () => {
-  const setIntervalSpy = jest.spyOn(globalThis, 'setInterval');
+  const setIntervalSpy = vi.spyOn(globalThis, 'setInterval');
   const callCountBefore = setIntervalSpy.mock.calls.length;
 
   renderHook(() => useCurrentTime(false, null));

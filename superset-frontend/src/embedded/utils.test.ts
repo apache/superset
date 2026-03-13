@@ -24,11 +24,12 @@ import * as chartStateConverter from 'src/dashboard/util/chartStateConverter';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import { getAppliedFilterValues } from 'src/dashboard/util/activeDashboardFilters';
+import { Mock } from 'vitest';
 
-jest.mock('src/dashboard/util/chartStateConverter');
-jest.mock('src/dashboard/util/charts/getFormDataWithExtraFilters');
-jest.mock('src/dashboard/util/activeDashboardFilters');
-jest.mock('src/explore/exploreUtils');
+vi.mock('src/dashboard/util/chartStateConverter');
+vi.mock('src/dashboard/util/charts/getFormDataWithExtraFilters');
+vi.mock('src/dashboard/util/activeDashboardFilters');
+vi.mock('src/explore/exploreUtils');
 
 const dataMask: DataMaskStateWithId = {
   '1': {
@@ -147,15 +148,15 @@ const mockState: Partial<RootState> = {
 } as Partial<RootState>;
 
 beforeEach(() => {
-  jest.clearAllMocks();
-  (getFormDataWithExtraFilters as jest.Mock).mockImplementation(
+  vi.clearAllMocks();
+  (getFormDataWithExtraFilters as Mock).mockImplementation(
     ({ chart }: any) => chart.form_data,
   );
-  (getAppliedFilterValues as jest.Mock).mockReturnValue({});
+  (getAppliedFilterValues as Mock).mockReturnValue({});
 });
 
 test('getChartDataPayloads returns empty object when charts with state converters are not found', async () => {
-  const mockHasChartStateConverter = jest
+  const mockHasChartStateConverter = vi
     .spyOn(chartStateConverter, 'hasChartStateConverter')
     .mockReturnValue(false);
 
@@ -171,16 +172,15 @@ test('getChartDataPayloads generates payloads for charts with state converters',
     queries: [{ some: 'query' }],
   };
 
-  jest
-    .spyOn(chartStateConverter, 'hasChartStateConverter')
-    .mockImplementation((vizType: string) => vizType === 'ag-grid-table');
+  vi.spyOn(chartStateConverter, 'hasChartStateConverter').mockImplementation(
+    (vizType: string) => vizType === 'ag-grid-table',
+  );
 
-  jest
-    .spyOn(chartStateConverter, 'convertChartStateToOwnState')
-    .mockReturnValue({ converted: 'state' });
+  vi.spyOn(chartStateConverter, 'convertChartStateToOwnState').mockReturnValue({
+    converted: 'state',
+  });
 
-  jest
-    .spyOn(exploreUtils, 'buildV1ChartDataPayload')
+  vi.spyOn(exploreUtils, 'buildV1ChartDataPayload')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .mockResolvedValue(mockPayload as any);
 
@@ -202,16 +202,13 @@ test('getChartDataPayloads filters by specific chartId when provided', async () 
     queries: [{ some: 'query' }],
   };
 
-  jest
-    .spyOn(chartStateConverter, 'hasChartStateConverter')
-    .mockReturnValue(true);
+  vi.spyOn(chartStateConverter, 'hasChartStateConverter').mockReturnValue(true);
 
-  jest
-    .spyOn(chartStateConverter, 'convertChartStateToOwnState')
-    .mockReturnValue({ converted: 'state' });
+  vi.spyOn(chartStateConverter, 'convertChartStateToOwnState').mockReturnValue({
+    converted: 'state',
+  });
 
-  jest
-    .spyOn(exploreUtils, 'buildV1ChartDataPayload')
+  vi.spyOn(exploreUtils, 'buildV1ChartDataPayload')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .mockResolvedValue(mockPayload as any);
 
@@ -225,9 +222,9 @@ test('getChartDataPayloads filters by specific chartId when provided', async () 
 });
 
 test('getChartDataPayloads returns error object for specific chartId not found', async () => {
-  jest
-    .spyOn(chartStateConverter, 'hasChartStateConverter')
-    .mockReturnValue(false);
+  vi.spyOn(chartStateConverter, 'hasChartStateConverter').mockReturnValue(
+    false,
+  );
 
   const result = await getChartDataPayloads(mockState as RootState, {
     chartId: 999,
@@ -246,16 +243,13 @@ test('getChartDataPayloads handles errors during payload generation gracefully',
     queries: [{ some: 'query' }],
   };
 
-  jest
-    .spyOn(chartStateConverter, 'hasChartStateConverter')
-    .mockReturnValue(true);
+  vi.spyOn(chartStateConverter, 'hasChartStateConverter').mockReturnValue(true);
 
-  jest
-    .spyOn(chartStateConverter, 'convertChartStateToOwnState')
-    .mockReturnValue({ converted: 'state' });
+  vi.spyOn(chartStateConverter, 'convertChartStateToOwnState').mockReturnValue({
+    converted: 'state',
+  });
 
-  jest
-    .spyOn(exploreUtils, 'buildV1ChartDataPayload')
+  vi.spyOn(exploreUtils, 'buildV1ChartDataPayload')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .mockImplementation((params: any) => {
       if (params.formData.viz_type === 'ag-grid-table') {
@@ -280,15 +274,13 @@ test('getChartDataPayloads merges baseOwnState with converted chart state', asyn
     queries: [{ some: 'query' }],
   };
 
-  jest
-    .spyOn(chartStateConverter, 'hasChartStateConverter')
-    .mockReturnValue(true);
+  vi.spyOn(chartStateConverter, 'hasChartStateConverter').mockReturnValue(true);
 
-  jest
-    .spyOn(chartStateConverter, 'convertChartStateToOwnState')
-    .mockReturnValue({ converted: 'state' });
+  vi.spyOn(chartStateConverter, 'convertChartStateToOwnState').mockReturnValue({
+    converted: 'state',
+  });
 
-  const mockBuildPayload = jest
+  const mockBuildPayload = vi
     .spyOn(exploreUtils, 'buildV1ChartDataPayload')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .mockResolvedValue(mockPayload as any);

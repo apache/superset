@@ -44,7 +44,7 @@ import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import type { Action, Middleware, Store } from 'redux';
 import SqlEditor, { Props } from '.';
 
-jest.mock(
+vi.mock(
   'react-virtualized-auto-sizer',
   () =>
     ({
@@ -54,8 +54,8 @@ jest.mock(
     }) =>
       children({ height: 500 }),
 );
-jest.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
-  ...jest.requireActual('@superset-ui/core/components/AsyncAceEditor'),
+vi.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
+  ...vi.requireActual('@superset-ui/core/components/AsyncAceEditor'),
   FullSQLEditor: ({
     onChange,
     onBlur,
@@ -73,9 +73,9 @@ jest.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
     />
   ),
 }));
-jest.mock('src/SqlLab/components/ResultSet', () => jest.fn());
+vi.mock('src/SqlLab/components/ResultSet', () => vi.fn());
 
-jest.mock('src/components/DatabaseSelector', () => ({
+vi.mock('src/components/DatabaseSelector', () => ({
   __esModule: true,
   DatabaseSelector: ({ sqlLabMode }: { sqlLabMode?: boolean }) => (
     <div data-test="mock-database-selector" data-sqllab-mode={sqlLabMode}>
@@ -127,11 +127,11 @@ const mockInitialState = {
   },
 };
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
-const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+const mockIsFeatureEnabled = isFeatureEnabled as Mock;
 
 const setup = (props: Props, store: Store) =>
   render(<SqlEditor {...props} />, {
@@ -159,7 +159,7 @@ const createStore = (initState: object) =>
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SqlEditor', () => {
   beforeAll(() => {
-    jest.setTimeout(30000);
+    vi.setConfig({ testTimeout: 30000 });
   });
 
   afterEach(async () => {
@@ -184,8 +184,8 @@ describe('SqlEditor', () => {
     store = createStore(mockInitialState);
     actions = [];
 
-    (ResultSet as unknown as jest.Mock).mockClear();
-    (ResultSet as unknown as jest.Mock).mockImplementation(() => (
+    (ResultSet as unknown as Mock).mockClear();
+    (ResultSet as unknown as Mock).mockImplementation(() => (
       <div data-test="mock-result-set" />
     ));
   });
@@ -241,8 +241,8 @@ describe('SqlEditor', () => {
     const { findByTestId } = setup(mockedProps, store);
     const editor = await findByTestId('react-ace');
     const sql = 'select *';
-    const renderCountForSouthPane = (ResultSet as unknown as jest.Mock).mock
-      .calls.length;
+    const renderCountForSouthPane = (ResultSet as unknown as Mock).mock.calls
+      .length;
     expect(ResultSet).toHaveBeenCalledTimes(renderCountForSouthPane);
     fireEvent.change(editor, { target: { value: sql } });
     expect(ResultSet).toHaveBeenCalledTimes(renderCountForSouthPane);

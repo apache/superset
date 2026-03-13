@@ -21,7 +21,7 @@ import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { ParameterErrorMessage } from './ParameterErrorMessage';
 
-jest.mock(
+vi.mock(
   '@superset-ui/core/components/Icons/AsyncIcon',
   () =>
     ({ fileName }: { fileName: string }) => (

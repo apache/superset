@@ -26,7 +26,7 @@ test('should render a div.hover-menu', () => {
 });
 
 test('should call onHover when mouse enters and leaves', () => {
-  const onHover = jest.fn();
+  const onHover = vi.fn();
   render(<HoverMenu onHover={onHover} />);
 
   const hoverMenu = screen.getByTestId('hover-menu');

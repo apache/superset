@@ -36,7 +36,7 @@ import type { RootState } from 'src/views/store';
 import type { Store } from 'redux';
 
 // Mock TableExploreTree to avoid complex tree rendering in tests
-jest.mock('../TableExploreTree', () => ({
+vi.mock('../TableExploreTree', () => ({
   __esModule: true,
   default: () => (
     <div data-test="mock-table-explore-tree">TableExploreTree</div>
@@ -111,7 +111,7 @@ beforeEach(() => {
 
 afterEach(() => {
   fetchMock.clearHistory().removeRoutes();
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 const renderAndWait = (

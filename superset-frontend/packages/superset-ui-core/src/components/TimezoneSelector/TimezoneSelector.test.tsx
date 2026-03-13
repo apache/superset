@@ -24,12 +24,13 @@ import type { TimezoneSelectorProps } from './index';
 
 const loadComponent = (mockCurrentTime?: string) => {
   if (mockCurrentTime) {
-    jest.useFakeTimers();
-    jest.setSystemTime(new Date(mockCurrentTime));
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(mockCurrentTime));
   }
   return new Promise<FC<TimezoneSelectorProps>>(resolve => {
-    const { default: TimezoneSelector } = module.require('./index');
-    resolve(TimezoneSelector);
+    import('./index').then(({ default: TimezoneSelector }) => {
+      resolve(TimezoneSelector);
+    });
   });
 };
 
@@ -41,15 +42,15 @@ const openSelectMenu = () => {
   userEvent.click(searchInput);
 };
 
-jest.spyOn(extendedDayjs.tz, 'guess').mockReturnValue('America/New_York');
+vi.spyOn(extendedDayjs.tz, 'guess').mockReturnValue('America/New_York');
 
 afterEach(() => {
-  jest.useRealTimers();
+  vi.useRealTimers();
 });
 
 test('use the timezone from `dayjs` if no timezone provided', async () => {
   const TimezoneSelector = await loadComponent('2022-01-01');
-  const onTimezoneChange = jest.fn();
+  const onTimezoneChange = vi.fn();
   render(<TimezoneSelector onTimezoneChange={onTimezoneChange} />);
   // Wait for async loading and default timezone to be set
   await screen.findByText('GMT -05:00 (Eastern Standard Time)');
@@ -58,7 +59,7 @@ test('use the timezone from `dayjs` if no timezone provided', async () => {
 
 test('update to closest deduped timezone when timezone is provided', async () => {
   const TimezoneSelector = await loadComponent('2022-01-01');
-  const onTimezoneChange = jest.fn();
+  const onTimezoneChange = vi.fn();
   render(
     <TimezoneSelector
       onTimezoneChange={onTimezoneChange}
@@ -77,7 +78,7 @@ test('update to closest deduped timezone when timezone is provided', async () =>
 
 test('use the default timezone when an invalid timezone is provided', async () => {
   const TimezoneSelector = await loadComponent('2022-01-01');
-  const onTimezoneChange = jest.fn();
+  const onTimezoneChange = vi.fn();
   render(
     <TimezoneSelector onTimezoneChange={onTimezoneChange} timezone="UTC" />,
   );
@@ -93,7 +94,7 @@ test('use the default timezone when an invalid timezone is provided', async () =
 
 test('render timezones in correct order for standard time', async () => {
   const TimezoneSelector = await loadComponent('2022-01-01');
-  const onTimezoneChange = jest.fn();
+  const onTimezoneChange = vi.fn();
   render(
     <TimezoneSelector
       onTimezoneChange={onTimezoneChange}
@@ -111,7 +112,7 @@ test('render timezones in correct order for standard time', async () => {
 
 test('can select a timezone values and returns canonical timezone name', async () => {
   const TimezoneSelector = await loadComponent('2022-01-01');
-  const onTimezoneChange = jest.fn();
+  const onTimezoneChange = vi.fn();
   render(
     <TimezoneSelector
       onTimezoneChange={onTimezoneChange}
@@ -134,7 +135,7 @@ test('can select a timezone values and returns canonical timezone name', async (
 
 test('can update props and rerender with different values', async () => {
   const TimezoneSelector = await loadComponent('2022-01-01');
-  const onTimezoneChange = jest.fn();
+  const onTimezoneChange = vi.fn();
   const { rerender } = render(
     <TimezoneSelector
       onTimezoneChange={onTimezoneChange}

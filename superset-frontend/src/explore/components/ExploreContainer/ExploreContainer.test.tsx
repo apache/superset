@@ -67,9 +67,9 @@ test('should only propagate dragging state when dragging the panel option', () =
   const defaultProps = {
     label: <span>Test label</span>,
     tooltipTitle: 'This is a tooltip title',
-    onRemove: jest.fn(),
-    onMoveLabel: jest.fn(),
-    onDropLabel: jest.fn(),
+    onRemove: vi.fn(),
+    onMoveLabel: vi.fn(),
+    onDropLabel: vi.fn(),
     type: 'test',
     index: 0,
   };

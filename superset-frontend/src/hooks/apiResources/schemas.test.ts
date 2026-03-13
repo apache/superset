@@ -64,7 +64,7 @@ describe('useSchemas hook', () => {
     const forceRefresh = false;
     const schemaApiRoute = `glob:*/api/v1/database/${expectDbId}/schemas/*`;
     fetchMock.get(schemaApiRoute, fakeApiResult);
-    const onSuccess = jest.fn();
+    const onSuccess = vi.fn();
     const { result, waitFor } = renderHook(
       () =>
         useSchemas({
@@ -136,7 +136,7 @@ describe('useSchemas hook', () => {
     fetchMock.get(schemaApiRoute, ({ url }) =>
       url.includes(expectDbId) ? fakeApiResult : fakeApiResult2,
     );
-    const onSuccess = jest.fn();
+    const onSuccess = vi.fn();
     const { result, rerender, waitFor } = renderHook(
       ({ dbId }) =>
         useSchemas({
@@ -197,7 +197,7 @@ describe('useSchemas hook', () => {
         ? fakeApiResult3
         : fakeApiResult2,
     );
-    const onSuccess = jest.fn();
+    const onSuccess = vi.fn();
     const { result, rerender, waitFor } = renderHook(
       ({ dbId, catalog }) =>
         useSchemas({

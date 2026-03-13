@@ -48,7 +48,7 @@ module.exports = {
     // but not test __mocks__ directories (e.g., packages/superset-ui-core/test/__mocks/)
     '<rootDir>/packages/[^/]+/__mocks__',
   ],
-  setupFilesAfterEnv: ['<rootDir>/spec/helpers/setup.ts'],
+  setupFilesAfterEnv: ['<rootDir>/spec/helpers/setup.jest.ts'],
   snapshotSerializers: ['@emotion/jest/serializer'],
   testEnvironmentOptions: {
     globalsCleanup: true,

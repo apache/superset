@@ -34,7 +34,7 @@ import {
 } from './DatasetList.testHelpers';
 
 // Increase default timeout for tests that involve multiple async operations
-jest.setTimeout(15000);
+vi.setConfig({ testTimeout: 15000 });
 
 beforeEach(() => {
   setupMocks();
@@ -48,13 +48,13 @@ afterEach(async () => {
   });
 
   // Restore real timers in case a test using fake timers threw early
-  jest.useRealTimers();
+  vi.useRealTimers();
 
   // Reset browser history state to prevent query params leaking between tests
   window.history.replaceState({}, '', '/');
 
   fetchMock.clearHistory().removeRoutes();
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 test('renders page with "Datasets" title', async () => {
@@ -66,7 +66,7 @@ test('renders page with "Datasets" title', async () => {
 
 test('shows loading state during initial data fetch', () => {
   // Use fake timers to avoid leaving real timers running after test
-  jest.useFakeTimers();
+  vi.useFakeTimers();
 
   fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
   fetchMock.get(
@@ -80,12 +80,12 @@ test('shows loading state during initial data fetch', () => {
 
   expect(screen.getByRole('status')).toBeInTheDocument();
 
-  jest.useRealTimers();
+  vi.useRealTimers();
 });
 
 test('maintains component structure during loading', () => {
   // Use fake timers to avoid leaving real timers running after test
-  jest.useFakeTimers();
+  vi.useFakeTimers();
 
   fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
   fetchMock.get(
@@ -100,7 +100,7 @@ test('maintains component structure during loading', () => {
   expect(screen.getByText('Datasets')).toBeInTheDocument();
   expect(screen.getByRole('status')).toBeInTheDocument();
 
-  jest.useRealTimers();
+  vi.useRealTimers();
 });
 
 test('"New Dataset" button exists (when canCreate=true)', async () => {
@@ -352,8 +352,8 @@ test('handles 500 error on initial load without crashing', async () => {
   });
 
   renderDatasetList(mockAdminUser, {
-    addDangerToast: jest.fn(),
-    addSuccessToast: jest.fn(),
+    addDangerToast: vi.fn(),
+    addSuccessToast: vi.fn(),
   });
 
   // Component should still render without crashing
@@ -362,14 +362,14 @@ test('handles 500 error on initial load without crashing', async () => {
 });
 
 test('handles 403 error on _info endpoint and disables create actions', async () => {
-  const addDangerToast = jest.fn();
+  const addDangerToast = vi.fn();
 
   fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS_INFO] });
   fetchMock.get(API_ENDPOINTS.DATASETS_INFO, mockApiError403);
 
   renderDatasetList(mockAdminUser, {
     addDangerToast,
-    addSuccessToast: jest.fn(),
+    addSuccessToast: vi.fn(),
   });
 
   await waitForDatasetsPageReady();
@@ -391,8 +391,8 @@ test('handles network timeout without crashing', async () => {
   });
 
   renderDatasetList(mockAdminUser, {
-    addDangerToast: jest.fn(),
-    addSuccessToast: jest.fn(),
+    addDangerToast: vi.fn(),
+    addSuccessToast: vi.fn(),
   });
 
   // Component should not crash

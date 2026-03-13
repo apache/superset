@@ -24,22 +24,23 @@ import FiltersConfigForm, {
 import { mockStoreWithChartsInTabsAndRoot } from 'spec/fixtures/mockStore';
 import { Form, type FormInstance } from '@superset-ui/core/components';
 
-export const createMockedProps = () => ({
-  expanded: false,
-  filterId: 'DefaultFilterId',
-  dependencies: [],
-  setErroredFilters: jest.fn(),
-  restoreFilter: jest.fn(),
-  getAvailableFilters: () => [],
-  getDependencySuggestion: () => '',
-  save: jest.fn(),
-  removedFilters: {},
-  handleActiveFilterPanelChange: jest.fn(),
-  activeFilterPanelKeys: `DefaultFilterId-${FilterPanels.configuration.key}`,
-  isActive: true,
-  validateDependencies: jest.fn(),
-  onModifyFilter: jest.fn(),
-});
+export const createMockedProps = () =>
+  ({
+    expanded: false,
+    filterId: 'DefaultFilterId',
+    dependencies: [],
+    setErroredFilters: vi.fn(),
+    restoreFilter: vi.fn(),
+    getAvailableFilters: () => [],
+    getDependencySuggestion: () => '',
+    save: vi.fn(),
+    removedFilters: {},
+    handleActiveFilterPanelChange: vi.fn(),
+    activeFilterPanelKeys: `DefaultFilterId-${FilterPanels.configuration.key}`,
+    isActive: true,
+    validateDependencies: vi.fn(),
+    onModifyFilter: vi.fn(),
+  }) as any;
 
 interface MockModalProps {
   scope?: object;

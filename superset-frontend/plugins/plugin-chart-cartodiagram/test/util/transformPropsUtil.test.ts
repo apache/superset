@@ -175,7 +175,7 @@ describe('transformPropsUtil', () => {
   });
 
   describe('getChartConfigs', () => {
-    let chartTransformer: jest.MockedFunction<any>;
+    let chartTransformer: Mock<any>;
     const geomColumn = 'geom';
     const pieChartConfig = {
       params: {},
@@ -189,7 +189,7 @@ describe('transformPropsUtil', () => {
       ],
     };
     beforeEach(() => {
-      chartTransformer = jest.fn();
+      chartTransformer = vi.fn();
     });
 
     test('calls the transformProps function for every location', () => {

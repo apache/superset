@@ -29,7 +29,7 @@ import { ChartCreation } from 'src/pages/ChartCreation';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { supersetTheme } from '@apache-superset/core/theme';
 
-jest.mock('src/components/DynamicPlugins', () => ({
+vi.mock('src/components/DynamicPlugins', () => ({
   usePluginContext: () => ({
     mountedPluginMetadata: { table: { name: 'Table', tags: [] } },
   }),
@@ -80,7 +80,7 @@ const mockUserWithDatasetWrite: UserWithPermissionsAndRoles = {
 };
 const history = createMemoryHistory();
 
-history.push = jest.fn();
+history.push = vi.fn();
 
 const routeProps = {
   history,

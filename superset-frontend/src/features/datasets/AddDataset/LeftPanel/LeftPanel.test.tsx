@@ -158,7 +158,7 @@ afterEach(() => {
   fetchMock.clearHistory().removeRoutes();
 });
 
-const mockFun = jest.fn();
+const mockFun = vi.fn();
 
 test('should render', async () => {
   render(<LeftPanel setDataset={mockFun} />, {

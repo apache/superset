@@ -31,14 +31,14 @@ describe('FilterScope TreeSelection', () => {
   let formRef: { current: FormInstance | null };
 
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     formRef = { current: null };
   });
 
   afterEach(() => {
     cleanup();
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
+    vi.runOnlyPendingTimers();
+    vi.useRealTimers();
   });
 
   test('select tree values with 1 excluded', async () => {

@@ -54,11 +54,11 @@ const DATASETS = [
   },
 ];
 
-const mockOnChange = jest.fn();
+const mockOnChange = vi.fn();
 
 afterEach(() => {
   fetchMock.clearHistory().removeRoutes();
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 const getSelect = () => screen.getByRole('combobox', { name: /dataset/i });

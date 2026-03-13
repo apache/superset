@@ -125,10 +125,7 @@ describe('buildQueryContext', () => {
     ]);
   });
   test('should call normalizeTimeColumn if has x_axis', () => {
-    const spyNormalizeTimeColumn = jest.spyOn(
-      queryModule,
-      'normalizeTimeColumn',
-    );
+    const spyNormalizeTimeColumn = vi.spyOn(queryModule, 'normalizeTimeColumn');
 
     buildQueryContext(
       {

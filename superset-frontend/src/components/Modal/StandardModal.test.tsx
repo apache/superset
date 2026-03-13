@@ -22,13 +22,13 @@ import { StandardModal, MODAL_STANDARD_WIDTH } from './StandardModal';
 const defaultProps = {
   title: 'Test Modal',
   show: true,
-  onHide: jest.fn(),
-  onSave: jest.fn(),
+  onHide: vi.fn(),
+  onSave: vi.fn(),
   children: <div>Modal content</div>,
 };
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 test('renders modal with default width', () => {
@@ -75,7 +75,7 @@ test('shows loading state on save button', () => {
 });
 
 test('calls onHide when cancel button is clicked', async () => {
-  const onHide = jest.fn();
+  const onHide = vi.fn();
   render(<StandardModal {...defaultProps} onHide={onHide} />);
 
   await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
@@ -83,7 +83,7 @@ test('calls onHide when cancel button is clicked', async () => {
 });
 
 test('calls onSave when save button is clicked', async () => {
-  const onSave = jest.fn();
+  const onSave = vi.fn();
   render(<StandardModal {...defaultProps} onSave={onSave} />);
 
   await userEvent.click(screen.getByRole('button', { name: 'Add' }));

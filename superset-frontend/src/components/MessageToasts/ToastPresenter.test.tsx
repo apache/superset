@@ -42,7 +42,7 @@ test('should render a Toast for each toast object', () => {
 });
 
 test('should pass removeToast to the Toast component', async () => {
-  const removeToast = jest.fn();
+  const removeToast = vi.fn();
   const { getAllByTestId } = setup({ removeToast });
   fireEvent.click(getAllByTestId('close-button')[0]);
   await waitFor(() => expect(removeToast).toHaveBeenCalledTimes(1));

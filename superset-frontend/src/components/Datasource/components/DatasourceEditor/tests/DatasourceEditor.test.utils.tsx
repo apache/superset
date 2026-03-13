@@ -26,15 +26,14 @@ import {
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import type { DatasetObject } from 'src/features/datasets/types';
 import DatasourceEditor from '..';
+import { Mock } from 'vitest';
 
 export interface DatasourceEditorProps {
   datasource: DatasetObject;
   addSuccessToast: () => void;
   addDangerToast: () => void;
-  onChange: jest.MockedFunction<
-    (datasource: DatasetObject, errors?: unknown) => void
-  >;
-  formatQuery?: jest.Mock;
+  onChange: Mock<(datasource: DatasetObject, errors?: unknown) => void>;
+  formatQuery?: Mock;
   columnLabels?: Record<string, string>;
   columnLabelTooltips?: Record<string, string>;
 }
@@ -47,8 +46,8 @@ export const createProps = (): DatasourceEditorProps => ({
   datasource: JSON.parse(JSON.stringify(mockDatasource['7__table'])),
   addSuccessToast: () => {},
   addDangerToast: () => {},
-  onChange: jest.fn(),
-  formatQuery: jest.fn().mockResolvedValue({ json: { result: '' } }),
+  onChange: vi.fn(),
+  formatQuery: vi.fn().mockResolvedValue({ json: { result: '' } }),
   columnLabels: {
     state: 'State',
   },
@@ -65,7 +64,7 @@ export const props: DatasourceEditorProps = {
   datasource: mockDatasource['7__table'],
   addSuccessToast: () => {},
   addDangerToast: () => {},
-  onChange: jest.fn(),
+  onChange: vi.fn(),
   columnLabels: {
     state: 'State',
   },

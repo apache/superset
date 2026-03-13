@@ -30,7 +30,7 @@ import ColumnComponent from './Column';
 // Cast to accept partial mock props in tests
 const Column = ColumnComponent as unknown as React.FC<Record<string, unknown>>;
 
-jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
+vi.mock('src/dashboard/components/dnd/DragDroppable', () => ({
   Draggable: ({
     children,
   }: {
@@ -48,7 +48,7 @@ jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
     </div>
   ),
 }));
-jest.mock(
+vi.mock(
   'src/dashboard/containers/DashboardComponent',
   () =>
     ({
@@ -63,14 +63,14 @@ jest.mock(
       </div>
     ),
 );
-jest.mock(
+vi.mock(
   'src/dashboard/components/menu/WithPopoverMenu',
   () =>
     ({ children }: { children: React.ReactNode }) => (
       <div data-test="mock-with-popover-menu">{children}</div>
     ),
 );
-jest.mock(
+vi.mock(
   'src/dashboard/components/DeleteComponentButton',
   () =>
     ({ onDelete }: { onDelete: () => void }) => (
@@ -194,7 +194,7 @@ test.skip('should render a BackgroundStyleDropdown when focused', () => {
 });
 
 test('should call deleteComponent when deleted', () => {
-  const deleteComponent = jest.fn();
+  const deleteComponent = vi.fn();
   const { getByTestId } = setup({ editMode: true, deleteComponent });
   fireEvent.click(getByTestId('mock-delete-component-button'));
   expect(deleteComponent).toHaveBeenCalledTimes(1);

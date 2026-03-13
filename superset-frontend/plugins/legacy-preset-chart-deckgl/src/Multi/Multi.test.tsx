@@ -24,9 +24,10 @@ import { configureStore } from '@reduxjs/toolkit';
 import { DatasourceType, SupersetClient } from '@superset-ui/core';
 import DeckMulti from './Multi';
 import * as fitViewportModule from '../utils/fitViewport';
+import { Mock } from 'vitest';
 
 // Mock DeckGLContainer
-jest.mock('../DeckGLContainer', () => ({
+vi.mock('../DeckGLContainer', () => ({
   DeckGLContainerStyledWrapper: ({ viewport, layers }: any) => (
     <div
       data-test="deckgl-container"
@@ -39,10 +40,10 @@ jest.mock('../DeckGLContainer', () => ({
 }));
 
 // Mock SupersetClient
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
   SupersetClient: {
-    get: jest.fn(),
+    get: vi.fn(),
   },
 }));
 
@@ -100,9 +101,9 @@ const baseMockProps = {
       mapboxApiKey: 'test-key',
     },
   },
-  setControlValue: jest.fn(),
+  setControlValue: vi.fn(),
   viewport: { longitude: 0, latitude: 0, zoom: 1 },
-  onAddFilter: jest.fn(),
+  onAddFilter: vi.fn(),
   height: 600,
   width: 800,
   datasource: {
@@ -115,7 +116,7 @@ const baseMockProps = {
     currencyFormats: {},
     verboseMap: {},
   },
-  onSelect: jest.fn(),
+  onSelect: vi.fn(),
 };
 
 const renderWithProviders = (component: React.ReactElement) =>
@@ -127,8 +128,8 @@ const renderWithProviders = (component: React.ReactElement) =>
 
 describe('DeckMulti Autozoom Functionality', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    (SupersetClient.get as jest.Mock).mockResolvedValue({
+    vi.clearAllMocks();
+    (SupersetClient.get as Mock).mockResolvedValue({
       json: {
         data: {
           features: [],
@@ -138,7 +139,7 @@ describe('DeckMulti Autozoom Functionality', () => {
   });
 
   test('should NOT apply autozoom when autozoom is false', () => {
-    const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
+    const fitViewportSpy = vi.spyOn(fitViewportModule, 'default');
 
     const props = {
       ...baseMockProps,
@@ -157,7 +158,7 @@ describe('DeckMulti Autozoom Functionality', () => {
   });
 
   test('should apply autozoom when autozoom is true', () => {
-    const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
+    const fitViewportSpy = vi.spyOn(fitViewportModule, 'default');
     fitViewportSpy.mockReturnValue({
       longitude: -122.4,
       latitude: 37.8,
@@ -192,7 +193,7 @@ describe('DeckMulti Autozoom Functionality', () => {
   });
 
   test('should use adjusted viewport when autozoom is enabled', async () => {
-    const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
+    const fitViewportSpy = vi.spyOn(fitViewportModule, 'default');
     const adjustedViewport = {
       longitude: -122.4,
       latitude: 37.8,
@@ -225,7 +226,7 @@ describe('DeckMulti Autozoom Functionality', () => {
   });
 
   test('should set zoom to 0 when calculated zoom is negative', async () => {
-    const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
+    const fitViewportSpy = vi.spyOn(fitViewportModule, 'default');
     fitViewportSpy.mockReturnValue({
       longitude: 0,
       latitude: 0,
@@ -256,7 +257,7 @@ describe('DeckMulti Autozoom Functionality', () => {
   });
 
   test('should handle empty features gracefully when autozoom is enabled', () => {
-    const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
+    const fitViewportSpy = vi.spyOn(fitViewportModule, 'default');
 
     const props = {
       ...baseMockProps,
@@ -293,7 +294,7 @@ describe('DeckMulti Autozoom Functionality', () => {
   });
 
   test('should collect points from all layer types when autozoom is enabled', () => {
-    const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
+    const fitViewportSpy = vi.spyOn(fitViewportModule, 'default');
     fitViewportSpy.mockReturnValue({
       longitude: 0,
       latitude: 0,
@@ -346,7 +347,7 @@ describe('DeckMulti Autozoom Functionality', () => {
   });
 
   test('should use original viewport when autozoom is disabled', async () => {
-    const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
+    const fitViewportSpy = vi.spyOn(fitViewportModule, 'default');
 
     const originalViewport = { longitude: -100, latitude: 40, zoom: 5 };
     const props = {
@@ -379,7 +380,7 @@ describe('DeckMulti Autozoom Functionality', () => {
   });
 
   test('should apply autozoom when autozoom is undefined (backward compatibility)', () => {
-    const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
+    const fitViewportSpy = vi.spyOn(fitViewportModule, 'default');
     fitViewportSpy.mockReturnValue({
       longitude: -122.4,
       latitude: 37.8,
@@ -414,7 +415,7 @@ describe('DeckMulti Autozoom Functionality', () => {
   });
 
   test('should use adjusted viewport when autozoom is undefined', async () => {
-    const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
+    const fitViewportSpy = vi.spyOn(fitViewportModule, 'default');
     const adjustedViewport = {
       longitude: -122.4,
       latitude: 37.8,
@@ -450,8 +451,8 @@ describe('DeckMulti Autozoom Functionality', () => {
 
 describe('DeckMulti Component Rendering', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    (SupersetClient.get as jest.Mock).mockResolvedValue({
+    vi.clearAllMocks();
+    (SupersetClient.get as Mock).mockResolvedValue({
       json: {
         data: {
           features: [],
@@ -502,7 +503,7 @@ describe('DeckMulti Component Rendering', () => {
     });
 
     // Check that all requests include the dashboardId
-    const { calls } = (SupersetClient.get as jest.Mock).mock;
+    const { calls } = (SupersetClient.get as Mock).mock;
     calls.forEach(call => {
       const url = call[0].endpoint;
       const urlParams = new URLSearchParams(url.split('?')[1]);
@@ -529,7 +530,7 @@ describe('DeckMulti Component Rendering', () => {
     });
 
     // Check that requests don't include dashboardId
-    const { calls } = (SupersetClient.get as jest.Mock).mock;
+    const { calls } = (SupersetClient.get as Mock).mock;
     calls.forEach(call => {
       const url = call[0].endpoint;
       const formData = JSON.parse(
@@ -557,7 +558,7 @@ describe('DeckMulti Component Rendering', () => {
     });
 
     // Verify dashboardId is preserved with filters
-    const { calls } = (SupersetClient.get as jest.Mock).mock;
+    const { calls } = (SupersetClient.get as Mock).mock;
     calls.forEach(call => {
       const url = call[0].endpoint;
       const formData = JSON.parse(

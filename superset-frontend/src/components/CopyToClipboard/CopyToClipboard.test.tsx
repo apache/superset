@@ -46,7 +46,7 @@ test('renders without text showing', () => {
 });
 
 test('getText on copy', async () => {
-  const getText = jest.fn(() => 'Text');
+  const getText = vi.fn(() => 'Text');
   render(<CopyToClipboard getText={getText} />, { useRedux: true });
   userEvent.click(screen.getByText('Copy'));
   await waitFor(() => expect(getText).toHaveBeenCalled());
@@ -72,7 +72,7 @@ test('not renders tooltip on hover with hideTooltip props', async () => {
 });
 
 test('triggers onCopyEnd', async () => {
-  const onCopyEnd = jest.fn();
+  const onCopyEnd = vi.fn();
   render(<CopyToClipboard onCopyEnd={onCopyEnd} />, {
     useRedux: true,
   });

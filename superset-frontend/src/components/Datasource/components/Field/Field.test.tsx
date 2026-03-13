@@ -27,7 +27,7 @@ const defaultProps = {
   label: 'mock',
   description: 'description',
   control: <Input data-test="mock-text-control" />,
-  onChange: jest.fn(),
+  onChange: vi.fn(),
   compact: false,
   inline: false,
   additionalControl: (

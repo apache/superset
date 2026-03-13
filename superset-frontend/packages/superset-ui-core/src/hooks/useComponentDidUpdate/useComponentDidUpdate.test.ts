@@ -20,12 +20,12 @@ import { renderHook } from '@testing-library/react-hooks';
 import { useComponentDidUpdate } from './useComponentDidUpdate';
 
 test('the effect should not be executed on the first render', () => {
-  const effect = jest.fn();
+  const effect = vi.fn();
   const hook = renderHook(props => useComponentDidUpdate(props.effect), {
     initialProps: { effect },
   });
   expect(effect).toHaveBeenCalledTimes(0);
-  const changedEffect = jest.fn();
+  const changedEffect = vi.fn();
   hook.rerender({ effect: changedEffect });
   expect(changedEffect).toHaveBeenCalledTimes(1);
 });

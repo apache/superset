@@ -26,12 +26,12 @@ import {
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import { SupersetClient } from '@superset-ui/core';
 import { useDownloadMenuItems } from '.';
+import { Mock } from 'vitest';
 
-const mockAddSuccessToast = jest.fn();
-const mockAddDangerToast = jest.fn();
+const mockAddSuccessToast = vi.fn();
+const mockAddDangerToast = vi.fn();
 
-jest.mock('src/components/MessageToasts/withToasts', () => ({
-  __esModule: true,
+vi.mock('src/components/MessageToasts/withToasts', () => ({
   default: (Component: React.ComponentType) => Component,
   useToasts: () => ({
     addSuccessToast: mockAddSuccessToast,
@@ -39,20 +39,20 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
   }),
 }));
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
   SupersetClient: {
-    get: jest.fn(),
+    get: vi.fn(),
   },
 }));
 
-const mockSupersetClient = SupersetClient as jest.Mocked<typeof SupersetClient>;
+const mockSupersetClient = SupersetClient
 
 const createProps = () => ({
   pdfMenuItemTitle: 'Export to PDF',
   imageMenuItemTitle: 'Download as Image',
   dashboardTitle: 'Test Dashboard',
-  logEvent: jest.fn(),
+  logEvent: vi.fn(),
   dashboardId: 123,
   title: 'Download',
   submenuKey: 'download',
@@ -69,7 +69,7 @@ const originalCreateObjectURL = window.URL.createObjectURL;
 const originalRevokeObjectURL = window.URL.revokeObjectURL;
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 afterEach(() => {
@@ -94,16 +94,16 @@ test('Should render all menu items', () => {
 test('Export as Example calls SupersetClient.get with correct endpoint', async () => {
   const mockBlob = new Blob(['test'], { type: 'application/zip' });
   const mockResponse: Pick<Response, 'blob' | 'headers'> = {
-    blob: jest.fn().mockResolvedValue(mockBlob),
+    blob: vi.fn().mockResolvedValue(mockBlob),
     headers: new Headers({
       'Content-Disposition': 'attachment; filename="dashboard_123_example.zip"',
     }),
   };
-  mockSupersetClient.get.mockResolvedValue(mockResponse as unknown as Response);
+  (mockSupersetClient.get as Mock).mockResolvedValue(mockResponse as unknown as Response);
 
   // Mock URL.createObjectURL / revokeObjectURL since jsdom doesn't support them
-  const createObjectURL = jest.fn(() => 'blob:http://localhost/fake');
-  const revokeObjectURL = jest.fn();
+  const createObjectURL = vi.fn(() => 'blob:http://localhost/fake');
+  const revokeObjectURL = vi.fn();
   window.URL.createObjectURL = createObjectURL;
   window.URL.revokeObjectURL = revokeObjectURL;
 
@@ -124,7 +124,7 @@ test('Export as Example calls SupersetClient.get with correct endpoint', async (
 });
 
 test('Export as Example shows error toast on failure', async () => {
-  mockSupersetClient.get.mockRejectedValue(new Error('Network error'));
+  (mockSupersetClient.get as Mock).mockRejectedValue(new Error('Network error'));
 
   render(<MenuWrapper />, { useRedux: true });
 

@@ -24,6 +24,7 @@ import {
   LOG_ACTIONS_SPA_NAVIGATION,
 } from 'src/logger/LogUtils';
 import { Dispatch } from 'redux';
+import { Mock } from 'vitest';
 
 interface LogEventAction {
   type: typeof LOG_EVENT;
@@ -36,7 +37,7 @@ interface LogEventAction {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('logger middleware', () => {
   const dashboardId = 123;
-  const next: jest.Mock = jest.fn();
+  const next: Mock = vi.fn();
   // Mock store with minimal state needed for tests
   const mockStore = {
     getState: () => ({
@@ -59,22 +60,22 @@ describe('logger middleware', () => {
   };
 
   beforeAll(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
   afterAll(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
-  let postStub: jest.SpyInstance;
+  let postStub: Mock;
   beforeEach(() => {
-    postStub = jest
+    postStub = vi
       .spyOn(SupersetClient, 'post')
       .mockImplementation(() => undefined as any);
   });
   afterEach(() => {
     next.mockClear();
     postStub.mockRestore();
-    jest.setSystemTime(0);
+    vi.setSystemTime(0);
   });
 
   test('should listen to LOG_EVENT action type', () => {
@@ -92,7 +93,7 @@ describe('logger middleware', () => {
     (logger as Function)(mockStore)(next)(action);
     expect(next.mock.calls.length).toBe(0);
 
-    jest.advanceTimersByTime(2000);
+    vi.advanceTimersByTime(2000);
     expect(postStub.mock.calls.length).toBe(1);
     expect(postStub.mock.calls[0][0].endpoint).toMatch('/superset/log/');
   });
@@ -114,9 +115,9 @@ describe('logger middleware', () => {
           eventData: { path: `/dashboard/${dashboardId}/` },
         },
       });
-      jest.advanceTimersByTime(2000);
+      vi.advanceTimersByTime(2000);
       fetchLog(action);
-      jest.advanceTimersByTime(2000);
+      vi.advanceTimersByTime(2000);
       expect(postStub.mock.calls.length).toBe(2);
       const { events } = postStub.mock.calls[1][0].postPayload;
       const mockEventdata = action.payload.eventData;
@@ -146,14 +147,14 @@ describe('logger middleware', () => {
     (logger as Function)(mockStore)(next)(action);
     (logger as Function)(mockStore)(next)(action);
     (logger as Function)(mockStore)(next)(action);
-    jest.advanceTimersByTime(2000);
+    vi.advanceTimersByTime(2000);
 
     expect(postStub.mock.calls.length).toBe(1);
     expect(postStub.mock.calls[0][0].postPayload.events).toHaveLength(3);
   });
 
   test('should use navigator.sendBeacon if it exists', () => {
-    const beaconMock = jest.fn();
+    const beaconMock = vi.fn();
     Object.defineProperty(navigator, 'sendBeacon', {
       writable: true,
       value: beaconMock,
@@ -161,7 +162,7 @@ describe('logger middleware', () => {
 
     (logger as Function)(mockStore)(next)(action);
     expect(beaconMock.mock.calls.length).toBe(0);
-    jest.advanceTimersByTime(2000);
+    vi.advanceTimersByTime(2000);
 
     expect(beaconMock.mock.calls.length).toBe(1);
     const endpoint = beaconMock.mock.calls[0][0];
@@ -169,7 +170,7 @@ describe('logger middleware', () => {
   });
 
   test('should pass a guest token to sendBeacon if present', () => {
-    const beaconMock = jest.fn();
+    const beaconMock = vi.fn();
     Object.defineProperty(navigator, 'sendBeacon', {
       writable: true,
       value: beaconMock,
@@ -178,7 +179,7 @@ describe('logger middleware', () => {
 
     (logger as Function)(mockStore)(next)(action);
     expect(beaconMock.mock.calls.length).toBe(0);
-    jest.advanceTimersByTime(2000);
+    vi.advanceTimersByTime(2000);
     expect(beaconMock.mock.calls.length).toBe(1);
 
     const formData = beaconMock.mock.calls[0][1];

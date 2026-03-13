@@ -22,7 +22,7 @@ import { ErrorLevel } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
 import { BasicErrorAlert } from './BasicErrorAlert';
 
-jest.mock(
+vi.mock(
   '@superset-ui/core/components/Icons/AsyncIcon',
   () =>
     ({ fileName }: { fileName: string }) => (

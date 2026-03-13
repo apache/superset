@@ -20,7 +20,7 @@ import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import Header from './index';
 
 const createProps = () => ({
-  toggleFiltersBar: jest.fn(),
+  toggleFiltersBar: vi.fn(),
 });
 
 test('should render', () => {

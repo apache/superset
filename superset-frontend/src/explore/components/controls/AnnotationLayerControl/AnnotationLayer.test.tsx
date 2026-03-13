@@ -132,15 +132,15 @@ test('enables apply and ok buttons', async () => {
 });
 
 test('triggers addAnnotationLayer when apply button is clicked', async () => {
-  const addAnnotationLayer = jest.fn();
+  const addAnnotationLayer = vi.fn();
   await waitForRender({ name: 'Test', value: '2x', addAnnotationLayer });
   userEvent.click(screen.getByRole('button', { name: 'Apply' }));
   expect(addAnnotationLayer).toHaveBeenCalled();
 });
 
 test('triggers addAnnotationLayer and close when ok button is clicked', async () => {
-  const addAnnotationLayer = jest.fn();
-  const close = jest.fn();
+  const addAnnotationLayer = vi.fn();
+  const close = vi.fn();
   await waitForRender({ name: 'Test', value: '2x', addAnnotationLayer, close });
   userEvent.click(screen.getByRole('button', { name: 'OK' }));
   expect(addAnnotationLayer).toHaveBeenCalled();
@@ -148,15 +148,15 @@ test('triggers addAnnotationLayer and close when ok button is clicked', async ()
 });
 
 test('triggers close when cancel button is clicked', async () => {
-  const close = jest.fn();
+  const close = vi.fn();
   await waitForRender({ close });
   userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
   expect(close).toHaveBeenCalled();
 });
 
 test('triggers removeAnnotationLayer and close when remove button is clicked', async () => {
-  const removeAnnotationLayer = jest.fn();
-  const close = jest.fn();
+  const removeAnnotationLayer = vi.fn();
+  const close = vi.fn();
   await waitForRender({
     name: 'Test',
     value: '2x',

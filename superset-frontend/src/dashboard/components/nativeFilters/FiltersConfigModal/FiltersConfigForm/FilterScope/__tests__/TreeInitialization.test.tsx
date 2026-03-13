@@ -31,14 +31,14 @@ describe('FilterScope TreeInitialization', () => {
   let formRef: { current: FormInstance | null };
 
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     formRef = { current: null };
   });
 
   afterEach(() => {
     cleanup();
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
+    vi.runOnlyPendingTimers();
+    vi.useRealTimers();
   });
 
   test('correct init tree with values', async () => {
@@ -55,7 +55,7 @@ describe('FilterScope TreeInitialization', () => {
     const scopingTab = await screen.findByRole('tab', { name: 'Scoping' });
     fireEvent.click(scopingTab);
 
-    jest.runAllTimers();
+    vi.runAllTimers();
 
     await waitFor(
       () => {
@@ -64,7 +64,7 @@ describe('FilterScope TreeInitialization', () => {
       { timeout: 10000 },
     );
 
-    jest.runAllTimers();
+    vi.runAllTimers();
 
     await waitFor(
       () => {

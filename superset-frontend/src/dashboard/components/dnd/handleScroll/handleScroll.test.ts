@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import { vi } from 'vitest';
 import handleScroll from '.';
 
-jest.useFakeTimers();
-jest.spyOn(global, 'clearInterval');
+const clearIntervalSpy = vi.spyOn(global, 'clearInterval');
 
 const { scroll } = window;
 
@@ -28,12 +29,12 @@ afterAll(() => {
 });
 
 test('calling: "NOT_SCROLL_TOP" ,"SCROLL_TOP", "NOT_SCROLL_TOP"', () => {
-  window.scroll = jest.fn();
+  window.scroll = vi.fn();
   document.documentElement.scrollTop = 500;
 
   handleScroll('NOT_SCROLL_TOP');
 
-  expect(clearInterval).not.toHaveBeenCalled();
+  expect(clearIntervalSpy).not.toHaveBeenCalled();
 
   handleScroll('SCROLL_TOP');
 

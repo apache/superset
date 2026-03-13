@@ -38,11 +38,11 @@ import { dashboardWithFilter } from 'spec/fixtures/mockDashboardLayout';
 // Mock for auto-refresh context
 let mockIsAutoRefreshing = false;
 
-jest.mock('src/dashboard/contexts/AutoRefreshContext', () => ({
+vi.mock('src/dashboard/contexts/AutoRefreshContext', () => ({
   useIsAutoRefreshing: () => mockIsAutoRefreshing,
 }));
 
-jest.mock('src/dashboard/components/FiltersBadge/DetailsPanel', () => {
+vi.mock('src/dashboard/components/FiltersBadge/DetailsPanel', () => {
   const MockDetailsPanel = ({ children }: { children: ReactNode }) => (
     <div data-test="mock-details-panel">{children}</div>
   );

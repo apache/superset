@@ -69,8 +69,8 @@ fetchMock.get(rolesEndpoint, {
 
 fetchMock.get(groupsEndpoint, { result: [] }, { name: groupsEndpoint });
 
-jest.mock('src/dashboard/util/permissionUtils', () => ({
-  ...jest.requireActual('src/dashboard/util/permissionUtils'),
+vi.mock('src/dashboard/util/permissionUtils', () => ({
+  ...vi.requireActual('src/dashboard/util/permissionUtils'),
   isUserAdmin: () => true,
 }));
 

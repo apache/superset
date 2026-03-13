@@ -18,7 +18,7 @@
  */
 import { isFrontendRoute, routes } from './routes';
 
-jest.mock('src/pages/Home', () => () => <div data-test="mock-home" />);
+vi.mock('src/pages/Home', () => () => <div data-test="mock-home" />);
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('isFrontendRoute', () => {

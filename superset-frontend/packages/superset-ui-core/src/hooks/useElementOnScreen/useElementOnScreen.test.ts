@@ -19,9 +19,11 @@
 import { renderHook } from '@testing-library/react-hooks';
 import { useElementOnScreen } from './useElementOnScreen';
 
-const observeMock = jest.fn();
-const unobserveMock = jest.fn();
-const IntersectionObserverMock = jest.fn();
+vi.mock('react', { spy: true });
+
+const observeMock = vi.fn();
+const unobserveMock = vi.fn();
+const IntersectionObserverMock = vi.fn();
 IntersectionObserverMock.prototype.observe = observeMock;
 IntersectionObserverMock.prototype.unobserve = unobserveMock;
 
@@ -31,7 +33,7 @@ beforeEach(() => {
 
 afterEach(() => {
   IntersectionObserverMock.mockClear();
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 test('should return null and false on first render', () => {
@@ -66,7 +68,7 @@ test('should return isSticky as false when intersectionRatio >= 1', async () => 
 });
 
 test('should observe and unobserve element with IntersectionObserver', async () => {
-  jest.spyOn(global.React, 'useRef').mockReturnValue({ current: 'test' });
+  vi.spyOn(global.React, 'useRef').mockReturnValue({ current: 'test' });
   const options = { threshold: 0.5 };
   const { result, unmount } = renderHook(() => useElementOnScreen(options));
   const [elementRef] = result.current;
@@ -85,7 +87,7 @@ test('should observe and unobserve element with IntersectionObserver', async () 
 });
 
 test('should not observe an element if it is null', () => {
-  jest.spyOn(global.React, 'useRef').mockReturnValue({ current: null });
+  vi.spyOn(global.React, 'useRef').mockReturnValue({ current: null });
   const options = {};
   const { result } = renderHook(() => useElementOnScreen(options));
   const [ref, isSticky] = result.current;
@@ -96,7 +98,7 @@ test('should not observe an element if it is null', () => {
 });
 
 test('should not unobserve the element if it is null', () => {
-  jest.spyOn(global.React, 'useRef').mockReturnValue({ current: null });
+  vi.spyOn(global.React, 'useRef').mockReturnValue({ current: null });
   const options = {};
   const { result, unmount } = renderHook(() => useElementOnScreen(options));
   const [ref, isSticky] = result.current;

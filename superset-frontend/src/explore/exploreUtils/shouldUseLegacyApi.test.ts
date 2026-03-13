@@ -19,15 +19,15 @@
 import { getChartMetadataRegistry } from '@superset-ui/core';
 import { getQuerySettings } from '.';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  getChartMetadataRegistry: jest.fn(),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  getChartMetadataRegistry: vi.fn(),
 }));
 
-const mockedGetChartMetadataRegistry = getChartMetadataRegistry as jest.Mock;
+const mockedGetChartMetadataRegistry = getChartMetadataRegistry as Mock;
 
 test('Should return false', () => {
-  const get = jest.fn();
+  const get = vi.fn();
   mockedGetChartMetadataRegistry.mockReturnValue({ get } as any);
   expect(get).toHaveBeenCalledTimes(0);
   const [useLegacyApi] = getQuerySettings({ viz_type: 'name_test' });
@@ -37,7 +37,7 @@ test('Should return false', () => {
 });
 
 test('Should return true', () => {
-  const get = jest.fn();
+  const get = vi.fn();
   get.mockReturnValue({ useLegacyApi: true });
   mockedGetChartMetadataRegistry.mockReturnValue({ get } as any);
   expect(get).toHaveBeenCalledTimes(0);
@@ -48,7 +48,7 @@ test('Should return true', () => {
 });
 
 test('Should return false when useLegacyApi:false', () => {
-  const get = jest.fn();
+  const get = vi.fn();
   get.mockReturnValue({ useLegacyApi: false });
   mockedGetChartMetadataRegistry.mockReturnValue({ get } as any);
   expect(get).toHaveBeenCalledTimes(0);

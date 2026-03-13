@@ -28,8 +28,8 @@ import { configureStore } from '@reduxjs/toolkit';
 import SliceAdder, { SliceAdderProps, sortByComparator } from './SliceAdder';
 
 // Mock the Select component to avoid debounce issues
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
   Select: ({ value, onChange, options }: any) => (
     <select
       data-test="select"
@@ -45,7 +45,7 @@ jest.mock('@superset-ui/core', () => ({
   ),
 }));
 
-jest.mock('lodash/debounce', () => {
+vi.mock('lodash/debounce', () => {
   const debounced = (fn: Function) => {
     const debouncedFn = ((...args: any[]) =>
       fn(...args)) as unknown as Function & {
@@ -63,8 +63,8 @@ const mockStore = configureStore({
 
 const defaultProps: Omit<SliceAdderProps, 'theme'> = {
   slices: mockSliceEntities.slices,
-  fetchSlices: jest.fn(),
-  updateSlices: jest.fn(),
+  fetchSlices: vi.fn(),
+  updateSlices: vi.fn(),
   selectedSliceIds: [127, 128],
   userId: 1,
   dashboardId: 0,
@@ -80,7 +80,7 @@ const renderSliceAdder = (props = defaultProps) =>
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SliceAdder', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('renders the create new chart button', () => {
@@ -137,7 +137,7 @@ describe('SliceAdder', () => {
   });
 
   test('opens new chart in new tab when create new chart is clicked', () => {
-    const windowSpy = jest.spyOn(window, 'open').mockImplementation();
+    const windowSpy = vi.spyOn(window, 'open').mockImplementation();
     renderSliceAdder();
     const createButton = screen.getByText('Create new chart');
     fireEvent.click(createButton);

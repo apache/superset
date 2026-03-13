@@ -36,8 +36,7 @@ import DatasourceControl from '.';
 // causes OOM in CI when rendered repeatedly. These tests only need to verify
 // DatasourceControl's callback wiring through the modal save flow.
 // Editor internals are tested in DatasourceEditor.test.tsx.
-jest.mock('src/components/Datasource/components/DatasourceEditor', () => ({
-  __esModule: true,
+vi.mock('src/components/Datasource/components/DatasourceEditor', () => ({
   default: () =>
     require('react').createElement(
       'div',
@@ -65,7 +64,7 @@ afterEach(() => {
     }
   } finally {
     fetchMock.clearHistory().removeRoutes();
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   }
 });
 
@@ -128,8 +127,8 @@ const createProps = (
     validationErrors: [],
     name: 'datasource',
     actions: {
-      changeDatasource: jest.fn(),
-      setControlValue: jest.fn(),
+      changeDatasource: vi.fn(),
+      setControlValue: vi.fn(),
     },
     isEditable: true,
     user: {
@@ -143,8 +142,8 @@ const createProps = (
       userId: 1,
       username: 'admin',
     },
-    onChange: jest.fn(),
-    onDatasourceSave: jest.fn(),
+    onChange: vi.fn(),
+    onDatasourceSave: vi.fn(),
     ...overrides,
   }) as unknown as DatasourceControlComponentProps;
 
@@ -642,7 +641,7 @@ test('should handle metric save confirmation modal', async () => {
 });
 
 test('should fire onDatasourceSave callback on save', async () => {
-  const mockOnDatasourceSave = jest.fn();
+  const mockOnDatasourceSave = vi.fn();
   const props = createProps({
     datasource: mockDatasource,
     onDatasourceSave: mockOnDatasourceSave,

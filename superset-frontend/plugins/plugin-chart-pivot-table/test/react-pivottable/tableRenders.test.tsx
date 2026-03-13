@@ -20,8 +20,8 @@ import { TableRenderer } from '../../src/react-pivottable/TableRenderers';
 import type { PivotData } from '../../src/react-pivottable/utilities';
 
 let tableRenderer: TableRenderer;
-let mockGetAggregatedData: jest.Mock;
-let mockSortAndCacheData: jest.Mock;
+let mockGetAggregatedData: Mock;
+let mockSortAndCacheData: Mock;
 
 const columnIndex = 0;
 const visibleColKeys = [['col1'], ['col2']];
@@ -46,9 +46,9 @@ const mockProps = {
   tableOptions: {},
   namesMapping: {},
   allowRenderHtml: false,
-  onContextMenu: jest.fn(),
-  aggregatorsFactory: jest.fn(),
-  defaultFormatter: jest.fn(),
+  onContextMenu: vi.fn(),
+  aggregatorsFactory: vi.fn(),
+  defaultFormatter: vi.fn(),
   customFormatters: {},
   rowEnabled: true,
   rowPartialOnTop: false,
@@ -59,8 +59,8 @@ const mockProps = {
 beforeEach(() => {
   tableRenderer = new TableRenderer(mockProps);
 
-  mockGetAggregatedData = jest.fn();
-  mockSortAndCacheData = jest.fn();
+  mockGetAggregatedData = vi.fn();
+  mockSortAndCacheData = vi.fn();
 
   tableRenderer.getAggregatedData = mockGetAggregatedData;
   tableRenderer.sortAndCacheData = mockSortAndCacheData;
@@ -118,7 +118,7 @@ test('should set initial ascending sort when no active sort column', () => {
     C: { currentVal: 20 },
   });
 
-  const setStateMock = jest.fn();
+  const setStateMock = vi.fn();
   tableRenderer.setState = setStateMock;
 
   tableRenderer.sortData(columnIndex, visibleColKeys, pivotData, maxRowIndex);
@@ -160,7 +160,7 @@ test('should toggle from asc to desc when clicking same column', () => {
     B: { currentVal: 10 },
     C: { currentVal: 20 },
   });
-  const setStateMock = jest.fn(stateUpdater => {
+  const setStateMock = vi.fn(stateUpdater => {
     if (typeof stateUpdater === 'function') {
       const newState = stateUpdater({
         sortingOrder: ['asc' as never],
@@ -195,7 +195,7 @@ test('should check second call in sequence', () => {
 
   mockSortAndCacheData.mockClear();
 
-  const setStateMock = jest.fn(stateUpdater => {
+  const setStateMock = vi.fn(stateUpdater => {
     if (typeof stateUpdater === 'function') {
       const newState = stateUpdater(tableRenderer.state);
       tableRenderer.state = {
@@ -325,7 +325,7 @@ test('should calculate groups from pivot data', () => {
   tableRenderer = new TableRenderer(mockProps);
   const mockAggregator = (value: number) => ({
     value: () => value,
-    format: jest.fn(),
+    format: vi.fn(),
     isSubtotal: false,
   });
 

@@ -33,7 +33,7 @@ const mockedProps = {
   adhocFilter: simpleAdhocFilter,
   options: [],
   datasource: {},
-  onFilterEdit: jest.fn(),
+  onFilterEdit: vi.fn(),
 };
 
 test('should render', () => {
@@ -61,8 +61,8 @@ test('should be visible when controlled', async () => {
     ...mockedProps,
     isControlledComponent: true,
     visible: true,
-    togglePopover: jest.fn(),
-    closePopover: jest.fn(),
+    togglePopover: vi.fn(),
+    closePopover: vi.fn(),
   };
   render(
     <AdhocFilterPopoverTrigger {...controlledProps}>
@@ -78,8 +78,8 @@ test('should NOT be visible when controlled', () => {
     ...mockedProps,
     isControlledComponent: true,
     visible: false,
-    togglePopover: jest.fn(),
-    closePopover: jest.fn(),
+    togglePopover: vi.fn(),
+    closePopover: vi.fn(),
   };
   render(
     <AdhocFilterPopoverTrigger {...controlledProps}>

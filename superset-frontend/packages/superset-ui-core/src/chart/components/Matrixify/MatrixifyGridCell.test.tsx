@@ -24,7 +24,7 @@ import MatrixifyGridCell from './MatrixifyGridCell';
 import { MatrixifyGridCell as MatrixifyGridCellType } from '../../types/matrixify';
 
 // Mock StatefulChart component
-jest.mock('../StatefulChart', () => {
+vi.mock('../StatefulChart', () => {
   /* eslint-disable no-restricted-syntax, global-require, @typescript-eslint/no-var-requires */
   const React = require('react');
   /* eslint-enable no-restricted-syntax, global-require, @typescript-eslint/no-var-requires */

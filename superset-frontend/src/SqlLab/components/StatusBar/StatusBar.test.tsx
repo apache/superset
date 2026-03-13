@@ -19,15 +19,13 @@
 import { render, screen } from 'spec/helpers/testing-library';
 import StatusBar from 'src/SqlLab/components/StatusBar';
 
-jest.mock('src/core/views', () => ({
+vi.mock('src/core/views', () => ({
   views: {
-    getViews: jest.fn().mockReturnValue([{ id: 'test-status-bar' }]),
-    registerView: jest.fn(),
+    getViews: vi.fn().mockReturnValue([{ id: 'test-status-bar' }]),
+    registerView: vi.fn(),
   },
 }));
-
-jest.mock('src/components/ViewListExtension', () => ({
-  __esModule: true,
+vi.mock('src/components/ViewListExtension', () => ({
   default: ({ viewId }: { viewId: string }) => (
     <div data-test="mock-view-extension" data-view-id={viewId}>
       ViewListExtension

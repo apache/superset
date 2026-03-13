@@ -51,7 +51,7 @@ const createPropsWithCurrency = () => {
         },
       ],
     },
-    onChange: jest.fn(),
+    onChange: vi.fn(),
   };
 };
 
@@ -192,7 +192,7 @@ test('currency code column dropdown shows string and untyped calculated columns 
         ...baseProps.datasource.columns,
       ],
     },
-    onChange: jest.fn(),
+    onChange: vi.fn(),
   };
 
   fastRender(testProps);

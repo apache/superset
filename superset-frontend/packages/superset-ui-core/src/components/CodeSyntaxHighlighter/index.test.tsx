@@ -20,7 +20,7 @@ import { render, screen } from '../../spec';
 import CodeSyntaxHighlighter from './index';
 
 // Simple mock that just returns the content
-jest.mock(
+vi.mock(
   'react-syntax-highlighter/dist/cjs/light',
   () =>
     function MockSyntaxHighlighter({ children, ...props }: any) {
@@ -33,26 +33,26 @@ jest.mock(
 );
 
 // Mock the language modules
-jest.mock(
+vi.mock(
   'react-syntax-highlighter/dist/cjs/languages/hljs/sql',
   () => 'sql-mock',
 );
-jest.mock(
+vi.mock(
   'react-syntax-highlighter/dist/cjs/languages/hljs/json',
   () => 'json-mock',
 );
-jest.mock(
+vi.mock(
   'react-syntax-highlighter/dist/cjs/languages/hljs/htmlbars',
   () => 'html-mock',
 );
-jest.mock(
+vi.mock(
   'react-syntax-highlighter/dist/cjs/languages/hljs/markdown',
   () => 'md-mock',
 );
 
 // Mock the styles
-jest.mock('react-syntax-highlighter/dist/cjs/styles/hljs/github', () => ({}));
-jest.mock(
+vi.mock('react-syntax-highlighter/dist/cjs/styles/hljs/github', () => ({}));
+vi.mock(
   'react-syntax-highlighter/dist/cjs/styles/hljs/atom-one-dark',
   () => ({}),
 );

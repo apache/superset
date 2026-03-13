@@ -17,6 +17,7 @@
  * under the License.
  */
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
+import { vi, type Mock } from 'vitest';
 
 import {
   UPDATE_COMPONENTS,
@@ -73,17 +74,17 @@ describe('dashboardLayout actions', () => {
     },
   };
 
-  let updateLayoutComponentsSpy: jest.SpyInstance;
+  let updateLayoutComponentsSpy: Mock;
 
   function setup(stateOverrides: Record<string, unknown> = {}) {
     const state = { ...mockState, ...stateOverrides };
-    const getState = jest.fn(() => state) as unknown as GetState;
-    const dispatch = jest.fn();
+    const getState = vi.fn(() => state) as unknown as GetState;
+    const dispatch = vi.fn();
 
     return { getState, dispatch, state };
   }
   beforeEach(() => {
-    updateLayoutComponentsSpy = jest.spyOn(
+    updateLayoutComponentsSpy = vi.spyOn(
       dashboardFilters,
       'updateLayoutComponents',
     );

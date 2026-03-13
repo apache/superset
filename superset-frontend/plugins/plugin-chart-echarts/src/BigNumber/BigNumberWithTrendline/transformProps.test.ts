@@ -21,7 +21,7 @@ import transformProps from './transformProps';
 import { BigNumberWithTrendlineChartProps, BigNumberDatum } from '../types';
 
 // Mock chart-controls to avoid styled-components issues in Jest
-jest.mock('@superset-ui/chart-controls', () => ({
+vi.mock('@superset-ui/chart-controls', () => ({
   aggregationChoices: {
     raw: {
       label: 'Force server-side aggregation',
@@ -55,40 +55,40 @@ jest.mock('@superset-ui/chart-controls', () => ({
   },
 }));
 
-jest.mock('@superset-ui/core', () => ({
+vi.mock('@superset-ui/core', async importActual => ({
   GenericDataType: { Temporal: 2, String: 1 },
-  extractTimegrain: jest.fn(() => 'P1D'),
-  getMetricLabel: jest.fn(metric => metric),
-  getXAxisLabel: jest.fn(() => '__timestamp'),
-  getValueFormatter: jest.fn(() => ({
+  extractTimegrain: vi.fn(() => 'P1D'),
+  getMetricLabel: vi.fn(metric => metric),
+  getXAxisLabel: vi.fn(() => '__timestamp'),
+  getValueFormatter: vi.fn(() => ({
     format: (v: number) => `$${v}`,
   })),
-  getNumberFormatter: jest.fn(() => (v: number) => `${(v * 100).toFixed(1)}%`),
-  t: jest.fn(v => v),
-  tooltipHtml: jest.fn(() => '<div>tooltip</div>'),
+  getNumberFormatter: vi.fn(() => (v: number) => `${(v * 100).toFixed(1)}%`),
+  t: vi.fn(v => v),
+  tooltipHtml: vi.fn(() => '<div>tooltip</div>'),
   NumberFormats: {
     PERCENT_SIGNED_1_POINT: '.1%',
   },
 }));
 
-jest.mock('../utils', () => ({
-  getDateFormatter: jest.fn(() => (v: any) => `${v}pm`),
-  parseMetricValue: jest.fn(val => Number(val)),
-  getOriginalLabel: jest.fn((metric, metrics) => {
+vi.mock('../utils', () => ({
+  getDateFormatter: vi.fn(() => (v: any) => `${v}pm`),
+  parseMetricValue: vi.fn(val => Number(val)),
+  getOriginalLabel: vi.fn((metric, metrics) => {
     console.log(metrics);
     return metric;
   }),
 }));
 
-jest.mock('../../utils/tooltip', () => ({
-  getDefaultTooltip: jest.fn(() => ({})),
+vi.mock('../../utils/tooltip', () => ({
+  getDefaultTooltip: vi.fn(() => ({})),
 }));
 
-jest.mock('../../utils/formatters', () => ({
-  getXAxisFormatter: jest.fn(() => String),
+vi.mock('../../utils/formatters', () => ({
+  getXAxisFormatter: vi.fn(() => String),
 }));
 
-jest.mock('../../constants', () => ({
+vi.mock('../../constants', () => ({
   TIMESERIES_CONSTANTS: {
     gridOffsetBottom: 20,
     gridOffsetLeft: 20,
@@ -98,7 +98,7 @@ jest.mock('../../constants', () => ({
 }));
 
 describe('BigNumberWithTrendline transformProps', () => {
-  const onContextMenu = jest.fn();
+  const onContextMenu = vi.fn();
   const baseFormData = {
     headerFontSize: 20,
     metric: 'value',

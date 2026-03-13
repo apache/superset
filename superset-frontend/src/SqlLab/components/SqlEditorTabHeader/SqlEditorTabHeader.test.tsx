@@ -40,10 +40,10 @@ import {
 } from 'src/SqlLab/actions/sqlLab';
 import SqlEditorTabHeader from 'src/SqlLab/components/SqlEditorTabHeader';
 
-jest.mock('@superset-ui/core/components/Select/Select', () => () => (
+vi.mock('@superset-ui/core/components/Select/Select', () => () => (
   <div data-test="mock-deprecated-select-select" />
 ));
-jest.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
+vi.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
   <div data-test="mock-async-select" />
 ));
 
@@ -138,7 +138,7 @@ describe('SqlEditorTabHeader', () => {
         expect(screen.getByTestId('close-tab-menu-option')).toBeInTheDocument(),
       );
       const expectedTitle = 'typed text';
-      const mockPrompt = jest
+      const mockPrompt = vi
         .spyOn(window, 'prompt')
         .mockImplementation(() => expectedTitle);
       fireEvent.click(screen.getByTestId('rename-tab-menu-option'));

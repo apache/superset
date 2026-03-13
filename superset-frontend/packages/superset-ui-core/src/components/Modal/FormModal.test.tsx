@@ -47,10 +47,10 @@ describe('FormModal Component', () => {
 
   const mockedProps: FormModalProps = {
     show: true,
-    onHide: jest.fn(),
+    onHide: vi.fn(),
     title: 'Test Form Modal',
-    onSave: jest.fn(),
-    formSubmitHandler: jest.fn().mockResolvedValue(undefined),
+    onSave: vi.fn(),
+    formSubmitHandler: vi.fn().mockResolvedValue(undefined),
     initialValues: { name: '', email: '' },
     requiredFields: ['name'],
     children,

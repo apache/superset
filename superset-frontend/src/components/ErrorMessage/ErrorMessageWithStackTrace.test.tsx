@@ -22,7 +22,7 @@ import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { ErrorMessageWithStackTrace } from './ErrorMessageWithStackTrace';
 import { BasicErrorAlert } from './BasicErrorAlert';
 
-jest.mock(
+vi.mock(
   '@superset-ui/core/components/Icons/AsyncIcon',
   () =>
     ({ fileName }: { fileName: string }) => (

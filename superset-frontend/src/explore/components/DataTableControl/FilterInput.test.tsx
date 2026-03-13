@@ -19,13 +19,13 @@
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { FilterInput } from '.';
 
-jest.mock('lodash/debounce', () => ({
+vi.mock('lodash/debounce', () => ({
   __esModule: true,
   default: (fuc: Function) => fuc,
 }));
 
 test('Render a FilterInput', async () => {
-  const onChangeHandler = jest.fn();
+  const onChangeHandler = vi.fn();
   render(<FilterInput onChangeHandler={onChangeHandler} />);
   expect(await screen.findByRole('textbox')).toBeInTheDocument();
 

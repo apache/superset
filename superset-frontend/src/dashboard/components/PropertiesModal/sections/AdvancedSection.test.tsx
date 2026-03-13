@@ -25,11 +25,11 @@ const defaultProps = {
   validationStatus: {
     advanced: { hasErrors: false, errors: [], name: 'Advanced' },
   },
-  onJsonMetadataChange: jest.fn(),
+  onJsonMetadataChange: vi.fn(),
 };
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 test('renders JSON metadata field', () => {

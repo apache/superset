@@ -31,7 +31,7 @@ const defaultProps: PopoverDropdownProps = {
   value: '1',
   renderButton: (option: OptionProps) => <span>{option.label}</span>,
   renderOption: (option: OptionProps) => <div>{option.label}</div>,
-  onChange: jest.fn(),
+  onChange: vi.fn(),
 };
 
 test('renders with default props', async () => {

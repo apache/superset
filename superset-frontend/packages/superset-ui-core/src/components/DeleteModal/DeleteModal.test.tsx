@@ -23,8 +23,8 @@ test('Must display title and content', () => {
   const props = {
     title: <div data-test="test-title">Title</div>,
     description: <div data-test="test-description">Description</div>,
-    onConfirm: jest.fn(),
-    onHide: jest.fn(),
+    onConfirm: vi.fn(),
+    onHide: vi.fn(),
     open: true,
   };
   render(<DeleteModal {...props} />);
@@ -36,8 +36,8 @@ test('Input should autofocus when modal opens', async () => {
   const props = {
     title: <div data-test="test-title">Title</div>,
     description: <div data-test="test-description">Description</div>,
-    onConfirm: jest.fn(),
-    onHide: jest.fn(),
+    onConfirm: vi.fn(),
+    onHide: vi.fn(),
     open: true,
   };
   render(<DeleteModal {...props} />);
@@ -52,8 +52,8 @@ test('Calling "onHide"', async () => {
   const props = {
     title: <div data-test="test-title">Title</div>,
     description: <div data-test="test-description">Description</div>,
-    onConfirm: jest.fn(),
-    onHide: jest.fn(),
+    onConfirm: vi.fn(),
+    onHide: vi.fn(),
     open: true,
   };
   const modal = <DeleteModal {...props} />;
@@ -79,8 +79,8 @@ test('Calling "onConfirm" only after typing "delete" in the input', async () => 
   const props = {
     title: <div data-test="test-title">Title</div>,
     description: <div data-test="test-description">Description</div>,
-    onConfirm: jest.fn(),
-    onHide: jest.fn(),
+    onConfirm: vi.fn(),
+    onHide: vi.fn(),
     open: true,
   };
   render(<DeleteModal {...props} />);

@@ -25,7 +25,7 @@ import { render, screen } from '@testing-library/react';
 import { RenderFuncType } from '../../../src/chart/components/reactify';
 
 describe('reactify(renderFn)', () => {
-  const renderFn: RenderFuncType<{ content?: string }> = jest.fn(
+  const renderFn: RenderFuncType<{ content?: string }> = vi.fn(
     (element, props) => {
       const container = element;
       container.innerHTML = '';
@@ -45,7 +45,7 @@ describe('reactify(renderFn)', () => {
     content: 'ghi',
   };
 
-  const willUnmountCb = jest.fn();
+  const willUnmountCb = vi.fn();
 
   const TheChart = reactify(renderFn);
   const TheChartWithWillUnmountHook = reactify(renderFn, {
@@ -127,7 +127,7 @@ describe('reactify(renderFn)', () => {
     });
   });
   test('does not try to render if not mounted', () => {
-    const anotherRenderFn = jest.fn();
+    const anotherRenderFn = vi.fn();
     const AnotherChart = reactify(anotherRenderFn); // enables valid new AnotherChart() call
     // @ts-expect-error
     new AnotherChart({ id: 'test' }).execute();

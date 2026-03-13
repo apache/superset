@@ -22,28 +22,29 @@ import { FeatureFlag, VizType } from '@superset-ui/core';
 import mockState from 'spec/fixtures/mockState';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
+import { Mock } from 'vitest';
 
-jest.mock('src/utils/cachedSupersetGet');
+vi.mock('src/utils/cachedSupersetGet');
 
-const mockCachedSupersetGet = cachedSupersetGet as jest.MockedFunction<
+const mockCachedSupersetGet = cachedSupersetGet as Mock<
   typeof cachedSupersetGet
 >;
 const SLICE_ID = 371;
 
 const createProps = (viz_type = VizType.Sunburst) =>
   ({
-    addDangerToast: jest.fn(),
-    addSuccessToast: jest.fn(),
-    exploreChart: jest.fn(),
-    exportCSV: jest.fn(),
-    exportFullCSV: jest.fn(),
-    exportXLSX: jest.fn(),
-    exportFullXLSX: jest.fn(),
-    exportPivotExcel: jest.fn(),
-    forceRefresh: jest.fn(),
-    handleToggleFullSize: jest.fn(),
-    toggleExpandSlice: jest.fn(),
-    logEvent: jest.fn(),
+    addDangerToast: vi.fn(),
+    addSuccessToast: vi.fn(),
+    exploreChart: vi.fn(),
+    exportCSV: vi.fn(),
+    exportFullCSV: vi.fn(),
+    exportXLSX: vi.fn(),
+    exportFullXLSX: vi.fn(),
+    exportPivotExcel: vi.fn(),
+    forceRefresh: vi.fn(),
+    handleToggleFullSize: vi.fn(),
+    toggleExpandSlice: vi.fn(),
+    logEvent: vi.fn(),
     slice: {
       slice_id: SLICE_ID,
       slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20371%7D',

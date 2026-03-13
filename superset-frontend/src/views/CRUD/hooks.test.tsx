@@ -29,7 +29,7 @@ import {
 import type Chart from 'src/types/Chart';
 
 /** Find the endpoint string from a spy's mock calls that matches a substring. */
-function findEndpoint(spy: jest.SpyInstance, substring: string): string {
+function findEndpoint(spy: vi.SpyInstance, substring: string): string {
   const match = spy.mock.calls.find(
     (call: unknown[]) =>
       typeof (call[0] as Record<string, string>)?.endpoint === 'string' &&
@@ -44,17 +44,17 @@ function findEndpoint(spy: jest.SpyInstance, substring: string): string {
 }
 
 beforeEach(() => {
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 // useListViewResource
 test('useListViewResource: initial state has loading true and empty collection', () => {
-  jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+  vi.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: { permissions: ['can_read'] },
   } as unknown as JsonResponse);
 
   const { result } = renderHook(() =>
-    useListViewResource('chart', 'Charts', jest.fn()),
+    useListViewResource('chart', 'Charts', vi.fn()),
   );
 
   expect(result.current.state.loading).toBe(true);
@@ -64,12 +64,12 @@ test('useListViewResource: initial state has loading true and empty collection',
 });
 
 test('useListViewResource: fetches permissions on mount', async () => {
-  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+  const getSpy = vi.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: { permissions: ['can_read', 'can_write'] },
   } as unknown as JsonResponse);
 
   const { result } = renderHook(() =>
-    useListViewResource('chart', 'Charts', jest.fn()),
+    useListViewResource('chart', 'Charts', vi.fn()),
   );
 
   await waitFor(() => {
@@ -86,11 +86,11 @@ test('useListViewResource: fetches permissions on mount', async () => {
 });
 
 test('useListViewResource: skips permissions fetch when infoEnable is false', async () => {
-  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+  const getSpy = vi.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: { permissions: [] },
   } as unknown as JsonResponse);
 
-  renderHook(() => useListViewResource('chart', 'Charts', jest.fn(), false));
+  renderHook(() => useListViewResource('chart', 'Charts', vi.fn(), false));
 
   await act(async () => {});
 
@@ -99,12 +99,12 @@ test('useListViewResource: skips permissions fetch when infoEnable is false', as
 });
 
 test('useListViewResource: hasPerm returns false when permissions are empty', async () => {
-  jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+  vi.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: {},
   } as unknown as JsonResponse);
 
   const { result } = renderHook(() =>
-    useListViewResource('chart', 'Charts', jest.fn()),
+    useListViewResource('chart', 'Charts', vi.fn()),
   );
 
   expect(result.current.hasPerm('can_read')).toBe(false);
@@ -115,12 +115,12 @@ test('useListViewResource: fetchData calls correct endpoint and updates state', 
     { id: 1, name: 'Item 1' },
     { id: 2, name: 'Item 2' },
   ];
-  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+  const getSpy = vi.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: { result: mockData, count: 2 },
   } as unknown as JsonResponse);
 
   const { result } = renderHook(() =>
-    useListViewResource('chart', 'Charts', jest.fn()),
+    useListViewResource('chart', 'Charts', vi.fn()),
   );
 
   await act(async () => {
@@ -147,7 +147,7 @@ test('useListViewResource: fetchData calls correct endpoint and updates state', 
 });
 
 test('useListViewResource: fetchData includes selectColumns in query', async () => {
-  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+  const getSpy = vi.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: { result: [], count: 0 },
   } as unknown as JsonResponse);
 
@@ -157,7 +157,7 @@ test('useListViewResource: fetchData includes selectColumns in query', async () 
     useListViewResource(
       'chart',
       'Charts',
-      jest.fn(),
+      vi.fn(),
       undefined,
       undefined,
       undefined,
@@ -180,7 +180,7 @@ test('useListViewResource: fetchData includes selectColumns in query', async () 
 });
 
 test('useListViewResource: fetchData merges baseFilters with user filters', async () => {
-  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+  const getSpy = vi.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: { result: [], count: 0 },
   } as unknown as JsonResponse);
 
@@ -190,7 +190,7 @@ test('useListViewResource: fetchData merges baseFilters with user filters', asyn
     useListViewResource(
       'dashboard',
       'Dashboards',
-      jest.fn(),
+      vi.fn(),
       true,
       [],
       baseFilters,
@@ -214,12 +214,12 @@ test('useListViewResource: fetchData merges baseFilters with user filters', asyn
 });
 
 test('useListViewResource: fetchData filters out empty/null/undefined filter values', async () => {
-  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+  const getSpy = vi.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: { result: [], count: 0 },
   } as unknown as JsonResponse);
 
   const { result } = renderHook(() =>
-    useListViewResource('chart', 'Charts', jest.fn()),
+    useListViewResource('chart', 'Charts', vi.fn()),
   );
 
   await act(async () => {
@@ -246,7 +246,7 @@ test('useListViewResource: fetchData filters out empty/null/undefined filter val
 
 test('useListViewResource: fetchData sets loading to true then false', async () => {
   let resolveGet: ((value: unknown) => void) | undefined;
-  jest.spyOn(SupersetClient, 'get').mockImplementation(
+  vi.spyOn(SupersetClient, 'get').mockImplementation(
     () =>
       new Promise(resolve => {
         resolveGet = resolve;
@@ -254,7 +254,7 @@ test('useListViewResource: fetchData sets loading to true then false', async () 
   );
 
   const { result } = renderHook(() =>
-    useListViewResource('chart', 'Charts', jest.fn(), false),
+    useListViewResource('chart', 'Charts', vi.fn(), false),
   );
 
   // Initial loading
@@ -283,12 +283,12 @@ test('useListViewResource: fetchData sets loading to true then false', async () 
 });
 
 test('useListViewResource: refreshData re-fetches with last config', async () => {
-  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+  const getSpy = vi.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: { result: [], count: 0 },
   } as unknown as JsonResponse);
 
   const { result } = renderHook(() =>
-    useListViewResource('chart', 'Charts', jest.fn()),
+    useListViewResource('chart', 'Charts', vi.fn()),
   );
 
   const config = {
@@ -319,12 +319,12 @@ test('useListViewResource: refreshData re-fetches with last config', async () =>
 });
 
 test('useListViewResource: refreshData returns null when no cached config', () => {
-  jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+  vi.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: {},
   } as unknown as JsonResponse);
 
   const { result } = renderHook(() =>
-    useListViewResource('chart', 'Charts', jest.fn()),
+    useListViewResource('chart', 'Charts', vi.fn()),
   );
 
   const returnValue = result.current.refreshData();
@@ -332,12 +332,12 @@ test('useListViewResource: refreshData returns null when no cached config', () =
 });
 
 test('useListViewResource: toggleBulkSelect toggles bulkSelectEnabled', async () => {
-  jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+  vi.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: {},
   } as unknown as JsonResponse);
 
   const { result } = renderHook(() =>
-    useListViewResource('chart', 'Charts', jest.fn()),
+    useListViewResource('chart', 'Charts', vi.fn()),
   );
 
   expect(result.current.state.bulkSelectEnabled).toBe(false);
@@ -356,12 +356,12 @@ test('useListViewResource: toggleBulkSelect toggles bulkSelectEnabled', async ()
 });
 
 test('useListViewResource: setResourceCollection updates the collection', async () => {
-  jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+  vi.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: {},
   } as unknown as JsonResponse);
 
   const { result } = renderHook(() =>
-    useListViewResource('chart', 'Charts', jest.fn()),
+    useListViewResource('chart', 'Charts', vi.fn()),
   );
 
   const newCollection = [{ id: 1 }, { id: 2 }];
@@ -374,12 +374,12 @@ test('useListViewResource: setResourceCollection updates the collection', async 
 });
 
 test('useListViewResource: uses desc sort direction when desc is true', async () => {
-  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+  const getSpy = vi.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: { result: [], count: 0 },
   } as unknown as JsonResponse);
 
   const { result } = renderHook(() =>
-    useListViewResource('chart', 'Charts', jest.fn()),
+    useListViewResource('chart', 'Charts', vi.fn()),
   );
 
   await act(async () => {
@@ -398,7 +398,7 @@ test('useListViewResource: uses desc sort direction when desc is true', async ()
 // useSingleViewResource
 test('useSingleViewResource: initial state has loading false and null resource', () => {
   const { result } = renderHook(() =>
-    useSingleViewResource('chart', 'Charts', jest.fn()),
+    useSingleViewResource('chart', 'Charts', vi.fn()),
   );
 
   expect(result.current.state.loading).toBe(false);
@@ -408,12 +408,12 @@ test('useSingleViewResource: initial state has loading false and null resource',
 
 test('useSingleViewResource: fetchResource calls correct endpoint', async () => {
   const mockResult = { id: 42, name: 'Test Chart' };
-  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+  const getSpy = vi.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: { result: mockResult },
   } as unknown as JsonResponse);
 
   const { result } = renderHook(() =>
-    useSingleViewResource('chart', 'Charts', jest.fn()),
+    useSingleViewResource('chart', 'Charts', vi.fn()),
   );
 
   await act(async () => {
@@ -432,12 +432,12 @@ test('useSingleViewResource: fetchResource calls correct endpoint', async () => 
 });
 
 test('useSingleViewResource: fetchResource appends pathSuffix', async () => {
-  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+  const getSpy = vi.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: { result: {} },
   } as unknown as JsonResponse);
 
   const { result } = renderHook(() =>
-    useSingleViewResource('chart', 'Charts', jest.fn(), 'related_objects'),
+    useSingleViewResource('chart', 'Charts', vi.fn(), 'related_objects'),
   );
 
   await act(async () => {
@@ -450,12 +450,12 @@ test('useSingleViewResource: fetchResource appends pathSuffix', async () => {
 });
 
 test('useSingleViewResource: createResource posts to correct endpoint', async () => {
-  const postSpy = jest.spyOn(SupersetClient, 'post').mockResolvedValue({
+  const postSpy = vi.spyOn(SupersetClient, 'post').mockResolvedValue({
     json: { id: 99, result: { name: 'New Chart' } },
   } as unknown as JsonResponse);
 
   const { result } = renderHook(() =>
-    useSingleViewResource('chart', 'Charts', jest.fn()),
+    useSingleViewResource('chart', 'Charts', vi.fn()),
   );
 
   let createdId: number | undefined;
@@ -478,12 +478,12 @@ test('useSingleViewResource: createResource posts to correct endpoint', async ()
 });
 
 test('useSingleViewResource: updateResource puts to correct endpoint', async () => {
-  const putSpy = jest.spyOn(SupersetClient, 'put').mockResolvedValue({
+  const putSpy = vi.spyOn(SupersetClient, 'put').mockResolvedValue({
     json: { id: 42, result: { name: 'Updated' } },
   } as unknown as JsonResponse);
 
   const { result } = renderHook(() =>
-    useSingleViewResource('chart', 'Charts', jest.fn()),
+    useSingleViewResource('chart', 'Charts', vi.fn()),
   );
 
   await act(async () => {
@@ -504,10 +504,10 @@ test('useSingleViewResource: updateResource puts to correct endpoint', async () 
 
 test('useSingleViewResource: clearError resets error to null', async () => {
   // First make a failing request to get an error state
-  jest.spyOn(SupersetClient, 'get').mockRejectedValue('Network error');
+  vi.spyOn(SupersetClient, 'get').mockRejectedValue('Network error');
 
   const { result } = renderHook(() =>
-    useSingleViewResource('chart', 'Charts', jest.fn()),
+    useSingleViewResource('chart', 'Charts', vi.fn()),
   );
 
   await act(async () => {
@@ -526,12 +526,12 @@ test('useSingleViewResource: clearError resets error to null', async () => {
 });
 
 test('useSingleViewResource: setResource updates the resource', () => {
-  jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+  vi.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: {},
   } as unknown as JsonResponse);
 
   const { result } = renderHook(() =>
-    useSingleViewResource('chart', 'Charts', jest.fn()),
+    useSingleViewResource('chart', 'Charts', vi.fn()),
   );
 
   act(() => {
@@ -543,11 +543,11 @@ test('useSingleViewResource: setResource updates the resource', () => {
 
 // useFavoriteStatus
 test('useFavoriteStatus: does not fetch when ids array is empty', async () => {
-  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+  const getSpy = vi.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: { result: [] },
   } as unknown as JsonResponse);
 
-  renderHook(() => useFavoriteStatus('chart', [], jest.fn()));
+  renderHook(() => useFavoriteStatus('chart', [], vi.fn()));
 
   await act(async () => {});
 
@@ -556,16 +556,14 @@ test('useFavoriteStatus: does not fetch when ids array is empty', async () => {
 });
 
 test('useFavoriteStatus: saveFaveStar posts when not starred', async () => {
-  jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+  vi.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: { result: [] },
   } as unknown as JsonResponse);
-  const postSpy = jest
+  const postSpy = vi
     .spyOn(SupersetClient, 'post')
     .mockResolvedValue({} as JsonResponse);
 
-  const { result } = renderHook(() =>
-    useFavoriteStatus('chart', [], jest.fn()),
-  );
+  const { result } = renderHook(() => useFavoriteStatus('chart', [], vi.fn()));
 
   await act(async () => {
     // isStarred = false --> should POST to add favorite
@@ -578,16 +576,14 @@ test('useFavoriteStatus: saveFaveStar posts when not starred', async () => {
 });
 
 test('useFavoriteStatus: saveFaveStar deletes when already starred', async () => {
-  jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+  vi.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: { result: [] },
   } as unknown as JsonResponse);
-  const deleteSpy = jest
+  const deleteSpy = vi
     .spyOn(SupersetClient, 'delete')
     .mockResolvedValue({} as JsonResponse);
 
-  const { result } = renderHook(() =>
-    useFavoriteStatus('chart', [], jest.fn()),
-  );
+  const { result } = renderHook(() => useFavoriteStatus('chart', [], vi.fn()));
 
   await act(async () => {
     // isStarred = true --> should DELETE to remove favorite
@@ -600,14 +596,12 @@ test('useFavoriteStatus: saveFaveStar deletes when already starred', async () =>
 });
 
 test('useFavoriteStatus: saveFaveStar updates local status on success', async () => {
-  jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+  vi.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: { result: [] },
   } as unknown as JsonResponse);
-  jest.spyOn(SupersetClient, 'post').mockResolvedValue({} as JsonResponse);
+  vi.spyOn(SupersetClient, 'post').mockResolvedValue({} as JsonResponse);
 
-  const { result } = renderHook(() =>
-    useFavoriteStatus('chart', [], jest.fn()),
-  );
+  const { result } = renderHook(() => useFavoriteStatus('chart', [], vi.fn()));
 
   // Star a chart
   await act(async () => {
@@ -620,15 +614,15 @@ test('useFavoriteStatus: saveFaveStar updates local status on success', async ()
 });
 
 test('useFavoriteStatus: saveFaveStar uses correct endpoint per type', async () => {
-  jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+  vi.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: { result: [] },
   } as unknown as JsonResponse);
-  const postSpy = jest
+  const postSpy = vi
     .spyOn(SupersetClient, 'post')
     .mockResolvedValue({} as JsonResponse);
 
   const { result } = renderHook(() =>
-    useFavoriteStatus('dashboard', [], jest.fn()),
+    useFavoriteStatus('dashboard', [], vi.fn()),
   );
 
   await act(async () => {
@@ -652,9 +646,7 @@ test('useChartEditModal: openChartEditModal sets sliceCurrentlyEditing', () => {
     is_managed_externally: false,
   } as Chart;
 
-  const { result } = renderHook(() =>
-    useChartEditModal(jest.fn(), [mockChart]),
-  );
+  const { result } = renderHook(() => useChartEditModal(vi.fn(), [mockChart]));
 
   expect(result.current.sliceCurrentlyEditing).toBeNull();
 
@@ -679,9 +671,7 @@ test('useChartEditModal: closeChartEditModal clears sliceCurrentlyEditing', () =
     slice_name: 'Test Chart',
   } as Chart;
 
-  const { result } = renderHook(() =>
-    useChartEditModal(jest.fn(), [mockChart]),
-  );
+  const { result } = renderHook(() => useChartEditModal(vi.fn(), [mockChart]));
 
   act(() => {
     result.current.openChartEditModal(mockChart);
@@ -695,7 +685,7 @@ test('useChartEditModal: closeChartEditModal clears sliceCurrentlyEditing', () =
 });
 
 test('useChartEditModal: handleChartUpdated merges edits into chart list', () => {
-  const setCharts = jest.fn();
+  const setCharts = vi.fn();
   const charts: Chart[] = [
     { id: 1, slice_name: 'Original' } as Chart,
     { id: 2, slice_name: 'Other' } as Chart,
@@ -717,7 +707,7 @@ test('useChartEditModal: handleChartUpdated merges edits into chart list', () =>
 });
 
 test('useChartEditModal: handleChartUpdated leaves non-matching charts unchanged', () => {
-  const setCharts = jest.fn();
+  const setCharts = vi.fn();
   const charts: Chart[] = [
     { id: 1, slice_name: 'A' } as Chart,
     { id: 2, slice_name: 'B' } as Chart,

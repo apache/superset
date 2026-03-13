@@ -24,7 +24,7 @@ import {
   fetchPermissionOptions,
 } from './utils';
 
-const getMock = jest.spyOn(SupersetClient, 'get');
+const getMock = vi.spyOn(SupersetClient, 'get');
 
 afterEach(() => {
   getMock.mockReset();
@@ -44,7 +44,7 @@ test('fetchPermissionOptions fetches all results on page 0 with large page_size'
       ],
     },
   } as any);
-  const addDangerToast = jest.fn();
+  const addDangerToast = vi.fn();
 
   const result = await fetchPermissionOptions('dataset', 0, 50, addDangerToast);
 
@@ -94,7 +94,7 @@ test('fetchPermissionOptions serves cached slices on subsequent pages', async ()
     }
     return Promise.resolve({ json: { count: 0, result: [] } } as any);
   });
-  const addDangerToast = jest.fn();
+  const addDangerToast = vi.fn();
 
   // Page 0 populates the cache
   await fetchPermissionOptions('test', 0, 2, addDangerToast);
@@ -115,7 +115,7 @@ test('fetchPermissionOptions makes single request when search term is empty', as
   getMock.mockResolvedValue({
     json: { count: 0, result: [] },
   } as any);
-  const addDangerToast = jest.fn();
+  const addDangerToast = vi.fn();
 
   await fetchPermissionOptions('', 0, 100, addDangerToast);
 
@@ -130,7 +130,7 @@ test('fetchPermissionOptions makes single request when search term is empty', as
 
 test('fetchPermissionOptions fires single toast when both requests fail', async () => {
   getMock.mockRejectedValue(new Error('request failed'));
-  const addDangerToast = jest.fn();
+  const addDangerToast = vi.fn();
 
   const result = await fetchPermissionOptions(
     'dataset',
@@ -178,7 +178,7 @@ test('fetchPermissionOptions deduplicates results from both columns', async () =
     } as any);
   });
 
-  const addDangerToast = jest.fn();
+  const addDangerToast = vi.fn();
   const result = await fetchPermissionOptions('chart', 0, 100, addDangerToast);
 
   // id=5 appears in both results but should be deduplicated
@@ -199,7 +199,7 @@ test('fetchPermissionOptions preserves cache across empty searches', async () =>
       result: [{ id: 1, permission: { name: 'a' }, view_menu: { name: 'X' } }],
     },
   } as any);
-  const addDangerToast = jest.fn();
+  const addDangerToast = vi.fn();
   await fetchPermissionOptions('test', 0, 50, addDangerToast);
   expect(getMock).toHaveBeenCalledTimes(2);
   getMock.mockReset();
@@ -226,7 +226,7 @@ test('fetchGroupOptions sends filters array with search term', async () => {
       ],
     },
   } as any);
-  const addDangerToast = jest.fn();
+  const addDangerToast = vi.fn();
 
   const result = await fetchGroupOptions('eng', 1, 25, addDangerToast);
 
@@ -252,7 +252,7 @@ test('fetchGroupOptions omits filters when search term is empty', async () => {
   getMock.mockResolvedValue({
     json: { count: 0, result: [] },
   } as any);
-  const addDangerToast = jest.fn();
+  const addDangerToast = vi.fn();
 
   await fetchGroupOptions('', 0, 100, addDangerToast);
 
@@ -266,7 +266,7 @@ test('fetchGroupOptions omits filters when search term is empty', async () => {
 
 test('fetchGroupOptions returns empty options on error', async () => {
   getMock.mockRejectedValue(new Error('request failed'));
-  const addDangerToast = jest.fn();
+  const addDangerToast = vi.fn();
 
   const result = await fetchGroupOptions('eng', 0, 100, addDangerToast);
 
@@ -308,7 +308,7 @@ test('fetchPermissionOptions fetches multiple pages when results exceed PAGE_SIZ
     return Promise.resolve({ json: { count: 0, result: [] } } as any);
   });
 
-  const addDangerToast = jest.fn();
+  const addDangerToast = vi.fn();
   const result = await fetchPermissionOptions('multi', 0, 50, addDangerToast);
 
   // Two search branches (view_menu + permission), each needing 2 pages = 4 calls
@@ -346,7 +346,7 @@ test('fetchPermissionOptions handles backend capping page_size below requested',
     } as any);
   });
 
-  const addDangerToast = jest.fn();
+  const addDangerToast = vi.fn();
   const result = await fetchPermissionOptions('cap', 0, 50, addDangerToast);
 
   // Two search branches, each needing 3 pages (500+500+200) = 6 calls
@@ -369,7 +369,7 @@ test('fetchPermissionOptions shares cache across case variants', async () => {
       ],
     },
   } as any);
-  const addDangerToast = jest.fn();
+  const addDangerToast = vi.fn();
 
   await fetchPermissionOptions('Dataset', 0, 50, addDangerToast);
   expect(getMock).toHaveBeenCalledTimes(2);
@@ -401,7 +401,7 @@ test('fetchPermissionOptions evicts oldest cache entry when MAX_CACHE_ENTRIES is
     } as any);
   });
 
-  const addDangerToast = jest.fn();
+  const addDangerToast = vi.fn();
 
   // Fill cache with 20 entries (MAX_CACHE_ENTRIES)
   for (let i = 0; i < 20; i += 1) {
@@ -447,7 +447,7 @@ test('fetchPermissionOptions handles variable page sizes from backend', async ()
     } as any);
   });
 
-  const addDangerToast = jest.fn();
+  const addDangerToast = vi.fn();
   const result = await fetchPermissionOptions('var', 0, 50, addDangerToast);
 
   // Both branches return identical IDs so deduplicated total is 1200
@@ -492,7 +492,7 @@ test('fetchPermissionOptions respects concurrency limit for parallel page fetche
     });
   });
 
-  const addDangerToast = jest.fn();
+  const addDangerToast = vi.fn();
   const fetchPromise = fetchPermissionOptions('conc', 0, 50, addDangerToast);
 
   // Resolve page 0 for both branches (2 calls)
@@ -526,7 +526,7 @@ test('fetchPermissionOptions normalizes whitespace and case for cache keys', asy
       ],
     },
   } as any);
-  const addDangerToast = jest.fn();
+  const addDangerToast = vi.fn();
 
   // Seed cache with "Dataset"
   await fetchPermissionOptions('Dataset', 0, 50, addDangerToast);

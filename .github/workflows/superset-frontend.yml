@@ -63,7 +63,7 @@ jobs:
           name: docker-image
           path: docker-image.tar.gz
 
-  sharded-jest-tests:
+  sharded-unit-tests:
     needs: frontend-build
     if: needs.frontend-build.outputs.should-run == 'true'
     strategy:
@@ -84,19 +84,20 @@ jobs:
         run: |
           mkdir -p ${{ github.workspace }}/superset-frontend/coverage
           docker run \
-          -v ${{ github.workspace }}/superset-frontend/coverage:/app/superset-frontend/coverage \
+          -v ${{ github.workspace }}/superset-frontend/.vitest-reports:/app/superset-frontend/.vitest-reports \
           --rm $TAG \
           bash -c \
-          "npm run test -- --coverage --shard=${{ matrix.shard }}/8 --coverageReporters=json"
+          "npm run test -- --coverage.enabled --reporter=blob --shard=${{ matrix.shard }}/8"
 
       - name: Upload Coverage Artifact
         uses: actions/upload-artifact@v7
         with:
-          name: coverage-artifacts-${{ matrix.shard }}
-          path: superset-frontend/coverage
+          name: blob-report-${{ matrix.shard }}
+          path: .vitest-reports/*
+          include-hidden-files: true
 
   report-coverage:
-    needs: [sharded-jest-tests]
+    needs: [sharded-unit-tests]
     if: needs.frontend-build.outputs.should-run == 'true'
     runs-on: ubuntu-24.04
     permissions:
@@ -112,19 +113,12 @@ jobs:
       - name: Download Coverage Artifacts
         uses: actions/download-artifact@v8
         with:
-          pattern: coverage-artifacts-*
-          path: coverage/
+          pattern: blob-report-*
+          path: .vitest-reports
+          merge-multiple: true
 
-      - name: Reorganize test result reports
-        run: |
-          find coverage/
-          for i in {1..8}; do
-            mv coverage/coverage-artifacts-${i}/coverage-final.json coverage/coverage-shard-${i}.json
-          done
-        shell: bash
-
-      - name: Merge Code Coverage
-        run: npx nyc merge coverage/ merged-output/coverage-summary.json
+      - name: Merge reports
+        run: npx vitest --merge-reports
 
       - name: Upload Code Coverage
         uses: codecov/codecov-action@v5
@@ -132,8 +126,6 @@ jobs:
           flags: javascript
           use_oidc: true
           verbose: true
-          disable_search: true
-          files: merged-output/coverage-summary.json
           slug: apache/superset
 
   lint-frontend:

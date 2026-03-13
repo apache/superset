@@ -28,35 +28,35 @@ import {
   useDatasetDrillInfo,
 } from './datasets';
 
-jest.mock('src/utils/cachedSupersetGet', () => ({
-  cachedSupersetGet: jest.fn(),
+vi.mock('src/utils/cachedSupersetGet', () => ({
+  cachedSupersetGet: vi.fn(),
   supersetGetCache: {
-    delete: jest.fn(),
+    delete: vi.fn(),
   },
 }));
 
 // Mock getExtensionsRegistry at module level - returns undefined by default
-const mockGetExtensionsRegistry = jest.fn(() => ({ get: () => undefined }));
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+const mockGetExtensionsRegistry = vi.fn(() => ({ get: () => undefined }));
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
   getExtensionsRegistry: () => mockGetExtensionsRegistry(),
 }));
 
-const mockedCachedSupersetGet = jest.mocked(cachedSupersetGet);
-const mockedSupersetGetCacheDelete = jest.mocked(supersetGetCache.delete);
-const mockExtension = jest.fn();
+const mockedCachedSupersetGet = vi.mocked(cachedSupersetGet);
+const mockedSupersetGetCacheDelete = vi.mocked(supersetGetCache.delete);
+const mockExtension = vi.fn();
 
 // Helper to configure extension mock for extension path tests
 function setupExtensionMock() {
   mockGetExtensionsRegistry.mockReturnValue({
-    get: jest.fn((key: any) =>
+    get: vi.fn((key: any) =>
       key === 'load.drillby.options' ? mockExtension : undefined,
     ) as any,
   });
 }
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 afterEach(() => {

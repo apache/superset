@@ -47,11 +47,11 @@ const mockTimezones = [
 ];
 
 beforeAll(() => {
-  global.Intl.supportedValuesOf = jest.fn(() => mockTimezones);
+  global.Intl.supportedValuesOf = vi.fn(() => mockTimezones);
 });
 
 afterAll(() => {
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 test('initializes with empty cache', () => {
@@ -229,7 +229,7 @@ test('allows retry after failed computation', async () => {
 });
 
 test('uses queueMicrotask when available', async () => {
-  const queueMicrotaskSpy = jest.spyOn(global, 'queueMicrotask');
+  const queueMicrotaskSpy = vi.spyOn(global, 'queueMicrotask');
   const cache = new TimezoneOptionsCache(mockGetOffsetKey, mockOffsetsToName);
 
   await cache.getOptionsAsync();
@@ -244,7 +244,7 @@ test('falls back to setTimeout when queueMicrotask is not available', async () =
   // @ts-expect-error - temporarily remove queueMicrotask for testing
   delete global.queueMicrotask;
 
-  const setTimeoutSpy = jest.spyOn(global, 'setTimeout');
+  const setTimeoutSpy = vi.spyOn(global, 'setTimeout');
   const cache = new TimezoneOptionsCache(mockGetOffsetKey, mockOffsetsToName);
 
   await cache.getOptionsAsync();

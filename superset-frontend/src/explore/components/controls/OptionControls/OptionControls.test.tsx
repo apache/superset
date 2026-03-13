@@ -39,9 +39,9 @@ import {
 const defaultProps = {
   label: <span>Test label</span>,
   tooltipTitle: 'This is a tooltip title',
-  onRemove: jest.fn(),
-  onMoveLabel: jest.fn(),
-  onDropLabel: jest.fn(),
+  onRemove: vi.fn(),
+  onMoveLabel: vi.fn(),
+  onDropLabel: vi.fn(),
   type: 'test',
   index: 0,
 };
@@ -62,7 +62,7 @@ test('should display a label', async () => {
 });
 
 // Add at the top of the file, after imports
-jest.setTimeout(20000);
+vi.setConfig({ testTimeout: 20000 });
 
 test('should display a certification icon if saved metric is certified', async () => {
   const { container } = setup({

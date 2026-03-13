@@ -19,8 +19,8 @@
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import TableControls from './DrillDetailTableControls';
 
-const setFilters = jest.fn();
-const onReload = jest.fn();
+const setFilters = vi.fn();
+const onReload = vi.fn();
 const setup = (overrides: Record<string, any> = {}) => {
   const props = {
     filters: [],

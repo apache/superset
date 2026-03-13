@@ -25,7 +25,7 @@ interface Props extends ColorBreakpointsControlProps {
   name: string;
   label: string;
   value: ColorBreakpointType[];
-  onChange: jest.Mock;
+  onChange: Mock;
   breakpoints: ColorBreakpointType[];
 }
 
@@ -33,10 +33,10 @@ const createProps = (): Props => ({
   name: 'ColorBreakpointsControl',
   label: 'Color Breakpoints',
   value: [],
-  onChange: jest.fn(),
+  onChange: vi.fn(),
   breakpoints: [],
   actions: {
-    setControlValue: jest.fn(),
+    setControlValue: vi.fn(),
   },
   type: 'ColorBreakpointsControl',
 });
@@ -49,7 +49,7 @@ const renderComponent = (props: Partial<Props> = {}) =>
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ColorBreakpointsControl', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('should render with default props', () => {
@@ -96,7 +96,7 @@ describe('ColorBreakpointsControl', () => {
   });
 
   test('should call onChange when component state updates', () => {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     renderComponent({ onChange });
 
     expect(onChange).toHaveBeenCalledWith([]);
@@ -120,7 +120,7 @@ describe('ColorBreakpointsControl', () => {
   });
 
   test('should save new breakpoint and update state', async () => {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     renderComponent({ onChange });
 
     const addButton = screen.getByText('Click to add new breakpoint');
@@ -162,7 +162,7 @@ describe('ColorBreakpointsControl', () => {
       minValue: 0,
       maxValue: 100,
     };
-    const onChange = jest.fn();
+    const onChange = vi.fn();
 
     renderComponent({ value: [existingBreakpoint], onChange });
 
@@ -179,7 +179,7 @@ describe('ColorBreakpointsControl', () => {
       minValue: 0,
       maxValue: 100,
     };
-    const onChange = jest.fn();
+    const onChange = vi.fn();
 
     renderComponent({ value: [existingBreakpoint], onChange });
 
@@ -201,7 +201,7 @@ describe('ColorBreakpointsControl', () => {
   });
 
   test('should assign incremental IDs to new breakpoints', async () => {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     renderComponent({ onChange });
 
     const addButton = screen.getByText('Click to add new breakpoint');

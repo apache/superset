@@ -23,7 +23,7 @@ import { ActionButton } from '.';
 const defaultProps = {
   label: 'test-action',
   icon: <Icons.EditOutlined />,
-  onClick: jest.fn(),
+  onClick: vi.fn(),
 };
 
 test('renders action button with icon', () => {
@@ -36,7 +36,7 @@ test('renders action button with icon', () => {
 });
 
 test('calls onClick when clicked', async () => {
-  const onClick = jest.fn();
+  const onClick = vi.fn();
   render(<ActionButton {...defaultProps} onClick={onClick} />);
 
   const button = screen.getByRole('button');

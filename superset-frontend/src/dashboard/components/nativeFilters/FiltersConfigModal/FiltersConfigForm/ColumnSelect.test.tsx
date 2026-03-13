@@ -25,13 +25,14 @@ import {
 import fetchMock from 'fetch-mock';
 import { Column, JsonObject, getClientErrorObject } from '@superset-ui/core';
 import { ColumnSelect } from './ColumnSelect';
+import { Mock } from 'vitest';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  getClientErrorObject: jest.fn(() => Promise.resolve({ error: 'Error' })),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  getClientErrorObject: vi.fn(() => Promise.resolve({ error: 'Error' })),
 }));
 
-const mockedGetClientErrorObject = getClientErrorObject as jest.Mock;
+const mockedGetClientErrorObject = getClientErrorObject as Mock;
 
 fetchMock.get('glob:*/api/v1/dataset/123?*', {
   body: {
@@ -60,10 +61,10 @@ fetchMock.get('glob:*/api/v1/dataset/789?*', { status: 404 });
 
 const createProps = (extraProps: JsonObject = {}) => ({
   filterId: 'filterId',
-  form: { getFieldValue: jest.fn(), setFields: jest.fn() },
+  form: { getFieldValue: vi.fn(), setFields: vi.fn() },
   datasetId: 123,
   value: 'column_name_01',
-  onChange: jest.fn(),
+  onChange: vi.fn(),
   ...extraProps,
 });
 

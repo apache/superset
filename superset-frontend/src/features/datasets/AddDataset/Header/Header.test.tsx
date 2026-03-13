@@ -21,7 +21,7 @@ import Header, { DEFAULT_TITLE } from 'src/features/datasets/AddDataset/Header';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Header', () => {
-  const mockSetDataset = jest.fn();
+  const mockSetDataset = vi.fn();
 
   const waitForRender = (props?: any) =>
     waitFor(() => render(<Header setDataset={mockSetDataset} {...props} />));

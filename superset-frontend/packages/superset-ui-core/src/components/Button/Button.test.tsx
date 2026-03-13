@@ -25,14 +25,14 @@ import {
 } from './Button.stories';
 
 test('works with an onClick handler', () => {
-  const mockAction = jest.fn();
+  const mockAction = vi.fn();
   const { getByRole } = render(<Button onClick={mockAction} />);
   fireEvent.click(getByRole('button'));
   expect(mockAction).toHaveBeenCalled();
 });
 
 test('does not handle onClicks when disabled', () => {
-  const mockAction = jest.fn();
+  const mockAction = vi.fn();
   const { getByRole } = render(<Button onClick={mockAction} disabled />);
   fireEvent.click(getByRole('button'));
   expect(mockAction).toHaveBeenCalledTimes(0);

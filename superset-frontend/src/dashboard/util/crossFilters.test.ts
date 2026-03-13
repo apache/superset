@@ -17,6 +17,7 @@
  * under the License.
  */
 import { Behavior, getChartMetadataRegistry, VizType } from '@superset-ui/core';
+import { vi, type Mock } from 'vitest';
 import { getCrossFiltersConfiguration } from './crossFilters';
 import { DEFAULT_CROSS_FILTER_SCOPING } from '../constants';
 
@@ -126,12 +127,12 @@ const CHART_CONFIG_METADATA = {
   global_chart_configuration: GLOBAL_CHART_CONFIG,
 };
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  getChartMetadataRegistry: jest.fn(),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  getChartMetadataRegistry: vi.fn(),
 }));
 
-const mockedGetChartMetadataRegistry = getChartMetadataRegistry as jest.Mock;
+const mockedGetChartMetadataRegistry = getChartMetadataRegistry as Mock;
 
 beforeEach(() => {
   mockedGetChartMetadataRegistry.mockImplementation(() => ({

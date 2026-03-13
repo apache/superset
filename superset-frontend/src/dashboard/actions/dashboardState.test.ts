@@ -18,6 +18,7 @@
  */
 import { SupersetClient, isFeatureEnabled } from '@superset-ui/core';
 import { waitFor } from 'spec/helpers/testing-library';
+import { vi, Mock } from 'vitest';
 
 import {
   SAVE_DASHBOARD_STARTED,
@@ -45,22 +46,22 @@ import { emptyFilters } from 'spec/fixtures/mockDashboardFilters';
 import mockDashboardData from 'spec/fixtures/mockDashboardData';
 import { navigateTo } from 'src/utils/navigationUtils';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
 
-jest.mock('src/components/Chart/chartAction', () => ({
-  refreshChart: jest.fn(() => () => Promise.resolve()),
+vi.mock('src/components/Chart/chartAction', () => ({
+  refreshChart: vi.fn(() => () => Promise.resolve()),
 }));
 
-jest.mock('src/utils/navigationUtils', () => ({
-  navigateTo: jest.fn(),
-  navigateWithState: jest.fn(),
+vi.mock('src/utils/navigationUtils', () => ({
+  navigateTo: vi.fn(),
+  navigateWithState: vi.fn(),
 }));
 
-const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
-const mockNavigateTo = navigateTo as jest.Mock;
+const mockIsFeatureEnabled = isFeatureEnabled as Mock;
+const mockNavigateTo = navigateTo as Mock;
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dashboardState actions', () => {
@@ -85,16 +86,16 @@ describe('dashboardState actions', () => {
   };
   const newDashboardData = mockDashboardData;
 
-  let postStub: jest.SpyInstance;
-  let getStub: jest.SpyInstance;
-  let putStub: jest.SpyInstance;
+  let postStub: Mock;
+  let getStub: Mock;
+  let putStub: Mock;
   const updatedCss = '.updated_css_value {\n  color: black;\n}';
 
   beforeEach(() => {
-    postStub = jest
+    postStub = vi
       .spyOn(SupersetClient, 'post')
       .mockResolvedValue('the value you want to return' as any);
-    getStub = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    getStub = vi.spyOn(SupersetClient, 'get').mockResolvedValue({
       json: {
         result: {
           ...mockDashboardData,
@@ -102,7 +103,7 @@ describe('dashboardState actions', () => {
         },
       },
     } as any);
-    putStub = jest.spyOn(SupersetClient, 'put').mockResolvedValue({
+    putStub = vi.spyOn(SupersetClient, 'put').mockResolvedValue({
       json: {
         result: mockDashboardData,
       },
@@ -116,8 +117,8 @@ describe('dashboardState actions', () => {
 
   function setup(stateOverrides: Record<string, unknown> = {}) {
     const state = { ...mockState, ...stateOverrides };
-    const getState = jest.fn(() => state) as unknown as () => any;
-    const dispatch = jest.fn();
+    const getState = vi.fn(() => state) as unknown as () => any;
+    const dispatch = vi.fn();
     return { getState, dispatch, state };
   }
 
@@ -224,7 +225,7 @@ describe('dashboardState actions', () => {
       });
 
       postStub.mockRestore();
-      postStub = jest.spyOn(SupersetClient, 'post').mockResolvedValue({
+      postStub = vi.spyOn(SupersetClient, 'post').mockResolvedValue({
         json: {
           result: {
             ...mockDashboardData,
@@ -248,7 +249,7 @@ describe('dashboardState actions', () => {
   });
 
   test('fetchCharts returns a Promise that resolves after all refreshes', async () => {
-    (refreshChart as jest.Mock).mockClear();
+    (refreshChart as Mock).mockClear();
     const { getState } = setup({
       dashboardInfo: {
         metadata: {},
@@ -269,8 +270,8 @@ describe('dashboardState actions', () => {
   });
 
   test('fetchCharts resolves for staggered refreshes', async () => {
-    jest.useFakeTimers();
-    (refreshChart as jest.Mock).mockClear();
+    vi.useFakeTimers();
+    (refreshChart as Mock).mockClear();
     const { getState } = setup({
       dashboardInfo: {
         metadata: { stagger_time: 1000, stagger_refresh: true },
@@ -286,17 +287,17 @@ describe('dashboardState actions', () => {
     const chartIds = [1, 2, 3];
     const promise = fetchCharts(chartIds, false, 1000, 10)(dispatch, getState);
 
-    jest.runAllTimers();
+    vi.runAllTimers();
     await promise;
-    jest.useRealTimers();
+    vi.useRealTimers();
 
     expect(refreshChart).toHaveBeenCalledTimes(chartIds.length);
   });
 
   test('fetchCharts rejects for staggered refreshes when any chart refresh fails', async () => {
-    jest.useFakeTimers();
-    (refreshChart as jest.Mock).mockClear();
-    (refreshChart as jest.Mock).mockImplementation(
+    vi.useFakeTimers();
+    (refreshChart as Mock).mockClear();
+    (refreshChart as Mock).mockImplementation(
       (chartKey: number) => () =>
         chartKey === 2
           ? Promise.reject(new Error('refresh failed'))
@@ -317,12 +318,10 @@ describe('dashboardState actions', () => {
     const chartIds = [1, 2, 3];
     const promise = fetchCharts(chartIds, false, 1000, 10)(dispatch, getState);
 
-    jest.runAllTimers();
+    vi.runAllTimers();
     await expect(promise).rejects.toThrow('refresh failed');
-    jest.useRealTimers();
-    (refreshChart as jest.Mock).mockImplementation(
-      () => () => Promise.resolve(),
-    );
+    vi.useRealTimers();
+    (refreshChart as Mock).mockImplementation(() => () => Promise.resolve());
   });
 
   test('onRefresh dispatches success and filters refresh by default', async () => {

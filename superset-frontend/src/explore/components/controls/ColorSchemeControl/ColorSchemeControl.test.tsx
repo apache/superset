@@ -170,8 +170,8 @@ test('should show tooltip on hover when text overflows', async () => {
 
   try {
     // Mock DOM properties to simulate text overflow (the condition for tooltip to show)
-    const mockScrollWidth = jest.fn(() => 200);
-    const mockOffsetWidth = jest.fn(() => 100);
+    const mockScrollWidth = vi.fn(() => 200);
+    const mockOffsetWidth = vi.fn(() => 100);
 
     Object.defineProperty(HTMLElement.prototype, 'scrollWidth', {
       configurable: true,

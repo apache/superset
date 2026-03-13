@@ -40,14 +40,14 @@ import {
  * Only 2 tests are needed here - most workflows are covered by component "+1" tests.
  */
 
-jest.mock('src/utils/export');
+vi.mock('src/utils/export');
 
 // Increase default timeout for tests that involve multiple async operations
-jest.setTimeout(15000);
+vi.setConfig({ testTimeout: 15000 });
 
 beforeEach(() => {
   setupMocks();
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 afterEach(async () => {
@@ -57,14 +57,14 @@ afterEach(async () => {
   });
 
   // Restore real timers in case a test threw early
-  jest.useRealTimers();
+  vi.useRealTimers();
 
   // Reset browser history state to prevent query params leaking between tests
   window.history.replaceState({}, '', '/');
 
   fetchMock.clearHistory();
   fetchMock.removeRoutes();
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 test('ListView provider correctly merges filter + sort + pagination state on refetch', async () => {

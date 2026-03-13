@@ -21,20 +21,28 @@ import './shim';
 import React from 'react';
 // eslint-disable-next-line no-restricted-imports
 import { configure as configureTestingLibrary } from '@testing-library/react';
-import { matchers } from '@emotion/jest';
+// import { matchers } from '@emotion/jest';
+import { vi } from 'vitest';
 
 configureTestingLibrary({
   testIdAttribute: 'data-test',
 });
 
 document.body.innerHTML = '<div id="app" data-bootstrap=""></div>';
-expect.extend(matchers);
+// expect.extend(matchers);
 
 // Allow JSX tests to have React import readily available
 global.React = React;
 
+// @ts-ignore
+global.setInterval = global.jsdom.window.setInterval;
+// @ts-ignore
+global.TextEncoder = global.jsdom.window.TextEncoder;
+// @ts-ignore
+global.TextDecoder = global.jsdom.window.TextDecoder;
+
 // Mock ace-builds globally for tests
-jest.mock('ace-builds/src-min-noconflict/mode-handlebars', () => ({}));
-jest.mock('ace-builds/src-min-noconflict/mode-css', () => ({}));
-jest.mock('ace-builds/src-noconflict/theme-github', () => ({}));
-jest.mock('ace-builds/src-noconflict/theme-monokai', () => ({}));
+vi.mock('ace-builds/src-min-noconflict/mode-handlebars', () => ({}));
+vi.mock('ace-builds/src-min-noconflict/mode-css', () => ({}));
+vi.mock('ace-builds/src-noconflict/theme-github', () => ({}));
+vi.mock('ace-builds/src-noconflict/theme-monokai', () => ({}));

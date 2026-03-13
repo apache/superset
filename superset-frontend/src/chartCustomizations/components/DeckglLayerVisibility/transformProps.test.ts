@@ -21,7 +21,7 @@ import transformProps from './transformProps';
 import { DeckglLayerVisibilityFormData } from './types';
 
 test('transforms props correctly with all required fields', () => {
-  const setDataMaskMock = jest.fn();
+  const setDataMaskMock = vi.fn();
   const formData: DeckglLayerVisibilityFormData = {
     viz_type: 'deckgl_layer_visibility',
     defaultToAllLayersVisible: true,
@@ -50,7 +50,7 @@ test('transforms props correctly with all required fields', () => {
 });
 
 test('transforms props with empty filter state', () => {
-  const setDataMaskMock = jest.fn();
+  const setDataMaskMock = vi.fn();
   const formData: DeckglLayerVisibilityFormData = {
     viz_type: 'deckgl_layer_visibility',
     defaultToAllLayersVisible: false,
@@ -79,7 +79,7 @@ test('transforms props with empty filter state', () => {
 });
 
 test('preserves setDataMask function reference', () => {
-  const setDataMaskMock = jest.fn();
+  const setDataMaskMock = vi.fn();
   const formData: DeckglLayerVisibilityFormData = {
     viz_type: 'deckgl_layer_visibility',
     defaultToAllLayersVisible: true,

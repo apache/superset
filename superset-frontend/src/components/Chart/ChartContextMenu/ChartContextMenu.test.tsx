@@ -27,10 +27,11 @@ import ChartContextMenu, {
   ChartContextMenuRef,
   ContextMenuItem,
 } from './ChartContextMenu';
+import { Mock } from 'vitest';
 
-jest.mock('src/utils/cachedSupersetGet');
+vi.mock('src/utils/cachedSupersetGet');
 
-const mockCachedSupersetGet = cachedSupersetGet as jest.MockedFunction<
+const mockCachedSupersetGet = cachedSupersetGet as Mock<
   typeof cachedSupersetGet
 >;
 
@@ -63,7 +64,7 @@ const TestWrapper = () => {
         ref={contextMenuRef}
         id={sliceId}
         formData={defaultFormData}
-        onSelection={jest.fn()}
+        onSelection={vi.fn()}
         onClose={handleClose}
         displayedItems={ContextMenuItem.All}
       />

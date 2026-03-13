@@ -28,28 +28,27 @@ import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import RightMenu from './RightMenu';
 import { GlobalMenuDataOptions, RightMenuProps } from './types';
+import { Mock } from 'vitest';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
 
-const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
-  typeof isFeatureEnabled
->;
+const mockIsFeatureEnabled = isFeatureEnabled as Mock<typeof isFeatureEnabled>;
 
-jest.mock('src/dashboard/util/isEmbedded', () => ({
-  isEmbedded: jest.fn(() => false),
+vi.mock('src/dashboard/util/isEmbedded', () => ({
+  isEmbedded: vi.fn(() => false),
 }));
 
-const mockIsEmbedded = isEmbedded as jest.MockedFunction<typeof isEmbedded>;
+const mockIsEmbedded = isEmbedded as Mock<typeof isEmbedded>;
 
-jest.mock('react-redux', () => ({
-  ...jest.requireActual('react-redux'),
-  useSelector: jest.fn(),
+vi.mock('react-redux', async importActual => ({
+  ...(await importActual()),
+  useSelector: vi.fn(),
 }));
 
-jest.mock('src/features/databases/DatabaseModal', () => {
+vi.mock('src/features/databases/DatabaseModal', () => {
   const DatabaseModal = () => <span />;
   DatabaseModal.displayName = 'DatabaseModal';
   return DatabaseModal;
@@ -169,7 +168,7 @@ const mockNonExamplesDB = Array.from({ length: 2 })
     },
   }));
 
-const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
+const useSelectorMock = vi.spyOn(reactRedux, 'useSelector');
 
 const getDatabaseWithFileFiterMockUrl =
   'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))';

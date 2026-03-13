@@ -26,6 +26,7 @@ import {
 import { FeatureFlag, VizType, isFeatureEnabled } from '@superset-ui/core';
 import * as actions from 'src/features/reports/ReportModal/actions';
 import ReportModal from '.';
+import { Mock } from 'vitest';
 
 const REPORT_ENDPOINT = 'glob:*/api/v1/report*';
 fetchMock.get(REPORT_ENDPOINT, {});
@@ -50,12 +51,12 @@ const defaultProps = {
   },
 };
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
 
-const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+const mockedIsFeatureEnabled = isFeatureEnabled as Mock;
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Email Report Modal', () => {
   beforeEach(() => {
@@ -114,7 +115,7 @@ describe('Email Report Modal', () => {
     let dispatch: any;
 
     beforeEach(async () => {
-      dispatch = jest.fn();
+      dispatch = vi.fn();
     });
 
     test('creates a new email report', async () => {

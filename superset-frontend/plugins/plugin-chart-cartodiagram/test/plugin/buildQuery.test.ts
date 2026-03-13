@@ -39,9 +39,9 @@ describe('CartodiagramPlugin buildQuery', () => {
     geom_column: 'geom',
   };
 
-  let chartQueryBuilderMock: jest.MockedFunction<any>;
+  let chartQueryBuilderMock: Mock<any>;
   beforeEach(() => {
-    chartQueryBuilderMock = jest.fn();
+    chartQueryBuilderMock = vi.fn();
 
     const registry = getChartBuildQueryRegistry();
     registry.registerValue('pie', chartQueryBuilderMock);

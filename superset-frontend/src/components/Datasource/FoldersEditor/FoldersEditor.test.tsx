@@ -34,19 +34,16 @@ import {
 import { FoldersEditorItemType } from '../types';
 
 // Mock react-virtualized-auto-sizer to provide dimensions in tests
-jest.mock(
-  'react-virtualized-auto-sizer',
-  () =>
-    ({
-      children,
-    }: {
-      children: (params: { height: number; width: number }) => ReactChild;
-    }) =>
-      children({ height: 500, width: 400 }),
-);
+vi.mock('react-virtualized-auto-sizer', () => ({
+  default: ({
+    children,
+  }: {
+    children: (params: { height: number; width: number }) => ReactChild;
+  }) => children({ height: 500, width: 400 }),
+}));
 
 // Mock react-window VariableSizeList to render all items for testing
-jest.mock('react-window', () => ({
+vi.mock('react-window', () => ({
   VariableSizeList: ({
     children: Row,
     itemCount,
@@ -134,7 +131,7 @@ const defaultProps = {
   folders: mockFolders,
   metrics: mockMetrics,
   columns: mockColumns,
-  onChange: jest.fn(),
+  onChange: vi.fn(),
 };
 
 test('renders FoldersEditor with folders', () => {
@@ -255,7 +252,7 @@ test('expands and collapses folders', async () => {
 });
 
 test('edits folder name when clicked in edit mode', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   renderEditor(
     <FoldersEditor
       {...defaultProps}
@@ -472,7 +469,7 @@ test('component renders with proper drag and drop structure', () => {
 });
 
 test('drag functionality integrates properly with selection state', () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   const testProps = {
     ...defaultProps,
     onChange,
@@ -833,7 +830,7 @@ test('handles nested folders correctly during search', async () => {
 });
 
 test('nested folders with items remain visible after drag is cancelled', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   const nestedFolders: DatasourceFolder[] = [
     {
       uuid: 'parent-folder',

@@ -23,7 +23,7 @@ import { ErrorBoundary } from '.';
 
 const mockedProps: Partial<ErrorBoundaryProps> = {
   children: <span>Error children</span>,
-  onError: jest.fn(),
+  onError: vi.fn(),
   showMessage: false,
 };
 

@@ -69,11 +69,11 @@ const defaultDb = {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ExtraOptions Component', () => {
-  const onInputChange = jest.fn();
-  const onTextChange = jest.fn();
-  const onEditorChange = jest.fn();
-  const onExtraInputChange = jest.fn();
-  const onExtraEditorChange = jest.fn();
+  const onInputChange = vi.fn();
+  const onTextChange = vi.fn();
+  const onEditorChange = vi.fn();
+  const onExtraInputChange = vi.fn();
+  const onExtraEditorChange = vi.fn();
 
   const renderComponent = (dbProps = defaultDb, extension = undefined) =>
     render(
@@ -89,7 +89,7 @@ describe('ExtraOptions Component', () => {
     );
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('renders all main panels', () => {

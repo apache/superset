@@ -26,13 +26,13 @@ import {
   getFixedValue,
 } from './metricUtils';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  getMetricLabel: jest.fn((metric: string) => metric),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  getMetricLabel: vi.fn((metric: string) => metric),
 }));
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 test('isMetricValue should identify metric values correctly', () => {

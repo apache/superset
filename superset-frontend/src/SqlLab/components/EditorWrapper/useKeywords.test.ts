@@ -37,6 +37,7 @@ import {
   SQL_FUNCTIONS_AUTOCOMPLETE_SCORE,
 } from 'src/SqlLab/constants';
 import { useKeywords } from './useKeywords';
+import { afterEach, beforeEach, test } from 'vitest';
 
 const fakeSchemaApiResult = ['schema1', 'schema2'];
 const fakeTableApiResult = {
@@ -153,6 +154,7 @@ test('returns keywords including fetched function_names data', async () => {
 });
 
 test('skip fetching if autocomplete skipped', () => {
+  fetchMock.clearHistory().removeRoutes();
   const { result } = renderHook(
     () =>
       useKeywords(

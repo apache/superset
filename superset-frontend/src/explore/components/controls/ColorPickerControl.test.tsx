@@ -25,7 +25,7 @@ import ColorPickerControl from 'src/explore/components/controls/ColorPickerContr
 
 const defaultProps = {
   value: { r: 0, g: 122, b: 135, a: 1 },
-  onChange: jest.fn(),
+  onChange: vi.fn(),
 };
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -43,7 +43,7 @@ describe('ColorPickerControl', () => {
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('renders a ColorPicker component', () => {
@@ -64,7 +64,7 @@ describe('ColorPickerControl', () => {
   });
 
   test('calls onChange with RGB values when color changes', async () => {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     render(<ColorPickerControl {...defaultProps} onChange={onChange} />);
 
     // Open the color picker

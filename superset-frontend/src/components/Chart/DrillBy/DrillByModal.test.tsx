@@ -31,10 +31,11 @@ import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import mockState from 'spec/fixtures/mockState';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import DrillByModal, { DrillByModalProps } from './DrillByModal';
+import { Mock } from 'vitest';
 
 // Mock the isEmbedded function
-jest.mock('src/dashboard/util/isEmbedded', () => ({
-  isEmbedded: jest.fn(() => false),
+vi.mock('src/dashboard/util/isEmbedded', () => ({
+  isEmbedded: vi.fn(() => false),
 }));
 
 const CHART_DATA_ENDPOINT = 'glob:*/api/v1/chart/data*';
@@ -286,20 +287,20 @@ test('should render "Edit chart" enabled with can_explore permission', async () 
 });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('Embedded mode behavior', () => {
+describe('Embedded mode behavior', async () => {
   // eslint-disable-next-line global-require, @typescript-eslint/no-var-requires
-  const { isEmbedded } = require('src/dashboard/util/isEmbedded');
+  const { isEmbedded } = await import('src/dashboard/util/isEmbedded');
 
   beforeEach(() => {
-    (isEmbedded as jest.Mock).mockClear();
+    (isEmbedded as Mock).mockClear();
   });
 
   afterEach(() => {
-    (isEmbedded as jest.Mock).mockReturnValue(false);
+    (isEmbedded as Mock).mockReturnValue(false);
   });
 
   test('should not render "Edit chart" button in embedded mode', async () => {
-    (isEmbedded as jest.Mock).mockReturnValue(true);
+    (isEmbedded as Mock).mockReturnValue(true);
 
     await renderModal();
 
@@ -311,7 +312,7 @@ describe('Embedded mode behavior', () => {
   });
 
   test('should not call postFormData API in embedded mode', async () => {
-    (isEmbedded as jest.Mock).mockReturnValue(true);
+    (isEmbedded as Mock).mockReturnValue(true);
 
     await renderModal({
       column: { column_name: 'name', verbose_name: null },
@@ -327,7 +328,7 @@ describe('Embedded mode behavior', () => {
   });
 
   test('should render "Edit chart" button in non-embedded mode', async () => {
-    (isEmbedded as jest.Mock).mockReturnValue(false);
+    (isEmbedded as Mock).mockReturnValue(false);
 
     await renderModal();
 
@@ -337,7 +338,7 @@ describe('Embedded mode behavior', () => {
   });
 
   test('should call postFormData API in non-embedded mode', async () => {
-    (isEmbedded as jest.Mock).mockReturnValue(false);
+    (isEmbedded as Mock).mockReturnValue(false);
 
     await renderModal({
       column: { column_name: 'name', verbose_name: null },
@@ -482,7 +483,7 @@ describe('Table view with pagination', () => {
   test('should not cause infinite re-renders with pagination', async () => {
     // Mock console.error to catch potential infinite loop warnings
     const originalError = console.error;
-    const consoleErrorSpy = jest.fn();
+    const consoleErrorSpy = vi.fn();
     console.error = consoleErrorSpy;
 
     await renderModal({

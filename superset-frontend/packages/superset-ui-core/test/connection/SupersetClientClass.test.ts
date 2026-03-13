@@ -19,6 +19,7 @@
 import fetchMock from 'fetch-mock';
 import { SupersetClientClass, ClientConfig, CallApi } from '@superset-ui/core';
 import { LOGIN_GLOB } from './fixtures/constants';
+import { Mock } from 'vitest';
 
 beforeAll(() => fetchMock.mockGlobal());
 afterAll(() => fetchMock.hardReset());
@@ -329,7 +330,7 @@ describe('SupersetClientClass', () => {
     test('checks for authentication before every get and post request', async () => {
       expect.assertions(6);
 
-      const authSpy = jest.spyOn(SupersetClientClass.prototype, 'ensureAuth');
+      const authSpy = vi.spyOn(SupersetClientClass.prototype, 'ensureAuth');
       const client = new SupersetClientClass({ protocol, host });
 
       await client.init();
@@ -554,7 +555,7 @@ describe('SupersetClientClass', () => {
 
   describe('when unauthorized', () => {
     let originalLocation: any;
-    let authSpy: jest.SpyInstance;
+    let authSpy: Mock;
     const mockRequestUrl = 'https://host/get/url';
     const mockRequestPath = '/get/url';
     const mockRequestSearch = '?param=1&param=2';
@@ -569,9 +570,9 @@ describe('SupersetClientClass', () => {
         search: mockRequestSearch,
         href: mockHref,
       } as unknown as Location;
-      authSpy = jest
+      authSpy = vi
         .spyOn(SupersetClientClass.prototype, 'ensureAuth')
-        .mockImplementation();
+        .mockImplementation(vi.fn());
       const rejectValue = { status: 401 };
       fetchMock.get(mockRequestUrl, () => Promise.reject(rejectValue));
     });
@@ -635,7 +636,7 @@ describe('SupersetClientClass', () => {
     });
 
     test('accepts an unauthorizedHandler to override redirect behavior', async () => {
-      const unauthorizedHandler = jest.fn();
+      const unauthorizedHandler = vi.fn();
       const client = new SupersetClientClass({ unauthorizedHandler });
 
       let error;
@@ -663,7 +664,7 @@ describe('SupersetClientClass', () => {
     const guestToken = 'test-guest-token';
     const postFormPayload = { number: 123, array: [1, 2, 3] };
 
-    let authSpy: jest.SpyInstance;
+    let authSpy: Mock;
     let client: SupersetClientClass;
     let appendChild: any;
     let removeChild: any;
@@ -675,13 +676,13 @@ describe('SupersetClientClass', () => {
       fetchMock.get(LOGIN_GLOB, { result: 1234 }, { name: LOGIN_GLOB });
 
       client = new SupersetClientClass({ protocol, host });
-      authSpy = jest.spyOn(SupersetClientClass.prototype, 'ensureAuth');
+      authSpy = vi.spyOn(SupersetClientClass.prototype, 'ensureAuth');
       await client.init();
-      appendChild = jest.fn();
-      removeChild = jest.fn();
-      submit = jest.fn();
-      createElement = jest.fn(() => ({
-        appendChild: jest.fn(),
+      appendChild = vi.fn();
+      removeChild = vi.fn();
+      submit = vi.fn();
+      createElement = vi.fn(() => ({
+        appendChild: vi.fn(),
         submit,
       }));
 
@@ -691,7 +692,7 @@ describe('SupersetClientClass', () => {
     });
 
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
 
     test.each(['', '/prefix'])(
@@ -699,7 +700,7 @@ describe('SupersetClientClass', () => {
       async appRoot => {
         if (appRoot !== '') {
           client = new SupersetClientClass({ protocol, host, appRoot });
-          authSpy = jest.spyOn(SupersetClientClass.prototype, 'ensureAuth');
+          authSpy = vi.spyOn(SupersetClientClass.prototype, 'ensureAuth');
           await client.init();
         }
         await client.postForm(mockPostFormEndpoint, {});

@@ -28,15 +28,15 @@ import copyTextToClipboard from 'src/utils/copy';
 import { RootState } from 'src/dashboard/types';
 import ViewQuery, { ViewQueryProps } from './ViewQuery';
 
-const mockHistoryPush = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+const mockHistoryPush = vi.fn();
+vi.mock('react-router-dom', () => ({
+  ...vi.requireActual('react-router-dom'),
   useHistory: () => ({
     push: mockHistoryPush,
   }),
 }));
 
-jest.mock('src/utils/copy');
+vi.mock('src/utils/copy');
 
 const mockState = (
   roles: Record<string, [string, string][]> = {
@@ -94,7 +94,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  jest.resetAllMocks();
+  vi.resetAllMocks();
   fetchMock.clearHistory().removeRoutes();
 });
 
@@ -117,11 +117,11 @@ test('renders the component with Formatted SQL and buttons', async () => {
 test('copies the SQL to the clipboard when Copy button is clicked', async () => {
   setup(mockProps);
 
-  (copyTextToClipboard as jest.Mock).mockResolvedValue('');
+  (copyTextToClipboard as Mock).mockResolvedValue('');
   const copyButton = screen.getByText('Copy');
-  expect(copyTextToClipboard as jest.Mock).not.toHaveBeenCalled();
+  expect(copyTextToClipboard as Mock).not.toHaveBeenCalled();
   fireEvent.click(copyButton);
-  expect(copyTextToClipboard as jest.Mock).toHaveBeenCalled();
+  expect(copyTextToClipboard as Mock).toHaveBeenCalled();
 });
 
 test('shows the original SQL when Format switch is unchecked', async () => {
@@ -174,7 +174,7 @@ test('navigates to SQL Lab when View in SQL Lab button is clicked', () => {
 });
 
 test('opens SQL Lab in a new tab when View in SQL Lab button is clicked with meta key', () => {
-  window.open = jest.fn();
+  window.open = vi.fn();
 
   setup(mockProps);
   const viewInSQLLabButton = screen.getByText('View in SQL Lab');

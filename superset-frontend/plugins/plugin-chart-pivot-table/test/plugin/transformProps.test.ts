@@ -22,7 +22,7 @@ import { supersetTheme } from '@apache-superset/core/theme';
 import transformProps from '../../src/plugin/transformProps';
 import { MetricsLayoutEnum } from '../../src/types';
 
-const setDataMask = jest.fn();
+const setDataMask = vi.fn();
 const formData = {
   groupbyRows: ['row1', 'row2'],
   groupbyColumns: ['col1', 'col2'],

@@ -21,7 +21,7 @@ import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
 import { render, screen } from 'spec/helpers/testing-library';
 import { DatasetNotFoundErrorMessage } from './DatasetNotFoundErrorMessage';
 
-jest.mock(
+vi.mock(
   '@superset-ui/core/components/Icons/AsyncIcon',
   () =>
     ({ fileName }: { fileName: string }) => (

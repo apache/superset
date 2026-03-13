@@ -45,18 +45,18 @@ const mockDashboard = {
   changed_by: 'john.doe@example.com',
 };
 
-const mockHasPerm = jest.fn().mockReturnValue(true);
-const mockOpenDashboardEditModal = jest.fn();
-const mockSaveFavoriteStatus = jest.fn();
-const mockHandleBulkDashboardExport = jest.fn();
-const mockOnDelete = jest.fn();
+const mockHasPerm = vi.fn().mockReturnValue(true);
+const mockOpenDashboardEditModal = vi.fn();
+const mockSaveFavoriteStatus = vi.fn();
+const mockHandleBulkDashboardExport = vi.fn();
+const mockOnDelete = vi.fn();
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
 
-const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+const mockedIsFeatureEnabled = isFeatureEnabled as Mock;
 
 beforeAll(() => {
   mockedIsFeatureEnabled.mockReturnValue(true);
@@ -105,7 +105,7 @@ test('Renders the modified date', () => {
 });
 
 test('should fetch thumbnail when dashboard has no thumbnail URL and feature flag is enabled', async () => {
-  const mockGet = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+  const mockGet = vi.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: { result: { thumbnail_url: '/new-thumbnail.png' } },
   } as unknown as JsonResponse);
 

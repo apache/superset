@@ -50,7 +50,7 @@ const mockedProps = {
   onChange: () => {},
   onHide: () => {},
   show: true,
-  onDatasourceSave: jest.fn(),
+  onDatasourceSave: vi.fn(),
 };
 
 let container: HTMLElement;
@@ -112,7 +112,7 @@ describe('DatasourceModal', () => {
 
   test('calls the onDatasourceSave function when the save button is clicked', async () => {
     cleanup();
-    const onDatasourceSave = jest.fn();
+    const onDatasourceSave = vi.fn();
 
     renderAndWait({
       ...mockedProps,
@@ -131,7 +131,7 @@ describe('DatasourceModal', () => {
   });
 
   test('should render error dialog', async () => {
-    const putSpy = jest
+    const putSpy = vi
       .spyOn(SupersetClient, 'put')
       .mockRejectedValue(new Error('Something went wrong'));
 

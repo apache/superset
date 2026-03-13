@@ -32,8 +32,8 @@ describe('AnchorLink', () => {
   });
 
   test('should scroll the AnchorLink into view upon mount if id matches hash', async () => {
-    const callback = jest.fn();
-    jest.spyOn(document, 'getElementById').mockReturnValue({
+    const callback = vi.fn();
+    vi.spyOn(document, 'getElementById').mockReturnValue({
       scrollIntoView: callback,
     } as unknown as HTMLElement);
 
