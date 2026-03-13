@@ -45,6 +45,7 @@ from superset.mcp_service.common.cache_schemas import (
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
+    serialize_user_object,
     TagInfo,
     UserInfo,
 )
@@ -111,6 +112,14 @@ class ChartInfo(BaseModel):
     owners: List[UserInfo] = Field(default_factory=list, description="Chart owners")
 
     # Fields for unsaved state support
+    form_data: Dict[str, Any] | None = Field(
+        None,
+        description=(
+            "The chart's form_data configuration. When form_data_key is provided, "
+            "this contains the unsaved (cached) configuration rather than the "
+            "saved version."
+        ),
+    )
     form_data_key: str | None = Field(
         None,
         description=(
@@ -218,26 +227,44 @@ class VersionedResponse(BaseModel):
 
 
 class GetChartInfoRequest(BaseModel):
-    """Request schema for get_chart_info with support for ID or UUID.
+    """Request schema for get_chart_info with support for ID, UUID, or form_data_key.
 
     When form_data_key is provided, the tool will retrieve the unsaved chart state
     from cache, allowing you to explain what the user actually sees (not the saved
     version). This is useful when a user edits a chart in Explore but hasn't saved yet.
+
+    For unsaved charts (no chart ID), provide only form_data_key to retrieve the
+    current chart configuration from cache.
     """
 
     identifier: Annotated[
-        int | str,
-        Field(description="Chart identifier - can be numeric ID or UUID string"),
+        int | str | None,
+        Field(
+            default=None,
+            description=(
+                "Chart identifier - can be numeric ID or UUID string. "
+                "Optional when form_data_key is provided (for unsaved charts)."
+            ),
+        ),
     ]
     form_data_key: str | None = Field(
         default=None,
         description=(
-            "Optional cache key for retrieving unsaved chart state. When a user "
+            "Cache key for retrieving unsaved chart state. When a user "
             "edits a chart in Explore but hasn't saved, the current state is stored "
             "with this key. If provided, the tool returns the current unsaved "
-            "configuration instead of the saved version."
+            "configuration instead of the saved version. "
+            "Can be used alone (without identifier) for unsaved charts."
         ),
     )
+
+    @model_validator(mode="after")
+    def validate_identifier_or_form_data_key(self) -> "GetChartInfoRequest":
+        if not self.identifier and not self.form_data_key:
+            raise ValueError(
+                "At least one of 'identifier' or 'form_data_key' must be provided."
+            )
+        return self
 
 
 def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
@@ -278,8 +305,9 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         if getattr(chart, "tags", None)
         else [],
         owners=[
-            UserInfo.model_validate(owner, from_attributes=True)
+            info
             for owner in getattr(chart, "owners", [])
+            if (info := serialize_user_object(owner)) is not None
         ]
         if getattr(chart, "owners", None)
         else [],
@@ -749,6 +777,14 @@ class XYChartConfig(BaseModel):
             "If not specified, Superset will use its default behavior."
         ),
     )
+    orientation: Literal["vertical", "horizontal"] | None = Field(
+        None,
+        description=(
+            "Bar chart orientation. Only applies when kind='bar'. "
+            "'vertical' (default): bars extend upward. "
+            "'horizontal': bars extend rightward, useful for long category names."
+        ),
+    )
     stacked: bool = Field(
         False,
         description="Stack bars/areas on top of each other instead of side-by-side",
@@ -1010,23 +1046,50 @@ class GetChartDataRequest(QueryCacheControl):
     from cache to query data, allowing you to get data for what the user actually sees
     (not the saved version). This is useful when a user edits a chart in Explore but
     hasn't saved yet.
+
+    For unsaved charts (no chart ID), provide only form_data_key to query data using
+    the current chart configuration from cache.
     """
 
-    identifier: int | str = Field(description="Chart identifier (ID, UUID)")
+    identifier: int | str | None = Field(
+        default=None,
+        description=(
+            "Chart identifier (ID, UUID). "
+            "Optional when form_data_key is provided (for unsaved charts)."
+        ),
+    )
     form_data_key: str | None = Field(
         default=None,
         description=(
-            "Optional cache key for retrieving unsaved chart state. When a user "
+            "Cache key for retrieving unsaved chart state. When a user "
             "edits a chart in Explore but hasn't saved, the current state is stored "
             "with this key. If provided, the tool uses this configuration to query "
-            "data instead of the saved chart configuration."
+            "data instead of the saved chart configuration. "
+            "Can be used alone (without identifier) for unsaved charts."
         ),
     )
+
+    @model_validator(mode="after")
+    def validate_identifier_or_form_data_key(self) -> "GetChartDataRequest":
+        if not self.identifier and not self.form_data_key:
+            raise ValueError(
+                "At least one of 'identifier' or 'form_data_key' must be provided."
+            )
+        return self
+
     limit: int | None = Field(
         default=None,
         description=(
             "Maximum number of data rows to return. If not specified, uses the "
             "chart's configured row limit."
+        ),
+    )
+    extra_form_data: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Extra form data to merge into the chart query, typically from "
+            "dashboard native filters. Format: "
+            '{"filters": [{"col": "country", "op": "IN", "val": ["US"]}]}'
         ),
     )
     format: Literal["json", "csv", "excel"] = Field(
@@ -1103,22 +1166,42 @@ class GetChartPreviewRequest(QueryCacheControl):
     chart configuration from cache, allowing you to preview what the user actually sees
     (not the saved version). This is useful when a user edits a chart in Explore but
     hasn't saved yet.
+
+    For unsaved charts (no chart ID), provide only form_data_key to render a preview
+    using the current chart configuration from cache.
     """
 
-    identifier: int | str = Field(description="Chart identifier (ID, UUID)")
+    identifier: int | str | None = Field(
+        default=None,
+        description=(
+            "Chart identifier (ID, UUID). "
+            "Optional when form_data_key is provided (for unsaved charts)."
+        ),
+    )
     form_data_key: str | None = Field(
         default=None,
         description=(
-            "Optional cache key for retrieving unsaved chart state. When a user "
+            "Cache key for retrieving unsaved chart state. When a user "
             "edits a chart in Explore but hasn't saved, the current state is stored "
             "with this key. If provided, the tool renders a preview using this "
-            "configuration instead of the saved chart configuration."
+            "configuration instead of the saved chart configuration. "
+            "Can be used alone (without identifier) for unsaved charts."
         ),
     )
+
+    @model_validator(mode="after")
+    def validate_identifier_or_form_data_key(self) -> "GetChartPreviewRequest":
+        if not self.identifier and not self.form_data_key:
+            raise ValueError(
+                "At least one of 'identifier' or 'form_data_key' must be provided."
+            )
+        return self
+
     format: Literal["url", "ascii", "table", "vega_lite"] = Field(
         default="url",
         description=(
-            "Preview format: 'url' for image URL, 'ascii' for text art, "
+            "Preview format: 'url' for explore link (default), "
+            "'ascii' for text art, "
             "'table' for data table, "
             "'vega_lite' for interactive JSON specification"
         ),

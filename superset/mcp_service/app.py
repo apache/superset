@@ -70,7 +70,7 @@ Chart Management:
 
 SQL Lab Integration:
 - execute_sql: Execute SQL queries and get results (requires database_id)
-- open_sql_lab_with_context: Generate SQL Lab URL with pre-filled query
+- open_sql_lab_with_context: Generate SQL Lab URL with pre-filled sql
 
 Schema Discovery:
 - get_schema: Get schema metadata for chart/dataset/dashboard (columns, filters)
@@ -103,7 +103,7 @@ To find your own charts/dashboards:
    "opr": "eq", "value": current_user.id}}])
 
 To explore data with SQL:
-1. get_instance_info -> find database_id
+1. list_datasets -> find a dataset and note its database_id
 2. execute_sql(database_id, sql) -> run query
 3. open_sql_lab_with_context(database_id) -> open SQL Lab UI
 
@@ -155,6 +155,19 @@ CRITICAL RULES - NEVER VIOLATE:
   Do NOT use execute_sql for chart modifications.
 - Parameter name reminders: open_sql_lab_with_context uses "sql" (not "query"),
   execute_sql uses "sql" (not "query").
+
+IMPORTANT - Tool-Only Interaction:
+- Do NOT generate code artifacts, HTML pages, JavaScript snippets, or any code intended
+  for the user to run. All visualization, data retrieval, and authentication are handled
+  by the provided MCP tools.
+- Always call the appropriate tool directly instead of writing code. For example, use
+  generate_chart to create visualizations rather than generating plotting code.
+- When a tool returns a URL (chart URL, dashboard URL, explore link, SQL Lab link),
+  return that URL to the user. Do NOT attempt to recreate the visualization in code.
+- Do NOT generate HTML dashboards, embed scripts, or custom frontend code. Use
+  generate_dashboard and add_chart_to_existing_dashboard for dashboard operations.
+- If a user asks for something the tools cannot do, explain the limitation and suggest
+  the closest available tool rather than generating code as a workaround.
 
 General usage tips:
 - All listing tools use 1-based pagination (first page is 1)

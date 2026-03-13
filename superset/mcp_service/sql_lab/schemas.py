@@ -19,11 +19,13 @@
 
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
 
 class ExecuteSqlRequest(BaseModel):
     """Request schema for executing SQL queries."""
+
+    model_config = ConfigDict(populate_by_name=True)
 
     database_id: int = Field(
         ..., description="Database connection ID to execute query against"
@@ -36,9 +38,13 @@ class ExecuteSqlRequest(BaseModel):
         None, description="Schema to use for query execution", alias="schema"
     )
     catalog: str | None = Field(None, description="Catalog name for query execution")
-    limit: int = Field(
-        default=1000,
-        description="Maximum number of rows to return",
+    limit: int | None = Field(
+        default=None,
+        description=(
+            "Maximum number of rows to return. "
+            "If not specified, respects the LIMIT in your SQL query. "
+            "If specified, overrides any SQL LIMIT clause."
+        ),
         ge=1,
         le=10000,
     )
@@ -118,8 +124,12 @@ class ExecuteSqlResponse(BaseModel):
 class OpenSqlLabRequest(BaseModel):
     """Request schema for opening SQL Lab with context."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     database_connection_id: int = Field(
-        ..., description="Database connection ID to use in SQL Lab"
+        ...,
+        description="Database connection ID to use in SQL Lab",
+        validation_alias=AliasChoices("database_connection_id", "database_id"),
     )
     schema_name: str | None = Field(
         None, description="Default schema to select in SQL Lab", alias="schema"
@@ -127,12 +137,18 @@ class OpenSqlLabRequest(BaseModel):
     dataset_in_context: str | None = Field(
         None, description="Dataset name/table to provide as context"
     )
-    sql: str | None = Field(None, description="SQL query to pre-populate in the editor")
+    sql: str | None = Field(
+        None,
+        description="SQL to pre-populate in the editor",
+        validation_alias=AliasChoices("sql", "query"),
+    )
     title: str | None = Field(None, description="Title for the SQL Lab tab/query")
 
 
 class SqlLabResponse(BaseModel):
     """Response schema for SQL Lab URL generation."""
+
+    model_config = ConfigDict(populate_by_name=True)
 
     url: str = Field(..., description="URL to open SQL Lab with context")
     database_id: int = Field(..., description="Database ID used")

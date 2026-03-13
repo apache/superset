@@ -39,6 +39,7 @@ from superset.mcp_service.chart.chart_utils import (
 )
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
+    ChartError,
     GenerateChartRequest,
     GenerateChartResponse,
     PerformanceMetadata,
@@ -101,6 +102,7 @@ def _compile_chart(
         )
 
         command = ChartDataCommand(query_context)
+        command.validate()
         result = command.run()
 
         warnings: List[str] = []
@@ -117,7 +119,7 @@ def _compile_chart(
         return CompileResult(success=False, error=str(exc))
 
 
-@tool(tags=["mutate"])
+@tool(tags=["mutate"], class_permission_name="Chart")
 @parse_request(GenerateChartRequest)
 async def generate_chart(  # noqa: C901
     request: GenerateChartRequest, ctx: Context
@@ -256,16 +258,12 @@ async def generate_chart(  # noqa: C901
         chart_id = None
         explore_url = None
         form_data_key = None
-        response_warnings: list[str] = []
+        response_warnings: list[str] = form_data.pop("_mcp_warnings", [])
 
         # Save chart by default (unless save_chart=False)
         if request.save_chart:
             await ctx.report_progress(2, 5, "Creating chart in database")
             from superset.commands.chart.create import CreateChartCommand
-
-            # Use custom chart name if provided, otherwise auto-generate
-            chart_name = request.chart_name or generate_chart_name(request.config)
-            await ctx.debug("Chart name: chart_name=%s" % (chart_name,))
 
             # Find the dataset to get its numeric ID
             from superset.daos.dataset import DatasetDAO
@@ -342,6 +340,15 @@ async def generate_chart(  # noqa: C901
                         "api_version": "v1",
                     }
                 )
+
+            # Generate chart name after dataset lookup so we can include dataset name
+            dataset_name = getattr(dataset, "datasource_name", None) or getattr(
+                dataset, "table_name", None
+            )
+            chart_name = request.chart_name or generate_chart_name(
+                request.config, dataset_name=dataset_name
+            )
+            await ctx.debug("Chart name: chart_name=%s" % (chart_name,))
 
             try:
                 with event_logger.log_context(action="mcp.generate_chart.db_write"):
@@ -630,7 +637,12 @@ async def generate_chart(  # noqa: C901
                                 preview_request, ctx
                             )
 
-                            if hasattr(preview_result, "content"):
+                            if isinstance(preview_result, ChartError):
+                                await ctx.warning(
+                                    "Preview '%s' failed: %s"
+                                    % (format_type, preview_result.error)
+                                )
+                            elif hasattr(preview_result, "content"):
                                 previews[format_type] = preview_result.content
                         else:
                             # For preview-only mode (save_chart=false)
@@ -668,7 +680,12 @@ async def generate_chart(  # noqa: C901
                                     preview_format=format_type,
                                 )
 
-                                if not hasattr(preview_result, "error"):
+                                if isinstance(preview_result, ChartError):
+                                    await ctx.warning(
+                                        "Preview '%s' failed: %s"
+                                        % (format_type, preview_result.error)
+                                    )
+                                else:
                                     previews[format_type] = preview_result
 
             except (CommandException, ValueError, KeyError) as e:

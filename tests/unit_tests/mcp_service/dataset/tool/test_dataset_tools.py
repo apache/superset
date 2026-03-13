@@ -194,13 +194,13 @@ async def test_list_datasets_basic(mock_list, mcp_server):
         assert len(data["datasets"]) == 1
         assert data["datasets"][0]["id"] == 1
         assert data["datasets"][0]["table_name"] == "Test DatasetInfo"
-        assert data["datasets"][0]["uuid"] == "test-dataset-uuid-1"
         # Note: columns and metrics are not in minimal default columns
-        # (id, table_name, schema, uuid). Use select_columns to include them.
+        # (id, table_name, schema, changed_on_humanized). Use select_columns
+        # to include them.
 
-        # Verify UUID is in default columns (datasets don't have slugs)
-        assert "uuid" in data["columns_requested"]
-        assert "uuid" in data["columns_loaded"]
+        # Verify changed_on_humanized is in default columns
+        assert "changed_on_humanized" in data["columns_requested"]
+        assert "changed_on_humanized" in data["columns_loaded"]
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
@@ -1069,7 +1069,8 @@ async def test_list_datasets_includes_columns_and_metrics(mock_list, mcp_server)
     """Test that columns and metrics are included when explicitly requested.
 
     Note: columns and metrics are not in minimal default columns
-    (id, table_name, schema, uuid). Use select_columns to include them.
+    (id, table_name, schema, changed_on_humanized). Use select_columns to
+    include them.
     """
     dataset = MagicMock()
     dataset.id = 11
@@ -1198,7 +1199,13 @@ class TestDatasetDefaultColumnFiltering:
 
         # Should have exactly 4 minimal columns
         assert len(DATASET_DEFAULT_COLUMNS) == 4
-        assert set(DATASET_DEFAULT_COLUMNS) == {"id", "table_name", "schema", "uuid"}
+        assert set(DATASET_DEFAULT_COLUMNS) == {
+            "id",
+            "table_name",
+            "schema",
+            "changed_on_humanized",
+        }
+        assert "uuid" not in DATASET_DEFAULT_COLUMNS
 
         # Heavy columns should NOT be in defaults
         assert "columns" not in DATASET_DEFAULT_COLUMNS
@@ -1229,7 +1236,7 @@ class TestDatasetDefaultColumnFiltering:
                 "id",
                 "table_name",
                 "schema",
-                "uuid",
+                "changed_on_humanized",
             }
 
             # Verify heavy columns are NOT in columns_loaded
@@ -1312,7 +1319,7 @@ class TestDatasetDefaultColumnFiltering:
             dataset_item = data["datasets"][0]
 
             # Verify ONLY default columns are present in the response item
-            expected_keys = {"id", "table_name", "schema_name", "uuid"}
+            expected_keys = {"id", "table_name", "schema", "changed_on_humanized"}
             actual_keys = set(dataset_item.keys())
 
             # The response should only contain the default columns, NOT all columns
