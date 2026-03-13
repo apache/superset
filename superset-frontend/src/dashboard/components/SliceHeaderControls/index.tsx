@@ -48,12 +48,17 @@ import {
 } from '@superset-ui/core/components';
 import { useShareMenuItems } from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
+import downloadAsPdf from 'src/utils/downloadAsPdf';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { Icons } from '@superset-ui/core/components/Icons';
 import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
 import { ResultsPaneOnDashboard } from 'src/explore/components/DataTablesPane';
 import { useDrillDetailMenuItems } from 'src/components/Chart/useDrillDetailMenuItems';
-import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
+import {
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF,
+} from 'src/logger/LogUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import DrillDetailModal from 'src/components/Chart/DrillDetail/DrillDetailModal';
 import { usePermissions } from 'src/hooks/usePermissions';
@@ -163,6 +168,7 @@ const SliceHeaderControls = (
 
   const queryMenuRef: RefObject<any> = useRef(null);
   const resultsMenuRef: RefObject<any> = useRef(null);
+  const dropdownOverlayContainerRef = useRef<HTMLDivElement>(null);
 
   const [modalFilters, setFilters] = useState<BinaryQueryObjectFilterClause[]>(
     [],
@@ -247,13 +253,10 @@ const SliceHeaderControls = (
         props.exportXLSX?.(props.slice.slice_id);
         break;
       case MenuKeys.DownloadAsImage: {
-        // menu closes with a delay, we need to hide it manually,
-        // so that we don't capture it on the screenshot
-        const menu = document.querySelector(
-          '.ant-dropdown:not(.ant-dropdown-hidden)',
-        ) as HTMLElement;
-        if (menu) {
-          menu.style.visibility = 'hidden';
+        // Hide the dropdown overlay so it is not captured in the screenshot
+        const overlayContainer = dropdownOverlayContainerRef.current;
+        if (overlayContainer) {
+          overlayContainer.style.visibility = 'hidden';
         }
         downloadAsImage(
           getScreenshotNodeSelector(props.slice.slice_id),
@@ -261,11 +264,65 @@ const SliceHeaderControls = (
           true,
           theme,
         )(domEvent).then(() => {
-          if (menu) {
-            menu.style.visibility = 'visible';
+          if (overlayContainer) {
+            overlayContainer.style.visibility = 'visible';
           }
         });
+        // eslint-disable-next-line no-unused-expressions
         props.logEvent?.(LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE, {
+          chartId: props.slice.slice_id,
+        });
+        break;
+      }
+      case MenuKeys.DownloadAsPngTransparent:
+      case MenuKeys.DownloadAsPngSolid: {
+        const overlayContainer = dropdownOverlayContainerRef.current;
+        if (overlayContainer) {
+          overlayContainer.style.visibility = 'hidden';
+        }
+
+        const backgroundType =
+          key === MenuKeys.DownloadAsPngTransparent ? 'transparent' : 'solid';
+
+        downloadAsImage(
+          getScreenshotNodeSelector(props.slice.slice_id),
+          props.slice.slice_name,
+          true,
+          theme,
+          { format: 'png', backgroundType },
+        )(domEvent).then(() => {
+          if (overlayContainer) {
+            overlayContainer.style.visibility = 'visible';
+          }
+        });
+
+        // eslint-disable-next-line no-unused-expressions
+        props.logEvent?.(LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG, {
+          chartId: props.slice.slice_id,
+          backgroundType,
+        });
+        break;
+      }
+      case MenuKeys.DownloadAsPdf: {
+        const overlayContainer = dropdownOverlayContainerRef.current;
+        if (overlayContainer) {
+          overlayContainer.style.visibility = 'hidden';
+        }
+
+        const pdfResult = downloadAsPdf(
+          getScreenshotNodeSelector(props.slice.slice_id),
+          props.slice.slice_name,
+          true,
+        )(domEvent);
+
+        Promise.resolve(pdfResult).then(() => {
+          if (overlayContainer) {
+            overlayContainer.style.visibility = 'visible';
+          }
+        });
+
+        // eslint-disable-next-line no-unused-expressions
+        props.logEvent?.(LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF, {
           chartId: props.slice.slice_id,
         });
         break;
@@ -547,8 +604,29 @@ const SliceHeaderControls = (
           : []),
         {
           key: MenuKeys.DownloadAsImage,
-          label: t('Download as image'),
+          label: t('Export screenshot (jpeg)'),
           icon: <Icons.FileImageOutlined css={dropdownIconsStyles} />,
+        },
+        {
+          type: 'submenu',
+          key: 'download_as_png_submenu',
+          label: t('Export screenshot (PNG)'),
+          icon: <Icons.FileImageOutlined css={dropdownIconsStyles} />,
+          children: [
+            {
+              key: MenuKeys.DownloadAsPngTransparent,
+              label: t('Transparent background'),
+            },
+            {
+              key: MenuKeys.DownloadAsPngSolid,
+              label: t('Solid background'),
+            },
+          ],
+        },
+        {
+          key: MenuKeys.DownloadAsPdf,
+          label: t('Export as PDF'),
+          icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
         },
       ],
     });
@@ -556,6 +634,14 @@ const SliceHeaderControls = (
 
   return (
     <>
+      <div
+        ref={dropdownOverlayContainerRef}
+        data-slice-header-dropdown-container
+        css={css`
+          position: absolute;
+          z-index: 0;
+        `}
+      />
       {isFullSize && (
         <Icons.FullscreenExitOutlined
           style={{ fontSize: 22 }}
@@ -565,6 +651,9 @@ const SliceHeaderControls = (
         />
       )}
       <NoAnimationDropdown
+        getPopupContainer={() =>
+          dropdownOverlayContainerRef.current ?? document.body
+        }
         popupRender={() => (
           <Menu
             onClick={handleMenuClick}
