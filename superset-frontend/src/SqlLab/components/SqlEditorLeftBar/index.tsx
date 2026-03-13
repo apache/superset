@@ -129,6 +129,9 @@ const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
       data-test="DatabaseSelector"
       css={css`
         min-width: 500px;
+        @media (max-width: 768px) {
+          min-width: 100%;
+        }
       `}
     >
       <Typography.Title level={5} style={{ margin: 0 }}>
