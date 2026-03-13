@@ -139,7 +139,7 @@ const DndMetricSelect = (props: any) => {
   );
 
   const handleChange = useCallback(
-    (opts: { metric_name?: string } | { metric_name?: string }[] | null) => {
+    (opts: ValueType | ValueType[] | null) => {
       // if clear out options
       if (opts === null) {
         onChange(null);
@@ -150,7 +150,7 @@ const DndMetricSelect = (props: any) => {
       const optionValues = transformedOpts
         .map(option => {
           // pre-defined metric
-          if (option.metric_name) {
+          if (typeof option === 'object' && 'metric_name' in option && option.metric_name) {
             return option.metric_name;
           }
           return option;
