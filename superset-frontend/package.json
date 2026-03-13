@@ -167,7 +167,7 @@
     "dom-to-pdf": "^0.3.2",
     "echarts": "^5.6.0",
     "fast-glob": "^3.3.2",
-    "fs-extra": "^11.3.3",
+    "fs-extra": "^11.3.4",
     "fuse.js": "^7.1.0",
     "geolib": "^3.3.4",
     "geostyler": "^18.3.1",
