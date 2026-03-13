@@ -171,7 +171,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
             tags = model.tags if hasattr(model, "tags") else []
             payload["tags"] = [tag.name for tag in tags if tag.type == TagType.custom]
 
-        file_content = yaml.safe_dump(payload, sort_keys=False)
+        file_content = yaml.safe_dump(payload, sort_keys=False, allow_unicode=True)
         return file_content
 
     @staticmethod
