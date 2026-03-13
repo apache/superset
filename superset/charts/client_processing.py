@@ -394,7 +394,7 @@ def apply_client_processing(  # noqa: C901
             query["data"] = processed_df.to_dict()
         elif query["result_format"] == ChartDataResultFormat.CSV:
             buf = StringIO()
-            processed_df.to_csv(buf, index=show_default_index)
+            processed_df.to_csv(buf, index=show_default_index, sep=sep, decimal=decimal)
             buf.seek(0)
             query["data"] = buf.getvalue()
 

@@ -2830,3 +2830,7 @@ def test_apply_client_processing_csv_format_custom_delimiter():
     assert len(lines) == 3
     # name and value should be separate columns, not merged into one
     assert processed_result["queries"][0]["colnames"] == ["name", "value"]
+    # Output CSV must also use the configured separator and decimal
+    assert lines[0] == "name;value", f"Expected semicolon header, got: {lines[0]}"
+    assert "1,5" in lines[1], f"Expected comma decimal in row 1, got: {lines[1]}"
+    assert "2,0" in lines[2], f"Expected comma decimal in row 2, got: {lines[2]}"
