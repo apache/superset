@@ -534,7 +534,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
               expression.includes('\n');
             const wrappedExpression = isExpression
               ? `(${expression})`
-              : expression;
+              : `"${expression}"`;
             resolved = resolved.replace(
               new RegExp(`\\b${escapedLabel}\\b`, 'g'),
               wrappedExpression,
