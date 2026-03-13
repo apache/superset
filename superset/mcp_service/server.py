@@ -24,12 +24,17 @@ For multi-pod deployments, configure MCP_EVENT_STORE_CONFIG with Redis URL.
 
 import logging
 import os
+from collections.abc import Sequence
 from typing import Any
 
 import uvicorn
 
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
-from superset.mcp_service.mcp_config import get_mcp_factory_config, MCP_STORE_CONFIG
+from superset.mcp_service.mcp_config import (
+    get_mcp_factory_config,
+    MCP_STORE_CONFIG,
+    MCP_TOOL_SEARCH_CONFIG,
+)
 from superset.mcp_service.middleware import (
     create_response_size_guard_middleware,
     GlobalErrorHandlerMiddleware,
@@ -111,8 +116,7 @@ def create_event_store(config: dict[str, Any] | None = None) -> Any | None:
     if config is None:
         config = MCP_STORE_CONFIG
 
-    redis_url = config.get("CACHE_REDIS_URL")
-    if not redis_url:
+    if not config.get("CACHE_REDIS_URL"):
         logging.info("EventStore: Using in-memory storage (single-pod mode)")
         return None
 
@@ -149,6 +153,117 @@ def create_event_store(config: dict[str, Any] | None = None) -> Any | None:
     except Exception as e:
         logging.error("Failed to create Redis EventStore: %s", e)
         return None
+
+
+def _strip_titles(obj: Any, in_properties_map: bool = False) -> Any:
+    """Recursively strip schema metadata ``title`` keys.
+
+    Keeps real field names inside ``properties`` (e.g. a property literally
+    named ``title``), while removing auto-generated schema title metadata.
+    """
+    if isinstance(obj, dict):
+        result: dict[str, Any] = {}
+        for key, value in obj.items():
+            if key == "title" and not in_properties_map:
+                continue
+            result[key] = _strip_titles(value, in_properties_map=(key == "properties"))
+        return result
+    if isinstance(obj, list):
+        return [_strip_titles(item, in_properties_map=False) for item in obj]
+    return obj
+
+
+def _serialize_tools_without_output_schema(
+    tools: Sequence[Any],
+) -> list[dict[str, Any]]:
+    """Serialize tools to JSON, stripping outputSchema and titles to reduce tokens.
+
+    LLMs only need inputSchema to call tools. outputSchema accounts for
+    50-80% of the per-tool schema size, and auto-generated 'title' fields
+    add ~12% bloat. Stripping both cuts search result tokens significantly.
+    """
+    results = []
+    for tool in tools:
+        data = tool.to_mcp_tool().model_dump(mode="json", exclude_none=True)
+        data.pop("outputSchema", None)
+        if input_schema := data.get("inputSchema"):
+            data["inputSchema"] = _strip_titles(input_schema)
+        results.append(data)
+    return results
+
+
+def _fix_call_tool_arguments(tool: Any) -> Any:
+    """Fix anyOf schema in call_tool ``arguments`` for MCP bridge compatibility.
+
+    FastMCP's BaseSearchTransform defines ``arguments`` as
+    ``dict[str, Any] | None`` which emits an ``anyOf`` JSON Schema.
+    Some MCP bridges (mcp-remote, Claude Desktop) don't handle ``anyOf``
+    and strip it, leaving the field without a ``type`` — causing all
+    call_tool invocations to fail with "Input should be a valid dictionary".
+
+    Replaces the ``anyOf`` with a flat ``type: object``.
+    """
+    if "arguments" in (props := (tool.parameters or {}).get("properties", {})):
+        props["arguments"] = {
+            "additionalProperties": True,
+            "default": None,
+            "description": "Arguments to pass to the tool",
+            "type": "object",
+        }
+    return tool
+
+
+def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> None:
+    """Apply tool search transform to reduce initial context size.
+
+    When enabled, replaces the full tool catalog with a search interface.
+    LLMs see only synthetic search/call tools plus pinned tools, and
+    discover other tools on-demand via natural language search.
+
+    Uses subclassing (not monkey-patching) to override ``_make_call_tool``
+    and fix the ``arguments`` schema for MCP bridge compatibility.
+
+    NOTE: ``_make_call_tool`` is a private API in FastMCP 3.x
+    (fastmcp>=3.1.0,<4.0). If FastMCP changes or removes this method
+    in a future major version, these subclasses will need to be updated.
+    """
+    strategy = config.get("strategy", "bm25")
+    kwargs: dict[str, Any] = {
+        "max_results": config.get("max_results", 5),
+        "always_visible": config.get("always_visible", []),
+        "search_tool_name": config.get("search_tool_name", "search_tools"),
+        "call_tool_name": config.get("call_tool_name", "call_tool"),
+        "search_result_serializer": _serialize_tools_without_output_schema,
+    }
+
+    if strategy == "regex":
+        from fastmcp.server.transforms.search import RegexSearchTransform
+
+        class _FixedRegexSearchTransform(RegexSearchTransform):
+            """Regex search with fixed call_tool arguments schema."""
+
+            def _make_call_tool(self) -> Any:
+                return _fix_call_tool_arguments(super()._make_call_tool())
+
+        transform = _FixedRegexSearchTransform(**kwargs)
+    else:
+        from fastmcp.server.transforms.search import BM25SearchTransform
+
+        class _FixedBM25SearchTransform(BM25SearchTransform):
+            """BM25 search with fixed call_tool arguments schema."""
+
+            def _make_call_tool(self) -> Any:
+                return _fix_call_tool_arguments(super()._make_call_tool())
+
+        transform = _FixedBM25SearchTransform(**kwargs)
+
+    mcp_instance.add_transform(transform)
+    logger.info(
+        "Tool search transform enabled (strategy=%s, max_results=%d, pinned=%s)",
+        strategy,
+        kwargs["max_results"],
+        kwargs["always_visible"],
+    )
 
 
 def _create_auth_provider(flask_app: Any) -> Any | None:
@@ -218,6 +333,11 @@ def run_server(
         logging.info("Creating MCP app from factory configuration...")
         factory_config = get_mcp_factory_config()
         mcp_instance = create_mcp_app(**factory_config)
+
+        # Apply tool search transform if configured
+        tool_search_config = MCP_TOOL_SEARCH_CONFIG
+        if tool_search_config.get("enabled", False):
+            _apply_tool_search_transform(mcp_instance, tool_search_config)
     else:
         # Use default initialization with auth from Flask config
         logging.info("Creating MCP app with default configuration...")
@@ -233,8 +353,7 @@ def run_server(
         middleware_list = []
 
         # Add caching middleware (innermost – runs closest to the tool)
-        caching_middleware = create_response_caching_middleware()
-        if caching_middleware:
+        if caching_middleware := create_response_caching_middleware():
             middleware_list.append(caching_middleware)
 
         # Add response size guard (protects LLM clients from huge responses)
@@ -251,6 +370,18 @@ def run_server(
             auth=auth_provider,
             middleware=middleware_list or None,
         )
+
+        # Apply tool search transform if configured
+        tool_search_config = flask_app.config.get(
+            "MCP_TOOL_SEARCH_CONFIG", MCP_TOOL_SEARCH_CONFIG
+        )
+        if tool_search_config.get("enabled", False):
+            _apply_tool_search_transform(mcp_instance, tool_search_config)
+            # Ensure the configured search tool name is excluded from the
+            # response size guard (search results are intentionally large)
+            if size_guard_middleware:
+                search_name = tool_search_config.get("search_tool_name", "search_tools")
+                size_guard_middleware.excluded_tools.add(search_name)
 
     # Create EventStore for session management (Redis for multi-pod, None for in-memory)
     event_store = create_event_store(event_store_config)
