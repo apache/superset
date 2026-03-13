@@ -936,6 +936,12 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
                 "'temporal_column'. Specify a date/time column for "
                 "the trendline x-axis."
             )
+        if self.compare_lag and not self.show_trendline:
+            raise ValueError(
+                "compare_lag requires show_trendline=True. "
+                "Period comparison is only available for "
+                "trendline charts."
+            )
         return self
 
     @model_validator(mode="after")
