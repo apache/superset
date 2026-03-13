@@ -36,6 +36,7 @@ from superset.key_value.types import (
     MarshmallowKeyValueCodec,
     SharedKey,
 )
+from superset.key_value.exceptions import KeyValueParseKeyError
 from superset.key_value.utils import decode_permalink_id
 from superset.security.guest_token import (
     GuestTokenResource,
@@ -163,7 +164,7 @@ class EmbeddedChartRestApi(BaseSupersetApi):
             return self.response_401()
         except EmbeddedChartPermalinkNotFoundError:
             return self.response_404()
-        except (ValueError, KeyError) as ex:
+        except (ValueError, KeyError, KeyValueParseKeyError) as ex:
             logger.warning("Error fetching embedded chart: %s", ex)
             return self.response_500()
 

@@ -31,6 +31,7 @@ from superset.key_value.types import (
     MarshmallowKeyValueCodec,
     SharedKey,
 )
+from superset.key_value.exceptions import KeyValueParseKeyError
 from superset.key_value.utils import decode_permalink_id
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
@@ -84,7 +85,7 @@ class EmbeddedChartView(BaseSupersetView):
                 key,
                 codec,
             )
-        except (ValueError, KeyError) as ex:
+        except (ValueError, KeyError, KeyValueParseKeyError) as ex:
             logger.warning("Error fetching permalink for referrer validation: %s", ex)
             permalink_value = None
 
