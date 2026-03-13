@@ -86,6 +86,7 @@ from superset.utils import core as utils, json
 from superset.utils.cache import etag_cache
 from superset.utils.core import (
     DatasourceType,
+    GenericDataType,
     get_user_id,
     ReservedUrlParameters,
 )
@@ -99,6 +100,7 @@ from superset.views.base import (
     generate_download_headers,
     json_error_response,
     json_success,
+    XlsxResponse,
 )
 from superset.views.error_handling import handle_api_exception
 from superset.views.utils import (
@@ -194,6 +196,9 @@ class Superset(BaseSupersetView):
                 viz_obj.get_csv(), headers=generate_download_headers("csv")
             )
 
+        if response_type == ChartDataResultFormat.XLSX:
+            return self._generate_xlsx(viz_obj)
+
         if response_type == ChartDataResultType.QUERY:
             return self.get_query_string_response(viz_obj)
 
@@ -205,6 +210,24 @@ class Superset(BaseSupersetView):
 
         payload = viz_obj.get_payload()
         return self.send_data_payload_response(viz_obj, payload)
+
+    @staticmethod
+    def _generate_xlsx(viz_obj: BaseViz) -> FlaskResponse:
+        import pandas as pd
+
+        from superset.utils.excel import apply_column_types, df_to_excel
+
+        payload = viz_obj.get_df_payload()
+        df = payload.get("df")
+        if df is None:
+            df = pd.DataFrame()
+            coltypes: list[GenericDataType] = []
+        else:
+            coltypes = payload.get("coltypes") or []
+            if coltypes:
+                df = apply_column_types(df, coltypes)
+        xlsx_data = df_to_excel(df, index=False)
+        return XlsxResponse(xlsx_data, headers=generate_download_headers("xlsx"))
 
     @event_logger.log_this
     @api
@@ -290,15 +313,20 @@ class Superset(BaseSupersetView):
                 response_type = response_option
                 break
 
-        # Verify user has permission to export CSV file
-        if (
-            response_type == ChartDataResultFormat.CSV
-            and not security_manager.can_access("can_csv", "Superset")
+        # Verify user has permission to export data files
+        if response_type in (
+            ChartDataResultFormat.CSV,
+            ChartDataResultFormat.XLSX,
         ):
-            return json_error_response(
-                _("You don't have the rights to download as csv"),
-                status=403,
-            )
+            if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
+                can_export = security_manager.can_access("can_export_data", "Superset")
+            else:
+                can_export = security_manager.can_access("can_csv", "Superset")
+            if not can_export:
+                return json_error_response(
+                    _("You don't have the rights to export data"),
+                    status=403,
+                )
 
         form_data = get_form_data()[0]
         try:
