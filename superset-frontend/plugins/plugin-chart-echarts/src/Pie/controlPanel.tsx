@@ -119,6 +119,36 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'startAngle',
+            config: {
+              type: 'NumberControl',
+              min: 0,
+              max: 360,
+              step: 10,
+              label: t('Start angle'),
+              description: t('Angle at which to start progress axis'),
+              renderTrigger: true,
+              default: DEFAULT_FORM_DATA.startAngle,
+            },
+          },
+        ],
+        [
+          {
+            name: 'sweptAngle',
+            config: {
+              type: 'NumberControl',
+              min: 0,
+              max: 360,
+              step: 10,
+              label: t('Swept angle'),
+              description: t('The angle at which the axis of progress rotates'),
+              renderTrigger: true,
+              default: DEFAULT_FORM_DATA.sweptAngle,
+            },
+          },
+        ],
         ...legendSection,
         // eslint-disable-next-line react/jsx-key
         [<ControlSubSectionHeader>{t('Labels')}</ControlSubSectionHeader>],
