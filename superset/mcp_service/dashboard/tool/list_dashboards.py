@@ -49,7 +49,8 @@ DEFAULT_DASHBOARD_COLUMNS = [
     "id",
     "dashboard_title",
     "slug",
-    "uuid",
+    "url",
+    "changed_on_humanized",
 ]
 
 SORTABLE_DASHBOARD_COLUMNS = [
@@ -68,7 +69,8 @@ async def list_dashboards(
     request: ListDashboardsRequest, ctx: Context
 ) -> DashboardList:
     """List dashboards with filtering and search. Returns dashboard metadata
-    including title, slug, and UUID. Use select_columns to request additional fields.
+    including title, slug, URL, and last modified time. Use select_columns to
+    request additional fields.
 
     Sortable columns for order_column: id, dashboard_title, slug, published,
     changed_on, created_on
