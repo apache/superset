@@ -243,7 +243,7 @@ test('handles create dashboard button click', async () => {
 
   const createButton = screen.getByRole('button', { name: /dashboard$/i });
   await userEvent.click(createButton);
-  expect(assignMock).toHaveBeenCalledWith('/dashboard/new');
+  expect(assignMock).toHaveBeenCalledWith('/dashboard/new/');
 });
 
 test('switches to Other tab when available', async () => {

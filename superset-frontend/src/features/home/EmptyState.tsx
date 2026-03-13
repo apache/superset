@@ -58,7 +58,7 @@ const LABELS = {
 const REDIRECTS = {
   create: {
     [WelcomeTable.Charts]: '/chart/add',
-    [WelcomeTable.Dashboards]: '/dashboard/new',
+    [WelcomeTable.Dashboards]: '/dashboard/new/',
     [WelcomeTable.SavedQueries]: makeUrl('/sqllab?new=true'),
   },
   viewAll: {
