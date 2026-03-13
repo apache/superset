@@ -151,9 +151,13 @@ def load_configs(
             try:
                 config = load_yaml(file_name, content)
 
-                # populate passwords from the request or from existing DBs
+                # populate passwords from the request, from YAML config,
+                # or from existing DBs
                 if file_name in passwords:
                     config["password"] = passwords[file_name]
+                elif prefix == "databases" and config.get("password"):
+                    # password already in YAML config, keep it
+                    pass
                 elif prefix == "databases" and config["uuid"] in db_passwords:
                     config["password"] = db_passwords[config["uuid"]]
 

@@ -93,3 +93,43 @@ def test_import_mask_password(
         == "postgresql://user:XXXXXXXXXX@localhost:5432/superset"
     )
     assert database.password == "password"  # noqa: S105
+
+
+def test_import_database_with_password_in_config(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Test that passwords in the YAML config are used when importing databases.
+    """
+    from superset import db, security_manager
+    from superset.commands.database.importers.v1 import ImportDatabasesCommand
+    from superset.models.core import Database
+
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    configs: dict[str, dict[str, Any]] = {
+        "databases/examples.yaml": {
+            "database_name": "examples_with_password",
+            "sqlalchemy_uri": "postgresql://user:XXXXXXXXXX@localhost:5432/superset",
+            "cache_timeout": None,
+            "expose_in_sqllab": True,
+            "allow_run_async": False,
+            "allow_ctas": False,
+            "allow_cvas": False,
+            "extra": {},
+            "uuid": "b3dc77af-e654-49bb-b321-40f6b559a1ee",
+            "version": "1.0.0",
+            "password": "yaml_password",  # Password provided in YAML config
+            "allow_csv_upload": False,
+        },
+    }
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    ImportDatabasesCommand._import(configs)
+    uuid = configs["databases/examples.yaml"]["uuid"]
+    database = db.session.query(Database).filter_by(uuid=uuid).one()
+    assert database.password == "yaml_password"  # noqa: S105
