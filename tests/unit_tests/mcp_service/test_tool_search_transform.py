@@ -114,19 +114,6 @@ def test_apply_transform_uses_defaults_for_missing_keys():
         assert call_kwargs["call_tool_name"] == "call_tool"
 
 
-def test_transform_not_applied_when_disabled():
-    """No transform applied when config has enabled=False."""
-    # This tests the gating logic in run_server, not _apply_tool_search_transform
-    config = {"enabled": False}
-    assert not config.get("enabled", False)
-
-
-def test_transform_applied_when_enabled():
-    """Transform is applied when config has enabled=True."""
-    config = {"enabled": True}
-    assert config.get("enabled", False)
-
-
 def test_serialize_tools_strips_output_schema():
     """Custom serializer removes outputSchema from tool definitions."""
     mock_tool = MagicMock()
