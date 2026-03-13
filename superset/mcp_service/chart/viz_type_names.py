@@ -37,8 +37,16 @@ _JSON_PATH = Path(__file__).parent / "viz_type_display_names.json"
 
 
 def _load_frontend_display_names() -> dict[str, str]:
-    """Load frontend-only display names from the JSON source of truth."""
-    return json.loads(_JSON_PATH.read_text(encoding="utf-8"))
+    """Load frontend-only display names from the JSON source of truth.
+
+    Returns an empty dict if the file is missing or unreadable so that
+    the MCP service can still start (falling back to title-cased names).
+    """
+    try:
+        return json.loads(_JSON_PATH.read_text(encoding="utf-8"))
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        logger.warning("Could not load %s: %s", _JSON_PATH, exc)
+        return {}
 
 
 # Display names for modern chart plugins that exist only in the frontend

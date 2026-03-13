@@ -83,7 +83,12 @@ def test_frontend_only_viz_types_have_display_names(
 
 
 def test_legacy_viz_names_loaded_from_viz_py() -> None:
-    """Legacy chart names are read from BaseViz.verbose_name in viz.py."""
+    """Legacy chart names are read from BaseViz.verbose_name in viz.py.
+
+    Exercises the real ``_get_legacy_viz_names`` code path by patching the
+    ``superset.viz`` import target so that the function's internal
+    ``from superset.viz import BaseViz`` resolves to a fake class hierarchy.
+    """
 
     class FakeLegacyViz:
         viz_type = "fake_legacy"
@@ -101,20 +106,17 @@ def test_legacy_viz_names_loaded_from_viz_py() -> None:
         def __subclasses__(cls):
             return {FakeLegacyViz}
 
-    with patch(
-        "superset.mcp_service.chart.viz_type_names.BaseViz",
-        FakeBaseViz,
-        create=True,
-    ):
-        # Patch the import inside _get_legacy_viz_names
-        import superset.mcp_service.chart.viz_type_names as mod
+    import superset.mcp_service.chart.viz_type_names as mod
 
-        with patch.object(mod, "_get_legacy_viz_names") as mock_legacy:
-            mock_legacy.return_value = {"fake_legacy": "Fake Legacy Chart"}
-            mod._display_names_cache = None
-
-            result = get_viz_type_display_name("fake_legacy")
-            assert result == "Fake Legacy Chart"
+    # Patch the ``superset.viz`` module so that the real
+    # ``from superset.viz import BaseViz`` inside ``_get_legacy_viz_names``
+    # resolves to ``FakeBaseViz``.
+    fake_viz_module = MagicMock()
+    fake_viz_module.BaseViz = FakeBaseViz
+    with patch.dict("sys.modules", {"superset.viz": fake_viz_module}):
+        mod._display_names_cache = None
+        result = get_viz_type_display_name("fake_legacy")
+        assert result == "Fake Legacy Chart"
 
 
 def test_frontend_override_takes_precedence_over_legacy() -> None:
@@ -160,6 +162,30 @@ def test_frontend_only_names_loaded_from_json() -> None:
     """_FRONTEND_ONLY_NAMES is loaded from the JSON file, not hardcoded."""
     json_data = json.loads(_JSON_PATH.read_text(encoding="utf-8"))
     assert _FRONTEND_ONLY_NAMES == json_data
+
+
+def test_load_frontend_display_names_handles_missing_file() -> None:
+    """_load_frontend_display_names returns {} when the JSON file is missing."""
+    from superset.mcp_service.chart.viz_type_names import _load_frontend_display_names
+
+    with patch(
+        "superset.mcp_service.chart.viz_type_names._JSON_PATH",
+        Path("/nonexistent/path/viz_type_display_names.json"),
+    ):
+        result = _load_frontend_display_names()
+        assert result == {}
+
+
+def test_load_frontend_display_names_handles_invalid_json() -> None:
+    """_load_frontend_display_names returns {} when the JSON file is malformed."""
+    from superset.mcp_service.chart.viz_type_names import _load_frontend_display_names
+
+    with patch(
+        "superset.mcp_service.chart.viz_type_names._JSON_PATH",
+    ) as mock_path:
+        mock_path.read_text.return_value = "not valid json {{"
+        result = _load_frontend_display_names()
+        assert result == {}
 
 
 def test_legacy_import_failure_gracefully_handled() -> None:
