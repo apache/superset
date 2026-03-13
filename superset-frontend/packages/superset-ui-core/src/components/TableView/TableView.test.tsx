@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fireEvent, act } from '@testing-library/react';
 import { render, screen, userEvent, waitFor } from '@superset-ui/core/spec';
 import { TableView, TableViewProps } from '.';
 
@@ -134,10 +133,7 @@ test('should change page when pagination is clicked', async () => {
   expect(screen.getByText('Emily')).toBeInTheDocument();
   expect(screen.queryByText('Kate')).not.toBeInTheDocument();
 
-  const page2Li = screen.getByRole('listitem', { name: '2' });
-  await act(async () => {
-    fireEvent.click(page2Li);
-  });
+  await userEvent.click(screen.getByTitle('Next Page'));
 
   await waitFor(() => {
     expect(screen.getByText('Kate')).toBeInTheDocument();
@@ -147,10 +143,7 @@ test('should change page when pagination is clicked', async () => {
   expect(screen.getByText('10')).toBeInTheDocument();
   expect(screen.queryByText('Emily')).not.toBeInTheDocument();
 
-  const page1Li = screen.getByRole('listitem', { name: '1' });
-  await act(async () => {
-    fireEvent.click(page1Li);
-  });
+  await userEvent.click(screen.getByTitle('Previous Page'));
 
   await waitFor(() => {
     expect(screen.getByText('Emily')).toBeInTheDocument();
@@ -253,8 +246,7 @@ test('should handle server-side pagination', async () => {
   render(<TableView {...serverPaginationProps} />);
 
   // Click next page
-  const page2 = screen.getByRole('listitem', { name: '2' });
-  await userEvent.click(page2);
+  await userEvent.click(screen.getByTitle('Next Page'));
 
   await waitFor(() => {
     expect(onServerPagination).toHaveBeenCalledWith({
@@ -314,9 +306,7 @@ test('should scroll to top when scrollTopOnPagination is true', async () => {
   };
   render(<TableView {...scrollProps} />);
 
-  // Click next page
-  const page2 = screen.getByRole('listitem', { name: '2' });
-  await userEvent.click(page2);
+  await userEvent.click(screen.getByTitle('Next Page'));
 
   await waitFor(() => {
     expect(scrollToSpy).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
@@ -337,9 +327,7 @@ test('should NOT scroll to top when scrollTopOnPagination is false', async () =>
   };
   render(<TableView {...scrollProps} />);
 
-  // Click next page
-  const page2 = screen.getByRole('listitem', { name: '2' });
-  await userEvent.click(page2);
+  await userEvent.click(screen.getByTitle('Next Page'));
 
   await waitFor(() => {
     expect(screen.getByText('321')).toBeInTheDocument();
