@@ -1084,6 +1084,14 @@ class GetChartDataRequest(QueryCacheControl):
             "chart's configured row limit."
         ),
     )
+    extra_form_data: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Extra form data to merge into the chart query, typically from "
+            "dashboard native filters. Format: "
+            '{"filters": [{"col": "country", "op": "IN", "val": ["US"]}]}'
+        ),
+    )
     format: Literal["json", "csv", "excel"] = Field(
         default="json", description="Data export format"
     )
