@@ -438,6 +438,57 @@ test('popupTemplate returns tooltip HTML when country data exists', () => {
   expect(tooltipHtml).toContain('hoverinfo');
 });
 
+test('assigns fill colors from sequential scheme when colorBy is metric', () => {
+  WorldMap(container, {
+    ...baseProps,
+    colorBy: 'metric',
+  });
+
+  const data = lastDatamapConfig?.data as Record<
+    string,
+    { country: string; name: string; m1: number; fillColor: string }
+  >;
+  expect(data).toHaveProperty('USA');
+  expect(data).toHaveProperty('CAN');
+  expect(data.USA).toMatchObject({
+    country: 'USA',
+    name: 'United States',
+    m1: 100,
+  });
+  // fillColor should be a valid color string from the sequential scale
+  expect(data.USA.fillColor).toMatch(/^(#|rgb)/);
+  expect(data.CAN.fillColor).toMatch(/^(#|rgb)/);
+});
+
+test('falls back to theme.colorBorder when metric values are null', () => {
+  WorldMap(container, {
+    ...baseProps,
+    colorBy: 'metric',
+    data: [
+      {
+        country: 'USA',
+        name: 'United States',
+        m1: null as unknown as number,
+        m2: 200,
+        code: 'US',
+      },
+    ],
+  } as any);
+
+  const data = lastDatamapConfig?.data as Record<string, { fillColor: string }>;
+  expect(data.USA.fillColor).toBe('#e0e0e0');
+});
+
+test('does not throw with empty data and metric coloring', () => {
+  expect(() => {
+    WorldMap(container, {
+      ...baseProps,
+      colorBy: 'metric',
+      data: [],
+    });
+  }).not.toThrow();
+});
+
 test('popupTemplate handles null/undefined country data gracefully', () => {
   WorldMap(container, baseProps);
 
