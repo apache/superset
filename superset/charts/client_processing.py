@@ -345,10 +345,15 @@ def apply_client_processing(  # noqa: C901
             # reports to avoid unwanted conversions
             # This allows users to control which values should be treated as null/NA
             na_values = current_app.config["REPORTS_CSV_NA_NAMES"]
+            csv_export_config = current_app.config.get("CSV_EXPORT", {})
+            sep = csv_export_config.get("sep", ",")
+            decimal = csv_export_config.get("decimal", ".")
             df = pd.read_csv(
                 StringIO(data),
                 keep_default_na=na_values is None,
                 na_values=na_values,
+                sep=sep,
+                decimal=decimal,
             )
 
         # convert all columns to verbose (label) name
