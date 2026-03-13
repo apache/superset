@@ -222,6 +222,10 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
 
     Uses subclassing (not monkey-patching) to override ``_make_call_tool``
     and fix the ``arguments`` schema for MCP bridge compatibility.
+
+    NOTE: ``_make_call_tool`` is a private API in FastMCP 3.x
+    (fastmcp>=3.1.0,<4.0). If FastMCP changes or removes this method
+    in a future major version, these subclasses will need to be updated.
     """
     strategy = config.get("strategy", "bm25")
     kwargs: dict[str, Any] = {
