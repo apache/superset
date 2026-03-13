@@ -65,7 +65,7 @@ export const mockCharts = [
     // Add form_data with matrixify enabled
     form_data: {
       viz_type: 'table',
-      matrixify_enable_vertical_layout: true,
+      matrixify_enable: true,
       matrixify_mode_rows: 'metrics',
       matrixify_rows: [{ label: 'COUNT(*)', expressionType: 'SIMPLE' }],
     },
