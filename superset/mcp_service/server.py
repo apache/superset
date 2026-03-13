@@ -192,8 +192,8 @@ def _serialize_tools_without_output_schema(
     return results
 
 
-def _fix_call_tool_schema(transform: Any) -> None:
-    """Patch the call_tool proxy to emit a clean ``type: object`` schema.
+def _fix_call_tool_arguments(tool: Any) -> Any:
+    """Fix anyOf schema in call_tool ``arguments`` for MCP bridge compatibility.
 
     FastMCP's BaseSearchTransform defines ``arguments`` as
     ``dict[str, Any] | None`` which emits an ``anyOf`` JSON Schema.
@@ -201,27 +201,16 @@ def _fix_call_tool_schema(transform: Any) -> None:
     and strip it, leaving the field without a ``type`` — causing all
     call_tool invocations to fail with "Input should be a valid dictionary".
 
-    This patches the transform's ``_make_call_tool`` to post-process the
-    schema, replacing the ``anyOf`` with a flat ``type: object``.
+    Replaces the ``anyOf`` with a flat ``type: object``.
     """
-    original_make = transform._make_call_tool
-
-    def patched_make_call_tool() -> Any:
-        tool = original_make()
-        if "arguments" in (props := (tool.parameters or {}).get("properties", {})):
-            props["arguments"] = {
-                "additionalProperties": True,
-                "default": None,
-                "description": "Arguments to pass to the tool",
-                "type": "object",
-            }
-        return tool
-
-    import types
-
-    transform._make_call_tool = types.MethodType(
-        lambda self: patched_make_call_tool(), transform
-    )
+    if "arguments" in (props := (tool.parameters or {}).get("properties", {})):
+        props["arguments"] = {
+            "additionalProperties": True,
+            "default": None,
+            "description": "Arguments to pass to the tool",
+            "type": "object",
+        }
+    return tool
 
 
 def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> None:
@@ -230,6 +219,9 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
     When enabled, replaces the full tool catalog with a search interface.
     LLMs see only synthetic search/call tools plus pinned tools, and
     discover other tools on-demand via natural language search.
+
+    Uses subclassing (not monkey-patching) to override ``_make_call_tool``
+    and fix the ``arguments`` schema for MCP bridge compatibility.
     """
     strategy = config.get("strategy", "bm25")
     kwargs: dict[str, Any] = {
@@ -243,13 +235,24 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
     if strategy == "regex":
         from fastmcp.server.transforms.search import RegexSearchTransform
 
-        transform = RegexSearchTransform(**kwargs)
+        class _FixedRegexSearchTransform(RegexSearchTransform):
+            """Regex search with fixed call_tool arguments schema."""
+
+            def _make_call_tool(self) -> Any:
+                return _fix_call_tool_arguments(super()._make_call_tool())
+
+        transform = _FixedRegexSearchTransform(**kwargs)
     else:
         from fastmcp.server.transforms.search import BM25SearchTransform
 
-        transform = BM25SearchTransform(**kwargs)
+        class _FixedBM25SearchTransform(BM25SearchTransform):
+            """BM25 search with fixed call_tool arguments schema."""
 
-    _fix_call_tool_schema(transform)
+            def _make_call_tool(self) -> Any:
+                return _fix_call_tool_arguments(super()._make_call_tool())
+
+        transform = _FixedBM25SearchTransform(**kwargs)
+
     mcp_instance.add_transform(transform)
     logger.info(
         "Tool search transform enabled (strategy=%s, max_results=%d, pinned=%s)",

@@ -51,6 +51,17 @@ try:
         logger.info("Reusing existing Flask app from app context for MCP service")
         # Use _get_current_object() to get the actual Flask app, not the LocalProxy
         app = current_app._get_current_object()
+    elif appbuilder_initialized:
+        # appbuilder is initialized but we have no app context. Calling
+        # create_app() here would invoke appbuilder.init_app() a second
+        # time with a *different* Flask app, overwriting shared internal
+        # state (views, security manager, etc.).  Fail loudly instead of
+        # silently corrupting the singleton.
+        raise RuntimeError(
+            "appbuilder is already initialized but no Flask app context is "
+            "available.  Cannot call create_app() as it would re-initialize "
+            "appbuilder with a different Flask app instance."
+        )
     else:
         # Standalone MCP server — Superset models are deeply coupled to
         # appbuilder, security_manager, event_logger, encrypted_field_factory,
