@@ -250,7 +250,8 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
         " + SECOND({col})) SECOND)",
         TimeGrain.MINUTE: "DATE_ADD(DATE({col}), "
         "INTERVAL (HOUR({col})*60 + MINUTE({col})) MINUTE)",
-        TimeGrain.HOUR: "DATE_ADD(DATE({col}), INTERVAL HOUR({col}) HOUR)",
+        TimeGrain.HOUR: "DATE_ADD(CAST(DATE({col}) AS DATETIME), "
+        "INTERVAL HOUR({col}) HOUR)",
         TimeGrain.DAY: "DATE({col})",
         TimeGrain.WEEK: "DATE(DATE_SUB({col}, INTERVAL DAYOFWEEK({col}) - 1 DAY))",
         TimeGrain.MONTH: "DATE(DATE_SUB({col}, INTERVAL DAYOFMONTH({col}) - 1 DAY))",
