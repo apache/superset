@@ -158,8 +158,10 @@ class ChartRenderer extends Component {
       // Check if any matrixify-related properties have changed
       const hasMatrixifyChanges = () => {
         const isMatrixifyEnabled =
-          nextProps.formData.matrixify_enable_vertical_layout === true ||
-          nextProps.formData.matrixify_enable_horizontal_layout === true;
+          (nextProps.formData.matrixify_mode_rows !== undefined &&
+            nextProps.formData.matrixify_mode_rows !== 'disabled') ||
+          (nextProps.formData.matrixify_mode_columns !== undefined &&
+            nextProps.formData.matrixify_mode_columns !== 'disabled');
         if (!isMatrixifyEnabled) return false;
 
         // Check all matrixify-related properties

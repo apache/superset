@@ -130,10 +130,12 @@ function MatrixifyGridRenderer({
 
   // Determine layout parameters - only show headers/labels if layout is enabled
   const showRowLabels =
-    formData.matrixify_enable_vertical_layout === true &&
+    formData.matrixify_mode_rows !== undefined &&
+    formData.matrixify_mode_rows !== 'disabled' &&
     (formData.matrixify_show_row_labels ?? true);
   const showColumnHeaders =
-    formData.matrixify_enable_horizontal_layout === true &&
+    formData.matrixify_mode_columns !== undefined &&
+    formData.matrixify_mode_columns !== 'disabled' &&
     (formData.matrixify_show_column_headers ?? true);
   const rowHeight = formData.matrixify_row_height || DEFAULT_ROW_HEIGHT;
   const fitColumnsDynamically =

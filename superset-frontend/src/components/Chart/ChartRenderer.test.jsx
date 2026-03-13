@@ -106,7 +106,7 @@ test('should detect changes in matrixify properties', () => {
     ...requiredProps,
     formData: {
       ...requiredProps.formData,
-      matrixify_enable_vertical_layout: true,
+      matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: { dimension: 'country', values: ['USA'] },
       matrixify_dimension_y: { dimension: 'category', values: ['Tech'] },
       matrixify_charts_per_row: 3,
@@ -121,7 +121,7 @@ test('should detect changes in matrixify properties', () => {
 
   // Since we can't directly test shouldComponentUpdate, we verify the component
   // correctly identifies matrixify-related properties by checking the implementation
-  expect(initialProps.formData.matrixify_enable_vertical_layout).toBe(true);
+  expect(initialProps.formData.matrixify_mode_rows).toBe('metrics');
   expect(initialProps.formData.matrixify_dimension_x).toEqual({
     dimension: 'country',
     values: ['USA'],
@@ -150,7 +150,7 @@ test('should identify matrixify property changes correctly', () => {
   const initialProps = {
     ...requiredProps,
     formData: {
-      matrixify_enable_vertical_layout: true,
+      matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: { dimension: 'country', values: ['USA'] },
       matrixify_charts_per_row: 3,
     },
@@ -168,7 +168,7 @@ test('should identify matrixify property changes correctly', () => {
   const updatedProps = {
     ...initialProps,
     formData: {
-      matrixify_enable_vertical_layout: true,
+      matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: {
         dimension: 'country',
         values: ['USA', 'Canada'], // Changed
@@ -205,7 +205,7 @@ test('should handle matrixify-related form data changes', () => {
   const updatedProps = {
     ...initialProps,
     formData: {
-      matrixify_enable_vertical_layout: true, // This is a significant change
+      matrixify_mode_rows: 'metrics', // This is a significant change
       regular_control: 'value1',
     },
   };
@@ -222,7 +222,7 @@ test('should detect matrixify property addition', () => {
   const initialProps = {
     ...requiredProps,
     formData: {
-      matrixify_enable_vertical_layout: true,
+      matrixify_mode_rows: 'metrics',
       // No matrixify_dimension_x initially
     },
     queriesResponse: [{ data: 'current' }],
@@ -239,7 +239,7 @@ test('should detect matrixify property addition', () => {
   const updatedProps = {
     ...initialProps,
     formData: {
-      matrixify_enable_vertical_layout: true,
+      matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: { dimension: 'country', values: ['USA'] }, // Added
     },
   };
@@ -256,7 +256,7 @@ test('should detect nested matrixify property changes', () => {
   const initialProps = {
     ...requiredProps,
     formData: {
-      matrixify_enable_vertical_layout: true,
+      matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: {
         dimension: 'country',
         values: ['USA'],
@@ -277,7 +277,7 @@ test('should detect nested matrixify property changes', () => {
   const updatedProps = {
     ...initialProps,
     formData: {
-      matrixify_enable_vertical_layout: true,
+      matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: {
         dimension: 'country',
         values: ['USA'],

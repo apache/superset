@@ -31,6 +31,7 @@ export interface MatrixifyDimensionControlValue {
   dimension: string;
   values: any[];
   topNValues?: TopNValue[]; // Store topN values with their metric values
+  totalValueCount?: number; // Total number of distinct values for this dimension
 }
 
 interface MatrixifyDimensionControlProps {
@@ -41,10 +42,11 @@ interface MatrixifyDimensionControlProps {
   description?: string;
   hovered?: boolean;
   renderTrigger?: boolean;
-  selectionMode?: 'members' | 'topn';
+  selectionMode?: 'members' | 'topn' | 'all';
   topNMetric?: string;
   topNValue?: number;
   topNOrder?: 'ASC' | 'DESC';
+  allSortBy?: 'a_to_z' | 'z_to_a' | 'metric';
   formData?: any; // For access to filters and time range
   validationErrors?: string[];
 }
@@ -63,6 +65,7 @@ export default function MatrixifyDimensionControl(
     topNMetric,
     topNValue,
     topNOrder = 'DESC',
+    allSortBy = 'a_to_z',
     formData,
     validationErrors,
   } = props;
@@ -108,15 +111,19 @@ export default function MatrixifyDimensionControl(
     }
   }, [datasource]);
 
-  // Load dimension values when dimension changes
+  // Load dimension values when dimension changes (members mode, or all mode with A-Z/Z-A sort)
+  const isAllWithMetric = selectionMode === 'all' && allSortBy === 'metric';
   useEffect(() => {
     if (
       !value?.dimension ||
       !datasource ||
       !datasource.id ||
-      selectionMode !== 'members'
+      (selectionMode !== 'members' && selectionMode !== 'all') ||
+      isAllWithMetric
     ) {
-      setValueOptions([]);
+      if (selectionMode !== 'members' && !isAllWithMetric) {
+        setValueOptions([]);
+      }
       return undefined;
     }
 
@@ -141,13 +148,43 @@ export default function MatrixifyDimensionControl(
           signal,
           endpoint,
         });
-        const values = json.result || [];
+        let values = json.result || [];
+
+        // Sort alphabetically for 'all' mode
+        if (selectionMode === 'all') {
+          const descending = allSortBy === 'z_to_a';
+          values = [...values].sort((a: any, b: any) => {
+            const strA = String(a).toLowerCase();
+            const strB = String(b).toLowerCase();
+            if (strA < strB) return descending ? 1 : -1;
+            if (strA > strB) return descending ? -1 : 1;
+            return 0;
+          });
+        }
+
         setValueOptions(
           values.map((v: any) => ({
             label: optionLabel(v),
             value: v,
           })),
         );
+
+        if (!signal.aborted) {
+          const MAX_ALL_DIMENSION_VALUES = 25;
+          const allValues =
+            selectionMode === 'all'
+              ? values.slice(0, MAX_ALL_DIMENSION_VALUES)
+              : value.values || [];
+          const updatedValue: MatrixifyDimensionControlValue = {
+            dimension: value.dimension,
+            values: allValues,
+            totalValueCount: values.length,
+          };
+          if (value.topNValues) {
+            updatedValue.topNValues = value.topNValues;
+          }
+          onChange(updatedValue);
+        }
       } catch (error) {
         setValueOptions([]);
       } finally {
@@ -160,7 +197,7 @@ export default function MatrixifyDimensionControl(
     return () => {
       controller.abort();
     };
-  }, [value?.dimension, datasource, selectionMode]);
+  }, [value?.dimension, datasource, selectionMode, allSortBy]);
 
   // Convert topNValue to number for consistent comparison
   const topNValueNum = useMemo(() => {
@@ -175,16 +212,26 @@ export default function MatrixifyDimensionControl(
     return typeof topNValue === 'number' ? topNValue : null;
   }, [topNValue]);
 
-  // Load TopN values when in TopN mode
+  // Load TopN values when in TopN mode, or All + Metric sort
   useEffect(() => {
-    if (!value?.dimension || !datasource || selectionMode !== 'topn') {
+    const isTopN = selectionMode === 'topn';
+    const isAllMetric = selectionMode === 'all' && allSortBy === 'metric';
+
+    if (!value?.dimension || !datasource || (!isTopN && !isAllMetric)) {
       return undefined;
     }
 
-    // If we don't have the required topN parameters, just return without loading
-    if (!topNMetric || !topNValueNum || topNValueNum <= 0) {
+    if (!topNMetric) {
       return undefined;
     }
+
+    // For topn mode, also require a valid limit
+    if (isTopN && (!topNValueNum || topNValueNum <= 0)) {
+      return undefined;
+    }
+
+    const MAX_ALL_DIMENSION_VALUES = 25;
+    const limit = isAllMetric ? MAX_ALL_DIMENSION_VALUES : topNValueNum!;
 
     const controller = new AbortController();
     const { signal } = controller;
@@ -198,14 +245,13 @@ export default function MatrixifyDimensionControl(
           datasource: datasourceId,
           column: value.dimension,
           metric: topNMetric,
-          limit: topNValueNum,
+          limit,
           sortAscending: topNOrder === 'ASC',
           filters: formData?.adhoc_filters || [],
           timeRange: formData?.time_range,
         });
 
         if (!signal.aborted) {
-          // Always update with the new topN values
           const dimensionValues = extractDimensionValues(values);
           onChange({
             dimension: value.dimension,
@@ -216,7 +262,6 @@ export default function MatrixifyDimensionControl(
       } catch (error: any) {
         if (!signal.aborted) {
           setTopNError(error.message || t('Failed to load top values'));
-          // Clear values on error
           onChange({
             dimension: value.dimension,
             values: [],
@@ -235,8 +280,9 @@ export default function MatrixifyDimensionControl(
     value?.dimension,
     datasource,
     selectionMode,
+    allSortBy,
     topNMetric,
-    topNValueNum, // Use the converted/validated number
+    topNValueNum,
     topNOrder,
     formData?.adhoc_filters,
     formData?.time_range,
