@@ -85,7 +85,11 @@ fetchMock.get(alertsInfoEndpoint, {
   permissions: ['can_write'],
 });
 fetchMock.get(alertsCreatedByEndpoint, { result: [] });
-fetchMock.put(alertEndpoint, { ...mockalerts[0], active: false });
+fetchMock.put(
+  alertEndpoint,
+  { ...mockalerts[0], active: false },
+  { name: 'put-alert' },
+);
 fetchMock.put(alertsEndpoint, { ...mockalerts[0], active: false });
 fetchMock.delete(alertEndpoint, {});
 fetchMock.delete(alertsEndpoint, {});
@@ -282,5 +286,48 @@ describe('AlertList', () => {
     expect(screen.getByTitle('Last modified')).toBeInTheDocument();
     expect(screen.getByTitle('Active')).toBeInTheDocument();
     expect(screen.getByTitle('Actions')).toBeInTheDocument();
+  }, 15000);
+
+  test('toggle active sends PUT with active=false on switch off', async () => {
+    // Remove the original success PUT route by its explicit name
+    fetchMock.removeRoute('put-alert');
+    fetchMock.put(alertEndpoint, 500, {
+      name: 'put-fail',
+    });
+
+    renderAlertList();
+    await screen.findByTestId('alerts-list-view');
+
+    const switches = await screen.findAllByRole('switch');
+    // Use second switch (id=1) — first alert has id=0 which is falsy,
+    // causing toggleActive's `if (data?.id)` guard to skip.
+    expect(switches[1]).toBeChecked();
+
+    // Toggle second switch off
+    fireEvent.click(switches[1]);
+
+    // Verify the PUT was attempted with active=false
+    await waitFor(() => {
+      const putCalls = fetchMock.callHistory.calls('put-fail');
+      expect(putCalls).toHaveLength(1);
+    });
+
+    const putCalls = fetchMock.callHistory.calls('put-fail');
+    const body = JSON.parse(putCalls[0].options.body as string);
+    expect(body.active).toBe(false);
+
+    // updateResource resolves with undefined on error, triggering
+    // the if (!response) rollback path in toggleActive
+    await waitFor(() => {
+      expect(switches[1]).toBeChecked();
+    });
+
+    // Restore the PUT endpoint
+    fetchMock.removeRoute('put-fail');
+    fetchMock.put(
+      alertEndpoint,
+      { ...mockalerts[0], active: false },
+      { name: 'put-alert' },
+    );
   }, 15000);
 });
