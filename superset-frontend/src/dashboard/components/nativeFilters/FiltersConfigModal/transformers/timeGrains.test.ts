@@ -74,9 +74,7 @@ test('time_grains allows partial selection of grains', () => {
   const allGrains = ['PT1M', 'PT1H', 'P1D', 'P1W', 'P1M', 'P0.25Y', 'P1Y'];
   const selectedGrains = ['P1D', 'P1W', 'P1M'];
 
-  expect(selectedGrains).toEqual(
-    expect.arrayContaining(['P1D', 'P1W', 'P1M']),
-  );
+  expect(selectedGrains).toEqual(expect.arrayContaining(['P1D', 'P1W', 'P1M']));
   expect(selectedGrains.length).toBe(3);
   expect(selectedGrains.length).toBeLessThan(allGrains.length);
 });

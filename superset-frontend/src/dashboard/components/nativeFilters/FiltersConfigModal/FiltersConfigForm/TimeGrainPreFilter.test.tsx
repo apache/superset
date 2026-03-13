@@ -16,11 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  render,
-  screen,
-  userEvent,
-} from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { Form, Select } from '@superset-ui/core/components';
 import { CollapsibleControl } from './CollapsibleControl';
 import { getTimeGrainOptions } from './utils';
