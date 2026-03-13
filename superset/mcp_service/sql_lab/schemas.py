@@ -64,6 +64,34 @@ class ColumnInfo(BaseModel):
     is_nullable: bool | None = Field(None, description="Whether column allows NULL")
 
 
+class StatementData(BaseModel):
+    """Row data and column metadata for a single SQL statement."""
+
+    rows: Any = Field(..., description="Result rows as list of dictionaries")
+    columns: list[ColumnInfo] = Field(..., description="Column metadata information")
+
+
+class StatementInfo(BaseModel):
+    """Information about a single SQL statement execution."""
+
+    original_sql: str = Field(..., description="Original SQL as submitted")
+    executed_sql: str = Field(
+        ..., description="SQL after transformations (limit applied)"
+    )
+    row_count: int = Field(..., description="Number of rows returned/affected")
+    execution_time_ms: float | None = Field(
+        None, description="Statement execution time in milliseconds"
+    )
+    data: StatementData | None = Field(
+        None,
+        description=(
+            "Row data and column metadata for this statement. "
+            "Present for data-bearing statements (e.g., SELECT), "
+            "absent for DML/DDL statements (e.g., SET, UPDATE)."
+        ),
+    )
+
+
 class ExecuteSqlResponse(BaseModel):
     """Response schema for SQL execution results."""
 
@@ -84,6 +112,18 @@ class ExecuteSqlResponse(BaseModel):
     )
     error: str | None = Field(None, description="Error message if query failed")
     error_type: str | None = Field(None, description="Type of error if failed")
+    statements: list[StatementInfo] | None = Field(
+        None, description="Per-statement execution info"
+    )
+    multi_statement_warning: str | None = Field(
+        None,
+        description=(
+            "Warning when multiple data-bearing statements were executed. "
+            "The top-level rows/columns contain only the last "
+            "data-bearing statement's results. "
+            "Check each entry in the statements array for per-statement data."
+        ),
+    )
 
 
 class SaveSqlQueryRequest(BaseModel):

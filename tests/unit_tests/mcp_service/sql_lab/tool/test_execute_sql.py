@@ -20,6 +20,7 @@ Unit tests for execute_sql MCP tool
 """
 
 import logging
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -67,6 +68,50 @@ def _mock_database(
     ]
     mock_cursor.fetchmany.return_value = [(1, "test_name")]
     mock_cursor.rowcount = 1
+
+    mock_conn = Mock()
+    mock_conn.cursor.return_value = mock_cursor
+    mock_conn.commit = Mock()
+
+    mock_context = MagicMock()
+    mock_context.__enter__.return_value = mock_conn
+    mock_context.__exit__.return_value = None
+
+    database.get_raw_connection.return_value = mock_context
+
+    return database
+
+
+def _mock_multi_statement_database(
+    statement_results: list[dict[str, Any]],
+    allow_dml: bool = False,
+) -> Mock:
+    """Create a mock database for multi-statement SQL.
+
+    Each entry in statement_results should have:
+      - description: cursor.description value (None for DML)
+      - fetchmany: return value of cursor.fetchmany (list of tuples)
+      - rowcount: cursor.rowcount value
+    """
+    database = Mock()
+    database.id = 1
+    database.database_name = "test_db"
+    database.allow_dml = allow_dml
+
+    mock_cursor = Mock()
+
+    # Track which statement we're on
+    call_count = {"n": 0}
+
+    def execute_side_effect(sql: str) -> None:
+        idx = call_count["n"]
+        sr = statement_results[idx]
+        mock_cursor.description = sr.get("description")
+        mock_cursor.fetchmany.return_value = sr.get("fetchmany", [])
+        mock_cursor.rowcount = sr.get("rowcount", 0)
+        call_count["n"] += 1
+
+    mock_cursor.execute.side_effect = execute_side_effect
 
     mock_conn = Mock()
     mock_conn.cursor.return_value = mock_cursor
@@ -496,3 +541,218 @@ class TestExecuteSql:
         async with Client(mcp_server) as client:
             with pytest.raises(ToolError, match="less than or equal to 10000"):
                 await client.call_tool("execute_sql", {"request": request})
+
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    async def test_execute_sql_multi_statement(
+        self, mock_db, mock_security_manager, mcp_server
+    ):
+        """Two SELECTs: both have per-statement data, warning present."""
+        mock_database = _mock_multi_statement_database(
+            statement_results=[
+                {
+                    "description": [
+                        ("id", "INTEGER", None, None, None, None, False),
+                    ],
+                    "fetchmany": [(1,), (2,)],
+                    "rowcount": 2,
+                },
+                {
+                    "description": [
+                        ("name", "VARCHAR", None, None, None, None, True),
+                    ],
+                    "fetchmany": [("alice",), ("bob",), ("charlie",)],
+                    "rowcount": 3,
+                },
+            ],
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.can_access_database.return_value = True
+
+        request = {
+            "database_id": 1,
+            "sql": "SELECT id FROM t1; SELECT name FROM t2",
+            "limit": 100,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+
+            assert result.data.success is True
+            # Top-level has last data-bearing statement's results
+            assert result.data.row_count == 3
+            assert len(result.data.rows) == 3
+            assert result.data.rows[0]["name"] == "alice"
+
+            # Per-statement info
+            assert result.data.statements is not None
+            assert len(result.data.statements) == 2
+
+            stmt0 = result.data.statements[0]
+            assert stmt0.original_sql == "SELECT id FROM t1"
+            assert stmt0.data is not None
+            assert len(stmt0.data.rows) == 2
+            assert stmt0.data.rows[0]["id"] == 1
+
+            stmt1 = result.data.statements[1]
+            assert stmt1.original_sql == "SELECT name FROM t2"
+            assert stmt1.data is not None
+            assert len(stmt1.data.rows) == 3
+
+            # Warning present for multiple data-bearing statements
+            assert result.data.multi_statement_warning is not None
+            assert "2 data-bearing" in result.data.multi_statement_warning
+
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    async def test_execute_sql_multi_statement_preserves_all_data(
+        self, mock_db, mock_security_manager, mcp_server
+    ):
+        """Regression: first statement's rows are NOT lost."""
+        mock_database = _mock_multi_statement_database(
+            statement_results=[
+                {
+                    "description": [
+                        ("val", "INTEGER", None, None, None, None, False),
+                    ],
+                    "fetchmany": [(10,), (20,)],
+                    "rowcount": 2,
+                },
+                {
+                    "description": [
+                        ("val", "INTEGER", None, None, None, None, False),
+                    ],
+                    "fetchmany": [(30,)],
+                    "rowcount": 1,
+                },
+            ],
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.can_access_database.return_value = True
+
+        request = {
+            "database_id": 1,
+            "sql": "SELECT 10 as val UNION SELECT 20 as val; SELECT 30 as val",
+            "limit": 100,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+
+            assert result.data.success is True
+            # First statement data preserved in statements array
+            stmt0 = result.data.statements[0]
+            assert stmt0.data is not None
+            assert len(stmt0.data.rows) == 2
+            assert stmt0.data.rows[0]["val"] == 10
+            assert stmt0.data.rows[1]["val"] == 20
+
+            # Top-level has last statement only
+            assert result.data.row_count == 1
+            assert result.data.rows[0]["val"] == 30
+
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    async def test_execute_sql_multi_statement_set_then_select(
+        self, mock_db, mock_security_manager, mcp_server
+    ):
+        """SET + SELECT: only SELECT has data, no warning."""
+        mock_database = _mock_multi_statement_database(
+            statement_results=[
+                {
+                    "description": None,  # SET produces no result set
+                    "fetchmany": [],
+                    "rowcount": 0,
+                },
+                {
+                    "description": [
+                        ("x", "INTEGER", None, None, None, None, False),
+                    ],
+                    "fetchmany": [(42,)],
+                    "rowcount": 1,
+                },
+            ],
+            allow_dml=True,
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.can_access_database.return_value = True
+
+        request = {
+            "database_id": 1,
+            "sql": "SET @foo = 1; SELECT 42 as x",
+            "limit": 100,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+
+            assert result.data.success is True
+            assert result.data.row_count == 1
+            assert result.data.rows[0]["x"] == 42
+
+            # Per-statement info
+            assert len(result.data.statements) == 2
+            assert result.data.statements[0].data is None  # SET has no data
+            assert result.data.statements[1].data is not None
+
+            # Only one data-bearing statement — no warning
+            assert result.data.multi_statement_warning is None
+
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    async def test_execute_sql_multi_statement_all_dml(
+        self, mock_db, mock_security_manager, mcp_server
+    ):
+        """Two DMLs: no per-statement data, no warning."""
+        mock_database = _mock_multi_statement_database(
+            statement_results=[
+                {
+                    "description": None,
+                    "fetchmany": [],
+                    "rowcount": 5,
+                },
+                {
+                    "description": None,
+                    "fetchmany": [],
+                    "rowcount": 3,
+                },
+            ],
+            allow_dml=True,
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.can_access_database.return_value = True
+
+        request = {
+            "database_id": 1,
+            "sql": "UPDATE t1 SET x=1; UPDATE t2 SET y=2",
+            "limit": 100,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+
+            assert result.data.success is True
+            assert result.data.affected_rows == 3  # Last DML's rowcount
+            assert result.data.rows == []  # No data-bearing results
+
+            # Per-statement info present but no data
+            assert len(result.data.statements) == 2
+            assert result.data.statements[0].data is None
+            assert result.data.statements[1].data is None
+            assert result.data.statements[0].row_count == 5
+            assert result.data.statements[1].row_count == 3
+
+            # No data-bearing statements — no warning
+            assert result.data.multi_statement_warning is None

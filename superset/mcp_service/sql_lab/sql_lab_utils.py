@@ -92,6 +92,12 @@ def validate_sql_query(sql: str, database: Any) -> None:
                 raise SupersetDisallowedSQLFunctionException(disallowed_functions)
 
 
+def _split_sql_statements(sql: str) -> list[str]:
+    """Split SQL into individual statements by semicolons."""
+    statements = [s.strip() for s in sql.split(";")]
+    return [s for s in statements if s]
+
+
 def execute_sql_query(
     database: Any,
     sql: str,
@@ -108,17 +114,130 @@ def execute_sql_query(
 
     # Apply parameters and validate
     sql = _apply_parameters(sql, parameters)
-    validate_sql_query(sql, database)
 
-    # Apply limit for SELECT queries
-    rendered_sql = _apply_limit(sql, limit)
+    statements = _split_sql_statements(sql)
 
-    # Execute and get results
-    results = _execute_query(database, rendered_sql, schema, limit)
+    if len(statements) > 1:
+        results = _execute_multi_statement(
+            database,
+            statements,
+            schema,
+            limit,
+        )
+    else:
+        # Single statement: existing flow
+        validate_sql_query(sql, database)
+        original_sql = sql
+        rendered_sql = _apply_limit(sql, limit)
+        results = _execute_query(database, rendered_sql, schema, limit)
+
+        # Wrap single statement result into statement_results
+        stmt_result: dict[str, Any] = {
+            "original_sql": original_sql,
+            "executed_sql": rendered_sql,
+            "row_count": results.get("row_count", 0),
+            "execution_time_ms": None,
+        }
+        if results.get("columns"):
+            stmt_result["rows"] = results.get("rows", [])
+            stmt_result["columns"] = results.get("columns", [])
+        else:
+            stmt_result["rows"] = None
+            stmt_result["columns"] = None
+        results["statement_results"] = [stmt_result]
+        results["data_bearing_count"] = 1 if results.get("columns") else 0
 
     # Calculate execution time
     end_time = now_as_float()
     results["execution_time"] = end_time - start_time
+
+    return results
+
+
+def _execute_multi_statement(
+    database: Any,
+    statements: list[str],
+    schema: str | None,
+    limit: int,
+) -> dict[str, Any]:
+    """Execute multiple SQL statements and collect per-statement results."""
+    from superset.utils.core import QuerySource
+    from superset.utils.dates import now_as_float
+
+    results: dict[str, Any] = {
+        "rows": [],
+        "columns": [],
+        "row_count": 0,
+        "affected_rows": None,
+        "execution_time": 0.0,
+        "statement_results": [],
+        "data_bearing_count": 0,
+    }
+
+    try:
+        with database.get_raw_connection(
+            catalog=None,
+            schema=schema,
+            source=QuerySource.SQL_LAB,
+        ) as conn:
+            cursor = conn.cursor()
+            needs_commit = False
+
+            for original_sql in statements:
+                validate_sql_query(original_sql, database)
+                executed_sql = _apply_limit(original_sql, limit)
+
+                stmt_start = now_as_float()
+                cursor.execute(executed_sql)
+                stmt_end = now_as_float()
+                execution_time_ms = (stmt_end - stmt_start) * 1000
+
+                stmt_result: dict[str, Any] = {
+                    "original_sql": original_sql,
+                    "executed_sql": executed_sql,
+                    "execution_time_ms": execution_time_ms,
+                }
+
+                if cursor.description:
+                    # Data-bearing statement
+                    data = cursor.fetchmany(limit)
+                    column_info = []
+                    for col in cursor.description:
+                        column_info.append(
+                            {
+                                "name": col[0],
+                                "type": str(col[1]) if col[1] else "unknown",
+                                "is_nullable": col[6] if len(col) > 6 else None,
+                            }
+                        )
+                    column_names = [c["name"] for c in column_info]
+                    rows = [dict(zip(column_names, row, strict=False)) for row in data]
+
+                    stmt_result["row_count"] = len(rows)
+                    stmt_result["rows"] = rows
+                    stmt_result["columns"] = column_info
+
+                    # Update top-level with last data-bearing result
+                    results["rows"] = rows
+                    results["columns"] = column_info
+                    results["row_count"] = len(rows)
+                    results["data_bearing_count"] += 1
+                else:
+                    # DML/DDL statement
+                    stmt_result["row_count"] = cursor.rowcount
+                    stmt_result["rows"] = None
+                    stmt_result["columns"] = None
+                    results["affected_rows"] = cursor.rowcount
+                    needs_commit = True
+
+                results["statement_results"].append(stmt_result)
+
+            if needs_commit:
+                conn.commit()  # pylint: disable=consider-using-transaction
+
+    except Exception as e:
+        logger.error("Error executing multi-statement SQL: %s", e)
+        raise
 
     return results
 

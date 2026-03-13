@@ -24,8 +24,11 @@ from typing import Any
 
 from superset.mcp_service.mcp_core import BaseCore
 from superset.mcp_service.sql_lab.schemas import (
+    ColumnInfo,
     ExecuteSqlRequest,
     ExecuteSqlResponse,
+    StatementData,
+    StatementInfo,
 )
 
 
@@ -101,6 +104,42 @@ class ExecuteSqlCore(BaseCore):
             parameters=request.parameters,
         )
 
+        # Build per-statement info
+        statements: list[StatementInfo] = []
+        for sr in results.get("statement_results", []):
+            data: StatementData | None = None
+            if sr.get("columns") and sr.get("rows") is not None:
+                data = StatementData(
+                    rows=sr["rows"],
+                    columns=[
+                        ColumnInfo(
+                            name=c["name"],
+                            type=c["type"],
+                            is_nullable=c.get("is_nullable"),
+                        )
+                        for c in sr["columns"]
+                    ],
+                )
+            statements.append(
+                StatementInfo(
+                    original_sql=sr["original_sql"],
+                    executed_sql=sr["executed_sql"],
+                    row_count=sr["row_count"],
+                    execution_time_ms=sr.get("execution_time_ms"),
+                    data=data,
+                )
+            )
+
+        # Generate warning when multiple data-bearing statements
+        multi_statement_warning: str | None = None
+        if (data_bearing_count := results.get("data_bearing_count", 0)) > 1:
+            multi_statement_warning = (
+                f"{data_bearing_count} data-bearing statements were executed. "
+                "The top-level rows/columns contain only the last "
+                "data-bearing statement's results. "
+                "Check each entry in the statements array for per-statement data."
+            )
+
         return ExecuteSqlResponse(
             success=True,
             rows=results.get("rows"),
@@ -111,6 +150,8 @@ class ExecuteSqlCore(BaseCore):
             execution_time=results.get("execution_time"),
             error=None,
             error_type=None,
+            statements=statements if statements else None,
+            multi_statement_warning=multi_statement_warning,
         )
 
     def _execute_with_command(
