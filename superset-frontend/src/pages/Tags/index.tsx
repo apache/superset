@@ -216,6 +216,7 @@ function TagList(props: TagListProps) {
                         role="button"
                         tabIndex={0}
                         className="action-button"
+                        aria-label={t('Delete')}
                         onClick={confirmDelete}
                       >
                         <Icons.DeleteOutlined
@@ -237,6 +238,7 @@ function TagList(props: TagListProps) {
                     role="button"
                     tabIndex={0}
                     className="action-button"
+                    aria-label={t('Edit')}
                     onClick={handleEdit}
                   >
                     <Icons.EditOutlined data-test="edit-alt" iconSize="l" />

@@ -205,6 +205,7 @@ function SavedQueryList({
         </Tooltip>
       ),
       buttonStyle: 'link',
+      'aria-label': t('Import queries'),
       onClick: openSavedQueryImportModal,
       'data-test': 'import-button',
     });

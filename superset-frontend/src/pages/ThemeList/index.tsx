@@ -565,6 +565,7 @@ function ThemesList({
         </Tooltip>
       ),
       buttonStyle: 'link',
+      'aria-label': t('Import themes'),
       onClick: openThemeImportModal,
     });
   }

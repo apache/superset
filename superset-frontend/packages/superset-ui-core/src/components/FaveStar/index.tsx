@@ -60,6 +60,9 @@ export const FaveStar = ({
       className="fave-unfave-icon"
       data-test="fave-unfave-icon"
       role="button"
+      aria-label={
+        isStarred ? t('Remove from favorites') : t('Add to favorites')
+      }
     >
       {isStarred ? (
         <Icons.StarFilled

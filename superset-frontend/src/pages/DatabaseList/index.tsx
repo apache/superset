@@ -515,6 +515,7 @@ function DatabaseList({
                     data-test="database-edit"
                     tabIndex={0}
                     className="action-button"
+                    aria-label={t('Edit')}
                     onClick={handleEdit}
                   >
                     <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
@@ -531,6 +532,7 @@ function DatabaseList({
                     role="button"
                     tabIndex={0}
                     className="action-button"
+                    aria-label={t('Export')}
                     onClick={handleExport}
                   >
                     <Icons.UploadOutlined iconSize="l" />
@@ -548,6 +550,7 @@ function DatabaseList({
                     data-test="database-sync-perm"
                     tabIndex={0}
                     className="action-button"
+                    aria-label={t('Sync Permissions')}
                     onClick={handleSync}
                   >
                     <Icons.SyncOutlined iconSize="l" />
@@ -559,6 +562,7 @@ function DatabaseList({
                   role="button"
                   tabIndex={0}
                   className="action-button"
+                  aria-label={t('Delete')}
                   data-test="database-delete"
                   onClick={handleDelete}
                 >

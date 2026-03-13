@@ -105,7 +105,7 @@ const CloseIconWithDropIndicator = (
   props: CloseIconWithDropIndicatorProps,
 ): ReactElement => (
   <>
-    <Icons.CloseOutlined iconSize="s" />
+    <Icons.CloseOutlined iconSize="s" aria-label={t('Close tab')} />
     {props.showDropIndicators.right && (
       <DropIndicator className="drop-indicator-right" pos="right" />
     )}

@@ -186,6 +186,7 @@ function RowLevelSecurityList(props: RLSProps) {
                     role="button"
                     tabIndex={0}
                     className="action-button"
+                    aria-label={t('Edit')}
                     onClick={handleEdit}
                   >
                     <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
@@ -213,6 +214,7 @@ function RowLevelSecurityList(props: RLSProps) {
                         role="button"
                         tabIndex={0}
                         className="action-button"
+                        aria-label={t('Delete')}
                         onClick={confirmDelete}
                       >
                         <Icons.DeleteOutlined
