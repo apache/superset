@@ -105,7 +105,7 @@ const schemes = [
       '#FBF1B4',
       '#FDD093',
       '#FEAD71',
-      '#FF7F44',
+      '#E8733D',
       '#E04355',
       '#C53D6F',
       '#952B7B',
@@ -135,7 +135,7 @@ const schemes = [
     label: 'Superset Diverging #2',
     isDiverging: false,
     colors: [
-      '#FF7F44',
+      '#E8733D',
       '#FF9E72',
       '#FEC0A1',
       '#FFDFD0',
