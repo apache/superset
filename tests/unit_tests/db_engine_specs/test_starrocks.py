@@ -22,6 +22,7 @@ from pytest_mock import MockerFixture
 from sqlalchemy import JSON, types
 from sqlalchemy.engine.url import make_url
 
+from superset.constants import TimeGrain
 from superset.db_engine_specs.starrocks import (
     ARRAY,
     BITMAP,
@@ -224,8 +225,8 @@ def test_get_catalog_names(mocker: MockerFixture) -> None:
     # StarRocks returns rows with keys: ['Catalog', 'Type', 'Comment']
     mock_row_1 = mocker.MagicMock()
     mock_row_1.keys.return_value = ["Catalog", "Type", "Comment"]
-    mock_row_1.__getitem__ = (
-        lambda self, key: "default_catalog" if key == "Catalog" else None
+    mock_row_1.__getitem__ = lambda self, key: (
+        "default_catalog" if key == "Catalog" else None
     )
 
     mock_row_2 = mocker.MagicMock()
@@ -283,3 +284,26 @@ def test_adjust_engine_params_with_catalog(
         url, {}, catalog=catalog, schema=schema
     )
     assert returned_url.database == expected_database
+
+
+def test_time_grain_expressions_inherit_mysql() -> None:
+    """
+    Test that StarRocksEngineSpec inherits MySQL time grain expressions and
+    that the HOUR grain produces the correct SQL with DATE() preserved.
+
+    Regression test for: ECharts HOUR grain generates invalid SQL (DATE() dropped).
+    """
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.db_engine_specs.starrocks import StarRocksEngineSpec
+
+    assert (
+        StarRocksEngineSpec._time_grain_expressions
+        is MySQLEngineSpec._time_grain_expressions
+    ), "StarRocks must inherit MySQL's _time_grain_expressions without override"
+
+    actual = StarRocksEngineSpec._time_grain_expressions[TimeGrain.HOUR].replace(
+        "{col}", "my_col"
+    )
+    assert (
+        actual == "DATE_ADD(CAST(DATE(my_col) AS DATETIME), INTERVAL HOUR(my_col) HOUR)"
+    )
