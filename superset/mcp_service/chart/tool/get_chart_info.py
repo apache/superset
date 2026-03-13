@@ -74,6 +74,11 @@ def _build_unsaved_chart_info(form_data_key: str) -> ChartInfo | ChartError:
             error=f"Failed to parse cached form_data: {e}",
             error_type="ParseError",
         )
+    if not isinstance(form_data, dict):
+        return ChartError(
+            error="Cached form_data is not a valid JSON object.",
+            error_type="ParseError",
+        )
     return ChartInfo(
         viz_type=form_data.get("viz_type"),
         datasource_name=form_data.get("datasource_name"),

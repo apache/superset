@@ -805,6 +805,7 @@ async def _query_from_form_data(
         await ctx.report_progress(3, 4, "Executing data query")
         with event_logger.log_context(action="mcp.get_chart_data.query_execution"):
             command = ChartDataCommand(query_context)
+            command.validate()
             result = command.run()
 
         if not result or "queries" not in result or len(result["queries"]) == 0:

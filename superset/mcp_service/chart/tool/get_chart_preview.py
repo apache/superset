@@ -1863,7 +1863,7 @@ async def _get_chart_preview_internal(  # noqa: C901
 
                             class TransientChartFromKey:
                                 def __init__(self, fd: Dict[str, Any]):
-                                    self.id = None
+                                    self.id = 0
                                     self.slice_name = "Unsaved Chart Preview"
                                     self.viz_type = fd.get("viz_type", "table")
                                     ds = fd.get("datasource", "")
@@ -1947,7 +1947,7 @@ async def _get_chart_preview_internal(  # noqa: C901
                             # Create a transient chart object from form data
                             class TransientChart:
                                 def __init__(self, form_data: Dict[str, Any]):
-                                    self.id = None
+                                    self.id = 0
                                     self.slice_name = "Unsaved Chart Preview"
                                     self.viz_type = form_data.get("viz_type", "table")
                                     self.datasource_id = None
