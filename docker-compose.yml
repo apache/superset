@@ -61,6 +61,9 @@ services:
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./docker/nginx/templates:/etc/nginx/templates:ro
+    depends_on:
+      superset-node:
+        condition: service_healthy
 
   redis:
     image: redis:7
@@ -186,6 +189,14 @@ services:
       - path: docker/.env-local # optional override
         required: false
     volumes: *superset-volumes
+    healthcheck:
+      # Check if webpack dev server is responding on port 9000
+      # This prevents nginx from proxying before the frontend is ready
+      test: ["CMD-SHELL", "node -e \"const http = require('http'); http.get('http://localhost:9000', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
 
   superset-worker:
     build:
