@@ -308,7 +308,19 @@ class SchemaValidator:
             )
 
         metric = config.get("metric", {})
-        if isinstance(metric, dict) and not metric.get("aggregate"):
+        if not isinstance(metric, dict):
+            return False, ChartGenerationError(
+                error_type="invalid_metric_type",
+                message="Big Number metric must be a dict with 'name' and 'aggregate'",
+                details="The 'metric' field must be an object, "
+                f"got {type(metric).__name__}",
+                suggestions=[
+                    "Use a dict: {'name': 'col', 'aggregate': 'SUM'}",
+                    "Valid aggregates: SUM, COUNT, AVG, MIN, MAX",
+                ],
+                error_code="INVALID_BIG_NUMBER_METRIC_TYPE",
+            )
+        if not metric.get("aggregate"):
             return False, ChartGenerationError(
                 error_type="missing_metric_aggregate",
                 message="Big Number metric must include an aggregate function",

@@ -110,6 +110,16 @@ class TestBigNumberChartConfig:
                 compare_lag=0,
             )
 
+    def test_compare_lag_requires_trendline(self) -> None:
+        with pytest.raises(
+            ValidationError, match="compare_lag requires show_trendline"
+        ):
+            BigNumberChartConfig(
+                chart_type="big_number",
+                metric=ColumnRef(name="revenue", aggregate="SUM"),
+                compare_lag=1,
+            )
+
     def test_with_filters(self) -> None:
         config = BigNumberChartConfig(
             chart_type="big_number",
@@ -225,6 +235,8 @@ class TestMapBigNumberConfig:
         assert "adhoc_filters" in form_data
         assert len(form_data["adhoc_filters"]) == 1
         assert form_data["adhoc_filters"][0]["subject"] == "region"
+        assert form_data["adhoc_filters"][0]["operator"] == "=="
+        assert form_data["adhoc_filters"][0]["comparator"] == "US"
 
     def test_no_trendline_fields_for_total(self) -> None:
         config = BigNumberChartConfig(
@@ -348,7 +360,9 @@ class TestAnalyzeChartSemanticsBigNumber:
         )
         result = analyze_chart_semantics(None, config)
         assert result is not None
-        assert result.primary_insight != ""
+        assert "metric" in result.primary_insight.lower()
+        assert result.data_story != ""
+        assert len(result.recommended_actions) > 0
 
     def test_big_number_trendline_semantics(self) -> None:
         config = BigNumberChartConfig(
@@ -359,7 +373,9 @@ class TestAnalyzeChartSemanticsBigNumber:
         )
         result = analyze_chart_semantics(None, config)
         assert result is not None
-        assert result.primary_insight != ""
+        assert "trend" in result.primary_insight.lower()
+        assert result.data_story != ""
+        assert len(result.recommended_actions) > 0
 
 
 class TestSchemaValidatorBigNumber:
@@ -403,6 +419,19 @@ class TestSchemaValidatorBigNumber:
         assert is_valid is False
         assert error is not None
         assert error.error_code == "MISSING_BIG_NUMBER_METRIC"
+
+    def test_invalid_metric_type(self) -> None:
+        data = {
+            "dataset_id": 1,
+            "config": {
+                "chart_type": "big_number",
+                "metric": "not_a_dict",
+            },
+        }
+        is_valid, request, error = SchemaValidator.validate_request(data)
+        assert is_valid is False
+        assert error is not None
+        assert error.error_code == "INVALID_BIG_NUMBER_METRIC_TYPE"
 
     def test_missing_metric_aggregate(self) -> None:
         data = {
