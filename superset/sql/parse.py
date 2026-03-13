@@ -144,7 +144,7 @@ def strip_jinja(sql: str) -> str:
     security checks. Otherwise, it is replaced with a dummy identifier.
     """
     sql_keyword_pattern = re.compile(
-        r"\b(select|union|except|intersect|insert|update|delete|merge|create|drop|alter|truncate)\b",
+        r"\b(select|with|union|except|intersect|insert|update|delete|merge|create|drop|alter|truncate)\b",
         flags=re.IGNORECASE,
     )
 
@@ -714,10 +714,17 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             if isinstance(node, mutating_nodes):
                 return True
 
-        # depending on the dialect (Oracle, MS SQL) the `ALTER` is parsed as a
+        # depending on the dialect (Oracle, MS SQL) some DML is parsed as a
         # command, not an expression - check at root level
-        if isinstance(self._parsed, exp.Command) and self._parsed.name == "ALTER":
-            return True  # pragma: no cover
+        if isinstance(self._parsed, exp.Command) and self._parsed.name in {
+            "ALTER",
+            "MERGE",
+            "UPSERT",
+            "REPLACE",
+            "COPY",
+            "TRUNCATE",
+        }:
+            return True
 
         if (
             self._dialect == Dialects.POSTGRES
@@ -744,6 +751,13 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             ).is_mutating()
 
         return False
+
+    @property
+    def is_set_operation(self) -> bool:
+        """
+        Return True if the statement is a set operation (Union, Except, Intersect).
+        """
+        return isinstance(self._parsed, (exp.Union, exp.Except, exp.Intersect))
 
     def format(self, comments: bool = True) -> str:
         """

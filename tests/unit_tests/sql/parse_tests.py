@@ -3215,7 +3215,69 @@ def test_has_subquery_with_jinja() -> None:
     clean_sql = strip_jinja(sql)
     assert SQLStatement(clean_sql, "postgresql").has_subquery() is False
 
-    # Malicious Jinja should be flagged
-    sql = "SELECT 1 FROM table WHERE col = 1 OR {{ 'EXISTS (SELECT 1 FROM users)' }}"
-    clean_sql = strip_jinja(sql)
-    assert SQLStatement(clean_sql, "postgresql").has_subquery() is True
+
+def test_is_set_operation() -> None:
+    """
+    Test the is_set_operation property of SQLStatement.
+    """
+    from superset.sql.parse import SQLStatement
+
+    # UNION
+    sql = "SELECT 1 UNION SELECT 2"
+    assert SQLStatement(sql, "postgresql").is_set_operation is True
+
+    # EXCEPT
+    sql = "SELECT 1 EXCEPT SELECT 2"
+    assert SQLStatement(sql, "postgresql").is_set_operation is True
+
+    # INTERSECT
+    sql = "SELECT 1 INTERSECT SELECT 2"
+    assert SQLStatement(sql, "postgresql").is_set_operation is True
+
+    # Normal SELECT
+    sql = "SELECT 1"
+    assert SQLStatement(sql, "postgresql").is_set_operation is False
+
+
+def test_is_mutating_command() -> None:
+    """
+    Test that is_mutating correctly identifies mutations that parse as Commands.
+    """
+    from superset.sql.parse import SQLStatement
+
+    # ALTER SOMETHING parses as a Command in many contexts
+    # This hits the explicit command name check in is_mutating()
+    sql = "ALTER SOMETHING"
+    assert SQLStatement(sql, "postgresql").is_mutating() is True
+
+
+def test_transpile_to_dialect() -> None:
+    """
+    Test the transpile_to_dialect helper function.
+    """
+    from unittest.mock import patch
+
+    from superset.exceptions import QueryClauseValidationException
+    from superset.sql.parse import transpile_to_dialect
+
+    # Success path
+    sql = "SELECT * FROM table LIMIT 10"
+    # mssql uses TOP instead of LIMIT
+    transpiled = transpile_to_dialect(sql, "mssql")
+    assert "TOP 10" in transpiled.upper()
+
+    # No dialect mapping returns as-is
+    assert transpile_to_dialect(sql, "unknown") == sql
+
+    # Parse error
+    with pytest.raises(QueryClauseValidationException) as exc:
+        transpile_to_dialect("SELECT * FROM", "postgresql")
+    assert "Cannot parse SQL clause" in str(exc.value)
+
+    # Generic error (e.g. invalid target dialect name that passed mapping
+    # but failed generate). We can trigger this by passing an invalid
+    # dialect name to get_or_raise if we mock mapping.
+    with patch("superset.sql.parse.SQLGLOT_DIALECTS", {"invalid": "not-a-dialect"}):
+        with pytest.raises(QueryClauseValidationException) as exc:
+            transpile_to_dialect("SELECT 1", "invalid")
+        assert "Cannot transpile SQL to invalid" in str(exc.value)

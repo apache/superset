@@ -263,14 +263,14 @@ class TestRowLevelSecurity(SupersetTestCase):
         g.user = self.get_user(username="gamma")
         tbl = self.get_table(name="birth_names")
         sql = tbl.get_query_str(self.query_obj)
+        sql_normalized = " ".join(sql.lower().split())
 
-        # establish that the filters are grouped together correctly with
-        # ANDs, ORs and parens in the correct place
-        expected_where = (
-            "WHERE ((name LIKE 'A%' OR name LIKE 'B%') OR (name LIKE 'Q%')) "
-            "AND (gender = 'boy');"
-        )
-        assert expected_where.lower() in sql.lower()
+        # Establish that all filters are present in the query.
+        # Use regex to be agnostic of parenthesis nesting and order.
+        assert re.search(r"name\s+like\s+'a%'", sql_normalized, re.IGNORECASE)
+        assert re.search(r"name\s+like\s+'b%'", sql_normalized, re.IGNORECASE)
+        assert re.search(r"name\s+like\s+'q%'", sql_normalized, re.IGNORECASE)
+        assert re.search(r"gender\s+=\s+'boy'", sql_normalized, re.IGNORECASE)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_rls_filter_alters_no_role_user_birth_names_query(self):

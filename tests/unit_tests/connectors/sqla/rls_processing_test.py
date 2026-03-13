@@ -49,13 +49,20 @@ def test_get_sqla_row_level_filters_with_subquery_fails_when_flag_off():
 
 def test_get_sqla_row_level_filters_with_subquery_passes_when_flag_on():
     with (
+        patch("superset.models.helpers.db.session.query") as m_query,
         patch("superset.models.helpers.is_feature_enabled", return_value=True),
-        patch("superset.models.helpers.apply_rls") as m_apply,
+        patch("superset.utils.rls.apply_rls") as m_apply,
         patch("superset.connectors.sqla.models.security_manager") as sm,
     ):
+        m_query.return_value.filter.return_value.one_or_none.return_value = None
         table = SqlaTable(table_name="test_table")
         table.database = MagicMock()
         table.database.backend = "postgresql"
+        from superset.sql.parse import RLSMethod
+
+        table.database.db_engine_spec.get_rls_method.return_value = (
+            RLSMethod.AS_PREDICATE
+        )
         table.database_id = 1
         table.catalog = None
         table.schema = "public"

@@ -50,6 +50,8 @@ def test_create_rls_rule_with_subquery_fails_when_flag_off():
 
 
 def test_create_rls_rule_with_subquery_passes_when_flag_on():
+    from superset.sql.parse import RLSMethod
+
     data = {
         "name": "complex_but_allowed",
         "clause": "1=1 OR EXISTS (SELECT 1 FROM users)",
@@ -59,6 +61,9 @@ def test_create_rls_rule_with_subquery_passes_when_flag_on():
     mock_table = MagicMock()
     mock_table.database = MagicMock()
     mock_table.database.backend = "postgresql"
+    mock_table.database.db_engine_spec.get_rls_method.return_value = (
+        RLSMethod.AS_PREDICATE
+    )
     mock_table.database_id = 1
     mock_table.catalog = None
     mock_table.schema = "public"
@@ -66,7 +71,7 @@ def test_create_rls_rule_with_subquery_passes_when_flag_on():
     with (
         patch("superset.commands.security.create.db.session.query") as mq,
         patch("superset.models.helpers.is_feature_enabled", return_value=True),
-        patch("superset.models.helpers.apply_rls") as m_apply,
+        patch("superset.utils.rls.apply_rls") as m_apply,
     ):
         mq.return_value.filter.return_value.all.return_value = [mock_table]
         command = CreateRLSRuleCommand(data)
@@ -177,3 +182,37 @@ def test_validate_rls_set_operations_fail():
             "postgresql",
             is_predicate=True,
         )
+
+
+def test_validate_rls_union_breakout_fails():
+    from superset.models.helpers import validate_adhoc_subquery
+
+    mock_db = MagicMock()
+    # Test the UNION breakout vector
+    with pytest.raises(SupersetSecurityException) as ex:
+        validate_adhoc_subquery(
+            "1=1 UNION SELECT password FROM users",
+            mock_db,
+            None,
+            "public",
+            "postgresql",
+            is_predicate=True,
+        )
+    assert "set operations are not allowed" in str(ex.value)
+
+
+def test_validate_rls_multi_statement_fails():
+    from superset.models.helpers import validate_adhoc_subquery
+
+    mock_db = MagicMock()
+    # Explicitly test the multi-statement injection vector mentioned by reviewer
+    with pytest.raises(SupersetSecurityException) as ex:
+        validate_adhoc_subquery(
+            "1=1; DROP TABLE users",
+            mock_db,
+            None,
+            "public",
+            "postgresql",
+            is_predicate=True,
+        )
+    assert "multi-statement injection" in str(ex.value)
