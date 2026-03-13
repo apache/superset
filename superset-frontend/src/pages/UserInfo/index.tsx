@@ -165,7 +165,13 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
       <StyledHeader>{t('Your user information')}</StyledHeader>
       <DescriptionsContainer>
         <Collapse
-          defaultActiveKey={['userInfo', 'personalInfo', 'apiKeys']}
+          defaultActiveKey={[
+            'userInfo',
+            'personalInfo',
+            ...(isFeatureEnabled(FeatureFlag.FabApiKeyEnabled)
+              ? ['apiKeys']
+              : []),
+          ]}
           ghost
         >
           <Collapse.Panel
