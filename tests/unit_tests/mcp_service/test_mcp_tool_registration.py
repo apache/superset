@@ -15,9 +15,34 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Test MCP app imports and tool/prompt registration."""
+"""Test MCP app imports and tool/prompt registration.
+
+Compatible with both FastMCP 2.x (private _tool_manager API)
+and FastMCP 3.x (public async list_tools API).
+"""
 
 import asyncio
+
+
+def _get_tool_names(mcp):
+    """Get registered tool names, compatible with FastMCP 2.x and 3.x."""
+    if hasattr(mcp, "_tool_manager"):
+        return set(mcp._tool_manager._tools.keys())
+    return {t.name for t in asyncio.run(mcp.list_tools())}
+
+
+def _get_prompt_count(mcp):
+    """Get registered prompt count, compatible with FastMCP 2.x and 3.x."""
+    if hasattr(mcp, "_prompt_manager"):
+        return len(mcp._prompt_manager._prompts)
+    return len(asyncio.run(mcp.list_prompts()))
+
+
+def _get_resource_uris(mcp):
+    """Get registered resource URIs, compatible with FastMCP 2.x and 3.x."""
+    if hasattr(mcp, "_resource_manager"):
+        return set(mcp._resource_manager._resources.keys())
+    return {str(r.uri) for r in asyncio.run(mcp.list_resources())}
 
 
 def test_mcp_app_imports_successfully():
@@ -26,8 +51,7 @@ def test_mcp_app_imports_successfully():
 
     assert mcp is not None
 
-    tools = asyncio.run(mcp.list_tools())
-    tool_names = {t.name for t in tools}
+    tool_names = _get_tool_names(mcp)
     assert len(tool_names) > 0
     assert "health_check" in tool_names
     assert "list_charts" in tool_names
@@ -37,8 +61,7 @@ def test_mcp_prompts_registered():
     """Test that MCP prompts are registered."""
     from superset.mcp_service.app import mcp
 
-    prompts = asyncio.run(mcp.list_prompts())
-    assert len(prompts) > 0
+    assert _get_prompt_count(mcp) > 0
 
 
 def test_mcp_resources_registered():
@@ -50,8 +73,7 @@ def test_mcp_resources_registered():
     """
     from superset.mcp_service.app import mcp
 
-    resources = asyncio.run(mcp.list_resources())
-    resource_uris = {str(r.uri) for r in resources}
+    resource_uris = _get_resource_uris(mcp)
     assert len(resource_uris) > 0, "No MCP resources registered"
 
     assert "chart://configs" in resource_uris, (
