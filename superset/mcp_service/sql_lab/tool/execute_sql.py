@@ -58,7 +58,7 @@ logger = logging.getLogger(__name__)
     annotations=ToolAnnotations(
         title="Execute SQL query",
         readOnlyHint=False,
-        destructiveHint=False,
+        destructiveHint=True,
     ),
 )
 @parse_request(ExecuteSqlRequest)
