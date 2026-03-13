@@ -135,6 +135,11 @@ async def list_dashboards(
         """Serialize dashboard object (field filtering handled by model_serializer)."""
         return serialize_dashboard_object(obj)
 
+    # Preserve original select_columns before any mutation for response filtering
+    original_select_columns = (
+        list(request.select_columns) if request.select_columns else None
+    )
+
     # Two-pass approach when sorting by popularity_score
     if request.order_column == "popularity_score":
         with event_logger.log_context(action="mcp.list_dashboards.popularity_sort"):
@@ -189,17 +194,11 @@ async def list_dashboards(
         % (count, total_pages)
     )
 
-    # Apply field filtering via serialization context
-    columns_to_filter = result.columns_requested
-    # Re-add popularity_score if it was originally requested
-    # (it was stripped before the DAO query since it's computed)
-    if (
-        request.select_columns
-        and "popularity_score" in request.select_columns
-        and columns_to_filter
-        and "popularity_score" not in columns_to_filter
-    ):
-        columns_to_filter = list(columns_to_filter) + ["popularity_score"]
+    # Build response filtering from the original request columns when the
+    # user explicitly specified select_columns (to avoid leaking internally
+    # injected columns like 'id'). Fall back to result.columns_requested
+    # (which holds DAO defaults) when no explicit columns were requested.
+    columns_to_filter = original_select_columns or result.columns_requested
     await ctx.debug(
         "Applying field filtering via serialization context: columns=%s"
         % (columns_to_filter,)
@@ -245,10 +244,13 @@ def _list_dashboards_by_popularity(
     else:
         ordered_items = []
 
-    # Serialize
-    select_columns = request.select_columns or DEFAULT_DASHBOARD_COLUMNS
+    # Serialize - preserve the original request columns for response filtering
+    columns_requested = request.select_columns or DEFAULT_DASHBOARD_COLUMNS
+    # Expand select_columns for internal loading (need popularity_score for
+    # attach step), but keep columns_requested reflecting what was asked for
+    select_columns = list(columns_requested)
     if "popularity_score" not in select_columns:
-        select_columns = list(select_columns) + ["popularity_score"]
+        select_columns = select_columns + ["popularity_score"]
 
     dash_objs = []
     for item in ordered_items:
@@ -277,7 +279,7 @@ def _list_dashboards_by_popularity(
         total_pages=total_pages,
         has_previous=page > 0,
         has_next=page < total_pages - 1,
-        columns_requested=select_columns,
+        columns_requested=columns_requested,
         columns_loaded=select_columns,
         columns_available=all_columns,
         sortable_columns=DASHBOARD_SORTABLE_COLUMNS,
