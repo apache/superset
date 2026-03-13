@@ -185,3 +185,91 @@ def test_get_column_description_from_empty_data_using_cursor_description(
     )
     assert any(col.get("column_name") == "__time" for col in result_set.columns)
     logger.exception.assert_not_called()
+
+
+def test_json_data_type_preserved_as_objects() -> None:
+    """
+    Test that JSON/JSONB data is preserved as Python objects (dicts/lists)
+    instead of being converted to strings.
+
+    This is important for Handlebars templates and other features that need
+    to access JSON data as objects rather than strings.
+
+    See: https://github.com/apache/superset/issues/25125
+    """
+    # Simulate data from PostgreSQL JSONB column - psycopg2 returns dicts
+    data = [
+        (1, {"key": "value1", "nested": {"a": 1}}, "text1"),
+        (2, {"key": "value2", "items": [1, 2, 3]}, "text2"),
+        (3, None, "text3"),
+        (4, {"mixed": "string"}, "text4"),
+    ]
+    description = [
+        ("id", 23, None, None, None, None, None),  # INT
+        ("json_col", 3802, None, None, None, None, None),  # JSONB
+        ("text_col", 1043, None, None, None, None, None),  # VARCHAR
+    ]
+    result_set = SupersetResultSet(data, description, BaseEngineSpec)  # type: ignore
+    df = result_set.to_pandas_df()
+
+    # JSON column should be preserved as Python objects, not strings
+    assert df["json_col"].iloc[0] == {"key": "value1", "nested": {"a": 1}}
+    assert isinstance(df["json_col"].iloc[0], dict)
+    assert df["json_col"].iloc[1] == {"key": "value2", "items": [1, 2, 3]}
+    assert df["json_col"].iloc[2] is None
+    assert df["json_col"].iloc[3] == {"mixed": "string"}
+
+    # Verify the data can be serialized to JSON (as it would be for API response)
+    from superset.utils import json as superset_json
+
+    records = df.to_dict(orient="records")
+    json_output = superset_json.dumps(records)
+    parsed = superset_json.loads(json_output)
+    assert parsed[0]["json_col"]["key"] == "value1"
+    assert parsed[0]["json_col"]["nested"]["a"] == 1
+    assert parsed[1]["json_col"]["items"] == [1, 2, 3]
+
+
+def test_json_data_with_homogeneous_structure() -> None:
+    """
+    Test that JSON data with consistent structure is also preserved as objects.
+    """
+    # All rows have the same JSON structure
+    data = [
+        (1, {"name": "Alice", "age": 30}),
+        (2, {"name": "Bob", "age": 25}),
+        (3, {"name": "Charlie", "age": 35}),
+    ]
+    description = [
+        ("id", 23, None, None, None, None, None),
+        ("data", 3802, None, None, None, None, None),
+    ]
+    result_set = SupersetResultSet(data, description, BaseEngineSpec)  # type: ignore
+    df = result_set.to_pandas_df()
+
+    # Should be preserved as dicts
+    assert isinstance(df["data"].iloc[0], dict)
+    assert df["data"].iloc[0]["name"] == "Alice"
+    assert df["data"].iloc[1]["age"] == 25
+
+
+def test_array_data_type_preserved() -> None:
+    """
+    Test that array data is also preserved as Python lists.
+    """
+    data = [
+        (1, [1, 2, 3]),
+        (2, [4, 5, 6]),
+        (3, None),
+    ]
+    description = [
+        ("id", 23, None, None, None, None, None),
+        ("arr", 1007, None, None, None, None, None),  # INT ARRAY
+    ]
+    result_set = SupersetResultSet(data, description, BaseEngineSpec)  # type: ignore
+    df = result_set.to_pandas_df()
+
+    # Arrays should be preserved as lists
+    assert df["arr"].iloc[0] == [1, 2, 3]
+    assert isinstance(df["arr"].iloc[0], list)
+    assert df["arr"].iloc[2] is None
