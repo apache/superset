@@ -393,8 +393,9 @@ def _is_parse_request_enabled() -> bool:
     except (ImportError, RuntimeError, KeyError):
         pass
     try:
-        from superset.mcp_service.flask_singleton import app as flask_app
+        from superset.mcp_service.flask_singleton import get_flask_app
 
+        flask_app = get_flask_app()
         return bool(flask_app.config["MCP_PARSE_REQUEST_ENABLED"])
     except (ImportError, RuntimeError, AttributeError, KeyError):
         pass

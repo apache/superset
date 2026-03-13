@@ -19,6 +19,7 @@
 Unit tests for MCP dashboard tools (list_dashboards, get_dashboard_info)
 """
 
+import asyncio
 import logging
 from unittest.mock import Mock, patch
 
@@ -664,12 +665,12 @@ class TestDashboardSortableColumns:
     def test_sortable_columns_in_docstring(self):
         """Test that sortable columns are documented in tool docstring."""
         from superset.mcp_service.dashboard.tool.list_dashboards import (
-            list_dashboards,
             SORTABLE_DASHBOARD_COLUMNS,
         )
 
-        # Check list_dashboards docstring (stored in description after @mcp.tool)
-        assert hasattr(list_dashboards, "description")
-        assert "Sortable columns for order_column:" in list_dashboards.description
+        tools = asyncio.run(mcp.list_tools())
+        tool = next(tool for tool in tools if tool.name == "list_dashboards")
+        assert tool.description is not None
+        assert "Sortable columns for order_column:" in tool.description
         for col in SORTABLE_DASHBOARD_COLUMNS:
-            assert col in list_dashboards.description
+            assert col in tool.description

@@ -287,45 +287,31 @@ class GetDashboardInfoRequest(MetadataCacheControl):
 
 
 class DashboardInfo(BaseModel):
-    id: int | None = Field(None, description="Dashboard ID")
-    dashboard_title: str | None = Field(None, description="Dashboard title")
-    slug: str | None = Field(None, description="Dashboard slug")
-    description: str | None = Field(None, description="Dashboard description")
-    css: str | None = Field(None, description="Custom CSS for the dashboard")
-    certified_by: str | None = Field(None, description="Who certified the dashboard")
-    certification_details: str | None = Field(None, description="Certification details")
-    json_metadata: str | None = Field(
-        None, description="Dashboard metadata (JSON string)"
-    )
-    position_json: str | None = Field(None, description="Chart positions (JSON string)")
-    published: bool | None = Field(
-        None, description="Whether the dashboard is published"
-    )
-    is_managed_externally: bool | None = Field(
-        None, description="Whether managed externally"
-    )
-    external_url: str | None = Field(None, description="External URL")
-    created_on: str | datetime | None = Field(None, description="Creation timestamp")
-    changed_on: str | datetime | None = Field(
-        None, description="Last modification timestamp"
-    )
-    created_by: str | None = Field(None, description="Dashboard creator (username)")
-    changed_by: str | None = Field(None, description="Last modifier (username)")
-    uuid: str | None = Field(None, description="Dashboard UUID (converted to string)")
-    url: str | None = Field(None, description="Dashboard URL")
-    created_on_humanized: str | None = Field(
-        None, description="Humanized creation time"
-    )
-    changed_on_humanized: str | None = Field(
-        None, description="Humanized modification time"
-    )
-    chart_count: int = Field(0, description="Number of charts in the dashboard")
-    owners: List[UserInfo] = Field(default_factory=list, description="Dashboard owners")
-    tags: List[TagInfo] = Field(default_factory=list, description="Dashboard tags")
-    roles: List[RoleInfo] = Field(default_factory=list, description="Dashboard roles")
-    charts: List[ChartInfo] = Field(
-        default_factory=list, description="Dashboard charts"
-    )
+    id: int | None = None
+    dashboard_title: str | None = None
+    slug: str | None = None
+    description: str | None = None
+    css: str | None = None
+    certified_by: str | None = None
+    certification_details: str | None = None
+    json_metadata: str | None = None
+    position_json: str | None = None
+    published: bool | None = None
+    is_managed_externally: bool | None = None
+    external_url: str | None = None
+    created_on: str | datetime | None = None
+    changed_on: str | datetime | None = None
+    created_by: str | None = None
+    changed_by: str | None = None
+    uuid: str | None = None
+    url: str | None = None
+    created_on_humanized: str | None = None
+    changed_on_humanized: str | None = None
+    chart_count: int = 0
+    owners: List[UserInfo] = Field(default_factory=list)
+    tags: List[TagInfo] = Field(default_factory=list)
+    roles: List[RoleInfo] = Field(default_factory=list)
+    charts: List[ChartInfo] = Field(default_factory=list)
 
     # Fields for permalink/filter state support
     permalink_key: str | None = Field(

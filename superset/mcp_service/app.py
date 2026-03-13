@@ -460,7 +460,9 @@ def init_fastmcp_server(
         The global FastMCP instance configured with the provided settings
     """
     # Read branding from Flask config's APP_NAME
-    from superset.mcp_service.flask_singleton import app as flask_app
+    from superset.mcp_service.flask_singleton import get_flask_app
+
+    flask_app = get_flask_app()
 
     # Derive branding from Superset's APP_NAME config (defaults to "Superset")
     app_name = flask_app.config.get("APP_NAME", "Superset")

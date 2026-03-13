@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-
+import asyncio
 import logging
 from unittest.mock import MagicMock, patch
 
@@ -1399,15 +1399,15 @@ class TestDatasetSortableColumns:
     def test_sortable_columns_in_docstring(self):
         """Test that sortable columns are documented in tool docstring."""
         from superset.mcp_service.dataset.tool.list_datasets import (
-            list_datasets,
             SORTABLE_DATASET_COLUMNS,
         )
 
-        # Check list_datasets docstring (stored in description after @mcp.tool)
-        assert hasattr(list_datasets, "description")
-        assert "Sortable columns for order_column:" in list_datasets.description
+        tools = asyncio.run(mcp.list_tools())
+        tool = next(tool for tool in tools if tool.name == "list_datasets")
+        assert tool.description is not None
+        assert "Sortable columns for order_column:" in tool.description
         for col in SORTABLE_DATASET_COLUMNS:
-            assert col in list_datasets.description
+            assert col in tool.description
 
     @patch("superset.daos.dataset.DatasetDAO.list")
     @pytest.mark.asyncio
