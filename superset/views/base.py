@@ -36,7 +36,7 @@ from flask import (
 )
 from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
-from flask_appbuilder.const import AUTH_OAUTH
+from flask_appbuilder.const import AUTH_LDAP, AUTH_OAUTH
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla.models import User
@@ -485,7 +485,9 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     auth_type = app.config["AUTH_TYPE"]
     auth_user_registration = app.config["AUTH_USER_REGISTRATION"]
     frontend_config["AUTH_USER_REGISTRATION"] = auth_user_registration
-    should_show_recaptcha = auth_user_registration and (auth_type != AUTH_OAUTH)
+    should_show_recaptcha = auth_user_registration and (
+        auth_type not in [AUTH_OAUTH, AUTH_LDAP]
+    )
 
     if auth_user_registration:
         frontend_config["AUTH_USER_REGISTRATION_ROLE"] = app.config[
