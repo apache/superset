@@ -95,10 +95,10 @@ function EmbeddedChartsList({
         await SupersetClient.delete({
           endpoint: `/api/v1/chart/${chart.chart_id}/embedded`,
         });
-        addSuccessToast(t('Embedding disabled for %s', chart.chart_name));
+        addSuccessToast(t('Embedding disabled for %s', chart.chart_name || t('Untitled')));
         fetchEmbeddedCharts();
       } catch (error) {
-        addDangerToast(t('Error disabling embedding for %s', chart.chart_name));
+        addDangerToast(t('Error disabling embedding for %s', chart.chart_name || t('Untitled')));
       } finally {
         setChartToDelete(null);
       }
