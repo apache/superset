@@ -683,6 +683,7 @@ def map_big_number_config(config: BigNumberChartConfig) -> Dict[str, Any]:
         # (unlike XY charts which use x_axis). This is how Superset's
         # big_number viz determines the time column for the trendline.
         form_data["granularity_sqla"] = config.temporal_column
+        form_data["show_trend_line"] = True
         form_data["start_y_axis_at_zero"] = config.start_y_axis_at_zero
 
         if config.time_grain:
@@ -1020,7 +1021,11 @@ def _handlebars_chart_what(config: HandlebarsChartConfig) -> str:
         return f"Handlebars ({metrics})"
     return "Handlebars Chart"
 def _big_number_chart_what(config: BigNumberChartConfig) -> str:
-    """Build the 'what' portion for a big number chart name."""
+    """Build the 'what' portion for a big number chart name.
+
+    Uses parentheses instead of en-dash to avoid collision with
+    ``generate_chart_name``'s ``\u2013`` context separator.
+    """
     if config.metric.label:
         metric_label = config.metric.label
     elif config.metric.aggregate:
@@ -1028,8 +1033,8 @@ def _big_number_chart_what(config: BigNumberChartConfig) -> str:
     else:
         metric_label = config.metric.name
     if config.show_trendline:
-        return f"Big Number \u2013 {metric_label} (with trendline)"
-    return f"Big Number \u2013 {metric_label}"
+        return f"Big Number ({metric_label}, trendline)"
+    return f"Big Number ({metric_label})"
 
 
 def generate_chart_name(
