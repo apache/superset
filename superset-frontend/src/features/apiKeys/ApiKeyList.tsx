@@ -117,6 +117,9 @@ export function ApiKeyList() {
     if (key.expires_on && new Date(key.expires_on) < new Date()) {
       return <Tag color="warning">{t('Expired')}</Tag>;
     }
+    if (!key.active) {
+      return <Tag color="default">{t('Inactive')}</Tag>;
+    }
     return <Tag color="success">{t('Active')}</Tag>;
   };
 
@@ -164,7 +167,7 @@ export function ApiKeyList() {
       key: 'actions',
       render: (_: unknown, record: ApiKey) => (
         <>
-          {!record.revoked_on && (
+          {!record.revoked_on && record.active && (
             <Tooltip title={t('Revoke this API key')}>
               <Button
                 type="link"
