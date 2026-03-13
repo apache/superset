@@ -101,6 +101,7 @@ import { RefreshButton } from '../RefreshButton';
 
 type DashboardPropertiesUpdate = {
   slug?: string;
+  description?: string;
   jsonMetadata?: string;
   certifiedBy?: string;
   certificationDetails?: string;
@@ -122,6 +123,7 @@ type DashboardInfoState = RootState['dashboardInfo'] & {
   dash_share_perm?: boolean;
   is_managed_externally?: boolean;
   slug?: string;
+  description?: string;
   last_modified_time?: number;
   certified_by?: string;
   certification_details?: string;
@@ -442,6 +444,7 @@ const Header = (): JSX.Element => {
       owners: dashboardInfo.owners,
       roles: dashboardInfo.roles,
       slug,
+      description: dashboardInfo.description,
       tags: (dashboardInfo.tags || []).filter(
         item => item.type === TagTypeEnum.Custom || !item.type,
       ),
@@ -497,6 +500,7 @@ const Header = (): JSX.Element => {
     shouldPersistRefreshFrequency,
     slug,
     themeId,
+    dashboardInfo.description,
   ]);
 
   const {
@@ -555,6 +559,7 @@ const Header = (): JSX.Element => {
     (updates: DashboardPropertiesUpdate) => {
       boundActionCreators.dashboardInfoChanged({
         slug: updates.slug,
+        description: updates.description,
         metadata: JSON.parse(updates.jsonMetadata || '{}'),
         certified_by: updates.certifiedBy,
         certification_details: updates.certificationDetails,
