@@ -61,6 +61,20 @@ describe('SequentialScheme', () => {
         expect(scale(2)).toEqual('rgb(0, 0, 0)');
       });
     });
+    describe('null and NaN inputs', () => {
+      test('returns first color for null input', () => {
+        const scale = scheme.createLinearScale([0, 100]);
+        expect(scale(null as unknown as number)).toEqual('#fff');
+      });
+      test('returns first color for undefined input', () => {
+        const scale = scheme.createLinearScale([0, 100]);
+        expect(scale(undefined as unknown as number)).toEqual('#fff');
+      });
+      test('returns first color for NaN input', () => {
+        const scale = scheme.createLinearScale([0, 100]);
+        expect(scale(NaN)).toEqual('#fff');
+      });
+    });
     describe('modifyRange', () => {
       const scheme3 = new SequentialScheme({
         id: 'test-scheme3',
