@@ -227,7 +227,41 @@ MCP_RESPONSE_SIZE_CONFIG: Dict[str, Any] = {
         "get_chart_preview",  # Returns URLs, not data
         "generate_explore_link",  # Returns URLs
         "open_sql_lab_with_context",  # Returns URLs
+        "search_tools",  # Returns tool schemas for discovery (intentionally large)
     ],
+}
+
+
+# =============================================================================
+# MCP Tool Search Transform Configuration
+# =============================================================================
+#
+# Overview:
+# ---------
+# When enabled, replaces the full tool catalog with a search interface.
+# LLMs see only 2 synthetic tools (search_tools + call_tool) plus any
+# pinned tools, and discover other tools on-demand via natural language search.
+# This reduces initial context by ~70% (from ~40k tokens to ~5-8k tokens).
+#
+# Strategies:
+# -----------
+# - "bm25": Natural language search using BM25 ranking (recommended)
+# - "regex": Pattern-based search using regular expressions
+#
+# Rollback:
+# ---------
+# Set enabled=False in superset_config.py for instant rollback.
+# =============================================================================
+MCP_TOOL_SEARCH_CONFIG: Dict[str, Any] = {
+    "enabled": True,  # Enabled by default — reduces initial context by ~70%
+    "strategy": "bm25",  # "bm25" (natural language) or "regex" (pattern matching)
+    "max_results": 5,  # Max tools returned per search
+    "always_visible": [  # Tools always shown in list_tools (pinned)
+        "health_check",
+        "get_instance_info",
+    ],
+    "search_tool_name": "search_tools",  # Name of the search tool
+    "call_tool_name": "call_tool",  # Name of the call proxy tool
 }
 
 
