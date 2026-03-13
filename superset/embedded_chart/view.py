@@ -48,8 +48,9 @@ def same_origin(url1: str | None, url2: str | None) -> bool:
     parsed2 = urlparse(url2)
     # For domain matching, we just check if the host matches
     # url2 might just be a domain like "example.com"
-    if not parsed2.scheme:
-        # url2 is just a domain, check if it matches url1's netloc
+    if not parsed2.scheme or (not parsed2.netloc and ":" in url2):
+        # url2 is a bare domain or host:port (e.g., "localhost:3000"),
+        # which urlparse misinterprets. Compare directly with netloc.
         return parsed1.netloc == url2 or parsed1.netloc.endswith(f".{url2}")
     return (parsed1.scheme, parsed1.netloc) == (parsed2.scheme, parsed2.netloc)
 

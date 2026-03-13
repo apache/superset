@@ -237,11 +237,19 @@ class EmbeddedChartRestApi(BaseSupersetApi):
         try:
             body = request.json or {}
             form_data = body.get("form_data", {})
-            allowed_domains: list[str] = body.get("allowed_domains", [])
+            allowed_domains = body.get("allowed_domains", [])
             ttl_minutes: int = body.get("ttl_minutes", 60)
 
             if not form_data:
                 return self.response_400(message="form_data is required")
+
+            # Validate allowed_domains is a list of strings
+            if not isinstance(allowed_domains, list) or not all(
+                isinstance(d, str) for d in allowed_domains
+            ):
+                return self.response_400(
+                    message="allowed_domains must be a list of strings"
+                )
 
             # Validate ttl_minutes bounds
             if (

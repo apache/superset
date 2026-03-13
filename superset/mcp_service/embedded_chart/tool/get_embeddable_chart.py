@@ -91,7 +91,7 @@ def _ensure_guest_role_permissions() -> list[str]:
             added.append(f"{perm_name} on {view_name}")
 
     if added:
-        db.session.commit()
+        db.session.commit()  # pylint: disable=consider-using-transaction
         logger.info(
             "Added %d permissions to guest role '%s': %s",
             len(added),

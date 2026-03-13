@@ -21,7 +21,7 @@ from io import BytesIO
 from typing import Any, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
-from flask import redirect, request, Response, send_file, url_for
+from flask import g, redirect, request, Response, send_file, url_for
 from flask_appbuilder.api import expose, permission_name, protect, rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -1430,16 +1430,18 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        # Filter to only charts the current user owns or has access to
         embedded_charts = (
             db.session.query(EmbeddedChart)
             .join(Slice, EmbeddedChart.chart_id == Slice.id)
+            .filter(Slice.created_by_fk == g.user.get_id())
             .all()
         )
         result = [
             {
                 "uuid": str(ec.uuid),
                 "chart_id": ec.chart_id,
-                "chart_name": ec.chart.slice_name if ec.chart else None,
+                "chart_name": (ec.chart.slice_name if ec.chart else "Untitled Chart"),
                 "allowed_domains": ec.allowed_domains,
                 "changed_on": ec.changed_on.isoformat() if ec.changed_on else None,
             }
