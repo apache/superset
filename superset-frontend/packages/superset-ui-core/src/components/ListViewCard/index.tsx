@@ -95,7 +95,6 @@ const TitleLink = styled.span`
 const TitleRight = styled.span`
   ${({ theme }) => css`
     position: absolute;
-    right: -1px;
     font-weight: 400;
     bottom: ${theme.sizeUnit * 3}px;
     right: ${theme.sizeUnit * 2}px;

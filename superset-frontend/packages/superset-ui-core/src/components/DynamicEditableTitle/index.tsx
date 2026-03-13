@@ -23,8 +23,10 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useRef,
   useState,
 } from 'react';
+import type { InputRef } from 'antd';
 import { t } from '@apache-superset/core/translation';
 import { css, SupersetTheme, useTheme } from '@apache-superset/core/theme';
 import { useResizeDetector } from 'react-resize-detector';
@@ -57,9 +59,9 @@ const titleStyles = (theme: SupersetTheme) => css`
 
   & .input-sizer {
     position: absolute;
-    left: -9999px;
     display: inline-block;
     white-space: pre;
+    opacity: 0;
   }
 `;
 
@@ -76,6 +78,7 @@ export const DynamicEditableTitle = memo(
     const [showTooltip, setShowTooltip] = useState(false);
     const [currentTitle, setCurrentTitle] = useState(title || '');
 
+    const inputRef = useRef<InputRef>(null);
     const { width: inputWidth, ref: sizerRef } = useResizeDetector();
     const { width: containerWidth, ref: containerRef } = useResizeDetector({
       refreshMode: 'debounce',
@@ -85,15 +88,15 @@ export const DynamicEditableTitle = memo(
       setCurrentTitle(title);
     }, [title]);
     useEffect(() => {
-      if (isEditing && sizerRef?.current) {
+      const inputElement = inputRef.current?.input;
+      if (isEditing && inputElement) {
         // move cursor and scroll to the end
-        if (sizerRef.current.setSelectionRange) {
-          const { length } = sizerRef.current.value;
-          sizerRef.current.setSelectionRange(length, length);
-          sizerRef.current.scrollLeft = sizerRef.current.scrollWidth;
-        }
+        const { length } = inputElement.value;
+        inputElement.setSelectionRange(length, length);
+        inputElement.scrollLeft =
+          theme.direction === 'rtl' ? 0 : inputElement.scrollWidth;
       }
-    }, [isEditing]);
+    }, [isEditing, theme.direction]);
 
     // a trick to make the input grow when user types text
     // we make additional span component, place it somewhere out of view and copy input
@@ -168,6 +171,7 @@ export const DynamicEditableTitle = memo(
           }
         >
           <Input
+            ref={inputRef}
             data-test="editable-title-input"
             variant="borderless"
             aria-label={label ?? t('Title')}

@@ -18,6 +18,7 @@
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { Menu } from '@superset-ui/core/components/Menu';
+import type { DirectionType } from 'antd/es/config-provider';
 import { useLanguageMenuItems } from './LanguagePicker';
 
 const mockedProps = {
@@ -34,10 +35,23 @@ const mockedProps = {
       url: '/lang/it',
     },
   },
+  setDirection: jest.fn(),
 };
 
-const TestLanguagePicker = ({ locale, languages }: typeof mockedProps) => {
-  const languageMenuItem = useLanguageMenuItems({ locale, languages });
+const TestLanguagePicker = ({
+  locale,
+  languages,
+  setDirection,
+}: {
+  locale: string;
+  languages: typeof mockedProps.languages;
+  setDirection: (dir: DirectionType) => void;
+}) => {
+  const languageMenuItem = useLanguageMenuItems({
+    locale,
+    languages,
+    setDirection,
+  });
 
   return (
     <Menu aria-label="Languages" items={[languageMenuItem]} mode="horizontal" />
@@ -66,4 +80,81 @@ test('should render the items', async () => {
   userEvent.hover(screen.getByRole('menuitem'));
   expect(await screen.findByText('English')).toBeInTheDocument();
   expect(await screen.findByText('Italian')).toBeInTheDocument();
+});
+
+test('should call setDirection with ltr for English locale', () => {
+  const setDirection = jest.fn();
+  render(
+    <TestLanguagePicker {...mockedProps} setDirection={setDirection} />,
+    { useRouter: true },
+  );
+  expect(setDirection).toHaveBeenCalledWith('ltr');
+});
+
+test('should call setDirection with rtl for Arabic locale', () => {
+  const setDirection = jest.fn();
+  const languages = {
+    ...mockedProps.languages,
+    ar: { flag: 'sa', name: 'Arabic', url: '/lang/ar' },
+  };
+  render(
+    <TestLanguagePicker
+      locale="ar"
+      languages={languages}
+      setDirection={setDirection}
+    />,
+    { useRouter: true },
+  );
+  expect(setDirection).toHaveBeenCalledWith('rtl');
+});
+
+test('should call setDirection with rtl for Farsi locale', () => {
+  const setDirection = jest.fn();
+  const languages = {
+    ...mockedProps.languages,
+    fa: { flag: 'ir', name: 'Farsi', url: '/lang/fa' },
+  };
+  render(
+    <TestLanguagePicker
+      locale="fa"
+      languages={languages}
+      setDirection={setDirection}
+    />,
+    { useRouter: true },
+  );
+  expect(setDirection).toHaveBeenCalledWith('rtl');
+});
+
+test('should call setDirection with rtl for locale with region code', () => {
+  const setDirection = jest.fn();
+  const languages = {
+    ...mockedProps.languages,
+    'ar-SA': { flag: 'sa', name: 'Arabic (Saudi)', url: '/lang/ar-SA' },
+  };
+  render(
+    <TestLanguagePicker
+      locale="ar-SA"
+      languages={languages}
+      setDirection={setDirection}
+    />,
+    { useRouter: true },
+  );
+  expect(setDirection).toHaveBeenCalledWith('rtl');
+});
+
+test('should call setDirection with rtl for Hebrew locale', () => {
+  const setDirection = jest.fn();
+  const languages = {
+    ...mockedProps.languages,
+    he: { flag: 'il', name: 'Hebrew', url: '/lang/he' },
+  };
+  render(
+    <TestLanguagePicker
+      locale="he"
+      languages={languages}
+      setDirection={setDirection}
+    />,
+    { useRouter: true },
+  );
+  expect(setDirection).toHaveBeenCalledWith('rtl');
 });
