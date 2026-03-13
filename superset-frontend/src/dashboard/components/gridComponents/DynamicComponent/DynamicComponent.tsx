@@ -125,7 +125,9 @@ const DynamicComponent: FC<DynamicComponentProps> = ({
             <BackgroundStyleDropdown
               id={`${component.id}-background`}
               value={component.meta.background}
-              onChange={value => updateMeta('background', value as string | number)}
+              onChange={value =>
+                updateMeta('background', value as string | number)
+              }
             />,
           ]}
           editMode={editMode}
