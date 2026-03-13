@@ -569,6 +569,10 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             return self.response(200, result=result)
         except (TypeError, ValueError) as err:
             raise DatasetValidationError(err) from err
+        except DashboardAccessDeniedError:
+            return self.response_403()
+        except DashboardNotFoundError:
+            return self.response_404()
 
     @expose("/<id_or_slug>/tabs", methods=("GET",))
     @protect()
