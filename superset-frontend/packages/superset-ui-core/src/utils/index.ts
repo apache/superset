@@ -18,6 +18,7 @@
  */
 export { default as convertKeysToCamelCase } from './convertKeysToCamelCase';
 export { default as ensureIsArray } from './ensureIsArray';
+export { default as addLabelMapToVerboseMap } from './addLabelMapToVerboseMap';
 export { default as ensureIsInt } from './ensureIsInt';
 export { default as isDefined } from './isDefined';
 export { default as isRequired } from './isRequired';
