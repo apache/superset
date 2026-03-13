@@ -42,6 +42,7 @@ from superset_extensions_cli.exceptions import ExtensionNameError
 from superset_extensions_cli.types import ExtensionNames
 from superset_extensions_cli.utils import (
     generate_extension_names,
+    get_module_federation_name,
     kebab_to_snake_case,
     read_json,
     read_toml,
@@ -152,16 +153,22 @@ def build_manifest(cwd: Path, remote_entry: str | None) -> Manifest:
     composite_id = f"{extension.publisher}.{extension.name}"
 
     frontend: ManifestFrontend | None = None
-    if extension.frontend and remote_entry:
+    if remote_entry:
         frontend = ManifestFrontend(
-            contributions=extension.frontend.contributions,
-            moduleFederation=extension.frontend.moduleFederation,
             remoteEntry=remote_entry,
+            moduleFederationName=get_module_federation_name(
+                extension.publisher, extension.name
+            ),
         )
 
     backend: ManifestBackend | None = None
-    if extension.backend and extension.backend.entryPoints:
-        backend = ManifestBackend(entryPoints=extension.backend.entryPoints)
+    backend_dir = cwd / "backend"
+    if backend_dir.exists():
+        # Generate conventional entry point
+        publisher_snake = kebab_to_snake_case(extension.publisher)
+        name_snake = kebab_to_snake_case(extension.name)
+        entrypoint = f"{publisher_snake}.{name_snake}.entrypoint"
+        backend = ManifestBackend(entrypoint=entrypoint)
 
     return Manifest(
         id=composite_id,
@@ -215,17 +222,34 @@ def copy_frontend_dist(cwd: Path) -> str:
 
 
 def copy_backend_files(cwd: Path) -> None:
+    """Copy backend files based on pyproject.toml build configuration (validation already passed)."""
     dist_dir = cwd / "dist"
-    extension = read_json(cwd / "extension.json")
-    if not extension:
-        click.secho("❌ No extension.json file found.", err=True, fg="red")
-        sys.exit(1)
+    backend_dir = cwd / "backend"
 
-    for pat in extension.get("backend", {}).get("files", []):
-        for f in cwd.glob(pat):
+    # Read build config from pyproject.toml
+    pyproject = read_toml(backend_dir / "pyproject.toml")
+    assert pyproject
+    build_config = (
+        pyproject.get("tool", {}).get("apache_superset_extensions", {}).get("build", {})
+    )
+    include_patterns = build_config.get("include", [])
+    exclude_patterns = build_config.get("exclude", [])
+
+    # Process include patterns
+    for pattern in include_patterns:
+        for f in backend_dir.glob(pattern):
             if not f.is_file():
                 continue
-            tgt = dist_dir / f.relative_to(cwd)
+
+            # Check exclude patterns
+            relative_path = f.relative_to(backend_dir)
+            should_exclude = any(
+                relative_path.match(excl_pattern) for excl_pattern in exclude_patterns
+            )
+            if should_exclude:
+                continue
+
+            tgt = dist_dir / "backend" / relative_path
             tgt.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(f, tgt)
 
@@ -269,6 +293,84 @@ def app() -> None:
 @app.command()
 def validate() -> None:
     validate_npm()
+
+    cwd = Path.cwd()
+
+    # Validate extension.json exists and is valid
+    extension_data = read_json(cwd / "extension.json")
+    if not extension_data:
+        click.secho("❌ extension.json not found.", err=True, fg="red")
+        sys.exit(1)
+
+    try:
+        extension = ExtensionConfig.model_validate(extension_data)
+    except Exception as e:
+        click.secho(f"❌ Invalid extension.json: {e}", err=True, fg="red")
+        sys.exit(1)
+
+    # Validate conventional backend structure if backend directory exists
+    backend_dir = cwd / "backend"
+    if backend_dir.exists():
+        # Check for pyproject.toml
+        pyproject_path = backend_dir / "pyproject.toml"
+        if not pyproject_path.exists():
+            click.secho(
+                "❌ Backend directory exists but pyproject.toml not found",
+                err=True,
+                fg="red",
+            )
+            sys.exit(1)
+
+        # Validate pyproject.toml has build configuration
+        pyproject = read_toml(pyproject_path)
+        if not pyproject:
+            click.secho("❌ Failed to read backend pyproject.toml", err=True, fg="red")
+            sys.exit(1)
+
+        build_config = (
+            pyproject.get("tool", {})
+            .get("apache_superset_extensions", {})
+            .get("build", {})
+        )
+        if not build_config.get("include"):
+            click.secho(
+                "❌ Missing [tool.apache_superset_extensions.build] section with 'include' patterns in pyproject.toml",
+                err=True,
+                fg="red",
+            )
+            sys.exit(1)
+
+        # Check conventional backend entry point
+        publisher_snake = kebab_to_snake_case(extension.publisher)
+        name_snake = kebab_to_snake_case(extension.name)
+        expected_entry_file = (
+            backend_dir / "src" / publisher_snake / name_snake / "entrypoint.py"
+        )
+
+        if not expected_entry_file.exists():
+            click.secho(
+                f"❌ Backend entry point not found at expected location: {expected_entry_file.relative_to(cwd)}",
+                err=True,
+                fg="red",
+            )
+            click.secho(
+                f"   Convention requires: backend/src/{publisher_snake}/{name_snake}/entrypoint.py",
+                fg="yellow",
+            )
+            sys.exit(1)
+
+    # Validate conventional frontend entry point if frontend directory exists
+    frontend_dir = cwd / "frontend"
+    if frontend_dir.exists():
+        expected_frontend_entry = frontend_dir / "src" / "index.tsx"
+        if not expected_frontend_entry.exists():
+            click.secho(
+                f"❌ Frontend entry point not found at expected location: {expected_frontend_entry.relative_to(cwd)}",
+                err=True,
+                fg="red",
+            )
+            click.secho("   Convention requires: frontend/src/index.tsx", fg="yellow")
+            sys.exit(1)
 
     click.secho("✅ Validation successful", fg="green")
 
@@ -584,7 +686,7 @@ def init(
     click.secho("✅ Created extension.json", fg="green")
 
     # Create .gitignore
-    gitignore = env.get_template(".gitignore.j2").render(ctx)
+    gitignore = env.get_template("gitignore.j2").render(ctx)
     (target_dir / ".gitignore").write_text(gitignore)
     click.secho("✅ Created .gitignore", fg="green")
 
@@ -606,23 +708,19 @@ def init(
         (frontend_src_dir / "index.tsx").write_text(index_tsx)
         click.secho("✅ Created frontend folder structure", fg="green")
 
-    # Initialize backend files with superset_extensions.publisher.name structure
+    # Initialize backend files with publisher.name structure
     if include_backend:
         backend_dir = target_dir / "backend"
         backend_dir.mkdir()
         backend_src_dir = backend_dir / "src"
         backend_src_dir.mkdir()
 
-        # Create superset_extensions namespace directory
-        namespace_dir = backend_src_dir / "superset_extensions"
-        namespace_dir.mkdir()
-
-        # Create publisher directory (e.g., superset_extensions/my_org)
+        # Create publisher directory (e.g., my_org)
         publisher_snake = kebab_to_snake_case(names["publisher"])
-        publisher_dir = namespace_dir / publisher_snake
+        publisher_dir = backend_src_dir / publisher_snake
         publisher_dir.mkdir()
 
-        # Create extension package directory (e.g., superset_extensions/my_org/dashboard_widgets)
+        # Create extension package directory (e.g., my_org/dashboard_widgets)
         name_snake = kebab_to_snake_case(names["name"])
         extension_package_dir = publisher_dir / name_snake
         extension_package_dir.mkdir()
@@ -631,13 +729,7 @@ def init(
         pyproject_toml = env.get_template("backend/pyproject.toml.j2").render(ctx)
         (backend_dir / "pyproject.toml").write_text(pyproject_toml)
 
-        # Namespace package __init__.py (empty for namespace)
-        (namespace_dir / "__init__.py").write_text("")
-        (publisher_dir / "__init__.py").write_text("")
-
         # Extension package files
-        init_py = env.get_template("backend/src/package/__init__.py.j2").render(ctx)
-        (extension_package_dir / "__init__.py").write_text(init_py)
         entrypoint_py = env.get_template("backend/src/package/entrypoint.py.j2").render(
             ctx
         )

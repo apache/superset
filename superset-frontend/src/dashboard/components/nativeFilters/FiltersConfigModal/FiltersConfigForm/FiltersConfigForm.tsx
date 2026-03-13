@@ -18,7 +18,7 @@
  */
 /* eslint-disable react-hooks/rules-of-hooks */
 import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   Behavior,
   ChartDataResponseResult,
@@ -36,8 +36,8 @@ import {
   getClientErrorObject,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { styled, useTheme, css } from '@apache-superset/core/ui';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { styled, useTheme, css } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import { debounce, isEqual } from 'lodash';
 import {
   forwardRef,
@@ -821,6 +821,11 @@ const FiltersConfigForm = (
   );
   return (
     <Tabs
+      allowOverflow={false}
+      contentHeight={`calc(100vh - ${theme.sizeUnit * 55}px)`}
+      contentPadding={css`
+        padding-top: ${theme.sizeUnit * 4}px;
+      `}
       activeKey={activeTabKey}
       onChange={activeKey => setActiveTabKey(activeKey)}
       items={[

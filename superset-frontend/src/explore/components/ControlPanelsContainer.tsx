@@ -28,7 +28,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   getChartControlPanelRegistry,
@@ -42,7 +42,12 @@ import {
   FeatureFlag,
   VizType,
 } from '@superset-ui/core';
-import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
+import {
+  styled,
+  css,
+  SupersetTheme,
+  useTheme,
+} from '@apache-superset/core/theme';
 import {
   ControlPanelSectionConfig,
   ControlState,
@@ -811,8 +816,11 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   // Check if matrixify is enabled in form_data
   const matrixifyIsEnabled =
-    form_data.matrixify_enable_vertical_layout ||
-    form_data.matrixify_enable_horizontal_layout;
+    form_data.matrixify_enable === true &&
+    ((form_data.matrixify_mode_rows !== undefined &&
+      form_data.matrixify_mode_rows !== 'disabled') ||
+      (form_data.matrixify_mode_columns !== undefined &&
+        form_data.matrixify_mode_columns !== 'disabled'));
 
   // Auto-switch to Matrixify tab when it's enabled
   useEffect(() => {

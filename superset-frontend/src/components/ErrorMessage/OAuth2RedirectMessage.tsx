@@ -25,7 +25,7 @@ import { RootState } from 'src/dashboard/types';
 import { reRunQuery } from 'src/SqlLab/actions/sqlLab';
 import { triggerQuery } from 'src/components/Chart/chartAction';
 import { onRefresh } from 'src/dashboard/actions/dashboardState';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { QueryResponse } from '@superset-ui/core';
 
 import type { ErrorMessageComponentProps } from './types';
@@ -63,6 +63,7 @@ interface OAuth2RedirectExtra {
 export function OAuth2RedirectMessage({
   error,
   source,
+  closable,
 }: ErrorMessageComponentProps<OAuth2RedirectExtra>) {
   const oAuthTab = useRef<Window | null>(null);
   const { extra, level } = error;
@@ -172,6 +173,7 @@ export function OAuth2RedirectMessage({
       message={subtitle}
       type={level}
       description={body}
+      closable={closable}
     />
   );
 }

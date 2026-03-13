@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { sharedControls } from '@superset-ui/chart-controls';
 
 export const dndLineColumn = {

@@ -10623,7 +10623,7 @@ msgstr "Bezig"
 
 #, fuzzy, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
-msgstr "Lopende verklaring %(statement_num)s van %(statement_count)s"
+msgstr "Lopende verklaring %(block_num)s van %(block_count)s"
 
 msgid "SAT"
 msgstr "ZA"

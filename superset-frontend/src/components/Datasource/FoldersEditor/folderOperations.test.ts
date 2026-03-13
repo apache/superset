@@ -250,5 +250,111 @@ describe('folderUtils', () => {
       expect(result.length).toBeGreaterThan(2);
       expect(result.find(f => f.name === 'Custom Folder')).toBeDefined();
     });
+
+    test('should preserve default folder positions when saved', () => {
+      const customFolder = createFolder('Custom');
+      customFolder.children = [
+        {
+          uuid: 'metric-1',
+          type: FoldersEditorItemType.Metric,
+          name: 'Test Metric 1',
+        },
+      ];
+      const savedFolders = [
+        {
+          uuid: DEFAULT_METRICS_FOLDER_UUID,
+          type: FoldersEditorItemType.Folder as const,
+          name: 'Metrics',
+          children: [
+            {
+              uuid: 'metric-2',
+              name: 'metric-2',
+              type: FoldersEditorItemType.Metric,
+            },
+          ],
+        },
+        customFolder,
+        {
+          uuid: DEFAULT_COLUMNS_FOLDER_UUID,
+          type: FoldersEditorItemType.Folder as const,
+          name: 'Columns',
+          children: [
+            {
+              uuid: 'column-1',
+              name: 'column-1',
+              type: FoldersEditorItemType.Column,
+            },
+            {
+              uuid: 'column-2',
+              name: 'column-2',
+              type: FoldersEditorItemType.Column,
+            },
+          ],
+        },
+      ];
+      const result = ensureDefaultFolders(
+        savedFolders,
+        mockMetrics,
+        mockColumns,
+      );
+
+      expect(result).toHaveLength(3);
+      expect(result[0].uuid).toBe(DEFAULT_METRICS_FOLDER_UUID);
+      expect(result[1].uuid).toBe(customFolder.uuid);
+      expect(result[2].uuid).toBe(DEFAULT_COLUMNS_FOLDER_UUID);
+    });
+
+    test('should add unassigned items to existing default folders', () => {
+      const savedFolders = [
+        {
+          uuid: DEFAULT_METRICS_FOLDER_UUID,
+          type: FoldersEditorItemType.Folder as const,
+          name: 'Metrics',
+          children: [
+            {
+              uuid: 'metric-1',
+              name: 'metric-1',
+              type: FoldersEditorItemType.Metric,
+            },
+          ],
+        },
+        {
+          uuid: DEFAULT_COLUMNS_FOLDER_UUID,
+          type: FoldersEditorItemType.Folder as const,
+          name: 'Columns',
+          children: [
+            {
+              uuid: 'column-1',
+              name: 'column-1',
+              type: FoldersEditorItemType.Column,
+            },
+          ],
+        },
+      ];
+      const result = ensureDefaultFolders(
+        savedFolders,
+        mockMetrics,
+        mockColumns,
+      );
+
+      const metricsFolder = result.find(
+        f => f.uuid === DEFAULT_METRICS_FOLDER_UUID,
+      );
+      const columnsFolder = result.find(
+        f => f.uuid === DEFAULT_COLUMNS_FOLDER_UUID,
+      );
+
+      // metric-2 was unassigned, should be appended
+      expect(metricsFolder?.children).toHaveLength(2);
+      expect(metricsFolder?.children?.some(c => c.uuid === 'metric-2')).toBe(
+        true,
+      );
+
+      // column-2 was unassigned, should be appended
+      expect(columnsFolder?.children).toHaveLength(2);
+      expect(columnsFolder?.children?.some(c => c.uuid === 'column-2')).toBe(
+        true,
+      );
+    });
   });
 });

@@ -21,7 +21,7 @@
  */
 import { memo } from 'react';
 import { formatNumber } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { Color } from '@deck.gl/core';
 
 const StyledLegend = styled.div`

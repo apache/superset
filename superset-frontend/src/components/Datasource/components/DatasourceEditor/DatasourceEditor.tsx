@@ -20,7 +20,7 @@ import rison from 'rison';
 import { PureComponent, useCallback, type ReactNode } from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import type { JsonObject } from '@superset-ui/core';
-import type { SupersetTheme } from '@apache-superset/core/ui';
+import { type SupersetTheme } from '@apache-superset/core/theme';
 import type { AnyAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
 import { Radio } from '@superset-ui/core/components/Radio';
@@ -31,15 +31,15 @@ import {
   getClientErrorObject,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
+import { Alert } from '@apache-superset/core/components';
 import {
   css,
   styled,
   themeObject,
-  Alert,
   withTheme,
-  t,
-} from '@apache-superset/core/ui';
+} from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import Tabs from '@superset-ui/core/components/Tabs';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import TableSelector from 'src/components/TableSelector';
@@ -91,12 +91,14 @@ import Field from '../Field';
 import { fetchSyncedColumns, updateColumns } from '../../utils';
 import DatasetUsageTab from './components/DatasetUsageTab';
 import {
-  DEFAULT_COLUMNS_FOLDER_UUID,
   DEFAULT_FOLDERS_COUNT,
-  DEFAULT_METRICS_FOLDER_UUID,
+  isDefaultFolder,
 } from '../../FoldersEditor/constants';
 import { validateFolders } from '../../FoldersEditor/folderValidation';
-import { countAllFolders } from '../../FoldersEditor/treeUtils';
+import {
+  countAllFolders,
+  filterFoldersByValidUuids,
+} from '../../FoldersEditor/treeUtils';
 import FoldersEditor from '../../FoldersEditor';
 import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
 
@@ -136,6 +138,7 @@ interface Metric {
 
 interface Column {
   id?: number;
+  uuid?: string;
   column_name: string;
   verbose_name?: string;
   description?: string;
@@ -942,8 +945,14 @@ class DatasourceEditor extends PureComponent<
         col => !!col.expression,
       ),
       folders: props.datasource.folders || [],
-      folderCount:
-        countAllFolders(props.datasource.folders || []) + DEFAULT_FOLDERS_COUNT,
+      folderCount: (() => {
+        const savedFolders = props.datasource.folders || [];
+        const savedCount = countAllFolders(savedFolders);
+        const hasDefaultsSaved = savedFolders.some(f =>
+          isDefaultFolder(f.uuid),
+        );
+        return savedCount + (hasDefaultsSaved ? 0 : DEFAULT_FOLDERS_COUNT);
+      })(),
       metadataLoading: false,
       activeTabKey: TABS_KEYS.SOURCE,
       datasourceType: props.datasource.sql
@@ -987,11 +996,26 @@ class DatasourceEditor extends PureComponent<
     const sql =
       datasourceType === DATASOURCE_TYPES.physical.key ? '' : datasource.sql;
 
+    const columns = [
+      ...this.state.databaseColumns,
+      ...this.state.calculatedColumns,
+    ];
+
+    // Remove deleted column/metric references from folders
+    const validUuids = new Set<string>();
+    for (const col of columns) {
+      if (col.uuid) validUuids.add(col.uuid);
+    }
+    for (const metric of datasource.metrics ?? []) {
+      if (metric.uuid) validUuids.add(metric.uuid);
+    }
+    const folders = filterFoldersByValidUuids(this.state.folders, validUuids);
+
     const newDatasource = {
       ...this.state.datasource,
       sql,
-      columns: [...this.state.databaseColumns, ...this.state.calculatedColumns],
-      folders: this.state.folders,
+      columns,
+      folders,
     };
 
     this.props.onChange?.(newDatasource, this.state.errors);
@@ -1031,16 +1055,10 @@ class DatasourceEditor extends PureComponent<
 
   handleFoldersChange(folders: DatasourceFolder[]) {
     const folderCount = countAllFolders(folders);
-    const userMadeFolders = folders.filter(
-      f =>
-        f.uuid !== DEFAULT_METRICS_FOLDER_UUID &&
-        f.uuid !== DEFAULT_COLUMNS_FOLDER_UUID &&
-        (f.children?.length ?? 0) > 0,
-    );
-    this.setState({ folders: userMadeFolders, folderCount }, () => {
+    this.setState({ folders, folderCount }, () => {
       this.onDatasourceChange({
         ...this.state.datasource,
-        folders: userMadeFolders,
+        folders,
       });
     });
   }
@@ -2493,7 +2511,10 @@ class DatasourceEditor extends PureComponent<
                         metrics={
                           sortedMetrics as unknown as import('@superset-ui/chart-controls').Metric[]
                         }
-                        columns={this.state.databaseColumns}
+                        columns={[
+                          ...this.state.databaseColumns,
+                          ...this.state.calculatedColumns,
+                        ]}
                         onChange={this.handleFoldersChange}
                       />
                     ),

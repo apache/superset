@@ -35,8 +35,8 @@ import {
   ContextMenuFilters,
   DataRecordFilters,
 } from '@superset-ui/core';
-import { logging } from '@apache-superset/core';
-import { t } from '@apache-superset/core/ui';
+import { logging } from '@apache-superset/core/utils';
+import { t } from '@apache-superset/core/translation';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyState } from '@superset-ui/core/components';
 import { ChartSource } from 'src/types/ChartSource';
@@ -275,8 +275,10 @@ class ChartRenderer extends Component<ChartRendererProps, ChartRendererState> {
         const nextFormData = nextProps.formData as JsonObject;
         const currentFormData = this.props.formData as JsonObject;
         const isMatrixifyEnabled =
-          nextFormData.matrixify_enable_vertical_layout === true ||
-          nextFormData.matrixify_enable_horizontal_layout === true;
+          (nextFormData.matrixify_mode_rows !== undefined &&
+            nextFormData.matrixify_mode_rows !== 'disabled') ||
+          (nextFormData.matrixify_mode_columns !== undefined &&
+            nextFormData.matrixify_mode_columns !== 'disabled');
         if (!isMatrixifyEnabled) return false;
 
         // Check all matrixify-related properties

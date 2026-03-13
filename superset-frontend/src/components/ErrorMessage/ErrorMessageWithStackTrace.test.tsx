@@ -58,6 +58,18 @@ test('should render the link', () => {
   expect(link).toHaveAttribute('href', mockedProps.link);
 });
 
+test('should render a close button by default', () => {
+  render(<ErrorMessageWithStackTrace {...mockedProps} />);
+  expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
+});
+
+test('should not render a close button when closable is false', () => {
+  render(<ErrorMessageWithStackTrace {...mockedProps} closable={false} />);
+  expect(
+    screen.queryByRole('button', { name: /close/i }),
+  ).not.toBeInTheDocument();
+});
+
 test('should render the fallback', () => {
   const body = 'Blahblah';
   render(
