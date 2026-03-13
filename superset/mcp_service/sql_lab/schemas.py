@@ -260,7 +260,9 @@ class OpenSqlLabRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     database_connection_id: int = Field(
-        ..., description="Database connection ID to use in SQL Lab"
+        ...,
+        description="Database connection ID to use in SQL Lab",
+        validation_alias=AliasChoices("database_connection_id", "database_id"),
     )
     schema_name: str | None = Field(
         None, description="Default schema to select in SQL Lab", alias="schema"
@@ -268,7 +270,11 @@ class OpenSqlLabRequest(BaseModel):
     dataset_in_context: str | None = Field(
         None, description="Dataset name/table to provide as context"
     )
-    sql: str | None = Field(None, description="SQL query to pre-populate in the editor")
+    sql: str | None = Field(
+        None,
+        description="SQL to pre-populate in the editor",
+        validation_alias=AliasChoices("sql", "query"),
+    )
     title: str | None = Field(
         None,
         description=(
