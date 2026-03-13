@@ -29,7 +29,7 @@ import logging
 
 from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetSecurityException
@@ -43,7 +43,14 @@ from superset.mcp_service.utils.schema_utils import parse_request
 logger = logging.getLogger(__name__)
 
 
-@tool(tags=["mutate"])
+@tool(
+    tags=["mutate"],
+    annotations=ToolAnnotations(
+        title="Save SQL query",
+        readOnlyHint=False,
+        destructiveHint=False,
+    ),
+)
 @parse_request(SaveSqlQueryRequest)
 async def save_sql_query(
     request: SaveSqlQueryRequest, ctx: Context
