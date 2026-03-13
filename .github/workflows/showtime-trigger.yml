@@ -37,7 +37,7 @@ jobs:
     steps:
       - name: Security Check - Authorize Maintainers Only
         id: auth
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -147,7 +147,7 @@ jobs:
 
       - name: Checkout PR code (only if build needed)
         if: steps.auth.outputs.authorized == 'true' && steps.check.outputs.build_needed == 'true'
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: ${{ steps.check.outputs.target_sha }}
           persist-credentials: false

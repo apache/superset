@@ -49,6 +49,66 @@ describe('valueCalculations', () => {
       expect(result.errorMsg).toBeUndefined();
     });
 
+    test('should skip null values when finding lagged data points', () => {
+      const entriesWithNulls: Entry[] = [
+        { time: '2023-01-05', sales: 500, price: 50 },
+        { time: '2023-01-04', sales: null, price: null },
+        { time: '2023-01-03', sales: null, price: null },
+        { time: '2023-01-02', sales: 200, price: 20 },
+        { time: '2023-01-01', sales: 100, price: 10 },
+      ];
+
+      const column: ColumnConfig = {
+        key: 'test',
+        colType: 'time',
+        comparisonType: 'diff',
+        timeLag: 1,
+      };
+
+      const result = calculateTimeValue(500, 'sales', entriesWithNulls, column);
+
+      expect(result.value).toBe(300);
+    });
+
+    test('should maintain consistency between filtered and unfiltered behavior', () => {
+      const unfilteredEntries: Entry[] = [
+        { time: '2023-01-05', productA: 500, productB: null },
+        { time: '2023-01-04', productA: null, productB: null },
+        { time: '2023-01-03', productA: null, productB: 300 },
+        { time: '2023-01-02', productA: 200, productB: null },
+        { time: '2023-01-01', productA: 100, productB: 200 },
+      ];
+
+      const filteredEntries: Entry[] = [
+        { time: '2023-01-05', productA: 500 },
+        { time: '2023-01-02', productA: 200 },
+        { time: '2023-01-01', productA: 100 },
+      ];
+
+      const column: ColumnConfig = {
+        key: 'test',
+        colType: 'time',
+        comparisonType: 'diff',
+        timeLag: 1,
+      };
+
+      const unfilteredResult = calculateTimeValue(
+        500,
+        'productA',
+        unfilteredEntries,
+        column,
+      );
+      const filteredResult = calculateTimeValue(
+        500,
+        'productA',
+        filteredEntries,
+        column,
+      );
+
+      expect(unfilteredResult.value).toBe(filteredResult.value);
+      expect(unfilteredResult.value).toBe(300);
+    });
+
     test('should calculate perc comparison correctly', () => {
       const column: ColumnConfig = {
         key: 'test',
@@ -124,6 +184,106 @@ describe('valueCalculations', () => {
       const result = calculateTimeValue(300, 'sales', mockEntries, column);
 
       expect(result.value).toBe(200); // lagged value without comparison
+    });
+
+    test('should handle multiple null values with different time lags', () => {
+      const entriesWithGaps: Entry[] = [
+        { time: '2023-01-07', sales: 700 },
+        { time: '2023-01-06', sales: null },
+        { time: '2023-01-05', sales: null },
+        { time: '2023-01-04', sales: null },
+        { time: '2023-01-03', sales: 300 },
+        { time: '2023-01-02', sales: 200 },
+        { time: '2023-01-01', sales: 100 },
+      ];
+
+      const column1: ColumnConfig = {
+        key: 'test',
+        colType: 'time',
+        comparisonType: 'diff',
+        timeLag: 1,
+      };
+
+      const column2: ColumnConfig = {
+        key: 'test',
+        colType: 'time',
+        comparisonType: 'diff',
+        timeLag: 2,
+      };
+
+      const result1 = calculateTimeValue(
+        700,
+        'sales',
+        entriesWithGaps,
+        column1,
+      );
+      const result2 = calculateTimeValue(
+        700,
+        'sales',
+        entriesWithGaps,
+        column2,
+      );
+
+      expect(result1.value).toBe(400);
+      expect(result2.value).toBe(500);
+    });
+
+    test('should work with perc and perc_change when nulls are present', () => {
+      const entriesWithNulls: Entry[] = [
+        { time: '2023-01-04', sales: 400 },
+        { time: '2023-01-03', sales: null },
+        { time: '2023-01-02', sales: null },
+        { time: '2023-01-01', sales: 200 },
+      ];
+
+      const percColumn: ColumnConfig = {
+        key: 'test',
+        colType: 'time',
+        comparisonType: 'perc',
+        timeLag: 1,
+      };
+
+      const percChangeColumn: ColumnConfig = {
+        key: 'test',
+        colType: 'time',
+        comparisonType: 'perc_change',
+        timeLag: 1,
+      };
+
+      const percResult = calculateTimeValue(
+        400,
+        'sales',
+        entriesWithNulls,
+        percColumn,
+      );
+      const percChangeResult = calculateTimeValue(
+        400,
+        'sales',
+        entriesWithNulls,
+        percChangeColumn,
+      );
+
+      expect(percResult.value).toBe(2);
+      expect(percChangeResult.value).toBe(1);
+    });
+
+    test('should return null when not enough non-null values for time lag', () => {
+      const sparseEntries: Entry[] = [
+        { time: '2023-01-03', sales: 300 },
+        { time: '2023-01-02', sales: null },
+        { time: '2023-01-01', sales: null },
+      ];
+
+      const column: ColumnConfig = {
+        key: 'test',
+        colType: 'time',
+        comparisonType: 'diff',
+        timeLag: 2,
+      };
+
+      const result = calculateTimeValue(300, 'sales', sparseEntries, column);
+
+      expect(result.value).toBeNull();
     });
   });
 

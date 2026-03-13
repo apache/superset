@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AxisType, ChartProps, supersetTheme } from '@superset-ui/core';
+import { AxisType, ChartProps } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
 import {
   LegendOrientation,
   LegendType,
@@ -85,7 +86,7 @@ const chartPropsConfig = {
 };
 
 describe('Gantt transformProps', () => {
-  it('should transform chart props', () => {
+  test('should transform chart props', () => {
     const chartProps = new ChartProps(chartPropsConfig);
     const transformedProps = transformProps(
       chartProps as EchartsGanttChartProps,
@@ -138,7 +139,6 @@ describe('Gantt transformProps', () => {
           legend: expect.objectContaining({
             show: true,
             type: 'scroll',
-            selector: ['all', 'inverse'],
           }),
           tooltip: {
             formatter: expect.anything(),
@@ -280,7 +280,7 @@ describe('legend sorting', () => {
       },
     });
 
-  it('preserves original data order when no sort specified', () => {
+  test('preserves original data order when no sort specified', () => {
     const props = createChartProps({ legendSort: null });
     const result = transformProps(props as EchartsGanttChartProps);
 
@@ -288,7 +288,7 @@ describe('legend sorting', () => {
     expect(legendData).toEqual(['series value 1', 'series value 2']);
   });
 
-  it('sorts alphabetically ascending when legendSort is "asc"', () => {
+  test('sorts alphabetically ascending when legendSort is "asc"', () => {
     const props = createChartProps({ legendSort: 'asc' });
     const result = transformProps(props as EchartsGanttChartProps);
 
@@ -296,7 +296,7 @@ describe('legend sorting', () => {
     expect(legendData).toEqual(['series value 1', 'series value 2']);
   });
 
-  it('sorts alphabetically descending when legendSort is "desc"', () => {
+  test('sorts alphabetically descending when legendSort is "desc"', () => {
     const props = createChartProps({ legendSort: 'desc' });
     const result = transformProps(props as EchartsGanttChartProps);
 

@@ -46,14 +46,15 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
     resource_name = "log"
     allow_browser_login = True
     list_columns = [
-        "user",
+        "user.first_name",
+        "user.last_name",
+        "user.username",
         "user_id",
         "action",
         "dttm",
         "json",
         "slice_id",
         "dashboard_id",
-        "user_id",
         "duration_ms",
         "referrer",
     ]
@@ -65,7 +66,6 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
         "json",
         "slice_id",
         "dashboard_id",
-        "user_id",
         "duration_ms",
         "referrer",
     ]

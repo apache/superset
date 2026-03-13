@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useTheme, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
 
 import { Tooltip } from '@superset-ui/core/components';
 import { ClassNames } from '@emotion/react';

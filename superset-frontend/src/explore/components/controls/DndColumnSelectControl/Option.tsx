@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useCallback } from 'react';
-import { css, styled, t, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Icons, InfoTooltip } from '@superset-ui/core/components';
 import {
   CaretContainer,

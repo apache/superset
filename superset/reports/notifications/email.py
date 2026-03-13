@@ -34,6 +34,7 @@ from superset.reports.notifications.exceptions import NotificationError
 from superset.utils import json
 from superset.utils.core import HeaderDataType, send_email_smtp
 from superset.utils.decorators import statsd_gauge
+from superset.utils.link_redirect import process_html_links
 
 logger = logging.getLogger(__name__)
 
@@ -133,6 +134,9 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             attributes=ALLOWED_ATTRIBUTES,
         )
 
+        # Rewrite external links to go through the redirect warning page
+        description = process_html_links(description)
+
         # Strip malicious HTML from embedded data, allowing only table elements
         if self._content.embedded_data is not None:
             df = self._content.embedded_data
@@ -144,6 +148,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 tags=TABLE_TAGS,
                 attributes=ALLOWED_TABLE_ATTRIBUTES,
             )
+            html_table = process_html_links(html_table)
         else:
             html_table = ""
 
@@ -221,11 +226,11 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         return json.loads(self._recipient.recipient_config_json)["target"]
 
     def _get_cc(self) -> str:
-        # To accomadate backward compatability
+        # To accommodate backward compatibility
         return json.loads(self._recipient.recipient_config_json).get("ccTarget", "")
 
     def _get_bcc(self) -> str:
-        # To accomadate backward compatability
+        # To accommodate backward compatibility
         return json.loads(self._recipient.recipient_config_json).get("bccTarget", "")
 
     @statsd_gauge("reports.email.send")
@@ -253,7 +258,11 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 header_data=content.header_data,
             )
             logger.info(
-                "Report sent to email, notification content is %s", content.header_data
+                "Report sent to email, task_id: %s, notification content is %s",
+                content.header_data.get("execution_id")
+                if content.header_data
+                else None,
+                content.header_data,
             )
         except SupersetErrorsException as ex:
             raise NotificationError(

@@ -21,6 +21,7 @@ import uuid as uuid_lib
 from enum import Enum
 from typing import (
     Any,
+    ClassVar,
     Dict,
     Generic,
     get_args,
@@ -33,24 +34,25 @@ from typing import (
 
 import sqlalchemy as sa
 from flask_appbuilder.models.filters import BaseFilter
-from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_sqlalchemy import BaseQuery
 from pydantic import BaseModel, Field
 from sqlalchemy import asc, cast, desc, or_, Text
 from sqlalchemy.exc import SQLAlchemyError, StatementError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.inspection import inspect
-from sqlalchemy.orm import ColumnProperty, joinedload, RelationshipProperty
+from sqlalchemy.orm import ColumnProperty, joinedload, Query, RelationshipProperty
+from superset_core.common.daos import BaseDAO as CoreBaseDAO
+from superset_core.common.models import CoreModel
 
 from superset.daos.exceptions import (
     DAOFindFailedError,
 )
 from superset.extensions import db
 
-logger = logging.getLogger(__name__)
+T = TypeVar("T", bound=CoreModel)
 
-T = TypeVar("T", bound=Model)
+
+logger = logging.getLogger(__name__)
 
 
 class ColumnOperatorEnum(str, Enum):
@@ -151,26 +153,27 @@ class ColumnOperator(BaseModel):
     value: Any = Field(None, description="Value for the filter")
 
 
-class BaseDAO(Generic[T]):
+class BaseDAO(CoreBaseDAO[T], Generic[T]):
     """
     Base DAO, implement base CRUD sqlalchemy operations
     """
 
-    model_cls: type[Model] | None = None
+    # Due to mypy limitations, we can't have `type[T]` here
+    model_cls: ClassVar[type[Any] | None] = None
     """
     Child classes need to state the Model class so they don't need to implement basic
     create, update and delete methods
     """
-    base_filter: BaseFilter | None = None
+    base_filter: ClassVar[BaseFilter | None] = None
     """
     Child classes can register base filtering to be applied to all filter methods
     """
-    id_column_name = "id"
-    uuid_column_name = "uuid"
+    id_column_name: ClassVar[str] = "id"
+    uuid_column_name: ClassVar[str] = "uuid"
 
     def __init_subclass__(cls) -> None:
         cls.model_cls = get_args(
-            cls.__orig_bases__[0]  # type: ignore  # pylint: disable=no-member
+            cls.__orig_bases__[0]  # type: ignore[attr-defined]  # pylint: disable=no-member
         )[0]
 
     @classmethod
@@ -245,6 +248,7 @@ class BaseDAO(Generic[T]):
         column_name: str,
         value: str | int,
         skip_base_filter: bool = False,
+        query_options: list[Any] | None = None,
     ) -> T | None:
         """
         Private method to find a model by any column value.
@@ -253,12 +257,17 @@ class BaseDAO(Generic[T]):
             column_name: Name of the column to search by
             value: Value to search for
             skip_base_filter: Whether to skip base filtering
+            query_options: SQLAlchemy query options (e.g., joinedload,
+                subqueryload) to apply to the query for eager loading
 
         Returns:
             Model instance or None if not found
         """
         query = db.session.query(cls.model_cls)
         query = cls._apply_base_filter(query, skip_base_filter)
+
+        if query_options:
+            query = query.options(*query_options)
 
         if not hasattr(cls.model_cls, column_name):
             return None
@@ -280,6 +289,7 @@ class BaseDAO(Generic[T]):
         model_id: str | int,
         skip_base_filter: bool = False,
         id_column: str | None = None,
+        query_options: list[Any] | None = None,
     ) -> T | None:
         """
         Find a model by ID using specified or default ID column.
@@ -288,12 +298,14 @@ class BaseDAO(Generic[T]):
             model_id: ID value to search for
             skip_base_filter: Whether to skip base filtering
             id_column: Column name to use (defaults to cls.id_column_name)
+            query_options: SQLAlchemy query options (e.g., joinedload,
+                subqueryload) to apply to the query for eager loading
 
         Returns:
             Model instance or None if not found
         """
         column = id_column or cls.id_column_name
-        return cls._find_by_column(column, model_id, skip_base_filter)
+        return cls._find_by_column(column, model_id, skip_base_filter, query_options)
 
     @classmethod
     def find_by_ids(
@@ -437,7 +449,7 @@ class BaseDAO(Generic[T]):
             db.session.delete(item)
 
     @classmethod
-    def query(cls, query: BaseQuery) -> list[T]:
+    def query(cls, query: Query) -> list[T]:
         """
         Get all that fit the `base_filter` based on a BaseQuery object
         """

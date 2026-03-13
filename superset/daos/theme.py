@@ -32,11 +32,11 @@ class ThemeDAO(BaseDAO[Theme]):
 
     @classmethod
     def find_system_default(cls) -> Optional[Theme]:
-        """Find the current system default theme.
-
-        First looks for a theme with is_system_default=True.
-        If not found or multiple found, falls back to is_system=True theme
-        with name 'THEME_DEFAULT'.
+        """
+        Find the current system default theme.
+        Returns the theme with is_system_default=True if exactly one exists.
+        Returns None if no theme or multiple themes have
+        is_system_default=True, which triggers fallback to config.py theme.
         """
         system_defaults = (
             db.session.query(Theme).filter(Theme.is_system_default.is_(True)).all()
@@ -45,27 +45,15 @@ class ThemeDAO(BaseDAO[Theme]):
         if len(system_defaults) == 1:
             return system_defaults[0]
 
-        if len(system_defaults) > 1:
-            logger.warning(
-                "Multiple system default themes found (%s), "
-                "falling back to config theme",
-                len(system_defaults),
-            )
-
-        # Fallback to is_system=True theme with name 'THEME_DEFAULT'
-        return (
-            db.session.query(Theme)
-            .filter(Theme.is_system.is_(True), Theme.theme_name == "THEME_DEFAULT")
-            .first()
-        )
+        return None
 
     @classmethod
     def find_system_dark(cls) -> Optional[Theme]:
         """Find the current system dark theme.
 
-        First looks for a theme with is_system_dark=True.
-        If not found or multiple found, falls back to is_system=True theme
-        with name 'THEME_DARK'.
+        Returns the theme with is_system_dark=True if exactly one exists.
+        Returns None if no theme or multiple themes have is_system_dark=True,
+        which triggers fallback to config.py theme.
         """
         system_darks = (
             db.session.query(Theme).filter(Theme.is_system_dark.is_(True)).all()
@@ -74,15 +62,4 @@ class ThemeDAO(BaseDAO[Theme]):
         if len(system_darks) == 1:
             return system_darks[0]
 
-        if len(system_darks) > 1:
-            logger.warning(
-                "Multiple system dark themes found (%s), falling back to config theme",
-                len(system_darks),
-            )
-
-        # Fallback to is_system=True theme with name 'THEME_DARK'
-        return (
-            db.session.query(Theme)
-            .filter(Theme.is_system.is_(True), Theme.theme_name == "THEME_DARK")
-            .first()
-        )
+        return None

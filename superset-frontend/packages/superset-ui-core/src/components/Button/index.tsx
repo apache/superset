@@ -19,7 +19,7 @@
 import { Children, ReactElement, Fragment } from 'react';
 import cx from 'classnames';
 import { Button as AntdButton } from 'antd';
-import { useTheme } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/theme';
 import { Tooltip } from '../Tooltip';
 import type {
   ButtonColorType,
@@ -29,6 +29,22 @@ import type {
   ButtonVariantType,
   OnClickHandler,
 } from './types';
+
+const BUTTON_STYLE_MAP: Record<
+  ButtonStyle,
+  {
+    type?: ButtonType;
+    variant?: ButtonVariantType;
+    color?: ButtonColorType;
+  }
+> = {
+  primary: { type: 'primary', variant: 'solid', color: 'primary' },
+  secondary: { variant: 'filled', color: 'primary' },
+  tertiary: { variant: 'outlined', color: 'default' },
+  dashed: { type: 'dashed', variant: 'dashed', color: 'primary' },
+  danger: { variant: 'solid', color: 'danger' },
+  link: { type: 'link' },
+};
 
 export function Button(props: ButtonProps) {
   const {
@@ -62,27 +78,11 @@ export function Button(props: ButtonProps) {
     padding = 4;
   }
 
-  let antdType: ButtonType = 'default';
-  let variant: ButtonVariantType = 'solid';
-  let color: ButtonColorType = 'primary';
-
-  if (!buttonStyle || buttonStyle === 'primary') {
-    variant = 'solid';
-    antdType = 'primary';
-  } else if (buttonStyle === 'secondary') {
-    variant = 'filled';
-    color = 'primary';
-  } else if (buttonStyle === 'tertiary') {
-    variant = 'outlined';
-    color = 'default';
-  } else if (buttonStyle === 'dashed') {
-    variant = 'dashed';
-    antdType = 'dashed';
-  } else if (buttonStyle === 'danger') {
-    color = 'danger';
-  } else if (buttonStyle === 'link') {
-    variant = 'link';
-  }
+  const {
+    type: antdType = 'default',
+    variant,
+    color,
+  } = BUTTON_STYLE_MAP[buttonStyle ?? 'primary'];
 
   const element = children as ReactElement;
 
@@ -126,7 +126,7 @@ export function Button(props: ButtonProps) {
         minWidth: cta ? theme.sizeUnit * 36 : undefined,
         minHeight: cta ? theme.sizeUnit * 8 : undefined,
         marginLeft: 0,
-        '& + .superset-button': {
+        '& + .superset-button:not(.ant-btn-compact-item)': {
           marginLeft: theme.sizeUnit * 2,
         },
         '& > span > :first-of-type': {

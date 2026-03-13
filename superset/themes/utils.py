@@ -15,6 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 from typing import Any, Dict
+from urllib.parse import urlparse
+
+from flask import current_app
+from marshmallow import ValidationError
 
 from superset.themes.types import ThemeMode
 from superset.utils.core import sanitize_svg_content, sanitize_url
@@ -120,3 +124,62 @@ def sanitize_theme_tokens(theme_config: Dict[str, Any]) -> Dict[str, Any]:
         sanitized_config["token"] = tokens
 
     return sanitized_config
+
+
+def _validate_single_font_url(index: int, url: Any, allowed_domains: list[str]) -> str:
+    """
+    Validate a single font URL
+    """
+    if not isinstance(url, str):
+        raise ValidationError(f"fontUrls[{index}] must be a string")
+
+    # Reuse existing sanitize_url (blocks javascript:, data:, etc.)
+    sanitized = sanitize_url(url.strip())
+    if not sanitized:
+        raise ValidationError(f"fontUrls[{index}] contains invalid URL")
+
+    # Enforce HTTPS and validate domain
+    try:
+        parsed = urlparse(sanitized)
+        if parsed.scheme != "https":
+            raise ValidationError(f"fontUrls[{index}] must use HTTPS")
+        if parsed.netloc.lower() not in [d.lower() for d in allowed_domains]:
+            raise ValidationError(
+                f"fontUrls[{index}] domain '{parsed.netloc}' not in allowed list"
+            )
+    except ValidationError:
+        raise
+    except Exception as e:
+        raise ValidationError(f"fontUrls[{index}] is malformed: {e}") from e
+
+    return sanitized
+
+
+def validate_font_urls(font_urls: Any) -> list[str]:
+    """
+    Validate fontUrls array in theme token configuration
+    """
+    if font_urls is None:
+        return []
+
+    if not isinstance(font_urls, list):
+        raise ValidationError("fontUrls must be an array")
+
+    max_urls = current_app.config.get("THEME_FONTS_MAX_URLS", 15)
+    if len(font_urls) > max_urls:
+        raise ValidationError(f"Maximum {max_urls} font URLs allowed per theme")
+
+    allowed_domains = current_app.config.get(
+        "THEME_FONT_URL_ALLOWED_DOMAINS",
+        [
+            "fonts.googleapis.com",
+            "fonts.gstatic.com",
+            "use.typekit.net",
+            "use.typekit.com",
+        ],
+    )
+
+    return [
+        _validate_single_font_url(i, url, allowed_domains)
+        for i, url in enumerate(font_urls)
+    ]

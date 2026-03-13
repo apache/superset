@@ -17,10 +17,10 @@
  * under the License.
  */
 
+import { t } from '@apache-superset/core/translation';
 import {
   FeatureFlag,
   isFeatureEnabled,
-  t,
   validateNonEmpty,
   validateMapboxStylesUrl,
   getCategoricalSchemeRegistry,
@@ -96,7 +96,7 @@ const jsFunctionInfo = (
   </div>
 );
 
-function jsFunctionControl(
+export function jsFunctionControl(
   label: string,
   description: string,
   extraDescr = null,
@@ -286,8 +286,6 @@ export const strokeColorPicker: CustomControlItem = {
     type: 'ColorPickerControl',
     default: PRIMARY_COLOR,
     renderTrigger: true,
-    visibility: ({ controls }) =>
-      isColorSchemeTypeVisible(controls, COLOR_SCHEME_TYPES.fixed_color),
   },
 };
 
@@ -505,6 +503,7 @@ export const tooltipTemplate = {
   config: {
     type: TooltipTemplateControl,
     label: t('Customize tooltips template'),
+    renderTrigger: true,
     debounceDelay: 30,
     default: '',
     description: '',

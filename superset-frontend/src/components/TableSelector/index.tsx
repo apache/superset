@@ -25,20 +25,14 @@ import {
 } from 'react';
 import type { SelectValue } from '@superset-ui/core/components';
 
-import {
-  styled,
-  t,
-  getClientErrorMessage,
-  getClientErrorObject,
-} from '@superset-ui/core';
-import {
-  FormLabel,
-  CertifiedBadge,
-  Select,
-} from '@superset-ui/core/components';
-import { DatabaseSelector } from 'src/components';
+import { t } from '@apache-superset/core/translation';
+import { SupersetError } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
+import { CertifiedBadge, Select } from '@superset-ui/core/components';
+import { DatabaseSelector, ErrorMessageWithStackTrace } from 'src/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { DatabaseObject } from 'src/components/DatabaseSelector/types';
+import { StyledFormLabel } from 'src/components/DatabaseSelector/styles';
 import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -53,7 +47,6 @@ const TableSelectorWrapper = styled.div`
       align-items: center;
       width: ${REFRESH_WIDTH}px;
       margin-left: ${theme.sizeUnit}px;
-      margin-top: ${theme.sizeUnit * 5}px;
     }
 
     .section {
@@ -104,7 +97,6 @@ interface TableSelectorProps {
   catalog?: string | null;
   schema?: string;
   onEmptyResults?: (searchText?: string) => void;
-  sqlLabMode?: boolean;
   tableValue?: string | string[];
   onTableSelectChange?: (
     value?: string | string[],
@@ -174,7 +166,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   onEmptyResults,
   catalog,
   schema,
-  sqlLabMode = true,
   tableSelectMode = 'single',
   tableValue = undefined,
   onTableSelectChange,
@@ -190,6 +181,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   const [tableSelectValue, setTableSelectValue] = useState<
     SelectValue | undefined
   >(undefined);
+  const [errorPayload, setErrorPayload] = useState<SupersetError | null>(null);
   const {
     currentData: data,
     isFetching: loadingTables,
@@ -199,19 +191,17 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     catalog: currentCatalog,
     schema: currentSchema,
     onSuccess: (data, isFetched) => {
+      setErrorPayload(null);
       if (isFetched) {
         addSuccessToast(t('List updated'));
       }
     },
-    onError: err => {
-      getClientErrorObject(err).then(clientError => {
-        handleError(
-          getClientErrorMessage(
-            t('There was an error loading the tables'),
-            clientError,
-          ),
-        );
-      });
+    onError: error => {
+      if (error?.errors) {
+        setErrorPayload(error?.errors?.[0] ?? null);
+      } else {
+        handleError(error?.error || t('There was an error loading the tables'));
+      }
     },
   });
 
@@ -314,18 +304,13 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   function renderTableSelect() {
     const disabled = (currentSchema && !formMode && readOnly) || !currentSchema;
 
-    const header = sqlLabMode ? (
-      <FormLabel>{t('See table schema')}</FormLabel>
-    ) : (
-      <FormLabel>{t('Table')}</FormLabel>
-    );
+    const label = t('Table');
 
     const select = (
       <Select
         ariaLabel={t('Select table or type to search tables')}
         disabled={disabled}
         filterOption={handleFilterOption}
-        header={header}
         labelInValue
         loading={loadingTables}
         name="select-table"
@@ -349,7 +334,18 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       />
     );
 
-    return renderSelectRow(select, refreshLabel);
+    return (
+      <>
+        <StyledFormLabel>{label}</StyledFormLabel>
+        {renderSelectRow(select, refreshLabel)}
+      </>
+    );
+  }
+
+  function renderError() {
+    return errorPayload ? (
+      <ErrorMessageWithStackTrace error={errorPayload} source="crud" />
+    ) : null;
   }
 
   return (
@@ -366,11 +362,11 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         catalog={currentCatalog}
         onSchemaChange={readOnly ? undefined : internalSchemaChange}
         schema={currentSchema}
-        sqlLabMode={sqlLabMode}
         isDatabaseSelectEnabled={isDatabaseSelectEnabled && !readOnly}
         readOnly={readOnly}
       />
-      {sqlLabMode && !formMode && <div className="divider" />}
+      {!formMode && <div className="divider" />}
+      {renderError()}
       {renderTableSelect()}
     </TableSelectorWrapper>
   );

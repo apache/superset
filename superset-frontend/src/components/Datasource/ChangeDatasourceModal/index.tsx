@@ -25,14 +25,11 @@ import {
   ChangeEvent,
 } from 'react';
 
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
+import { Alert } from '@apache-superset/core/components';
+import { styled } from '@apache-superset/core/theme';
 import {
-  SupersetClient,
-  t,
-  styled,
-  getClientErrorObject,
-} from '@superset-ui/core';
-import {
-  Alert,
   Button,
   Constants,
   EmptyWrapperType,
@@ -265,7 +262,9 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
           {confirmChange && (
             <ConfirmModalStyled>
               <div className="btn-container">
-                <Button onClick={handlerCancelConfirm}>{t('Cancel')}</Button>
+                <Button buttonStyle="secondary" onClick={handlerCancelConfirm}>
+                  {t('Cancel')}
+                </Button>
                 <Button
                   className="proceed-btn"
                   buttonStyle="primary"
@@ -283,7 +282,6 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         {!confirmChange && (
           <>
             <Alert
-              roomBelow
               type="warning"
               css={theme => ({ marginBottom: theme.sizeUnit * 4 })}
               message={

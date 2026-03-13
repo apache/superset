@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 
 import type { ErrorMessageComponentProps } from './types';
 import { ErrorAlert } from './ErrorAlert';
@@ -24,6 +24,7 @@ import { ErrorAlert } from './ErrorAlert';
 export function DatasetNotFoundErrorMessage({
   error,
   subtitle,
+  closable,
 }: ErrorMessageComponentProps) {
   const { level, message } = error;
   return (
@@ -32,6 +33,7 @@ export function DatasetNotFoundErrorMessage({
       message={subtitle}
       description={message}
       type={level}
+      closable={closable}
     />
   );
 }

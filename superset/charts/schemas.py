@@ -459,7 +459,7 @@ class ChartDataAggregateOptionsSchema(ChartDataPostProcessingOperationOptionsSch
                 allow_none=False,
                 metadata={"description": "Columns by which to group by"},
             ),
-            minLength=1,
+            metadata={"minLength": 1},
             required=True,
         ),
     )
@@ -656,8 +656,8 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
             "description": "Time periods (in units of `time_grain`) to predict into "
             "the future",
             "example": 7,
+            "min": 0,
         },
-        min=0,
         required=True,
     )
     confidence_interval = fields.Float(
@@ -790,8 +790,10 @@ class ChartDataPivotOptionsSchema(ChartDataPostProcessingOperationOptionsSchema)
     index = (
         fields.List(
             fields.String(allow_none=False),
-            metadata={"description": "Columns to group by on the table index (=rows)"},
-            minLength=1,
+            metadata={
+                "description": "Columns to group by on the table index (=rows)",
+                "minLength": 1,
+            },
             required=True,
         ),
     )
@@ -1015,6 +1017,24 @@ class ChartDataExtrasSchema(Schema):
             "description": "This is only set using the new time comparison controls "
             "that is made available in some plugins behind the experimental "
             "feature flag."
+        },
+        allow_none=True,
+    )
+    column_order = fields.List(
+        fields.String(),
+        metadata={
+            "description": (
+                "Ordered list of column names for result ordering. "
+                "Used to preserve user's column reordering (including mixed "
+                "dimension columns and metrics)"
+            )
+        },
+        allow_none=True,
+    )
+    transpile_to_dialect = fields.Boolean(
+        metadata={
+            "description": "If true, WHERE/HAVING clauses will be transpiled to the "
+            "target database dialect using SQLGlot."
         },
         allow_none=True,
     )
@@ -1453,6 +1473,13 @@ class ChartDataResponseResult(Schema):
         required=True,
         allow_none=True,
     )
+    queried_dttm = fields.String(
+        metadata={
+            "description": "UTC timestamp when the query was executed (ISO 8601 format)"
+        },
+        required=True,
+        allow_none=True,
+    )
     cache_timeout = fields.Integer(
         metadata={
             "description": "Cache timeout in following order: custom timeout, datasource "  # noqa: E501
@@ -1471,9 +1498,12 @@ class ChartDataResponseResult(Schema):
         allow_none=None,
     )
     query = fields.String(
-        metadata={"description": "The executed query statement"},
-        required=True,
-        allow_none=False,
+        metadata={
+            "description": "The executed query statement. May be absent when "
+            "validation errors occur."
+        },
+        required=False,
+        allow_none=True,
     )
     status = fields.String(
         metadata={"description": "Status of the query"},
@@ -1511,6 +1541,15 @@ class ChartDataResponseResult(Schema):
     )
     rejected_filters = fields.List(
         fields.Dict(), metadata={"description": "A list with rejected filters"}
+    )
+    detected_currency = fields.String(
+        metadata={
+            "description": "Detected ISO 4217 currency code when AUTO mode is used. "
+            "Returns the currency code if all filtered data contains a single currency "
+            "or null if multiple currencies are present."
+        },
+        allow_none=True,
+        load_default=None,
     )
     from_dttm = fields.Integer(
         metadata={"description": "Start timestamp of time range"},
@@ -1634,6 +1673,7 @@ class UserSchema(Schema):
     id = fields.Int()
     first_name = fields.String()
     last_name = fields.String()
+    email = fields.String()
 
 
 class DashboardSchema(Schema):
@@ -1643,7 +1683,7 @@ class DashboardSchema(Schema):
 
 
 class ChartGetResponseSchema(Schema):
-    id = fields.Int(description=id_description)
+    id = fields.Int(metadata={"description": id_description})
     url = fields.String()
     cache_timeout = fields.String()
     certified_by = fields.String()

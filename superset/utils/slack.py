@@ -50,8 +50,11 @@ def get_slack_client() -> WebClient:
         token = token()
     client = WebClient(token=token, proxy=app.config["SLACK_PROXY"])
 
-    rate_limit_handler = RateLimitErrorRetryHandler(max_retry_count=2)
+    max_retry_count = app.config.get("SLACK_API_RATE_LIMIT_RETRY_COUNT", 2)
+    rate_limit_handler = RateLimitErrorRetryHandler(max_retry_count=max_retry_count)
     client.retry_handlers.append(rate_limit_handler)
+
+    logger.debug("Slack client configured with %d rate limit retries", max_retry_count)
 
     return client
 
@@ -73,19 +76,45 @@ def get_channels() -> list[SlackChannelSchema]:
     channels: list[SlackChannelSchema] = []
     extra_params = {"types": ",".join(SlackChannelTypes)}
     cursor = None
+    page_count = 0
 
-    while True:
-        response = client.conversations_list(
-            limit=999, cursor=cursor, exclude_archived=True, **extra_params
-        )
-        channels.extend(
-            channel_schema.load(channel) for channel in response.data["channels"]
-        )
-        cursor = response.data.get("response_metadata", {}).get("next_cursor")
-        if not cursor:
-            break
+    logger.info("Starting Slack channels fetch")
 
-    return channels
+    try:
+        while True:
+            page_count += 1
+
+            response = client.conversations_list(
+                limit=999, cursor=cursor, exclude_archived=True, **extra_params
+            )
+            page_channels = response.data["channels"]
+            channels.extend(channel_schema.load(channel) for channel in page_channels)
+
+            logger.debug(
+                "Fetched page %d: %d channels (total: %d)",
+                page_count,
+                len(page_channels),
+                len(channels),
+            )
+
+            cursor = response.data.get("response_metadata", {}).get("next_cursor")
+            if not cursor:
+                break
+
+        logger.info(
+            "Successfully fetched %d Slack channels in %d pages",
+            len(channels),
+            page_count,
+        )
+        return channels
+    except SlackApiError as ex:
+        logger.error(
+            "Failed to fetch Slack channels after %d pages: %s",
+            page_count,
+            str(ex),
+            exc_info=True,
+        )
+        raise
 
 
 def get_channels_with_search(
@@ -104,7 +133,17 @@ def get_channels_with_search(
             force=force,
             cache_timeout=app.config["SLACK_CACHE_TIMEOUT"],
         )
-    except (SlackClientError, SlackApiError) as ex:
+    except SlackApiError as ex:
+        # Check if it's a rate limit error
+        status_code = getattr(ex.response, "status_code", None)
+        if status_code == 429:
+            raise SupersetException(
+                f"Slack API rate limit exceeded: {ex}. "
+                "For large workspaces, consider increasing "
+                "SLACK_API_RATE_LIMIT_RETRY_COUNT"
+            ) from ex
+        raise SupersetException(f"Failed to list channels: {ex}") from ex
+    except SlackClientError as ex:
         raise SupersetException(f"Failed to list channels: {ex}") from ex
 
     if types and not len(types) == len(SlackChannelTypes):

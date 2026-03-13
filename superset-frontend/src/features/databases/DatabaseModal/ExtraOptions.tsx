@@ -18,13 +18,13 @@
  */
 import { ChangeEvent, EventHandler, useState, useEffect } from 'react';
 import cx from 'classnames';
+import { t } from '@apache-superset/core/translation';
 import {
-  t,
   DatabaseConnectionExtension,
   isFeatureEnabled,
-  useTheme,
   FeatureFlag,
 } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/theme';
 import {
   Input,
   Checkbox,
@@ -115,6 +115,15 @@ const ExtraOptions = ({
     FeatureFlag.ForceSqlLabRunAsync,
   );
   const [activeKey, setActiveKey] = useState<string[] | undefined>();
+
+  const [schemasText, setSchemasText] = useState<string>('');
+  useEffect(() => {
+    if (!db) return;
+    const initialSchemas = (
+      (extraJson?.schemas_allowed_for_file_upload as string[] | undefined) || []
+    ).join(',');
+    setSchemasText(initialSchemas);
+  }, [db?.extra]);
 
   useEffect(() => {
     if (!expandableModalIsOpen && activeKey !== undefined) {
@@ -460,9 +469,7 @@ const ExtraOptions = ({
           ),
           children: (
             <>
-              <StyledInputContainer
-                css={!isFileUploadSupportedByEngine ? no_margin_bottom : {}}
-              >
+              <StyledInputContainer>
                 <div className="input-container">
                   <Checkbox
                     id="per_user_caching"
@@ -481,9 +488,7 @@ const ExtraOptions = ({
                   />
                 </div>
               </StyledInputContainer>
-              <StyledInputContainer
-                css={!isFileUploadSupportedByEngine ? no_margin_bottom : {}}
-              >
+              <StyledInputContainer>
                 <div className="input-container">
                   <Checkbox
                     id="impersonate_user"
@@ -508,9 +513,7 @@ const ExtraOptions = ({
                 </div>
               </StyledInputContainer>
               {isFileUploadSupportedByEngine && (
-                <StyledInputContainer
-                  css={!db?.allow_file_upload ? no_margin_bottom : {}}
-                >
+                <StyledInputContainer>
                   <div className="input-container">
                     <Checkbox
                       id="allow_file_upload"
@@ -525,7 +528,7 @@ const ExtraOptions = ({
                 </StyledInputContainer>
               )}
               {isFileUploadSupportedByEngine && !!db?.allow_file_upload && (
-                <StyledInputContainer css={no_margin_bottom}>
+                <StyledInputContainer className="extra-container">
                   <div className="control-label">
                     {t('Schemas allowed for File upload')}
                   </div>
@@ -533,11 +536,18 @@ const ExtraOptions = ({
                     <Input
                       type="text"
                       name="schemas_allowed_for_file_upload"
-                      value={(
-                        extraJson?.schemas_allowed_for_file_upload || []
-                      ).join(',')}
-                      placeholder="schema1,schema2"
-                      onChange={onExtraInputChange}
+                      value={schemasText}
+                      placeholder={t('schema1,schema2')}
+                      onChange={e => setSchemasText(e.target.value)}
+                      onBlur={() =>
+                        onExtraInputChange({
+                          target: {
+                            type: 'text',
+                            name: 'schemas_allowed_for_file_upload',
+                            value: schemasText,
+                          },
+                        } as ChangeEvent<HTMLInputElement>)
+                      }
                     />
                   </div>
                   <div className="helper">
@@ -597,9 +607,9 @@ const ExtraOptions = ({
           ? [
               {
                 key: extraExtension?.title,
-                collapsible: extraExtension.enabled?.()
-                  ? ('icon' as const)
-                  : ('disabled' as const),
+                ...(extraExtension.enabled?.()
+                  ? {}
+                  : { collapsible: 'disabled' as const }),
                 label: (
                   <CollapseLabelInModal
                     key={extraExtension?.title}

@@ -19,13 +19,13 @@
 import { render, screen } from '@superset-ui/core/spec';
 import { AgGridReact } from 'ag-grid-react';
 import { createRef } from 'react';
-import { ThemeProvider, supersetTheme } from '../../theme';
+import { ThemeProvider, supersetTheme } from '@apache-superset/core/theme';
+import * as uiModule from '@apache-superset/core/theme';
 import { ThemedAgGridReact } from './index';
-import * as themeUtils from '../../theme/utils/themeUtils';
 
 // Mock useThemeMode hook
-jest.mock('../../theme/utils/themeUtils', () => ({
-  ...jest.requireActual('../../theme/utils/themeUtils'),
+jest.mock('@apache-superset/core/theme', () => ({
+  ...jest.requireActual('@apache-superset/core/theme'),
   useThemeMode: jest.fn(() => false), // Default to light mode
 }));
 
@@ -68,7 +68,7 @@ const mockColumnDefs = [
 beforeEach(() => {
   jest.clearAllMocks();
   // Reset to light mode by default
-  (themeUtils.useThemeMode as jest.Mock).mockReturnValue(false);
+  (uiModule.useThemeMode as jest.Mock).mockReturnValue(false);
 });
 
 test('renders the AgGridReact component', () => {
@@ -101,7 +101,7 @@ test('applies light theme when background is light', () => {
 
 test('applies dark theme when background is dark', () => {
   // Mock dark mode
-  (themeUtils.useThemeMode as jest.Mock).mockReturnValue(true);
+  (uiModule.useThemeMode as jest.Mock).mockReturnValue(true);
 
   const darkTheme = {
     ...supersetTheme,
@@ -217,4 +217,30 @@ test('handles missing theme gracefully', () => {
 
   // Should still render without crashing
   expect(screen.getByTestId('ag-grid-react')).toBeInTheDocument();
+});
+
+test('merges theme overrides with default theme parameters', () => {
+  const themeOverrides = {
+    fontSize: 16,
+    headerBackgroundColor: '#custom-color',
+  };
+
+  render(
+    <ThemedAgGridReact
+      rowData={mockRowData}
+      columnDefs={mockColumnDefs}
+      themeOverrides={themeOverrides}
+    />,
+  );
+
+  const agGrid = screen.getByTestId('ag-grid-react');
+  const theme = JSON.parse(agGrid.getAttribute('data-theme') || '{}');
+
+  // Custom overrides should be applied
+  expect(theme.fontSize).toBe(16);
+  expect(theme.headerBackgroundColor).toBe('#custom-color');
+
+  // Default theme parameters should still be present
+  expect(theme.foregroundColor).toBeDefined();
+  expect(theme.borderColor).toBeDefined();
 });

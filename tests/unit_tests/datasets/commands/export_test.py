@@ -155,6 +155,7 @@ def test_export(session: Session) -> None:
             f"datasets/my_database/my_table_{sqla_table.id}.yaml",
             f"""table_name: my_table
 main_dttm_col: ds
+currency_code_column: null
 description: This is the description
 default_endpoint: null
 offset: -8
@@ -221,6 +222,7 @@ columns:
   expression: revenue-expenses
   description: null
   python_date_format: null
+  datetime_format: null
   extra:
     certified_by: User
 - column_name: ds
@@ -234,6 +236,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
+  datetime_format: null
   extra: null
 - column_name: user_id
   verbose_name: null
@@ -246,6 +249,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
+  datetime_format: null
   extra: null
 - column_name: expenses
   verbose_name: null
@@ -258,6 +262,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
+  datetime_format: null
   extra: null
 - column_name: revenue
   verbose_name: null
@@ -270,6 +275,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
+  datetime_format: null
   extra: null
 version: 1.0.0
 database_uuid: {database.uuid}
@@ -292,6 +298,7 @@ extra:
   metadata_cache_timeout: {{}}
   schemas_allowed_for_file_upload: []
 impersonate_user: false
+configuration_method: sqlalchemy_form
 uuid: {database.uuid}
 version: 1.0.0
 """,

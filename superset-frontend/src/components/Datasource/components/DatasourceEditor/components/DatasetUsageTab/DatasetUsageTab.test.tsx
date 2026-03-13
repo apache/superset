@@ -22,6 +22,7 @@ import {
   screen,
   waitFor,
 } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import DatasetUsageTab from '.';
 
@@ -109,13 +110,29 @@ const setupTest = (props = {}) => {
   });
 };
 
+// Store original scrollTo to restore after tests
+let originalScrollTo: typeof Element.prototype.scrollTo;
+
+beforeAll(() => {
+  // Capture original scrollTo implementation once before all tests
+  originalScrollTo = Element.prototype.scrollTo;
+});
+
 beforeEach(() => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   jest.clearAllMocks();
+  // Mock scrollTo for all tests
+  Element.prototype.scrollTo = jest.fn();
 });
 
 afterEach(() => {
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
+  // Restore original scrollTo implementation after each test
+  Element.prototype.scrollTo = originalScrollTo;
+  // Restore console.error if it was spied on
+  if (jest.isMockFunction(console.error)) {
+    (console.error as jest.Mock).mockRestore();
+  }
 });
 
 test('renders empty state when no charts provided', () => {
@@ -170,10 +187,23 @@ test('renders correct column headers', async () => {
   setupTest();
 
   await waitFor(() => {
-    expect(screen.getByText('Chart')).toBeInTheDocument();
-    expect(screen.getByText('Chart owners')).toBeInTheDocument();
-    expect(screen.getByText('Last modified')).toBeInTheDocument();
-    expect(screen.getByText('Dashboard usage')).toBeInTheDocument();
+    const chartHeader = screen
+      .getAllByText('Chart')
+      .find(el => el.closest('th'));
+    const ownersHeader = screen
+      .getAllByText('Chart owners')
+      .find(el => el.closest('th'));
+    const lastModifiedHeader = screen
+      .getAllByText('Last modified')
+      .find(el => el.closest('th'));
+    const dashboardHeader = screen
+      .getAllByText('Dashboard usage')
+      .find(el => el.closest('th'));
+
+    expect(chartHeader).toBeInTheDocument();
+    expect(ownersHeader).toBeInTheDocument();
+    expect(lastModifiedHeader).toBeInTheDocument();
+    expect(dashboardHeader).toBeInTheDocument();
   });
 });
 
@@ -198,17 +228,465 @@ test('displays data in correct order (last modified desc)', async () => {
 
 test('enables sorting for Chart and Last modified columns', async () => {
   setupTest();
-
   await waitFor(() => {
-    const chartHeader = screen.getByText('Chart').closest('th');
-    const lastModifiedHeader = screen.getByText('Last modified').closest('th');
-    const ownersHeader = screen.getByText('Chart owners').closest('th');
-    const dashboardHeader = screen.getByText('Dashboard usage').closest('th');
+    const chartHeader = screen
+      .getAllByText('Chart')
+      .find(el => el.closest('th'))
+      ?.closest('th');
+
+    const lastModifiedHeader = screen
+      .getAllByText('Last modified')
+      .find(el => el.closest('th'))
+      ?.closest('th');
+
+    const ownersHeader = screen
+      .getAllByText('Chart owners')
+      .find(el => el.closest('th'))
+      ?.closest('th');
+
+    const dashboardHeader = screen
+      .getAllByText('Dashboard usage')
+      .find(el => el.closest('th'))
+      ?.closest('th');
 
     expect(chartHeader).toHaveClass('ant-table-column-has-sorters');
     expect(lastModifiedHeader).toHaveClass('ant-table-column-has-sorters');
-
     expect(ownersHeader).not.toHaveClass('ant-table-column-has-sorters');
     expect(dashboardHeader).not.toHaveClass('ant-table-column-has-sorters');
   });
+});
+
+test('shows loading state during pagination fetch', async () => {
+  let resolvePromise: (value: any) => void;
+  const delayedPromise = new Promise(resolve => {
+    resolvePromise = resolve;
+  });
+
+  const mockOnFetchCharts = jest.fn(() => delayedPromise);
+
+  // Start with multiple pages
+  setupTest({
+    onFetchCharts: mockOnFetchCharts,
+    totalCount: 100,
+  });
+
+  // Initial render - no loading
+  expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument();
+
+  // Find next page button
+  const nextButton = screen.getByTitle('Next Page');
+
+  await userEvent.click(nextButton);
+
+  // Should show loading state
+  await waitFor(() => {
+    expect(screen.getByLabelText('Loading')).toBeInTheDocument();
+  });
+
+  // Resolve the promise
+  resolvePromise!({
+    charts: mockChartsResponse.result,
+    count: 100,
+    ids: [1, 2],
+  });
+
+  // Loading should disappear
+  await waitFor(() => {
+    expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument();
+  });
+});
+
+test('calls onFetchCharts with correct pagination parameters', async () => {
+  const mockOnFetchCharts = jest.fn(() =>
+    Promise.resolve({
+      charts: mockChartsResponse.result,
+      count: 100,
+      ids: [1, 2],
+    }),
+  );
+
+  setupTest({
+    onFetchCharts: mockOnFetchCharts,
+    totalCount: 100,
+  });
+
+  const nextButton = screen.getByTitle('Next Page');
+
+  await userEvent.click(nextButton);
+
+  await waitFor(() => {
+    expect(mockOnFetchCharts).toHaveBeenCalledWith(
+      2, // page
+      25, // pageSize
+      'changed_on_delta_humanized', // sortColumn
+      'desc', // sortDirection
+    );
+  });
+});
+
+test('shows error toast when fetch fails', async () => {
+  const mockOnFetchCharts = jest.fn(() =>
+    Promise.reject(new Error('Network error')),
+  );
+  const mockAddDangerToast = jest.fn();
+
+  setupTest({
+    onFetchCharts: mockOnFetchCharts,
+    addDangerToast: mockAddDangerToast,
+    totalCount: 100,
+  });
+
+  const nextButton = screen.getByTitle('Next Page');
+
+  await userEvent.click(nextButton);
+
+  await waitFor(() => {
+    expect(mockAddDangerToast).toHaveBeenCalledWith('Error fetching charts');
+  });
+
+  // Loading state should be cleared
+  expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument();
+});
+
+test('handles slow network without race condition', async () => {
+  let resolvePromise: (value: any) => void;
+  const slowPromise = new Promise(resolve => {
+    resolvePromise = resolve;
+  });
+
+  const mockOnFetchCharts = jest.fn(() => slowPromise);
+
+  setupTest({
+    onFetchCharts: mockOnFetchCharts,
+    totalCount: 100,
+  });
+
+  const nextButton = screen.getByTitle('Next Page');
+
+  await userEvent.click(nextButton);
+
+  // Should be loading
+  await waitFor(() => {
+    expect(screen.getByLabelText('Loading')).toBeInTheDocument();
+  });
+
+  // Should still be loading (data hasn't arrived)
+  expect(screen.getByLabelText('Loading')).toBeInTheDocument();
+
+  // Now resolve the promise
+  resolvePromise!({
+    charts: mockChartsResponse.result,
+    count: 100,
+    ids: [1, 2],
+  });
+
+  // Wait for loading to complete
+  await waitFor(() => {
+    expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument();
+  });
+});
+
+test('scrolls to top after data loads, not before', async () => {
+  // Use the global scrollTo mock
+  const scrollToMock = Element.prototype.scrollTo as jest.Mock;
+
+  let resolvePromise: (value: any) => void;
+  const delayedPromise = new Promise(resolve => {
+    resolvePromise = resolve;
+  });
+
+  const mockOnFetchCharts = jest.fn(() => delayedPromise);
+
+  setupTest({
+    onFetchCharts: mockOnFetchCharts,
+    totalCount: 100,
+  });
+
+  const nextButton = screen.getByTitle('Next Page');
+
+  await userEvent.click(nextButton);
+
+  // Should be loading
+  await waitFor(() => {
+    expect(screen.getByLabelText('Loading')).toBeInTheDocument();
+  });
+
+  // Scroll should NOT have been called yet (data still loading)
+  expect(scrollToMock).not.toHaveBeenCalled();
+
+  // Resolve the promise
+  resolvePromise!({
+    charts: mockChartsResponse.result,
+    count: 100,
+    ids: [1, 2],
+  });
+
+  // Wait for loading to complete
+  await waitFor(() => {
+    expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument();
+  });
+
+  // Scroll should be called after data loads (with requestAnimationFrame)
+  await waitFor(() => {
+    expect(scrollToMock).toHaveBeenCalledWith({
+      top: 0,
+      behavior: 'smooth',
+    });
+  });
+});
+
+test('does not scroll on initial mount, only on page change', async () => {
+  // Use the global scrollTo mock
+  const scrollToMock = Element.prototype.scrollTo as jest.Mock;
+
+  const mockOnFetchCharts = jest.fn(() =>
+    Promise.resolve({
+      charts: mockChartsResponse.result,
+      count: 2,
+      ids: [1, 2],
+    }),
+  );
+
+  setupTest({ onFetchCharts: mockOnFetchCharts });
+
+  // Wait for initial render
+  await waitFor(() => {
+    expect(screen.getByText('Test Chart 1')).toBeInTheDocument();
+  });
+
+  // Scroll should not have been called on mount
+  expect(scrollToMock).not.toHaveBeenCalled();
+});
+
+test('cleans up animation frame on unmount during loading', async () => {
+  const cancelAnimationFrameSpy = jest.spyOn(window, 'cancelAnimationFrame');
+
+  let resolvePromise: (value: any) => void;
+  const delayedPromise = new Promise(resolve => {
+    resolvePromise = resolve;
+  });
+
+  const mockOnFetchCharts = jest.fn(() => delayedPromise);
+
+  const { unmount } = setupTest({
+    onFetchCharts: mockOnFetchCharts,
+    totalCount: 100,
+  });
+
+  const nextButton = screen.getByTitle('Next Page');
+
+  await userEvent.click(nextButton);
+
+  // Should be loading
+  await waitFor(() => {
+    expect(screen.getByLabelText('Loading')).toBeInTheDocument();
+  });
+
+  // Resolve promise to trigger scroll effect
+  resolvePromise!({
+    charts: mockChartsResponse.result,
+    count: 100,
+    ids: [1, 2],
+  });
+
+  // Wait for loading to complete (which queues requestAnimationFrame)
+  await waitFor(() => {
+    expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument();
+  });
+
+  // Unmount before animation frame fires
+  unmount();
+
+  // Cleanup should have cancelled the animation frame
+  expect(cancelAnimationFrameSpy).toHaveBeenCalled();
+
+  cancelAnimationFrameSpy.mockRestore();
+});
+
+test('handles AbortError without setState after unmount', async () => {
+  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+  let rejectPromise: (reason?: any) => void;
+  const abortedPromise = new Promise((_, reject) => {
+    rejectPromise = reject;
+  });
+
+  const mockOnFetchCharts = jest.fn(() => abortedPromise);
+
+  const { unmount } = setupTest({
+    onFetchCharts: mockOnFetchCharts,
+    totalCount: 100,
+  });
+
+  const nextButton = screen.getByTitle('Next Page');
+  await userEvent.click(nextButton);
+
+  // Should be loading
+  await waitFor(() => {
+    expect(screen.getByLabelText('Loading')).toBeInTheDocument();
+  });
+
+  // Unmount while loading
+  unmount();
+
+  // Reject with AbortError after unmount
+  const abortError = new Error('The operation was aborted');
+  abortError.name = 'AbortError';
+  rejectPromise!(abortError);
+
+  // Flush pending promises and animation frames
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  // CRITICAL: No setState warnings
+  expect(consoleErrorSpy).not.toHaveBeenCalledWith(
+    expect.stringContaining('setState'),
+  );
+  expect(consoleErrorSpy).not.toHaveBeenCalledWith(
+    expect.stringContaining('unmounted component'),
+  );
+
+  consoleErrorSpy.mockRestore();
+});
+
+test('can search charts by chart name', async () => {
+  setupTest();
+
+  await waitFor(() => {
+    expect(screen.getByText('Test Chart 1')).toBeInTheDocument();
+    expect(screen.getByText('Test Chart 2')).toBeInTheDocument();
+  });
+
+  const searchInput = screen.getByPlaceholderText(
+    'Search charts by name, owner, or dashboard',
+  );
+  expect(searchInput).toBeInTheDocument();
+
+  await userEvent.type(searchInput, 'Chart 1');
+
+  await waitFor(() => {
+    expect(screen.getByText('Test Chart 1')).toBeInTheDocument();
+    expect(screen.queryByText('Test Chart 2')).not.toBeInTheDocument();
+  });
+
+  await userEvent.clear(searchInput);
+
+  await waitFor(() => {
+    expect(screen.getByText('Test Chart 1')).toBeInTheDocument();
+    expect(screen.getByText('Test Chart 2')).toBeInTheDocument();
+  });
+});
+
+test('can search charts by owner name', async () => {
+  setupTest();
+
+  await waitFor(() => {
+    expect(screen.getByText('Test Chart 1')).toBeInTheDocument();
+  });
+
+  const searchInput = screen.getByPlaceholderText(
+    'Search charts by name, owner, or dashboard',
+  );
+
+  await userEvent.type(searchInput, 'Bob');
+
+  await waitFor(() => {
+    expect(screen.queryByText('Test Chart 1')).not.toBeInTheDocument();
+    expect(screen.getByText('Test Chart 2')).toBeInTheDocument();
+  });
+});
+
+test('can search charts by dashboard title', async () => {
+  setupTest();
+
+  await waitFor(() => {
+    expect(screen.getByText('Test Chart 1')).toBeInTheDocument();
+  });
+
+  const searchInput = screen.getByPlaceholderText(
+    'Search charts by name, owner, or dashboard',
+  );
+
+  await userEvent.type(searchInput, 'Test Dashboard');
+
+  await waitFor(() => {
+    expect(screen.getByText('Test Chart 1')).toBeInTheDocument();
+    expect(screen.queryByText('Test Chart 2')).not.toBeInTheDocument();
+  });
+});
+
+test('chart search is case-insensitive', async () => {
+  setupTest();
+
+  await waitFor(() => {
+    expect(screen.getByText('Test Chart 1')).toBeInTheDocument();
+  });
+
+  const searchInput = screen.getByPlaceholderText(
+    'Search charts by name, owner, or dashboard',
+  );
+
+  await userEvent.type(searchInput, 'CHART 1');
+
+  await waitFor(() => {
+    expect(screen.getByText('Test Chart 1')).toBeInTheDocument();
+    expect(screen.queryByText('Test Chart 2')).not.toBeInTheDocument();
+  });
+});
+
+test('shows No items when search has no results', async () => {
+  setupTest();
+
+  await waitFor(() => {
+    expect(screen.getByText('Test Chart 1')).toBeInTheDocument();
+  });
+
+  const searchInput = screen.getByPlaceholderText(
+    'Search charts by name, owner, or dashboard',
+  );
+
+  await userEvent.type(searchInput, 'nonexistent chart');
+
+  await waitFor(() => {
+    expect(screen.queryByText('Test Chart 1')).not.toBeInTheDocument();
+    expect(screen.queryByText('Test Chart 2')).not.toBeInTheDocument();
+    expect(screen.getByText('No items')).toBeInTheDocument();
+  });
+});
+
+test('hides pagination when searching and restores it when cleared', async () => {
+  setupTest();
+
+  await waitFor(() => {
+    expect(screen.getByText('Test Chart 1')).toBeInTheDocument();
+    expect(screen.getByText('Test Chart 2')).toBeInTheDocument();
+  });
+
+  // Pagination is visible when not searching (check for page number listitem)
+  expect(screen.getByTitle('1')).toBeInTheDocument();
+
+  const searchInput = screen.getByPlaceholderText(
+    'Search charts by name, owner, or dashboard',
+  );
+
+  await userEvent.type(searchInput, 'Chart 1');
+
+  // Only matching chart is shown
+  await waitFor(() => {
+    expect(screen.getByText('Test Chart 1')).toBeInTheDocument();
+    expect(screen.queryByText('Test Chart 2')).not.toBeInTheDocument();
+  });
+
+  // Pagination is hidden while searching
+  expect(screen.queryByTitle('Next Page')).not.toBeInTheDocument();
+
+  await userEvent.clear(searchInput);
+
+  // Both charts are visible again after clearing search
+  await waitFor(() => {
+    expect(screen.getByText('Test Chart 1')).toBeInTheDocument();
+    expect(screen.getByText('Test Chart 2')).toBeInTheDocument();
+  });
+
+  // Pagination is restored
+  expect(screen.getByTitle('1')).toBeInTheDocument();
 });

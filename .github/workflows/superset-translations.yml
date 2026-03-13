@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
           submodules: recursive
@@ -31,7 +31,7 @@ jobs:
 
       - name: Setup Node.js
         if: steps.check.outputs.frontend
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file:  './superset-frontend/.nvmrc'
       - name: Install dependencies
@@ -49,7 +49,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
           submodules: recursive
