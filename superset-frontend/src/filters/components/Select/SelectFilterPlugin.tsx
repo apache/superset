@@ -508,7 +508,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             name={formData.nativeFilterId}
             allowClear
             allowNewOptions={!searchAllOptions && creatable !== false}
-            allowSelectAll={!searchAllOptions}
+            allowSelectAll={multiSelect}
             value={multiSelect ? filterState.value || [] : filterState.value}
             disabled={isDisabled}
             getPopupContainer={
