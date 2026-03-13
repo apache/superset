@@ -519,7 +519,7 @@ DASHBOARD_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     "popularity_score": ColumnMetadata(
         name="popularity_score",
         description="Popularity score based on views, favorites, chart count, "
-        "and recency",
+        "certification, published status, and recency",
         type="float",
         is_default=False,
     ),

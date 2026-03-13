@@ -103,7 +103,7 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
     modified time.
 
     Sortable columns for order_column: id, slice_name, viz_type,
-    datasource_name, description, changed_on, created_on, popularity_score
+    description, changed_on, created_on, popularity_score
     """
     await ctx.info(
         "Listing charts: page=%s, page_size=%s, search=%s"
@@ -257,11 +257,12 @@ def _list_charts_by_popularity(
 
     # Serialize - preserve the original request columns for response filtering
     columns_requested = request.select_columns or DEFAULT_CHART_COLUMNS
-    # Expand select_columns for internal loading (need popularity_score for
-    # attach step), but keep columns_requested reflecting what was asked for
+    # Include popularity_score in response when sorting by it, even if not
+    # explicitly in select_columns (so clients can see the sort key)
+    if "popularity_score" not in columns_requested:
+        columns_requested = list(columns_requested) + ["popularity_score"]
+    # Expand select_columns for internal loading
     select_columns = list(columns_requested)
-    if "popularity_score" not in select_columns:
-        select_columns = select_columns + ["popularity_score"]
 
     chart_objs = []
     for item in ordered_items:
