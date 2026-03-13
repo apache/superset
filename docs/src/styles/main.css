@@ -218,8 +218,37 @@ a > span > svg {
 
 .footer {
   position: relative;
-  padding-top: 90px;
+  padding-top: 130px;
   font-size: 15px;
+}
+
+.footer__social-links {
+  background-color: #173036;
+  position: absolute;
+  top: 45px;
+  left: 0;
+  width: 100%;
+  padding: 10px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+
+.footer__social-links a {
+  display: inline-flex;
+  align-items: center;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.footer__social-links a:hover {
+  opacity: 0.8;
+  transform: scale(1.1);
+}
+
+.footer__social-links img {
+  height: 24px;
+  width: 24px;
 }
 
 .footer__ci-services {
@@ -267,6 +296,21 @@ a > span > svg {
 }
 
 @media only screen and (max-width: 996px) {
+  .footer {
+    padding-top: 120px;
+  }
+
+  .footer__social-links {
+    top: 42px;
+    gap: 20px;
+    padding: 8px 16px;
+  }
+
+  .footer__social-links img {
+    height: 20px;
+    width: 20px;
+  }
+
   .footer__ci-services {
     gap: 12px;
     padding: 10px 16px;
