@@ -297,8 +297,9 @@ def generate_dashboard(
             ],
             roles=[],  # Dashboard roles not typically set at creation
             charts=[
-                serialize_chart_object(chart)
+                obj
                 for chart in getattr(dashboard, "slices", [])
+                if (obj := serialize_chart_object(chart)) is not None
             ],
         )
 
