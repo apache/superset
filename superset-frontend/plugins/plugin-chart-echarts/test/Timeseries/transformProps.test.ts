@@ -1317,3 +1317,99 @@ test('should not apply axis bounds calculation when seriesType is not Bar for ho
   // Should not have explicit max set when seriesType is not Bar
   expect(xAxisRaw.max).toBeUndefined();
 });
+
+describe('Tooltip with long labels', () => {
+  test('should use axisValue for tooltip when available (richTooltip)', () => {
+    const longLabelData: ChartDataResponseResult[] = [
+      createTestQueryData([
+        {
+          'This is a very long category name that would normally be truncated': 100,
+          __timestamp: 599616000000,
+        },
+        {
+          'Another extremely long category name for testing purposes': 200,
+          __timestamp: 599916000000,
+        },
+      ]),
+    ];
+
+    const chartProps = createTestChartProps({
+      formData: {
+        richTooltip: true,
+      },
+      queriesData: longLabelData,
+    });
+
+    const transformedProps = transformProps(chartProps);
+
+    // Get the tooltip formatter function
+    const tooltipFormatter = (transformedProps.echartOptions as any).tooltip
+      .formatter;
+
+    // Simulate params from ECharts with axisValue containing full label
+    // Use distinct values for axisValue and seriesName to verify axisValue is used
+    const mockParams = [
+      {
+        axisValue:
+          'This is a very long category name that would normally be truncated',
+        value: [599616000000, 100],
+        seriesName: 'Some Series Name',
+      },
+    ];
+
+    // Call the formatter and check it uses the full label from axisValue
+    const result = tooltipFormatter(mockParams);
+    expect(result).toContain(
+      'This is a very long category name that would normally be truncated',
+    );
+  });
+
+  test('should fallback to value when axisValue is not available', () => {
+    const chartProps = createTestChartProps({
+      formData: {
+        richTooltip: true,
+      },
+    });
+
+    const transformedProps = transformProps(chartProps);
+
+    const tooltipFormatter = (transformedProps.echartOptions as any).tooltip
+      .formatter;
+
+    // Simulate params without axisValue
+    const mockParams = [
+      {
+        value: [599616000000, 1],
+        seriesName: 'San Francisco',
+      },
+    ];
+
+    // Should still work with fallback to value
+    const result = tooltipFormatter(mockParams);
+    expect(result).toBeDefined();
+    expect(typeof result).toBe('string');
+  });
+
+  test('should handle item tooltips correctly', () => {
+    const chartProps = createTestChartProps({
+      formData: {
+        richTooltip: false,
+      },
+    });
+
+    const transformedProps = transformProps(chartProps);
+
+    const tooltipFormatter = (transformedProps.echartOptions as any).tooltip
+      .formatter;
+
+    // For item tooltips, params is a single object
+    const mockParams = {
+      value: [599616000000, 1],
+      seriesName: 'San Francisco',
+    };
+
+    const result = tooltipFormatter(mockParams);
+    expect(result).toBeDefined();
+    expect(typeof result).toBe('string');
+  });
+});
