@@ -234,6 +234,10 @@ export const DropdownContainer = forwardRef(
     const overflowingCount =
       overflowingIndex !== -1 ? items.length - overflowingIndex : 0;
 
+    // Always show button when items exist to prevent layout shifts
+    // and ensure consistent UI even when nothing is currently overflowing
+    const shouldShowButton = items.length > 0 || !!dropdownContent;
+
     const popoverContent = useMemo(
       () =>
         dropdownContent || overflowingCount ? (
@@ -314,7 +318,7 @@ export const DropdownContainer = forwardRef(
         >
           {notOverflowedItems.map(item => item.element)}
         </div>
-        {popoverContent && (
+        {shouldShowButton && (
           <>
             <Global
               styles={css`

@@ -51,8 +51,16 @@ test('renders children with custom horizontal spacing', () => {
   expect(screen.getByTestId('container')).toHaveStyle('gap: 20px');
 });
 
-test('does not render a dropdown button when not overflowing', () => {
+test('renders dropdown button when items exist even when not overflowing', () => {
   render(<DropdownContainer items={generateItems(3)} />);
+  // Button should always be visible when items exist to prevent layout shifts
+  expect(screen.getByText('More')).toBeInTheDocument();
+  // Badge should show 0 when nothing is overflowing
+  expect(screen.getByText('0')).toBeInTheDocument();
+});
+
+test('does not render a dropdown button when no items', () => {
+  render(<DropdownContainer items={[]} />);
   expect(screen.queryByText('More')).not.toBeInTheDocument();
 });
 
