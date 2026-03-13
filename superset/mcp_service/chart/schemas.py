@@ -616,7 +616,9 @@ class BigNumberChartConfig(BaseModel):
             "Temporal column for the trendline x-axis. "
             "Required when show_trendline is True."
         ),
+        min_length=1,
         max_length=255,
+        pattern=r"^[a-zA-Z0-9_][a-zA-Z0-9_\s\-\.]*$",
     )
     time_grain: TimeGrain | None = Field(
         None,
