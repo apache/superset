@@ -27,7 +27,7 @@
     "@deck.gl/aggregation-layers": "~9.2.5",
     "@deck.gl/core": "~9.2.5",
     "@deck.gl/extensions": "~9.2.5",
-    "@deck.gl/geo-layers": "~9.2.5",
+    "@deck.gl/geo-layers": "~9.2.9",
     "@deck.gl/layers": "~9.2.5",
     "@deck.gl/mesh-layers": "~9.2.5",
     "@deck.gl/react": "~9.2.5",
