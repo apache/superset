@@ -23,6 +23,7 @@ import MapBox from '../src/MapBox';
 
 // Capture the most recent viewport props passed to MapGL
 let lastMapGLProps: Record<string, unknown> = {};
+const mockFitBounds = jest.fn();
 
 jest.mock('react-map-gl', () => {
   const MockMapGL = (props: Record<string, unknown>) => {
@@ -33,13 +34,14 @@ jest.mock('react-map-gl', () => {
 });
 
 jest.mock('@math.gl/web-mercator', () => ({
-  WebMercatorViewport: jest.fn().mockImplementation(() => ({
-    fitBounds: jest.fn().mockReturnValue({
-      latitude: 40.75,
-      longitude: -73.95,
-      zoom: 10,
-    }),
-  })),
+  WebMercatorViewport: jest
+    .fn()
+    .mockImplementation(
+      ({ width, height }: { width: number; height: number }) => ({
+        fitBounds: (bounds: [[number, number], [number, number]]) =>
+          mockFitBounds(bounds, width, height),
+      }),
+    ),
 }));
 
 jest.mock('../src/ScatterPlotGlowOverlay', () => {
@@ -73,13 +75,24 @@ const defaultProps = {
 beforeEach(() => {
   lastMapGLProps = {};
   jest.clearAllMocks();
+  mockFitBounds.mockImplementation(
+    (
+      bounds: [[number, number], [number, number]],
+      width: number,
+      height: number,
+    ) => ({
+      latitude: Number(((bounds[0][1] + bounds[1][1]) / 2).toFixed(2)),
+      longitude: Number(((bounds[0][0] + bounds[1][0]) / 2).toFixed(2)),
+      zoom: Number((10 + width / 1000 + height / 10000).toFixed(2)),
+    }),
+  );
 });
 
 test('initializes viewport from bounds', () => {
   render(<MapBox {...defaultProps} />);
   expect(lastMapGLProps.latitude).toBe(40.75);
   expect(lastMapGLProps.longitude).toBe(-73.95);
-  expect(lastMapGLProps.zoom).toBe(10);
+  expect(lastMapGLProps.zoom).toBe(10.86);
 });
 
 test('updates viewport when viewport props change', () => {
@@ -168,7 +181,7 @@ test('applies partial viewport props on update', () => {
 
   expect(lastMapGLProps.longitude).toBe(-122.4);
   expect(lastMapGLProps.latitude).toBe(40.75);
-  expect(lastMapGLProps.zoom).toBe(10);
+  expect(lastMapGLProps.zoom).toBe(10.86);
 });
 
 test('restores fitBounds when viewport props are cleared', () => {
@@ -187,7 +200,7 @@ test('restores fitBounds when viewport props are cleared', () => {
   // Should revert to fitBounds values
   expect(lastMapGLProps.longitude).toBe(-73.95);
   expect(lastMapGLProps.latitude).toBe(40.75);
-  expect(lastMapGLProps.zoom).toBe(10);
+  expect(lastMapGLProps.zoom).toBe(10.86);
 });
 
 test('restores only cleared viewport props, keeps the rest', () => {
@@ -250,4 +263,60 @@ test('falls back to default viewport when cleared with undefined bounds', () => 
   expect(lastMapGLProps.longitude).toBe(0);
   expect(lastMapGLProps.latitude).toBe(0);
   expect(lastMapGLProps.zoom).toBe(1);
+});
+
+test('recomputes fitBounds when bounds change and no explicit viewport is set', () => {
+  const { rerender } = render(<MapBox {...defaultProps} />);
+
+  rerender(
+    <MapBox
+      {...defaultProps}
+      bounds={[
+        [-123.2, 36.5],
+        [-121.8, 38.1],
+      ]}
+    />,
+  );
+
+  expect(lastMapGLProps.longitude).toBe(-122.5);
+  expect(lastMapGLProps.latitude).toBe(37.3);
+  expect(lastMapGLProps.zoom).toBe(10.86);
+});
+
+test('recomputes fitBounds when chart size changes and no explicit viewport is set', () => {
+  const { rerender } = render(<MapBox {...defaultProps} />);
+
+  rerender(<MapBox {...defaultProps} width={1200} height={900} />);
+
+  expect(lastMapGLProps.longitude).toBe(-73.95);
+  expect(lastMapGLProps.latitude).toBe(40.75);
+  expect(lastMapGLProps.zoom).toBe(11.29);
+});
+
+test('does not recompute fitBounds on bounds change when an explicit viewport is set', () => {
+  const { rerender } = render(
+    <MapBox
+      {...defaultProps}
+      viewportLongitude={-122.4}
+      viewportLatitude={37.8}
+      viewportZoom={5}
+    />,
+  );
+
+  rerender(
+    <MapBox
+      {...defaultProps}
+      viewportLongitude={-122.4}
+      viewportLatitude={37.8}
+      viewportZoom={5}
+      bounds={[
+        [-123.2, 36.5],
+        [-121.8, 38.1],
+      ]}
+    />,
+  );
+
+  expect(lastMapGLProps.longitude).toBe(-122.4);
+  expect(lastMapGLProps.latitude).toBe(37.8);
+  expect(lastMapGLProps.zoom).toBe(5);
 });

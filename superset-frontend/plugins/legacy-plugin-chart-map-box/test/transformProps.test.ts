@@ -32,6 +32,18 @@ jest.mock('supercluster', () => {
 // eslint-disable-next-line import/first
 import transformProps from '../src/transformProps';
 
+type TransformPropsResult = {
+  globalOpacity?: number;
+  onViewportChange?: (viewport: {
+    latitude: number;
+    longitude: number;
+    zoom: number;
+  }) => void;
+  viewportLongitude?: number;
+  viewportLatitude?: number;
+  viewportZoom?: number;
+};
+
 const baseFormData = {
   clusteringRadius: 60,
   globalOpacity: 0.8,
@@ -69,19 +81,23 @@ function createChartProps(overrides: Record<string, unknown> = {}) {
   });
 }
 
+function getTransformPropsResult(
+  overrides: Record<string, unknown> = {},
+): TransformPropsResult {
+  return transformProps(createChartProps(overrides)) as TransformPropsResult;
+}
+
 test('extracts globalOpacity from formData', () => {
-  const result = transformProps(createChartProps({ globalOpacity: 0.5 }));
+  const result = getTransformPropsResult({ globalOpacity: 0.5 });
   expect(result.globalOpacity).toBe(0.5);
 });
 
 test('extracts viewport values from formData', () => {
-  const result = transformProps(
-    createChartProps({
-      viewportLongitude: -122.4,
-      viewportLatitude: 37.8,
-      viewportZoom: 12,
-    }),
-  );
+  const result = getTransformPropsResult({
+    viewportLongitude: -122.4,
+    viewportLatitude: 37.8,
+    viewportZoom: 12,
+  });
   expect(result).toEqual(
     expect.objectContaining({
       viewportLongitude: -122.4,
@@ -101,7 +117,7 @@ test('provides onViewportChange callback that updates control values', () => {
     hooks: { setControlValue },
     theme: supersetTheme,
   });
-  const result = transformProps(chartProps);
+  const result = transformProps(chartProps) as TransformPropsResult;
   expect(result.onViewportChange).toBeDefined();
 
   result.onViewportChange!({
@@ -116,59 +132,49 @@ test('provides onViewportChange callback that updates control values', () => {
 });
 
 test('normalizes string viewport values to numbers', () => {
-  const result = transformProps(
-    createChartProps({
-      viewportLongitude: '-122.4',
-      viewportLatitude: '37.8',
-      viewportZoom: '12',
-    }),
-  );
+  const result = getTransformPropsResult({
+    viewportLongitude: '-122.4',
+    viewportLatitude: '37.8',
+    viewportZoom: '12',
+  });
   expect(result.viewportLongitude).toBe(-122.4);
   expect(result.viewportLatitude).toBe(37.8);
   expect(result.viewportZoom).toBe(12);
 });
 
 test('normalizes empty viewport values to undefined', () => {
-  const result = transformProps(
-    createChartProps({
-      viewportLongitude: '',
-      viewportLatitude: '',
-      viewportZoom: '',
-    }),
-  );
+  const result = getTransformPropsResult({
+    viewportLongitude: '',
+    viewportLatitude: '',
+    viewportZoom: '',
+  });
   expect(result.viewportLongitude).toBeUndefined();
   expect(result.viewportLatitude).toBeUndefined();
   expect(result.viewportZoom).toBeUndefined();
 });
 
 test('normalizes string opacity to number', () => {
-  const result = transformProps(createChartProps({ globalOpacity: '0.5' }));
+  const result = getTransformPropsResult({ globalOpacity: '0.5' });
   expect(result.globalOpacity).toBe(0.5);
 });
 
 test('defaults empty opacity to 1', () => {
-  const result = transformProps(createChartProps({ globalOpacity: '' }));
+  const result = getTransformPropsResult({ globalOpacity: '' });
   expect(result.globalOpacity).toBe(1);
 });
 
 test('clamps opacity to [0, 1] range', () => {
-  expect(
-    transformProps(createChartProps({ globalOpacity: 5 })).globalOpacity,
-  ).toBe(1);
-  expect(
-    transformProps(createChartProps({ globalOpacity: -1 })).globalOpacity,
-  ).toBe(0);
+  expect(getTransformPropsResult({ globalOpacity: 5 }).globalOpacity).toBe(1);
+  expect(getTransformPropsResult({ globalOpacity: -1 }).globalOpacity).toBe(0);
 });
 
 test('passes through numeric values unchanged', () => {
-  const result = transformProps(
-    createChartProps({
-      viewportLongitude: -122.4,
-      viewportLatitude: 37.8,
-      viewportZoom: 12,
-      globalOpacity: 0.8,
-    }),
-  );
+  const result = getTransformPropsResult({
+    viewportLongitude: -122.4,
+    viewportLatitude: 37.8,
+    viewportZoom: 12,
+    globalOpacity: 0.8,
+  });
   expect(result.viewportLongitude).toBe(-122.4);
   expect(result.viewportLatitude).toBe(37.8);
   expect(result.viewportZoom).toBe(12);
