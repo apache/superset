@@ -74,6 +74,7 @@ def update_chart_preview(
             new_form_data = map_config_to_form_data(
                 request.config, dataset_id=request.dataset_id
             )
+            new_form_data.pop("_mcp_warnings", None)
 
             # Generate new explore link with updated form_data
             explore_url = generate_explore_link(request.dataset_id, new_form_data)

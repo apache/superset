@@ -95,7 +95,7 @@ def open_sql_lab_with_context(
                 context_comment += f"\nSELECT * FROM {table_reference} LIMIT 100;"
                 params["sql"] = context_comment
 
-        # Construct SQL Lab URL
+        # Construct SQL Lab URL with full base URL
         query_string = urlencode(params)
         url = f"/sqllab?{query_string}"
 
