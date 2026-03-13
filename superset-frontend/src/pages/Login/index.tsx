@@ -53,6 +53,7 @@ enum AuthType {
   AuthDB = 1,
   AuthLDAP = 2,
   AuthOauth = 4,
+  AuthSAML = 5,
 }
 
 const StyledCard = styled(Card)`
@@ -158,7 +159,8 @@ export default function Login() {
             </Form>
           </Flex>
         )}
-        {authType === AuthType.AuthOauth && (
+        {(authType === AuthType.AuthOauth ||
+          authType === AuthType.AuthSAML) && (
           <Flex justify="center" gap={0} vertical>
             <Form layout="vertical" requiredMark="optional" form={form}>
               {providers.map((provider: OAuthProvider) => (
