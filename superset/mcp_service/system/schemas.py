@@ -118,7 +118,9 @@ class InstanceInfo(BaseModel):
     popular_content: PopularContent
     current_user: UserInfo | None = Field(
         None,
-        description="Use current_user.id with created_by_fk filter to find your own assets.",
+        description=(
+            "Use current_user.id with created_by_fk filter to find your own assets."
+        ),
     )
     feature_availability: FeatureAvailability
     timestamp: datetime
