@@ -21,10 +21,13 @@ import dataclasses
 import logging
 from typing import Any, cast, TYPE_CHECKING
 
+import celery
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app, g
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
+from requests.exceptions import ConnectionError, Timeout
+from sqlalchemy.exc import OperationalError
 
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.exceptions import (
@@ -41,6 +44,9 @@ from superset.extensions import (
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import override_user
 from superset.views.utils import get_datasource_info, get_viz
+
+# Only retry transient issues
+RETRYABLE_EXCEPTIONS = (OperationalError, ConnectionError, Timeout)
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -84,10 +90,17 @@ def _load_user_from_job_metadata(job_metadata: dict[str, Any]) -> User:
     return user
 
 
-@celery_app.task(name="load_chart_data_into_cache", soft_time_limit=query_timeout)
+@celery_app.task(
+    name="load_chart_data_into_cache",
+    soft_time_limit=query_timeout,
+    bind=True,
+    autoretry_for=RETRYABLE_EXCEPTIONS,
+    retry_backoff=current_app.config.get("ASYNC_TASK_RETRY_BACKOFF", True),
+    retry_backoff_max=current_app.config.get("ASYNC_TASK_RETRY_BACKOFF_MAX", 60),
+    max_retries=current_app.config.get("ASYNC_TASK_MAX_RETRIES", 3),
+)
 def load_chart_data_into_cache(
-    job_metadata: dict[str, Any],
-    form_data: dict[str, Any],
+    self: celery.Task, job_metadata: dict[str, Any], form_data: dict[str, Any]
 ) -> None:
     # pylint: disable=import-outside-toplevel
     from superset.commands.chart.data.get_data_command import ChartDataCommand
@@ -121,11 +134,26 @@ def load_chart_data_into_cache(
             async_query_manager.update_job(
                 job_metadata, async_query_manager.STATUS_ERROR, errors=errors
             )
+            attempt = self.request.retries + 1
+            logger.warning(
+                "Retrying load_chart_data_into_cache (attempt {%s}): {%s}", 
+                attempt, 
+                ex,
+            )
             raise
 
 
-@celery_app.task(name="load_explore_json_into_cache", soft_time_limit=query_timeout)
+@celery_app.task(
+    name="load_explore_json_into_cache",
+    soft_time_limit=query_timeout,
+    bind=True,
+    autoretry_for=RETRYABLE_EXCEPTIONS,
+    retry_backoff=current_app.config.get("ASYNC_TASK_RETRY_BACKOFF", True),
+    retry_backoff_max=current_app.config.get("ASYNC_TASK_RETRY_BACKOFF_MAX", 60),
+    max_retries=current_app.config.get("ASYNC_TASK_MAX_RETRIES", 3),
+)
 def load_explore_json_into_cache(  # pylint: disable=too-many-locals
+    self: celery.Task,
     job_metadata: dict[str, Any],
     form_data: dict[str, Any],
     response_type: str | None = None,
@@ -189,5 +217,11 @@ def load_explore_json_into_cache(  # pylint: disable=too-many-locals
 
             async_query_manager.update_job(
                 job_metadata, async_query_manager.STATUS_ERROR, errors=errors
+            )
+            attempt = self.request.retries + 1
+            logger.warning(
+                "Retrying load_explore_json_into_cache (attempt {%s}): {%s}", 
+                attempt, 
+                ex,
             )
             raise
