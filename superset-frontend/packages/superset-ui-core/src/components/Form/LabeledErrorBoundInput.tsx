@@ -28,6 +28,10 @@ const StyledInput = styled(Input)`
   margin: ${({ theme }) => `${theme.sizeUnit}px 0 ${theme.sizeUnit * 2}px`};
 `;
 
+const StyledTextArea = styled(Input.TextArea)`
+  margin: ${({ theme }) => `${theme.sizeUnit}px 0 ${theme.sizeUnit * 2}px`};
+`;
+
 const StyledInputPassword = styled(Input.Password)`
   margin: ${({ theme }) => `${theme.sizeUnit}px 0 ${theme.sizeUnit * 2}px`};
 `;
@@ -97,6 +101,12 @@ export const LabeledErrorBoundInput = ({
               )
             }
             role="textbox"
+          />
+        ) : props.renderAsTextArea ? (
+          <StyledTextArea
+            css={props.textAreaCss}
+            {...props}
+            {...validationMethods}
           />
         ) : (
           <StyledInput {...props} {...validationMethods} />
