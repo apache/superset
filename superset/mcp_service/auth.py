@@ -39,7 +39,7 @@ API Key Authentication:
 - Keys inherit the user's roles and permissions via FAB's RBAC
 
 Configuration:
-- FAB_API_KEY_ENABLED: Feature flag to enable API key auth (default: False)
+- FAB_API_KEY_ENABLED: Flask config key to enable API key auth (default: False)
 - FAB_API_KEY_PREFIXES: Key prefixes (default: ["sst_"])
 - MCP_DEV_USERNAME: Fallback username for development
 """
@@ -212,37 +212,51 @@ def get_user_from_request() -> User:
     # Try API key authentication via FAB SecurityManager
     # Only attempt when in a request context (not for MCP internal operations
     # like tool discovery that run with only an application context)
-    # Avoid circular import: superset/__init__.py imports create_app which
-    # depends on the MCP service module tree during app initialization.
-    from superset import is_feature_enabled
-
-    if is_feature_enabled("FAB_API_KEY_ENABLED") and has_request_context():
+    # Use the Flask config key FAB_API_KEY_ENABLED (not the feature flag),
+    # because the config key controls whether FAB registers the API key
+    # endpoints and validation logic. The feature flag with the same name
+    # in DEFAULT_FEATURE_FLAGS only controls the frontend UI visibility.
+    if current_app.config.get("FAB_API_KEY_ENABLED", False) and has_request_context():
         sm = current_app.appbuilder.sm
         # _extract_api_key_from_request is FAB's internal method for reading
         # the Bearer token from the Authorization header and matching prefixes.
-        # No public API is exposed for this; see FAB SecurityManager.
-        api_key_string = sm._extract_api_key_from_request()
-        if api_key_string is not None:
-            user = sm.validate_api_key(api_key_string)
-            if user:
-                # Reload user with all relationships eagerly loaded to avoid
-                # detached-instance errors during later permission checks.
-                user_with_rels = load_user_with_relationships(
-                    username=user.username,
-                )
-                if user_with_rels is None:
-                    logger.warning(
-                        "Failed to reload API key user %s with relationships; "
-                        "using original user object which may have lazy-loaded "
-                        "relationships",
-                        user.username,
-                    )
-                    return user
-                return user_with_rels
-            raise ValueError(
-                "Invalid or expired API key. "
-                "Create a new key at /api/v1/security/api_keys/."
+        # Not all FAB versions include this method, so guard with hasattr.
+        if not hasattr(sm, "_extract_api_key_from_request"):
+            logger.debug(
+                "FAB SecurityManager does not have _extract_api_key_from_request; "
+                "API key authentication is not available in this FAB version"
             )
+        else:
+            api_key_string = sm._extract_api_key_from_request()
+            if api_key_string is not None:
+                if not hasattr(sm, "validate_api_key"):
+                    logger.warning(
+                        "FAB SecurityManager does not have validate_api_key; "
+                        "cannot validate API key"
+                    )
+                    raise ValueError(
+                        "API key validation is not available in this FAB version."
+                    )
+                user = sm.validate_api_key(api_key_string)
+                if user:
+                    # Reload user with all relationships eagerly loaded to avoid
+                    # detached-instance errors during later permission checks.
+                    user_with_rels = load_user_with_relationships(
+                        username=user.username,
+                    )
+                    if user_with_rels is None:
+                        logger.warning(
+                            "Failed to reload API key user %s with relationships; "
+                            "using original user object which may have lazy-loaded "
+                            "relationships",
+                            user.username,
+                        )
+                        return user
+                    return user_with_rels
+                raise ValueError(
+                    "Invalid or expired API key. "
+                    "Create a new key at /api/v1/security/api_keys/."
+                )
 
     # Fall back to configured username for development/single-user deployments
     username = current_app.config.get("MCP_DEV_USERNAME")

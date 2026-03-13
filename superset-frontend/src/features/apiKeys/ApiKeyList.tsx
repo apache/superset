@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { css, useTheme } from '@apache-superset/core/theme';
@@ -48,18 +48,28 @@ export function ApiKeyList() {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const fetchCounterRef = useRef(0);
 
   async function fetchApiKeys() {
+    fetchCounterRef.current += 1;
+    const thisRequest = fetchCounterRef.current;
     setLoading(true);
     try {
       const response = await SupersetClient.get({
         endpoint: '/api/v1/security/api_keys/',
       });
-      setApiKeys(response.json.result || []);
+      // Only apply results if this is still the most recent request
+      if (thisRequest === fetchCounterRef.current) {
+        setApiKeys(response.json.result || []);
+      }
     } catch (error) {
-      addDangerToast(t('Failed to fetch API keys'));
+      if (thisRequest === fetchCounterRef.current) {
+        addDangerToast(t('Failed to fetch API keys'));
+      }
     } finally {
-      setLoading(false);
+      if (thisRequest === fetchCounterRef.current) {
+        setLoading(false);
+      }
     }
   }
 
