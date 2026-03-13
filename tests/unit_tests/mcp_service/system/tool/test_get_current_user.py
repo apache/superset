@@ -221,6 +221,7 @@ class TestGetInstanceInfoCurrentUserViaMCP:
         mock_g_user.first_name = "Sophie"
         mock_g_user.last_name = "Beaumont"
         mock_g_user.email = "sophie@preset.io"
+        mock_g_user.active = True
         mock_g_user.roles = [mock_role]
 
         with (
