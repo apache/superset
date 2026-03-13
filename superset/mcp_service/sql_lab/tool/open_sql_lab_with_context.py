@@ -18,7 +18,7 @@
 """
 Open SQL Lab with Context MCP Tool
 
-Tool for generating SQL Lab URLs with pre-populated query and context.
+Tool for generating SQL Lab URLs with pre-populated sql and context.
 """
 
 import logging
@@ -43,9 +43,9 @@ logger = logging.getLogger(__name__)
 def open_sql_lab_with_context(
     request: OpenSqlLabRequest, ctx: Context
 ) -> SqlLabResponse:
-    """Generate SQL Lab URL with pre-populated query and context.
+    """Generate SQL Lab URL with pre-populated sql and context.
 
-    Returns URL for direct navigation.
+    Pass the sql parameter to pre-fill the editor. Returns URL for direct navigation.
     """
     try:
         from superset.daos.database import DatabaseDAO
