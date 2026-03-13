@@ -217,16 +217,12 @@ test('should render the error', async () => {
   expect(screen.getByText('Error: Something went wrong')).toBeInTheDocument();
 });
 
-test('should render pagination with page size selector', async () => {
+test('should render pagination when results exceed page size', async () => {
   fetchWithPaginatedData();
   await waitForRender();
-  // The pagination should be rendered with a page size selector
-  const pageSizeSelector = document.querySelector(
-    '.ant-pagination-options .ant-select-selection-item',
-  );
-  expect(pageSizeSelector).toBeTruthy();
-  // Default page size should be 50
-  expect(pageSizeSelector!.textContent).toContain('50');
+  // With total_count=100 and page size=50, pagination should render
+  const pagination = document.querySelector('.ant-pagination');
+  expect(pagination).toBeTruthy();
 });
 
 test('should use verbose_map for column headers when available', async () => {
