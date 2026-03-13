@@ -24,6 +24,7 @@ import roundDecimal from './utils/roundDecimal';
 import luminanceFromRGB from './utils/luminanceFromRGB';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
+// Shared radius bounds keep cluster and point sizing in sync.
 export const MIN_CLUSTER_RADIUS_RATIO = 1 / 6;
 export const MAX_POINT_RADIUS_RATIO = 1 / 3;
 
