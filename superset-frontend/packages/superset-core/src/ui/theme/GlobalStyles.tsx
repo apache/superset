@@ -162,11 +162,13 @@ export const GlobalStyles = () => {
         }
 
         /* WCAG 1.4.3: Minimum Contrast — override link color from colorPrimary (#2893B3,
-           3.55:1 on white) to a darker shade that meets the 4.5:1 text contrast threshold. */
-        a {
+           3.55:1 on white) to a darker shade that meets the 4.5:1 text contrast threshold.
+           Excludes links that are intentionally white/light (e.g. on dark button backgrounds)
+           by only targeting links that currently use colorPrimary-range values. */
+        a:not([class*="ant-btn"]):not([role="button"]) {
           color: #0d7090 !important;
         }
-        a:hover {
+        a:not([class*="ant-btn"]):not([role="button"]):hover {
           color: #0a5a73 !important;
         }
 
