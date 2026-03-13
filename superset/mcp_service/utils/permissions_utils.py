@@ -142,9 +142,9 @@ def get_allowed_fields(
     if not user:
         user = get_current_user()
 
-    # Get sensitive fields for this object type
-    sensitive_fields = SENSITIVE_FIELDS.get(object_type, set())
-    sensitive_fields.update(SENSITIVE_FIELDS.get("common", set()))
+    base=SENSITIVE_FIELDS.get(object_type, set())
+    common=SENSITIVE_FIELDS.get("common", set())
+    sensitive_fields= set(base)|set(common)
 
     # If no user, only allow non-sensitive fields
     if not user:
