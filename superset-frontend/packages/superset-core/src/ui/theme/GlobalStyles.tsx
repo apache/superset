@@ -164,10 +164,10 @@ export const GlobalStyles = () => {
         /* WCAG 1.4.3: Minimum Contrast — override link color from colorPrimary (#2893B3,
            3.55:1 on white) to a darker shade that meets the 4.5:1 text contrast threshold. */
         a {
-          color: #0d7090;
+          color: #0d7090 !important;
         }
         a:hover {
-          color: #0a5a73;
+          color: #0a5a73 !important;
         }
 
         /* Screen-reader-only utility class for visually hidden but accessible content
