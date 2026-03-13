@@ -41,6 +41,7 @@ import { store } from 'src/views/store';
 import ExtensionsStartup from 'src/extensions/ExtensionsStartup';
 import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
+import ScrollToBottom from 'src/components/ScrollToBottom';
 
 setupApp();
 setupPlugins();
@@ -106,6 +107,7 @@ const App = () => (
         </Switch>
       </ExtensionsStartup>
       <ToastContainer />
+      <ScrollToBottom />
     </RootContextProviders>
   </Router>
 );
