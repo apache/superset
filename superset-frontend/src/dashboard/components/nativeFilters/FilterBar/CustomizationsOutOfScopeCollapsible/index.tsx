@@ -17,12 +17,12 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ChartCustomization,
   ChartCustomizationDivider,
 } from '@superset-ui/core';
-import { css, SupersetTheme } from '@apache-superset/core/ui';
+import { css, SupersetTheme } from '@apache-superset/core/theme';
 import { Collapse } from '@superset-ui/core/components';
 
 export interface CustomizationsOutOfScopeCollapsibleProps {

@@ -18,8 +18,8 @@
  */
 import { useState, useEffect, useMemo, ChangeEvent } from 'react';
 import type { DatabaseObject } from 'src/features/databases/types';
-import { t } from '@apache-superset/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import {
   Input,
   Button,
@@ -62,6 +62,8 @@ export type QueryPayload = {
 } & Pick<QueryEditor, 'dbId' | 'catalog' | 'schema' | 'sql'>;
 
 const Styles = styled.span`
+  display: contents;
+  white-space: nowrap;
   span[role='img']:not([aria-label='down']) {
     display: flex;
     margin: 0;

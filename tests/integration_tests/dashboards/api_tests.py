@@ -569,6 +569,87 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         db.session.delete(dashboard)
         db.session.commit()
 
+    def test_get_dashboard_with_columns(self):
+        """
+        Dashboard API: Test get dashboard with column selection via q param
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [admin.id], created_by=admin
+        )
+        self.login(ADMIN_USERNAME)
+        params = prison.dumps({"columns": ["id", "dashboard_title"]})
+        uri = f"api/v1/dashboard/{dashboard.id}?q={params}"
+        rv = self.get_assert_metric(uri, "get")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        assert result["id"] == dashboard.id
+        assert result["dashboard_title"] == "title"
+        assert "thumbnail_url" not in result
+        assert "slug" not in result
+        assert "owners" not in result
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    def test_get_dashboard_with_invalid_rison_q(self):
+        """
+        Dashboard API: Test get dashboard with malformed rison returns 400
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [admin.id], created_by=admin
+        )
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard.id}?q=(("
+        rv = self.get_assert_metric(uri, "get")
+        assert rv.status_code == 400
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    def test_get_dashboard_with_non_dict_q(self):
+        """
+        Dashboard API: Test get dashboard with non-dict rison returns full response
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [admin.id], created_by=admin
+        )
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard.id}?q=a_string"
+        rv = self.get_assert_metric(uri, "get")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        # non-dict q is ignored, full response returned
+        assert "thumbnail_url" in data["result"]
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    def test_get_dashboard_with_columns_data_key_mapping(self):
+        """
+        Dashboard API: Test that data_key columns like changed_on_delta_humanized work
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [admin.id], created_by=admin
+        )
+        self.login(ADMIN_USERNAME)
+        params = prison.dumps({"columns": ["id", "changed_on_delta_humanized"]})
+        uri = f"api/v1/dashboard/{dashboard.id}?q={params}"
+        rv = self.get_assert_metric(uri, "get")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        assert "id" in result
+        assert "changed_on_delta_humanized" in result
+        assert "dashboard_title" not in result
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
     @patch("superset.dashboards.schemas.security_manager.has_guest_access")
     @patch("superset.dashboards.schemas.security_manager.is_guest_user")
     def test_get_dashboard_as_guest(self, is_guest_user, has_guest_access):
@@ -615,6 +696,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "can_read",
             "can_write",
             "can_export",
+            "can_export_as_example",
             "can_get_embedded",
             "can_delete_embedded",
             "can_set_embedded",
@@ -2650,6 +2732,84 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         db.session.delete(dashboard)
         db.session.commit()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_export_as_example(self):
+        """
+        Dashboard API: Test export_as_example returns a valid ZIP
+        """
+        self.login(ADMIN_USERNAME)
+        dashboards_ids = get_dashboards_ids(["births"])
+        dashboard_id = dashboards_ids[0]
+        uri = f"api/v1/dashboard/{dashboard_id}/export_as_example/"
+
+        rv = self.client.get(uri)
+
+        assert rv.status_code == 200
+        assert "application/zip" in rv.content_type
+
+        buf = BytesIO(rv.data)
+        assert is_zipfile(buf)
+
+        # Verify ZIP contains expected files
+        with ZipFile(buf) as zf:
+            file_names = zf.namelist()
+            assert "dashboard.yaml" in file_names
+            # Should have dataset.yaml (single dataset) or datasets/ folder
+            has_dataset = "dataset.yaml" in file_names or any(
+                f.startswith("datasets/") for f in file_names
+            )
+            assert has_dataset, f"Missing dataset files: {file_names}"
+            # Should have charts
+            has_charts = any(f.startswith("charts/") for f in file_names)
+            assert has_charts, f"Missing chart files: {file_names}"
+
+    def test_export_as_example_not_found(self):
+        """
+        Dashboard API: Test export_as_example returns 404 for non-existent dashboard
+        """
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/dashboard/99999/export_as_example/"
+        rv = self.client.get(uri)
+        assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_export_as_example_no_data(self):
+        """
+        Dashboard API: Test export_as_example with export_data=false
+        """
+        self.login(ADMIN_USERNAME)
+        dashboards_ids = get_dashboards_ids(["births"])
+        dashboard_id = dashboards_ids[0]
+        uri = f"api/v1/dashboard/{dashboard_id}/export_as_example/?export_data=false"
+
+        rv = self.client.get(uri)
+
+        assert rv.status_code == 200
+
+        buf = BytesIO(rv.data)
+        with ZipFile(buf) as zf:
+            file_names = zf.namelist()
+            # Should have dashboard.yaml and dataset(s).yaml but no parquet
+            assert "dashboard.yaml" in file_names
+            has_parquet = any(f.endswith(".parquet") for f in file_names)
+            assert not has_parquet, f"Should not have parquet files: {file_names}"
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_export_as_example_content_disposition(self):
+        """
+        Dashboard API: Test export_as_example returns proper Content-Disposition
+        """
+        self.login(ADMIN_USERNAME)
+        dashboards_ids = get_dashboards_ids(["births"])
+        dashboard_id = dashboards_ids[0]
+        uri = f"api/v1/dashboard/{dashboard_id}/export_as_example/"
+
+        rv = self.client.get(uri)
+
+        assert rv.status_code == 200
+        assert "Content-Disposition" in rv.headers
+        assert "_example.zip" in rv.headers["Content-Disposition"]
 
     @patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_dashboard(self, mock_add_permissions):

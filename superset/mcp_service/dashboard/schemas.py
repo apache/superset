@@ -87,6 +87,7 @@ from superset.mcp_service.common.cache_schemas import MetadataCacheControl
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
     RoleInfo,
+    serialize_user_object,
     TagInfo,
     UserInfo,
 )
@@ -109,19 +110,8 @@ class DashboardError(BaseModel):
         return cls(error=error, error_type=error_type, timestamp=datetime.now())
 
 
-def serialize_user_object(user: Any) -> UserInfo | None:
-    """Serialize a user object to UserInfo"""
-    if not user:
-        return None
-
-    return UserInfo(
-        id=getattr(user, "id", None),
-        username=getattr(user, "username", None),
-        first_name=getattr(user, "first_name", None),
-        last_name=getattr(user, "last_name", None),
-        email=getattr(user, "email", None),
-        active=getattr(user, "active", None),
-    )
+# serialize_user_object is imported from system.schemas and re-exported here
+# for backward compatibility with dashboard tool modules.
 
 
 def serialize_tag_object(tag: Any) -> TagInfo | None:
@@ -163,10 +153,16 @@ class DashboardFilter(ColumnOperator):
         "dashboard_title",
         "published",
         "favorite",
+        "created_by_fk",
     ] = Field(
         ...,
-        description="Column to filter on. Use get_schema(model_type='dashboard') for "
-        "available filter columns.",
+        description=(
+            "Column to filter on. Use "
+            "get_schema(model_type='dashboard') for available "
+            "filter columns. Use created_by_fk with the user "
+            "ID from get_instance_info's current_user to find "
+            "dashboards created by a specific user."
+        ),
     )
     opr: ColumnOperatorEnum = Field(
         ...,
@@ -264,7 +260,13 @@ class ListDashboardsRequest(MetadataCacheControl):
 
 
 class GetDashboardInfoRequest(MetadataCacheControl):
-    """Request schema for get_dashboard_info with support for ID, UUID, or slug."""
+    """Request schema for get_dashboard_info with support for ID, UUID, or slug.
+
+    When permalink_key is provided, the tool will retrieve the dashboard's filter
+    state from the permalink, allowing you to see what filters the user has applied
+    (not just the default filter state). This is useful when a user applies filters
+    in a dashboard but the URL contains a permalink_key.
+    """
 
     identifier: Annotated[
         int | str,
@@ -272,6 +274,15 @@ class GetDashboardInfoRequest(MetadataCacheControl):
             description="Dashboard identifier - can be numeric ID, UUID string, or slug"
         ),
     ]
+    permalink_key: str | None = Field(
+        default=None,
+        description=(
+            "Optional permalink key for retrieving dashboard filter state. When a "
+            "user applies filters in a dashboard, the state can be persisted in a "
+            "permalink. If provided, the tool returns the filter configuration "
+            "from that permalink."
+        ),
+    )
 
 
 class DashboardInfo(BaseModel):
@@ -301,7 +312,6 @@ class DashboardInfo(BaseModel):
     changed_by: str | None = Field(None, description="Last modifier (username)")
     uuid: str | None = Field(None, description="Dashboard UUID (converted to string)")
     url: str | None = Field(None, description="Dashboard URL")
-    thumbnail_url: str | None = Field(None, description="Thumbnail URL")
     created_on_humanized: str | None = Field(
         None, description="Humanized creation time"
     )
@@ -315,6 +325,32 @@ class DashboardInfo(BaseModel):
     charts: List[ChartInfo] = Field(
         default_factory=list, description="Dashboard charts"
     )
+
+    # Fields for permalink/filter state support
+    permalink_key: str | None = Field(
+        None,
+        description=(
+            "Permalink key used to retrieve filter state. When present, indicates "
+            "the filter_state came from a permalink rather than the default dashboard."
+        ),
+    )
+    filter_state: Dict[str, Any] | None = Field(
+        None,
+        description=(
+            "Filter state from permalink. Contains dataMask (native filter values), "
+            "activeTabs, anchor, and urlParams. When present, represents the actual "
+            "filters the user has applied to the dashboard."
+        ),
+    )
+    is_permalink_state: bool = Field(
+        default=False,
+        description=(
+            "True if the filter_state came from a permalink rather than the default "
+            "dashboard configuration. When true, the filter_state reflects what the "
+            "user sees in the dashboard, not the default filter state."
+        ),
+    )
+
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
 
     @model_serializer(mode="wrap", when_used="json")
@@ -405,7 +441,13 @@ class GenerateDashboardRequest(BaseModel):
     chart_ids: List[int] = Field(
         ..., description="List of chart IDs to include in the dashboard", min_length=1
     )
-    dashboard_title: str = Field(..., description="Title for the new dashboard")
+    dashboard_title: str | None = Field(
+        None,
+        description=(
+            "Title for the new dashboard. When omitted a descriptive title "
+            "is generated from the included chart names."
+        ),
+    )
     description: str | None = Field(None, description="Description for the dashboard")
     published: bool = Field(
         default=True, description="Whether to publish the dashboard"
@@ -446,13 +488,13 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
         else None,
         uuid=str(dashboard.uuid) if dashboard.uuid else None,
         url=dashboard.url,
-        thumbnail_url=dashboard.thumbnail_url,
         created_on_humanized=dashboard.created_on_humanized,
         changed_on_humanized=dashboard.changed_on_humanized,
         chart_count=len(dashboard.slices) if dashboard.slices else 0,
         owners=[
-            UserInfo.model_validate(owner, from_attributes=True)
+            info
             for owner in dashboard.owners
+            if (info := serialize_user_object(owner)) is not None
         ]
         if dashboard.owners
         else [],
@@ -498,7 +540,6 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
         uuid=str(getattr(dashboard, "uuid", ""))
         if getattr(dashboard, "uuid", None)
         else None,
-        thumbnail_url=getattr(dashboard, "thumbnail_url", None),
         chart_count=len(getattr(dashboard, "slices", [])),
         owners=getattr(dashboard, "owners", []),
         tags=getattr(dashboard, "tags", []),

@@ -1,0 +1,272 @@
+---
+title: Steps
+sidebar_label: Steps
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# Steps
+
+A navigation component for guiding users through multi-step workflows. Supports horizontal, vertical, and inline layouts with progress tracking.
+
+## Live Example
+
+<StoryWithControls
+  component="Steps"
+  props={{
+  direction: "horizontal",
+  current: 1,
+  labelPlacement: "horizontal",
+  progressDot: false,
+  size: "default",
+  status: "process",
+  type: "default",
+  title: "Step 3",
+  description: "Description 3",
+  items: [
+    {
+      title: "Connect Database",
+      description: "Configure the connection"
+    },
+    {
+      title: "Create Dataset",
+      description: "Select tables and columns"
+    },
+    {
+      title: "Build Chart",
+      description: "Choose visualization type"
+    }
+  ]
+}}
+  controls={[
+  {
+    name: "direction",
+    label: "Direction",
+    type: "select",
+    options: [
+      "horizontal",
+      "vertical"
+    ],
+    description: "Layout direction of the steps."
+  },
+  {
+    name: "current",
+    label: "Current",
+    type: "number",
+    description: "Index of the current step (zero-based)."
+  },
+  {
+    name: "labelPlacement",
+    label: "Label Placement",
+    type: "select",
+    options: [
+      "horizontal",
+      "vertical"
+    ],
+    description: "Position of step labels relative to the step icon."
+  },
+  {
+    name: "progressDot",
+    label: "Progress Dot",
+    type: "boolean",
+    description: "Whether to use a dot style instead of numbered icons."
+  },
+  {
+    name: "size",
+    label: "Size",
+    type: "select",
+    options: [
+      "default",
+      "small"
+    ],
+    description: "Size of the step icons and text."
+  },
+  {
+    name: "status",
+    label: "Status",
+    type: "select",
+    options: [
+      "wait",
+      "process",
+      "finish",
+      "error"
+    ],
+    description: "Status of the current step."
+  },
+  {
+    name: "type",
+    label: "Type",
+    type: "select",
+    options: [
+      "default",
+      "navigation",
+      "inline"
+    ],
+    description: "Visual style: default numbered, navigation breadcrumb, or inline compact."
+  },
+  {
+    name: "title",
+    label: "Title",
+    type: "text"
+  },
+  {
+    name: "description",
+    label: "Description",
+    type: "text"
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <Steps
+      current={1}
+      items={[
+        { title: 'Connect Database', description: 'Configure the connection' },
+        { title: 'Create Dataset', description: 'Select tables and columns' },
+        { title: 'Build Chart', description: 'Choose visualization type' },
+      ]}
+    />
+  );
+}
+```
+
+## Vertical Steps
+
+```tsx live
+function VerticalSteps() {
+  return (
+    <Steps
+      direction="vertical"
+      current={1}
+      items={[
+        { title: 'Upload CSV', description: 'Select a file from your computer' },
+        { title: 'Configure Columns', description: 'Set data types and names' },
+        { title: 'Review', description: 'Verify the data looks correct' },
+        { title: 'Import', description: 'Save the dataset' },
+      ]}
+    />
+  );
+}
+```
+
+## Status Indicators
+
+```tsx live
+function StatusSteps() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+      <div>
+        <h4>Error on Step 2</h4>
+        <Steps
+          current={1}
+          status="error"
+          items={[
+            { title: 'Connection', description: 'Configured' },
+            { title: 'Validation', description: 'Failed to validate' },
+            { title: 'Complete' },
+          ]}
+        />
+      </div>
+      <div>
+        <h4>All Complete</h4>
+        <Steps
+          current={3}
+          items={[
+            { title: 'Step 1' },
+            { title: 'Step 2' },
+            { title: 'Step 3' },
+          ]}
+        />
+      </div>
+    </div>
+  );
+}
+```
+
+## Dot Style and Small Size
+
+```tsx live
+function DotAndSmall() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+      <div>
+        <h4>Progress Dots</h4>
+        <Steps
+          progressDot
+          current={1}
+          items={[
+            { title: 'Create', description: 'Define the resource' },
+            { title: 'Configure', description: 'Set parameters' },
+            { title: 'Deploy', description: 'Go live' },
+          ]}
+        />
+      </div>
+      <div>
+        <h4>Small Size</h4>
+        <Steps
+          size="small"
+          current={2}
+          items={[
+            { title: 'Login' },
+            { title: 'Verify' },
+            { title: 'Done' },
+          ]}
+        />
+      </div>
+    </div>
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `direction` | `string` | `"horizontal"` | Layout direction of the steps. |
+| `current` | `number` | `1` | Index of the current step (zero-based). |
+| `labelPlacement` | `string` | `"horizontal"` | Position of step labels relative to the step icon. |
+| `progressDot` | `boolean` | `false` | Whether to use a dot style instead of numbered icons. |
+| `size` | `string` | `"default"` | Size of the step icons and text. |
+| `status` | `string` | `"process"` | Status of the current step. |
+| `type` | `string` | `"default"` | Visual style: default numbered, navigation breadcrumb, or inline compact. |
+| `title` | `string` | `"Step 3"` | - |
+| `description` | `string` | `"Description 3"` | - |
+| `items` | `any` | `[{"title":"Connect Database","description":"Configure the connection"},{"title":"Create Dataset","description":"Select tables and columns"},{"title":"Build Chart","description":"Choose visualization type"}]` | - |
+
+## Import
+
+```tsx
+import { Steps } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/Steps/Steps.stories.tsx).
+:::

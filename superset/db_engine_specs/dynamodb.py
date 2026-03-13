@@ -20,12 +20,37 @@ from typing import Any, Optional
 from sqlalchemy import types
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 
 
 class DynamoDBEngineSpec(BaseEngineSpec):
     engine = "dynamodb"
     engine_name = "Amazon DynamoDB"
+
+    metadata = {
+        "description": (
+            "Amazon DynamoDB is a serverless NoSQL database with SQL via PartiQL."
+        ),
+        "logo": "aws.png",
+        "homepage_url": "https://aws.amazon.com/dynamodb/",
+        "categories": [
+            DatabaseCategory.CLOUD_AWS,
+            DatabaseCategory.SEARCH_NOSQL,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["pydynamodb"],
+        "connection_string": (
+            "dynamodb://{aws_access_key_id}:{aws_secret_access_key}"
+            "@dynamodb.{region}.amazonaws.com:443?connector=superset"
+        ),
+        "parameters": {
+            "aws_access_key_id": "AWS access key ID",
+            "aws_secret_access_key": "AWS secret access key",
+            "region": "AWS region (e.g., us-east-1)",
+        },
+        "notes": "Uses PartiQL for SQL queries. Requires connector=superset parameter.",
+        "docs_url": "https://github.com/passren/PyDynamoDB",
+    }
 
     _time_grain_expressions = {
         None: "{col}",

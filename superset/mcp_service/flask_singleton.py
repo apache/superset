@@ -27,7 +27,7 @@ Following the Stack Overflow recommendation:
 import logging
 import os
 
-from flask import Flask
+from flask import current_app, Flask, has_app_context
 
 logger = logging.getLogger(__name__)
 
@@ -39,15 +39,36 @@ try:
     # Check if appbuilder is already initialized (main Superset app is running).
     # If so, reuse that app to avoid corrupting the shared appbuilder singleton.
     # Calling create_app() again would re-initialize appbuilder and break views.
-    if appbuilder.app is not None:
-        logger.info("Reusing existing Flask app from appbuilder for MCP service")
-        app = appbuilder.app
+    #
+    # NOTE: appbuilder.app now returns a LocalProxy to current_app (Flask-AppBuilder
+    # deprecation), so we can't use `appbuilder.app is not None` as that always
+    # returns True (compares LocalProxy object, not the resolved value).
+    # Instead, check if init_app was called by looking at _session.
+    appbuilder_initialized = appbuilder._session is not None
+
+    if appbuilder_initialized and has_app_context():
+        # We're in an app context (e.g., during main Superset startup),
+        # so we can get the actual Flask app instance from current_app
+        logger.info("Reusing existing Flask app from app context for MCP service")
+        # Use _get_current_object() to get the actual Flask app, not the LocalProxy
+        app = current_app._get_current_object()
     else:
-        # Create a minimal Flask app for standalone MCP server.
+        # Either appbuilder is not initialized (standalone MCP server),
+        # or appbuilder is initialized but we're not in an app context
+        # (edge case - should rarely happen). In both cases, create a minimal app.
+        #
         # We avoid calling create_app() which would run full FAB initialization
         # and could corrupt the shared appbuilder singleton if main app starts.
         from superset.app import SupersetApp
         from superset.mcp_service.mcp_config import get_mcp_config
+
+        if appbuilder_initialized:
+            logger.warning(
+                "Appbuilder initialized but not in app context - "
+                "creating separate MCP Flask app"
+            )
+        else:
+            logger.info("Creating minimal Flask app for standalone MCP service")
 
         # Disable debug mode to avoid side-effects like file watchers
         _mcp_app = SupersetApp(__name__)

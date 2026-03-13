@@ -54,6 +54,59 @@ class TestTableChartConfig:
         )
         assert len(config.columns) == 2
 
+    def test_default_viz_type_is_table(self) -> None:
+        """Test that default viz_type is 'table'."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product")],
+        )
+        assert config.viz_type == "table"
+
+    def test_ag_grid_table_viz_type_accepted(self) -> None:
+        """Test that viz_type='ag-grid-table' is accepted for AG Grid table."""
+        config = TableChartConfig(
+            chart_type="table",
+            viz_type="ag-grid-table",
+            columns=[
+                ColumnRef(name="product_line"),
+                ColumnRef(name="sales", aggregate="SUM", label="Total Sales"),
+            ],
+        )
+        assert config.viz_type == "ag-grid-table"
+        assert len(config.columns) == 2
+
+    def test_ag_grid_table_with_all_options(self) -> None:
+        """Test AG Grid table with filters and sorting."""
+        from superset.mcp_service.chart.schemas import FilterConfig
+
+        config = TableChartConfig(
+            chart_type="table",
+            viz_type="ag-grid-table",
+            columns=[
+                ColumnRef(name="product_line"),
+                ColumnRef(name="quantity", aggregate="SUM", label="Total Quantity"),
+                ColumnRef(name="sales", aggregate="SUM", label="Total Sales"),
+            ],
+            filters=[FilterConfig(column="status", op="=", value="active")],
+            sort_by=["product_line"],
+        )
+        assert config.viz_type == "ag-grid-table"
+        assert len(config.columns) == 3
+        assert config.filters is not None
+        assert len(config.filters) == 1
+        assert config.sort_by == ["product_line"]
+
+    def test_invalid_viz_type_rejected(self) -> None:
+        """Test that invalid viz_type values are rejected."""
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            TableChartConfig(
+                chart_type="table",
+                viz_type="invalid-type",
+                columns=[ColumnRef(name="product")],
+            )
+
 
 class TestXYChartConfig:
     """Test XYChartConfig validation."""
@@ -166,3 +219,94 @@ class TestXYChartConfig:
             kind="area",
         )
         assert config.kind == "area"
+
+    def test_unknown_fields_rejected(self) -> None:
+        """Test that unknown fields like 'series' are rejected."""
+        with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+            XYChartConfig(
+                chart_type="xy",
+                x=ColumnRef(name="territory"),
+                y=[ColumnRef(name="sales", aggregate="SUM")],
+                kind="bar",
+                series=ColumnRef(name="year"),
+            )
+
+    def test_group_by_accepted(self) -> None:
+        """Test that group_by is the correct field for series grouping."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="territory"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+            group_by=ColumnRef(name="year"),
+        )
+        assert config.group_by is not None
+        assert config.group_by.name == "year"
+
+    def test_orientation_horizontal_accepted(self) -> None:
+        """Test that orientation='horizontal' is accepted for bar charts."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="department"),
+            y=[ColumnRef(name="headcount", aggregate="SUM")],
+            kind="bar",
+            orientation="horizontal",
+        )
+        assert config.orientation == "horizontal"
+
+    def test_orientation_vertical_accepted(self) -> None:
+        """Test that orientation='vertical' is accepted for bar charts."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+            orientation="vertical",
+        )
+        assert config.orientation == "vertical"
+
+    def test_orientation_none_by_default(self) -> None:
+        """Test that orientation defaults to None when not specified."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+        )
+        assert config.orientation is None
+
+    def test_orientation_invalid_value_rejected(self) -> None:
+        """Test that invalid orientation values are rejected."""
+        with pytest.raises(ValidationError):
+            XYChartConfig(
+                chart_type="xy",
+                x=ColumnRef(name="category"),
+                y=[ColumnRef(name="sales", aggregate="SUM")],
+                kind="bar",
+                orientation="diagonal",
+            )
+
+    def test_orientation_with_non_bar_chart(self) -> None:
+        """Test that orientation field is accepted on non-bar charts at schema level."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+            orientation="horizontal",
+        )
+        # Schema allows it; the chart_utils layer decides whether to apply it
+        assert config.orientation == "horizontal"
+
+
+class TestTableChartConfigExtraFields:
+    """Test TableChartConfig rejects unknown fields."""
+
+    def test_unknown_fields_rejected(self) -> None:
+        """Test that unknown fields are rejected."""
+        with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+            TableChartConfig(
+                chart_type="table",
+                columns=[ColumnRef(name="product")],
+                foo="bar",
+            )

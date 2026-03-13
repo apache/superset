@@ -28,7 +28,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   getChartControlPanelRegistry,
@@ -42,7 +42,12 @@ import {
   FeatureFlag,
   VizType,
 } from '@superset-ui/core';
-import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
+import {
+  styled,
+  css,
+  SupersetTheme,
+  useTheme,
+} from '@apache-superset/core/theme';
 import {
   ControlPanelSectionConfig,
   ControlState,
@@ -95,7 +100,8 @@ const MATRIXIFY_INCOMPATIBLE_CHARTS = new Set([
 
 export type ControlPanelsContainerProps = {
   exploreState: ExplorePageState['explore'];
-  actions: ExploreActions;
+  // Only setControlValue is used from actions in this component
+  actions: Pick<ExploreActions, 'setControlValue'>;
   datasource_type: DatasourceType;
   chart: ChartState;
   controls: Record<string, ControlState>;
@@ -726,7 +732,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       label: <PanelHeader />,
       children: PanelChildren,
       className: section.label ? '' : 'hidden-collapse-header',
-      style: { visibility: isVisible ? 'visible' : 'hidden' },
+      style: { display: isVisible ? 'block' : 'none' },
     };
   };
 

@@ -356,7 +356,7 @@ class OAuth2TokenResponse(TypedDict, total=False):
     refresh_token: str
 
 
-class OAuth2State(TypedDict):
+class OAuth2State(TypedDict, total=False):
     """
     Type for the state passed during OAuth2.
     """

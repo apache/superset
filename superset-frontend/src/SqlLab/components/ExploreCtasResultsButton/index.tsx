@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useSelector, useDispatch } from 'react-redux';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { JsonObject, VizType } from '@superset-ui/core';
 import {
   createCtasDatasource,
