@@ -47,7 +47,8 @@ DEFAULT_CHART_COLUMNS = [
     "id",
     "slice_name",
     "viz_type",
-    "uuid",
+    "url",
+    "changed_on_humanized",
 ]
 
 SORTABLE_CHART_COLUMNS = [
@@ -61,12 +62,13 @@ SORTABLE_CHART_COLUMNS = [
 ]
 
 
-@tool(tags=["core"])
+@tool(tags=["core"], class_permission_name="Chart")
 @parse_request(ListChartsRequest)
 async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
     """List charts with filtering and search.
 
-    Returns chart metadata including id, name, and viz_type.
+    Returns chart metadata including id, name, viz_type, URL, and last
+    modified time.
 
     Sortable columns for order_column: id, slice_name, viz_type,
     datasource_name, description, changed_on, created_on

@@ -59,7 +59,7 @@ def _get_permalink_state(permalink_key: str) -> DashboardPermalinkValue | None:
         return None
 
 
-@tool(tags=["discovery"])
+@tool(tags=["discovery"], class_permission_name="Dashboard")
 @parse_request(GetDashboardInfoRequest)
 async def get_dashboard_info(
     request: GetDashboardInfoRequest, ctx: Context
