@@ -105,6 +105,14 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
     onViewportChange!(viewport);
   }
 
+  hasExplicitViewportProps(props: MapBoxProps = this.props) {
+    return (
+      props.viewportLongitude !== undefined ||
+      props.viewportLatitude !== undefined ||
+      props.viewportZoom !== undefined
+    );
+  }
+
   computeFitBoundsViewport(): Viewport {
     const { width = 400, height = 400, bounds } = this.props;
     if (bounds && bounds[0] && bounds[1]) {
@@ -123,6 +131,11 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
   componentDidUpdate(prevProps: MapBoxProps) {
     const { viewportLongitude, viewportLatitude, viewportZoom } = this.props;
     const { viewport } = this.state;
+    const hasExplicitViewportProps = this.hasExplicitViewportProps();
+    const fitBoundsInputsChanged =
+      prevProps.width !== this.props.width ||
+      prevProps.height !== this.props.height ||
+      prevProps.bounds !== this.props.bounds;
 
     // Detect when viewport props are cleared (changed from defined to undefined)
     // to restore fitBounds behavior
@@ -149,6 +162,19 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
           zoom: zoomCleared ? fitBounds.zoom : (viewportZoom ?? viewport.zoom),
         },
       });
+      return;
+    }
+
+    if (fitBoundsInputsChanged && !hasExplicitViewportProps) {
+      const fitBounds = this.computeFitBoundsViewport();
+      const fitBoundsChanged =
+        fitBounds.longitude !== viewport.longitude ||
+        fitBounds.latitude !== viewport.latitude ||
+        fitBounds.zoom !== viewport.zoom;
+
+      if (fitBoundsChanged) {
+        this.setState({ viewport: fitBounds });
+      }
       return;
     }
 
