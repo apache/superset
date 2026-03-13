@@ -109,6 +109,35 @@ export interface ColorVariants {
   textActive: string;
 }
 
+/**
+ * Superset-specific Button component tokens.
+ * These extend Ant Design's Button tokens to support secondary button styling.
+ */
+export interface SupersetButtonTokens {
+  // Secondary button tokens (Superset-specific, not available in Ant Design)
+  secondaryColor?: string;
+  secondaryBg?: string;
+  secondaryBorderColor?: string;
+  secondaryHoverColor?: string;
+  secondaryHoverBg?: string;
+  secondaryHoverBorderColor?: string;
+  secondaryActiveColor?: string;
+  secondaryActiveBg?: string;
+  secondaryActiveBorderColor?: string;
+  // Allow any other Ant Design Button tokens to pass through
+  [key: string]: any;
+}
+
+/**
+ * Component-level tokens that can be customized via theme configuration.
+ * This allows accessing component tokens via useTheme() for custom CSS overrides.
+ */
+export interface SupersetComponentTokens {
+  Button?: SupersetButtonTokens;
+  // Other components can be added here as needed
+  [key: string]: Record<string, any> | undefined;
+}
+
 export interface SupersetSpecificTokens {
   // Font-related
   fontSizeXS: string;
@@ -168,6 +197,9 @@ export interface SupersetSpecificTokens {
    * Defaults to colorPrimaryBgHover if not specified.
    */
   colorEditorSelection?: string;
+
+  // Component-level tokens for custom styling
+  components?: SupersetComponentTokens;
 }
 
 /**
