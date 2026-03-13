@@ -64,6 +64,21 @@ def _mock_chart(id: int = 1, slice_name: str = "Test Chart") -> Mock:
     chart.id = id
     chart.slice_name = slice_name
     chart.uuid = f"chart-uuid-{id}"
+    chart.tags = []
+    chart.owners = []
+    chart.viz_type = "table"
+    chart.datasource_name = None
+    chart.datasource_type = None
+    chart.description = None
+    chart.cache_timeout = None
+    chart.changed_by = None
+    chart.changed_by_name = None
+    chart.changed_on = None
+    chart.changed_on_humanized = None
+    chart.created_by = None
+    chart.created_by_name = None
+    chart.created_on = None
+    chart.created_on_humanized = None
     return chart
 
 
@@ -390,7 +405,7 @@ class TestAddChartToExistingDashboard:
     ):
         """Test adding a chart to an existing dashboard."""
         mock_dashboard = _mock_dashboard(id=1, title="Existing Dashboard")
-        mock_dashboard.slices = [Mock(id=10), Mock(id=20)]
+        mock_dashboard.slices = [_mock_chart(id=10), _mock_chart(id=20)]
         mock_dashboard.position_json = json.dumps(
             {
                 "ROOT_ID": {
@@ -430,7 +445,11 @@ class TestAddChartToExistingDashboard:
         mock_db_session.get.return_value = mock_chart
 
         updated_dashboard = _mock_dashboard(id=1, title="Existing Dashboard")
-        updated_dashboard.slices = [Mock(id=10), Mock(id=20), Mock(id=30)]
+        updated_dashboard.slices = [
+            _mock_chart(id=10),
+            _mock_chart(id=20),
+            _mock_chart(id=30),
+        ]
         mock_update_command.return_value.run.return_value = updated_dashboard
 
         request = {"dashboard_id": 1, "chart_id": 30}
@@ -505,7 +524,7 @@ class TestAddChartToExistingDashboard:
     ):
         """Test error when chart is already in dashboard."""
         mock_dashboard = _mock_dashboard()
-        mock_dashboard.slices = [Mock(id=5)]
+        mock_dashboard.slices = [_mock_chart(id=5)]
         mock_find_dashboard.return_value = mock_dashboard
         mock_db_session.get.return_value = _mock_chart(id=5)
         request = {"dashboard_id": 1, "chart_id": 5}
@@ -537,7 +556,7 @@ class TestAddChartToExistingDashboard:
         mock_db_session.get.return_value = mock_chart
 
         updated_dashboard = _mock_dashboard(id=2)
-        updated_dashboard.slices = [Mock(id=15)]
+        updated_dashboard.slices = [_mock_chart(id=15)]
         mock_update_command.return_value.run.return_value = updated_dashboard
 
         request = {"dashboard_id": 2, "chart_id": 15}
@@ -585,7 +604,7 @@ class TestAddChartToExistingDashboard:
     ):
         """Test adding chart to a dashboard that uses tabs."""
         mock_dashboard = _mock_dashboard(id=3, title="Tabbed Dashboard")
-        mock_dashboard.slices = [Mock(id=10)]
+        mock_dashboard.slices = [_mock_chart(id=10)]
         mock_dashboard.position_json = json.dumps(
             {
                 "ROOT_ID": {
@@ -646,7 +665,7 @@ class TestAddChartToExistingDashboard:
         mock_db_session.get.return_value = mock_chart
 
         updated_dashboard = _mock_dashboard(id=3, title="Tabbed Dashboard")
-        updated_dashboard.slices = [Mock(id=10), Mock(id=25)]
+        updated_dashboard.slices = [_mock_chart(id=10), _mock_chart(id=25)]
         mock_update_command.return_value.run.return_value = updated_dashboard
 
         request = {"dashboard_id": 3, "chart_id": 25}
@@ -685,7 +704,7 @@ class TestAddChartToExistingDashboard:
     ):
         """Test adding chart to a specific tab using target_tab name."""
         mock_dashboard = _mock_dashboard(id=3, title="Tabbed Dashboard")
-        mock_dashboard.slices = [Mock(id=10)]
+        mock_dashboard.slices = [_mock_chart(id=10)]
         mock_dashboard.position_json = json.dumps(
             {
                 "ROOT_ID": {
@@ -746,7 +765,7 @@ class TestAddChartToExistingDashboard:
         mock_db_session.get.return_value = mock_chart
 
         updated_dashboard = _mock_dashboard(id=3, title="Tabbed Dashboard")
-        updated_dashboard.slices = [Mock(id=10), Mock(id=30)]
+        updated_dashboard.slices = [_mock_chart(id=10), _mock_chart(id=30)]
         mock_update_command.return_value.run.return_value = updated_dashboard
 
         request = {"dashboard_id": 3, "chart_id": 30, "target_tab": "Customers"}
@@ -786,7 +805,7 @@ class TestAddChartToExistingDashboard:
     ):
         """Test adding chart to dashboard that has nanoid-style ROW IDs."""
         mock_dashboard = _mock_dashboard(id=4, title="Nanoid Dashboard")
-        mock_dashboard.slices = [Mock(id=10)]
+        mock_dashboard.slices = [_mock_chart(id=10)]
         mock_dashboard.position_json = json.dumps(
             {
                 "ROOT_ID": {
@@ -821,7 +840,7 @@ class TestAddChartToExistingDashboard:
         mock_db_session.get.return_value = mock_chart
 
         updated_dashboard = _mock_dashboard(id=4, title="Nanoid Dashboard")
-        updated_dashboard.slices = [Mock(id=10), Mock(id=50)]
+        updated_dashboard.slices = [_mock_chart(id=10), _mock_chart(id=50)]
         mock_update_command.return_value.run.return_value = updated_dashboard
 
         request = {"dashboard_id": 4, "chart_id": 50}

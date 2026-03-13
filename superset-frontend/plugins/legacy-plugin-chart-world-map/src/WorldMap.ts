@@ -150,14 +150,20 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
       fillColor: colorFn(d.name, sliceId),
     }));
   } else {
-    colorFn = getSequentialSchemeRegistry()
-      .get(linearColorScheme)
-      .createLinearScale(d3Extent(filteredData, d => d.m1));
+    const rawExtents = d3Extent(filteredData, d => d.m1);
+    const extents: [number, number] =
+      rawExtents[0] != null && rawExtents[1] != null
+        ? [rawExtents[0], rawExtents[1]]
+        : [0, 1];
+    const colorSchemeObj = getSequentialSchemeRegistry().get(linearColorScheme);
+    colorFn = colorSchemeObj
+      ? colorSchemeObj.createLinearScale(extents)
+      : () => theme.colorBorder;
 
     processedData = filteredData.map(d => ({
       ...d,
       radius: radiusScale(Math.sqrt(d.m2)),
-      fillColor: colorFn(d.m1),
+      fillColor: colorFn(d.m1) ?? theme.colorBorder,
     }));
   }
 

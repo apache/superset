@@ -234,7 +234,7 @@ def get_columns_from_model(
 # - Extra columns (computed/relationship fields not on the model)
 
 # Chart configuration
-CHART_DEFAULT_COLUMNS = ["id", "slice_name", "viz_type", "uuid"]
+CHART_DEFAULT_COLUMNS = ["id", "slice_name", "viz_type", "url", "changed_on_humanized"]
 CHART_SORTABLE_COLUMNS = [
     "id",
     "slice_name",
@@ -258,7 +258,7 @@ CHART_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
         is_default=False,
     ),
     "url": ColumnMetadata(
-        name="url", description="Chart URL", type="str", is_default=False
+        name="url", description="Chart URL", type="str", is_default=True
     ),
     "form_data": ColumnMetadata(
         name="form_data",
@@ -282,7 +282,7 @@ CHART_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
         name="changed_on_humanized",
         description="Humanized modification time",
         type="str",
-        is_default=False,
+        is_default=True,
     ),
     "created_by": ColumnMetadata(
         name="created_by",
@@ -311,7 +311,7 @@ CHART_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
 }
 
 # Dataset configuration
-DATASET_DEFAULT_COLUMNS = ["id", "table_name", "schema", "uuid"]
+DATASET_DEFAULT_COLUMNS = ["id", "table_name", "schema", "changed_on_humanized"]
 DATASET_SORTABLE_COLUMNS = [
     "id",
     "table_name",
@@ -343,7 +343,7 @@ DATASET_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
         name="changed_on_humanized",
         description="Humanized modification time",
         type="str",
-        is_default=False,
+        is_default=True,
     ),
     "created_by": ColumnMetadata(
         name="created_by",
@@ -384,7 +384,13 @@ DATASET_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
 }
 
 # Dashboard configuration
-DASHBOARD_DEFAULT_COLUMNS = ["id", "dashboard_title", "slug", "uuid"]
+DASHBOARD_DEFAULT_COLUMNS = [
+    "id",
+    "dashboard_title",
+    "slug",
+    "url",
+    "changed_on_humanized",
+]
 DASHBOARD_SORTABLE_COLUMNS = [
     "id",
     "dashboard_title",
@@ -396,7 +402,7 @@ DASHBOARD_SORTABLE_COLUMNS = [
 DASHBOARD_SEARCH_COLUMNS = ["dashboard_title", "slug"]
 DASHBOARD_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     "url": ColumnMetadata(
-        name="url", description="Dashboard URL", type="str", is_default=False
+        name="url", description="Dashboard URL", type="str", is_default=True
     ),
     "changed_by": ColumnMetadata(
         name="changed_by",
@@ -414,7 +420,7 @@ DASHBOARD_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
         name="changed_on_humanized",
         description="Humanized modification time",
         type="str",
-        is_default=False,
+        is_default=True,
     ),
     "created_by": ColumnMetadata(
         name="created_by",

@@ -49,7 +49,7 @@ DEFAULT_DATASET_COLUMNS = [
     "id",
     "table_name",
     "schema",
-    "uuid",
+    "changed_on_humanized",
 ]
 
 SORTABLE_DATASET_COLUMNS = [
@@ -61,12 +61,13 @@ SORTABLE_DATASET_COLUMNS = [
 ]
 
 
-@tool(tags=["core"])
+@tool(tags=["core"], class_permission_name="Dataset")
 @parse_request(ListDatasetsRequest)
 async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetList:
     """List datasets with filtering and search.
 
-    Returns dataset metadata including columns and metrics.
+    Returns dataset metadata including table name, schema, and last modified
+    time.
 
     Sortable columns for order_column: id, table_name, schema, changed_on,
     created_on
