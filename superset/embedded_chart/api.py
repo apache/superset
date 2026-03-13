@@ -30,13 +30,13 @@ from superset.embedded_chart.exceptions import (
 )
 from superset.explore.permalink.schemas import ExplorePermalinkSchema
 from superset.extensions import event_logger, security_manager
+from superset.key_value.exceptions import KeyValueParseKeyError
 from superset.key_value.shared_entries import get_permalink_salt
 from superset.key_value.types import (
     KeyValueResource,
     MarshmallowKeyValueCodec,
     SharedKey,
 )
-from superset.key_value.exceptions import KeyValueParseKeyError
 from superset.key_value.utils import decode_permalink_id
 from superset.security.guest_token import (
     GuestTokenResource,
