@@ -26,6 +26,7 @@ import {
   FormItem,
   Input,
   Button,
+  Modal,
 } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 
@@ -55,10 +56,15 @@ export function ApiKeyCreateModal({
         endpoint: '/api/v1/security/api_keys/',
         jsonPayload: values,
       });
-      setCreatedKey(response.json.result.key);
+      const key = response.json?.result?.key;
+      if (!key) {
+        throw new Error('API response did not include a key');
+      }
+      setCreatedKey(key);
       addSuccessToast(t('API key created successfully'));
     } catch (error) {
       addDangerToast(t('Failed to create API key'));
+      throw error;
     }
   };
 
@@ -86,13 +92,10 @@ export function ApiKeyCreateModal({
 
   if (createdKey) {
     return (
-      <FormModal
+      <Modal
         show={show}
         onHide={handleClose}
         title={t('API Key Created')}
-        onSave={handleClose}
-        formSubmitHandler={async () => {}}
-        requiredFields={[]}
         footer={
           <Button type="primary" onClick={handleClose}>
             {t('Done')}
@@ -129,7 +132,7 @@ export function ApiKeyCreateModal({
             {copied ? t('Copied!') : t('Copy')}
           </Button>
         </div>
-      </FormModal>
+      </Modal>
     );
   }
 
