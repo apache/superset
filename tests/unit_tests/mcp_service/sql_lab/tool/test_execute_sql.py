@@ -530,6 +530,21 @@ class TestExecuteSql:
             assert data["rows"] == [{"b": 2}]
             assert data["row_count"] == 1
 
+            # Per-statement data should be present for both statements
+            assert data["statements"][0]["data"] is not None
+            assert data["statements"][0]["data"]["rows"] == [{"a": 1}]
+            assert len(data["statements"][0]["data"]["columns"]) == 1
+            assert data["statements"][0]["data"]["columns"][0]["name"] == "a"
+
+            assert data["statements"][1]["data"] is not None
+            assert data["statements"][1]["data"]["rows"] == [{"b": 2}]
+            assert len(data["statements"][1]["data"]["columns"]) == 1
+            assert data["statements"][1]["data"]["columns"][0]["name"] == "b"
+
+            # Warning should be present for multi-data-bearing queries
+            assert data["multi_statement_warning"] is not None
+            assert "2 data-bearing statements" in data["multi_statement_warning"]
+
     @patch("superset.security_manager")
     @patch("superset.db")
     @pytest.mark.asyncio
@@ -609,6 +624,14 @@ class TestExecuteSql:
             assert "id" in column_names
             assert "amount" in column_names
 
+            # SET statement should have no data, SELECT should have data
+            assert data["statements"][0]["data"] is None
+            assert data["statements"][1]["data"] is not None
+            assert len(data["statements"][1]["data"]["rows"]) == 2
+
+            # No warning since only one data-bearing statement
+            assert data["multi_statement_warning"] is None
+
     @patch("superset.security_manager")
     @patch("superset.db")
     @pytest.mark.asyncio
@@ -663,6 +686,94 @@ class TestExecuteSql:
             assert data["row_count"] is None
             # affected_rows should come from the last statement
             assert data["affected_rows"] == 5
+
+            # DML statements should have no per-statement data
+            assert data["statements"][0]["data"] is None
+            assert data["statements"][1]["data"] is None
+
+            # No warning for DML-only queries
+            assert data["multi_statement_warning"] is None
+
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    async def test_execute_sql_multi_statement_preserves_all_data(
+        self, mock_db, mock_security_manager, mcp_server
+    ) -> None:
+        """Test that multi-statement SQL returns per-statement data for ALL results.
+
+        Regression test: previously, running two SELECT statements would only
+        return the last statement's rows in the top-level response and
+        completely lose the first statement's row data.
+        """
+        mock_database = _mock_database()
+        mock_database.execute.return_value = QueryResult(
+            status=QueryStatus.SUCCESS,
+            statements=[
+                StatementResult(
+                    original_sql="SELECT COUNT(*) AS order_count FROM orders",
+                    executed_sql="SELECT COUNT(*) AS order_count FROM orders",
+                    data=pd.DataFrame([{"order_count": 42}]),
+                    row_count=1,
+                    execution_time_ms=5.0,
+                ),
+                StatementResult(
+                    original_sql="SELECT SUM(revenue) AS total_revenue FROM orders",
+                    executed_sql="SELECT SUM(revenue) AS total_revenue FROM orders",
+                    data=pd.DataFrame([{"total_revenue": 12345.67}]),
+                    row_count=1,
+                    execution_time_ms=7.0,
+                ),
+            ],
+            query_id=None,
+            total_execution_time_ms=12.0,
+            is_cached=False,
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.can_access_database.return_value = True
+
+        request = {
+            "database_id": 1,
+            "sql": (
+                "SELECT COUNT(*) AS order_count FROM orders;"
+                " SELECT SUM(revenue) AS total_revenue FROM orders"
+            ),
+            "limit": 100,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+
+            data = result.structured_content
+            assert data["success"] is True
+
+            # Top-level rows/columns should be from the LAST data-bearing stmt
+            assert data["rows"] == [{"total_revenue": 12345.67}]
+            assert data["row_count"] == 1
+
+            # Both statements should have per-statement data
+            assert len(data["statements"]) == 2
+
+            # First statement's data is accessible
+            first_stmt = data["statements"][0]
+            assert first_stmt["data"] is not None
+            assert first_stmt["data"]["rows"] == [{"order_count": 42}]
+            assert len(first_stmt["data"]["columns"]) == 1
+            assert first_stmt["data"]["columns"][0]["name"] == "order_count"
+
+            # Second statement's data is accessible
+            second_stmt = data["statements"][1]
+            assert second_stmt["data"] is not None
+            assert second_stmt["data"]["rows"] == [{"total_revenue": 12345.67}]
+            assert len(second_stmt["data"]["columns"]) == 1
+            assert second_stmt["data"]["columns"][0]["name"] == "total_revenue"
+
+            # Warning should tell LLM to check statements array
+            assert data["multi_statement_warning"] is not None
+            assert "2 data-bearing statements" in data["multi_statement_warning"]
+            assert "statements" in data["multi_statement_warning"]
 
     @pytest.mark.asyncio
     async def test_execute_sql_empty_query_validation(self, mcp_server):
