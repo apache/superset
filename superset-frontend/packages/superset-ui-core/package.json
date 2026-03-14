@@ -85,7 +85,7 @@
     "fetch-mock": "^12.6.0",
     "jest-mock-console": "^2.0.0",
     "resize-observer-polyfill": "1.5.1",
-    "timezone-mock": "1.4.0"
+    "timezone-mock": "1.4.2"
   },
   "peerDependencies": {
     "antd": "^5.26.0",
