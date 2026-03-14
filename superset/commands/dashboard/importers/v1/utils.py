@@ -241,7 +241,7 @@ def import_dashboard(  # noqa: C901
     if dashboard.id is None:
         db.session.flush()
 
-    if (user := get_user()) and user not in dashboard.owners:
+    if not existing and (user := get_user()) and user not in dashboard.owners:
         dashboard.owners.append(user)
 
     return dashboard
