@@ -484,6 +484,11 @@ def update(version_opt: str | None, license_opt: str | None) -> None:
         extension_data["license"] = target_license
         ext_changed = True
     if ext_changed:
+        try:
+            ExtensionConfig.model_validate(extension_data)
+        except Exception as e:
+            click.secho(f"❌ Invalid value: {e}", err=True, fg="red")
+            sys.exit(1)
         write_json(extension_json_path, extension_data)
         updated.append("extension.json")
 

@@ -150,3 +150,23 @@ def test_update_version_prompt_default(
 
     assert result.exit_code == 0
     assert "All files already up to date" in result.output
+
+
+@pytest.mark.cli
+def test_update_rejects_invalid_version(
+    cli_runner, isolated_filesystem, extension_with_versions
+):
+    """Test --version with an invalid semver string exits with error."""
+    extension_with_versions(
+        isolated_filesystem,
+        ext_version="1.0.0",
+    )
+
+    result = cli_runner.invoke(app, ["update", "--version", "not-a-version"])
+
+    assert result.exit_code != 0
+    assert "Invalid value" in result.output
+
+    # Verify extension.json was not modified
+    ext = read_json(isolated_filesystem / "extension.json")
+    assert ext["version"] == "1.0.0"
