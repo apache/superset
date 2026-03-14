@@ -62,6 +62,12 @@ export default function initPreamble(): Promise<void> {
     // Setup SupersetClient early so we can fetch language pack
     setupClient({ appRoot: applicationRoot() });
 
+    // Initialize feature flags before any async operations.
+    // Some plugins (e.g., legacy-preset-chart-deckgl) call isFeatureEnabled()
+    // at module load time, so flags must be available synchronously before
+    // any plugin imports are triggered by entry points like embedded/index.tsx.
+    initFeatureFlags(bootstrapData.common.feature_flags);
+
     // Load language pack before rendering
     // Use native fetch to avoid race condition with SupersetClient initialization
     const lang = bootstrapData.common.locale || 'en';
@@ -93,9 +99,6 @@ export default function initPreamble(): Promise<void> {
         window.clearTimeout(timeoutId);
       }
     }
-
-    // Continue with rest of setup
-    initFeatureFlags(bootstrapData.common.feature_flags);
 
     setupColors(
       bootstrapData.common.extra_categorical_color_schemes,

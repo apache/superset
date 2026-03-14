@@ -16,19 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-/**
- * This module MUST be imported before any module that uses isFeatureEnabled().
- *
- * Some plugins (e.g., legacy-preset-chart-deckgl) call isFeatureEnabled()
- * at module load time when defining exports like jsDataMutator, jsTooltip, etc.
- * Since ES modules are executed when imported, we need to initialize feature
- * flags before those imports happen.
- */
-import { initFeatureFlags } from '@superset-ui/core';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
-const bootstrapData = getBootstrapData();
-initFeatureFlags(bootstrapData.common.feature_flags);
+// Feature flags are initialized in preamble.ts (prepended by webpack to all
+// entry points) before the first await, so they are available synchronously
+// before any plugin imports that call isFeatureEnabled() at module load time.
 
-export { bootstrapData };
+export const bootstrapData = getBootstrapData();

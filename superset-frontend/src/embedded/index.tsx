@@ -18,8 +18,6 @@
  */
 import 'src/public-path';
 
-// IMPORTANT: initEmbedded MUST be imported before setupPlugins!
-// It initializes feature flags which some plugins check at module load time.
 import { bootstrapData } from './initEmbedded';
 
 import { lazy, Suspense } from 'react';
