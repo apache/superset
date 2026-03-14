@@ -843,7 +843,7 @@ export class TableRenderer extends Component<
           );
         };
         const headerCellFormattedValue =
-          dateFormatters?.[attrName]?.(colKey[attrIdx]) ?? colKey[attrIdx];
+          dateFormatters?.[attrName]?.(Number(colKey[attrIdx])) ?? colKey[attrIdx];
         const { backgroundColor } = getCellColor(
           [attrName],
           headerCellFormattedValue,
@@ -1078,7 +1078,7 @@ export class TableRenderer extends Component<
           : null;
 
         const headerCellFormattedValue =
-          dateFormatters?.[rowAttrs[i]]?.(r) ?? r;
+          dateFormatters?.[rowAttrs[i]]?.(Number(r)) ?? r;
 
         const { backgroundColor } = getCellColor(
           [rowAttrs[i]],
