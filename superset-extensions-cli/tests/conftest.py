@@ -154,7 +154,7 @@ def extension_with_versions():
         frontend_license: str | None = None,
         backend_license: str | None = None,
     ) -> None:
-        extension_json: dict = {
+        extension_json = {
             "publisher": "test-org",
             "name": "test-extension",
             "displayName": "Test Extension",
@@ -170,7 +170,7 @@ def extension_with_versions():
             frontend_dir.mkdir(exist_ok=True)
             (frontend_dir / "src").mkdir(exist_ok=True)
             (frontend_dir / "src" / "index.tsx").write_text("// entry")
-            pkg: dict = {
+            pkg = {
                 "name": "@test-org/test-extension",
                 "version": frontend_version,
             }
@@ -188,7 +188,7 @@ def extension_with_versions():
             src_dir = backend_dir / "src" / "test_org" / "test_extension"
             src_dir.mkdir(parents=True, exist_ok=True)
             (src_dir / "entrypoint.py").write_text("# entry")
-            project: dict = {
+            project = {
                 "name": "test-org-test-extension",
                 "version": backend_version,
             }
