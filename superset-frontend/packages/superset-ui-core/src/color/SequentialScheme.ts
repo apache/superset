@@ -51,7 +51,10 @@ export default class SequentialScheme extends ColorScheme {
    * want to interpolate range to have the same number of elements with domain instead.
    */
   createLinearScale(domain: number[] = [0, 1], modifyRange = false) {
-    const scale = scaleLinear<string>().interpolate(interpolateHcl).clamp(true);
+    const scale = scaleLinear<string>()
+      .interpolate(interpolateHcl)
+      .clamp(true)
+      .unknown(this.colors[0]);
 
     return modifyRange || domain.length === this.colors.length
       ? scale.domain(domain).range(this.getColors(domain.length))
