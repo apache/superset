@@ -26,7 +26,7 @@ import re
 from typing import Any, Dict
 
 from fastmcp import Context
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import serialize_chart_object
@@ -305,7 +305,15 @@ def _ensure_layout_structure(
         layout["DASHBOARD_VERSION_KEY"] = "v2"
 
 
-@tool(tags=["mutate"], class_permission_name="Dashboard")
+@tool(
+    tags=["mutate"],
+    class_permission_name="Dashboard",
+    annotations=ToolAnnotations(
+        title="Add chart to dashboard",
+        readOnlyHint=False,
+        destructiveHint=True,
+    ),
+)
 @parse_request(AddChartToDashboardRequest)
 def add_chart_to_existing_dashboard(
     request: AddChartToDashboardRequest, ctx: Context

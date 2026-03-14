@@ -25,6 +25,11 @@ that replaces the abstract functions in superset-core during initialization.
 import logging
 from typing import Any, Callable, Optional, TypeVar
 
+try:
+    from mcp.types import ToolAnnotations
+except ImportError:
+    ToolAnnotations = Any
+
 from superset.extensions.context import get_current_extension_context
 
 # Type variable for decorated functions
@@ -62,6 +67,7 @@ def create_tool_decorator(
     protect: bool = True,
     class_permission_name: Optional[str] = None,
     method_permission_name: Optional[str] = None,
+    annotations: Optional[ToolAnnotations] = None,
 ) -> Callable[[F], F] | F:
     """
     Create the concrete MCP tool decorator implementation.
@@ -82,6 +88,7 @@ def create_tool_decorator(
             (e.g., "Chart", "Dashboard", "SQLLab"). Enables permission checking.
         method_permission_name: FAB action name (e.g., "read", "write").
             Defaults to "write" if tags has "mutate", else "read".
+        annotations: MCP tool annotations (title, readOnlyHint, destructiveHint, etc.)
 
     Returns:
         Decorator that registers and wraps the tool with optional authentication,
@@ -130,6 +137,7 @@ def create_tool_decorator(
                 name=tool_name,
                 description=tool_description,
                 tags=tool_tags,
+                annotations=annotations,
             )
             mcp.add_tool(tool)
 
