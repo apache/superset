@@ -311,7 +311,7 @@ def _ensure_layout_structure(
     annotations=ToolAnnotations(
         title="Add chart to dashboard",
         readOnlyHint=False,
-        destructiveHint=False,
+        destructiveHint=True,
     ),
 )
 @parse_request(AddChartToDashboardRequest)
