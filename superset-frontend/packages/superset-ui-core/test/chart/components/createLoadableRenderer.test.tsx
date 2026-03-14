@@ -19,7 +19,6 @@
 
 import '@testing-library/jest-dom';
 import { ComponentType } from 'react';
-import mockConsole, { RestoreConsole } from 'jest-mock-console';
 import { render as renderTestComponent, screen } from '@testing-library/react';
 import createLoadableRenderer, {
   LoadableRenderer as LoadableRendererType,
@@ -33,10 +32,8 @@ describe('createLoadableRenderer', () => {
   let render: (loaded: { Chart: ComponentType }) => JSX.Element;
   let loading: () => JSX.Element;
   let LoadableRenderer: LoadableRendererType<{}>;
-  let restoreConsole: RestoreConsole;
 
   beforeEach(() => {
-    restoreConsole = mockConsole();
     loadChartSuccess = jest.fn(() => Promise.resolve(TestComponent));
     render = jest.fn(loaded => {
       const { Chart } = loaded;
@@ -52,10 +49,6 @@ describe('createLoadableRenderer', () => {
       loading,
       render,
     });
-  });
-
-  afterEach(() => {
-    restoreConsole();
   });
 
   describe('returns a LoadableRenderer class', () => {

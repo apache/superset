@@ -18,7 +18,6 @@
  */
 
 import '@testing-library/jest-dom';
-import mockConsole, { RestoreConsole } from 'jest-mock-console';
 import { ChartProps } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
 import { render, screen, waitFor } from '@superset-ui/core/spec';
@@ -38,8 +37,6 @@ describe('SuperChartCore', () => {
     new SlowChartPlugin().configure({ key: ChartKeys.SLOW }),
   ];
 
-  let restoreConsole: RestoreConsole;
-
   beforeAll(() => {
     jest.setTimeout(30000);
     plugins.forEach(p => {
@@ -51,14 +48,6 @@ describe('SuperChartCore', () => {
     plugins.forEach(p => {
       p.unregister();
     });
-  });
-
-  beforeEach(() => {
-    restoreConsole = mockConsole();
-  });
-
-  afterEach(() => {
-    restoreConsole();
   });
 
   describe('registered charts', () => {
