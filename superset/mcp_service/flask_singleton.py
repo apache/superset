@@ -25,7 +25,6 @@ Following the Stack Overflow recommendation:
 """
 
 import logging
-import os
 
 from flask import current_app, Flask, has_app_context
 
@@ -52,62 +51,45 @@ try:
         logger.info("Reusing existing Flask app from app context for MCP service")
         # Use _get_current_object() to get the actual Flask app, not the LocalProxy
         app = current_app._get_current_object()
+    elif appbuilder_initialized:
+        # appbuilder is initialized but we have no app context. Calling
+        # create_app() here would invoke appbuilder.init_app() a second
+        # time with a *different* Flask app, overwriting shared internal
+        # state (views, security manager, etc.).  Fail loudly instead of
+        # silently corrupting the singleton.
+        raise RuntimeError(
+            "appbuilder is already initialized but no Flask app context is "
+            "available.  Cannot call create_app() as it would re-initialize "
+            "appbuilder with a different Flask app instance."
+        )
     else:
-        # Either appbuilder is not initialized (standalone MCP server),
-        # or appbuilder is initialized but we're not in an app context
-        # (edge case - should rarely happen). In both cases, create a minimal app.
+        # Standalone MCP server — Superset models are deeply coupled to
+        # appbuilder, security_manager, event_logger, encrypted_field_factory,
+        # etc. so we use create_app() for full initialization rather than
+        # trying to init a minimal subset (which leads to cascading failures).
         #
-        # We avoid calling create_app() which would run full FAB initialization
-        # and could corrupt the shared appbuilder singleton if main app starts.
-        from superset.app import SupersetApp
+        # create_app() is safe here because in standalone mode the main
+        # Superset web server is not running in-process.
+        from superset.app import create_app
         from superset.mcp_service.mcp_config import get_mcp_config
 
-        if appbuilder_initialized:
-            logger.warning(
-                "Appbuilder initialized but not in app context - "
-                "creating separate MCP Flask app"
-            )
-        else:
-            logger.info("Creating minimal Flask app for standalone MCP service")
-
-        # Disable debug mode to avoid side-effects like file watchers
-        _mcp_app = SupersetApp(__name__)
+        logger.info("Creating fully initialized Flask app for standalone MCP service")
+        _mcp_app = create_app()
         _mcp_app.debug = False
 
-        # Load configuration
-        config_module = os.environ.get("SUPERSET_CONFIG", "superset.config")
-        _mcp_app.config.from_object(config_module)
-
-        # Apply MCP-specific configuration
+        # Apply MCP-specific configuration on top
         mcp_config = get_mcp_config(_mcp_app.config)
         _mcp_app.config.update(mcp_config)
 
-        # Initialize only the minimal dependencies needed for MCP service
         with _mcp_app.app_context():
-            try:
-                from superset.extensions import db
+            from superset.core.mcp.core_mcp_injection import (
+                initialize_core_mcp_dependencies,
+            )
 
-                db.init_app(_mcp_app)
-
-                # Initialize only MCP-specific dependencies
-                # MCP tools import directly from superset.daos/models, so we only need
-                # the MCP decorator injection, not the full superset_core abstraction
-                from superset.core.mcp.core_mcp_injection import (
-                    initialize_core_mcp_dependencies,
-                )
-
-                initialize_core_mcp_dependencies()
-
-                logger.info(
-                    "Minimal MCP dependencies initialized for standalone MCP service"
-                )
-            except Exception as e:
-                logger.warning(
-                    "Failed to initialize dependencies for MCP service: %s", e
-                )
+            initialize_core_mcp_dependencies()
 
         app = _mcp_app
-        logger.info("Minimal Flask app instance created successfully for MCP service")
+        logger.info("Flask app fully initialized for standalone MCP service")
 
 except Exception as e:
     logger.error("Failed to create Flask app: %s", e)
