@@ -94,7 +94,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   act(() => {
     store.dispatch(api.util.resetApiState());
   });
@@ -120,7 +120,7 @@ test('returns keywords including fetched function_names data', async () => {
   );
 
   await waitFor(() =>
-    expect(fetchMock.calls(dbFunctionNamesApiRoute).length).toBe(1),
+    expect(fetchMock.callHistory.calls(dbFunctionNamesApiRoute).length).toBe(1),
   );
   fakeSchemaApiResult.forEach(schema => {
     expect(result.current).toContainEqual(
@@ -171,7 +171,7 @@ test('skip fetching if autocomplete skipped', () => {
     },
   );
   expect(result.current).toEqual([]);
-  expect(fetchMock.calls()).toEqual([]);
+  expect(fetchMock.callHistory.calls()).toEqual([]);
 });
 
 test('returns column keywords among selected tables', async () => {
@@ -230,14 +230,14 @@ test('returns column keywords among selected tables', async () => {
         },
       ),
     );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     storeWithSqlLab.dispatch(
       addTable(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         { id: expectQueryEditorId } as any,
         expectTable,
         expectCatalog,
         expectSchema,
-      ),
+      ) as any,
     );
   });
 
@@ -275,14 +275,14 @@ test('returns column keywords among selected tables', async () => {
   );
 
   act(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     storeWithSqlLab.dispatch(
       addTable(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         { id: expectQueryEditorId } as any,
         unexpectedTable,
         expectCatalog,
         expectSchema,
-      ),
+      ) as any,
     );
   });
 
@@ -295,7 +295,7 @@ test('returns column keywords among selected tables', async () => {
   );
 });
 
-test('returns long keywords with docText', async () => {
+test('returns long keywords with detail', async () => {
   const expectLongKeywordDbId = 2;
   const longKeyword = 'veryveryveryveryverylongtablename';
   const dbFunctionNamesApiRoute = `glob:*/api/v1/database/${expectLongKeywordDbId}/function_names/`;
@@ -335,7 +335,7 @@ test('returns long keywords with docText', async () => {
       expect.objectContaining({
         name: longKeyword,
         value: longKeyword,
-        docText: longKeyword,
+        detail: longKeyword,
       }),
     ),
   );

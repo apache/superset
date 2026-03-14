@@ -18,7 +18,7 @@
  */
 import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { supersetTheme, ThemeProvider } from '@apache-superset/core/ui';
+import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { DatasourceType, SupersetClient } from '@superset-ui/core';
@@ -137,7 +137,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     });
   });
 
-  it('should NOT apply autozoom when autozoom is false', () => {
+  test('should NOT apply autozoom when autozoom is false', () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
 
     const props = {
@@ -156,7 +156,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     fitViewportSpy.mockRestore();
   });
 
-  it('should apply autozoom when autozoom is true', () => {
+  test('should apply autozoom when autozoom is true', () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
     fitViewportSpy.mockReturnValue({
       longitude: -122.4,
@@ -191,7 +191,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     fitViewportSpy.mockRestore();
   });
 
-  it('should use adjusted viewport when autozoom is enabled', async () => {
+  test('should use adjusted viewport when autozoom is enabled', async () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
     const adjustedViewport = {
       longitude: -122.4,
@@ -224,7 +224,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     fitViewportSpy.mockRestore();
   });
 
-  it('should set zoom to 0 when calculated zoom is negative', async () => {
+  test('should set zoom to 0 when calculated zoom is negative', async () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
     fitViewportSpy.mockReturnValue({
       longitude: 0,
@@ -255,7 +255,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     fitViewportSpy.mockRestore();
   });
 
-  it('should handle empty features gracefully when autozoom is enabled', () => {
+  test('should handle empty features gracefully when autozoom is enabled', () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
 
     const props = {
@@ -292,7 +292,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     fitViewportSpy.mockRestore();
   });
 
-  it('should collect points from all layer types when autozoom is enabled', () => {
+  test('should collect points from all layer types when autozoom is enabled', () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
     fitViewportSpy.mockReturnValue({
       longitude: 0,
@@ -345,7 +345,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     fitViewportSpy.mockRestore();
   });
 
-  it('should use original viewport when autozoom is disabled', async () => {
+  test('should use original viewport when autozoom is disabled', async () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
 
     const originalViewport = { longitude: -100, latitude: 40, zoom: 5 };
@@ -378,7 +378,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     fitViewportSpy.mockRestore();
   });
 
-  it('should apply autozoom when autozoom is undefined (backward compatibility)', () => {
+  test('should apply autozoom when autozoom is undefined (backward compatibility)', () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
     fitViewportSpy.mockReturnValue({
       longitude: -122.4,
@@ -413,7 +413,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     fitViewportSpy.mockRestore();
   });
 
-  it('should use adjusted viewport when autozoom is undefined', async () => {
+  test('should use adjusted viewport when autozoom is undefined', async () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
     const adjustedViewport = {
       longitude: -122.4,
@@ -460,7 +460,7 @@ describe('DeckMulti Component Rendering', () => {
     });
   });
 
-  it('should render DeckGLContainer', async () => {
+  test('should render DeckGLContainer', async () => {
     renderWithProviders(<DeckMulti {...baseMockProps} />);
 
     await waitFor(() => {
@@ -468,7 +468,7 @@ describe('DeckMulti Component Rendering', () => {
     });
   });
 
-  it('should pass correct props to DeckGLContainer', async () => {
+  test('should pass correct props to DeckGLContainer', async () => {
     renderWithProviders(<DeckMulti {...baseMockProps} />);
 
     await waitFor(() => {
@@ -485,7 +485,7 @@ describe('DeckMulti Component Rendering', () => {
     });
   });
 
-  it('should include dashboardId in child slice requests when present', async () => {
+  test('should include dashboardId in child slice requests when present', async () => {
     const props = {
       ...baseMockProps,
       formData: {
@@ -502,7 +502,7 @@ describe('DeckMulti Component Rendering', () => {
     });
 
     // Check that all requests include the dashboardId
-    const calls = (SupersetClient.get as jest.Mock).mock.calls;
+    const { calls } = (SupersetClient.get as jest.Mock).mock;
     calls.forEach(call => {
       const url = call[0].endpoint;
       const urlParams = new URLSearchParams(url.split('?')[1]);
@@ -512,7 +512,7 @@ describe('DeckMulti Component Rendering', () => {
     });
   });
 
-  it('should not include dashboardId when not present', async () => {
+  test('should not include dashboardId when not present', async () => {
     const props = {
       ...baseMockProps,
       formData: {
@@ -529,7 +529,7 @@ describe('DeckMulti Component Rendering', () => {
     });
 
     // Check that requests don't include dashboardId
-    const calls = (SupersetClient.get as jest.Mock).mock.calls;
+    const { calls } = (SupersetClient.get as jest.Mock).mock;
     calls.forEach(call => {
       const url = call[0].endpoint;
       const formData = JSON.parse(
@@ -539,7 +539,7 @@ describe('DeckMulti Component Rendering', () => {
     });
   });
 
-  it('should preserve dashboardId through filter updates', async () => {
+  test('should preserve dashboardId through filter updates', async () => {
     const props = {
       ...baseMockProps,
       formData: {
@@ -557,7 +557,7 @@ describe('DeckMulti Component Rendering', () => {
     });
 
     // Verify dashboardId is preserved with filters
-    const calls = (SupersetClient.get as jest.Mock).mock.calls;
+    const { calls } = (SupersetClient.get as jest.Mock).mock;
     calls.forEach(call => {
       const url = call[0].endpoint;
       const formData = JSON.parse(
@@ -568,7 +568,7 @@ describe('DeckMulti Component Rendering', () => {
     });
   });
 
-  it('should handle viewport changes', async () => {
+  test('should handle viewport changes', async () => {
     const { rerender } = renderWithProviders(<DeckMulti {...baseMockProps} />);
 
     // Wait for initial render
@@ -603,5 +603,142 @@ describe('DeckMulti Component Rendering', () => {
       expect(viewportData.longitude).toBe(newViewport.longitude);
       expect(viewportData.latitude).toBe(newViewport.latitude);
     });
+  });
+});
+
+test('includes parent_slice_id in child slice requests when parent has slice_id', async () => {
+  jest.clearAllMocks();
+  const mockGet = jest.fn().mockResolvedValue({
+    json: {
+      result: {
+        form_data: {
+          viz_type: 'deck_scatter',
+          datasource: '1__table',
+        },
+      },
+      data: {
+        features: [],
+      },
+    },
+  });
+  (SupersetClient.get as jest.Mock) = mockGet;
+  const parentSliceId = 99;
+  const dashboardId = 5;
+
+  const props = {
+    ...baseMockProps,
+    formData: {
+      ...baseMockProps.formData,
+      slice_id: parentSliceId,
+      dashboardId,
+    },
+  };
+
+  renderWithProviders(<DeckMulti {...props} />);
+
+  await waitFor(() => {
+    expect(mockGet).toHaveBeenCalled();
+  });
+
+  // Check that the child slice requests include parent_slice_id
+  const { calls } = mockGet.mock;
+  calls.forEach(call => {
+    const { endpoint } = call[0];
+    if (endpoint.includes('api/v1/explore/form_data')) {
+      const body = JSON.parse(call[0].body);
+      expect(body.form_data).toMatchObject({
+        dashboardId,
+        parent_slice_id: parentSliceId,
+      });
+    }
+  });
+});
+
+test('includes parent_slice_id in embedded mode', async () => {
+  jest.clearAllMocks();
+  const mockGet = jest.fn().mockResolvedValue({
+    json: {
+      result: {
+        form_data: {
+          viz_type: 'deck_scatter',
+          datasource: '1__table',
+        },
+      },
+      data: {
+        features: [],
+      },
+    },
+  });
+  (SupersetClient.get as jest.Mock) = mockGet;
+  const parentSliceId = 200;
+  const dashboardId = 10;
+
+  const props = {
+    ...baseMockProps,
+    formData: {
+      ...baseMockProps.formData,
+      slice_id: parentSliceId,
+      dashboardId,
+      embedded: true,
+    },
+  };
+
+  renderWithProviders(<DeckMulti {...props} />);
+
+  await waitFor(() => {
+    expect(mockGet).toHaveBeenCalled();
+  });
+
+  // Verify parent_slice_id is included in embedded mode
+  const { calls } = mockGet.mock;
+  calls.forEach(call => {
+    const { endpoint } = call[0];
+    if (endpoint.includes('api/v1/explore/form_data')) {
+      const body = JSON.parse(call[0].body);
+      expect(body.form_data.parent_slice_id).toBe(parentSliceId);
+    }
+  });
+});
+
+test('does not include parent_slice_id when parent has no slice_id', async () => {
+  jest.clearAllMocks();
+  const mockGet = jest.fn().mockResolvedValue({
+    json: {
+      result: {
+        form_data: {
+          viz_type: 'deck_scatter',
+          datasource: '1__table',
+        },
+      },
+      data: {
+        features: [],
+      },
+    },
+  });
+  (SupersetClient.get as jest.Mock) = mockGet;
+
+  const props = {
+    ...baseMockProps,
+    formData: {
+      ...baseMockProps.formData,
+      // No slice_id in parent
+      dashboardId: 5,
+    },
+  };
+
+  renderWithProviders(<DeckMulti {...props} />);
+
+  await waitFor(() => {
+    expect(mockGet).toHaveBeenCalled();
+  });
+
+  // Verify parent_slice_id is not included when parent has no slice_id
+  const { calls } = mockGet.mock;
+  calls.forEach(call => {
+    const { endpoint } = call[0];
+    if (endpoint.includes('api/v1/explore/form_data')) {
+      const body = JSON.parse(call[0].body);
+      expect(body.form_data.parent_slice_id).toBeUndefined();
+    }
   });
 });

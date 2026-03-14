@@ -19,9 +19,10 @@
 import { FC, useMemo } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
 import { EmptyState } from '@superset-ui/core/components';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
-import { styled, Alert } from '@apache-superset/core/ui';
+import { Alert } from '@apache-superset/core/components';
+import { styled } from '@apache-superset/core/theme';
 
 import { SqlLabRootState } from 'src/SqlLab/types';
 import ResultSet from '../ResultSet';
@@ -83,25 +84,27 @@ const Results: FC<Props> = ({
     !latestQuery.resultsKey &&
     !latestQuery.results;
 
+  if (hasNoStoredResults) {
+    return (
+      <Alert
+        type="info"
+        message={t('No stored results found, you need to re-run your query')}
+      />
+    );
+  }
+
   return (
     <>
       <QueryStatusBar key={latestQueryId} query={latestQuery} />
-      {hasNoStoredResults ? (
-        <Alert
-          type="info"
-          message={t('No stored results found, you need to re-run your query')}
-        />
-      ) : (
-        <ResultSet
-          search
-          queryId={latestQuery.id}
-          database={databases[latestQuery.dbId]}
-          displayLimit={displayLimit}
-          defaultQueryLimit={defaultQueryLimit}
-          showSql
-          showSqlInline
-        />
-      )}
+      <ResultSet
+        search
+        queryId={latestQuery.id}
+        database={databases[latestQuery.dbId]}
+        displayLimit={displayLimit}
+        defaultQueryLimit={defaultQueryLimit}
+        showSql
+        showSqlInline
+      />
     </>
   );
 };

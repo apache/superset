@@ -48,7 +48,7 @@ const treeData = [
 ];
 
 describe('TreeSelect Component', () => {
-  it('should render TreeSelect correctly', () => {
+  test('should render TreeSelect correctly', () => {
     render(
       <TreeSelect
         treeData={treeData}

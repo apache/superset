@@ -116,34 +116,55 @@ class TestModelSchemaInfo:
         assert info.model_type == "chart"
         assert len(info.select_columns) > 0
         # Check default columns include required minimal set
-        required_columns = {"id", "slice_name", "viz_type", "uuid"}
+        required_columns = {
+            "id",
+            "slice_name",
+            "viz_type",
+            "url",
+            "changed_on_humanized",
+        }
         assert required_columns.issubset(set(info.default_select))
         assert "slice_name" in info.filter_columns
         assert info.default_sort == "changed_on"
 
     def test_dataset_default_columns(self):
         """Test dataset default columns include required minimal set."""
-        required_columns = {"id", "table_name", "schema", "uuid"}
+        required_columns = {"id", "table_name", "schema", "changed_on_humanized"}
         assert required_columns.issubset(set(DATASET_DEFAULT_COLUMNS))
         # These should NOT be in defaults
         assert "columns" not in DATASET_DEFAULT_COLUMNS
         assert "metrics" not in DATASET_DEFAULT_COLUMNS
+        assert "uuid" not in DATASET_DEFAULT_COLUMNS
 
     def test_dashboard_default_columns(self):
         """Test dashboard default columns include required minimal set."""
-        required_columns = {"id", "dashboard_title", "slug", "uuid"}
+        required_columns = {
+            "id",
+            "dashboard_title",
+            "slug",
+            "url",
+            "changed_on_humanized",
+        }
         assert required_columns.issubset(set(DASHBOARD_DEFAULT_COLUMNS))
         # These should NOT be in defaults
         assert "published" not in DASHBOARD_DEFAULT_COLUMNS
         assert "charts" not in DASHBOARD_DEFAULT_COLUMNS
+        assert "uuid" not in DASHBOARD_DEFAULT_COLUMNS
 
     def test_chart_default_columns(self):
         """Test chart default columns include required minimal set."""
-        required_columns = {"id", "slice_name", "viz_type", "uuid"}
+        required_columns = {
+            "id",
+            "slice_name",
+            "viz_type",
+            "url",
+            "changed_on_humanized",
+        }
         assert required_columns.issubset(set(CHART_DEFAULT_COLUMNS))
         # These should NOT be in defaults
         assert "description" not in CHART_DEFAULT_COLUMNS
         assert "form_data" not in CHART_DEFAULT_COLUMNS
+        assert "uuid" not in CHART_DEFAULT_COLUMNS
 
 
 class TestGetSchemaToolViaClient:
@@ -177,7 +198,13 @@ class TestGetSchemaToolViaClient:
             assert "search_columns" in info
 
             # Check default columns include required minimal set
-            required_columns = {"id", "slice_name", "viz_type", "uuid"}
+            required_columns = {
+                "id",
+                "slice_name",
+                "viz_type",
+                "url",
+                "changed_on_humanized",
+            }
             assert required_columns.issubset(set(info["default_select"]))
 
     @patch("superset.daos.dataset.DatasetDAO.get_filterable_columns_and_operators")
@@ -201,7 +228,7 @@ class TestGetSchemaToolViaClient:
             assert info["model_type"] == "dataset"
 
             # Check default columns include required minimal set
-            required_columns = {"id", "table_name", "schema", "uuid"}
+            required_columns = {"id", "table_name", "schema", "changed_on_humanized"}
             assert required_columns.issubset(set(info["default_select"]))
 
             # Check search columns
@@ -229,16 +256,28 @@ class TestGetSchemaToolViaClient:
             assert info["model_type"] == "dashboard"
 
             # Check default columns include required minimal set
-            required_columns = {"id", "dashboard_title", "slug", "uuid"}
+            required_columns = {
+                "id",
+                "dashboard_title",
+                "slug",
+                "url",
+                "changed_on_humanized",
+            }
             assert required_columns.issubset(set(info["default_select"]))
 
             # Check sortable columns include expected values
             assert "dashboard_title" in info["sortable_columns"]
             assert "changed_on" in info["sortable_columns"]
 
+    @patch(
+        "superset.mcp_service.utils.schema_utils._is_parse_request_enabled",
+        return_value=True,
+    )
     @patch("superset.daos.chart.ChartDAO.get_filterable_columns_and_operators")
     @pytest.mark.asyncio
-    async def test_get_schema_with_json_string_request(self, mock_filters, mcp_server):
+    async def test_get_schema_with_json_string_request(
+        self, mock_filters, mock_parse_enabled, mcp_server
+    ):
         """Test get_schema accepts JSON string request (Claude Code compatibility)."""
         mock_filters.return_value = {"slice_name": ["eq"]}
 

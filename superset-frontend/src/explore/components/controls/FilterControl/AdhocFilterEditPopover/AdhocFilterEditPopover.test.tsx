@@ -120,6 +120,7 @@ describe('AdhocFilterEditPopover', () => {
     ).toBeDisabled();
   });
 
+  /* oxlint-disable-next-line jest/no-disabled-tests */
   test.skip('updates the filter when changes are made', async () => {
     const onChange = jest.fn();
     renderPopover({

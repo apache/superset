@@ -18,9 +18,9 @@
  */
 import { memo, useEffect, useCallback, useMemo, useState, useRef } from 'react';
 import { uniq, debounce } from 'lodash';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { ChartCustomizationType, NativeFilterType } from '@superset-ui/core';
-import { styled, css, useTheme } from '@apache-superset/core/ui';
+import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { Constants, Form, Icons, Flex } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components';
 import { testWithId } from 'src/utils/testUtils';
@@ -450,13 +450,29 @@ function FiltersConfigModal({
     ? Icons.FullscreenExitOutlined
     : Icons.FullscreenOutlined;
 
-  const handleValuesChange = useMemo(
+  const [formValuesVersion, setFormValuesVersion] = useState(0);
+
+  const itemTitles = useMemo(() => {
+    const titles: Record<string, string> = {};
+    [...filterIds, ...chartCustomizationIds].forEach(id => {
+      titles[id] = modalSaveLogic.getItemTitle(id);
+    });
+    return titles;
+  }, [filterIds, chartCustomizationIds, modalSaveLogic, formValuesVersion]);
+
+  const debouncedHandleErroredItems = useMemo(
     () =>
       debounce(() => {
         setSaveAlertVisible(false);
         modalSaveLogic.handleErroredItems();
+        setFormValuesVersion(prev => prev + 1);
       }, Constants.SLOW_DEBOUNCE),
-    [modalSaveLogic],
+    [modalSaveLogic, setSaveAlertVisible],
+  );
+
+  const handleValuesChange = useMemo(
+    () => debouncedHandleErroredItems,
+    [debouncedHandleErroredItems],
   );
 
   const handleActiveFilterPanelChange = useCallback(
@@ -557,6 +573,7 @@ function FiltersConfigModal({
                 customizationErroredItems={customizationState.erroredIds}
                 activeCollapseKeys={activeCollapseKeys}
                 getItemTitle={modalSaveLogic.getItemTitle}
+                itemTitles={itemTitles}
                 onAddFilter={filterOperations.addFilter}
                 onAddCustomization={
                   customizationOperations.addChartCustomization

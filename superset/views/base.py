@@ -36,7 +36,7 @@ from flask import (
 )
 from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
-from flask_appbuilder.const import AUTH_OAUTH
+from flask_appbuilder.const import AUTH_OAUTH, AUTH_SAML
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla.models import User
@@ -94,6 +94,7 @@ FRONTEND_CONF_KEYS = (
     "DASHBOARD_AUTO_REFRESH_MODE",
     "DASHBOARD_AUTO_REFRESH_INTERVALS",
     "DASHBOARD_VIRTUALIZATION",
+    "DASHBOARD_VIRTUALIZATION_DEFER_DATA",
     "SCHEDULED_QUERIES",
     "EXCEL_EXTENSIONS",
     "CSV_EXTENSIONS",
@@ -475,11 +476,18 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         and bool(available_specs[GSheetsEngineSpec])
     )
 
-    language = locale.language if locale else "en"
+    if isinstance(locale, Locale):
+        language = locale.language
+    elif isinstance(locale, str):
+        language = locale
+    else:
+        language = app.config.get("BABEL_DEFAULT_LOCALE", "en")
     auth_type = app.config["AUTH_TYPE"]
     auth_user_registration = app.config["AUTH_USER_REGISTRATION"]
     frontend_config["AUTH_USER_REGISTRATION"] = auth_user_registration
-    should_show_recaptcha = auth_user_registration and (auth_type != AUTH_OAUTH)
+    should_show_recaptcha = auth_user_registration and (
+        auth_type not in (AUTH_OAUTH, AUTH_SAML)
+    )
 
     if auth_user_registration:
         frontend_config["AUTH_USER_REGISTRATION_ROLE"] = app.config[
@@ -499,6 +507,16 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
                 }
             )
         frontend_config["AUTH_PROVIDERS"] = oauth_providers
+    elif auth_type == AUTH_SAML:
+        saml_providers = []
+        for provider in appbuilder.sm.saml_providers:
+            saml_providers.append(
+                {
+                    "name": provider["name"],
+                    "icon": provider.get("icon", "fa-sign-in"),
+                }
+            )
+        frontend_config["AUTH_PROVIDERS"] = saml_providers
 
     bootstrap_data = {
         "application_root": app.config["APPLICATION_ROOT"],
@@ -613,12 +631,17 @@ def get_spa_template_context(
     # Determine default title using the (potentially updated) brandAppName
     default_title = theme_tokens.get("brandAppName", "Superset")
 
+    # Extract dark theme background for the initial page load CSS.
+    dark_theme_tokens = dark_theme.get("token", {}) if dark_theme else {}
+    dark_theme_bg = dark_theme_tokens.get("colorBgBase", "#000") if dark_theme else None
+
     return {
         "entry": entry,
         "bootstrap_data": json.dumps(
             payload, default=json.pessimistic_json_iso_dttm_ser
         ),
         "theme_tokens": theme_tokens,
+        "dark_theme_bg": dark_theme_bg,
         "spinner_svg": spinner_svg,
         "default_title": default_title,
         **template_kwargs,

@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useEffect, SetStateAction, Dispatch, useCallback } from 'react';
-import { t } from '@apache-superset/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import TableSelector, { TableOption } from 'src/components/TableSelector';
 import { EmptyState } from '@superset-ui/core/components';
 import { type DatabaseObject } from 'src/components';
@@ -211,7 +211,6 @@ export default function LeftPanel({
         onCatalogChange={setCatalog}
         onSchemaChange={setSchema}
         onTableSelectChange={setTable}
-        sqlLabMode={false}
         customTableOptionLabelRenderer={customTableOptionLabelRenderer}
         {...(dataset?.catalog && { catalog: dataset.catalog })}
         {...(dataset?.schema && { schema: dataset.schema })}

@@ -17,10 +17,10 @@
  * under the License.
  */
 import { useMemo, useState, useEffect, useRef, RefObject } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { getTimeFormatter, safeHtmlSpan, TimeFormats } from '@superset-ui/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import { Column } from 'react-table';
 import { debounce } from 'lodash';
 import {
@@ -32,7 +32,10 @@ import {
   Radio,
 } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
-import { prepareCopyToClipboardTabularData } from 'src/utils/common';
+import {
+  prepareCopyToClipboardTabularData,
+  TabularDataRow,
+} from 'src/utils/common';
 import { getTimeColumns, setTimeColumns } from './utils';
 
 export const CellNull = styled('span')`
@@ -56,7 +59,7 @@ export const CopyToClipboardButton = ({
   data,
   columns,
 }: {
-  data?: Record<string, any>;
+  data?: TabularDataRow[];
   columns?: string[];
 }) => (
   <CopyToClipboard
@@ -314,7 +317,7 @@ export const useTableColumns = (
                 originalFormattedTimeColumns.includes(key);
               return {
                 // react-table requires a non-empty id, therefore we introduce a fallback value in case the key is empty
-                id: key || index,
+                id: key || String(index),
                 accessor: (row: Record<string, any>) => row[key],
                 Header:
                   colType === GenericDataType.Temporal &&

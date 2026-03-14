@@ -354,6 +354,17 @@ class TestParseRequestDecorator:
         name: str
         count: int
 
+    @pytest.fixture(autouse=True)
+    def _enable_parse_request(self):
+        """Ensure MCP_PARSE_REQUEST_ENABLED=True for all parsing tests."""
+        from unittest.mock import patch
+
+        with patch(
+            "superset.mcp_service.utils.schema_utils._is_parse_request_enabled",
+            return_value=True,
+        ):
+            yield
+
     def test_decorator_with_json_string_async(self):
         """Should parse JSON string request in async function."""
         from unittest.mock import MagicMock, patch
@@ -470,9 +481,11 @@ class TestParseRequestDecorator:
             result = sync_tool('{"name": "test", "count": 5}', extra="data")
         assert result == "test:5:data"
 
-    def test_decorator_raises_validation_error_async(self):
-        """Should raise ValidationError for invalid data in async function."""
+    def test_decorator_raises_tool_error_for_invalid_data_async(self):
+        """Should raise ToolError with field details for invalid data."""
         from unittest.mock import MagicMock, patch
+
+        from fastmcp.exceptions import ToolError
 
         @parse_request(self.RequestModel)
         async def async_tool(request, ctx=None):
@@ -482,12 +495,14 @@ class TestParseRequestDecorator:
 
         mock_ctx = MagicMock()
         with patch("fastmcp.server.dependencies.get_context", return_value=mock_ctx):
-            with pytest.raises(ValidationError):
+            with pytest.raises(ToolError, match="Required fields for RequestModel"):
                 asyncio.run(async_tool('{"name": "test"}'))  # Missing count
 
-    def test_decorator_raises_validation_error_sync(self):
-        """Should raise ValidationError for invalid data in sync function."""
+    def test_decorator_raises_tool_error_for_invalid_data_sync(self):
+        """Should raise ToolError with field details for invalid data."""
         from unittest.mock import MagicMock, patch
+
+        from fastmcp.exceptions import ToolError
 
         @parse_request(self.RequestModel)
         def sync_tool(request, ctx=None):
@@ -495,7 +510,7 @@ class TestParseRequestDecorator:
 
         mock_ctx = MagicMock()
         with patch("fastmcp.server.dependencies.get_context", return_value=mock_ctx):
-            with pytest.raises(ValidationError):
+            with pytest.raises(ToolError, match="Required fields for RequestModel"):
                 sync_tool('{"name": "test"}')  # Missing count
 
     def test_decorator_with_complex_model_async(self):

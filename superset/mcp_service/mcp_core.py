@@ -181,8 +181,11 @@ class ModelListCore(BaseCore, Generic[L]):
         total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 0
         from superset.mcp_service.system.schemas import PaginationInfo
 
+        # Report 1-based page in response to match the 1-based input convention
+        # used by all list tool wrappers (list_charts, list_datasets, etc.)
+        page_1based = page + 1
         pagination_info = PaginationInfo(
-            page=page,
+            page=page_1based,
             page_size=page_size,
             total_count=total_count,
             total_pages=total_pages,
@@ -202,7 +205,7 @@ class ModelListCore(BaseCore, Generic[L]):
             self.list_field_name: item_objs,
             "count": len(item_objs),
             "total_count": total_count,
-            "page": page,
+            "page": page_1based,
             "page_size": page_size,
             "total_pages": total_pages,
             "has_previous": page > 0,
@@ -240,6 +243,7 @@ class ModelGetInfoCore(BaseCore):
         serializer: Callable[[T], BaseModel],
         supports_slug: bool = False,
         logger: logging.Logger | None = None,
+        query_options: list[Any] | None = None,
     ) -> None:
         super().__init__(logger)
         self.dao_class = dao_class
@@ -247,29 +251,35 @@ class ModelGetInfoCore(BaseCore):
         self.error_schema = error_schema
         self.serializer = serializer
         self.supports_slug = supports_slug
+        self.query_options = query_options or []
 
     def _find_object(self, identifier: int | str) -> Any:
         """Find object by identifier using appropriate method."""
+        opts = self.query_options or None
         # If it's an integer or string that can be converted to int, use find_by_id
         if isinstance(identifier, int):
-            return self.dao_class.find_by_id(identifier)
+            return self.dao_class.find_by_id(identifier, query_options=opts)
 
         try:
             # Try to convert string to int
             id_val = int(identifier)
-            return self.dao_class.find_by_id(id_val)
+            return self.dao_class.find_by_id(id_val, query_options=opts)
         except ValueError:
             pass
 
         # Check if it's a UUID
         if _is_uuid(identifier):
             # Use the new flexible find_by_id with uuid column
-            return self.dao_class.find_by_id(identifier, id_column="uuid")
+            return self.dao_class.find_by_id(
+                identifier, id_column="uuid", query_options=opts
+            )
 
         # For dashboards, also check slug
         if self.supports_slug:
             # Try to find by slug using the new flexible method
-            result = self.dao_class.find_by_id(identifier, id_column="slug")
+            result = self.dao_class.find_by_id(
+                identifier, id_column="slug", query_options=opts
+            )
             if result:
                 return result
 
@@ -278,11 +288,10 @@ class ModelGetInfoCore(BaseCore):
             from superset.models.dashboard import id_or_slug_filter
 
             model_class = self.dao_class.model_cls
-            return (
-                db.session.query(model_class)
-                .filter(id_or_slug_filter(identifier))
-                .one_or_none()
-            )
+            query = db.session.query(model_class).filter(id_or_slug_filter(identifier))
+            if opts:
+                query = query.options(*opts)
+            return query.one_or_none()
 
         # If we get here, it's an invalid identifier
         return None

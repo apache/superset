@@ -26,7 +26,7 @@ import fetchMock from 'fetch-mock';
 import * as ColorSchemeSelect from 'src/dashboard/components/ColorSchemeSelect';
 import * as SupersetCore from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
-import { t } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
 import PropertiesModal from '.';
 
 // Increase timeout for CI environment
@@ -178,7 +178,7 @@ beforeEach(() => {
 });
 
 afterAll(() => {
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
 });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks

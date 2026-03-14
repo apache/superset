@@ -18,13 +18,13 @@
  */
 import { ChangeEvent, EventHandler, useState, useEffect } from 'react';
 import cx from 'classnames';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   DatabaseConnectionExtension,
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
-import { useTheme } from '@apache-superset/core/ui';
+import { useTheme } from '@apache-superset/core/theme';
 import {
   Input,
   Checkbox,
@@ -537,7 +537,7 @@ const ExtraOptions = ({
                       type="text"
                       name="schemas_allowed_for_file_upload"
                       value={schemasText}
-                      placeholder="schema1,schema2"
+                      placeholder={t('schema1,schema2')}
                       onChange={e => setSchemasText(e.target.value)}
                       onBlur={() =>
                         onExtraInputChange({

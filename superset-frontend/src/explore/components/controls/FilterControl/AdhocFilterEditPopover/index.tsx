@@ -18,20 +18,17 @@
  */
 import type React from 'react';
 import { createRef, Component, type RefObject } from 'react';
-import PropTypes from 'prop-types';
-import type { SupersetTheme } from '@apache-superset/core/ui';
+import { type SupersetTheme } from '@apache-superset/core/theme';
 import { Button, Icons, Select } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components';
 import { SupersetClient } from '@superset-ui/core';
-import { t } from '@apache-superset/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 
 import Tabs from '@superset-ui/core/components/Tabs';
-import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import AdhocFilterEditPopoverSimpleTabContent from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent';
 import AdhocFilterEditPopoverSqlTabContent from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSqlTabContent';
-import columnType from 'src/explore/components/controls/FilterControl/columnType';
 import type { Dataset } from '@superset-ui/chart-controls';
 import type { ColumnType } from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent';
 import {
@@ -79,26 +76,6 @@ interface AdhocFilterEditPopoverState {
   layerOptions: LayerOption[];
   hasLayerFilterScopeChanged: boolean;
 }
-
-const propTypes = {
-  adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,
-  onChange: PropTypes.func.isRequired,
-  onClose: PropTypes.func.isRequired,
-  onResize: PropTypes.func.isRequired,
-  options: PropTypes.arrayOf(
-    PropTypes.oneOfType([
-      columnType,
-      PropTypes.shape({ saved_metric_name: PropTypes.string.isRequired }),
-      adhocMetricType,
-    ]),
-  ).isRequired,
-  datasource: PropTypes.object,
-  partitionColumn: PropTypes.string,
-  theme: PropTypes.object,
-  sections: PropTypes.arrayOf(PropTypes.string),
-  operators: PropTypes.arrayOf(PropTypes.string),
-  requireSave: PropTypes.bool,
-};
 
 const FilterPopoverContentContainer = styled.div`
   .adhoc-filter-edit-tabs > .nav-tabs {
@@ -493,7 +470,7 @@ export default class AdhocFilterEditPopover extends Component<
           </Button>
           <Icons.ArrowsAltOutlined
             role="button"
-            aria-label="Resize"
+            aria-label={t('Resize')}
             tabIndex={0}
             onMouseDown={this.onDragDown}
             className="edit-popover-resize"
@@ -503,6 +480,3 @@ export default class AdhocFilterEditPopover extends Component<
     );
   }
 }
-
-// @ts-expect-error - propTypes are defined for runtime validation but TypeScript handles type checking
-AdhocFilterEditPopover.propTypes = propTypes;
