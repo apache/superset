@@ -28,7 +28,7 @@ from typing import Any, Callable, Optional, TypeVar
 try:
     from mcp.types import ToolAnnotations
 except ImportError:
-    ToolAnnotations = Any  # type: ignore[assignment]
+    ToolAnnotations = Any
 
 from superset.extensions.context import get_current_extension_context
 
