@@ -2788,3 +2788,49 @@ def test_apply_client_processing_csv_format_default_na_behavior():
     assert (
         "Alice," in lines[2]
     )  # Second data row should have empty last_name (NA converted to null)
+
+
+@with_config({"CSV_EXPORT": {"sep": ";", "decimal": ","}})
+def test_apply_client_processing_csv_format_custom_delimiter():
+    """
+    Test that apply_client_processing respects CSV_EXPORT sep and decimal config.
+    Without the fix, pd.read_csv() uses default comma separator and fails to parse
+    semicolon-delimited CSV correctly, causing HTTP 500 in email reports.
+    """
+    csv_data = "name;value\nfoo;1,5\nbar;2,0"
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": csv_data,
+            }
+        ]
+    }
+
+    form_data = {
+        "datasource": "1__table",
+        "viz_type": "table",
+        "slice_id": 1,
+        "url_params": {},
+        "metrics": [],
+        "groupby": [],
+        "columns": ["name", "value"],
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "csv",
+        "result_type": "results",
+    }
+
+    processed_result = apply_client_processing(result, form_data)
+
+    output_data = processed_result["queries"][0]["data"]
+    lines = output_data.strip().split("\n")
+    # Should have header + 2 data rows, with correct column parsing
+    assert len(lines) == 3
+    # name and value should be separate columns, not merged into one
+    assert processed_result["queries"][0]["colnames"] == ["name", "value"]
+    # Output CSV must also use the configured separator and decimal
+    assert lines[0] == "name;value", f"Expected semicolon header, got: {lines[0]}"
+    assert "1,5" in lines[1], f"Expected comma decimal in row 1, got: {lines[1]}"
+    assert "2,0" in lines[2], f"Expected comma decimal in row 2, got: {lines[2]}"
