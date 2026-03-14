@@ -48,6 +48,7 @@ import {
   getTimeFormatterForGranularity,
   BinaryQueryObjectFilterClause,
   extractTextFromHTML,
+  TimeGranularity,
 } from '@superset-ui/core';
 import {
   styled,
@@ -306,6 +307,61 @@ function SelectPageSize({
 const getNoResultsMessage = (filter: string) =>
   filter ? t('No matching records found') : t('No records found');
 
+//Calculates the end time based on the granularity
+function getEndTimeFromGranularity(
+  startTime: Date,
+  granularity?: TimeGranularity,
+): Date {
+  if (!granularity) {
+    return startTime;
+  }
+
+  const time = startTime.getTime();
+  const date = startTime.getUTCDate();
+  const month = startTime.getUTCMonth();
+  const year = startTime.getUTCFullYear();
+
+  // Constants for time calculations
+  const MS_IN_SECOND = 1000;
+  const MS_IN_MINUTE = 60 * MS_IN_SECOND;
+  const MS_IN_HOUR = 60 * MS_IN_MINUTE;
+
+  switch (granularity) {
+    case TimeGranularity.SECOND:
+      return new Date(time + MS_IN_SECOND);
+    case TimeGranularity.MINUTE:
+      return new Date(time + MS_IN_MINUTE);
+    case TimeGranularity.FIVE_MINUTES:
+      return new Date(time + MS_IN_MINUTE * 5);
+    case TimeGranularity.TEN_MINUTES:
+      return new Date(time + MS_IN_MINUTE * 10);
+    case TimeGranularity.FIFTEEN_MINUTES:
+      return new Date(time + MS_IN_MINUTE * 15);
+    case TimeGranularity.THIRTY_MINUTES:
+      return new Date(time + MS_IN_MINUTE * 30);
+    case TimeGranularity.HOUR:
+      return new Date(time + MS_IN_HOUR);
+    case TimeGranularity.DAY:
+    case TimeGranularity.DATE:
+      return new Date(Date.UTC(year, month, date + 1));
+    case TimeGranularity.WEEK:
+    case TimeGranularity.WEEK_STARTING_SUNDAY:
+    case TimeGranularity.WEEK_STARTING_MONDAY:
+      return new Date(Date.UTC(year, month, date + 7));
+    case TimeGranularity.WEEK_ENDING_SATURDAY:
+    case TimeGranularity.WEEK_ENDING_SUNDAY:
+      return new Date(Date.UTC(year, month, date + 1));
+    case TimeGranularity.MONTH:
+      return new Date(Date.UTC(year, month + 1, 1));
+    case TimeGranularity.QUARTER:
+      return new Date(Date.UTC(year, Math.floor(month / 3) * 3 + 3, 1));
+    case TimeGranularity.YEAR:
+      return new Date(Date.UTC(year + 1, 0, 1));
+    default:
+      return new Date(Date.UTC(year, month, date + 1));
+  }
+}
+
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: TableChartTransformedProps<D> & {
     sticky?: DataTableProps<D>['sticky'];
@@ -556,15 +612,38 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         filteredColumnsMeta.forEach(col => {
           if (!col.isMetric) {
-            let dataRecordValue = value[col.key];
-            dataRecordValue = extractTextFromHTML(dataRecordValue);
+            const dataRecordValue = value[col.key];
 
-            drillToDetailFilters.push({
-              col: col.key,
-              op: '==',
-              val: dataRecordValue as string | number | boolean,
-              formattedVal: formatColumnValue(col, dataRecordValue)[1],
-            });
+            // Handle temporal columns differently to support time ranges
+            if (col.dataType === GenericDataType.Temporal && timeGrain) {
+              // Make sure the value is a Date
+              const startTime =
+                dataRecordValue instanceof Date
+                  ? dataRecordValue
+                  : new Date(dataRecordValue as string | number);
+
+              // Calculate the end time based on the granularity
+              const endTime = getEndTimeFromGranularity(startTime, timeGrain);
+
+              const timeRangeValue = `${startTime.toISOString()} : ${endTime.toISOString()}`;
+
+              drillToDetailFilters.push({
+                col: col.key,
+                op: 'TEMPORAL_RANGE',
+                val: timeRangeValue,
+                grain: timeGrain,
+                formattedVal: formatColumnValue(col, dataRecordValue)[1],
+              });
+            } else {
+              // Non-temporal columns use exact match
+              const sanitizedValue = extractTextFromHTML(dataRecordValue);
+              drillToDetailFilters.push({
+                col: col.key,
+                op: '==',
+                val: sanitizedValue as string | number | boolean,
+                formattedVal: formatColumnValue(col, sanitizedValue)[1],
+              });
+            }
           }
         });
         onContextMenu(clientX, clientY, {
@@ -593,6 +672,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     isRawRecords,
     filteredColumnsMeta,
     getCrossFilterDataMask,
+    timeGrain,
   ]);
 
   const getHeaderColumns = useCallback(
