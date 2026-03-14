@@ -506,16 +506,21 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     setExcludeFilterValues(value === 'true');
   };
 
+  const updateDataMaskRef = useRef(updateDataMask);
+  useEffect(() => {
+    updateDataMaskRef.current = updateDataMask;
+  }, [updateDataMask]);
+
   const debouncedLikeChange = useMemo(
     () =>
       debounce((text: string) => {
         if (text) {
-          updateDataMask([text]);
+          updateDataMaskRef.current([text]);
         } else {
-          updateDataMask(null);
+          updateDataMaskRef.current(null);
         }
       }, Constants.SLOW_DEBOUNCE),
-    [updateDataMask],
+    [],
   );
 
   useEffect(() => {
