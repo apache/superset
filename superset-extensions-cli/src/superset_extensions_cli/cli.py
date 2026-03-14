@@ -50,6 +50,8 @@ from superset_extensions_cli.utils import (
     validate_display_name,
     validate_publisher,
     validate_technical_name,
+    write_json,
+    write_toml,
 )
 
 REMOTE_ENTRY_REGEX = re.compile(r"^remoteEntry\..+\.js$")
@@ -372,7 +374,97 @@ def validate() -> None:
             click.secho("   Convention requires: frontend/src/index.tsx", fg="yellow")
             sys.exit(1)
 
+    # Validate version consistency across extension.json, frontend, and backend
+    version_mismatches: list[str] = []
+    frontend_pkg_path = cwd / "frontend" / "package.json"
+    if frontend_pkg_path.is_file():
+        frontend_pkg = read_json(frontend_pkg_path)
+        if frontend_pkg and frontend_pkg.get("version") != extension.version:
+            version_mismatches.append(
+                f"  frontend/package.json: {frontend_pkg.get('version')} "
+                f"(expected {extension.version})"
+            )
+
+    backend_pyproject_path = cwd / "backend" / "pyproject.toml"
+    if backend_pyproject_path.is_file():
+        backend_pyproject = read_toml(backend_pyproject_path)
+        if backend_pyproject:
+            backend_version = backend_pyproject.get("project", {}).get("version")
+            if backend_version != extension.version:
+                version_mismatches.append(
+                    f"  backend/pyproject.toml: {backend_version} "
+                    f"(expected {extension.version})"
+                )
+
+    if version_mismatches:
+        click.secho("❌ Version mismatch detected:", err=True, fg="red")
+        for mismatch in version_mismatches:
+            click.secho(mismatch, err=True, fg="red")
+        click.secho(
+            "Run `superset-extensions update` to sync versions from extension.json.",
+            fg="yellow",
+        )
+        sys.exit(1)
+
     click.secho("✅ Validation successful", fg="green")
+
+
+@app.command()
+@click.option(
+    "--version",
+    "version_opt",
+    default=None,
+    help="Set a new version (updates extension.json first, then syncs).",
+)
+def update(version_opt: str | None) -> None:
+    """Update derived and generated files in the extension project."""
+    cwd = Path.cwd()
+
+    extension_json_path = cwd / "extension.json"
+    extension_data = read_json(extension_json_path)
+    if not extension_data:
+        click.secho("❌ extension.json not found.", err=True, fg="red")
+        sys.exit(1)
+
+    try:
+        extension = ExtensionConfig.model_validate(extension_data)
+    except Exception as e:
+        click.secho(f"❌ Invalid extension.json: {e}", err=True, fg="red")
+        sys.exit(1)
+
+    updated: list[str] = []
+
+    if version_opt and version_opt != extension.version:
+        extension_data["version"] = version_opt
+        write_json(extension_json_path, extension_data)
+        updated.append("extension.json")
+        target_version = version_opt
+    else:
+        target_version = extension.version
+
+    frontend_pkg_path = cwd / "frontend" / "package.json"
+    if frontend_pkg_path.is_file():
+        frontend_pkg = read_json(frontend_pkg_path)
+        if frontend_pkg and frontend_pkg.get("version") != target_version:
+            frontend_pkg["version"] = target_version
+            write_json(frontend_pkg_path, frontend_pkg)
+            updated.append("frontend/package.json")
+
+    backend_pyproject_path = cwd / "backend" / "pyproject.toml"
+    if backend_pyproject_path.is_file():
+        backend_pyproject = read_toml(backend_pyproject_path)
+        if backend_pyproject:
+            backend_version = backend_pyproject.get("project", {}).get("version")
+            if backend_version != target_version:
+                backend_pyproject.setdefault("project", {})["version"] = target_version
+                write_toml(backend_pyproject_path, backend_pyproject)
+                updated.append("backend/pyproject.toml")
+
+    if updated:
+        for path in updated:
+            click.secho(f"✅ Updated {path} to {target_version}", fg="green")
+    else:
+        click.secho("✅ All versions already match.", fg="green")
 
 
 @app.command()

@@ -1,0 +1,104 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+from __future__ import annotations
+
+import pytest
+from superset_extensions_cli.cli import app
+from superset_extensions_cli.utils import read_json, read_toml
+
+
+@pytest.mark.cli
+def test_update_syncs_versions(
+    cli_runner, isolated_filesystem, extension_with_versions
+):
+    """Test update syncs frontend and backend versions from extension.json."""
+    extension_with_versions(
+        isolated_filesystem,
+        ext_version="2.0.0",
+        frontend_version="1.0.0",
+        backend_version="1.0.0",
+    )
+
+    result = cli_runner.invoke(app, ["update"])
+
+    assert result.exit_code == 0
+    assert "Updated frontend/package.json to 2.0.0" in result.output
+    assert "Updated backend/pyproject.toml to 2.0.0" in result.output
+
+    # Verify files were actually updated
+    frontend_pkg = read_json(isolated_filesystem / "frontend" / "package.json")
+    assert frontend_pkg["version"] == "2.0.0"
+
+    backend_pyproject = read_toml(isolated_filesystem / "backend" / "pyproject.toml")
+    assert backend_pyproject["project"]["version"] == "2.0.0"
+
+
+@pytest.mark.cli
+def test_update_noop_when_versions_match(
+    cli_runner, isolated_filesystem, extension_with_versions
+):
+    """Test update reports no changes when versions already match."""
+    extension_with_versions(
+        isolated_filesystem,
+        ext_version="1.0.0",
+        frontend_version="1.0.0",
+        backend_version="1.0.0",
+    )
+
+    result = cli_runner.invoke(app, ["update"])
+
+    assert result.exit_code == 0
+    assert "All versions already match" in result.output
+
+
+@pytest.mark.cli
+def test_update_fails_without_extension_json(cli_runner, isolated_filesystem):
+    """Test update fails when extension.json is missing."""
+    result = cli_runner.invoke(app, ["update"])
+
+    assert result.exit_code != 0
+    assert "extension.json not found" in result.output
+
+
+@pytest.mark.cli
+def test_update_with_version_flag(
+    cli_runner, isolated_filesystem, extension_with_versions
+):
+    """Test --version updates extension.json first, then syncs all files."""
+    extension_with_versions(
+        isolated_filesystem,
+        ext_version="1.0.0",
+        frontend_version="1.0.0",
+        backend_version="1.0.0",
+    )
+
+    result = cli_runner.invoke(app, ["update", "--version", "3.0.0"])
+
+    assert result.exit_code == 0
+    assert "Updated extension.json to 3.0.0" in result.output
+    assert "Updated frontend/package.json to 3.0.0" in result.output
+    assert "Updated backend/pyproject.toml to 3.0.0" in result.output
+
+    ext = read_json(isolated_filesystem / "extension.json")
+    assert ext["version"] == "3.0.0"
+
+    frontend_pkg = read_json(isolated_filesystem / "frontend" / "package.json")
+    assert frontend_pkg["version"] == "3.0.0"
+
+    backend_pyproject = read_toml(isolated_filesystem / "backend" / "pyproject.toml")
+    assert backend_pyproject["project"]["version"] == "3.0.0"

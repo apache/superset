@@ -39,7 +39,10 @@ superset-extensions bundle: Packages the extension into a .supx file.
 
 superset-extensions dev: Automatically rebuilds the extension as files change.
 
-superset-extensions validate: Validates the extension structure and metadata.
+superset-extensions validate: Validates the extension structure, metadata, and version consistency.
+
+superset-extensions update: Updates derived and generated files in the extension project.
+  Use --version <version> to set a new version in all files at once.
 ```
 
 When creating a new extension with `superset-extensions init`, the CLI generates a standardized folder structure:

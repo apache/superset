@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
@@ -138,3 +139,54 @@ def extension_setup_for_bundling():
         (backend_dir / "__init__.py").write_text("# init")
 
     return _setup
+
+
+@pytest.fixture
+def extension_with_versions():
+    """Create an extension directory structure with configurable versions."""
+
+    def _create(
+        base_path: Path,
+        ext_version: str = "1.0.0",
+        frontend_version: str | None = None,
+        backend_version: str | None = None,
+    ) -> None:
+        extension_json = {
+            "publisher": "test-org",
+            "name": "test-extension",
+            "displayName": "Test Extension",
+            "version": ext_version,
+            "permissions": [],
+        }
+        (base_path / "extension.json").write_text(json.dumps(extension_json))
+
+        if frontend_version is not None:
+            frontend_dir = base_path / "frontend"
+            frontend_dir.mkdir(exist_ok=True)
+            (frontend_dir / "src").mkdir(exist_ok=True)
+            (frontend_dir / "src" / "index.tsx").write_text("// entry")
+            pkg = {"name": "@test-org/test-extension", "version": frontend_version}
+            (frontend_dir / "package.json").write_text(json.dumps(pkg, indent=2))
+
+        if backend_version is not None:
+            import tomli_w
+
+            backend_dir = base_path / "backend"
+            backend_dir.mkdir(exist_ok=True)
+            src_dir = backend_dir / "src" / "test_org" / "test_extension"
+            src_dir.mkdir(parents=True, exist_ok=True)
+            (src_dir / "entrypoint.py").write_text("# entry")
+            pyproject = {
+                "project": {
+                    "name": "test-org-test-extension",
+                    "version": backend_version,
+                },
+                "tool": {
+                    "apache_superset_extensions": {
+                        "build": {"include": ["src/**/*.py"]}
+                    }
+                },
+            }
+            (backend_dir / "pyproject.toml").write_text(tomli_w.dumps(pyproject))
+
+    return _create

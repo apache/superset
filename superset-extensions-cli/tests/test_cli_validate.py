@@ -207,3 +207,43 @@ def test_validate_npm_with_empty_version_output_raises_error(mock_run, mock_whic
     # semver.compare will raise ValueError for empty version
     with pytest.raises(ValueError):
         validate_npm()
+
+
+# Version Consistency Tests
+@pytest.mark.cli
+def test_validate_fails_on_version_mismatch(
+    cli_runner, isolated_filesystem, extension_with_versions
+):
+    """Test validate fails when frontend/backend versions differ from extension.json."""
+    extension_with_versions(
+        isolated_filesystem,
+        ext_version="2.0.0",
+        frontend_version="1.0.0",
+        backend_version="1.0.0",
+    )
+
+    with patch("superset_extensions_cli.cli.validate_npm"):
+        result = cli_runner.invoke(app, ["validate"])
+
+    assert result.exit_code != 0
+    assert "Version mismatch" in result.output
+    assert "superset-extensions update" in result.output
+
+
+@pytest.mark.cli
+def test_validate_passes_with_matching_versions(
+    cli_runner, isolated_filesystem, extension_with_versions
+):
+    """Test validate passes when all versions match extension.json."""
+    extension_with_versions(
+        isolated_filesystem,
+        ext_version="1.0.0",
+        frontend_version="1.0.0",
+        backend_version="1.0.0",
+    )
+
+    with patch("superset_extensions_cli.cli.validate_npm"):
+        result = cli_runner.invoke(app, ["validate"])
+
+    assert result.exit_code == 0
+    assert "Validation successful" in result.output
