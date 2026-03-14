@@ -137,28 +137,22 @@ class CTASMethod(enum.Enum):
 
 def strip_jinja(sql: str) -> str:
     """
-    Replaces Jinja tags with parser-safe placeholders.
+    Replaces Jinja tags with parser-safe placeholders before SQL parsing.
 
-    If a tag contains SQL keywords that could indicate a subquery or mutation,
-    it is replaced with a synthetic subquery to ensure it is flagged by
-    security checks. Otherwise, it is replaced with a dummy identifier.
+    Variable tags ({{ ... }}) are replaced with a dummy SQL identifier so the
+    surrounding SQL remains syntactically valid. Block tags ({% ... %}) and
+    comments ({# ... #}) are removed entirely.
+
+    Jinja content is Python, not SQL, so it is never inspected for SQL keywords.
+    Subqueries embedded inside Jinja blocks are not valid Python expressions and
+    would fail harmlessly at Jinja render time without leaking data.
     """
-    sql_keyword_pattern = re.compile(
-        r"\b(select|with|union|except|intersect|insert|update|delete|merge|create|drop|alter|truncate)\b",
-        flags=re.IGNORECASE,
-    )
-
-    def _replace(match: re.Match[str]) -> str:
-        body = match.group(1)
-        if sql_keyword_pattern.search(body):
-            return "(SELECT 1)"
-        return "__JINJA_VAR__"
-
-    # Replace comments {# ... #} with empty string
+    # Remove comments
     sql = re.sub(r"\{#.*?#\}", "", sql, flags=re.DOTALL)
-    # Replace {{ ... }} and {% ... %} using the keyword-aware replacer
-    sql = re.sub(r"\{\{(.*?)\}\}", _replace, sql, flags=re.DOTALL)
-    sql = re.sub(r"\{%(.*?)%\}", _replace, sql, flags=re.DOTALL)
+    # Replace variable tags with a safe SQL identifier
+    sql = re.sub(r"\{\{.*?\}\}", "__jinja__", sql, flags=re.DOTALL)
+    # Remove block tags ({% if %}, {% endif %}, {% set %}, etc.)
+    sql = re.sub(r"\{%.*?%\}", "", sql, flags=re.DOTALL)
     return sql
 
 

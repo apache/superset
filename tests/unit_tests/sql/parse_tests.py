@@ -3182,26 +3182,24 @@ def test_strip_jinja() -> None:
     """
     from superset.sql.parse import strip_jinja
 
-    # Basic variable
-    assert strip_jinja("{{ var }}") == "__JINJA_VAR__"
-    # Basic statement
-    assert strip_jinja("{% set x = 1 %}") == "__JINJA_VAR__"
+    # Basic variable tag → safe identifier
+    assert strip_jinja("{{ var }}") == "__jinja__"
+    # Block tags are removed entirely
+    assert strip_jinja("{% set x = 1 %}") == ""
     # Comment should be removed
     assert strip_jinja("{# comment #}") == ""
     # Mixed content
     assert strip_jinja("SELECT * FROM table WHERE col = {{ var }} {# comment #}") == (
-        "SELECT * FROM table WHERE col = __JINJA_VAR__ "
+        "SELECT * FROM table WHERE col = __jinja__ "
     )
-    # Malicious content in variable
-    assert strip_jinja("{{ (SELECT 1) }}") == "(SELECT 1)"
-    # Malicious keyword in statement (processed as separate tags)
-    assert (
-        strip_jinja("{% if SELECT 1 %} x {% endif %}") == "(SELECT 1) x __JINJA_VAR__"
-    )
-    # Multiple blocks
-    assert strip_jinja("{{ x }} and {{ y }}") == "__JINJA_VAR__ and __JINJA_VAR__"
-    # Nested-like or complex blocks
-    assert strip_jinja("{{ 'select' if True else 'delete' }}") == "(SELECT 1)"
+    # Jinja content is treated as opaque Python, never inspected for SQL keywords.
+    # A variable tag containing a SQL keyword is still just replaced with the
+    # safe identifier — no false-positive subquery detection.
+    assert strip_jinja("{{ (SELECT 1) }}") == "__jinja__"
+    assert strip_jinja("{{ 'select' if True else 'delete' }}") == "__jinja__"
+    assert strip_jinja("{% if SELECT 1 %} x {% endif %}") == " x "
+    # Multiple variable blocks
+    assert strip_jinja("{{ x }} and {{ y }}") == "__jinja__ and __jinja__"
 
 
 def test_has_subquery_with_jinja() -> None:

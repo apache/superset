@@ -270,7 +270,16 @@ class TestRowLevelSecurity(SupersetTestCase):
         assert re.search(r"name\s+like\s+'a%'", sql_normalized, re.IGNORECASE)
         assert re.search(r"name\s+like\s+'b%'", sql_normalized, re.IGNORECASE)
         assert re.search(r"name\s+like\s+'q%'", sql_normalized, re.IGNORECASE)
-        assert re.search(r"gender\s+=\s+'boy'", sql_normalized, re.IGNORECASE)
+        assert re.search(r"gender\s*=\s*'boy'", sql_normalized, re.IGNORECASE)
+
+        # Verify AND/OR grouping semantics: the name filters must be OR-grouped,
+        # and the gender filter must be AND-ed with the name group (not OR-ed in).
+        assert re.search(
+            r"name\s+like\s+'a%'\s+or\s+name\s+like\s+'b%'", sql_normalized
+        ), "A% and B% name filters must be OR-grouped"
+        assert re.search(r"\band\b.*gender\s*=\s*'boy'", sql_normalized), (
+            "gender filter must be AND-connected to the name filter group"
+        )
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_rls_filter_alters_no_role_user_birth_names_query(self):
