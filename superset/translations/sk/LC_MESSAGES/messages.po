@@ -11313,7 +11313,7 @@ msgstr ""
 msgid "Subtitle"
 msgstr "Importovať dashboard"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr ""
 
 msgid "Success"

@@ -11497,7 +11497,7 @@ msgstr ""
 msgid "Subtitle"
 msgstr "Sekme başlığı"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr ""
 
 msgid "Success"

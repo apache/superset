@@ -12119,7 +12119,7 @@ msgstr "ارسال"
 msgid "Subtitle"
 msgstr "عنوان برگه"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr "زیرمجموعه"
 
 msgid "Success"
