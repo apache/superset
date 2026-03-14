@@ -69,6 +69,37 @@ describe('Polygon transformProps', () => {
     emitCrossFilters: false,
   };
 
+  const mockedChartPropsWithGeoHash: Partial<ChartProps> = {
+    ...mockChartProps,
+    rawFormData: {
+      line_column: 'geohash',
+      line_type: 'geohash',
+      viewport: {},
+    },
+    queriesData: [
+      {
+        data: [
+          {
+            geohash: '9q8yt',
+            'sum(population)': 9800,
+          },
+          {
+            geohash: '9q8yk',
+            'sum(population)': 13100,
+          },
+          {
+            geohash: '9q8yv',
+            'sum(population)': 15600,
+          },
+          {
+            geohash: '9q8yq',
+            'sum(population)': 7500,
+          },
+        ],
+      },
+    ],
+  };
+
   test('should use constant elevation value when point_radius_fixed type is "fix"', () => {
     const fixProps = {
       ...mockChartProps,
@@ -256,5 +287,144 @@ describe('Polygon transformProps', () => {
     const features = result.payload.data.features as PolygonFeature[];
     expect(features).toHaveLength(1);
     expect(features[0]?.elevation).toBeUndefined();
+  });
+
+  test('should render polygons when boundary column contains GeoJSON Feature format', () => {
+    const geojsonFeatureProps = {
+      ...mockChartProps,
+      queriesData: [
+        {
+          data: [
+            {
+              geom: JSON.stringify({
+                type: 'Feature',
+                geometry: {
+                  type: 'Polygon',
+                  coordinates: [
+                    [
+                      [-122.4, 37.8],
+                      [-122.3, 37.8],
+                      [-122.3, 37.9],
+                      [-122.4, 37.9],
+                      [-122.4, 37.8],
+                    ],
+                  ],
+                },
+                properties: { name: 'test' },
+              }),
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = transformProps(geojsonFeatureProps as ChartProps);
+
+    const features = result.payload.data.features as PolygonFeature[];
+    expect(features).toHaveLength(1);
+    expect(features[0]?.polygon).toEqual([
+      [-122.4, 37.8],
+      [-122.3, 37.8],
+      [-122.3, 37.9],
+      [-122.4, 37.9],
+      [-122.4, 37.8],
+    ]);
+  });
+
+  test('should render polygons when boundary column contains GeoJSON Geometry format', () => {
+    const geojsonGeometryProps = {
+      ...mockChartProps,
+      queriesData: [
+        {
+          data: [
+            {
+              geom: JSON.stringify({
+                type: 'Polygon',
+                coordinates: [
+                  [
+                    [-122.4, 37.8],
+                    [-122.3, 37.8],
+                    [-122.3, 37.9],
+                    [-122.4, 37.9],
+                    [-122.4, 37.8],
+                  ],
+                ],
+              }),
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = transformProps(geojsonGeometryProps as ChartProps);
+
+    const features = result.payload.data.features as PolygonFeature[];
+    expect(features).toHaveLength(1);
+    expect(features[0]?.polygon).toEqual([
+      [-122.4, 37.8],
+      [-122.3, 37.8],
+      [-122.3, 37.9],
+      [-122.4, 37.9],
+      [-122.4, 37.8],
+    ]);
+  });
+
+  test('should render polygons when boundary column contains JSON with nested geometry', () => {
+    // Real-world format: {"type":"Polygon","geometry":{"type":"Polygon","coordinates":[...]}}
+    const nonStandardProps = {
+      ...mockChartProps,
+      queriesData: [
+        {
+          data: [
+            {
+              geom: JSON.stringify({
+                type: 'Polygon',
+                geometry: {
+                  type: 'Polygon',
+                  coordinates: [
+                    [
+                      [79.7912, 8.4641],
+                      [79.7959, 8.4629],
+                      [79.7994, 8.4535],
+                      [79.7912, 8.4641],
+                    ],
+                  ],
+                },
+              }),
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = transformProps(nonStandardProps as ChartProps);
+
+    const features = result.payload.data.features as PolygonFeature[];
+    expect(features).toHaveLength(1);
+    expect(features[0]?.polygon).toEqual([
+      [79.7912, 8.4641],
+      [79.7959, 8.4629],
+      [79.7994, 8.4535],
+      [79.7912, 8.4641],
+    ]);
+  });
+
+  test('should handle geohash decoding successfully', () => {
+    const props = {
+      ...mockedChartPropsWithGeoHash,
+      rawFormData: {
+        ...mockedChartPropsWithGeoHash.rawFormData,
+        point_radius_fixed: {
+          type: 'fix',
+          value: '1000',
+        },
+      },
+    };
+
+    const result = transformProps(props as ChartProps);
+
+    const features = result.payload.data.features as PolygonFeature[];
+    expect(features.flatMap(p => p?.polygon || [])).toHaveLength(20); // 4 geohashes x 5 corners each
+    expect(features[0]?.elevation).toBe(1000);
   });
 });

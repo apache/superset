@@ -224,7 +224,7 @@ class ReportSchedulePostSchema(Schema):
         validate=[Range(min=1, error=_("Value must be greater than 0"))],
     )
 
-    recipients = fields.List(fields.Nested(ReportRecipientSchema))
+    recipients = fields.List(fields.Nested(ReportRecipientSchema), required=False)
     report_format = fields.String(
         dump_default=ReportDataFormat.PNG,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
@@ -334,7 +334,7 @@ class ReportSchedulePutSchema(Schema):
         metadata={"description": creation_method_description},
     )
     dashboard = fields.Integer(required=False, allow_none=True)
-    database = fields.Integer(required=False)
+    database = fields.Integer(required=False, allow_none=True)
     owners = fields.List(
         fields.Integer(metadata={"description": owners_description}), required=False
     )

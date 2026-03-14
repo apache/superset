@@ -354,8 +354,20 @@ class TestParseRequestDecorator:
         name: str
         count: int
 
+    @pytest.fixture(autouse=True)
+    def _enable_parse_request(self):
+        """Ensure MCP_PARSE_REQUEST_ENABLED=True for all parsing tests."""
+        from unittest.mock import patch
+
+        with patch(
+            "superset.mcp_service.utils.schema_utils._is_parse_request_enabled",
+            return_value=True,
+        ):
+            yield
+
     def test_decorator_with_json_string_async(self):
         """Should parse JSON string request in async function."""
+        from unittest.mock import MagicMock, patch
 
         @parse_request(self.RequestModel)
         async def async_tool(request, ctx=None):
@@ -363,21 +375,27 @@ class TestParseRequestDecorator:
 
         import asyncio
 
-        result = asyncio.run(async_tool('{"name": "test", "count": 5}'))
+        mock_ctx = MagicMock()
+        with patch("fastmcp.server.dependencies.get_context", return_value=mock_ctx):
+            result = asyncio.run(async_tool('{"name": "test", "count": 5}'))
         assert result == "test:5"
 
     def test_decorator_with_json_string_sync(self):
         """Should parse JSON string request in sync function."""
+        from unittest.mock import MagicMock, patch
 
         @parse_request(self.RequestModel)
         def sync_tool(request, ctx=None):
             return f"{request.name}:{request.count}"
 
-        result = sync_tool('{"name": "test", "count": 5}')
+        mock_ctx = MagicMock()
+        with patch("fastmcp.server.dependencies.get_context", return_value=mock_ctx):
+            result = sync_tool('{"name": "test", "count": 5}')
         assert result == "test:5"
 
     def test_decorator_with_dict_async(self):
         """Should handle dict request in async function."""
+        from unittest.mock import MagicMock, patch
 
         @parse_request(self.RequestModel)
         async def async_tool(request, ctx=None):
@@ -385,21 +403,27 @@ class TestParseRequestDecorator:
 
         import asyncio
 
-        result = asyncio.run(async_tool({"name": "test", "count": 5}))
+        mock_ctx = MagicMock()
+        with patch("fastmcp.server.dependencies.get_context", return_value=mock_ctx):
+            result = asyncio.run(async_tool({"name": "test", "count": 5}))
         assert result == "test:5"
 
     def test_decorator_with_dict_sync(self):
         """Should handle dict request in sync function."""
+        from unittest.mock import MagicMock, patch
 
         @parse_request(self.RequestModel)
         def sync_tool(request, ctx=None):
             return f"{request.name}:{request.count}"
 
-        result = sync_tool({"name": "test", "count": 5})
+        mock_ctx = MagicMock()
+        with patch("fastmcp.server.dependencies.get_context", return_value=mock_ctx):
+            result = sync_tool({"name": "test", "count": 5})
         assert result == "test:5"
 
     def test_decorator_with_model_instance_async(self):
         """Should pass through model instance in async function."""
+        from unittest.mock import MagicMock, patch
 
         @parse_request(self.RequestModel)
         async def async_tool(request, ctx=None):
@@ -407,23 +431,29 @@ class TestParseRequestDecorator:
 
         import asyncio
 
+        mock_ctx = MagicMock()
         instance = self.RequestModel(name="test", count=5)
-        result = asyncio.run(async_tool(instance))
+        with patch("fastmcp.server.dependencies.get_context", return_value=mock_ctx):
+            result = asyncio.run(async_tool(instance))
         assert result == "test:5"
 
     def test_decorator_with_model_instance_sync(self):
         """Should pass through model instance in sync function."""
+        from unittest.mock import MagicMock, patch
 
         @parse_request(self.RequestModel)
         def sync_tool(request, ctx=None):
             return f"{request.name}:{request.count}"
 
+        mock_ctx = MagicMock()
         instance = self.RequestModel(name="test", count=5)
-        result = sync_tool(instance)
+        with patch("fastmcp.server.dependencies.get_context", return_value=mock_ctx):
+            result = sync_tool(instance)
         assert result == "test:5"
 
     def test_decorator_preserves_function_signature_async(self):
         """Should preserve original async function signature."""
+        from unittest.mock import MagicMock, patch
 
         @parse_request(self.RequestModel)
         async def async_tool(request, ctx=None, extra=None):
@@ -431,23 +461,31 @@ class TestParseRequestDecorator:
 
         import asyncio
 
-        result = asyncio.run(
-            async_tool('{"name": "test", "count": 5}', ctx=None, extra="data")
-        )
+        mock_ctx = MagicMock()
+        with patch("fastmcp.server.dependencies.get_context", return_value=mock_ctx):
+            result = asyncio.run(
+                async_tool('{"name": "test", "count": 5}', extra="data")
+            )
         assert result == "test:5:data"
 
     def test_decorator_preserves_function_signature_sync(self):
         """Should preserve original sync function signature."""
+        from unittest.mock import MagicMock, patch
 
         @parse_request(self.RequestModel)
         def sync_tool(request, ctx=None, extra=None):
             return f"{request.name}:{request.count}:{extra}"
 
-        result = sync_tool('{"name": "test", "count": 5}', ctx=None, extra="data")
+        mock_ctx = MagicMock()
+        with patch("fastmcp.server.dependencies.get_context", return_value=mock_ctx):
+            result = sync_tool('{"name": "test", "count": 5}', extra="data")
         assert result == "test:5:data"
 
-    def test_decorator_raises_validation_error_async(self):
-        """Should raise ValidationError for invalid data in async function."""
+    def test_decorator_raises_tool_error_for_invalid_data_async(self):
+        """Should raise ToolError with field details for invalid data."""
+        from unittest.mock import MagicMock, patch
+
+        from fastmcp.exceptions import ToolError
 
         @parse_request(self.RequestModel)
         async def async_tool(request, ctx=None):
@@ -455,21 +493,29 @@ class TestParseRequestDecorator:
 
         import asyncio
 
-        with pytest.raises(ValidationError):
-            asyncio.run(async_tool('{"name": "test"}'))  # Missing count
+        mock_ctx = MagicMock()
+        with patch("fastmcp.server.dependencies.get_context", return_value=mock_ctx):
+            with pytest.raises(ToolError, match="Required fields for RequestModel"):
+                asyncio.run(async_tool('{"name": "test"}'))  # Missing count
 
-    def test_decorator_raises_validation_error_sync(self):
-        """Should raise ValidationError for invalid data in sync function."""
+    def test_decorator_raises_tool_error_for_invalid_data_sync(self):
+        """Should raise ToolError with field details for invalid data."""
+        from unittest.mock import MagicMock, patch
+
+        from fastmcp.exceptions import ToolError
 
         @parse_request(self.RequestModel)
         def sync_tool(request, ctx=None):
             return f"{request.name}:{request.count}"
 
-        with pytest.raises(ValidationError):
-            sync_tool('{"name": "test"}')  # Missing count
+        mock_ctx = MagicMock()
+        with patch("fastmcp.server.dependencies.get_context", return_value=mock_ctx):
+            with pytest.raises(ToolError, match="Required fields for RequestModel"):
+                sync_tool('{"name": "test"}')  # Missing count
 
     def test_decorator_with_complex_model_async(self):
         """Should handle complex nested models in async function."""
+        from unittest.mock import MagicMock, patch
 
         class NestedModel(BaseModel):
             """Nested model."""
@@ -488,12 +534,15 @@ class TestParseRequestDecorator:
 
         import asyncio
 
+        mock_ctx = MagicMock()
         json_str = '{"name": "test", "nested": {"value": 42}}'
-        result = asyncio.run(async_tool(json_str))
+        with patch("fastmcp.server.dependencies.get_context", return_value=mock_ctx):
+            result = asyncio.run(async_tool(json_str))
         assert result == "test:42"
 
     def test_decorator_with_complex_model_sync(self):
         """Should handle complex nested models in sync function."""
+        from unittest.mock import MagicMock, patch
 
         class NestedModel(BaseModel):
             """Nested model."""
@@ -510,6 +559,8 @@ class TestParseRequestDecorator:
         def sync_tool(request, ctx=None):
             return f"{request.name}:{request.nested.value}"
 
+        mock_ctx = MagicMock()
         json_str = '{"name": "test", "nested": {"value": 42}}'
-        result = sync_tool(json_str)
+        with patch("fastmcp.server.dependencies.get_context", return_value=mock_ctx):
+            result = sync_tool(json_str)
         assert result == "test:42"

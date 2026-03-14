@@ -19,13 +19,13 @@
 
 import { ScreenGridLayer } from '@deck.gl/aggregation-layers';
 import { Color } from '@deck.gl/core';
+import { t } from '@apache-superset/core/translation';
 import {
   JsonObject,
   QueryFormData,
   CategoricalColorNamespace,
-  t,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import {
   COLOR_SCHEME_TYPES,
   ColorSchemeType,

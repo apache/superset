@@ -37,31 +37,11 @@ from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import MetadataCacheControl
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
+    serialize_user_object,
     TagInfo,
     UserInfo,
 )
 from superset.utils import json
-
-
-class GetDatasetAvailableFiltersRequest(BaseModel):
-    """
-    Request schema for get_dataset_available_filters tool.
-
-    Currently has no parameters but provides consistent API for future extensibility.
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-        str_strip_whitespace=True,
-    )
-
-
-class DatasetAvailableFilters(BaseModel):
-    column_operators: Dict[str, List[str]] = Field(
-        ...,
-        description="Available filter operators for each column: mapping from column "
-        "name to list of supported operators",
-    )
 
 
 class DatasetFilter(ColumnOperator):
@@ -75,17 +55,17 @@ class DatasetFilter(ColumnOperator):
     col: Literal[
         "table_name",
         "schema",
+        "database_name",
         "owner",
-        "favorite",
     ] = Field(
         ...,
-        description="Column to filter on. See get_dataset_available_filters for "
-        "allowed values.",
+        description="Column to filter on. Use get_schema(model_type='dataset') for "
+        "available filter columns.",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
-        description="Operator to use. See get_dataset_available_filters for "
-        "allowed values.",
+        description="Operator to use. Use get_schema(model_type='dataset') for "
+        "available operators.",
     )
     value: str | int | float | bool | List[str | int | float | bool] = Field(
         ..., description="Value to filter by (type depends on col and opr)"
@@ -173,14 +153,16 @@ class DatasetInfo(BaseModel):
         # Get full serialization
         data = serializer(self)
 
+        # Normalize alias: Pydantic serializes as 'schema_name' (field name)
+        # but the DAO column and API convention is 'schema'
+        if "schema_name" in data:
+            data["schema"] = data.pop("schema_name")
+
         # Check if we have a context with select_columns
         if info.context and isinstance(info.context, dict):
             select_columns = info.context.get("select_columns")
             if select_columns:
-                # Handle alias: 'schema' -> 'schema_name'
                 requested_fields = set(select_columns)
-                if "schema" in requested_fields:
-                    requested_fields.add("schema_name")
 
                 # Filter to only requested fields
                 return {k: v for k, v in data.items() if k in requested_fields}
@@ -198,8 +180,22 @@ class DatasetList(BaseModel):
     total_pages: int
     has_previous: bool
     has_next: bool
-    columns_requested: List[str] | None = None
-    columns_loaded: List[str] | None = None
+    columns_requested: List[str] = Field(
+        default_factory=list,
+        description="Requested columns for the response",
+    )
+    columns_loaded: List[str] = Field(
+        default_factory=list,
+        description="Columns that were actually loaded for each dataset",
+    )
+    columns_available: List[str] = Field(
+        default_factory=list,
+        description="All columns available for selection via select_columns parameter",
+    )
+    sortable_columns: List[str] = Field(
+        default_factory=list,
+        description="Columns that can be used with order_column parameter",
+    )
     filters_applied: List[DatasetFilter] = Field(
         default_factory=list,
         description="List of advanced filter dicts applied to the query.",
@@ -224,19 +220,7 @@ class ListDatasetsRequest(MetadataCacheControl):
     select_columns: Annotated[
         List[str],
         Field(
-            default_factory=lambda: [
-                "id",
-                "table_name",
-                "schema",
-                "database_name",
-                "changed_by_name",
-                "changed_on",
-                "created_by_name",
-                "created_on",
-                "metrics",
-                "columns",
-                "uuid",
-            ],
+            default_factory=list,
             description="List of columns to select. Defaults to common columns if not "
             "specified.",
         ),
@@ -302,6 +286,20 @@ class GetDatasetInfoRequest(MetadataCacheControl):
     ]
 
 
+def _parse_json_field(obj: Any, field_name: str) -> Dict[str, Any] | None:
+    """Parse a field that may be stored as a JSON string into a dict."""
+    value = getattr(obj, field_name, None)
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            if isinstance(parsed, dict):
+                return parsed
+        except (ValueError, TypeError):
+            pass
+        return None
+    return value
+
+
 def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
     if not dataset:
         return None
@@ -356,8 +354,9 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         if getattr(dataset, "tags", None)
         else [],
         owners=[
-            UserInfo.model_validate(owner, from_attributes=True)
+            info
             for owner in getattr(dataset, "owners", [])
+            if (info := serialize_user_object(owner)) is not None
         ]
         if getattr(dataset, "owners", None)
         else [],
@@ -373,8 +372,8 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         offset=getattr(dataset, "offset", None),
         cache_timeout=getattr(dataset, "cache_timeout", None),
         params=params,
-        template_params=getattr(dataset, "template_params", None),
-        extra=getattr(dataset, "extra", None),
+        template_params=_parse_json_field(dataset, "template_params"),
+        extra=_parse_json_field(dataset, "extra"),
         columns=columns,
         metrics=metrics,
         is_favorite=getattr(dataset, "is_favorite", None),

@@ -59,7 +59,8 @@ class GuestUser(AnonymousUserMixin):
     """
 
     is_guest_user = True
-    active = True
+    # FAB 5.0 renamed active to is_active, keeping both for backwards compatibility
+    active = is_active = True
 
     @property
     def is_authenticated(self) -> bool:
