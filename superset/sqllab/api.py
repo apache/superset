@@ -481,16 +481,32 @@ class SqlLabRestApi(BaseSupersetApi):
         params = kwargs["rison"]
         key = params.get("key")
         rows = params.get("rows")
-        result = SqlExecutionResultsCommand(key=key, rows=rows).run()
+
+        try:
+            result = SqlExecutionResultsCommand(key=key, rows=rows).run()
+        except Exception as ex:
+            logger.exception("Error fetching query results for key=%s", key)
+            return self.response_500(message=str(ex))
 
         # Using pessimistic json serialization since some database drivers can return
         # unserializeable types at times
-        payload = json.dumps(
-            result,
-            default=json.pessimistic_json_iso_dttm_ser,
-            ignore_nan=True,
-        )
-        return json_success(payload, 200)
+        try:
+            payload = json.dumps(
+                result,
+                default=json.pessimistic_json_iso_dttm_ser,
+                ignore_nan=True,
+            )
+        except Exception as ex:
+            logger.exception("Error serializing query results for key=%s", key)
+            return self.response_500(message="Unable to serialize query results")
+
+        # Use json_success with explicit Content-Type to ensure Flask 2.3+ correctly
+        # handles the response and doesn't trigger HTTP 406 errors due to content
+        # negotiation issues with Accept headers or proxy configurations
+        response = json_success(payload, 200)
+        # Explicitly set Content-Type as a safeguard against content negotiation issues
+        response.headers["Content-Type"] = "application/json; charset=utf-8"
+        return response
 
     @expose("/execute/", methods=("POST",))
     @protect()
@@ -554,8 +570,11 @@ class SqlLabRestApi(BaseSupersetApi):
                 if command_result["status"] == SqlJsonExecutionStatus.QUERY_IS_RUNNING
                 else 200
             )
-            # return the execution result without special encoding
-            return json_success(command_result["payload"], response_status)
+            # Return the execution result without special encoding
+            # Set explicit Content-Type to prevent Flask 2.3+ content negotiation issues
+            response = json_success(command_result["payload"], response_status)
+            response.headers["Content-Type"] = "application/json; charset=utf-8"
+            return response
         except SqlLabException as ex:
             payload = {"errors": [ex.to_dict()]}
 
