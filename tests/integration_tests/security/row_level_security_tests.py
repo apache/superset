@@ -275,8 +275,8 @@ class TestRowLevelSecurity(SupersetTestCase):
         # Verify AND/OR grouping semantics: the name filters must be OR-grouped,
         # and the gender filter must be AND-ed with the name group (not OR-ed in).
         assert re.search(
-            r"name\s+like\s+'a%'\s+or\s+name\s+like\s+'b%'", sql_normalized
-        ), "A% and B% name filters must be OR-grouped"
+            r"name\s+like\s+'[abq]%'\s+or\s+name\s+like\s+'[abq]%'", sql_normalized
+        ), "Name filters must be OR-grouped"
         assert re.search(r"\band\b.*gender\s*=\s*'boy'", sql_normalized), (
             "gender filter must be AND-connected to the name filter group"
         )

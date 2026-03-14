@@ -135,22 +135,30 @@ class CTASMethod(enum.Enum):
     VIEW = enum.auto()
 
 
+_SQL_SUBQUERY_KEYWORDS = re.compile(
+    r"\b(SELECT|UNION|INTERSECT|EXCEPT)\b",
+    re.IGNORECASE,
+)
+
+
 def strip_jinja(sql: str) -> str:
     """
     Replaces Jinja tags with parser-safe placeholders before SQL parsing.
 
-    Variable tags ({{ ... }}) are replaced with a dummy SQL identifier so the
-    surrounding SQL remains syntactically valid. Block tags ({% ... %}) and
-    comments ({# ... #}) are removed entirely.
-
-    Jinja content is Python, not SQL, so it is never inspected for SQL keywords.
-    Subqueries embedded inside Jinja blocks are not valid Python expressions and
-    would fail harmlessly at Jinja render time without leaking data.
+    Variable tags ({{ ... }}) containing SQL subquery keywords (word-boundary
+    match) are replaced with a synthetic subquery marker so has_subquery()
+    remains fail-closed. Variable tags without SQL keywords become "__jinja__".
+    Block tags and comments are removed entirely.
     """
-    # Remove comments
+    # Remove Jinja comments
     sql = re.sub(r"\{#.*?#\}", "", sql, flags=re.DOTALL)
-    # Replace variable tags with a safe SQL identifier
-    sql = re.sub(r"\{\{.*?\}\}", "__jinja__", sql, flags=re.DOTALL)
+
+    def _replace_var(m: re.Match[str]) -> str:
+        if _SQL_SUBQUERY_KEYWORDS.search(m.group(0)):
+            return "(SELECT 1)"
+        return "__jinja__"
+
+    sql = re.sub(r"\{\{.*?\}\}", _replace_var, sql, flags=re.DOTALL)
     # Remove block tags ({% if %}, {% endif %}, {% set %}, etc.)
     sql = re.sub(r"\{%.*?%\}", "", sql, flags=re.DOTALL)
     return sql

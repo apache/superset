@@ -3192,11 +3192,14 @@ def test_strip_jinja() -> None:
     assert strip_jinja("SELECT * FROM table WHERE col = {{ var }} {# comment #}") == (
         "SELECT * FROM table WHERE col = __jinja__ "
     )
-    # Jinja content is treated as opaque Python, never inspected for SQL keywords.
-    # A variable tag containing a SQL keyword is still just replaced with the
-    # safe identifier — no false-positive subquery detection.
-    assert strip_jinja("{{ (SELECT 1) }}") == "__jinja__"
-    assert strip_jinja("{{ 'select' if True else 'delete' }}") == "__jinja__"
+    # Variable tags containing SQL subquery keywords are replaced with a
+    # synthetic subquery marker so has_subquery() remains fail-closed.
+    assert strip_jinja("{{ (SELECT 1) }}") == "(SELECT 1)"
+    assert strip_jinja("{{ 'select' if True else 'delete' }}") == "(SELECT 1)"
+    # Word-boundary matching: identifiers that contain keyword substrings but
+    # are not standalone keywords must NOT be flagged.
+    assert strip_jinja("{{ current_user.select_all }}") == "__jinja__"
+    assert strip_jinja("{{ 'select_ids' }}") == "__jinja__"
     assert strip_jinja("{% if SELECT 1 %} x {% endif %}") == " x "
     # Multiple variable blocks
     assert strip_jinja("{{ x }} and {{ y }}") == "__jinja__ and __jinja__"
