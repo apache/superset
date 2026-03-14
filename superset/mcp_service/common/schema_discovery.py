@@ -242,6 +242,7 @@ CHART_SORTABLE_COLUMNS = [
     "description",
     "changed_on",
     "created_on",
+    "popularity_score",
 ]
 CHART_SEARCH_COLUMNS = ["slice_name", "description"]
 CHART_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
@@ -308,6 +309,13 @@ CHART_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     "owners": ColumnMetadata(
         name="owners", description="Chart owners", type="list", is_default=False
     ),
+    "popularity_score": ColumnMetadata(
+        name="popularity_score",
+        description="Popularity score based on views, favorites, dashboard usage, "
+        "and recency",
+        type="float",
+        is_default=False,
+    ),
 }
 
 # Dataset configuration
@@ -318,6 +326,7 @@ DATASET_SORTABLE_COLUMNS = [
     "schema",
     "changed_on",
     "created_on",
+    "popularity_score",
 ]
 DATASET_SEARCH_COLUMNS = ["table_name", "description"]
 DATASET_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
@@ -381,6 +390,12 @@ DATASET_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     "owners": ColumnMetadata(
         name="owners", description="Dataset owners", type="list", is_default=False
     ),
+    "popularity_score": ColumnMetadata(
+        name="popularity_score",
+        description="Popularity score based on chart usage, certification, and recency",
+        type="float",
+        is_default=False,
+    ),
 }
 
 # Dashboard configuration
@@ -398,6 +413,7 @@ DASHBOARD_SORTABLE_COLUMNS = [
     "published",
     "changed_on",
     "created_on",
+    "popularity_score",
 ]
 DASHBOARD_SEARCH_COLUMNS = ["dashboard_title", "slug"]
 DASHBOARD_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
@@ -448,6 +464,13 @@ DASHBOARD_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     ),
     "charts": ColumnMetadata(
         name="charts", description="Charts in dashboard", type="list", is_default=False
+    ),
+    "popularity_score": ColumnMetadata(
+        name="popularity_score",
+        description="Popularity score based on views, favorites, chart count, "
+        "certification, published status, and recency",
+        type="float",
+        is_default=False,
     ),
 }
 

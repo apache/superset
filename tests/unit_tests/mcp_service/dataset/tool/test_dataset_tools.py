@@ -1351,22 +1351,24 @@ class TestDatasetSortableColumns:
 
     def test_dataset_sortable_columns_definition(self):
         """Test that dataset sortable columns are properly defined."""
-        from superset.mcp_service.dataset.tool.list_datasets import (
-            SORTABLE_DATASET_COLUMNS,
+        from superset.mcp_service.common.schema_discovery import (
+            DATASET_SORTABLE_COLUMNS,
         )
 
-        assert SORTABLE_DATASET_COLUMNS == [
+        sortable_dataset_columns = DATASET_SORTABLE_COLUMNS
+        assert sortable_dataset_columns == [
             "id",
             "table_name",
             "schema",
             "changed_on",
             "created_on",
+            "popularity_score",
         ]
         # Ensure no computed properties are included
-        assert "changed_on_delta_humanized" not in SORTABLE_DATASET_COLUMNS
-        assert "changed_by_name" not in SORTABLE_DATASET_COLUMNS
-        assert "database_name" not in SORTABLE_DATASET_COLUMNS
-        assert "uuid" not in SORTABLE_DATASET_COLUMNS
+        assert "changed_on_delta_humanized" not in sortable_dataset_columns
+        assert "changed_by_name" not in sortable_dataset_columns
+        assert "database_name" not in sortable_dataset_columns
+        assert "uuid" not in sortable_dataset_columns
 
     @patch("superset.daos.dataset.DatasetDAO.list")
     @pytest.mark.asyncio
@@ -1398,15 +1400,19 @@ class TestDatasetSortableColumns:
 
     def test_sortable_columns_in_docstring(self):
         """Test that sortable columns are documented in tool docstring."""
+        from superset.mcp_service.common.schema_discovery import (
+            DATASET_SORTABLE_COLUMNS,
+        )
         from superset.mcp_service.dataset.tool.list_datasets import (
             list_datasets,
-            SORTABLE_DATASET_COLUMNS,
         )
+
+        sortable_dataset_columns = DATASET_SORTABLE_COLUMNS
 
         # Check list_datasets docstring for sortable columns documentation
         assert list_datasets.__doc__ is not None
         assert "Sortable columns for order_column:" in list_datasets.__doc__
-        for col in SORTABLE_DATASET_COLUMNS:
+        for col in sortable_dataset_columns:
             assert col in list_datasets.__doc__
 
     @patch("superset.daos.dataset.DatasetDAO.list")

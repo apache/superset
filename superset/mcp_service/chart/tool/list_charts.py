@@ -19,8 +19,12 @@
 MCP tool: list_charts (advanced filtering with metadata cache control)
 """
 
+from __future__ import annotations
+
 import logging
-from typing import cast, TYPE_CHECKING
+from collections.abc import Callable
+from datetime import datetime, timezone
+from typing import Any, cast, TYPE_CHECKING
 
 from fastmcp import Context
 from superset_core.mcp.decorators import tool
@@ -37,7 +41,13 @@ from superset.mcp_service.chart.schemas import (
     ListChartsRequest,
     serialize_chart_object,
 )
+from superset.mcp_service.common.popularity import (
+    attach_popularity_scores,
+    compute_chart_popularity,
+    get_popularity_sorted_ids,
+)
 from superset.mcp_service.mcp_core import ModelListCore
+from superset.mcp_service.system.schemas import PaginationInfo
 from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
@@ -51,15 +61,26 @@ DEFAULT_CHART_COLUMNS = [
     "changed_on_humanized",
 ]
 
-SORTABLE_CHART_COLUMNS = [
-    "id",
+CHART_SEARCH_COLUMNS = [
     "slice_name",
-    "viz_type",
-    "datasource_name",
     "description",
-    "changed_on",
-    "created_on",
 ]
+
+
+def _needs_popularity(request: ListChartsRequest) -> bool:
+    """Check if popularity_score computation is needed."""
+    if request.order_column == "popularity_score":
+        return True
+    if request.select_columns and "popularity_score" in request.select_columns:
+        return True
+    return False
+
+
+def _attach_popularity_scores(charts: list[Any], scores: dict[int, float]) -> None:
+    """Attach popularity scores to serialized chart objects in-place."""
+    for chart in charts:
+        if chart.id is not None and chart.id in scores:
+            chart.popularity_score = scores[chart.id]
 
 
 @tool(tags=["core"], class_permission_name="Chart")
@@ -71,7 +92,7 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
     modified time.
 
     Sortable columns for order_column: id, slice_name, viz_type,
-    datasource_name, description, changed_on, created_on
+    description, changed_on, created_on, popularity_score
     """
     await ctx.info(
         "Listing charts: page=%s, page_size=%s, search=%s"
@@ -90,6 +111,8 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
         )
     )
 
+    # Avoid circular imports: DAO and schema_discovery depend on models
+    # that import from mcp_service during app initialization
     from superset.daos.chart import ChartDAO
     from superset.mcp_service.common.schema_discovery import (
         CHART_SORTABLE_COLUMNS,
@@ -106,34 +129,62 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
         """Serialize chart object (field filtering handled by model_serializer)."""
         return serialize_chart_object(cast(ChartLike | None, obj))
 
-    tool = ModelListCore(
-        dao_class=ChartDAO,
-        output_schema=ChartInfo,
-        item_serializer=_serialize_chart,
-        filter_type=ChartFilter,
-        default_columns=DEFAULT_CHART_COLUMNS,
-        search_columns=[
-            "slice_name",
-            "description",
-        ],
-        list_field_name="charts",
-        output_list_schema=ChartList,
-        all_columns=all_columns,
-        sortable_columns=CHART_SORTABLE_COLUMNS,
-        logger=logger,
+    # Preserve original select_columns before any mutation for response filtering
+    original_select_columns = (
+        list(request.select_columns) if request.select_columns else None
     )
 
     try:
-        with event_logger.log_context(action="mcp.list_charts.query"):
-            result = tool.run_tool(
-                filters=request.filters,
-                search=request.search,
-                select_columns=request.select_columns,
-                order_column=request.order_column,
-                order_direction=request.order_direction,
-                page=max(request.page - 1, 0),
-                page_size=request.page_size,
+        # Two-pass approach when sorting by popularity_score
+        if request.order_column == "popularity_score":
+            with event_logger.log_context(action="mcp.list_charts.popularity_sort"):
+                result = _list_charts_by_popularity(
+                    request, ChartDAO, _serialize_chart, all_columns, ctx
+                )
+        else:
+            list_core = ModelListCore(
+                dao_class=ChartDAO,
+                output_schema=ChartInfo,
+                item_serializer=_serialize_chart,
+                filter_type=ChartFilter,
+                default_columns=DEFAULT_CHART_COLUMNS,
+                search_columns=CHART_SEARCH_COLUMNS,
+                list_field_name="charts",
+                output_list_schema=ChartList,
+                all_columns=all_columns,
+                sortable_columns=CHART_SORTABLE_COLUMNS,
+                logger=logger,
             )
+
+            # Strip computed fields before passing to DAO query
+            dao_columns = request.select_columns
+            if dao_columns:
+                dao_columns = [c for c in dao_columns if c != "popularity_score"]
+                # Ensure id is loaded when popularity_score was requested
+                # (scores are keyed by id)
+                if (
+                    "popularity_score" in request.select_columns
+                    and "id" not in dao_columns
+                ):
+                    dao_columns = ["id"] + dao_columns
+
+            with event_logger.log_context(action="mcp.list_charts.query"):
+                result = list_core.run_tool(
+                    filters=request.filters,
+                    search=request.search,
+                    select_columns=dao_columns,
+                    order_column=request.order_column,
+                    order_direction=request.order_direction,
+                    page=max(request.page - 1, 0),
+                    page_size=request.page_size,
+                )
+
+            # Attach popularity scores if requested in select_columns
+            if request.select_columns and "popularity_score" in request.select_columns:
+                if chart_ids := [c.id for c in result.charts if c.id is not None]:
+                    scores = compute_chart_popularity(chart_ids)
+                    attach_popularity_scores(result.charts, scores)
+
         count = len(result.charts) if hasattr(result, "charts") else 0
         total_pages = getattr(result, "total_pages", None)
         await ctx.info(
@@ -141,10 +192,11 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
             % (count, total_pages)
         )
 
-        # Apply field filtering via serialization context
-        # Always use columns_requested (either explicit select_columns or defaults)
-        # This triggers ChartInfo._filter_fields_by_context for each chart
-        columns_to_filter = result.columns_requested
+        # Build response filtering from the original request columns when the
+        # user explicitly specified select_columns (to avoid leaking internally
+        # injected columns like 'id'). Fall back to result.columns_requested
+        # (which holds DAO defaults) when no explicit columns were requested.
+        columns_to_filter = original_select_columns or result.columns_requested
         await ctx.debug(
             "Applying field filtering via serialization context: columns=%s"
             % (columns_to_filter,)
@@ -156,3 +208,84 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
     except Exception as e:
         await ctx.error("Failed to list charts: %s" % (str(e),))
         raise
+
+
+def _list_charts_by_popularity(
+    request: ListChartsRequest,
+    dao_class: Any,
+    serializer: Callable[..., dict[str, Any] | None],
+    all_columns: list[str],
+    ctx: Context,
+) -> ChartList:
+    """Two-pass listing: sort all matching charts by popularity score."""
+    from superset.mcp_service.common.schema_discovery import CHART_SORTABLE_COLUMNS
+
+    sorted_ids, scores, total_count = get_popularity_sorted_ids(
+        compute_fn=compute_chart_popularity,
+        dao_class=dao_class,
+        filters=request.filters,
+        search=request.search,
+        search_columns=CHART_SEARCH_COLUMNS,
+        order_direction=request.order_direction,
+    )
+
+    # Apply pagination to sorted IDs
+    page = max(request.page - 1, 0)
+    page_size = request.page_size
+    start = page * page_size
+    end = start + page_size
+
+    # Fetch full models for page IDs
+    if page_ids := sorted_ids[start:end]:
+        items = dao_class.find_by_ids(page_ids)
+        # Preserve popularity sort order
+        id_to_item = {item.id: item for item in items}
+        ordered_items = [id_to_item[pid] for pid in page_ids if pid in id_to_item]
+    else:
+        ordered_items = []
+
+    # Serialize - preserve the original request columns for response filtering
+    columns_requested = request.select_columns or DEFAULT_CHART_COLUMNS
+    # Include popularity_score in response when sorting by it, even if not
+    # explicitly in select_columns (so clients can see the sort key)
+    if "popularity_score" not in columns_requested:
+        columns_requested = list(columns_requested) + ["popularity_score"]
+    # Expand select_columns for internal loading
+    select_columns = list(columns_requested)
+
+    chart_objs = []
+    for item in ordered_items:
+        obj = serializer(item, select_columns)
+        if obj is not None:
+            chart_objs.append(obj)
+
+    # Attach scores
+    attach_popularity_scores(chart_objs, scores)
+
+    total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 0
+    pagination_info = PaginationInfo(
+        page=page,
+        page_size=page_size,
+        total_count=total_count,
+        total_pages=total_pages,
+        has_next=page < total_pages - 1,
+        has_previous=page > 0,
+    )
+
+    return ChartList(
+        charts=chart_objs,
+        count=len(chart_objs),
+        total_count=total_count,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+        has_previous=page > 0,
+        has_next=page < total_pages - 1,
+        columns_requested=columns_requested,
+        columns_loaded=select_columns,
+        columns_available=all_columns,
+        sortable_columns=CHART_SORTABLE_COLUMNS,
+        filters_applied=request.filters if isinstance(request.filters, list) else [],
+        pagination=pagination_info,
+        timestamp=datetime.now(timezone.utc),
+    )

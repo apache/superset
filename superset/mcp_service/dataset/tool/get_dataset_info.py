@@ -30,6 +30,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from superset_core.mcp.decorators import tool
 
 from superset.extensions import event_logger
+from superset.mcp_service.common.popularity import compute_dataset_popularity
 from superset.mcp_service.dataset.schemas import (
     DatasetError,
     DatasetInfo,
@@ -109,6 +110,11 @@ async def get_dataset_info(
             result = tool.run_tool(request.identifier)
 
         if isinstance(result, DatasetInfo):
+            # Compute popularity_score for single dataset retrieval
+            if result.id is not None:
+                scores = compute_dataset_popularity([result.id])
+                result.popularity_score = scores.get(result.id, 0.0)
+
             await ctx.info(
                 "Dataset information retrieved successfully: "
                 "dataset_id=%s, table_name=%s, columns_count=%s, metrics_count=%s"
