@@ -300,7 +300,7 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
       datamap.svg
         .selectAll('.datamaps-subunit')
         .on('contextmenu', handleContextMenu)
-        .on('click', handleClick)
+        .on('click', handleClick);
     },
   });
 
