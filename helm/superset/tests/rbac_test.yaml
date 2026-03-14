@@ -1,0 +1,117 @@
+suite: RBAC Best Practices Tests
+templates:
+  - serviceaccount.yaml
+  - deployment.yaml
+  - deployment-worker.yaml
+
+# These tests validate Helm RBAC best practices
+# per https://helm.sh/docs/chart_best_practices/rbac
+#
+# Best Practices:
+# 1. RBAC and ServiceAccount configuration should be under separate keys
+# 2. serviceAccount.create should default to true
+# 3. If serviceAccount.name is not set and create is true, use fullname template
+# 4. If serviceAccount.create is false and name is not specified, use "default"
+
+tests:
+  # =============================================================================
+  # ServiceAccount Creation
+  # =============================================================================
+  - it: should create ServiceAccount by default (create=true)
+    template: serviceaccount.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: ServiceAccount
+
+  - it: should not create ServiceAccount when create is false
+    template: serviceaccount.yaml
+    set:
+      serviceAccount.create: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should use fullname template when name is not set
+    template: serviceaccount.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-superset
+
+  - it: should use specified name when provided
+    template: serviceaccount.yaml
+    set:
+      serviceAccount.name: custom-sa
+    asserts:
+      - equal:
+          path: metadata.name
+          value: custom-sa
+
+  - it: should apply annotations to ServiceAccount
+    template: serviceaccount.yaml
+    set:
+      serviceAccount.annotations:
+        eks.amazonaws.com/role-arn: arn:aws:iam::123456789:role/superset
+    asserts:
+      - equal:
+          path: metadata.annotations["eks.amazonaws.com/role-arn"]
+          value: arn:aws:iam::123456789:role/superset
+
+  # =============================================================================
+  # ServiceAccount Reference in Deployments
+  # =============================================================================
+  - it: should reference created ServiceAccount in main deployment
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: RELEASE-NAME-superset
+
+  - it: should reference created ServiceAccount in worker deployment
+    template: deployment-worker.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: RELEASE-NAME-superset
+
+  - it: should reference custom ServiceAccount name when specified
+    template: deployment.yaml
+    set:
+      serviceAccount.name: my-custom-sa
+    asserts:
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: my-custom-sa
+
+  - it: should use default ServiceAccount when create is false and no name specified
+    template: deployment.yaml
+    set:
+      serviceAccount.create: false
+    asserts:
+      - isNull:
+          path: spec.template.spec.serviceAccountName
+
+  - it: should use specified name even when create is false
+    template: deployment.yaml
+    set:
+      serviceAccount.create: false
+      serviceAccount.name: external-sa
+    asserts:
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: external-sa
+
+  # =============================================================================
+  # ServiceAccount Labels
+  # =============================================================================
+  - it: should have standard labels on ServiceAccount
+    template: serviceaccount.yaml
+    asserts:
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/name"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/instance"]
+      - isNotNull:
+          path: metadata.labels["helm.sh/chart"]

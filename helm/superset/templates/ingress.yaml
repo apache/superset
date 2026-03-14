@@ -17,7 +17,7 @@
 
 */}}
 
-{{ if .Values.ingress.enabled -}}
+{{- if .Values.ingress.enabled }}
 {{- $fullName := include "superset.fullname" . -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -25,13 +25,7 @@ metadata:
   name: {{ $fullName }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "superset.name" . }}
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
-    {{- if .Values.extraLabels }}
-      {{- toYaml .Values.extraLabels | nindent 4 }}
-    {{- end }}
+    {{- include "superset.componentLabels" (dict "component" "ingress" "root" .) | nindent 4 }}
   {{- with .Values.ingress.annotations }}
   annotations: {{- toYaml . | nindent 4 }}
   {{- end }}
@@ -54,13 +48,8 @@ spec:
     - host: {{ . }}
       http:
         paths:
-          - path: {{ $.Values.ingress.path }}
-            pathType: {{ $.Values.ingress.pathType }}
-            backend:
-              service:
-                name: {{ $fullName }}
-                port:
-                  name: http
+          {{- /* WebSocket path must come BEFORE the main path to ensure proper routing */}}
+          {{- /* AWS ALB evaluates rules in order; /ws must be matched before / (Prefix) */}}
           {{- if $.Values.supersetWebsockets.enabled }}
           - path: {{ $.Values.supersetWebsockets.ingress.path }}
             pathType: {{ $.Values.supersetWebsockets.ingress.pathType }}
@@ -70,6 +59,13 @@ spec:
                 port:
                   name: ws
           {{- end }}
+          - path: {{ $.Values.ingress.path }}
+            pathType: {{ $.Values.ingress.pathType }}
+            backend:
+              service:
+                name: {{ $fullName }}
+                port:
+                  name: http
     {{- end }}
   {{- if .Values.ingress.extraHostsRaw }}
     {{- toYaml .Values.ingress.extraHostsRaw | nindent 4 }}

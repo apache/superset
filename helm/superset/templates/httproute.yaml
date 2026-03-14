@@ -1,0 +1,55 @@
+{{/*
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/}}
+{{- if .Values.gateway.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ template "superset.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    meta.helm.sh/release-name: {{ .Release.Name }}
+    meta.helm.sh/release-namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "superset.labels" . | nindent 4 }}
+    {{- if .Values.extraLabels }}
+      {{- toYaml .Values.extraLabels | nindent 4 }}
+    {{- end }}
+spec:
+  parentRefs:
+    {{- toYaml .Values.gateway.parentRefs | nindent 4 }}
+  hostnames:
+    {{- if .Values.gateway.hostnames }}
+    {{- toYaml .Values.gateway.hostnames | nindent 4 }}
+    {{- end }}
+  rules:
+    - matches:
+        - path:
+            type: {{ .Values.gateway.pathType }}
+            value: {{ .Values.gateway.path }}
+      backendRefs:
+        - name: {{ .Values.gateway.backend.serviceName | default (include "superset.fullname" .) }}
+          port: {{ .Values.gateway.backend.port | default .Values.service.port | int }}
+      {{- if or .Values.gateway.timeouts.request .Values.gateway.timeouts.backend }}
+      timeouts:
+        {{- if .Values.gateway.timeouts.request }}
+        request: {{ printf "%ds" (.Values.gateway.timeouts.request | int) }}
+        {{- end }}
+        {{- if .Values.gateway.timeouts.backend }}
+        backendRequest: {{ printf "%ds" (.Values.gateway.timeouts.backend | int) }}
+        {{- end }}
+      {{- end }}
+{{- end }}

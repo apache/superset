@@ -1,0 +1,55 @@
+suite: Deprecation Validation Tests
+templates:
+  - secret-superset-config.yaml
+
+# These tests verify that deprecated configuration values are detected
+# and the deployment fails with a helpful error message
+
+tests:
+  # =============================================================================
+  # Deprecated supersetNode.connections
+  # =============================================================================
+  - it: should fail when supersetNode.connections is used
+    template: secret-superset-config.yaml
+    set:
+      supersetNode:
+        connections:
+          db_host: localhost
+    asserts:
+      - failedTemplate: {}
+
+  # =============================================================================
+  # Deprecated root-level serviceAccountName
+  # =============================================================================
+  - it: should fail when serviceAccountName is at root level
+    template: secret-superset-config.yaml
+    set:
+      serviceAccountName: my-sa
+    asserts:
+      - failedTemplate: {}
+
+  # =============================================================================
+  # Valid configurations should work
+  # =============================================================================
+  - it: should succeed with new database configuration
+    template: secret-superset-config.yaml
+    set:
+      database:
+        host: db.example.com
+        port: 5432
+        user: superset
+        password: secure-password
+        name: superset
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: should succeed with new serviceAccount configuration
+    template: secret-superset-config.yaml
+    set:
+      serviceAccount:
+        create: true
+        name: my-sa
+    asserts:
+      - hasDocuments:
+          count: 1
