@@ -17,7 +17,8 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { validateNonEmpty } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
+import { ensureIsArray, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   sharedControls,
@@ -34,6 +35,43 @@ const {
   sortAscending,
   operatorType,
 } = DEFAULT_FORM_DATA;
+
+type FilterSelectColumn = {
+  column_name: string;
+  type_generic?: GenericDataType | null;
+};
+
+export const getOperatorTypeChoices = (isStringColumn: boolean) => [
+  [SelectFilterOperatorType.Exact, t('Exact match (IN)')],
+  ...(isStringColumn
+    ? [
+        [
+          SelectFilterOperatorType.Contains,
+          t('Contains text (ILIKE %x%)'),
+        ],
+        [
+          SelectFilterOperatorType.StartsWith,
+          t('Starts with (ILIKE x%)'),
+        ],
+        [SelectFilterOperatorType.EndsWith, t('Ends with (ILIKE %x)')],
+      ]
+    : []),
+];
+
+export const isStringOperatorColumn = (
+  selectedColumn: unknown,
+  columns?: FilterSelectColumn[],
+) => {
+  const columnName = ensureIsArray(selectedColumn)[0];
+  if (!columnName || !columns) {
+    return true;
+  }
+  const column = columns.find(col => col.column_name === columnName);
+  if (!column || column.type_generic == null) {
+    return true;
+  }
+  return column.type_generic === GenericDataType.String;
+};
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -66,24 +104,32 @@ const config: ControlPanelConfig = {
               affectsDataMask: true,
               label: t('Match type'),
               default: operatorType,
-              choices: [
-                [SelectFilterOperatorType.Exact, t('Exact match (IN)')],
-                [
-                  SelectFilterOperatorType.Contains,
-                  t('Contains text (ILIKE %x%)'),
-                ],
-                [
-                  SelectFilterOperatorType.StartsWith,
-                  t('Starts with (ILIKE x%)'),
-                ],
-                [SelectFilterOperatorType.EndsWith, t('Ends with (ILIKE %x)')],
-              ],
+              choices: getOperatorTypeChoices(true),
               description: t(
                 'Determines how the filter matches values. ' +
                   '"Exact match" uses the IN operator (default). ' +
                   'ILIKE options enable partial text matching with a free-text input. ' +
                   'Warning: ILIKE queries may be slow on large datasets as they cannot use indexes effectively.',
               ),
+              mapStateToProps: state => {
+                const isStringColumn = isStringOperatorColumn(
+                  state.controls?.groupby?.value,
+                  state.datasource?.columns as FilterSelectColumn[] | undefined,
+                );
+                return {
+                  choices: getOperatorTypeChoices(isStringColumn),
+                  description: isStringColumn
+                    ? t(
+                        'Determines how the filter matches values. ' +
+                          '"Exact match" uses the IN operator (default). ' +
+                          'ILIKE options enable partial text matching with a free-text input. ' +
+                          'Warning: ILIKE queries may be slow on large datasets as they cannot use indexes effectively.',
+                      )
+                    : t(
+                        'Only exact match is available for non-string columns.',
+                      ),
+                };
+              },
             },
           },
         ],
