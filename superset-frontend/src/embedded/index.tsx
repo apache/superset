@@ -18,6 +18,8 @@
  */
 import 'src/public-path';
 
+import { bootstrapData } from './initEmbedded';
+
 import { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
@@ -31,7 +33,7 @@ import {
   css,
 } from '@apache-superset/core/theme';
 import Switchboard from '@superset-ui/switchboard';
-import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
+import { applicationRoot } from 'src/utils/getBootstrapData';
 import setupClient from 'src/setup/setupClient';
 import setupPlugins from 'src/setup/setupPlugins';
 import { useUiConfig } from 'src/components/UiConfigContext';
@@ -53,7 +55,6 @@ setupPlugins();
 setupCodeOverrides({ embedded: true });
 
 const debugMode = process.env.WEBPACK_MODE === 'development';
-const bootstrapData = getBootstrapData();
 
 function log(...info: unknown[]) {
   if (debugMode) logging.debug(`[superset]`, ...info);
