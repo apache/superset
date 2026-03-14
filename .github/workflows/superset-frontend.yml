@@ -54,7 +54,7 @@ jobs:
       - name: Save Docker Image as Artifact
         if: steps.check.outputs.frontend
         run: |
-          docker save $TAG | zstd -1 --threads=0 > docker-image.tar.zst
+          docker save $TAG | zstd -3 --threads=0 > docker-image.tar.zst
 
       - name: Upload Docker Image Artifact
         if: steps.check.outputs.frontend
