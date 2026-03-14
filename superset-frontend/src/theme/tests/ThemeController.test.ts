@@ -1687,8 +1687,6 @@ test('font loading: adds new font URLs when switching themes', () => {
     .forEach(el => el.remove());
 });
 
-// initialMode option tests (embedded dashboard fix: sc-101450)
-
 test('ThemeController uses initialMode when provided and no saved mode exists', () => {
   mockGetBootstrapData.mockReturnValue(
     createMockBootstrapData({
