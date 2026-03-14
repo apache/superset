@@ -45,14 +45,8 @@ export const getOperatorTypeChoices = (isStringColumn: boolean) => [
   [SelectFilterOperatorType.Exact, t('Exact match (IN)')],
   ...(isStringColumn
     ? [
-        [
-          SelectFilterOperatorType.Contains,
-          t('Contains text (ILIKE %x%)'),
-        ],
-        [
-          SelectFilterOperatorType.StartsWith,
-          t('Starts with (ILIKE x%)'),
-        ],
+        [SelectFilterOperatorType.Contains, t('Contains text (ILIKE %x%)')],
+        [SelectFilterOperatorType.StartsWith, t('Starts with (ILIKE x%)')],
         [SelectFilterOperatorType.EndsWith, t('Ends with (ILIKE %x)')],
       ]
     : []),

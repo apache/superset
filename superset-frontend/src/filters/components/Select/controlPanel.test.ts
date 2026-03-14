@@ -17,10 +17,7 @@
  * under the License.
  */
 import { GenericDataType } from '@apache-superset/core/common';
-import {
-  getOperatorTypeChoices,
-  isStringOperatorColumn,
-} from './controlPanel';
+import { getOperatorTypeChoices, isStringOperatorColumn } from './controlPanel';
 import { SelectFilterOperatorType } from './types';
 
 test('getOperatorTypeChoices only returns exact match for non-string columns', () => {

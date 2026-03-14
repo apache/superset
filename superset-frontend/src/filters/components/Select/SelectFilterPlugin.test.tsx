@@ -1544,9 +1544,12 @@ test('pending LIKE debounce is canceled when operatorType switches back to Exact
     reduxState,
   );
 
-  fireEvent.change(screen.getByPlaceholderText('Type to search (contains)...'), {
-    target: { value: 'Jen' },
-  });
+  fireEvent.change(
+    screen.getByPlaceholderText('Type to search (contains)...'),
+    {
+      target: { value: 'Jen' },
+    },
+  );
 
   setDataMaskMock.mockClear();
 
