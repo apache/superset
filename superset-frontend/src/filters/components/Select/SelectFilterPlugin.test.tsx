@@ -1495,6 +1495,88 @@ test('clear-all resets LIKE input value and calls setDataMask with empty state',
       }),
     );
   });
+
+  act(() => {
+    jest.advanceTimersByTime(500);
+  });
+
+  expect(setDataMaskMock).not.toHaveBeenCalledWith(
+    expect.objectContaining({
+      extraFormData: {
+        filters: [
+          {
+            col: 'gender',
+            op: 'ILIKE',
+            val: '%Jen%',
+          },
+        ],
+      },
+    }),
+  );
+});
+
+test('pending LIKE debounce is canceled when operatorType switches back to Exact', async () => {
+  jest.useFakeTimers();
+  const setDataMaskMock = jest.fn();
+  const likeProps = buildSelectFilterProps({
+    formData: { operatorType: SelectFilterOperatorType.Contains },
+    filterState: { value: undefined },
+    setDataMask: setDataMaskMock,
+  });
+
+  const reduxState = {
+    useRedux: true,
+    initialState: {
+      nativeFilters: {
+        filters: { 'test-filter': { name: 'Test Filter' } },
+      },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {},
+          filterState: { value: undefined },
+        },
+      },
+    },
+  };
+
+  const { rerender } = render(
+    <SelectFilterPlugin {...likeProps} />,
+    reduxState,
+  );
+
+  fireEvent.change(screen.getByPlaceholderText('Type to search (contains)...'), {
+    target: { value: 'Jen' },
+  });
+
+  setDataMaskMock.mockClear();
+
+  rerender(
+    <SelectFilterPlugin
+      {...buildSelectFilterProps({
+        formData: { operatorType: SelectFilterOperatorType.Exact },
+        filterState: { value: undefined },
+        setDataMask: setDataMaskMock,
+      })}
+    />,
+  );
+
+  act(() => {
+    jest.advanceTimersByTime(500);
+  });
+
+  expect(setDataMaskMock).not.toHaveBeenCalledWith(
+    expect.objectContaining({
+      extraFormData: {
+        filters: [
+          {
+            col: 'gender',
+            op: 'ILIKE',
+            val: '%Jen%',
+          },
+        ],
+      },
+    }),
+  );
 });
 
 test('renders standard Select dropdown when operatorType is Exact', () => {

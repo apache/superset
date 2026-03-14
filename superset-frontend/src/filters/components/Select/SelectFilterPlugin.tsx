@@ -518,6 +518,14 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     [updateDataMask],
   );
 
+  useEffect(() => {
+    if (!isLikeOperator || clearAllTrigger) {
+      debouncedLikeChange.cancel();
+    }
+  }, [clearAllTrigger, debouncedLikeChange, isLikeOperator]);
+
+  useEffect(() => () => debouncedLikeChange.cancel(), [debouncedLikeChange]);
+
   const handleLikeInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setLikeInputValue(e.target.value);
