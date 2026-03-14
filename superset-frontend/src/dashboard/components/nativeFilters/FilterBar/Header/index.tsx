@@ -33,7 +33,7 @@ const TitleArea = styled.div`
     justify-content: space-between;
     margin: 0;
     padding: 0 ${theme.sizeUnit * 2}px ${theme.sizeUnit * 2}px;
-    padding-bottom: 0;
+    padding-bottom: 0; /* Works with other changes in PR https://github.com/apache/superset/pull/38646 to reduces space between filter header and 1st filter */
 
     & > span {
       font-size: ${theme.fontSizeLG}px;
@@ -57,7 +57,8 @@ const HeaderButton = styled(Button)`
 
 const Wrapper = styled.div`
   ${({ theme }) => `
-    padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 2}px 0px;
+    padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 2}px;
+    padding-bottom: 0; /* Works with other changes in PR https://github.com/apache/superset/pull/38646 to reduces space between filter header and 1st filter */
   `}
 `;
 
