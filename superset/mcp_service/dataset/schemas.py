@@ -57,7 +57,6 @@ class DatasetFilter(ColumnOperator):
         "schema",
         "database_name",
         "owner",
-        "favorite",
     ] = Field(
         ...,
         description="Column to filter on. Use get_schema(model_type='dataset') for "
@@ -154,14 +153,16 @@ class DatasetInfo(BaseModel):
         # Get full serialization
         data = serializer(self)
 
+        # Normalize alias: Pydantic serializes as 'schema_name' (field name)
+        # but the DAO column and API convention is 'schema'
+        if "schema_name" in data:
+            data["schema"] = data.pop("schema_name")
+
         # Check if we have a context with select_columns
         if info.context and isinstance(info.context, dict):
             select_columns = info.context.get("select_columns")
             if select_columns:
-                # Handle alias: 'schema' -> 'schema_name'
                 requested_fields = set(select_columns)
-                if "schema" in requested_fields:
-                    requested_fields.add("schema_name")
 
                 # Filter to only requested fields
                 return {k: v for k, v in data.items() if k in requested_fields}
@@ -285,6 +286,20 @@ class GetDatasetInfoRequest(MetadataCacheControl):
     ]
 
 
+def _parse_json_field(obj: Any, field_name: str) -> Dict[str, Any] | None:
+    """Parse a field that may be stored as a JSON string into a dict."""
+    value = getattr(obj, field_name, None)
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            if isinstance(parsed, dict):
+                return parsed
+        except (ValueError, TypeError):
+            pass
+        return None
+    return value
+
+
 def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
     if not dataset:
         return None
@@ -357,8 +372,8 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         offset=getattr(dataset, "offset", None),
         cache_timeout=getattr(dataset, "cache_timeout", None),
         params=params,
-        template_params=getattr(dataset, "template_params", None),
-        extra=getattr(dataset, "extra", None),
+        template_params=_parse_json_field(dataset, "template_params"),
+        extra=_parse_json_field(dataset, "extra"),
         columns=columns,
         metrics=metrics,
         is_favorite=getattr(dataset, "is_favorite", None),

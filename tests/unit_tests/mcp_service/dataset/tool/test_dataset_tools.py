@@ -1319,7 +1319,7 @@ class TestDatasetDefaultColumnFiltering:
             dataset_item = data["datasets"][0]
 
             # Verify ONLY default columns are present in the response item
-            expected_keys = {"id", "table_name", "schema_name", "changed_on_humanized"}
+            expected_keys = {"id", "table_name", "schema", "changed_on_humanized"}
             actual_keys = set(dataset_item.keys())
 
             # The response should only contain the default columns, NOT all columns

@@ -223,15 +223,14 @@ export const useExploreAdditionalActionsMenu = (
       state.common?.conf?.CSV_STREAMING_ROW_THRESHOLD ||
       DEFAULT_CSV_STREAMING_ROW_THRESHOLD,
   );
-  const exploreChartState = useSelector<
-    ExploreState,
-    JsonObject | undefined
-  >(state => {
-    const chartKey = state.explore ? getChartKey(state.explore) : undefined;
-    return chartKey != null
-      ? state.explore?.chartStates?.[chartKey]
-      : undefined;
-  });
+  const exploreChartState = useSelector<ExploreState, JsonObject | undefined>(
+    state => {
+      const chartKey = state.explore ? getChartKey(state.explore) : undefined;
+      return chartKey != null
+        ? state.explore?.chartStates?.[chartKey]
+        : undefined;
+    },
+  );
 
   // Streaming export state and handlers
   const [isStreamingModalVisible, setIsStreamingModalVisible] = useState(false);
@@ -439,7 +438,12 @@ export const useExploreAdditionalActionsMenu = (
     } catch (error) {
       addDangerToast(t('Sorry, something went wrong. Try again later.'));
     }
-  }, [addDangerToast, addSuccessToast, latestQueryFormData, permalinkChartState]);
+  }, [
+    addDangerToast,
+    addSuccessToast,
+    latestQueryFormData,
+    permalinkChartState,
+  ]);
 
   // Minimal client-side CSV builder used for "Current View" when pagination is disabled
   const downloadClientCSV = (
