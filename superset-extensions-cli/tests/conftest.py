@@ -22,6 +22,7 @@ import os
 from pathlib import Path
 
 import pytest
+import tomli_w
 from click.testing import CliRunner
 
 
@@ -181,8 +182,6 @@ def extension_with_versions():
             (frontend_dir / "package.json").write_text(json.dumps(pkg, indent=2))
 
         if backend_version is not None:
-            import tomli_w
-
             backend_dir = base_path / "backend"
             backend_dir.mkdir(exist_ok=True)
             src_dir = backend_dir / "src" / "test_org" / "test_extension"
