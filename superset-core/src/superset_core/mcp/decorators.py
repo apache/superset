@@ -37,7 +37,12 @@ Usage:
 
 from typing import Any, Callable, TypeVar
 
-from mcp.types import ToolAnnotations
+try:
+    from mcp.types import ToolAnnotations
+except (
+    ImportError
+):  # MCP extras may not be installed in superset-core-only environments
+    ToolAnnotations = Any  # type: ignore[assignment,misc]
 
 # Type variable for decorated functions
 F = TypeVar("F", bound=Callable[..., Any])

@@ -45,6 +45,8 @@ logger = logging.getLogger(__name__)
 
 @tool(
     tags=["mutate"],
+    class_permission_name="SQLLab",
+    method_permission_name="write",
     annotations=ToolAnnotations(
         title="Save SQL query",
         readOnlyHint=False,

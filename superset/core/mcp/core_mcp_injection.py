@@ -25,7 +25,10 @@ that replaces the abstract functions in superset-core during initialization.
 import logging
 from typing import Any, Callable, Optional, TypeVar
 
-from mcp.types import ToolAnnotations
+try:
+    from mcp.types import ToolAnnotations
+except ImportError:
+    ToolAnnotations = Any  # type: ignore[assignment,misc]
 
 from superset.extensions.context import get_current_extension_context
 

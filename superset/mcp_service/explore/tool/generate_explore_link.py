@@ -44,7 +44,7 @@ from superset.mcp_service.utils.schema_utils import parse_request
     class_permission_name="Explore",
     annotations=ToolAnnotations(
         title="Generate explore link",
-        readOnlyHint=True,
+        readOnlyHint=False,
         destructiveHint=False,
     ),
 )
