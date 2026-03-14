@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
     annotations=ToolAnnotations(
         title="Update chart preview",
         readOnlyHint=False,
-        destructiveHint=False,
+        destructiveHint=True,
     ),
 )
 @parse_request(UpdateChartPreviewRequest)
