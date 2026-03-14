@@ -306,33 +306,7 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
       datamap.svg
         .selectAll('.datamaps-subunit')
         .on('contextmenu', handleContextMenu)
-        .on('click', handleClick)
-        // Use namespaced events to avoid overriding Datamaps' default tooltip handlers
-        .on('mouseover.fillPreserve', function onMouseOver() {
-          if (inContextMenu) {
-            return;
-          }
-          const element = d3.select(this);
-          const classes = element.attr('class') || '';
-          const countryId = classes.split(' ')[1];
-          const countryData = mapData[countryId];
-          const originalFill =
-            (countryData && countryData.fillColor) || theme.colorBorder;
-          // Store original fill color for restoration
-          element.attr('data-original-fill', originalFill);
-        })
-        .on('mouseout.fillPreserve', function onMouseOut() {
-          if (inContextMenu) {
-            return;
-          }
-          const element = d3.select(this);
-          const originalFill = element.attr('data-original-fill');
-          // Restore the original fill color (data-based or default no-data color)
-          if (originalFill) {
-            element.style('fill', originalFill);
-            element.attr('data-original-fill', null);
-          }
-        });
+        .on('click', handleClick);
     },
   });
 
