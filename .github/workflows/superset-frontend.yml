@@ -78,7 +78,8 @@ jobs:
           name: docker-image
 
       - name: Load Docker Image
-        run: zstd -1 --threads=0 < docker-image.tar.zst | docker load
+        run: |
+          zstd -d < docker-image.tar.zst | docker load
 
       - name: npm run test with coverage
         run: |
@@ -148,7 +149,7 @@ jobs:
 
       - name: Load Docker Image
         run: |
-          zstd -1 --threads=0 < docker-image.tar.zst | docker load
+          zstd -d < docker-image.tar.zst | docker load
 
       - name: lint
         run: |
@@ -172,7 +173,7 @@ jobs:
 
       - name: Load Docker Image
         run: |
-          zstd -1 --threads=0 < docker-image.tar.zst | docker load
+          zstd -d < docker-image.tar.zst | docker load
 
       - name: Build Plugins Packages
         run: |
@@ -191,7 +192,7 @@ jobs:
 
       - name: Load Docker Image
         run: |
-          zstd -1 --threads=0 < docker-image.tar.zst | docker load
+          zstd -d < docker-image.tar.zst | docker load
 
       - name: Build Storybook and Run Tests
         run: |
