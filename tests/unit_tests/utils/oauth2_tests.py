@@ -33,6 +33,7 @@ from superset.utils.oauth2 import (
     generate_code_challenge,
     generate_code_verifier,
     get_oauth2_access_token,
+    get_upstream_provider_token,
     refresh_oauth2_token,
 )
 
@@ -335,3 +336,68 @@ def test_encode_decode_oauth2_state(
     assert "code_verifier" not in decoded
     assert decoded["database_id"] == 1
     assert decoded["user_id"] == 2
+
+
+# ---- Upstream provider token tests ----
+
+
+def test_get_upstream_provider_token_valid(mocker: MockerFixture) -> None:
+    """
+    Test `get_upstream_provider_token` returns the access token when it is valid.
+    """
+    db = mocker.patch("superset.utils.oauth2.db")
+    token = mocker.MagicMock()
+    token.access_token = "valid-token"  # noqa: S105
+    token.access_token_expiration = datetime(2024, 1, 2)
+    db.session.query().filter_by().one_or_none.return_value = token
+
+    with freeze_time("2024-01-01"):
+        result = get_upstream_provider_token("keycloak", 1)
+
+    assert result == "valid-token"
+
+
+def test_get_upstream_provider_token_expired_no_refresh(mocker: MockerFixture) -> None:
+    """
+    Test `get_upstream_provider_token` deletes the record and returns None when
+    the token is expired and there is no refresh token.
+    """
+    db = mocker.patch("superset.utils.oauth2.db")
+    token = mocker.MagicMock()
+    token.access_token = "expired-token"  # noqa: S105
+    token.access_token_expiration = datetime(2024, 1, 1)
+    token.refresh_token = None
+    db.session.query().filter_by().one_or_none.return_value = token
+
+    with freeze_time("2024-01-02"):
+        result = get_upstream_provider_token("keycloak", 1)
+
+    assert result is None
+    db.session.delete.assert_called_once_with(token)
+    db.session.commit.assert_called_once()
+
+
+def test_get_upstream_provider_token_expired_calls_refresh(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test `get_upstream_provider_token` calls the refresh path when the token
+    is expired but a refresh token is present.
+    """
+    db = mocker.patch("superset.utils.oauth2.db")
+    token = mocker.MagicMock()
+    token.access_token = "expired-token"  # noqa: S105
+    token.access_token_expiration = datetime(2024, 1, 1)
+    token.refresh_token = "refresh-tok"  # noqa: S105
+    db.session.query().filter_by().one_or_none.return_value = token
+
+    refresh_mock = mocker.patch(
+        "superset.utils.oauth2._refresh_upstream_provider_token",
+        return_value="new-token",
+    )
+
+    with freeze_time("2024-01-02"):
+        result = get_upstream_provider_token("keycloak", 1)
+
+    assert result == "new-token"
+    refresh_mock.assert_called_once_with(token, "keycloak")

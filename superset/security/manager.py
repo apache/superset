@@ -488,6 +488,59 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return self.get_guest_user_from_request(request)
         return None
 
+    def set_oauth_session(self, provider: str, oauth_response: dict[str, Any]) -> None:
+        """
+        Override to persist the full OAuth token response before FAB reduces it to
+        ``session["oauth"] = (access_token, secret)`` tuple.
+        """
+        # pylint: disable=import-outside-toplevel
+        from flask import session
+
+        super().set_oauth_session(provider, oauth_response)
+        # FAB stores only (access_token, secret) in session["oauth"].
+        # We need the full response (expires_in, refresh_token, …) for upstream
+        # forwarding.
+        session["oauth_full_token"] = dict(oauth_response)  # noqa: S105
+
+    def auth_user_oauth(self, userinfo: dict[str, Any]) -> Any:
+        """
+        Override to save the upstream OAuth token when a user logs in via OAuth.
+
+        If ``save_token: True`` is set in the matching OAUTH_PROVIDERS entry and
+        ``DATABASE_OAUTH2_UPSTREAM_PROVIDERS`` maps a database to this provider,
+        the token will be forwarded to that database instead of triggering a
+        separate OAuth2 dance.
+        """
+        # pylint: disable=import-outside-toplevel
+        from flask import current_app as flask_app, session
+
+        user = super().auth_user_oauth(userinfo)
+        if user:
+            provider = session.get("oauth_provider")
+            # Use the full token dict saved by set_oauth_session, not the
+            # (access_token, secret) tuple that FAB stores in session["oauth"].
+            if session.get("oauth_full_token") and provider:
+                provider_config = next(
+                    (
+                        p
+                        for p in flask_app.config.get("OAUTH_PROVIDERS", [])
+                        if p.get("name") == provider
+                    ),
+                    None,
+                )
+                if provider_config and provider_config.get("save_token"):
+                    from superset.utils.oauth2 import save_user_provider_token
+
+                    try:
+                        save_user_provider_token(
+                            user.id, provider, session["oauth_full_token"]
+                        )
+                    except Exception:  # pylint: disable=broad-except
+                        logger.warning("Failed to save upstream OAuth token")
+                    finally:
+                        session.pop("oauth_full_token", None)
+        return user
+
     def get_catalog_perm(
         self,
         database: str,

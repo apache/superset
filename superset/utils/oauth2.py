@@ -37,11 +37,15 @@ from superset.superset_typing import OAuth2ClientConfig, OAuth2State
 
 if TYPE_CHECKING:
     from superset.db_engine_specs.base import BaseEngineSpec
-    from superset.models.core import Database, DatabaseUserOAuth2Tokens
-
-JWT_EXPIRATION = timedelta(minutes=5)
+    from superset.models.core import (
+        Database,
+        DatabaseUserOAuth2Tokens,
+        UpstreamOAuthToken,
+    )
 
 logger = logging.getLogger(__name__)
+
+JWT_EXPIRATION = timedelta(minutes=5)
 
 # PKCE code verifier length (RFC 7636 recommends 43-128 characters)
 PKCE_CODE_VERIFIER_LENGTH = 64
@@ -276,3 +280,100 @@ def check_for_oauth2(database: Database) -> Iterator[None]:
         if database.is_oauth2_enabled() and database.db_engine_spec.needs_oauth2(ex):
             database.db_engine_spec.start_oauth2_dance(database)
         raise
+
+
+def save_user_provider_token(
+    user_id: int,
+    provider: str,
+    token_response: dict[str, Any],
+) -> None:
+    """
+    Upsert an UpstreamOAuthToken row for the given user + provider.
+    """
+    from superset.models.core import UpstreamOAuthToken
+
+    token: UpstreamOAuthToken | None = (
+        db.session.query(UpstreamOAuthToken)
+        .filter_by(user_id=user_id, provider=provider)
+        .one_or_none()
+    )
+    if token is None:
+        token = UpstreamOAuthToken(user_id=user_id, provider=provider)
+
+    token.access_token = token_response.get("access_token")
+    expires_in = token_response.get("expires_in")
+    token.access_token_expiration = (
+        datetime.now() + timedelta(seconds=expires_in) if expires_in else None
+    )
+    token.refresh_token = token_response.get("refresh_token")
+    db.session.add(token)
+    db.session.commit()
+
+
+def get_upstream_provider_token(provider: str, user_id: int) -> str | None:
+    """
+    Retrieve a valid access token for the given provider and user.
+
+    If the token is expired and a refresh token exists, attempt to refresh it.
+    Returns None if no valid token is available.
+    """
+    from superset.models.core import UpstreamOAuthToken
+
+    token: UpstreamOAuthToken | None = (
+        db.session.query(UpstreamOAuthToken)
+        .filter_by(user_id=user_id, provider=provider)
+        .one_or_none()
+    )
+    if token is None:
+        return None
+
+    now = datetime.now()
+    if token.access_token_expiration is None or token.access_token_expiration > now:
+        return token.access_token
+
+    # Token is expired
+    if token.refresh_token:
+        return _refresh_upstream_provider_token(token, provider)
+
+    db.session.delete(token)
+    db.session.commit()
+    return None
+
+
+def _refresh_upstream_provider_token(
+    token: UpstreamOAuthToken,
+    provider: str,
+) -> str | None:
+    """
+    Use the refresh token to obtain a new access token from the provider.
+    Updates and persists the token if successful; deletes it on failure.
+    """
+    from flask import current_app as flask_app
+
+    try:
+        remote_app = flask_app.extensions["authlib.integrations.flask_client"][provider]
+        token_response = remote_app.fetch_access_token(
+            grant_type="refresh_token",
+            refresh_token=token.refresh_token,
+        )
+    except Exception:  # pylint: disable=broad-except
+        logger.warning("Failed to refresh upstream OAuth token")
+        db.session.delete(token)
+        db.session.commit()
+        return None
+
+    if "access_token" not in token_response:
+        db.session.delete(token)
+        db.session.commit()
+        return None
+
+    token.access_token = token_response["access_token"]
+    expires_in = token_response.get("expires_in")
+    token.access_token_expiration = (
+        datetime.now() + timedelta(seconds=expires_in) if expires_in else None
+    )
+    if "refresh_token" in token_response:
+        token.refresh_token = token_response["refresh_token"]
+    db.session.add(token)
+    db.session.commit()
+    return token.access_token

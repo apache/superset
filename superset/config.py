@@ -2111,6 +2111,13 @@ DATABASE_OAUTH2_JWT_ALGORITHM = "HS256"
 # Timeout when fetching access and refresh tokens.
 DATABASE_OAUTH2_TIMEOUT = timedelta(seconds=30)
 
+# Map Superset database_name values to OAUTH_PROVIDERS names.
+# For databases with a matching database_name, the upstream login token will be
+# forwarded instead of triggering a separate database OAuth2 dance.
+# Requires `save_token: True` in the corresponding OAUTH_PROVIDERS entry.
+# Example: {"trino_prod": "my_keycloak_prov", "trino_staging": "my_keycloak_prov"}
+DATABASE_OAUTH2_UPSTREAM_PROVIDERS: dict[str, str] = {}
+
 # Enable/disable CSP warning
 CONTENT_SECURITY_POLICY_WARNING = True
 
