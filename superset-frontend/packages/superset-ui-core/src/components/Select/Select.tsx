@@ -737,7 +737,7 @@ const Select = forwardRef(
           filterOption={handleFilterOption}
           filterSort={sortComparatorWithSearch}
           getPopupContainer={
-            getPopupContainer || (triggerNode => triggerNode.parentNode)
+            getPopupContainer || (() => document.body)
           }
           headerPosition={headerPosition}
           labelInValue={labelInValue}
