@@ -1810,3 +1810,200 @@ def test_chart_data_subquery_allowed(
     rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
 
     assert rv.status_code == status_code
+
+
+class TestGetChartDataWithDashboardFilter(BaseTestChartDataApi):
+    """Tests for the filters_dashboard_id parameter on GET /api/v1/chart/<pk>/data/."""
+
+    def _setup_chart_with_query_context(self) -> Slice:
+        chart = db.session.query(Slice).filter_by(slice_name="Genders").one()
+        chart.query_context = json.dumps(
+            {
+                "datasource": {"id": chart.table.id, "type": "table"},
+                "force": False,
+                "queries": [
+                    {
+                        "time_range": "1900-01-01T00:00:00 : 2000-01-01T00:00:00",
+                        "granularity": "ds",
+                        "filters": [],
+                        "extras": {"having": "", "where": ""},
+                        "applied_time_extras": {},
+                        "columns": ["gender"],
+                        "metrics": ["sum__num"],
+                        "orderby": [["sum__num", False]],
+                        "annotation_layers": [],
+                        "row_limit": 50000,
+                        "timeseries_limit": 0,
+                        "order_desc": True,
+                        "url_params": {},
+                        "custom_params": {},
+                        "custom_form_data": {},
+                    }
+                ],
+                "result_format": "json",
+                "result_type": "full",
+            }
+        )
+        return chart
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch("superset.charts.data.api.get_dashboard_filter_context")
+    def test_get_data_with_dashboard_filter_context(self, mock_get_filter_ctx):
+        """
+        Chart data API: Test GET with filters_dashboard_id returns
+        dashboard_filters metadata in the response.
+        """
+        from superset.charts.data.dashboard_filter_context import (
+            DashboardFilterContext,
+            DashboardFilterInfo,
+            DashboardFilterStatus,
+        )
+
+        chart = self._setup_chart_with_query_context()
+        mock_get_filter_ctx.return_value = DashboardFilterContext(
+            extra_form_data={},
+            filters=[
+                DashboardFilterInfo(
+                    id="f1",
+                    name="Region",
+                    status=DashboardFilterStatus.APPLIED,
+                    column="region",
+                ),
+                DashboardFilterInfo(
+                    id="f2",
+                    name="City",
+                    status=DashboardFilterStatus.NOT_APPLIED,
+                    column="city",
+                ),
+            ],
+        )
+
+        rv = self.get_assert_metric(
+            f"api/v1/chart/{chart.id}/data/?filters_dashboard_id=1", "get_data"
+        )
+        data = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert "dashboard_filters" in data
+        assert len(data["dashboard_filters"]["filters"]) == 2
+        assert data["dashboard_filters"]["filters"][0]["status"] == "applied"
+        assert data["dashboard_filters"]["filters"][1]["status"] == "not_applied"
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch("superset.charts.data.api.get_dashboard_filter_context")
+    def test_get_data_with_dashboard_filter_applies_filters_to_query(
+        self, mock_get_filter_ctx
+    ):
+        """
+        Chart data API: Test GET with filters_dashboard_id merges
+        extra_form_data filters into the query so they appear in the
+        compiled SQL.
+        """
+        from superset.charts.data.dashboard_filter_context import (
+            DashboardFilterContext,
+            DashboardFilterInfo,
+            DashboardFilterStatus,
+        )
+
+        chart = self._setup_chart_with_query_context()
+        mock_get_filter_ctx.return_value = DashboardFilterContext(
+            extra_form_data={
+                "filters": [{"col": "gender", "op": "IN", "val": ["boy"]}],
+            },
+            filters=[
+                DashboardFilterInfo(
+                    id="f1",
+                    name="Gender",
+                    status=DashboardFilterStatus.APPLIED,
+                    column="gender",
+                ),
+            ],
+        )
+
+        rv = self.get_assert_metric(
+            f"api/v1/chart/{chart.id}/data/?filters_dashboard_id=1&type=query",
+            "get_data",
+        )
+        data = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert "dashboard_filters" in data
+        assert data["dashboard_filters"]["filters"][0]["status"] == "applied"
+
+        query_sql = data["result"][0]["query"]
+        assert "gender" in query_sql.lower()
+        assert "boy" in query_sql.lower()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch("superset.charts.data.api.get_dashboard_filter_context")
+    def test_get_data_without_dashboard_filter_has_no_metadata(
+        self, mock_get_filter_ctx
+    ):
+        """
+        Chart data API: Test GET without filters_dashboard_id does not
+        include dashboard_filters in the response.
+        """
+        chart = self._setup_chart_with_query_context()
+
+        rv = self.get_assert_metric(f"api/v1/chart/{chart.id}/data/", "get_data")
+        data = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert "dashboard_filters" not in data
+        mock_get_filter_ctx.assert_not_called()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch("superset.charts.data.api.get_dashboard_filter_context")
+    def test_get_data_dashboard_not_found_returns_400(self, mock_get_filter_ctx):
+        """
+        Chart data API: Test GET with invalid dashboard ID returns 400.
+        """
+        chart = self._setup_chart_with_query_context()
+        mock_get_filter_ctx.side_effect = ValueError("Dashboard 999 not found")
+
+        rv = self.get_assert_metric(
+            f"api/v1/chart/{chart.id}/data/?filters_dashboard_id=999", "get_data"
+        )
+
+        assert rv.status_code == 400
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch("superset.charts.data.api.get_dashboard_filter_context")
+    def test_get_data_dashboard_access_denied_returns_403(self, mock_get_filter_ctx):
+        """
+        Chart data API: Test GET with inaccessible dashboard returns 403.
+        """
+        from superset.errors import SupersetError, SupersetErrorType
+        from superset.exceptions import SupersetSecurityException
+
+        chart = self._setup_chart_with_query_context()
+        mock_get_filter_ctx.side_effect = SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.DASHBOARD_SECURITY_ACCESS_ERROR,
+                message="Access denied",
+                level="warning",
+            )
+        )
+
+        rv = self.get_assert_metric(
+            f"api/v1/chart/{chart.id}/data/?filters_dashboard_id=1", "get_data"
+        )
+
+        assert rv.status_code == 403
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch("superset.charts.data.api.get_dashboard_filter_context")
+    def test_get_data_chart_not_on_dashboard_returns_400(self, mock_get_filter_ctx):
+        """
+        Chart data API: Test GET where chart is not on the dashboard returns 400.
+        """
+        chart = self._setup_chart_with_query_context()
+        mock_get_filter_ctx.side_effect = ValueError("Chart 10 is not on dashboard 42")
+
+        rv = self.get_assert_metric(
+            f"api/v1/chart/{chart.id}/data/?filters_dashboard_id=42", "get_data"
+        )
+
+        assert rv.status_code == 400
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "not on dashboard" in data["message"]

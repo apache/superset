@@ -1739,6 +1739,45 @@
               "$ref": "#/components/schemas/ChartDataResponseResult"
             },
             "type": "array"
+          },
+          "dashboard_filters": {
+            "$ref": "#/components/schemas/DashboardFiltersResponseSchema",
+            "description": "Metadata about dashboard native filters applied to the query. Only present when filters_dashboard_id is provided."
+          }
+        },
+        "type": "object"
+      },
+      "DashboardFilterInfoSchema": {
+        "properties": {
+          "id": {
+            "description": "The native filter ID",
+            "type": "string"
+          },
+          "name": {
+            "description": "The native filter name",
+            "type": "string"
+          },
+          "status": {
+            "description": "Filter status: 'applied' (default value was included in the query) or 'not_applied' (filter had no default value and was omitted, matching dashboard initial-load behavior)",
+            "type": "string"
+          },
+          "column": {
+            "description": "Target column name for the filter",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": ["id", "name", "status"],
+        "type": "object"
+      },
+      "DashboardFiltersResponseSchema": {
+        "properties": {
+          "filters": {
+            "description": "Metadata about each in-scope dashboard native filter and whether its default value was applied to the query",
+            "items": {
+              "$ref": "#/components/schemas/DashboardFilterInfoSchema"
+            },
+            "type": "array"
           }
         },
         "type": "object"
@@ -15452,6 +15491,14 @@
             "schema": {
               "type": "boolean"
             }
+          },
+          {
+            "description": "Dashboard ID whose filter defaults should be applied to the chart's query context. The chart must belong to the specified dashboard. Only in scope filters with static default values are applied; filters that require a database query (e.g. defaultToFirstItem) or have no default are reported in the dashboard_filters response metadata.",
+            "in": "query",
+            "name": "filters_dashboard_id",
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -15490,6 +15537,12 @@
           },
           "401": {
             "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
           },
           "500": {
             "$ref": "#/components/responses/500"
