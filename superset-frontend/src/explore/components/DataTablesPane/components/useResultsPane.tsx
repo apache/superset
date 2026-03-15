@@ -77,9 +77,10 @@ export const useResultsPane = ({
         formData: queryFormData as QueryFormData,
         resultFormat: format,
         resultType: 'results',
+        ownState,
       });
     },
-    [queryFormData],
+    [queryFormData, ownState],
   );
 
   const handleDownloadCSV = useCallback(

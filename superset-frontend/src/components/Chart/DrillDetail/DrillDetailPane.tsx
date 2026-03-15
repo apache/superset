@@ -48,7 +48,7 @@ import Table, {
   TableSize,
 } from '@superset-ui/core/components/Table';
 import { RootState } from 'src/dashboard/types';
-import { findPermission } from 'src/utils/findPermission';
+import { usePermissions } from 'src/hooks/usePermissions';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import { safeStringify } from 'src/utils/safeStringify';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -117,9 +117,7 @@ export default function DrillDetailPane({
     (state: { common: { conf: JsonObject } }) => state.common.conf.ROW_LIMIT,
   );
 
-  const canDownload = useSelector((state: RootState) =>
-    findPermission('can_csv', 'Superset', state.user?.roles),
-  );
+  const { canDownload } = usePermissions();
 
   const { addDangerToast } = useToasts();
 

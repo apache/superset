@@ -58,18 +58,22 @@ const DownloadDropdown = ({
       }}
     >
       <Tooltip title={t('Download')}>
-        <Icons.DownloadOutlined
-          iconColor={theme.colorIcon}
-          iconSize="l"
-          aria-label={t('Download')}
+        <span
+          tabIndex={0}
           role="button"
+          aria-label={t('Download')}
           data-test="drill-detail-download-btn"
-          css={css`
-            &.anticon > * {
-              line-height: 0;
-            }
-          `}
-        />
+        >
+          <Icons.DownloadOutlined
+            iconColor={theme.colorIcon}
+            iconSize="l"
+            css={css`
+              &.anticon > * {
+                line-height: 0;
+              }
+            `}
+          />
+        </span>
       </Tooltip>
     </Dropdown>
   );
