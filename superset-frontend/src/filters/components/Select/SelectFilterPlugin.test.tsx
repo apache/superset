@@ -1500,19 +1500,7 @@ test('clear-all resets LIKE input value and calls setDataMask with empty state',
     jest.advanceTimersByTime(500);
   });
 
-  expect(setDataMaskMock).not.toHaveBeenCalledWith(
-    expect.objectContaining({
-      extraFormData: {
-        filters: [
-          {
-            col: 'gender',
-            op: 'ILIKE',
-            val: '%Jen%',
-          },
-        ],
-      },
-    }),
-  );
+  expect(setDataMaskMock).not.toHaveBeenCalled();
 });
 
 test('pending LIKE debounce still applies after rerender recreates updateDataMask', async () => {
