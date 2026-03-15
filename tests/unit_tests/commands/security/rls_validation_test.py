@@ -201,6 +201,26 @@ def test_validate_rls_union_breakout_fails():
     assert "set operations are not allowed" in str(ex.value)
 
 
+def test_validate_adhoc_subquery_preserves_jinja_on_non_predicate():
+    """Non-predicate callers must get back original SQL (with Jinja) even when RLS
+    is applied, so downstream template processors are not broken."""
+    from unittest.mock import patch
+
+    from superset.models.helpers import validate_adhoc_subquery
+
+    mock_db = MagicMock()
+    sql = "SUM(CASE WHEN {{ filter_col }} = 1 THEN (SELECT amount FROM t2) END)"
+
+    with (
+        patch("superset.models.helpers.is_feature_enabled", return_value=True),
+        patch("superset.utils.rls.apply_rls"),
+    ):
+        result = validate_adhoc_subquery(sql, mock_db, None, "public", "postgresql")
+    # Must return the original Jinja-containing SQL, not the stripped form
+    assert "{{" in result
+    assert "__jinja__" not in result
+
+
 def test_validate_rls_multi_statement_fails():
     from superset.models.helpers import validate_adhoc_subquery
 

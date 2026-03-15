@@ -270,11 +270,11 @@ def validate_adhoc_subquery(
         apply_rls(database, catalog, default_schema, parsed_statement)
         rls_applied = True
 
-    # Step 4: Return original SQL unless modified by RLS
+    # Step 4: Return original SQL unless modified by RLS.
     # This ensures no downstream Jinja breakage.
     if rls_applied:
         if is_predicate:
-            # FIX: Return only the expression part for predicates to avoid
+            # Return only the expression part for predicates to avoid
             # corrupting the RLS rule with the synthetic 'SELECT * WHERE' wrapper.
             # We use format() on the WHERE clause to ensure correct dialect mapping.
             root = parsed_statement._parsed
@@ -290,6 +290,11 @@ def validate_adhoc_subquery(
                     level=ErrorLevel.ERROR,
                 )
             )
+        # If the original SQL had Jinja templates, return it unchanged.
+        # Jinja was stripped only for validation; the downstream template
+        # processor must render it before execution.
+        if clean_sql != sql:
+            return sql
         return parsed_statement.format()
     return sql
 
