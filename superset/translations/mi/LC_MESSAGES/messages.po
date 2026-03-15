@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-02-06 23:58-0800\n"
+"POT-Creation-Date: 2026-02-25 10:47+0100\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -318,6 +318,18 @@ msgid "%s column(s)"
 msgstr "%s tīwae"
 
 #, fuzzy, python-format
+msgid "%s day ago"
+msgid_plural "%s days ago"
+msgstr[0] "1 rā i mua"
+msgstr[1] ""
+
+#, fuzzy, python-format
+msgid "%s hr ago"
+msgid_plural "%s hr ago"
+msgstr[0] "%s rārangi"
+msgstr[1] "%s rārangi"
+
+#, fuzzy, python-format
 msgid "%s item(s)"
 msgstr "%s kōwhiringa"
 
@@ -328,6 +340,12 @@ msgid ""
 msgstr ""
 "Kāore i taea te tohu %s taonga nā te mea kāore ō mōtika whakatika ki ngā "
 "mea katoa kua tīpakohia."
+
+#, fuzzy, python-format
+msgid "%s min ago"
+msgid_plural "%s min ago"
+msgstr[0] "1 marama i mua"
+msgstr[1] ""
 
 #, python-format
 msgid "%s operator(s)"
@@ -353,15 +371,33 @@ msgid_plural "%s records..."
 msgstr[0] "%s Hapa"
 msgstr[1] ""
 
+#, fuzzy, python-format
+msgid "%s record..."
+msgid_plural "%s records..."
+msgstr[0] "%s Hapa"
+msgstr[1] ""
+
 #, python-format
 msgid "%s row"
 msgid_plural "%s rows"
 msgstr[0] "%s rārangi"
 msgstr[1] "%s rārangi"
 
+#, fuzzy, python-format
+msgid "%s s ago"
+msgid_plural "%s s ago"
+msgstr[0] "rā i mua"
+msgstr[1] ""
+
 #, python-format
 msgid "%s saved metric(s)"
 msgstr "%s ine kua tiakina"
+
+#, fuzzy, python-format
+msgid "%s second"
+msgid_plural "%s seconds"
+msgstr[0] "hēkona"
+msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "%s tab selected"
@@ -830,6 +866,14 @@ msgstr "AQE"
 
 msgid "AUG"
 msgstr "HER"
+
+#, fuzzy
+msgid "Aborted"
+msgstr "Kua Tīmata"
+
+#, fuzzy
+msgid "Aborting"
+msgstr "E Mahi Ana"
 
 msgid "About"
 msgstr "Mō"
@@ -1518,6 +1562,10 @@ msgstr "I puta he hapa i te tikitanga o ngā tauira CSS wātea"
 msgid "An error occurred while fetching chart owners values: %s"
 msgstr "I puta he hapa i te tikitanga o ngā uara rangatira kauwhata: %s"
 
+#, fuzzy, python-format
+msgid "An error occurred while fetching created by values: %s"
+msgstr "I puta he hapa i te tikitanga o ngā uara hanga: %s"
+
 #, python-format
 msgid "An error occurred while fetching dashboard owner values: %s"
 msgstr "I puta he hapa i te tikitanga o ngā uara rangatira papatohu: %s"
@@ -1841,6 +1889,12 @@ msgstr ""
 " mārama ka ea i te pātai puna ngā wā iti kua tohua i te matapihi "
 "takahuri."
 
+msgid ""
+"Applies only when \"Cell bars\" formatting is selected: the background of"
+" the histogram columns is displayed if the \"Show cell bars\" flag is "
+"enabled."
+msgstr ""
+
 msgid "Apply"
 msgstr "Whakahaeretia"
 
@@ -1936,9 +1990,6 @@ msgstr "Kei te tino hiahia koe ki te muku i ngā kaiwhakamahi kua tīpakohia?"
 msgid "Are you sure you want to overwrite this dataset?"
 msgstr "Kei te tino hiahia koe ki te tuhirua i tēnei rārangi raraunga?"
 
-msgid "Are you sure you want to proceed?"
-msgstr "Kei te tino hiahia koe ki te haere tonu?"
-
 msgid ""
 "Are you sure you want to remove the system dark theme? The application "
 "will fall back to the configuration file dark theme."
@@ -2019,6 +2070,18 @@ msgstr "Aunoa"
 
 msgid "Auto Zoom"
 msgstr "Topa Aunoa"
+
+#, python-format
+msgid "Auto refresh paused (set to %s seconds)"
+msgstr ""
+
+#, python-format
+msgid "Auto refresh paused - tab inactive (set to %s seconds)"
+msgstr ""
+
+#, fuzzy, python-format
+msgid "Auto refresh set to %s seconds"
+msgstr "Tautuhinga kōnae"
 
 #, fuzzy
 msgid "Auto-detect"
@@ -2504,8 +2567,15 @@ msgstr "Ka taea te tīpako i ngā uara maha"
 msgid "Cancel"
 msgstr "Whakakore"
 
+#, fuzzy
+msgid "Cancel Task"
+msgstr "Whakakore"
+
 msgid "Cancel query on window unload event"
 msgstr "Whakakore pātai i te kaupapa tāruarunga matapihi"
+
+msgid "Cancellation not available due to missing abort handler"
+msgstr ""
 
 msgid "Cannot access the query"
 msgstr "Kāore e taea te uru ki te pātai"
@@ -2694,6 +2764,10 @@ msgstr "He tapu te whakarereke i tēnei puna raraunga"
 
 msgid "Changing this report is forbidden"
 msgstr "He tapu te whakarereke i tēnei pūrongo"
+
+#, fuzzy
+msgid "Changing this task is forbidden"
+msgstr "He tapu te whakarereke i tēnei rārangi raraunga"
 
 msgid "Character to interpret as decimal point"
 msgstr "Pūāhua hei whakamāori hei tohu ira"
@@ -3557,6 +3631,10 @@ msgstr "Kua tapangahia ngā whakahaere "
 msgid "Copied to clipboard!"
 msgstr "Kua tāruatia ki te papatopenga!"
 
+#, fuzzy
+msgid "Copied!"
+msgstr "SQL Kua Tāruahia!"
+
 msgid "Copy"
 msgstr "Tārua"
 
@@ -3735,6 +3813,10 @@ msgstr "I hangaia e"
 msgid "Created by me"
 msgstr "I hangaia e au"
 
+#, fuzzy, python-format
+msgid "Created by: %s"
+msgstr "I hangaia e"
+
 msgid "Created on"
 msgstr "I hangaia i"
 
@@ -3787,6 +3869,10 @@ msgid "Currency symbol"
 msgstr "Tohu moni"
 
 msgid "Current"
+msgstr "O Nāianei"
+
+#, fuzzy
+msgid "Current Zoom"
 msgstr "O Nāianei"
 
 msgid "Current day"
@@ -4035,6 +4121,10 @@ msgstr "Ka pā ngā tātari awhe wā papatohu ki ngā tīwae wā kua tautuhia i"
 msgid "Dashboard title"
 msgstr "Taitara papatohu"
 
+#, fuzzy, python-format
+msgid "Dashboard updated %s"
+msgstr "I Whakahouhia Whakamutunga %s"
+
 msgid "Dashboard usage"
 msgstr "Whakamahinga papatohu"
 
@@ -4164,6 +4254,10 @@ msgstr "Kupuhipa pātengi raraunga"
 
 msgid "Database port"
 msgstr "Tauranga pātengi raraunga"
+
+#, fuzzy
+msgid "Database reference is not allowed on a report"
+msgstr "Karekau e whakāetia te hanga pātengi raraunga mō ngā tukuake csv."
 
 msgid "Database schema is not allowed for csv uploads."
 msgstr "Karekau e whakāetia te hanga pātengi raraunga mō ngā tukuake csv."
@@ -4534,6 +4628,12 @@ msgid ""
 msgstr ""
 "Ka tautuhi mēnā me puta te takahanga i te tīmatanga, i waenga, i te "
 "mutunga rānei i waenga i ngā tohu raraunga e rua"
+
+#, python-format
+msgid "Delayed (missed %s refresh)"
+msgid_plural "Delayed (missed %s refreshes)"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Delete"
 msgstr "Muku"
@@ -5045,6 +5145,10 @@ msgid ""
 " - items will appear in the same order in tooltips. Click the button to "
 "manually select columns and metrics."
 msgstr ""
+
+#, fuzzy
+msgid "Drag to reorder"
+msgstr "Rekoata mata"
 
 msgid "Draw a marker on data points. Only applicable for line types."
 msgstr "Tuhia he tohu i runga i ngā tohu raraunga. Mō ngā momo rārangi anake."
@@ -6024,15 +6128,16 @@ msgstr "I rahua te tiki i ngā hua"
 msgid "Failed to apply theme: Invalid JSON"
 msgstr ""
 
+#, fuzzy
+msgid "Failed to copy stack trace to clipboard"
+msgstr "Tārua ki te papatopenga"
+
 msgid "Failed to create report"
 msgstr "I rahua te hanga i te pūrongo"
 
 #, python-format
 msgid "Failed to execute %(query)s"
 msgstr "I rahua te whakatutuki i %(query)s"
-
-msgid "Failed to fetch user info:"
-msgstr ""
 
 msgid "Failed to generate chart edit URL"
 msgstr "I rahua te hanga i te URL whakatika kauwhata"
@@ -6119,6 +6224,10 @@ msgstr "He teka"
 msgid "Favorite"
 msgstr "Makau"
 
+#, fuzzy
+msgid "Feature Not Enabled"
+msgstr "Kāore i whakahohengia te Pūaha SSH"
+
 msgid "Featured"
 msgstr "Whakaaturia"
 
@@ -6137,6 +6246,10 @@ msgstr "Kua tikihia %s"
 
 msgid "Fetching"
 msgstr "E tiki ana"
+
+#, fuzzy
+msgid "Fetching data..."
+msgstr "e tiki ana"
 
 #, python-format
 msgid "Field cannot be decoded by JSON. %(json_error)s"
@@ -6387,6 +6500,9 @@ msgstr "Kaha"
 msgid "Force Time Grain as Max Interval"
 msgstr ""
 
+msgid "Force abort (stops task for all subscribers)"
+msgstr ""
+
 msgid ""
 "Force all tables and views to be created in this schema when clicking "
 "CTAS or CVAS in SQL Lab."
@@ -6470,6 +6586,14 @@ msgid "Formatted value"
 msgstr "Uara kua hōputuhia"
 
 msgid "Formatting"
+msgstr "Hōputu"
+
+#, fuzzy
+msgid "Formatting column"
+msgstr "Hōputu"
+
+#, fuzzy
+msgid "Formatting object"
 msgstr "Hōputu"
 
 msgid "Formula"
@@ -6612,6 +6736,10 @@ msgid "Grid"
 msgstr "Tukutata"
 
 msgid "Grid Size"
+msgstr "Rahi Tukutata"
+
+#, fuzzy
+msgid "Grid view"
 msgstr "Rahi Tukutata"
 
 #, fuzzy
@@ -6909,6 +7037,10 @@ msgid "In"
 msgstr "I roto i"
 
 #, fuzzy
+msgid "In Progress"
+msgstr "Kokenga"
+
+#, fuzzy
 msgid "In Range"
 msgstr "Awhe wā"
 
@@ -7069,6 +7201,10 @@ msgstr ""
 
 msgid "Invalid JSON"
 msgstr "JSON Muhu"
+
+#, fuzzy
+msgid "Invalid JSON configuration"
+msgstr "Whirihora lat/long muhu."
 
 #, fuzzy
 msgid "Invalid JSON metadata"
@@ -7468,6 +7604,10 @@ msgstr "Hautakiwā whakamutunga"
 msgid "Last run"
 msgstr "Rere whakamutunga"
 
+#, fuzzy, python-format
+msgid "Last updated %s ago"
+msgstr "I Whakahouhia Whakamutunga %s"
+
 msgid "Last week"
 msgstr "Wiki whakamutunga"
 
@@ -7704,6 +7844,10 @@ msgstr "Rārangi uara hei tohu ki ngā tapatoru"
 msgid "List updated"
 msgstr "Rārangi kua whakahouhia"
 
+#, fuzzy
+msgid "List view"
+msgstr "Rārangi Kaiwhakamahi"
+
 msgid "Live render"
 msgstr "Whakaatu ora"
 
@@ -7716,6 +7860,10 @@ msgstr "Raraunga kua utaina i te keteroki"
 
 msgid "Loaded from cache"
 msgstr "Kua utaina mai i te keteroki"
+
+#, fuzzy
+msgid "Loading"
+msgstr "E uta ana..."
 
 msgid "Loading deck.gl layers..."
 msgstr ""
@@ -8118,6 +8266,9 @@ msgstr "Ine"
 msgid "Metrics / Dimensions"
 msgstr "He āhuahanga"
 
+msgid "Metrics can't be used for both rows and columns at the same time"
+msgstr ""
+
 msgid "Metrics folder can only contain metric items"
 msgstr ""
 
@@ -8266,6 +8417,10 @@ msgstr "Tātari atu"
 
 msgid "MotherDuck token"
 msgstr "Tohu MotherDuck"
+
+#, fuzzy
+msgid "Move"
+msgstr "Tango"
 
 msgid "Move only"
 msgstr "Neke anake"
@@ -8604,6 +8759,10 @@ msgstr ""
 
 msgid "No table columns"
 msgstr "Kāore he tīwae ripanga"
+
+#, fuzzy, python-format
+msgid "No tasks yet"
+msgstr "Kāore anō he %s"
 
 msgid "No temporal columns found"
 msgstr "Kāore i kitea he tīwae wā"
@@ -9241,6 +9400,17 @@ msgstr "Hōputu Rerekētanga Ōrau"
 msgid "Pattern"
 msgstr "Ōrau o te katoa"
 
+msgid "Pause auto refresh if tab is inactive"
+msgstr ""
+
+#, fuzzy
+msgid "Pause auto-refresh"
+msgstr "Tautuhi wā whakahou-aunoa"
+
+#, fuzzy
+msgid "Pending"
+msgstr "e tatari ana"
+
 #, fuzzy
 msgid "Per user caching"
 msgstr "Ōrau"
@@ -9671,6 +9841,10 @@ msgstr "Rohe tukutuku-y Matua"
 msgid "Primary y-axis format"
 msgstr "Hōputu tukutuku-y matua"
 
+#, fuzzy
+msgid "Private"
+msgstr "Kī Matawhā"
+
 msgid "Private Channels (Bot in channel)"
 msgstr "Hongere Matawhā (Bot i te hongere)"
 
@@ -9918,6 +10092,10 @@ msgstr "Tikihia anō ngā hua"
 msgid "Refresh dashboard"
 msgstr "Whakahou papatohu"
 
+#, fuzzy
+msgid "Refresh delayed"
+msgstr "Whakahou papatohu"
+
 msgid "Refresh frequency"
 msgstr "Auau whakahou"
 
@@ -10011,6 +10189,14 @@ msgstr "Whakahou i ngā uara taunoa"
 
 msgid "Remove cross-filter"
 msgstr "Tango tātari-whiti"
+
+#, fuzzy
+msgid "Remove customization"
+msgstr "Momo Whakakitenga"
+
+#, fuzzy
+msgid "Remove filter"
+msgstr "Tango mea"
 
 msgid "Remove item"
 msgstr "Tango mea"
@@ -10230,6 +10416,10 @@ msgid "Results backend needed for asynchronous queries is not configured."
 msgstr ""
 "E hiahiatia ana te tuarongo hua mō ngā pātai kore-hangarite, engari kāore"
 " i whirihorahia."
+
+#, fuzzy
+msgid "Resume auto-refresh"
+msgstr "Tautuhi wā whakahou-aunoa"
 
 #, fuzzy
 msgid "Retry"
@@ -10738,10 +10928,26 @@ msgstr "Rapu Ine me ngā Tīwae"
 msgid "Search box"
 msgstr "Pouaka rapu"
 
+#, fuzzy
+msgid "Search by"
+msgstr "Pouaka rapu"
+
 msgid "Search by query text"
 msgstr "Rapu mā te kupu pātai"
 
+#, fuzzy
+msgid "Search calculated columns by name"
+msgstr "Tīwae tatau"
+
+#, fuzzy
+msgid "Search charts by name, owner, or dashboard"
+msgstr "Kāore he kauwhata kua tāpiritia ki tēnei papatohu"
+
 msgid "Search columns"
+msgstr "Rapu tīwae"
+
+#, fuzzy
+msgid "Search columns by name"
 msgstr "Rapu tīwae"
 
 #, fuzzy
@@ -10750,6 +10956,10 @@ msgstr "Rapu tīwae"
 
 msgid "Search in filters"
 msgstr "Rapu i ngā tātari"
+
+#, fuzzy
+msgid "Search metrics by key or label"
+msgstr "Rapu Ine me ngā Tīwae"
 
 #, fuzzy
 msgid "Search owners"
@@ -10956,6 +11166,10 @@ msgstr "Tīpakohia kaupapa tae"
 msgid "Select column"
 msgstr "Tīpakohia tīwae"
 
+#, fuzzy
+msgid "Select column name"
+msgstr "Tīpakohia tīwae"
+
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
 "columns."
@@ -11050,6 +11264,10 @@ msgstr ""
 #, fuzzy
 msgid "Select layers to hide"
 msgstr "Tīpakohia kauwhata hei whakamahi"
+
+#, fuzzy
+msgid "Select object name"
+msgstr "Tīpakohia kaupapa"
 
 msgid ""
 "Select one or many metrics to display, that will be displayed in the "
@@ -11194,6 +11412,10 @@ msgid ""
 msgstr ""
 "Tīpakohia ngā uara i ngā āpure kua whakamiramiramirahia i te papa "
 "whakahaere. Kātahi ka whakahaere i te pātai mā te pāwhiri i te pātene %s."
+
+#, fuzzy
+msgid "Selected"
+msgstr "0 Kua Tīpakohia"
 
 msgid "Selecting a database is required"
 msgstr "E hiahiatia ana te tīpako i tētahi pātengi raraunga"
@@ -11347,6 +11569,10 @@ msgstr "Tuari kauwhata mā te īmēra"
 msgid "Share permalink by email"
 msgstr "Tuari hononga-ā-mau mā te īmēra"
 
+#, fuzzy
+msgid "Shared"
+msgstr "Tuari"
+
 msgid "Shared query"
 msgstr "Pātai tuari"
 
@@ -11420,6 +11646,10 @@ msgstr "Whakaatu Ingoa Ine"
 
 msgid "Show Range Filter"
 msgstr "Whakaatu Tātari Korahi"
+
+#, fuzzy
+msgid "Show SQL"
+msgstr "Whakaatu Rārangi"
 
 msgid "Show Timestamp"
 msgstr "Whakaatu Waitohu"
@@ -12074,6 +12304,10 @@ msgstr "Rohe-iti"
 msgid "Submit"
 msgstr "Tuku"
 
+#, fuzzy
+msgid "Subscribers"
+msgstr "Kāwai"
+
 msgid "Subtitle"
 msgstr "Taitara-iti"
 
@@ -12347,6 +12581,42 @@ msgstr "Kāwai whāinga"
 msgid "Target value"
 msgstr "Uara whāinga"
 
+#, fuzzy
+msgid "Task"
+msgstr "tohu"
+
+#, fuzzy, python-format
+msgid "Task cancelled: %s"
+msgstr "I rahua te pūrongo"
+
+#, fuzzy
+msgid "Task could not be aborted."
+msgstr "Kāore i taea te whakahou i te tohu."
+
+#, fuzzy
+msgid "Task could not be created."
+msgstr "Kāore i taea te hanga i te tohu."
+
+#, fuzzy
+msgid "Task could not be updated."
+msgstr "Kāore i taea te whakahou i te tohu."
+
+msgid ""
+"Task is not abortable. The task is in progress but has not registered an "
+"abort handler."
+msgstr ""
+
+#, fuzzy
+msgid "Task parameters are invalid."
+msgstr "He muhu ngā tawhā tohu."
+
+#, fuzzy
+msgid "Tasks"
+msgstr "tohu"
+
+msgid "Tasks will appear here as background operations are executed."
+msgstr ""
+
 msgid "Template"
 msgstr "Tauira"
 
@@ -12430,6 +12700,18 @@ msgstr ""
 "Ka tango te GeoJsonLayer i ngā raraunga hōputu GeoJSON, ā, ka whakaatu "
 "hei tapawhā taunekeneke, hei rārangi me ngā tohu (porohita, tohu me/rānei"
 " kupu)."
+
+msgid ""
+"The Global Task Framework is not enabled. Please contact your "
+"administrator to enable the GLOBAL_TASK_FRAMEWORK feature flag."
+msgstr ""
+
+msgid ""
+"The Global Task Framework is not enabled. Set GLOBAL_TASK_FRAMEWORK=True "
+"in your feature flags to use @task. See "
+"https://superset.apache.org/docs/configuration/async-queries-celery for "
+"configuration details."
+msgstr ""
 
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
@@ -13386,6 +13668,12 @@ msgstr ""
 "Karekau he wāhi nui rawa mō tēnei waeine. Whakamātauhia te whakaiti i "
 "tōna whānui, te whakanui rānei i te whānui wāhi tae."
 
+#, python-format
+msgid ""
+"There was a problem refreshing your dashboard. We'll try again in %s, as "
+"scheduled."
+msgstr ""
+
 #, fuzzy
 msgid "There was an error creating the group. Please, try again."
 msgstr "I puta he hapa i te hangarautanga o te hononga-ā-mau."
@@ -13458,6 +13746,10 @@ msgstr "I puta he hapa i te tikitanga o te rārangi raraunga"
 
 msgid "There was an error with your request"
 msgstr "I puta he hapa ki tō tono"
+
+#, fuzzy, python-format
+msgid "There was an issue cancelling the task: %s"
+msgstr "I puta he take i te mukutanga o %s: %s"
 
 #, python-format
 msgid "There was an issue deleting %s"
@@ -13687,14 +13979,6 @@ msgid ""
 "annotation data."
 msgstr "Ka whakahaere tēnei mēnā me tuku iho rānei te āpure māeneene wā mai i te"
 
-#, python-format
-msgid ""
-"This dashboard is currently auto refreshing; the next auto refresh will "
-"be in %s."
-msgstr ""
-"Kei te whakahou aunoa tēnei papatohu i tēnei wā; ko te whakahou aunoa "
-"panuku i roto i %s."
-
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
 "Kei te whakahaere i waho tēnei papatohu, ā, kāore e taea te whakatika i "
@@ -13756,6 +14040,13 @@ msgstr ""
 "Karekau he raraunga i roto i tēnei ripanga pātengi raraunga. Tēnā "
 "tīpakohia tētahi ripanga rerekē."
 
+msgid ""
+"This database uses OAuth2 for authentication. Please click the link above"
+" to grant Apache Superset permission to access the data. Your personal "
+"access token will be stored encrypted and used only for queries run by "
+"you."
+msgstr ""
+
 msgid "This dataset is managed externally, and can't be edited in Superset"
 msgstr ""
 "Kei te whakahaere i waho tēnei rārangi raraunga, ā, kāore e taea te "
@@ -13797,10 +14088,10 @@ msgstr "Kāhore pea e hāngai tēnei tātari ki te rārangi raraunga o nāianei"
 msgid "This folder is currently empty"
 msgstr ""
 
-msgid "This folder only accepts columns"
+msgid "This folder only supports columns"
 msgstr ""
 
-msgid "This folder only accepts metrics"
+msgid "This folder only supports metrics"
 msgstr ""
 
 msgid "This functionality is disabled in your environment for security reasons."
@@ -13947,6 +14238,10 @@ msgid_plural "This may be triggered by:"
 msgstr[0] "I whakaohongia tēnei e:"
 msgstr[1] "Ka taea pea te whakaohongia e:"
 
+#, python-format
+msgid "This will abort (stop) the task for all %s subscriber(s)."
+msgstr ""
+
 msgid ""
 "This will be applied to the whole table. Arrows (↑ and ↓) will be added "
 "to main columns for increase and decrease. Basic conditional formatting "
@@ -13955,6 +14250,9 @@ msgstr ""
 "Ka whakahaeretia tēnei ki te ripanga katoa. Ka tāpiritia ngā pere (↑ me "
 "↓) ki ngā tīwae matua mō te piki me te heke. Ka taea e te hōputu "
 "āhuatanga taketake te tuhirua e te hōputu āhuatanga i raro nei."
+
+msgid "This will cancel the task."
+msgstr ""
 
 msgid "This will remove your current embed configuration."
 msgstr "Mā tēnei ka tangohia tō whirihora tāmau o nāianei."
@@ -14140,8 +14438,18 @@ msgid "Time-series Table"
 msgstr "Ripanga Raupapa-wā"
 
 #, fuzzy
+msgid "Timed Out"
+msgstr "Hōputu wā"
+
+#, fuzzy
 msgid "Timeline"
 msgstr "Rohe wā"
+
+#, python-format
+msgid ""
+"Timeout configured (%s seconds) but no abort handler defined. Task will "
+"continue running past the timeout."
+msgstr ""
 
 msgid "Timeout error"
 msgstr "Hapa wā-pau"
@@ -14184,18 +14492,11 @@ msgstr ""
 "Hei whakahohe i te kōmaka tīwae maha, pupuri i te kī ⇧ Shift i te wā e "
 "pāwhiri ana i te pane tīwae."
 
-msgid "To entire row"
-msgstr ""
-
 msgid "To filter on a metric, use Custom SQL tab."
 msgstr "Hei tātari i tētahi ine, whakamahia te ripa SQL Ritenga."
 
 msgid "To get a readable URL for your dashboard"
 msgstr "Hei whiwhi i tētahi URL ka taea te pānui mō tō papatohu"
-
-#, fuzzy
-msgid "To text color"
-msgstr "Tae Whāinga"
 
 msgid "Token Request URI"
 msgstr ""
@@ -14557,6 +14858,9 @@ msgstr "Hapa kāore e mōhiotia"
 msgid "Unknown input format"
 msgstr "Hōputu tāuru kāore e mōhiotia"
 
+msgid "Unknown tokens will be highlighted as warnings."
+msgstr ""
+
 msgid "Unknown type"
 msgstr "Momo kāore e mōhiotia"
 
@@ -14612,6 +14916,10 @@ msgstr "Kāore i Tautuhia"
 
 msgid "Update"
 msgstr "Whakahou"
+
+#, fuzzy
+msgid "Update auto-refresh"
+msgstr "Tautuhi wā whakahou-aunoa"
 
 msgid "Update chart"
 msgstr "Whakahou kauwhata"
@@ -15131,6 +15439,9 @@ msgstr "WFS"
 
 msgid "WMS"
 msgstr "WMS"
+
+msgid "Waiting for first refresh"
+msgstr ""
 
 #, python-format
 msgid "Waiting on %s"
@@ -15720,6 +16031,10 @@ msgstr "Tau %s"
 msgid "Yes"
 msgstr "Āe"
 
+#, fuzzy
+msgid "Yes, Cancel"
+msgstr "Āe, whakakore"
+
 msgid "Yes, cancel"
 msgstr "Āe, whakakore"
 
@@ -15868,6 +16183,10 @@ msgstr "Karekau ō mōtika ki te whakatika i tēnei kauwhata"
 msgid "You do not have permission to edit this dashboard"
 msgstr "Karekau ō mōtika ki te whakatika i tēnei papatohu"
 
+#, fuzzy
+msgid "You do not have permission to perform this operation"
+msgstr "Karekau ō mōtika ki te whakatika i tēnei kauwhata"
+
 msgid "You do not have permission to read tags"
 msgstr "Karekau ō mōtika ki te pānui i ngā tohu"
 
@@ -15914,6 +16233,10 @@ msgstr "Karekau ō mōtika ki te hanga papatohu"
 msgid "You don't have the rights to download as csv"
 msgstr "Karekau ō mōtika ki te tikiake hei csv"
 
+#, fuzzy, python-format
+msgid "You have been removed from task: %s"
+msgstr "Kua tangohia e koe tēnei tātari."
+
 msgid "You have removed this filter."
 msgstr "Kua tangohia e koe tēnei tātari."
 
@@ -15948,6 +16271,15 @@ msgstr "Me kōwhiri koe i tētahi ingoa mō te papatohu hou"
 msgid "You must run the query successfully first"
 msgstr "Me whakahaere angitu koe i te pātai i te tuatahi"
 
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"`all_database_access` or `all_datasource_access` permission"
+msgstr ""
+
+msgid "You need to"
+msgstr ""
+
 msgid "You need to configure HTML sanitization to use CSS"
 msgstr "Me whirihora koe i te whakamā HTML hei whakamahi i te CSS"
 
@@ -15959,6 +16291,12 @@ msgstr ""
 "I whakahou koe i ngā uara i te papa whakahaere, engari kāore i "
 "whakahouhia aunoa te kauwhata. Whakahaere i te pātai mā te pāwhiri i te "
 "pātene \"Whakahou kauwhata\", "
+
+#, python-format
+msgid ""
+"You'll be removed from this task. It will continue running for %s other "
+"subscriber(s)."
+msgstr ""
 
 msgid ""
 "You've changed datasets. Any controls with data (columns, metrics) that "
@@ -16107,6 +16445,10 @@ msgstr "Me rahi ake, ōrite rānei te `row_offset` ki te 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "Me rahi ake, ōrite rānei te `width` ki te 0"
 
+#, fuzzy
+msgid "a few seconds"
+msgstr "hēkona"
+
 msgid "aggregate"
 msgstr "whakaarotau"
 
@@ -16145,6 +16487,10 @@ msgstr "aunoa"
 
 msgid "background"
 msgstr "papamuri"
+
+#, fuzzy
+msgid "background color"
+msgstr "Tae Papamuri"
 
 msgid "basis"
 msgstr "pūtake"
@@ -16186,6 +16532,10 @@ msgstr "kāore e taea te noho kau"
 
 msgid "cardinal"
 msgstr "matua"
+
+#, fuzzy
+msgid "cell bar"
+msgstr "Whakaatu pae pūtau"
 
 msgid "change"
 msgstr "panoni"
@@ -16397,6 +16747,10 @@ msgstr "kaupapa īmēra"
 msgid "ends with"
 msgstr "Whānui tapa"
 
+#, fuzzy
+msgid "entire row"
+msgstr "Rārangi kau"
+
 msgid "entries"
 msgstr "urunga"
 
@@ -16467,11 +16821,11 @@ msgstr "konei"
 msgid "hour"
 msgstr "hāora"
 
-msgid "https://"
-msgstr ""
-
 msgid "in"
 msgstr "i roto i"
+
+msgid "in order to run this operation."
+msgstr ""
 
 msgid "invalid email"
 msgstr "īmēra muhu"
@@ -16695,6 +17049,10 @@ msgstr "wiki maramataka tōmua"
 msgid "previous calendar year"
 msgstr "tau maramataka tōmua"
 
+#, fuzzy
+msgid "provide authorization"
+msgstr "E hiahiatia ana te whakamana"
+
 msgid "quarter"
 msgstr "hautakiwā"
 
@@ -16800,8 +17158,16 @@ msgstr "tohu"
 msgid "tags"
 msgstr "tohu"
 
+#, fuzzy
+msgid "task"
+msgstr "tohu"
+
 msgid "temporal type icon"
 msgstr "tohu momo wā"
+
+#, fuzzy
+msgid "text color"
+msgstr "Tae Whāinga"
 
 msgid "textarea"
 msgstr "horahanga kupu"

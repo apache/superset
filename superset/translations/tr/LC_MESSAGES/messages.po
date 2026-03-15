@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-02-06 23:58-0800\n"
+"POT-Creation-Date: 2026-02-25 10:47+0100\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -270,6 +270,16 @@ msgid "%s column(s)"
 msgstr ""
 
 #, fuzzy, python-format
+msgid "%s day ago"
+msgid_plural "%s days ago"
+msgstr[0] "1 gün önce"
+
+#, fuzzy, python-format
+msgid "%s hr ago"
+msgid_plural "%s hr ago"
+msgstr[0] ""
+
+#, fuzzy, python-format
 msgid "%s item(s)"
 msgstr "dakika(var)"
 
@@ -278,6 +288,11 @@ msgid ""
 "%s items could not be tagged because you don’t have edit permissions to "
 "all selected objects."
 msgstr ""
+
+#, fuzzy, python-format
+msgid "%s min ago"
+msgid_plural "%s min ago"
+msgstr[0] "ay"
 
 #, python-format
 msgid "%s operator(s)"
@@ -302,13 +317,28 @@ msgid_plural "%s records..."
 msgstr[0] "saniye"
 
 #, fuzzy, python-format
+msgid "%s record..."
+msgid_plural "%s records..."
+msgstr[0] "saniye"
+
+#, fuzzy, python-format
 msgid "%s row"
 msgid_plural "%s rows"
 msgstr[0] ""
 
+#, fuzzy, python-format
+msgid "%s s ago"
+msgid_plural "%s s ago"
+msgstr[0] "30 gün önce"
+
 #, python-format
 msgid "%s saved metric(s)"
 msgstr ""
+
+#, fuzzy, python-format
+msgid "%s second"
+msgid_plural "%s seconds"
+msgstr[0] "5 saniye"
 
 #, fuzzy, python-format
 msgid "%s tab selected"
@@ -757,6 +787,14 @@ msgstr ""
 
 msgid "AUG"
 msgstr "AĞU"
+
+#, fuzzy
+msgid "Aborted"
+msgstr "Favoriler"
+
+#, fuzzy
+msgid "Aborting"
+msgstr "Uyarı"
 
 msgid "About"
 msgstr "Hakkında"
@@ -1400,6 +1438,10 @@ msgstr "Verisetini kaydederken bir hata oluştu"
 msgid "An error occurred while fetching chart owners values: %s"
 msgstr ""
 
+#, fuzzy, python-format
+msgid "An error occurred while fetching created by values: %s"
+msgstr "Verisetini kaydederken bir hata oluştu"
+
 #, python-format
 msgid "An error occurred while fetching dashboard owner values: %s"
 msgstr ""
@@ -1701,6 +1743,12 @@ msgid ""
 "source query satisfies the minimum periods defined in the rolling window."
 msgstr ""
 
+msgid ""
+"Applies only when \"Cell bars\" formatting is selected: the background of"
+" the histogram columns is displayed if the \"Show cell bars\" flag is "
+"enabled."
+msgstr ""
+
 msgid "Apply"
 msgstr "Uygula"
 
@@ -1797,9 +1845,6 @@ msgstr "%s’i silmek istiyor musunuz?"
 msgid "Are you sure you want to overwrite this dataset?"
 msgstr ""
 
-msgid "Are you sure you want to proceed?"
-msgstr ""
-
 msgid ""
 "Are you sure you want to remove the system dark theme? The application "
 "will fall back to the configuration file dark theme."
@@ -1877,6 +1922,18 @@ msgstr ""
 
 msgid "Auto Zoom"
 msgstr ""
+
+#, python-format
+msgid "Auto refresh paused (set to %s seconds)"
+msgstr ""
+
+#, python-format
+msgid "Auto refresh paused - tab inactive (set to %s seconds)"
+msgstr ""
+
+#, fuzzy, python-format
+msgid "Auto refresh set to %s seconds"
+msgstr "Ayarları Filtrele"
 
 #, fuzzy
 msgid "Auto-detect"
@@ -2341,7 +2398,14 @@ msgstr "Birden fazla değer seçilebilir"
 msgid "Cancel"
 msgstr "İptal"
 
+#, fuzzy
+msgid "Cancel Task"
+msgstr "İptal"
+
 msgid "Cancel query on window unload event"
+msgstr ""
+
+msgid "Cancellation not available due to missing abort handler"
 msgstr ""
 
 msgid "Cannot access the query"
@@ -2525,6 +2589,9 @@ msgid "Changing this datasource is forbidden"
 msgstr ""
 
 msgid "Changing this report is forbidden"
+msgstr ""
+
+msgid "Changing this task is forbidden"
 msgstr ""
 
 msgid "Character to interpret as decimal point"
@@ -3361,6 +3428,10 @@ msgstr ""
 msgid "Copied to clipboard!"
 msgstr ""
 
+#, fuzzy
+msgid "Copied!"
+msgstr "Kapsam"
+
 msgid "Copy"
 msgstr "Kopyala"
 
@@ -3537,6 +3608,10 @@ msgstr "Oluşturan"
 msgid "Created by me"
 msgstr ""
 
+#, fuzzy, python-format
+msgid "Created by: %s"
+msgstr "Oluşturan"
+
 msgid "Created on"
 msgstr "Oluşturan"
 
@@ -3588,6 +3663,10 @@ msgstr ""
 
 #, fuzzy
 msgid "Current"
+msgstr "sayı"
+
+#, fuzzy
+msgid "Current Zoom"
 msgstr "sayı"
 
 #, fuzzy
@@ -3843,6 +3922,10 @@ msgstr ""
 msgid "Dashboard title"
 msgstr "Dashboard başlığı"
 
+#, fuzzy, python-format
+msgid "Dashboard updated %s"
+msgstr "%s Son Gücelleme"
+
 msgid "Dashboard usage"
 msgstr ""
 
@@ -3966,6 +4049,9 @@ msgstr "Veritabanı şifreleri"
 
 msgid "Database port"
 msgstr "Veritabanı portu"
+
+msgid "Database reference is not allowed on a report"
+msgstr ""
 
 msgid "Database schema is not allowed for csv uploads."
 msgstr ""
@@ -4295,6 +4381,11 @@ msgid ""
 "Defines whether the step should appear at the beginning, middle or end "
 "between two data points"
 msgstr ""
+
+#, python-format
+msgid "Delayed (missed %s refresh)"
+msgid_plural "Delayed (missed %s refreshes)"
+msgstr[0] ""
 
 msgid "Delete"
 msgstr "Sil"
@@ -4772,6 +4863,9 @@ msgid ""
 "Drag columns and metrics here to customize tooltip content. Order matters"
 " - items will appear in the same order in tooltips. Click the button to "
 "manually select columns and metrics."
+msgstr ""
+
+msgid "Drag to reorder"
 msgstr ""
 
 msgid "Draw a marker on data points. Only applicable for line types."
@@ -5730,14 +5824,15 @@ msgstr ""
 msgid "Failed to apply theme: Invalid JSON"
 msgstr ""
 
+#, fuzzy
+msgid "Failed to copy stack trace to clipboard"
+msgstr "Panoya kopyala"
+
 msgid "Failed to create report"
 msgstr ""
 
 #, python-format
 msgid "Failed to execute %(query)s"
-msgstr ""
-
-msgid "Failed to fetch user info:"
 msgstr ""
 
 msgid "Failed to generate chart edit URL"
@@ -5823,6 +5918,9 @@ msgstr "Değer"
 msgid "Favorite"
 msgstr "Favoriler"
 
+msgid "Feature Not Enabled"
+msgstr ""
+
 #, fuzzy
 msgid "Featured"
 msgstr "Oluşturuldu"
@@ -5842,6 +5940,10 @@ msgstr ""
 
 msgid "Fetching"
 msgstr ""
+
+#, fuzzy
+msgid "Fetching data..."
+msgstr "Veritabanını düzenle"
 
 #, python-format
 msgid "Field cannot be decoded by JSON. %(json_error)s"
@@ -6069,6 +6171,9 @@ msgstr ""
 msgid "Force Time Grain as Max Interval"
 msgstr ""
 
+msgid "Force abort (stops task for all subscribers)"
+msgstr ""
+
 msgid ""
 "Force all tables and views to be created in this schema when clicking "
 "CTAS or CVAS in SQL Lab."
@@ -6146,6 +6251,14 @@ msgstr ""
 
 msgid "Formatting"
 msgstr ""
+
+#, fuzzy
+msgid "Formatting column"
+msgstr "Kolon seç"
+
+#, fuzzy
+msgid "Formatting object"
+msgstr "Oluşturuldu"
 
 msgid "Formula"
 msgstr ""
@@ -6284,6 +6397,9 @@ msgid "Grid"
 msgstr ""
 
 msgid "Grid Size"
+msgstr ""
+
+msgid "Grid view"
 msgstr ""
 
 msgid "Group"
@@ -6566,6 +6682,10 @@ msgid "In"
 msgstr ""
 
 #, fuzzy
+msgid "In Progress"
+msgstr "Henüz Kurallar Yok"
+
+#, fuzzy
 msgid "In Range"
 msgstr "Zaman aralığı"
 
@@ -6717,6 +6837,9 @@ msgid ""
 msgstr ""
 
 msgid "Invalid JSON"
+msgstr ""
+
+msgid "Invalid JSON configuration"
 msgstr ""
 
 msgid "Invalid JSON metadata"
@@ -7104,6 +7227,10 @@ msgstr "son çeyrek"
 msgid "Last run"
 msgstr ""
 
+#, fuzzy, python-format
+msgid "Last updated %s ago"
+msgstr "%s Son Gücelleme"
+
 #, fuzzy
 msgid "Last week"
 msgstr "son hafta"
@@ -7334,6 +7461,10 @@ msgstr ""
 msgid "List updated"
 msgstr ""
 
+#, fuzzy
+msgid "List view"
+msgstr "Sorguyu düzenle"
+
 msgid "Live render"
 msgstr ""
 
@@ -7346,6 +7477,10 @@ msgstr "Yüklenen veriler cachelendi"
 
 msgid "Loaded from cache"
 msgstr "Cacheden yüklendi"
+
+#, fuzzy
+msgid "Loading"
+msgstr "Yükleniyor…"
 
 msgid "Loading deck.gl layers..."
 msgstr ""
@@ -7736,6 +7871,9 @@ msgstr ""
 msgid "Metrics / Dimensions"
 msgstr ""
 
+msgid "Metrics can't be used for both rows and columns at the same time"
+msgstr ""
+
 msgid "Metrics folder can only contain metric items"
 msgstr ""
 
@@ -7877,6 +8015,9 @@ msgid "More filters"
 msgstr ""
 
 msgid "MotherDuck token"
+msgstr ""
+
+msgid "Move"
 msgstr ""
 
 msgid "Move only"
@@ -8209,6 +8350,10 @@ msgstr ""
 
 msgid "No table columns"
 msgstr ""
+
+#, fuzzy
+msgid "No tasks yet"
+msgstr "Henüz Kurallar Yok"
 
 msgid "No temporal columns found"
 msgstr ""
@@ -8808,6 +8953,17 @@ msgstr ""
 msgid "Pattern"
 msgstr ""
 
+msgid "Pause auto refresh if tab is inactive"
+msgstr ""
+
+#, fuzzy
+msgid "Pause auto-refresh"
+msgstr "Otomatik yenilemeyi ayarla"
+
+#, fuzzy
+msgid "Pending"
+msgstr "Uyarı"
+
 msgid "Per user caching"
 msgstr ""
 
@@ -9205,6 +9361,10 @@ msgstr ""
 msgid "Primary y-axis format"
 msgstr ""
 
+#, fuzzy
+msgid "Private"
+msgstr "Güncelle"
+
 msgid "Private Channels (Bot in channel)"
 msgstr ""
 
@@ -9446,6 +9606,10 @@ msgstr ""
 msgid "Refresh dashboard"
 msgstr "Dashboardı yenile"
 
+#, fuzzy
+msgid "Refresh delayed"
+msgstr "Dashboardı yenile"
+
 msgid "Refresh frequency"
 msgstr "Yenileme sıklığı"
 
@@ -9531,6 +9695,14 @@ msgid "Remove System Default Theme"
 msgstr ""
 
 msgid "Remove cross-filter"
+msgstr "Çapraz filtrelemeyi kaldır"
+
+#, fuzzy
+msgid "Remove customization"
+msgstr "Görselleştirme Tipi"
+
+#, fuzzy
+msgid "Remove filter"
 msgstr "Çapraz filtrelemeyi kaldır"
 
 msgid "Remove item"
@@ -9739,6 +9911,10 @@ msgstr ""
 
 msgid "Results backend needed for asynchronous queries is not configured."
 msgstr ""
+
+#, fuzzy
+msgid "Resume auto-refresh"
+msgstr "Otomatik yenilemeyi ayarla"
 
 #, fuzzy
 msgid "Retry"
@@ -10230,10 +10406,26 @@ msgstr "Kolonları ara"
 msgid "Search box"
 msgstr "Arama kutusu"
 
+#, fuzzy
+msgid "Search by"
+msgstr "Arama kutusu"
+
 msgid "Search by query text"
 msgstr "Sorgu metni ile arama"
 
+#, fuzzy
+msgid "Search calculated columns by name"
+msgstr "Kolonları ara"
+
+#, fuzzy
+msgid "Search charts by name, owner, or dashboard"
+msgstr "Dashboardın adını ekleyin"
+
 msgid "Search columns"
+msgstr "Kolonları ara"
+
+#, fuzzy
+msgid "Search columns by name"
 msgstr "Kolonları ara"
 
 #, fuzzy
@@ -10242,6 +10434,10 @@ msgstr "Kolonları ara"
 
 msgid "Search in filters"
 msgstr "Filtrelerde ara"
+
+#, fuzzy
+msgid "Search metrics by key or label"
+msgstr "Kolonları ara"
 
 #, fuzzy
 msgid "Search owners"
@@ -10449,6 +10645,10 @@ msgstr ""
 msgid "Select column"
 msgstr "Kolon seç"
 
+#, fuzzy
+msgid "Select column name"
+msgstr "Kolon seç"
+
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
 "columns."
@@ -10543,6 +10743,10 @@ msgstr ""
 #, fuzzy
 msgid "Select layers to hide"
 msgstr "Grafikleri seç"
+
+#, fuzzy
+msgid "Select object name"
+msgstr "Veriseti ismini seçin / girin"
 
 msgid ""
 "Select one or many metrics to display, that will be displayed in the "
@@ -10666,6 +10870,10 @@ msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
 "query by clicking on the %s button."
 msgstr ""
+
+#, fuzzy
+msgid "Selected"
+msgstr "0 Seçildi"
 
 #, fuzzy
 msgid "Selecting a database is required"
@@ -10819,6 +11027,10 @@ msgstr "Grafiği email ile paylaş"
 msgid "Share permalink by email"
 msgstr "Linki email ile paylaş"
 
+#, fuzzy
+msgid "Shared"
+msgstr "Paylaş"
+
 msgid "Shared query"
 msgstr "Pylaşılmış sorgu"
 
@@ -10888,6 +11100,10 @@ msgstr ""
 
 msgid "Show Range Filter"
 msgstr ""
+
+#, fuzzy
+msgid "Show SQL"
+msgstr "Toplamı göster"
 
 msgid "Show Timestamp"
 msgstr ""
@@ -11494,6 +11710,10 @@ msgid "Submit"
 msgstr ""
 
 #, fuzzy
+msgid "Subscribers"
+msgstr "Kategori"
+
+#, fuzzy
 msgid "Subtitle"
 msgstr "Sekme başlığı"
 
@@ -11756,6 +11976,41 @@ msgid "Target value"
 msgstr ""
 
 #, fuzzy
+msgid "Task"
+msgstr "Sekmeler"
+
+#, fuzzy, python-format
+msgid "Task cancelled: %s"
+msgstr "Excel’e Aktar"
+
+#, fuzzy
+msgid "Task could not be aborted."
+msgstr "Veriseti güncellenemedi."
+
+#, fuzzy
+msgid "Task could not be created."
+msgstr "Veriseti oluşturulamadı."
+
+#, fuzzy
+msgid "Task could not be updated."
+msgstr "Veriseti güncellenemedi."
+
+msgid ""
+"Task is not abortable. The task is in progress but has not registered an "
+"abort handler."
+msgstr ""
+
+msgid "Task parameters are invalid."
+msgstr ""
+
+#, fuzzy
+msgid "Tasks"
+msgstr "Sekmeler"
+
+msgid "Tasks will appear here as background operations are executed."
+msgstr ""
+
+#, fuzzy
 msgid "Template"
 msgstr "Şablonu düzenle"
 
@@ -11823,6 +12078,18 @@ msgstr ""
 msgid ""
 "The GeoJsonLayer takes in GeoJSON formatted data and renders it as "
 "interactive polygons, lines and points (circles, icons and/or texts)."
+msgstr ""
+
+msgid ""
+"The Global Task Framework is not enabled. Please contact your "
+"administrator to enable the GLOBAL_TASK_FRAMEWORK feature flag."
+msgstr ""
+
+msgid ""
+"The Global Task Framework is not enabled. Set GLOBAL_TASK_FRAMEWORK=True "
+"in your feature flags to use @task. See "
+"https://superset.apache.org/docs/configuration/async-queries-celery for "
+"configuration details."
 msgstr ""
 
 msgid ""
@@ -12628,6 +12895,12 @@ msgid ""
 "or increasing the destination width."
 msgstr ""
 
+#, python-format
+msgid ""
+"There was a problem refreshing your dashboard. We'll try again in %s, as "
+"scheduled."
+msgstr ""
+
 #, fuzzy
 msgid "There was an error creating the group. Please, try again."
 msgstr "Şemaları yüklerken hata oluştu"
@@ -12701,6 +12974,10 @@ msgstr "Grafikleri getirirken hata"
 
 msgid "There was an error with your request"
 msgstr ""
+
+#, fuzzy, python-format
+msgid "There was an issue cancelling the task: %s"
+msgstr "Tabloları yüklerken hata oluştu"
 
 #, python-format
 msgid "There was an issue deleting %s"
@@ -12910,12 +13187,6 @@ msgid ""
 "annotation data."
 msgstr ""
 
-#, python-format
-msgid ""
-"This dashboard is currently auto refreshing; the next auto refresh will "
-"be in %s."
-msgstr "Bu dashboard %s aralıklarla yenilenmektedir."
-
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
 
@@ -12960,6 +13231,13 @@ msgid ""
 "table."
 msgstr ""
 
+msgid ""
+"This database uses OAuth2 for authentication. Please click the link above"
+" to grant Apache Superset permission to access the data. Your personal "
+"access token will be stored encrypted and used only for queries run by "
+"you."
+msgstr ""
+
 msgid "This dataset is managed externally, and can't be edited in Superset"
 msgstr ""
 
@@ -12994,10 +13272,10 @@ msgstr ""
 msgid "This folder is currently empty"
 msgstr ""
 
-msgid "This folder only accepts columns"
+msgid "This folder only supports columns"
 msgstr ""
 
-msgid "This folder only accepts metrics"
+msgid "This folder only supports metrics"
 msgstr ""
 
 msgid "This functionality is disabled in your environment for security reasons."
@@ -13123,10 +13401,17 @@ msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] ""
 
+#, python-format
+msgid "This will abort (stop) the task for all %s subscriber(s)."
+msgstr ""
+
 msgid ""
 "This will be applied to the whole table. Arrows (↑ and ↓) will be added "
 "to main columns for increase and decrease. Basic conditional formatting "
 "can be overwritten by conditional formatting below."
+msgstr ""
+
+msgid "This will cancel the task."
 msgstr ""
 
 msgid "This will remove your current embed configuration."
@@ -13306,8 +13591,18 @@ msgid "Time-series Table"
 msgstr ""
 
 #, fuzzy
+msgid "Timed Out"
+msgstr "Zaman formatı"
+
+#, fuzzy
 msgid "Timeline"
 msgstr "Zaman aralığı"
+
+#, python-format
+msgid ""
+"Timeout configured (%s seconds) but no abort handler defined. Task will "
+"continue running past the timeout."
+msgstr ""
 
 msgid "Timeout error"
 msgstr ""
@@ -13348,16 +13643,10 @@ msgid ""
 "clicking the column header."
 msgstr ""
 
-msgid "To entire row"
-msgstr ""
-
 msgid "To filter on a metric, use Custom SQL tab."
 msgstr ""
 
 msgid "To get a readable URL for your dashboard"
-msgstr ""
-
-msgid "To text color"
 msgstr ""
 
 msgid "Token Request URI"
@@ -13695,6 +13984,9 @@ msgstr "Bilinmeyen hata"
 msgid "Unknown input format"
 msgstr ""
 
+msgid "Unknown tokens will be highlighted as warnings."
+msgstr ""
+
 msgid "Unknown type"
 msgstr "Bilinmeyen tip"
 
@@ -13751,6 +14043,10 @@ msgstr "Onaylı"
 
 msgid "Update"
 msgstr "Güncelle"
+
+#, fuzzy
+msgid "Update auto-refresh"
+msgstr "Otomatik yenilemeyi ayarla"
 
 msgid "Update chart"
 msgstr "Grafiği güncelle"
@@ -14202,6 +14498,9 @@ msgid "WFS"
 msgstr ""
 
 msgid "WMS"
+msgstr ""
+
+msgid "Waiting for first refresh"
 msgstr ""
 
 #, python-format
@@ -14729,6 +15028,10 @@ msgstr ""
 msgid "Yes"
 msgstr "Evet"
 
+#, fuzzy
+msgid "Yes, Cancel"
+msgstr "Evet, iptal et"
+
 msgid "Yes, cancel"
 msgstr "Evet, iptal et"
 
@@ -14842,6 +15145,10 @@ msgstr "Bu grafiği değiştirmeye yetkiniz yok"
 msgid "You do not have permission to edit this dashboard"
 msgstr "Bu dashboardı değiştirmeye yetkiniz yok"
 
+#, fuzzy
+msgid "You do not have permission to perform this operation"
+msgstr "Bu grafiği değiştirmeye yetkiniz yok"
+
 msgid "You do not have permission to read tags"
 msgstr ""
 
@@ -14888,6 +15195,10 @@ msgstr "You don’t have the rights to create a dashboard"
 msgid "You don't have the rights to download as csv"
 msgstr "Dosyayı csv olarak indirmeye yetkiniz yok"
 
+#, fuzzy, python-format
+msgid "You have been removed from task: %s"
+msgstr "Filtreyi kaldırdınız."
+
 msgid "You have removed this filter."
 msgstr "Filtreyi kaldırdınız."
 
@@ -14916,6 +15227,15 @@ msgstr ""
 msgid "You must run the query successfully first"
 msgstr "Önce sorguyu başarıyla çalıştırmalısınız"
 
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"`all_database_access` or `all_datasource_access` permission"
+msgstr ""
+
+msgid "You need to"
+msgstr ""
+
 msgid "You need to configure HTML sanitization to use CSS"
 msgstr ""
 
@@ -14923,6 +15243,12 @@ msgid ""
 "You updated the values in the control panel, but the chart was not "
 "updated automatically. Run the query by clicking on the \"Update chart\" "
 "button or"
+msgstr ""
+
+#, python-format
+msgid ""
+"You'll be removed from this task. It will continue running for %s other "
+"subscriber(s)."
 msgstr ""
 
 msgid ""
@@ -15061,6 +15387,10 @@ msgstr ""
 msgid "`width` must be greater or equal to 0"
 msgstr ""
 
+#, fuzzy
+msgid "a few seconds"
+msgstr "5 saniye"
+
 msgid "aggregate"
 msgstr ""
 
@@ -15101,6 +15431,10 @@ msgstr ""
 msgid "background"
 msgstr ""
 
+#, fuzzy
+msgid "background color"
+msgstr "Grafiğin adını ekleyin"
+
 msgid "basis"
 msgstr ""
 
@@ -15140,6 +15474,10 @@ msgstr "boş bırakılamaz"
 
 msgid "cardinal"
 msgstr ""
+
+#, fuzzy
+msgid "cell bar"
+msgstr "Temizle"
 
 msgid "change"
 msgstr ""
@@ -15352,6 +15690,10 @@ msgstr ""
 msgid "ends with"
 msgstr "Grafik genişliği"
 
+#, fuzzy
+msgid "entire row"
+msgstr "Yeni başlık"
+
 msgid "entries"
 msgstr ""
 
@@ -15422,10 +15764,10 @@ msgstr ""
 msgid "hour"
 msgstr "saat"
 
-msgid "https://"
+msgid "in"
 msgstr ""
 
-msgid "in"
+msgid "in order to run this operation."
 msgstr ""
 
 msgid "invalid email"
@@ -15635,6 +15977,9 @@ msgstr ""
 msgid "previous calendar year"
 msgstr ""
 
+msgid "provide authorization"
+msgstr ""
+
 msgid "quarter"
 msgstr ""
 
@@ -15739,8 +16084,16 @@ msgstr "etiket"
 msgid "tags"
 msgstr ""
 
+#, fuzzy
+msgid "task"
+msgstr "Sekmeler"
+
 msgid "temporal type icon"
 msgstr ""
+
+#, fuzzy
+msgid "text color"
+msgstr "Şema seç"
 
 msgid "textarea"
 msgstr ""
