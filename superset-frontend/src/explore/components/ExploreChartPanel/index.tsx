@@ -112,7 +112,7 @@ const Styles = styled.div<{ showSplite: boolean }>`
   flex-direction: column;
   align-items: stretch;
   align-content: stretch;
-  overflow: auto;
+  overflow: hidden;
   box-shadow: none;
   height: 100%;
 
@@ -306,7 +306,7 @@ const ExploreChartPanel = ({
         css={css`
           min-height: 0;
           flex: 1;
-          overflow: auto;
+          overflow: hidden;
         `}
         ref={chartPanelRef}
       >
