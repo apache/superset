@@ -122,13 +122,13 @@ class ExtraCache:
     # be added to the cache key.
     regex = re.compile(
         r"(\{\{|\{%)[^{}]*?("
-        r"current_user_id\([^()]*\)|"
-        r"current_username\([^()]*\)|"
-        r"current_user_email\([^()]*\)|"
-        r"current_user_rls_rules\([^()]*\)|"
-        r"current_user_roles\([^()]*\)|"
-        r"cache_key_wrapper\([^()]*\)|"
-        r"url_param\([^()]*\)"
+        r"current_user_id\([^)]*\)|"
+        r"current_username\([^)]*\)|"
+        r"current_user_email\([^)]*\)|"
+        r"current_user_rls_rules\([^)]*\)|"
+        r"current_user_roles\([^)]*\)|"
+        r"cache_key_wrapper\([^)]*\)|"
+        r"url_param\([^)]*\)"
         r")"
         r"[^{}]*?(\}\}|\%\})"
     )

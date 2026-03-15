@@ -443,7 +443,12 @@ export const useExploreAdditionalActionsMenu = (
     } catch (error) {
       addDangerToast(t('Sorry, something went wrong. Try again later.'));
     }
-  }, [addDangerToast, addSuccessToast, latestQueryFormData, permalinkChartState]);
+  }, [
+    addDangerToast,
+    addSuccessToast,
+    latestQueryFormData,
+    permalinkChartState,
+  ]);
 
   // Minimal client-side CSV builder used for "Current View" when pagination is disabled
   const downloadClientCSV = (

@@ -1,7 +1,7 @@
 ---
 title: MCP Server Deployment & Authentication
 hide_title: true
-sidebar_position: 9
+sidebar_position: 14
 version: 1
 ---
 
@@ -29,6 +29,10 @@ under the License.
 Superset includes a built-in [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that lets AI assistants -- Claude, ChatGPT, and other MCP-compatible clients -- interact with your Superset instance. Through MCP, clients can list dashboards, query datasets, execute SQL, create charts, and more.
 
 This guide covers how to run, secure, and deploy the MCP server.
+
+:::tip Looking for user docs?
+See **[Using AI with Superset](/user-docs/using-superset/using-ai-with-superset)** for a guide on what AI can do with Superset and how to connect your AI client.
+:::
 
 ```mermaid
 flowchart LR
@@ -668,12 +672,13 @@ MCP_CSRF_CONFIG = {
 - **Secrets management** -- Store `MCP_JWT_SECRET`, database credentials, and API keys in environment variables or a secrets manager, never in config files committed to version control
 - **Scoped tokens** -- Use `MCP_REQUIRED_SCOPES` to limit what operations a token can perform
 - **Network isolation** -- In Kubernetes, restrict MCP pod network policies to only allow traffic from your AI client endpoints
-- Review the **[Security documentation](./security)** for additional extension security guidance
+- Review the **[Security documentation](/developer-docs/extensions/security)** for additional extension security guidance
 
 ---
 
 ## Next Steps
 
-- **[MCP Integration](./mcp)** -- Build custom MCP tools and prompts via Superset extensions
-- **[Security](./security)** -- Security best practices for extensions
-- **[Deployment](./deployment)** -- Package and deploy Superset extensions
+- **[Using AI with Superset](/user-docs/using-superset/using-ai-with-superset)** -- What AI can do with Superset and how to get started
+- **[MCP Integration](/developer-docs/extensions/mcp)** -- Build custom MCP tools and prompts via Superset extensions
+- **[Security](/developer-docs/extensions/security)** -- Security best practices for extensions
+- **[Deployment](/developer-docs/extensions/deployment)** -- Package and deploy Superset extensions
