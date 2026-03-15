@@ -1468,6 +1468,12 @@ def extract_tables_from_statement(
             for source in scope.sources.values()
             if isinstance(source, exp.Table) and not is_cte(source, scope)
         ]
+        # traverse_scope omits the primary target table for DML statements
+        # (UPDATE/DELETE/INSERT); add it explicitly so RLS checks cover it.
+        if isinstance(statement, (exp.Update, exp.Delete, exp.Insert)) and isinstance(
+            statement.this, exp.Table
+        ):
+            sources = [statement.this, *sources]
 
     return {
         Table(
