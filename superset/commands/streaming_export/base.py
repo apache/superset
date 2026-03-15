@@ -107,15 +107,48 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         buffer.truncate()
         return header_data, total_bytes
 
+    def _format_row_values(
+        self, row: tuple[Any, ...], decimal_separator: str | None
+    ) -> list[Any]:
+        """
+        Format row values, applying custom decimal separator if specified.
+
+        Args:
+            row: Database row as a tuple
+            decimal_separator: Custom decimal separator (e.g., ",") or None
+
+        Returns:
+            List of formatted values
+        """
+        if not decimal_separator or decimal_separator == ".":
+            return list(row)
+
+        formatted = []
+        for value in row:
+            if isinstance(value, float):
+                # Format float with custom decimal separator
+                formatted.append(str(value).replace(".", decimal_separator))
+            else:
+                formatted.append(value)
+        return formatted
+
     def _process_rows(
         self,
         result_proxy: Any,
         csv_writer: Any,
         buffer: io.StringIO,
         limit: int | None,
+        decimal_separator: str | None = None,
     ) -> Generator[tuple[str, int, int], None, None]:
         """
         Process database rows and yield CSV data chunks.
+
+        Args:
+            result_proxy: SQLAlchemy result proxy
+            csv_writer: CSV writer instance
+            buffer: StringIO buffer for CSV data
+            limit: Maximum number of rows to process, or None for unlimited
+            decimal_separator: Custom decimal separator (e.g., ",") or None
 
         Yields tuples of (data_chunk, row_count, byte_count).
         """
@@ -128,7 +161,9 @@ class BaseStreamingCSVExportCommand(BaseCommand):
                 if limit is not None and row_count >= limit:
                     break
 
-                csv_writer.writerow(row)
+                # Format values with custom decimal separator if needed
+                formatted_row = self._format_row_values(row, decimal_separator)
+                csv_writer.writerow(formatted_row)
                 row_count += 1
 
                 # Check buffer size and flush if needed
@@ -156,6 +191,11 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         start_time = time.time()
         total_bytes = 0
 
+        # Get CSV export configuration
+        csv_export_config = app.config.get("CSV_EXPORT", {})
+        delimiter = csv_export_config.get("sep", ",")
+        decimal_separator = csv_export_config.get("decimal", ".")
+
         with db.session() as session:
             # Merge database to prevent DetachedInstanceError
             merged_database = session.merge(database)
@@ -170,8 +210,11 @@ class BaseStreamingCSVExportCommand(BaseCommand):
                     columns = list(result_proxy.keys())
 
                     # Use StringIO with csv.writer for proper escaping
+                    # Apply delimiter from CSV_EXPORT config
                     buffer = io.StringIO()
-                    csv_writer = csv.writer(buffer, quoting=csv.QUOTE_MINIMAL)
+                    csv_writer = csv.writer(
+                        buffer, delimiter=delimiter, quoting=csv.QUOTE_MINIMAL
+                    )
 
                     # Write CSV header
                     header_data, header_bytes = self._write_csv_header(
@@ -183,7 +226,7 @@ class BaseStreamingCSVExportCommand(BaseCommand):
                     # Process rows and yield chunks
                     row_count = 0
                     for data_chunk, rows_processed, chunk_bytes in self._process_rows(
-                        result_proxy, csv_writer, buffer, limit
+                        result_proxy, csv_writer, buffer, limit, decimal_separator
                     ):
                         total_bytes += chunk_bytes
                         row_count = rows_processed
