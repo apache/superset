@@ -643,15 +643,15 @@ describe('DatabaseModal', () => {
           name: /sqlite/i,
         }),
       );
+      expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
       // Click the "Advanced" tab
-      userEvent.click(await screen.findByRole('tab', { name: /advanced/i }));
+      userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
       // Click the "SQL Lab" tab
       userEvent.click(screen.getByTestId('sql-lab-label-test'));
-      expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
 
       // ----- BEGIN STEP 2 (ADVANCED - SQL LAB)
       // <TabHeader> - AntD header
-      const closeButton = await screen.findByRole('button', { name: /close/i });
+      const closeButton = screen.getByRole('button', { name: /close/i });
       const advancedHeader = screen.getByRole('heading', {
         name: /connect a database/i,
       });
@@ -666,10 +666,8 @@ describe('DatabaseModal', () => {
       });
       // <Tabs> - Basic/Advanced tabs
       const basicTab = screen.getByRole('tab', { name: /basic/i });
-      const advancedTab = await screen.findByRole('tab', { name: /advanced/i });
-      const advancedTabPanel = await screen.findByRole('tabpanel', {
-        name: /advanced/i,
-      });
+      const advancedTab = screen.getByRole('tab', { name: /advanced/i });
+      const advancedTabPanel = screen.getAllByRole('tabpanel')[0];
       // <ExtraOptions> - Advanced tabs
       const sqlLabTab = screen.getByTestId('sql-lab-label-test');
       // These are the checkbox SVGs that cover the actual checkboxes

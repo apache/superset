@@ -147,7 +147,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   ]);
 
   const handleColumnStateChange = useCallback(
-    agGridState => {
+    (agGridState: Record<string, unknown>) => {
       if (onChartStateChange) {
         onChartStateChange(agGridState);
       }

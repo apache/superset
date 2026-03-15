@@ -20,6 +20,7 @@
 // when its container size changes, due to e.g., builder side panel opening
 import {
   FC,
+  FocusEvent as ReactFocusEvent,
   memo,
   useCallback,
   useEffect,
@@ -285,7 +286,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   }, [onBeforeUnload]);
 
   const renderTabBar = useCallback(() => <></>, []);
-  const handleFocus = useCallback(e => {
+  const handleFocus = useCallback((e: ReactFocusEvent<HTMLElement>) => {
     if (
       // prevent scrolling when tabbing to the tab pane
       e.target.classList.contains('ant-tabs-tabpane') &&
@@ -299,7 +300,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   }, []);
 
   const renderParentSizeChildren = useCallback(
-    ({ width }) => {
+    ({ width }: { width: number }) => {
       const tabItems = childIds.map((id, index) => ({
         key: index === 0 ? DASHBOARD_GRID_ID : index.toString(),
         label: null,

@@ -43,6 +43,6 @@
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "dayjs": "^1.11.19",
-    "react": "^17.0.2"
+    "react": "^18.2.0"
   }
 }

@@ -121,7 +121,9 @@ export default function getControlItemsMap({
             initialValue={initColumn}
             label={
               <StyledLabel>
-                {mainControlItem.config?.label || t('Column')}
+                {typeof mainControlItem.config?.label === 'function'
+                  ? (mainControlItem.config.label as Function)()
+                  : mainControlItem.config?.label || t('Column')}
               </StyledLabel>
             }
             rules={[
@@ -219,11 +221,16 @@ export default function getControlItemsMap({
                 }}
               >
                 <>
-                  {controlItem.config.label}&nbsp;
+                  {typeof controlItem.config.label === 'function'
+                    ? (controlItem.config.label as Function)()
+                    : controlItem.config.label}
+                  &nbsp;
                   {controlItem.config.description && (
                     <InfoTooltip
                       placement="top"
-                      tooltip={controlItem.config.description}
+                      tooltip={
+                        controlItem.config.description as React.ReactNode
+                      }
                     />
                   )}
                 </>

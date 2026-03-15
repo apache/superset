@@ -23,6 +23,7 @@ import {
   useCallback,
   useMemo,
   ChangeEvent,
+  ReactNode,
 } from 'react';
 
 import { t } from '@apache-superset/core/translation';
@@ -366,7 +367,7 @@ function ReportModal({
           }}
           onError={setCronError}
         />
-        <StyledCronError>{cronError}</StyledCronError>
+        <StyledCronError>{cronError as ReactNode}</StyledCronError>
         <div
           className="control-label"
           css={(theme: SupersetTheme) => TimezoneHeaderStyle(theme)}

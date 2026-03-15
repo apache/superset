@@ -71,7 +71,7 @@ ${helperDescriptions
     <div>
       <ControlHeader>
         <div>
-          {props.label}
+          {typeof props.label === 'function' ? null : props.label}
           <InfoTooltip
             iconStyle={{ marginLeft: theme.sizeUnit }}
             tooltip={<SafeMarkdown source={helpersTooltipContent} />}

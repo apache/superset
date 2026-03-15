@@ -44,7 +44,7 @@ export default function Option({
 }: OptionProps) {
   const theme = useTheme();
   const onClickClose = useCallback(
-    e => {
+    (e: React.MouseEvent) => {
       e.stopPropagation();
       clickClose(index);
     },

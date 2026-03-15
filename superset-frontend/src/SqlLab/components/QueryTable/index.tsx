@@ -52,10 +52,10 @@ interface QueryTableQuery extends Omit<
   QueryResponse,
   'state' | 'sql' | 'progress' | 'results' | 'duration' | 'started'
 > {
-  state?: Record<string, any>;
-  sql?: Record<string, any>;
-  progress?: Record<string, any>;
-  results?: Record<string, any>;
+  state?: ReactNode;
+  sql?: ReactNode;
+  progress?: ReactNode;
+  results?: ReactNode;
   duration?: ReactNode;
   started?: ReactNode;
 }
@@ -249,7 +249,7 @@ const QueryTable = ({
 
     return queries
       .map(query => {
-        const { state, sql, progress, ...rest } = query;
+        const { state, sql, progress, results: _results, ...rest } = query;
         const q = rest as QueryTableQuery;
 
         const status = statusAttributes[state] || statusAttributes.error;
@@ -265,7 +265,7 @@ const QueryTable = ({
             buttonStyle="link"
             onClick={() => onUserClicked(q.userId)}
           >
-            {q.user}
+            {q.user as ReactNode}
           </Button>
         );
         q.db = (
@@ -274,7 +274,7 @@ const QueryTable = ({
             buttonStyle="link"
             onClick={() => onDbClicked(q.dbId)}
           >
-            {q.db}
+            {q.db as ReactNode}
           </Button>
         );
         q.started = (

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 import { useSelector } from 'react-redux';
 import { NativeFilterType, Filter, Divider } from '@superset-ui/core';
 import { useIsFilterInScope, useSelectFiltersInScope } from './state';

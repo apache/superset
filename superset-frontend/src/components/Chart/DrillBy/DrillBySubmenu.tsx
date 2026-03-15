@@ -57,7 +57,7 @@ export interface DrillBySubmenuProps {
   drillByConfig?: ContextMenuFilters['drillBy'];
   formData: BaseFormData & { [key: string]: any };
   onSelection?: (...args: any) => void;
-  onClick?: (event: MouseEvent) => void;
+  onClick?: (event: React.MouseEvent) => void;
   onCloseMenu?: () => void;
   openNewModal?: boolean;
   excludedColumns?: Column[];
@@ -93,8 +93,8 @@ export const DrillBySubmenu = ({
   const showSearch = columns.length > SHOW_COLUMNS_SEARCH_THRESHOLD;
 
   const handleSelection = useCallback(
-    (event, column) => {
-      onClick(event as MouseEvent);
+    (event: React.MouseEvent, column: Column) => {
+      onClick(event);
       onSelection(column, drillByConfig);
       if (openNewModal && onDrillBy && dataset) {
         onDrillBy(column, dataset);
