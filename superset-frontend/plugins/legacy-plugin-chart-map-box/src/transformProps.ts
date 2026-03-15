@@ -24,6 +24,14 @@ import { DEFAULT_POINT_RADIUS, DEFAULT_MAX_ZOOM } from './MapBox';
 
 const NOOP = () => {};
 
+function toFiniteNumber(
+  value: string | number | null | undefined,
+): number | undefined {
+  if (value === '' || value === null || value === undefined) return undefined;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : undefined;
+}
+
 interface ClusterProperties {
   metric: number;
   sum: number;
@@ -45,6 +53,9 @@ export default function transformProps(chartProps: ChartProps) {
     pandasAggfunc,
     pointRadiusUnit,
     renderWhileDragging,
+    viewportLongitude,
+    viewportLatitude,
+    viewportZoom,
   } = formData;
 
   // Validate mapbox color
@@ -93,7 +104,6 @@ export default function transformProps(chartProps: ChartProps) {
     aggregatorName: pandasAggfunc,
     bounds,
     clusterer,
-    globalOpacity,
     hasCustomMetric,
     mapboxApiKey,
     mapStyle: mapboxStyle,
@@ -116,5 +126,9 @@ export default function transformProps(chartProps: ChartProps) {
     pointRadiusUnit,
     renderWhileDragging,
     rgb,
+    viewportLongitude: toFiniteNumber(viewportLongitude),
+    viewportLatitude: toFiniteNumber(viewportLatitude),
+    viewportZoom: toFiniteNumber(viewportZoom),
+    globalOpacity: Math.min(1, Math.max(0, toFiniteNumber(globalOpacity) ?? 1)),
   };
 }
