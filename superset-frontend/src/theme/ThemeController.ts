@@ -748,7 +748,11 @@ export class ThemeController {
     }
 
     // Use explicit initial mode if provided (e.g. embedded dashboards default to light)
-    if (this.initialMode !== undefined) return this.initialMode;
+    if (
+      this.initialMode !== undefined &&
+      this.isValidThemeMode(this.initialMode)
+    )
+      return this.initialMode;
 
     // Default to system preference when both themes are available
     return ThemeMode.SYSTEM;

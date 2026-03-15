@@ -1781,3 +1781,20 @@ test('ThemeController initialMode is ignored when no dark theme exists', () => {
   // Should still be DEFAULT because there's no dark theme available
   expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
 });
+
+test('ThemeController invalid initialMode falls back to SYSTEM', () => {
+  mockGetBootstrapData.mockReturnValue(
+    createMockBootstrapData({
+      default: DEFAULT_THEME,
+      dark: DARK_THEME,
+    }),
+  );
+
+  const controller = createController({
+    initialMode: 'invalid' as ThemeMode,
+  });
+
+  // Invalid initialMode should be rejected by isValidThemeMode,
+  // falling through to the default SYSTEM mode
+  expect(controller.getCurrentMode()).toBe(ThemeMode.SYSTEM);
+});
