@@ -23,10 +23,12 @@ import {
   ensureIsArray,
   getChartMetadataRegistry,
   getClientErrorObject,
+  QueryFormData,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
+import { exportChart } from 'src/explore/exploreUtils';
 import { ResultsPaneProps, QueryResultInterface } from '../types';
 import { SingleQueryResultPane } from './SingleQueryResultPane';
 import { TableControls } from './DataTableControls';
@@ -68,6 +70,53 @@ export const useResultsPane = ({
   const isQueryCountDynamic = metadata?.dynamicQueryObjectCount;
 
   const noOpInputChange = useCallback(() => {}, []);
+
+  const handleDownload = useCallback(
+    (format: 'csv' | 'xlsx') => {
+      exportChart({
+        formData: queryFormData as QueryFormData,
+        resultFormat: format,
+        resultType: 'results',
+        ownState,
+      });
+    },
+    [queryFormData, ownState],
+  );
+
+  const handleDownloadCSV = useCallback(
+    () => handleDownload('csv'),
+    [handleDownload],
+  );
+
+  const handleDownloadXLSX = useCallback(
+    () => handleDownload('xlsx'),
+    [handleDownload],
+  );
+
+  const handleReload = useCallback(() => {
+    cache.delete(queryFormData);
+    setIsLoading(true);
+    getChartDataRequest({
+      formData: queryFormData,
+      force: true,
+      resultFormat: 'json',
+      resultType: 'results',
+      ownState,
+    })
+      .then(({ json }) => {
+        setResultResp(ensureIsArray(json.result) as QueryResultInterface[]);
+        setResponseError('');
+        cache.set(queryFormData, json.result);
+      })
+      .catch(response => {
+        getClientErrorObject(response).then(({ error, message }) => {
+          setResponseError(error || message || t('Sorry, an error occurred'));
+        });
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [queryFormData, ownState]);
 
   useEffect(() => {
     // it's an invalid formData when gets a errorMessage
@@ -168,6 +217,9 @@ export const useResultsPane = ({
         isVisible={isVisible}
         canDownload={canDownload}
         columnDisplayNames={columnDisplayNames}
+        onDownloadCSV={handleDownloadCSV}
+        onDownloadXLSX={handleDownloadXLSX}
+        onReload={handleReload}
       />
     </StyledDiv>
   ));

@@ -36,6 +36,9 @@ export const useResultsTableView = (
   chartDataResult: QueryData[] | undefined,
   datasourceId: string,
   canDownload: boolean,
+  onDownloadCSV?: () => void,
+  onDownloadXLSX?: () => void,
+  onReload?: () => void,
 ) => {
   if (!isDefined(chartDataResult)) {
     return <div />;
@@ -53,6 +56,9 @@ export const useResultsTableView = (
           isVisible
           canDownload={canDownload}
           isPaginationSticky={false}
+          onDownloadCSV={onDownloadCSV}
+          onDownloadXLSX={onDownloadXLSX}
+          onReload={onReload}
         />
       </PaginationContainer>
     );
@@ -75,6 +81,9 @@ export const useResultsTableView = (
               isVisible
               canDownload={canDownload}
               isPaginationSticky={false}
+              onDownloadCSV={onDownloadCSV}
+              onDownloadXLSX={onDownloadXLSX}
+              onReload={onReload}
             />
           </PaginationContainer>
         ),

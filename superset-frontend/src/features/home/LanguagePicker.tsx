@@ -57,6 +57,11 @@ export const useLanguageMenuItems = ({
   languages,
 }: LanguagePickerProps): MenuItem =>
   useMemo(() => {
+    // Fallback to first available language if current locale is not in languages
+    const currentLocale = languages[locale]
+      ? locale
+      : Object.keys(languages)[0];
+
     const items: MenuItem[] = Object.keys(languages).map(langKey => ({
       key: langKey,
       label: (
@@ -75,7 +80,7 @@ export const useLanguageMenuItems = ({
       type: 'submenu' as const,
       label: (
         <span className="f16" aria-label={t('Languages')}>
-          <i className={`flag ${languages[locale].flag}`} />
+          <i className={`flag ${languages[currentLocale].flag}`} />
         </span>
       ),
       icon: <Icons.CaretDownOutlined iconSize="xs" />,

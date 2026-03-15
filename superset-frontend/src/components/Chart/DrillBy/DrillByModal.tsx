@@ -43,6 +43,7 @@ import {
 import { RootState } from 'src/dashboard/types';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { postFormData } from 'src/explore/exploreUtils/formData';
+import { exportChart } from 'src/explore/exploreUtils';
 import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
 import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -209,12 +210,6 @@ export default function DrillByModal({
   const { displayModeToggle, drillByDisplayMode } = useDisplayModeToggle();
   const [chartDataResult, setChartDataResult] = useState<QueryData[]>();
 
-  const resultsTable = useResultsTableView(
-    chartDataResult,
-    formData.datasource,
-    canDownload,
-  );
-
   const [currentFormData, setCurrentFormData] = useState(formData);
   const [usedGroupbyColumns, setUsedGroupbyColumns] = useState<Column[]>(
     [...initialGroupbyColumns, column].filter(isDefined),
@@ -377,6 +372,57 @@ export default function DrillByModal({
     formData,
   ]);
 
+  const handleDownload = useCallback(
+    (exportType: 'csv' | 'xlsx') => {
+      exportChart({
+        formData: drilledFormData,
+        resultFormat: exportType,
+        resultType: 'full',
+      });
+    },
+    [drilledFormData],
+  );
+
+  const handleDownloadCSV = useCallback(
+    () => handleDownload('csv'),
+    [handleDownload],
+  );
+
+  const handleDownloadXLSX = useCallback(
+    () => handleDownload('xlsx'),
+    [handleDownload],
+  );
+
+  const handleReload = useCallback(() => {
+    setChartDataResult(undefined);
+    setIsChartDataLoading(true);
+    const [useLegacyApi] = getQuerySettings(drilledFormData);
+    getChartDataRequest({
+      formData: drilledFormData,
+    })
+      .then(({ response, json }) =>
+        handleChartDataResponse(response, json, useLegacyApi),
+      )
+      .then(queriesResponse => {
+        setChartDataResult(queriesResponse);
+      })
+      .catch(() => {
+        addDangerToast(t('Failed to load chart data.'));
+      })
+      .finally(() => {
+        setIsChartDataLoading(false);
+      });
+  }, [addDangerToast, drilledFormData]);
+
+  const resultsTable = useResultsTableView(
+    chartDataResult,
+    formData.datasource,
+    canDownload,
+    handleDownloadCSV,
+    handleDownloadXLSX,
+    handleReload,
+  );
+
   useEffect(() => {
     setUsedGroupbyColumns(usedCols =>
       !currentColumn ||
@@ -473,7 +519,9 @@ export default function DrillByModal({
       onHide={onHideModal ?? (() => null)}
       name={t('Drill by: %s', chartName)}
       title={t('Drill by: %s', chartName)}
-      footer={<ModalFooter formData={drilledFormData} />}
+      footer={
+        <ModalFooter formData={drilledFormData} closeModal={onHideModal} />
+      }
       responsive
       resizable
       resizableConfig={{

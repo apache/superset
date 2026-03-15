@@ -74,6 +74,9 @@ export interface TableControlsProps {
   isLoading: boolean;
   rowcount: number;
   canDownload: boolean;
+  onDownloadCSV?: () => void;
+  onDownloadXLSX?: () => void;
+  onReload?: () => void;
 }
 
 export interface QueryResultInterface {
@@ -93,4 +96,7 @@ export interface SingleQueryResultPaneProp extends QueryResultInterface {
   // Optional map of column/metric name -> verbose label
   columnDisplayNames?: Record<string, string>;
   isPaginationSticky?: boolean;
+  onDownloadCSV?: () => void;
+  onDownloadXLSX?: () => void;
+  onReload?: () => void;
 }

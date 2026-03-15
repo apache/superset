@@ -130,7 +130,11 @@ export default function DrillDetailModal({
       name={t('Drill to detail: %s', chartName)}
       title={t('Drill to detail: %s', chartName)}
       footer={
-        <ModalFooter exploreChart={exploreChart} canExplore={canExplore} />
+        <ModalFooter
+          exploreChart={exploreChart}
+          canExplore={canExplore}
+          closeModal={onHideModal}
+        />
       }
       responsive
       resizable
