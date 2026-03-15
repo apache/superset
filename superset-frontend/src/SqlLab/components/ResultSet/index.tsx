@@ -407,7 +407,7 @@ const ResultSet = ({
               onClick={createExploreResultsOnClick}
             />
           )}
-          {csv && canExportData && (
+          {csv && (
             <Button
               buttonSize="small"
               variant="text"
@@ -415,11 +415,14 @@ const ResultSet = ({
               icon={<Icons.DownloadOutlined iconSize="m" />}
               tooltip={t('Download to CSV')}
               aria-label={t('Download to CSV')}
-              {...(!shouldUseStreamingExport() && {
-                href: getExportCsvUrl(query.id),
-              })}
+              disabled={!canExportData}
+              {...(canExportData &&
+                !shouldUseStreamingExport() && {
+                  href: getExportCsvUrl(query.id),
+                })}
               data-test="export-csv-button"
               onClick={e => {
+                if (!canExportData) return;
                 const useStreaming = shouldUseStreamingExport();
 
                 if (useStreaming) {
@@ -438,30 +441,29 @@ const ResultSet = ({
               }}
             />
           )}
-          {canCopyClipboard && (
-            <CopyToClipboard
-              text={prepareCopyToClipboardTabularData(
-                data,
-                columns.map(c => c.column_name),
-              )}
-              wrapped={false}
-              copyNode={
-                <Button
-                  buttonSize="small"
-                  variant="text"
-                  color="primary"
-                  icon={<Icons.CopyOutlined iconSize="m" />}
-                  tooltip={t('Copy to Clipboard')}
-                  aria-label={t('Copy to Clipboard')}
-                  data-test="copy-to-clipboard-button"
-                />
-              }
-              hideTooltip
-              onCopyEnd={() =>
-                logAction(LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD, {})
-              }
-            />
-          )}
+          <CopyToClipboard
+            text={prepareCopyToClipboardTabularData(
+              data,
+              columns.map(c => c.column_name),
+            )}
+            wrapped={false}
+            copyNode={
+              <Button
+                buttonSize="small"
+                variant="text"
+                color="primary"
+                icon={<Icons.CopyOutlined iconSize="m" />}
+                tooltip={t('Copy to Clipboard')}
+                aria-label={t('Copy to Clipboard')}
+                disabled={!canCopyClipboard}
+                data-test="copy-to-clipboard-button"
+              />
+            }
+            hideTooltip
+            onCopyEnd={() =>
+              logAction(LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD, {})
+            }
+          />
         </>
       );
 

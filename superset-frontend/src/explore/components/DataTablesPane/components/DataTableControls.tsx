@@ -72,7 +72,7 @@ export const TableControls = ({
     [data, formattedTimeColumns],
   );
   const { canCopyClipboard: canCopyClipboardPerm } = usePermissions();
-  const showCopyButton = isFeatureEnabled(FeatureFlag.GranularExportControls)
+  const copyEnabled = isFeatureEnabled(FeatureFlag.GranularExportControls)
     ? canCopyClipboardPerm
     : canDownload;
   return (
@@ -85,9 +85,18 @@ export const TableControls = ({
         `}
       >
         <RowCountLabel rowcount={rowcount} loading={isLoading} />
-        {showCopyButton && (
+        <div
+          css={
+            !copyEnabled
+              ? css`
+                  pointer-events: none;
+                  opacity: 0.3;
+                `
+              : undefined
+          }
+        >
           <CopyToClipboardButton data={formattedData} columns={columnNames} />
-        )}
+        </div>
       </div>
     </TableControlsWrapper>
   );
