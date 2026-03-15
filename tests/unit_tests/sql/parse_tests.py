@@ -3176,6 +3176,19 @@ def test_is_mutating_nested_dml() -> None:
     assert SQLStatement(sql, "postgresql").is_mutating() is True
 
 
+def test_extract_tables_insert_with_column_list() -> None:
+    """
+    INSERT INTO t (col1, col2) VALUES (...) must include the target table.
+
+    sqlglot represents this as exp.Schema (not exp.Table) for statement.this,
+    so the extraction must unwrap the Schema to reach the inner Table.
+    """
+    tables = SQLStatement(
+        "INSERT INTO secret_table (id, col) VALUES (1, 2)", "postgresql"
+    ).tables
+    assert Table("secret_table") in tables
+
+
 def test_strip_jinja() -> None:
     """
     Test the strip_jinja helper function.
@@ -3196,6 +3209,12 @@ def test_strip_jinja() -> None:
     # synthetic subquery marker so has_subquery() remains fail-closed.
     assert strip_jinja("{{ (SELECT 1) }}") == "(SELECT 1)"
     assert strip_jinja("{{ 'select' if True else 'delete' }}") == "(SELECT 1)"
+    # All SQL control keywords trigger the synthetic subquery marker
+    assert strip_jinja("{{ DELETE FROM users }}") == "(SELECT 1)"
+    assert strip_jinja("{{ UPDATE users SET x=1 }}") == "(SELECT 1)"
+    assert strip_jinja("{{ INSERT INTO t VALUES (1) }}") == "(SELECT 1)"
+    assert strip_jinja("{{ DROP TABLE t }}") == "(SELECT 1)"
+    assert strip_jinja("{{ TRUNCATE TABLE t }}") == "(SELECT 1)"
     # Word-boundary matching: identifiers that contain keyword substrings but
     # are not standalone keywords must NOT be flagged.
     assert strip_jinja("{{ current_user.select_all }}") == "__jinja__"

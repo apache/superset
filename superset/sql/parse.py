@@ -136,7 +136,7 @@ class CTASMethod(enum.Enum):
 
 
 _SQL_SUBQUERY_KEYWORDS = re.compile(
-    r"\b(SELECT|UNION|INTERSECT|EXCEPT)\b",
+    r"\b(SELECT|UNION|INTERSECT|EXCEPT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|TRUNCATE|MERGE)\b",
     re.IGNORECASE,
 )
 
@@ -1470,10 +1470,20 @@ def extract_tables_from_statement(
         ]
         # traverse_scope omits the primary target table for DML statements
         # (UPDATE/DELETE/INSERT); add it explicitly so RLS checks cover it.
-        if isinstance(statement, (exp.Update, exp.Delete, exp.Insert)) and isinstance(
+        if isinstance(statement, (exp.Update, exp.Delete)) and isinstance(
             statement.this, exp.Table
         ):
             sources = [statement.this, *sources]
+        elif isinstance(statement, exp.Insert):
+            # INSERT INTO t VALUES (...) → statement.this is exp.Table
+            # INSERT INTO t (col, ...) VALUES (...) → statement.this is exp.Schema
+            target = (
+                statement.this.this
+                if isinstance(statement.this, exp.Schema)
+                else statement.this
+            )
+            if isinstance(target, exp.Table):
+                sources = [target, *sources]
 
     return {
         Table(
