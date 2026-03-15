@@ -18,10 +18,17 @@
  */
 
 /* eslint no-console: 0 */
-import mockConsole from 'jest-mock-console';
 import { Registry, OverwritePolicy } from '@superset-ui/core';
 
 const loader = () => 'testValue';
+
+const consoleWarnSpy = jest.spyOn(console, 'warn');
+const consoleErrorSpy = jest.spyOn(console, 'error');
+
+beforeEach(() => {
+  consoleErrorSpy.mockClear();
+  consoleWarnSpy.mockClear();
+});
 
 describe('Registry', () => {
   test('exists', () => {
@@ -308,18 +315,15 @@ describe('Registry', () => {
     describe('=ALLOW', () => {
       describe('.registerValue(key, value)', () => {
         test('registers normally', () => {
-          const restoreConsole = mockConsole();
           const registry = new Registry();
           registry.registerValue('a', 'testValue');
           expect(() => registry.registerValue('a', 'testValue2')).not.toThrow();
           expect(registry.get('a')).toEqual('testValue2');
           expect(console.warn).not.toHaveBeenCalled();
-          restoreConsole();
         });
       });
       describe('.registerLoader(key, loader)', () => {
         test('registers normally', () => {
-          const restoreConsole = mockConsole();
           const registry = new Registry();
           registry.registerLoader('a', () => 'testValue');
           expect(() =>
@@ -327,14 +331,12 @@ describe('Registry', () => {
           ).not.toThrow();
           expect(registry.get('a')).toEqual('testValue2');
           expect(console.warn).not.toHaveBeenCalled();
-          restoreConsole();
         });
       });
     });
     describe('=WARN', () => {
       describe('.registerValue(key, value)', () => {
         test('warns when overwrite', () => {
-          const restoreConsole = mockConsole();
           const registry = new Registry({
             overwritePolicy: OverwritePolicy.Warn,
           });
@@ -342,12 +344,10 @@ describe('Registry', () => {
           expect(() => registry.registerValue('a', 'testValue2')).not.toThrow();
           expect(registry.get('a')).toEqual('testValue2');
           expect(console.warn).toHaveBeenCalled();
-          restoreConsole();
         });
       });
       describe('.registerLoader(key, loader)', () => {
         test('warns when overwrite', () => {
-          const restoreConsole = mockConsole();
           const registry = new Registry({
             overwritePolicy: OverwritePolicy.Warn,
           });
@@ -357,7 +357,6 @@ describe('Registry', () => {
           ).not.toThrow();
           expect(registry.get('a')).toEqual('testValue2');
           expect(console.warn).toHaveBeenCalled();
-          restoreConsole();
         });
       });
     });
@@ -438,14 +437,6 @@ describe('Registry', () => {
     });
 
     describe('with a broken listener', () => {
-      let restoreConsole: any;
-      beforeEach(() => {
-        restoreConsole = mockConsole();
-      });
-      afterEach(() => {
-        restoreConsole();
-      });
-
       test('keeps working', () => {
         const errorListener = jest.fn().mockImplementation(() => {
           throw new Error('test error');
