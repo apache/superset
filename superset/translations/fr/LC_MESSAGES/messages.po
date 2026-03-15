@@ -206,16 +206,16 @@ msgid "\"%s\" is now the system default theme"
 msgstr "\"%s\" est maintenant le thème par défaut du système"
 
 #, python-format
-msgid "% calculation"
-msgstr "% calcul"
+msgid "%% calculation"
+msgstr "%% calcul"
 
 #, python-format
-msgid "% of parent"
-msgstr "% de parent"
+msgid "%% of parent"
+msgstr "%% du parent"
 
 #, python-format
-msgid "% of total"
-msgstr "% du total"
+msgid "%% of total"
+msgstr "%% du total"
 
 #, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
@@ -1154,8 +1154,8 @@ msgstr[1] ""
 #, python-format
 msgid "Added to 1 dashboard"
 msgid_plural "Added to %s dashboards"
-msgstr[0] "Ajouté à %s tableau de bord"
-msgstr[1] "Ajoutés à %s tableaux de bords"
+msgstr[0] "Ajouté à 1 tableau de bord"
+msgstr[1] "Ajouté à %s tableaux de bord"
 
 msgid "Additional Parameters"
 msgstr "Paramètres supplémentaires"
@@ -1358,9 +1358,9 @@ msgstr "Aligner +/-"
 msgid "All"
 msgstr "Tous"
 
-#, fuzzy, python-format
+#, python-format
 msgid "All %s hidden columns"
-msgstr "Colonnex du tableau"
+msgstr "Toutes les %s colonnes masquées"
 
 msgid "All Text"
 msgstr "Tout texte"
@@ -1935,9 +1935,9 @@ msgstr "Filtres croisés appliqués (%d)"
 msgid "Applied filters (%d)"
 msgstr "Filtres appliqués (%d)"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Applied filters (%s)"
-msgstr "Filtres appliqués (%d)"
+msgstr "Filtres appliqués (%s)"
 
 #, python-format
 msgid "Applied filters: %s"
@@ -4564,9 +4564,9 @@ msgstr "Bases de données"
 msgid "Dataset"
 msgstr "Ensemble de données"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Dataset %(table)s already exists"
-msgstr "L’ensemble de données %(name)s existe déjà"
+msgstr "L’ensemble de données %(table)s existe déjà"
 
 msgid "Dataset Name"
 msgstr "Nom de l’ensemble de données"
@@ -5581,9 +5581,9 @@ msgstr "Nom(s) de colonne dupliqué : %(columns)s"
 msgid "Duplicate role"
 msgstr "Dupliquer"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Duplicate role %(name)s"
-msgstr "Nom(s) de colonne dupliqué : %(columns)s"
+msgstr "Dupliquer le rôle %(name)s"
 
 msgid "Duplicate tab"
 msgstr "Dupliquer l'onglet"
@@ -7519,7 +7519,7 @@ msgstr "Inclure une description qui sera envoyée avec votre rapport"
 
 #, fuzzy, python-format
 msgid "Include description to be sent with %s"
-msgstr "Inclure une description qui sera envoyée avec votre rapport"
+msgstr "Inclure une description à envoyer avec %s"
 
 msgid "Include series name as an axis"
 msgstr "Inclure le nom de la série comme axe"
@@ -7781,9 +7781,9 @@ msgstr "Type de résultat invalide : %(result_type)s"
 msgid "Invalid rolling_type: %(type)s"
 msgstr "Le rolling_type est invalide: %(type)s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Invalid spatial point encountered: %(latlong)s"
-msgstr "Point géographique invalide : %s"
+msgstr "Point géographique invalide : %(latlong)s"
 
 #, fuzzy
 msgid "Invalid state."
@@ -11361,9 +11361,9 @@ msgstr "Exécuter la sélection"
 msgid "Running"
 msgstr "En cours d’exécution"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
-msgstr "Exécution de l’instruction %(block_num)s sur %(block_count)s"
+msgstr "Exécution du bloc %(block_num)s sur %(block_count)s"
 
 msgid "SAT"
 msgstr "SAT"
@@ -11683,9 +11683,9 @@ msgstr ""
 msgid "Search"
 msgstr "Rechercher"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Search %s records"
-msgstr "Registres bruts"
+msgstr "Rechercher dans %s enregistrements"
 
 msgid "Search / Filter"
 msgstr "Rechercher / Filtrer"
@@ -12305,6 +12305,10 @@ msgstr "Compte de service"
 msgid "Set System Dark Theme"
 msgstr "Définir le thème sombre du système"
 
+#, python-format
+msgid "Set %s as default datetime column"
+msgstr "Définir %s comme colonne de date/heure par défaut"
+
 #, fuzzy
 msgid "Set System Default Theme"
 msgstr "Définir le thème par défaut du système"
@@ -12434,9 +12438,9 @@ msgstr ""
 msgid "Show"
 msgstr "Afficher"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Show %s entries"
-msgstr "Afficher la mesure"
+msgstr "Afficher %s entrées"
 
 #, fuzzy
 msgid "Show Bubbles"
@@ -13370,13 +13374,13 @@ msgstr "Nom du tableau"
 msgid "Table V2"
 msgstr "Tableau"
 
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "Table [%(table)s] could not be found, please double check your database "
 "connection, schema, and table name"
 msgstr ""
-"La tableau [%(table_name)s] n'a pu être trouvé, vérifiez à nouveau votre "
-"connexion à votre base de données, le schéma et le nom du tableau"
+"La table [%(table)s] n'a pu être trouvée, veuillez revérifier votre "
+"connexion à la base de données, le schéma et le nom de la table"
 
 msgid ""
 "Table already exists. You can change your 'if table already exists' "
@@ -14581,9 +14585,9 @@ msgstr "L'ensemble de données n'a pas pu être supprimé."
 msgid "There are associated alerts or reports"
 msgstr "Il y a des alertes ou des rapports associés"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There are associated alerts or reports: %(report_names)s"
-msgstr "Il y a des alertes ou des rapports associés : %s,"
+msgstr "Il y a des alertes ou des rapports associés : %(report_names)s"
 
 msgid "There are no charts added to this dashboard"
 msgstr "Il n'y a pas de graphiques ajouté dans ce tableau de bord"
@@ -15863,9 +15867,9 @@ msgstr "Erreur inattendue :"
 msgid "Unexpected no file extension found"
 msgstr "Aucune expression sauvegardée n'a été trouvée"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Unexpected time range: %(error)s"
-msgstr "Intervalle de temps inattendu: %s"
+msgstr "Intervalle de temps inattendu : %(error)s"
 
 #, fuzzy
 msgid "Ungroup By"
@@ -17981,25 +17985,25 @@ msgstr "devrait être un nombre entier"
 msgid "is false"
 msgstr "est faux"
 
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "is linked to %s charts that appear on %s dashboards and users have %s SQL"
 " Lab tabs using this database open. Are you sure you want to continue? "
 "Deleting the database will break those objects."
 msgstr ""
-"La base de données %s est liée à %s graphiques qui apparaissent sur %s "
-"tableaux de bord et les utilisateurs ont des onglets %s SQL Lab ouverts "
-"qui utilisent cette base de données. Êtes-vous sûr de vouloir continuer? "
-"Supprimer la base de données brisera ces objets."
+"est liée à %s graphiques qui apparaissent sur %s tableaux de bord et les "
+"utilisateurs ont %s onglets SQL Lab ouverts qui utilisent cette base de "
+"données. Êtes-vous sûr de vouloir continuer ? La suppression de la base de"
+" données brisera ces objets."
 
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "is linked to %s charts that appear on %s dashboards. Are you sure you "
 "want to continue? Deleting the dataset will break those objects."
 msgstr ""
-"L'ensemble de données %s est lié aux graphiques %s qui apparaissent dans "
-"%s tableaux de bord. Êtes-vous sûr de vouloir continuer? La suppression "
-"de l'ensemble de données brisera ces objets."
+"est lié à %s graphiques qui apparaissent sur %s tableaux de bord. Êtes-vous"
+" sûr de vouloir continuer ? La suppression de l'ensemble de données "
+"brisera ces objets."
 
 msgid "is not"
 msgstr "n'est pas"
