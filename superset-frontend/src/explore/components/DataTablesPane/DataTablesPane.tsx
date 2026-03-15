@@ -87,6 +87,7 @@ export const DataTablesPane = ({
   errorMessage,
   setForceQuery,
   canDownload,
+  queriesResponse,
 }: DataTablesPaneProps) => {
   const [activeTabKey, setActiveTabKey] = useState<string>(ResultTypes.Results);
   const [isRequest, setIsRequest] = useState<Record<ResultTypes, boolean>>({
@@ -110,6 +111,10 @@ export const DataTablesPane = ({
         results: false,
         samples: false,
       });
+    }
+
+    if (panelOpen && chartStatus === 'loading') {
+      setIsRequest(prev => ({ ...prev, results: false }));
     }
 
     if (
@@ -191,6 +196,7 @@ export const DataTablesPane = ({
     setForceQuery,
     isVisible: ResultTypes.Results === activeTabKey,
     canDownload,
+    queriesResponse,
   }).map((pane, idx) => ({
     key: idx === 0 ? ResultTypes.Results : `${ResultTypes.Results} ${idx + 1}`,
     label: idx === 0 ? t('Results') : t('Results %s', idx + 1),

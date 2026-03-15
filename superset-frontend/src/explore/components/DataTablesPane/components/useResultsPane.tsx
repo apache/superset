@@ -20,6 +20,7 @@ import { useState, useEffect, ReactElement, useCallback } from 'react';
 
 import { t } from '@apache-superset/core/translation';
 import {
+  ChartDataResponseResult,
   ensureIsArray,
   getChartMetadataRegistry,
   getClientErrorObject,
@@ -56,6 +57,7 @@ export const useResultsPane = ({
   dataSize = 50,
   canDownload,
   columnDisplayNames,
+  queriesResponse,
 }: ResultsPaneProps): ReactElement[] => {
   const metadata = getChartMetadataRegistry().get(
     queryFormData?.viz_type || queryFormData?.vizType,
@@ -72,7 +74,32 @@ export const useResultsPane = ({
   useEffect(() => {
     // it's an invalid formData when gets a errorMessage
     if (errorMessage) return;
-    if (isRequest && cache.has(queryFormData)) {
+    if (!isRequest) return;
+
+    // Reuse chart data from Redux when available. The chart visualization
+    // query and the results query produce identical SQL on the backend,
+    // so there is no need for a separate network request.
+    if (queriesResponse?.length && 'colnames' in queriesResponse[0]) {
+      const mapped = queriesResponse.map(q => {
+        const result = q as ChartDataResponseResult;
+        return {
+          colnames: result.colnames,
+          coltypes: result.coltypes,
+          data: result.data,
+          rowcount: result.rowcount,
+        };
+      }) as unknown as QueryResultInterface[];
+      setResultResp(mapped);
+      setResponseError('');
+      if (queryForce) {
+        setForceQuery?.(false);
+      }
+      setIsLoading(false);
+      return;
+    }
+
+    // Fallback: use cached data
+    if (cache.has(queryFormData)) {
       setResultResp(
         ensureIsArray(cache.get(queryFormData)) as QueryResultInterface[],
       );
@@ -81,33 +108,34 @@ export const useResultsPane = ({
         setForceQuery?.(false);
       }
       setIsLoading(false);
+      return;
     }
-    if (isRequest && !cache.has(queryFormData)) {
-      setIsLoading(true);
-      getChartDataRequest({
-        formData: queryFormData,
-        force: queryForce,
-        resultFormat: 'json',
-        resultType: 'results',
-        ownState,
+
+    // Fallback: fetch from API (legacy charts without queriesResponse)
+    setIsLoading(true);
+    getChartDataRequest({
+      formData: queryFormData,
+      force: queryForce,
+      resultFormat: 'json',
+      resultType: 'results',
+      ownState,
+    })
+      .then(({ json }) => {
+        setResultResp(ensureIsArray(json.result) as QueryResultInterface[]);
+        setResponseError('');
+        cache.set(queryFormData, json.result);
+        if (queryForce) {
+          setForceQuery?.(false);
+        }
       })
-        .then(({ json }) => {
-          setResultResp(ensureIsArray(json.result) as QueryResultInterface[]);
-          setResponseError('');
-          cache.set(queryFormData, json.result);
-          if (queryForce) {
-            setForceQuery?.(false);
-          }
-        })
-        .catch(response => {
-          getClientErrorObject(response).then(({ error, message }) => {
-            setResponseError(error || message || t('Sorry, an error occurred'));
-          });
-        })
-        .finally(() => {
-          setIsLoading(false);
+      .catch(response => {
+        getClientErrorObject(response).then(({ error, message }) => {
+          setResponseError(error || message || t('Sorry, an error occurred'));
         });
-    }
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   }, [queryFormData, isRequest]);
 
   useEffect(() => {
