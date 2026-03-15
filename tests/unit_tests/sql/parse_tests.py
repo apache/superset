@@ -3034,6 +3034,11 @@ def test_tokenize_kql(kql: str, expected: list[tuple[KQLTokenType, str]]) -> Non
             "postgresql",
             True,
         ),
+        ("SELECT 1 UNION SELECT 2", "postgresql", False),
+        ("SELECT 1 UNION ALL SELECT 2", "postgresql", False),
+        ("SELECT 1 EXCEPT SELECT 2", "postgresql", False),
+        ("SELECT 1 INTERSECT SELECT 2", "postgresql", False),
+        ("SELECT * FROM (SELECT 1 UNION SELECT 2)", "postgresql", True),
     ],
 )
 def test_has_subquery(sql: str, engine: str, expected: bool) -> None:
@@ -3134,3 +3139,165 @@ def test_backtick_invalid_sql_still_fails() -> None:
     sql = "SELECT * FROM `table` WHERE"
     with pytest.raises(SupersetParseError):
         SQLScript(sql, "base")
+
+
+def test_has_subquery_redundant_parentheses() -> None:
+    """
+    Test that has_subquery correctly identifies subqueries even with
+    redundant parentheses.
+    """
+    sql = "SELECT 1 FROM ((((SELECT 1 FROM table1)))) AS sub"
+    assert SQLStatement(sql, "postgresql").has_subquery() is True
+
+    sql = "SELECT 1 WHERE x IN (((SELECT 1 FROM table1)))"
+    assert SQLStatement(sql, "postgresql").has_subquery() is True
+
+
+def test_is_mutating_nested_dml() -> None:
+    """
+    Test that is_mutating correctly identifies DML nested in CTEs or subqueries.
+    """
+    # CTE-wrapped DELETE
+    sql = """
+    WITH deleted AS (
+      DELETE FROM secret_table WHERE id = 1 RETURNING *
+    )
+    SELECT * FROM deleted;
+    """
+    assert SQLStatement(sql, "postgresql").is_mutating() is True
+
+    # CTE-wrapped UPDATE
+    sql = """
+    WITH updated AS (
+      UPDATE secret_table SET col = 1 WHERE id = 1 RETURNING *
+    )
+    SELECT * FROM updated;
+    """
+    assert SQLStatement(sql, "postgresql").is_mutating() is True
+
+
+def test_extract_tables_insert_with_column_list() -> None:
+    """
+    INSERT INTO t (col1, col2) VALUES (...) must include the target table.
+
+    sqlglot represents this as exp.Schema (not exp.Table) for statement.this,
+    so the extraction must unwrap the Schema to reach the inner Table.
+    """
+    tables = SQLStatement(
+        "INSERT INTO secret_table (id, col) VALUES (1, 2)", "postgresql"
+    ).tables
+    assert Table("secret_table") in tables
+
+
+def test_strip_jinja() -> None:
+    """
+    Test the strip_jinja helper function.
+    """
+    from superset.sql.parse import strip_jinja
+
+    # Basic variable tag → safe identifier
+    assert strip_jinja("{{ var }}") == "__jinja__"
+    # Block tags are removed entirely
+    assert strip_jinja("{% set x = 1 %}") == ""
+    # Comment should be removed
+    assert strip_jinja("{# comment #}") == ""
+    # Mixed content
+    assert strip_jinja("SELECT * FROM table WHERE col = {{ var }} {# comment #}") == (
+        "SELECT * FROM table WHERE col = __jinja__ "
+    )
+    # Variable tags containing SQL subquery keywords are replaced with a
+    # synthetic subquery marker so has_subquery() remains fail-closed.
+    assert strip_jinja("{{ (SELECT 1) }}") == "(SELECT 1)"
+    assert strip_jinja("{{ 'select' if True else 'delete' }}") == "(SELECT 1)"
+    # All SQL control keywords trigger the synthetic subquery marker
+    assert strip_jinja("{{ DELETE FROM users }}") == "(SELECT 1)"
+    assert strip_jinja("{{ UPDATE users SET x=1 }}") == "(SELECT 1)"
+    assert strip_jinja("{{ INSERT INTO t VALUES (1) }}") == "(SELECT 1)"
+    assert strip_jinja("{{ DROP TABLE t }}") == "(SELECT 1)"
+    assert strip_jinja("{{ TRUNCATE TABLE t }}") == "(SELECT 1)"
+    # Word-boundary matching: identifiers that contain keyword substrings but
+    # are not standalone keywords must NOT be flagged.
+    assert strip_jinja("{{ current_user.select_all }}") == "__jinja__"
+    assert strip_jinja("{{ 'select_ids' }}") == "__jinja__"
+    assert strip_jinja("{% if SELECT 1 %} x {% endif %}") == " x "
+    # Multiple variable blocks
+    assert strip_jinja("{{ x }} and {{ y }}") == "__jinja__ and __jinja__"
+
+
+def test_has_subquery_with_jinja() -> None:
+    """
+    Test has_subquery with Jinja templates.
+    """
+    from superset.sql.parse import SQLStatement, strip_jinja
+
+    # Normal Jinja should not be a subquery
+    sql = "SELECT 1 FROM table WHERE col = {{ var }}"
+    clean_sql = strip_jinja(sql)
+    assert SQLStatement(clean_sql, "postgresql").has_subquery() is False
+
+
+def test_is_set_operation() -> None:
+    """
+    Test the is_set_operation property of SQLStatement.
+    """
+    from superset.sql.parse import SQLStatement
+
+    # UNION
+    sql = "SELECT 1 UNION SELECT 2"
+    assert SQLStatement(sql, "postgresql").is_set_operation is True
+
+    # EXCEPT
+    sql = "SELECT 1 EXCEPT SELECT 2"
+    assert SQLStatement(sql, "postgresql").is_set_operation is True
+
+    # INTERSECT
+    sql = "SELECT 1 INTERSECT SELECT 2"
+    assert SQLStatement(sql, "postgresql").is_set_operation is True
+
+    # Normal SELECT
+    sql = "SELECT 1"
+    assert SQLStatement(sql, "postgresql").is_set_operation is False
+
+
+def test_is_mutating_command() -> None:
+    """
+    Test that is_mutating correctly identifies mutations that parse as Commands.
+    """
+    from superset.sql.parse import SQLStatement
+
+    # ALTER SOMETHING parses as a Command in many contexts
+    # This hits the explicit command name check in is_mutating()
+    sql = "ALTER SOMETHING"
+    assert SQLStatement(sql, "postgresql").is_mutating() is True
+
+
+def test_transpile_to_dialect() -> None:
+    """
+    Test the transpile_to_dialect helper function.
+    """
+    from unittest.mock import patch
+
+    from superset.exceptions import QueryClauseValidationException
+    from superset.sql.parse import transpile_to_dialect
+
+    # Success path
+    sql = "SELECT * FROM table LIMIT 10"
+    # mssql uses TOP instead of LIMIT
+    transpiled = transpile_to_dialect(sql, "mssql")
+    assert "TOP 10" in transpiled.upper()
+
+    # No dialect mapping returns as-is
+    assert transpile_to_dialect(sql, "unknown") == sql
+
+    # Parse error
+    with pytest.raises(QueryClauseValidationException) as exc:
+        transpile_to_dialect("SELECT * FROM", "postgresql")
+    assert "Cannot parse SQL clause" in str(exc.value)
+
+    # Generic error (e.g. invalid target dialect name that passed mapping
+    # but failed generate). We can trigger this by passing an invalid
+    # dialect name to get_or_raise if we mock mapping.
+    with patch("superset.sql.parse.SQLGLOT_DIALECTS", {"invalid": "not-a-dialect"}):
+        with pytest.raises(QueryClauseValidationException) as exc:
+            transpile_to_dialect("SELECT 1", "invalid")
+        assert "Cannot transpile SQL to invalid" in str(exc.value)

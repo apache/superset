@@ -52,6 +52,7 @@ from superset.exceptions import (
     SupersetInvalidCTASException,
     SupersetInvalidCVASException,
     SupersetResultsBackendNotConfigureException,
+    SupersetSecurityException,
 )
 from superset.extensions import celery_app, event_logger
 from superset.models.sql_lab import Query
@@ -67,7 +68,7 @@ from superset.utils.core import (
 )
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import stats_timing
-from superset.utils.rls import apply_rls
+from superset.utils.rls import apply_rls, get_predicates_for_table
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -431,8 +432,28 @@ def execute_sql_statements(  # noqa: C901
 
     if is_feature_enabled("RLS_IN_SQLLAB"):
         default_schema = query.database.get_default_schema_for_query(query)
+        default_catalog = query.database.get_default_catalog()
         for statement in parsed_script.statements:
-            apply_rls(query.database, query.catalog, default_schema, statement)
+            if statement.is_mutating():
+                for table in statement.tables:
+                    qualified = table.qualify(
+                        catalog=query.catalog, schema=default_schema
+                    )
+                    if get_predicates_for_table(
+                        qualified, query.database, default_catalog
+                    ):
+                        raise SupersetSecurityException(
+                            SupersetError(
+                                error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                                message=__(
+                                    "DML not allowed on RLS-protected table: %(table)s",
+                                    table=table.table,
+                                ),
+                                level=ErrorLevel.ERROR,
+                            )
+                        )
+            else:
+                apply_rls(query.database, query.catalog, default_schema, statement)
 
     if query.select_as_cta:
         # CTAS is valid when the last statement is a SELECT, while CVAS is valid when

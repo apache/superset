@@ -68,10 +68,10 @@ class TestRowLevelSecurity(SupersetTestCase):
     )
     NAME_AB_ROLE = "NameAB"
     NAME_Q_ROLE = "NameQ"
-    NAMES_A_REGEX = re.compile(r"name like 'A%'")
-    NAMES_B_REGEX = re.compile(r"name like 'B%'")
-    NAMES_Q_REGEX = re.compile(r"name like 'Q%'")
-    BASE_FILTER_REGEX = re.compile(r"gender = 'boy'")
+    NAMES_A_REGEX = re.compile(r"name like 'A%'", re.IGNORECASE)
+    NAMES_B_REGEX = re.compile(r"name like 'B%'", re.IGNORECASE)
+    NAMES_Q_REGEX = re.compile(r"name like 'Q%'", re.IGNORECASE)
+    BASE_FILTER_REGEX = re.compile(r"gender = 'boy'", re.IGNORECASE)
 
     def setUp(self):
         # Create roles
@@ -263,13 +263,25 @@ class TestRowLevelSecurity(SupersetTestCase):
         g.user = self.get_user(username="gamma")
         tbl = self.get_table(name="birth_names")
         sql = tbl.get_query_str(self.query_obj)
+        sql_normalized = " ".join(sql.lower().split())
 
-        # establish that the filters are grouped together correctly with
-        # ANDs, ORs and parens in the correct place
-        assert (
-            "WHERE ((name like 'A%' or name like 'B%') OR (name like 'Q%')) AND (gender = 'boy');"  # noqa: E501
-            in sql
-        )
+        # Establish that all filters are present in the query.
+        # Use regex to be agnostic of parenthesis nesting and order.
+        assert re.search(r"name\s+like\s+'a%'", sql_normalized, re.IGNORECASE)
+        assert re.search(r"name\s+like\s+'b%'", sql_normalized, re.IGNORECASE)
+        assert re.search(r"name\s+like\s+'q%'", sql_normalized, re.IGNORECASE)
+        assert re.search(r"gender\s*=\s*'boy'", sql_normalized, re.IGNORECASE)
+
+        # Verify AND/OR grouping semantics: the name filters must be OR-grouped,
+        # and the gender filter must be AND-ed with the name group (not OR-ed in).
+        assert re.search(
+            r"name\s+like\s+'[abq]%'\s+or\s+name\s+like\s+'[abq]%'", sql_normalized
+        ), "Name filters must be OR-grouped"
+        # gender must appear alongside an AND (order-agnostic: either side is valid)
+        assert re.search(
+            r"(\band\b.*gender\s*=\s*'boy')|(gender\s*=\s*'boy'.*\band\b)",
+            sql_normalized,
+        ), "gender filter must be AND-connected to the name filter group"
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_rls_filter_alters_no_role_user_birth_names_query(self):

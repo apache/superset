@@ -46,9 +46,43 @@ def _make_datasource(dataset_id: int) -> MagicMock:
     datasource = MagicMock(spec=BaseDatasource)
     datasource.get_template_processor.return_value = MagicMock()
     datasource.get_template_processor.return_value.process_template = lambda x: x
-    datasource.text = lambda x: TextClause(x)
+
+    # Mock text method to return something string-like for assertions
+    def _text(x: str) -> MagicMock:
+        m = MagicMock(spec=TextClause)
+        m.__str__.return_value = x  # type: ignore
+        m.compile.return_value = x
+        return m
+
+    datasource.text = _text
+    datasource.database = MagicMock()
+    datasource.database.backend = "postgresql"
+    datasource.database_id = 1
     datasource.data = {"id": dataset_id}
+    datasource.id = dataset_id
+    datasource.schema = "public"
+    datasource.table_name = f"table_{dataset_id}"
     datasource.is_rls_supported = True
+
+    # Manually add method to bypass spec limitations
+    datasource._process_select_expression = MagicMock(return_value=None)
+
+    # Bind real methods so logic executes against mocked security_manager
+    datasource.get_sqla_row_level_filters = (
+        lambda *args, **kwargs: BaseDatasource.get_sqla_row_level_filters(
+            datasource, *args, **kwargs
+        )
+    )
+    datasource._get_processed_rls_filters = (
+        lambda *args, **kwargs: BaseDatasource._get_processed_rls_filters(
+            datasource, *args, **kwargs
+        )
+    )
+    datasource._process_rls_clause = (
+        lambda *args, **kwargs: BaseDatasource._process_rls_clause(
+            datasource, *args, **kwargs
+        )
+    )
     return datasource
 
 
@@ -116,13 +150,13 @@ def test_scoped_guest_rule_preserved_in_virtual_dataset(app: Flask) -> None:
         ),
     ):
         # PATH A: what get_predicates_for_table() calls on PD
-        inner_filters = BaseDatasource.get_sqla_row_level_filters(
-            mock_pd, include_global_guest_rls=False
+        inner_filters = mock_pd.get_sqla_row_level_filters(
+            include_global_guest_rls=False
         )
 
         # PATH B: what get_sqla_query() calls on VD
-        outer_filters = BaseDatasource.get_sqla_row_level_filters(
-            mock_vd, include_global_guest_rls=True
+        outer_filters = mock_vd.get_sqla_row_level_filters(
+            include_global_guest_rls=True
         )
 
         inner_has_rule = any("tenant_id" in str(f) for f in inner_filters)
@@ -173,11 +207,11 @@ def test_unscoped_guest_rule_duplicated_in_virtual_dataset(app: Flask) -> None:
         ),
     ):
         # Both paths with guest RLS enabled (before the fix)
-        inner_filters = BaseDatasource.get_sqla_row_level_filters(
-            mock_pd, include_global_guest_rls=True
+        inner_filters = mock_pd.get_sqla_row_level_filters(
+            include_global_guest_rls=True
         )
-        outer_filters = BaseDatasource.get_sqla_row_level_filters(
-            mock_vd, include_global_guest_rls=True
+        outer_filters = mock_vd.get_sqla_row_level_filters(
+            include_global_guest_rls=True
         )
 
         inner_has_rule = any("org_id" in str(f) for f in inner_filters)
@@ -185,17 +219,6 @@ def test_unscoped_guest_rule_duplicated_in_virtual_dataset(app: Flask) -> None:
 
         assert inner_has_rule, "Unscoped rule should match PD"
         assert outer_has_rule, "Unscoped rule should match VD"
-
-
-def _make_datasource_with_real_rls(dataset_id: int) -> MagicMock:
-    """Create a mock datasource with real get_sqla_row_level_filters."""
-    datasource = _make_datasource(dataset_id)
-    # Bind real BaseDatasource method so RLS logic executes against mocked
-    # security_manager rather than returning MagicMock auto-stub
-    datasource.get_sqla_row_level_filters = (
-        lambda **kwargs: BaseDatasource.get_sqla_row_level_filters(datasource, **kwargs)
-    )
-    return datasource
 
 
 def test_scoped_guest_rule_preserved_through_get_predicates_for_table(
@@ -217,7 +240,7 @@ def test_scoped_guest_rule_preserved_through_get_predicates_for_table(
     scoped_rule = GuestTokenRlsRule(dataset=str(pd_id), clause="tenant_id = 5")
     guest_user = _make_guest_user(rules=[scoped_rule])
 
-    mock_pd = _make_datasource_with_real_rls(pd_id)
+    mock_pd = _make_datasource(pd_id)
 
     database = mocker.MagicMock()
     database.get_dialect.return_value = sqlite.dialect()
@@ -267,7 +290,7 @@ def test_global_guest_rule_excluded_through_get_predicates_for_table(
     global_rule = GuestTokenRlsRule(dataset=None, clause="org_id = 1")
     guest_user = _make_guest_user(rules=[global_rule])
 
-    mock_pd = _make_datasource_with_real_rls(pd_id)
+    mock_pd = _make_datasource(pd_id)
 
     database = mocker.MagicMock()
     database.get_dialect.return_value = sqlite.dialect()
