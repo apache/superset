@@ -117,6 +117,7 @@ jobs:
           run_id: ${{ github.event.workflow_run.id }}
           name: database-diagnostics
           path: docs/src/data/
+          if_no_artifact_found: 'warning'
       - name: Use fresh diagnostics
         run: |
           if [ -f "src/data/databases-diagnostics.json" ]; then
