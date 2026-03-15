@@ -21,7 +21,7 @@ from typing import Any, Optional
 from unittest.mock import Mock, patch
 
 import pytest
-from sqlalchemy import types
+from sqlalchemy import column, types
 from sqlalchemy.dialects.mysql import (
     BIT,
     DECIMAL,
@@ -36,6 +36,8 @@ from sqlalchemy.dialects.mysql import (
 )
 from sqlalchemy.engine.url import make_url, URL  # noqa: F401
 
+from superset.constants import TimeGrain
+from superset.db_engine_specs.base import TimestampExpression
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
@@ -262,3 +264,81 @@ def test_column_type_mutator(
     mock_cursor.description = description
 
     assert spec.fetch_data(mock_cursor) == expected_result
+
+
+@pytest.mark.parametrize(
+    ("grain", "expected_expression"),
+    [
+        (None, "my_col"),
+        (
+            TimeGrain.SECOND,
+            "DATE_ADD(DATE(my_col), "
+            "INTERVAL (HOUR(my_col)*60*60 + MINUTE(my_col)*60"
+            " + SECOND(my_col)) SECOND)",
+        ),
+        (
+            TimeGrain.MINUTE,
+            "DATE_ADD(DATE(my_col), "
+            "INTERVAL (HOUR(my_col)*60 + MINUTE(my_col)) MINUTE)",
+        ),
+        (
+            TimeGrain.HOUR,
+            "DATE_ADD(CAST(DATE(my_col) AS DATETIME), INTERVAL HOUR(my_col) HOUR)",
+        ),
+        (TimeGrain.DAY, "DATE(my_col)"),
+        (
+            TimeGrain.WEEK,
+            "DATE(DATE_SUB(my_col, INTERVAL DAYOFWEEK(my_col) - 1 DAY))",
+        ),
+        (
+            TimeGrain.MONTH,
+            "DATE(DATE_SUB(my_col, INTERVAL DAYOFMONTH(my_col) - 1 DAY))",
+        ),
+        (
+            TimeGrain.QUARTER,
+            "MAKEDATE(YEAR(my_col), 1) "
+            "+ INTERVAL QUARTER(my_col) QUARTER - INTERVAL 1 QUARTER",
+        ),
+        (
+            TimeGrain.YEAR,
+            "DATE(DATE_SUB(my_col, INTERVAL DAYOFYEAR(my_col) - 1 DAY))",
+        ),
+        (
+            TimeGrain.WEEK_STARTING_MONDAY,
+            "DATE(DATE_SUB(my_col, "
+            "INTERVAL DAYOFWEEK(DATE_SUB(my_col, "
+            "INTERVAL 1 DAY)) - 1 DAY))",
+        ),
+    ],
+)
+def test_time_grain_expressions(
+    grain: Optional[TimeGrain], expected_expression: str
+) -> None:
+    """
+    Test that MySQL time grain expression templates produce the expected SQL.
+    Guards against the DATE() function being dropped in the HOUR grain.
+    """
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    actual = MySQLEngineSpec._time_grain_expressions[grain].replace("{col}", "my_col")
+    assert actual == expected_expression
+
+
+def test_compile_timegrain_expression_preserves_date_function() -> None:
+    """
+    Test that compile_timegrain_expression preserves the DATE() wrapper in the
+    MySQL HOUR time grain expression.
+
+    Regression test for: ECharts HOUR grain generates invalid SQL (DATE() dropped).
+    """
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    col = column("my_col")
+    template = MySQLEngineSpec._time_grain_expressions[TimeGrain.HOUR]
+    expr = TimestampExpression(template, col)
+
+    compiled = str(expr)
+    assert (
+        compiled
+        == "DATE_ADD(CAST(DATE(my_col) AS DATETIME), INTERVAL HOUR(my_col) HOUR)"
+    ), f"DATE() wrapper was dropped or CAST lost. Got: {compiled}"
