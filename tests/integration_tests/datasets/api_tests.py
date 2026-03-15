@@ -179,6 +179,7 @@ class TestDatasetApi(SupersetTestCase):
                         [admin.id],
                         main_db,
                         "SELECT * from ab_view_menu;",
+                        catalog=main_db.get_default_catalog(),
                     )
                 )
             yield datasets
