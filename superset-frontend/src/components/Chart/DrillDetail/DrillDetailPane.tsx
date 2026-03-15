@@ -319,7 +319,7 @@ export default function DrillDetailPane({
           recordCount={resultsPage?.total}
           usePagination
           loading={isLoading}
-          onChange={(pagination) => {
+          onChange={pagination => {
             const newPageSize = pagination.pageSize ?? pageSize;
             if (newPageSize !== pageSize) {
               setPageSize(newPageSize);
