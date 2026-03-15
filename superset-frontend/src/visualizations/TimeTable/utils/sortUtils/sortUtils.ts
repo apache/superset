@@ -42,23 +42,20 @@ function compareValues(
 }
 
 /**
- * Sorts table rows with mixed data types for react-table
- * @param rowA - First row to compare
- * @param rowB - Second row to compare
- * @param columnId - Column identifier for sorting
- * @param descending - Whether to sort in descending order
- * @returns Numeric comparison result for react-table
+ * Sorts table rows with mixed data types for react-table.
+ *
+ * react-table handles the asc/desc direction flip internally after calling
+ * this function, so we only return the raw comparison result.
  */
 export function sortNumberWithMixedTypes(
   rowA: any,
   rowB: any,
   columnId: string,
-  descending: boolean,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _descending: boolean,
 ) {
   const valueA = rowA.values[columnId].props['data-value'];
   const valueB = rowB.values[columnId].props['data-value'];
 
-  const comparison = compareValues(valueA, valueB, 'asSmallest');
-
-  return comparison * (descending ? -1 : 1);
+  return compareValues(valueA, valueB, 'asSmallest');
 }

@@ -54,13 +54,16 @@ describe('sortNumberWithMixedTypes', () => {
     expect(result).toBeLessThan(0); // rowA should come before rowB
   });
 
-  test('should sort numbers in descending order', () => {
+  test('should return same raw comparison for desc flag (react-table handles the flip)', () => {
     const rowA = createMockRow(10);
     const rowB = createMockRow(20);
 
-    const result = sortNumberWithMixedTypes(rowA, rowB, 'testColumn', true);
+    const ascResult = sortNumberWithMixedTypes(rowA, rowB, 'testColumn', false);
+    const descResult = sortNumberWithMixedTypes(rowA, rowB, 'testColumn', true);
 
-    expect(result).toBeGreaterThan(0); // rowB should come before rowA in descending
+    expect(ascResult).toBeLessThan(0);
+    expect(descResult).toBeLessThan(0);
+    expect(ascResult).toBe(descResult);
   });
 
   test('should handle equal values', () => {

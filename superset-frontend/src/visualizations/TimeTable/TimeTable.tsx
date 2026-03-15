@@ -20,7 +20,8 @@ import { useMemo, ReactNode } from 'react';
 import { InfoTooltip, TableView } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
-import { sortNumberWithMixedTypes, processTimeTableData } from './utils';
+import { processTimeTableData, calculateCellValue } from './utils';
+import { sortNumberWithMixedTypes } from './utils/sortUtils/sortUtils';
 import { ValueCell, LeftCell, Sparkline } from './components';
 import type { TimeTableProps } from './types';
 
@@ -94,14 +95,21 @@ const TimeTable = ({
             };
           }
 
+          const { value: sortValue } = calculateCellValue(
+            valueField,
+            columnConfig,
+            reversedEntries,
+          );
           return {
             ...acc,
             [columnConfig.key]: (
-              <ValueCell
-                valueField={valueField}
-                column={columnConfig}
-                reversedEntries={reversedEntries}
-              />
+              <span data-value={sortValue}>
+                <ValueCell
+                  valueField={valueField}
+                  column={columnConfig}
+                  reversedEntries={reversedEntries}
+                />
+              </span>
             ),
           };
         },
