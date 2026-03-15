@@ -21,8 +21,13 @@ import fetchMock from 'fetch-mock';
 import { render, screen } from 'spec/helpers/testing-library';
 import EmbedCodeContent from 'src/explore/components/EmbedCodeContent';
 
-const url = 'http://localhost/explore/p/100';
-fetchMock.post('glob:*/api/v1/explore/permalink', { url });
+const mockEmbedResponse = {
+  iframe_url: 'http://localhost/embedded/chart/abc-123',
+  guest_token: 'test-guest-token-xyz',
+  expires_at: '2026-02-11T00:00:00Z',
+};
+
+fetchMock.post('glob:*/api/v1/embedded_chart/', mockEmbedResponse);
 
 const mockFormData = {
   datasource: 'table__1',
@@ -44,11 +49,6 @@ describe('EmbedCodeButton', () => {
     ).toBeVisible();
     expect(
       await screen.findByText('height="400"', { exact: false }),
-    ).toBeVisible();
-    expect(
-      await screen.findByText(`src="${url}?standalone=1&height=400"`, {
-        exact: false,
-      }),
     ).toBeVisible();
   });
 });

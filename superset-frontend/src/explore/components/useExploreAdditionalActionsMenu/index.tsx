@@ -70,6 +70,7 @@ import { ChartState, ExplorePageInitialData } from 'src/explore/types';
 import { ReportObject } from 'src/features/reports/types';
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
+import EmbeddedChartModal from 'src/dashboard/components/EmbeddedChartModal';
 import { useDashboardsMenuItems } from './DashboardsSubMenu';
 
 export const SEARCH_THRESHOLD = 10;
@@ -94,6 +95,7 @@ const MENU_KEYS = {
   SHARE_SUBMENU: 'share_submenu',
   COPY_PERMALINK: 'copy_permalink',
   EMBED_CODE: 'embed_code',
+  EMBED_CHART: 'embed_chart',
   SHARE_BY_EMAIL: 'share_by_email',
   REPORT_SUBMENU: 'report_submenu',
   SET_UP_REPORT: 'set_up_report',
@@ -187,6 +189,7 @@ export type UseExploreAdditionalActionsMenuReturn = [
   boolean,
   Dispatch<SetStateAction<boolean>>,
   StreamingExportState,
+  ReactElement | null,
 ];
 
 export const useExploreAdditionalActionsMenu = (
@@ -211,6 +214,7 @@ export const useExploreAdditionalActionsMenu = (
   const dispatch = useDispatch();
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [dashboardSearchTerm, setDashboardSearchTerm] = useState('');
+  const [isEmbedModalOpen, setIsEmbedModalOpen] = useState(false);
   const debouncedDashboardSearchTerm = useDebounceValue(
     dashboardSearchTerm,
     300,
@@ -936,27 +940,38 @@ export const useExploreAdditionalActionsMenu = (
       },
     ];
 
-    if (isFeatureEnabled(FeatureFlag.EmbeddableCharts)) {
+    // Embed code is always available (simple iframe URL)
+    shareChildren.push({
+      key: MENU_KEYS.EMBED_CODE,
+      label: (
+        <ModalTrigger
+          triggerNode={
+            <div data-test="embed-code-button">{t('Embed code')}</div>
+          }
+          modalTitle={t('Embed code')}
+          modalBody={
+            <EmbedCodeContent
+              formData={latestQueryFormData}
+              addDangerToast={addDangerToast}
+            />
+          }
+          maxWidth={`${theme.sizeUnit * 100}px`}
+          destroyOnHidden
+          responsive
+        />
+      ),
+      onClick: () => setIsDropdownVisible(false),
+    });
+
+    // Add persistent embed chart option (only for saved charts with EMBEDDABLE_CHARTS enabled)
+    if (isFeatureEnabled(FeatureFlag.EmbeddableCharts) && slice?.slice_id) {
       shareChildren.push({
-        key: MENU_KEYS.EMBED_CODE,
-        label: (
-          <ModalTrigger
-            triggerNode={
-              <div data-test="embed-code-button">{t('Embed code')}</div>
-            }
-            modalTitle={t('Embed code')}
-            modalBody={
-              <EmbedCodeContent
-                formData={latestQueryFormData}
-                addDangerToast={addDangerToast}
-              />
-            }
-            maxWidth={`${theme.sizeUnit * 100}px`}
-            destroyOnHidden
-            responsive
-          />
-        ),
-        onClick: () => setIsDropdownVisible(false),
+        key: MENU_KEYS.EMBED_CHART,
+        label: t('Embed chart'),
+        onClick: () => {
+          setIsEmbedModalOpen(true);
+          setIsDropdownVisible(false);
+        },
       });
     }
 
@@ -1048,5 +1063,21 @@ export const useExploreAdditionalActionsMenu = (
     onDownload: handleDownloadComplete,
   };
 
-  return [menu, isDropdownVisible, setIsDropdownVisible, streamingExportState];
+  // Embed chart modal component
+  const embedChartModal = slice?.slice_id ? (
+    <EmbeddedChartModal
+      chartId={slice.slice_id}
+      formData={latestQueryFormData}
+      show={isEmbedModalOpen}
+      onHide={() => setIsEmbedModalOpen(false)}
+    />
+  ) : null;
+
+  return [
+    menu,
+    isDropdownVisible,
+    setIsDropdownVisible,
+    streamingExportState,
+    embedChartModal,
+  ];
 };
