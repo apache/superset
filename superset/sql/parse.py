@@ -322,6 +322,34 @@ class Table:
         )
 
 
+@dataclass(eq=True, frozen=True)
+class Partition:
+    """
+    Partition object, with two attribute keys:
+    is_partitioned_table and partition_column,
+    used to provide partition information
+    Here is an example of an object:
+    {"is_partitioned_table": true, "partition_column": ["month", "day"]}
+    """
+
+    is_partitioned_table: bool
+    partition_column: list[str] | None = None
+
+    def __str__(self) -> str:
+        """
+        Return a string representation of the Partition object.
+        """
+        partition_column_str = (
+            ", ".join(map(str, self.partition_column))
+            if self.partition_column
+            else "None"
+        )
+        return (
+            f"Partition(is_partitioned_table={self.is_partitioned_table}, "
+            f"partition_column=[{partition_column_str}])"
+        )
+
+
 # To avoid unnecessary parsing/formatting of queries, the statement has the concept of
 # an "internal representation", which is the AST of the SQL statement. For most of the
 # engines supported by Superset this is `sqlglot.exp.Expression`, but there is a special
