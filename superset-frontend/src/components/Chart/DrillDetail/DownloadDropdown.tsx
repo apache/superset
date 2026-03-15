@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { t } from '@apache-superset/core';
-import { css, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { Dropdown, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 
