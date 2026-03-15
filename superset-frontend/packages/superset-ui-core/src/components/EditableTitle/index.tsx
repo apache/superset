@@ -19,7 +19,7 @@
 
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useLayoutEffect, useState, useRef } from 'react';
 import cx from 'classnames';
 import { Tooltip } from '../Tooltip';
 import { CertifiedBadge } from '../CertifiedBadge';
@@ -105,7 +105,7 @@ export function EditableTitle({
     return 0;
   }
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const { font } = window.getComputedStyle(
       contentRef.current?.resizableTextArea?.textArea || document.body,
     );
@@ -113,7 +113,11 @@ export function EditableTitle({
     const padding = 20;
     const maxAllowedWidth = typeof maxWidth === 'number' ? maxWidth : Infinity;
     setInputWidth(Math.min(textWidth + padding, maxAllowedWidth));
-  }, [currentTitle]);
+  }, [currentTitle, maxWidth]);
+
+  useEffect(() => {
+    setIsEditing(editing);
+  }, [editing]);
 
   useEffect(() => {
     if (title !== currentTitle) {
