@@ -10782,7 +10782,6 @@ msgstr "Выберите тип визуализации"
 msgid "Select aggregate options"
 msgstr "Выберите настройки агрегации"
 
-#, fuzzy
 msgid "Select all"
 msgstr "Выбрать все"
 
