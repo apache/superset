@@ -24,11 +24,11 @@ interface FormattedNumberProps {
   format?: string;
 }
 
-const FormattedNumber = ({ num = 0, format }: FormattedNumberProps) => {
-  const displayNum = num ?? 0;
+const FormattedNumber = ({ num = null, format }: FormattedNumberProps) => {
+  const displayNum = num ?? 'null';
   const numericValue = parseToNumber(num);
 
-  if (format)
+  if (num !== null && format)
     return (
       <span title={`${displayNum}`}>{formatNumber(format, numericValue)}</span>
     );

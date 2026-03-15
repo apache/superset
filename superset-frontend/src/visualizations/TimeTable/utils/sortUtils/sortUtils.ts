@@ -46,19 +46,19 @@ function compareValues(
  * @param rowA - First row to compare
  * @param rowB - Second row to compare
  * @param columnId - Column identifier for sorting
- * @param descending - Whether to sort in descending order
  * @returns Numeric comparison result for react-table
  */
 export function sortNumberWithMixedTypes(
   rowA: any,
   rowB: any,
   columnId: string,
-  descending: boolean,
 ) {
-  const valueA = rowA.values[columnId].props['data-value'];
-  const valueB = rowB.values[columnId].props['data-value'];
+  const valueA = rowA.original.cellValues[columnId];
+  const valueB = rowB.original.cellValues[columnId];
 
   const comparison = compareValues(valueA, valueB, 'asSmallest');
 
-  return comparison * (descending ? -1 : 1);
+  if (comparison < 0) return -1;
+  if (comparison > 0) return 1;
+  return 0;
 }
