@@ -24,6 +24,10 @@ import roundDecimal from './utils/roundDecimal';
 import luminanceFromRGB from './utils/luminanceFromRGB';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
+// Shared radius bounds keep cluster and point sizing in sync.
+export const MIN_CLUSTER_RADIUS_RATIO = 1 / 6;
+export const MAX_POINT_RADIUS_RATIO = 1 / 3;
+
 interface GeoJSONLocation {
   geometry: {
     coordinates: [number, number];
@@ -187,7 +191,10 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
     // Guard against empty array or zero max to prevent NaN from division
     const maxLabel =
       filteredLabels.length > 0 ? Math.max(...filteredLabels) : 1;
-    const safeMaxLabel = maxLabel > 0 ? maxLabel : 1;
+    const minLabel =
+      filteredLabels.length > 0 ? Math.min(...filteredLabels) : 0;
+    const maxAbsLabel = Math.max(Math.abs(maxLabel), Math.abs(minLabel));
+    const safeMaxAbsLabel = maxAbsLabel > 0 ? maxAbsLabel : 1;
 
     // Calculate min/max radius values for Pixels mode scaling
     let minRadiusValue = Infinity;
@@ -239,8 +246,10 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
             const safeNumericLabel = Number.isFinite(numericLabel)
               ? numericLabel
               : 0;
+            const minClusterRadius = radius * MIN_CLUSTER_RADIUS_RATIO;
+            const ratio = Math.abs(safeNumericLabel) / safeMaxAbsLabel;
             const scaledRadius = roundDecimal(
-              (safeNumericLabel / safeMaxLabel) ** 0.5 * radius,
+              minClusterRadius + ratio ** 0.5 * (radius - minClusterRadius),
               1,
             );
             const fontHeight = roundDecimal(scaledRadius * 0.5, 1);
@@ -274,10 +283,12 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
 
             if (Number.isFinite(safeNumericLabel)) {
               let label: string | number = clusterLabel;
-              if (safeNumericLabel >= 10000) {
-                label = `${Math.round(safeNumericLabel / 1000)}k`;
-              } else if (safeNumericLabel >= 1000) {
-                label = `${Math.round(safeNumericLabel / 100) / 10}k`;
+              const absLabel = Math.abs(safeNumericLabel);
+              const sign = safeNumericLabel < 0 ? '-' : '';
+              if (absLabel >= 10000) {
+                label = `${sign}${Math.round(absLabel / 1000)}k`;
+              } else if (absLabel >= 1000) {
+                label = `${sign}${Math.round(absLabel / 100) / 10}k`;
               }
               this.drawText(ctx, pixelRounded, {
                 fontHeight,
@@ -288,7 +299,7 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
               });
             }
           } else {
-            const defaultRadius = radius / 6;
+            const defaultRadius = radius * MIN_CLUSTER_RADIUS_RATIO;
             const rawRadius = location.properties.radius;
             const radiusProperty =
               typeof rawRadius === 'number' ? rawRadius : null;
@@ -311,8 +322,8 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
               } else if (pointRadiusUnit === 'Pixels') {
                 // Scale pixel values to a reasonable range (radius/6 to radius/3)
                 // This ensures points are visible and proportional to their values
-                const MIN_POINT_RADIUS = radius / 6;
-                const MAX_POINT_RADIUS = radius / 3;
+                const MIN_POINT_RADIUS = radius * MIN_CLUSTER_RADIUS_RATIO;
+                const MAX_POINT_RADIUS = radius * MAX_POINT_RADIUS_RATIO;
 
                 if (
                   Number.isFinite(minRadiusValue) &&
