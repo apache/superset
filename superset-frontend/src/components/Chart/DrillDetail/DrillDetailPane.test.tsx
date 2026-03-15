@@ -114,6 +114,34 @@ const fetchWithData = () => {
   });
 };
 
+const fetchWithPaginatedData = () => {
+  setupDatasetEndpoint();
+  fetchMock.post(SAMPLES_ENDPOINT, {
+    result: {
+      total_count: 100,
+      data: [
+        {
+          year: 1996,
+          na_sales: 11.27,
+          eu_sales: 8.89,
+        },
+        {
+          year: 1989,
+          na_sales: 23.2,
+          eu_sales: 2.26,
+        },
+        {
+          year: 1999,
+          na_sales: 9,
+          eu_sales: 6.18,
+        },
+      ],
+      colnames: ['year', 'na_sales', 'eu_sales'],
+      coltypes: [0, 0, 0],
+    },
+  });
+};
+
 afterEach(() => {
   fetchMock.clearHistory().removeRoutes();
   supersetGetCache.clear();
@@ -187,6 +215,14 @@ test('should render the error', async () => {
     .mockRejectedValue(new Error('Something went wrong'));
   await waitForRender();
   expect(screen.getByText('Error: Something went wrong')).toBeInTheDocument();
+});
+
+test('should render pagination when results exceed page size', async () => {
+  fetchWithPaginatedData();
+  await waitForRender();
+  // With total_count=100 and page size=50, pagination should render
+  const pagination = document.querySelector('.ant-pagination');
+  expect(pagination).toBeTruthy();
 });
 
 test('should use verbose_map for column headers when available', async () => {
