@@ -23,6 +23,7 @@ import {
   ensureIsArray,
   getChartMetadataRegistry,
   getClientErrorObject,
+  QueryFormData,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { EmptyState, Loading } from '@superset-ui/core/components';
@@ -73,7 +74,7 @@ export const useResultsPane = ({
   const handleDownload = useCallback(
     (format: 'csv' | 'xlsx') => {
       exportChart({
-        formData: queryFormData,
+        formData: queryFormData as QueryFormData,
         resultFormat: format,
         resultType: 'results',
       });

@@ -25,7 +25,7 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import { css, useTheme } from '@apache-superset/core/theme';
-import { Button, Modal, Dropdown } from '@superset-ui/core/components';
+import { Button, Modal } from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
