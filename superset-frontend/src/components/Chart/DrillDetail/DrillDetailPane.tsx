@@ -247,6 +247,7 @@ export default function DrillDetailPane({
         result_type: 'drill_detail',
         result_format: exportType,
         force: false,
+        ...(dashboardId && { form_data: { dashboardId } }),
       };
       SupersetClient.postForm(ensureAppRoot('/api/v1/chart/data'), {
         form_data: safeStringify(payload),
@@ -262,6 +263,7 @@ export default function DrillDetailPane({
       datasourceId,
       datasourceType,
       ROW_LIMIT,
+      dashboardId,
       addDangerToast,
     ],
   );
