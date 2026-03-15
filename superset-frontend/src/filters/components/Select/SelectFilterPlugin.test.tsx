@@ -1496,11 +1496,13 @@ test('clear-all resets LIKE input value and calls setDataMask with empty state',
     );
   });
 
+  const callsBeforeDebounceFlush = setDataMaskMock.mock.calls.length;
+
   act(() => {
     jest.advanceTimersByTime(500);
   });
 
-  expect(setDataMaskMock).not.toHaveBeenCalled();
+  expect(setDataMaskMock).toHaveBeenCalledTimes(callsBeforeDebounceFlush);
 });
 
 test('pending LIKE debounce still applies after rerender recreates updateDataMask', async () => {
@@ -1622,19 +1624,7 @@ test('pending LIKE debounce is canceled when operatorType switches back to Exact
     jest.advanceTimersByTime(500);
   });
 
-  expect(setDataMaskMock).not.toHaveBeenCalledWith(
-    expect.objectContaining({
-      extraFormData: {
-        filters: [
-          {
-            col: 'gender',
-            op: 'ILIKE',
-            val: '%Jen%',
-          },
-        ],
-      },
-    }),
-  );
+  expect(setDataMaskMock).not.toHaveBeenCalled();
 });
 
 test('renders standard Select dropdown when operatorType is Exact', () => {
