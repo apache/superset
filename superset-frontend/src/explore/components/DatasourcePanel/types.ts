@@ -45,6 +45,7 @@ export type DatasourcePanelColumn = {
   expression?: string | null;
   is_certified?: number | null;
   column_name?: string | null;
+  verbose_name?: string | null;
   name?: string | null;
   type?: string;
 };
