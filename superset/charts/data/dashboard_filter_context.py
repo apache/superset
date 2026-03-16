@@ -78,7 +78,7 @@ def _is_filter_in_scope_for_chart(
     Otherwise falls back to scope.rootPath and scope.excluded with
     the dashboard layout.
     """
-    if charts_in_scope := filter_config.get("chartsInScope"):
+    if (charts_in_scope := filter_config.get("chartsInScope")) is not None:
         return chart_id in charts_in_scope
 
     scope = filter_config.get("scope", {})

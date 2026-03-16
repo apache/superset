@@ -145,6 +145,12 @@ def test_filter_not_in_scope_via_charts_in_scope() -> None:
     assert _is_filter_in_scope_for_chart(flt, 10, SAMPLE_POSITION_JSON) is False
 
 
+def test_filter_empty_charts_in_scope_not_in_scope() -> None:
+    """Empty chartsInScope means in scope for no charts; do not fall back to rootPath"""
+    flt = _make_filter(charts_in_scope=[], scope_root=["ROOT_ID"])
+    assert _is_filter_in_scope_for_chart(flt, 10, SAMPLE_POSITION_JSON) is False
+
+
 def test_filter_in_scope_via_root_path() -> None:
     flt = _make_filter(scope_root=["ROOT_ID"])
     assert _is_filter_in_scope_for_chart(flt, 10, SAMPLE_POSITION_JSON) is True

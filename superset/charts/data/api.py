@@ -182,7 +182,17 @@ class ChartDataRestApi(ChartRestApi):
 
         # Apply dashboard filter context when filters_dashboard_id is provided
         dashboard_filter_context: DashboardFilterContext | None = None
-        filters_dashboard_id = request.args.get("filters_dashboard_id", type=int)
+        if "filters_dashboard_id" in request.args:
+            raw = request.args.get("filters_dashboard_id")
+            try:
+                filters_dashboard_id = int(raw)
+            except (ValueError, TypeError):
+                return self.response_400(
+                    message="filters_dashboard_id must be an integer"
+                )
+        else:
+            filters_dashboard_id = None
+
         if filters_dashboard_id is not None:
             try:
                 dashboard_filter_context = get_dashboard_filter_context(
@@ -200,12 +210,12 @@ class ChartDataRestApi(ChartRestApi):
 
                 for query in json_body.get("queries", []):
                     if extra_filters:
-                        existing = query.get("filters", [])
+                        existing = query.get("filters") or []
                         query["filters"] = existing + [
                             {**f, "isExtra": True} for f in extra_filters
                         ]
 
-                    extras = query.get("extras", {})
+                    extras = query.get("extras") or {}
                     for key in EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS:
                         if key in efd:
                             extras[key] = efd[key]
