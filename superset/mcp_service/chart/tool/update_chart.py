@@ -130,6 +130,7 @@ async def update_chart(
         # Get dataset_id from existing chart for column type checking
         dataset_id = chart.datasource_id if chart.datasource_id else None
         new_form_data = map_config_to_form_data(request.config, dataset_id=dataset_id)
+        new_form_data.pop("_mcp_warnings", None)
 
         # Update chart using Superset's command
         from superset.commands.chart.update import UpdateChartCommand
