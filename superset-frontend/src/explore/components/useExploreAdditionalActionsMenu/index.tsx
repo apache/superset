@@ -35,7 +35,8 @@ import {
   QueryFormData,
   Behavior,
 } from '@superset-ui/core';
-import { css, styled, useTheme, t } from '@apache-superset/core/ui';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import {
   Icons,
   ModalTrigger,
@@ -171,7 +172,9 @@ interface ExploreSlice {
 
 interface ExploreState {
   charts?: Record<number, ChartState>;
-  explore?: ExploreSlice;
+  explore?: ExploreSlice & {
+    chartStates?: Record<number, JsonObject>;
+  };
   common?: {
     conf?: {
       CSV_STREAMING_ROW_THRESHOLD?: number;
@@ -219,6 +222,14 @@ export const useExploreAdditionalActionsMenu = (
     state =>
       state.common?.conf?.CSV_STREAMING_ROW_THRESHOLD ||
       DEFAULT_CSV_STREAMING_ROW_THRESHOLD,
+  );
+  const exploreChartState = useSelector<ExploreState, JsonObject | undefined>(
+    state => {
+      const chartKey = state.explore ? getChartKey(state.explore) : undefined;
+      return chartKey != null
+        ? state.explore?.chartStates?.[chartKey]
+        : undefined;
+    },
   );
 
   // Streaming export state and handlers
@@ -273,6 +284,9 @@ export const useExploreAdditionalActionsMenu = (
     'EXPORT_CURRENT_VIEW' as Behavior,
   );
 
+  const permalinkChartState = (exploreChartState as { state?: JsonObject })
+    ?.state;
+
   const shareByEmail = useCallback(async () => {
     try {
       const subject = t('Superset Chart');
@@ -281,6 +295,8 @@ export const useExploreAdditionalActionsMenu = (
       }
       const result = await getChartPermalink(
         latestQueryFormData as Pick<QueryFormData, 'datasource'>,
+        undefined,
+        permalinkChartState,
       );
       if (!result?.url) {
         throw new Error('Failed to generate permalink');
@@ -292,7 +308,7 @@ export const useExploreAdditionalActionsMenu = (
     } catch (error) {
       addDangerToast(t('Sorry, something went wrong. Try again later.'));
     }
-  }, [addDangerToast, latestQueryFormData]);
+  }, [addDangerToast, latestQueryFormData, permalinkChartState]);
 
   const exportCSV = useCallback(() => {
     if (!canDownloadCSV) return null;
@@ -410,6 +426,8 @@ export const useExploreAdditionalActionsMenu = (
       await copyTextToClipboard(async () => {
         const result = await getChartPermalink(
           latestQueryFormData as Pick<QueryFormData, 'datasource'>,
+          undefined,
+          permalinkChartState,
         );
         if (!result?.url) {
           throw new Error('Failed to generate permalink');
@@ -420,7 +438,12 @@ export const useExploreAdditionalActionsMenu = (
     } catch (error) {
       addDangerToast(t('Sorry, something went wrong. Try again later.'));
     }
-  }, [addDangerToast, addSuccessToast, latestQueryFormData]);
+  }, [
+    addDangerToast,
+    addSuccessToast,
+    latestQueryFormData,
+    permalinkChartState,
+  ]);
 
   // Minimal client-side CSV builder used for "Current View" when pagination is disabled
   const downloadClientCSV = (

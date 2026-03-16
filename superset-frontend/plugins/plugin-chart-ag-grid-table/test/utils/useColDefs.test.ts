@@ -17,7 +17,7 @@
  * under the License.
  */
 import { renderHook } from '@testing-library/react-hooks';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { useColDefs } from '../../src/utils/useColDefs';
 import { InputColumn } from '../../src/types';
 

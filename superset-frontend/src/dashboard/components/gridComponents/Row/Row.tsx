@@ -22,15 +22,16 @@ import {
   useCallback,
   useRef,
   useEffect,
+  useLayoutEffect,
   useMemo,
   memo,
   RefObject,
 } from 'react';
 import cx from 'classnames';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { FeatureFlag, isFeatureEnabled, JsonObject } from '@superset-ui/core';
-import { css, styled, SupersetTheme } from '@apache-superset/core/ui';
-import { Icons, Constants } from '@superset-ui/core/components';
+import { css, styled, SupersetTheme } from '@apache-superset/core/theme';
+import { Icons } from '@superset-ui/core/components';
 import {
   Draggable,
   Droppable,
@@ -47,7 +48,6 @@ import { BACKGROUND_TRANSPARENT } from 'src/dashboard/util/constants';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { EMPTY_CONTAINER_Z_INDEX } from 'src/dashboard/constants';
 import { isCurrentUserBot } from 'src/utils/isBot';
-import { useDebouncedEffect } from '../../../../explore/exploreUtils';
 
 export type RowProps = {
   id: string;
@@ -215,20 +215,13 @@ const Row = memo((props: RowProps) => {
     };
   }, []);
 
-  useDebouncedEffect(
-    () => {
-      const updatedHeight = containerRef.current?.clientHeight;
-      if (
-        editMode &&
-        containerRef.current &&
-        updatedHeight !== containerHeight
-      ) {
-        setContainerHeight(updatedHeight ?? null);
-      }
-    },
-    Constants.FAST_DEBOUNCE,
-    [editMode, containerHeight],
-  );
+  useLayoutEffect(() => {
+    if (!editMode) return;
+    const updatedHeight = containerRef.current?.clientHeight;
+    if (updatedHeight !== undefined && updatedHeight !== containerHeight) {
+      setContainerHeight(updatedHeight);
+    }
+  });
 
   const handleChangeFocus = useCallback((nextFocus: boolean) => {
     setIsFocused(Boolean(nextFocus));

@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { omit } from 'lodash';
 import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
 import { DatasourcesAction } from 'src/dashboard/actions/datasources';

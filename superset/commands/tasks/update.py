@@ -22,7 +22,7 @@ from functools import partial
 from typing import Any, TYPE_CHECKING
 from uuid import UUID
 
-from superset_core.api.tasks import TaskProperties
+from superset_core.tasks.types import TaskProperties
 
 from superset import security_manager
 from superset.commands.base import BaseCommand

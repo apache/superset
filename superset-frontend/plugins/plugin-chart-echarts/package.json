@@ -26,8 +26,10 @@
   "dependencies": {
     "@types/d3-array": "^3.2.2",
     "@types/react-redux": "^7.1.34",
+    "acorn": "^8.16.0",
     "d3-array": "^3.2.4",
-    "lodash": "^4.17.23"
+    "lodash": "^4.17.23",
+    "zod": "^4.3.6"
   },
   "peerDependencies": {
     "@apache-superset/core": "*",

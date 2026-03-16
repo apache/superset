@@ -18,7 +18,7 @@
  */
 
 import { useMemo } from 'react';
-import { useTheme, SupersetTheme } from '@apache-superset/core/ui';
+import { useTheme, SupersetTheme } from '@apache-superset/core/theme';
 import {
   FOLDER_INDENTATION_WIDTH,
   ITEM_INDENTATION_WIDTH,

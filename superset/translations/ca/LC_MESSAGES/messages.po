@@ -10500,7 +10500,7 @@ msgstr "Executant"
 
 #, fuzzy, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
-msgstr "Executant sentència %(statement_num)s de %(statement_count)s"
+msgstr "Executant sentència %(block_num)s de %(block_count)s"
 
 msgid "SAT"
 msgstr "DIS"
