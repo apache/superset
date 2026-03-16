@@ -337,7 +337,9 @@ class TestAnalyzeChartCapabilitiesBigNumber:
             metric=ColumnRef(name="revenue", aggregate="SUM"),
         )
         result = analyze_chart_capabilities(None, config)
-        assert result is not None
+        assert result.supports_export is True
+        assert result.supports_interaction is False
+        assert result.supports_drill_down is False
 
     def test_big_number_trendline_capabilities(self) -> None:
         config = BigNumberChartConfig(
@@ -347,7 +349,9 @@ class TestAnalyzeChartCapabilitiesBigNumber:
             show_trendline=True,
         )
         result = analyze_chart_capabilities(None, config)
-        assert result is not None
+        assert result.supports_export is True
+        assert result.supports_interaction is False
+        assert result.supports_drill_down is False
 
 
 class TestAnalyzeChartSemanticsBigNumber:

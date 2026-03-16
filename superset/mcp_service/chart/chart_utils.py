@@ -649,9 +649,6 @@ def map_pie_config(config: PieChartConfig) -> Dict[str, Any]:
         "date_format": "smart_date",
     }
 
-    if time_range := getattr(config, "time_range", None):
-        form_data["time_range"] = time_range
-
     _add_adhoc_filters(form_data, config.filters)
 
     return form_data
