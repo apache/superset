@@ -1078,6 +1078,23 @@ describe('getLegendLayoutResult', () => {
       effectiveType: LegendType.Scroll,
     });
   });
+
+  test('falls back to scroll when vertical plain legend selectors exceed available width', () => {
+    expect(
+      getLegendLayoutResult({
+        chartHeight: 400,
+        chartWidth: 300,
+        legendItems: ['A', 'B', 'C'],
+        legendMargin: null,
+        orientation: LegendOrientation.Left,
+        show: true,
+        theme,
+        type: LegendType.Plain,
+      }),
+    ).toEqual({
+      effectiveType: LegendType.Scroll,
+    });
+  });
 });
 
 describe('getChartPadding', () => {

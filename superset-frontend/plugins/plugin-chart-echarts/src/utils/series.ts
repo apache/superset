@@ -306,8 +306,14 @@ function getVerticalPlainLegendLayout({
     (effectiveAvailableHeight + DEFAULT_LEGEND_ITEM_GAP) /
       (LEGEND_VERTICAL_ROW_HEIGHT + DEFAULT_LEGEND_ITEM_GAP),
   );
+  const requiredSelectorMargin = showSelectors
+    ? ESTIMATED_LEGEND_SELECTOR_WIDTH + LEGEND_VERTICAL_SIDE_GUTTER
+    : 0;
   const requiredMargin = Math.ceil(
-    getLongestLegendLabelWidth(legendLabels, theme) + LEGEND_MARGIN_GUTTER,
+    Math.max(
+      getLongestLegendLabelWidth(legendLabels, theme) + LEGEND_MARGIN_GUTTER,
+      requiredSelectorMargin,
+    ),
   );
   const maxLegendWidth =
     availableWidth > 0
