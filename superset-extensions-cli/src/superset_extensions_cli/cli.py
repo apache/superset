@@ -686,7 +686,7 @@ def init(
     click.secho("✅ Created extension.json", fg="green")
 
     # Create .gitignore
-    gitignore = env.get_template(".gitignore.j2").render(ctx)
+    gitignore = env.get_template("gitignore.j2").render(ctx)
     (target_dir / ".gitignore").write_text(gitignore)
     click.secho("✅ Created .gitignore", fg="green")
 
