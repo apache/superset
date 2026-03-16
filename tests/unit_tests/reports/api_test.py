@@ -20,8 +20,10 @@ from unittest.mock import patch
 import prison
 
 from superset.exceptions import SupersetException
+from tests.unit_tests.conftest import with_feature_flags
 
 
+@with_feature_flags(ALERT_REPORTS=True)
 @patch("superset.reports.api.get_channels_with_search")
 def test_slack_channels_success(
     mock_search: Any,
@@ -36,6 +38,7 @@ def test_slack_channels_success(
     assert data["result"] == [{"id": "C123", "name": "general"}]
 
 
+@with_feature_flags(ALERT_REPORTS=True)
 @patch("superset.reports.api.get_channels_with_search")
 def test_slack_channels_handles_superset_exception(
     mock_search: Any,

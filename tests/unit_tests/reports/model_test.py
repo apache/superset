@@ -267,10 +267,9 @@ def test_generate_native_filter_time_normal():
 
 
 def test_generate_native_filter_time_empty_values():
-    # Regression: locks crash behavior until upstream fix (see PROJECT.md)
     report_schedule = ReportSchedule()
-    with pytest.raises(IndexError):
-        report_schedule._generate_native_filter("F2", "filter_time", "ignored", [])
+    result = report_schedule._generate_native_filter("F2", "filter_time", "ignored", [])
+    assert result == {}
 
 
 def test_generate_native_filter_timegrain_normal():
@@ -389,7 +388,6 @@ def test_get_native_filters_params_rison_quote_escaping():
 
 
 def test_get_native_filters_params_missing_filter_id_key():
-    # Regression: locks crash behavior until upstream fix (see PROJECT.md)
     report_schedule = ReportSchedule()
     report_schedule.extra = {
         "dashboard": {
@@ -398,13 +396,13 @@ def test_get_native_filters_params_missing_filter_id_key():
                     "filterType": "filter_select",
                     "columnName": "col",
                     "filterValues": ["v"],
-                    # Missing "nativeFilterId" key
+                    # Missing "nativeFilterId" key — skipped by defensive guard
                 }
             ]
         }
     }
-    with pytest.raises(KeyError, match="nativeFilterId"):
-        report_schedule.get_native_filters_params()
+    result = report_schedule.get_native_filters_params()
+    assert result == "()"
 
 
 def test_generate_native_filter_empty_filter_id():

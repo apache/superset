@@ -137,6 +137,7 @@ fetchMock.get(FETCH_REPORT_WITH_FILTERS_ENDPOINT, {
     type: 'Report',
     extra: {
       dashboard: {
+        anchor: 'TAB_1',
         nativeFilters: [
           {
             nativeFilterId: 'NATIVE_FILTER-abc123',
@@ -1374,12 +1375,16 @@ test('edit mode submit uses PUT and excludes read-only fields', async () => {
 });
 
 test('edit mode preserves extra.dashboard tab/filter state in payload', async () => {
-  // Report 3 has extra.dashboard.nativeFilters — uses Report type (4 checkmarks)
+  // Report 3 has extra.dashboard.nativeFilters + anchor:'TAB_1'
   fetchMock.put(
     'glob:*/api/v1/report/3',
     { id: 3, result: {} },
     { name: 'put-extra-dashboard' },
   );
+
+  // Provide tabs so TAB_1 is in allTabs and anchor is preserved
+  fetchMock.removeRoute(tabsEndpoint);
+  fetchMock.get(tabsEndpoint, tabsWithFilters, { name: tabsEndpoint });
 
   const props = {
     ...generateMockedProps(true, true, true),
@@ -1417,8 +1422,15 @@ test('edit mode preserves extra.dashboard tab/filter state in payload', async ()
       expect.objectContaining({ nativeFilterId: 'NATIVE_FILTER-abc123' }),
     ]),
   );
+  expect(body.extra.dashboard.anchor).toBe('TAB_1');
 
   fetchMock.removeRoute('put-extra-dashboard');
+  fetchMock.removeRoute(tabsEndpoint);
+  fetchMock.get(
+    tabsEndpoint,
+    { result: { all_tabs: {}, tab_tree: [] } },
+    { name: tabsEndpoint },
+  );
 });
 
 test('create mode submits POST and calls onAdd with response', async () => {
@@ -2503,9 +2515,7 @@ test('invalid saved anchor is reset on dashboard load', async () => {
   });
 
   // TAB_999 should NOT appear as a selected value anywhere
-  expect(
-    document.querySelector('.ant-select-selection-item[title="TAB_999"]'),
-  ).not.toBeInTheDocument();
+  expect(screen.queryAllByTitle('TAB_999')).toHaveLength(0);
 });
 
 test('clearing notification recipients disables submit and prevents API call', async () => {

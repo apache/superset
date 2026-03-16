@@ -477,6 +477,113 @@ def test_get_dashboard_urls_with_filters_no_tabs(
     assert state["urlParams"] == [["native_filters", native_filter_rison]]
 
 
+@pytest.mark.xfail(
+    reason="BUG: {urlParams: [...], **dashboard_state} overwrites native_filters "
+    "and drops existing urlParams. Will pass when execute.py:281-291 is fixed.",
+    strict=False,
+)
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_dashboard_urls_preserves_existing_url_params(
+    mock_permalink_cls,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """Existing urlParams (e.g. standalone) must survive native_filters merge."""
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.chart = False
+    mock_report_schedule.chart_id = None
+    mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.type = "report_type"
+    mock_report_schedule.report_format = "report_format"
+    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.recipients = []
+    native_filter_rison = "(NATIVE_FILTER-1:(filterType:filter_select))"
+    mock_report_schedule.extra = {
+        "dashboard": {
+            "anchor": "",
+            "dataMask": {},
+            "activeTabs": None,
+            "urlParams": [("standalone", "true"), ("show_filters", "0")],
+            "nativeFilters": [  # type: ignore[typeddict-unknown-key]
+                {
+                    "nativeFilterId": "NATIVE_FILTER-1",
+                    "filterType": "filter_select",
+                    "columnName": "dept",
+                    "filterValues": ["Sales"],
+                }
+            ],
+        }
+    }
+    mock_report_schedule.get_native_filters_params.return_value = native_filter_rison  # type: ignore[attr-defined]
+    mock_permalink_cls.return_value.run.return_value = "key1"
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+
+    class_instance.get_dashboard_urls()
+
+    state = mock_permalink_cls.call_args_list[0].kwargs["state"]
+    assert state["urlParams"] == [
+        ["standalone", "true"],
+        ["show_filters", "0"],
+        ["native_filters", native_filter_rison],
+    ]
+
+
+@pytest.mark.xfail(
+    reason="BUG: {urlParams: [...], **dashboard_state} overwrites native_filters "
+    "and drops existing urlParams. Will pass when execute.py:281-291 is fixed.",
+    strict=False,
+)
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_dashboard_urls_deduplicates_stale_native_filters(
+    mock_permalink_cls,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """A stale native_filters entry in urlParams is replaced, not duplicated."""
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.chart = False
+    mock_report_schedule.chart_id = None
+    mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.type = "report_type"
+    mock_report_schedule.report_format = "report_format"
+    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.recipients = []
+    native_filter_rison = "(NATIVE_FILTER-1:(new:value))"
+    mock_report_schedule.extra = {
+        "dashboard": {
+            "anchor": "",
+            "dataMask": {},
+            "activeTabs": None,
+            "urlParams": [
+                ("standalone", "true"),
+                ("native_filters", "(old:stale_value)"),
+            ],
+            "nativeFilters": [],  # type: ignore[typeddict-unknown-key]
+        }
+    }
+    mock_report_schedule.get_native_filters_params.return_value = native_filter_rison  # type: ignore[attr-defined]
+    mock_permalink_cls.return_value.run.return_value = "key1"
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+
+    class_instance.get_dashboard_urls()
+
+    state = mock_permalink_cls.call_args_list[0].kwargs["state"]
+    assert state["urlParams"] == [
+        ["standalone", "true"],
+        ["native_filters", native_filter_rison],
+    ]
+
+
 @patch(
     "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
 )

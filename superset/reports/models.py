@@ -192,10 +192,13 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
         dashboard = self.extra.get("dashboard")
         if dashboard and dashboard.get("nativeFilters"):
             for filter in dashboard.get("nativeFilters") or []:  # type: ignore
+                native_filter_id = filter.get("nativeFilterId")
+                if not native_filter_id:
+                    continue
                 params = {
                     **params,
                     **self._generate_native_filter(
-                        filter["nativeFilterId"],
+                        native_filter_id,
                         filter["filterType"],
                         filter["columnName"],
                         filter["filterValues"],
@@ -213,6 +216,12 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
         column_name: str,
         values: list[Optional[str]],
     ) -> dict[str, Any]:
+        if not values and filter_type in (
+            "filter_time",
+            "filter_timegrain",
+            "filter_timecolumn",
+        ):
+            return {}
         if filter_type == "filter_time":
             # For select filters, we need to use the "IN" operator
             return {
