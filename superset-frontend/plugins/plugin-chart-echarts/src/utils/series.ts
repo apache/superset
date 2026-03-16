@@ -114,7 +114,7 @@ function measureLegendTextWidth(text: string, theme: SupersetTheme): number {
     const context = canvas.getContext('2d');
     if (context) {
       context.font = `${theme.fontSizeSM}px ${theme.fontFamily}`;
-      width = context.measureText(text).width;
+      ({ width } = context.measureText(text));
     }
   }
 

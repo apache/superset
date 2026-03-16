@@ -353,7 +353,13 @@ describe('legend sorting', () => {
       queriesData: [
         {
           data: [queriesData[0].data[0]],
-          colnames: ['startTime', 'endTime', 'Y Axis', 'tooltip_column', 'series'],
+          colnames: [
+            'startTime',
+            'endTime',
+            'Y Axis',
+            'tooltip_column',
+            'series',
+          ],
         },
       ],
     });
