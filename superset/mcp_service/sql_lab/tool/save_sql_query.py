@@ -138,7 +138,7 @@ async def save_sql_query(
     except SQLAlchemyError as e:
         from superset import db
 
-        db.session.rollback()
+        db.session.rollback()  # pylint: disable=consider-using-transaction
         await ctx.error(
             "Failed to save SQL query: error=%s, database_id=%s"
             % (str(e), request.database_id)

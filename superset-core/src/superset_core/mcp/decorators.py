@@ -42,7 +42,7 @@ try:
 except (
     ImportError
 ):  # MCP extras may not be installed in superset-core-only environments
-    ToolAnnotations = Any
+    ToolAnnotations = dict
 
 # Type variable for decorated functions
 F = TypeVar("F", bound=Callable[..., Any])
