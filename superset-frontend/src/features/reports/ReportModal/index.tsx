@@ -273,6 +273,14 @@ function ReportModal({
               value: NotificationFormats.Text,
             },
             {
+              label: t('PDF attached in email'),
+              value: NotificationFormats.PDF,
+            },
+            {
+              label: t('PDF NEW attached in email'),
+              value: NotificationFormats.PDFNew,
+            },
+            {
               label: t('Image (PNG) embedded in email'),
               value: NotificationFormats.PNG,
             },

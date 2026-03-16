@@ -64,6 +64,13 @@ test('Get relative ExploreUrl with endpointType:xlsx', () => {
   ).toBe('/superset/explore_json/?xlsx=true');
 });
 
+test('Get relative ExploreUrl with endpointType:pdf', () => {
+  const params = createParams();
+  expect(
+    getExploreUrl({ ...params, endpointType: 'pdf', relative: true }),
+  ).toBe('/superset/explore_json/?pdf=true');
+});
+
 test('Get relative ExploreUrl with force:true', () => {
   const params = createParams();
   expect(

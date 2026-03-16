@@ -38,3 +38,9 @@ test('Should return resultFormat when resultFormat:xlsx', () => {
     getLegacyEndpointType({ ...createParams(), resultFormat: 'xlsx' }),
   ).toBe('xlsx');
 });
+
+test('Should return resultFormat when resultFormat:pdf', () => {
+  expect(
+    getLegacyEndpointType({ ...createParams(), resultFormat: 'pdf' }),
+  ).toBe('pdf');
+});

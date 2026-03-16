@@ -90,6 +90,7 @@ from superset.utils.core import (
     get_user_id,
     ReservedUrlParameters,
 )
+from superset.utils.pdf import build_pdf_from_chart_data
 from superset.views.base import (
     api,
     BaseSupersetView,
@@ -199,6 +200,9 @@ class Superset(BaseSupersetView):
         if response_type == ChartDataResultFormat.XLSX:
             return self._generate_xlsx(viz_obj)
 
+        if response_type == ChartDataResultFormat.PDF:
+            return self._generate_pdf(viz_obj)
+
         if response_type == ChartDataResultType.QUERY:
             return self.get_query_string_response(viz_obj)
 
@@ -228,6 +232,18 @@ class Superset(BaseSupersetView):
                 df = apply_column_types(df, coltypes)
         xlsx_data = df_to_excel(df, index=False)
         return XlsxResponse(xlsx_data, headers=generate_download_headers("xlsx"))
+
+    @staticmethod
+    def _generate_pdf(viz_obj: BaseViz) -> FlaskResponse:
+        payload = viz_obj.get_df_payload()
+        df = payload.get("df")
+        records = df.to_dict("records") if df is not None else []
+        pdf_data = build_pdf_from_chart_data(records)
+        return Response(
+            pdf_data,
+            headers=generate_download_headers("pdf"),
+            mimetype="application/pdf",
+        )
 
     @event_logger.log_this
     @api
@@ -316,6 +332,7 @@ class Superset(BaseSupersetView):
         # Verify user has permission to export data files
         if response_type in (
             ChartDataResultFormat.CSV,
+            ChartDataResultFormat.PDF,
             ChartDataResultFormat.XLSX,
         ):
             if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):

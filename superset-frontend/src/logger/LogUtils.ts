@@ -59,6 +59,7 @@ export const LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV_PIVOTED =
   'chart_download_as_csv_pivoted';
 export const LOG_ACTIONS_CHART_DOWNLOAD_AS_XLS = 'chart_download_as_xls';
 export const LOG_ACTIONS_CHART_DOWNLOAD_AS_JSON = 'chart_download_as_json';
+export const LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF = 'chart_download_as_pdf';
 export const LOG_ACTIONS_SQLLAB_WARN_LOCAL_STORAGE_USAGE =
   'sqllab_warn_local_storage_usage';
 export const LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY =
@@ -112,6 +113,7 @@ export const LOG_EVENT_TYPE_USER = new Set([
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF,
   LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF,
 ]);
 
 export const LOG_EVENT_DATASET_TYPE_DATASET_CREATION = [

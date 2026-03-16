@@ -14,34 +14,28 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset.utils.backports import StrEnum
+
+import pytest
+
+from superset.utils.pdf import build_pdf_from_chart_data
+
+pytest.importorskip("PIL")
 
 
-class ChartDataResultFormat(StrEnum):
-    """
-    Chart data response format
-    """
+def test_build_pdf_from_chart_data_with_rows() -> None:
+    pdf_bytes = build_pdf_from_chart_data(
+        [
+            {"country": "TR", "value": 10},
+            {"country": "US", "value": 25},
+        ]
+    )
 
-    CSV = "csv"
-    JSON = "json"
-    PDF = "pdf"
-    XLSX = "xlsx"
-
-    @classmethod
-    def table_like(cls) -> set["ChartDataResultFormat"]:
-        return {cls.CSV} | {cls.XLSX}
+    assert pdf_bytes.startswith(b"%PDF")
+    assert len(pdf_bytes) > 100
 
 
-class ChartDataResultType(StrEnum):
-    """
-    Chart data response type
-    """
+def test_build_pdf_from_chart_data_with_empty_rows() -> None:
+    pdf_bytes = build_pdf_from_chart_data([])
 
-    COLUMNS = "columns"
-    FULL = "full"
-    QUERY = "query"
-    RESULTS = "results"
-    SAMPLES = "samples"
-    TIMEGRAINS = "timegrains"
-    POST_PROCESSED = "post_processed"
-    DRILL_DETAIL = "drill_detail"
+    assert pdf_bytes.startswith(b"%PDF")
+    assert len(pdf_bytes) > 100

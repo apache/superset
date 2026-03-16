@@ -79,6 +79,7 @@ class ReportState(StrEnum):
 
 class ReportDataFormat(StrEnum):
     PDF = "PDF"
+    PDF_NEW = "PDF_NEW"
     PNG = "PNG"
     CSV = "CSV"
     TEXT = "TEXT"

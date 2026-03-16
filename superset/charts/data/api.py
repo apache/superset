@@ -58,6 +58,7 @@ from superset.utils.core import (
     get_user_id,
 )
 from superset.utils.decorators import logs_context
+from superset.utils.pdf import build_pdf_from_chart_data
 from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
 from superset.views.base_api import statsd_metrics
 
@@ -404,7 +405,10 @@ class ChartDataRestApi(ChartRestApi):
         if result_type == ChartDataResultType.POST_PROCESSED:
             result = apply_client_processing(result, form_data, datasource)
 
-        if result_format in ChartDataResultFormat.table_like():
+        export_result_formats = ChartDataResultFormat.table_like() | {
+            ChartDataResultFormat.PDF
+        }
+        if result_format in export_result_formats:
             # Verify user has permission to export file
             if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
                 has_export_perm = security_manager.can_access(
@@ -419,6 +423,18 @@ class ChartDataRestApi(ChartRestApi):
                 return self.response_400(_("Empty query result"))
 
             is_csv_format = result_format == ChartDataResultFormat.CSV
+            is_pdf_format = result_format == ChartDataResultFormat.PDF
+
+            def _normalize_pdf_rows(query_data: Any) -> list[dict[str, Any]]:
+                if not isinstance(query_data, list):
+                    return []
+                rows: list[dict[str, Any]] = []
+                for row in query_data:
+                    if isinstance(row, dict):
+                        rows.append({str(key): value for key, value in row.items()})
+                    else:
+                        rows.append({"value": row})
+                return rows
 
             # Check if we should use streaming for large datasets
             if is_csv_format and self._should_use_streaming(result, form_data):
@@ -431,6 +447,13 @@ class ChartDataRestApi(ChartRestApi):
                 data = result["queries"][0]["data"]
                 if is_csv_format:
                     return CsvResponse(data, headers=generate_download_headers("csv"))
+                if is_pdf_format:
+                    pdf_data = build_pdf_from_chart_data(_normalize_pdf_rows(data))
+                    return Response(
+                        pdf_data,
+                        headers=generate_download_headers("pdf"),
+                        mimetype="application/pdf",
+                    )
 
                 return XlsxResponse(data, headers=generate_download_headers("xlsx"))
 
@@ -439,6 +462,8 @@ class ChartDataRestApi(ChartRestApi):
                 if result_format == ChartDataResultFormat.CSV:
                     encoding = app.config["CSV_EXPORT"].get("encoding", "utf-8")
                     return query_data.encode(encoding)
+                if result_format == ChartDataResultFormat.PDF:
+                    return build_pdf_from_chart_data(_normalize_pdf_rows(query_data))
                 return query_data
 
             files = {

@@ -51,6 +51,8 @@ export type EndpointType =
   | 'full'
   | 'json'
   | 'csv'
+  | 'pdf'
+  | 'xlsx'
   | 'query'
   | 'results'
   | 'samples'
@@ -158,6 +160,7 @@ export function getURIDirectory(
     'full',
     'json',
     'csv',
+    'pdf',
     'xlsx',
     'query',
     'results',
@@ -269,6 +272,9 @@ export function getExploreUrl({
   if (endpointType === 'xlsx') {
     search.xlsx = 'true';
   }
+  if (endpointType === 'pdf') {
+    search.pdf = 'true';
+  }
   if (endpointType === URL_PARAMS.standalone.name) {
     search.standalone = '1';
   }
@@ -349,7 +355,9 @@ export const getLegacyEndpointType = ({
   resultType: string;
   resultFormat: string;
 }): string =>
-  resultFormat === 'csv' || resultFormat === 'xlsx' ? resultFormat : resultType;
+  resultFormat === 'csv' || resultFormat === 'xlsx' || resultFormat === 'pdf'
+    ? resultFormat
+    : resultType;
 
 export const exportChart = async ({
   formData,

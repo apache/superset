@@ -127,6 +127,7 @@ export interface SliceHeaderControlsProps {
   exportPivotCSV?: (sliceId: number) => void;
   exportFullCSV?: (sliceId: number) => void;
   exportXLSX?: (sliceId: number) => void;
+  exportPDF?: (sliceId: number) => void;
   exportFullXLSX?: (sliceId: number) => void;
   handleToggleFullSize: () => void;
   exportPivotExcel?: (tableSelector: string, sliceName: string) => void;
@@ -245,6 +246,10 @@ const SliceHeaderControls = (
       case MenuKeys.ExportXlsx:
         // eslint-disable-next-line no-unused-expressions
         props.exportXLSX?.(props.slice.slice_id);
+        break;
+      case MenuKeys.ExportPdf:
+        // eslint-disable-next-line no-unused-expressions
+        props.exportPDF?.(props.slice.slice_id);
         break;
       case MenuKeys.DownloadAsImage: {
         // menu closes with a delay, we need to hide it manually,
@@ -527,6 +532,11 @@ const SliceHeaderControls = (
         {
           key: MenuKeys.ExportXlsx,
           label: t('Export to Excel'),
+          icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+        },
+        {
+          key: MenuKeys.ExportPdf,
+          label: t('Export to PDF'),
           icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
         },
         ...(isFeatureEnabled(FeatureFlag.AllowFullCsvExport) &&

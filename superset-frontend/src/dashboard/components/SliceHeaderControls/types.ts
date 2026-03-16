@@ -49,6 +49,7 @@ export interface SliceHeaderControlsProps {
   exportPivotCSV?: (sliceId: number) => void;
   exportFullCSV?: (sliceId: number) => void;
   exportXLSX?: (sliceId: number) => void;
+  exportPDF?: (sliceId: number) => void;
   exportFullXLSX?: (sliceId: number) => void;
   handleToggleFullSize: () => void;
 

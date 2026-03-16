@@ -19,9 +19,11 @@
 import { getURIDirectory } from '.';
 
 test('Cases in which the "explore_json" will be returned', () => {
-  ['full', 'json', 'csv', 'query', 'results', 'samples'].forEach(name => {
-    expect(getURIDirectory(name)).toBe('/superset/explore_json/');
-  });
+  ['full', 'json', 'csv', 'pdf', 'xlsx', 'query', 'results', 'samples'].forEach(
+    name => {
+      expect(getURIDirectory(name)).toBe('/superset/explore_json/');
+    },
+  );
 });
 
 test('Cases in which the "explore" will be returned', () => {

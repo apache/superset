@@ -660,6 +660,29 @@ test('shows screenshot width when PDF is selected', async () => {
   expect(screen.getByRole('spinbutton')).toBeInTheDocument();
 });
 
+test('does not show screenshot width when PDF NEW is selected', async () => {
+  render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
+    useRedux: true,
+  });
+  userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test chart/i);
+  const contentTypeSelector = screen.getByRole('combobox', {
+    name: /select content type/i,
+  });
+  await comboboxSelect(contentTypeSelector, 'Chart', () =>
+    screen.getByText(/select chart/i),
+  );
+  const reportFormatSelector = screen.getByRole('combobox', {
+    name: /select format/i,
+  });
+  await comboboxSelect(
+    reportFormatSelector,
+    'PDF NEW',
+    () => screen.getAllByText(/Send as PDF NEW/i)[0],
+  );
+  expect(screen.queryByText(/screenshot width/i)).not.toBeInTheDocument();
+});
+
 // Schedule Section
 test('opens Schedule Section on click', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {

@@ -58,6 +58,7 @@ import {
   LOG_ACTIONS_CHART_DOWNLOAD_AS_JSON,
   LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV,
   LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV_PIVOTED,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF,
   LOG_ACTIONS_CHART_DOWNLOAD_AS_XLS,
 } from 'src/logger/LogUtils';
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
@@ -85,10 +86,12 @@ const MENU_KEYS = {
   EXPORT_TO_PIVOT_XLSX: 'export_to_pivot_xlsx',
   EXPORT_TO_CSV: 'export_to_csv',
   EXPORT_TO_JSON: 'export_to_json',
+  EXPORT_TO_PDF: 'export_to_pdf',
   EXPORT_TO_XLSX: 'export_to_xlsx',
   EXPORT_ALL_SCREENSHOT: 'export_all_screenshot',
   EXPORT_CURRENT_TO_CSV: 'export_current_to_csv',
   EXPORT_CURRENT_TO_JSON: 'export_current_to_json',
+  EXPORT_CURRENT_PDF: 'export_current_pdf',
   EXPORT_CURRENT_SCREENSHOT: 'export_current_screenshot',
   EXPORT_CURRENT_XLSX: 'export_current_xlsx',
   SHARE_SUBMENU: 'share_submenu',
@@ -418,6 +421,19 @@ export const useExploreAdditionalActionsMenu = (
     [canDownloadCSV, latestQueryFormData, ownState],
   );
 
+  const exportPdf = useCallback(
+    () =>
+      canDownloadCSV
+        ? exportChart({
+            formData: latestQueryFormData as QueryFormData,
+            ownState,
+            resultType: 'results',
+            resultFormat: 'pdf',
+          })
+        : null,
+    [canDownloadCSV, latestQueryFormData, ownState],
+  );
+
   const copyLink = useCallback(async () => {
     try {
       if (!latestQueryFormData?.datasource) {
@@ -732,6 +748,22 @@ export const useExploreAdditionalActionsMenu = (
         },
       },
       {
+        key: MENU_KEYS.EXPORT_TO_PDF,
+        label: t('Export to PDF'),
+        icon: <Icons.FileOutlined />,
+        disabled: !canDownloadCSV,
+        onClick: () => {
+          exportPdf();
+          setIsDropdownVisible(false);
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
+        },
+      },
+      {
         key: MENU_KEYS.EXPORT_ALL_SCREENSHOT,
         label: t('Export screenshot (jpeg)'),
         icon: <Icons.FileImageOutlined />,
@@ -829,6 +861,27 @@ export const useExploreAdditionalActionsMenu = (
           setIsDropdownVisible(false);
           dispatch(
             logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_JSON, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
+        },
+      },
+      {
+        key: MENU_KEYS.EXPORT_CURRENT_PDF,
+        label: t('Export to PDF'),
+        icon: <Icons.FileOutlined />,
+        disabled: !canDownloadCSV,
+        onClick: () => {
+          exportChart({
+            formData: latestQueryFormData as QueryFormData,
+            ownState,
+            resultType: 'results',
+            resultFormat: 'pdf',
+          });
+          setIsDropdownVisible(false);
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF, {
               chartId: slice?.slice_id,
               chartName: slice?.slice_name,
             }),
@@ -1026,6 +1079,7 @@ export const useExploreAdditionalActionsMenu = (
     exportCSV,
     exportCSVPivoted,
     exportExcel,
+    exportPdf,
     exportJson,
     latestQueryFormData,
     onOpenInEditor,
