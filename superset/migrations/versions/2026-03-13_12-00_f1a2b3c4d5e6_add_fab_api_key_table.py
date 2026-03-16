@@ -39,31 +39,41 @@ def upgrade() -> None:
     """
     conn = op.get_bind()
     inspector = sa.inspect(conn)
-    if "ab_api_key" in inspector.get_table_names():
-        return
+    table_exists = "ab_api_key" in inspector.get_table_names()
 
-    op.create_table(
-        "ab_api_key",
-        sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("uuid", sa.String(length=36), nullable=False),
-        sa.Column("name", sa.String(length=256), nullable=False),
-        sa.Column("key_hash", sa.String(length=256), nullable=False),
-        sa.Column("key_prefix", sa.String(length=16), nullable=False),
-        sa.Column("user_id", sa.Integer(), nullable=False),
-        sa.Column("scopes", sa.Text(), nullable=True),
-        sa.Column("active", sa.Boolean(), nullable=False, server_default=sa.true()),
-        sa.Column("created_on", sa.DateTime(), nullable=True),
-        sa.Column("expires_on", sa.DateTime(), nullable=True),
-        sa.Column("revoked_on", sa.DateTime(), nullable=True),
-        sa.Column("last_used_on", sa.DateTime(), nullable=True),
-        sa.ForeignKeyConstraint(["user_id"], ["ab_user.id"], ondelete="CASCADE"),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("uuid"),
+    if not table_exists:
+        op.create_table(
+            "ab_api_key",
+            sa.Column("id", sa.Integer(), nullable=False),
+            sa.Column("uuid", sa.String(length=36), nullable=False),
+            sa.Column("name", sa.String(length=256), nullable=False),
+            sa.Column("key_hash", sa.String(length=256), nullable=False),
+            sa.Column("key_prefix", sa.String(length=16), nullable=False),
+            sa.Column("user_id", sa.Integer(), nullable=False),
+            sa.Column("scopes", sa.Text(), nullable=True),
+            sa.Column("active", sa.Boolean(), nullable=False, server_default=sa.true()),
+            sa.Column("created_on", sa.DateTime(), nullable=True),
+            sa.Column("expires_on", sa.DateTime(), nullable=True),
+            sa.Column("revoked_on", sa.DateTime(), nullable=True),
+            sa.Column("last_used_on", sa.DateTime(), nullable=True),
+            sa.ForeignKeyConstraint(["user_id"], ["ab_user.id"], ondelete="CASCADE"),
+            sa.PrimaryKeyConstraint("id"),
+            sa.UniqueConstraint("uuid"),
+        )
+
+    # Always ensure indexes exist (table may have been created by FAB's
+    # create_all() without these indexes)
+    existing_indexes = (
+        {idx["name"] for idx in inspector.get_indexes("ab_api_key")}
+        if table_exists
+        else set()
     )
 
     with op.batch_alter_table("ab_api_key") as batch_op:
-        batch_op.create_index("idx_api_key_prefix", ["key_prefix"])
-        batch_op.create_index("idx_api_key_user_id", ["user_id"])
+        if "idx_api_key_prefix" not in existing_indexes:
+            batch_op.create_index("idx_api_key_prefix", ["key_prefix"])
+        if "idx_api_key_user_id" not in existing_indexes:
+            batch_op.create_index("idx_api_key_user_id", ["user_id"])
 
 
 def downgrade() -> None:

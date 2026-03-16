@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { css, useTheme } from '@apache-superset/core/theme';
@@ -49,6 +49,16 @@ export function ApiKeyCreateModal({
   const { addDangerToast, addSuccessToast } = useToasts();
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (copyTimerRef.current) {
+        clearTimeout(copyTimerRef.current);
+      }
+    },
+    [],
+  );
 
   const handleFormSubmit = async (values: FormValues) => {
     try {
@@ -75,7 +85,10 @@ export function ApiKeyCreateModal({
     try {
       await navigator.clipboard.writeText(createdKey);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      if (copyTimerRef.current) {
+        clearTimeout(copyTimerRef.current);
+      }
+      copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       addDangerToast(t('Failed to copy API key to clipboard'));
     }
