@@ -425,6 +425,7 @@ export interface ThemeControllerOptions {
   canUpdateTheme?: () => boolean;
   canUpdateMode?: () => boolean;
   isGlobalContext?: boolean;
+  initialMode?: ThemeMode;
 }
 
 export interface ThemeContextType {
