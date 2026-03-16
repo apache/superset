@@ -153,6 +153,17 @@ test('normalizes empty viewport values to undefined', () => {
   expect(result.viewportZoom).toBeUndefined();
 });
 
+test('normalizes whitespace-only viewport values to undefined', () => {
+  const result = getTransformPropsResult({
+    viewportLongitude: '   ',
+    viewportLatitude: '\t',
+    viewportZoom: ' \n ',
+  });
+  expect(result.viewportLongitude).toBeUndefined();
+  expect(result.viewportLatitude).toBeUndefined();
+  expect(result.viewportZoom).toBeUndefined();
+});
+
 test('normalizes string opacity to number', () => {
   const result = getTransformPropsResult({ globalOpacity: '0.5' });
   expect(result.globalOpacity).toBe(0.5);
@@ -160,6 +171,11 @@ test('normalizes string opacity to number', () => {
 
 test('defaults empty opacity to 1', () => {
   const result = getTransformPropsResult({ globalOpacity: '' });
+  expect(result.globalOpacity).toBe(1);
+});
+
+test('defaults whitespace-only opacity to 1', () => {
+  const result = getTransformPropsResult({ globalOpacity: '   ' });
   expect(result.globalOpacity).toBe(1);
 });
 

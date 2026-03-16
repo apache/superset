@@ -27,8 +27,11 @@ const NOOP = () => {};
 function toFiniteNumber(
   value: string | number | null | undefined,
 ): number | undefined {
-  if (value === '' || value === null || value === undefined) return undefined;
-  const num = Number(value);
+  if (value === null || value === undefined) return undefined;
+  const normalizedValue =
+    typeof value === 'string' ? value.trim() : value;
+  if (normalizedValue === '') return undefined;
+  const num = Number(normalizedValue);
   return Number.isFinite(num) ? num : undefined;
 }
 

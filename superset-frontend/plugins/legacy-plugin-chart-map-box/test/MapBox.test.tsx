@@ -293,6 +293,65 @@ test('recomputes fitBounds when chart size changes and no explicit viewport is s
   expect(lastMapGLProps.zoom).toBe(11.29);
 });
 
+test('recomputes only implicit viewport fields when bounds change', () => {
+  const { rerender } = render(
+    <MapBox {...defaultProps} viewportLongitude={-122.4} />,
+  );
+
+  rerender(
+    <MapBox
+      {...defaultProps}
+      viewportLongitude={-122.4}
+      bounds={[
+        [-123.2, 36.5],
+        [-121.8, 38.1],
+      ]}
+    />,
+  );
+
+  expect(lastMapGLProps.longitude).toBe(-122.4);
+  expect(lastMapGLProps.latitude).toBe(37.3);
+  expect(lastMapGLProps.zoom).toBe(10.86);
+});
+
+test('recomputes only implicit viewport fields when chart size changes', () => {
+  const { rerender } = render(
+    <MapBox {...defaultProps} viewportLatitude={37.8} />,
+  );
+
+  rerender(
+    <MapBox
+      {...defaultProps}
+      viewportLatitude={37.8}
+      width={1200}
+      height={900}
+    />,
+  );
+
+  expect(lastMapGLProps.longitude).toBe(-73.95);
+  expect(lastMapGLProps.latitude).toBe(37.8);
+  expect(lastMapGLProps.zoom).toBe(11.29);
+});
+
+test('recomputes implicit position when zoom stays explicit across bounds changes', () => {
+  const { rerender } = render(<MapBox {...defaultProps} viewportZoom={5} />);
+
+  rerender(
+    <MapBox
+      {...defaultProps}
+      viewportZoom={5}
+      bounds={[
+        [-123.2, 36.5],
+        [-121.8, 38.1],
+      ]}
+    />,
+  );
+
+  expect(lastMapGLProps.longitude).toBe(-122.5);
+  expect(lastMapGLProps.latitude).toBe(37.3);
+  expect(lastMapGLProps.zoom).toBe(5);
+});
+
 test('does not recompute fitBounds on bounds change when an explicit viewport is set', () => {
   const { rerender } = render(
     <MapBox

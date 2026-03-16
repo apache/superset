@@ -85,16 +85,10 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
   constructor(props: MapBoxProps) {
     super(props);
 
-    // Start from fitBounds, then override with explicit viewport props if provided
     const fitBounds = this.computeFitBoundsViewport();
-    const { viewportLongitude, viewportLatitude, viewportZoom } = this.props;
 
     this.state = {
-      viewport: {
-        longitude: viewportLongitude ?? fitBounds.longitude,
-        latitude: viewportLatitude ?? fitBounds.latitude,
-        zoom: viewportZoom ?? fitBounds.zoom,
-      },
+      viewport: this.mergeViewportWithProps(fitBounds),
     };
     this.handleViewportChange = this.handleViewportChange.bind(this);
   }
@@ -105,12 +99,25 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
     onViewportChange!(viewport);
   }
 
-  hasExplicitViewportProps(props: MapBoxProps = this.props) {
-    return (
-      props.viewportLongitude !== undefined ||
-      props.viewportLatitude !== undefined ||
-      props.viewportZoom !== undefined
-    );
+  mergeViewportWithProps(
+    fitBounds: Viewport,
+    viewport: Viewport = fitBounds,
+    props: MapBoxProps = this.props,
+    useFitBoundsForUnset = true,
+  ): Viewport {
+    const { viewportLongitude, viewportLatitude, viewportZoom } = props;
+
+    return {
+      ...viewport,
+      longitude:
+        viewportLongitude ??
+        (useFitBoundsForUnset ? fitBounds.longitude : viewport.longitude),
+      latitude:
+        viewportLatitude ??
+        (useFitBoundsForUnset ? fitBounds.latitude : viewport.latitude),
+      zoom:
+        viewportZoom ?? (useFitBoundsForUnset ? fitBounds.zoom : viewport.zoom),
+    };
   }
 
   computeFitBoundsViewport(): Viewport {
@@ -129,77 +136,35 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
   }
 
   componentDidUpdate(prevProps: MapBoxProps) {
-    const { viewportLongitude, viewportLatitude, viewportZoom } = this.props;
     const { viewport } = this.state;
-    const hasExplicitViewportProps = this.hasExplicitViewportProps();
     const fitBoundsInputsChanged =
       prevProps.width !== this.props.width ||
       prevProps.height !== this.props.height ||
       prevProps.bounds !== this.props.bounds;
+    const viewportPropsChanged =
+      prevProps.viewportLongitude !== this.props.viewportLongitude ||
+      prevProps.viewportLatitude !== this.props.viewportLatitude ||
+      prevProps.viewportZoom !== this.props.viewportZoom;
 
-    // Detect when viewport props are cleared (changed from defined to undefined)
-    // to restore fitBounds behavior
-    const longitudeCleared =
-      prevProps.viewportLongitude !== undefined &&
-      viewportLongitude === undefined;
-    const latitudeCleared =
-      prevProps.viewportLatitude !== undefined &&
-      viewportLatitude === undefined;
-    const zoomCleared =
-      prevProps.viewportZoom !== undefined && viewportZoom === undefined;
-
-    if (longitudeCleared || latitudeCleared || zoomCleared) {
-      const fitBounds = this.computeFitBoundsViewport();
-      this.setState({
-        viewport: {
-          ...viewport,
-          longitude: longitudeCleared
-            ? fitBounds.longitude
-            : (viewportLongitude ?? viewport.longitude),
-          latitude: latitudeCleared
-            ? fitBounds.latitude
-            : (viewportLatitude ?? viewport.latitude),
-          zoom: zoomCleared ? fitBounds.zoom : (viewportZoom ?? viewport.zoom),
-        },
-      });
+    if (!fitBoundsInputsChanged && !viewportPropsChanged) {
       return;
     }
 
-    if (fitBoundsInputsChanged && !hasExplicitViewportProps) {
-      const fitBounds = this.computeFitBoundsViewport();
-      const fitBoundsChanged =
-        fitBounds.longitude !== viewport.longitude ||
-        fitBounds.latitude !== viewport.latitude ||
-        fitBounds.zoom !== viewport.zoom;
+    const fitBounds = this.computeFitBoundsViewport();
+    const nextViewport = this.mergeViewportWithProps(
+      fitBounds,
+      viewport,
+      this.props,
+      fitBoundsInputsChanged || viewportPropsChanged,
+    );
 
-      if (fitBoundsChanged) {
-        this.setState({ viewport: fitBounds });
-      }
-      return;
-    }
+    const viewportChanged =
+      nextViewport.longitude !== viewport.longitude ||
+      nextViewport.latitude !== viewport.latitude ||
+      nextViewport.zoom !== viewport.zoom;
 
-    const longitudeChanged =
-      prevProps.viewportLongitude !== viewportLongitude &&
-      viewportLongitude !== undefined &&
-      viewportLongitude !== viewport.longitude;
-    const latitudeChanged =
-      prevProps.viewportLatitude !== viewportLatitude &&
-      viewportLatitude !== undefined &&
-      viewportLatitude !== viewport.latitude;
-    const zoomChanged =
-      prevProps.viewportZoom !== viewportZoom &&
-      viewportZoom !== undefined &&
-      viewportZoom !== viewport.zoom;
-
-    if (longitudeChanged || latitudeChanged || zoomChanged) {
-      this.setState({
-        viewport: {
-          ...viewport,
-          longitude: longitudeChanged ? viewportLongitude! : viewport.longitude,
-          latitude: latitudeChanged ? viewportLatitude! : viewport.latitude,
-          zoom: zoomChanged ? viewportZoom! : viewport.zoom,
-        },
-      });
+    if (viewportChanged) {
+      this.setState({ viewport: nextViewport });
     }
   }
 
