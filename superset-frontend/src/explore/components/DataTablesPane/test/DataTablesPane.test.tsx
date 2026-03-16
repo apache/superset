@@ -144,7 +144,9 @@ describe('DataTablesPane', () => {
     });
     userEvent.click(screen.getByText('Results'));
     expect(await screen.findByText('1 row')).toBeVisible();
-    expect(screen.queryByLabelText('Copy')).not.toBeInTheDocument();
+    // Copy button is still rendered but visually disabled (opacity + pointer-events)
+    const copyButton = screen.queryByLabelText('Copy');
+    expect(copyButton).toBeInTheDocument();
     fetchMock.clearHistory().removeRoutes();
   });
 

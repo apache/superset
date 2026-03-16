@@ -54,7 +54,7 @@ class TestGranularExportChartAPI(SupersetTestCase):
     """Test granular export controls on chart screenshot endpoints."""
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @with_feature_flags(GRANULAR_EXPORT_CONTROLS=True)
+    @with_feature_flags(GRANULAR_EXPORT_CONTROLS=True, THUMBNAILS=True)
     @patch.object(
         SupersetSecurityManager,
         "can_access",
@@ -73,7 +73,7 @@ class TestGranularExportChartAPI(SupersetTestCase):
         assert rv.status_code == 403
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @with_feature_flags(GRANULAR_EXPORT_CONTROLS=True)
+    @with_feature_flags(GRANULAR_EXPORT_CONTROLS=True, THUMBNAILS=True)
     @patch.object(
         SupersetSecurityManager,
         "can_access",
@@ -91,7 +91,7 @@ class TestGranularExportChartAPI(SupersetTestCase):
         assert rv.status_code == 403
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @with_feature_flags(GRANULAR_EXPORT_CONTROLS=True)
+    @with_feature_flags(GRANULAR_EXPORT_CONTROLS=True, THUMBNAILS=True)
     @patch.object(
         SupersetSecurityManager,
         "can_access",
@@ -137,7 +137,11 @@ class TestGranularExportDashboardAPI(SupersetTestCase):
     """Test granular export controls on dashboard screenshot endpoints."""
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @with_feature_flags(GRANULAR_EXPORT_CONTROLS=True)
+    @with_feature_flags(
+        GRANULAR_EXPORT_CONTROLS=True,
+        THUMBNAILS=True,
+        ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True,
+    )
     @patch.object(
         SupersetSecurityManager,
         "can_access",
@@ -161,7 +165,11 @@ class TestGranularExportDashboardAPI(SupersetTestCase):
         assert rv.status_code == 403
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @with_feature_flags(GRANULAR_EXPORT_CONTROLS=True)
+    @with_feature_flags(
+        GRANULAR_EXPORT_CONTROLS=True,
+        THUMBNAILS=True,
+        ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True,
+    )
     @patch.object(
         SupersetSecurityManager,
         "can_access",
