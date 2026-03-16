@@ -60,12 +60,14 @@ def create_tool_decorator(
     description: Optional[str] = None,
     tags: Optional[list[str]] = None,
     protect: bool = True,
+    class_permission_name: Optional[str] = None,
+    method_permission_name: Optional[str] = None,
 ) -> Callable[[F], F] | F:
     """
     Create the concrete MCP tool decorator implementation.
 
-    This combines FastMCP tool registration with optional Superset authentication,
-    replacing the need for separate @mcp.tool and @mcp_auth_hook decorators.
+    This combines FastMCP tool registration with optional Superset authentication
+    and RBAC permission checking.
 
     Supports both @tool and @tool() syntax.
 
@@ -76,6 +78,10 @@ def create_tool_decorator(
         description: Tool description (defaults to function docstring)
         tags: List of tags for categorization (defaults to empty list)
         protect: Whether to apply Superset authentication (defaults to True)
+        class_permission_name: FAB view/resource name for RBAC
+            (e.g., "Chart", "Dashboard", "SQLLab"). Enables permission checking.
+        method_permission_name: FAB action name (e.g., "read", "write").
+            Defaults to "write" if tags has "mutate", else "read".
 
     Returns:
         Decorator that registers and wraps the tool with optional authentication,
@@ -94,6 +100,20 @@ def create_tool_decorator(
 
             # Get prefixed ID based on ambient context
             tool_name, context_type = _get_prefixed_id_with_context(base_tool_name)
+
+            # Store RBAC permission metadata on the function so
+            # mcp_auth_hook can read them at call time.
+            if class_permission_name:
+                from superset.mcp_service.auth import (
+                    CLASS_PERMISSION_ATTR,
+                    METHOD_PERMISSION_ATTR,
+                )
+
+                setattr(func, CLASS_PERMISSION_ATTR, class_permission_name)
+                actual_method = method_permission_name
+                if actual_method is None:
+                    actual_method = "write" if "mutate" in tool_tags else "read"
+                setattr(func, METHOD_PERMISSION_ATTR, actual_method)
 
             # Conditionally apply authentication wrapper
             if protect:
@@ -251,23 +271,28 @@ def initialize_core_mcp_dependencies() -> None:
 
     Also imports MCP service app to register all host tools BEFORE extension loading.
     """
+    import superset_core.mcp.decorators
+
     try:
-        # Replace the abstract decorators with concrete implementations
+        from fastmcp.tools import Tool  # noqa: F401
+    except ImportError:
+        logger.info(
+            "fastmcp is not installed, skipping MCP initialization. "
+            "Install it with: pip install 'apache-superset[fastmcp]'"
+        )
+        return
 
-        import superset_core.mcp.decorators
+    # Replace the abstract decorators with concrete implementations
+    superset_core.mcp.decorators.tool = create_tool_decorator
+    superset_core.mcp.decorators.prompt = create_prompt_decorator
 
-        superset_core.mcp.decorators.tool = create_tool_decorator
-        superset_core.mcp.decorators.prompt = create_prompt_decorator
+    logger.info("MCP dependency injection initialized successfully")
 
-        logger.info("MCP dependency injection initialized successfully")
-
+    try:
         # Import MCP service app to register host tools BEFORE extension loading
         # This prevents host tools from being registered during extension context
-
         from superset.mcp_service import app  # noqa: F401
 
         logger.info("MCP service app imported - host tools registered")
-
     except Exception as e:
-        logger.error("Failed to initialize MCP dependencies: %s", e)
-        raise
+        logger.error("Failed to register MCP host tools: %s", e)
