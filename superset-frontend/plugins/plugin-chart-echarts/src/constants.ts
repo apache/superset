@@ -50,8 +50,8 @@ export const TIMESERIES_CONSTANTS = {
   // Height thresholds (px) for responsive y-axis behavior
   compactChartHeight: 100,
   microChartHeight: 60,
-  // Divisor to calculate proportional y-axis tick count from chart height
-  yAxisTickHeightInterval: 80,
+  // One y-axis tick per this many pixels of chart height
+  yAxisPixelsPerTick: 80,
 };
 
 export enum OpacityEnum {

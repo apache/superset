@@ -664,11 +664,14 @@ export default function transformProps(
     isHorizontal,
   );
 
-  // Reduce grid padding for compact charts to maximize the drawing area.
+  // Reduce grid padding for small charts to maximize the drawing area.
   // Keep enough top padding so the max label doesn't clip against the cell border.
+  // Preserve bottom padding when zoomable, since getPadding() reserves space for the dataZoom slider.
   if (height < TIMESERIES_CONSTANTS.compactChartHeight) {
     padding.top = Math.min(padding.top, 12);
-    padding.bottom = Math.min(padding.bottom, 5);
+    if (!zoomable) {
+      padding.bottom = Math.min(padding.bottom, 5);
+    }
   }
 
   const legendData =
@@ -758,13 +761,15 @@ export default function transformProps(
 
   // Adapt y-axis to chart height: three tiers based on available space.
   // >= 100px: full axis with proportional tick count
-  // 60-99px: show only min/max labels, hide lines/ticks
+  // 60-99px: show only min/max boundary labels (splitNumber=1), hide lines/ticks
   // < 60px: hide all axis decorations, show line only
-  const isCompactChart = height < TIMESERIES_CONSTANTS.compactChartHeight;
+  const isSmallChart = height < TIMESERIES_CONSTANTS.compactChartHeight;
   const isMicroChart = height < TIMESERIES_CONSTANTS.microChartHeight;
-  const yAxisSplitNumber = isCompactChart
+  const yAxisSplitNumber = isMicroChart
     ? undefined
-    : Math.max(3, Math.floor(height / TIMESERIES_CONSTANTS.yAxisTickHeightInterval));
+    : isSmallChart
+      ? 1
+      : Math.max(3, Math.floor(height / TIMESERIES_CONSTANTS.yAxisPixelsPerTick));
 
   let yAxis: any = {
     ...defaultYAxis,
@@ -772,9 +777,9 @@ export default function transformProps(
     ...(yAxisSplitNumber !== undefined && { splitNumber: yAxisSplitNumber }),
     min: yAxisMin,
     max: yAxisMax,
-    minorTick: { show: isCompactChart ? false : minorTicks },
-    minorSplitLine: { show: isCompactChart ? false : minorSplitLine },
-    splitLine: { show: !isCompactChart },
+    minorTick: { show: isSmallChart ? false : minorTicks },
+    minorSplitLine: { show: isSmallChart ? false : minorSplitLine },
+    splitLine: { show: !isSmallChart },
     axisLabel: {
       show: !isMicroChart,
       showMinLabel: !isMicroChart,
@@ -788,9 +793,9 @@ export default function transformProps(
         yAxisFormat,
       ),
     },
-    axisTick: { show: !isCompactChart },
+    axisTick: { show: !isSmallChart },
     scale: truncateYAxis,
-    name: isCompactChart ? undefined : yAxisTitle,
+    name: isSmallChart ? undefined : yAxisTitle,
     nameGap: convertInteger(yAxisTitleMargin),
     nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
   };
@@ -937,7 +942,7 @@ export default function transformProps(
         legendType,
         legendOrientation,
         // Hide legend on compact charts — not enough vertical space
-        isCompactChart ? false : showLegend,
+        isSmallChart ? false : showLegend,
         theme,
         zoomable,
         legendState,
