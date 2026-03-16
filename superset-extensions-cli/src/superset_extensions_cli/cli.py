@@ -167,7 +167,7 @@ def build_manifest(cwd: Path, remote_entry: str | None) -> Manifest:
         # Generate conventional entry point
         publisher_snake = kebab_to_snake_case(extension.publisher)
         name_snake = kebab_to_snake_case(extension.name)
-        entrypoint = f"superset_extensions.{publisher_snake}.{name_snake}.entrypoint"
+        entrypoint = f"{publisher_snake}.{name_snake}.entrypoint"
         backend = ManifestBackend(entrypoint=entrypoint)
 
     return Manifest(
@@ -344,12 +344,7 @@ def validate() -> None:
         publisher_snake = kebab_to_snake_case(extension.publisher)
         name_snake = kebab_to_snake_case(extension.name)
         expected_entry_file = (
-            backend_dir
-            / "src"
-            / "superset_extensions"
-            / publisher_snake
-            / name_snake
-            / "entrypoint.py"
+            backend_dir / "src" / publisher_snake / name_snake / "entrypoint.py"
         )
 
         if not expected_entry_file.exists():
@@ -359,7 +354,7 @@ def validate() -> None:
                 fg="red",
             )
             click.secho(
-                f"   Convention requires: backend/src/superset_extensions/{publisher_snake}/{name_snake}/entrypoint.py",
+                f"   Convention requires: backend/src/{publisher_snake}/{name_snake}/entrypoint.py",
                 fg="yellow",
             )
             sys.exit(1)
@@ -691,7 +686,7 @@ def init(
     click.secho("✅ Created extension.json", fg="green")
 
     # Create .gitignore
-    gitignore = env.get_template(".gitignore.j2").render(ctx)
+    gitignore = env.get_template("gitignore.j2").render(ctx)
     (target_dir / ".gitignore").write_text(gitignore)
     click.secho("✅ Created .gitignore", fg="green")
 
@@ -713,23 +708,19 @@ def init(
         (frontend_src_dir / "index.tsx").write_text(index_tsx)
         click.secho("✅ Created frontend folder structure", fg="green")
 
-    # Initialize backend files with superset_extensions.publisher.name structure
+    # Initialize backend files with publisher.name structure
     if include_backend:
         backend_dir = target_dir / "backend"
         backend_dir.mkdir()
         backend_src_dir = backend_dir / "src"
         backend_src_dir.mkdir()
 
-        # Create superset_extensions namespace directory
-        namespace_dir = backend_src_dir / "superset_extensions"
-        namespace_dir.mkdir()
-
-        # Create publisher directory (e.g., superset_extensions/my_org)
+        # Create publisher directory (e.g., my_org)
         publisher_snake = kebab_to_snake_case(names["publisher"])
-        publisher_dir = namespace_dir / publisher_snake
+        publisher_dir = backend_src_dir / publisher_snake
         publisher_dir.mkdir()
 
-        # Create extension package directory (e.g., superset_extensions/my_org/dashboard_widgets)
+        # Create extension package directory (e.g., my_org/dashboard_widgets)
         name_snake = kebab_to_snake_case(names["name"])
         extension_package_dir = publisher_dir / name_snake
         extension_package_dir.mkdir()

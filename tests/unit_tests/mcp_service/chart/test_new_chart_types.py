@@ -723,7 +723,7 @@ class TestGenerateChartNameNewTypes:
             metric=ColumnRef(name="revenue", aggregate="SUM"),
         )
         result = generate_chart_name(config)
-        assert result == "Pie Chart - product by revenue"
+        assert result == "product by revenue"
 
     def test_pie_chart_name_with_custom_label(self) -> None:
         config = PieChartConfig(
@@ -732,7 +732,7 @@ class TestGenerateChartNameNewTypes:
             metric=ColumnRef(name="revenue", aggregate="SUM", label="Total Revenue"),
         )
         result = generate_chart_name(config)
-        assert result == "Pie Chart - product by Total Revenue"
+        assert result == "product by Total Revenue"
 
     def test_pivot_table_chart_name(self) -> None:
         config = PivotTableChartConfig(
@@ -741,7 +741,7 @@ class TestGenerateChartNameNewTypes:
             metrics=[ColumnRef(name="revenue", aggregate="SUM")],
         )
         result = generate_chart_name(config)
-        assert result == "Pivot Table - product, region"
+        assert result == "Pivot Table \u2013 product, region"
 
     def test_mixed_timeseries_chart_name(self) -> None:
         config = MixedTimeseriesChartConfig(
@@ -751,7 +751,7 @@ class TestGenerateChartNameNewTypes:
             y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
         )
         result = generate_chart_name(config)
-        assert result == "Mixed Chart - revenue + orders"
+        assert result == "revenue + orders"
 
 
 # ============================================================

@@ -42,7 +42,13 @@ import {
   OWNER_TEXT_LABEL_PROP,
   OWNER_EMAIL_PROP,
 } from 'src/features/owners/OwnerSelectLabel';
-import { Dashboard, Filter, TableTab } from './types';
+import {
+  Dashboard,
+  EncryptedExtraField,
+  FileEncryptedExtraFields,
+  Filter,
+  TableTab,
+} from './types';
 
 // Modifies the rison encoding slightly to match the backend's rison encoding/decoding. Applies globally.
 // Code pulled from rison.js (https://github.com/Nanonid/rison), rison is licensed under the MIT license.
@@ -516,6 +522,38 @@ export const getAlreadyExists = (errors: Record<string, any>[]) =>
       .map(([fileName]) => fileName),
   );
 
+// Matches error messages for masked_encrypted_extra fields.
+// Format: "Must provide value for masked_encrypted_extra field: $.path (Label)"
+// The label in parentheses is optional.
+const ENCRYPTED_EXTRA_FIELD_REGEX =
+  /^Must provide value for masked_encrypted_extra field: (.+?)(?:\s+\((.+)\))?$/;
+
+export /* eslint-disable no-underscore-dangle */
+const isNeedsEncryptedExtraField = (payload: any) =>
+  typeof payload === 'object' &&
+  Array.isArray(payload._schema) &&
+  payload._schema?.some((e: string) => ENCRYPTED_EXTRA_FIELD_REGEX.test(e));
+
+export const getEncryptedExtraFieldsNeeded = (
+  errors: Record<string, any>[],
+): FileEncryptedExtraFields[] =>
+  errors.flatMap(error =>
+    Object.entries(error.extra)
+      .filter(([, payload]) => isNeedsEncryptedExtraField(payload))
+      .map(([fileName, payload]) => ({
+        fileName,
+        fields: (payload as any)._schema
+          .filter((e: string) => ENCRYPTED_EXTRA_FIELD_REGEX.test(e))
+          .map((e: string) => {
+            const match = e.match(ENCRYPTED_EXTRA_FIELD_REGEX);
+            if (!match) return null;
+            const path = match[1];
+            return { path, label: match[2] || path };
+          })
+          .filter(Boolean) as EncryptedExtraField[],
+      })),
+  );
+
 export const hasTerminalValidation = (errors: Record<string, any>[]) =>
   errors.some(error => {
     const noIssuesCodes = Object.entries(error.extra).filter(
@@ -530,7 +568,8 @@ export const hasTerminalValidation = (errors: Record<string, any>[]) =>
         isAlreadyExists(payload) ||
         isNeedsSSHPassword(payload) ||
         isNeedsSSHPrivateKey(payload) ||
-        isNeedsSSHPrivateKeyPassword(payload),
+        isNeedsSSHPrivateKeyPassword(payload) ||
+        isNeedsEncryptedExtraField(payload),
     );
   });
 

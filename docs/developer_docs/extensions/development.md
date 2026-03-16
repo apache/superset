@@ -54,11 +54,10 @@ my-org.dataset-references/
 │   └── package.json
 ├── backend/
 │   ├── src/
-│   │    └── superset_extensions/
-│   │         └── my_org/
-│   │              └── dataset_references/
-│   │                   ├── api.py
-│   │                   └── entrypoint.py
+│   │    └── my_org/
+│   │         └── dataset_references/
+│   │              ├── api.py
+│   │              └── entrypoint.py
 │   ├── pyproject.toml
 │   └── requirements.txt
 ├── dist/
@@ -68,18 +67,17 @@ my-org.dataset-references/
 │   │         ├── remoteEntry.d7a9225d042e4ccb6354.js
 │   │         └── 900.038b20cdff6d49cfa8d9.js
 │   └── backend
-│        └── superset_extensions/
-│             └── my_org/
-│                  └── dataset_references/
-│                       ├── api.py
-│                       └── entrypoint.py
+│        └── my_org/
+│             └── dataset_references/
+│                  ├── api.py
+│                  └── entrypoint.py
 ├── my-org.dataset-references-1.0.0.supx
 └── README.md
 ```
 
 **Note**: With publisher `my-org` and name `dataset-references`, the technical names are:
 - Directory name: `my-org.dataset-references` (kebab-case)
-- Backend Python namespace: `superset_extensions.my_org.dataset_references`
+- Backend Python namespace: `my_org.dataset_references`
 - Backend distribution package: `my_org-dataset_references`
 - Frontend package name: `@my-org/dataset-references` (scoped)
 - Module Federation name: `myOrg_datasetReferences` (camelCase)
@@ -113,7 +111,7 @@ The `extension.json` file contains the metadata necessary for the host applicati
 
 Extensions use standardized entry point locations:
 
-- **Backend**: `backend/src/superset_extensions/{publisher}/{name}/entrypoint.py`
+- **Backend**: `backend/src/{publisher}/{name}/entrypoint.py`
 - **Frontend**: `frontend/src/index.tsx`
 
 ### Build Configuration
@@ -129,7 +127,7 @@ license = "Apache-2.0"
 [tool.apache_superset_extensions.build]
 # Files to include in the extension build/bundle
 include = [
-    "src/superset_extensions/my_org/dataset_references/**/*.py",
+    "src/my_org/dataset_references/**/*.py",
 ]
 exclude = []
 ```

@@ -78,6 +78,8 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
   setSSHTunnelPrivateKeyFields = () => {},
   sshTunnelPrivateKeyPasswordFields = [],
   setSSHTunnelPrivateKeyPasswordFields = () => {},
+  encryptedExtraFields = [],
+  setEncryptedExtraFields = () => {},
 }) => {
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [passwords, setPasswords] = useState<Record<string, string>>({});
@@ -95,6 +97,9 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
   >({});
   const [sshTunnelPrivateKeyPasswords, setSSHTunnelPrivateKeyPasswords] =
     useState<Record<string, string>>({});
+  const [encryptedExtraSecrets, setEncryptedExtraSecrets] = useState<
+    Record<string, Record<string, string>>
+  >({});
 
   const clearModal = () => {
     setFileList([]);
@@ -110,6 +115,8 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
     setSSHTunnelPasswords({});
     setSSHTunnelPrivateKeys({});
     setSSHTunnelPrivateKeyPasswords({});
+    setEncryptedExtraFields([]);
+    setEncryptedExtraSecrets({});
   };
 
   const handleErrorMsg = (msg: string) => {
@@ -123,6 +130,7 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
       sshPasswordNeeded,
       sshPrivateKeyNeeded,
       sshPrivateKeyPasswordNeeded,
+      encryptedExtraFieldsNeeded,
     },
     importResource,
   } = useImportResource(resourceName, resourceLabel, handleErrorMsg);
@@ -162,6 +170,13 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
     }
   }, [sshPrivateKeyPasswordNeeded, setSSHTunnelPrivateKeyPasswordFields]);
 
+  useEffect(() => {
+    setEncryptedExtraFields(encryptedExtraFieldsNeeded);
+    if (encryptedExtraFieldsNeeded.length > 0) {
+      setImportingModel(false);
+    }
+  }, [encryptedExtraFieldsNeeded, setEncryptedExtraFields]);
+
   // Functions
   const hide = () => {
     setIsHidden(true);
@@ -181,6 +196,7 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
       sshTunnelPasswords,
       sshTunnelPrivateKeys,
       sshTunnelPrivateKeyPasswords,
+      encryptedExtraSecrets,
       confirmedOverwrite,
     ).then(result => {
       if (result) {
@@ -214,7 +230,8 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
       passwordFields.length === 0 &&
       sshTunnelPasswordFields.length === 0 &&
       sshTunnelPrivateKeyFields.length === 0 &&
-      sshTunnelPrivateKeyPasswordFields.length === 0
+      sshTunnelPrivateKeyPasswordFields.length === 0 &&
+      encryptedExtraFields.length === 0
     ) {
       return null;
     }
@@ -320,6 +337,35 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
             )}
           </>
         ))}
+        {encryptedExtraFields.map(({ fileName, fields }) => (
+          <StyledContainer key={`encrypted-extra-for-${fileName}`}>
+            <div className="control-label">
+              {t('%s ENCRYPTED EXTRA', fileName.slice(10))}
+            </div>
+            {fields.map(field => (
+              <div key={`${fileName}-${field.path}`}>
+                <div className="control-label">
+                  {field.label}
+                  <span className="required">*</span>
+                </div>
+                <Input.Password
+                  name={`encrypted-extra-${fileName}-${field.path}`}
+                  value={encryptedExtraSecrets[fileName]?.[field.path] || ''}
+                  onChange={event =>
+                    setEncryptedExtraSecrets({
+                      ...encryptedExtraSecrets,
+                      [fileName]: {
+                        ...encryptedExtraSecrets[fileName],
+                        [field.path]: event.target.value,
+                      },
+                    })
+                  }
+                  data-test="encrypted_extra_secret"
+                />
+              </div>
+            ))}
+          </StyledContainer>
+        ))}
       </>
     );
   };
@@ -392,7 +438,8 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
             passwordFields.length > 0 ||
             sshTunnelPasswordFields.length > 0 ||
             sshTunnelPrivateKeyFields.length > 0 ||
-            sshTunnelPrivateKeyPasswordFields.length > 0
+            sshTunnelPrivateKeyPasswordFields.length > 0 ||
+            encryptedExtraFields.length > 0
           }
         />
       )}
