@@ -48,11 +48,14 @@ def tool(
     description: str | None = None,
     tags: list[str] | None = None,
     protect: bool = True,
+    class_permission_name: str | None = None,
+    method_permission_name: str | None = None,
 ) -> Any:  # Use Any to avoid mypy issues with dependency injection
     """
     Decorator to register an MCP tool with optional authentication.
 
-    This decorator combines FastMCP tool registration with optional authentication.
+    This decorator combines FastMCP tool registration with optional authentication
+    and RBAC permission checking.
 
     Can be used as:
         @tool
@@ -69,6 +72,11 @@ def tool(
         description: Tool description (defaults to function docstring)
         tags: List of tags for categorizing the tool (defaults to empty list)
         protect: Whether to require Superset authentication (defaults to True)
+        class_permission_name: FAB view/resource name for RBAC checking
+            (e.g., "Chart", "Dashboard", "SQLLab"). When set, enables
+            permission checking via security_manager.can_access().
+        method_permission_name: FAB action name (e.g., "read", "write").
+            Defaults to "write" if tags includes "mutate", else "read".
 
     Returns:
         Decorator function that registers and wraps the tool, or the wrapped function
@@ -90,6 +98,18 @@ def tool(
         def public_tool() -> str:
             '''Public tool accessible without auth'''
             return "Hello world"
+
+        @tool(class_permission_name="Chart")  # RBAC: requires can_read on Chart
+        def list_charts() -> list:
+            '''List charts the user can access'''
+            return []
+
+        @tool(  # RBAC: can_write on Chart
+            tags=["mutate"], class_permission_name="Chart",
+        )
+        def create_chart(name: str) -> dict:
+            '''Create a new chart'''
+            return {"name": name}
     """
     raise NotImplementedError(
         "MCP tool decorator not initialized. "
