@@ -152,6 +152,9 @@ function estimateHorizontalLegendRows(
   const legendItemWidths = getLegendItemWidths(labels, theme);
 
   if (legendItemWidths.length === 0) {
+    if (showSelectors && ESTIMATED_LEGEND_SELECTOR_WIDTH > availableWidth) {
+      return Infinity;
+    }
     return 1;
   }
 
@@ -176,11 +179,14 @@ function estimateHorizontalLegendRows(
   }
 
   if (showSelectors) {
+    if (ESTIMATED_LEGEND_SELECTOR_WIDTH > availableWidth) {
+      return Infinity;
+    }
     const selectorWidth =
       rowWidth === 0
         ? ESTIMATED_LEGEND_SELECTOR_WIDTH
         : rowWidth + LEGEND_SELECTOR_GAP + ESTIMATED_LEGEND_SELECTOR_WIDTH;
-    if (rowWidth > 0 && selectorWidth > availableWidth) {
+    if (selectorWidth > availableWidth) {
       rows += 1;
     }
   }

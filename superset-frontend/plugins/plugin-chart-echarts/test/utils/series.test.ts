@@ -1026,6 +1026,23 @@ describe('getLegendLayoutResult', () => {
     });
   });
 
+  test('falls back to scroll when horizontal legend selectors alone exceed available width', () => {
+    expect(
+      getLegendLayoutResult({
+        chartHeight: 400,
+        chartWidth: 95,
+        legendItems: ['A'],
+        legendMargin: null,
+        orientation: LegendOrientation.Top,
+        show: true,
+        theme,
+        type: LegendType.Plain,
+      }),
+    ).toEqual({
+      effectiveType: LegendType.Scroll,
+    });
+  });
+
   test('keeps plain vertical legends when they fit within a single column', () => {
     expect(
       getLegendLayoutResult({
