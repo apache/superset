@@ -57,29 +57,45 @@ export function sortNumberWithMixedTypes(
   const cellA = rowA.values?.[columnId];
   const cellB = rowB.values?.[columnId];
 
-  // Value cells are React elements created in TimeTable with props:
-  // { valueField, column, reversedEntries }. We can recompute the numeric
-  // value using the same helper that the cell uses.
+  // Both ValueCell and Sparkline cells pass React elements here.
+  // ValueCell uses { valueField, column, reversedEntries }
+  // Sparkline/SparklineCell uses { valueField, column, entries }
+  // Normalize to reversedEntries before delegating to calculateCellValue.
   const propsA = cellA?.props as
-    | { valueField: string; column: ColumnConfig; reversedEntries: Entry[] }
+    | {
+        valueField: string;
+        column: ColumnConfig;
+        reversedEntries?: Entry[];
+        entries?: Entry[];
+      }
     | undefined;
   const propsB = cellB?.props as
-    | { valueField: string; column: ColumnConfig; reversedEntries: Entry[] }
+    | {
+        valueField: string;
+        column: ColumnConfig;
+        reversedEntries?: Entry[];
+        entries?: Entry[];
+      }
     | undefined;
 
-  if (!propsA || !propsB) {
+  const reversedEntriesA =
+    propsA?.reversedEntries ?? propsA?.entries?.slice().reverse();
+  const reversedEntriesB =
+    propsB?.reversedEntries ?? propsB?.entries?.slice().reverse();
+
+  if (!propsA || !propsB || !reversedEntriesA || !reversedEntriesB) {
     return 0;
   }
 
   const { value: valueA } = calculateCellValue(
     propsA.valueField,
     propsA.column,
-    propsA.reversedEntries,
+    reversedEntriesA,
   );
   const { value: valueB } = calculateCellValue(
     propsB.valueField,
     propsB.column,
-    propsB.reversedEntries,
+    reversedEntriesB,
   );
 
   return compareValues(valueA, valueB, 'asSmallest');
