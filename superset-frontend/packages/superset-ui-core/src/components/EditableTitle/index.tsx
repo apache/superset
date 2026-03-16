@@ -89,20 +89,11 @@ export function EditableTitle({
   onEditingChange,
   ...rest
 }: EditableTitleProps) {
-  const isControlled = editing !== undefined;
-  const [isEditingInternal, setIsEditingInternal] = useState(editing ?? false);
+  const [isEditing, setIsEditing] = useState(editing);
   const [currentTitle, setCurrentTitle] = useState(title);
   const [lastTitle, setLastTitle] = useState(title);
   const [inputWidth, setInputWidth] = useState<number>(0);
   const contentRef = useRef<TextAreaRef>(null);
-  const isEditing = isControlled ? editing : isEditingInternal;
-
-  function setEditingState(value: boolean) {
-    if (!isControlled) {
-      setIsEditingInternal(value);
-    }
-    onEditingChange?.(value);
-  }
 
   function measureTextWidth(text: string, font = '14px Arial') {
     const canvas = document.createElement('canvas');
@@ -151,14 +142,16 @@ export function EditableTitle({
       const { length } = textArea.value;
       textArea.setSelectionRange(length, length);
     }
-    setEditingState(true);
+    setIsEditing(true);
+    onEditingChange?.(true);
   }
 
   function handleBlur() {
     const formattedTitle = currentTitle.trim();
 
     if (!canEdit) return;
-    setEditingState(false);
+    setIsEditing(false);
+    onEditingChange?.(false);
 
     if (!formattedTitle.length) {
       setCurrentTitle(lastTitle);
