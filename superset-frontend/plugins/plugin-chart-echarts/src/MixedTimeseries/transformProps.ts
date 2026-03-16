@@ -603,7 +603,8 @@ export default function transformProps(
         extractForecastSeriesContext((entry.name || '') as string).type ===
         ForecastSeriesEnum.Observation,
     )
-    .map(entry => entry.id || entry.name || '')
+    .map(entry => entry.name)
+    .filter((name): name is string => Boolean(name))
     .concat(extractAnnotationLabels(annotationLayers))
     .sort((a: string, b: string) => {
       if (!legendSort) return 0;
