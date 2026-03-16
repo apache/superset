@@ -1,0 +1,82 @@
+---
+title: Granular Export Controls
+sidebar_position: 4
+---
+
+# Granular Export Controls
+
+Superset provides granular, permission-based controls for data export, image export, and clipboard operations. These replace the legacy `can_csv` permission with three fine-grained permissions that can be assigned independently to roles.
+
+## Feature Flag
+
+Granular export controls are gated behind the `GRANULAR_EXPORT_CONTROLS` feature flag. When the flag is disabled, the legacy `can_csv` permission behavior is preserved.
+
+```python
+FEATURE_FLAGS = {
+    "GRANULAR_EXPORT_CONTROLS": True,
+}
+```
+
+## Permissions
+
+| Permission | Resource | Controls |
+|---|---|---|
+| `can_export_data` | `Superset` | CSV, Excel, and JSON data exports from charts, dashboards, and SQL Lab |
+| `can_export_image` | `Superset` | Screenshot (JPEG/PNG) and PDF exports from charts and dashboards |
+| `can_copy_clipboard` | `Superset` | Copy-to-clipboard operations in SQL Lab and the Explore data pane |
+
+## Default Role Assignments
+
+When the migration runs, permissions are assigned based on existing `can_csv` access:
+
+| Role | `can_export_data` | `can_export_image` | `can_copy_clipboard` |
+|---|---|---|---|
+| Admin | Yes | Yes | Yes |
+| Alpha | Yes | Yes | Yes |
+| Gamma | No | No | Yes |
+| sql_lab | Yes | N/A | Yes |
+
+Gamma users do not receive `can_export_data` or `can_export_image` by default. Admins can grant these permissions to Gamma or custom roles as needed.
+
+## Configuration Steps
+
+1. **Enable the feature flag** in `superset_config.py`:
+   ```python
+   FEATURE_FLAGS = {
+       "GRANULAR_EXPORT_CONTROLS": True,
+   }
+   ```
+
+2. **Run the database migration** to register the new permissions:
+   ```bash
+   superset db upgrade
+   ```
+
+3. **Initialize permissions** so roles are populated:
+   ```bash
+   superset init
+   ```
+
+4. **Verify role assignments** in **Settings > List Roles**. Confirm that each role has the expected permissions from the table above.
+
+5. **Customize as needed**: Grant or revoke individual export permissions on any role through the role editor.
+
+## User Experience
+
+When a user lacks a required export permission:
+
+- **Menu items** (CSV, Excel, JSON, screenshot) appear **disabled** with an info tooltip icon explaining the restriction
+- **Buttons** (SQL Lab download, clipboard copy) appear **disabled** with a tooltip on hover
+- **API endpoints** return **403 Forbidden** when the corresponding permission is missing
+
+## API Enforcement
+
+The following API endpoints enforce granular export permissions when the feature flag is enabled:
+
+| Endpoint | Required Permission |
+|---|---|
+| `GET /api/v1/chart/{id}/data/` (CSV/Excel format) | `can_export_data` |
+| `GET /api/v1/chart/{id}/cache_screenshot/` | `can_export_image` |
+| `GET /api/v1/dashboard/{id}/cache_screenshot/` | `can_export_image` |
+| `POST /api/v1/sqllab/export/` | `can_export_data` |
+| `POST /api/v1/sqllab/export_streaming/` | `can_export_data` |
