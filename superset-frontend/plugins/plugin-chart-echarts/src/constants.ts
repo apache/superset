@@ -47,6 +47,11 @@ export const TIMESERIES_CONSTANTS = {
   extraControlsOffset: 22,
   // Min right padding (px) for horizontal bar charts to ensure value labels are fully visible
   horizontalBarLabelRightPadding: 70,
+  // Height thresholds (px) for responsive y-axis behavior
+  compactChartHeight: 100,
+  microChartHeight: 60,
+  // Divisor to calculate proportional y-axis tick count from chart height
+  yAxisTickHeightInterval: 80,
 };
 
 export enum OpacityEnum {

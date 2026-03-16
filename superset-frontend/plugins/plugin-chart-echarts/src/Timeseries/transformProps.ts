@@ -651,7 +651,7 @@ export default function transformProps(
 
   // Reduce grid padding for compact charts to maximize the drawing area.
   // Keep enough top padding so the max label doesn't clip against the cell border.
-  if (height < 100) {
+  if (height < TIMESERIES_CONSTANTS.compactChartHeight) {
     padding.top = Math.min(padding.top, 12);
     padding.bottom = Math.min(padding.bottom, 5);
   }
@@ -745,11 +745,11 @@ export default function transformProps(
   // >= 100px: full axis with proportional tick count
   // 60-99px: show only min/max labels, hide lines/ticks
   // < 60px: hide all axis decorations, show line only
-  const isCompactChart = height < 100;
-  const isMicroChart = height < 60;
+  const isCompactChart = height < TIMESERIES_CONSTANTS.compactChartHeight;
+  const isMicroChart = height < TIMESERIES_CONSTANTS.microChartHeight;
   const yAxisSplitNumber = isCompactChart
     ? undefined
-    : Math.max(3, Math.floor(height / 80));
+    : Math.max(3, Math.floor(height / TIMESERIES_CONSTANTS.yAxisTickHeightInterval));
 
   let yAxis: any = {
     ...defaultYAxis,
