@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { ColumnConfig, Entry } from '../../types';
+import { calculateCellValue } from '../valueCalculations/valueCalculations';
 /**
  * Simple numeric value comparison that handles null, undefined, and mixed types
  * @param a - First value to compare
@@ -52,10 +54,35 @@ export function sortNumberWithMixedTypes(
   rowB: any,
   columnId: string,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _descending: boolean,
+  descending: boolean,
 ) {
-  const valueA = rowA.values[columnId].props['data-value'];
-  const valueB = rowB.values[columnId].props['data-value'];
+  const cellA = rowA.values?.[columnId];
+  const cellB = rowB.values?.[columnId];
+
+  // Value cells are React elements created in TimeTable with props:
+  // { valueField, column, reversedEntries }. We can recompute the numeric
+  // value using the same helper that the cell uses.
+  const propsA = cellA?.props as
+    | { valueField: string; column: ColumnConfig; reversedEntries: Entry[] }
+    | undefined;
+  const propsB = cellB?.props as
+    | { valueField: string; column: ColumnConfig; reversedEntries: Entry[] }
+    | undefined;
+
+  if (!propsA || !propsB) {
+    return 0;
+  }
+
+  const { value: valueA } = calculateCellValue(
+    propsA.valueField,
+    propsA.column,
+    propsA.reversedEntries,
+  );
+  const { value: valueB } = calculateCellValue(
+    propsB.valueField,
+    propsB.column,
+    propsB.reversedEntries,
+  );
 
   return compareValues(valueA, valueB, 'asSmallest');
 }
