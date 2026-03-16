@@ -59,7 +59,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             datasource_model_instance = self._convert_to_model(datasource)
 
         slice_ = None
-        if current_slice:
+        if isinstance(current_slice, Slice):
             slice_ = current_slice
         elif form_data and form_data.get("slice_id") is not None:
             slice_ = self._get_slice(form_data.get("slice_id"))
