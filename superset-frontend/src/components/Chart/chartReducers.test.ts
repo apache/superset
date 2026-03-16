@@ -40,6 +40,33 @@ describe('chart reducers', () => {
     expect(newState[chartKey].chartStatus).toEqual('stopped');
   });
 
+  test('should handle chartUpdateStopped without queryController', () => {
+    const newState = chartReducer(charts, actions.chartUpdateStopped(chartKey));
+    expect(newState[chartKey].chartStatus).toEqual('stopped');
+    expect(newState[chartKey].chartAlert).toContain(
+      'Updating chart was stopped',
+    );
+    expect(newState[chartKey].chartUpdateEndTime).toBeGreaterThan(0);
+  });
+
+  test('chartUpdateStopped sets state correctly', () => {
+    const chartsWithController = {
+      [chartKey]: {
+        ...testChart,
+        queryController: new AbortController(),
+      },
+    };
+    const newState = chartReducer(
+      chartsWithController,
+      actions.chartUpdateStopped(chartKey),
+    );
+    // Verify the chart status and alert are set
+    expect(newState[chartKey].chartStatus).toEqual('stopped');
+    expect(newState[chartKey].chartAlert).toContain(
+      'Updating chart was stopped',
+    );
+  });
+
   test('should update endtime on timeout', () => {
     const newState = chartReducer(
       charts,

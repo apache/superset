@@ -19,8 +19,8 @@
 import React, { Component } from 'react';
 import { IconTooltip, List } from '@superset-ui/core/components';
 import { nanoid } from 'nanoid';
-import { t } from '@apache-superset/core';
-import { withTheme, type SupersetTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { withTheme, type SupersetTheme } from '@apache-superset/core/theme';
 import {
   SortableContainer,
   SortableHandle,
@@ -72,7 +72,7 @@ const SortableList = SortableContainer(List);
 const SortableDragger = SortableHandle(() => (
   <Icons.MenuOutlined
     role="img"
-    aria-label="drag"
+    aria-label={t('Drag to reorder')}
     className="text-primary"
     style={{ cursor: 'ns-resize' }}
   />

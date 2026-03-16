@@ -19,8 +19,8 @@
 import { createContext, lazy, FC, useEffect, useMemo, useRef } from 'react';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
-import { t } from '@apache-superset/core';
-import { useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -63,6 +63,7 @@ import {
 import SyncDashboardState, {
   getDashboardContextLocalStorage,
 } from '../components/SyncDashboardState';
+import { AutoRefreshProvider } from '../contexts/AutoRefreshContext';
 
 export const DashboardPageIdContext = createContext('');
 
@@ -300,12 +301,14 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
                   : dashboard?.theme?.id
               }
             >
-              <DashboardContainer
-                activeFilters={activeFilters as ActiveFilters}
-                ownDataCharts={relevantDataMask}
-              >
-                {DashboardBuilderComponent}
-              </DashboardContainer>
+              <AutoRefreshProvider>
+                <DashboardContainer
+                  activeFilters={activeFilters as ActiveFilters}
+                  ownDataCharts={relevantDataMask}
+                >
+                  {DashboardBuilderComponent}
+                </DashboardContainer>
+              </AutoRefreshProvider>
             </CrudThemeProvider>
           </DashboardPageIdContext.Provider>
         </>

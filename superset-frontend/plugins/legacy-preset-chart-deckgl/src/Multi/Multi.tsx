@@ -40,7 +40,7 @@ import {
   SupersetClient,
   usePrevious,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { Layer } from '@deck.gl/core';
 
 import {
@@ -289,6 +289,8 @@ const DeckMulti = (props: DeckMultiProps) => {
           adhoc_filters: adhocFilters,
           // Preserve dashboard context for embedded mode permissions
           ...(formData.dashboardId && { dashboardId: formData.dashboardId }),
+          // Include parent multilayer chart ID for security checks
+          ...(formData.slice_id && { parent_slice_id: formData.slice_id }),
         },
       } as any as JsonObject & { slice_id: number };
 

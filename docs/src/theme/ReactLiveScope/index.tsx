@@ -50,7 +50,7 @@ if (isBrowser) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const SupersetComponents = require('@superset/components');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { Alert } = require('@apache-superset/core/ui');
+    const { Alert } = require('@apache-superset/core/components');
 
     console.log('[ReactLiveScope] SupersetComponents keys:', Object.keys(SupersetComponents || {}).slice(0, 10));
     console.log('[ReactLiveScope] Has Button?', 'Button' in (SupersetComponents || {}));

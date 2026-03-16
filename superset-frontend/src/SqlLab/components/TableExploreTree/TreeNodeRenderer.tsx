@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled, t } from '@apache-superset/core';
+import { css, styled } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import type { NodeRendererProps } from 'react-arborist';
 import { Icons, Tooltip, Typography } from '@superset-ui/core/components';
 import RefreshLabel from '@superset-ui/core/components/RefreshLabel';

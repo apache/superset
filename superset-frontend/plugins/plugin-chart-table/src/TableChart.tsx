@@ -35,9 +35,9 @@ import {
   Row,
 } from 'react-table';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
-import { FaSort } from '@react-icons/all-files/fa/FaSort';
-import { FaSortDown as FaSortDesc } from '@react-icons/all-files/fa/FaSortDown';
-import { FaSortUp as FaSortAsc } from '@react-icons/all-files/fa/FaSortUp';
+import { FaSort } from 'react-icons/fa';
+import { FaSortDown as FaSortDesc } from 'react-icons/fa';
+import { FaSortUp as FaSortAsc } from 'react-icons/fa';
 import cx from 'classnames';
 import {
   DataRecord,
@@ -54,10 +54,9 @@ import {
   css,
   useTheme,
   SupersetTheme,
-  t,
-  tn,
-} from '@apache-superset/core/ui';
-import { GenericDataType } from '@apache-superset/core/api/core';
+} from '@apache-superset/core/theme';
+import { t, tn } from '@apache-superset/core/translation';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   Input,
   Space,

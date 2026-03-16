@@ -20,7 +20,7 @@ import {
   DEFAULT_SORT_SERIES_DATA,
   sections,
 } from '@superset-ui/chart-controls';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { LegendOrientation, LegendType } from '../types';
 import {
   OrientationType,
@@ -46,7 +46,7 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   xAxisTitle: '',
   xAxisTitleMargin: 0,
   yAxisTitle: '',
-  yAxisTitleMargin: 0,
+  yAxisTitleMargin: 15,
   yAxisTitlePosition: 'Top',
   // Now that the weird bug workaround is over, here's the rest...
   ...DEFAULT_SORT_SERIES_DATA,

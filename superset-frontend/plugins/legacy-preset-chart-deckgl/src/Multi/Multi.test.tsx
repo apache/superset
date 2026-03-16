@@ -18,7 +18,7 @@
  */
 import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { supersetTheme, ThemeProvider } from '@apache-superset/core/ui';
+import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { DatasourceType, SupersetClient } from '@superset-ui/core';
@@ -603,5 +603,142 @@ describe('DeckMulti Component Rendering', () => {
       expect(viewportData.longitude).toBe(newViewport.longitude);
       expect(viewportData.latitude).toBe(newViewport.latitude);
     });
+  });
+});
+
+test('includes parent_slice_id in child slice requests when parent has slice_id', async () => {
+  jest.clearAllMocks();
+  const mockGet = jest.fn().mockResolvedValue({
+    json: {
+      result: {
+        form_data: {
+          viz_type: 'deck_scatter',
+          datasource: '1__table',
+        },
+      },
+      data: {
+        features: [],
+      },
+    },
+  });
+  (SupersetClient.get as jest.Mock) = mockGet;
+  const parentSliceId = 99;
+  const dashboardId = 5;
+
+  const props = {
+    ...baseMockProps,
+    formData: {
+      ...baseMockProps.formData,
+      slice_id: parentSliceId,
+      dashboardId,
+    },
+  };
+
+  renderWithProviders(<DeckMulti {...props} />);
+
+  await waitFor(() => {
+    expect(mockGet).toHaveBeenCalled();
+  });
+
+  // Check that the child slice requests include parent_slice_id
+  const { calls } = mockGet.mock;
+  calls.forEach(call => {
+    const { endpoint } = call[0];
+    if (endpoint.includes('api/v1/explore/form_data')) {
+      const body = JSON.parse(call[0].body);
+      expect(body.form_data).toMatchObject({
+        dashboardId,
+        parent_slice_id: parentSliceId,
+      });
+    }
+  });
+});
+
+test('includes parent_slice_id in embedded mode', async () => {
+  jest.clearAllMocks();
+  const mockGet = jest.fn().mockResolvedValue({
+    json: {
+      result: {
+        form_data: {
+          viz_type: 'deck_scatter',
+          datasource: '1__table',
+        },
+      },
+      data: {
+        features: [],
+      },
+    },
+  });
+  (SupersetClient.get as jest.Mock) = mockGet;
+  const parentSliceId = 200;
+  const dashboardId = 10;
+
+  const props = {
+    ...baseMockProps,
+    formData: {
+      ...baseMockProps.formData,
+      slice_id: parentSliceId,
+      dashboardId,
+      embedded: true,
+    },
+  };
+
+  renderWithProviders(<DeckMulti {...props} />);
+
+  await waitFor(() => {
+    expect(mockGet).toHaveBeenCalled();
+  });
+
+  // Verify parent_slice_id is included in embedded mode
+  const { calls } = mockGet.mock;
+  calls.forEach(call => {
+    const { endpoint } = call[0];
+    if (endpoint.includes('api/v1/explore/form_data')) {
+      const body = JSON.parse(call[0].body);
+      expect(body.form_data.parent_slice_id).toBe(parentSliceId);
+    }
+  });
+});
+
+test('does not include parent_slice_id when parent has no slice_id', async () => {
+  jest.clearAllMocks();
+  const mockGet = jest.fn().mockResolvedValue({
+    json: {
+      result: {
+        form_data: {
+          viz_type: 'deck_scatter',
+          datasource: '1__table',
+        },
+      },
+      data: {
+        features: [],
+      },
+    },
+  });
+  (SupersetClient.get as jest.Mock) = mockGet;
+
+  const props = {
+    ...baseMockProps,
+    formData: {
+      ...baseMockProps.formData,
+      // No slice_id in parent
+      dashboardId: 5,
+    },
+  };
+
+  renderWithProviders(<DeckMulti {...props} />);
+
+  await waitFor(() => {
+    expect(mockGet).toHaveBeenCalled();
+  });
+
+  // Verify parent_slice_id is not included when parent has no slice_id
+  const { calls } = mockGet.mock;
+  calls.forEach(call => {
+    const { endpoint } = call[0];
+    if (endpoint.includes('api/v1/explore/form_data')) {
+      const body = JSON.parse(call[0].body);
+      expect(body.form_data.parent_slice_id).toBeUndefined();
+    }
   });
 });

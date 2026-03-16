@@ -24,7 +24,7 @@ import {
   colorSchemeDark,
   colorSchemeLight,
 } from 'ag-grid-community';
-import { useTheme, useThemeMode } from '@apache-superset/core/ui';
+import { useTheme, useThemeMode } from '@apache-superset/core/theme';
 
 // Note: With ag-grid v34's new theming API, CSS files are injected automatically
 // Do NOT import 'ag-grid-community/styles/ag-grid.css' or theme CSS files
@@ -104,6 +104,9 @@ export const ThemedAgGridReact = forwardRef<
       // Borders
       borderColor: theme.colorSplit,
       columnBorderColor: theme.colorSplit,
+
+      // Checkbox tick color
+      checkboxCheckedShapeColor: theme.colorBgElevated,
 
       // Interactive elements
       accentColor: theme.colorPrimary,

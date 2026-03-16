@@ -24,7 +24,7 @@
     "lib"
   ],
   "dependencies": {
-    "@react-icons/all-files": "^4.1.0",
+    "react-icons": "5.4.0",
     "@types/d3-array": "^3.2.2",
     "@types/react-table": "^7.7.20",
     "classnames": "^2.5.1",

@@ -280,6 +280,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Datasource",
     } | READ_ONLY_MODEL_VIEWS
 
+    GAMMA_EXCLUDED_PVMS = {
+        ("can_export_data", "Superset"),
+        ("can_export_image", "Superset"),
+    }
+
     ADMIN_ONLY_VIEW_MENUS = {
         "Access Requests",
         "Action Logs",
@@ -396,6 +401,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     SQLLAB_EXTRA_PERMISSION_VIEWS = {
         ("can_csv", "Superset"),  # Deprecated permission remove on 3.0.0
+        ("can_export_data", "Superset"),
+        ("can_copy_clipboard", "Superset"),
         ("can_read", "Superset"),
         ("can_read", "Database"),
     }
@@ -424,6 +431,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("can_read", "Theme"),
         # Embedded dashboard support
         ("can_read", "EmbeddedDashboard"),
+        ("can_read", "CurrentUserRestApi"),
         # Datasource metadata for chart rendering
         ("can_get", "Datasource"),
         ("can_external_metadata", "Datasource"),
@@ -686,6 +694,32 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return True
 
         return False
+
+    def _validate_child_in_parent_multilayer(
+        self, child_slice_id: int, parent_slice: "Slice"
+    ) -> bool:
+        """
+        Validate that a child slice ID is actually configured in the parent
+        multi-layer chart's deck_slices configuration.
+
+        This prevents attackers from forging a parent_slice_id to gain
+        unauthorized access to arbitrary charts.
+        """
+        try:
+            # Parse the parent chart's configuration
+            parent_form_data = json.loads(parent_slice.params or "{}")
+
+            # Check if this is actually a multi-layer deck.gl chart
+            if parent_form_data.get("viz_type") != "deck_multi":
+                return False
+
+            # Get the configured child slices
+            deck_slices = parent_form_data.get("deck_slices", [])
+
+            # Validate the child is in the parent's configuration
+            return child_slice_id in deck_slices
+        except (json.JSONDecodeError, TypeError):
+            return False
 
     def has_drill_by_access(
         self,
@@ -1195,6 +1229,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.add_permission_view_menu("all_database_access", "all_database_access")
         self.add_permission_view_menu("all_query_access", "all_query_access")
         self.add_permission_view_menu("can_csv", "Superset")
+        self.add_permission_view_menu("can_export_data", "Superset")
+        self.add_permission_view_menu("can_export_image", "Superset")
+        self.add_permission_view_menu("can_copy_clipboard", "Superset")
         self.add_permission_view_menu("can_share_dashboard", "Superset")
         self.add_permission_view_menu("can_share_chart", "Superset")
         self.add_permission_view_menu("can_sqllab", "Superset")
@@ -1476,6 +1513,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             or self._is_admin_only(pvm)
             or self._is_alpha_only(pvm)
             or self._is_sql_lab_only(pvm)
+            or (pvm.permission.name, pvm.view_menu.name) in self.GAMMA_EXCLUDED_PVMS
         ) or self._is_accessible_to_all(pvm)
 
     def _is_sql_lab_only(self, pvm: PermissionView) -> bool:
@@ -2592,12 +2630,34 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             form_data.get("type") != "NATIVE_FILTER"
                             and (slice_id := form_data.get("slice_id"))
                             and (
-                                slc := self.session.query(Slice)
-                                .filter(Slice.id == slice_id)
-                                .one_or_none()
+                                # Direct chart access (no parent)
+                                (
+                                    form_data.get("parent_slice_id") is None
+                                    and (
+                                        slc := self.session.query(Slice)
+                                        .filter(Slice.id == slice_id)
+                                        .one_or_none()
+                                    )
+                                    and slc in dashboard_.slices
+                                    and slc.datasource == datasource
+                                )
+                                or
+                                # Multi-layer chart child access (has parent)
+                                (
+                                    (parent_id := form_data.get("parent_slice_id"))
+                                    and (
+                                        parent_slc := self.session.query(Slice)
+                                        .filter(Slice.id == parent_id)
+                                        .one_or_none()
+                                    )
+                                    and parent_slc in dashboard_.slices
+                                    # Validate child is actually part of parent's config
+                                    and self._validate_child_in_parent_multilayer(
+                                        child_slice_id=slice_id,
+                                        parent_slice=parent_slc,
+                                    )
+                                )
                             )
-                            and slc in dashboard_.slices
-                            and slc.datasource == datasource
                         )
                         or self.has_drill_by_access(form_data, dashboard_, datasource)
                     )
