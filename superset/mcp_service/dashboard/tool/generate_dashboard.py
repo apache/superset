@@ -28,6 +28,7 @@ from fastmcp import Context
 from superset_core.mcp.decorators import tool
 
 from superset.extensions import event_logger
+from superset.mcp_service.chart.schemas import serialize_chart_object
 from superset.mcp_service.dashboard.constants import (
     generate_id,
     GRID_COLUMN_COUNT,
@@ -177,7 +178,7 @@ def _generate_title_from_charts(chart_objects: List[Any]) -> str:
     return title
 
 
-@tool(tags=["mutate"])
+@tool(tags=["mutate"], class_permission_name="Dashboard")
 @parse_request(GenerateDashboardRequest)
 def generate_dashboard(
     request: GenerateDashboardRequest, ctx: Context
@@ -295,7 +296,11 @@ def generate_dashboard(
                 if serialize_tag_object(tag) is not None
             ],
             roles=[],  # Dashboard roles not typically set at creation
-            charts=[],  # Chart details not needed in response
+            charts=[
+                obj
+                for chart in getattr(dashboard, "slices", [])
+                if (obj := serialize_chart_object(chart)) is not None
+            ],
         )
 
         dashboard_url = f"{get_superset_base_url()}/superset/dashboard/{dashboard.id}/"

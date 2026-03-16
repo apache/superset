@@ -70,7 +70,8 @@ Chart Management:
 
 SQL Lab Integration:
 - execute_sql: Execute SQL queries and get results (requires database_id)
-- open_sql_lab_with_context: Generate SQL Lab URL with pre-filled query
+- save_sql_query: Save a SQL query to Saved Queries list
+- open_sql_lab_with_context: Generate SQL Lab URL with pre-filled sql
 
 Schema Discovery:
 - get_schema: Get schema metadata for chart/dataset/dashboard (columns, filters)
@@ -103,9 +104,10 @@ To find your own charts/dashboards:
    "opr": "eq", "value": current_user.id}}])
 
 To explore data with SQL:
-1. get_instance_info -> find database_id
+1. list_datasets -> find a dataset and note its database_id
 2. execute_sql(database_id, sql) -> run query
-3. open_sql_lab_with_context(database_id) -> open SQL Lab UI
+3. save_sql_query(database_id, label, sql) -> save query for later reuse
+4. open_sql_lab_with_context(database_id) -> open SQL Lab UI
 
 generate_explore_link vs generate_chart:
 - Use generate_explore_link for exploration (no permanent chart created)
@@ -415,6 +417,7 @@ from superset.mcp_service.explore.tool import (  # noqa: F401, E402
 from superset.mcp_service.sql_lab.tool import (  # noqa: F401, E402
     execute_sql,
     open_sql_lab_with_context,
+    save_sql_query,
 )
 from superset.mcp_service.system import (  # noqa: F401, E402
     prompts as system_prompts,
