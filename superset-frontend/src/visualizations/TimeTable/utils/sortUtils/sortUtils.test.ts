@@ -40,7 +40,7 @@ describe('sortNumberWithMixedTypes', () => {
     const rowA = createMockRow(10);
     const rowB = createMockRow(20);
 
-    const result = sortNumberWithMixedTypes(rowA, rowB, 'testColumn', false);
+    const result = sortNumberWithMixedTypes(rowA, rowB, 'testColumn');
 
     expect(result).toBeLessThan(0); // rowA should come before rowB
   });
@@ -49,7 +49,7 @@ describe('sortNumberWithMixedTypes', () => {
     const rowA = createMockRow(10);
     const rowB = createMockRow(20);
 
-    const result = sortNumberWithMixedTypes(rowA, rowB, 'testColumn', true);
+    const result = sortNumberWithMixedTypes(rowA, rowB, 'testColumn');
 
     expect(result).toBeLessThan(0);
   });
@@ -58,7 +58,7 @@ describe('sortNumberWithMixedTypes', () => {
     const rowA = createMockRow(15);
     const rowB = createMockRow(15);
 
-    const result = sortNumberWithMixedTypes(rowA, rowB, 'testColumn', false);
+    const result = sortNumberWithMixedTypes(rowA, rowB, 'testColumn');
 
     expect(result).toBe(0);
   });
@@ -67,7 +67,7 @@ describe('sortNumberWithMixedTypes', () => {
     const rowA = createMockRow(null);
     const rowB = createMockRow(10);
 
-    const result = sortNumberWithMixedTypes(rowA, rowB, 'testColumn', false);
+    const result = sortNumberWithMixedTypes(rowA, rowB, 'testColumn');
     expect(typeof result).toBe('number');
   });
 
@@ -75,7 +75,7 @@ describe('sortNumberWithMixedTypes', () => {
     const rowA = createMockRow('10');
     const rowB = createMockRow('20');
 
-    const result = sortNumberWithMixedTypes(rowA, rowB, 'testColumn', false);
+    const result = sortNumberWithMixedTypes(rowA, rowB, 'testColumn');
 
     expect(typeof result).toBe('number');
   });
@@ -84,7 +84,7 @@ describe('sortNumberWithMixedTypes', () => {
     const rowA = createMockRow(10);
     const rowB = createMockRow('20');
 
-    const result = sortNumberWithMixedTypes(rowA, rowB, 'testColumn', false);
+    const result = sortNumberWithMixedTypes(rowA, rowB, 'testColumn');
 
     expect(typeof result).toBe('number');
   });
@@ -93,7 +93,7 @@ describe('sortNumberWithMixedTypes', () => {
     const rowA = createMockRow(-10);
     const rowB = createMockRow(5);
 
-    const result = sortNumberWithMixedTypes(rowA, rowB, 'testColumn', false);
+    const result = sortNumberWithMixedTypes(rowA, rowB, 'testColumn');
 
     expect(result).toBeLessThan(0);
   });
@@ -102,7 +102,7 @@ describe('sortNumberWithMixedTypes', () => {
     const rowA = createMockRow(0);
     const rowB = createMockRow(10);
 
-    const result = sortNumberWithMixedTypes(rowA, rowB, 'testColumn', false);
+    const result = sortNumberWithMixedTypes(rowA, rowB, 'testColumn');
 
     expect(result).toBeLessThan(0);
   });
@@ -127,12 +127,7 @@ describe('sortNumberWithMixedTypes', () => {
     const smaller = createValueCellRow(1);
     const larger = createValueCellRow(5);
 
-    const result = sortNumberWithMixedTypes(
-      smaller,
-      larger,
-      'testColumn',
-      false,
-    );
+    const result = sortNumberWithMixedTypes(smaller, larger, 'testColumn');
 
     expect(result).toBeLessThan(0);
   });

@@ -53,8 +53,6 @@ export function sortNumberWithMixedTypes(
   rowA: any,
   rowB: any,
   columnId: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  descending: boolean,
 ) {
   const cellA = rowA.values?.[columnId];
   const cellB = rowB.values?.[columnId];
