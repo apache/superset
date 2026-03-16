@@ -78,6 +78,7 @@ describe('sortNumberWithMixedTypes', () => {
     const result = sortNumberWithMixedTypes(rowA, rowB, 'testColumn');
 
     expect(typeof result).toBe('number');
+    expect(result).toBe(0);
   });
 
   test('should handle mixed types', () => {

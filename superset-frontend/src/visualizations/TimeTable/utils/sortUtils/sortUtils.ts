@@ -46,6 +46,11 @@ function compareValues(
 /**
  * Sorts table rows with mixed data types for react-table.
  *
+ * @param rowA - First row to compare
+ * @param rowB - Second row to compare
+ * @param columnId - Column identifier for sorting
+ * @param descending - Whether to sort in descending order
+ * @returns Numeric comparison result for react-table
  * react-table handles the asc/desc direction flip internally after calling
  * this function, so we only return the raw comparison result.
  */
