@@ -1,10 +1,72 @@
 {
   "name": "@apache-superset/core",
-  "version": "0.0.1-rc11",
+  "version": "0.1.0-rc1",
   "description": "This package contains UI elements, APIs, and utility functions used by Superset.",
   "sideEffects": false,
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./common": {
+      "types": "./lib/common/index.d.ts",
+      "default": "./lib/common/index.js"
+    },
+    "./authentication": {
+      "types": "./lib/authentication/index.d.ts",
+      "default": "./lib/authentication/index.js"
+    },
+    "./commands": {
+      "types": "./lib/commands/index.d.ts",
+      "default": "./lib/commands/index.js"
+    },
+    "./editors": {
+      "types": "./lib/editors/index.d.ts",
+      "default": "./lib/editors/index.js"
+    },
+    "./extensions": {
+      "types": "./lib/extensions/index.d.ts",
+      "default": "./lib/extensions/index.js"
+    },
+    "./menus": {
+      "types": "./lib/menus/index.d.ts",
+      "default": "./lib/menus/index.js"
+    },
+    "./sqlLab": {
+      "types": "./lib/sqlLab/index.d.ts",
+      "default": "./lib/sqlLab/index.js"
+    },
+    "./views": {
+      "types": "./lib/views/index.d.ts",
+      "default": "./lib/views/index.js"
+    },
+    "./contributions": {
+      "types": "./lib/contributions/index.d.ts",
+      "default": "./lib/contributions/index.js"
+    },
+    "./theme": {
+      "types": "./lib/theme/index.d.ts",
+      "default": "./lib/theme/index.js"
+    },
+    "./translation": {
+      "types": "./lib/translation/index.d.ts",
+      "default": "./lib/translation/index.js"
+    },
+    "./components": {
+      "types": "./lib/components/index.d.ts",
+      "default": "./lib/components/index.js"
+    },
+    "./utils": {
+      "types": "./lib/utils/index.d.ts",
+      "default": "./lib/utils/index.js"
+    },
+    "./testing": {
+      "types": "./lib/testing.d.ts",
+      "default": "./lib/testing.js"
+    }
+  },
   "files": [
     "lib"
   ],

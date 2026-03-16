@@ -50,6 +50,8 @@ from superset_extensions_cli.utils import (
     validate_display_name,
     validate_publisher,
     validate_technical_name,
+    write_json,
+    write_toml,
 )
 
 REMOTE_ENTRY_REGEX = re.compile(r"^remoteEntry\..+\.js$")
@@ -167,7 +169,7 @@ def build_manifest(cwd: Path, remote_entry: str | None) -> Manifest:
         # Generate conventional entry point
         publisher_snake = kebab_to_snake_case(extension.publisher)
         name_snake = kebab_to_snake_case(extension.name)
-        entrypoint = f"superset_extensions.{publisher_snake}.{name_snake}.entrypoint"
+        entrypoint = f"{publisher_snake}.{name_snake}.entrypoint"
         backend = ManifestBackend(entrypoint=entrypoint)
 
     return Manifest(
@@ -292,6 +294,7 @@ def app() -> None:
 
 @app.command()
 def validate() -> None:
+    """Validate the extension structure and metadata consistency."""
     validate_npm()
 
     cwd = Path.cwd()
@@ -344,12 +347,7 @@ def validate() -> None:
         publisher_snake = kebab_to_snake_case(extension.publisher)
         name_snake = kebab_to_snake_case(extension.name)
         expected_entry_file = (
-            backend_dir
-            / "src"
-            / "superset_extensions"
-            / publisher_snake
-            / name_snake
-            / "entrypoint.py"
+            backend_dir / "src" / publisher_snake / name_snake / "entrypoint.py"
         )
 
         if not expected_entry_file.exists():
@@ -359,7 +357,7 @@ def validate() -> None:
                 fg="red",
             )
             click.secho(
-                f"   Convention requires: backend/src/superset_extensions/{publisher_snake}/{name_snake}/entrypoint.py",
+                f"   Convention requires: backend/src/{publisher_snake}/{name_snake}/entrypoint.py",
                 fg="yellow",
             )
             sys.exit(1)
@@ -377,12 +375,167 @@ def validate() -> None:
             click.secho("   Convention requires: frontend/src/index.tsx", fg="yellow")
             sys.exit(1)
 
+    # Validate version and license consistency across extension.json, frontend, and backend
+    mismatches: list[str] = []
+    frontend_pkg_path = cwd / "frontend" / "package.json"
+    frontend_pkg = None
+    if frontend_pkg_path.is_file():
+        frontend_pkg = read_json(frontend_pkg_path)
+        if frontend_pkg:
+            if frontend_pkg.get("version") != extension.version:
+                mismatches.append(
+                    f"  frontend/package.json version: {frontend_pkg.get('version')} "
+                    f"(expected {extension.version})"
+                )
+            if extension.license and frontend_pkg.get("license") != extension.license:
+                mismatches.append(
+                    f"  frontend/package.json license: {frontend_pkg.get('license')} "
+                    f"(expected {extension.license})"
+                )
+
+    backend_pyproject_path = cwd / "backend" / "pyproject.toml"
+    if backend_pyproject_path.is_file():
+        backend_pyproject = read_toml(backend_pyproject_path)
+        if backend_pyproject:
+            project = backend_pyproject.get("project", {})
+            if project.get("version") != extension.version:
+                mismatches.append(
+                    f"  backend/pyproject.toml version: {project.get('version')} "
+                    f"(expected {extension.version})"
+                )
+            if extension.license and project.get("license") != extension.license:
+                mismatches.append(
+                    f"  backend/pyproject.toml license: {project.get('license')} "
+                    f"(expected {extension.license})"
+                )
+
+    if mismatches:
+        click.secho("❌ Metadata mismatch detected:", err=True, fg="red")
+        for mismatch in mismatches:
+            click.secho(mismatch, err=True, fg="red")
+        click.secho(
+            "Run `superset-extensions update` to sync from extension.json.",
+            fg="yellow",
+        )
+        sys.exit(1)
+
     click.secho("✅ Validation successful", fg="green")
+
+
+@app.command()
+@click.option(
+    "--version",
+    "version_opt",
+    is_flag=False,
+    flag_value="__prompt__",
+    default=None,
+    help="Set a new version. Prompts for value if none given.",
+)
+@click.option(
+    "--license",
+    "license_opt",
+    is_flag=False,
+    flag_value="__prompt__",
+    default=None,
+    help="Set a new license. Prompts for value if none given.",
+)
+def update(version_opt: str | None, license_opt: str | None) -> None:
+    """Update derived and generated files in the extension project."""
+    cwd = Path.cwd()
+
+    extension_json_path = cwd / "extension.json"
+    extension_data = read_json(extension_json_path)
+    if not extension_data:
+        click.secho("❌ extension.json not found.", err=True, fg="red")
+        sys.exit(1)
+
+    try:
+        extension = ExtensionConfig.model_validate(extension_data)
+    except Exception as e:
+        click.secho(f"❌ Invalid extension.json: {e}", err=True, fg="red")
+        sys.exit(1)
+
+    # Resolve version: prompt if flag used without value
+    if version_opt == "__prompt__":
+        version_opt = click.prompt("Version", default=extension.version)
+    target_version = (
+        version_opt
+        if version_opt and version_opt != extension.version
+        else extension.version
+    )
+
+    # Resolve license: prompt if flag used without value
+    if license_opt == "__prompt__":
+        license_opt = click.prompt("License", default=extension.license or "")
+    target_license = (
+        license_opt
+        if license_opt and license_opt != extension.license
+        else extension.license
+    )
+
+    updated: list[str] = []
+
+    # Update extension.json if version or license changed
+    ext_changed = False
+    if version_opt and version_opt != extension.version:
+        extension_data["version"] = target_version
+        ext_changed = True
+    if license_opt and license_opt != extension.license:
+        extension_data["license"] = target_license
+        ext_changed = True
+    if ext_changed:
+        try:
+            ExtensionConfig.model_validate(extension_data)
+        except Exception as e:
+            click.secho(f"❌ Invalid value: {e}", err=True, fg="red")
+            sys.exit(1)
+        write_json(extension_json_path, extension_data)
+        updated.append("extension.json")
+
+    # Update frontend/package.json
+    frontend_pkg_path = cwd / "frontend" / "package.json"
+    if frontend_pkg_path.is_file():
+        frontend_pkg = read_json(frontend_pkg_path)
+        if frontend_pkg:
+            pkg_changed = False
+            if frontend_pkg.get("version") != target_version:
+                frontend_pkg["version"] = target_version
+                pkg_changed = True
+            if target_license and frontend_pkg.get("license") != target_license:
+                frontend_pkg["license"] = target_license
+                pkg_changed = True
+            if pkg_changed:
+                write_json(frontend_pkg_path, frontend_pkg)
+                updated.append("frontend/package.json")
+
+    # Update backend/pyproject.toml
+    backend_pyproject_path = cwd / "backend" / "pyproject.toml"
+    if backend_pyproject_path.is_file():
+        backend_pyproject = read_toml(backend_pyproject_path)
+        if backend_pyproject:
+            project = backend_pyproject.setdefault("project", {})
+            toml_changed = False
+            if project.get("version") != target_version:
+                project["version"] = target_version
+                toml_changed = True
+            if target_license and project.get("license") != target_license:
+                project["license"] = target_license
+                toml_changed = True
+            if toml_changed:
+                write_toml(backend_pyproject_path, backend_pyproject)
+                updated.append("backend/pyproject.toml")
+
+    if updated:
+        for path in updated:
+            click.secho(f"✅ Updated {path}", fg="green")
+    else:
+        click.secho("✅ All files already up to date.", fg="green")
 
 
 @app.command()
 @click.pass_context
 def build(ctx: click.Context) -> None:
+    """Build extension assets."""
     ctx.invoke(validate)
     cwd = Path.cwd()
     frontend_dir = cwd / "frontend"
@@ -418,6 +571,7 @@ def build(ctx: click.Context) -> None:
 )
 @click.pass_context
 def bundle(ctx: click.Context, output: Path | None) -> None:
+    """Package the extension into a .supx file."""
     ctx.invoke(build)
 
     cwd = Path.cwd()
@@ -458,6 +612,7 @@ def bundle(ctx: click.Context, output: Path | None) -> None:
 @app.command()
 @click.pass_context
 def dev(ctx: click.Context) -> None:
+    """Automatically rebuild the extension as files change."""
     cwd = Path.cwd()
     frontend_dir = cwd / "frontend"
     backend_dir = cwd / "backend"
@@ -652,6 +807,7 @@ def init(
     frontend_opt: bool | None,
     backend_opt: bool | None,
 ) -> None:
+    """Scaffold a new extension project."""
     # Get extension names with graceful validation
     names = prompt_for_extension_info(display_name_opt, publisher_opt, name_opt)
 
@@ -691,7 +847,7 @@ def init(
     click.secho("✅ Created extension.json", fg="green")
 
     # Create .gitignore
-    gitignore = env.get_template(".gitignore.j2").render(ctx)
+    gitignore = env.get_template("gitignore.j2").render(ctx)
     (target_dir / ".gitignore").write_text(gitignore)
     click.secho("✅ Created .gitignore", fg="green")
 
@@ -713,23 +869,19 @@ def init(
         (frontend_src_dir / "index.tsx").write_text(index_tsx)
         click.secho("✅ Created frontend folder structure", fg="green")
 
-    # Initialize backend files with superset_extensions.publisher.name structure
+    # Initialize backend files with publisher.name structure
     if include_backend:
         backend_dir = target_dir / "backend"
         backend_dir.mkdir()
         backend_src_dir = backend_dir / "src"
         backend_src_dir.mkdir()
 
-        # Create superset_extensions namespace directory
-        namespace_dir = backend_src_dir / "superset_extensions"
-        namespace_dir.mkdir()
-
-        # Create publisher directory (e.g., superset_extensions/my_org)
+        # Create publisher directory (e.g., my_org)
         publisher_snake = kebab_to_snake_case(names["publisher"])
-        publisher_dir = namespace_dir / publisher_snake
+        publisher_dir = backend_src_dir / publisher_snake
         publisher_dir.mkdir()
 
-        # Create extension package directory (e.g., superset_extensions/my_org/dashboard_widgets)
+        # Create extension package directory (e.g., my_org/dashboard_widgets)
         name_snake = kebab_to_snake_case(names["name"])
         extension_package_dir = publisher_dir / name_snake
         extension_package_dir.mkdir()
@@ -738,13 +890,7 @@ def init(
         pyproject_toml = env.get_template("backend/pyproject.toml.j2").render(ctx)
         (backend_dir / "pyproject.toml").write_text(pyproject_toml)
 
-        # Namespace package __init__.py (empty for namespace)
-        (namespace_dir / "__init__.py").write_text("")
-        (publisher_dir / "__init__.py").write_text("")
-
         # Extension package files
-        init_py = env.get_template("backend/src/package/__init__.py.j2").render(ctx)
-        (extension_package_dir / "__init__.py").write_text(init_py)
         entrypoint_py = env.get_template("backend/src/package/entrypoint.py.j2").render(
             ctx
         )

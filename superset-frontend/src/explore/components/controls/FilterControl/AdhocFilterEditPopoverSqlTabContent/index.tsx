@@ -19,8 +19,8 @@
 import { useEffect, useRef, useMemo } from 'react';
 import type { editors } from '@apache-superset/core';
 import { Select } from '@superset-ui/core/components';
-import { t } from '@apache-superset/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';

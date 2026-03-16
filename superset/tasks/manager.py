@@ -25,7 +25,7 @@ from typing import Any, Callable, TYPE_CHECKING
 from uuid import UUID
 
 import redis
-from superset_core.api.tasks import TaskProperties, TaskScope
+from superset_core.tasks.types import TaskProperties, TaskScope
 
 from superset.async_events.cache_backend import (
     RedisCacheBackend,

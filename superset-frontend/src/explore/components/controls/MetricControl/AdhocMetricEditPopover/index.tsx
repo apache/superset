@@ -19,9 +19,9 @@
 /* eslint-disable camelcase */
 import { PureComponent, createRef } from 'react';
 import { isDefined, ensureIsArray, DatasourceType } from '@superset-ui/core';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import type { editors } from '@apache-superset/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
   Button,

@@ -243,6 +243,61 @@ class TestXYChartConfig:
         assert config.group_by is not None
         assert config.group_by.name == "year"
 
+    def test_orientation_horizontal_accepted(self) -> None:
+        """Test that orientation='horizontal' is accepted for bar charts."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="department"),
+            y=[ColumnRef(name="headcount", aggregate="SUM")],
+            kind="bar",
+            orientation="horizontal",
+        )
+        assert config.orientation == "horizontal"
+
+    def test_orientation_vertical_accepted(self) -> None:
+        """Test that orientation='vertical' is accepted for bar charts."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+            orientation="vertical",
+        )
+        assert config.orientation == "vertical"
+
+    def test_orientation_none_by_default(self) -> None:
+        """Test that orientation defaults to None when not specified."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+        )
+        assert config.orientation is None
+
+    def test_orientation_invalid_value_rejected(self) -> None:
+        """Test that invalid orientation values are rejected."""
+        with pytest.raises(ValidationError):
+            XYChartConfig(
+                chart_type="xy",
+                x=ColumnRef(name="category"),
+                y=[ColumnRef(name="sales", aggregate="SUM")],
+                kind="bar",
+                orientation="diagonal",
+            )
+
+    def test_orientation_with_non_bar_chart(self) -> None:
+        """Test that orientation field is accepted on non-bar charts at schema level."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+            orientation="horizontal",
+        )
+        # Schema allows it; the chart_utils layer decides whether to apply it
+        assert config.orientation == "horizontal"
+
 
 class TestTableChartConfigExtraFields:
     """Test TableChartConfig rejects unknown fields."""

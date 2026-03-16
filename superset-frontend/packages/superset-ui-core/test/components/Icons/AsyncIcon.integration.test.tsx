@@ -19,7 +19,7 @@
 
 import '@testing-library/jest-dom';
 import { render, fireEvent } from '@testing-library/react';
-import { SupersetTheme, ThemeProvider } from '@apache-superset/core/ui';
+import { SupersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 
 // CRITICAL: Don't import from the mocked path - import directly to avoid global mocks
 import AsyncIcon from '../../../src/components/Icons/AsyncIcon';

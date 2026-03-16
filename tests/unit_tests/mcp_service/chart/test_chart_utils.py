@@ -460,6 +460,84 @@ class TestMapXYConfig:
         assert result["groupby"] == ["category"]
         assert result["x_axis"] == "order_date"
 
+    def test_map_xy_config_bar_horizontal_orientation(self) -> None:
+        """Test XY config mapping for horizontal bar chart"""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="department"),
+            y=[ColumnRef(name="headcount", aggregate="SUM")],
+            kind="bar",
+            orientation="horizontal",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["viz_type"] == "echarts_timeseries_bar"
+        assert result["orientation"] == "horizontal"
+
+    def test_map_xy_config_bar_vertical_orientation(self) -> None:
+        """Test XY config mapping for vertical bar chart (explicit)"""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+            orientation="vertical",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["viz_type"] == "echarts_timeseries_bar"
+        assert result["orientation"] == "vertical"
+
+    def test_map_xy_config_bar_no_orientation(self) -> None:
+        """Test XY config mapping for bar chart without orientation."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["viz_type"] == "echarts_timeseries_bar"
+        assert "orientation" not in result
+
+    def test_map_xy_config_line_orientation_ignored(self) -> None:
+        """Test that orientation is ignored for non-bar chart types"""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+            orientation="horizontal",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["viz_type"] == "echarts_timeseries_line"
+        assert "orientation" not in result
+
+    def test_map_xy_config_bar_horizontal_with_stacked(self) -> None:
+        """Test horizontal bar chart with stacked option"""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="department"),
+            y=[ColumnRef(name="headcount", aggregate="SUM")],
+            kind="bar",
+            orientation="horizontal",
+            stacked=True,
+            group_by=ColumnRef(name="level"),
+        )
+
+        result = map_xy_config(config)
+
+        assert result["viz_type"] == "echarts_timeseries_bar"
+        assert result["orientation"] == "horizontal"
+        assert result["stack"] == "Stack"
+        assert result["groupby"] == ["level"]
+
 
 class TestMapConfigToFormData:
     """Test map_config_to_form_data function"""
@@ -490,8 +568,8 @@ class TestMapConfigToFormData:
 class TestGenerateChartName:
     """Test generate_chart_name function"""
 
-    def test_generate_table_chart_name(self) -> None:
-        """Test generating name for table chart"""
+    def test_table_no_aggregates(self) -> None:
+        """Table without aggregates uses column names."""
         config = TableChartConfig(
             chart_type="table",
             columns=[
@@ -501,24 +579,137 @@ class TestGenerateChartName:
         )
 
         result = generate_chart_name(config)
-        assert result == "Table Chart - product, revenue"
+        assert result == "Product, Revenue Table"
 
-    def test_generate_xy_chart_name(self) -> None:
-        """Test generating name for XY chart"""
+    def test_table_no_aggregates_with_dataset_name(self) -> None:
+        """Table without aggregates includes dataset name when available."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product")],
+        )
+
+        result = generate_chart_name(config, dataset_name="Orders")
+        assert result == "Orders Records"
+
+    def test_table_with_aggregates(self) -> None:
+        """Table with aggregates produces a summary name."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[
+                ColumnRef(name="product"),
+                ColumnRef(name="revenue", aggregate="SUM"),
+            ],
+        )
+
+        result = generate_chart_name(config)
+        assert result == "Sum(Revenue) Summary"
+
+    def test_line_chart_over_time(self) -> None:
+        """Line chart without group_by uses 'Over Time' format."""
         config = XYChartConfig(
             chart_type="xy",
-            x=ColumnRef(name="date"),
-            y=[ColumnRef(name="revenue"), ColumnRef(name="orders")],
+            x=ColumnRef(name="order_date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
             kind="line",
         )
 
         result = generate_chart_name(config)
-        assert result == "Line Chart - date vs revenue, orders"
+        assert result == "Sum(Revenue) Over Time"
 
-    def test_generate_chart_name_unsupported(self) -> None:
-        """Test generating name for unsupported config type"""
+    def test_bar_chart_by_dimension(self) -> None:
+        """Bar chart uses 'by [X]' format."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="product_category"),
+            y=[ColumnRef(name="order_count", aggregate="COUNT")],
+            kind="bar",
+        )
+
+        result = generate_chart_name(config)
+        assert result == "Count(Order Count) by Product Category"
+
+    def test_line_chart_with_group_by(self) -> None:
+        """Line chart with group_by uses 'by [group]' format."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+            group_by=ColumnRef(name="sales_rep"),
+        )
+
+        result = generate_chart_name(config)
+        assert result == "Sum(Revenue) by Sales Rep"
+
+    def test_scatter_plot(self) -> None:
+        """Scatter plot uses 'Y vs X' format."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="age"),
+            y=[ColumnRef(name="income")],
+            kind="scatter",
+        )
+
+        result = generate_chart_name(config)
+        assert result == "Income vs Age"
+
+    def test_time_grain_in_context(self) -> None:
+        """Time grain is appended as context."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+            time_grain="P1M",
+        )
+
+        result = generate_chart_name(config)
+        assert result == "Sum(Revenue) Over Time \u2013 Monthly"
+
+    def test_filter_context(self) -> None:
+        """Filters are appended as context."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product")],
+            filters=[FilterConfig(column="region", op="=", value="West")],
+        )
+
+        result = generate_chart_name(config, dataset_name="Orders")
+        assert result == "Orders Records \u2013 Region West"
+
+    def test_name_truncation(self) -> None:
+        """Names exceeding 60 chars are truncated."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[
+                ColumnRef(
+                    name="very_long_metric_name_that_goes_on_and_on", aggregate="SUM"
+                )
+            ],
+            kind="line",
+            group_by=ColumnRef(name="another_very_long_dimension_name_here"),
+        )
+
+        result = generate_chart_name(config)
+        assert len(result) <= 60
+
+    def test_unsupported_config_type(self) -> None:
+        """Unsupported config type returns generic name."""
         result = generate_chart_name("invalid_config")  # type: ignore
         assert result == "Chart"
+
+    def test_custom_labels_used(self) -> None:
+        """Column labels are preferred over names."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="ds", label="Date"),
+            y=[ColumnRef(name="cnt", aggregate="COUNT", label="Order Count")],
+            kind="bar",
+        )
+
+        result = generate_chart_name(config)
+        assert result == "Order Count by Date"
 
 
 class TestGenerateExploreLink:

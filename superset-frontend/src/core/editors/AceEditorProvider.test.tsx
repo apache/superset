@@ -25,7 +25,7 @@ import {
 } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
-import { ThemeProvider, supersetTheme } from '@apache-superset/core/ui';
+import { ThemeProvider, supersetTheme } from '@apache-superset/core/theme';
 import type { editors } from '@apache-superset/core';
 import AceEditorProvider from './AceEditorProvider';
 

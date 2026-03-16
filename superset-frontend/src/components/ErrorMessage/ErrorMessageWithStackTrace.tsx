@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { ErrorSource, SupersetError } from '@superset-ui/core';
 import { Typography } from '@superset-ui/core/components';
 import { getErrorMessageComponentRegistry } from './getErrorMessageComponentRegistry';

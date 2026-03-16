@@ -19,7 +19,7 @@
 import { useSelector } from 'react-redux';
 import { noop } from 'lodash';
 import type { SqlLabRootState } from 'src/SqlLab/types';
-import { css, styled } from '@apache-superset/core';
+import { css, styled } from '@apache-superset/core/theme';
 import { useComponentDidUpdate } from '@superset-ui/core';
 import { Grid } from '@superset-ui/core/components';
 import { views } from 'src/core';

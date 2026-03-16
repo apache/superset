@@ -52,6 +52,12 @@
         "description": "Enable Superset extensions for custom functionality without modifying core"
       },
       {
+        "name": "GRANULAR_EXPORT_CONTROLS",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enable granular export controls (can_export_data, can_export_image, can_copy_clipboard) instead of the single can_csv permission"
+      },
+      {
         "name": "MATRIXIFY",
         "default": false,
         "lifecycle": "development",

@@ -18,7 +18,7 @@
  */
 /* eslint-disable camelcase */
 import { invert } from 'lodash';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   AnnotationLayer,
   AxisType,
@@ -42,7 +42,7 @@ import {
   TimeseriesDataRecord,
   NumberFormats,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   extractExtraMetrics,
   getOriginalSeries,
@@ -336,6 +336,7 @@ export default function transformProps(
       chartProps.rawFormData,
       seriesName,
     );
+
     const lineStyle: LineStyleOption = {};
     if (derivedSeries) {
       // Get the time offset for this series to assign different dash patterns
@@ -370,7 +371,21 @@ export default function transformProps(
 
     let colorScaleKey = getOriginalSeries(seriesName, array);
 
-    // If series name exactly matches a time offset (single metric case),
+    // When there's a single metric with dimensions, the backend replaces the metric
+    // with the time offset in derived series (e.g., "28 days ago, Medium" instead of
+    // "SUM(sales), 28 days ago, Medium"). To match colors, strip the metric label
+    // from original series so both produce the same key (e.g., "Medium").
+    if (
+      groupby &&
+      groupby.length > 0 &&
+      array.length > 0 &&
+      metrics?.length === 1
+    ) {
+      const metricLabel = getMetricLabel(metrics[0]);
+      colorScaleKey = colorScaleKey.replace(`${metricLabel}, `, '');
+    }
+
+    // If series name exactly matches a time offset (single metric case, no dimensions),
     // find the original series for color matching
     if (derivedSeries && array.includes(seriesName)) {
       const originalSeries = rawSeries.find(

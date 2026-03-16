@@ -24,7 +24,7 @@ import {
   RefObject,
 } from 'react';
 
-import { withTheme } from '@apache-superset/core/ui';
+import { withTheme } from '@apache-superset/core/theme';
 
 import type {
   ListViewFilterValue as FilterValue,
