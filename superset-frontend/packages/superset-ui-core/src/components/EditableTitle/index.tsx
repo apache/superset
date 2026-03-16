@@ -89,11 +89,20 @@ export function EditableTitle({
   onEditingChange,
   ...rest
 }: EditableTitleProps) {
-  const [isEditing, setIsEditing] = useState(editing);
+  const isControlled = editing !== undefined;
+  const [isEditingInternal, setIsEditingInternal] = useState(editing ?? false);
   const [currentTitle, setCurrentTitle] = useState(title);
   const [lastTitle, setLastTitle] = useState(title);
   const [inputWidth, setInputWidth] = useState<number>(0);
   const contentRef = useRef<TextAreaRef>(null);
+  const isEditing = isControlled ? editing : isEditingInternal;
+
+  function setEditingState(value: boolean) {
+    if (!isControlled) {
+      setIsEditingInternal(value);
+    }
+    onEditingChange?.(value);
+  }
 
   function measureTextWidth(text: string, font = '14px Arial') {
     const canvas = document.createElement('canvas');
@@ -116,10 +125,6 @@ export function EditableTitle({
   }, [currentTitle, maxWidth]);
 
   useEffect(() => {
-    setIsEditing(editing);
-  }, [editing]);
-
-  useEffect(() => {
     if (title !== currentTitle) {
       setLastTitle(currentTitle);
       setCurrentTitle(title);
@@ -136,8 +141,7 @@ export function EditableTitle({
         textArea.scrollTop = textArea.scrollHeight;
       }
     }
-    onEditingChange?.(isEditing);
-  }, [isEditing, onEditingChange]);
+  }, [isEditing]);
 
   function handleClick() {
     if (!canEdit || isEditing) return;
@@ -147,14 +151,14 @@ export function EditableTitle({
       const { length } = textArea.value;
       textArea.setSelectionRange(length, length);
     }
-    setIsEditing(true);
+    setEditingState(true);
   }
 
   function handleBlur() {
     const formattedTitle = currentTitle.trim();
 
     if (!canEdit) return;
-    setIsEditing(false);
+    setEditingState(false);
 
     if (!formattedTitle.length) {
       setCurrentTitle(lastTitle);
