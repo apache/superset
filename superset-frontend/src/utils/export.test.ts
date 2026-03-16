@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SupersetClient } from '@superset-ui/core';
-import { logging } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
 import contentDisposition from 'content-disposition';
 import handleResourceExport from './export';
 
@@ -28,7 +28,7 @@ jest.mock('@superset-ui/core', () => ({
   },
 }));
 
-jest.mock('@apache-superset/core', () => ({
+jest.mock('@apache-superset/core/utils', () => ({
   logging: {
     warn: jest.fn(),
     error: jest.fn(),

@@ -144,4 +144,10 @@ describe('SupersetClient', () => {
 
     fetchMock.clearHistory().removeRoutes();
   });
+
+  test('getCSRFToken() returns existing token when already configured', async () => {
+    SupersetClient.configure({ csrfToken: 'my_token' });
+    const token = await SupersetClient.getCSRFToken();
+    expect(token).toBe('my_token');
+  });
 });

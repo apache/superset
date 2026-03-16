@@ -26,8 +26,9 @@ import {
 } from 'react';
 import { omit } from 'lodash';
 
-import { t } from '@apache-superset/core';
-import { css, styled, useTheme, Alert } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { useThemeContext } from 'src/theme/ThemeProvider';
 import { useBeforeUnload } from 'src/hooks/useBeforeUnload';

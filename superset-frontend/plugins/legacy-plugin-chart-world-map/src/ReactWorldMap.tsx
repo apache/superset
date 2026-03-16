@@ -17,7 +17,7 @@
  * under the License.
  */
 import { reactify } from '@superset-ui/core';
-import { styled, useTheme } from '@apache-superset/core/ui';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import WorldMap from './WorldMap';
 
 // Type-erase the render function to allow flexible prop spreading in the wrapper.

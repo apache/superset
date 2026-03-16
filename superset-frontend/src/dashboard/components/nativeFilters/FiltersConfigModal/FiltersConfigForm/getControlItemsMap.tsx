@@ -25,13 +25,13 @@ import {
   Tooltip,
   type FormInstance,
 } from '@superset-ui/core/components';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   Filter,
   ChartCustomization,
   getChartControlPanelRegistry,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import {
   doesColumnMatchFilterType,
   getControlItems,

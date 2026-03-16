@@ -94,7 +94,7 @@ class SqlExecutionResultsCommand(BaseCommand):
         if not self._blob:
             # Query exists in DB but results not in S3 - enhanced diagnostics
             query_age_seconds = now_as_float() - (
-                self._query.end_time if self._query.end_time else now_as_float()
+                float(self._query.end_time) if self._query.end_time else now_as_float()
             )
             logger.warning(
                 "410 Error - Query exists in DB but results not in results backend"

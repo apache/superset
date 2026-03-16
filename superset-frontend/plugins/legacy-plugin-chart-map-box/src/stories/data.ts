@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetTheme } from '@apache-superset/core/ui';
+import { SupersetTheme } from '@apache-superset/core/theme';
 
 /* eslint-disable sort-keys, no-magic-numbers */
 export const generateData = (theme: SupersetTheme) => ({

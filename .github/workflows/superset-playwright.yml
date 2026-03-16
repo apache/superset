@@ -133,7 +133,7 @@ jobs:
           SAFE_APP_ROOT=${APP_ROOT//\//_}
           echo "safe_app_root=$SAFE_APP_ROOT" >> $GITHUB_OUTPUT
       - name: Upload Playwright Artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           path: |

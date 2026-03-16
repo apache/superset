@@ -26,7 +26,7 @@ import {
   ThemeMode,
   themeObject as supersetThemeObject,
   normalizeThemeConfig,
-} from '@apache-superset/core/ui';
+} from '@apache-superset/core/theme';
 import { makeApi } from '@superset-ui/core';
 import type {
   BootstrapThemeData,
@@ -102,15 +102,19 @@ export class ThemeController {
   // Track loaded font URLs to avoid duplicate injections
   private loadedFontUrls: Set<string> = new Set();
 
+  private initialMode: ThemeMode | undefined;
+
   constructor({
     storage = new LocalStorageAdapter(),
     modeStorageKey = STORAGE_KEYS.THEME_MODE,
     themeObject = supersetThemeObject,
     defaultTheme = (supersetThemeObject.theme as AnyThemeConfig) ?? {},
     onChange = undefined,
+    initialMode = undefined,
   }: ThemeControllerOptions = {}) {
     this.storage = storage;
     this.modeStorageKey = modeStorageKey;
+    this.initialMode = initialMode;
 
     // Controller creates and owns the global theme
     this.globalTheme = themeObject;
@@ -252,7 +256,7 @@ export class ThemeController {
 
       if (themeConfig) {
         // Controller creates and owns the dashboard theme
-        const { Theme } = await import('@apache-superset/core/ui');
+        const { Theme } = await import('@apache-superset/core/theme');
         const normalizedConfig = this.normalizeTheme(themeConfig);
 
         // Determine if this is a dark theme and get appropriate base
@@ -742,6 +746,13 @@ export class ThemeController {
       this.storage.removeItem(this.modeStorageKey);
       return ThemeMode.DEFAULT;
     }
+
+    // Use explicit initial mode if provided (e.g. embedded dashboards default to light)
+    if (
+      this.initialMode !== undefined &&
+      this.isValidThemeMode(this.initialMode)
+    )
+      return this.initialMode;
 
     // Default to system preference when both themes are available
     return ThemeMode.SYSTEM;

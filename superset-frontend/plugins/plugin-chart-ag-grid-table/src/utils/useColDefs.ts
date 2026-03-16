@@ -20,7 +20,7 @@
 import { ColDef } from '@superset-ui/core/components/ThemedAgGridReact';
 import { useCallback, useMemo } from 'react';
 import { DataRecord, DataRecordValue } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { ColorFormatters } from '@superset-ui/chart-controls';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
 import {
@@ -263,6 +263,7 @@ export const useColDefs = ({
       const isTextColumn =
         dataType === GenericDataType.String ||
         dataType === GenericDataType.Temporal;
+      const isBooleanColumn = dataType === GenericDataType.Boolean;
 
       const valueRange =
         !hasBasicColorFormatters &&
@@ -325,18 +326,25 @@ export const useColDefs = ({
             'last',
           ],
         }),
-        cellRenderer: (p: CellRendererProps) =>
-          isTextColumn ? TextCellRenderer(p) : NumericCellRenderer(p),
-        cellRendererParams: {
-          allowRenderHtml: true,
-          columns,
-          hasBasicColorFormatters,
-          col,
-          basicColorFormatters,
-          valueRange,
-          alignPositiveNegative: alignPN || alignPositiveNegative,
-          colorPositiveNegative,
-        },
+        ...(isBooleanColumn
+          ? {
+              cellRenderer: 'agCheckboxCellRenderer',
+              cellRendererParams: { disabled: true },
+            }
+          : {
+              cellRenderer: (p: CellRendererProps) =>
+                isTextColumn ? TextCellRenderer(p) : NumericCellRenderer(p),
+              cellRendererParams: {
+                allowRenderHtml: true,
+                columns,
+                hasBasicColorFormatters,
+                col,
+                basicColorFormatters,
+                valueRange,
+                alignPositiveNegative: alignPN || alignPositiveNegative,
+                colorPositiveNegative,
+              },
+            }),
         context: {
           isMetric,
           isPercentMetric,

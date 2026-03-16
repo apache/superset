@@ -48,6 +48,7 @@ interface VirtualizedTreeListProps {
   columnsMap: Map<string, ColumnMeta>;
   isDragging: boolean;
   activeId: UniqueIdentifier | null;
+  draggedFolderChildIds: Set<string>;
   forbiddenDropFolderIds: Set<string>;
   currentDropTargetId: string | null;
   onToggleCollapse: (id: string) => void;
@@ -73,6 +74,7 @@ export function VirtualizedTreeList({
   columnsMap,
   isDragging,
   activeId,
+  draggedFolderChildIds,
   forbiddenDropFolderIds,
   currentDropTargetId,
   onToggleCollapse,
@@ -180,6 +182,7 @@ export function VirtualizedTreeList({
       metricsMap,
       columnsMap,
       activeId,
+      draggedFolderChildIds,
       forbiddenDropFolderIds,
       currentDropTargetId,
       onToggleCollapse,
@@ -199,6 +202,7 @@ export function VirtualizedTreeList({
       metricsMap,
       columnsMap,
       activeId,
+      draggedFolderChildIds,
       forbiddenDropFolderIds,
       currentDropTargetId,
       onToggleCollapse,

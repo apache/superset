@@ -41,8 +41,9 @@ import {
   ControlStateMapping,
   ControlPanelState,
 } from '@superset-ui/chart-controls';
-import { t, styled, css, useTheme } from '@apache-superset/core/ui';
-import { logging } from '@apache-superset/core';
+import { styled, css, useTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
+import { logging } from '@apache-superset/core/utils';
 import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash';
 import { Resizable } from 're-resizable';
 import { Tooltip } from '@superset-ui/core/components';
