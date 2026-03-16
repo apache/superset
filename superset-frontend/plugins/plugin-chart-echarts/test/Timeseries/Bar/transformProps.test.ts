@@ -767,13 +767,19 @@ describe('Bar Chart X-axis Time Formatting', () => {
           [
             {
               [legendLabels[0]]: 100,
+              [legendLabels[1]]: null,
+              [legendLabels[2]]: null,
               __timestamp: 1609459200000,
             },
             {
+              [legendLabels[0]]: null,
               [legendLabels[1]]: 150,
+              [legendLabels[2]]: null,
               __timestamp: 1612137600000,
             },
             {
+              [legendLabels[0]]: null,
+              [legendLabels[1]]: null,
               [legendLabels[2]]: 200,
               __timestamp: 1614556800000,
             },
