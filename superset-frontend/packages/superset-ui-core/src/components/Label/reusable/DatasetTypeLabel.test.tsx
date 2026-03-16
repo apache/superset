@@ -32,9 +32,7 @@ function renderWithTokens(
   tokenOverrides: Record<string, string>,
 ) {
   const customTheme = Theme.fromConfig({ token: tokenOverrides });
-  return render(
-    <ThemeProvider theme={customTheme.theme}>{ui}</ThemeProvider>,
-  );
+  return render(<ThemeProvider theme={customTheme.theme}>{ui}</ThemeProvider>);
 }
 
 test('renders "Physical" text for physical dataset', () => {

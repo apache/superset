@@ -38,9 +38,7 @@ export const PublishedLabel: React.FC<PublishedLabelProps> = ({
   const color = isPublished
     ? (theme.labelPublishedColor ?? theme.colorSuccessText)
     : (theme.labelDraftColor ?? theme.colorPrimaryText);
-  const bg = isPublished
-    ? theme.labelPublishedBg
-    : theme.labelDraftBg;
+  const bg = isPublished ? theme.labelPublishedBg : theme.labelDraftBg;
   const borderColor = isPublished
     ? theme.labelPublishedBorderColor
     : theme.labelDraftBorderColor;
