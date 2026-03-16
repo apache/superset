@@ -1317,3 +1317,46 @@ test('should not apply axis bounds calculation when seriesType is not Bar for ho
   // Should not have explicit max set when seriesType is not Bar
   expect(xAxisRaw.max).toBeUndefined();
 });
+
+test('legend is visible on tall charts when enabled by the user', () => {
+  const chartProps = createTestChartProps({
+    height: 400,
+    formData: { showLegend: true },
+  });
+  const { legend } = transformProps(chartProps).echartOptions as any;
+
+  expect(legend.show).toBe(true);
+});
+
+test('legend is hidden on compact charts even when enabled by the user', () => {
+  const chartProps = createTestChartProps({
+    height: 80,
+    formData: { showLegend: true },
+  });
+  const { legend } = transformProps(chartProps).echartOptions as any;
+
+  expect(legend.show).toBe(false);
+});
+
+test('y-axis labels remain visible on compact charts for scale reference', () => {
+  const chartProps = createTestChartProps({ height: 80 });
+  const { yAxis } = transformProps(chartProps).echartOptions as any;
+
+  expect(yAxis.axisLabel.show).toBe(true);
+});
+
+test('y-axis labels are hidden on micro charts for a sparkline view', () => {
+  const chartProps = createTestChartProps({ height: 40 });
+  const { yAxis } = transformProps(chartProps).echartOptions as any;
+
+  expect(yAxis.axisLabel.show).toBe(false);
+});
+
+test('y-axis tick count scales with chart height', () => {
+  const short = transformProps(createTestChartProps({ height: 200 }));
+  const tall = transformProps(createTestChartProps({ height: 500 }));
+  const shortYAxis = short.echartOptions.yAxis as any;
+  const tallYAxis = tall.echartOptions.yAxis as any;
+
+  expect(tallYAxis.splitNumber).toBeGreaterThan(shortYAxis.splitNumber);
+});
