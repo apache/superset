@@ -346,4 +346,20 @@ describe('legend sorting', () => {
 
     expect((result.echartOptions.legend as any).type).toBe(LegendType.Scroll);
   });
+
+  test('keeps legend visibility driven by showLegend for single-series charts', () => {
+    const props = new ChartProps({
+      ...chartPropsConfig,
+      queriesData: [
+        {
+          data: [queriesData[0].data[0]],
+          colnames: ['startTime', 'endTime', 'Y Axis', 'tooltip_column', 'series'],
+        },
+      ],
+    });
+
+    const result = transformProps(props as EchartsGanttChartProps);
+
+    expect((result.echartOptions.legend as any).show).toBe(true);
+  });
 });

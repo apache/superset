@@ -250,10 +250,8 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
       .second(time.second());
   }
 
-  const showLegendForChart = showLegend && seriesMap.size > 1;
-
   const padding = getPadding(
-    showLegendForChart,
+    showLegend,
     legendOrientation,
     false,
     zoomable,
@@ -368,14 +366,14 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     legendItems: legendData,
     legendMargin,
     orientation: legendOrientation,
-    show: showLegendForChart,
+    show: showLegend,
     theme,
     type: legendType,
   });
   const effectiveLegendType = legendLayout.effectiveType;
   if (legendLayout.effectiveMargin !== undefined) {
     const adjustedPadding = getPadding(
-      showLegendForChart,
+      showLegend,
       legendOrientation,
       false,
       zoomable,
@@ -418,7 +416,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
       ...getLegendProps(
         effectiveLegendType,
         legendOrientation,
-        showLegendForChart,
+        showLegend,
         theme,
         zoomable,
         legendState,
