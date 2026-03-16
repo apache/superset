@@ -110,6 +110,26 @@ export interface ColorVariants {
 }
 
 export interface SupersetSpecificTokens {
+  // Label variant tokens — Published/Draft (dashboard status)
+  labelPublishedColor?: string;
+  labelPublishedBg?: string;
+  labelPublishedBorderColor?: string;
+  labelPublishedIconColor?: string;
+  labelDraftColor?: string;
+  labelDraftBg?: string;
+  labelDraftBorderColor?: string;
+  labelDraftIconColor?: string;
+
+  // Label variant tokens — Dataset type (Physical/Virtual)
+  labelDatasetPhysicalColor?: string;
+  labelDatasetPhysicalBg?: string;
+  labelDatasetPhysicalBorderColor?: string;
+  labelDatasetPhysicalIconColor?: string;
+  labelDatasetVirtualColor?: string;
+  labelDatasetVirtualBg?: string;
+  labelDatasetVirtualBorderColor?: string;
+  labelDatasetVirtualIconColor?: string;
+
   // Font-related
   fontSizeXS: string;
   fontSizeXXL: string;
