@@ -17,9 +17,9 @@
  * under the License.
  */
 import { useMemo, useState } from 'react';
-import { t } from '@apache-superset/core';
-import { useTheme } from '@apache-superset/core/ui';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   COLUMN_NAME_ALIASES,
   ControlComponentProps,

@@ -18,7 +18,7 @@
  */
 
 import { useState } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { Input, Collapse, FormItem } from '@superset-ui/core/components';
 import { CustomParametersChangeType, FieldPropTypes } from '../../types';
 

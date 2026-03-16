@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import transformProps from './transformProps';
 import { BigNumberWithTrendlineChartProps, BigNumberDatum } from '../types';
 

@@ -18,7 +18,7 @@
  */
 import memoizeOne from 'memoize-one';
 import { isString, isBoolean } from 'lodash';
-import { isBlank } from '@apache-superset/core';
+import { isBlank } from '@apache-superset/core/utils';
 import { addAlpha, DataRecord } from '@superset-ui/core';
 import {
   ColorFormatters,

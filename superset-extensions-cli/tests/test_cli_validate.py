@@ -25,8 +25,20 @@ from superset_extensions_cli.cli import app, validate_npm
 
 # Validate Command Tests
 @pytest.mark.cli
-def test_validate_command_success(cli_runner):
+def test_validate_command_success(cli_runner, isolated_filesystem):
     """Test validate command succeeds when npm is available and valid."""
+    # Create minimal extension.json for validation
+    extension_json = {
+        "publisher": "test-org",
+        "name": "test-extension",
+        "displayName": "Test Extension",
+        "version": "1.0.0",
+        "permissions": [],
+    }
+    import json
+
+    (isolated_filesystem / "extension.json").write_text(json.dumps(extension_json))
+
     with patch("superset_extensions_cli.cli.validate_npm") as mock_validate:
         result = cli_runner.invoke(app, ["validate"])
 

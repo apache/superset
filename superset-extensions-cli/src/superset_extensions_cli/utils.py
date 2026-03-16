@@ -361,7 +361,7 @@ def generate_extension_names(
     publisher_snake = kebab_to_snake_case(publisher)
     name_snake = kebab_to_snake_case(technical_name)
     backend_package = f"{publisher_snake}-{name_snake}"
-    backend_path = f"superset_extensions.{publisher_snake}.{name_snake}"
+    backend_path = f"{publisher_snake}.{name_snake}"
     backend_entry = f"{backend_path}.entrypoint"
 
     # Validate the generated names

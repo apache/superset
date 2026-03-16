@@ -98,7 +98,7 @@ jobs:
           "
       - name: Upload database diagnostics artifact
         if: steps.check.outputs.python
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: database-diagnostics
           path: databases-diagnostics.json

@@ -27,7 +27,7 @@ import logging
 from typing import Callable, Literal
 
 from fastmcp import Context
-from superset_core.mcp import tool
+from superset_core.mcp.decorators import tool
 
 from superset.extensions import event_logger
 from superset.mcp_service.common.schema_discovery import (

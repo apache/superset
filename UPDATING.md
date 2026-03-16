@@ -24,6 +24,10 @@ assists people when migrating to a new version.
 
 ## Next
 
+### ClickHouse minimum driver version bump
+
+The minimum required version of `clickhouse-connect` has been raised to `>=0.13.0`. If you are using the ClickHouse connector, please upgrade your `clickhouse-connect` package. The `_mutate_label` workaround that appended hash suffixes to column aliases has also been removed, as it is no longer needed with modern versions of the driver.
+
 ### MCP Tool Observability
 
 MCP (Model Context Protocol) tools now include enhanced observability instrumentation for monitoring and debugging:
@@ -60,19 +64,19 @@ ORDER BY total_calls DESC;
 
 **Security note:** Sensitive parameters (passwords, API keys, tokens) are automatically redacted in logs as `[REDACTED]`.
 
-### Signal Cache Backend
+### Distributed Coordination Backend
 
-A new `SIGNAL_CACHE_CONFIG` configuration provides a unified Redis-based backend for real-time coordination features in Superset. This backend enables:
+A new `DISTRIBUTED_COORDINATION_CONFIG` configuration provides a unified Redis-based backend for real-time coordination features in Superset. This backend enables:
 
 - **Pub/sub messaging** for real-time event notifications between workers
 - **Atomic distributed locking** using Redis SET NX EX (more performant than database-backed locks)
 - **Event-based coordination** for background task management
 
-The signal cache is used by the Global Task Framework (GTF) for abort notifications and task completion signaling, and will eventually replace `GLOBAL_ASYNC_QUERIES_CACHE_BACKEND` as the standard signaling backend. Configuring this is recommended for Redis enabled production deployments.
+The distributed coordination is used by the Global Task Framework (GTF) for abort notifications and task completion signaling, and will eventually replace `GLOBAL_ASYNC_QUERIES_CACHE_BACKEND` as the standard signaling backend. Configuring this is recommended for Redis enabled production deployments.
 
 Example configuration in `superset_config.py`:
 ```python
-SIGNAL_CACHE_CONFIG = {
+DISTRIBUTED_COORDINATION_CONFIG = {
     "CACHE_TYPE": "RedisCache",
     "CACHE_KEY_PREFIX": "signal_",
     "CACHE_REDIS_URL": "redis://localhost:6379/1",

@@ -133,14 +133,7 @@ def extension_setup_for_bundling():
         (frontend_dir / "main.js").write_text("// main js")
 
         # Create some backend files - updated path structure
-        backend_dir = (
-            dist_dir
-            / "backend"
-            / "src"
-            / "superset_extensions"
-            / "test_org"
-            / "test_extension"
-        )
+        backend_dir = dist_dir / "backend" / "src" / "test_org" / "test_extension"
         backend_dir.mkdir(parents=True)
         (backend_dir / "__init__.py").write_text("# init")
 

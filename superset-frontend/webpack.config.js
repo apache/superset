@@ -324,12 +324,7 @@ const config = {
     menu: addPreamble('src/views/menu.tsx'),
     spa: addPreamble('src/views/index.tsx'),
     embedded: addPreamble('src/embedded/index.tsx'),
-    // Skip service-worker build in dev mode to avoid overwriting the placeholder
-    ...(isDevMode
-      ? {}
-      : {
-          'service-worker': path.join(APP_DIR, 'src/service-worker.ts'),
-        }),
+    'service-worker': path.join(APP_DIR, 'src/service-worker.ts'),
   },
   cache: {
     type: 'filesystem',
@@ -495,7 +490,7 @@ const config = {
         },
       },
       {
-        test: /node_modules\/(geostyler-style|geostyler-qgis-parser)\/.*\.js$/,
+        test: /node_modules\/(geostyler|geostyler-openlayers-parser|geostyler-mapbox-parser|geostyler-sld-parser)\/.*\.js$/,
         resolve: {
           fullySpecified: false,
         },

@@ -23,9 +23,12 @@ import logging
 from typing import Any, Dict, List, Protocol
 
 from fastmcp import Context
-from superset_core.mcp import tool
+from superset_core.mcp.decorators import tool
 
+from superset.commands.exceptions import CommandException
+from superset.exceptions import SupersetException
 from superset.extensions import event_logger
+from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ASCIIPreview,
@@ -86,19 +89,20 @@ class PreviewFormatStrategy:
 
 
 class URLPreviewStrategy(PreviewFormatStrategy):
-    """Generate URL-based image preview."""
+    """Generate URL-based preview with explore link."""
 
     def generate(self) -> URLPreview | ChartError:
-        # Screenshot-based URL previews are not supported.
-        # Users should use the explore_url to view the chart interactively,
-        # or use other preview formats like 'ascii', 'table', or 'vega_lite'.
-        return ChartError(
-            error=(
-                "URL-based screenshot previews are not supported. "
-                "Use the explore_url to view the chart interactively, "
-                "or try formats: 'ascii', 'table', or 'vega_lite'."
-            ),
-            error_type="UnsupportedFormat",
+        chart = self.chart
+        if not chart.id:
+            return ChartError(
+                error="URL preview not available for transient charts without an ID",
+                error_type="UnsupportedFormat",
+            )
+        explore_url = f"{get_superset_base_url()}/explore/?slice_id={chart.id}"
+        return URLPreview(
+            preview_url=explore_url,
+            width=self.request.width or 800,
+            height=self.request.height or 600,
         )
 
 
@@ -157,6 +161,7 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             )
 
             command = ChartDataCommand(query_context)
+            command.validate()
             result = command.run()
 
             data = []
@@ -176,7 +181,14 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                 height=self.request.ascii_height or 20,
             )
 
-        except Exception as e:
+        except (
+            CommandException,
+            SupersetException,
+            ValueError,
+            KeyError,
+            AttributeError,
+            TypeError,
+        ) as e:
             logger.error("ASCII preview generation failed: %s", e)
             return ChartError(
                 error=f"Failed to generate ASCII preview: {str(e)}",
@@ -224,6 +236,7 @@ class TablePreviewStrategy(PreviewFormatStrategy):
             )
 
             command = ChartDataCommand(query_context)
+            command.validate()
             result = command.run()
 
             data = []
@@ -237,7 +250,14 @@ class TablePreviewStrategy(PreviewFormatStrategy):
                 row_count=len(data),
             )
 
-        except Exception as e:
+        except (
+            CommandException,
+            SupersetException,
+            ValueError,
+            KeyError,
+            AttributeError,
+            TypeError,
+        ) as e:
             logger.error("Table preview generation failed: %s", e)
             return ChartError(
                 error=f"Failed to generate table preview: {str(e)}",
@@ -256,7 +276,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
 
                 return utils_json.loads(self.chart.params)
             return None
-        except Exception:
+        except (ValueError, TypeError):
             return None
 
     def generate(self) -> VegaLitePreview | ChartError:
@@ -323,6 +343,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
 
             # Execute the query
             command = ChartDataCommand(query_context)
+            command.validate()
             result = command.run()
 
             # Extract data from result
@@ -345,7 +366,14 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                 supports_streaming=False,
             )
 
-        except Exception as e:
+        except (
+            CommandException,
+            SupersetException,
+            ValueError,
+            KeyError,
+            AttributeError,
+            TypeError,
+        ) as e:
             logger.exception(
                 "Error generating Vega-Lite preview for chart %s", self.chart.id
             )
@@ -455,11 +483,11 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                     field_type = self._determine_field_type(sample_values)
                     field_types[field] = field_type
 
-                except Exception as e:
+                except (TypeError, ValueError, KeyError, AttributeError) as e:
                     logger.warning("Error analyzing field '%s': %s", field, e)
                     field_types[field] = "nominal"  # Safe default
 
-        except Exception as e:
+        except (TypeError, ValueError, KeyError, AttributeError) as e:
             logger.warning("Error in field type analysis: %s", e)
             # Return nominal types for all fields as fallback
             return dict.fromkeys(fields, "nominal")
@@ -945,7 +973,7 @@ def generate_ascii_chart(
                 "Unsupported chart type '%s', falling back to table", chart_type
             )
             return _generate_ascii_table(data, width)
-    except Exception as e:
+    except (TypeError, ValueError, KeyError, IndexError) as e:
         logger.error("ASCII chart generation failed: %s", e)
         import traceback
 
@@ -1810,7 +1838,71 @@ async def _get_chart_preview_internal(  # noqa: C901
         # Find the chart
         with event_logger.log_context(action="mcp.get_chart_preview.chart_lookup"):
             chart: Any = None
-            if isinstance(request.identifier, int) or (
+
+            # Handle unsaved chart (form_data_key only, no identifier)
+            if not request.identifier and request.form_data_key:
+                with event_logger.log_context(
+                    action="mcp.get_chart_preview.unsaved_chart_from_cache"
+                ):
+                    await ctx.info(
+                        "No chart identifier - creating transient chart from "
+                        "form_data_key=%s" % (request.form_data_key,)
+                    )
+                    from superset.commands.explore.form_data.get import (
+                        GetFormDataCommand,
+                    )
+                    from superset.commands.explore.form_data.parameters import (
+                        CommandParameters,
+                    )
+                    from superset.utils import json as utils_json
+
+                    try:
+                        cmd_params = CommandParameters(key=request.form_data_key)
+                        form_data_json = GetFormDataCommand(cmd_params).run()
+                        if form_data_json:
+                            form_data = utils_json.loads(form_data_json)
+
+                            class TransientChartFromKey:
+                                def __init__(self, fd: Dict[str, Any]):
+                                    self.id = 0
+                                    self.slice_name = "Unsaved Chart Preview"
+                                    self.viz_type = fd.get("viz_type", "table")
+                                    ds = fd.get("datasource", "")
+                                    parts = str(ds).split("__") if ds else []
+                                    self.datasource_id = (
+                                        int(parts[0])
+                                        if len(parts) == 2
+                                        else fd.get("datasource_id")
+                                    )
+                                    self.datasource_type = (
+                                        parts[1]
+                                        if len(parts) == 2
+                                        else fd.get("datasource_type", "table")
+                                    )
+                                    self.params = utils_json.dumps(fd)
+                                    self.form_data = fd
+                                    self.uuid = None
+
+                            chart = TransientChartFromKey(form_data)
+                    except (
+                        CommandException,
+                        ValueError,
+                        KeyError,
+                        AttributeError,
+                        TypeError,
+                    ) as e:
+                        logger.warning(
+                            "Failed to get form data for key %s: %s",
+                            request.form_data_key,
+                            e,
+                        )
+                        return ChartError(
+                            error="No cached chart data found for form_data_key. "
+                            "The cache may have expired.",
+                            error_type="NotFound",
+                        )
+
+            elif isinstance(request.identifier, int) or (
                 isinstance(request.identifier, str) and request.identifier.isdigit()
             ):
                 chart_id = (
@@ -1822,7 +1914,7 @@ async def _get_chart_preview_internal(  # noqa: C901
                     "Performing ID-based chart lookup: chart_id=%s" % (chart_id,)
                 )
                 chart = ChartDAO.find_by_id(chart_id)
-            else:
+            elif isinstance(request.identifier, str):
                 await ctx.debug(
                     "Performing UUID-based chart lookup: uuid=%s"
                     % (request.identifier,)
@@ -1856,7 +1948,7 @@ async def _get_chart_preview_internal(  # noqa: C901
                             # Create a transient chart object from form data
                             class TransientChart:
                                 def __init__(self, form_data: Dict[str, Any]):
-                                    self.id = None
+                                    self.id = 0
                                     self.slice_name = "Unsaved Chart Preview"
                                     self.viz_type = form_data.get("viz_type", "table")
                                     self.datasource_id = None
@@ -1866,7 +1958,13 @@ async def _get_chart_preview_internal(  # noqa: C901
                                     self.uuid = None
 
                             chart = TransientChart(form_data)
-                    except (ValueError, KeyError, AttributeError, TypeError) as e:
+                    except (
+                        CommandException,
+                        ValueError,
+                        KeyError,
+                        AttributeError,
+                        TypeError,
+                    ) as e:
                         # Form data key not found or invalid
                         logger.debug(
                             "Failed to get form data for key %s: %s",
@@ -1899,6 +1997,66 @@ async def _get_chart_preview_internal(  # noqa: C901
         )
         logger.info("Generating preview for chart %s", getattr(chart, "id", "NO_ID"))
         logger.info("Chart datasource_id: %s", getattr(chart, "datasource_id", "NONE"))
+
+        # Validate the chart's dataset is accessible before generating preview
+        # Skip validation for transient charts (no ID) - different data sources
+        if getattr(chart, "id", None) is not None:
+            validation_result = validate_chart_dataset(chart, check_access=True)
+            if not validation_result.is_valid:
+                await ctx.warning(
+                    "Chart found but dataset is not accessible: %s"
+                    % (validation_result.error,)
+                )
+                return ChartError(
+                    error=validation_result.error
+                    or "Chart's dataset is not accessible. Dataset may be deleted.",
+                    error_type="DatasetNotAccessible",
+                )
+            # Log any warnings (e.g., virtual dataset warnings)
+            for warning in validation_result.warnings:
+                await ctx.warning("Dataset warning: %s" % (warning,))
+
+        # If form_data_key is provided, override chart.params with cached
+        # form_data so the preview reflects what the user actually sees
+        if request.form_data_key and getattr(chart, "id", None) is not None:
+            with event_logger.log_context(
+                action="mcp.get_chart_preview.unsaved_state_override"
+            ):
+                await ctx.info(
+                    "Retrieving unsaved chart state from cache: form_data_key=%s"
+                    % (request.form_data_key,)
+                )
+                from superset.commands.explore.form_data.get import (
+                    GetFormDataCommand,
+                )
+                from superset.commands.explore.form_data.parameters import (
+                    CommandParameters,
+                )
+
+                try:
+                    cmd_params = CommandParameters(key=request.form_data_key)
+                    cached_form_data = GetFormDataCommand(cmd_params).run()
+                    if cached_form_data:
+                        chart.params = cached_form_data
+                        from superset.utils import json as utils_json
+
+                        parsed = utils_json.loads(cached_form_data)
+                        if isinstance(parsed, dict) and "viz_type" in parsed:
+                            chart.viz_type = parsed["viz_type"]
+                        await ctx.info(
+                            "Chart params overridden with unsaved state from cache"
+                        )
+                    else:
+                        await ctx.warning(
+                            "form_data_key provided but no cached data found. "
+                            "The cache may have expired. Using saved chart "
+                            "configuration."
+                        )
+                except (CommandException, ValueError, KeyError) as e:
+                    await ctx.warning(
+                        "Failed to retrieve cached form_data: %s. "
+                        "Using saved chart configuration." % (str(e),)
+                    )
 
         import time
 
@@ -1986,11 +2144,23 @@ async def _get_chart_preview_internal(  # noqa: C901
         elif isinstance(content, TablePreview):
             result.format = "table"
             result.table_data = content.table_data
-        # Base64 preview support removed
+        elif isinstance(content, VegaLitePreview):
+            result.format = "vega_lite"
+        elif isinstance(content, URLPreview):
+            result.format = "url"
+            result.width = content.width
+            result.height = content.height
 
         return result
 
-    except Exception as e:
+    except (
+        CommandException,
+        SupersetException,
+        ValueError,
+        KeyError,
+        AttributeError,
+        TypeError,
+    ) as e:
         await ctx.error(
             "Chart preview generation failed: identifier=%s, format=%s, error=%s, "
             "error_type=%s"
@@ -2007,7 +2177,7 @@ async def _get_chart_preview_internal(  # noqa: C901
         )
 
 
-@tool(tags=["data"])
+@tool(tags=["data"], class_permission_name="Chart")
 @parse_request(GetChartPreviewRequest)
 async def get_chart_preview(
     request: GetChartPreviewRequest, ctx: Context

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { logging as logger } from '@apache-superset/core';
+import { logging as logger } from '@apache-superset/core/utils';
 
 // We can codegen the enum definition based on a list of supported flags that we
 // check into source control. We're hardcoding the supported flags for now.
@@ -56,6 +56,7 @@ export enum FeatureFlag {
   FilterBarClosedByDefault = 'FILTERBAR_CLOSED_BY_DEFAULT',
   GlobalAsyncQueries = 'GLOBAL_ASYNC_QUERIES',
   GlobalTaskFramework = 'GLOBAL_TASK_FRAMEWORK',
+  GranularExportControls = 'GRANULAR_EXPORT_CONTROLS',
   ListviewsDefaultCardView = 'LISTVIEWS_DEFAULT_CARD_VIEW',
   Matrixify = 'MATRIXIFY',
   ScheduledQueries = 'SCHEDULED_QUERIES',
