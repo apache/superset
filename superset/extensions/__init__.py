@@ -20,7 +20,19 @@ from typing import Any, Callable, Optional
 
 import celery
 from flask import Flask
-from flask_appbuilder import AppBuilder, SQLA
+from flask_appbuilder import AppBuilder
+
+# Temporary fix for missing flask_appbuilder.utils.legacy module
+try:
+    from flask_appbuilder.utils.legacy import get_sqla_class
+except ImportError:
+    # Fallback if legacy module doesn't exist
+    from flask_sqlalchemy import SQLAlchemy
+
+    def get_sqla_class() -> Any:
+        return SQLAlchemy
+
+
 from flask_caching.backends.base import BaseCache
 from flask_migrate import Migrate
 from flask_talisman import Talisman
@@ -31,6 +43,7 @@ from superset.async_events.async_query_manager import AsyncQueryManager
 from superset.async_events.async_query_manager_factory import AsyncQueryManagerFactory
 from superset.extensions.ssh import SSHManagerFactory
 from superset.extensions.stats_logger import BaseStatsLoggerManager
+from superset.security.manager import SupersetSecurityManager
 from superset.utils.cache_manager import CacheManager
 from superset.utils.encrypt import EncryptedFieldFactory
 from superset.utils.feature_flag_manager import FeatureFlagManager
@@ -84,9 +97,9 @@ class UIManifestProcessor:
         return {
             "js_manifest": lambda bundle: get_files(bundle, "js"),
             "css_manifest": lambda bundle: get_files(bundle, "css"),
-            "assets_prefix": self.app.config["STATIC_ASSETS_PREFIX"]
-            if self.app
-            else "",
+            "assets_prefix": (  # type: ignore
+                self.app.config["STATIC_ASSETS_PREFIX"] if self.app else ""
+            ),
         }
 
     def parse_manifest_json(self) -> None:
@@ -96,7 +109,7 @@ class UIManifestProcessor:
                 # templates
                 full_manifest = json.load(f)
                 self.manifest = full_manifest.get("entrypoints", {})
-        except Exception:  # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except  # noqa: S110
             pass
 
     def get_manifest_files(self, bundle: str, asset_type: str) -> list[str]:
@@ -122,7 +135,7 @@ async_query_manager: AsyncQueryManager = LocalProxy(
 cache_manager = CacheManager()
 celery_app = celery.Celery()
 csrf = CSRFProtect()
-db = SQLA()  # pylint: disable=disallowed-name
+db = get_sqla_class()()
 _event_logger: dict[str, Any] = {}
 encrypted_field_factory = EncryptedFieldFactory()
 event_logger = LocalProxy(lambda: _event_logger.get("event_logger"))
@@ -132,7 +145,7 @@ manifest_processor = UIManifestProcessor(APP_DIR)
 migrate = Migrate()
 profiling = ProfilingExtension()
 results_backend_manager = ResultsBackendManager()
-security_manager = LocalProxy(lambda: appbuilder.sm)
+security_manager: SupersetSecurityManager = LocalProxy(lambda: appbuilder.sm)
 ssh_manager_factory = SSHManagerFactory()
 stats_logger_manager = BaseStatsLoggerManager()
 talisman = Talisman()

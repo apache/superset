@@ -16,11 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import { Dispatch } from 'redux';
 import { ADD_TOAST } from 'src/components/MessageToasts/actions';
-import { DatasourceType, QueryFormData } from '@superset-ui/core';
+import {
+  DatasourceType,
+  QueryFormData,
+  SimpleAdhocFilter,
+  VizType,
+} from '@superset-ui/core';
 import {
   createDashboard,
   createSlice,
@@ -31,6 +35,7 @@ import {
   getSlicePayload,
   PayloadSlice,
 } from './saveModalActions';
+import { Operators } from '../constants';
 
 // Define test constants and mock data using imported types
 const sliceId = 10;
@@ -92,14 +97,17 @@ jest.mock('../exploreUtils', () => ({
   buildV1ChartDataPayload: jest.fn(() => queryContext),
 }));
 
+beforeEach(() => fetchMock.clearHistory().removeRoutes());
+
 /**
  * Tests updateSlice action
  */
 const updateSliceEndpoint = `glob:*/api/v1/chart/${sliceId}`;
 test('updateSlice handles success', async () => {
-  fetchMock.reset();
-  fetchMock.put(updateSliceEndpoint, sliceResponsePayload);
-  const dispatchSpy = sinon.spy();
+  fetchMock.put(updateSliceEndpoint, sliceResponsePayload, {
+    name: updateSliceEndpoint,
+  });
+  const dispatchSpy = jest.fn();
   const dispatch = (action: any) => {
     dispatchSpy(action);
   };
@@ -130,24 +138,25 @@ test('updateSlice handles success', async () => {
     sliceName,
     [],
   )(dispatch as Dispatch<any>, getState);
-  expect(fetchMock.calls(updateSliceEndpoint)).toHaveLength(1);
-  expect(dispatchSpy.callCount).toBe(2);
-  expect(dispatchSpy.getCall(0).args[0].type).toBe(SAVE_SLICE_SUCCESS);
-  expect(dispatchSpy.getCall(1).args[0].type).toBe('ADD_TOAST');
-  expect(dispatchSpy.getCall(1).args[0].payload.toastType).toBe(
-    'SUCCESS_TOAST',
-  );
-  expect(dispatchSpy.getCall(1).args[0].payload.text).toBe(
+  expect(fetchMock.callHistory.calls(updateSliceEndpoint)).toHaveLength(1);
+  expect(dispatchSpy.mock.calls.length).toBe(2);
+  expect(dispatchSpy.mock.calls[0][0].type).toBe(SAVE_SLICE_SUCCESS);
+  expect(dispatchSpy.mock.calls[1][0].type).toBe('ADD_TOAST');
+  expect(dispatchSpy.mock.calls[1][0].payload.toastType).toBe('SUCCESS_TOAST');
+  expect(dispatchSpy.mock.calls[1][0].payload.text).toBe(
     'Chart [New chart] has been overwritten',
   );
   expect(slice).toEqual(sliceResponsePayload);
 });
 
 test('updateSlice handles failure', async () => {
-  fetchMock.reset();
-  fetchMock.put(updateSliceEndpoint, { throws: sampleError });
+  fetchMock.put(
+    updateSliceEndpoint,
+    { throws: sampleError },
+    { name: updateSliceEndpoint },
+  );
 
-  const dispatchSpy = sinon.spy();
+  const dispatchSpy = jest.fn();
   const dispatch = (action: any) => {
     dispatchSpy(action);
   };
@@ -186,9 +195,9 @@ test('updateSlice handles failure', async () => {
   }
 
   expect(caughtError).toEqual(sampleError);
-  expect(fetchMock.calls(updateSliceEndpoint)).toHaveLength(4);
-  expect(dispatchSpy.callCount).toBe(1);
-  expect(dispatchSpy.getCall(0).args[0].type).toBe(SAVE_SLICE_FAILED);
+  expect(fetchMock.callHistory.calls(updateSliceEndpoint)).toHaveLength(4);
+  expect(dispatchSpy.mock.calls.length).toBe(1);
+  expect(dispatchSpy.mock.calls[0][0].type).toBe(SAVE_SLICE_FAILED);
 });
 
 /**
@@ -196,23 +205,22 @@ test('updateSlice handles failure', async () => {
  */
 const createSliceEndpoint = `glob:*/api/v1/chart/`;
 test('createSlice handles success', async () => {
-  fetchMock.reset();
-  fetchMock.post(createSliceEndpoint, sliceResponsePayload);
-  const dispatchSpy = sinon.spy();
+  fetchMock.post(createSliceEndpoint, sliceResponsePayload, {
+    name: createSliceEndpoint,
+  });
+  const dispatchSpy = jest.fn();
   const dispatch = (action: any) => dispatchSpy(action);
   const getState = () => mockExploreState;
   const slice: Partial<PayloadSlice> = await createSlice(sliceName, [])(
     dispatch as Dispatch,
     getState,
   );
-  expect(fetchMock.calls(createSliceEndpoint)).toHaveLength(1);
-  expect(dispatchSpy.callCount).toBe(2);
-  expect(dispatchSpy.getCall(0).args[0].type).toBe(SAVE_SLICE_SUCCESS);
-  expect(dispatchSpy.getCall(1).args[0].type).toBe(ADD_TOAST);
-  expect(dispatchSpy.getCall(1).args[0].payload.toastType).toBe(
-    'SUCCESS_TOAST',
-  );
-  expect(dispatchSpy.getCall(1).args[0].payload.text).toBe(
+  expect(fetchMock.callHistory.calls(createSliceEndpoint)).toHaveLength(1);
+  expect(dispatchSpy.mock.calls.length).toBe(2);
+  expect(dispatchSpy.mock.calls[0][0].type).toBe(SAVE_SLICE_SUCCESS);
+  expect(dispatchSpy.mock.calls[1][0].type).toBe(ADD_TOAST);
+  expect(dispatchSpy.mock.calls[1][0].payload.toastType).toBe('SUCCESS_TOAST');
+  expect(dispatchSpy.mock.calls[1][0].payload.text).toBe(
     'Chart [New chart] has been saved',
   );
 
@@ -220,10 +228,9 @@ test('createSlice handles success', async () => {
 });
 
 test('createSlice handles failure', async () => {
-  fetchMock.reset();
   fetchMock.post(createSliceEndpoint, { throws: sampleError });
 
-  const dispatchSpy = sinon.spy();
+  const dispatchSpy = jest.fn();
   const dispatch = (action: any) => dispatchSpy(action);
   const getState = () => mockExploreState;
 
@@ -235,9 +242,9 @@ test('createSlice handles failure', async () => {
   }
 
   expect(caughtError).toEqual(sampleError);
-  expect(fetchMock.calls(createSliceEndpoint)).toHaveLength(4);
-  expect(dispatchSpy.callCount).toBe(1);
-  expect(dispatchSpy.getCall(0).args[0].type).toBe(SAVE_SLICE_FAILED);
+  expect(fetchMock.callHistory.calls(createSliceEndpoint)).toHaveLength(4);
+  expect(dispatchSpy.mock.calls.length).toBe(1);
+  expect(dispatchSpy.mock.calls[0][0].type).toBe(SAVE_SLICE_FAILED);
 });
 
 const dashboardName = 'New dashboard';
@@ -251,21 +258,25 @@ const dashboardResponsePayload = {
 
 const createDashboardEndpoint = `glob:*/api/v1/dashboard/`;
 test('createDashboard handles success', async () => {
-  fetchMock.reset();
-  fetchMock.post(createDashboardEndpoint, dashboardResponsePayload);
-  const dispatch = sinon.spy();
+  fetchMock.post(createDashboardEndpoint, dashboardResponsePayload, {
+    name: createDashboardEndpoint,
+  });
+  const dispatch = jest.fn();
   const dashboard = await createDashboard(dashboardName)(
     dispatch as Dispatch<any>,
   );
-  expect(fetchMock.calls(createDashboardEndpoint)).toHaveLength(1);
-  expect(dispatch.callCount).toBe(0);
+  expect(fetchMock.callHistory.calls(createDashboardEndpoint)).toHaveLength(1);
+  expect(dispatch.mock.calls.length).toBe(0);
   expect(dashboard).toEqual(dashboardResponsePayload);
 });
 
 test('createDashboard handles failure', async () => {
-  fetchMock.reset();
-  fetchMock.post(createDashboardEndpoint, { throws: sampleError });
-  const dispatch = sinon.spy();
+  fetchMock.post(
+    createDashboardEndpoint,
+    { throws: sampleError },
+    { name: createDashboardEndpoint },
+  );
+  const dispatch = jest.fn();
   let caughtError;
   try {
     await createDashboard(dashboardName)(dispatch as Dispatch<any>);
@@ -274,15 +285,16 @@ test('createDashboard handles failure', async () => {
   }
 
   expect(caughtError).toEqual(sampleError);
-  expect(fetchMock.calls(createDashboardEndpoint)).toHaveLength(4);
-  expect(dispatch.callCount).toBe(1);
-  expect(dispatch.getCall(0).args[0].type).toBe(SAVE_SLICE_FAILED);
+  expect(fetchMock.callHistory.calls(createDashboardEndpoint)).toHaveLength(4);
+  expect(dispatch.mock.calls.length).toBe(1);
+  expect(dispatch.mock.calls[0][0].type).toBe(SAVE_SLICE_FAILED);
 });
 
 test('updateSlice with add to new dashboard handles success', async () => {
-  fetchMock.reset();
-  fetchMock.put(updateSliceEndpoint, sliceResponsePayload);
-  const dispatchSpy = sinon.spy();
+  fetchMock.put(updateSliceEndpoint, sliceResponsePayload, {
+    name: updateSliceEndpoint,
+  });
+  const dispatchSpy = jest.fn();
   const dispatch = (action: any) => dispatchSpy(action);
   const getState = () => mockExploreState;
 
@@ -321,21 +333,17 @@ test('updateSlice with add to new dashboard handles success', async () => {
     },
   )(dispatch as Dispatch<any>, getState);
 
-  expect(fetchMock.calls(updateSliceEndpoint)).toHaveLength(1);
-  expect(dispatchSpy.callCount).toBe(3);
-  expect(dispatchSpy.getCall(0).args[0].type).toBe(SAVE_SLICE_SUCCESS);
-  expect(dispatchSpy.getCall(1).args[0].type).toBe(ADD_TOAST);
-  expect(dispatchSpy.getCall(1).args[0].payload.toastType).toBe(
-    'SUCCESS_TOAST',
-  );
-  expect(dispatchSpy.getCall(1).args[0].payload.text).toBe(
+  expect(fetchMock.callHistory.calls(updateSliceEndpoint)).toHaveLength(1);
+  expect(dispatchSpy.mock.calls.length).toBe(3);
+  expect(dispatchSpy.mock.calls[0][0].type).toBe(SAVE_SLICE_SUCCESS);
+  expect(dispatchSpy.mock.calls[1][0].type).toBe(ADD_TOAST);
+  expect(dispatchSpy.mock.calls[1][0].payload.toastType).toBe('SUCCESS_TOAST');
+  expect(dispatchSpy.mock.calls[1][0].payload.text).toBe(
     'Chart [New chart] has been overwritten',
   );
-  expect(dispatchSpy.getCall(2).args[0].type).toBe(ADD_TOAST);
-  expect(dispatchSpy.getCall(2).args[0].payload.toastType).toBe(
-    'SUCCESS_TOAST',
-  );
-  expect(dispatchSpy.getCall(2).args[0].payload.text).toBe(
+  expect(dispatchSpy.mock.calls[2][0].type).toBe(ADD_TOAST);
+  expect(dispatchSpy.mock.calls[2][0].payload.toastType).toBe('SUCCESS_TOAST');
+  expect(dispatchSpy.mock.calls[2][0].payload.text).toBe(
     'Dashboard [New dashboard] just got created and chart [New chart] was added to it',
   );
 
@@ -343,9 +351,10 @@ test('updateSlice with add to new dashboard handles success', async () => {
 });
 
 test('updateSlice with add to existing dashboard handles success', async () => {
-  fetchMock.reset();
-  fetchMock.put(updateSliceEndpoint, sliceResponsePayload);
-  const dispatchSpy = sinon.spy();
+  fetchMock.put(updateSliceEndpoint, sliceResponsePayload, {
+    name: updateSliceEndpoint,
+  });
+  const dispatchSpy = jest.fn();
   const dispatch = (action: any) => dispatchSpy(action);
   const getState = () => mockExploreState;
   const slice = await updateSlice(
@@ -383,21 +392,17 @@ test('updateSlice with add to existing dashboard handles success', async () => {
     },
   )(dispatch as Dispatch<any>, getState);
 
-  expect(fetchMock.calls(updateSliceEndpoint)).toHaveLength(1);
-  expect(dispatchSpy.callCount).toBe(3);
-  expect(dispatchSpy.getCall(0).args[0].type).toBe(SAVE_SLICE_SUCCESS);
-  expect(dispatchSpy.getCall(1).args[0].type).toBe(ADD_TOAST);
-  expect(dispatchSpy.getCall(1).args[0].payload.toastType).toBe(
-    'SUCCESS_TOAST',
-  );
-  expect(dispatchSpy.getCall(1).args[0].payload.text).toBe(
+  expect(fetchMock.callHistory.calls(updateSliceEndpoint)).toHaveLength(1);
+  expect(dispatchSpy.mock.calls.length).toBe(3);
+  expect(dispatchSpy.mock.calls[0][0].type).toBe(SAVE_SLICE_SUCCESS);
+  expect(dispatchSpy.mock.calls[1][0].type).toBe(ADD_TOAST);
+  expect(dispatchSpy.mock.calls[1][0].payload.toastType).toBe('SUCCESS_TOAST');
+  expect(dispatchSpy.mock.calls[1][0].payload.text).toBe(
     'Chart [New chart] has been overwritten',
   );
-  expect(dispatchSpy.getCall(2).args[0].type).toBe(ADD_TOAST);
-  expect(dispatchSpy.getCall(2).args[0].payload.toastType).toBe(
-    'SUCCESS_TOAST',
-  );
-  expect(dispatchSpy.getCall(2).args[0].payload.text).toBe(
+  expect(dispatchSpy.mock.calls[2][0].type).toBe(ADD_TOAST);
+  expect(dispatchSpy.mock.calls[2][0].payload.toastType).toBe('SUCCESS_TOAST');
+  expect(dispatchSpy.mock.calls[2][0].payload.text).toBe(
     'Chart [New chart] was added to dashboard [New dashboard]',
   );
 
@@ -414,11 +419,12 @@ const getDashboardSlicesReturnValue = [21, 22, 23];
  * Tests getSliceDashboards action
  */
 
-const getSliceDashboardsEndpoint = `glob:*/api/v1/chart/${sliceId}?q=(columns:!(dashboards.id))`;
+const getSliceDashboardsEndpoint = `glob:*/api/v1/chart/${sliceId}?q=(select_columns:!(dashboards.id))`;
 test('getSliceDashboards with slice handles success', async () => {
-  fetchMock.reset();
-  fetchMock.get(getSliceDashboardsEndpoint, dashboardSlicesResponsePayload);
-  const dispatchSpy = sinon.spy();
+  fetchMock.get(getSliceDashboardsEndpoint, dashboardSlicesResponsePayload, {
+    name: getSliceDashboardsEndpoint,
+  });
+  const dispatchSpy = jest.fn();
   const dispatch = (action: any) => dispatchSpy(action);
   const sliceDashboards = await getSliceDashboards({
     slice_id: 10,
@@ -430,15 +436,20 @@ test('getSliceDashboards with slice handles success', async () => {
       dashboards: [],
     },
   })(dispatch as Dispatch<any>);
-  expect(fetchMock.calls(getSliceDashboardsEndpoint)).toHaveLength(1);
-  expect(dispatchSpy.callCount).toBe(0);
+  expect(fetchMock.callHistory.calls(getSliceDashboardsEndpoint)).toHaveLength(
+    1,
+  );
+  expect(dispatchSpy.mock.calls.length).toBe(0);
   expect(sliceDashboards).toEqual(getDashboardSlicesReturnValue);
 });
 
 test('getSliceDashboards with slice handles failure', async () => {
-  fetchMock.reset();
-  fetchMock.get(getSliceDashboardsEndpoint, { throws: sampleError });
-  const dispatch = sinon.spy();
+  fetchMock.get(
+    getSliceDashboardsEndpoint,
+    { throws: sampleError },
+    { name: getSliceDashboardsEndpoint },
+  );
+  const dispatch = jest.fn();
   let caughtError;
   try {
     await getSliceDashboards({
@@ -456,23 +467,26 @@ test('getSliceDashboards with slice handles failure', async () => {
   }
 
   expect(caughtError).toEqual(sampleError);
-  expect(fetchMock.calls(getSliceDashboardsEndpoint)).toHaveLength(4);
-  expect(dispatch.callCount).toBe(1);
-  expect(dispatch.getCall(0).args[0].type).toBe(SAVE_SLICE_FAILED);
+  expect(fetchMock.callHistory.calls(getSliceDashboardsEndpoint)).toHaveLength(
+    4,
+  );
+  expect(dispatch.mock.calls.length).toBe(1);
+  expect(dispatch.mock.calls[0][0].type).toBe(SAVE_SLICE_FAILED);
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('getSlicePayload', () => {
   const sliceName = 'Test Slice';
   const formDataWithNativeFilters = {
     datasource: `${datasourceId}__${datasourceType}`,
-    viz_type: 'pie',
+    viz_type: VizType.Pie,
     adhoc_filters: [],
   };
   const dashboards = [5];
   const owners = [0];
   const formDataFromSlice: QueryFormData = {
     datasource: `${datasourceId}__${datasourceType}`,
-    viz_type: 'pie',
+    viz_type: VizType.Pie,
     adhoc_filters: [
       {
         clause: 'WHERE',
@@ -485,8 +499,8 @@ describe('getSlicePayload', () => {
     dashboards: [],
   };
 
-  test('should return the correct payload when no adhoc_filters are present in formDataWithNativeFilters', () => {
-    const result = getSlicePayload(
+  test('should return the correct payload when no adhoc_filters are present in formDataWithNativeFilters', async () => {
+    const result = await getSlicePayload(
       sliceName,
       formDataWithNativeFilters,
       dashboards,
@@ -509,7 +523,7 @@ describe('getSlicePayload', () => {
     );
   });
 
-  test('should return the correct payload when adhoc_filters are present in formDataWithNativeFilters', () => {
+  test('should return the correct payload when adhoc_filters are present in formDataWithNativeFilters', async () => {
     const formDataWithAdhocFilters: QueryFormData = {
       ...formDataWithNativeFilters,
       adhoc_filters: [
@@ -522,7 +536,7 @@ describe('getSlicePayload', () => {
         },
       ],
     };
-    const result = getSlicePayload(
+    const result = await getSlicePayload(
       sliceName,
       formDataWithAdhocFilters,
       dashboards,
@@ -545,7 +559,7 @@ describe('getSlicePayload', () => {
     );
   });
 
-  test('should return the correct payload when formDataWithNativeFilters has a filter with isExtra set to true', () => {
+  test('should return the correct payload when formDataWithNativeFilters has a filter with isExtra set to true', async () => {
     const formDataWithAdhocFiltersWithExtra: QueryFormData = {
       ...formDataWithNativeFilters,
       adhoc_filters: [
@@ -558,7 +572,7 @@ describe('getSlicePayload', () => {
         },
       ],
     };
-    const result = getSlicePayload(
+    const result = await getSlicePayload(
       sliceName,
       formDataWithAdhocFiltersWithExtra,
       dashboards,
@@ -581,7 +595,7 @@ describe('getSlicePayload', () => {
     );
   });
 
-  test('should return the correct payload when formDataWithNativeFilters has a filter with isExtra set to true in mixed chart', () => {
+  test('should return the correct payload when formDataWithNativeFilters has a filter with isExtra set to true in mixed chart', async () => {
     const formDataFromSliceWithAdhocFilterB: QueryFormData = {
       ...formDataFromSlice,
       adhoc_filters_b: [
@@ -594,9 +608,10 @@ describe('getSlicePayload', () => {
         },
       ],
     };
+
     const formDataWithAdhocFiltersWithExtra: QueryFormData = {
       ...formDataWithNativeFilters,
-      viz_type: 'mixed_timeseries',
+      viz_type: VizType.MixedTimeseries,
       adhoc_filters: [
         {
           clause: 'WHERE',
@@ -618,18 +633,104 @@ describe('getSlicePayload', () => {
         },
       ],
     };
-    const result = getSlicePayload(
+    const result = await getSlicePayload(
       sliceName,
       formDataWithAdhocFiltersWithExtra,
       dashboards,
       owners as [],
       formDataFromSliceWithAdhocFilterB,
     );
+
     expect(JSON.parse(result.params as string).adhoc_filters).toEqual(
       formDataFromSliceWithAdhocFilterB.adhoc_filters,
     );
-    expect(JSON.parse(result.params as string).adhoc_filters).toEqual(
+    expect(JSON.parse(result.params as string).adhoc_filters_b).toEqual(
       formDataFromSliceWithAdhocFilterB.adhoc_filters_b,
     );
+  });
+
+  test('should return the correct payload when formDataFromSliceWithAdhocFilter has no time range filters in mixed chart', async () => {
+    const formDataFromSliceWithAdhocFilterB: QueryFormData = {
+      ...formDataFromSlice,
+      adhoc_filters: [],
+      adhoc_filters_b: [],
+    };
+
+    const formDataWithAdhocFiltersWithExtra: QueryFormData = {
+      ...formDataWithNativeFilters,
+      viz_type: VizType.MixedTimeseries,
+      adhoc_filters: [
+        {
+          clause: 'WHERE',
+          subject: 'year',
+          operator: 'TEMPORAL_RANGE',
+          comparator: 'No filter',
+          expressionType: 'SIMPLE',
+          isExtra: true,
+        },
+      ],
+      adhoc_filters_b: [
+        {
+          clause: 'WHERE',
+          subject: 'year',
+          operator: 'TEMPORAL_RANGE',
+          comparator: 'No filter',
+          expressionType: 'SIMPLE',
+          isExtra: true,
+        },
+      ],
+    };
+    const result = await getSlicePayload(
+      sliceName,
+      formDataWithAdhocFiltersWithExtra,
+      dashboards,
+      owners as [],
+      formDataFromSliceWithAdhocFilterB,
+    );
+
+    const hasTemporalRange = (
+      JSON.parse(result.params as string).adhoc_filters_b || []
+    ).some(
+      (filter: SimpleAdhocFilter) =>
+        filter.operator === Operators.TemporalRange,
+    );
+
+    expect(hasTemporalRange).toBe(true);
+  });
+
+  test('should reset isExtra flag to false for temporal filter when saving as a new chart', async () => {
+    const formDataWithTemporalFilterWithExtra: QueryFormData = {
+      ...formDataWithNativeFilters,
+      adhoc_filters: [
+        {
+          clause: 'WHERE',
+          subject: 'year',
+          operator: 'TEMPORAL_RANGE',
+          comparator: '2004 : ',
+          expressionType: 'SIMPLE',
+          isExtra: true,
+        },
+      ],
+    };
+
+    const result = await getSlicePayload(
+      sliceName,
+      formDataWithTemporalFilterWithExtra,
+      dashboards,
+      owners as [],
+      {} as QueryFormData,
+    );
+
+    const savedFilters = JSON.parse(result.params as string).adhoc_filters;
+
+    expect(savedFilters).toHaveLength(1);
+    expect(savedFilters[0]).toMatchObject({
+      clause: 'WHERE',
+      subject: 'year',
+      operator: 'TEMPORAL_RANGE',
+      comparator: 'No filter',
+      expressionType: 'SIMPLE',
+      isExtra: false,
+    });
   });
 });

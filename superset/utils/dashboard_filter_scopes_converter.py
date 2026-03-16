@@ -24,7 +24,7 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
-def convert_filter_scopes(
+def convert_filter_scopes(  # noqa: C901
     json_metadata: dict[Any, Any], filter_boxes: list[Slice]
 ) -> dict[int, dict[str, dict[str, Any]]]:
     filter_scopes = {}

@@ -16,28 +16,46 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 import { ReactNode, ReactElement } from 'react';
-import { render, RenderOptions } from '@testing-library/react';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+// eslint-disable-next-line no-restricted-imports
+import {
+  render,
+  RenderOptions,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
+import {
+  ThemeProvider,
+  themeObject,
+  supersetTheme,
+} from '@apache-superset/core/theme';
+import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
+import { ThemeController } from 'src/theme/ThemeController';
 import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import { configureStore, Store } from '@reduxjs/toolkit';
 import { api } from 'src/hooks/apiResources/queryApi';
+import userEvent from '@testing-library/user-event';
 
 type Options = Omit<RenderOptions, 'queries'> & {
   useRedux?: boolean;
   useDnd?: boolean;
   useQueryParams?: boolean;
   useRouter?: boolean;
+  useTheme?: boolean;
   initialState?: {};
   reducers?: {};
   store?: Store;
 };
+
+const themeController = new ThemeController({ themeObject });
 
 export const createStore = (initialState: object = {}, reducers: object = {}) =>
   configureStore({
@@ -59,6 +77,7 @@ export function createWrapper(options?: Options) {
     useRedux,
     useQueryParams,
     useRouter,
+    useTheme,
     initialState,
     reducers,
     store,
@@ -68,6 +87,14 @@ export function createWrapper(options?: Options) {
     let result = (
       <ThemeProvider theme={supersetTheme}>{children}</ThemeProvider>
     );
+
+    if (useTheme) {
+      result = (
+        <SupersetThemeProvider themeController={themeController}>
+          {result}
+        </SupersetThemeProvider>
+      );
+    }
 
     if (useDnd) {
       result = <DndProvider backend={HTML5Backend}>{result}</DndProvider>;
@@ -80,7 +107,11 @@ export function createWrapper(options?: Options) {
     }
 
     if (useQueryParams) {
-      result = <QueryParamProvider>{result}</QueryParamProvider>;
+      result = (
+        <QueryParamProvider adapter={ReactRouter5Adapter}>
+          {result}
+        </QueryParamProvider>
+      );
     }
 
     if (useRouter) {
@@ -100,5 +131,23 @@ export function sleep(time: number) {
   });
 }
 
+// eslint-disable-next-line no-restricted-imports
 export * from '@testing-library/react';
 export { customRender as render };
+export { default as userEvent } from '@testing-library/user-event';
+
+export async function selectOption(option: string, selectName?: string) {
+  // Use findByRole (async) to wait for element to be ready, preventing race conditions on slow CI
+  const select = await screen.findByRole(
+    'combobox',
+    selectName ? { name: selectName } : {},
+  );
+  await userEvent.click(select);
+  const item = await waitFor(() =>
+    within(
+      // eslint-disable-next-line testing-library/no-node-access
+      document.querySelector('.rc-virtual-list')!,
+    ).getByText(option),
+  );
+  await userEvent.click(item);
+}

@@ -14,13 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import datetime
+import copy
 import math
+import uuid
+from datetime import date, datetime, time, timedelta
+from decimal import Decimal
+from typing import Any
 from unittest.mock import MagicMock
 
+import numpy as np
+import pandas as pd
 import pytest
+import pytz
 
+from superset.constants import PASSWORD_MASK
 from superset.utils import json
+from superset.utils.core import (
+    zlib_compress,
+    zlib_decompress,
+)
 
 
 def test_json_loads():
@@ -45,7 +57,7 @@ def test_json_loads_exception():
 
 
 def test_json_loads_encoding():
-    unicode_data = b'{"a": "\u0073\u0074\u0072"}'
+    unicode_data = rb'{"a": "\u0073\u0074\u0072"}'
     data = json.loads(unicode_data)
     assert data["a"] == "str"
     utf16_data = b'\xff\xfe{\x00"\x00a\x00"\x00:\x00 \x00"\x00s\x00t\x00r\x00"\x00}\x00'
@@ -93,19 +105,35 @@ def test_json_dumps_encoding():
 
 def test_json_iso_dttm_ser():
     data = {
-        "datetime": datetime.datetime(2021, 1, 1, 0, 0, 0),
-        "date": datetime.date(2021, 1, 1),
+        "datetime": datetime(2021, 1, 1, 0, 0, 0),
+        "date": date(2021, 1, 1),
+        "dttm": datetime(2020, 1, 1),
+        "dt": date(2020, 1, 1),
+        "t": time(),
     }
+
     json_str = json.dumps(data, default=json.json_iso_dttm_ser)
     reloaded_data = json.loads(json_str)
     assert reloaded_data["datetime"] == "2021-01-01T00:00:00"
     assert reloaded_data["date"] == "2021-01-01"
+    assert reloaded_data["dttm"] == "2020-01-01T00:00:00"
+    assert reloaded_data["dt"] == "2020-01-01"
+    assert reloaded_data["t"] == "00:00:00"
+    assert json.json_iso_dttm_ser(np.int64(1)) == 1
+
+    assert (
+        json.json_iso_dttm_ser(np.datetime64(), pessimistic=True)
+        == "Unserializable [<class 'numpy.datetime64'>]"
+    )
+
+    with pytest.raises(TypeError):
+        json.json_iso_dttm_ser(np.datetime64())
 
 
 def test_pessimistic_json_iso_dttm_ser():
     data = {
-        "datetime": datetime.datetime(2021, 1, 1, 0, 0, 0),
-        "date": datetime.date(2021, 1, 1),
+        "datetime": datetime(2021, 1, 1, 0, 0, 0),
+        "date": date(2021, 1, 1),
     }
     json_str = json.dumps(data, default=json.pessimistic_json_iso_dttm_ser)
     reloaded_data = json.loads(json_str)
@@ -145,4 +173,245 @@ def test_validate_json():
     assert (
         str(excinfo.value)
         == "Unterminated string starting at: line 1 column 28 (char 27)"
+    )
+
+
+def test_sensitive_fields() -> None:
+    """
+    Test masking/unmasking of sensitive fields.
+    """
+    payload = {
+        "password": "SECRET",
+        "credentials": {
+            "user_id": "alice",
+            "user_token": "TOKEN",
+        },
+    }
+    sensitive_fields = {"$.password", "$.credentials.user_token"}
+
+    redacted_payload = json.redact_sensitive(payload, sensitive_fields)
+    assert redacted_payload == {
+        "password": "XXXXXXXXXX",
+        "credentials": {
+            "user_id": "alice",
+            "user_token": "XXXXXXXXXX",
+        },
+    }
+
+    new_payload = copy.deepcopy(redacted_payload)
+    new_payload["credentials"]["user_id"] = "bob"
+
+    assert json.reveal_sensitive(payload, new_payload, sensitive_fields) == {
+        "password": "SECRET",
+        "credentials": {
+            "user_id": "bob",
+            "user_token": "TOKEN",
+        },
+    }
+
+    new_payload = copy.deepcopy(redacted_payload)
+    new_payload["credentials"]["user_token"] = "NEW_TOKEN"  # noqa: S105
+
+    assert json.reveal_sensitive(payload, new_payload, sensitive_fields) == {
+        "password": "SECRET",
+        "credentials": {
+            "user_id": "alice",
+            "user_token": "NEW_TOKEN",
+        },
+    }
+
+
+def test_base_json_conv():
+    assert json.base_json_conv(np.bool_(1)) is True
+    assert json.base_json_conv(np.int64(1)) == 1
+    assert json.base_json_conv(np.array([1, 2, 3])) == [1, 2, 3]
+    assert json.base_json_conv(np.array(None)) is None
+    assert json.base_json_conv({1}) == [1]
+    assert json.base_json_conv(Decimal("1.0")) == 1.0
+    assert isinstance(json.base_json_conv(uuid.uuid4()), str)
+    assert json.base_json_conv(time(12, 0)) == "12:00:00"
+    assert json.base_json_conv(timedelta(0)) == "0:00:00"
+    assert json.base_json_conv(b"") == ""
+    assert isinstance(json.base_json_conv(b"\xff\xfe"), str)
+    assert json.base_json_conv(pd.DateOffset(days=1)) == "DateOffset(days=1)"
+    assert json.base_json_conv(b"\xff") == "[bytes]"
+
+    with pytest.raises(TypeError):
+        json.base_json_conv(np.datetime64())
+
+
+def test_zlib_compression():
+    json_str = '{"test": 1}'
+    blob = zlib_compress(json_str)
+    got_str = zlib_decompress(blob)
+    assert json_str == got_str
+
+
+def test_json_int_dttm_ser():
+    dttm = datetime(2020, 1, 1)
+    ts = 1577836800000.0
+    assert json.json_int_dttm_ser(dttm) == ts
+    assert json.json_int_dttm_ser(date(2020, 1, 1)) == ts
+    assert json.json_int_dttm_ser(datetime(1970, 1, 1)) == 0
+    assert json.json_int_dttm_ser(date(1970, 1, 1)) == 0
+    assert json.json_int_dttm_ser(dttm + timedelta(milliseconds=1)) == (ts + 1)
+
+    # Timezone-aware datetime should preserve the absolute instant.
+    # 2020-01-01 00:00:00+08:00 == 2019-12-31 16:00:00Z
+    dttm_tz = datetime(2020, 1, 1, tzinfo=pytz.FixedOffset(8 * 60))
+    assert json.json_int_dttm_ser(dttm_tz) == 1577808000000.0
+    assert json.json_int_dttm_ser(np.int64(1)) == 1
+
+    with pytest.raises(TypeError):
+        json.json_int_dttm_ser(np.datetime64())
+
+
+@pytest.mark.parametrize(
+    "payload,path_values,expected_result",
+    [
+        (
+            {
+                "credentials_info": {
+                    "type": "service_account",
+                    "private_key": "XXXXXXXXXX",
+                },
+            },
+            {"$.credentials_info.private_key": "NEW_KEY"},
+            {
+                "credentials_info": {
+                    "type": "service_account",
+                    "private_key": "NEW_KEY",
+                },
+            },
+        ),
+        (
+            {
+                "auth_params": {
+                    "privatekey_body": "XXXXXXXXXX",
+                    "privatekey_pass": "XXXXXXXXXX",
+                },
+                "other": "value",
+            },
+            {
+                "$.auth_params.privatekey_body": "-----BEGIN PRIVATE KEY-----",
+                "$.auth_params.privatekey_pass": "passphrase",
+            },
+            {
+                "auth_params": {
+                    "privatekey_body": "-----BEGIN PRIVATE KEY-----",
+                    "privatekey_pass": "passphrase",
+                },
+                "other": "value",
+            },
+        ),
+        (
+            {"existing": "value"},
+            {"$.nonexistent.path": "new_value"},
+            {"existing": "value"},
+        ),
+    ],
+)
+def test_set_masked_fields(
+    payload: dict[str, Any],
+    path_values: dict[str, Any],
+    expected_result: dict[str, Any],
+) -> None:
+    """
+    Test setting a value at a JSONPath location.
+    """
+    result = json.set_masked_fields(payload, path_values)
+    assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "payload,sensitive_fields,expected_result",
+    [
+        (
+            {
+                "credentials_info": {
+                    "type": "service_account",
+                    "private_key": PASSWORD_MASK,
+                },
+            },
+            {"$.credentials_info.private_key", "$.credentials_info.type"},
+            ["$.credentials_info.private_key"],
+        ),
+        (
+            {
+                "credentials_info": {
+                    "private_key": "ACTUAL_KEY",
+                },
+            },
+            {"$.credentials_info.private_key"},
+            [],
+        ),
+        (
+            {
+                "auth_params": {
+                    "privatekey_body": PASSWORD_MASK,
+                    "privatekey_pass": "actual_pass",
+                },
+                "oauth2_client_info": {
+                    "secret": PASSWORD_MASK,
+                },
+            },
+            {
+                "$.auth_params.privatekey_body",
+                "$.auth_params.privatekey_pass",
+                "$.oauth2_client_info.secret",
+            },
+            [
+                "$.auth_params.privatekey_body",
+                "$.oauth2_client_info.secret",
+            ],
+        ),
+        (
+            {
+                "foo": PASSWORD_MASK,
+                "service_account_info": PASSWORD_MASK,
+            },
+            {"$.*"},
+            ["$.foo", "$.service_account_info"],
+        ),
+        (
+            {
+                "foo": PASSWORD_MASK,
+                "bar": "actual_value",
+            },
+            {"$.*"},
+            ["$.foo"],
+        ),
+        (
+            {
+                "foo": "actual_value",
+                "bar": "other_value",
+            },
+            {"$.*"},
+            [],
+        ),
+    ],
+)
+def test_get_masked_fields(
+    payload: dict[str, Any],
+    sensitive_fields: set[str],
+    expected_result: dict[str, Any],
+) -> None:
+    """
+    Test that get_masked_fields returns paths where value equals PASSWORD_MASK.
+    """
+    masked = json.get_masked_fields(payload, sensitive_fields)
+    assert sorted(masked) == sorted(expected_result)
+
+
+def test_format_timedelta():
+    assert json.format_timedelta(timedelta(0)) == "0:00:00"
+    assert json.format_timedelta(timedelta(days=1)) == "1 day, 0:00:00"
+    assert json.format_timedelta(timedelta(minutes=-6)) == "-0:06:00"
+    assert (
+        json.format_timedelta(timedelta(0) - timedelta(days=1, hours=5, minutes=6))
+        == "-1 day, 5:06:00"
+    )
+    assert (
+        json.format_timedelta(timedelta(0) - timedelta(days=16, hours=4, minutes=3))
+        == "-16 days, 4:03:00"
     )

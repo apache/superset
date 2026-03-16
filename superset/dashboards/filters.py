@@ -29,10 +29,11 @@ from superset.models.dashboard import Dashboard, is_uuid
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
 from superset.security.guest_token import GuestTokenResourceType, GuestUser
+from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
 from superset.utils.core import get_user_id
 from superset.utils.filters import get_dataset_access_filters
 from superset.views.base import BaseFilter
-from superset.views.base_api import BaseFavoriteFilter, BaseTagFilter
+from superset.views.base_api import BaseFavoriteFilter
 
 
 class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -78,12 +79,24 @@ class DashboardFavoriteFilter(  # pylint: disable=too-few-public-methods
     model = Dashboard
 
 
-class DashboardTagFilter(BaseTagFilter):  # pylint: disable=too-few-public-methods
+class DashboardTagNameFilter(BaseTagNameFilter):  # pylint: disable=too-few-public-methods
     """
-    Custom filter for the GET list that filters all dashboards that a user has favored
+    Custom filter for the GET list that filters all dashboards associated with
+    a certain tag (by its name).
     """
 
     arg_name = "dashboard_tags"
+    class_name = "Dashboard"
+    model = Dashboard
+
+
+class DashboardTagIdFilter(BaseTagIdFilter):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters all dashboards associated with
+    a certain tag (by its ID).
+    """
+
+    arg_name = "dashboard_tag_id"
     class_name = "Dashboard"
     model = Dashboard
 

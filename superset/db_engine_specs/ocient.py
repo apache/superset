@@ -28,15 +28,14 @@ with contextlib.suppress(ImportError, RuntimeError):  # pyocient may not be inst
     # Ensure pyocient inherits Superset's logging level
     import geojson
     import pyocient
+    from flask import current_app as app
     from shapely import wkt
-
-    from superset import app
 
     superset_log_level = app.config["LOG_LEVEL"]
     pyocient.logger.setLevel(superset_log_level)
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.errors import SupersetErrorType
 from superset.models.core import Database
 from superset.models.sql_lab import Query
@@ -214,7 +213,7 @@ def _find_columns_to_sanitize(cursor: Any) -> list[PlacedSanitizeFunc]:
 
     :param cursor: the result set cursor
     :returns: the list of tuples consisting of the column index and sanitization function
-    """
+    """  # noqa: E501
     return [
         PlacedSanitizeFunc(i, _sanitized_ocient_type_codes[cursor.description[i][1]])
         for i in range(len(cursor.description))
@@ -225,7 +224,6 @@ def _find_columns_to_sanitize(cursor: Any) -> list[PlacedSanitizeFunc]:
 class OcientEngineSpec(BaseEngineSpec):
     engine = "ocient"
     engine_name = "Ocient"
-    # limit_method = LimitMethod.WRAP_SQL
     force_column_alias_quotes = True
     max_column_name_length = 30
 
@@ -237,6 +235,17 @@ class OcientEngineSpec(BaseEngineSpec):
     # They are then removed, either upon cancellation or query completion
     query_id_mapping: dict[str, str] = {}
     query_id_mapping_lock = threading.Lock()
+
+    metadata = {
+        "description": "Ocient is a hyperscale data analytics database.",
+        "categories": [
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["sqlalchemy-ocient"],
+        "connection_string": "ocient://{username}:{password}@{host}:{port}/{database}",
+        "install_instructions": "pip install sqlalchemy-ocient",
+    }
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         CONNECTION_INVALID_USERNAME_REGEX: (
@@ -315,12 +324,10 @@ class OcientEngineSpec(BaseEngineSpec):
     ) -> list[tuple[Any, ...]]:
         try:
             rows: list[tuple[Any, ...]] = super().fetch_data(cursor, limit)
-        except Exception as exception:
+        except Exception:
             with OcientEngineSpec.query_id_mapping_lock:
-                del OcientEngineSpec.query_id_mapping[
-                    getattr(cursor, "superset_query_id")
-                ]
-            raise exception
+                del OcientEngineSpec.query_id_mapping[cursor.superset_query_id]
+            raise
 
         # TODO: Unsure if we need to verify that we are receiving rows:
         if len(rows) > 0 and type(rows[0]).__name__ == "Row":
@@ -350,7 +357,9 @@ class OcientEngineSpec(BaseEngineSpec):
                 rows = [
                     tuple(
                         sanitize_func(val)
-                        for sanitize_func, val in zip(sanitization_functions, row)
+                        for sanitize_func, val in zip(
+                            sanitization_functions, row, strict=False
+                        )
                     )
                     for row in rows
                 ]
@@ -376,7 +385,7 @@ class OcientEngineSpec(BaseEngineSpec):
             OcientEngineSpec.query_id_mapping[query.id] = cursor.query_id
 
         # Add the query id to the cursor
-        setattr(cursor, "superset_query_id", query.id)
+        cursor.superset_query_id = query.id
         return super().handle_cursor(cursor, query)
 
     @classmethod

@@ -51,14 +51,25 @@ test('renders diff viewer when it contains overwriteConfirmMetadata', async () =
 
 test('requests update dashboard api when save button is clicked', async () => {
   const updateDashboardEndpoint = `glob:*/api/v1/dashboard/${overwriteConfirmMetadata.dashboardId}`;
-  fetchMock.put(updateDashboardEndpoint, {
-    id: overwriteConfirmMetadata.dashboardId,
-    last_modified_time: +new Date(),
-    result: overwriteConfirmMetadata.data,
-  });
+  const fetchDatasetsEndpoint = `glob:*/api/v1/dashboard/${overwriteConfirmMetadata.dashboardId}/datasets`;
+
+  // mock fetch datasets
+  fetchMock.get(fetchDatasetsEndpoint, []);
+
+  fetchMock.put(
+    updateDashboardEndpoint,
+    {
+      id: overwriteConfirmMetadata.dashboardId,
+      last_modified_time: +new Date(),
+      result: overwriteConfirmMetadata.data,
+    },
+    { name: updateDashboardEndpoint },
+  );
   const store = mockStore({
-    dashboardLayout: {},
+    dashboardLayout: { present: {} },
     dashboardFilters: {},
+    dashboardInfo: { metadata: {} },
+    charts: {},
   });
   const { findByTestId } = render(
     <OverwriteConfirmModal
@@ -70,15 +81,15 @@ test('requests update dashboard api when save button is clicked', async () => {
     },
   );
   const saveButton = await findByTestId('overwrite-confirm-save-button');
-  expect(fetchMock.calls(updateDashboardEndpoint)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(updateDashboardEndpoint)).toHaveLength(0);
   fireEvent.click(saveButton);
-  expect(fetchMock.calls(updateDashboardEndpoint)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(updateDashboardEndpoint)).toHaveLength(0);
   mockAllIsIntersecting(true);
   fireEvent.click(saveButton);
   await waitFor(() =>
-    expect(fetchMock.calls(updateDashboardEndpoint)?.[0]?.[1]?.body).toEqual(
-      JSON.stringify(overwriteConfirmMetadata.data),
-    ),
+    expect(
+      fetchMock.callHistory.calls(updateDashboardEndpoint)?.[0]?.options?.body,
+    ).toEqual(JSON.stringify(overwriteConfirmMetadata.data)),
   );
   await waitFor(() =>
     expect(store.getActions()).toContainEqual({

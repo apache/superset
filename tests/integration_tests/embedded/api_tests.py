@@ -44,6 +44,7 @@ class TestEmbeddedDashboardApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
         self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
+        db.session.flush()
         uri = f"api/v1/{self.resource_name}/{self.embedded.uuid}"
         response = self.client.get(uri)
         self.assert200(response)

@@ -99,7 +99,7 @@ def timedelta_to_string(obj):
 
 def format_seconds(value):
     periods = [("minute", 60), ("hour", 3600), ("day", 86400), ("week", 604800)]
-    for period, multiple in periods:
+    for period, multiple in periods:  # noqa: B007
         if value % multiple == 0:
             value //= multiple
             break
@@ -118,13 +118,13 @@ def compute_time_compare(granularity, periods):
 
     try:
         obj = isodate.parse_duration(granularity) * periods
-    except isodate.isoerror.ISO8601Error:
+    except isodate.isoerror.ISO8601Error as ex:
         # if parse_human_timedelta can parse it, return it directly
         delta = f"{periods} {granularity}{'s' if periods > 1 else ''}"
         obj = parse_human_timedelta(delta)
         if obj:
             return delta
-        raise Exception(f"Unable to parse: {granularity}")
+        raise Exception(f"Unable to parse: {granularity}") from ex
 
     if isinstance(obj, isodate.duration.Duration):
         return isodate_duration_to_string(obj)

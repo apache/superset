@@ -17,20 +17,22 @@
 
 import pytest
 from marshmallow import ValidationError
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 
 from superset.reports.schemas import ReportSchedulePostSchema
 
 
-def test_report_post_schema_custom_width_validation(mocker: MockFixture) -> None:
+def test_report_post_schema_custom_width_validation(mocker: MockerFixture) -> None:
     """
     Test the custom width validation.
     """
-    current_app = mocker.patch("superset.reports.schemas.current_app")
-    current_app.config = {
-        "ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH": 100,
-        "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": 200,
-    }
+    mocker.patch(
+        "flask.current_app.config",
+        {
+            "ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH": 100,
+            "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": 200,
+        },
+    )
 
     schema = ReportSchedulePostSchema()
 

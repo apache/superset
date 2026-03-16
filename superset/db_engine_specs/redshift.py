@@ -25,12 +25,13 @@ import pandas as pd
 from flask_babel import gettext as __
 from sqlalchemy.types import NVARCHAR
 
-from superset.db_engine_specs.base import BasicParametersMixin
+from superset.db_engine_specs.base import BasicParametersMixin, DatabaseCategory
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import SupersetErrorType
 from superset.models.core import Database
 from superset.models.sql_lab import Query
-from superset.sql_parse import Table
+from superset.sql.parse import Table
+from superset.utils import json
 
 logger = logging.getLogger()
 
@@ -69,6 +70,86 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
 
     encryption_parameters = {"sslmode": "verify-ca"}
 
+    metadata = {
+        "description": "Amazon Redshift is a fully managed data warehouse service.",
+        "logo": "redshift.png",
+        "homepage_url": "https://aws.amazon.com/redshift/",
+        "categories": [
+            DatabaseCategory.CLOUD_AWS,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["sqlalchemy-redshift"],
+        "connection_string": "redshift+psycopg2://{username}:{password}@{host}:5439/{database}",
+        "default_port": 5439,
+        "parameters": {
+            "username": "Database username",
+            "password": "Database password",
+            "host": "AWS Endpoint",
+            "port": "Default 5439",
+            "database": "Database name",
+        },
+        "drivers": [
+            {
+                "name": "psycopg2",
+                "pypi_package": "psycopg2",
+                "connection_string": (
+                    "redshift+psycopg2://{username}:{password}@{host}:5439/{database}"
+                ),
+                "is_recommended": True,
+            },
+            {
+                "name": "redshift_connector",
+                "pypi_package": "redshift_connector",
+                "connection_string": (
+                    "redshift+redshift_connector://{username}:{password}"
+                    "@{host}:5439/{database}"
+                ),
+                "is_recommended": False,
+                "notes": "Supports IAM-based credentials for clusters and serverless.",
+            },
+        ],
+        "authentication_methods": [
+            {
+                "name": "IAM Credentials (Cluster)",
+                "description": (
+                    "Use IAM-based temporary database credentials for Redshift clusters"
+                ),
+                "requirements": (
+                    "IAM role must have redshift:GetClusterCredentials permission"
+                ),
+                "connection_string": "redshift+redshift_connector://",
+                "engine_parameters": {
+                    "connect_args": {
+                        "iam": True,
+                        "database": "<database>",
+                        "cluster_identifier": "<cluster_identifier>",
+                        "db_user": "<db_user>",
+                    }
+                },
+            },
+            {
+                "name": "IAM Credentials (Serverless)",
+                "description": "Use IAM-based credentials for Redshift Serverless",
+                "requirements": (
+                    "IAM role must have redshift-serverless:GetCredentials "
+                    "and redshift-serverless:GetWorkgroup permissions"
+                ),
+                "connection_string": "redshift+redshift_connector://",
+                "engine_parameters": {
+                    "connect_args": {
+                        "iam": True,
+                        "is_serverless": True,
+                        "serverless_acct_id": "<aws account number>",
+                        "serverless_work_group": "<redshift work group>",
+                        "database": "<database>",
+                        "user": "IAMR:<superset iam role name>",
+                    }
+                },
+            },
+        ],
+    }
+
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         CONNECTION_ACCESS_DENIED_REGEX: (
             __('Either the username "%(username)s" or the password is incorrect.'),
@@ -104,6 +185,65 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     }
 
     @classmethod
+    def normalize_table_name_for_upload(
+        cls,
+        table_name: str,
+        schema_name: str | None = None,
+    ) -> tuple[str, str | None]:
+        """
+        Redshift folds unquoted identifiers to lowercase.
+
+        :param table_name: The table name to normalize
+        :param schema_name: The schema name to normalize (optional)
+        :return: Tuple of (normalized_table_name, normalized_schema_name)
+        """
+        return (
+            table_name.lower(),
+            schema_name.lower() if schema_name else None,
+        )
+
+    # Sensitive fields that should be masked in encrypted_extra.
+    # This follows the pattern used by other engine specs (bigquery, snowflake, etc.)
+    # that specify exact paths rather than using the base class's catch-all "$.*".
+    encrypted_extra_sensitive_fields = {
+        "$.aws_iam.external_id": "AWS IAM External ID",
+        "$.aws_iam.role_arn": "AWS IAM Role ARN",
+    }
+
+    @staticmethod
+    def update_params_from_encrypted_extra(
+        database: Database,
+        params: dict[str, Any],
+    ) -> None:
+        """
+        Extract sensitive parameters from encrypted_extra.
+
+        Handles AWS IAM authentication for Redshift Serverless if configured,
+        then merges any remaining encrypted_extra keys into params.
+        """
+        if not database.encrypted_extra:
+            return
+
+        try:
+            encrypted_extra = json.loads(database.encrypted_extra)
+        except json.JSONDecodeError as ex:
+            logger.error(ex, exc_info=True)
+            raise
+
+        # Handle AWS IAM auth: pop the key so it doesn't reach create_engine()
+        iam_config = encrypted_extra.pop("aws_iam", None)
+        if iam_config and iam_config.get("enabled"):
+            from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin
+
+            AWSIAMAuthMixin._apply_redshift_iam_authentication(
+                database, params, iam_config
+            )
+
+        # Standard behavior: merge remaining keys into params
+        if encrypted_extra:
+            params.update(encrypted_extra)
+
+    @classmethod
     def df_to_sql(
         cls,
         database: Database,
@@ -131,7 +271,7 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
             # uses the max size for redshift nvarchar(65335)
             # the default object and string types create a varchar(256)
             col_name: NVARCHAR(length=65535)
-            for col_name, type in zip(df.columns, df.dtypes)
+            for col_name, type in zip(df.columns, df.dtypes, strict=False)
             if isinstance(type, pd.StringDtype)
         }
 
@@ -176,7 +316,7 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         try:
             logger.info("Killing Redshift PID:%s", str(cancel_query_id))
             cursor.execute(
-                "SELECT pg_cancel_backend(procpid) "
+                "SELECT pg_cancel_backend(procpid) "  # noqa: S608
                 "FROM pg_stat_activity "
                 f"WHERE procpid='{cancel_query_id}'"
             )

@@ -15,8 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from functools import partial
 from typing import Optional
 
+from flask import current_app
 from flask_appbuilder.models.sqla import Model
 
 from superset import security_manager
@@ -28,7 +30,9 @@ from superset.commands.dataset.exceptions import (
 )
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dataset import DatasetDAO
+from superset.datasets.datetime_format_detector import DatetimeFormatDetector
 from superset.exceptions import SupersetSecurityException
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -38,16 +42,28 @@ class RefreshDatasetCommand(BaseCommand):
         self._model_id = model_id
         self._model: Optional[SqlaTable] = None
 
+    @transaction(on_error=partial(on_error, reraise=DatasetRefreshFailedError))
     def run(self) -> Model:
         self.validate()
-        if self._model:
+        assert self._model
+        self._model.fetch_metadata()
+
+        # Detect datetime formats if feature is enabled
+        if current_app.config.get("DATASET_AUTO_DETECT_DATETIME_FORMATS", True):
             try:
-                self._model.fetch_metadata()
-                return self._model
+                detector = DatetimeFormatDetector()
+                detector.detect_all_formats(self._model)
+                logger.info(
+                    "Detected datetime formats for dataset %s", self._model.table_name
+                )
             except Exception as ex:
-                logger.exception(ex)
-                raise DatasetRefreshFailedError() from ex
-        raise DatasetRefreshFailedError()
+                logger.exception(
+                    "Failed to detect datetime formats for dataset %s: %s",
+                    self._model.table_name,
+                    str(ex),
+                )
+
+        return self._model
 
     def validate(self) -> None:
         # Validate/populate model exists

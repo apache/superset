@@ -19,6 +19,7 @@ from datetime import date, datetime, timedelta
 from typing import Optional
 from unittest.mock import Mock, patch
 
+import freezegun
 import pytest
 from dateutil.relativedelta import relativedelta
 
@@ -38,7 +39,7 @@ from superset.utils.date_parser import (
 from tests.unit_tests.conftest import with_feature_flags
 
 
-def mock_parse_human_datetime(s: str) -> Optional[datetime]:
+def mock_parse_human_datetime(s: str) -> Optional[datetime]:  # noqa: C901
     if s == "now":
         return datetime(2016, 11, 7, 9, 30, 10)
     elif s == "2018":
@@ -90,6 +91,46 @@ def test_get_since_until() -> None:
 
     result = get_since_until("yesterday : tomorrow")
     expected = datetime(2016, 11, 6), datetime(2016, 11, 8)
+    assert result == expected
+
+    result = get_since_until(" : now")
+    expected = None, datetime(2016, 11, 7, 9, 30, 10)
+    assert result == expected
+
+    result = get_since_until(" : last 2 minutes")
+    expected = None, datetime(2016, 11, 7, 9, 28, 10)
+    assert result == expected
+
+    result = get_since_until(" : prior 2 minutes")
+    expected = None, datetime(2016, 11, 7, 9, 28, 10)
+    assert result == expected
+
+    result = get_since_until(" : next 2 minutes")
+    expected = None, datetime(2016, 11, 7, 9, 32, 10)
+    assert result == expected
+
+    result = get_since_until("start of this month : ")
+    expected = datetime(2016, 11, 1), None
+    assert result == expected
+
+    result = get_since_until("start of next month : ")
+    expected = datetime(2016, 12, 1), None
+    assert result == expected
+
+    result = get_since_until("end of this month : ")
+    expected = datetime(2016, 11, 30), None
+    assert result == expected
+
+    result = get_since_until("end of next month : ")
+    expected = datetime(2016, 12, 31), None
+    assert result == expected
+
+    result = get_since_until("beginning of next year : ")
+    expected = datetime(2017, 1, 1), None
+    assert result == expected
+
+    result = get_since_until("beginning of last year : ")
+    expected = datetime(2015, 1, 1), None
     assert result == expected
 
     result = get_since_until("2018-01-01T00:00:00 : 2018-12-31T23:59:59")
@@ -230,7 +271,16 @@ def test_get_since_until() -> None:
     expected = datetime(1999, 12, 25), datetime(2017, 12, 25)
     assert result == expected
 
-    with pytest.raises(ValueError):
+    # Test time_shift with date range format (contains ' : ')
+    result = get_since_until(
+        time_range="today : tomorrow",
+        time_shift="yesterday : today",
+    )
+    # When time_shift contains ' : ', it should be parsed as a new time range
+    expected = datetime(2016, 11, 6), datetime(2016, 11, 7)
+    assert result == expected
+
+    with pytest.raises(ValueError):  # noqa: PT011
         get_since_until(time_range="tomorrow : yesterday")
 
 
@@ -274,6 +324,33 @@ def test_get_since_until_instant_time_comparison_enabled() -> None:
     )
     expected = datetime(2000, 1, 1), datetime(2018, 1, 1)
     assert result == expected
+
+
+def test_previous_calendar_quarter():
+    with freezegun.freeze_time("2023-01-15"):
+        result = get_since_until("previous calendar quarter")
+        expected = (datetime(2022, 10, 1), datetime(2023, 1, 1))
+        assert result == expected
+
+    with freezegun.freeze_time("2023, 4, 15"):
+        result = get_since_until("previous calendar quarter")
+        expected = (datetime(2023, 1, 1), datetime(2023, 4, 1))
+        assert result == expected
+
+    with freezegun.freeze_time("2023, 8, 15"):
+        result = get_since_until("previous calendar quarter")
+        expected = (datetime(2023, 4, 1), datetime(2023, 7, 1))
+        assert result == expected
+
+    with freezegun.freeze_time("2023, 10, 15"):
+        result = get_since_until("previous calendar quarter")
+        expected = (datetime(2023, 7, 1), datetime(2023, 10, 1))
+        assert result == expected
+
+    with freezegun.freeze_time("2024, 1, 1"):
+        result = get_since_until("previous calendar quarter")
+        expected = (datetime(2023, 10, 1), datetime(2024, 1, 1))
+        assert result == expected
 
 
 @patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
@@ -379,11 +456,22 @@ def test_datetime_eval() -> None:
     expected = datetime(2018, 9, 3, 0, 0, 0)
     assert result == expected
 
-    result = datetime_eval(
-        "holiday('Eid al-Fitr', datetime('2000-01-01T00:00:00'), 'SA')"
-    )
-    expected = datetime(2000, 1, 8, 0, 0, 0)
-    assert result == expected
+    # Saudi Arabia holidays - try both English and Arabic names as the default
+    # language varies by environment (ar in some envs, en_US in CI)
+    sa_holiday_test_passed = False
+    for holiday_name in ["Eid al-Fitr", "عطلة عيد الفطر"]:
+        try:
+            result = datetime_eval(
+                f"holiday('{holiday_name}', datetime('2000-01-01T00:00:00'), 'SA')"
+            )
+            expected = datetime(2000, 1, 8, 0, 0, 0)
+            assert result == expected
+            sa_holiday_test_passed = True
+            break
+        except ValueError:
+            continue
+
+    assert sa_holiday_test_passed
 
     result = datetime_eval(
         "holiday('Boxing day', datetime('2018-01-01T00:00:00'), 'UK')"
@@ -420,12 +508,12 @@ def test_datetime_eval() -> None:
     assert result == -9
 
     result = datetime_eval(
-        "datediff(datetime('2018-01-01T00:00:00'), datetime('2018-01-10T00:00:00'), day)"  # pylint: disable=line-too-long,useless-suppression
+        "datediff(datetime('2018-01-01T00:00:00'), datetime('2018-01-10T00:00:00'), day)"  # pylint: disable=line-too-long,useless-suppression  # noqa: E501
     )
     assert result == 9
 
     result = datetime_eval(
-        "datediff(datetime('2018-01-01T00:00:00'), datetime('2018-01-10T00:00:00'), year)"  # pylint: disable=line-too-long,useless-suppression
+        "datediff(datetime('2018-01-01T00:00:00'), datetime('2018-01-10T00:00:00'), year)"  # pylint: disable=line-too-long,useless-suppression  # noqa: E501
     )
     assert result == 0
 
@@ -523,3 +611,114 @@ def test_date_range_migration() -> None:
 
     field = "10 years ago"
     assert not re.search(DateRangeMigration.x_dateunit, field)
+
+
+@patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
+def test_first_of_with_explicit_scope() -> None:
+    """Test 'first of [scope] [unit]' expressions that return a single date."""
+    result = get_since_until("first of this month : ")
+    assert result == (datetime(2016, 11, 1), None)
+
+    result = get_since_until("first of last month : ")
+    assert result == (datetime(2016, 10, 1), None)
+
+    result = get_since_until("first of next month : ")
+    assert result == (datetime(2016, 12, 1), None)
+
+    result = get_since_until("first of prior month : ")
+    assert result == (datetime(2016, 10, 1), None)
+
+    result = get_since_until("first day of this year : ")
+    assert result == (datetime(2016, 1, 1), None)
+
+    result = get_since_until("first day of last year : ")
+    assert result == (datetime(2015, 1, 1), None)
+
+    result = get_since_until("first day of this week : ")
+    assert result == (datetime(2016, 11, 7), None)
+
+
+@patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
+def test_first_of_with_default_scope() -> None:
+    """Test 'first of the [unit]' expressions that default to 'this'."""
+    result = get_since_until("first of the month : ")
+    assert result == (datetime(2016, 11, 1), None)
+
+    result = get_since_until("first of the year : ")
+    assert result == (datetime(2016, 1, 1), None)
+
+    result = get_since_until("first day of the month : ")
+    assert result == (datetime(2016, 11, 1), None)
+
+    result = get_since_until("first day of the week : ")
+    assert result == (datetime(2016, 11, 7), None)
+
+
+@patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
+def test_first_subunit_of_with_explicit_scope() -> None:
+    """Test 'first [subunit] of [scope] [unit]' expressions that return a range."""
+    result = get_since_until("first week of this year")
+    assert result == (datetime(2016, 1, 1), datetime(2016, 1, 8))
+
+    result = get_since_until("first month of this quarter")
+    assert result == (datetime(2016, 10, 1), datetime(2016, 11, 1))
+
+    result = get_since_until("first week of last month")
+    assert result == (datetime(2016, 10, 1), datetime(2016, 10, 8))
+
+
+@patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
+def test_first_subunit_of_with_default_scope() -> None:
+    """Test 'first [subunit] of the [unit]' expressions that default to 'this'."""
+    result = get_since_until("first week of the year")
+    assert result == (datetime(2016, 1, 1), datetime(2016, 1, 8))
+
+    result = get_since_until("first month of the quarter")
+    assert result == (datetime(2016, 10, 1), datetime(2016, 11, 1))
+
+
+# Tests for bounded whitespace regex patterns in time_range_lookup
+@pytest.mark.parametrize(
+    "time_range",
+    [
+        "last 7 days : ",
+        "this week : ",
+        "start of next month : ",
+        "prior quarter : ",
+        "last  7 days : ",
+        "last   7 days : ",
+        "last    7 days : ",
+        "last     7 days : ",
+        "start of     next     month : ",  # 5 spaces - valid
+        "last week : ",
+        "last  week : ",
+        "last     week : ",
+        "next 12 months : ",
+        "next  12  months : ",
+        "next     12     months : ",
+        "last 7days : ",  # \s{0,5} allows 0 spaces after number - valid
+    ],
+)
+@patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
+def test_time_range_bounded_whitespace_regex_valid(time_range: str) -> None:
+    """Match expressions with 1-5 spaces between tokens."""
+    result = get_since_until(time_range)
+    assert result[0] is not None, f"Expected '{time_range}' to parse successfully"
+
+
+@pytest.mark.parametrize(
+    "time_range",
+    [
+        "last      7 days : ",
+        "last7days : ",
+        "lastweek : ",
+        "last : ",
+        "start of : ",
+        "last 7 days extra : ",
+    ],
+)
+@patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
+def test_time_range_bounded_whitespace_regex_invalid(time_range: str) -> None:
+    """Reject expressions with 0 or 6+ spaces (fall back to DATETIME wrapping)."""
+    result = get_since_until(time_range)
+    assert result[0] is None, f"Expected '{time_range}' to NOT match bounded regex"

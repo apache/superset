@@ -16,16 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled, isDefined, QueryData, t } from '@superset-ui/core';
+import { isDefined, QueryData } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { SingleQueryResultPane } from 'src/explore/components/DataTablesPane/components/SingleQueryResultPane';
-import Tabs from 'src/components/Tabs';
+import Tabs from '@superset-ui/core/components/Tabs';
 
 const DATA_SIZE = 15;
 
 const PaginationContainer = styled.div`
   ${({ theme }) => css`
     & .pagination-container {
-      bottom: ${-theme.gridUnit * 4}px;
+      bottom: ${-theme.sizeUnit * 4}px;
     }
   `}
 `;
@@ -33,6 +35,7 @@ const PaginationContainer = styled.div`
 export const useResultsTableView = (
   chartDataResult: QueryData[] | undefined,
   datasourceId: string,
+  canDownload: boolean,
 ) => {
   if (!isDefined(chartDataResult)) {
     return <div />;
@@ -48,14 +51,19 @@ export const useResultsTableView = (
           dataSize={DATA_SIZE}
           datasourceId={datasourceId}
           isVisible
+          canDownload={canDownload}
+          isPaginationSticky={false}
         />
       </PaginationContainer>
     );
   }
   return (
-    <Tabs fullWidth={false} data-test="drill-by-results-tabs">
-      {chartDataResult.map((res, index) => (
-        <Tabs.TabPane tab={t('Results %s', index + 1)} key={index}>
+    <Tabs
+      defaultActiveKey="result-tab-0"
+      items={chartDataResult.map((res, index) => ({
+        key: `result-tab-${index}`,
+        label: t('Results %s', index + 1),
+        children: (
           <PaginationContainer>
             <SingleQueryResultPane
               colnames={res.colnames}
@@ -65,10 +73,12 @@ export const useResultsTableView = (
               dataSize={DATA_SIZE}
               datasourceId={datasourceId}
               isVisible
+              canDownload={canDownload}
+              isPaginationSticky={false}
             />
           </PaginationContainer>
-        </Tabs.TabPane>
-      ))}
-    </Tabs>
+        ),
+      }))}
+    />
   );
 };

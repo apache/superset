@@ -16,24 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { styled, css } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import { useMemo } from 'react';
 import { zip } from 'lodash';
-import { css, GenericDataType, styled } from '@superset-ui/core';
 import {
   CopyToClipboardButton,
   FilterInput,
 } from 'src/explore/components/DataTableControl';
 import { applyFormattingToTabularData } from 'src/utils/common';
 import { getTimeColumns } from 'src/explore/components/DataTableControl/utils';
-import RowCountLabel from 'src/explore/components/RowCountLabel';
+import RowCountLabel from 'src/components/RowCountLabel';
 import { TableControlsProps } from '../types';
 
 export const TableControlsWrapper = styled.div`
   ${({ theme }) => `
     display: flex;
     align-items: center;
+    padding-bottom: ${theme.sizeUnit * 2}px;
     justify-content: space-between;
-    margin-bottom: ${theme.gridUnit * 2}px;
 
     span {
       flex-shrink: 0;
@@ -49,6 +50,7 @@ export const TableControls = ({
   columnTypes,
   rowcount,
   isLoading,
+  canDownload,
 }: TableControlsProps) => {
   const originalTimeColumns = getTimeColumns(datasourceId);
   const formattedTimeColumns = zip<string, GenericDataType>(
@@ -61,7 +63,8 @@ export const TableControls = ({
         name &&
         !originalTimeColumns.includes(name),
     )
-    .map(([colname]) => colname);
+    .map(([colname]) => colname)
+    .filter((x): x is string => x !== undefined);
   const formattedData = useMemo(
     () => applyFormattingToTabularData(data, formattedTimeColumns),
     [data, formattedTimeColumns],
@@ -76,7 +79,9 @@ export const TableControls = ({
         `}
       >
         <RowCountLabel rowcount={rowcount} loading={isLoading} />
-        <CopyToClipboardButton data={formattedData} columns={columnNames} />
+        {canDownload && (
+          <CopyToClipboardButton data={formattedData} columns={columnNames} />
+        )}
       </div>
     </TableControlsWrapper>
   );

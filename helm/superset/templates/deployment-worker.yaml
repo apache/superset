@@ -27,6 +27,9 @@ metadata:
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    {{- if .Values.extraLabels }}
+      {{- toYaml .Values.extraLabels | nindent 4 }}
+    {{- end }}
     {{- if .Values.supersetWorker.deploymentLabels }}
       {{- toYaml .Values.supersetWorker.deploymentLabels | nindent 4 }}
     {{- end }}
@@ -64,6 +67,9 @@ spec:
       labels:
         app: {{ template "superset.name" . }}-worker
         release: {{ .Release.Name }}
+        {{- if .Values.extraLabels }}
+          {{- toYaml .Values.extraLabels | nindent 8 }}
+        {{- end }}
         {{- if .Values.supersetWorker.podLabels }}
           {{- toYaml .Values.supersetWorker.podLabels | nindent 8 }}
         {{- end }}

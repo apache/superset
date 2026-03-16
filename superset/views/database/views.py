@@ -16,53 +16,16 @@
 # under the License.
 from typing import TYPE_CHECKING
 
+from flask import current_app as app
 from flask_appbuilder import expose
-from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
-from flask_babel import lazy_gettext as _
-from wtforms.fields import StringField
-from wtforms.validators import ValidationError
 
-import superset.models.core as models
-from superset import app
-from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.exceptions import CertificateException
+from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP
 from superset.superset_typing import FlaskResponse
-from superset.utils import core as utils
-from superset.views.base import (
-    DeleteMixin,
-    DeprecateModelViewMixin,
-    SupersetModelView,
-    YamlExportMixin,
-)
-
-from .mixins import DatabaseMixin
-from .validators import sqlalchemy_uri_validator
+from superset.views.base import BaseSupersetView
 
 if TYPE_CHECKING:
     from werkzeug.datastructures import FileStorage
-
-config = app.config
-stats_logger = config["STATS_LOGGER"]
-
-
-def sqlalchemy_uri_form_validator(_: _, field: StringField) -> None:
-    """
-    Check if user has submitted a valid SQLAlchemy URI
-    """
-
-    sqlalchemy_uri_validator(field.data, exception=ValidationError)
-
-
-def certificate_form_validator(_: _, field: StringField) -> None:
-    """
-    Check if user has submitted a valid SSL certificate
-    """
-    if field.data:
-        try:
-            utils.parse_ssl_cert(field.data)
-        except CertificateException as ex:
-            raise ValidationError(ex.message) from ex
 
 
 def upload_stream_write(form_file_field: "FileStorage", path: str) -> None:
@@ -75,28 +38,9 @@ def upload_stream_write(form_file_field: "FileStorage", path: str) -> None:
             file_description.write(chunk)
 
 
-class DatabaseView(
-    DeprecateModelViewMixin,
-    DatabaseMixin,
-    SupersetModelView,
-    DeleteMixin,
-    YamlExportMixin,
-):  # pylint: disable=too-many-ancestors
-    datamodel = SQLAInterface(models.Database)
-
+class DatabaseView(BaseSupersetView):
     class_permission_name = "Database"
     method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
-
-    include_route_methods = RouteMethod.CRUD_SET
-
-    add_template = "superset/models/database/add.html"
-    edit_template = "superset/models/database/edit.html"
-    validators_columns = {
-        "sqlalchemy_uri": [sqlalchemy_uri_form_validator],
-        "server_cert": [certificate_form_validator],
-    }
-
-    yaml_dict_key = "databases"
 
     @expose("/list/")
     @has_access

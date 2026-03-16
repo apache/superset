@@ -17,20 +17,26 @@
  * under the License.
  */
 
-import { useRef, useEffect, FC } from 'react';
+import { useRef, useEffect, FC, useMemo } from 'react';
 
 import { useDispatch, useSelector } from 'react-redux';
-import { logging } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import {
   SqlLabRootState,
   QueryEditor,
   UnsavedQueryEditor,
 } from 'src/SqlLab/types';
-import { useUpdateSqlEditorTabMutation } from 'src/hooks/apiResources/sqlEditorTabs';
+import {
+  useUpdateCurrentSqlEditorTabMutation,
+  useUpdateSqlEditorTabMutation,
+  useDeleteSqlEditorTabMutation,
+} from 'src/hooks/apiResources/sqlEditorTabs';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
 import {
   syncQueryEditor,
   setEditorTabLastUpdate,
+  setLastUpdatedActiveTab,
+  clearDestoryedQueryEditor,
 } from 'src/SqlLab/actions/sqlLab';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 
@@ -63,6 +69,17 @@ const EditorAutoSync: FC = () => {
   const queryEditors = useSelector<SqlLabRootState, QueryEditor[]>(
     state => state.sqlLab.queryEditors,
   );
+  const queryEditorsById = useMemo(
+    () =>
+      queryEditors.reduce(
+        (acc, queryEditor) => {
+          acc[queryEditor.id] = queryEditor;
+          return acc;
+        },
+        {} as Record<string, QueryEditor>,
+      ),
+    [queryEditors],
+  );
   const unsavedQueryEditor = useSelector<SqlLabRootState, UnsavedQueryEditor>(
     state => state.sqlLab.unsavedQueryEditor,
   );
@@ -71,7 +88,20 @@ const EditorAutoSync: FC = () => {
   );
   const dispatch = useDispatch();
   const lastSavedTimestampRef = useRef<number>(editorTabLastUpdatedAt);
+
+  const currentQueryEditorId = useSelector<SqlLabRootState, string>(
+    ({ sqlLab }) => sqlLab.tabHistory.slice(-1)[0] || '',
+  );
+  const lastUpdatedActiveTab = useSelector<SqlLabRootState, string>(
+    ({ sqlLab }) => sqlLab.lastUpdatedActiveTab,
+  );
+  const destroyedQueryEditors = useSelector<
+    SqlLabRootState,
+    Record<string, number>
+  >(({ sqlLab }) => sqlLab.destroyedQueryEditors);
   const [updateSqlEditor, { error }] = useUpdateSqlEditorTabMutation();
+  const [updateCurrentSqlEditor] = useUpdateCurrentSqlEditorTabMutation();
+  const [deleteSqlEditor] = useDeleteSqlEditorTabMutation();
 
   const debouncedUnsavedQueryEditor = useDebounceValue(
     unsavedQueryEditor,
@@ -94,21 +124,63 @@ const EditorAutoSync: FC = () => {
     ).find(({ inLocalStorage }) => Boolean(inLocalStorage)),
   );
 
+  const syncCurrentQueryEditor = useEffectEvent(() => {
+    if (
+      currentQueryEditorId &&
+      currentQueryEditorId !== lastUpdatedActiveTab &&
+      !queryEditors.find(({ id }) => id === currentQueryEditorId)
+        ?.inLocalStorage
+    ) {
+      const queryEditorId =
+        queryEditorsById[currentQueryEditorId]?.tabViewId ??
+        currentQueryEditorId;
+      updateCurrentSqlEditor(queryEditorId).then(() => {
+        dispatch(setLastUpdatedActiveTab(currentQueryEditorId));
+      });
+    }
+  });
+
+  const syncDeletedQueryEditor = useEffectEvent(() => {
+    if (Object.keys(destroyedQueryEditors).length > 0) {
+      Object.keys(destroyedQueryEditors).forEach(id => {
+        const queryEditorId = queryEditorsById[id]?.tabViewId ?? id;
+        deleteSqlEditor(queryEditorId)
+          .then(() => {
+            dispatch(clearDestoryedQueryEditor(id));
+          })
+          .catch(({ status }) => {
+            if (status === 404) {
+              dispatch(clearDestoryedQueryEditor(id));
+            }
+          });
+      });
+    }
+  });
+
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let saveTimer: NodeJS.Timeout;
     function saveUnsavedQueryEditor() {
       const firstUnsavedQueryEditor = getUnsavedNewQueryEditor();
 
       if (firstUnsavedQueryEditor) {
         dispatch(syncQueryEditor(firstUnsavedQueryEditor));
       }
-      timer = setTimeout(saveUnsavedQueryEditor, INTERVAL);
+      saveTimer = setTimeout(saveUnsavedQueryEditor, INTERVAL);
     }
-    timer = setTimeout(saveUnsavedQueryEditor, INTERVAL);
+    const syncTimer = setInterval(syncCurrentQueryEditor, INTERVAL);
+    saveTimer = setTimeout(saveUnsavedQueryEditor, INTERVAL);
+    const clearQueryEditorTimer = setInterval(syncDeletedQueryEditor, INTERVAL);
     return () => {
-      clearTimeout(timer);
+      clearTimeout(saveTimer);
+      clearInterval(syncTimer);
+      clearInterval(clearQueryEditorTimer);
     };
-  }, [getUnsavedNewQueryEditor, dispatch]);
+  }, [
+    getUnsavedNewQueryEditor,
+    syncCurrentQueryEditor,
+    syncDeletedQueryEditor,
+    dispatch,
+  ]);
 
   useEffect(() => {
     const unsaved = getUnsavedItems(debouncedUnsavedQueryEditor);

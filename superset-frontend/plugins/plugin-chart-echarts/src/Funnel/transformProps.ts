@@ -26,14 +26,16 @@ import {
   NumberFormats,
   tooltipHtml,
   ValueFormatter,
+  VizType,
 } from '@superset-ui/core';
-import { CallbackDataParams } from 'echarts/types/src/util/types';
-import { EChartsCoreOption, FunnelSeriesOption } from 'echarts';
+import type { CallbackDataParams } from 'echarts/types/src/util/types';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { FunnelSeriesOption } from 'echarts/charts';
 import {
   DEFAULT_FORM_DATA as DEFAULT_FUNNEL_FORM_DATA,
   EchartsFunnelChartProps,
   EchartsFunnelFormData,
-  EchartsFunnelLabelTypeType,
+  EchartsFunnelLabelType,
   FunnelChartTransformedProps,
   PercentCalcType,
 } from './types';
@@ -97,6 +99,7 @@ export default function transformProps(
     datasource,
   } = chartProps;
   const data: DataRecord[] = queriesData[0].data || [];
+  const detectedCurrency = queriesData[0]?.detected_currency;
   const coltypeMapping = getColtypesMapping(queriesData[0]);
   const {
     colorScheme,
@@ -110,6 +113,7 @@ export default function transformProps(
     legendMargin,
     legendOrientation,
     legendType,
+    legendSort,
     metric = '',
     numberFormat,
     currencyFormat,
@@ -124,7 +128,11 @@ export default function transformProps(
     ...DEFAULT_FUNNEL_FORM_DATA,
     ...formData,
   };
-  const { currencyFormats = {}, columnFormats = {} } = datasource;
+  const {
+    currencyFormats = {},
+    columnFormats = {},
+    currencyCodeColumn,
+  } = datasource;
   const refs: Refs = {};
   const metricLabel = getMetricLabel(metric);
   const groupbyLabels = groupby.map(getColumnLabel);
@@ -144,7 +152,6 @@ export default function transformProps(
   }, {});
 
   const { setDataMask = () => {}, onContextMenu } = hooks;
-
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getValueFormatter(
     metric,
@@ -152,6 +159,10 @@ export default function transformProps(
     columnFormats,
     numberFormat,
     currencyFormat,
+    undefined,
+    data,
+    currencyCodeColumn,
+    detectedCurrency,
   );
 
   const transformedData: {
@@ -204,19 +215,19 @@ export default function transformProps(
       percentCalculationType,
     });
     switch (labelType) {
-      case EchartsFunnelLabelTypeType.Key:
+      case EchartsFunnelLabelType.Key:
         return name;
-      case EchartsFunnelLabelTypeType.Value:
+      case EchartsFunnelLabelType.Value:
         return formattedValue;
-      case EchartsFunnelLabelTypeType.Percent:
+      case EchartsFunnelLabelType.Percent:
         return formattedPercent;
-      case EchartsFunnelLabelTypeType.KeyValue:
+      case EchartsFunnelLabelType.KeyValue:
         return `${name}: ${formattedValue}`;
-      case EchartsFunnelLabelTypeType.KeyValuePercent:
+      case EchartsFunnelLabelType.KeyValuePercent:
         return `${name}: ${formattedValue} (${formattedPercent})`;
-      case EchartsFunnelLabelTypeType.KeyPercent:
+      case EchartsFunnelLabelType.KeyPercent:
         return `${name}: ${formattedPercent}`;
-      case EchartsFunnelLabelTypeType.ValuePercent:
+      case EchartsFunnelLabelType.ValuePercent:
         return `${formattedValue} (${formattedPercent})`;
       default:
         return name;
@@ -226,12 +237,14 @@ export default function transformProps(
   const defaultLabel = {
     formatter,
     show: showLabels,
-    color: theme.colors.grayscale.dark2,
+    color: theme.colorText,
+    textBorderColor: theme.colorBgBase,
+    textBorderWidth: 1,
   };
 
   const series: FunnelSeriesOption[] = [
     {
-      type: 'funnel',
+      type: VizType.Funnel,
       ...getChartPadding(showLegend, legendOrientation, legendMargin),
       animation: true,
       minSize: '0%',
@@ -244,7 +257,6 @@ export default function transformProps(
       label: {
         ...defaultLabel,
         position: labelLine ? 'outer' : 'inner',
-        textBorderColor: 'transparent',
       },
       emphasis: {
         label: {
@@ -252,7 +264,6 @@ export default function transformProps(
           fontWeight: 'bold',
         },
       },
-      // @ts-ignore
       data: transformedData,
     },
   ];
@@ -272,7 +283,7 @@ export default function transformProps(
           percentCalculationType,
         });
         const row = [];
-        const enumName = EchartsFunnelLabelTypeType[tooltipLabelType];
+        const enumName = EchartsFunnelLabelType[tooltipLabelType];
         const title = enumName.includes('Key') ? name : undefined;
         if (enumName.includes('Value') || enumName.includes('Percent')) {
           row.push(metricLabel);
@@ -288,7 +299,10 @@ export default function transformProps(
     },
     legend: {
       ...getLegendProps(legendType, legendOrientation, showLegend, theme),
-      data: keys,
+      data: keys.sort((a: string, b: string) => {
+        if (!legendSort) return 0;
+        return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+      }),
     },
     series,
   };

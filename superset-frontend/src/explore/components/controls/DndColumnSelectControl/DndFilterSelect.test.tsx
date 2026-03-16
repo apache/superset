@@ -21,19 +21,17 @@ import configureStore from 'redux-mock-store';
 
 import {
   ensureIsArray,
-  GenericDataType,
   QueryFormData,
+  QueryFormMetric,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { ColumnMeta } from '@superset-ui/chart-controls';
-import { TimeseriesDefaultFormData } from '@superset-ui/plugin-chart-echarts';
-
 import {
   fireEvent,
   render,
   screen,
   within,
 } from 'spec/helpers/testing-library';
-import type { AsyncAceEditorProps } from 'src/components/AsyncAceEditor';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { Operators } from 'src/explore/constants';
@@ -47,9 +45,9 @@ import { Datasource } from '../../../types';
 import { DndItemType } from '../../DndItemType';
 import DatasourcePanelDragOption from '../../DatasourcePanel/DatasourcePanelDragOption';
 
-jest.mock('src/components/AsyncAceEditor', () => ({
-  SQLEditor: (props: AsyncAceEditorProps) => (
-    <div data-test="react-ace">{props.value}</div>
+jest.mock('src/core/editors', () => ({
+  EditorHost: ({ value }: { value: string }) => (
+    <div data-test="react-ace">{value}</div>
   ),
 }));
 
@@ -126,7 +124,6 @@ test('renders options with saved metric', async () => {
     setup({
       formData: {
         ...baseFormData,
-        ...TimeseriesDefaultFormData,
         metrics: ['saved_metric'],
       },
     }),
@@ -171,8 +168,7 @@ test('renders options with adhoc metric', async () => {
     setup({
       formData: {
         ...baseFormData,
-        ...TimeseriesDefaultFormData,
-        metrics: [adhocMetric],
+        metrics: [adhocMetric as unknown as QueryFormMetric],
       },
     }),
     {
@@ -201,14 +197,17 @@ test('cannot drop a column that is not part of the simple column selection', () 
         type={DndItemType.Column}
       />
       <DatasourcePanelDragOption
-        value={{ metric_name: 'metric_a', expression: 'AGG(metric_a)' }}
+        value={{
+          metric_name: 'metric_a',
+          expression: 'AGG(metric_a)',
+          uuid: '1',
+        }}
         type={DndItemType.Metric}
       />
       {setup({
         formData: {
           ...baseFormData,
-          ...TimeseriesDefaultFormData,
-          metrics: [adhocMetric],
+          metrics: [adhocMetric as unknown as QueryFormMetric],
         },
         columns: [{ column_name: 'order_date' }],
       })}
@@ -322,6 +321,7 @@ test('onChange is not called when close is clicked and canDelete is string, warn
   expect(await screen.findByText('Test warning')).toBeInTheDocument();
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('when disallow_adhoc_metrics is set', () => {
   test('can drop a column type from the simple column selection', () => {
     const adhocMetric = new AdhocMetric({
@@ -337,8 +337,7 @@ describe('when disallow_adhoc_metrics is set', () => {
         {setup({
           formData: {
             ...baseFormData,
-            ...TimeseriesDefaultFormData,
-            metrics: [adhocMetric],
+            metrics: [adhocMetric as unknown as QueryFormMetric],
           },
           datasource: {
             ...PLACEHOLDER_DATASOURCE,
@@ -376,18 +375,17 @@ describe('when disallow_adhoc_metrics is set', () => {
           type={DndItemType.Column}
         />
         <DatasourcePanelDragOption
-          value={{ metric_name: 'metric_a' }}
+          value={{ metric_name: 'metric_a', uuid: '1' }}
           type={DndItemType.Metric}
         />
         <DatasourcePanelDragOption
-          value={{ metric_name: 'avg__num' }}
+          value={{ metric_name: 'avg__num', uuid: '2' }}
           type={DndItemType.AdhocMetricOption}
         />
         {setup({
           formData: {
             ...baseFormData,
-            ...TimeseriesDefaultFormData,
-            metrics: [adhocMetric],
+            metrics: [adhocMetric as unknown as QueryFormMetric],
           },
           datasource: {
             ...PLACEHOLDER_DATASOURCE,

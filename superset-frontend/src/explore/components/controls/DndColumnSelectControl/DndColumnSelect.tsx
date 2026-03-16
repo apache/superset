@@ -17,13 +17,9 @@
  * under the License.
  */
 import { useCallback, useMemo, useState } from 'react';
-import {
-  AdhocColumn,
-  tn,
-  QueryFormColumn,
-  t,
-  isAdhocColumn,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { AdhocColumn, QueryFormColumn, isAdhocColumn } from '@superset-ui/core';
+import { tn } from '@apache-superset/core/translation';
 import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
@@ -109,6 +105,8 @@ function DndColumnSelect(props: DndColumnSelectProps) {
           isAdhocColumn(column) && column.datasourceWarning
             ? t('This column might be incompatible with current dataset')
             : undefined;
+        const withCaret = isAdhocColumn(column) || !column.error_text;
+
         return (
           <ColumnSelectPopoverTrigger
             key={idx}
@@ -134,7 +132,7 @@ function DndColumnSelect(props: DndColumnSelectProps) {
               canDelete={canDelete}
               column={column}
               datasourceWarningMessage={datasourceWarningMessage}
-              withCaret
+              withCaret={withCaret}
             />
           </ColumnSelectPopoverTrigger>
         );

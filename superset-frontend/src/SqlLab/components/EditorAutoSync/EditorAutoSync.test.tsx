@@ -35,14 +35,14 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { render, waitFor } from 'spec/helpers/testing-library';
+import { render, act } from 'spec/helpers/testing-library';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
-import { logging } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import EditorAutoSync, { INTERVAL } from '.';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+jest.mock('@apache-superset/core/utils', () => ({
+  ...jest.requireActual('@apache-superset/core/utils'),
   logging: {
     warn: jest.fn(),
   },
@@ -58,6 +58,7 @@ const unsavedSqlLabState = {
   },
   editorTabLastUpdatedAt,
 };
+
 beforeAll(() => {
   jest.useFakeTimers();
 });
@@ -66,10 +67,20 @@ afterAll(() => {
   jest.useRealTimers();
 });
 
+const updateActiveEditorTabState = `glob:*/tabstateview/*/activate`;
+
+beforeEach(() => {
+  fetchMock.post(updateActiveEditorTabState, {});
+});
+
+afterEach(() => {
+  fetchMock.clearHistory().removeRoutes();
+});
+
 test('sync the unsaved editor tab state when there are new changes since the last update', async () => {
   const updateEditorTabState = `glob:*/tabstateview/${defaultQueryEditor.id}`;
   fetchMock.put(updateEditorTabState, 200);
-  expect(fetchMock.calls(updateEditorTabState)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(updateEditorTabState)).toHaveLength(0);
   render(<EditorAutoSync />, {
     useRedux: true,
     initialState: {
@@ -77,15 +88,17 @@ test('sync the unsaved editor tab state when there are new changes since the las
       sqlLab: unsavedSqlLabState,
     },
   });
-  await waitFor(() => jest.advanceTimersByTime(INTERVAL));
-  expect(fetchMock.calls(updateEditorTabState)).toHaveLength(1);
-  fetchMock.restore();
+  await act(async () => {
+    jest.advanceTimersByTime(INTERVAL);
+  });
+  expect(fetchMock.callHistory.calls(updateEditorTabState)).toHaveLength(1);
+  fetchMock.clearHistory().removeRoutes();
 });
 
 test('sync the unsaved NEW editor state when there are new in local storage', async () => {
   const createEditorTabState = `glob:*/tabstateview/`;
   fetchMock.post(createEditorTabState, { id: 123 });
-  expect(fetchMock.calls(createEditorTabState)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(createEditorTabState)).toHaveLength(0);
   render(<EditorAutoSync />, {
     useRedux: true,
     initialState: {
@@ -103,15 +116,81 @@ test('sync the unsaved NEW editor state when there are new in local storage', as
       },
     },
   });
-  await waitFor(() => jest.advanceTimersByTime(INTERVAL));
-  expect(fetchMock.calls(createEditorTabState)).toHaveLength(1);
-  fetchMock.restore();
+  await act(async () => {
+    jest.advanceTimersByTime(INTERVAL);
+  });
+  expect(fetchMock.callHistory.calls(createEditorTabState)).toHaveLength(1);
+  fetchMock.clearHistory().removeRoutes();
+});
+
+test('sync the active editor id when there are updates in tab history', async () => {
+  expect(fetchMock.callHistory.calls(updateActiveEditorTabState)).toHaveLength(
+    0,
+  );
+  render(<EditorAutoSync />, {
+    useRedux: true,
+    initialState: {
+      ...initialState,
+      sqlLab: {
+        ...initialState.sqlLab,
+        lastUpdatedActiveTab: 'old-tab-id',
+        queryEditors: [
+          ...initialState.sqlLab.queryEditors,
+          {
+            id: 'rnd-new-id12',
+            name: 'new tab name',
+            inLocalStorage: false,
+          },
+        ],
+        tabHistory: ['old-tab-id', 'rnd-new-id12'],
+      },
+    },
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(INTERVAL);
+  });
+  expect(fetchMock.callHistory.calls(updateActiveEditorTabState)).toHaveLength(
+    1,
+  );
+  await act(async () => {
+    jest.advanceTimersByTime(INTERVAL);
+  });
+  expect(fetchMock.callHistory.calls(updateActiveEditorTabState)).toHaveLength(
+    1,
+  );
+});
+
+test('sync the destroyed editor id when there are updates in destroyed editors', async () => {
+  const removeId = 'removed-tab-id';
+  const deleteEditorState = `glob:*/tabstateview/${removeId}`;
+  fetchMock.delete(deleteEditorState, { id: removeId });
+  expect(fetchMock.callHistory.calls(deleteEditorState)).toHaveLength(0);
+  render(<EditorAutoSync />, {
+    useRedux: true,
+    initialState: {
+      ...initialState,
+      sqlLab: {
+        ...initialState.sqlLab,
+        destroyedQueryEditors: {
+          [removeId]: 123,
+        },
+      },
+    },
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(INTERVAL);
+  });
+  expect(fetchMock.callHistory.calls(deleteEditorState)).toHaveLength(1);
+  await act(async () => {
+    jest.advanceTimersByTime(INTERVAL);
+  });
+  expect(fetchMock.callHistory.calls(deleteEditorState)).toHaveLength(1);
 });
 
 test('skip syncing the unsaved editor tab state when the updates are already synced', async () => {
   const updateEditorTabState = `glob:*/tabstateview/${defaultQueryEditor.id}`;
   fetchMock.put(updateEditorTabState, 200);
-  expect(fetchMock.calls(updateEditorTabState)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(updateEditorTabState)).toHaveLength(0);
   render(<EditorAutoSync />, {
     useRedux: true,
     initialState: {
@@ -127,9 +206,11 @@ test('skip syncing the unsaved editor tab state when the updates are already syn
       },
     },
   });
-  await waitFor(() => jest.advanceTimersByTime(INTERVAL));
-  expect(fetchMock.calls(updateEditorTabState)).toHaveLength(0);
-  fetchMock.restore();
+  await act(async () => {
+    jest.advanceTimersByTime(INTERVAL);
+  });
+  expect(fetchMock.callHistory.calls(updateEditorTabState)).toHaveLength(0);
+  fetchMock.clearHistory().removeRoutes();
 });
 
 test('renders an error toast when the sync failed', async () => {
@@ -137,7 +218,7 @@ test('renders an error toast when the sync failed', async () => {
   fetchMock.put(updateEditorTabState, {
     throws: new Error('errorMessage'),
   });
-  expect(fetchMock.calls(updateEditorTabState)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(updateEditorTabState)).toHaveLength(0);
   render(
     <>
       <EditorAutoSync />
@@ -151,12 +232,14 @@ test('renders an error toast when the sync failed', async () => {
       },
     },
   );
-  await waitFor(() => jest.advanceTimersByTime(INTERVAL));
+  await act(async () => {
+    jest.advanceTimersByTime(INTERVAL);
+  });
 
   expect(logging.warn).toHaveBeenCalledTimes(1);
   expect(logging.warn).toHaveBeenCalledWith(
     'An error occurred while saving your editor state.',
     expect.anything(),
   );
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
 });

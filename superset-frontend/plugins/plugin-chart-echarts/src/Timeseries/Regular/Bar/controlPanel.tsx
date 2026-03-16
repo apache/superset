@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { ensureIsArray, JsonArray } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
@@ -34,10 +35,13 @@ import {
   minorTicks,
   richTooltipSection,
   seriesOrderSection,
-  showValueSection,
+  showValueSectionWithoutStream,
   truncateXAxis,
   xAxisBounds,
   xAxisLabelRotation,
+  xAxisLabelInterval,
+  forceMaxInterval,
+  colorByPrimaryAxisSection,
 } from '../../../controls';
 
 import { OrientationType } from '../../types';
@@ -45,15 +49,10 @@ import {
   DEFAULT_FORM_DATA,
   TIME_SERIES_DESCRIPTION_TEXT,
 } from '../../constants';
+import { StackControlsValue } from '../../../constants';
 
-const {
-  logAxis,
-  minorSplitLine,
-  truncateYAxis,
-  yAxisBounds,
-  zoomable,
-  orientation,
-} = DEFAULT_FORM_DATA;
+const { logAxis, minorSplitLine, truncateYAxis, yAxisBounds, orientation } =
+  DEFAULT_FORM_DATA;
 
 function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
   const isXAxis = axis === 'x';
@@ -70,9 +69,10 @@ function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
           label: t('Axis Title'),
           renderTrigger: true,
           default: '',
-          description: t('Changing this control takes effect instantly'),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isVertical(controls) : isHorizontal(controls),
+          disableStash: true,
+          resetOnHide: false,
         },
       },
     ],
@@ -83,13 +83,14 @@ function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
           type: 'SelectControl',
           freeForm: true,
           clearable: true,
-          label: t('AXIS TITLE MARGIN'),
+          label: t('Axis title margin'),
           renderTrigger: true,
           default: sections.TITLE_MARGIN_OPTIONS[0],
           choices: formatSelectOptions(sections.TITLE_MARGIN_OPTIONS),
-          description: t('Changing this control takes effect instantly'),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isVertical(controls) : isHorizontal(controls),
+          disableStash: true,
+          resetOnHide: false,
         },
       },
     ],
@@ -101,9 +102,10 @@ function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
           label: t('Axis Title'),
           renderTrigger: true,
           default: '',
-          description: t('Changing this control takes effect instantly'),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isHorizontal(controls) : isVertical(controls),
+          disableStash: true,
+          resetOnHide: false,
         },
       },
     ],
@@ -114,13 +116,14 @@ function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
           type: 'SelectControl',
           freeForm: true,
           clearable: true,
-          label: t('AXIS TITLE MARGIN'),
+          label: t('Axis title margin'),
           renderTrigger: true,
-          default: sections.TITLE_MARGIN_OPTIONS[0],
+          default: sections.TITLE_MARGIN_OPTIONS[1],
           choices: formatSelectOptions(sections.TITLE_MARGIN_OPTIONS),
-          description: t('Changing this control takes effect instantly'),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isHorizontal(controls) : isVertical(controls),
+          disableStash: true,
+          resetOnHide: false,
         },
       },
     ],
@@ -131,13 +134,14 @@ function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
           type: 'SelectControl',
           freeForm: true,
           clearable: false,
-          label: t('AXIS TITLE POSITION'),
+          label: t('Axis title position'),
           renderTrigger: true,
           default: sections.TITLE_POSITION_OPTIONS[0][0],
           choices: sections.TITLE_POSITION_OPTIONS,
-          description: t('Changing this control takes effect instantly'),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isHorizontal(controls) : isVertical(controls),
+          disableStash: true,
+          resetOnHide: false,
         },
       },
     ],
@@ -160,6 +164,8 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
           description: `${D3_TIME_FORMAT_DOCS}. ${TIME_SERIES_DESCRIPTION_TEXT}`,
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isVertical(controls) : isHorizontal(controls),
+          disableStash: true,
+          resetOnHide: false,
         },
       },
     ],
@@ -170,6 +176,20 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
           ...xAxisLabelRotation.config,
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isVertical(controls) : isHorizontal(controls),
+          disableStash: true,
+          resetOnHide: false,
+        },
+      },
+    ],
+    [
+      {
+        name: xAxisLabelInterval.name,
+        config: {
+          ...xAxisLabelInterval.config,
+          visibility: ({ controls }: ControlPanelsContainerProps) =>
+            isXAxis ? isVertical(controls) : isHorizontal(controls),
+          disableStash: true,
+          resetOnHide: false,
         },
       },
     ],
@@ -181,6 +201,8 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
           label: t('Axis Format'),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isHorizontal(controls) : isVertical(controls),
+          disableStash: true,
+          resetOnHide: false,
         },
       },
     ],
@@ -196,6 +218,8 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
           description: t('Logarithmic axis'),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isHorizontal(controls) : isVertical(controls),
+          disableStash: true,
+          resetOnHide: false,
         },
       },
     ],
@@ -210,22 +234,26 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
           description: t('Draw split lines for minor axis ticks'),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isHorizontal(controls) : isVertical(controls),
+          disableStash: true,
+          resetOnHide: false,
         },
       },
     ],
-    [truncateXAxis],
-    [xAxisBounds],
     [
       {
         name: 'truncateYAxis',
         config: {
           type: 'CheckboxControl',
-          label: t('Truncate Axis'),
+          label: t('Truncate Y Axis'),
           default: truncateYAxis,
           renderTrigger: true,
-          description: t('It’s not recommended to truncate axis in Bar chart.'),
+          description: t(
+            'It’s not recommended to truncate Y axis in Bar chart.',
+          ),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isHorizontal(controls) : isVertical(controls),
+          disableStash: true,
+          resetOnHide: false,
         },
       },
     ],
@@ -246,6 +274,8 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             Boolean(controls?.truncateYAxis?.value) &&
             (isXAxis ? isHorizontal(controls) : isVertical(controls)),
+          disableStash: true,
+          resetOnHide: false,
         },
       },
     ],
@@ -297,34 +327,69 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         ...seriesOrderSection,
         ['color_scheme'],
-        ...showValueSection,
-        [minorTicks],
+        ['time_shift_color'],
+        ...showValueSectionWithoutStream,
+        ...colorByPrimaryAxisSection,
         [
           {
-            name: 'zoomable',
+            name: 'stackDimension',
             config: {
-              type: 'CheckboxControl',
-              label: t('Data Zoom'),
-              default: zoomable,
+              type: 'SelectControl',
+              label: t('Split stack by'),
+              visibility: ({ controls }) =>
+                controls?.stack?.value === StackControlsValue.Stack,
               renderTrigger: true,
-              description: t('Enable data zooming controls'),
+              description: t(
+                'Stack in groups, where each group corresponds to a dimension',
+              ),
+              shouldMapStateToProps: (
+                prevState,
+                state,
+                controlState,
+                chartState,
+              ) => true,
+              mapStateToProps: (state, controlState, chartState) => {
+                const value: JsonArray = ensureIsArray(
+                  state.controls.groupby?.value,
+                ) as JsonArray;
+                const valueAsStringArr: string[][] = value.map(v => {
+                  if (v) return [v.toString(), v.toString()];
+                  return ['', ''];
+                });
+                return {
+                  choices: valueAsStringArr,
+                };
+              },
             },
           },
         ],
+        [minorTicks],
+        ['zoomable'],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         ...createAxisControl('x'),
+        [truncateXAxis],
+        [xAxisBounds],
+        [forceMaxInterval],
         ...richTooltipSection,
         [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
         ...createAxisControl('y'),
+        ['echart_options'],
       ],
     },
   ],
-  formDataOverrides: formData => ({
-    ...formData,
-    metrics: getStandardizedControls().popAllMetrics(),
-    groupby: getStandardizedControls().popAllColumns(),
-  }),
+  formDataOverrides: formData => {
+    // Reset stack to null if it's Stream when switching to Bar chart
+    const formDataWithStack = formData as Record<string, unknown>;
+    return {
+      ...formData,
+      metrics: getStandardizedControls().popAllMetrics(),
+      groupby: getStandardizedControls().popAllColumns(),
+      ...(formDataWithStack.stack === StackControlsValue.Stream && {
+        stack: null,
+      }),
+    };
+  },
 };
 
 export default config;

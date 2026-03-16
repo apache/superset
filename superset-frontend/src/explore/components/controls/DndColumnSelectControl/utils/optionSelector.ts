@@ -17,6 +17,7 @@
  * under the License.
  */
 import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
+import { t } from '@apache-superset/core/translation';
 import {
   AdhocColumn,
   ensureIsArray,
@@ -55,7 +56,13 @@ export class OptionSelector {
         if (!isPhysicalColumn(value)) {
           return value;
         }
-        return null;
+        return {
+          type_generic: 'UNKNOWN',
+          column_name: value,
+          error_text: t(
+            'This column might be incompatible with current dataset',
+          ),
+        };
       })
       .filter(Boolean) as ColumnMeta[];
   }

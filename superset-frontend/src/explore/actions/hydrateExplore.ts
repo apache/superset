@@ -27,12 +27,18 @@ import { getChartKey } from 'src/explore/exploreUtils';
 import { getControlsState } from 'src/explore/store';
 import { Dispatch } from 'redux';
 import {
+  Currency,
+  DataMaskStateWithId,
+  JsonObject,
   ensureIsArray,
+  FeatureFlag,
   getCategoricalSchemeRegistry,
   getColumnLabel,
   getSequentialSchemeRegistry,
+  isFeatureEnabled,
   NO_TIME_RANGE,
   QueryFormColumn,
+  VizType,
 } from '@superset-ui/core';
 import {
   getFormDataFromControls,
@@ -56,7 +62,12 @@ export const hydrateExplore =
     dataset,
     metadata,
     saveAction = null,
-  }: ExplorePageInitialData) =>
+    dataMask,
+    chartStates,
+  }: ExplorePageInitialData & {
+    dataMask?: DataMaskStateWithId;
+    chartStates?: Record<number, JsonObject>;
+  }) =>
   (dispatch: Dispatch, getState: () => ExplorePageState) => {
     const { user, datasources, charts, sliceEntities, common, explore } =
       getState();
@@ -67,7 +78,7 @@ export const hydrateExplore =
     const initialSlice = slice ?? fallbackSlice;
     const initialFormData = form_data ?? initialSlice?.form_data;
     if (!initialFormData.viz_type) {
-      const defaultVizType = common?.conf.DEFAULT_VIZ_TYPE || 'table';
+      const defaultVizType = common?.conf.DEFAULT_VIZ_TYPE || VizType.Table;
       initialFormData.viz_type =
         getUrlParam(URL_PARAMS.vizType) || defaultVizType;
     }
@@ -96,6 +107,14 @@ export const hydrateExplore =
     }
 
     const initialDatasource = dataset;
+    initialDatasource.currency_formats = Object.fromEntries(
+      (initialDatasource.metrics ?? [])
+        .filter(metric => !!metric.currency)
+        .map((metric): [string, Currency] => [
+          metric.metric_name,
+          metric.currency!,
+        ]),
+    );
 
     const initialExploreState = {
       form_data: initialFormData,
@@ -132,11 +151,20 @@ export const hydrateExplore =
     if (colorSchemeKey) verifyColorScheme(ColorSchemeType.CATEGORICAL);
     if (linearColorSchemeKey) verifyColorScheme(ColorSchemeType.SEQUENTIAL);
 
+    const granularExport = isFeatureEnabled(FeatureFlag.GranularExportControls);
     const exploreState = {
       // note this will add `form_data` to state,
       // which will be manipulable by future reducers.
       can_add: findPermission('can_write', 'Chart', user?.roles),
-      can_download: findPermission('can_csv', 'Superset', user?.roles),
+      can_download: granularExport
+        ? findPermission('can_export_data', 'Superset', user?.roles)
+        : findPermission('can_csv', 'Superset', user?.roles),
+      can_export_image: granularExport
+        ? findPermission('can_export_image', 'Superset', user?.roles)
+        : true,
+      can_copy_clipboard: granularExport
+        ? findPermission('can_copy_clipboard', 'Superset', user?.roles)
+        : true,
       can_overwrite: ensureIsArray(slice?.owners).includes(
         user?.userId as number,
       ),
@@ -203,12 +231,13 @@ export const hydrateExplore =
           saveModalAlert: null,
           isVisible: false,
         },
-        explore: exploreState,
+        explore: { ...exploreState, chartStates },
+        dataMask,
       },
     });
   };
 
 export type HydrateExplore = {
   type: typeof HYDRATE_EXPLORE;
-  data: ExplorePageState;
+  data: ExplorePageState & { dataMask?: DataMaskStateWithId };
 };

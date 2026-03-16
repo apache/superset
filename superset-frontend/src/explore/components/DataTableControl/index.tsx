@@ -17,49 +17,41 @@
  * under the License.
  */
 import { useMemo, useState, useEffect, useRef, RefObject } from 'react';
-import {
-  css,
-  GenericDataType,
-  getTimeFormatter,
-  safeHtmlSpan,
-  styled,
-  t,
-  TimeFormats,
-  useTheme,
-} from '@superset-ui/core';
-import { Global } from '@emotion/react';
+import { t } from '@apache-superset/core/translation';
+import { getTimeFormatter, safeHtmlSpan, TimeFormats } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import { Column } from 'react-table';
 import { debounce } from 'lodash';
-import { Space } from 'src/components';
-import { Input } from 'src/components/Input';
 import {
-  BOOL_FALSE_DISPLAY,
-  BOOL_TRUE_DISPLAY,
-  NULL_DISPLAY,
-  SLOW_DEBOUNCE,
-} from 'src/constants';
-import { Radio } from 'src/components/Radio';
-import Icons from 'src/components/Icons';
-import Button from 'src/components/Button';
-import Popover from 'src/components/Popover';
-import { prepareCopyToClipboardTabularData } from 'src/utils/common';
-import CopyToClipboard from 'src/components/CopyToClipboard';
+  Constants,
+  Button,
+  Icons,
+  Input,
+  Popover,
+  Radio,
+} from '@superset-ui/core/components';
+import { CopyToClipboard } from 'src/components';
+import {
+  prepareCopyToClipboardTabularData,
+  TabularDataRow,
+} from 'src/utils/common';
 import { getTimeColumns, setTimeColumns } from './utils';
 
 export const CellNull = styled('span')`
-  color: ${({ theme }) => theme.colors.grayscale.light1};
+  color: ${({ theme }) => theme.colorTextTertiary};
 `;
 
 export const CopyButton = styled(Button)`
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
 
   // needed to override button's first-of-type margin: 0
   && {
-    margin: 0 ${({ theme }) => theme.gridUnit * 2}px;
+    margin: 0 ${({ theme }) => theme.sizeUnit * 2}px;
   }
 
   i {
-    padding: 0 ${({ theme }) => theme.gridUnit}px;
+    padding: 0 ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -67,32 +59,28 @@ export const CopyToClipboardButton = ({
   data,
   columns,
 }: {
-  data?: Record<string, any>;
+  data?: TabularDataRow[];
   columns?: string[];
-}) => {
-  const theme = useTheme();
-  return (
-    <CopyToClipboard
-      text={
-        data && columns ? prepareCopyToClipboardTabularData(data, columns) : ''
-      }
-      wrapped={false}
-      copyNode={
-        <Icons.CopyOutlined
-          iconColor={theme.colors.grayscale.base}
-          iconSize="l"
-          aria-label={t('Copy')}
-          role="button"
-          css={css`
-            &.anticon > * {
-              line-height: 0;
-            }
-          `}
-        />
-      }
-    />
-  );
-};
+}) => (
+  <CopyToClipboard
+    text={
+      data && columns ? prepareCopyToClipboardTabularData(data, columns) : ''
+    }
+    wrapped={false}
+    copyNode={
+      <Icons.CopyOutlined
+        iconSize="l"
+        aria-label={t('Copy')}
+        role="button"
+        css={css`
+          &.anticon > * {
+            line-height: 0;
+          }
+        `}
+      />
+    }
+  />
+);
 
 export const FilterInput = ({
   onChangeHandler,
@@ -111,10 +99,13 @@ export const FilterInput = ({
   }, []);
 
   const theme = useTheme();
-  const debouncedChangeHandler = debounce(onChangeHandler, SLOW_DEBOUNCE);
+  const debouncedChangeHandler = debounce(
+    onChangeHandler,
+    Constants.SLOW_DEBOUNCE,
+  );
   return (
     <Input
-      prefix={<Icons.Search iconColor={theme.colors.grayscale.base} />}
+      prefix={<Icons.SearchOutlined iconSize="l" />}
       placeholder={t('Search')}
       onChange={(event: any) => {
         const filterText = event.target.value;
@@ -122,7 +113,7 @@ export const FilterInput = ({
       }}
       css={css`
         width: 200px;
-        margin-right: ${theme.gridUnit * 2}px;
+        margin-right: ${theme.sizeUnit * 2}px;
       `}
       ref={inputRef}
     />
@@ -141,26 +132,34 @@ const FormatPicker = ({
   onChange: any;
   value: FormatPickerValue;
 }) => (
-  <Radio.Group value={value} onChange={onChange}>
-    <Space direction="vertical">
-      <Radio value={FormatPickerValue.Formatted}>{t('Formatted date')}</Radio>
-      <Radio value={FormatPickerValue.Original}>{t('Original value')}</Radio>
-    </Space>
-  </Radio.Group>
+  <Radio.GroupWrapper
+    spaceConfig={{
+      direction: 'vertical',
+      align: 'start',
+      size: 15,
+      wrap: false,
+    }}
+    size="large"
+    value={value}
+    onChange={onChange}
+    options={[
+      { label: t('Formatted date'), value: FormatPickerValue.Formatted },
+      { label: t('Original value'), value: FormatPickerValue.Original },
+    ]}
+  />
 );
 
 const FormatPickerContainer = styled.div`
   display: flex;
   flex-direction: column;
 
-  padding: ${({ theme }) => `${theme.gridUnit * 4}px`};
+  padding: ${({ theme }) => `${theme.sizeUnit * 4}px`};
 `;
 
 const FormatPickerLabel = styled.span`
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  color: ${({ theme }) => theme.colors.grayscale.base};
-  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
-  text-transform: uppercase;
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
+  color: ${({ theme }) => theme.colorText};
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 const DataTableTemporalHeaderCell = ({
@@ -168,6 +167,7 @@ const DataTableTemporalHeaderCell = ({
   onTimeColumnChange,
   datasourceId,
   isOriginalTimeColumn,
+  displayLabel,
 }: {
   columnName: string;
   onTimeColumnChange: (
@@ -176,6 +176,7 @@ const DataTableTemporalHeaderCell = ({
   ) => void;
   datasourceId?: string;
   isOriginalTimeColumn: boolean;
+  displayLabel?: string;
 }) => {
   const theme = useTheme();
 
@@ -186,15 +187,10 @@ const DataTableTemporalHeaderCell = ({
   const overlayContent = useMemo(
     () =>
       datasourceId ? ( // eslint-disable-next-line jsx-a11y/no-static-element-interactions
-        <FormatPickerContainer onClick={e => e.stopPropagation()}>
+        <FormatPickerContainer
+          onClick={(e: React.MouseEvent<HTMLElement>) => e.stopPropagation()}
+        >
           {/* hack to disable click propagation from popover content to table header, which triggers sorting column */}
-          <Global
-            styles={css`
-              .column-formatting-popover .ant-popover-inner-content {
-                padding: 0;
-              }
-            `}
-          />
           <FormatPickerLabel>{t('Column Formatting')}</FormatPickerLabel>
           <FormatPicker
             onChange={onChange}
@@ -212,23 +208,22 @@ const DataTableTemporalHeaderCell = ({
   return datasourceId ? (
     <span>
       <Popover
-        overlayClassName="column-formatting-popover"
         trigger="click"
         content={overlayContent}
         placement="bottomLeft"
-        arrowPointAtCenter
+        arrow={{ pointAtCenter: true }}
       >
         <Icons.SettingOutlined
           iconSize="m"
-          iconColor={theme.colors.grayscale.light1}
-          css={{ marginRight: `${theme.gridUnit}px` }}
-          onClick={e => e.stopPropagation()}
+          iconColor={theme.colorIcon}
+          css={{ marginRight: `${theme.sizeUnit}px` }}
+          onClick={(e: React.MouseEvent<HTMLElement>) => e.stopPropagation()}
         />
       </Popover>
-      {columnName}
+      {displayLabel ?? columnName}
     </span>
   ) : (
-    <span>{columnName}</span>
+    <span>{displayLabel ?? columnName}</span>
   );
 };
 
@@ -251,8 +246,8 @@ export const useFilteredTableData = (
       return [];
     }
     return data.filter((_, index: number) =>
-      rowsAsStrings[index].some(
-        value => value?.includes(filterText.toLowerCase()),
+      rowsAsStrings[index].some(value =>
+        value?.includes(filterText.toLowerCase()),
       ),
     );
   }, [data, filterText, rowsAsStrings]);
@@ -268,6 +263,7 @@ export const useTableColumns = (
   isVisible?: boolean,
   moreConfigs?: { [key: string]: Partial<Column> },
   allowHTML?: boolean,
+  columnDisplayNames?: Record<string, string>,
 ) => {
   const [originalFormattedTimeColumns, setOriginalFormattedTimeColumns] =
     useState<string[]>(getTimeColumns(datasourceId));
@@ -312,6 +308,7 @@ export const useTableColumns = (
             .map((key, index) => {
               const colType = coltypes?.[index];
               const firstValue = data[0][key];
+              const headerLabel = columnDisplayNames?.[key] ?? key;
               const originalFormattedTimeColumnIndex =
                 colType === GenericDataType.Temporal
                   ? originalFormattedTimeColumns.indexOf(key)
@@ -320,8 +317,8 @@ export const useTableColumns = (
                 originalFormattedTimeColumns.includes(key);
               return {
                 // react-table requires a non-empty id, therefore we introduce a fallback value in case the key is empty
-                id: key || index,
-                accessor: row => row[key],
+                id: key || String(index),
+                accessor: (row: Record<string, any>) => row[key],
                 Header:
                   colType === GenericDataType.Temporal &&
                   typeof firstValue !== 'string' ? (
@@ -330,19 +327,20 @@ export const useTableColumns = (
                       datasourceId={datasourceId}
                       onTimeColumnChange={onTimeColumnChange}
                       isOriginalTimeColumn={isOriginalTimeColumn}
+                      displayLabel={headerLabel}
                     />
                   ) : (
-                    key
+                    headerLabel
                   ),
                 Cell: ({ value }) => {
                   if (value === true) {
-                    return BOOL_TRUE_DISPLAY;
+                    return Constants.BOOL_TRUE_DISPLAY;
                   }
                   if (value === false) {
-                    return BOOL_FALSE_DISPLAY;
+                    return Constants.BOOL_FALSE_DISPLAY;
                   }
                   if (value === null) {
-                    return <CellNull>{NULL_DISPLAY}</CellNull>;
+                    return <CellNull>{Constants.NULL_DISPLAY}</CellNull>;
                   }
                   if (
                     colType === GenericDataType.Temporal &&
@@ -367,6 +365,7 @@ export const useTableColumns = (
       datasourceId,
       moreConfigs,
       originalFormattedTimeColumns,
+      columnDisplayNames,
     ],
   );
 };

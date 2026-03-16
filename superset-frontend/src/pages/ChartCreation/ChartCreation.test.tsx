@@ -16,23 +16,42 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactWrapper } from 'enzyme';
-import { styledMount as mount } from 'spec/helpers/theming';
-import Button from 'src/components/Button';
-import { AsyncSelect } from 'src/components';
-import {
-  ChartCreation,
-  ChartCreationProps,
-  ChartCreationState,
-} from 'src/pages/ChartCreation';
-import VizTypeGallery from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
-import { act } from 'spec/helpers/testing-library';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
-const datasource = {
-  value: '1',
-  label: 'table',
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import fetchMock from 'fetch-mock';
+import { createMemoryHistory } from 'history';
+import { ChartCreation } from 'src/pages/ChartCreation';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { supersetTheme } from '@apache-superset/core/theme';
+
+jest.mock('src/components/DynamicPlugins', () => ({
+  usePluginContext: () => ({
+    mountedPluginMetadata: { table: { name: 'Table', tags: [] } },
+  }),
+}));
+
+const mockDatasourceResponse = {
+  result: [
+    {
+      id: 'table_1',
+      table_name: 'table',
+      datasource_type: 'table',
+      database: { database_name: 'test_db' },
+      schema: 'public',
+    },
+  ],
+  count: 1,
 };
+
+fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
+  body: mockDatasourceResponse,
+  status: 200,
+});
 
 const mockUser: UserWithPermissionsAndRoles = {
   createdOn: '2021-04-27T18:12:38.952304',
@@ -59,94 +78,345 @@ const mockUserWithDatasetWrite: UserWithPermissionsAndRoles = {
   username: 'admin',
   isAnonymous: false,
 };
+const history = createMemoryHistory();
 
-// We don't need the actual implementation for the tests
+history.push = jest.fn();
+
 const routeProps = {
-  history: {} as any,
+  history,
   location: {} as any,
   match: {} as any,
 };
 
-async function getWrapper(user = mockUser) {
-  const wrapper = mount(
-    <ChartCreation user={user} addSuccessToast={() => null} {...routeProps} />,
-  ) as unknown as ReactWrapper<
-    ChartCreationProps,
-    ChartCreationState,
-    ChartCreation
-  >;
-  await act(() => new Promise(resolve => setTimeout(resolve, 0)));
-  return wrapper;
+async function renderComponent(user = mockUser) {
+  const rendered = render(
+    <ChartCreation
+      user={user}
+      addSuccessToast={() => null}
+      theme={supersetTheme}
+      {...routeProps}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+    },
+  );
+  await waitFor(() => new Promise(resolve => setTimeout(resolve, 0)));
+  return rendered;
 }
 
 test('renders a select and a VizTypeGallery', async () => {
-  const wrapper = await getWrapper();
-  expect(wrapper.find(AsyncSelect)).toExist();
-  expect(wrapper.find(VizTypeGallery)).toExist();
+  await renderComponent();
+  expect(screen.getByRole('combobox', { name: 'Dataset' })).toBeInTheDocument();
+  expect(screen.getByText(/choose chart type/i)).toBeInTheDocument();
 });
 
 test('renders dataset help text when user lacks dataset write permissions', async () => {
-  const wrapper = await getWrapper();
-  expect(wrapper.find('[data-test="dataset-write"]')).not.toExist();
-  expect(wrapper.find('[data-test="no-dataset-write"]')).toExist();
+  await renderComponent();
+  expect(screen.queryByText('Add a dataset')).not.toBeInTheDocument();
+  expect(screen.getByText('view instructions')).toBeInTheDocument();
 });
 
 test('renders dataset help text when user has dataset write permissions', async () => {
-  const wrapper = await getWrapper(mockUserWithDatasetWrite);
-  expect(wrapper.find('[data-test="dataset-write"]')).toExist();
-  expect(wrapper.find('[data-test="no-dataset-write"]')).not.toExist();
+  await renderComponent(mockUserWithDatasetWrite);
+  expect(screen.getByText('Add a dataset')).toBeInTheDocument();
+  expect(screen.queryByText('view instructions')).toBeInTheDocument();
 });
 
-test('renders a button', async () => {
-  const wrapper = await getWrapper();
-  expect(wrapper.find(Button)).toExist();
+test('renders create chart button', async () => {
+  await renderComponent();
+  expect(
+    screen.getByRole('button', { name: 'Create new chart' }),
+  ).toBeInTheDocument();
 });
 
 test('renders a disabled button if no datasource is selected', async () => {
-  const wrapper = await getWrapper();
+  await renderComponent();
   expect(
-    wrapper.find(Button).find({ disabled: true }).hostNodes(),
-  ).toHaveLength(1);
+    screen.getByRole('button', { name: 'Create new chart' }),
+  ).toBeDisabled();
 });
 
 test('renders an enabled button if datasource and viz type are selected', async () => {
-  const wrapper = await getWrapper();
-  wrapper.setState({
-    datasource,
-    vizType: 'table',
-  });
+  await renderComponent();
+
+  const datasourceSelect = screen.getByRole('combobox', { name: 'Dataset' });
+  userEvent.click(datasourceSelect);
+  userEvent.click(await screen.findByText(/test_db/i));
+
+  userEvent.click(
+    screen.getByRole('tab', {
+      name: /All charts/i,
+    }),
+  );
+  userEvent.click(await screen.findByText('Table'));
+
   expect(
-    wrapper.find(Button).find({ disabled: true }).hostNodes(),
-  ).toHaveLength(0);
+    screen.getByRole('button', { name: 'Create new chart' }),
+  ).toBeEnabled();
 });
 
 test('double-click viz type does nothing if no datasource is selected', async () => {
-  const wrapper = await getWrapper();
-  wrapper.instance().gotoSlice = jest.fn();
-  wrapper.update();
-  wrapper.instance().onVizTypeDoubleClick();
-  expect(wrapper.instance().gotoSlice).not.toBeCalled();
+  await renderComponent();
+
+  userEvent.click(
+    screen.getByRole('tab', {
+      name: /All charts/i,
+    }),
+  );
+  userEvent.dblClick(await screen.findByText('Table'));
+
+  expect(
+    screen.getByRole('button', { name: 'Create new chart' }),
+  ).toBeDisabled();
+  expect(history.push).not.toHaveBeenCalled();
 });
 
-test('double-click viz type submits if datasource is selected', async () => {
-  const wrapper = await getWrapper();
-  wrapper.instance().gotoSlice = jest.fn();
-  wrapper.update();
-  wrapper.setState({
-    datasource,
-    vizType: 'table',
-  });
+test('double-click viz type submits with formatted URL if datasource is selected', async () => {
+  await renderComponent();
 
-  wrapper.instance().onVizTypeDoubleClick();
-  expect(wrapper.instance().gotoSlice).toBeCalled();
+  const datasourceSelect = screen.getByRole('combobox', { name: 'Dataset' });
+
+  userEvent.click(datasourceSelect);
+  userEvent.click(await screen.findByText(/test_db/i));
+
+  userEvent.click(
+    screen.getByRole('tab', {
+      name: /All charts/i,
+    }),
+  );
+  userEvent.dblClick(await screen.findByText('Table'));
+
+  expect(
+    screen.getByRole('button', { name: 'Create new chart' }),
+  ).toBeEnabled();
+  const formattedUrl = '/explore/?viz_type=table&datasource=table_1__table';
+  expect(history.push).toHaveBeenCalledWith(formattedUrl);
 });
 
-test('formats Explore url', async () => {
-  const wrapper = await getWrapper();
-  wrapper.setState({
-    datasource,
-    vizType: 'table',
+test('dropdown displays matching datasets when user types a search term', async () => {
+  fetchMock.clearHistory().removeRoutes();
+  fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
+    body: {
+      result: [
+        {
+          id: 'flights_1',
+          table_name: 'flights',
+          datasource_type: 'table',
+          database: { database_name: 'examples' },
+          schema: 'public',
+        },
+        {
+          id: 'flights_delayed_2',
+          table_name: 'flights_delayed',
+          datasource_type: 'table',
+          database: { database_name: 'examples' },
+          schema: 'public',
+        },
+      ],
+      count: 2,
+    },
+    status: 200,
   });
-  const formattedUrl = '/explore/?viz_type=table&datasource=1';
-  expect(wrapper.instance().exploreUrl()).toBe(formattedUrl);
+
+  await renderComponent();
+
+  const datasourceSelect = await screen.findByRole('combobox', {
+    name: 'Dataset',
+  });
+  userEvent.click(datasourceSelect);
+  userEvent.type(datasourceSelect, 'flight');
+
+  await screen.findByText('flights');
+  expect(screen.getByText('flights_delayed')).toBeInTheDocument();
+});
+
+test('handles special characters in dataset name from URL parameter', async () => {
+  fetchMock.clearHistory().removeRoutes();
+  fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
+    body: {
+      result: [
+        {
+          id: 'special_1',
+          table_name: 'flightsÆ test',
+          datasource_type: 'table',
+          database: { database_name: 'test_db' },
+          schema: 'public',
+        },
+      ],
+      count: 1,
+    },
+    status: 200,
+  });
+
+  const originalLocation = window.location;
+  Object.defineProperty(window, 'location', {
+    value: {
+      ...originalLocation,
+      search: '?dataset=flights%C3%86%20test',
+    },
+    writable: true,
+  });
+
+  await renderComponent();
+
+  expect(await screen.findByText('flightsÆ test')).toBeInTheDocument();
+
+  Object.defineProperty(window, 'location', {
+    value: originalLocation,
+    writable: true,
+  });
+});
+
+test('pre-selects the dataset from URL parameter and shows it in dropdown', async () => {
+  fetchMock.clearHistory().removeRoutes();
+  fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
+    body: {
+      result: [
+        {
+          id: 'flights_123',
+          table_name: 'flights',
+          datasource_type: 'table',
+          database: { database_name: 'examples' },
+          schema: 'public',
+        },
+      ],
+      count: 1,
+    },
+    status: 200,
+  });
+
+  const originalLocation = window.location;
+  Object.defineProperty(window, 'location', {
+    value: { ...originalLocation, search: '?dataset=flights' },
+    writable: true,
+  });
+
+  await renderComponent();
+
+  expect(await screen.findByText('flights')).toBeInTheDocument();
+
+  Object.defineProperty(window, 'location', {
+    value: originalLocation,
+    writable: true,
+  });
+});
+
+test('shows loading spinner when dataset parameter is present in URL', async () => {
+  fetchMock.clearHistory().removeRoutes();
+  let resolveRequest: (value: unknown) => void;
+  const requestPromise = new Promise(resolve => {
+    resolveRequest = resolve;
+  });
+
+  fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, () =>
+    requestPromise.then(() => ({
+      body: {
+        result: [
+          {
+            id: 'flights_1',
+            table_name: 'flights',
+            datasource_type: 'table',
+            database: { database_name: 'examples' },
+            schema: 'public',
+          },
+        ],
+        count: 1,
+      },
+      status: 200,
+    })),
+  );
+
+  const originalLocation = window.location;
+  Object.defineProperty(window, 'location', {
+    value: { ...originalLocation, search: '?dataset=flights' },
+    writable: true,
+  });
+
+  render(
+    <ChartCreation
+      user={mockUser}
+      addSuccessToast={() => null}
+      theme={supersetTheme}
+      {...routeProps}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+    },
+  );
+
+  expect(screen.getByRole('status')).toBeInTheDocument();
+
+  resolveRequest!(null);
+
+  await waitFor(() => {
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  Object.defineProperty(window, 'location', {
+    value: originalLocation,
+    writable: true,
+  });
+});
+
+test('shows only exact match when loading dataset from URL, not partial matches', async () => {
+  fetchMock.clearHistory().removeRoutes();
+  fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, ({ url }) => {
+    if (url.includes('opr:eq')) {
+      return {
+        body: {
+          result: [
+            {
+              id: 'flights_1',
+              table_name: 'flights',
+              datasource_type: 'table',
+              database: { database_name: 'examples' },
+              schema: 'public',
+            },
+          ],
+          count: 1,
+        },
+        status: 200,
+      };
+    }
+    return {
+      body: {
+        result: [
+          {
+            id: 'flights_1',
+            table_name: 'flights',
+            datasource_type: 'table',
+            database: { database_name: 'examples' },
+            schema: 'public',
+          },
+          {
+            id: 'flights_delayed_2',
+            table_name: 'flights_delayed',
+            datasource_type: 'table',
+            database: { database_name: 'examples' },
+            schema: 'public',
+          },
+        ],
+        count: 2,
+      },
+      status: 200,
+    };
+  });
+
+  const originalLocation = window.location;
+  Object.defineProperty(window, 'location', {
+    value: { ...originalLocation, search: '?dataset=flights' },
+    writable: true,
+  });
+
+  await renderComponent();
+
+  await screen.findByText('flights');
+  expect(screen.queryByText('flights_delayed')).not.toBeInTheDocument();
+
+  Object.defineProperty(window, 'location', {
+    value: originalLocation,
+    writable: true,
+  });
 });

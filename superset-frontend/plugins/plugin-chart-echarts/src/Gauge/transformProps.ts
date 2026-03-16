@@ -26,9 +26,10 @@ import {
   getValueFormatter,
   tooltipHtml,
 } from '@superset-ui/core';
-import { EChartsCoreOption, GaugeSeriesOption } from 'echarts';
-import { GaugeDataItemOption } from 'echarts/types/src/chart/gauge/GaugeSeries';
-import { CallbackDataParams } from 'echarts/types/src/util/types';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { GaugeSeriesOption } from 'echarts/charts';
+import type { GaugeDataItemOption } from 'echarts/types/src/chart/gauge/GaugeSeries';
+import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import { range } from 'lodash';
 import { parseNumbersList } from '../utils/controls';
 import {
@@ -111,6 +112,7 @@ export default function transformProps(
     verboseMap = {},
     currencyFormats = {},
     columnFormats = {},
+    currencyCodeColumn,
   } = datasource;
   const {
     groupby,
@@ -138,6 +140,7 @@ export default function transformProps(
   }: EchartsGaugeFormData = { ...DEFAULT_GAUGE_FORM_DATA, ...formData };
   const refs: Refs = {};
   const data = (queriesData[0]?.data || []) as DataRecord[];
+  const detectedCurrency = queriesData[0]?.detected_currency;
   const coltypeMapping = getColtypesMapping(queriesData[0]);
   const numberFormatter = getValueFormatter(
     metric,
@@ -145,6 +148,10 @@ export default function transformProps(
     columnFormats,
     numberFormat,
     currencyFormat,
+    undefined,
+    data,
+    currencyCodeColumn,
+    detectedCurrency,
   );
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const axisLineWidth = calculateAxisLineWidth(data, fontSize, overlap);
@@ -165,6 +172,7 @@ export default function transformProps(
       const name = groupbyLabels
         .map(column => `${verboseMap[column] || column}: ${data_point[column]}`)
         .join(', ');
+      const colorLabel = groupbyLabels.map(col => data_point[col] as string);
       columnsLabelMap.set(
         name,
         groupbyLabels.map(col => data_point[col] as string),
@@ -173,7 +181,7 @@ export default function transformProps(
         value: data_point[metricLabel] as number,
         name,
         itemStyle: {
-          color: colorFn(index, sliceId),
+          color: colorFn(colorLabel, sliceId),
         },
         title: {
           offsetCenter: [
@@ -181,6 +189,7 @@ export default function transformProps(
             `${index * titleOffsetFromTitle + OFFSETS.titleFromCenter}%`,
           ],
           fontSize,
+          color: theme.colorTextSecondary,
         },
         detail: {
           offsetCenter: [
@@ -192,6 +201,7 @@ export default function transformProps(
             }%`,
           ],
           fontSize: FONT_SIZE_MULTIPLIERS.detailFontSize * fontSize,
+          color: theme.colorText,
         },
       };
       if (
@@ -218,8 +228,20 @@ export default function transformProps(
 
   const { setDataMask = () => {}, onContextMenu } = hooks;
 
-  const min = minVal ?? calculateMin(transformedData);
-  const max = maxVal ?? calculateMax(transformedData);
+  const isValidNumber = (
+    val: number | null | undefined | string,
+  ): val is number => {
+    if (val == null || val === '') return false;
+    const num = typeof val === 'string' ? Number(val) : val;
+    return !Number.isNaN(num) && Number.isFinite(num);
+  };
+
+  const min = isValidNumber(minVal)
+    ? Number(minVal)
+    : calculateMin(transformedData);
+  const max = isValidNumber(maxVal)
+    ? Number(maxVal)
+    : calculateMax(transformedData);
   const axisLabels = range(min, max, (max - min) / splitNumber);
   const axisLabelLength = Math.max(
     ...axisLabels.map(label => numberFormatter(label).length).concat([1]),
@@ -328,7 +350,6 @@ export default function transformProps(
       axisTick,
       pointer,
       detail,
-      // @ts-ignore
       tooltip,
       radius:
         Math.min(width, height) / 2 - axisLabelDistance - axisTickDistance,

@@ -18,6 +18,7 @@
 """Unit tests for Superset"""
 
 from datetime import datetime, timedelta
+from typing import Any
 from unittest.mock import patch
 
 import pytz
@@ -49,6 +50,9 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
 )
+from tests.integration_tests.fixtures.dashboard_with_tabs import (
+    load_mutltiple_tabs_dashboard,  # noqa: F401
+)
 from tests.integration_tests.reports.utils import insert_report_schedule
 
 REPORTS_COUNT = 10
@@ -57,7 +61,7 @@ REPORTS_GAMMA_USER = "reports_gamma"
 
 
 class TestReportSchedulesApi(SupersetTestCase):
-    @pytest.fixture()
+    @pytest.fixture
     def gamma_user_with_alerts_role(self):
         with self.create_app().app_context():
             user = self.create_user(
@@ -88,7 +92,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             db.session.delete(user)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_working_admin_report_schedule(self):
         with self.create_app().app_context():
             admin_user = self.get_user("admin")
@@ -112,8 +116,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             db.session.delete(report_schedule)
             db.session.commit()
 
-    @pytest.mark.usefixtures("gamma_user_with_alerts_role")
-    @pytest.fixture()
+    @pytest.fixture
     def create_working_gamma_report_schedule(self, gamma_user_with_alerts_role):
         with self.create_app().app_context():
             chart = db.session.query(Slice).first()
@@ -136,8 +139,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             db.session.delete(report_schedule)
             db.session.commit()
 
-    @pytest.mark.usefixtures("gamma_user_with_alerts_role")
-    @pytest.fixture()
+    @pytest.fixture
     def create_working_shared_report_schedule(self, gamma_user_with_alerts_role):
         with self.create_app().app_context():
             admin_user = self.get_user("admin")
@@ -162,7 +164,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             db.session.delete(report_schedule)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_report_schedules(self):
         with self.create_app().app_context():
             report_schedules = []
@@ -193,7 +195,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                         type=ReportScheduleType.ALERT,
                         name=f"name{cx}",
                         crontab=f"*/{cx} * * * *",
-                        sql=f"SELECT value from table{cx}",
+                        sql=f"SELECT value from table{cx}",  # noqa: S608
                         description=f"Some description {cx}",
                         chart=chart,
                         database=example_db,
@@ -210,7 +212,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                 db.session.delete(report_schedule)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_alpha_users(self):
         with self.create_app().app_context():
             users = [
@@ -300,12 +302,18 @@ class TestReportSchedulesApi(SupersetTestCase):
         for key in expected_result:
             assert data["result"][key] == expected_result[key]
         # needed because order may vary
-        assert {"first_name": "admin", "id": 1, "last_name": "user"} in data["result"][
-            "owners"
-        ]
-        assert {"first_name": "alpha", "id": 5, "last_name": "user"} in data["result"][
-            "owners"
-        ]
+        assert {
+            "email": "admin@fab.org",
+            "first_name": "admin",
+            "id": 1,
+            "last_name": "user",
+        } in data["result"]["owners"]
+        assert {
+            "email": "alpha@fab.org",
+            "first_name": "alpha",
+            "id": 5,
+            "last_name": "user",
+        } in data["result"]["owners"]
         assert len(data["result"]["owners"]) == 2
 
     def test_info_report_schedule(self):
@@ -377,16 +385,16 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         assert data["count"] == REPORTS_COUNT
-        data_keys = sorted(list(data["result"][0].keys()))
+        data_keys = sorted(list(data["result"][0].keys()))  # noqa: C414
         assert expected_fields == data_keys
 
         # Assert nested fields
-        expected_owners_fields = ["first_name", "id", "last_name"]
-        data_keys = sorted(list(data["result"][0]["owners"][0].keys()))
+        expected_owners_fields = ["email", "first_name", "id", "last_name"]
+        data_keys = sorted(list(data["result"][0]["owners"][0].keys()))  # noqa: C414
         assert expected_owners_fields == data_keys
 
         expected_recipients_fields = ["id", "type"]
-        data_keys = sorted(list(data["result"][1]["recipients"][0].keys()))
+        data_keys = sorted(list(data["result"][1]["recipients"][0].keys()))  # noqa: C414
         assert expected_recipients_fields == data_keys
 
     @parameterized.expand(
@@ -990,7 +998,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 201
 
-        # this second time it should receive an error because the chart has an attached report
+        # this second time it should receive an error because the chart has an attached report  # noqa: E501
         # with the same creation method from the same user.
         report_schedule_data = {
             "type": ReportScheduleType.REPORT,
@@ -1015,7 +1023,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                         "issue_codes": [
                             {
                                 "code": 1010,
-                                "message": "Issue 1010 - Superset encountered an error while running a command.",
+                                "message": "Issue 1010 - Superset encountered an error while running a command.",  # noqa: E501
                             }
                         ]
                     },
@@ -1048,7 +1056,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 201
 
-        # this second time it should receive an error because the dashboard has an attached report
+        # this second time it should receive an error because the dashboard has an attached report  # noqa: E501
         # with the same creation method from the same user.
         report_schedule_data = {
             "type": ReportScheduleType.REPORT,
@@ -1073,7 +1081,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                         "issue_codes": [
                             {
                                 "code": 1010,
-                                "message": "Issue 1010 - Superset encountered an error while running a command.",
+                                "message": "Issue 1010 - Superset encountered an error while running a command.",  # noqa: E501
                             }
                         ]
                     },
@@ -1181,7 +1189,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert data == {"message": {"dashboard": "Dashboard does not exist"}}
 
     # @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    # TODO (AAfghahi): I am going to enable this when the report schedule feature is fully finished
+    # TODO (AAfghahi): I am going to enable this when the report schedule feature is fully finished  # noqa: E501
     # def test_create_report_schedule_no_creation_method(self):
     #     """
     #     ReportSchedule Api: Test create report schedule
@@ -1292,7 +1300,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "database": example_db.id,
         }
         with patch.dict(
-            "superset.commands.report.base.current_app.config",
+            "flask.current_app.config",
             {
                 "ALERT_MINIMUM_INTERVAL": int(timedelta(minutes=2).total_seconds()),
                 "REPORT_MINIMUM_INTERVAL": int(timedelta(minutes=5).total_seconds()),
@@ -1339,7 +1347,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "database": example_db.id,
         }
         with patch.dict(
-            "superset.commands.report.base.current_app.config",
+            "flask.current_app.config",
             {
                 "ALERT_MINIMUM_INTERVAL": int(timedelta(minutes=6).total_seconds()),
                 "REPORT_MINIMUM_INTERVAL": int(timedelta(minutes=8).total_seconds()),
@@ -1352,7 +1360,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                 "message": {
                     "crontab": (
                         "Alert schedule frequency exceeding limit. "
-                        "Please configure a schedule with a minimum interval of 6 minutes per execution."
+                        "Please configure a schedule with a minimum interval of 6 minutes per execution."  # noqa: E501
                     )
                 }
             }
@@ -1365,7 +1373,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                 "message": {
                     "crontab": (
                         "Report schedule frequency exceeding limit. "
-                        "Please configure a schedule with a minimum interval of 8 minutes per execution."
+                        "Please configure a schedule with a minimum interval of 8 minutes per execution."  # noqa: E501
                     )
                 }
             }
@@ -1385,11 +1393,11 @@ class TestReportSchedulesApi(SupersetTestCase):
         )
         assert report_schedule.type == ReportScheduleType.ALERT
         previous_cron = report_schedule.crontab
-        update_payload = {
+        update_payload: dict[str, Any] = {
             "crontab": "5,10 * * * *",
         }
         with patch.dict(
-            "superset.commands.report.base.current_app.config",
+            "flask.current_app.config",
             {
                 "ALERT_MINIMUM_INTERVAL": int(timedelta(minutes=5).total_seconds()),
                 "REPORT_MINIMUM_INTERVAL": int(timedelta(minutes=3).total_seconds()),
@@ -1403,12 +1411,13 @@ class TestReportSchedulesApi(SupersetTestCase):
             # Test report minimum interval
             update_payload["crontab"] = "5,8 * * * *"
             update_payload["type"] = ReportScheduleType.REPORT
+            update_payload["database"] = None
             uri = f"api/v1/report/{report_schedule.id}"
             rv = self.put_assert_metric(uri, update_payload, "put")
             assert rv.status_code == 200
 
         with patch.dict(
-            "superset.commands.report.base.current_app.config",
+            "flask.current_app.config",
             {
                 "ALERT_MINIMUM_INTERVAL": 0,
                 "REPORT_MINIMUM_INTERVAL": 0,
@@ -1417,6 +1426,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             # Undo changes
             update_payload["crontab"] = previous_cron
             update_payload["type"] = ReportScheduleType.ALERT
+            update_payload["database"] = get_example_database().id
             uri = f"api/v1/report/{report_schedule.id}"
             rv = self.put_assert_metric(uri, update_payload, "put")
             assert rv.status_code == 200
@@ -1434,11 +1444,11 @@ class TestReportSchedulesApi(SupersetTestCase):
             .one_or_none()
         )
         assert report_schedule.type == ReportScheduleType.ALERT
-        update_payload = {
+        update_payload: dict[str, Any] = {
             "crontab": "5,10 * * * *",
         }
         with patch.dict(
-            "superset.commands.report.base.current_app.config",
+            "flask.current_app.config",
             {
                 "ALERT_MINIMUM_INTERVAL": int(timedelta(minutes=6).total_seconds()),
                 "REPORT_MINIMUM_INTERVAL": int(timedelta(minutes=4).total_seconds()),
@@ -1453,7 +1463,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                 "message": {
                     "crontab": (
                         "Alert schedule frequency exceeding limit. "
-                        "Please configure a schedule with a minimum interval of 6 minutes per execution."
+                        "Please configure a schedule with a minimum interval of 6 minutes per execution."  # noqa: E501
                     )
                 }
             }
@@ -1461,6 +1471,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             # Exceed report minimum interval
             update_payload["crontab"] = "5,8 * * * *"
             update_payload["type"] = ReportScheduleType.REPORT
+            update_payload["database"] = None
             uri = f"api/v1/report/{report_schedule.id}"
             rv = self.put_assert_metric(uri, update_payload, "put")
             assert rv.status_code == 422
@@ -1469,7 +1480,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                 "message": {
                     "crontab": (
                         "Report schedule frequency exceeding limit. "
-                        "Please configure a schedule with a minimum interval of 4 minutes per execution."
+                        "Please configure a schedule with a minimum interval of 4 minutes per execution."  # noqa: E501
                     )
                 }
             }
@@ -1600,6 +1611,292 @@ class TestReportSchedulesApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert data == {"message": {"chart": "Choose a chart or dashboard not both"}}
 
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_update_report_schedule_database_not_allowed_on_report(self):
+        """
+        ReportSchedule API: Test update report schedule rejects database on Report type
+        """
+        self.login(ADMIN_USERNAME)
+        example_db = get_example_database()
+
+        # Create a Report-type schedule (name1 is an Alert, so create one)
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name1")
+            .one_or_none()
+        )
+        # Change to Report type first (clearing database)
+        uri = f"api/v1/report/{report_schedule.id}"
+        rv = self.put_assert_metric(
+            uri,
+            {"type": ReportScheduleType.REPORT, "database": None},
+            "put",
+        )
+        assert rv.status_code == 200
+
+        # Test 1: Report + database (no type in payload) → 422
+        rv = self.put_assert_metric(uri, {"database": example_db.id}, "put")
+        assert rv.status_code == 422
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data == {
+            "message": {"database": "Database reference is not allowed on a report"}
+        }
+
+        # Test 2: Report + database + explicit type=Report → 422
+        rv = self.put_assert_metric(
+            uri,
+            {"type": ReportScheduleType.REPORT, "database": example_db.id},
+            "put",
+        )
+        assert rv.status_code == 422
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data == {
+            "message": {"database": "Database reference is not allowed on a report"}
+        }
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_update_report_schedule_nonexistent_database_returns_not_allowed(self):
+        """
+        ReportSchedule API: Test Report + nonexistent DB returns 'not allowed',
+        not 'does not exist' — type invariant takes precedence.
+        """
+        self.login(ADMIN_USERNAME)
+
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name1")
+            .one_or_none()
+        )
+        uri = f"api/v1/report/{report_schedule.id}"
+
+        # Transition to Report type first
+        rv = self.put_assert_metric(
+            uri,
+            {"type": ReportScheduleType.REPORT, "database": None},
+            "put",
+        )
+        assert rv.status_code == 200
+
+        # Report + nonexistent DB → 422 "not allowed" (not "does not exist")
+        database_max_id = db.session.query(func.max(Database.id)).scalar()
+        rv = self.put_assert_metric(uri, {"database": database_max_id + 1}, "put")
+        assert rv.status_code == 422
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data == {
+            "message": {"database": "Database reference is not allowed on a report"}
+        }
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_update_alert_schedule_database_allowed(self):
+        """
+        ReportSchedule API: Test update alert schedule accepts database
+        """
+        self.login(ADMIN_USERNAME)
+        example_db = get_example_database()
+
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name2")
+            .one_or_none()
+        )
+        assert report_schedule.type == ReportScheduleType.ALERT
+
+        # Test 3: Alert + database (no type in payload) → 200
+        uri = f"api/v1/report/{report_schedule.id}"
+        rv = self.put_assert_metric(uri, {"database": example_db.id}, "put")
+        assert rv.status_code == 200
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_update_report_schedule_type_transitions(self):
+        """
+        ReportSchedule API: Test type transitions with database validation
+        """
+        self.login(ADMIN_USERNAME)
+        example_db = get_example_database()
+
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name3")
+            .one_or_none()
+        )
+        assert report_schedule.type == ReportScheduleType.ALERT
+        assert report_schedule.database_id is not None
+        uri = f"api/v1/report/{report_schedule.id}"
+
+        # Test 4: Alert + database update (same type) → 200
+        rv = self.put_assert_metric(
+            uri,
+            {"database": example_db.id},
+            "put",
+        )
+        assert rv.status_code == 200
+
+        # Test 5: Alert → Report + database → 422
+        rv = self.put_assert_metric(
+            uri,
+            {
+                "type": ReportScheduleType.REPORT,
+                "database": example_db.id,
+            },
+            "put",
+        )
+        assert rv.status_code == 422
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data == {
+            "message": {"database": "Database reference is not allowed on a report"}
+        }
+
+        # Test 6: Alert → Report without clearing database → 422
+        rv = self.put_assert_metric(uri, {"type": ReportScheduleType.REPORT}, "put")
+        assert rv.status_code == 422
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data == {
+            "message": {"database": "Database reference is not allowed on a report"}
+        }
+
+        # Test 7: Alert → Report with database: null (explicit clear) → 200
+        rv = self.put_assert_metric(
+            uri,
+            {"type": ReportScheduleType.REPORT, "database": None},
+            "put",
+        )
+        assert rv.status_code == 200
+
+        # Now schedule is a Report with no database.
+        # Test 8: Report → Alert without providing database → 422
+        rv = self.put_assert_metric(
+            uri,
+            {"type": ReportScheduleType.ALERT},
+            "put",
+        )
+        assert rv.status_code == 422
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data == {"message": {"database": "Database is required for alerts"}}
+
+        # Test 9: Report → Alert with database → 200 (valid transition)
+        rv = self.put_assert_metric(
+            uri,
+            {"type": ReportScheduleType.ALERT, "database": example_db.id},
+            "put",
+        )
+        assert rv.status_code == 200
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_update_alert_schedule_database_null_rejected(self):
+        """
+        ReportSchedule API: Test alert schedule rejects null database
+        """
+        self.login(ADMIN_USERNAME)
+
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name2")
+            .one_or_none()
+        )
+        assert report_schedule.type == ReportScheduleType.ALERT
+        uri = f"api/v1/report/{report_schedule.id}"
+
+        # Test 8: Alert + database: null → 422
+        rv = self.put_assert_metric(uri, {"database": None}, "put")
+        assert rv.status_code == 422
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data == {"message": {"database": "Database is required for alerts"}}
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_update_report_schedule_422_does_not_mutate(self):
+        """
+        ReportSchedule API: Test that a rejected PUT does not mutate the model
+        """
+        self.login(ADMIN_USERNAME)
+
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name2")
+            .one_or_none()
+        )
+        assert report_schedule.type == ReportScheduleType.ALERT
+        original_type = report_schedule.type
+        original_database_id = report_schedule.database_id
+        assert original_database_id is not None
+        uri = f"api/v1/report/{report_schedule.id}"
+
+        # Alert→Report without clearing database → 422
+        rv = self.put_assert_metric(uri, {"type": ReportScheduleType.REPORT}, "put")
+        assert rv.status_code == 422
+
+        # Re-query and verify no mutation
+        db.session.expire(report_schedule)
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.id == report_schedule.id)
+            .one_or_none()
+        )
+        assert report_schedule.type == original_type
+        assert report_schedule.database_id == original_database_id
+
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "create_report_schedules"
+    )
+    def test_create_report_schedule_database_not_allowed(self):
+        """
+        ReportSchedule API: Test POST rejects database on Report type at schema level
+        """
+        self.login(ADMIN_USERNAME)
+
+        chart = db.session.query(Slice).first()
+        example_db = get_example_database()
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "report_with_db",
+            "description": "should fail",
+            "crontab": "0 9 * * *",
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
+            "chart": chart.id,
+            "database": example_db.id,
+        }
+        uri = "api/v1/report/"
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
+        assert rv.status_code == 400
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "database" in data.get("message", {})
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_update_report_to_alert_nonexistent_database(self):
+        """
+        ReportSchedule API: Test Report→Alert with nonexistent database returns 422
+        """
+        self.login(ADMIN_USERNAME)
+
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name4")
+            .one_or_none()
+        )
+        assert report_schedule.type == ReportScheduleType.ALERT
+        uri = f"api/v1/report/{report_schedule.id}"
+
+        # First transition to Report (clearing database)
+        rv = self.put_assert_metric(
+            uri,
+            {"type": ReportScheduleType.REPORT, "database": None},
+            "put",
+        )
+        assert rv.status_code == 200
+
+        # Now transition back to Alert with nonexistent database
+        database_max_id = db.session.query(func.max(Database.id)).scalar()
+        rv = self.put_assert_metric(
+            uri,
+            {
+                "type": ReportScheduleType.ALERT,
+                "database": database_max_id + 1,
+            },
+            "put",
+        )
+        assert rv.status_code == 422
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data == {"message": {"database": "Database does not exist"}}
+
     @pytest.mark.usefixtures(
         "load_birth_names_dashboard_with_slices", "create_report_schedules"
     )
@@ -1667,13 +1964,13 @@ class TestReportSchedulesApi(SupersetTestCase):
             .one_or_none()
         )
 
-        self.login(username="alpha2", password="password")
+        self.login(username="alpha2", password="password")  # noqa: S106
         report_schedule_data = {
             "active": False,
         }
         uri = f"api/v1/report/{report_schedule.id}"
         rv = self.put_assert_metric(uri, report_schedule_data, "put")
-        self.assertEqual(rv.status_code, 403)
+        assert rv.status_code == 403
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_update_report_preserve_ownership(self):
@@ -1697,7 +1994,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             .filter(ReportSchedule.name == "name1")
             .one_or_none()
         )
-        assert updated_report.owners == current_owners
+        assert set(updated_report.owners) == set(current_owners)
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_update_report_clear_owner_list(self):
@@ -1816,10 +2113,10 @@ class TestReportSchedulesApi(SupersetTestCase):
             .one_or_none()
         )
 
-        self.login(username="alpha2", password="password")
+        self.login(username="alpha2", password="password")  # noqa: S106
         uri = f"api/v1/report/{report_schedule.id}"
         rv = self.delete_assert_metric(uri, "delete")
-        self.assertEqual(rv.status_code, 403)
+        assert rv.status_code == 403
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_bulk_delete_report_schedule(self):
@@ -1873,10 +2170,10 @@ class TestReportSchedulesApi(SupersetTestCase):
         )
         report_schedules_ids = [report_schedule.id]
 
-        self.login(username="alpha2", password="password")
+        self.login(username="alpha2", password="password")  # noqa: S106
         uri = f"api/v1/report/?q={prison.dumps(report_schedules_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
-        self.assertEqual(rv.status_code, 403)
+        assert rv.status_code == 403
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_get_list_report_schedule_logs(self):
@@ -1972,3 +2269,79 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert rv.status_code == 405
         rv = self.client.delete(uri)
         assert rv.status_code == 405
+
+    @with_feature_flags(ALERT_REPORT_TABS=True)
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "create_report_schedules"
+    )
+    def test_create_report_schedule_with_invalid_anchors(self):
+        """
+        ReportSchedule Api: Test get report schedule 404s when feature is disabled
+        """
+        report_schedule = db.session.query(Dashboard).first()
+        get_example_database()  # noqa: F841
+        anchors = ["TAB-AsMaxdYL_t", "TAB-YT6eNksV-", "TAB-l_9I0aNYZ"]
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "random_name1",
+            "description": "description",
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
+            "crontab": "0 9 * * *",
+            "working_timeout": 3600,
+            "dashboard": report_schedule.id,
+            "extra": {"dashboard": {"anchor": json.dumps(anchors)}},
+        }
+
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/report/"
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 422
+        assert "message" in data
+        assert "extra" in data["message"]
+        assert all(anchor in data["message"]["extra"][0] for anchor in anchors) is True
+
+    @with_feature_flags(ALERT_REPORT_TABS=True)
+    @pytest.mark.usefixtures("load_mutltiple_tabs_dashboard", "create_report_schedules")
+    def test_create_report_schedule_with_multiple_anchors(self):
+        """
+        ReportSchedule Api: Test report schedule with all tabs
+        """
+        report_dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.slug == "multi_tabs_test")
+            .first()
+        )
+        get_example_database()  # noqa: F841
+
+        self.login(ADMIN_USERNAME)
+        tabs_uri = f"/api/v1/dashboard/{report_dashboard.id}/tabs"
+        rv = self.client.get(tabs_uri)
+        data = json.loads(rv.data.decode("utf-8"))
+
+        tabs_keys = list(data.get("result").get("all_tabs").keys())
+        extra_json = {"dashboard": {"anchor": json.dumps(tabs_keys)}}
+
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "random_name2",
+            "description": "description",
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
+            "crontab": "0 9 * * *",
+            "working_timeout": 3600,
+            "dashboard": report_dashboard.id,
+            "extra": extra_json,
+        }
+
+        uri = "api/v1/report/"
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 201
+
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.dashboard_id == report_dashboard.id)
+            .first()
+        )
+
+        assert json.loads(report_schedule.extra_json) == extra_json

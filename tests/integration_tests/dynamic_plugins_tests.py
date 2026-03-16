@@ -26,9 +26,9 @@ class TestDynamicPlugins(SupersetTestCase):
         Dynamic Plugins: Responds not found when disabled
         """
         self.login(ADMIN_USERNAME)
-        uri = "/dynamic-plugins/api"
+        uri = "/dynamic-plugins/list/"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 404)
+        assert rv.status_code == 404
 
     @with_feature_flags(DYNAMIC_PLUGINS=True)
     def test_dynamic_plugins_enabled(self):
@@ -36,6 +36,6 @@ class TestDynamicPlugins(SupersetTestCase):
         Dynamic Plugins: Responds successfully when enabled
         """
         self.login(ADMIN_USERNAME)
-        uri = "/dynamic-plugins/api"
+        uri = "/dynamic-plugins/list/"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200

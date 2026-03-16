@@ -18,12 +18,12 @@
  */
 import {
   DataRecordValue,
-  GenericDataType,
   NumberFormatter,
   QueryObjectFilterClause,
   TimeFormatter,
   ExtraFormData,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { FALSE_STRING, NULL_STRING, TRUE_STRING } from 'src/utils/common';
 import {
   Clauses,
@@ -34,7 +34,7 @@ export const getSelectExtraFormData = (
   col: string,
   value?: null | (string | number | boolean | null)[],
   emptyFilter = false,
-  inverseSelection = false,
+  shouldExcludeFilter = false,
 ): ExtraFormData => {
   const extra: ExtraFormData = {};
   if (emptyFilter) {
@@ -49,8 +49,7 @@ export const getSelectExtraFormData = (
     extra.filters = [
       {
         col,
-        op: inverseSelection ? ('NOT IN' as const) : ('IN' as const),
-        // @ts-ignore
+        op: shouldExcludeFilter ? ('NOT IN' as const) : ('IN' as const),
         val: value,
       },
     ];
@@ -116,6 +115,9 @@ export function getDataRecordFormatter({
     }
     if (typeof value === 'string') {
       return value;
+    }
+    if (typeof value === 'bigint') {
+      return String(value);
     }
     if (timeFormatter && dtype === GenericDataType.Temporal) {
       return timeFormatter(value);
