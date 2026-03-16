@@ -63,7 +63,13 @@ import {
   TimeseriesChartTransformedProps,
 } from './types';
 import { DEFAULT_FORM_DATA } from './constants';
-import { ForecastSeriesEnum, ForecastValue, Refs } from '../types';
+import {
+  ForecastSeriesEnum,
+  ForecastValue,
+  LegendOrientation,
+  LegendType,
+  Refs,
+} from '../types';
 import { parseAxisBound } from '../utils/controls';
 import {
   calculateLowerLogTick,
@@ -74,6 +80,8 @@ import {
   extractTooltipKeys,
   getAxisType,
   getColtypesMapping,
+  getHorizontalLegendAvailableWidth,
+  getLegendLayoutResult,
   getLegendProps,
   getMinAndMaxFromBounds,
 } from '../utils/series';
@@ -632,29 +640,10 @@ export default function transformProps(
     onLegendScroll,
   } = hooks;
 
-  const addYAxisLabelOffset =
-    !!yAxisTitle && convertInteger(yAxisTitleMargin) !== 0;
-  const addXAxisLabelOffset =
-    !!xAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
-  const padding = getPadding(
-    showLegend,
-    legendOrientation,
-    addYAxisLabelOffset,
-    zoomable,
-    legendMargin,
-    addXAxisLabelOffset,
-    yAxisTitlePosition,
-    convertInteger(yAxisTitleMargin),
-    convertInteger(xAxisTitleMargin),
-    isHorizontal,
-  );
-
   const legendData =
     colorByPrimaryAxis && groupBy.length === 0 && series.length > 0
-      ? // When colorByPrimaryAxis is enabled, show only primary axis values (deduped + filtered)
-        (() => {
+      ? (() => {
           const firstSeries = series[0];
-          // For horizontal charts the category is at index 1, for vertical at index 0
           const primaryAxisIndex = isHorizontal ? 1 : 0;
           if (firstSeries && Array.isArray(firstSeries.data)) {
             const names = (firstSeries.data as any[])
@@ -677,8 +666,7 @@ export default function transformProps(
           }
           return [];
         })()
-      : // Otherwise show original series names
-        rawSeries
+      : rawSeries
           .filter(
             entry =>
               extractForecastSeriesContext(entry.name || '').type ===
@@ -686,6 +674,79 @@ export default function transformProps(
           )
           .map(entry => entry.name || '')
           .concat(extractAnnotationLabels(annotationLayers));
+  const addYAxisLabelOffset =
+    !!yAxisTitle && convertInteger(yAxisTitleMargin) !== 0;
+  const addXAxisLabelOffset =
+    !!xAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
+
+  const sortedLegendData = [...legendData].sort((a: string, b: string) => {
+    if (!legendSort) return 0;
+    return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+  });
+  const colorByPrimaryAxisLegendData = legendData.map(name => ({
+    name,
+    icon: 'roundRect',
+  }));
+  const getLegendLayout = (candidateLegendMargin?: string | number | null) => {
+    const padding = getPadding(
+      showLegend,
+      legendOrientation,
+      addYAxisLabelOffset,
+      zoomable,
+      candidateLegendMargin,
+      addXAxisLabelOffset,
+      yAxisTitlePosition,
+      convertInteger(yAxisTitleMargin),
+      convertInteger(xAxisTitleMargin),
+      isHorizontal,
+    );
+
+    return getLegendLayoutResult({
+      availableWidth:
+        legendOrientation === LegendOrientation.Top ||
+        legendOrientation === LegendOrientation.Bottom
+          ? getHorizontalLegendAvailableWidth({
+              chartWidth: width,
+              orientation: legendOrientation,
+              padding,
+              zoomable,
+            })
+          : undefined,
+      chartHeight: height,
+      chartWidth: width,
+      legendItems:
+        colorByPrimaryAxis && groupBy.length === 0
+          ? colorByPrimaryAxisLegendData
+          : sortedLegendData,
+      legendMargin: candidateLegendMargin,
+      orientation: legendOrientation,
+      show: showLegend,
+      showSelectors: !(colorByPrimaryAxis && groupBy.length === 0),
+      theme,
+      type: legendType,
+    });
+  };
+  const initialLegendLayout = getLegendLayout(legendMargin);
+  const legendLayout =
+    isHorizontal &&
+    legendOrientation === LegendOrientation.Bottom &&
+    initialLegendLayout.effectiveType === LegendType.Plain
+      ? getLegendLayout(initialLegendLayout.effectiveMargin ?? legendMargin)
+      : initialLegendLayout;
+  const effectiveLegendMargin = legendLayout.effectiveMargin ?? legendMargin;
+  const effectiveLegendType = legendLayout.effectiveType;
+  const padding = getPadding(
+    showLegend,
+    legendOrientation,
+    addYAxisLabelOffset,
+    zoomable,
+    effectiveLegendMargin,
+    addXAxisLabelOffset,
+    yAxisTitlePosition,
+    convertInteger(yAxisTitleMargin),
+    convertInteger(xAxisTitleMargin),
+    isHorizontal,
+  );
 
   let xAxis: any = {
     type: xAxisType,
@@ -895,7 +956,7 @@ export default function transformProps(
     },
     legend: {
       ...getLegendProps(
-        legendType,
+        effectiveLegendType,
         legendOrientation,
         showLegend,
         theme,
@@ -906,18 +967,8 @@ export default function transformProps(
       scrollDataIndex: legendIndex || 0,
       data:
         colorByPrimaryAxis && groupBy.length === 0
-          ? // When colorByPrimaryAxis, configure legend items with roundRect icons
-            legendData.map(name => ({
-              name,
-              icon: 'roundRect',
-            }))
-          : // Otherwise use normal legend data
-            legendData.sort((a: string, b: string) => {
-              if (!legendSort) return 0;
-              return legendSort === 'asc'
-                ? a.localeCompare(b)
-                : b.localeCompare(a);
-            }),
+          ? colorByPrimaryAxisLegendData
+          : sortedLegendData,
       // Disable legend selection and buttons when colorByPrimaryAxis is enabled
       ...(colorByPrimaryAxis && groupBy.length === 0
         ? {

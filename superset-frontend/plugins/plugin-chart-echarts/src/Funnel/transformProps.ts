@@ -43,6 +43,7 @@ import {
   extractGroupbyLabel,
   getChartPadding,
   getColtypesMapping,
+  getLegendLayoutResult,
   getLegendProps,
   sanitizeHtml,
 } from '../utils/series';
@@ -241,11 +242,27 @@ export default function transformProps(
     textBorderColor: theme.colorBgBase,
     textBorderWidth: 1,
   };
+  const legendData = keys.sort((a: string, b: string) => {
+    if (!legendSort) return 0;
+    return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+  });
+  const legendLayout = getLegendLayoutResult({
+    chartHeight: height,
+    chartWidth: width,
+    legendItems: legendData,
+    legendMargin,
+    orientation: legendOrientation,
+    show: showLegend,
+    theme,
+    type: legendType,
+  });
+  const effectiveLegendMargin = legendLayout.effectiveMargin ?? legendMargin;
+  const effectiveLegendType = legendLayout.effectiveType;
 
   const series: FunnelSeriesOption[] = [
     {
       type: VizType.Funnel,
-      ...getChartPadding(showLegend, legendOrientation, legendMargin),
+      ...getChartPadding(showLegend, legendOrientation, effectiveLegendMargin),
       animation: true,
       minSize: '0%',
       maxSize: '100%',
@@ -298,11 +315,13 @@ export default function transformProps(
       },
     },
     legend: {
-      ...getLegendProps(legendType, legendOrientation, showLegend, theme),
-      data: keys.sort((a: string, b: string) => {
-        if (!legendSort) return 0;
-        return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
-      }),
+      ...getLegendProps(
+        effectiveLegendType,
+        legendOrientation,
+        showLegend,
+        theme,
+      ),
+      data: legendData,
     },
     series,
   };

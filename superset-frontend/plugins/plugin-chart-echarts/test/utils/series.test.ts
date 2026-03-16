@@ -35,6 +35,8 @@ import {
   formatSeriesName,
   getAxisType,
   getChartPadding,
+  getHorizontalLegendAvailableWidth,
+  getLegendLayoutResult,
   getLegendProps,
   getOverMaxHiddenFormatter,
   getMinAndMaxFromBounds,
@@ -891,19 +893,20 @@ describe('getLegendProps', () => {
     });
   });
 
-  test('should default plain legends to scroll for bottom orientation', () => {
+  test('should return the correct props for plain type with bottom orientation', () => {
     expect(
       getLegendProps(LegendType.Plain, LegendOrientation.Bottom, false, theme),
     ).toEqual({
       show: false,
       bottom: 0,
+      right: 0,
       orient: 'horizontal',
-      type: 'scroll',
+      type: 'plain',
       ...expectedThemeProps,
     });
   });
 
-  test('should default plain legends to scroll for top orientation', () => {
+  test('should return the correct props for plain type with top orientation', () => {
     expect(
       getLegendProps(LegendType.Plain, LegendOrientation.Top, false, theme),
     ).toEqual({
@@ -911,8 +914,168 @@ describe('getLegendProps', () => {
       top: 0,
       right: 0,
       orient: 'horizontal',
-      type: 'scroll',
+      type: 'plain',
       ...expectedThemeProps,
+    });
+  });
+});
+
+describe('getLegendLayoutResult', () => {
+  test('keeps plain horizontal legends when they fit within two rows', () => {
+    expect(
+      getLegendLayoutResult({
+        chartHeight: 400,
+        chartWidth: 800,
+        legendItems: ['Alpha', 'Beta', 'Gamma', 'Delta'],
+        legendMargin: null,
+        orientation: LegendOrientation.Top,
+        show: true,
+        theme,
+        type: LegendType.Plain,
+      }),
+    ).toEqual({
+      effectiveMargin: defaultLegendPadding[LegendOrientation.Top],
+      effectiveType: LegendType.Plain,
+    });
+  });
+
+  test('adds extra margin for wrapped plain horizontal legends', () => {
+    expect(
+      getLegendLayoutResult({
+        chartHeight: 400,
+        chartWidth: 640,
+        legendItems: [
+          'This is a long legend label',
+          'Another long legend label',
+          'Third long legend label',
+        ],
+        legendMargin: null,
+        orientation: LegendOrientation.Top,
+        show: true,
+        theme,
+        type: LegendType.Plain,
+      }),
+    ).toEqual({
+      effectiveMargin: 44,
+      effectiveType: LegendType.Plain,
+    });
+  });
+
+  test('falls back to scroll when horizontal plain legends exceed two rows', () => {
+    expect(
+      getLegendLayoutResult({
+        chartHeight: 400,
+        chartWidth: 240,
+        legendItems: [
+          'This is a long legend label',
+          'Another long legend label',
+          'Third long legend label',
+        ],
+        legendMargin: null,
+        orientation: LegendOrientation.Top,
+        show: true,
+        theme,
+        type: LegendType.Plain,
+      }),
+    ).toEqual({
+      effectiveType: LegendType.Scroll,
+    });
+  });
+
+  test('falls back to scroll when a single horizontal plain legend item exceeds available width', () => {
+    expect(
+      getLegendLayoutResult({
+        chartHeight: 400,
+        chartWidth: 260,
+        legendItems: [
+          'This is a ridiculously long legend label that should not fit on one line',
+        ],
+        legendMargin: null,
+        orientation: LegendOrientation.Top,
+        show: true,
+        theme,
+        type: LegendType.Plain,
+      }),
+    ).toEqual({
+      effectiveType: LegendType.Scroll,
+    });
+  });
+
+  test('falls back to scroll when reserved horizontal width reduces plain legend capacity', () => {
+    const availableWidth = getHorizontalLegendAvailableWidth({
+      chartWidth: 265,
+      orientation: LegendOrientation.Top,
+      padding: { left: 20 },
+      zoomable: true,
+    });
+
+    expect(
+      getLegendLayoutResult({
+        availableWidth,
+        chartHeight: 400,
+        chartWidth: 265,
+        legendItems: ['Alpha', 'Beta', 'Gamma'],
+        legendMargin: null,
+        orientation: LegendOrientation.Top,
+        show: true,
+        theme,
+        type: LegendType.Plain,
+      }),
+    ).toEqual({
+      effectiveType: LegendType.Scroll,
+    });
+  });
+
+  test('keeps plain vertical legends when they fit within a single column', () => {
+    expect(
+      getLegendLayoutResult({
+        chartHeight: 400,
+        chartWidth: 800,
+        legendItems: ['Alpha', 'Beta', 'Gamma'],
+        legendMargin: null,
+        orientation: LegendOrientation.Left,
+        show: true,
+        theme,
+        type: LegendType.Plain,
+      }),
+    ).toEqual({
+      effectiveMargin: defaultLegendPadding[LegendOrientation.Left],
+      effectiveType: LegendType.Plain,
+    });
+  });
+
+  test('adds extra margin for wide vertical plain legends', () => {
+    expect(
+      getLegendLayoutResult({
+        chartHeight: 400,
+        chartWidth: 800,
+        legendItems: ['This is a very long legend label'],
+        legendMargin: null,
+        orientation: LegendOrientation.Left,
+        show: true,
+        theme,
+        type: LegendType.Plain,
+      }),
+    ).toEqual({
+      effectiveMargin: 284,
+      effectiveType: LegendType.Plain,
+    });
+  });
+
+  test('falls back to scroll when vertical plain legends exceed one column', () => {
+    expect(
+      getLegendLayoutResult({
+        chartHeight: 160,
+        chartWidth: 800,
+        legendItems: ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon'],
+        legendMargin: null,
+        orientation: LegendOrientation.Left,
+        show: true,
+        theme,
+        type: LegendType.Plain,
+      }),
+    ).toEqual({
+      effectiveType: LegendType.Scroll,
     });
   });
 });

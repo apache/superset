@@ -43,8 +43,13 @@ import {
   EchartsGanttFormData,
 } from './types';
 import { DEFAULT_FORM_DATA, TIMESERIES_CONSTANTS } from '../constants';
-import { Refs } from '../types';
-import { getLegendProps, groupData } from '../utils/series';
+import { LegendOrientation, Refs } from '../types';
+import {
+  getHorizontalLegendAvailableWidth,
+  getLegendLayoutResult,
+  getLegendProps,
+  groupData,
+} from '../utils/series';
 import {
   getTooltipTimeFormatter,
   getXAxisFormatter,
@@ -245,8 +250,10 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
       .second(time.second());
   }
 
+  const showLegendForChart = showLegend && seriesMap.size > 1;
+
   const padding = getPadding(
-    showLegend && seriesMap.size > 1,
+    showLegendForChart,
     legendOrientation,
     false,
     zoomable,
@@ -345,6 +352,41 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
       if (!legendSort) return 0;
       return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
     });
+  const legendLayout = getLegendLayoutResult({
+    availableWidth:
+      legendOrientation === LegendOrientation.Top ||
+      legendOrientation === LegendOrientation.Bottom
+        ? getHorizontalLegendAvailableWidth({
+            chartWidth: width,
+            orientation: legendOrientation,
+            padding,
+            zoomable,
+          })
+        : undefined,
+    chartHeight: height,
+    chartWidth: width,
+    legendItems: legendData,
+    legendMargin,
+    orientation: legendOrientation,
+    show: showLegendForChart,
+    theme,
+    type: legendType,
+  });
+  const effectiveLegendType = legendLayout.effectiveType;
+  if (legendLayout.effectiveMargin !== undefined) {
+    const adjustedPadding = getPadding(
+      showLegendForChart,
+      legendOrientation,
+      false,
+      zoomable,
+      legendLayout.effectiveMargin,
+      !!xAxisTitle,
+      'Left',
+      convertInteger(yAxisTitleMargin),
+      convertInteger(xAxisTitleMargin),
+    );
+    Object.assign(padding, adjustedPadding);
+  }
 
   const tooltipFormatterMap = {
     [GenericDataType.Numeric]: tooltipValuesFormatter,
@@ -374,12 +416,13 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     },
     legend: {
       ...getLegendProps(
-        legendType,
+        effectiveLegendType,
         legendOrientation,
-        showLegend,
+        showLegendForChart,
         theme,
         zoomable,
         legendState,
+        padding,
       ),
       data: legendData,
     },

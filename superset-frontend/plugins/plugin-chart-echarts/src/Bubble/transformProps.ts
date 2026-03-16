@@ -30,7 +30,11 @@ import {
 import { EchartsBubbleChartProps, EchartsBubbleFormData } from './types';
 import { DEFAULT_FORM_DATA, MINIMUM_BUBBLE_SIZE } from './constants';
 import { defaultGrid } from '../defaults';
-import { getLegendProps, getMinAndMaxFromBounds } from '../utils/series';
+import {
+  getLegendLayoutResult,
+  getLegendProps,
+  getMinAndMaxFromBounds,
+} from '../utils/series';
 import { Refs } from '../types';
 import { parseAxisBound } from '../utils/controls';
 import { getDefaultTooltip } from '../utils/tooltip';
@@ -172,6 +176,22 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
   const xAxisFormatter = getNumberFormatter(xAxisFormat);
   const yAxisFormatter = getNumberFormatter(yAxisFormat);
   const tooltipSizeFormatter = getNumberFormatter(tooltipSizeFormat);
+  const legendData = Array.from(legends).sort((a: string, b: string) => {
+    if (!legendSort) return 0;
+    return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+  });
+  const legendLayout = getLegendLayoutResult({
+    chartHeight: height,
+    chartWidth: width,
+    legendItems: legendData,
+    legendMargin,
+    orientation: legendOrientation,
+    show: showLegend,
+    theme,
+    type: legendType,
+  });
+  const effectiveLegendMargin = legendLayout.effectiveMargin ?? legendMargin;
+  const effectiveLegendType = legendLayout.effectiveType;
 
   const [xAxisMin, xAxisMax] = (xAxisBounds || []).map(parseAxisBound);
   const [yAxisMin, yAxisMax] = (yAxisBounds || []).map(parseAxisBound);
@@ -181,7 +201,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     legendOrientation,
     true,
     false,
-    legendMargin,
+    effectiveLegendMargin,
     true,
     'Left',
     convertInteger(yAxisTitleMargin),
@@ -230,11 +250,13 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
       type: logYAxis ? AxisType.Log : AxisType.Value,
     },
     legend: {
-      ...getLegendProps(legendType, legendOrientation, showLegend, theme),
-      data: Array.from(legends).sort((a: string, b: string) => {
-        if (!legendSort) return 0;
-        return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
-      }),
+      ...getLegendProps(
+        effectiveLegendType,
+        legendOrientation,
+        showLegend,
+        theme,
+      ),
+      data: legendData,
     },
     tooltip: {
       show: !inContextMenu,
