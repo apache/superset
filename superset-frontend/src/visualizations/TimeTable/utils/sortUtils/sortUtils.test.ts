@@ -17,10 +17,14 @@
  * under the License.
  */
 import { sortNumberWithMixedTypes } from './sortUtils';
+import type { ColumnConfig } from '../../types';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('sortNumberWithMixedTypes', () => {
-  const createMockRow = (value: any) => ({
+  const createMockRow = (
+    value: any,
+    columnOverrides: Partial<ColumnConfig> = {},
+  ) => ({
     values: {
       testColumn: {
         props: {
@@ -29,6 +33,7 @@ describe('sortNumberWithMixedTypes', () => {
             key: 'testColumn',
             colType: 'time',
             bounds: undefined,
+            ...columnOverrides,
           },
           reversedEntries: [{ metric: value }],
         },
@@ -72,13 +77,13 @@ describe('sortNumberWithMixedTypes', () => {
   });
 
   test('should handle string numbers', () => {
-    const rowA = createMockRow('10');
-    const rowB = createMockRow('20');
+    const rowA = createMockRow('10', { colType: undefined });
+    const rowB = createMockRow('20', { colType: undefined });
 
     const result = sortNumberWithMixedTypes(rowA, rowB, 'testColumn');
 
     expect(typeof result).toBe('number');
-    expect(result).toBe(0);
+    expect(result).toBeLessThan(0);
   });
 
   test('should handle mixed types', () => {
