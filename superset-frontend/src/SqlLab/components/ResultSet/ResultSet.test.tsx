@@ -923,10 +923,7 @@ describe('ResultSet', () => {
     );
     const csvButton = getByTestId('export-csv-button');
     expect(csvButton).toBeDisabled();
-    expect(csvButton).toHaveAttribute(
-      'aria-label',
-      'Download to CSV',
-    );
+    expect(csvButton).toHaveAttribute('aria-label', 'Download to CSV');
     mockIsFeatureEnabled.mockReset();
   });
 
@@ -954,10 +951,7 @@ describe('ResultSet', () => {
     );
     const clipboardButton = getByTestId('copy-to-clipboard-button');
     expect(clipboardButton).toBeDisabled();
-    expect(clipboardButton).toHaveAttribute(
-      'aria-label',
-      'Copy to Clipboard',
-    );
+    expect(clipboardButton).toHaveAttribute('aria-label', 'Copy to Clipboard');
     mockIsFeatureEnabled.mockReset();
   });
 });
