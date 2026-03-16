@@ -217,3 +217,32 @@ test('Screenshot menu items should not be disabled when GranularExportControls i
 
   mockIsFeatureEnabled.mockReset();
 });
+
+test('Disabled screenshot items should show tooltip icon when GranularExportControls is ON', () => {
+  mockIsFeatureEnabled.mockImplementation(
+    (flag: string) => flag === FeatureFlag.GranularExportControls,
+  );
+
+  render(<MenuWrapperWithProps canExportImage={false} />, {
+    useRedux: true,
+  });
+
+  const tooltipTriggers = screen.getAllByTestId('tooltip-trigger');
+  expect(tooltipTriggers.length).toBeGreaterThanOrEqual(2);
+
+  mockIsFeatureEnabled.mockReset();
+});
+
+test('Enabled screenshot items should not show tooltip icon', () => {
+  mockIsFeatureEnabled.mockImplementation(
+    (flag: string) => flag === FeatureFlag.GranularExportControls,
+  );
+
+  render(<MenuWrapperWithProps canExportImage />, {
+    useRedux: true,
+  });
+
+  expect(screen.queryByTestId('tooltip-trigger')).not.toBeInTheDocument();
+
+  mockIsFeatureEnabled.mockReset();
+});

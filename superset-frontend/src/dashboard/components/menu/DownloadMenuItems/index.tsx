@@ -37,6 +37,7 @@ import {
 } from 'src/logger/LogUtils';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 
+import { MenuItemTooltip } from 'src/components/Chart/DisabledMenuItemTooltip';
 import { DownloadScreenshotFormat } from './types';
 
 export interface UseDownloadMenuItemsProps {
@@ -156,17 +157,29 @@ export const useDownloadMenuItems = (
     isFeatureEnabled(FeatureFlag.GranularExportControls) &&
     canExportImage === false;
 
+  const imageExportLabel = (text: string) =>
+    imageDisabled ? (
+      <span>
+        {text}
+        <MenuItemTooltip
+          title={t("You don't have permission to export images")}
+        />
+      </span>
+    ) : (
+      text
+    );
+
   const screenshotMenuItems: MenuItem[] = isWebDriverScreenshotEnabled
     ? [
         {
           key: DownloadScreenshotFormat.PDF,
-          label: pdfMenuItemTitle,
+          label: imageExportLabel(pdfMenuItemTitle),
           disabled: imageDisabled,
           onClick: () => downloadScreenshot(DownloadScreenshotFormat.PDF),
         },
         {
           key: DownloadScreenshotFormat.PNG,
-          label: imageMenuItemTitle,
+          label: imageExportLabel(imageMenuItemTitle),
           disabled: imageDisabled,
           onClick: () => downloadScreenshot(DownloadScreenshotFormat.PNG),
         },
@@ -174,13 +187,13 @@ export const useDownloadMenuItems = (
     : [
         {
           key: 'download-pdf',
-          label: pdfMenuItemTitle,
+          label: imageExportLabel(pdfMenuItemTitle),
           disabled: imageDisabled,
           onClick: (e: any) => onDownloadPdf(e.domEvent),
         },
         {
           key: 'download-image',
-          label: imageMenuItemTitle,
+          label: imageExportLabel(imageMenuItemTitle),
           disabled: imageDisabled,
           onClick: (e: any) => onDownloadImage(e.domEvent),
         },

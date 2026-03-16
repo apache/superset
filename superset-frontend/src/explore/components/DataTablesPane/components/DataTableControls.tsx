@@ -18,9 +18,11 @@
  */
 import { styled, css } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
+import { t } from '@apache-superset/core/translation';
 import { useMemo } from 'react';
 import { zip } from 'lodash';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { Tooltip } from '@superset-ui/core/components';
 import {
   CopyToClipboardButton,
   FilterInput,
@@ -85,18 +87,38 @@ export const TableControls = ({
         `}
       >
         <RowCountLabel rowcount={rowcount} loading={isLoading} />
-        <div
-          css={
+        <Tooltip
+          title={
             !copyEnabled
-              ? css`
-                  pointer-events: none;
-                  opacity: 0.3;
-                `
+              ? t("You don't have permission to copy to clipboard")
               : undefined
           }
         >
-          <CopyToClipboardButton data={formattedData} columns={columnNames} />
-        </div>
+          <div
+            css={
+              !copyEnabled
+                ? css`
+                    opacity: 0.3;
+                  `
+                : undefined
+            }
+          >
+            <div
+              css={
+                !copyEnabled
+                  ? css`
+                      pointer-events: none;
+                    `
+                  : undefined
+              }
+            >
+              <CopyToClipboardButton
+                data={formattedData}
+                columns={columnNames}
+              />
+            </div>
+          </div>
+        </Tooltip>
       </div>
     </TableControlsWrapper>
   );

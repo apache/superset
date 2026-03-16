@@ -413,7 +413,11 @@ const ResultSet = ({
               variant="text"
               color="primary"
               icon={<Icons.DownloadOutlined iconSize="m" />}
-              tooltip={t('Download to CSV')}
+              tooltip={
+                !canExportData && granularExport
+                  ? t("You don't have permission to export data")
+                  : t('Download to CSV')
+              }
               aria-label={t('Download to CSV')}
               disabled={!canExportData}
               {...(canExportData &&
@@ -453,7 +457,11 @@ const ResultSet = ({
                 variant="text"
                 color="primary"
                 icon={<Icons.CopyOutlined iconSize="m" />}
-                tooltip={t('Copy to Clipboard')}
+                tooltip={
+                  !canCopyClipboard && granularExport
+                    ? t("You don't have permission to copy to clipboard")
+                    : t('Copy to Clipboard')
+                }
                 aria-label={t('Copy to Clipboard')}
                 disabled={!canCopyClipboard}
                 data-test="copy-to-clipboard-button"
