@@ -208,7 +208,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   const tableOptions = useMemo<TableOption[]>(
     () =>
       data
-        ? data.options.map(table => ({
+        ? data.options.map((table: Table) => ({
             value: table.value,
             label: customTableOptionLabelRenderer ? (
               customTableOptionLabelRenderer(table)

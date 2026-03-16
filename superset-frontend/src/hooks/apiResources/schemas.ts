@@ -41,7 +41,7 @@ const schemaApi = api.injectEndpoints({
   endpoints: builder => ({
     schemas: builder.query<SchemaOption[], FetchSchemasQueryParams>({
       providesTags: [{ type: 'Schemas', id: 'LIST' }],
-      query: ({ dbId, catalog, forceRefresh }) => ({
+      query: ({ dbId, catalog, forceRefresh }: FetchSchemasQueryParams) => ({
         endpoint: `/api/v1/database/${dbId}/schemas/`,
         // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
         urlParams: {
@@ -55,7 +55,11 @@ const schemaApi = api.injectEndpoints({
             title: value,
           })),
       }),
-      serializeQueryArgs: ({ queryArgs: { dbId, catalog } }) => ({
+      serializeQueryArgs: ({
+        queryArgs: { dbId, catalog },
+      }: {
+        queryArgs: Pick<FetchSchemasQueryParams, 'dbId' | 'catalog'>;
+      }) => ({
         dbId,
         catalog,
       }),
@@ -96,7 +100,15 @@ export function useSchemas(options: Params) {
     ) => {
       if (dbId && (!result.currentData || forceRefresh)) {
         trigger({ dbId, catalog, forceRefresh }).then(
-          ({ isSuccess, isError, data }) => {
+          ({
+            isSuccess,
+            isError,
+            data,
+          }: {
+            isSuccess: boolean;
+            isError: boolean;
+            data?: SchemaOption[];
+          }) => {
             if (isSuccess) {
               onSuccess?.(data || EMPTY_SCHEMAS, forceRefresh);
             }

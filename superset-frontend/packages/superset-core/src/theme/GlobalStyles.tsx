@@ -19,10 +19,6 @@
 
 // @fontsource/* v5.1+ doesn't play nice with eslint-import plugin v2.31+
 /* eslint-disable import/extensions */
-import '@fontsource/inter/200.css';
-import '@fontsource/inter/400.css';
-import '@fontsource/inter/500.css';
-import '@fontsource/inter/600.css';
 import '@fontsource/ibm-plex-mono/400.css';
 import '@fontsource/ibm-plex-mono/500.css';
 import '@fontsource/ibm-plex-mono/600.css';

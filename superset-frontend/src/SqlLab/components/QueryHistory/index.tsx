@@ -20,6 +20,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
 import { useInView } from 'react-intersection-observer';
 import { omit } from 'lodash';
+import type { QueryResponse } from '@superset-ui/core';
 import { EmptyState, Skeleton } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core/translation';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
@@ -88,7 +89,7 @@ const QueryHistory = ({
         ? getEditorQueries(
             omit(
               queries,
-              data.result.map(({ id }) => id),
+              data.result.map(({ id }: QueryResponse) => id),
             ),
             editorId,
           )

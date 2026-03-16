@@ -20,6 +20,7 @@
 import fetchMock from 'fetch-mock';
 import rison from 'rison';
 import { render, screen } from 'spec/helpers/testing-library';
+import type { Middleware } from 'redux';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
@@ -225,7 +226,7 @@ export const createMockStore = (initialState: Partial<StoreState> = {}) =>
       dashboards: (state = initialState.dashboards || {}) => state,
     },
     preloadedState: initialState,
-    middleware: getDefaultMiddleware =>
+    middleware: (getDefaultMiddleware: (options?: unknown) => Middleware[]) =>
       getDefaultMiddleware({
         serializableCheck: false,
         immutableCheck: false,

@@ -21,13 +21,15 @@ import { t } from '@apache-superset/core/translation';
 import {
   Table,
   type TableMetaData,
+  type Data as TableOptionsData,
+  type SchemaOption,
   useSchemas,
   useLazyTablesQuery,
   useLazyTableMetadataQuery,
   useLazyTableExtendedMetadataQuery,
 } from 'src/hooks/apiResources';
 import type { TreeNodeData } from './types';
-import { SupersetError } from '@superset-ui/core';
+import { ClientErrorObject, SupersetError } from '@superset-ui/core';
 
 export const EMPTY_NODE_ID_PREFIX = 'empty:';
 
@@ -160,12 +162,12 @@ const useTreeData = ({
             },
             true,
           )
-            .then(({ data }) => {
+            .then(({ data }: { data?: TableOptionsData }) => {
               if (data) {
                 dispatch({ type: 'SET_TABLE_DATA', key: schemaKey, data });
               }
             })
-            .catch(error => {
+            .catch((error: ClientErrorObject) => {
               dispatch({
                 type: 'SET_ERROR',
                 errorPayload: error?.errors?.[0] ?? null,
@@ -251,10 +253,12 @@ const useTreeData = ({
   const treeData = useMemo((): TreeNodeData[] => {
     // Filter schemas if a schema is selected, otherwise show all
     const filteredSchemaData = selectedSchema
-      ? schemaData?.filter(schema => schema.value === selectedSchema)
+      ? schemaData?.filter(
+          (schema: SchemaOption) => schema.value === selectedSchema,
+        )
       : schemaData;
 
-    const data = filteredSchemaData?.map(schema => {
+    const data = filteredSchemaData?.map((schema: SchemaOption) => {
       const schemaKey = `${dbId}:${schema.value}`;
       const schemaId = `schema:${dbId}:${schema.value}`;
       const tablesData = tableData?.[schemaKey];

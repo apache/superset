@@ -1,4 +1,8 @@
-# LLM Context Guide for Apache Superset
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+# LLM Context Guide for Apache Superset (lute-superset fork)
 
 Apache Superset is a data visualization platform with Flask/Python backend and React/TypeScript frontend.
 
@@ -72,6 +76,43 @@ superset/
 └── UPDATING.md                 # Breaking changes log
 ```
 
+## MCP Service (Fork-Specific Addition)
+
+This fork adds a **Model Context Protocol (MCP) service** that lets AI assistants programmatically interact with Superset (dashboards, charts, datasets, SQL Lab).
+
+```
+superset/mcp_service/
+├── app.py              # FastMCP app factory + tool registration (add imports HERE)
+├── auth.py             # JWT/dev-user authentication (@mcp_auth_hook)
+├── flask_singleton.py  # Shared Flask app instance for all MCP tool calls
+├── mcp_core.py         # Reusable core classes (ModelListCore, ModelGetInfoCore, etc.)
+├── chart/              # Chart tools, schemas, prompts, resources
+├── dashboard/          # Dashboard tools
+├── dataset/            # Dataset tools
+├── sql_lab/            # SQL Lab tools
+└── system/             # System/health tools
+```
+
+**Key rules for MCP development** (full details in `superset/mcp_service/CLAUDE.md`):
+
+- **Register tools in `app.py`** — import new tools at the bottom of `app.py`, never in `server.py`
+- **Use `@tool` decorator** from `superset_core.api.mcp` (not `@mcp.tool` directly)
+- **Use DAO classes** (ChartDAO, DashboardDAO, etc.) — never query the database directly
+- **Pydantic schemas** for all inputs/outputs; place in `{module}/schemas.py`
+- **Python 3.10+ union types**: `str | None` not `Optional[str]`
+- **All `.py` files need Apache license headers** — CI will fail without them
+
+**Run the MCP service:**
+```bash
+superset mcp run --port 5008
+# or with gunicorn for multi-worker:
+gunicorn --workers 4 --bind 0.0.0.0:5008 \
+  --worker-class uvicorn.workers.UvicornWorker \
+  superset.mcp_service.server:app
+```
+
+**Test location:** `tests/unit_tests/mcp_service/{module}/tool/test_{tool_name}.py`
+
 ## Code Standards
 
 ### TypeScript Frontend
@@ -127,10 +168,18 @@ The Developer Portal auto-generates MDX documentation from Storybook stories. **
 
 ## Architecture Patterns
 
+### Dataset-Centric Approach
+Charts are built from enriched **datasets**, not raw tables. Datasets contain:
+- Dimension columns with labels and descriptions
+- Predefined metrics as SQL expressions
+- Row-level security rules scoped to the dataset
+
+This means chart tools and queries should always operate through the dataset abstraction, not bypass it via direct SQL on source tables.
+
 ### Security & Features
 - **RBAC**: Role-based access via Flask-AppBuilder
 - **Feature flags**: Control feature rollouts
-- **Row-level security**: SQL-based data access control
+- **Row-level security**: SQL-based data access control, enforced automatically through the dataset layer
 
 ## Test Utilities
 

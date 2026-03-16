@@ -22,7 +22,7 @@ import useEffectEvent from 'src/hooks/useEffectEvent';
 import { toQueryString } from 'src/utils/urlUtils';
 import { api, JsonResponse } from './queryApi';
 
-import { useSchemas } from './schemas';
+import { type SchemaOption, useSchemas } from './schemas';
 
 export interface Table {
   label: string;
@@ -102,7 +102,12 @@ const tableApi = api.injectEndpoints({
   endpoints: builder => ({
     tables: builder.query<Data, FetchTablesQueryParams>({
       providesTags: ['Tables'],
-      query: ({ dbId, catalog, schema, forceRefresh }) => ({
+      query: ({
+        dbId,
+        catalog,
+        schema,
+        forceRefresh,
+      }: FetchTablesQueryParams) => ({
         endpoint: `/api/v1/database/${dbId ?? 'undefined'}/tables/`,
         // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
         urlParams: {
@@ -115,20 +120,24 @@ const tableApi = api.injectEndpoints({
           hasMore: json.count > json.result.length,
         }),
       }),
-      serializeQueryArgs: ({ queryArgs: { dbId, schema } }) => ({
+      serializeQueryArgs: ({
+        queryArgs: { dbId, schema },
+      }: {
+        queryArgs: Pick<FetchTablesQueryParams, 'dbId' | 'schema'>;
+      }) => ({
         dbId,
         schema,
       }),
     }),
     tableMetadata: builder.query<TableMetaData, FetchTableMetadataQueryParams>({
-      providesTags: result =>
+      providesTags: (result?: TableMetaData) =>
         result
           ? [
               { type: 'TableMetadatas', id: result.name },
               { type: 'TableMetadatas', id: 'LIST' },
             ]
           : [{ type: 'TableMetadatas', id: 'LIST' }],
-      query: ({ dbId, catalog, schema, table }) => ({
+      query: ({ dbId, catalog, schema, table }: FetchTableMetadataQueryParams) => ({
         endpoint: `/api/v1/database/${dbId}/table_metadata/${toQueryString({
           name: table,
           catalog,
@@ -141,13 +150,17 @@ const tableApi = api.injectEndpoints({
       TableExtendedMetadata,
       FetchTableMetadataQueryParams
     >({
-      query: ({ dbId, catalog, schema, table }) => ({
+      query: ({ dbId, catalog, schema, table }: FetchTableMetadataQueryParams) => ({
         endpoint: `/api/v1/database/${dbId}/table_metadata/extra/${toQueryString(
           { name: table, catalog, schema },
         )}`,
         transformResponse: ({ json }: JsonResponse) => json,
       }),
-      providesTags: (result, error, { table }) => [
+      providesTags: (
+        _result: TableExtendedMetadata | undefined,
+        _error: unknown,
+        { table }: FetchTableMetadataQueryParams,
+      ) => [
         { type: 'TableMetadatas', id: table },
       ],
     }),
@@ -173,7 +186,7 @@ export function useTables(options: Params) {
     catalog: catalog || undefined,
   });
   const schemaOptionsMap = useMemo(
-    () => new Set(schemaOptions?.map(({ value }) => value)),
+    () => new Set(schemaOptions?.map(({ value }: SchemaOption) => value)),
     [schemaOptions],
   );
 
@@ -200,7 +213,17 @@ export function useTables(options: Params) {
   const refetch = useCallback(() => {
     if (enabled) {
       trigger({ dbId, catalog, schema, forceRefresh: true }).then(
-        ({ isSuccess, isError, data, error }) => {
+        ({
+          isSuccess,
+          isError,
+          data,
+          error,
+        }: {
+          isSuccess: boolean;
+          isError: boolean;
+          data?: Data;
+          error?: ClientErrorObject;
+        }) => {
           if (isSuccess && data) {
             handleOnSuccess(data, true);
           }

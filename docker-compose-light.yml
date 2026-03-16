@@ -114,6 +114,7 @@ services:
     environment:
       DATABASE_HOST: db-light
       DATABASE_DB: superset_light
+      EXAMPLES_HOST: db-light
       POSTGRES_DB: superset_light
       SUPERSET_CONFIG_PATH: /app/docker/pythonpath_dev/superset_config_docker_light.py
       GITHUB_HEAD_REF: ${GITHUB_HEAD_REF:-}
@@ -136,6 +137,7 @@ services:
     environment:
       DATABASE_HOST: db-light
       DATABASE_DB: superset_light
+      EXAMPLES_HOST: db-light
       POSTGRES_DB: superset_light
       SUPERSET_CONFIG_PATH: /app/docker/pythonpath_dev/superset_config_docker_light.py
     healthcheck:
@@ -191,6 +193,7 @@ services:
     environment:
       DATABASE_HOST: db-light
       DATABASE_DB: test
+      EXAMPLES_HOST: db-light
       POSTGRES_DB: test
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@db-light:5432/test
       SUPERSET_CONFIG: superset_test_config_light

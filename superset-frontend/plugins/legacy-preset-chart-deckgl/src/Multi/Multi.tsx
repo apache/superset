@@ -22,7 +22,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { isEqual } from 'lodash';
-import { createSelector } from '@reduxjs/toolkit';
 import {
   AdhocFilter,
   ContextMenuFilters,
@@ -96,10 +95,9 @@ const MultiWrapper = styled.div<{ height: number; width: number }>`
   width: ${({ width }) => width}px;
 `;
 
-const selectDataMask = createSelector(
-  (state: { dataMask?: DataMaskState }) => state.dataMask,
-  dataMask => dataMask || {},
-);
+const selectDataMask = (state: {
+  dataMask?: DataMaskState;
+}): DataMaskState => state.dataMask ?? {};
 
 const DeckMulti = (props: DeckMultiProps) => {
   const containerRef = useRef<DeckGLContainerHandle>();

@@ -111,7 +111,11 @@ const queryHistoryApi = api.injectEndpoints({
   endpoints: builder => ({
     editorQueries: builder.query<QueryResult, EditorQueriesParams>({
       providesTags: ['EditorQueries'],
-      query: ({ editorId, pageIndex = 0, pageSize = 25 }) => ({
+      query: ({
+        editorId,
+        pageIndex = 0,
+        pageSize = 25,
+      }: EditorQueriesParams) => ({
         method: 'GET',
         endpoint: `/api/v1/query/`,
         urlParams: {
@@ -162,12 +166,22 @@ const queryHistoryApi = api.injectEndpoints({
           result: json.result.map(mapQueryResponse),
         }),
       }),
-      serializeQueryArgs: ({ queryArgs: { editorId } }) => ({ editorId }),
+      serializeQueryArgs: ({
+        queryArgs: { editorId },
+      }: {
+        queryArgs: Pick<EditorQueriesParams, 'editorId'>;
+      }) => ({ editorId }),
       // Refetch when the page arg changes
-      forceRefetch({ currentArg, previousArg }) {
+      forceRefetch({
+        currentArg,
+        previousArg,
+      }: {
+        currentArg?: EditorQueriesParams;
+        previousArg?: EditorQueriesParams;
+      }) {
         return currentArg !== previousArg;
       },
-      merge: (currentCache, newItems) => {
+      merge: (currentCache: QueryResult, newItems: QueryResult) => {
         currentCache.result.push(...newItems.result);
       },
     }),

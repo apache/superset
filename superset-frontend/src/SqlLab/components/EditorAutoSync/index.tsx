@@ -148,7 +148,7 @@ const EditorAutoSync: FC = () => {
           .then(() => {
             dispatch(clearDestoryedQueryEditor(id));
           })
-          .catch(({ status }) => {
+          .catch(({ status }: { status?: number }) => {
             if (status === 404) {
               dispatch(clearDestoryedQueryEditor(id));
             }
@@ -190,7 +190,7 @@ const EditorAutoSync: FC = () => {
         .filter(({ inLocalStorage }) => !inLocalStorage)
         .map(queryEditor => updateSqlEditor({ queryEditor })),
     ).then(resolvers => {
-      if (!resolvers.some(result => 'error' in result)) {
+      if (!resolvers.some((result: { error?: unknown }) => 'error' in result)) {
         lastSavedTimestampRef.current = Date.now();
         dispatch(setEditorTabLastUpdate(lastSavedTimestampRef.current));
       }
