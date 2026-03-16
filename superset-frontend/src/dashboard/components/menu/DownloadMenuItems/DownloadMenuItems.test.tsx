@@ -24,7 +24,11 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
-import { SupersetClient } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  SupersetClient,
+} from '@superset-ui/core';
 import { useDownloadMenuItems } from '.';
 
 const mockAddSuccessToast = jest.fn();
@@ -41,6 +45,7 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn().mockReturnValue(false),
   SupersetClient: {
     get: jest.fn(),
   },
@@ -135,4 +140,109 @@ test('Export as Example shows error toast on failure', async () => {
       'Sorry, something went wrong. Try again later.',
     );
   });
+});
+
+const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+
+const MenuWrapperWithProps = (
+  overrides: Partial<ReturnType<typeof createProps>> & {
+    canExportImage?: boolean;
+  },
+) => {
+  const downloadMenuItem = useDownloadMenuItems({
+    ...createProps(),
+    ...overrides,
+  });
+  const menuItems: MenuItem[] = [downloadMenuItem];
+  return <Menu forceSubMenuRender items={menuItems} />;
+};
+
+test('Screenshot menu items should be disabled when GranularExportControls is ON and canExportImage is false', () => {
+  mockIsFeatureEnabled.mockImplementation(
+    (flag: string) => flag === FeatureFlag.GranularExportControls,
+  );
+
+  render(<MenuWrapperWithProps canExportImage={false} />, {
+    useRedux: true,
+  });
+
+  const pdfItem = screen
+    .getByText('Export to PDF')
+    .closest('[role="menuitem"]');
+  const imageItem = screen
+    .getByText('Download as Image')
+    .closest('[role="menuitem"]');
+  expect(pdfItem).toHaveAttribute('aria-disabled', 'true');
+  expect(imageItem).toHaveAttribute('aria-disabled', 'true');
+
+  mockIsFeatureEnabled.mockReset();
+});
+
+test('Screenshot menu items should be enabled when GranularExportControls is ON and canExportImage is true', () => {
+  mockIsFeatureEnabled.mockImplementation(
+    (flag: string) => flag === FeatureFlag.GranularExportControls,
+  );
+
+  render(<MenuWrapperWithProps canExportImage />, {
+    useRedux: true,
+  });
+
+  const pdfItem = screen
+    .getByText('Export to PDF')
+    .closest('[role="menuitem"]');
+  const imageItem = screen
+    .getByText('Download as Image')
+    .closest('[role="menuitem"]');
+  expect(pdfItem).not.toHaveAttribute('aria-disabled', 'true');
+  expect(imageItem).not.toHaveAttribute('aria-disabled', 'true');
+
+  mockIsFeatureEnabled.mockReset();
+});
+
+test('Screenshot menu items should not be disabled when GranularExportControls is OFF even with canExportImage false', () => {
+  mockIsFeatureEnabled.mockReturnValue(false);
+
+  render(<MenuWrapperWithProps canExportImage={false} />, {
+    useRedux: true,
+  });
+
+  const pdfItem = screen
+    .getByText('Export to PDF')
+    .closest('[role="menuitem"]');
+  const imageItem = screen
+    .getByText('Download as Image')
+    .closest('[role="menuitem"]');
+  expect(pdfItem).not.toHaveAttribute('aria-disabled', 'true');
+  expect(imageItem).not.toHaveAttribute('aria-disabled', 'true');
+
+  mockIsFeatureEnabled.mockReset();
+});
+
+test('Disabled screenshot items should show tooltip icon when GranularExportControls is ON', () => {
+  mockIsFeatureEnabled.mockImplementation(
+    (flag: string) => flag === FeatureFlag.GranularExportControls,
+  );
+
+  render(<MenuWrapperWithProps canExportImage={false} />, {
+    useRedux: true,
+  });
+
+  const tooltipTriggers = screen.getAllByTestId('tooltip-trigger');
+  expect(tooltipTriggers.length).toBeGreaterThanOrEqual(2);
+
+  mockIsFeatureEnabled.mockReset();
+});
+
+test('Enabled screenshot items should not show tooltip icon', () => {
+  mockIsFeatureEnabled.mockImplementation(
+    (flag: string) => flag === FeatureFlag.GranularExportControls,
+  );
+
+  render(<MenuWrapperWithProps canExportImage />, {
+    useRedux: true,
+  });
+
+  expect(screen.queryByTestId('tooltip-trigger')).not.toBeInTheDocument();
+
+  mockIsFeatureEnabled.mockReset();
 });

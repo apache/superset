@@ -18,8 +18,11 @@
  */
 import { styled, css } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
+import { t } from '@apache-superset/core/translation';
 import { useMemo } from 'react';
 import { zip } from 'lodash';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { Tooltip } from '@superset-ui/core/components';
 import {
   CopyToClipboardButton,
   FilterInput,
@@ -27,6 +30,7 @@ import {
 import { applyFormattingToTabularData } from 'src/utils/common';
 import { getTimeColumns } from 'src/explore/components/DataTableControl/utils';
 import RowCountLabel from 'src/components/RowCountLabel';
+import { usePermissions } from 'src/hooks/usePermissions';
 import { TableControlsProps } from '../types';
 
 export const TableControlsWrapper = styled.div`
@@ -69,6 +73,10 @@ export const TableControls = ({
     () => applyFormattingToTabularData(data, formattedTimeColumns),
     [data, formattedTimeColumns],
   );
+  const { canCopyClipboard: canCopyClipboardPerm } = usePermissions();
+  const copyEnabled = isFeatureEnabled(FeatureFlag.GranularExportControls)
+    ? canCopyClipboardPerm
+    : canDownload;
   return (
     <TableControlsWrapper>
       <FilterInput onChangeHandler={onInputChange} shouldFocus />
@@ -79,9 +87,38 @@ export const TableControls = ({
         `}
       >
         <RowCountLabel rowcount={rowcount} loading={isLoading} />
-        {canDownload && (
-          <CopyToClipboardButton data={formattedData} columns={columnNames} />
-        )}
+        <Tooltip
+          title={
+            !copyEnabled
+              ? t("You don't have permission to copy to clipboard")
+              : undefined
+          }
+        >
+          <div
+            css={
+              !copyEnabled
+                ? css`
+                    opacity: 0.3;
+                  `
+                : undefined
+            }
+          >
+            <div
+              css={
+                !copyEnabled
+                  ? css`
+                      pointer-events: none;
+                    `
+                  : undefined
+              }
+            >
+              <CopyToClipboardButton
+                data={formattedData}
+                columns={columnNames}
+              />
+            </div>
+          </div>
+        </Tooltip>
       </div>
     </TableControlsWrapper>
   );

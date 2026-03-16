@@ -51,6 +51,8 @@ import {
   getNumberFormatter,
   getExtensionsRegistry,
   ErrorTypeEnum,
+  isFeatureEnabled,
+  FeatureFlag,
 } from '@superset-ui/core';
 import { tn } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
@@ -361,11 +363,20 @@ const ResultSet = ({
         schema: query?.schema,
       };
 
-      const canExportData = findPermission(
+      const canExportDataLegacy = findPermission(
         'can_export_csv',
         'SQLLab',
         user?.roles,
       );
+      const granularExport = isFeatureEnabled(
+        FeatureFlag.GranularExportControls,
+      );
+      const canExportData = granularExport
+        ? findPermission('can_export_data', 'Superset', user?.roles)
+        : canExportDataLegacy;
+      const canCopyClipboard = granularExport
+        ? findPermission('can_copy_clipboard', 'Superset', user?.roles)
+        : canExportDataLegacy;
 
       const handleDownloadCsv = (event: React.MouseEvent<HTMLElement>) => {
         logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {});
@@ -396,19 +407,26 @@ const ResultSet = ({
               onClick={createExploreResultsOnClick}
             />
           )}
-          {csv && canExportData && (
+          {csv && (
             <Button
               buttonSize="small"
               variant="text"
               color="primary"
               icon={<Icons.DownloadOutlined iconSize="m" />}
-              tooltip={t('Download to CSV')}
+              tooltip={
+                !canExportData && granularExport
+                  ? t("You don't have permission to export data")
+                  : t('Download to CSV')
+              }
               aria-label={t('Download to CSV')}
-              {...(!shouldUseStreamingExport() && {
-                href: getExportCsvUrl(query.id),
-              })}
+              disabled={!canExportData}
+              {...(canExportData &&
+                !shouldUseStreamingExport() && {
+                  href: getExportCsvUrl(query.id),
+                })}
               data-test="export-csv-button"
               onClick={e => {
+                if (!canExportData) return;
                 const useStreaming = shouldUseStreamingExport();
 
                 if (useStreaming) {
@@ -427,30 +445,33 @@ const ResultSet = ({
               }}
             />
           )}
-          {canExportData && (
-            <CopyToClipboard
-              text={prepareCopyToClipboardTabularData(
-                data,
-                columns.map(c => c.column_name),
-              )}
-              wrapped={false}
-              copyNode={
-                <Button
-                  buttonSize="small"
-                  variant="text"
-                  color="primary"
-                  icon={<Icons.CopyOutlined iconSize="m" />}
-                  tooltip={t('Copy to Clipboard')}
-                  aria-label={t('Copy to Clipboard')}
-                  data-test="copy-to-clipboard-button"
-                />
-              }
-              hideTooltip
-              onCopyEnd={() =>
-                logAction(LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD, {})
-              }
-            />
-          )}
+          <CopyToClipboard
+            text={prepareCopyToClipboardTabularData(
+              data,
+              columns.map(c => c.column_name),
+            )}
+            wrapped={false}
+            copyNode={
+              <Button
+                buttonSize="small"
+                variant="text"
+                color="primary"
+                icon={<Icons.CopyOutlined iconSize="m" />}
+                tooltip={
+                  !canCopyClipboard && granularExport
+                    ? t("You don't have permission to copy to clipboard")
+                    : t('Copy to Clipboard')
+                }
+                aria-label={t('Copy to Clipboard')}
+                disabled={!canCopyClipboard}
+                data-test="copy-to-clipboard-button"
+              />
+            }
+            hideTooltip
+            onCopyEnd={() =>
+              logAction(LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD, {})
+            }
+          />
         </>
       );
 

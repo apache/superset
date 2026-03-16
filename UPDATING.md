@@ -24,6 +24,29 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Granular Export Controls
+
+A new feature flag `GRANULAR_EXPORT_CONTROLS` introduces three fine-grained permissions that replace the legacy `can_csv` permission:
+
+| Permission | Controls |
+|---|---|
+| `can_export_data` | CSV, Excel, JSON exports |
+| `can_export_image` | Screenshot/PDF exports |
+| `can_copy_clipboard` | Copy-to-clipboard operations |
+
+When the feature flag is enabled, these permissions are enforced on both the frontend (disabled buttons with tooltips) and backend (403 responses from API endpoints). When disabled, legacy `can_csv` behavior is preserved.
+
+**Default role assignments after migration:**
+
+| Role | `can_export_data` | `can_export_image` | `can_copy_clipboard` |
+|---|---|---|---|
+| Admin | Yes | Yes | Yes |
+| Alpha | Yes | Yes | Yes |
+| Gamma | No | No | Yes |
+| sql_lab | Yes | N/A | Yes |
+
+Admins can grant or revoke these permissions individually on any role.
+
 ### ClickHouse minimum driver version bump
 
 The minimum required version of `clickhouse-connect` has been raised to `>=0.13.0`. If you are using the ClickHouse connector, please upgrade your `clickhouse-connect` package. The `_mutate_label` workaround that appended hash suffixes to column aliases has also been removed, as it is no longer needed with modern versions of the driver.
