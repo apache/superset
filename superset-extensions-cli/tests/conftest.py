@@ -17,10 +17,12 @@
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
 import pytest
+import tomli_w
 from click.testing import CliRunner
 
 
@@ -138,3 +140,69 @@ def extension_setup_for_bundling():
         (backend_dir / "__init__.py").write_text("# init")
 
     return _setup
+
+
+@pytest.fixture
+def extension_with_versions():
+    """Create an extension directory structure with configurable versions and licenses."""
+
+    def _create(
+        base_path: Path,
+        ext_version: str = "1.0.0",
+        frontend_version: str | None = None,
+        backend_version: str | None = None,
+        ext_license: str | None = "Apache-2.0",
+        frontend_license: str | None = None,
+        backend_license: str | None = None,
+    ) -> None:
+        extension_json = {
+            "publisher": "test-org",
+            "name": "test-extension",
+            "displayName": "Test Extension",
+            "version": ext_version,
+            "permissions": [],
+        }
+        if ext_license is not None:
+            extension_json["license"] = ext_license
+        (base_path / "extension.json").write_text(json.dumps(extension_json))
+
+        if frontend_version is not None:
+            frontend_dir = base_path / "frontend"
+            frontend_dir.mkdir(exist_ok=True)
+            (frontend_dir / "src").mkdir(exist_ok=True)
+            (frontend_dir / "src" / "index.tsx").write_text("// entry")
+            pkg = {
+                "name": "@test-org/test-extension",
+                "version": frontend_version,
+            }
+            if frontend_license is not None:
+                pkg["license"] = frontend_license
+            elif ext_license is not None:
+                pkg["license"] = ext_license
+            (frontend_dir / "package.json").write_text(json.dumps(pkg, indent=2))
+
+        if backend_version is not None:
+            backend_dir = base_path / "backend"
+            backend_dir.mkdir(exist_ok=True)
+            src_dir = backend_dir / "src" / "test_org" / "test_extension"
+            src_dir.mkdir(parents=True, exist_ok=True)
+            (src_dir / "entrypoint.py").write_text("# entry")
+            project = {
+                "name": "test-org-test-extension",
+                "version": backend_version,
+            }
+            if backend_license is not None:
+                project["license"] = backend_license
+            elif ext_license is not None:
+                project["license"] = ext_license
+            pyproject = {
+                "project": project,
+                "tool": {
+                    "apache_superset_extensions": {
+                        "build": {"include": ["src/**/*.py"]}
+                    }
+                },
+            }
+            (backend_dir / "pyproject.toml").write_text(tomli_w.dumps(pyproject))
+
+    return _create
