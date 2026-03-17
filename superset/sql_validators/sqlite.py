@@ -79,7 +79,19 @@ class SQLiteSQLValidator(BaseSQLValidator):  # pylint: disable=too-few-public-me
             )
         except FileNotFoundError:
             logger.exception("syntaqlite binary not found")
-            raise
+            annotations.append(
+                SQLValidationAnnotation(
+                    message=(
+                        "syntaqlite binary not found. Ensure it is correctly installed "
+                        'via "pip install \\"apache-superset[sqlite]\\"" and available '
+                        "on the system PATH."
+                    ),
+                    line_number=None,
+                    start_column=None,
+                    end_column=None,
+                )
+            )
+            return annotations
         except subprocess.TimeoutExpired:
             logger.warning("syntaqlite timed out validating SQL")
             return annotations
