@@ -128,6 +128,7 @@ export interface AgGridTableChartTransformedProps<
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
   basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];
   formData: TableChartFormData;
+  metricSqlExpressions: Record<string, string>;
   onChartStateChange?: (chartState: JsonObject) => void;
   chartState?: AgGridChartState;
 }

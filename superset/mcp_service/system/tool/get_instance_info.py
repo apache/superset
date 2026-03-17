@@ -23,14 +23,14 @@ InstanceInfoCore for flexible, extensible metrics calculation.
 import logging
 
 from fastmcp import Context
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
 from superset.mcp_service.mcp_core import InstanceInfoCore
 from superset.mcp_service.system.schemas import (
     GetSupersetInstanceInfoRequest,
     InstanceInfo,
-    UserInfo,
+    serialize_user_object,
 )
 from superset.mcp_service.system.system_utils import (
     calculate_dashboard_breakdown,
@@ -73,7 +73,14 @@ _instance_info_core = InstanceInfoCore(
 )
 
 
-@tool(tags=["core"])
+@tool(
+    tags=["core"],
+    annotations=ToolAnnotations(
+        title="Get instance info",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 @parse_request(GetSupersetInstanceInfoRequest)
 def get_instance_info(
     request: GetSupersetInstanceInfoRequest, ctx: Context
@@ -110,24 +117,7 @@ def get_instance_info(
         # Attach the authenticated user's identity to the response
         user = getattr(g, "user", None)
         if user is not None:
-            raw_roles = getattr(user, "roles", None)
-            user_roles = []
-            if raw_roles is not None:
-                try:
-                    user_roles = [
-                        role.name for role in raw_roles if hasattr(role, "name")
-                    ]
-                except TypeError:
-                    logger.debug("Could not iterate user.roles: %s", type(raw_roles))
-                    user_roles = []
-            result.current_user = UserInfo(
-                id=getattr(user, "id", None),
-                username=getattr(user, "username", None),
-                first_name=getattr(user, "first_name", None),
-                last_name=getattr(user, "last_name", None),
-                email=getattr(user, "email", None),
-                roles=user_roles,
-            )
+            result.current_user = serialize_user_object(user)
 
         return result
 
