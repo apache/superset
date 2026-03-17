@@ -861,3 +861,33 @@ test('zero-value cluster is visible with minimum radius', () => {
   expect(Number.isFinite(zeroClusterRadius)).toBe(true);
   expect(zeroClusterRadius).toBeGreaterThanOrEqual(MAX_VISIBLE_POINT_RADIUS);
 });
+
+test('all-zero clusters use a finite radius', () => {
+  const locations = [
+    createLocation([100, 100], {
+      cluster: true,
+      point_count: 5,
+      sum: 0,
+    }),
+    createLocation([200, 200], {
+      cluster: true,
+      point_count: 10,
+      sum: 0,
+    }),
+  ];
+
+  render(
+    <ScatterPlotGlowOverlay
+      {...defaultProps}
+      locations={locations}
+      aggregation="sum"
+      pointRadiusUnit="Pixels"
+    />,
+  );
+  const redrawParams = triggerRedraw();
+
+  redrawParams.ctx.arc.mock.calls.forEach(call => {
+    expect(Number.isFinite(call[2])).toBe(true);
+    expect(call[2]).toBeGreaterThanOrEqual(MAX_VISIBLE_POINT_RADIUS);
+  });
+});

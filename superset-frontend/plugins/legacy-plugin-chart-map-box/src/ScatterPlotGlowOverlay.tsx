@@ -190,7 +190,10 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
       .filter(value => Number.isFinite(value));
     const safeMaxAbsLabel =
       finiteClusterLabels.length > 0
-        ? Math.max(...finiteClusterLabels.map(value => Math.abs(value)))
+        ? Math.max(
+            Math.max(...finiteClusterLabels.map(value => Math.abs(value))),
+            1,
+          )
         : 1;
 
     // Calculate min/max radius values for Pixels mode scaling
