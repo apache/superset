@@ -28,7 +28,7 @@ import logging
 from typing import Any
 
 from fastmcp import Context
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset_core.queries.types import (
     CacheOptions,
     QueryOptions,
@@ -55,6 +55,11 @@ logger = logging.getLogger(__name__)
     tags=["mutate"],
     class_permission_name="SQLLab",
     method_permission_name="execute_sql_query",
+    annotations=ToolAnnotations(
+        title="Execute SQL query",
+        readOnlyHint=False,
+        destructiveHint=True,
+    ),
 )
 @parse_request(ExecuteSqlRequest)
 async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlResponse:

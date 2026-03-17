@@ -25,7 +25,7 @@ import logging
 from typing import Any, Dict, List
 
 from fastmcp import Context
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import serialize_chart_object
@@ -178,7 +178,15 @@ def _generate_title_from_charts(chart_objects: List[Any]) -> str:
     return title
 
 
-@tool(tags=["mutate"], class_permission_name="Dashboard")
+@tool(
+    tags=["mutate"],
+    class_permission_name="Dashboard",
+    annotations=ToolAnnotations(
+        title="Create dashboard",
+        readOnlyHint=False,
+        destructiveHint=False,
+    ),
+)
 @parse_request(GenerateDashboardRequest)
 def generate_dashboard(
     request: GenerateDashboardRequest, ctx: Context
