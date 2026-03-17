@@ -272,7 +272,7 @@ describe('test treeBuilder', () => {
     ]);
   });
 
-  it('include null values', () => {
+  test('include null values', () => {
     const tree = treeBuilder(
       [
         ...data,
@@ -394,7 +394,7 @@ describe('test treeBuilder', () => {
     ]);
   });
 
-  it('filter null values', () => {
+  test('filter null values', () => {
     const tree = treeBuilder(
       [
         ...data,
