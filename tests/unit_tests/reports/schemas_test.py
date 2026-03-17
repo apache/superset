@@ -172,3 +172,11 @@ def test_report_type_disallows_database(mocker: MockerFixture) -> None:
     with pytest.raises(ValidationError) as exc:
         schema.load({**MINIMAL_POST_PAYLOAD, "database": 1})
     assert "database" in exc.value.messages
+
+
+def test_alert_type_allows_database(mocker: MockerFixture) -> None:
+    """Alert type should accept database; only Report type blocks it."""
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    schema = ReportSchedulePostSchema()
+    result = schema.load({**MINIMAL_POST_PAYLOAD, "type": "Alert", "database": 1})
+    assert result["database"] == 1
