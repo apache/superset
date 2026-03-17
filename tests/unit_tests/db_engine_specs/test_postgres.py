@@ -291,52 +291,6 @@ class TestRedshiftDetection:
     Tests for detecting Redshift connections via the PostgreSQL dialect.
     """
 
-    def test_validate_database_uri_redshift_host(self) -> None:
-        """
-        Standard Redshift endpoint is rejected.
-        """
-        uri = make_url(
-            "postgresql://user:pass@my-cluster.abc123.us-east-1"
-            ".redshift.amazonaws.com:5439/dev"
-        )
-        with pytest.raises(ValueError, match="Redshift"):
-            spec.validate_database_uri(uri)
-
-    def test_validate_database_uri_redshift_serverless_host(self) -> None:
-        """
-        Redshift Serverless endpoint is rejected.
-        """
-        uri = make_url(
-            "postgresql://user:pass@my-wg.abc123.us-west-2"
-            ".redshift-serverless.amazonaws.com:5439/dev"
-        )
-        with pytest.raises(ValueError, match="Redshift"):
-            spec.validate_database_uri(uri)
-
-    def test_validate_database_uri_regular_postgres(self) -> None:
-        """
-        Regular PostgreSQL host is allowed.
-        """
-        uri = make_url("postgresql://user:pass@pg.example.com:5432/mydb")
-        spec.validate_database_uri(uri)  # should not raise
-
-    def test_validate_database_uri_rds_postgres(self) -> None:
-        """
-        RDS PostgreSQL host is allowed.
-        """
-        uri = make_url(
-            "postgresql://user:pass@my-instance.abc123.us-east-1"
-            ".rds.amazonaws.com:5432/mydb"
-        )
-        spec.validate_database_uri(uri)  # should not raise
-
-    def test_validate_database_uri_localhost(self) -> None:
-        """
-        Localhost is allowed.
-        """
-        uri = make_url("postgresql://user:pass@localhost:5432/mydb")
-        spec.validate_database_uri(uri)  # should not raise
-
     def test_check_not_redshift_detects_redshift(self) -> None:
         """
         Pool connect event raises for a Redshift version string.

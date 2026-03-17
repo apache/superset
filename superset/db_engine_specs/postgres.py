@@ -81,11 +81,6 @@ COLUMN_DOES_NOT_EXIST_REGEX = re.compile(
 
 SYNTAX_ERROR_REGEX = re.compile('syntax error at or near "(?P<syntax_error>.*?)"')
 
-REDSHIFT_HOST_SUFFIXES = {
-    ".redshift.amazonaws.com",
-    ".redshift-serverless.amazonaws.com",
-}
-
 
 def _check_not_redshift(dbapi_connection: Any, connection_record: Any) -> None:
     """
@@ -611,30 +606,6 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
             uri = uri.set(database=catalog)
 
         return uri, connect_args
-
-    @classmethod
-    def validate_database_uri(cls, sqlalchemy_uri: URL) -> None:
-        """
-        Reject `postgresql://` URIs that point at Amazon Redshift.
-
-        When a user connects to Redshift via the PostgreSQL dialect, basic
-        queries work but Superset picks the wrong sqlglot dialect for SQL
-        transpilation, which leads to errors.
-
-        This is a fast, hostname-only check that catches standard AWS
-        endpoints.  Custom domains and private endpoints are caught
-        separately by the `SELECT version()` check that runs during
-        `test_connection` (see `_check_not_redshift`).
-        """
-        host = sqlalchemy_uri.host or ""
-        if any(host.endswith(suffix) for suffix in REDSHIFT_HOST_SUFFIXES):
-            raise ValueError(
-                "It looks like you're connecting to Amazon Redshift using the "
-                "PostgreSQL driver. Please use the Redshift driver instead "
-                "(redshift+psycopg2://) to ensure proper SQL dialect support."
-            )
-
-        super().validate_database_uri(sqlalchemy_uri)
 
     @staticmethod
     def mutate_db_for_connection_test(database: Database) -> None:
