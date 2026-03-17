@@ -2163,7 +2163,7 @@ FROM (
   FROM public.flights
   WHERE
     "AIRLINE" LIKE 'A%'
-) AS "public.flights"
+) AS "flights"
 LIMIT 100
         """.strip(),
         ),
