@@ -2053,20 +2053,23 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if parsed_script.statements:
             default_schema = self.database.get_default_schema(self.catalog)
             try:
-                # Only regenerate the SQL if RLS predicates were actually applied.
-                # Unnecessary round-tripping through sqlglot can alter SQL in
-                # dialect-specific ways (e.g. dropping column aliases, rewriting
-                # Redshift-specific syntax) and break virtual dataset queries.
-                if any(
-                    apply_rls(
+                rls_applied = False
+                for statement in parsed_script.statements:
+                    if apply_rls(
                         self.database,
                         self.catalog,
                         self.schema or default_schema or "",
                         statement,
-                    )
-                    for statement in parsed_script.statements
-                ):
+                    ):
+                        rls_applied = True
+
+                # Only regenerate the SQL if RLS predicates were actually applied.
+                # Unnecessary round-tripping through sqlglot can alter SQL in
+                # dialect-specific ways (e.g. dropping column aliases, rewriting
+                # Redshift-specific syntax) and break virtual dataset queries.
+                if rls_applied:
                     from_sql = parsed_script.format()
+
             except Exception as ex:
                 # Log the error but don't fail - RLS application is best-effort
                 logger.warning("Failed to apply RLS to virtual dataset SQL: %s", ex)

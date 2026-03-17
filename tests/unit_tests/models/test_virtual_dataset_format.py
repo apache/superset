@@ -156,7 +156,7 @@ class TestVirtualDatasetNoRLS:
         sqlglot rewrites Redshift ``::`` cast syntax to ``CAST(... AS ...)``.
         """
         original_sql = (
-            "SELECT pen_name::varchar(256) AS name, " "is_green FROM public.pens"
+            "SELECT pen_name::varchar(256) AS name, is_green FROM public.pens"
         )
         _set_virtual_sql(virtual_datasource, original_sql)
 
@@ -310,7 +310,7 @@ class TestRLSSubqueryAlias:
         Column references like ``pens.col`` must resolve after RLS wraps
         ``public.pens`` in a subquery.
         """
-        sql = "SELECT pens.pen_id, pens.is_green " "FROM public.pens"
+        sql = "SELECT pens.pen_id, pens.is_green FROM public.pens"
         statement = SQLStatement(sql, engine="redshift")
         predicate = statement.parse_predicate("user_id = 1")
         statement.apply_rls(
@@ -331,7 +331,7 @@ class TestRLSSubqueryAlias:
         Even with a catalog-qualified table, the subquery alias should be
         just the table name so that ``table.col`` references still work.
         """
-        sql = "SELECT pens.pen_id, pens.is_green " "FROM mycat.public.pens"
+        sql = "SELECT pens.pen_id, pens.is_green FROM mycat.public.pens"
         statement = SQLStatement(sql, engine="redshift")
         predicate = statement.parse_predicate("user_id = 1")
         statement.apply_rls(

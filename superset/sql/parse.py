@@ -266,9 +266,7 @@ class RLSAsSubqueryTransformer(RLSTransformer):
                 # ``schema.table`` path as a quoted identifier creates a
                 # mismatch: the columns reference ``table`` but the alias is
                 # ``"schema.table"``, which are different identifiers.
-                alias = exp.TableAlias(
-                    this=exp.Identifier(this=node.name, quoted=True)
-                )
+                alias = exp.TableAlias(this=exp.Identifier(this=node.name, quoted=True))
 
             node.set("alias", None)
             node = exp.Subquery(
