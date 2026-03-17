@@ -799,10 +799,10 @@ export default function transformProps(
     }
   }
 
-  const dynamicZoomBottom = Math.max(
+  const dynamicZoomBottom = Math.min(
     TIMESERIES_CONSTANTS.zoomBottom,
     Math.floor(height * 0.08),
-    );
+  );
 
   const echartOptions: EChartsCoreOption = {
     useUTC: true,
