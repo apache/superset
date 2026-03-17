@@ -115,6 +115,81 @@ interface GroupNode {
   [childKey: string]: GroupNode | number;
 }
 
+const rx = /(\d+)|(\D+)/g;
+const rd = /\d/;
+const rz = /^0/;
+const naturalSort: SortFunction = (as, bs) => {
+  // nulls first
+  if (bs !== null && as === null) {
+    return -1;
+  }
+  if (as !== null && bs === null) {
+    return 1;
+  }
+
+  // then raw NaNs
+  if (typeof as === 'number' && Number.isNaN(as)) {
+    return -1;
+  }
+  if (typeof bs === 'number' && Number.isNaN(bs)) {
+    return 1;
+  }
+
+  // numbers and numbery strings group together
+  const nas = Number(as);
+  const nbs = Number(bs);
+  if (nas < nbs) {
+    return -1;
+  }
+  if (nas > nbs) {
+    return 1;
+  }
+
+  // within that, true numbers before numbery strings
+  if (typeof as === 'number' && typeof bs !== 'number') {
+    return -1;
+  }
+  if (typeof bs === 'number' && typeof as !== 'number') {
+    return 1;
+  }
+  if (typeof as === 'number' && typeof bs === 'number') {
+    return 0;
+  }
+
+  // 'Infinity' is a textual number, so less than 'A'
+  if (Number.isNaN(nbs) && !Number.isNaN(nas)) {
+    return -1;
+  }
+  if (Number.isNaN(nas) && !Number.isNaN(nbs)) {
+    return 1;
+  }
+
+  // finally, "smart" string sorting per http://stackoverflow.com/a/4373421/112871
+  const a = String(as);
+  const b = String(bs);
+  if (a === b) {
+    return 0;
+  }
+  if (!rd.test(a) || !rd.test(b)) {
+    return a > b ? 1 : -1;
+  }
+
+  // special treatment for strings containing digits
+  const aArr = a.match(rx)!;
+  const bArr = b.match(rx)!;
+  while (aArr.length && bArr.length) {
+    const a1 = aArr.shift()!;
+    const b1 = bArr.shift()!;
+    if (a1 !== b1) {
+      if (rd.test(a1) && rd.test(b1)) {
+        return Number(a1.replace(rz, '.0')) - Number(b1.replace(rz, '.0'));
+      }
+      return a1 > b1 ? 1 : -1;
+    }
+  }
+  return aArr.length - bArr.length;
+};
+
 /**
  * Precomputes aggregate sums for all group levels using safe numeric conversion
  */
@@ -215,81 +290,6 @@ export function groupingValueSort(
   const comparator = createHierarchicalComparator(groups, top, asc, dataFunc);
   keys.sort(comparator);
 }
-
-const rx = /(\d+)|(\D+)/g;
-const rd = /\d/;
-const rz = /^0/;
-const naturalSort: SortFunction = (as, bs) => {
-  // nulls first
-  if (bs !== null && as === null) {
-    return -1;
-  }
-  if (as !== null && bs === null) {
-    return 1;
-  }
-
-  // then raw NaNs
-  if (typeof as === 'number' && Number.isNaN(as)) {
-    return -1;
-  }
-  if (typeof bs === 'number' && Number.isNaN(bs)) {
-    return 1;
-  }
-
-  // numbers and numbery strings group together
-  const nas = Number(as);
-  const nbs = Number(bs);
-  if (nas < nbs) {
-    return -1;
-  }
-  if (nas > nbs) {
-    return 1;
-  }
-
-  // within that, true numbers before numbery strings
-  if (typeof as === 'number' && typeof bs !== 'number') {
-    return -1;
-  }
-  if (typeof bs === 'number' && typeof as !== 'number') {
-    return 1;
-  }
-  if (typeof as === 'number' && typeof bs === 'number') {
-    return 0;
-  }
-
-  // 'Infinity' is a textual number, so less than 'A'
-  if (Number.isNaN(nbs) && !Number.isNaN(nas)) {
-    return -1;
-  }
-  if (Number.isNaN(nas) && !Number.isNaN(nbs)) {
-    return 1;
-  }
-
-  // finally, "smart" string sorting per http://stackoverflow.com/a/4373421/112871
-  const a = String(as);
-  const b = String(bs);
-  if (a === b) {
-    return 0;
-  }
-  if (!rd.test(a) || !rd.test(b)) {
-    return a > b ? 1 : -1;
-  }
-
-  // special treatment for strings containing digits
-  const aArr = a.match(rx)!;
-  const bArr = b.match(rx)!;
-  while (aArr.length && bArr.length) {
-    const a1 = aArr.shift()!;
-    const b1 = bArr.shift()!;
-    if (a1 !== b1) {
-      if (rd.test(a1) && rd.test(b1)) {
-        return Number(a1.replace(rz, '.0')) - Number(b1.replace(rz, '.0'));
-      }
-      return a1 > b1 ? 1 : -1;
-    }
-  }
-  return aArr.length - bArr.length;
-};
 
 const sortAs = function (order: (string | number)[]): SortFunction {
   const mapping: Record<string | number, number> = {};
