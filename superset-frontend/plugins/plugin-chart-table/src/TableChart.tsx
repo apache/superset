@@ -77,6 +77,7 @@ import {
   ColorFormatters,
   ObjectFormattingEnum,
   ColorSchemeEnum,
+  getTextColorForBackground,
 } from '@superset-ui/chart-controls';
 import {
   DataColumnMeta,
@@ -946,7 +947,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               if (
                 formatter.objectFormatting === ObjectFormattingEnum.TEXT_COLOR
               ) {
-                color = formatterResult.slice(0, -2);
+                color = formatterResult;
               } else if (
                 formatter.objectFormatting === ObjectFormattingEnum.CELL_BAR
               ) {
@@ -997,8 +998,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 ? basicColorColumnFormatters[row.index][column.key]?.mainArrow
                 : '';
           }
+          const resolvedTextColor = getTextColorForBackground(
+            { backgroundColor, color },
+            theme.colorBgBase,
+          );
           const StyledCell = styled.td`
-            color: ${color ? `${color}FF` : theme.colorText};
+            color: ${resolvedTextColor || theme.colorText};
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;

@@ -21,6 +21,7 @@ import { ColDef } from '@superset-ui/core/components/ThemedAgGridReact';
 import { useCallback, useMemo } from 'react';
 import { DataRecord, DataRecordValue } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { ColorFormatters } from '@superset-ui/chart-controls';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
 import {
@@ -61,6 +62,8 @@ type UseColDefsProps = {
   emitCrossFilters?: boolean;
   alignPositiveNegative: boolean;
   slice_id: number;
+  cellBackgroundColor?: string;
+  cellTextColor?: string;
 };
 
 function getValueRange(
@@ -224,6 +227,8 @@ export const useColDefs = ({
   emitCrossFilters,
   alignPositiveNegative,
   slice_id,
+  cellBackgroundColor = supersetTheme.colorBgBase,
+  cellTextColor = supersetTheme.colorPrimaryText,
 }: UseColDefsProps) => {
   const getCommonColProps = useCallback(
     (
@@ -288,6 +293,8 @@ export const useColDefs = ({
             hasBasicColorFormatters,
             basicColorFormatters,
             col,
+            cellBackgroundColor,
+            cellTextColor,
           }),
         cellClass: p =>
           getCellClass({
@@ -385,6 +392,8 @@ export const useColDefs = ({
       allowRearrangeColumns,
       serverPagination,
       alignPositiveNegative,
+      cellBackgroundColor,
+      cellTextColor,
     ],
   );
 

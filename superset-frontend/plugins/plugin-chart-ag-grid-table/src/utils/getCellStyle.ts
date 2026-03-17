@@ -17,7 +17,11 @@
  * under the License.
  */
 
-import { ColorFormatters } from '@superset-ui/chart-controls';
+import {
+  ColorFormatters,
+  getTextColorForBackground,
+  ObjectFormattingEnum,
+} from '@superset-ui/chart-controls';
 import { CellClassParams } from '@superset-ui/core/components/ThemedAgGridReact';
 import { BasicColorFormatterType, InputColumn } from '../types';
 
@@ -29,6 +33,8 @@ type CellStyleParams = CellClassParams & {
     [Key: string]: BasicColorFormatterType;
   }[];
   col: InputColumn;
+  cellBackgroundColor: string;
+  cellTextColor: string;
 };
 
 const getCellStyle = (params: CellStyleParams) => {
@@ -42,8 +48,11 @@ const getCellStyle = (params: CellStyleParams) => {
     columnColorFormatters,
     col,
     node,
+    cellBackgroundColor,
+    cellTextColor,
   } = params;
   let backgroundColor;
+  let color;
   if (hasColumnColorFormatters) {
     columnColorFormatters!
       .filter(formatter => {
@@ -56,7 +65,13 @@ const getCellStyle = (params: CellStyleParams) => {
         const formatterResult =
           value || value === 0 ? formatter.getColorFromValue(value) : false;
         if (formatterResult) {
-          backgroundColor = formatterResult;
+          if (formatter.objectFormatting === ObjectFormattingEnum.TEXT_COLOR) {
+            color = formatterResult;
+          } else if (
+            formatter.objectFormatting !== ObjectFormattingEnum.CELL_BAR
+          ) {
+            backgroundColor = formatterResult;
+          }
         }
       });
   }
@@ -75,6 +90,11 @@ const getCellStyle = (params: CellStyleParams) => {
 
   return {
     backgroundColor: backgroundColor || '',
+    color:
+      getTextColorForBackground(
+        { backgroundColor, color },
+        cellBackgroundColor,
+      ) || cellTextColor,
     textAlign,
   };
 };

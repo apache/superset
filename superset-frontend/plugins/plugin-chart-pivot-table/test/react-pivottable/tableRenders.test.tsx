@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { TableRenderer } from '../../src/react-pivottable/TableRenderers';
+import React from 'react';
+import { ObjectFormattingEnum } from '@superset-ui/chart-controls';
+import {
+  getCellColor,
+  TableRenderer,
+} from '../../src/react-pivottable/TableRenderers';
 import type { PivotData } from '../../src/react-pivottable/utilities';
 
 let tableRenderer: TableRenderer;
@@ -587,5 +592,137 @@ test('values ​​from the 3rd level of the hierarchy with a subtotal at the to
       A3: { currentVal: 50 },
       currentVal: 110,
     },
+  });
+});
+
+test('getCellColor derives readable text from the winning background', () => {
+  expect(
+    getCellColor(
+      ['revenue'],
+      200,
+      {
+        metric: [
+          {
+            column: 'revenue',
+            objectFormatting: ObjectFormattingEnum.BACKGROUND_COLOR,
+            getColorFromValue: (value: unknown) =>
+              value === 200 ? '#111111' : undefined,
+          },
+        ],
+      },
+      '#ffffff',
+    ),
+  ).toEqual({
+    backgroundColor: '#111111',
+    color: 'rgb(255, 255, 255)',
+  });
+});
+
+test('getCellColor keeps explicit text color over adaptive contrast', () => {
+  expect(
+    getCellColor(
+      ['revenue'],
+      200,
+      {
+        metric: [
+          {
+            column: 'revenue',
+            objectFormatting: ObjectFormattingEnum.BACKGROUND_COLOR,
+            getColorFromValue: (value: unknown) =>
+              value === 200 ? '#111111' : undefined,
+          },
+          {
+            column: 'revenue',
+            objectFormatting: ObjectFormattingEnum.TEXT_COLOR,
+            getColorFromValue: (value: unknown) =>
+              value === 200 ? '#ace1c40d' : undefined,
+          },
+        ],
+      },
+      '#ffffff',
+    ),
+  ).toEqual({
+    backgroundColor: '#111111',
+    color: 'rgb(172, 225, 196)',
+  });
+});
+
+test('getCellColor ignores cell-bar rules when resolving text color', () => {
+  expect(
+    getCellColor(
+      ['revenue'],
+      200,
+      {
+        metric: [
+          {
+            column: 'revenue',
+            objectFormatting: ObjectFormattingEnum.CELL_BAR,
+            getColorFromValue: (value: unknown) =>
+              value === 200 ? '#11111199' : undefined,
+          },
+        ],
+      },
+      '#ffffff',
+    ),
+  ).toEqual({
+    backgroundColor: undefined,
+    color: undefined,
+  });
+});
+
+test('renderTableRow keeps subtotal background and readable text in sync', () => {
+  tableRenderer = new TableRenderer({
+    ...mockProps,
+    tableOptions: {
+      cellColorFormatters: {
+        metric: [
+          {
+            column: 'revenue',
+            objectFormatting: ObjectFormattingEnum.BACKGROUND_COLOR,
+            getColorFromValue: (value: unknown) =>
+              value === 200 ? '#111111' : undefined,
+          },
+        ],
+      },
+      cellBackgroundColor: '#ffffff',
+      cellTextColor: '#000000',
+    },
+  });
+
+  const row = tableRenderer.renderTableRow(['revenue'], 0, {
+    rowAttrs: ['metric'],
+    colAttrs: [],
+    rowAttrSpans: [[1]],
+    visibleColKeys: [[]],
+    pivotData: {
+      getAggregator: () => ({
+        value: () => 200,
+        format: (value: number) => String(value),
+        isSubtotal: true,
+      }),
+    } as any,
+    rowTotals: false,
+    rowSubtotalDisplay: {
+      displayOnTop: false,
+      enabled: false,
+      hideOnExpand: false,
+    },
+    arrowExpanded: null,
+    arrowCollapsed: null,
+    cellCallbacks: {},
+    rowTotalCallbacks: {},
+    namesMapping: {},
+    allowRenderHtml: false,
+  } as any) as React.ReactElement;
+
+  const cells = React.Children.toArray(row.props.children);
+  const valueCell = cells.find(
+    child => React.isValidElement(child) && child.props.className === 'pvtVal',
+  ) as React.ReactElement;
+
+  expect(valueCell.props.style).toEqual({
+    backgroundColor: '#111111',
+    color: 'rgb(255, 255, 255)',
+    fontWeight: 'bold',
   });
 });

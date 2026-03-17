@@ -23,6 +23,7 @@ import {
   getTimeFormatterForGranularity,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
+import { useTheme } from '@apache-superset/core/theme';
 import { useCallback, useEffect, useState, useMemo } from 'react';
 import { isEqual } from 'lodash';
 
@@ -55,6 +56,7 @@ const getGridHeight = (height: number, includeSearch: boolean | undefined) => {
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: AgGridTableChartTransformedProps<D> & {},
 ) {
+  const theme = useTheme();
   const {
     height,
     columns,
@@ -242,6 +244,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     emitCrossFilters,
     alignPositiveNegative,
     slice_id,
+    cellBackgroundColor: theme.colorBgBase,
+    cellTextColor: theme.colorPrimaryText,
   });
 
   const gridHeight = getGridHeight(height, includeSearch);

@@ -18,8 +18,11 @@
  */
 import { renderHook } from '@testing-library/react-hooks';
 import { GenericDataType } from '@apache-superset/core/common';
+import { ObjectFormattingEnum } from '@superset-ui/chart-controls';
 import { useColDefs } from '../../src/utils/useColDefs';
 import { InputColumn } from '../../src/types';
+
+type TestCellStyleFunc = (params: unknown) => unknown;
 
 function makeColumn(overrides: Partial<InputColumn> = {}): InputColumn {
   return {
@@ -32,6 +35,11 @@ function makeColumn(overrides: Partial<InputColumn> = {}): InputColumn {
     config: {},
     ...overrides,
   };
+}
+
+function getCellStyleFunction(cellStyle: unknown): TestCellStyleFunc {
+  expect(typeof cellStyle).toBe('function');
+  return cellStyle as TestCellStyleFunc;
 }
 
 const defaultProps = {
@@ -132,4 +140,92 @@ test('temporal columns use custom TextCellRenderer', () => {
   const colDef = result.current[0];
   expect(colDef.cellRenderer).toBeInstanceOf(Function);
   expect(colDef.cellDataType).toBe('date');
+});
+
+test('cellStyle derives readable text color from dark background formatting', () => {
+  const numericCol = makeColumn({
+    key: 'count',
+    label: 'Count',
+    dataType: GenericDataType.Numeric,
+    isNumeric: true,
+    isMetric: true,
+  });
+
+  const { result } = renderHook(() =>
+    useColDefs({
+      ...defaultProps,
+      columns: [numericCol],
+      data: [{ count: 42 }],
+      columnColorFormatters: [
+        {
+          column: 'count',
+          objectFormatting: ObjectFormattingEnum.BACKGROUND_COLOR,
+          getColorFromValue: (value: unknown) =>
+            value === 42 ? '#111111' : undefined,
+        },
+      ],
+    }),
+  );
+
+  const colDef = result.current[0];
+  const cellStyle = getCellStyleFunction(colDef.cellStyle);
+  expect(
+    cellStyle({
+      value: 42,
+      colDef: { field: 'count' },
+      rowIndex: 0,
+      node: {},
+    } as never),
+  ).toMatchObject({
+    backgroundColor: '#111111',
+    color: 'rgb(255, 255, 255)',
+    textAlign: 'right',
+  });
+});
+
+test('cellStyle keeps explicit text color over adaptive contrast', () => {
+  const numericCol = makeColumn({
+    key: 'count',
+    label: 'Count',
+    dataType: GenericDataType.Numeric,
+    isNumeric: true,
+    isMetric: true,
+  });
+
+  const { result } = renderHook(() =>
+    useColDefs({
+      ...defaultProps,
+      columns: [numericCol],
+      data: [{ count: 42 }],
+      columnColorFormatters: [
+        {
+          column: 'count',
+          objectFormatting: ObjectFormattingEnum.BACKGROUND_COLOR,
+          getColorFromValue: (value: unknown) =>
+            value === 42 ? '#111111' : undefined,
+        },
+        {
+          column: 'count',
+          objectFormatting: ObjectFormattingEnum.TEXT_COLOR,
+          getColorFromValue: (value: unknown) =>
+            value === 42 ? '#ace1c40d' : undefined,
+        },
+      ],
+    }),
+  );
+
+  const colDef = result.current[0];
+  const cellStyle = getCellStyleFunction(colDef.cellStyle);
+  expect(
+    cellStyle({
+      value: 42,
+      colDef: { field: 'count' },
+      rowIndex: 0,
+      node: {},
+    } as never),
+  ).toMatchObject({
+    backgroundColor: '#111111',
+    color: 'rgb(172, 225, 196)',
+    textAlign: 'right',
+  });
 });

@@ -1351,7 +1351,7 @@ describe('plugin-chart-table', () => {
         );
 
         expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByTitle('2467')).color).toBe(
           'rgba(0, 0, 0, 0.88)',
@@ -1385,13 +1385,86 @@ describe('plugin-chart-table', () => {
         );
 
         expect(getComputedStyle(screen.getByText('Michael')).color).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByTitle('0.123456')).color).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
+        );
+      });
+
+      test('derive readable text color from dark background formatting', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#111111',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        useGradient: false,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+          'rgb(17, 17, 17)',
+        );
+        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
+          'rgb(255, 255, 255)',
+        );
+      });
+
+      test('keep explicit text color over adaptive contrast', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#111111',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        useGradient: false,
+                      },
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        objectFormatting: ObjectFormattingEnum.TEXT_COLOR,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+          'rgb(17, 17, 17)',
+        );
+        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
+          'rgb(172, 225, 196)',
         );
       });
 
