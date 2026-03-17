@@ -126,6 +126,16 @@ class ChartInfo(BaseModel):
     tags: List[TagInfo] = Field(default_factory=list, description="Chart tags")
     owners: List[UserInfo] = Field(default_factory=list, description="Chart owners")
 
+    # Filters extracted from form_data for easy inspection
+    filters: ChartFiltersInfo | None = Field(
+        None,
+        description=(
+            "Structured representation of all filters applied to this chart, "
+            "extracted from form_data. Includes adhoc filters, time range, "
+            "extra filters, and custom WHERE/HAVING clauses."
+        ),
+    )
+
     # Fields for unsaved state support
     form_data: Dict[str, Any] | None = Field(
         None,
@@ -289,6 +299,62 @@ def _humanize_timestamp(dt: datetime | None) -> str | None:
     return humanize.naturaltime(datetime.now() - dt)
 
 
+def extract_filters_from_form_data(
+    form_data: Dict[str, Any] | None,
+) -> ChartFiltersInfo | None:
+    """Extract structured filter information from a chart's form_data.
+
+    Parses adhoc_filters, time_range, extra_filters, and custom
+    WHERE/HAVING clauses into a structured ChartFiltersInfo object.
+    Returns None if form_data is empty or has no filter-related fields.
+    """
+    if not form_data:
+        return None
+
+    raw_adhoc = form_data.get("adhoc_filters", [])
+    adhoc_filters: List[AdhocFilter] = []
+    for f in raw_adhoc or []:
+        if not isinstance(f, dict):
+            continue
+        adhoc_filters.append(
+            AdhocFilter(
+                clause=f.get("clause"),
+                expression_type=f.get("expressionType"),
+                subject=f.get("subject"),
+                operator=f.get("operator"),
+                comparator=f.get("comparator"),
+                sql_expression=f.get("sqlExpression"),
+            )
+        )
+
+    time_range = form_data.get("time_range")
+    granularity_sqla = form_data.get("granularity_sqla")
+    extra_filters = form_data.get("extra_filters", [])
+    where = form_data.get("where")
+    having = form_data.get("having")
+
+    # Only return if there is at least one meaningful filter field
+    has_content = (
+        adhoc_filters
+        or time_range
+        or granularity_sqla
+        or extra_filters
+        or where
+        or having
+    )
+    if not has_content:
+        return None
+
+    return ChartFiltersInfo(
+        adhoc_filters=adhoc_filters,
+        time_range=time_range,
+        granularity_sqla=granularity_sqla,
+        extra_filters=extra_filters if isinstance(extra_filters, list) else [],
+        where=where,
+        having=having,
+    )
+
+
 def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     if not chart:
         return None
@@ -312,6 +378,9 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     elif isinstance(chart_params, dict):
         chart_form_data = chart_params
 
+    # Extract structured filter information
+    filters_info = extract_filters_from_form_data(chart_form_data)
+
     return ChartInfo(
         id=chart_id,
         slice_name=getattr(chart, "slice_name", None),
@@ -324,6 +393,7 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         certification_details=getattr(chart, "certification_details", None),
         cache_timeout=getattr(chart, "cache_timeout", None),
         form_data=chart_form_data,
+        filters=filters_info,
         changed_by=getattr(chart, "changed_by_name", None)
         or (str(chart.changed_by) if getattr(chart, "changed_by", None) else None),
         changed_by_name=getattr(chart, "changed_by_name", None),
@@ -1786,3 +1856,129 @@ class ChartPreview(BaseModel):
     # Inherit versioning
     schema_version: str = Field("2.0", description="Response schema version")
     api_version: str = Field("v1", description="MCP API version")
+
+
+class GetChartSqlRequest(BaseModel):
+    """Request schema for get_chart_sql.
+
+    Returns the rendered SQL query that a chart would execute, without actually
+    running it. Useful for understanding what SQL a chart generates.
+
+    Provide a chart identifier (ID or UUID). Optionally provide form_data_key
+    to get the SQL for the unsaved chart state from the Explore view.
+    """
+
+    identifier: int | str | None = Field(
+        default=None,
+        description=(
+            "Chart identifier - can be numeric ID or UUID string. "
+            "Optional when form_data_key is provided (for unsaved charts)."
+        ),
+    )
+    form_data_key: str | None = Field(
+        default=None,
+        description=(
+            "Cache key for retrieving unsaved chart state. When a user "
+            "edits a chart in Explore but hasn't saved, the current state is stored "
+            "with this key. If provided, the tool returns the SQL for the unsaved "
+            "configuration instead of the saved version. "
+            "Can be used alone (without identifier) for unsaved charts."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def validate_identifier_or_form_data_key(self) -> "GetChartSqlRequest":
+        if not self.identifier and not self.form_data_key:
+            raise ValueError(
+                "At least one of 'identifier' or 'form_data_key' must be provided."
+            )
+        return self
+
+
+class ChartSql(BaseModel):
+    """Response containing the rendered SQL for a chart."""
+
+    chart_id: int | None = Field(None, description="Chart ID (null for unsaved charts)")
+    chart_name: str | None = Field(
+        None, description="Chart name (null for unsaved charts)"
+    )
+    sql: str = Field(..., description="The rendered SQL query for this chart")
+    language: str | None = Field(None, description="Query language (e.g. 'sql')")
+    datasource_name: str | None = Field(
+        None, description="Name of the datasource the chart queries"
+    )
+    error: str | None = Field(
+        None,
+        description=(
+            "Validation or parse error if the SQL could not be fully generated. "
+            "When present, 'sql' may still contain a partial query."
+        ),
+    )
+
+
+class AdhocFilter(BaseModel):
+    """A single adhoc filter configured on a chart."""
+
+    clause: str | None = Field(None, description="SQL clause: WHERE or HAVING")
+    expression_type: str | None = Field(
+        None,
+        description=(
+            "Filter expression type: SIMPLE for column-based filters, "
+            "SQL for free-form SQL expressions"
+        ),
+    )
+    subject: str | None = Field(
+        None, description="Column name the filter applies to (SIMPLE filters)"
+    )
+    operator: str | None = Field(
+        None,
+        description="Filter operator (e.g. '==', '!=', 'IN', 'NOT IN', 'LIKE', '>')",
+    )
+    comparator: Any | None = Field(
+        None, description="Filter value(s) to compare against"
+    )
+    sql_expression: str | None = Field(
+        None,
+        description="Free-form SQL expression (SQL expression type filters only)",
+    )
+
+    model_config = ConfigDict(extra="allow")
+
+
+class ChartFiltersInfo(BaseModel):
+    """Structured representation of all filters applied to a chart."""
+
+    adhoc_filters: List[AdhocFilter] = Field(
+        default_factory=list,
+        description=(
+            "Adhoc filters configured on the chart. These are the primary "
+            "filters visible in the chart's filter panel."
+        ),
+    )
+    time_range: str | None = Field(
+        None,
+        description=(
+            "Time range filter applied to the chart "
+            "(e.g. 'Last 7 days', 'No filter', '2024-01-01 : 2024-12-31')"
+        ),
+    )
+    granularity_sqla: str | None = Field(
+        None,
+        description="Temporal column used for time-based filtering",
+    )
+    extra_filters: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description=("Extra filters applied from dashboard context or URL parameters"),
+    )
+    where: str | None = Field(
+        None,
+        description="Custom WHERE clause applied to the chart query",
+    )
+    having: str | None = Field(
+        None,
+        description="Custom HAVING clause applied to the chart query",
+    )
+
+
+# Rebuild ChartInfo so Pydantic can resolve the ChartFiltersInfo forward reference.
+ChartInfo.model_rebuild()
