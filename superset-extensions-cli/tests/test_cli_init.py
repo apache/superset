@@ -152,9 +152,7 @@ def test_init_accepts_mixed_alphanumeric_name(cli_runner, isolated_filesystem):
     assert result.exit_code == 0, (
         f"Mixed alphanumeric display name should be valid: {result.output}"
     )
-    assert Path("tool-123").exists(), (
-        "Directory for 'tool-123' should be created"
-    )
+    assert Path("tool-123").exists(), "Directory for 'tool-123' should be created"
 
 
 @pytest.mark.cli
