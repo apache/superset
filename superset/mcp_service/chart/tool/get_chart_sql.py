@@ -312,7 +312,11 @@ async def _handle_chart_sql_request(
         return await _handle_unsaved_chart_sql(request.form_data_key, ctx)
 
     # Find the chart by identifier
-    assert request.identifier is not None
+    if request.identifier is None:
+        return ChartError(
+            error="Chart identifier is required.",
+            error_type="ValidationError",
+        )
     with event_logger.log_context(action="mcp.get_chart_sql.chart_lookup"):
         chart = _find_chart_by_identifier(request.identifier)
 
