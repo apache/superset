@@ -2184,3 +2184,121 @@ def test_cached_async_result_get_result_returns_cached(
     assert retrieved_result.status == QueryStatus.SUCCESS
     assert sum(s.row_count for s in retrieved_result.statements) == 3
     assert retrieved_result is cached_result
+
+
+# =========================================================================
+# Cache serialization / deserialization tests
+# =========================================================================
+
+
+def test_deserialize_cached_data_none(database: Database, app_context: None) -> None:
+    """Test that None input returns None."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    result = SQLExecutor._deserialize_cached_data(None)
+    assert result is None
+
+
+def test_deserialize_cached_data_dataframe_passthrough(
+    database: Database, app_context: None
+) -> None:
+    """Test that a DataFrame passes through unchanged."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    result = SQLExecutor._deserialize_cached_data(df)
+    assert isinstance(result, pd.DataFrame)
+    assert list(result.columns) == ["a", "b"]
+    assert len(result) == 2
+
+
+def test_deserialize_cached_data_dict_to_dataframe(
+    database: Database, app_context: None
+) -> None:
+    """Test that a dict with records/columns is reconstructed as DataFrame."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    data = {
+        "records": [{"id": 1, "name": "alice"}, {"id": 2, "name": "bob"}],
+        "columns": ["id", "name"],
+    }
+    result = SQLExecutor._deserialize_cached_data(data)
+    assert isinstance(result, pd.DataFrame)
+    assert list(result.columns) == ["id", "name"]
+    assert len(result) == 2
+    assert result.iloc[0]["name"] == "alice"
+
+
+def test_deserialize_cached_data_bytes_returns_none(
+    database: Database, app_context: None
+) -> None:
+    """Test that raw bytes from broken cache returns None gracefully."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    result = SQLExecutor._deserialize_cached_data(b"\x00\x01\x02")
+    assert result is None
+
+
+def test_deserialize_cached_data_memoryview_returns_none(
+    database: Database, app_context: None
+) -> None:
+    """Test that memoryview from broken cache returns None gracefully."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    result = SQLExecutor._deserialize_cached_data(memoryview(b"\x00\x01"))
+    assert result is None
+
+
+def test_deserialize_cached_data_unknown_type_passthrough(
+    database: Database, app_context: None
+) -> None:
+    """Test that unknown types pass through unchanged."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    result = SQLExecutor._deserialize_cached_data("some string")
+    assert result == "some string"
+
+
+def test_store_in_cache_serializes_dataframe(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test that _store_in_cache converts DataFrames to dict format."""
+    from superset_core.api.types import QueryResult as QueryResultType, StatementResult
+
+    from superset.extensions import cache_manager
+    from superset.sql.execution.executor import SQLExecutor
+
+    mocker.patch.dict(
+        current_app.config,
+        {"CACHE_DEFAULT_TIMEOUT": 300},
+    )
+
+    executor = SQLExecutor(database)
+    mock_set = mocker.patch.object(cache_manager.data_cache, "set")
+
+    result = QueryResultType(
+        status=QueryStatus.SUCCESS,
+        statements=[
+            StatementResult(
+                original_sql="SELECT id FROM users",
+                executed_sql="SELECT id FROM users",
+                data=pd.DataFrame({"id": [1, 2, 3]}),
+                row_count=3,
+                execution_time_ms=10.0,
+            )
+        ],
+        total_execution_time_ms=10.0,
+    )
+
+    opts = QueryOptions()
+    executor._store_in_cache(result, "SELECT id FROM users", opts)
+
+    mock_set.assert_called_once()
+    cached_arg = mock_set.call_args[0][1]
+    stmt_data = cached_arg["statements"][0]["data"]
+    # DataFrame should be serialized to dict with records and columns
+    assert isinstance(stmt_data, dict)
+    assert "records" in stmt_data
+    assert "columns" in stmt_data
+    assert stmt_data["columns"] == ["id"]
+    assert stmt_data["records"] == [{"id": 1}, {"id": 2}, {"id": 3}]

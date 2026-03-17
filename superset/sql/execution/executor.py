@@ -801,7 +801,7 @@ class SQLExecutor:
                 StatementResult(
                     original_sql=stmt_data["original_sql"],
                     executed_sql=stmt_data["executed_sql"],
-                    data=stmt_data["data"],
+                    data=self._deserialize_cached_data(stmt_data.get("data")),
                     row_count=stmt_data["row_count"],
                     execution_time_ms=stmt_data["execution_time_ms"],
                 )
@@ -816,6 +816,21 @@ class SQLExecutor:
             )
 
         return None
+
+    @staticmethod
+    def _deserialize_cached_data(data: Any) -> Any:
+        """Deserialize cached statement data back to a DataFrame."""
+        import pandas as pd
+
+        if data is None:
+            return None
+        if isinstance(data, pd.DataFrame):
+            return data
+        if isinstance(data, dict) and "records" in data and "columns" in data:
+            return pd.DataFrame(data["records"], columns=data["columns"])
+        if isinstance(data, (bytes, memoryview)):
+            return None
+        return data
 
     def _store_in_cache(
         self, result: QueryResult, sql: str, opts: QueryOptions

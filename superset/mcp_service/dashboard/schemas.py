@@ -547,8 +547,9 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
         else None,
         chart_count=len(getattr(dashboard, "slices", [])),
         owners=[
-            UserInfo.model_validate(owner, from_attributes=True)
+            info
             for owner in getattr(dashboard, "owners", [])
+            if (info := serialize_user_object(owner)) is not None
         ]
         if getattr(dashboard, "owners", None)
         else [],
