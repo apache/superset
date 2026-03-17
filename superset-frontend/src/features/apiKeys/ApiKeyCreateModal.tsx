@@ -109,6 +109,8 @@ export function ApiKeyCreateModal({
         show={show}
         onHide={handleClose}
         title={t('API Key Created')}
+        maskClosable={false}
+        closable={false}
         footer={
           <Button type="primary" onClick={handleClose}>
             {t('Done')}
