@@ -249,10 +249,10 @@ function createHierarchicalComparator(
         }
         return (sumA > sumB ? 1 : -1) * orderBasis;
       }
-      if (depth + 1 < maxDepth && depth + 1 >= b.length) {
+      if (depth + 1 <= maxDepth && depth + 1 >= b.length) {
         return topBasis;
       }
-      if (depth + 1 < maxDepth && depth + 1 >= a.length) {
+      if (depth + 1 <= maxDepth && depth + 1 >= a.length) {
         return -topBasis;
       }
 
