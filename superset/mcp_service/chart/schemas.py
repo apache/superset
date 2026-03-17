@@ -306,9 +306,9 @@ def extract_filters_from_form_data(
 
     Parses adhoc_filters, time_range, extra_filters, and custom
     WHERE/HAVING clauses into a structured ChartFiltersInfo object.
-    Returns None if form_data is empty or has no filter-related fields.
+    Returns None if form_data is empty, not a dict, or has no filter-related fields.
     """
-    if not form_data:
+    if not form_data or not isinstance(form_data, dict):
         return None
 
     raw_adhoc = form_data.get("adhoc_filters", [])

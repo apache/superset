@@ -114,8 +114,17 @@ def _build_query_context_from_form_data(
     if adhoc := form_data.get("adhoc_filters"):
         query_dict["adhoc_filters"] = adhoc
 
+    # Ensure datasource fields satisfy DatasourceDict typing requirements.
+    # datasource_id must be int | str; datasource_type must be str.
+    resolved_id: int | str = (
+        datasource_id if isinstance(datasource_id, (int, str)) else 0
+    )
+    resolved_type: str = (
+        datasource_type if isinstance(datasource_type, str) else "table"
+    )
+
     return factory.create(
-        datasource={"id": datasource_id, "type": datasource_type},
+        datasource={"id": resolved_id, "type": resolved_type},
         queries=[query_dict],
         form_data=form_data,
         result_type=ChartDataResultType.QUERY,
