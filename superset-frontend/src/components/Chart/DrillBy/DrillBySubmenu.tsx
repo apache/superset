@@ -179,8 +179,10 @@ export const DrillBySubmenu = ({
   }
 
   if (
-    formData.matrixify_enable_vertical_layout === true ||
-    formData.matrixify_enable_horizontal_layout === true
+    (formData.matrixify_mode_rows !== undefined &&
+      formData.matrixify_mode_rows !== 'disabled') ||
+    (formData.matrixify_mode_columns !== undefined &&
+      formData.matrixify_mode_columns !== 'disabled')
   ) {
     return null;
   }

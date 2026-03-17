@@ -181,8 +181,11 @@ class ModelListCore(BaseCore, Generic[L]):
         total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 0
         from superset.mcp_service.system.schemas import PaginationInfo
 
+        # Report 1-based page in response to match the 1-based input convention
+        # used by all list tool wrappers (list_charts, list_datasets, etc.)
+        page_1based = page + 1
         pagination_info = PaginationInfo(
-            page=page,
+            page=page_1based,
             page_size=page_size,
             total_count=total_count,
             total_pages=total_pages,
@@ -202,7 +205,7 @@ class ModelListCore(BaseCore, Generic[L]):
             self.list_field_name: item_objs,
             "count": len(item_objs),
             "total_count": total_count,
-            "page": page,
+            "page": page_1based,
             "page_size": page_size,
             "total_pages": total_pages,
             "has_previous": page > 0,
