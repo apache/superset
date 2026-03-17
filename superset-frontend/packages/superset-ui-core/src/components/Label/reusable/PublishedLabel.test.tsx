@@ -16,49 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { type ReactElement } from 'react';
-import { render, screen } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { ThemeProvider } from '@emotion/react';
-import { Theme, supersetTheme } from '@apache-superset/core/theme';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { PublishedLabel } from './PublishedLabel';
-
-function renderWithDefaultTheme(ui: ReactElement) {
-  return render(<ThemeProvider theme={supersetTheme}>{ui}</ThemeProvider>);
-}
-
-function renderWithTokens(
-  ui: ReactElement,
-  tokenOverrides: Record<string, string>,
-) {
-  const customTheme = Theme.fromConfig({ token: tokenOverrides });
-  return render(<ThemeProvider theme={customTheme.theme}>{ui}</ThemeProvider>);
-}
+import { renderWithTheme } from './testUtils';
 
 test('renders "Published" text when isPublished is true', () => {
-  renderWithDefaultTheme(<PublishedLabel isPublished />);
+  renderWithTheme(<PublishedLabel isPublished />);
   expect(screen.getByText('Published')).toBeInTheDocument();
 });
 
 test('renders "Draft" text when isPublished is false', () => {
-  renderWithDefaultTheme(<PublishedLabel isPublished={false} />);
+  renderWithTheme(<PublishedLabel isPublished={false} />);
   expect(screen.getByText('Draft')).toBeInTheDocument();
 });
 
 test('uses default success color for published label', () => {
-  renderWithDefaultTheme(<PublishedLabel isPublished />);
+  renderWithTheme(<PublishedLabel isPublished />);
   const tag = screen.getByText('Published').closest('.ant-tag');
   expect(tag).toHaveStyle({ color: supersetTheme.colorSuccessText });
 });
 
 test('uses default primary color for draft label', () => {
-  renderWithDefaultTheme(<PublishedLabel isPublished={false} />);
+  renderWithTheme(<PublishedLabel isPublished={false} />);
   const tag = screen.getByText('Draft').closest('.ant-tag');
   expect(tag).toHaveStyle({ color: supersetTheme.colorPrimaryText });
 });
 
 test('applies custom labelPublished tokens when set', () => {
-  renderWithTokens(<PublishedLabel isPublished />, {
+  renderWithTheme(<PublishedLabel isPublished />, {
     labelPublishedColor: '#111111',
     labelPublishedBg: '#222222',
     labelPublishedBorderColor: '#333333',
@@ -72,7 +59,7 @@ test('applies custom labelPublished tokens when set', () => {
 });
 
 test('applies custom labelDraft tokens when set', () => {
-  renderWithTokens(<PublishedLabel isPublished={false} />, {
+  renderWithTheme(<PublishedLabel isPublished={false} />, {
     labelDraftColor: '#444444',
     labelDraftBg: '#555555',
     labelDraftBorderColor: '#666666',
@@ -86,7 +73,7 @@ test('applies custom labelDraft tokens when set', () => {
 });
 
 test('applies custom labelPublishedIconColor to icon', () => {
-  const { container } = renderWithTokens(<PublishedLabel isPublished />, {
+  const { container } = renderWithTheme(<PublishedLabel isPublished />, {
     labelPublishedIconColor: '#aabbcc',
   });
   const svg = container.querySelector('[role="img"]');
@@ -94,10 +81,46 @@ test('applies custom labelPublishedIconColor to icon', () => {
 });
 
 test('applies custom labelDraftIconColor to icon', () => {
-  const { container } = renderWithTokens(
+  const { container } = renderWithTheme(
     <PublishedLabel isPublished={false} />,
     { labelDraftIconColor: '#ddeeff' },
   );
   const svg = container.querySelector('[role="img"]');
   expect(svg).toHaveStyle({ color: '#ddeeff' });
+});
+
+test('uses default colorSuccess for published icon', () => {
+  const { container } = renderWithTheme(
+    <PublishedLabel isPublished />,
+  );
+  const svg = container.querySelector('[role="img"]');
+  expect(svg).toHaveStyle({ color: supersetTheme.colorSuccess });
+});
+
+test('uses default colorPrimary for draft icon', () => {
+  const { container } = renderWithTheme(
+    <PublishedLabel isPublished={false} />,
+  );
+  const svg = container.querySelector('[role="img"]');
+  expect(svg).toHaveStyle({ color: supersetTheme.colorPrimary });
+});
+
+test('calls onClick handler when clicked', () => {
+  const handleClick = jest.fn();
+  renderWithTheme(
+    <PublishedLabel isPublished onClick={handleClick} />,
+  );
+  fireEvent.click(screen.getByText('Published'));
+  expect(handleClick).toHaveBeenCalledTimes(1);
+});
+
+test('partial token override uses custom bg with default color fallback', () => {
+  renderWithTheme(<PublishedLabel isPublished />, {
+    labelPublishedBg: '#ff0000',
+  });
+  const tag = screen.getByText('Published').closest('.ant-tag');
+  expect(tag).toHaveStyle({
+    backgroundColor: '#ff0000',
+    color: supersetTheme.colorSuccessText,
+  });
 });
