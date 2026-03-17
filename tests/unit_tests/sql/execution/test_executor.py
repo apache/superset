@@ -2263,7 +2263,10 @@ def test_store_in_cache_serializes_dataframe(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
     """Test that _store_in_cache converts DataFrames to dict format."""
-    from superset_core.api.types import QueryResult as QueryResultType, StatementResult
+    from superset_core.queries.types import (
+        QueryResult as QueryResultType,
+        StatementResult,
+    )
 
     from superset.extensions import cache_manager
     from superset.sql.execution.executor import SQLExecutor

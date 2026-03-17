@@ -226,8 +226,43 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
             error_type=result.status.value,
         )
 
-    # Build statement info list, including per-statement row data
-    # for data-bearing statements (e.g., SELECT).
+    statements, data_bearing_count = _build_statements(result)
+    top_rows, top_columns, row_count, affected_rows = _extract_top_level(
+        statements, result
+    )
+
+    multi_statement_warning: str | None = None
+    if data_bearing_count > 1:
+        multi_statement_warning = (
+            f"This query contained {data_bearing_count} "
+            "data-bearing statements. "
+            "The top-level rows/columns contain only the "
+            "last data-bearing statement's results. "
+            "Check the 'data' field in each entry of the "
+            "'statements' array to see results from ALL "
+            "statements."
+        )
+
+    return ExecuteSqlResponse(
+        success=True,
+        rows=top_rows,
+        columns=top_columns,
+        row_count=row_count,
+        affected_rows=affected_rows,
+        execution_time=(
+            result.total_execution_time_ms / 1000
+            if result.total_execution_time_ms is not None
+            else None
+        ),
+        statements=statements,
+        multi_statement_warning=multi_statement_warning,
+    )
+
+
+def _build_statements(
+    result: QueryResult,
+) -> tuple[list[StatementInfo], int]:
+    """Build statement info list from QueryResult."""
     statements: list[StatementInfo] = []
     data_bearing_count = 0
 
@@ -247,53 +282,31 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
             )
         )
 
-    # Top-level rows/columns come from the last data-bearing statement
-    # for backward compatibility.
-    rows: list[dict[str, Any]] | None = None
-    columns: list[ColumnInfo] | None = None
-    row_count: int | None = None
-    affected_rows: int | None = None
+    return statements, data_bearing_count
 
-    last_data_stmt = None
-    for stmt in reversed(statements):
-        if stmt.data is not None:
-            last_data_stmt = stmt
-            break
+
+def _extract_top_level(
+    statements: list[StatementInfo],
+    result: QueryResult,
+) -> tuple[
+    list[dict[str, Any]] | None,
+    list[ColumnInfo] | None,
+    int | None,
+    int | None,
+]:
+    """Extract top-level rows/columns from the last data-bearing statement."""
+    last_data_stmt = next((s for s in reversed(statements) if s.data is not None), None)
 
     if last_data_stmt is not None and last_data_stmt.data is not None:
-        rows = last_data_stmt.data.rows
-        columns = last_data_stmt.data.columns
-        row_count = len(last_data_stmt.data.rows)
-    elif result.statements:
-        # DML-only query
-        last_stmt = result.statements[-1]
-        affected_rows = last_stmt.row_count
-
-    # Warn when multiple data-bearing statements exist so the LLM
-    # knows to inspect the statements array for all results.
-    multi_statement_warning: str | None = None
-    if data_bearing_count > 1:
-        multi_statement_warning = (
-            f"This query contained {data_bearing_count} "
-            "data-bearing statements. "
-            "The top-level rows/columns contain only the "
-            "last data-bearing statement's results. "
-            "Check the 'data' field in each entry of the "
-            "'statements' array to see results from ALL "
-            "statements."
+        return (
+            last_data_stmt.data.rows,
+            last_data_stmt.data.columns,
+            len(last_data_stmt.data.rows),
+            None,
         )
 
-    return ExecuteSqlResponse(
-        success=True,
-        rows=rows,
-        columns=columns,
-        row_count=row_count,
-        affected_rows=affected_rows,
-        execution_time=(
-            result.total_execution_time_ms / 1000
-            if result.total_execution_time_ms is not None
-            else None
-        ),
-        statements=statements,
-        multi_statement_warning=multi_statement_warning,
-    )
+    if result.statements:
+        last_stmt = result.statements[-1]
+        return None, None, None, last_stmt.row_count
+
+    return None, None, None, None
