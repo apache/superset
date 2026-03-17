@@ -23,7 +23,7 @@ import platform
 import time
 
 from flask import current_app
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
 from superset.mcp_service.system.schemas import HealthCheckResponse
@@ -34,7 +34,14 @@ logger = logging.getLogger(__name__)
 _start_time = time.monotonic()
 
 
-@tool(tags=["core"])
+@tool(
+    tags=["core"],
+    annotations=ToolAnnotations(
+        title="Health check",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 async def health_check() -> HealthCheckResponse:
     """
     Simple health check tool for testing the MCP service.
