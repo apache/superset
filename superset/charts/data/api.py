@@ -46,6 +46,7 @@ from superset.commands.chart.exceptions import (
 )
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.connectors.sqla.models import BaseDatasource
+from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
@@ -171,11 +172,16 @@ class ChartDataRestApi(ChartRestApi):
             )
 
         # TODO: support CSV, SQL query and other non-JSON types
-        if (
+        # Don't use async queries when cache is disabled (cache_timeout=-1)
+        # as async queries depend on caching to retrieve results
+        cache_timeout = query_context.get_cache_timeout()
+        use_async = (
             is_feature_enabled("GLOBAL_ASYNC_QUERIES")
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL
-        ):
+            and cache_timeout != CACHE_DISABLED_TIMEOUT
+        )
+        if use_async:
             return self._run_async(json_body, command, add_extra_log_payload)
 
         try:
@@ -265,11 +271,16 @@ class ChartDataRestApi(ChartRestApi):
             )
 
         # TODO: support CSV, SQL query and other non-JSON types
-        if (
+        # Don't use async queries when cache is disabled (cache_timeout=-1)
+        # as async queries depend on caching to retrieve results
+        cache_timeout = query_context.get_cache_timeout()
+        use_async = (
             is_feature_enabled("GLOBAL_ASYNC_QUERIES")
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL
-        ):
+            and cache_timeout != CACHE_DISABLED_TIMEOUT
+        )
+        if use_async:
             return self._run_async(json_body, command, add_extra_log_payload)
 
         form_data = json_body.get("form_data")
@@ -288,8 +299,9 @@ class ChartDataRestApi(ChartRestApi):
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".data_from_cache",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.data_from_cache"
+        ),
         log_to_statsd=False,
     )
     def data_from_cache(self, cache_key: str) -> Response:
@@ -351,15 +363,17 @@ class ChartDataRestApi(ChartRestApi):
         """
         Execute command as an async query.
         """
-        # First, look for the chart query results in the cache.
-        with contextlib.suppress(ChartDataCacheLoadError):
-            result = command.run(force_cached=True)
-            if result is not None:
-                # Log is_cached if extra payload callback is provided.
-                # This indicates no async job was triggered - data was already cached
-                # and a synchronous response is being returned immediately.
-                self._log_is_cached(result, add_extra_log_payload)
-                return self._send_chart_response(result)
+        # First, look for the chart query results in the cache,
+        # but only if we're not forcing a refresh.
+        if not form_data.get("force"):
+            with contextlib.suppress(ChartDataCacheLoadError):
+                result = command.run(force_cached=True)
+                if result is not None:
+                    # Log is_cached if extra payload callback is provided.
+                    # This indicates no async job was triggered - data was already
+                    # cached and a synchronous response is being returned immediately.
+                    self._log_is_cached(result, add_extra_log_payload)
+                    return self._send_chart_response(result)
         # Otherwise, kick off a background job to run the chart query.
         # Clients will either poll or be notified of query completion,
         # at which point they will call the /data/<cache_key> endpoint
@@ -392,7 +406,13 @@ class ChartDataRestApi(ChartRestApi):
 
         if result_format in ChartDataResultFormat.table_like():
             # Verify user has permission to export file
-            if not security_manager.can_access("can_csv", "Superset"):
+            if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
+                has_export_perm = security_manager.can_access(
+                    "can_export_data", "Superset"
+                )
+            else:
+                has_export_perm = security_manager.can_access("can_csv", "Superset")
+            if not has_export_perm:
                 return self.response_403()
 
             if not result["queries"]:

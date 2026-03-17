@@ -23,6 +23,7 @@ from zipfile import is_zipfile, ZipFile
 
 from superset.extensions.types import LoadedExtension
 from superset.extensions.utils import get_bundle_files_from_zip, get_loaded_extension
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +60,27 @@ def discover_and_load_extensions(
 
             try:
                 with ZipFile(supx_file, "r") as zip_file:
+                    # Read the manifest first to get the extension ID for the
+                    # supx:// path
+                    try:
+                        manifest_content = zip_file.read("manifest.json")
+                        manifest_data = json.loads(manifest_content)
+                        extension_id = manifest_data["id"]
+                    except (KeyError, json.JSONDecodeError) as e:
+                        logger.error(
+                            "Failed to read extension ID from manifest in %s: %s",
+                            supx_file,
+                            e,
+                        )
+                        continue
+
+                    # Use supx:// scheme for tracebacks
+                    source_base_path = f"supx://{extension_id}"
+
                     files = get_bundle_files_from_zip(zip_file)
-                    extension = get_loaded_extension(files)
+                    extension = get_loaded_extension(
+                        files, source_base_path=source_base_path
+                    )
                     logger.info(
                         "Loaded extension '%s' from %s", extension.id, supx_file
                     )

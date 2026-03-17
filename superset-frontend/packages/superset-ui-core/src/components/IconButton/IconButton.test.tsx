@@ -25,7 +25,7 @@ const defaultProps = {
 };
 
 describe('IconButton', () => {
-  it('renders an IconButton with icon and text', () => {
+  test('renders an IconButton with icon and text', () => {
     render(<IconButton {...defaultProps} />);
 
     const icon = screen.getByRole('img');
@@ -35,7 +35,7 @@ describe('IconButton', () => {
     expect(buttonText).toBeVisible();
   });
 
-  it('is keyboard accessible and has correct aria attributes', () => {
+  test('is keyboard accessible and has correct aria attributes', () => {
     render(<IconButton {...defaultProps} />);
 
     const button = screen.getByRole('button');
@@ -44,7 +44,7 @@ describe('IconButton', () => {
     expect(button).toHaveAttribute('aria-label', defaultProps.buttonText);
   });
 
-  it('handles Enter and Space key presses', () => {
+  test('handles Enter and Space key presses', () => {
     const mockOnClick = jest.fn();
     render(<IconButton {...defaultProps} onClick={mockOnClick} />);
 
@@ -57,7 +57,7 @@ describe('IconButton', () => {
     expect(mockOnClick).toHaveBeenCalledTimes(2);
   });
 
-  it('uses custom alt text when provided', () => {
+  test('uses custom alt text when provided', () => {
     const customAltText = 'Custom Alt Text';
     render(
       <IconButton
@@ -71,14 +71,14 @@ describe('IconButton', () => {
     expect(icon).toBeVisible();
   });
 
-  it('displays tooltip with button text', () => {
+  test('displays tooltip with button text', () => {
     render(<IconButton {...defaultProps} />);
 
     const tooltipTrigger = screen.getByText(/this is the iconbutton text/i);
     expect(tooltipTrigger).toBeVisible();
   });
 
-  it('calls onClick handler when clicked', () => {
+  test('calls onClick handler when clicked', () => {
     const mockOnClick = jest.fn();
     render(<IconButton {...defaultProps} onClick={mockOnClick} />);
 

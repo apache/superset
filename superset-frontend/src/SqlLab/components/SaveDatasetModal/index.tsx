@@ -30,8 +30,8 @@ import {
   Icons,
   Flex,
 } from '@superset-ui/core/components';
+import { t } from '@apache-superset/core/translation';
 import {
-  t,
   SupersetClient,
   JsonResponse,
   JsonObject,
@@ -42,7 +42,7 @@ import {
   isFeatureEnabled,
   getClientErrorObject,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import { useSelector, useDispatch } from 'react-redux';
 import rison from 'rison';
@@ -258,7 +258,7 @@ export const SaveDatasetModal = ({
       ]);
       setLoading(false);
 
-      const url = mountExploreUrl(null, {
+      const url = mountExploreUrl('base', {
         [URL_PARAMS.formDataKey.name]: key,
       });
       createWindow(url);
@@ -364,7 +364,7 @@ export const SaveDatasetModal = ({
       })
       .then((key: string) => {
         setLoading(false);
-        const url = mountExploreUrl(null, {
+        const url = mountExploreUrl('base', {
           [URL_PARAMS.formDataKey.name]: key,
         });
         createWindow(url);

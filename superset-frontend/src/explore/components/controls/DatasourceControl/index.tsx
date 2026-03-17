@@ -19,19 +19,14 @@
  */
 
 import React, { PureComponent } from 'react';
-import PropTypes from 'prop-types';
-import {
-  DatasourceType,
-  SupersetClient,
-  t,
-  Datasource,
-} from '@superset-ui/core';
+import { DatasourceType, SupersetClient, Datasource } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import {
   css,
   styled,
   withTheme,
   type SupersetTheme,
-} from '@apache-superset/core/ui';
+} from '@apache-superset/core/theme';
 import { getTemporalColumns } from '@superset-ui/chart-controls';
 import { getUrlParam } from 'src/utils/urlUtils';
 import {
@@ -122,25 +117,6 @@ interface DatasourceControlState {
   showSaveDatasetModal: boolean;
   showDatasource?: boolean;
 }
-
-const propTypes = {
-  actions: PropTypes.object.isRequired,
-  onChange: PropTypes.func,
-  value: PropTypes.string,
-  datasource: PropTypes.object.isRequired,
-  form_data: PropTypes.object.isRequired,
-  isEditable: PropTypes.bool,
-  onDatasourceSave: PropTypes.func,
-  user: PropTypes.object.isRequired,
-  // ControlHeader-related props
-  hovered: PropTypes.bool,
-  type: PropTypes.string,
-  label: PropTypes.string,
-  default: PropTypes.any,
-  description: PropTypes.string,
-  validationErrors: PropTypes.array,
-  name: PropTypes.string,
-};
 
 const defaultProps = {
   onChange: () => {},
@@ -262,8 +238,6 @@ class DatasourceControl extends PureComponent<
   DatasourceControlProps,
   DatasourceControlState
 > {
-  static propTypes = propTypes;
-
   static defaultProps = defaultProps;
 
   constructor(props: DatasourceControlProps) {

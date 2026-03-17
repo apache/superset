@@ -144,23 +144,18 @@ test('Should render', () => {
 test('Should render default props', () => {
   const props = createProps();
 
-  // @ts-ignore
+  // @ts-expect-error - testing with missing required props
   delete props.forceRefresh;
-  // @ts-ignore
   delete props.toggleExpandSlice;
-  // @ts-ignore
-  delete props.exploreChart;
-  // @ts-ignore
+  delete props.logExploreChart;
   delete props.exportCSV;
-  // @ts-ignore
   delete props.exportXLSX;
-  // @ts-ignore
+  // @ts-expect-error - testing with missing required props
   delete props.cachedDttm;
-  // @ts-ignore
+  // @ts-expect-error - testing with missing required props
   delete props.updatedDttm;
-  // @ts-ignore
+  // @ts-expect-error - testing with missing required props
   delete props.isCached;
-  // @ts-ignore
   delete props.isExpanded;
 
   renderWrapper(props);

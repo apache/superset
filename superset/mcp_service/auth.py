@@ -16,22 +16,24 @@
 # under the License.
 
 """
-Minimal authentication hooks for MCP tools.
-This is a placeholder implementation that provides basic user context.
+Authentication and authorization hooks for MCP tools.
 
-Future enhancements (to be added in separate PRs):
-- JWT token authentication and validation
-- User impersonation support
-- Permission checking with scopes
-- Comprehensive audit logging
-- Field-level permissions
+This module provides:
+- User authentication from JWT or configured dev user
+- RBAC permission checking aligned with Superset's REST API permissions
+- Dataset access validation
+- Session lifecycle management
+
+The RBAC enforcement mirrors Flask-AppBuilder's @protect() decorator,
+ensuring MCP tools respect the same permission model as the REST API.
 """
 
 import logging
+from contextlib import AbstractContextManager
 from typing import Any, Callable, TYPE_CHECKING, TypeVar
 
 from flask import g
-from flask_appbuilder.security.sqla.models import User
+from flask_appbuilder.security.sqla.models import Group, User
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -40,6 +42,134 @@ if TYPE_CHECKING:
 F = TypeVar("F", bound=Callable[..., Any])
 
 logger = logging.getLogger(__name__)
+
+# Constants for RBAC permission attributes (mirrors FAB conventions)
+PERMISSION_PREFIX = "can_"
+CLASS_PERMISSION_ATTR = "_class_permission_name"
+METHOD_PERMISSION_ATTR = "_method_permission_name"
+
+
+class MCPPermissionDeniedError(Exception):
+    """Raised when user lacks required RBAC permission for an MCP tool."""
+
+    def __init__(
+        self,
+        permission_name: str,
+        view_name: str,
+        user: str | None = None,
+        tool_name: str | None = None,
+    ):
+        self.permission_name = permission_name
+        self.view_name = view_name
+        self.user = user
+        self.tool_name = tool_name
+        message = (
+            f"Permission denied: {permission_name} on {view_name}"
+            + (f" for user {user}" if user else "")
+            + (f" (tool: {tool_name})" if tool_name else "")
+        )
+        super().__init__(message)
+
+
+def check_tool_permission(func: Callable[..., Any]) -> bool:
+    """Check if the current user has RBAC permission for an MCP tool.
+
+    Reads permission metadata stored on the function by the @tool decorator
+    and uses Superset's security_manager to verify access.
+
+    Controlled by the ``MCP_RBAC_ENABLED`` config flag (default True).
+    Set to False in superset_config.py to disable RBAC checking.
+
+    Args:
+        func: The tool function with optional permission attributes.
+
+    Returns:
+        True if user has permission or no permission is required.
+    """
+    try:
+        from flask import current_app
+
+        if not current_app.config.get("MCP_RBAC_ENABLED", True):
+            return True
+
+        from superset import security_manager
+
+        if not hasattr(g, "user") or not g.user:
+            logger.warning(
+                "No user context for permission check on tool: %s", func.__name__
+            )
+            return False
+
+        class_permission_name = getattr(func, CLASS_PERMISSION_ATTR, None)
+        if not class_permission_name:
+            # No RBAC configured for this tool; allow by default.
+            return True
+
+        method_permission_name = getattr(func, METHOD_PERMISSION_ATTR, "read")
+        permission_str = f"{PERMISSION_PREFIX}{method_permission_name}"
+
+        has_permission = security_manager.can_access(
+            permission_str, class_permission_name
+        )
+
+        if not has_permission:
+            logger.warning(
+                "Permission denied for user %s: %s on %s (tool: %s)",
+                g.user.username,
+                permission_str,
+                class_permission_name,
+                func.__name__,
+            )
+
+        return has_permission
+
+    except (AttributeError, ValueError, RuntimeError) as e:
+        logger.warning("Error checking tool permission: %s", e)
+        return False
+
+
+def load_user_with_relationships(
+    username: str | None = None, email: str | None = None
+) -> User | None:
+    """
+    Load a user with all relationships needed for permission checks.
+
+    This function eagerly loads User.roles, User.groups, and Group.roles
+    to prevent detached instance errors when the session is closed/rolled back.
+
+    IMPORTANT: Always use this function instead of security_manager.find_user()
+    when loading users for MCP tool execution. The find_user() method doesn't
+    eagerly load Group.roles, causing "detached instance" errors when permission
+    checks access group.roles after the session is rolled back.
+
+    Args:
+        username: The username to look up (optional if email provided)
+        email: The email to look up (optional if username provided)
+
+    Returns:
+        User object with relationships loaded, or None if not found
+
+    Raises:
+        ValueError: If neither username nor email is provided
+    """
+    if not username and not email:
+        raise ValueError("Either username or email must be provided")
+
+    from sqlalchemy.orm import joinedload
+
+    from superset.extensions import db
+
+    query = db.session.query(User).options(
+        joinedload(User.roles),
+        joinedload(User.groups).joinedload(Group.roles),
+    )
+
+    if username:
+        query = query.filter(User.username == username)
+    else:
+        query = query.filter(User.email == email)
+
+    return query.first()
 
 
 def get_user_from_request() -> User:
@@ -57,9 +187,6 @@ def get_user_from_request() -> User:
         ValueError: If user cannot be authenticated or found
     """
     from flask import current_app
-    from sqlalchemy.orm import joinedload
-
-    from superset.extensions import db
 
     # First check if user is already set by Preset workspace middleware
     if hasattr(g, "user") and g.user:
@@ -69,20 +196,28 @@ def get_user_from_request() -> User:
     username = current_app.config.get("MCP_DEV_USERNAME")
 
     if not username:
+        auth_enabled = current_app.config.get("MCP_AUTH_ENABLED", False)
+        jwt_configured = bool(
+            current_app.config.get("MCP_JWKS_URI")
+            or current_app.config.get("MCP_JWT_PUBLIC_KEY")
+            or current_app.config.get("MCP_JWT_SECRET")
+        )
+        details = []
+        details.append(
+            f"g.user was not set by JWT middleware "
+            f"(MCP_AUTH_ENABLED={auth_enabled}, "
+            f"JWT keys configured={jwt_configured})"
+        )
+        details.append("MCP_DEV_USERNAME is not configured")
         raise ValueError(
-            "No authenticated user found. "
-            "Either pass a valid JWT bearer token or configure "
+            "No authenticated user found. Tried:\n"
+            + "\n".join(f"  - {d}" for d in details)
+            + "\n\nEither pass a valid JWT bearer token or configure "
             "MCP_DEV_USERNAME for development."
         )
 
-    # Query user directly with eager loading to ensure fresh session-bound object
-    # Do NOT use security_manager.find_user() as it may return cached/detached user
-    user = (
-        db.session.query(User)
-        .options(joinedload(User.roles), joinedload(User.groups))
-        .filter(User.username == username)
-        .first()
-    )
+    # Use helper function to load user with all required relationships
+    user = load_user_with_relationships(username)
 
     if not user:
         raise ValueError(
@@ -126,14 +261,22 @@ def has_dataset_access(dataset: "SqlaTable") -> bool:
         return False  # Deny access on error
 
 
-def _setup_user_context() -> User:
+def _setup_user_context() -> User | None:
     """
     Set up user context for MCP tool execution.
 
     Returns:
-        User object with roles and groups loaded
+        User object with roles and groups loaded, or None if no Flask context
     """
-    user = get_user_from_request()
+    try:
+        user = get_user_from_request()
+    except RuntimeError as e:
+        # No Flask application context (e.g., prompts before middleware runs)
+        # This is expected for some FastMCP operations - return None gracefully
+        if "application context" in str(e):
+            logger.debug("No Flask app context available for user setup")
+            return None
+        raise
 
     # Validate user has necessary relationships loaded
     # (Force access to ensure they're loaded if lazy)
@@ -157,36 +300,37 @@ def _cleanup_session_on_error() -> None:
         logger.warning("Error cleaning up session after exception: %s", e)
 
 
-def _cleanup_session_finally() -> None:
-    """Clean up database session in finally block."""
-    from superset.extensions import db
-
-    # Rollback active session (no exception occurred)
-    # Do NOT call remove() on success to avoid detaching user
-    try:
-        if db.session.is_active:
-            # pylint: disable=consider-using-transaction
-            db.session.rollback()
-    except Exception as e:
-        logger.warning("Error in finally block: %s", e)
-
-
-def mcp_auth_hook(tool_func: F) -> F:
+def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
     """
     Authentication and authorization decorator for MCP tools.
 
-    This decorator assumes Flask application context and g.user
-    have already been set by WorkspaceContextMiddleware.
+    This decorator pushes Flask application context, sets up g.user,
+    and enforces RBAC permission checks for MCP tool execution.
+
+    Permission metadata (class_permission_name, method_permission_name) is
+    stored on tool_func by the @tool decorator in core_mcp_injection.py.
+    If present, check_tool_permission() verifies the user has the required
+    FAB permission before the tool function runs.
 
     Supports both sync and async tool functions.
-
-    TODO (future PR): Add permission checking
-    TODO (future PR): Add JWT scope validation
-    TODO (future PR): Add comprehensive audit logging
     """
+    import contextlib
     import functools
     import inspect
     import types
+
+    from flask import has_app_context
+
+    from superset.mcp_service.flask_singleton import get_flask_app
+
+    def _get_app_context_manager() -> AbstractContextManager[None]:
+        """Return app context manager only if not already in one."""
+        if has_app_context():
+            # Already in app context (e.g., in tests), use null context
+            return contextlib.nullcontext()
+        # Push new app context for standalone MCP server
+        app = get_flask_app()
+        return app.app_context()
 
     is_async = inspect.iscoroutinefunction(tool_func)
 
@@ -194,21 +338,39 @@ def mcp_auth_hook(tool_func: F) -> F:
 
         @functools.wraps(tool_func)
         async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
-            user = _setup_user_context()
+            with _get_app_context_manager():
+                user = _setup_user_context()
 
-            try:
-                logger.debug(
-                    "MCP tool call: user=%s, tool=%s",
-                    user.username,
-                    tool_func.__name__,
-                )
-                result = await tool_func(*args, **kwargs)
-                return result
-            except Exception:
-                _cleanup_session_on_error()
-                raise
-            finally:
-                _cleanup_session_finally()
+                # No Flask context - this is a FastMCP internal operation
+                # (e.g., tool discovery, prompt listing) that doesn't require auth
+                if user is None:
+                    logger.debug(
+                        "MCP internal call without Flask context: tool=%s",
+                        tool_func.__name__,
+                    )
+                    return await tool_func(*args, **kwargs)
+
+                # RBAC permission check
+                if not check_tool_permission(tool_func):
+                    method_name = getattr(tool_func, METHOD_PERMISSION_ATTR, "read")
+                    raise MCPPermissionDeniedError(
+                        permission_name=f"{PERMISSION_PREFIX}{method_name}",
+                        view_name=getattr(tool_func, CLASS_PERMISSION_ATTR, "unknown"),
+                        user=user.username,
+                        tool_name=tool_func.__name__,
+                    )
+
+                try:
+                    logger.debug(
+                        "MCP tool call: user=%s, tool=%s",
+                        user.username,
+                        tool_func.__name__,
+                    )
+                    result = await tool_func(*args, **kwargs)
+                    return result
+                except Exception:
+                    _cleanup_session_on_error()
+                    raise
 
         wrapper = async_wrapper
 
@@ -216,21 +378,39 @@ def mcp_auth_hook(tool_func: F) -> F:
 
         @functools.wraps(tool_func)
         def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
-            user = _setup_user_context()
+            with _get_app_context_manager():
+                user = _setup_user_context()
 
-            try:
-                logger.debug(
-                    "MCP tool call: user=%s, tool=%s",
-                    user.username,
-                    tool_func.__name__,
-                )
-                result = tool_func(*args, **kwargs)
-                return result
-            except Exception:
-                _cleanup_session_on_error()
-                raise
-            finally:
-                _cleanup_session_finally()
+                # No Flask context - this is a FastMCP internal operation
+                # (e.g., tool discovery, prompt listing) that doesn't require auth
+                if user is None:
+                    logger.debug(
+                        "MCP internal call without Flask context: tool=%s",
+                        tool_func.__name__,
+                    )
+                    return tool_func(*args, **kwargs)
+
+                # RBAC permission check
+                if not check_tool_permission(tool_func):
+                    method_name = getattr(tool_func, METHOD_PERMISSION_ATTR, "read")
+                    raise MCPPermissionDeniedError(
+                        permission_name=f"{PERMISSION_PREFIX}{method_name}",
+                        view_name=getattr(tool_func, CLASS_PERMISSION_ATTR, "unknown"),
+                        user=user.username,
+                        tool_name=tool_func.__name__,
+                    )
+
+                try:
+                    logger.debug(
+                        "MCP tool call: user=%s, tool=%s",
+                        user.username,
+                        tool_func.__name__,
+                    )
+                    result = tool_func(*args, **kwargs)
+                    return result
+                except Exception:
+                    _cleanup_session_on_error()
+                    raise
 
         wrapper = sync_wrapper
 

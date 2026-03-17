@@ -22,8 +22,19 @@ import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { useQueryParams, BooleanParam } from 'use-query-params';
 import { isEmpty } from 'lodash';
-import { t, SupersetClient, getExtensionsRegistry } from '@superset-ui/core';
-import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import {
+  SupersetClient,
+  getExtensionsRegistry,
+  isFeatureEnabled,
+  FeatureFlag,
+} from '@superset-ui/core';
+import {
+  styled,
+  css,
+  SupersetTheme,
+  useTheme,
+} from '@apache-superset/core/theme';
 import {
   Tag,
   Tooltip,
@@ -34,6 +45,7 @@ import {
 } from '@superset-ui/core/components';
 import type { ItemType, MenuItem } from '@superset-ui/core/components/Menu';
 import { ensureAppRoot, makeUrl } from 'src/utils/pathUtils';
+import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import {
@@ -482,21 +494,28 @@ const RightMenu = ({
           userItems.push({
             key: 'info',
             label: (
-              <Typography.Link href={navbarRight.user_info_url}>
+              <Typography.Link href={ensureAppRoot(navbarRight.user_info_url)}>
                 {t('Info')}
               </Typography.Link>
             ),
           });
         }
-        userItems.push({
-          key: 'logout',
-          label: (
-            <Typography.Link href={navbarRight.user_logout_url}>
-              {t('Logout')}
-            </Typography.Link>
-          ),
-          onClick: handleLogout,
-        });
+        const showLogout =
+          !isEmbedded() ||
+          !isFeatureEnabled(FeatureFlag.DisableEmbeddedSupersetLogout);
+        if (showLogout) {
+          userItems.push({
+            key: 'logout',
+            label: (
+              <Typography.Link
+                href={ensureAppRoot(navbarRight.user_logout_url)}
+              >
+                {t('Logout')}
+              </Typography.Link>
+            ),
+            onClick: handleLogout,
+          });
+        }
 
         items.push({
           type: 'group',

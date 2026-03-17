@@ -39,7 +39,7 @@ const mockedProps = {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('BulkTagModal', () => {
   afterEach(() => {
-    fetchMock.reset();
+    fetchMock.clearHistory().removeRoutes();
     jest.clearAllMocks();
   });
 

@@ -77,7 +77,7 @@ afterEach(async () => {
   act(() => {
     store.dispatch(api.util.resetApiState());
   });
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   // Wait for any pending effects to complete
   await new Promise(resolve => setTimeout(resolve, 0));
 });

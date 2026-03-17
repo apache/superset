@@ -30,7 +30,7 @@ import pandas as pd
 import pytest
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
-from superset_core.api.types import QueryResult, QueryStatus, StatementResult
+from superset_core.queries.types import QueryResult, QueryStatus, StatementResult
 
 from superset.mcp_service.app import mcp
 
@@ -526,9 +526,254 @@ class TestExecuteSql:
             assert data["statements"][0]["original_sql"] == "SELECT 1 as a"
             assert data["statements"][1]["original_sql"] == "SELECT 2 as b"
 
-            # rows/columns should be from first statement for backward compat
-            assert data["rows"] == [{"a": 1}]
+            # rows/columns should be from last data-bearing statement
+            assert data["rows"] == [{"b": 2}]
             assert data["row_count"] == 1
+
+            # Per-statement data should be present for both statements
+            assert data["statements"][0]["data"] is not None
+            assert data["statements"][0]["data"]["rows"] == [{"a": 1}]
+            assert len(data["statements"][0]["data"]["columns"]) == 1
+            assert data["statements"][0]["data"]["columns"][0]["name"] == "a"
+
+            assert data["statements"][1]["data"] is not None
+            assert data["statements"][1]["data"]["rows"] == [{"b": 2}]
+            assert len(data["statements"][1]["data"]["columns"]) == 1
+            assert data["statements"][1]["data"]["columns"][0]["name"] == "b"
+
+            # Warning should be present for multi-data-bearing queries
+            assert data["multi_statement_warning"] is not None
+            assert "2 data-bearing statements" in data["multi_statement_warning"]
+
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    async def test_execute_sql_multi_statement_set_then_select(
+        self, mock_db, mock_security_manager, mcp_server
+    ):
+        """Test multi-statement where first stmt is SET (no data) and second is SELECT.
+
+        This covers the edge case where a SET command (e.g., SET search_path)
+        precedes the actual query. The response should contain the SELECT
+        results, not the SET's affected_rows.
+        """
+        mock_database = _mock_database()
+        mock_database.execute.return_value = QueryResult(
+            status=QueryStatus.SUCCESS,
+            statements=[
+                StatementResult(
+                    original_sql="SET search_path TO sales",
+                    executed_sql="SET search_path TO sales",
+                    data=None,
+                    row_count=0,
+                    execution_time_ms=1.0,
+                ),
+                StatementResult(
+                    original_sql=(
+                        "WITH cte AS (SELECT id, amount FROM orders) SELECT * FROM cte"
+                    ),
+                    executed_sql=(
+                        "WITH cte AS (SELECT id, amount FROM orders) SELECT * FROM cte"
+                    ),
+                    data=pd.DataFrame(
+                        [{"id": 1, "amount": 99.99}, {"id": 2, "amount": 150.00}]
+                    ),
+                    row_count=2,
+                    execution_time_ms=12.0,
+                ),
+            ],
+            query_id=None,
+            total_execution_time_ms=13.0,
+            is_cached=False,
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.can_access_database.return_value = True
+
+        request = {
+            "database_id": 1,
+            "sql": (
+                "SET search_path TO sales;"
+                " WITH cte AS (SELECT id, amount FROM orders)"
+                " SELECT * FROM cte"
+            ),
+            "limit": 100,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+
+            data = result.structured_content
+            assert data["success"] is True
+            assert data["statements"] is not None
+            assert len(data["statements"]) == 2
+
+            # The response should contain the SELECT results, not affected_rows
+            assert data["rows"] is not None
+            assert len(data["rows"]) == 2
+            assert data["rows"][0]["id"] == 1
+            assert data["rows"][0]["amount"] == 99.99
+            assert data["row_count"] == 2
+            assert data["affected_rows"] is None
+
+            # Verify columns come from the SELECT statement
+            assert data["columns"] is not None
+            assert len(data["columns"]) == 2
+            column_names = [c["name"] for c in data["columns"]]
+            assert "id" in column_names
+            assert "amount" in column_names
+
+            # SET statement should have no data, SELECT should have data
+            assert data["statements"][0]["data"] is None
+            assert data["statements"][1]["data"] is not None
+            assert len(data["statements"][1]["data"]["rows"]) == 2
+
+            # No warning since only one data-bearing statement
+            assert data["multi_statement_warning"] is None
+
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    async def test_execute_sql_multi_statement_all_dml(
+        self, mock_db, mock_security_manager, mcp_server
+    ):
+        """Test multi-statement where all statements are DML (no data).
+
+        When no statement has data, the response should use affected_rows
+        from the last statement.
+        """
+        mock_database = _mock_database(allow_dml=True)
+        mock_database.execute.return_value = QueryResult(
+            status=QueryStatus.SUCCESS,
+            statements=[
+                StatementResult(
+                    original_sql="SET search_path TO sales",
+                    executed_sql="SET search_path TO sales",
+                    data=None,
+                    row_count=0,
+                    execution_time_ms=1.0,
+                ),
+                StatementResult(
+                    original_sql="UPDATE orders SET status = 'shipped'",
+                    executed_sql="UPDATE orders SET status = 'shipped'",
+                    data=None,
+                    row_count=5,
+                    execution_time_ms=8.0,
+                ),
+            ],
+            query_id=None,
+            total_execution_time_ms=9.0,
+            is_cached=False,
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.can_access_database.return_value = True
+
+        request = {
+            "database_id": 1,
+            "sql": "SET search_path TO sales; UPDATE orders SET status = 'shipped'",
+            "limit": 100,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+
+            data = result.structured_content
+            assert data["success"] is True
+            assert data["rows"] is None
+            assert data["row_count"] is None
+            # affected_rows should come from the last statement
+            assert data["affected_rows"] == 5
+
+            # DML statements should have no per-statement data
+            assert data["statements"][0]["data"] is None
+            assert data["statements"][1]["data"] is None
+
+            # No warning for DML-only queries
+            assert data["multi_statement_warning"] is None
+
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    async def test_execute_sql_multi_statement_preserves_all_data(
+        self, mock_db, mock_security_manager, mcp_server
+    ) -> None:
+        """Test that multi-statement SQL returns per-statement data for ALL results.
+
+        Regression test: previously, running two SELECT statements would only
+        return the last statement's rows in the top-level response and
+        completely lose the first statement's row data.
+        """
+        mock_database = _mock_database()
+        mock_database.execute.return_value = QueryResult(
+            status=QueryStatus.SUCCESS,
+            statements=[
+                StatementResult(
+                    original_sql="SELECT COUNT(*) AS order_count FROM orders",
+                    executed_sql="SELECT COUNT(*) AS order_count FROM orders",
+                    data=pd.DataFrame([{"order_count": 42}]),
+                    row_count=1,
+                    execution_time_ms=5.0,
+                ),
+                StatementResult(
+                    original_sql="SELECT SUM(revenue) AS total_revenue FROM orders",
+                    executed_sql="SELECT SUM(revenue) AS total_revenue FROM orders",
+                    data=pd.DataFrame([{"total_revenue": 12345.67}]),
+                    row_count=1,
+                    execution_time_ms=7.0,
+                ),
+            ],
+            query_id=None,
+            total_execution_time_ms=12.0,
+            is_cached=False,
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.can_access_database.return_value = True
+
+        request = {
+            "database_id": 1,
+            "sql": (
+                "SELECT COUNT(*) AS order_count FROM orders;"
+                " SELECT SUM(revenue) AS total_revenue FROM orders"
+            ),
+            "limit": 100,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+
+            data = result.structured_content
+            assert data["success"] is True
+
+            # Top-level rows/columns should be from the LAST data-bearing stmt
+            assert data["rows"] == [{"total_revenue": 12345.67}]
+            assert data["row_count"] == 1
+
+            # Both statements should have per-statement data
+            assert len(data["statements"]) == 2
+
+            # First statement's data is accessible
+            first_stmt = data["statements"][0]
+            assert first_stmt["data"] is not None
+            assert first_stmt["data"]["rows"] == [{"order_count": 42}]
+            assert len(first_stmt["data"]["columns"]) == 1
+            assert first_stmt["data"]["columns"][0]["name"] == "order_count"
+
+            # Second statement's data is accessible
+            second_stmt = data["statements"][1]
+            assert second_stmt["data"] is not None
+            assert second_stmt["data"]["rows"] == [{"total_revenue": 12345.67}]
+            assert len(second_stmt["data"]["columns"]) == 1
+            assert second_stmt["data"]["columns"][0]["name"] == "total_revenue"
+
+            # Warning should tell LLM to check statements array
+            assert data["multi_statement_warning"] is not None
+            assert "2 data-bearing statements" in data["multi_statement_warning"]
+            assert "statements" in data["multi_statement_warning"]
 
     @pytest.mark.asyncio
     async def test_execute_sql_empty_query_validation(self, mcp_server):
@@ -567,6 +812,41 @@ class TestExecuteSql:
         async with Client(mcp_server) as client:
             with pytest.raises(ToolError, match="less than or equal to 10000"):
                 await client.call_tool("execute_sql", {"request": request})
+
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    async def test_execute_sql_no_limit_respects_sql(
+        self, mock_db, mock_security_manager, mcp_server
+    ):
+        """Test that omitting limit lets the SQL LIMIT clause be respected."""
+        mock_database = _mock_database()
+        mock_database.execute.return_value = _create_select_result(
+            rows=[{"id": i} for i in range(5)],
+            columns=["id"],
+            original_sql="SELECT id FROM users LIMIT 5",
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.can_access_database.return_value = True
+
+        # No 'limit' key — should default to None (no override)
+        request = {
+            "database_id": 1,
+            "sql": "SELECT id FROM users LIMIT 5",
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+
+            data = result.structured_content
+            assert data["success"] is True
+
+            # Verify limit=None was passed to QueryOptions (no override)
+            call_args = mock_database.execute.call_args
+            options = call_args[0][1]
+            assert options.limit is None
 
     @patch("superset.security_manager")
     @patch("superset.db")

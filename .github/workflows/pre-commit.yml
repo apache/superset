@@ -8,6 +8,9 @@ on:
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
 
+permissions:
+  contents: read
+
 # cancel previous workflow jobs for PRs
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
@@ -61,11 +64,17 @@ jobs:
           restore-keys: |
             pre-commit-v2-${{ runner.os }}-py${{ matrix.python-version }}-
 
+      - name: Get changed files
+        id: changed_files
+        uses: ./.github/actions/file-changes-action
+        with:
+          output: ' '
+
       - name: pre-commit
         run: |
           set +e  # Don't exit immediately on failure
-          export SKIP=eslint-frontend,type-checking-frontend
-          pre-commit run --all-files
+          export SKIP=type-checking-frontend
+          pre-commit run --files ${{ steps.changed_files.outputs.files }}
           PRE_COMMIT_EXIT_CODE=$?
           git diff --quiet --exit-code
           GIT_DIFF_EXIT_CODE=$?

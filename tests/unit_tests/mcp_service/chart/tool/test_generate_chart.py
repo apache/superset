@@ -19,6 +19,8 @@
 Unit tests for MCP generate_chart tool
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
 
 from superset.mcp_service.chart.schemas import (
@@ -29,6 +31,10 @@ from superset.mcp_service.chart.schemas import (
     LegendConfig,
     TableChartConfig,
     XYChartConfig,
+)
+from superset.mcp_service.chart.tool.generate_chart import (
+    _compile_chart,
+    CompileResult,
 )
 
 
@@ -182,24 +188,35 @@ class TestGenerateChart:
     @pytest.mark.asyncio
     async def test_save_chart_flag(self):
         """Test save_chart flag behavior."""
-        # Default should be True (save chart)
+        # Default should be False (preview only, not saved)
         request1 = GenerateChartRequest(
             dataset_id="1",
             config=TableChartConfig(
                 chart_type="table", columns=[ColumnRef(name="col1")]
             ),
         )
-        assert request1.save_chart is True
+        assert request1.save_chart is False
 
-        # Explicit False (preview only)
+        # Explicit True (save chart permanently)
         request2 = GenerateChartRequest(
             dataset_id="1",
             config=TableChartConfig(
                 chart_type="table", columns=[ColumnRef(name="col1")]
             ),
-            save_chart=False,
+            save_chart=True,
         )
-        assert request2.save_chart is False
+        assert request2.save_chart is True
+
+        # Both False should raise validation error (no-op request)
+        with pytest.raises(ValueError, match="At least one of"):
+            GenerateChartRequest(
+                dataset_id="1",
+                config=TableChartConfig(
+                    chart_type="table", columns=[ColumnRef(name="col1")]
+                ),
+                save_chart=False,
+                generate_preview=False,
+            )
 
     @pytest.mark.asyncio
     async def test_preview_formats(self):
@@ -266,3 +283,71 @@ class TestGenerateChart:
         # Hidden legend
         legend = LegendConfig(show=False)
         assert legend.show is False
+
+
+class TestCompileChart:
+    """Tests for _compile_chart helper."""
+
+    @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    def test_compile_chart_success(self, mock_factory_cls, mock_cmd_cls):
+        """Test _compile_chart returns success when query executes cleanly."""
+        mock_factory_cls.return_value.create.return_value = MagicMock()
+        mock_cmd_cls.return_value.run.return_value = {
+            "queries": [{"data": [{"col": 1}, {"col": 2}]}]
+        }
+
+        form_data = {
+            "viz_type": "echarts_timeseries_bar",
+            "metrics": [{"label": "count", "expressionType": "SIMPLE"}],
+            "groupby": ["region"],
+        }
+        result = _compile_chart(form_data, dataset_id=1)
+
+        assert isinstance(result, CompileResult)
+        assert result.success is True
+        assert result.error is None
+        assert result.row_count == 2
+
+    @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    def test_compile_chart_query_error_in_payload(self, mock_factory_cls, mock_cmd_cls):
+        """Test _compile_chart detects errors embedded in query results."""
+        mock_factory_cls.return_value.create.return_value = MagicMock()
+        mock_cmd_cls.return_value.run.return_value = {
+            "queries": [{"error": "column 'bad_col' does not exist"}]
+        }
+
+        result = _compile_chart({"metrics": []}, dataset_id=1)
+
+        assert result.success is False
+        assert "bad_col" in (result.error or "")
+
+    @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    def test_compile_chart_command_exception(self, mock_factory_cls, mock_cmd_cls):
+        """Test _compile_chart handles ChartDataQueryFailedError."""
+        from superset.commands.chart.exceptions import (
+            ChartDataQueryFailedError,
+        )
+
+        mock_factory_cls.return_value.create.return_value = MagicMock()
+        mock_cmd_cls.return_value.run.side_effect = ChartDataQueryFailedError(
+            "syntax error near FROM"
+        )
+
+        result = _compile_chart({"metrics": []}, dataset_id=1)
+
+        assert result.success is False
+        assert "syntax error" in (result.error or "")
+
+    @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    def test_compile_chart_value_error(self, mock_factory_cls, mock_cmd_cls):
+        """Test _compile_chart handles ValueError from bad config."""
+        mock_factory_cls.return_value.create.side_effect = ValueError("invalid metric")
+
+        result = _compile_chart({"metrics": []}, dataset_id=1)
+
+        assert result.success is False
+        assert "invalid metric" in (result.error or "")

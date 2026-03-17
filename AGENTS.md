@@ -2,6 +2,27 @@
 
 Apache Superset is a data visualization platform with Flask/Python backend and React/TypeScript frontend.
 
+## ⚠️ CRITICAL: Always Run Pre-commit Before Pushing
+
+**ALWAYS run `pre-commit run --all-files` before pushing commits.** CI will fail if pre-commit checks don't pass. This is non-negotiable.
+
+```bash
+# Stage your changes first
+git add .
+
+# Run pre-commit on all files
+pre-commit run --all-files
+
+# If there are auto-fixes, stage them and commit
+git add .
+git commit --amend  # or new commit
+```
+
+Common pre-commit failures:
+- **Formatting** - black, prettier, eslint will auto-fix
+- **Type errors** - mypy failures need manual fixes
+- **Linting** - ruff, pylint issues need manual fixes
+
 ## ⚠️ CRITICAL: Ongoing Refactors (What NOT to Do)
 
 **These migrations are actively happening - avoid deprecated patterns:**
@@ -79,6 +100,30 @@ superset/
 - **docs/**: Update for any user-facing changes
 - **UPDATING.md**: Add breaking changes here
 - **Docstrings**: Required for new functions/classes
+
+## Developer Portal: Storybook-to-MDX Documentation
+
+The Developer Portal auto-generates MDX documentation from Storybook stories. **Stories are the single source of truth.**
+
+### Core Philosophy
+- **Fix issues in the STORY, not the generator** - When something doesn't render correctly, update the story file first
+- **Generator should be lightweight** - It extracts and passes through data; avoid special cases
+- **Stories define everything** - Props, controls, galleries, examples all come from story metadata
+
+### Story Requirements for Docs Generation
+- Use `export default { title: '...' }` (inline), not `const meta = ...; export default meta;`
+- Name interactive stories `Interactive${ComponentName}` (e.g., `InteractiveButton`)
+- Define `args` for default prop values
+- Define `argTypes` at the story level (not meta level) with control types and descriptions
+- Use `parameters.docs.gallery` for size×style variant grids
+- Use `parameters.docs.sampleChildren` for components that need children
+- Use `parameters.docs.liveExample` for custom live code blocks
+- Use `parameters.docs.staticProps` for complex object props that can't be parsed inline
+
+### Generator Location
+- Script: `docs/scripts/generate-superset-components.mjs`
+- Wrapper: `docs/src/components/StorybookWrapper.jsx`
+- Output: `docs/developer_portal/components/`
 
 ## Architecture Patterns
 

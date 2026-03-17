@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useEffect, SetStateAction, Dispatch, useCallback } from 'react';
-import { t } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import TableSelector, { TableOption } from 'src/components/TableSelector';
 import { EmptyState } from '@superset-ui/core/components';
 import { type DatabaseObject } from 'src/components';
@@ -30,6 +30,7 @@ import {
 } from 'src/features/datasets/AddDataset/types';
 import { Table } from 'src/hooks/apiResources';
 import { Typography } from '@superset-ui/core/components/Typography';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 
 interface LeftPanelProps {
   setDataset: Dispatch<SetStateAction<object>>;
@@ -191,7 +192,7 @@ export default function LeftPanel({
       description={
         <span>
           {t('Manage your databases')}{' '}
-          <Typography.Link href="/databaseview/list">
+          <Typography.Link href={ensureAppRoot('/databaseview/list')}>
             {t('here')}
           </Typography.Link>
         </span>
@@ -210,7 +211,6 @@ export default function LeftPanel({
         onCatalogChange={setCatalog}
         onSchemaChange={setSchema}
         onTableSelectChange={setTable}
-        sqlLabMode={false}
         customTableOptionLabelRenderer={customTableOptionLabelRenderer}
         {...(dataset?.catalog && { catalog: dataset.catalog })}
         {...(dataset?.schema && { schema: dataset.schema })}

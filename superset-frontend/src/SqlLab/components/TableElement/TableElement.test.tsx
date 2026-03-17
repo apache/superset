@@ -69,9 +69,7 @@ beforeEach(() => {
   fetchMock.post(updateTableSchemaEndpoint, {});
 });
 
-afterEach(() => {
-  fetchMock.reset();
-});
+afterEach(() => fetchMock.clearHistory().removeRoutes());
 
 const mockedProps = {
   table: {
@@ -94,10 +92,11 @@ const setupSyncTableTest = () => {
   mockedIsFeatureEnabled.mockImplementation(
     featureFlag => featureFlag === FeatureFlag.SqllabBackendPersistence,
   );
+  fetchMock.removeRoute(updateTableSchemaEndpoint);
   fetchMock.post(
     updateTableSchemaEndpoint,
     { id: 100 },
-    { overwriteRoutes: true },
+    { name: updateTableSchemaEndpoint },
   );
   return spy;
 };
@@ -186,10 +185,14 @@ test('removes the table', async () => {
   await waitFor(() =>
     expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(6),
   );
-  expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(updateTableSchemaEndpoint)).toHaveLength(
+    0,
+  );
   fireEvent.click(getByText('Remove table preview'));
   await waitFor(() =>
-    expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(1),
+    expect(fetchMock.callHistory.calls(updateTableSchemaEndpoint)).toHaveLength(
+      1,
+    ),
   );
   mockedIsFeatureEnabled.mockClear();
 });
@@ -199,13 +202,21 @@ test('fetches table metadata when expanded', async () => {
     useRedux: true,
     initialState,
   });
-  expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(0);
-  expect(fetchMock.calls(getExtraTableMetadataEndpoint)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(getTableMetadataEndpoint)).toHaveLength(0);
+  expect(
+    fetchMock.callHistory.calls(getExtraTableMetadataEndpoint),
+  ).toHaveLength(0);
   await waitFor(() =>
-    expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(1),
+    expect(fetchMock.callHistory.calls(getTableMetadataEndpoint)).toHaveLength(
+      1,
+    ),
   );
-  expect(fetchMock.calls(updateTableSchemaExpandedEndpoint)).toHaveLength(0);
-  expect(fetchMock.calls(getExtraTableMetadataEndpoint)).toHaveLength(1);
+  expect(
+    fetchMock.callHistory.calls(updateTableSchemaExpandedEndpoint),
+  ).toHaveLength(0);
+  expect(
+    fetchMock.callHistory.calls(getExtraTableMetadataEndpoint),
+  ).toHaveLength(1);
 });
 
 test('refreshes table metadata when triggered', async () => {
@@ -219,15 +230,21 @@ test('refreshes table metadata when triggered', async () => {
   await waitFor(() =>
     expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(6),
   );
-  expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(0);
-  expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(1);
+  expect(fetchMock.callHistory.calls(updateTableSchemaEndpoint)).toHaveLength(
+    0,
+  );
+  expect(fetchMock.callHistory.calls(getTableMetadataEndpoint)).toHaveLength(1);
 
   fireEvent.click(getByText('Refresh table schema'));
   await waitFor(() =>
-    expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(2),
+    expect(fetchMock.callHistory.calls(getTableMetadataEndpoint)).toHaveLength(
+      2,
+    ),
   );
   await waitFor(() =>
-    expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(1),
+    expect(fetchMock.callHistory.calls(updateTableSchemaEndpoint)).toHaveLength(
+      1,
+    ),
   );
 });
 
@@ -283,7 +300,9 @@ test('does not call syncTable when query editor is in localStorage', async () =>
   });
 
   await waitFor(() => {
-    expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(1);
+    expect(fetchMock.callHistory.calls(getTableMetadataEndpoint)).toHaveLength(
+      1,
+    );
   });
 
   await new Promise(resolve => setTimeout(resolve, 100));
@@ -313,7 +332,9 @@ test('does not call syncTable with non-numeric queryEditorId', async () => {
   });
 
   await waitFor(() => {
-    expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(1);
+    expect(fetchMock.callHistory.calls(getTableMetadataEndpoint)).toHaveLength(
+      1,
+    );
   });
 
   await new Promise(resolve => setTimeout(resolve, 100));
@@ -343,7 +364,9 @@ test('does not call syncTable for already initialized tables', async () => {
   });
 
   await waitFor(() => {
-    expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(1);
+    expect(fetchMock.callHistory.calls(getTableMetadataEndpoint)).toHaveLength(
+      1,
+    );
   });
 
   await new Promise(resolve => setTimeout(resolve, 100));

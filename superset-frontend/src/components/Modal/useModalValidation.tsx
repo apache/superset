@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useState, useCallback, useMemo, ReactNode } from 'react';
-import { t } from '@superset-ui/core';
-import { css } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css } from '@apache-superset/core/theme';
 import { List } from '@superset-ui/core/components';
 
 export interface SectionValidationObject {

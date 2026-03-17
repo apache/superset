@@ -25,7 +25,7 @@ from sqlalchemy import types
 
 from superset import is_feature_enabled
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.exceptions import SupersetException
 from superset.utils import core as utils, json
@@ -45,6 +45,78 @@ class DruidEngineSpec(BaseEngineSpec):
     engine_name = "Apache Druid"
     allows_joins = is_feature_enabled("DRUID_JOINS")
     allows_subqueries = True
+
+    metadata = {
+        "description": (
+            "Apache Druid is a high performance real-time analytics database."
+        ),
+        "logo": "druid.png",
+        "homepage_url": "https://druid.apache.org/",
+        "categories": [
+            DatabaseCategory.APACHE_PROJECTS,
+            DatabaseCategory.TIME_SERIES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["pydruid"],
+        "connection_string": (
+            "druid://{username}:{password}@{host}:{port}/druid/v2/sql"
+        ),
+        "default_port": 9088,
+        "parameters": {
+            "username": "Database username",
+            "password": "Database password",
+            "host": "IP address or URL of the host",
+            "port": "Default 9088",
+        },
+        "ssl_configuration": {
+            "custom_certificate": (
+                "Add certificate in Root Certificate field. "
+                "pydruid will automatically use https."
+            ),
+            "disable_ssl_verification": {
+                "engine_params": {
+                    "connect_args": {"scheme": "https", "ssl_verify_cert": False}
+                }
+            },
+        },
+        "advanced_features": {
+            "aggregations": (
+                "Define common aggregations in datasource edit view "
+                "under List Druid Column tab."
+            ),
+            "post_aggregations": (
+                "Create metrics with postagg as Metric Type and provide "
+                "valid JSON post-aggregation definition."
+            ),
+        },
+        "notes": (
+            "A native Druid connector ships with Superset "
+            "(behind DRUID_IS_ACTIVE flag) but SQLAlchemy connector "
+            "via pydruid is preferred."
+        ),
+        "compatible_databases": [
+            {
+                "name": "Imply",
+                "description": (
+                    "Imply is a fully-managed cloud platform and enterprise "
+                    "distribution built on Apache Druid. It provides real-time "
+                    "analytics with enterprise security and support."
+                ),
+                "logo": "imply.png",
+                "homepage_url": "https://imply.io/",
+                "categories": [
+                    DatabaseCategory.TIME_SERIES,
+                    DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+                "pypi_packages": ["pydruid"],
+                "connection_string": (
+                    "druid://{username}:{password}@{host}/druid/v2/sql"
+                ),
+                "docs_url": "https://docs.imply.io/",
+            },
+        ],
+    }
 
     _time_grain_expressions = {
         None: "{col}",

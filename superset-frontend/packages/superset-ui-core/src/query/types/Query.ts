@@ -17,7 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { DatasourceType } from './Datasource';
 import { BinaryOperator, SetOperator, UnaryOperator } from './Operator';
 import { AppliedTimeExtras, TimeRange } from './Time';
@@ -153,6 +153,8 @@ export interface QueryObject
   series_columns?: QueryFormColumn[];
   series_limit?: number;
   series_limit_metric?: Maybe<QueryFormMetric>;
+
+  visible_deckgl_layers?: number[];
 }
 
 export interface QueryContext {
@@ -314,6 +316,7 @@ export type Query = {
   errorMessage: string | null;
   extra: {
     progress: string | null;
+    progress_text?: string;
     errors?: SupersetError[];
   };
   id: string;

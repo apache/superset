@@ -25,14 +25,14 @@ import {
 } from 'react';
 import rison from 'rison';
 
+import { t } from '@apache-superset/core/translation';
 import {
   FeatureFlag,
   JsonResponse,
   SupersetClient,
   isFeatureEnabled,
-  t,
 } from '@superset-ui/core';
-import { styled, useTheme } from '@apache-superset/core/ui';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Input, Select } from '@superset-ui/core/components';
 import RefreshLabel from '@superset-ui/core/components/RefreshLabel';

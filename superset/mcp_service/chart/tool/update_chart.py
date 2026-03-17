@@ -23,8 +23,9 @@ import logging
 import time
 
 from fastmcp import Context
-from superset_core.mcp import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
     analyze_chart_semantics,
@@ -38,16 +39,21 @@ from superset.mcp_service.chart.schemas import (
     UpdateChartRequest,
 )
 from superset.mcp_service.utils.schema_utils import parse_request
-from superset.mcp_service.utils.url_utils import (
-    get_chart_screenshot_url,
-    get_superset_base_url,
-)
+from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
 
-@tool(tags=["mutate"])
+@tool(
+    tags=["mutate"],
+    class_permission_name="Chart",
+    annotations=ToolAnnotations(
+        title="Update chart",
+        readOnlyHint=False,
+        destructiveHint=True,
+    ),
+)
 @parse_request(UpdateChartRequest)
 async def update_chart(
     request: UpdateChartRequest, ctx: Context
@@ -57,7 +63,6 @@ async def update_chart(
     IMPORTANT:
     - Chart must already be saved (from generate_chart with save_chart=True)
     - LLM clients MUST display updated chart URL to users
-    - Embed preview_url as image: ![Updated Chart](preview_url)
     - Use numeric ID or UUID string to identify the chart (NOT chart name)
     - MUST include chart_type in config (either 'xy' or 'table')
 
@@ -103,19 +108,20 @@ async def update_chart(
         # Find the existing chart
         from superset.daos.chart import ChartDAO
 
-        chart = None
-        if isinstance(request.identifier, int) or (
-            isinstance(request.identifier, str) and request.identifier.isdigit()
-        ):
-            chart_id = (
-                int(request.identifier)
-                if isinstance(request.identifier, str)
-                else request.identifier
-            )
-            chart = ChartDAO.find_by_id(chart_id)
-        else:
-            # Try UUID lookup using DAO flexible method
-            chart = ChartDAO.find_by_id(request.identifier, id_column="uuid")
+        with event_logger.log_context(action="mcp.update_chart.chart_lookup"):
+            chart = None
+            if isinstance(request.identifier, int) or (
+                isinstance(request.identifier, str) and request.identifier.isdigit()
+            ):
+                chart_id = (
+                    int(request.identifier)
+                    if isinstance(request.identifier, str)
+                    else request.identifier
+                )
+                chart = ChartDAO.find_by_id(chart_id)
+            else:
+                # Try UUID lookup using DAO flexible method
+                chart = ChartDAO.find_by_id(request.identifier, id_column="uuid")
 
         if not chart:
             return GenerateChartResponse.model_validate(
@@ -129,26 +135,30 @@ async def update_chart(
             )
 
         # Map the new config to form_data format
-        new_form_data = map_config_to_form_data(request.config)
+        # Get dataset_id from existing chart for column type checking
+        dataset_id = chart.datasource_id if chart.datasource_id else None
+        new_form_data = map_config_to_form_data(request.config, dataset_id=dataset_id)
+        new_form_data.pop("_mcp_warnings", None)
 
         # Update chart using Superset's command
         from superset.commands.chart.update import UpdateChartCommand
 
-        # Generate new chart name if provided, otherwise keep existing
-        chart_name = (
-            request.chart_name
-            if request.chart_name
-            else chart.slice_name or generate_chart_name(request.config)
-        )
+        with event_logger.log_context(action="mcp.update_chart.db_write"):
+            # Generate new chart name if provided, otherwise keep existing
+            chart_name = (
+                request.chart_name
+                if request.chart_name
+                else chart.slice_name or generate_chart_name(request.config)
+            )
 
-        update_payload = {
-            "slice_name": chart_name,
-            "viz_type": new_form_data["viz_type"],
-            "params": json.dumps(new_form_data),
-        }
+            update_payload = {
+                "slice_name": chart_name,
+                "viz_type": new_form_data["viz_type"],
+                "params": json.dumps(new_form_data),
+            }
 
-        command = UpdateChartCommand(chart.id, update_payload)
-        updated_chart = command.run()
+            command = UpdateChartCommand(chart.id, update_payload)
+            updated_chart = command.run()
 
         # Generate semantic analysis
         capabilities = analyze_chart_capabilities(updated_chart, request.config)
@@ -178,21 +188,23 @@ async def update_chart(
         previews = {}
         if request.generate_preview:
             try:
-                from superset.mcp_service.chart.tool.get_chart_preview import (
-                    _get_chart_preview_internal,
-                    GetChartPreviewRequest,
-                )
-
-                for format_type in request.preview_formats:
-                    preview_request = GetChartPreviewRequest(
-                        identifier=str(updated_chart.id), format=format_type
-                    )
-                    preview_result = await _get_chart_preview_internal(
-                        preview_request, ctx
+                with event_logger.log_context(action="mcp.update_chart.preview"):
+                    from superset.mcp_service.chart.tool.get_chart_preview import (
+                        _get_chart_preview_internal,
+                        GetChartPreviewRequest,
                     )
 
-                    if hasattr(preview_result, "content"):
-                        previews[format_type] = preview_result.content
+                    for format_type in request.preview_formats:
+                        preview_request = GetChartPreviewRequest(
+                            identifier=str(updated_chart.id),
+                            format=format_type,
+                        )
+                        preview_result = await _get_chart_preview_internal(
+                            preview_request, ctx
+                        )
+
+                        if hasattr(preview_result, "content"):
+                            previews[format_type] = preview_result.content
 
             except Exception as e:
                 # Log warning but don't fail the entire request
@@ -222,7 +234,6 @@ async def update_chart(
                 "data": (
                     f"{get_superset_base_url()}/api/v1/chart/{updated_chart.id}/data/"
                 ),
-                "preview": get_chart_screenshot_url(updated_chart.id),
                 "export": (
                     f"{get_superset_base_url()}/api/v1/chart/{updated_chart.id}/export/"
                 ),
