@@ -413,6 +413,15 @@ export default function transformProps(
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
 
+  // WCAG 1.4.1: Assign distinct visual patterns per series
+  const LINE_DASH_PATTERNS: Array<string | number[]> = [
+    'solid', 'dashed', 'dotted', [8, 4], [2, 2, 6, 2], [6, 2, 2, 2, 2, 2],
+  ];
+  const SERIES_SYMBOLS = [
+    'circle', 'rect', 'triangle', 'diamond', 'roundRect', 'pin',
+  ];
+  let mixedSeriesIndex = 0;
+
   rawSeriesA.forEach(entry => {
     const entryName = String(entry.name || '');
     const seriesName = inverted[entryName] || entryName;
@@ -476,12 +485,15 @@ export default function transformProps(
         thresholdValues,
         timeShiftColor,
         theme,
+        lineStyle: seriesType !== 'bar' ? { type: LINE_DASH_PATTERNS[mixedSeriesIndex % LINE_DASH_PATTERNS.length] } : undefined,
+        wcagSymbol: seriesType !== 'bar' ? SERIES_SYMBOLS[mixedSeriesIndex % SERIES_SYMBOLS.length] : undefined,
       },
     );
 
     if (transformedSeries) {
       series.push(transformedSeries);
       mapSeriesIdToAxis(transformedSeries, yAxisIndex);
+      if (seriesType !== 'bar') mixedSeriesIndex += 1;
     }
   });
 
@@ -550,11 +562,14 @@ export default function transformProps(
         thresholdValues: thresholdValuesB,
         timeShiftColor,
         theme,
+        lineStyle: seriesTypeB !== 'bar' ? { type: LINE_DASH_PATTERNS[mixedSeriesIndex % LINE_DASH_PATTERNS.length] } : undefined,
+        wcagSymbol: seriesTypeB !== 'bar' ? SERIES_SYMBOLS[mixedSeriesIndex % SERIES_SYMBOLS.length] : undefined,
       },
     );
 
     if (transformedSeries) {
       series.push(transformedSeries);
+      if (seriesTypeB !== 'bar') mixedSeriesIndex += 1;
       mapSeriesIdToAxis(transformedSeries, yAxisIndexB);
     }
   });
