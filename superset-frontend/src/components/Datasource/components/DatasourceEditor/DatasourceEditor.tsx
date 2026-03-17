@@ -20,7 +20,7 @@ import rison from 'rison';
 import { PureComponent, useCallback, type ReactNode } from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import type { JsonObject } from '@superset-ui/core';
-import type { SupersetTheme } from '@apache-superset/core/ui';
+import { type SupersetTheme } from '@apache-superset/core/theme';
 import type { AnyAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
 import { Radio } from '@superset-ui/core/components/Radio';
@@ -31,15 +31,15 @@ import {
   getClientErrorObject,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
+import { Alert } from '@apache-superset/core/components';
 import {
   css,
   styled,
   themeObject,
-  Alert,
   withTheme,
-  t,
-} from '@apache-superset/core/ui';
+} from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import Tabs from '@superset-ui/core/components/Tabs';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import TableSelector from 'src/components/TableSelector';
@@ -62,6 +62,7 @@ import {
   FormLabel,
   Icons,
   InfoTooltip,
+  Input,
   Loading,
   Row,
   Select,
@@ -90,12 +91,14 @@ import Field from '../Field';
 import { fetchSyncedColumns, updateColumns } from '../../utils';
 import DatasetUsageTab from './components/DatasetUsageTab';
 import {
-  DEFAULT_COLUMNS_FOLDER_UUID,
   DEFAULT_FOLDERS_COUNT,
-  DEFAULT_METRICS_FOLDER_UUID,
+  isDefaultFolder,
 } from '../../FoldersEditor/constants';
 import { validateFolders } from '../../FoldersEditor/folderValidation';
-import { countAllFolders } from '../../FoldersEditor/treeUtils';
+import {
+  countAllFolders,
+  filterFoldersByValidUuids,
+} from '../../FoldersEditor/treeUtils';
 import FoldersEditor from '../../FoldersEditor';
 import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
 
@@ -135,6 +138,7 @@ interface Metric {
 
 interface Column {
   id?: number;
+  uuid?: string;
   column_name: string;
   verbose_name?: string;
   description?: string;
@@ -274,6 +278,9 @@ interface DatasourceEditorState {
   datasourceType: string;
   usageCharts: ChartUsageData[];
   usageChartsCount: number;
+  metricSearchTerm: string;
+  columnSearchTerm: string;
+  calculatedColumnSearchTerm: string;
 }
 
 interface AbortControllers {
@@ -302,6 +309,8 @@ interface ColumnCollectionTableProps {
   className?: string;
   itemGenerator?: () => Partial<Column>;
   columnLabelTooltips?: Record<string, string>;
+  filterTerm?: string;
+  filterFields?: string[];
 }
 
 interface StackedFieldProps {
@@ -520,6 +529,8 @@ function ColumnCollectionTable({
     groupby: true,
   }),
   columnLabelTooltips,
+  filterTerm,
+  filterFields,
 }: ColumnCollectionTableProps): JSX.Element {
   return (
     <CollectionTable
@@ -552,6 +563,8 @@ function ColumnCollectionTable({
       itemGenerator={itemGenerator}
       collection={columns}
       columnLabelTooltips={columnLabelTooltips}
+      filterTerm={filterTerm}
+      filterFields={filterFields}
       stickyHeader
       expandFieldset={
         <FormContainer>
@@ -932,8 +945,14 @@ class DatasourceEditor extends PureComponent<
         col => !!col.expression,
       ),
       folders: props.datasource.folders || [],
-      folderCount:
-        countAllFolders(props.datasource.folders || []) + DEFAULT_FOLDERS_COUNT,
+      folderCount: (() => {
+        const savedFolders = props.datasource.folders || [];
+        const savedCount = countAllFolders(savedFolders);
+        const hasDefaultsSaved = savedFolders.some(f =>
+          isDefaultFolder(f.uuid),
+        );
+        return savedCount + (hasDefaultsSaved ? 0 : DEFAULT_FOLDERS_COUNT);
+      })(),
       metadataLoading: false,
       activeTabKey: TABS_KEYS.SOURCE,
       datasourceType: props.datasource.sql
@@ -941,6 +960,9 @@ class DatasourceEditor extends PureComponent<
         : DATASOURCE_TYPES.physical.key,
       usageCharts: [],
       usageChartsCount: 0,
+      metricSearchTerm: '',
+      columnSearchTerm: '',
+      calculatedColumnSearchTerm: '',
     };
 
     this.isComponentMounted = false;
@@ -974,11 +996,26 @@ class DatasourceEditor extends PureComponent<
     const sql =
       datasourceType === DATASOURCE_TYPES.physical.key ? '' : datasource.sql;
 
+    const columns = [
+      ...this.state.databaseColumns,
+      ...this.state.calculatedColumns,
+    ];
+
+    // Remove deleted column/metric references from folders
+    const validUuids = new Set<string>();
+    for (const col of columns) {
+      if (col.uuid) validUuids.add(col.uuid);
+    }
+    for (const metric of datasource.metrics ?? []) {
+      if (metric.uuid) validUuids.add(metric.uuid);
+    }
+    const folders = filterFoldersByValidUuids(this.state.folders, validUuids);
+
     const newDatasource = {
       ...this.state.datasource,
       sql,
-      columns: [...this.state.databaseColumns, ...this.state.calculatedColumns],
-      folders: this.state.folders,
+      columns,
+      folders,
     };
 
     this.props.onChange?.(newDatasource, this.state.errors);
@@ -1018,16 +1055,10 @@ class DatasourceEditor extends PureComponent<
 
   handleFoldersChange(folders: DatasourceFolder[]) {
     const folderCount = countAllFolders(folders);
-    const userMadeFolders = folders.filter(
-      f =>
-        f.uuid !== DEFAULT_METRICS_FOLDER_UUID &&
-        f.uuid !== DEFAULT_COLUMNS_FOLDER_UUID &&
-        (f.children?.length ?? 0) > 0,
-    );
-    this.setState({ folders: userMadeFolders, folderCount }, () => {
+    this.setState({ folders, folderCount }, () => {
       this.onDatasourceChange({
         ...this.state.datasource,
-        folders: userMadeFolders,
+        folders,
       });
     });
   }
@@ -2111,171 +2142,187 @@ class DatasourceEditor extends PureComponent<
   }
 
   renderMetricCollection() {
-    const { datasource } = this.state;
+    const { datasource, metricSearchTerm } = this.state;
     const { metrics } = datasource;
     const sortedMetrics = metrics?.length ? this.sortMetrics(metrics) : [];
     return (
-      <CollectionTable
-        tableColumns={['metric_name', 'verbose_name', 'expression']}
-        sortColumns={['metric_name', 'verbose_name', 'expression']}
-        columnLabels={{
-          metric_name: t('Metric Key'),
-          verbose_name: t('Label'),
-          expression: t('SQL expression'),
-        }}
-        columnLabelTooltips={{
-          metric_name: t(
-            'This field is used as a unique identifier to attach ' +
-              'the metric to charts. It is also used as the alias in the ' +
-              'SQL query.',
-          ),
-        }}
-        expandFieldset={
-          <FormContainer>
-            <Fieldset compact>
-              <Field
-                fieldKey="description"
-                label={t('Description')}
-                control={
-                  <TextControl
-                    controlId="description"
-                    placeholder={t('Description')}
+      <div>
+        <Input.Search
+          placeholder={t('Search metrics by key or label')}
+          value={metricSearchTerm}
+          onChange={e => this.setState({ metricSearchTerm: e.target.value })}
+          style={{ marginBottom: 16, width: 300 }}
+          allowClear
+        />
+        <CollectionTable
+          tableColumns={['metric_name', 'verbose_name', 'expression']}
+          sortColumns={['metric_name', 'verbose_name', 'expression']}
+          filterTerm={metricSearchTerm}
+          filterFields={['metric_name', 'verbose_name']}
+          columnLabels={{
+            metric_name: t('Metric Key'),
+            verbose_name: t('Label'),
+            expression: t('SQL expression'),
+          }}
+          columnLabelTooltips={{
+            metric_name: t(
+              'This field is used as a unique identifier to attach ' +
+                'the metric to charts. It is also used as the alias in the ' +
+                'SQL query.',
+            ),
+          }}
+          pagination={{
+            pageSize: 25,
+            showSizeChanger: true,
+            pageSizeOptions: [10, 25, 50, 100],
+          }}
+          expandFieldset={
+            <FormContainer>
+              <Fieldset compact>
+                <Field
+                  fieldKey="description"
+                  label={t('Description')}
+                  control={
+                    <TextControl
+                      controlId="description"
+                      placeholder={t('Description')}
+                    />
+                  }
+                />
+                <Field
+                  fieldKey="d3format"
+                  label={t('D3 format')}
+                  control={
+                    <TextControl controlId="d3format" placeholder="%y/%m/%d" />
+                  }
+                />
+                <Field
+                  fieldKey="currency"
+                  label={t('Metric currency')}
+                  control={
+                    <CurrencyControl
+                      onChange={() => {}}
+                      currencySelectOverrideProps={{
+                        placeholder: t('Select or type currency symbol'),
+                      }}
+                      symbolSelectAdditionalStyles={css`
+                        max-width: 30%;
+                      `}
+                    />
+                  }
+                />
+                <Field
+                  label={t('Certified by')}
+                  fieldKey="certified_by"
+                  description={t(
+                    'Person or group that has certified this metric',
+                  )}
+                  control={
+                    <TextControl
+                      controlId="certified_by"
+                      placeholder={t('Certified by')}
+                    />
+                  }
+                />
+                <Field
+                  label={t('Certification details')}
+                  fieldKey="certification_details"
+                  description={t('Details of the certification')}
+                  control={
+                    <TextControl
+                      controlId="certification_details"
+                      placeholder={t('Certification details')}
+                    />
+                  }
+                />
+                <Field
+                  label={t('Warning')}
+                  fieldKey="warning_markdown"
+                  description={t('Optional warning about use of this metric')}
+                  control={
+                    <TextAreaControl
+                      controlId="warning_markdown"
+                      language="markdown"
+                      offerEditInModal={false}
+                      resize="vertical"
+                    />
+                  }
+                />
+              </Fieldset>
+            </FormContainer>
+          }
+          collection={sortedMetrics}
+          allowAddItem
+          onChange={this.onDatasourcePropChange.bind(this, 'metrics')}
+          itemGenerator={() => ({
+            metric_name: t('<new metric>'),
+            verbose_name: '',
+            expression: '',
+          })}
+          itemCellProps={{
+            expression: () => ({
+              width: '240px',
+            }),
+          }}
+          itemRenderers={{
+            metric_name: (v, onChange, _, record) => (
+              <FlexRowContainer>
+                {record.is_certified && (
+                  <CertifiedBadge
+                    certifiedBy={record.certified_by}
+                    details={record.certification_details}
                   />
-                }
-              />
-              <Field
-                fieldKey="d3format"
-                label={t('D3 format')}
-                control={
-                  <TextControl controlId="d3format" placeholder="%y/%m/%d" />
-                }
-              />
-              <Field
-                fieldKey="currency"
-                label={t('Metric currency')}
-                control={
-                  <CurrencyControl
-                    onChange={() => {}}
-                    currencySelectOverrideProps={{
-                      placeholder: t('Select or type currency symbol'),
-                    }}
-                    symbolSelectAdditionalStyles={css`
-                      max-width: 30%;
-                    `}
-                  />
-                }
-              />
-              <Field
-                label={t('Certified by')}
-                fieldKey="certified_by"
-                description={t(
-                  'Person or group that has certified this metric',
                 )}
-                control={
-                  <TextControl
-                    controlId="certified_by"
-                    placeholder={t('Certified by')}
+                {record.warning_markdown && (
+                  <WarningIconWithTooltip
+                    warningMarkdown={record.warning_markdown}
                   />
-                }
-              />
-              <Field
-                label={t('Certification details')}
-                fieldKey="certification_details"
-                description={t('Details of the certification')}
-                control={
-                  <TextControl
-                    controlId="certification_details"
-                    placeholder={t('Certification details')}
-                  />
-                }
-              />
-              <Field
-                label={t('Warning')}
-                fieldKey="warning_markdown"
-                description={t('Optional warning about use of this metric')}
-                control={
-                  <TextAreaControl
-                    controlId="warning_markdown"
-                    language="markdown"
-                    offerEditInModal={false}
-                    resize="vertical"
-                  />
-                }
-              />
-            </Fieldset>
-          </FormContainer>
-        }
-        collection={sortedMetrics}
-        allowAddItem
-        onChange={this.onDatasourcePropChange.bind(this, 'metrics')}
-        itemGenerator={() => ({
-          metric_name: t('<new metric>'),
-          verbose_name: '',
-          expression: '',
-        })}
-        itemCellProps={{
-          expression: () => ({
-            width: '240px',
-          }),
-        }}
-        itemRenderers={{
-          metric_name: (v, onChange, _, record) => (
-            <FlexRowContainer>
-              {record.is_certified && (
-                <CertifiedBadge
-                  certifiedBy={record.certified_by}
-                  details={record.certification_details}
+                )}
+                <EditableTitle
+                  canEdit
+                  title={v as string}
+                  onSaveTitle={onChange}
+                  maxWidth={300}
                 />
-              )}
-              {record.warning_markdown && (
-                <WarningIconWithTooltip
-                  warningMarkdown={record.warning_markdown}
-                />
-              )}
-              <EditableTitle
+              </FlexRowContainer>
+            ),
+            verbose_name: (v, onChange) => (
+              <TextControl value={v as string} onChange={onChange} />
+            ),
+            expression: (v, onChange) => (
+              <TextAreaControl
                 canEdit
-                title={v as string}
-                onSaveTitle={onChange}
-                maxWidth={300}
+                initialValue={v as string}
+                onChange={onChange}
+                extraClasses={['datasource-sql-expression']}
+                language="sql"
+                offerEditInModal={false}
+                minLines={5}
+                textAreaStyles={{ minWidth: '200px', maxWidth: '450px' }}
+                resize="both"
               />
-            </FlexRowContainer>
-          ),
-          verbose_name: (v, onChange) => (
-            <TextControl value={v as string} onChange={onChange} />
-          ),
-          expression: (v, onChange) => (
-            <TextAreaControl
-              canEdit
-              initialValue={v as string}
-              onChange={onChange}
-              extraClasses={['datasource-sql-expression']}
-              language="sql"
-              offerEditInModal={false}
-              minLines={5}
-              textAreaStyles={{ minWidth: '200px', maxWidth: '450px' }}
-              resize="both"
-            />
-          ),
-          description: (v, onChange, label) => (
-            <StackedField
-              label={label}
-              formElement={
-                <TextControl value={v as string} onChange={onChange} />
-              }
-            />
-          ),
-          d3format: (v, onChange, label) => (
-            <StackedField
-              label={label}
-              formElement={
-                <TextControl value={v as string} onChange={onChange} />
-              }
-            />
-          ),
-        }}
-        allowDeletes
-        stickyHeader
-      />
+            ),
+            description: (v, onChange, label) => (
+              <StackedField
+                label={label}
+                formElement={
+                  <TextControl value={v as string} onChange={onChange} />
+                }
+              />
+            ),
+            d3format: (v, onChange, label) => (
+              <StackedField
+                label={label}
+                formElement={
+                  <TextControl value={v as string} onChange={onChange} />
+                }
+              />
+            ),
+          }}
+          allowDeletes
+          stickyHeader
+        />
+      </div>
     );
   }
 
@@ -2332,9 +2379,6 @@ class DatasourceEditor extends PureComponent<
               children: (
                 <StyledTableTabWrapper>
                   {this.renderDefaultColumnSettings()}
-                  <DefaultColumnSettingsTitle>
-                    {t('Column Settings')}
-                  </DefaultColumnSettingsTitle>
                   <ColumnButtonWrapper>
                     <StyledButtonWrapper>
                       <Button
@@ -2349,9 +2393,20 @@ class DatasourceEditor extends PureComponent<
                       </Button>
                     </StyledButtonWrapper>
                   </ColumnButtonWrapper>
+                  <Input.Search
+                    placeholder={t('Search columns by name')}
+                    value={this.state.columnSearchTerm}
+                    onChange={e =>
+                      this.setState({ columnSearchTerm: e.target.value })
+                    }
+                    style={{ marginBottom: 16, width: 300 }}
+                    allowClear
+                  />
                   <ColumnCollectionTable
                     className="columns-table"
                     columns={this.state.databaseColumns}
+                    filterTerm={this.state.columnSearchTerm}
+                    filterFields={['column_name']}
                     datasource={datasource}
                     onColumnsChange={databaseColumns =>
                       this.setColumns({ databaseColumns })
@@ -2373,11 +2428,21 @@ class DatasourceEditor extends PureComponent<
               children: (
                 <StyledTableTabWrapper>
                   {this.renderDefaultColumnSettings()}
-                  <DefaultColumnSettingsTitle>
-                    {t('Column Settings')}
-                  </DefaultColumnSettingsTitle>
+                  <Input.Search
+                    placeholder={t('Search calculated columns by name')}
+                    value={this.state.calculatedColumnSearchTerm}
+                    onChange={e =>
+                      this.setState({
+                        calculatedColumnSearchTerm: e.target.value,
+                      })
+                    }
+                    style={{ marginBottom: 16, width: 300 }}
+                    allowClear
+                  />
                   <ColumnCollectionTable
                     columns={this.state.calculatedColumns}
+                    filterTerm={this.state.calculatedColumnSearchTerm}
+                    filterFields={['column_name']}
                     onColumnsChange={calculatedColumns =>
                       this.setColumns({ calculatedColumns })
                     }
@@ -2446,7 +2511,10 @@ class DatasourceEditor extends PureComponent<
                         metrics={
                           sortedMetrics as unknown as import('@superset-ui/chart-controls').Metric[]
                         }
-                        columns={this.state.databaseColumns}
+                        columns={[
+                          ...this.state.databaseColumns,
+                          ...this.state.calculatedColumns,
+                        ]}
                         onChange={this.handleFoldersChange}
                       />
                     ),

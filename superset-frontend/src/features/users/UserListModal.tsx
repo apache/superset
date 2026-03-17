@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import {
@@ -236,7 +236,7 @@ function UserListModal({
               >
                 <Input.Password
                   name="password"
-                  placeholder="Enter the user's password"
+                  placeholder={t("Enter the user's password")}
                 />
               </FormItem>
               <FormItem

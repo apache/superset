@@ -22,7 +22,7 @@ Validates that referenced columns exist in the dataset schema.
 
 import difflib
 import logging
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 from superset.mcp_service.chart.schemas import (
     ColumnRef,
@@ -37,13 +37,25 @@ from superset.mcp_service.common.error_schemas import (
 
 logger = logging.getLogger(__name__)
 
+# Exceptions that can occur during column name normalization.
+# Shared by the validation pipeline and tool-level normalization calls.
+NORMALIZATION_EXCEPTIONS = (
+    ImportError,
+    AttributeError,
+    KeyError,
+    ValueError,
+    TypeError,
+)
+
 
 class DatasetValidator:
     """Validates chart configuration against dataset schema."""
 
     @staticmethod
     def validate_against_dataset(
-        config: TableChartConfig | XYChartConfig, dataset_id: int | str
+        config: TableChartConfig | XYChartConfig,
+        dataset_id: int | str,
+        dataset_context: DatasetContext | None = None,
     ) -> Tuple[bool, ChartGenerationError | None]:
         """
         Validate chart configuration against dataset schema.
@@ -51,12 +63,15 @@ class DatasetValidator:
         Args:
             config: Chart configuration to validate
             dataset_id: Dataset ID to validate against
+            dataset_context: Pre-fetched dataset context to avoid duplicate
+                DB queries. If None, fetches from the database.
 
         Returns:
             Tuple of (is_valid, error)
         """
-        # Get dataset context
-        dataset_context = DatasetValidator._get_dataset_context(dataset_id)
+        # Get dataset context (reuse if provided)
+        if dataset_context is None:
+            dataset_context = DatasetValidator._get_dataset_context(dataset_id)
         if not dataset_context:
             from superset.mcp_service.utils.error_builder import (
                 ChartErrorBuilder,
@@ -197,6 +212,136 @@ class DatasetValidator:
                 return True
 
         return False
+
+    @staticmethod
+    def _get_canonical_column_name(
+        column_name: str, dataset_context: DatasetContext
+    ) -> str:
+        """
+        Get the canonical column name from the dataset.
+
+        Performs case-insensitive matching and returns the actual column name
+        as stored in the dataset. This ensures column names in form_data match
+        exactly with what the frontend expects.
+
+        Args:
+            column_name: The column name to normalize
+            dataset_context: Dataset context with column information
+
+        Returns:
+            The canonical column name from the dataset, or the original name
+            if no match is found.
+        """
+        column_lower = column_name.lower()
+
+        # Check regular columns first
+        for col in dataset_context.available_columns:
+            if col["name"].lower() == column_lower:
+                return col["name"]
+
+        # Check metrics
+        for metric in dataset_context.available_metrics:
+            if metric["name"].lower() == column_lower:
+                return metric["name"]
+
+        # Return original if not found (validation should catch this case)
+        return column_name
+
+    @staticmethod
+    def _normalize_xy_config(
+        config_dict: Dict[str, Any], dataset_context: DatasetContext
+    ) -> None:
+        """Normalize column names in an XY chart config dict in place."""
+        # Normalize x-axis column
+        if "x" in config_dict and config_dict["x"]:
+            config_dict["x"]["name"] = DatasetValidator._get_canonical_column_name(
+                config_dict["x"]["name"], dataset_context
+            )
+
+        # Normalize y-axis columns
+        if "y" in config_dict and config_dict["y"]:
+            for y_col in config_dict["y"]:
+                y_col["name"] = DatasetValidator._get_canonical_column_name(
+                    y_col["name"], dataset_context
+                )
+
+        # Normalize group_by column
+        if "group_by" in config_dict and config_dict["group_by"]:
+            config_dict["group_by"]["name"] = (
+                DatasetValidator._get_canonical_column_name(
+                    config_dict["group_by"]["name"], dataset_context
+                )
+            )
+
+    @staticmethod
+    def _normalize_table_config(
+        config_dict: Dict[str, Any], dataset_context: DatasetContext
+    ) -> None:
+        """Normalize column names in a table chart config dict in place."""
+        if "columns" in config_dict and config_dict["columns"]:
+            for col in config_dict["columns"]:
+                col["name"] = DatasetValidator._get_canonical_column_name(
+                    col["name"], dataset_context
+                )
+
+    @staticmethod
+    def _normalize_filters(
+        config_dict: Dict[str, Any], dataset_context: DatasetContext
+    ) -> None:
+        """Normalize filter column names in a config dict in place."""
+        if "filters" in config_dict and config_dict["filters"]:
+            for filter_config in config_dict["filters"]:
+                if filter_config and "column" in filter_config:
+                    filter_config["column"] = (
+                        DatasetValidator._get_canonical_column_name(
+                            filter_config["column"], dataset_context
+                        )
+                    )
+
+    @staticmethod
+    def normalize_column_names(
+        config: TableChartConfig | XYChartConfig,
+        dataset_id: int | str,
+        dataset_context: DatasetContext | None = None,
+    ) -> TableChartConfig | XYChartConfig:
+        """
+        Normalize column names in config to match the canonical dataset column names.
+
+        This fixes case sensitivity issues where user-provided column names
+        (e.g., 'order_date') don't match exactly with the dataset column names
+        (e.g., 'OrderDate'). The frontend performs case-sensitive comparisons,
+        so we need to ensure column names match exactly.
+
+        Args:
+            config: Chart configuration with column references
+            dataset_id: Dataset ID to get canonical column names from
+            dataset_context: Pre-fetched dataset context to avoid duplicate
+                DB queries. If None, fetches from the database.
+
+        Returns:
+            A new config with normalized column names
+        """
+        if dataset_context is None:
+            dataset_context = DatasetValidator._get_dataset_context(dataset_id)
+        if not dataset_context:
+            return config
+
+        # Create a mutable copy of the config
+        config_dict = config.model_dump()
+
+        # Normalize based on config type
+        if isinstance(config, XYChartConfig):
+            DatasetValidator._normalize_xy_config(config_dict, dataset_context)
+        elif isinstance(config, TableChartConfig):
+            DatasetValidator._normalize_table_config(config_dict, dataset_context)
+
+        # Normalize filter columns (common to both config types)
+        DatasetValidator._normalize_filters(config_dict, dataset_context)
+
+        # Reconstruct the config with normalized names
+        if isinstance(config, XYChartConfig):
+            return XYChartConfig.model_validate(config_dict)
+        return TableChartConfig.model_validate(config_dict)
 
     @staticmethod
     def _get_column_suggestions(

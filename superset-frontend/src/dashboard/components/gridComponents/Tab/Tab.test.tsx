@@ -578,6 +578,7 @@ test('Should refresh charts when tab becomes active after dashboard refresh', as
     true, // Force refresh
     0, // Interval
     23, // Dashboard ID
+    false, // skipFiltersRefresh
     true, // isLazyLoad flag
   );
 });
@@ -718,6 +719,7 @@ test('Should use isLazyLoad flag for tab refreshes', async () => {
     true, // force
     0, // interval
     42, // dashboardId
+    false, // skipFiltersRefresh
     true, // isLazyLoad should be true to prevent infinite loops
   );
 });

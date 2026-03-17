@@ -68,7 +68,8 @@ class TestListChartsRequestSchema:
         """Test creating request with all defaults.
 
         Note: select_columns defaults to empty list, which triggers
-        minimal default columns (id, slice_name, viz_type, uuid) in the tool.
+        minimal default columns (id, slice_name, viz_type, url,
+        changed_on_humanized) in the tool.
         """
         request = ListChartsRequest()
 
@@ -183,7 +184,13 @@ class TestChartDefaultColumnFiltering:
         from superset.mcp_service.common.schema_discovery import CHART_DEFAULT_COLUMNS
 
         # Required minimal columns must be present
-        required_columns = {"id", "slice_name", "viz_type", "uuid"}
+        required_columns = {
+            "id",
+            "slice_name",
+            "viz_type",
+            "url",
+            "changed_on_humanized",
+        }
         assert required_columns.issubset(set(CHART_DEFAULT_COLUMNS))
 
         # Heavy columns should NOT be in defaults
@@ -191,6 +198,7 @@ class TestChartDefaultColumnFiltering:
         assert "query_context" not in CHART_DEFAULT_COLUMNS
         assert "description" not in CHART_DEFAULT_COLUMNS
         assert "datasource_name" not in CHART_DEFAULT_COLUMNS
+        assert "uuid" not in CHART_DEFAULT_COLUMNS
 
     def test_empty_select_columns_default(self):
         """Test that select_columns defaults to empty list which triggers
@@ -201,12 +209,12 @@ class TestChartDefaultColumnFiltering:
     def test_explicit_select_columns(self):
         """Test that explicit select_columns can include non-default columns."""
         request = ListChartsRequest(
-            select_columns=["id", "slice_name", "description", "form_data"]
+            select_columns=["id", "slice_name", "description", "cache_timeout"]
         )
         # Verify exact columns are present - explicit request should match exactly
         assert set(request.select_columns) == {
             "id",
             "slice_name",
             "description",
-            "form_data",
+            "cache_timeout",
         }

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ContributionType,
   ensureIsArray,
@@ -26,7 +26,7 @@ import {
   QueryFormColumn,
   QueryFormMetric,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   ControlPanelState,
   ControlState,

@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   ExtraFormData,
   TimeGranularity,
 } from '@superset-ui/core';
-import { tn } from '@apache-superset/core';
+import { tn } from '@apache-superset/core/translation';
 import { useEffect, useMemo, useState } from 'react';
 import {
   FormItem,

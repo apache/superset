@@ -58,7 +58,7 @@ from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import Mapper, validates
-from sqlalchemy.sql.elements import ColumnElement, literal_column, TextClause
+from sqlalchemy.sql.elements import ColumnElement, Grouping, literal_column, TextClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy_utils import UUIDType
@@ -202,6 +202,7 @@ def validate_adhoc_subquery(
     nested sub-queries with table
     """
     parsed_statement = SQLStatement(sql, engine)
+    rls_applied = False
     if parsed_statement.has_subquery():
         if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
             raise SupersetSecurityException(
@@ -213,9 +214,12 @@ def validate_adhoc_subquery(
             )
 
         # enforce RLS rules in any relevant tables
-        apply_rls(database, catalog, default_schema, parsed_statement)
+        rls_applied = apply_rls(database, catalog, default_schema, parsed_statement)
 
-    return parsed_statement.format()
+    # Only regenerate the SQL if RLS predicates were actually applied;
+    # unnecessary round-tripping through sqlglot can alter dialect-specific
+    # syntax.
+    return parsed_statement.format() if rls_applied else sql
 
 
 def json_to_dict(json_str: str) -> dict[Any, Any]:
@@ -903,6 +907,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def get_sqla_row_level_filters(
         self,
         template_processor: Optional[BaseTemplateProcessor] = None,  # pylint: disable=unused-argument
+        include_global_guest_rls: bool = True,  # pylint: disable=unused-argument
     ) -> list[TextClause]:
         # TODO: We should refactor this mixin and remove this method
         # as it exists in the BaseDatasource and is not applicable
@@ -2048,15 +2053,23 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if parsed_script.statements:
             default_schema = self.database.get_default_schema(self.catalog)
             try:
+                rls_applied = False
                 for statement in parsed_script.statements:
-                    apply_rls(
+                    if apply_rls(
                         self.database,
                         self.catalog,
                         self.schema or default_schema or "",
                         statement,
-                    )
-                # Regenerate the SQL after RLS application
-                from_sql = parsed_script.format()
+                    ):
+                        rls_applied = True
+
+                # Only regenerate the SQL if RLS predicates were actually applied.
+                # Unnecessary round-tripping through sqlglot can alter SQL in
+                # dialect-specific ways (e.g. dropping column aliases, rewriting
+                # Redshift-specific syntax) and break virtual dataset queries.
+                if rls_applied:
+                    from_sql = parsed_script.format()
+
             except Exception as ex:
                 # Log the error but don't fail - RLS application is best-effort
                 logger.warning("Failed to apply RLS to virtual dataset SQL: %s", ex)
@@ -2414,7 +2427,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     self.dttm_sql_literal(end_dttm, time_col)
                 )
             )
-        return and_(*l)
+        return and_(True, *l)
 
     def values_for_column(  # pylint: disable=too-many-locals
         self,
@@ -2980,7 +2993,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         where_clause_and: list[ColumnElement] = []
         having_clause_and: list[ColumnElement] = []
 
-        for flt in filter:  # type: ignore
+        for flt in filter or []:
             if not all(flt.get(s) for s in ["col", "op"]):
                 continue
             flt_col = flt["col"]
@@ -3221,7 +3234,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     schema=self.schema,
                     template_processor=template_processor,
                 )
-                where_clause_and += [self.text(where)]
+                where_clause_and += [Grouping(self.text(where))]
             having = extras.get("having")
             if having:
                 having = self._process_select_expression(
@@ -3231,7 +3244,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     schema=self.schema,
                     template_processor=template_processor,
                 )
-                having_clause_and += [self.text(having)]
+                having_clause_and += [Grouping(self.text(having))]
 
         if apply_fetch_values_predicate and self.fetch_values_predicate:
             qry = qry.where(
