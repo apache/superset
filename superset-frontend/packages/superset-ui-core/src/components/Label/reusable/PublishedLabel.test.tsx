@@ -90,26 +90,20 @@ test('applies custom labelDraftIconColor to icon', () => {
 });
 
 test('uses default colorSuccess for published icon', () => {
-  const { container } = renderWithTheme(
-    <PublishedLabel isPublished />,
-  );
+  const { container } = renderWithTheme(<PublishedLabel isPublished />);
   const svg = container.querySelector('[role="img"]');
   expect(svg).toHaveStyle({ color: supersetTheme.colorSuccess });
 });
 
 test('uses default colorPrimary for draft icon', () => {
-  const { container } = renderWithTheme(
-    <PublishedLabel isPublished={false} />,
-  );
+  const { container } = renderWithTheme(<PublishedLabel isPublished={false} />);
   const svg = container.querySelector('[role="img"]');
   expect(svg).toHaveStyle({ color: supersetTheme.colorPrimary });
 });
 
 test('calls onClick handler when clicked', () => {
   const handleClick = jest.fn();
-  renderWithTheme(
-    <PublishedLabel isPublished onClick={handleClick} />,
-  );
+  renderWithTheme(<PublishedLabel isPublished onClick={handleClick} />);
   fireEvent.click(screen.getByText('Published'));
   expect(handleClick).toHaveBeenCalledTimes(1);
 });
