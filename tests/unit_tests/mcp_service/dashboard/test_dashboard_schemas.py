@@ -25,8 +25,6 @@ especially owners with Role ORM objects (not plain strings).
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from superset.mcp_service.dashboard.schemas import serialize_dashboard_object
 
 
@@ -43,7 +41,7 @@ def _mock_user(
     username: str,
     first_name: str = "Test",
     last_name: str = "User",
-    roles: list | None = None,
+    roles: list[Any] | None = None,
 ) -> MagicMock:
     """Create a mock User ORM object with Role ORM objects."""
     user = MagicMock()
