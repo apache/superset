@@ -329,7 +329,12 @@ def extract_filters_from_form_data(
 
     time_range = form_data.get("time_range")
     granularity_sqla = form_data.get("granularity_sqla")
-    extra_filters = form_data.get("extra_filters", [])
+    raw_extra = form_data.get("extra_filters", [])
+    extra_filters: List[Dict[str, Any]] = [
+        item
+        for item in (raw_extra if isinstance(raw_extra, list) else [])
+        if isinstance(item, dict)
+    ]
     where = form_data.get("where")
     having = form_data.get("having")
 
@@ -349,7 +354,7 @@ def extract_filters_from_form_data(
         adhoc_filters=adhoc_filters,
         time_range=time_range,
         granularity_sqla=granularity_sqla,
-        extra_filters=extra_filters if isinstance(extra_filters, list) else [],
+        extra_filters=extra_filters,
         where=where,
         having=having,
     )

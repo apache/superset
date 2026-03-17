@@ -72,14 +72,21 @@ def _build_query_context_from_form_data(
 
     factory = QueryContextFactory()
 
-    datasource_id = form_data.get(
-        "datasource_id",
-        getattr(chart, "datasource_id", None) if chart else None,
-    )
-    datasource_type = form_data.get(
-        "datasource_type",
-        getattr(chart, "datasource_type", None) if chart else None,
-    )
+    datasource_id = form_data.get("datasource_id")
+    datasource_type = form_data.get("datasource_type")
+
+    # Unsaved Explore state often stores datasource as a combined field
+    # like "123__table" instead of separate datasource_id/datasource_type.
+    if not datasource_id and (combined := form_data.get("datasource")):
+        if isinstance(combined, str) and "__" in combined:
+            parts = combined.split("__", 1)
+            datasource_id = int(parts[0]) if parts[0].isdigit() else parts[0]
+            datasource_type = parts[1] if len(parts) > 1 else None
+
+    if not datasource_id and chart:
+        datasource_id = getattr(chart, "datasource_id", None)
+    if not datasource_type and chart:
+        datasource_type = getattr(chart, "datasource_type", None)
 
     viz_type = form_data.get(
         "viz_type", getattr(chart, "viz_type", "") if chart else ""
@@ -91,8 +98,7 @@ def _build_query_context_from_form_data(
         "pop_kpi",
     )
     if viz_type in singular_metric_no_groupby:
-        metric = form_data.get("metric")
-        metrics = [metric] if metric else []
+        metrics = [metric] if (metric := form_data.get("metric")) else []
         groupby: list[str] = []
     else:
         metrics = form_data.get("metrics", [])
@@ -105,8 +111,7 @@ def _build_query_context_from_form_data(
         "order_desc": form_data.get("order_desc", True),
     }
 
-    adhoc = form_data.get("adhoc_filters")
-    if adhoc:
+    if adhoc := form_data.get("adhoc_filters"):
         query_dict["adhoc_filters"] = adhoc
 
     return factory.create(
@@ -153,7 +158,10 @@ def _resolve_effective_form_data(
             except (TypeError, ValueError):
                 pass
 
-    saved = utils_json.loads(chart.params) if chart.params else {}
+    try:
+        saved = utils_json.loads(chart.params) if chart.params else {}
+    except (TypeError, ValueError):
+        saved = {}
     return saved if isinstance(saved, dict) else {}, False
 
 
