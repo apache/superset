@@ -87,7 +87,7 @@ class SQLiteSQLValidator(BaseSQLValidator):  # pylint: disable=too-few-public-me
         if result.returncode == 0:
             return annotations
 
-        output = result.stderr or result.stdout
+        output = (result.stderr or result.stdout).replace("\r\n", "\n")
         for match in DIAGNOSTIC_RE.finditer(output):
             message = match.group(1)
             line_number = int(match.group(2))
