@@ -231,16 +231,26 @@ test('handles radius values provided as strings', () => {
     createLocation([300, 300], { radius: '100', cluster: false }),
   ];
 
-  expect(() => {
-    render(
-      <ScatterPlotGlowOverlay
-        {...defaultProps}
-        locations={locations}
-        pointRadiusUnit="Pixels"
-      />,
-    );
-    triggerRedraw();
-  }).not.toThrow();
+  render(
+    <ScatterPlotGlowOverlay
+      {...defaultProps}
+      locations={locations}
+      pointRadiusUnit="Pixels"
+    />,
+  );
+  const redrawParams = triggerRedraw();
+
+  const arcCalls = redrawParams.ctx.arc.mock.calls;
+  const minPointRadius = defaultProps.dotRadius * MIN_CLUSTER_RADIUS_RATIO;
+  const maxPointRadius = defaultProps.dotRadius * MAX_POINT_RADIUS_RATIO;
+
+  arcCalls.forEach(call => {
+    expect(call[2]).toBeGreaterThanOrEqual(minPointRadius);
+    expect(call[2]).toBeLessThanOrEqual(maxPointRadius);
+  });
+
+  expect(arcCalls[0][2]).toBeLessThan(arcCalls[1][2]);
+  expect(arcCalls[1][2]).toBeLessThan(arcCalls[2][2]);
 });
 
 test('renders points when radius values are missing', () => {
@@ -416,19 +426,15 @@ test('renders successfully with mixed extreme and negative radius values', () =>
   }).not.toThrow();
 });
 
-test('cluster radius is always >= individual point radius', () => {
+test('cluster radius is always >= max individual point radius in Pixels mode', () => {
   const locations = [
     createLocation([100, 100], {
       cluster: true,
       point_count: 2,
       sum: 1,
     }),
-    createLocation([200, 200], {
-      cluster: true,
-      point_count: 50,
-      sum: 100,
-    }),
-    createLocation([300, 300], { cluster: false }),
+    createLocation([200, 200], { cluster: false, radius: 1 }),
+    createLocation([300, 300], { cluster: false, radius: 100 }),
   ];
 
   render(
@@ -436,19 +442,23 @@ test('cluster radius is always >= individual point radius', () => {
       {...defaultProps}
       locations={locations}
       aggregation="sum"
+      pointRadiusUnit="Pixels"
     />,
   );
   const redrawParams = triggerRedraw();
 
   const arcCalls = redrawParams.ctx.arc.mock.calls;
-  const minClusterRadius = defaultProps.dotRadius * MIN_CLUSTER_RADIUS_RATIO;
+  const minClusterRadius = defaultProps.dotRadius * MAX_POINT_RADIUS_RATIO;
+  const largestPointRadius = defaultProps.dotRadius * MAX_POINT_RADIUS_RATIO;
 
-  // cluster with label=1 (index 0)
+  // cluster with label=1 (index 0) should not be smaller than the largest point bubble
   expect(arcCalls[0][2]).toBeGreaterThanOrEqual(minClusterRadius);
-  // cluster with label=100 (index 1)
-  expect(arcCalls[1][2]).toBeGreaterThanOrEqual(minClusterRadius);
-  // single point (index 2) gets minimum cluster radius as default
-  expect(arcCalls[2][2]).toBe(minClusterRadius);
+  // point radii span the configured pixel range
+  expect(arcCalls[1][2]).toBe(
+    defaultProps.dotRadius * MIN_CLUSTER_RADIUS_RATIO,
+  );
+  expect(arcCalls[2][2]).toBe(largestPointRadius);
+  expect(arcCalls[0][2]).toBeGreaterThanOrEqual(arcCalls[2][2]);
 });
 
 test('largest cluster gets full dotRadius', () => {
@@ -470,6 +480,7 @@ test('largest cluster gets full dotRadius', () => {
       {...defaultProps}
       locations={locations}
       aggregation="sum"
+      pointRadiusUnit="Pixels"
     />,
   );
   const redrawParams = triggerRedraw();
@@ -503,6 +514,7 @@ test('cluster radii preserve proportional ordering', () => {
       {...defaultProps}
       locations={locations}
       aggregation="sum"
+      pointRadiusUnit="Pixels"
     />,
   );
   const redrawParams = triggerRedraw();
@@ -798,15 +810,16 @@ test('zero-value cluster is visible with minimum radius', () => {
       {...defaultProps}
       locations={locations}
       aggregation="sum"
+      pointRadiusUnit="Pixels"
     />,
   );
   const redrawParams = triggerRedraw();
 
   const arcCalls = redrawParams.ctx.arc.mock.calls;
   const zeroClusterRadius = arcCalls[0][2];
+  const minVisibleClusterRadius =
+    defaultProps.dotRadius * MAX_POINT_RADIUS_RATIO;
 
   expect(Number.isFinite(zeroClusterRadius)).toBe(true);
-  expect(zeroClusterRadius).toBeGreaterThanOrEqual(
-    defaultProps.dotRadius * MIN_CLUSTER_RADIUS_RATIO,
-  );
+  expect(zeroClusterRadius).toBeGreaterThanOrEqual(minVisibleClusterRadius);
 });

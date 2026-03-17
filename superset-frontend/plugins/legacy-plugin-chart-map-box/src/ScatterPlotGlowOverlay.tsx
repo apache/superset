@@ -246,7 +246,10 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
             const safeNumericLabel = Number.isFinite(numericLabel)
               ? numericLabel
               : 0;
-            const minClusterRadius = radius * MIN_CLUSTER_RADIUS_RATIO;
+            const minClusterRadius =
+              pointRadiusUnit === 'Pixels'
+                ? radius * MAX_POINT_RADIUS_RATIO
+                : radius * MIN_CLUSTER_RADIUS_RATIO;
             const ratio = Math.abs(safeNumericLabel) / safeMaxAbsLabel;
             const scaledRadius = roundDecimal(
               minClusterRadius + ratio ** 0.5 * (radius - minClusterRadius),
@@ -301,8 +304,13 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
           } else {
             const defaultRadius = radius * MIN_CLUSTER_RADIUS_RATIO;
             const rawRadius = location.properties.radius;
+            const numericRadiusProperty =
+              rawRadius != null ? Number(rawRadius) : null;
             const radiusProperty =
-              typeof rawRadius === 'number' ? rawRadius : null;
+              numericRadiusProperty != null &&
+              Number.isFinite(numericRadiusProperty)
+                ? numericRadiusProperty
+                : null;
             const pointMetric = location.properties.metric ?? null;
             let pointRadius: number = radiusProperty ?? defaultRadius;
             let pointLabel: string | number | undefined;
