@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { util } from 'echarts';
+import { util } from 'echarts/core';
 import { isZoomConfigsFixed, isZoomConfigsLinear } from './typeguards';
 import {
   CreateDragGraphicOption,

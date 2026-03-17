@@ -214,6 +214,7 @@ export function transformSeries(
     timeShiftColor?: boolean;
     theme?: SupersetTheme;
     hasDimensions?: boolean;
+    wcagSymbol?: string;
   },
 ): SeriesOption | undefined {
   const { name, data } = series;
@@ -342,10 +343,18 @@ export function transformSeries(
       ? { ...opts.lineStyle, opacity: OpacityEnum.Transparent }
       : { ...opts.lineStyle, opacity };
 
-  // Use filled circles in dark mode to avoid the white fill issue with hollow circles
-  // Use emptyCircle explicitly in light mode
+  // WCAG 1.4.1: Use per-series symbol when provided, otherwise fall back to
+  // filled circles in dark mode / hollow circles in light mode.
   const symbol =
-    plotType === 'line' ? (isDarkMode ? 'circle' : 'emptyCircle') : undefined;
+    plotType === 'line'
+      ? (opts.wcagSymbol ?? (isDarkMode ? 'circle' : 'emptyCircle'))
+      : undefined;
+
+  // WCAG 1.4.1: Show symbols on line charts so series are distinguishable
+  // even without color (shape + dash pattern).
+  if (plotType === 'line' && opts.wcagSymbol && !showSymbol) {
+    showSymbol = true;
+  }
 
   return {
     ...series,

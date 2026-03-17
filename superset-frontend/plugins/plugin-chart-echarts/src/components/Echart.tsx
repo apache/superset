@@ -179,7 +179,7 @@ function Echart(
       }
       if (!divRef.current) return;
       if (!chartRef.current) {
-        chartRef.current = init(divRef.current, null, { locale });
+        chartRef.current = init(divRef.current, null, { locale, renderer: 'svg' });
       }
       // did mount
       handleSizeChange({ width, height });

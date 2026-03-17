@@ -313,6 +313,21 @@ export default function transformProps(
 
   const offsetLineWidths: { [key: string]: number } = {};
 
+  // WCAG 1.4.1: Assign distinct visual patterns (dash + symbol) per series
+  // so information is not conveyed by color alone.
+  const LINE_DASH_PATTERNS: LineStyleOption['type'][] = [
+    'solid',
+    'dashed',
+    'dotted',
+    [8, 4],       // long dash
+    [2, 2, 6, 2], // dash-dot
+    [6, 2, 2, 2, 2, 2], // dash-dot-dot
+  ];
+  const SERIES_SYMBOLS = [
+    'circle', 'rect', 'triangle', 'diamond', 'roundRect', 'pin',
+  ];
+  let primarySeriesIndex = 0;
+
   // For horizontal bar charts, calculate min/max from data to avoid cutting off labels
   const shouldCalculateDataBounds =
     isHorizontal &&
@@ -334,6 +349,9 @@ export default function transformProps(
       seriesName,
     );
     const lineStyle: LineStyleOption = {};
+    // WCAG 1.4.1: Assign a unique dash pattern per primary series so that
+    // lines are distinguishable without relying on color alone.
+    let seriesSymbol: string | undefined;
     if (derivedSeries) {
       // Get the time offset for this series to assign different dash patterns
       const offset = getTimeOffset(entry, array) || seriesName;
@@ -348,6 +366,11 @@ export default function transformProps(
         (patternIndex % 3) + 3, // gap: 3-5px (visible)
       ];
       lineStyle.opacity = OpacityEnum.DerivedSeries;
+    } else if (seriesType !== 'bar') {
+      // WCAG 1.4.1: rotating dash pattern + symbol for each primary series
+      lineStyle.type = LINE_DASH_PATTERNS[primarySeriesIndex % LINE_DASH_PATTERNS.length];
+      seriesSymbol = SERIES_SYMBOLS[primarySeriesIndex % SERIES_SYMBOLS.length];
+      primarySeriesIndex += 1;
     }
 
     // Calculate min/max from data for horizontal bar charts
@@ -421,6 +444,7 @@ export default function transformProps(
         timeShiftColor,
         theme,
         hasDimensions: (groupBy?.length ?? 0) > 0,
+        wcagSymbol: seriesSymbol,
       },
     );
     if (transformedSeries) {

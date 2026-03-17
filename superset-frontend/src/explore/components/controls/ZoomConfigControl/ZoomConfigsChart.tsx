@@ -17,7 +17,19 @@
  * under the License.
  */
 import { t } from '@apache-superset/core';
-import { init as echartsInit } from 'echarts';
+import { init as echartsInit, use } from 'echarts/core';
+import { SVGRenderer } from 'echarts/renderers';
+import {
+  BarChart,
+} from 'echarts/charts';
+import {
+  GridComponent,
+  DatasetComponent,
+  GraphicComponent,
+} from 'echarts/components';
+
+// eslint-disable-next-line react-hooks/rules-of-hooks -- This is ECharts' use function, not a React hook
+use([SVGRenderer, BarChart, GridComponent, DatasetComponent, GraphicComponent]);
 import { createRef, FC, useEffect } from 'react';
 import { ZoomConfigsChartProps } from './types';
 import {
@@ -48,7 +60,7 @@ export const ZoomConfigsChart: FC<ZoomConfigsChartProps> = ({
     const barWidth = 15;
     const data = zoomConfigsToData(value.values);
 
-    const chart = echartsInit(ref.current);
+    const chart = echartsInit(ref.current, null, { renderer: 'svg' });
 
     const option = {
       xAxis: {
