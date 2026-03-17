@@ -153,6 +153,19 @@ export function setForceQuery(force: boolean) {
   };
 }
 
+export const UPDATE_EXPLORE_CHART_STATE = 'UPDATE_EXPLORE_CHART_STATE';
+export function updateExploreChartState(
+  chartId: number,
+  chartState: Record<string, unknown>,
+) {
+  return {
+    type: UPDATE_EXPLORE_CHART_STATE,
+    chartId,
+    chartState,
+    lastModified: Date.now(),
+  };
+}
+
 export const SET_STASH_FORM_DATA = 'SET_STASH_FORM_DATA';
 export function setStashFormData(
   isHidden: boolean,
