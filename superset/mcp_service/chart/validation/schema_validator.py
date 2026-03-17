@@ -347,7 +347,7 @@ class SchemaValidator:
                 error_code="MISSING_RAW_COLUMNS",
             )
 
-        if query_mode == "aggregate" and "metrics" not in config:
+        if query_mode == "aggregate" and not config.get("metrics"):
             return False, ChartGenerationError(
                 error_type="missing_aggregate_metrics",
                 message="Handlebars chart in 'aggregate' mode requires 'metrics'",
