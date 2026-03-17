@@ -18,6 +18,7 @@
  */
 import '@testing-library/jest-dom';
 import { ObjectFormattingEnum } from '@superset-ui/chart-controls';
+import { supersetTheme } from '@apache-superset/core/theme';
 import {
   render,
   screen,
@@ -26,6 +27,7 @@ import {
   within,
 } from '@superset-ui/core/spec';
 import { cloneDeep } from 'lodash';
+import tinycolor from 'tinycolor2';
 import {
   QueryMode,
   TimeGranularity,
@@ -38,6 +40,51 @@ import transformProps from '../src/transformProps';
 import DateWithFormatter from '../src/utils/DateWithFormatter';
 import testData from './testData';
 import { ProviderWrapper } from './testHelpers';
+
+const getTextColorForBackground = (
+  result: { backgroundColor?: string; color?: string },
+  surfaceColor: string,
+) => {
+  if (result.color) {
+    const parsedColor = tinycolor(result.color);
+    return parsedColor.isValid()
+      ? parsedColor.setAlpha(1).toRgbString()
+      : result.color;
+  }
+
+  if (!result.backgroundColor) {
+    return undefined;
+  }
+
+  const background = tinycolor(result.backgroundColor);
+  const surface = tinycolor(surfaceColor);
+  if (!background.isValid() || !surface.isValid()) {
+    return undefined;
+  }
+
+  const { r: bgR, g: bgG, b: bgB, a: bgAlpha } = background.toRgb();
+  const { r: surfaceR, g: surfaceG, b: surfaceB } = surface.toRgb();
+  const alpha = bgAlpha ?? 1;
+
+  return tinycolor
+    .mostReadable(
+      tinycolor({
+        r: bgR * alpha + surfaceR * (1 - alpha),
+        g: bgG * alpha + surfaceG * (1 - alpha),
+        b: bgB * alpha + surfaceB * (1 - alpha),
+      }),
+      [
+        { r: 0, g: 0, b: 0 },
+        { r: 255, g: 255, b: 255 },
+      ],
+      {
+        includeFallbackColors: true,
+        level: 'AA',
+        size: 'small',
+      },
+    )
+    .toRgbString();
+};
 
 const expectValidAriaLabels = (container: HTMLElement) => {
   const allCells = container.querySelectorAll('tbody td');
@@ -1465,6 +1512,62 @@ describe('plugin-chart-table', () => {
         );
         expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
           'rgb(172, 225, 196)',
+        );
+      });
+
+      test('use striped row surface when deriving adaptive text color', () => {
+        const backgroundColor = Array.from(
+          { length: 0xff },
+          (_, index) => `#000000${(index + 1).toString(16).padStart(2, '0')}`,
+        ).find(candidate => {
+          const baseColor = getTextColorForBackground(
+            { backgroundColor: candidate },
+            supersetTheme.colorBgBase,
+          );
+          const layoutColor = getTextColorForBackground(
+            { backgroundColor: candidate },
+            supersetTheme.colorBgLayout,
+          );
+          return baseColor !== layoutColor;
+        });
+
+        expect(backgroundColor).toBeDefined();
+
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: backgroundColor,
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2000,
+                        useGradient: false,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
+          getTextColorForBackground(
+            { backgroundColor },
+            supersetTheme.colorBgLayout,
+          ),
+        );
+        expect(getComputedStyle(screen.getByTitle('2467')).color).toBe(
+          getTextColorForBackground(
+            { backgroundColor },
+            supersetTheme.colorBgBase,
+          ),
         );
       });
 

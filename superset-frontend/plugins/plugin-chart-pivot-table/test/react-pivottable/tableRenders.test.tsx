@@ -647,6 +647,34 @@ test('getCellColor keeps explicit text color over adaptive contrast', () => {
   });
 });
 
+test('getCellColor treats legacy toTextColor formatters as text color', () => {
+  expect(
+    getCellColor(
+      ['revenue'],
+      200,
+      {
+        metric: [
+          {
+            column: 'revenue',
+            getColorFromValue: (value: unknown) =>
+              value === 200 ? '#111111' : undefined,
+          },
+          {
+            column: 'revenue',
+            toTextColor: true,
+            getColorFromValue: (value: unknown) =>
+              value === 200 ? '#ace1c40d' : undefined,
+          },
+        ],
+      },
+      '#ffffff',
+    ),
+  ).toEqual({
+    backgroundColor: '#111111',
+    color: 'rgb(172, 225, 196)',
+  });
+});
+
 test('getCellColor ignores cell-bar rules when resolving text color', () => {
   expect(
     getCellColor(

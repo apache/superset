@@ -25,14 +25,65 @@ import PropTypes from 'prop-types';
 import { FaSort } from 'react-icons/fa';
 import { FaSortDown as FaSortDesc } from 'react-icons/fa';
 import { FaSortUp as FaSortAsc } from 'react-icons/fa';
+import tinycolor from 'tinycolor2';
 import {
   ColorFormatters,
-  getTextColorForBackground,
   ObjectFormattingEnum,
-  ResolvedColorFormatterResult,
 } from '@superset-ui/chart-controls';
 import { PivotData, flatKey } from './utilities';
 import { Styles } from './Styles';
+
+type ResolvedColorFormatterResult = {
+  backgroundColor?: string;
+  color?: string;
+};
+
+const READABLE_TEXT_COLORS = [
+  { r: 0, g: 0, b: 0 },
+  { r: 255, g: 255, b: 255 },
+];
+
+const getTextColorForBackground = (
+  result: ResolvedColorFormatterResult,
+  surfaceColor: string,
+) => {
+  if (result.color) {
+    const parsedColor = tinycolor(result.color);
+    return parsedColor.isValid()
+      ? parsedColor.setAlpha(1).toRgbString()
+      : result.color;
+  }
+
+  if (!result.backgroundColor) {
+    return undefined;
+  }
+
+  const background = tinycolor(result.backgroundColor);
+  const surface = tinycolor(surfaceColor);
+  if (!background.isValid() || !surface.isValid()) {
+    return undefined;
+  }
+
+  const { r: bgR, g: bgG, b: bgB, a: bgAlpha } = background.toRgb();
+  const { r: surfaceR, g: surfaceG, b: surfaceB } = surface.toRgb();
+  const alpha = bgAlpha ?? 1;
+
+  return tinycolor
+    .mostReadable(
+      tinycolor({
+        r: bgR * alpha + surfaceR * (1 - alpha),
+        g: bgG * alpha + surfaceG * (1 - alpha),
+        b: bgB * alpha + surfaceB * (1 - alpha),
+      }),
+      READABLE_TEXT_COLORS,
+      {
+        includeFallbackColors: true,
+        level: 'AA',
+        size: 'small',
+      },
+    )
+    .toRgbString();
+};
 
 type ClickCallback = (
   e: MouseEvent,
@@ -188,6 +239,9 @@ export function getCellColor(
 
   let backgroundColor: string | undefined;
   let color: string | undefined;
+  const isTextColorFormatter = (formatter: ColorFormatters[number]) =>
+    formatter.objectFormatting === ObjectFormattingEnum.TEXT_COLOR ||
+    formatter.toTextColor;
 
   for (const cellColorFormatter of Object.values(cellColorFormatters)) {
     if (!Array.isArray(cellColorFormatter)) continue;
@@ -197,9 +251,7 @@ export function getCellColor(
         if (formatter.column === key) {
           const result = formatter.getColorFromValue(aggValue);
           if (result) {
-            if (
-              formatter.objectFormatting === ObjectFormattingEnum.TEXT_COLOR
-            ) {
+            if (isTextColorFormatter(formatter)) {
               color = result;
             } else if (
               formatter.objectFormatting !== ObjectFormattingEnum.CELL_BAR

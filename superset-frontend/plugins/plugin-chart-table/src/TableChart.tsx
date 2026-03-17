@@ -39,6 +39,7 @@ import { FaSort } from 'react-icons/fa';
 import { FaSortDown as FaSortDesc } from 'react-icons/fa';
 import { FaSortUp as FaSortAsc } from 'react-icons/fa';
 import cx from 'classnames';
+import tinycolor from 'tinycolor2';
 import {
   DataRecord,
   DataRecordValue,
@@ -77,7 +78,6 @@ import {
   ColorFormatters,
   ObjectFormattingEnum,
   ColorSchemeEnum,
-  getTextColorForBackground,
 } from '@superset-ui/chart-controls';
 import {
   DataColumnMeta,
@@ -104,6 +104,53 @@ interface TableSize {
   width: number;
   height: number;
 }
+
+const READABLE_TEXT_COLORS = [
+  { r: 0, g: 0, b: 0 },
+  { r: 255, g: 255, b: 255 },
+];
+
+const getTextColorForBackground = (
+  result: { backgroundColor?: string; color?: string },
+  surfaceColor: string,
+) => {
+  if (result.color) {
+    const parsedColor = tinycolor(result.color);
+    return parsedColor.isValid()
+      ? parsedColor.setAlpha(1).toRgbString()
+      : result.color;
+  }
+
+  if (!result.backgroundColor) {
+    return undefined;
+  }
+
+  const background = tinycolor(result.backgroundColor);
+  const surface = tinycolor(surfaceColor);
+  if (!background.isValid() || !surface.isValid()) {
+    return undefined;
+  }
+
+  const { r: bgR, g: bgG, b: bgB, a: bgAlpha } = background.toRgb();
+  const { r: surfaceR, g: surfaceG, b: surfaceB } = surface.toRgb();
+  const alpha = bgAlpha ?? 1;
+
+  return tinycolor
+    .mostReadable(
+      tinycolor({
+        r: bgR * alpha + surfaceR * (1 - alpha),
+        g: bgG * alpha + surfaceG * (1 - alpha),
+        b: bgB * alpha + surfaceB * (1 - alpha),
+      }),
+      READABLE_TEXT_COLORS,
+      {
+        includeFallbackColors: true,
+        level: 'AA',
+        size: 'small',
+      },
+    )
+    .toRgbString();
+};
 
 const ACTION_KEYS = {
   enter: 'Enter',
@@ -945,7 +992,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               if (!formatterResult) return;
 
               if (
-                formatter.objectFormatting === ObjectFormattingEnum.TEXT_COLOR
+                formatter.objectFormatting ===
+                  ObjectFormattingEnum.TEXT_COLOR ||
+                formatter.toTextColor
               ) {
                 color = formatterResult;
               } else if (
@@ -998,9 +1047,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 ? basicColorColumnFormatters[row.index][column.key]?.mainArrow
                 : '';
           }
+          const rowSurfaceColor =
+            row.index % 2 === 0 ? theme.colorBgLayout : theme.colorBgBase;
           const resolvedTextColor = getTextColorForBackground(
             { backgroundColor, color },
-            theme.colorBgBase,
+            rowSurfaceColor,
           );
           const StyledCell = styled.td`
             color: ${resolvedTextColor || theme.colorText};
