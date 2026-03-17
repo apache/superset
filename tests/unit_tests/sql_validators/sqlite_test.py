@@ -17,7 +17,9 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from superset.sql_validators.sqlite import SQLiteSQLValidator
 
@@ -117,6 +119,18 @@ def test_annotation_to_dict() -> None:
     assert "start_column" in result
     assert "end_column" in result
     assert "message" in result
+
+
+def test_missing_syntaqlite_raises_import_error() -> None:
+    mock_database = MagicMock()
+    with patch("superset.sql_validators.sqlite.get_binary_path", None):
+        with pytest.raises(ImportError, match="syntaqlite is not installed"):
+            SQLiteSQLValidator.validate(
+                sql="SELECT 1",
+                catalog=None,
+                schema="",
+                database=mock_database,
+            )
 
 
 def test_get_validator_by_name() -> None:

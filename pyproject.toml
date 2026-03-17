@@ -83,7 +83,6 @@ dependencies = [
     "paramiko>=3.4.0",
     "pgsanity",
     "Pillow>=11.0.0, <13",
-    "syntaqlite>=0.1.0",
     "polyline>=2.0.0, <3.0",
     "pydantic>=2.8.0",
     "pyparsing>=3.0.6, <4",
@@ -184,6 +183,7 @@ risingwave = ["sqlalchemy-risingwave"]
 shillelagh = ["shillelagh[all]>=1.4.3, <2"]
 singlestore = ["sqlalchemy-singlestoredb>=1.1.1, <2"]
 snowflake = ["snowflake-sqlalchemy>=1.2.4, <2"]
+sqlite = ["syntaqlite>=0.1.0"]
 spark = [
     "pyhive[hive]>=0.6.5;python_version<'3.11'",
     "pyhive[hive_pure_sasl]>=0.7",

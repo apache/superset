@@ -21,10 +21,13 @@ import logging
 import re
 import subprocess
 
-from syntaqlite import get_binary_path
-
 from superset.models.core import Database
 from superset.sql_validators.base import BaseSQLValidator, SQLValidationAnnotation
+
+try:
+    from syntaqlite import get_binary_path
+except ModuleNotFoundError:
+    get_binary_path = None
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +55,12 @@ class SQLiteSQLValidator(BaseSQLValidator):  # pylint: disable=too-few-public-me
         database: Database,
     ) -> list[SQLValidationAnnotation]:
         annotations: list[SQLValidationAnnotation] = []
+
+        if get_binary_path is None:
+            raise ImportError(
+                "syntaqlite is not installed. Install it with: "
+                'pip install "apache-superset[sqlite]"'
+            )
 
         try:
             result = subprocess.run(  # noqa: S603

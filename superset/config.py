@@ -2057,6 +2057,9 @@ DEFAULT_RELATIVE_END_TIME = "today"
 SQL_VALIDATORS_BY_ENGINE = {
     "presto": "PrestoDBSQLValidator",
     "postgresql": "PostgreSQLValidator",
+    "sqlite": "SQLiteSQLValidator",
+    "gsheets": "SQLiteSQLValidator",
+    "shillelagh": "SQLiteSQLValidator",
 }
 
 # A list of preferred databases, in order. These databases will be
