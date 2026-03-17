@@ -71,22 +71,6 @@ CHART_SEARCH_COLUMNS = [
 ]
 
 
-def _needs_popularity(request: ListChartsRequest) -> bool:
-    """Check if popularity_score computation is needed."""
-    if request.order_column == "popularity_score":
-        return True
-    if request.select_columns and "popularity_score" in request.select_columns:
-        return True
-    return False
-
-
-def _attach_popularity_scores(charts: list[Any], scores: dict[int, float]) -> None:
-    """Attach popularity scores to serialized chart objects in-place."""
-    for chart in charts:
-        if chart.id is not None and chart.id in scores:
-            chart.popularity_score = scores[chart.id]
-
-
 @tool(
     tags=["core"],
     class_permission_name="Chart",
