@@ -18,9 +18,9 @@
  */
 import { ComponentType } from 'react';
 import {
+  fireEvent,
   render,
   screen,
-  userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
 import { MemoryRouter, Route } from 'react-router-dom';
@@ -359,8 +359,10 @@ test('modal close redirects to welcome page', async () => {
   const modal = await screen.findByTestId('upload-modal');
   expect(modal).toBeInTheDocument();
 
-  // Click the close button in the mocked modal
-  await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+  // Use fireEvent instead of userEvent to avoid act() timeout on CI.
+  // userEvent.click wraps in act() which can hang when the component
+  // transitions from modal state back to loading state.
+  fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 
   await waitFor(() => {
     expect(mockHistoryPush).toHaveBeenCalledWith('/superset/welcome/');
