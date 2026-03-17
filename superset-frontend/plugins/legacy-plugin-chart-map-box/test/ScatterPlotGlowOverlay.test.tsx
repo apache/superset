@@ -18,10 +18,7 @@
  */
 
 import { render } from '@testing-library/react';
-import ScatterPlotGlowOverlay, {
-  MIN_CLUSTER_RADIUS_RATIO,
-  MAX_POINT_RADIUS_RATIO,
-} from '../src/ScatterPlotGlowOverlay';
+import ScatterPlotGlowOverlay from '../src/ScatterPlotGlowOverlay';
 
 type MockGradient = {
   addColorStop: jest.Mock<void, [number, string]>;
@@ -154,6 +151,8 @@ const defaultProps = {
   rgb: ['', 255, 0, 0] as [string, number, number, number],
   globalOpacity: 1,
 };
+const MIN_VISIBLE_POINT_RADIUS = 10;
+const MAX_VISIBLE_POINT_RADIUS = 20;
 
 test('renders map with varying radius values in Pixels mode', () => {
   const locations = [
@@ -172,13 +171,11 @@ test('renders map with varying radius values in Pixels mode', () => {
   const redrawParams = triggerRedraw();
 
   const arcCalls = redrawParams.ctx.arc.mock.calls;
-  const minPointRadius = defaultProps.dotRadius * MIN_CLUSTER_RADIUS_RATIO;
-  const maxPointRadius = defaultProps.dotRadius * MAX_POINT_RADIUS_RATIO;
 
-  // All point radii should be within [MIN_CLUSTER_RADIUS_RATIO, MAX_POINT_RADIUS_RATIO] * dotRadius
+  // With dotRadius=60, pixel-sized points should map to the visible 10-20 range.
   arcCalls.forEach(call => {
-    expect(call[2]).toBeGreaterThanOrEqual(minPointRadius);
-    expect(call[2]).toBeLessThanOrEqual(maxPointRadius);
+    expect(call[2]).toBeGreaterThanOrEqual(MIN_VISIBLE_POINT_RADIUS);
+    expect(call[2]).toBeLessThanOrEqual(MAX_VISIBLE_POINT_RADIUS);
   });
 
   // Ordering should be preserved: radius 10 < 50 < 100
@@ -241,12 +238,10 @@ test('handles radius values provided as strings', () => {
   const redrawParams = triggerRedraw();
 
   const arcCalls = redrawParams.ctx.arc.mock.calls;
-  const minPointRadius = defaultProps.dotRadius * MIN_CLUSTER_RADIUS_RATIO;
-  const maxPointRadius = defaultProps.dotRadius * MAX_POINT_RADIUS_RATIO;
 
   arcCalls.forEach(call => {
-    expect(call[2]).toBeGreaterThanOrEqual(minPointRadius);
-    expect(call[2]).toBeLessThanOrEqual(maxPointRadius);
+    expect(call[2]).toBeGreaterThanOrEqual(MIN_VISIBLE_POINT_RADIUS);
+    expect(call[2]).toBeLessThanOrEqual(MAX_VISIBLE_POINT_RADIUS);
   });
 
   expect(arcCalls[0][2]).toBeLessThan(arcCalls[1][2]);
@@ -448,16 +443,12 @@ test('cluster radius is always >= max individual point radius in Pixels mode', (
   const redrawParams = triggerRedraw();
 
   const arcCalls = redrawParams.ctx.arc.mock.calls;
-  const minClusterRadius = defaultProps.dotRadius * MAX_POINT_RADIUS_RATIO;
-  const largestPointRadius = defaultProps.dotRadius * MAX_POINT_RADIUS_RATIO;
 
   // cluster with label=1 (index 0) should not be smaller than the largest point bubble
-  expect(arcCalls[0][2]).toBeGreaterThanOrEqual(minClusterRadius);
+  expect(arcCalls[0][2]).toBeGreaterThanOrEqual(MAX_VISIBLE_POINT_RADIUS);
   // point radii span the configured pixel range
-  expect(arcCalls[1][2]).toBe(
-    defaultProps.dotRadius * MIN_CLUSTER_RADIUS_RATIO,
-  );
-  expect(arcCalls[2][2]).toBe(largestPointRadius);
+  expect(arcCalls[1][2]).toBe(MIN_VISIBLE_POINT_RADIUS);
+  expect(arcCalls[2][2]).toBe(MAX_VISIBLE_POINT_RADIUS);
   expect(arcCalls[0][2]).toBeGreaterThanOrEqual(arcCalls[2][2]);
 });
 
@@ -549,9 +540,7 @@ test('negative cluster label produces valid finite radius', () => {
   const arcCalls = redrawParams.ctx.arc.mock.calls;
   const radiusValue = arcCalls[0][2];
   expect(Number.isFinite(radiusValue)).toBe(true);
-  expect(radiusValue).toBeGreaterThanOrEqual(
-    defaultProps.dotRadius * MIN_CLUSTER_RADIUS_RATIO,
-  );
+  expect(radiusValue).toBeGreaterThanOrEqual(MIN_VISIBLE_POINT_RADIUS);
 });
 
 test('single cluster with small maxLabel gets full dotRadius', () => {
@@ -609,7 +598,6 @@ test('all-negative cluster labels produce differentiated radii by magnitude', ()
   const rNeg100 = arcCalls[0][2];
   const rNeg10 = arcCalls[1][2];
   const rNeg1 = arcCalls[2][2];
-  const minClusterRadius = defaultProps.dotRadius * MIN_CLUSTER_RADIUS_RATIO;
 
   // Higher magnitude = bigger circle: |-100| > |-10| > |-1|
   expect(rNeg1).toBeLessThan(rNeg10);
@@ -617,7 +605,7 @@ test('all-negative cluster labels produce differentiated radii by magnitude', ()
   expect(Number.isFinite(rNeg100)).toBe(true);
   expect(Number.isFinite(rNeg10)).toBe(true);
   expect(Number.isFinite(rNeg1)).toBe(true);
-  expect(rNeg1).toBeGreaterThanOrEqual(minClusterRadius);
+  expect(rNeg1).toBeGreaterThanOrEqual(MIN_VISIBLE_POINT_RADIUS);
   expect(rNeg100).toBe(defaultProps.dotRadius);
 });
 
@@ -653,12 +641,11 @@ test('mixed positive-and-negative cluster labels size by magnitude', () => {
   const rNeg50 = arcCalls[0][2];
   const rZero = arcCalls[1][2];
   const r100 = arcCalls[2][2];
-  const minClusterRadius = defaultProps.dotRadius * MIN_CLUSTER_RADIUS_RATIO;
 
   // Magnitude ordering: |0| < |-50| < |100|
   expect(rZero).toBeLessThan(rNeg50);
   expect(rNeg50).toBeLessThan(r100);
-  expect(rZero).toBeGreaterThanOrEqual(minClusterRadius);
+  expect(rZero).toBeGreaterThanOrEqual(MIN_VISIBLE_POINT_RADIUS);
   expect(r100).toBe(defaultProps.dotRadius);
 });
 
@@ -817,9 +804,7 @@ test('zero-value cluster is visible with minimum radius', () => {
 
   const arcCalls = redrawParams.ctx.arc.mock.calls;
   const zeroClusterRadius = arcCalls[0][2];
-  const minVisibleClusterRadius =
-    defaultProps.dotRadius * MAX_POINT_RADIUS_RATIO;
 
   expect(Number.isFinite(zeroClusterRadius)).toBe(true);
-  expect(zeroClusterRadius).toBeGreaterThanOrEqual(minVisibleClusterRadius);
+  expect(zeroClusterRadius).toBeGreaterThanOrEqual(MAX_VISIBLE_POINT_RADIUS);
 });
