@@ -45,7 +45,7 @@ superset-extensions validate: Validates the extension structure and metadata.
 When creating a new extension with `superset-extensions init`, the CLI generates a standardized folder structure:
 
 ```
-my-org.dataset-references/
+dataset-references/
 ├── extension.json
 ├── frontend/
 │   ├── src/
@@ -76,7 +76,7 @@ my-org.dataset-references/
 ```
 
 **Note**: With publisher `my-org` and name `dataset-references`, the technical names are:
-- Directory name: `my-org.dataset-references` (kebab-case)
+- Directory name: `dataset-references` (kebab-case)
 - Backend Python namespace: `my_org.dataset_references`
 - Backend distribution package: `my_org-dataset_references`
 - Frontend package name: `@my-org/dataset-references` (scoped)

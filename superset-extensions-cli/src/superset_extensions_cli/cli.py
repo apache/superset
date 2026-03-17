@@ -663,7 +663,7 @@ def init(
         else click.confirm("Include backend?", default=True)
     )
 
-    target_dir = Path.cwd() / names["id"]
+    target_dir = Path.cwd() / names["name"]
     if target_dir.exists():
         click.secho(f"❌ Directory {target_dir} already exists.", fg="red")
         sys.exit(1)
