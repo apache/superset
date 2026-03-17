@@ -248,6 +248,29 @@ test('handles radius values provided as strings', () => {
   expect(arcCalls[1][2]).toBeLessThan(arcCalls[2][2]);
 });
 
+test('treats blank radius strings as missing values', () => {
+  const locations = [
+    createLocation([100, 100], { radius: '', cluster: false }),
+    createLocation([200, 200], { radius: '   ', cluster: false }),
+    createLocation([300, 300], { radius: '100', cluster: false }),
+  ];
+
+  render(
+    <ScatterPlotGlowOverlay
+      {...defaultProps}
+      locations={locations}
+      pointRadiusUnit="Pixels"
+    />,
+  );
+  const redrawParams = triggerRedraw();
+
+  const arcCalls = redrawParams.ctx.arc.mock.calls;
+
+  expect(arcCalls[0][2]).toBe(MIN_VISIBLE_POINT_RADIUS);
+  expect(arcCalls[1][2]).toBe(MIN_VISIBLE_POINT_RADIUS);
+  expect(arcCalls[2][2]).toBe(15);
+});
+
 test('renders points when radius values are missing', () => {
   const locations = [
     createLocation([100, 100], { radius: null, cluster: false }),
@@ -541,6 +564,36 @@ test('negative cluster label produces valid finite radius', () => {
   const radiusValue = arcCalls[0][2];
   expect(Number.isFinite(radiusValue)).toBe(true);
   expect(radiusValue).toBeGreaterThanOrEqual(MIN_VISIBLE_POINT_RADIUS);
+});
+
+test('ignores non-finite cluster labels when computing cluster scaling bounds', () => {
+  const locations = [
+    createLocation([100, 100], {
+      cluster: true,
+      point_count: 3,
+      sum: 'invalid',
+    }),
+    createLocation([200, 200], {
+      cluster: true,
+      point_count: 3,
+      sum: 100,
+    }),
+  ];
+
+  render(
+    <ScatterPlotGlowOverlay
+      {...defaultProps}
+      locations={locations}
+      aggregation="sum"
+      pointRadiusUnit="Pixels"
+    />,
+  );
+  const redrawParams = triggerRedraw();
+
+  const arcCalls = redrawParams.ctx.arc.mock.calls;
+
+  expect(arcCalls[0][2]).toBeGreaterThanOrEqual(MAX_VISIBLE_POINT_RADIUS);
+  expect(arcCalls[1][2]).toBe(defaultProps.dotRadius);
 });
 
 test('single cluster with small maxLabel gets full dotRadius', () => {

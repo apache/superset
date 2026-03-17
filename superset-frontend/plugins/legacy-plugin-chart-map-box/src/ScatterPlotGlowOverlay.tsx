@@ -185,16 +185,13 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
       }
     });
 
-    const filteredLabels = clusterLabelMap.filter(
-      v => !Number.isNaN(v),
-    ) as number[];
-    // Guard against empty array or zero max to prevent NaN from division
-    const maxLabel =
-      filteredLabels.length > 0 ? Math.max(...filteredLabels) : 1;
-    const minLabel =
-      filteredLabels.length > 0 ? Math.min(...filteredLabels) : 0;
-    const maxAbsLabel = Math.max(Math.abs(maxLabel), Math.abs(minLabel));
-    const safeMaxAbsLabel = maxAbsLabel > 0 ? maxAbsLabel : 1;
+    const finiteClusterLabels = clusterLabelMap
+      .map(value => Number(value))
+      .filter(value => Number.isFinite(value));
+    const safeMaxAbsLabel =
+      finiteClusterLabels.length > 0
+        ? Math.max(...finiteClusterLabels.map(value => Math.abs(value)))
+        : 1;
 
     // Calculate min/max radius values for Pixels mode scaling
     let minRadiusValue = Infinity;
@@ -207,8 +204,11 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
           location.properties.radius != null
         ) {
           const radiusValueRaw = location.properties.radius;
-          const radiusValue = Number(radiusValueRaw);
-          if (Number.isFinite(radiusValue)) {
+          const radiusValue =
+            typeof radiusValueRaw === 'string' && radiusValueRaw.trim() === ''
+              ? null
+              : Number(radiusValueRaw);
+          if (radiusValue != null && Number.isFinite(radiusValue)) {
             minRadiusValue = Math.min(minRadiusValue, radiusValue);
             maxRadiusValue = Math.max(maxRadiusValue, radiusValue);
           }
@@ -305,7 +305,10 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
             const defaultRadius = radius * MIN_CLUSTER_RADIUS_RATIO;
             const rawRadius = location.properties.radius;
             const numericRadiusProperty =
-              rawRadius != null ? Number(rawRadius) : null;
+              rawRadius != null &&
+              !(typeof rawRadius === 'string' && rawRadius.trim() === '')
+                ? Number(rawRadius)
+                : null;
             const radiusProperty =
               numericRadiusProperty != null &&
               Number.isFinite(numericRadiusProperty)
