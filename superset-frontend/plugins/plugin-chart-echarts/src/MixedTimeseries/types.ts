@@ -84,6 +84,8 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   seriesTypeB: EchartsTimeseriesSeriesType;
   showValue: boolean;
   showValueB: boolean;
+  labelPosition?: 'auto' | 'top' | 'bottom' | 'left' | 'right' | 'inside' | 'insideTop' | 'insideBottom' | 'insideLeft' | 'insideRight';
+  labelPositionB?: 'auto' | 'top' | 'bottom' | 'left' | 'right' | 'inside' | 'insideTop' | 'insideBottom' | 'insideLeft' | 'insideRight';
   stack: StackType;
   stackB: StackType;
   yAxisIndex?: number;
@@ -127,6 +129,8 @@ export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   seriesTypeB: TIMESERIES_DEFAULTS.seriesType,
   showValue: TIMESERIES_DEFAULTS.showValue,
   showValueB: TIMESERIES_DEFAULTS.showValue,
+  labelPosition: TIMESERIES_DEFAULTS.labelPosition,
+  labelPositionB: TIMESERIES_DEFAULTS.labelPosition,
   stack: TIMESERIES_DEFAULTS.stack,
   stackB: TIMESERIES_DEFAULTS.stack,
   yAxisIndex: 0,
@@ -147,15 +151,15 @@ export interface EchartsMixedTimeseriesProps extends BaseChartProps<EchartsMixed
 
 export type EchartsMixedTimeseriesChartTransformedProps =
   BaseTransformedProps<EchartsMixedTimeseriesFormData> &
-    ContextMenuTransformedProps &
-    CrossFilterTransformedProps & {
-      groupbyB: QueryFormColumn[];
-      labelMapB: Record<string, string[]>;
-      seriesBreakdown: number;
-      xValueFormatter: TimeFormatter | StringConstructor;
-      xAxis: {
-        label: string;
-        type: AxisType;
-      };
-      onFocusedSeries: (series: string | null) => void;
+  ContextMenuTransformedProps &
+  CrossFilterTransformedProps & {
+    groupbyB: QueryFormColumn[];
+    labelMapB: Record<string, string[]>;
+    seriesBreakdown: number;
+    xValueFormatter: TimeFormatter | StringConstructor;
+    xAxis: {
+      label: string;
+      type: AxisType;
     };
+    onFocusedSeries: (series: string | null) => void;
+  };

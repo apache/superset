@@ -180,6 +180,8 @@ export default function transformProps(
     showLegend,
     showValue,
     showValueB,
+    labelPosition,
+    labelPositionB,
     onlyTotal,
     onlyTotalB,
     stack,
@@ -303,17 +305,17 @@ export default function transformProps(
     ? getNumberFormatter(',.0%')
     : resolvedCurrency?.symbol
       ? new CurrencyFormatter({
-          d3Format: yAxisFormat,
-          currency: resolvedCurrency,
-        })
+        d3Format: yAxisFormat,
+        currency: resolvedCurrency,
+      })
       : getNumberFormatter(yAxisFormat);
   const formatterSecondary = contributionMode
     ? getNumberFormatter(',.0%')
     : resolvedCurrencySecondary?.symbol
       ? new CurrencyFormatter({
-          d3Format: yAxisFormatSecondary,
-          currency: resolvedCurrencySecondary,
-        })
+        d3Format: yAxisFormatSecondary,
+        currency: resolvedCurrencySecondary,
+      })
       : getNumberFormatter(yAxisFormatSecondary);
   const customFormatters = buildCustomFormatters(
     [...ensureIsArray(metrics), ...ensureIsArray(metricsB)],
@@ -469,15 +471,16 @@ export default function transformProps(
         formatter:
           seriesType === EchartsTimeseriesSeriesType.Bar
             ? getOverMaxHiddenFormatter({
-                max: yAxisMax,
-                formatter: seriesFormatter,
-              })
+              max: yAxisMax,
+              formatter: seriesFormatter,
+            })
             : seriesFormatter,
         totalStackedValues: sortedTotalValuesA,
         showValueIndexes: showValueIndexesA,
         thresholdValues,
         timeShiftColor,
         theme,
+        labelPosition,
       },
     );
 
@@ -543,15 +546,16 @@ export default function transformProps(
         formatter:
           seriesTypeB === EchartsTimeseriesSeriesType.Bar
             ? getOverMaxHiddenFormatter({
-                max: maxSecondary,
-                formatter: seriesFormatter,
-              })
+              max: maxSecondary,
+              formatter: seriesFormatter,
+            })
             : seriesFormatter,
         totalStackedValues: sortedTotalValuesB,
         showValueIndexes: showValueIndexesB,
         thresholdValues: thresholdValuesB,
         timeShiftColor,
         theme,
+        labelPosition: labelPositionB,
       },
     );
 
@@ -596,7 +600,7 @@ export default function transformProps(
     convertInteger(xAxisTitleMargin),
   );
 
-  const { setDataMask = () => {}, onContextMenu } = hooks;
+  const { setDataMask = () => { }, onContextMenu } = hooks;
   const alignTicks = yAxisIndex !== yAxisIndexB;
 
   const echartOptions: EChartsCoreOption = {
@@ -619,14 +623,14 @@ export default function transformProps(
       minInterval:
         xAxisType === AxisType.Time && timeGrainSqla && !forceMaxInterval
           ? TIMEGRAIN_TO_TIMESTAMP[
-              timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
-            ]
+          timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+          ]
           : 0,
       maxInterval:
         xAxisType === AxisType.Time && timeGrainSqla && forceMaxInterval
           ? TIMEGRAIN_TO_TIMESTAMP[
-              timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
-            ]
+          timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+          ]
           : undefined,
       ...getMinAndMaxFromBounds(
         xAxisType,
@@ -791,13 +795,13 @@ export default function transformProps(
     },
     dataZoom: zoomable
       ? [
-          {
-            type: 'slider',
-            start: TIMESERIES_CONSTANTS.dataZoomStart,
-            end: TIMESERIES_CONSTANTS.dataZoomEnd,
-            bottom: TIMESERIES_CONSTANTS.zoomBottom,
-          },
-        ]
+        {
+          type: 'slider',
+          start: TIMESERIES_CONSTANTS.dataZoomStart,
+          end: TIMESERIES_CONSTANTS.dataZoomEnd,
+          bottom: TIMESERIES_CONSTANTS.zoomBottom,
+        },
+      ]
       : [],
   };
 

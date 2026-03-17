@@ -203,6 +203,31 @@ function createCustomizeSection(
     ],
     [
       {
+        name: `label_position${controlSuffix}`,
+        config: {
+          type: 'SelectControl',
+          freeForm: false,
+          label: t('Label Position'),
+          choices: [
+            ['auto', t('Auto')],
+            ['top', t('Top')],
+            ['inside', t('Inside')],
+            ['bottom', t('Bottom')],
+            ['left', t('Left')],
+            ['right', t('Right')],
+          ],
+          default: 'auto',
+          renderTrigger: true,
+          description: t(
+            'Position of the data label relative to the bar segment',
+          ),
+          visibility: ({ controls }: ControlPanelsContainerProps) =>
+            Boolean(controls?.[`show_value${controlSuffix}`]?.value),
+        },
+      },
+    ],
+    [
+      {
         name: `only_total${controlSuffix}`,
         config: {
           type: 'CheckboxControl',
@@ -417,9 +442,9 @@ const config: ControlPanelConfig = {
               default: yAxisBounds,
               description: t(
                 'Bounds for the primary Y-axis. When left empty, the bounds are ' +
-                  'dynamically defined based on the min/max of the data. Note that ' +
-                  "this feature will only expand the axis range. It won't " +
-                  "narrow the data's extent.",
+                'dynamically defined based on the min/max of the data. Note that ' +
+                "this feature will only expand the axis range. It won't " +
+                "narrow the data's extent.",
               ),
             },
           },
