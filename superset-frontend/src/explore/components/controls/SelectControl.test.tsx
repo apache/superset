@@ -95,7 +95,7 @@ describe('SelectControl', () => {
       expect(selectorInput).toBeInTheDocument();
     });
 
-    test('renders as mode multiple', () => {
+    test('renders as mode multiple', async () => {
       renderSelectControl({ multi: true });
       const selectorWrapper = screen.getByLabelText('Row Limit', {
         selector: 'div',
@@ -106,11 +106,13 @@ describe('SelectControl', () => {
       );
       expect(selectorWrapper).toBeInTheDocument();
       expect(selectorInput).toBeInTheDocument();
-      userEvent.click(selectorInput);
-      expect(screen.getByText('Select all (3)')).toBeInTheDocument();
+      await userEvent.click(selectorInput);
+      expect(
+        await within(document.body).findByText('Select all (3)'),
+      ).toBeInTheDocument();
     });
 
-    test('renders with allowNewOptions when freeForm', () => {
+    test('renders with allowNewOptions when freeForm', async () => {
       renderSelectControl({ freeForm: true });
       const selectorWrapper = screen.getByLabelText('Row Limit', {
         selector: 'div',
@@ -123,16 +125,18 @@ describe('SelectControl', () => {
       expect(selectorInput).toBeInTheDocument();
 
       // Expect a new option to be selectable.
-      userEvent.click(selectorInput);
-      userEvent.type(selectorInput, 'a new option');
-      act(() => jest.runAllTimers());
-      expect(within(selectorWrapper).getByRole('option')).toHaveTextContent(
-        'a new option',
-      );
+      await userEvent.click(selectorInput);
+      await userEvent.type(selectorInput, 'a new option');
+      await act(async () => {
+        jest.runAllTimers();
+      });
+      await screen.findByText('a new option');
+      const option = await within(document.body).findByText('a new option');
+      expect(option).toBeInTheDocument();
     });
 
-    test('renders with allowNewOptions=false when freeForm=false', () => {
-      const container = renderSelectControl({ freeForm: false });
+    test('renders with allowNewOptions=false when freeForm=false', async () => {
+      renderSelectControl({ freeForm: false });
       const selectorWrapper = screen.getByLabelText('Row Limit', {
         selector: 'div',
       });
@@ -144,19 +148,22 @@ describe('SelectControl', () => {
       expect(selectorInput).toBeInTheDocument();
 
       // Expect no new option to be selectable.
-      userEvent.click(selectorInput);
-      userEvent.type(selectorInput, 'a new option');
-      act(() => jest.advanceTimersByTime(300));
+      await userEvent.click(selectorInput);
+      await userEvent.type(selectorInput, 'a new option');
+      await act(async () => {
+        jest.advanceTimersByTime(300);
+      });
 
       expect(
-        container.querySelector('[role="option"]'),
+        screen.queryByRole('option'),
       ).not.toBeInTheDocument();
+
       expect(
-        within(selectorWrapper).getByText('No data', { selector: 'div' }),
+        await screen.findByText('No data'),
       ).toBeInTheDocument();
     });
 
-    test('renders with tokenSeparators', () => {
+    test('renders with tokenSeparators', async () => {
       renderSelectControl({ tokenSeparators: ['\n', '\t', ';'], multi: true });
       const selectorWrapper = screen.getByLabelText('Row Limit', {
         selector: 'div',
@@ -168,18 +175,22 @@ describe('SelectControl', () => {
       expect(selectorWrapper).toBeInTheDocument();
       expect(selectorInput).toBeInTheDocument();
 
-      userEvent.click(selectorInput);
+      await userEvent.click(selectorInput);
       const paste = createEvent.paste(selectorInput, {
         clipboardData: {
           getData: () => '1 year ago;1 week ago',
         },
       });
       fireEvent(selectorInput, paste);
-      const yearOption = screen.getByRole('option', { name: /1 year ago/i });
+      const yearOption = await within(document.body).findByRole('option', {
+        name: /1 year ago/i,
+      });
       expect(yearOption).toBeInTheDocument();
       expect(yearOption).toHaveAttribute('aria-selected', 'true');
-      const weekOption = screen.getByRole('option', { name: /1 week ago/ });
-      expect(weekOption?.getAttribute('aria-selected')).toEqual('true');
+      const weekOption = await within(document.body).findByRole('option', {
+        name: /1 week ago/,
+      });
+      expect(weekOption).toHaveAttribute('aria-selected', 'true');
     });
 
     // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
