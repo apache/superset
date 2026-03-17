@@ -659,7 +659,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         # During test_connection, inject a pool event to detect Redshift by
         # checking SELECT version().  This catches cases where the hostname
         # doesn't reveal Redshift (custom domains, private endpoints, etc.).
-        if getattr(database, "_check_redshift_version", False):
+        if getattr(database, "_check_redshift_version", False) is True:
             pool_events = params.setdefault("pool_events", [])
             pool_events.append((_check_not_redshift, "connect"))
 
