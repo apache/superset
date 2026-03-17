@@ -26,6 +26,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from fastmcp import Context
+from mcp.types import ToolAnnotations
 
 from superset.extensions import event_logger
 from superset.mcp_service.app import mcp
@@ -64,7 +65,14 @@ SORTABLE_DASHBOARD_COLUMNS = [
 ]
 
 
-@mcp.tool(tags=["core"])
+@mcp.tool(
+    tags=["core"],
+    annotations=ToolAnnotations(
+        title="List dashboards",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 @mcp_auth_hook(class_permission_name="Dashboard")
 @parse_request(ListDashboardsRequest)
 async def list_dashboards(

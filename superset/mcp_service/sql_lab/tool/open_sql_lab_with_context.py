@@ -25,6 +25,7 @@ import logging
 from urllib.parse import urlencode
 
 from fastmcp import Context
+from mcp.types import ToolAnnotations
 
 from superset.extensions import event_logger
 from superset.mcp_service.app import mcp
@@ -38,7 +39,14 @@ from superset.mcp_service.utils.schema_utils import parse_request
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool(tags=["explore"])
+@mcp.tool(
+    tags=["explore"],
+    annotations=ToolAnnotations(
+        title="Open SQL Lab with context",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 @mcp_auth_hook(class_permission_name="SQLLab")
 @parse_request(OpenSqlLabRequest)
 def open_sql_lab_with_context(

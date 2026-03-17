@@ -23,6 +23,7 @@ import logging
 import time
 
 from fastmcp import Context
+from mcp.types import ToolAnnotations
 
 from superset.extensions import event_logger
 from superset.mcp_service.app import mcp
@@ -46,7 +47,14 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool(tags=["mutate"])
+@mcp.tool(
+    tags=["mutate"],
+    annotations=ToolAnnotations(
+        title="Update chart",
+        readOnlyHint=False,
+        destructiveHint=False,
+    ),
+)
 @mcp_auth_hook(class_permission_name="Chart", method_permission_name="write")
 @parse_request(UpdateChartRequest)
 async def update_chart(

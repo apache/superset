@@ -26,6 +26,7 @@ import logging
 from datetime import datetime, timezone
 
 from fastmcp import Context
+from mcp.types import ToolAnnotations
 from sqlalchemy.orm import joinedload, subqueryload
 
 from superset.extensions import event_logger
@@ -43,7 +44,14 @@ from superset.mcp_service.utils.schema_utils import parse_request
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool(tags=["discovery"])
+@mcp.tool(
+    tags=["discovery"],
+    annotations=ToolAnnotations(
+        title="Get dataset info",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 @mcp_auth_hook(class_permission_name="Dataset")
 @parse_request(GetDatasetInfoRequest)
 async def get_dataset_info(

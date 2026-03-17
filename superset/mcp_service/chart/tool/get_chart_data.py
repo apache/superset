@@ -25,6 +25,7 @@ from typing import Any, Dict, List, TYPE_CHECKING
 
 from fastmcp import Context
 from flask import current_app
+from mcp.types import ToolAnnotations
 
 from superset.extensions import event_logger
 from superset.mcp_service.app import mcp
@@ -76,7 +77,14 @@ def _get_cached_form_data(form_data_key: str) -> str | None:
         return None
 
 
-@mcp.tool(tags=["data"])
+@mcp.tool(
+    tags=["data"],
+    annotations=ToolAnnotations(
+        title="Get chart data",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 @mcp_auth_hook(class_permission_name="Chart")
 @parse_request(GetChartDataRequest)
 async def get_chart_data(  # noqa: C901

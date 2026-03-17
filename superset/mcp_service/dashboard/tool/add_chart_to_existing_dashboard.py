@@ -26,6 +26,7 @@ import re
 from typing import Any, Dict
 
 from fastmcp import Context
+from mcp.types import ToolAnnotations
 
 from superset.extensions import event_logger
 from superset.mcp_service.app import mcp
@@ -307,7 +308,14 @@ def _ensure_layout_structure(
         layout["DASHBOARD_VERSION_KEY"] = "v2"
 
 
-@mcp.tool(tags=["mutate"])
+@mcp.tool(
+    tags=["mutate"],
+    annotations=ToolAnnotations(
+        title="Add chart to existing dashboard",
+        readOnlyHint=False,
+        destructiveHint=False,
+    ),
+)
 @mcp_auth_hook(class_permission_name="Dashboard", method_permission_name="write")
 @parse_request(AddChartToDashboardRequest)
 def add_chart_to_existing_dashboard(

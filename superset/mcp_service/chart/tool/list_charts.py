@@ -23,6 +23,7 @@ import logging
 from typing import cast, TYPE_CHECKING
 
 from fastmcp import Context
+from mcp.types import ToolAnnotations
 
 if TYPE_CHECKING:
     from superset.models.slice import Slice
@@ -63,7 +64,14 @@ SORTABLE_CHART_COLUMNS = [
 ]
 
 
-@mcp.tool(tags=["core"])
+@mcp.tool(
+    tags=["core"],
+    annotations=ToolAnnotations(
+        title="List charts",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 @mcp_auth_hook(class_permission_name="Chart")
 @parse_request(ListChartsRequest)
 async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:

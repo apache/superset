@@ -25,6 +25,7 @@ from typing import Any, Dict, List
 from urllib.parse import parse_qs, urlparse
 
 from fastmcp import Context
+from mcp.types import ToolAnnotations
 
 from superset.commands.exceptions import CommandException
 from superset.extensions import event_logger
@@ -119,7 +120,14 @@ def _compile_chart(
         return CompileResult(success=False, error=str(exc))
 
 
-@mcp.tool(tags=["mutate"])
+@mcp.tool(
+    tags=["mutate"],
+    annotations=ToolAnnotations(
+        title="Generate chart",
+        readOnlyHint=False,
+        destructiveHint=False,
+    ),
+)
 @mcp_auth_hook(class_permission_name="Chart", method_permission_name="write")
 @parse_request(GenerateChartRequest)
 async def generate_chart(  # noqa: C901

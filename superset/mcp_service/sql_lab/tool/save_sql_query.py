@@ -28,6 +28,7 @@ from __future__ import annotations
 import logging
 
 from fastmcp import Context
+from mcp.types import ToolAnnotations
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -44,7 +45,14 @@ from superset.mcp_service.utils.schema_utils import parse_request
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool(tags=["mutate"])
+@mcp.tool(
+    tags=["mutate"],
+    annotations=ToolAnnotations(
+        title="Save SQL query",
+        readOnlyHint=False,
+        destructiveHint=False,
+    ),
+)
 @mcp_auth_hook(class_permission_name="SavedQuery", method_permission_name="write")
 @parse_request(SaveSqlQueryRequest)
 async def save_sql_query(
@@ -131,7 +139,7 @@ async def save_sql_query(
     except SQLAlchemyError as e:
         from superset import db
 
-        db.session.rollback()
+        db.session.rollback()  # pylint: disable=consider-using-transaction
         await ctx.error(
             "Failed to save SQL query: error=%s, database_id=%s"
             % (str(e), request.database_id)

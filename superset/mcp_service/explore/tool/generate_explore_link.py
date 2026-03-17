@@ -26,6 +26,7 @@ from typing import Any, Dict
 from urllib.parse import parse_qs, urlparse
 
 from fastmcp import Context
+from mcp.types import ToolAnnotations
 
 from superset.extensions import event_logger
 from superset.mcp_service.app import mcp
@@ -40,7 +41,14 @@ from superset.mcp_service.chart.schemas import (
 from superset.mcp_service.utils.schema_utils import parse_request
 
 
-@mcp.tool(tags=["explore"])
+@mcp.tool(
+    tags=["explore"],
+    annotations=ToolAnnotations(
+        title="Generate explore link",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 @mcp_auth_hook(class_permission_name="Explore")
 @parse_request(GenerateExploreLinkRequest)
 async def generate_explore_link(

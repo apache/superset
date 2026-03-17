@@ -27,6 +27,7 @@ import logging
 from typing import Callable, Literal
 
 from fastmcp import Context
+from mcp.types import ToolAnnotations
 
 from superset.extensions import event_logger
 from superset.mcp_service.app import mcp
@@ -121,7 +122,14 @@ _SCHEMA_CORE_FACTORIES: dict[
 }
 
 
-@mcp.tool(tags=["discovery"])
+@mcp.tool(
+    tags=["discovery"],
+    annotations=ToolAnnotations(
+        title="Get schema",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 @parse_request(GetSchemaRequest)
 async def get_schema(request: GetSchemaRequest, ctx: Context) -> GetSchemaResponse:
     """

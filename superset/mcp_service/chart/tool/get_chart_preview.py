@@ -23,6 +23,7 @@ import logging
 from typing import Any, Dict, List, Protocol
 
 from fastmcp import Context
+from mcp.types import ToolAnnotations
 
 from superset.commands.exceptions import CommandException
 from superset.exceptions import SupersetException
@@ -2072,7 +2073,14 @@ async def _get_chart_preview_internal(  # noqa: C901
         )
 
 
-@mcp.tool(tags=["data"])
+@mcp.tool(
+    tags=["data"],
+    annotations=ToolAnnotations(
+        title="Get chart preview",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 @mcp_auth_hook(class_permission_name="Chart")
 @parse_request(GetChartPreviewRequest)
 async def get_chart_preview(

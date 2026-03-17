@@ -22,6 +22,7 @@ MCP tool: get_chart_info
 import logging
 
 from fastmcp import Context
+from mcp.types import ToolAnnotations
 from sqlalchemy.orm import subqueryload
 
 from superset.commands.exceptions import CommandException
@@ -57,7 +58,14 @@ def _get_cached_form_data(form_data_key: str) -> str | None:
         return None
 
 
-@mcp.tool(tags=["discovery"])
+@mcp.tool(
+    tags=["discovery"],
+    annotations=ToolAnnotations(
+        title="Get chart info",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 @mcp_auth_hook(class_permission_name="Chart")
 @parse_request(GetChartInfoRequest)
 async def get_chart_info(

@@ -23,6 +23,7 @@ import platform
 import time
 
 from flask import current_app
+from mcp.types import ToolAnnotations
 
 from superset.extensions import event_logger
 from superset.mcp_service.app import mcp
@@ -35,7 +36,14 @@ logger = logging.getLogger(__name__)
 _start_time = time.monotonic()
 
 
-@mcp.tool(tags=["core"])
+@mcp.tool(
+    tags=["core"],
+    annotations=ToolAnnotations(
+        title="Health check",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 @mcp_auth_hook
 async def health_check() -> HealthCheckResponse:
     """

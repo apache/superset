@@ -25,6 +25,7 @@ and timeout protection.
 import logging
 
 from fastmcp import Context
+from mcp.types import ToolAnnotations
 
 from superset.extensions import event_logger
 from superset.mcp_service.app import mcp
@@ -39,7 +40,14 @@ from superset.mcp_service.utils.schema_utils import parse_request
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool(tags=["mutate"])
+@mcp.tool(
+    tags=["mutate"],
+    annotations=ToolAnnotations(
+        title="Execute SQL query",
+        readOnlyHint=False,
+        destructiveHint=True,
+    ),
+)
 @mcp_auth_hook(
     class_permission_name="SQLLab", method_permission_name="execute_sql_query"
 )

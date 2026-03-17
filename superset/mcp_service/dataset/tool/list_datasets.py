@@ -26,6 +26,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from fastmcp import Context
+from mcp.types import ToolAnnotations
 
 from superset.extensions import event_logger
 from superset.mcp_service.app import mcp
@@ -62,7 +63,14 @@ SORTABLE_DATASET_COLUMNS = [
 ]
 
 
-@mcp.tool(tags=["core"])
+@mcp.tool(
+    tags=["core"],
+    annotations=ToolAnnotations(
+        title="List datasets",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 @mcp_auth_hook(class_permission_name="Dataset")
 @parse_request(ListDatasetsRequest)
 async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetList:
