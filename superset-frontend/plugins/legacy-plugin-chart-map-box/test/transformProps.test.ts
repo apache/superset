@@ -107,6 +107,21 @@ test('extracts viewport values from formData', () => {
   );
 });
 
+test('clamps viewport values to safe map ranges', () => {
+  const result = getTransformPropsResult({
+    viewportLongitude: 190,
+    viewportLatitude: -100,
+    viewportZoom: 99,
+  });
+  expect(result).toEqual(
+    expect.objectContaining({
+      viewportLongitude: 180,
+      viewportLatitude: -90,
+      viewportZoom: 16,
+    }),
+  );
+});
+
 test('provides onViewportChange callback that updates control values', () => {
   const setControlValue = jest.fn();
   const chartProps = new ChartProps({
