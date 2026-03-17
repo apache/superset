@@ -410,6 +410,8 @@ sqlglot==28.10.0
     #   apache-superset-core
 sshtunnel==0.4.0
     # via apache-superset (pyproject.toml)
+syntaqlite==0.1.0
+    # via apache-superset (pyproject.toml)
 tabulate==0.9.0
     # via apache-superset (pyproject.toml)
 trio==0.30.0

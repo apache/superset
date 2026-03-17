@@ -992,6 +992,10 @@ starlette==0.49.1
     # via mcp
 statsd==4.0.1
     # via apache-superset
+syntaqlite==0.1.0
+    # via
+    #   -c requirements/base-constraint.txt
+    #   apache-superset
 tabulate==0.9.0
     # via
     #   -c requirements/base-constraint.txt
