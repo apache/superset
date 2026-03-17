@@ -46,7 +46,7 @@ export interface DashboardTableProps {
   user?: User;
   mine: Array<Dashboard>;
   showThumbnails?: boolean;
-  otherTabData: Array<Dashboard>;
+  otherTabData?: Array<Dashboard>;
   otherTabFilters: Filter[];
   otherTabTitle: string;
 }
@@ -154,3 +154,13 @@ export interface Tag {
 
 export type DatabaseObject = Partial<Database> &
   Pick<Database, 'sqlalchemy_uri'>;
+
+export interface EncryptedExtraField {
+  path: string;
+  label: string;
+}
+
+export interface FileEncryptedExtraFields {
+  fileName: string;
+  fields: EncryptedExtraField[];
+}

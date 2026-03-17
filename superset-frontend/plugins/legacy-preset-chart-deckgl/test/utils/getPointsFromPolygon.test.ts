@@ -19,7 +19,7 @@
 import getPointsFromPolygon from '../../src/utils/getPointsFromPolygon';
 
 describe('getPointsFromPolygon', () => {
-  it('handle original input', () => {
+  test('handle original input', () => {
     expect(
       getPointsFromPolygon({
         polygon: [
@@ -32,7 +32,7 @@ describe('getPointsFromPolygon', () => {
       [3, 4],
     ]);
   });
-  it('handle geojson features', () => {
+  test('handle geojson features', () => {
     expect(
       getPointsFromPolygon({
         polygon: {

@@ -25,7 +25,6 @@ import {
   ColorPicker,
 } from '@superset-ui/core/components';
 import {
-  t,
   SupersetClient,
   getCategoricalSchemeRegistry,
   getChartMetadataRegistry,
@@ -35,11 +34,12 @@ import {
   VizType,
   type QueryFormColumn,
 } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import {
   styled,
   withTheme,
   type SupersetTheme,
-} from '@apache-superset/core/ui';
+} from '@apache-superset/core/theme';
 import SelectControl from 'src/explore/components/controls/SelectControl';
 import TextControl from 'src/explore/components/controls/TextControl';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
@@ -921,7 +921,7 @@ class AnnotationLayer extends PureComponent<
     if (
       color &&
       color !== AUTOMATIC_COLOR &&
-      !colorScheme.find(x => x.toLowerCase() === color.toLowerCase())
+      !colorScheme.some(x => x.toLowerCase() === color.toLowerCase())
     ) {
       colorScheme.push(color);
     }
@@ -1051,7 +1051,7 @@ class AnnotationLayer extends PureComponent<
       <>
         {this.props.error && (
           <span style={{ color: this.props.theme.colorError }}>
-            ERROR: {this.props.error}
+            {t('ERROR')}: {this.props.error}
           </span>
         )}
         <div style={{ display: 'flex', flexDirection: 'row' }}>

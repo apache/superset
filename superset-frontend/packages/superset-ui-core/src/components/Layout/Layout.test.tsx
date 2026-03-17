@@ -22,7 +22,7 @@ import { Layout } from '.';
 import { Button } from '../Button';
 
 describe('Layout Component', () => {
-  it('renders Layout with Header, Content, and Footer', () => {
+  test('renders Layout with Header, Content, and Footer', () => {
     render(
       <Layout hasSider={false}>
         <Layout.Header>Header</Layout.Header>
@@ -36,7 +36,7 @@ describe('Layout Component', () => {
     expect(screen.getByText('Ant Design Layout Footer')).toBeInTheDocument();
   });
 
-  it('renders Layout with Sider when hasSider is true', () => {
+  test('renders Layout with Sider when hasSider is true', () => {
     render(
       <Layout hasSider>
         <Layout.Sider>Sider Content</Layout.Sider>
@@ -46,10 +46,11 @@ describe('Layout Component', () => {
     expect(screen.getByText('Sider Content')).toBeInTheDocument();
   });
 
-  it('hides Header when headerVisible is false', () => {
+  test('hides Header when headerVisible is false', () => {
+    const headerVisible = false;
     render(
       <Layout>
-        {false && <Layout.Header>Header</Layout.Header>}
+        {headerVisible && <Layout.Header>Header</Layout.Header>}
         <Layout.Content>Content Area</Layout.Content>
         <Layout.Footer>Ant Design Layout Footer</Layout.Footer>
       </Layout>,
@@ -58,12 +59,15 @@ describe('Layout Component', () => {
     expect(screen.queryByText('Header')).not.toBeInTheDocument();
   });
 
-  it('hides Footer when footerVisible is false', () => {
+  test('hides Footer when footerVisible is false', () => {
+    const footerVisible = false;
     render(
       <Layout>
         <Layout.Header>Header</Layout.Header>
         <Layout.Content>Content Area</Layout.Content>
-        {false && <Layout.Footer>Ant Design Layout Footer</Layout.Footer>}
+        {footerVisible && (
+          <Layout.Footer>Ant Design Layout Footer</Layout.Footer>
+        )}
       </Layout>,
     );
 
@@ -71,7 +75,7 @@ describe('Layout Component', () => {
       screen.queryByText('Ant Design Layout Footer'),
     ).not.toBeInTheDocument();
   });
-  it('collapses Sider when clicked', () => {
+  test('collapses Sider when clicked', () => {
     const TestLayout = () => {
       const [collapsed, setCollapsed] = useState(false);
 

@@ -18,7 +18,6 @@
  */
 import { useState } from 'react';
 import styled from '@emotion/styled';
-import { List } from 'antd';
 import Layout from '@theme/Layout';
 import { mq } from '../utils';
 import SectionHeader from '../components/SectionHeader';
@@ -92,8 +91,12 @@ const StyledJoinCommunity = styled('section')`
     max-width: 540px;
     margin: 0 auto;
     padding: 40px 20px 20px 35px;
+    list-style: none;
   }
   .item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
     padding: 0;
     border: 0;
   }
@@ -189,39 +192,33 @@ const Community = () => {
           />
         </BlurredSection>
         <StyledJoinCommunity>
-          <List
-            className="list"
-            itemLayout="horizontal"
-            dataSource={communityLinks}
-            renderItem={({ url, title, description, image, ariaLabel }) => (
-              <List.Item className="item">
-                <List.Item.Meta
-                  avatar={
-                    <a
-                      className="title"
-                      href={url}
-                      target="_blank"
-                      rel="noreferrer"
-                      aria-label={ariaLabel}
-                    >
-                      <img className="icon" src={`/img/community/${image}`} />
-                    </a>
-                  }
-                  title={
+          <ul className="list">
+            {communityLinks.map(
+              ({ url, title, description, image, ariaLabel }) => (
+                <li className="item" key={title}>
+                  <a
+                    className="avatar"
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={ariaLabel}
+                  >
+                    <img className="icon" src={`/img/community/${image}`} />
+                  </a>
+                  <div>
                     <a href={url} target="_blank" rel="noreferrer">
                       <p className="title" style={{ marginBottom: 0 }}>
                         {title}
                       </p>
                     </a>
-                  }
-                  description={<p className="description">{description}</p>}
-                  aria-label="Community link"
-                />
-              </List.Item>
+                    <p className="description">{description}</p>
+                  </div>
+                </li>
+              ),
             )}
-          />
+          </ul>
         </StyledJoinCommunity>
-        <BlurredSection>
+        <BlurredSection id="superset-community-calendar">
           <SectionHeader
             level="h2"
             title="Superset Community Calendar"

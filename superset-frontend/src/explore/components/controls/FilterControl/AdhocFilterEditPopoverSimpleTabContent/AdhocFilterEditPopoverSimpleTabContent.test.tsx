@@ -17,7 +17,6 @@
  * under the License.
  */
 import * as redux from 'react-redux';
-import sinon from 'sinon';
 import {
   act,
   render,
@@ -95,8 +94,8 @@ const options = [
 ];
 
 const getAdvancedDataTypeTestProps = (overrides?: Record<string, unknown>) => {
-  const onChange = sinon.spy();
-  const validHandler = sinon.spy();
+  const onChange = jest.fn();
+  const validHandler = jest.fn();
   const props = {
     adhocFilter: advancedTypeTestAdhocFilterTest,
     onChange,
@@ -115,8 +114,8 @@ const getAdvancedDataTypeTestProps = (overrides?: Record<string, unknown>) => {
 };
 
 function setup(overrides?: Record<string, unknown>) {
-  const onChange = sinon.spy();
-  const validHandler = sinon.spy();
+  const onChange = jest.fn();
+  const validHandler = jest.fn();
   const spy = jest.spyOn(redux, 'useSelector');
   spy.mockReturnValue({});
   const props = {
@@ -174,7 +173,7 @@ const store = mockStore({});
 let isFeatureEnabledMock: jest.SpyInstance;
 
 beforeEach(() => {
-  fetchMock.resetHistory();
+  fetchMock.clearHistory();
   isFeatureEnabledMock = mockedIsFeatureEnabled.mockImplementation(
     (featureFlag: FeatureFlag) =>
       featureFlag === FeatureFlag.EnableAdvancedDataTypes,
@@ -259,9 +258,15 @@ test('will convert from individual comparator to array if the operator changes t
     props as unknown as Props,
   );
   onOperatorChange(Operators.In);
-  expect(props.onChange.calledOnce).toBe(true);
-  expect(props.onChange.lastCall.args[0].comparator).toEqual(['10']);
-  expect(props.onChange.lastCall.args[0].operatorId).toEqual(Operators.In);
+  expect(props.onChange.mock.calls.length === 1).toBe(true);
+  expect(
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0]
+      .comparator,
+  ).toEqual(['10']);
+  expect(
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0]
+      .operatorId,
+  ).toEqual(Operators.In);
 });
 
 test('will convert from array to individual comparators if the operator changes from multi', () => {
@@ -272,8 +277,10 @@ test('will convert from array to individual comparators if the operator changes 
     props as unknown as Props,
   );
   onOperatorChange(Operators.LessThan);
-  expect(props.onChange.calledOnce).toBe(true);
-  expect(props.onChange.lastCall.args[0]).toEqual(
+  expect(props.onChange.mock.calls.length === 1).toBe(true);
+  expect(
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0],
+  ).toEqual(
     simpleMultiAdhocFilter.duplicateWith({
       operatorId: Operators.LessThan,
       operator: '<',
@@ -288,10 +295,10 @@ test('passes the new adhocFilter to onChange after onComparatorChange', () => {
     props as unknown as Props,
   );
   onComparatorChange('20');
-  expect(props.onChange.calledOnce).toBe(true);
-  expect(props.onChange.lastCall.args[0]).toEqual(
-    simpleAdhocFilter.duplicateWith({ comparator: '20' }),
-  );
+  expect(props.onChange.mock.calls.length === 1).toBe(true);
+  expect(
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0],
+  ).toEqual(simpleAdhocFilter.duplicateWith({ comparator: '20' }));
 });
 
 test('will filter operators for table datasources', () => {
@@ -337,8 +344,10 @@ test('will generate custom sqlExpression for LATEST PARTITION operator', () => {
     props as unknown as Props,
   );
   onOperatorChange(Operators.LatestPartition);
-  expect(props.onChange.calledOnce).toBe(true);
-  expect(props.onChange.lastCall.args[0]).toEqual(
+  expect(props.onChange.mock.calls.length === 1).toBe(true);
+  expect(
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0],
+  ).toEqual(
     testAdhocFilter.duplicateWith({
       subject: 'ds',
       operator: 'LATEST PARTITION',
@@ -400,10 +409,18 @@ test('sets comparator to undefined when operator is IS_TRUE', () => {
     props as unknown as Props,
   );
   onOperatorChange(Operators.IsTrue);
-  expect(props.onChange.calledOnce).toBe(true);
-  expect(props.onChange.lastCall.args[0].operatorId).toBe(Operators.IsTrue);
-  expect(props.onChange.lastCall.args[0].operator).toBe('IS TRUE');
-  expect(props.onChange.lastCall.args[0].comparator).toBe(undefined);
+  expect(props.onChange.mock.calls.length === 1).toBe(true);
+  expect(
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0]
+      .operatorId,
+  ).toBe(Operators.IsTrue);
+  expect(
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0].operator,
+  ).toBe('IS TRUE');
+  expect(
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0]
+      .comparator,
+  ).toBe(undefined);
 });
 
 test('sets comparator to undefined when operator is IS_FALSE', () => {
@@ -412,10 +429,18 @@ test('sets comparator to undefined when operator is IS_FALSE', () => {
     props as unknown as Props,
   );
   onOperatorChange(Operators.IsFalse);
-  expect(props.onChange.calledOnce).toBe(true);
-  expect(props.onChange.lastCall.args[0].operatorId).toBe(Operators.IsFalse);
-  expect(props.onChange.lastCall.args[0].operator).toBe('IS FALSE');
-  expect(props.onChange.lastCall.args[0].comparator).toBe(undefined);
+  expect(props.onChange.mock.calls.length === 1).toBe(true);
+  expect(
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0]
+      .operatorId,
+  ).toBe(Operators.IsFalse);
+  expect(
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0].operator,
+  ).toBe('IS FALSE');
+  expect(
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0]
+      .comparator,
+  ).toBe(undefined);
 });
 
 test('sets comparator to undefined when operator is IS_NULL or IS_NOT_NULL', () => {
@@ -425,12 +450,19 @@ test('sets comparator to undefined when operator is IS_NULL or IS_NOT_NULL', () 
   );
   [Operators.IsNull, Operators.IsNotNull].forEach(op => {
     onOperatorChange(op);
-    expect(props.onChange.called).toBe(true);
-    expect(props.onChange.lastCall.args[0].operatorId).toBe(op);
-    expect(props.onChange.lastCall.args[0].operator).toBe(
-      OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
-    );
-    expect(props.onChange.lastCall.args[0].comparator).toBe(undefined);
+    expect(props.onChange.mock.calls.length > 0).toBe(true);
+    expect(
+      props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0]
+        .operatorId,
+    ).toBe(op);
+    expect(
+      props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0]
+        .operator,
+    ).toBe(OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation);
+    expect(
+      props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0]
+        .comparator,
+    ).toBe(undefined);
   });
 });
 
@@ -460,7 +492,9 @@ test('should not call API when column has no advanced data type', async () => {
   });
 
   await waitFor(() =>
-    expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID)).toHaveLength(0),
+    expect(
+      fetchMock.callHistory.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID),
+    ).toHaveLength(0),
   );
 });
 
@@ -499,9 +533,13 @@ test('should call API when column has advanced data type', async () => {
   });
 
   await waitFor(() =>
-    expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID)).toHaveLength(1),
+    expect(
+      fetchMock.callHistory.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID),
+    ).toHaveLength(1),
   );
-  expect(props.validHandler.lastCall.args[0]).toBe(true);
+  expect(
+    props.validHandler.mock.calls[props.validHandler.mock.calls.length - 1][0],
+  ).toBe(true);
 });
 
 test('save button should be disabled if error message from API is returned', async () => {
@@ -539,11 +577,13 @@ test('save button should be disabled if error message from API is returned', asy
   });
 
   await waitFor(() =>
-    expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_INVALID)).toHaveLength(
-      1,
-    ),
+    expect(
+      fetchMock.callHistory.calls(ADVANCED_DATA_TYPE_ENDPOINT_INVALID),
+    ).toHaveLength(1),
   );
-  expect(props.validHandler.lastCall.args[0]).toBe(false);
+  expect(
+    props.validHandler.mock.calls[props.validHandler.mock.calls.length - 1][0],
+  ).toBe(false);
 });
 
 test('advanced data type operator list should update after API response', async () => {
@@ -581,9 +621,13 @@ test('advanced data type operator list should update after API response', async 
   });
 
   await waitFor(() =>
-    expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID)).toHaveLength(1),
+    expect(
+      fetchMock.callHistory.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID),
+    ).toHaveLength(1),
   );
-  expect(props.validHandler.lastCall.args[0]).toBe(true);
+  expect(
+    props.validHandler.mock.calls[props.validHandler.mock.calls.length - 1][0],
+  ).toBe(true);
 
   const operatorValueField = screen.getByRole('combobox', {
     name: 'Select operator',
@@ -603,8 +647,8 @@ test('advanced data type operator list should update after API response', async 
 });
 
 test('dropdown should remain open when clicked after filter is configured', async () => {
-  const onChange = sinon.spy();
-  const validHandler = sinon.spy();
+  const onChange = jest.fn();
+  const validHandler = jest.fn();
   const spy = jest.spyOn(redux, 'useSelector');
   spy.mockReturnValue({});
 

@@ -26,8 +26,9 @@ import {
 } from 'react';
 import { omit } from 'lodash';
 
-import { t } from '@superset-ui/core';
-import { css, styled, useTheme, Alert } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { useThemeContext } from 'src/theme/ThemeProvider';
 import { useBeforeUnload } from 'src/hooks/useBeforeUnload';
@@ -39,16 +40,36 @@ import {
   Button,
   Form,
   Input,
-  JsonEditor,
   Modal,
   Space,
   Tooltip,
 } from '@superset-ui/core/components';
-import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
+import type { editors } from '@apache-superset/core';
+import { EditorHost } from 'src/core/editors';
 import { Typography } from '@superset-ui/core/components/Typography';
-
+import { useThemeValidation } from 'src/theme/hooks/useThemeValidation';
 import { OnlyKeyWithType } from 'src/utils/types';
 import { ThemeObject } from './types';
+
+type EditorAnnotation = editors.EditorAnnotation;
+
+/**
+ * Convert Ace annotation format to EditorAnnotation format.
+ */
+const toEditorAnnotations = (
+  aceAnnotations: Array<{
+    type: string;
+    row: number;
+    column: number;
+    text: string;
+  }>,
+): EditorAnnotation[] =>
+  aceAnnotations.map(ann => ({
+    severity: ann.type as EditorAnnotation['severity'],
+    line: ann.row,
+    column: ann.column,
+    message: ann.text,
+  }));
 
 interface ThemeModalProps {
   addDangerToast: (msg: string) => void;
@@ -66,7 +87,7 @@ type ThemeStringKeys = keyof Pick<
   OnlyKeyWithType<ThemeObject, string>
 >;
 
-const StyledJsonEditor = styled.div`
+const StyledEditorWrapper = styled.div`
   ${({ theme }) => css`
     .ace_editor {
       border-radius: ${theme.borderRadius}px;
@@ -127,10 +148,9 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     SupersetText?.THEME_MODAL?.DOCUMENTATION_URL ||
     'https://superset.apache.org/docs/configuration/theming/';
 
-  // JSON validation annotations using reusable hook
-  const jsonAnnotations = useJsonValidation(currentTheme?.json_data, {
-    enabled: !isReadOnly,
-    errorPrefix: 'Invalid JSON syntax',
+  // Theme validation (structure + token names)
+  const validation = useThemeValidation(currentTheme?.json_data || '', {
+    enabled: !isReadOnly && Boolean(currentTheme?.json_data),
   });
 
   // theme fetch logic
@@ -158,6 +178,15 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   }, [onHide]);
 
   const onSave = useCallback(() => {
+    // Synchronous JSON guard to catch invalid JSON before API call
+    // This handles the race condition where debounced validation hasn't updated yet
+    try {
+      JSON.parse(currentTheme?.json_data || '');
+    } catch {
+      addDangerToast(t('Invalid JSON configuration'));
+      return;
+    }
+
     if (isEditMode) {
       // Edit
       if (currentTheme?.id) {
@@ -191,6 +220,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     createResource,
     onThemeAdd,
     hide,
+    addDangerToast,
   ]);
 
   const handleCancel = useCallback(() => {
@@ -286,27 +316,22 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     [currentTheme],
   );
 
-  const validate = useCallback(() => {
-    if (isReadOnly) {
+  const validate = () => {
+    if (isReadOnly || !currentTheme) {
       setDisableSave(true);
       return;
     }
 
-    if (
-      currentTheme?.theme_name.length &&
-      currentTheme?.json_data?.length &&
-      isValidJson(currentTheme.json_data)
-    ) {
-      setDisableSave(false);
-    } else {
-      setDisableSave(true);
-    }
-  }, [
-    currentTheme?.theme_name,
-    currentTheme?.json_data,
-    isReadOnly,
-    isValidJson,
-  ]);
+    const hasValidName = Boolean(currentTheme?.theme_name?.trim());
+    const hasValidJsonData = Boolean(currentTheme?.json_data?.trim());
+
+    // Block save only on ERRORS (not warnings)
+    // Errors: JSON syntax errors, empty themes
+    // Warnings: Unknown tokens, null values (non-blocking)
+    const canSave = hasValidName && hasValidJsonData && !validation.hasErrors;
+
+    setDisableSave(!canSave);
+  };
 
   // Initialize
   useEffect(() => {
@@ -340,7 +365,12 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   // Validation
   useEffect(() => {
     validate();
-  }, [validate]);
+  }, [
+    currentTheme ? currentTheme.theme_name : '',
+    currentTheme ? currentTheme.json_data : '',
+    isReadOnly,
+    validation.hasErrors,
+  ]);
 
   // Show/hide
   useEffect(() => {
@@ -470,26 +500,28 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
                   >
                     {t('documentation')}
                   </a>
-                  {t(' for details.')}
+                  {t(' for details.')}{' '}
+                  <Typography.Text type="secondary">
+                    {t('Unknown tokens will be highlighted as warnings.')}
+                  </Typography.Text>
                 </span>
               }
             />
-            <StyledJsonEditor>
-              <JsonEditor
-                showLoadingForImport
-                name="json_data"
+            <StyledEditorWrapper>
+              <EditorHost
+                id="theme-json-editor"
                 value={currentTheme?.json_data || ''}
                 onChange={onJsonDataChange}
+                language="json"
                 tabSize={2}
+                readOnly={isReadOnly}
+                wordWrap
+                lineNumbers
                 width="100%"
                 height="250px"
-                wrapEnabled
-                readOnly={isReadOnly}
-                showGutter
-                showPrintMargin={false}
-                annotations={jsonAnnotations}
+                annotations={toEditorAnnotations(validation.annotations)}
               />
-            </StyledJsonEditor>
+            </StyledEditorWrapper>
             {canDevelopThemes && (
               <div className="apply-button-container">
                 <Tooltip
@@ -501,7 +533,8 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
                     onClick={onApply}
                     disabled={
                       !currentTheme?.json_data ||
-                      !isValidJson(currentTheme.json_data)
+                      !isValidJson(currentTheme.json_data) ||
+                      validation.hasErrors
                     }
                     buttonStyle="secondary"
                   >

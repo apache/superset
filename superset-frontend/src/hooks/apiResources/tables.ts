@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useCallback, useMemo, useEffect, useRef } from 'react';
+import { ClientErrorObject } from '@superset-ui/core';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { toQueryString } from 'src/utils/urlUtils';
 import { api, JsonResponse } from './queryApi';
@@ -55,7 +56,7 @@ export type FetchTablesQueryParams = {
   schema?: string;
   forceRefresh?: boolean;
   onSuccess?: (data: Data, isRefetched: boolean) => void;
-  onError?: (error: Response) => void;
+  onError?: (error: ClientErrorObject) => void;
 };
 
 export type FetchTableMetadataQueryParams = {
@@ -192,7 +193,7 @@ export function useTables(options: Params) {
     onSuccess?.(data, isRefetched);
   });
 
-  const handleOnError = useEffectEvent((error: Response) => {
+  const handleOnError = useEffectEvent((error: ClientErrorObject) => {
     onError?.(error);
   });
 
@@ -204,7 +205,7 @@ export function useTables(options: Params) {
             handleOnSuccess(data, true);
           }
           if (isError) {
-            handleOnError(error as Response);
+            handleOnError(error as ClientErrorObject);
           }
         },
       );
@@ -227,7 +228,7 @@ export function useTables(options: Params) {
           handleOnSuccess(currentData, false);
         }
         if (isError) {
-          handleOnError(error as Response);
+          handleOnError(error as ClientErrorObject);
         }
       }
     } else {

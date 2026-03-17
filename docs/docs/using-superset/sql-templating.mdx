@@ -1,0 +1,250 @@
+---
+title: SQL Templating
+sidebar_position: 4
+description: Use Jinja templates in SQL Lab and virtual datasets to create dynamic queries
+keywords: [sql templating, jinja, sql lab, virtual datasets, dynamic queries]
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+# SQL Templating
+
+Superset supports [Jinja templating](https://jinja.palletsprojects.com/) in SQL Lab queries and virtual datasets. This allows you to write dynamic SQL that responds to filters, user context, and URL parameters.
+
+:::note
+SQL templating must be enabled by your administrator via the `ENABLE_TEMPLATE_PROCESSING` feature flag.
+For advanced configuration options, see the [SQL Templating Configuration Guide](/admin-docs/configuration/sql-templating).
+:::
+
+## Basic Usage
+
+Jinja templates use double curly braces `{{ }}` for expressions and `{% %}` for logic blocks.
+
+### Using Parameters
+
+You can define parameters in SQL Lab via the **Parameters** menu as JSON:
+
+```json
+{
+  "my_table": "sales",
+  "start_date": "2024-01-01"
+}
+```
+
+Then reference them in your query:
+
+```sql
+SELECT *
+FROM {{ my_table }}
+WHERE order_date >= '{{ start_date }}'
+```
+
+### Conditional Logic
+
+Use Jinja's logic blocks for conditional SQL:
+
+```sql
+SELECT *
+FROM orders
+WHERE 1 = 1
+{% if start_date %}
+  AND order_date >= '{{ start_date }}'
+{% endif %}
+{% if end_date %}
+  AND order_date < '{{ end_date }}'
+{% endif %}
+```
+
+## Available Macros
+
+Superset provides built-in macros for common use cases.
+
+### User Context
+
+| Macro | Description |
+|-------|-------------|
+| `{{ current_username() }}` | Returns the logged-in user's username |
+| `{{ current_user_id() }}` | Returns the logged-in user's account ID |
+| `{{ current_user_email() }}` | Returns the logged-in user's email |
+| `{{ current_user_roles() }}` | Returns an array of the user's roles |
+
+**Example: Row-level filtering by user**
+
+```sql
+SELECT *
+FROM sales_data
+WHERE sales_rep = '{{ current_username() }}'
+```
+
+**Example: Role-based access**
+
+```sql
+SELECT *
+FROM users
+WHERE role IN {{ current_user_roles()|where_in }}
+```
+
+### Filter Values
+
+Access dashboard and chart filter values in your queries:
+
+| Macro | Description |
+|-------|-------------|
+| `{{ filter_values('column') }}` | Returns filter values as a list |
+| `{{ get_filters('column') }}` | Returns filters with operators |
+
+**Example: Using filter values**
+
+```sql
+SELECT product, SUM(revenue) as total
+FROM sales
+WHERE region IN {{ filter_values('region')|where_in }}
+GROUP BY product
+```
+
+The `where_in` filter converts the list to SQL format: `('value1', 'value2', 'value3')`
+
+### Time Filters
+
+For charts with time range filters:
+
+| Macro | Description |
+|-------|-------------|
+| `{{ get_time_filter('column') }}` | Returns time filter with `from_expr` and `to_expr` |
+
+**Example: Time-filtered virtual dataset**
+
+```sql
+{% set time_filter = get_time_filter("order_date", default="Last 7 days") %}
+SELECT *
+FROM orders
+WHERE order_date >= {{ time_filter.from_expr }}
+  AND order_date < {{ time_filter.to_expr }}
+```
+
+### URL Parameters
+
+Pass custom values via URL query strings:
+
+```sql
+SELECT *
+FROM orders
+WHERE country = '{{ url_param('country') }}'
+```
+
+Access via: `superset.example.com/sqllab?country=US`
+
+### Reusing Dataset Definitions
+
+Query existing datasets by ID:
+
+```sql
+-- Query a dataset (ID 42) as a table
+SELECT * FROM {{ dataset(42) }} LIMIT 100
+
+-- Include computed metrics
+SELECT * FROM {{ dataset(42, include_metrics=True) }}
+```
+
+Reuse metric definitions across queries:
+
+```sql
+SELECT
+  category,
+  {{ metric('total_revenue') }} as revenue
+FROM sales
+GROUP BY category
+```
+
+## Testing Templates in SQL Lab
+
+Some variables like `from_dttm` and `filter_values()` only work when filters are applied from dashboards or charts. To test in SQL Lab:
+
+**Option 1: Use defaults**
+
+```sql
+SELECT *
+FROM orders
+WHERE date >= '{{ from_dttm | default("2024-01-01", true) }}'
+```
+
+**Option 2: Set test parameters**
+
+Add to the Parameters menu:
+
+```json
+{
+  "_filters": [
+    {"col": "region", "op": "IN", "val": ["US", "EU"]}
+  ]
+}
+```
+
+**Option 3: Use `{% set %}`**
+
+```sql
+{% set start_date = "2024-01-01" %}
+SELECT * FROM orders WHERE date >= '{{ start_date }}'
+```
+
+## Common Patterns
+
+### Dynamic Table Selection
+
+```sql
+{% set table_name = url_param('table') or 'default_table' %}
+SELECT * FROM {{ table_name }}
+```
+
+### User-Specific Data Access
+
+```sql
+SELECT *
+FROM sensitive_data
+WHERE department IN (
+  SELECT department
+  FROM user_permissions
+  WHERE username = '{{ current_username() }}'
+)
+```
+
+### Time-Based Partitioning
+
+```sql
+{% set time_filter = get_time_filter("event_date", remove_filter=True) %}
+SELECT *
+FROM events
+WHERE event_date >= {{ time_filter.from_expr }}
+  AND event_date < {{ time_filter.to_expr }}
+```
+
+Using `remove_filter=True` applies the filter in the inner query for better performance.
+
+## Tips
+
+- Use `|where_in` filter to convert lists to SQL `IN` clauses
+- Use `|tojson` to serialize arrays as JSON strings
+- Test queries with explicit parameter values before relying on filter context
+- For complex templating needs, ask your administrator about custom Jinja macros
+
+:::resources
+- [Admin Guide: SQL Templating Configuration](/admin-docs/configuration/sql-templating)
+- [Blog: Intro to Jinja Templating in Apache Superset](https://preset.io/blog/intro-jinja-templating-apache-superset/)
+:::

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { configure } from '@superset-ui/core';
+import { configure } from '@apache-superset/core/translation';
 import {
   Comparator,
   getOpacity,
@@ -306,7 +306,7 @@ test('getColorFunction BETWEEN with target value right undefined', () => {
 test('getColorFunction unsupported operator', () => {
   const colorFunction = getColorFunction(
     {
-      // @ts-ignore
+      // @ts-expect-error
       operator: 'unsupported operator',
       targetValue: 50,
       colorScheme: '#FF0000',
@@ -506,6 +506,130 @@ test('getColorFunction IsNotNull', () => {
   expect(colorFunction(null)).toBeUndefined();
 });
 
+test('getColorFunction IsNotNull returns undefined for non-boolean value', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.IsNotNull,
+      targetValue: '',
+      colorScheme: '#FF0000',
+      column: 'isMember',
+    },
+    boolValues,
+  );
+  expect(colorFunction(50 as unknown as boolean)).toBeUndefined();
+});
+
+test('getColorFunction returns undefined for null values on numeric comparators', () => {
+  const operators = [
+    { operator: Comparator.LessThan, targetValue: 50 },
+    { operator: Comparator.LessOrEqual, targetValue: 50 },
+    { operator: Comparator.GreaterThan, targetValue: 50 },
+    { operator: Comparator.GreaterOrEqual, targetValue: 50 },
+    { operator: Comparator.Equal, targetValue: 50 },
+    { operator: Comparator.NotEqual, targetValue: 50 },
+  ];
+  operators.forEach(({ operator, targetValue }) => {
+    const colorFunction = getColorFunction(
+      {
+        operator,
+        targetValue,
+        colorScheme: '#FF0000',
+        column: 'count',
+      },
+      countValues,
+    );
+    expect(colorFunction(null)).toBeUndefined();
+    expect(colorFunction(undefined as unknown as null)).toBeUndefined();
+  });
+});
+
+test('getColorFunction returns undefined for null values on Between comparators', () => {
+  const operators = [
+    Comparator.Between,
+    Comparator.BetweenOrEqual,
+    Comparator.BetweenOrLeftEqual,
+    Comparator.BetweenOrRightEqual,
+  ];
+  operators.forEach(operator => {
+    const colorFunction = getColorFunction(
+      {
+        operator,
+        targetValueLeft: -10,
+        targetValueRight: 50,
+        colorScheme: '#FF0000',
+        column: 'count',
+      },
+      countValues,
+    );
+    expect(colorFunction(null)).toBeUndefined();
+    expect(colorFunction(undefined as unknown as null)).toBeUndefined();
+  });
+});
+
+test('getColorFunction returns undefined for null values on None operator', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#FF0000',
+      column: 'count',
+    },
+    countValues,
+  );
+  expect(colorFunction(null)).toBeUndefined();
+  expect(colorFunction(undefined as unknown as null)).toBeUndefined();
+});
+
+test('getColorFunction returns undefined for null values on string comparators', () => {
+  const operators = [
+    Comparator.BeginsWith,
+    Comparator.EndsWith,
+    Comparator.Containing,
+    Comparator.NotContaining,
+  ];
+  operators.forEach(operator => {
+    const colorFunction = getColorFunction(
+      {
+        operator,
+        targetValue: 'test',
+        colorScheme: '#FF0000',
+        column: 'name',
+      },
+      strValues,
+    );
+    expect(colorFunction(null)).toBeUndefined();
+    expect(colorFunction(undefined as unknown as null)).toBeUndefined();
+  });
+});
+
+test('getColorFunction returns undefined for empty and whitespace string values', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.LessThan,
+      targetValue: 50,
+      colorScheme: '#FF0000',
+      column: 'count',
+    },
+    countValues,
+  );
+  expect(colorFunction('' as unknown as number)).toBeUndefined();
+  expect(colorFunction('  ' as unknown as number)).toBeUndefined();
+  expect(colorFunction('\t' as unknown as number)).toBeUndefined();
+});
+
+test('getColorFunction IsNull still matches null values', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.IsNull,
+      targetValue: '',
+      colorScheme: '#FF0000',
+      column: 'isMember',
+    },
+    boolValues,
+  );
+  expect(colorFunction(null)).toEqual('#FF0000FF');
+  expect(colorFunction(true)).toBeUndefined();
+});
+
 test('correct column config', () => {
   const columnConfig = [
     {
@@ -692,6 +816,34 @@ test('getColorFormatters with useGradient flag', () => {
   // Second formatter with useGradient: true should return gradient color
   expect(colorFormatters[1].column).toEqual('count');
   expect(colorFormatters[1].getColorFromValue(100)).toEqual('#00FF00FF');
+});
+
+test('getColorFunction NOT_EQUAL returns undefined when targetValue is non-numeric', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.NotEqual,
+      targetValue: 'not-a-number' as unknown as number,
+      colorScheme: '#FF0000',
+      column: 'count',
+    },
+    countValues,
+  );
+  expect(colorFunction(50)).toBeUndefined();
+  expect(colorFunction(100)).toBeUndefined();
+});
+
+test('getColorFormatters resolves colorScheme from theme when it starts with "color"', () => {
+  const theme = { colorPrimary: '#AABBCC' };
+  const columnConfig = [
+    {
+      operator: Comparator.None,
+      colorScheme: 'colorPrimary',
+      column: 'count',
+    },
+  ];
+  const colorFormatters = getColorFormatters(columnConfig, mockData, theme);
+  expect(colorFormatters).toHaveLength(1);
+  expect(colorFormatters[0].getColorFromValue(75)).toContain('#AABBCC');
 });
 
 test('correct column boolean config', () => {

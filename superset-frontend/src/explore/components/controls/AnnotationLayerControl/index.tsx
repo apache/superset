@@ -18,14 +18,14 @@
  */
 import { connect } from 'react-redux';
 import { PureComponent } from 'react';
+import { t } from '@apache-superset/core/translation';
 import {
   HandlerFunction,
   JsonObject,
   Payload,
   QueryFormData,
-  t,
 } from '@superset-ui/core';
-import { SupersetTheme, withTheme } from '@apache-superset/core/ui';
+import { SupersetTheme, withTheme } from '@apache-superset/core/theme';
 import {
   AsyncEsmComponent,
   List,
@@ -206,7 +206,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
       );
     }
     if (!anno.show) {
-      return <span style={{ color: theme.colorError }}> Hidden </span>;
+      return <span style={{ color: theme.colorError }}> {t('Hidden')} </span>;
     }
     return '';
   }
@@ -305,8 +305,14 @@ function mapDispatchToProps(
   dispatch: ThunkDispatch<any, undefined, AnyAction>,
 ) {
   return {
-    refreshAnnotationData: (annotationObj: Annotation) =>
-      dispatch(runAnnotationQuery(annotationObj)),
+    // Note: There's a type mismatch between the local Annotation interface
+    // and RunAnnotationQueryParams. This cast preserves existing runtime behavior.
+    refreshAnnotationData: (annotation: Annotation) =>
+      dispatch(
+        runAnnotationQuery(
+          annotation as unknown as Parameters<typeof runAnnotationQuery>[0],
+        ),
+      ),
   };
 }
 

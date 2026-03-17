@@ -21,13 +21,12 @@ Validates performance, compatibility, and user experience issues.
 """
 
 import logging
-from typing import List, Tuple
+from typing import Any, Dict, List, Tuple
 
 from superset.mcp_service.chart.schemas import (
     ChartConfig,
     XYChartConfig,
 )
-from superset.mcp_service.common.error_schemas import ChartGenerationError
 
 logger = logging.getLogger(__name__)
 
@@ -38,16 +37,21 @@ class RuntimeValidator:
     @staticmethod
     def validate_runtime_issues(
         config: ChartConfig, dataset_id: int | str
-    ) -> Tuple[bool, ChartGenerationError | None]:
+    ) -> Tuple[bool, Dict[str, Any] | None]:
         """
         Validate runtime issues that could affect chart rendering or performance.
+
+        Warnings are returned as informational metadata, NOT as errors.
+        Chart generation proceeds regardless of warnings.
 
         Args:
             config: Chart configuration to validate
             dataset_id: Dataset identifier
 
         Returns:
-            Tuple of (is_valid, error)
+            Tuple of (is_valid, warnings_metadata)
+            - is_valid: Always True (warnings don't block generation)
+            - warnings_metadata: Dict with warnings and suggestions, or None
         """
         warnings: List[str] = []
         suggestions: List[str] = []
@@ -75,21 +79,20 @@ class RuntimeValidator:
             warnings.extend(type_warnings)
             suggestions.extend(type_suggestions)
 
-        # If we have warnings, return them as a validation error
+        # Return warnings as metadata, NOT as errors
+        # Warnings should inform, not block chart generation
         if warnings:
-            from superset.mcp_service.utils.error_builder import (
-                ChartErrorBuilder,
+            logger.info(
+                "Runtime validation warnings for dataset %s: %s",
+                dataset_id,
+                warnings[:3],
             )
-
-            return False, ChartErrorBuilder.build_error(
-                error_type="runtime_semantic_warning",
-                template_key="performance_warning",
-                template_vars={
-                    "reason": "; ".join(warnings[:3])
-                    + ("..." if len(warnings) > 3 else "")
+            return (
+                True,
+                {
+                    "warnings": warnings[:5],  # Limit to 5 warnings
+                    "suggestions": suggestions[:5],  # Limit to 5 suggestions
                 },
-                custom_suggestions=suggestions[:5],  # Limit suggestions
-                error_code="RUNTIME_SEMANTIC_WARNING",
             )
 
         return True, None

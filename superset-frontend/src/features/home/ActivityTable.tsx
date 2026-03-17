@@ -18,8 +18,8 @@
  */
 import { useEffect, useState } from 'react';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
-import { t } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { Link } from 'react-router-dom';
 import { ListViewCard } from '@superset-ui/core/components';
