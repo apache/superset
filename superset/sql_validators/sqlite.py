@@ -93,7 +93,7 @@ class SQLiteSQLValidator(BaseSQLValidator):  # pylint: disable=too-few-public-me
             line_number = int(match.group(2))
             start_column = int(match.group(3))
             # The caret (^) plus tildes (~) span the error token
-            end_column = start_column + len(match.group(4))
+            end_column = start_column + 1 + len(match.group(4))
 
             annotations.append(
                 SQLValidationAnnotation(
