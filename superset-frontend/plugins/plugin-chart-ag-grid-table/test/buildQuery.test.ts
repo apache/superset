@@ -1215,7 +1215,7 @@ describe('plugin-chart-ag-grid-table', () => {
         },
       ).queries[0];
 
-      expect(query.extras?.where).toBe('"user_status" = \'active\'');
+      expect(query.extras?.where).toBe("user_status = 'active'");
     });
 
     test('should resolve longer labels before shorter ones', () => {
