@@ -122,9 +122,15 @@ async def get_dataset_info(
 
         if isinstance(result, DatasetInfo):
             # Compute popularity_score for single dataset retrieval
+            # Isolated so a failure here doesn't prevent returning dataset info
             if result.id is not None:
-                scores = compute_dataset_popularity([result.id])
-                result.popularity_score = scores.get(result.id, 0.0)
+                try:
+                    scores = compute_dataset_popularity([result.id])
+                    result.popularity_score = scores.get(result.id, 0.0)
+                except (ValueError, TypeError, AttributeError) as e:
+                    await ctx.warning(
+                        "Failed to compute popularity score: %s" % (str(e),)
+                    )
 
             await ctx.info(
                 "Dataset information retrieved successfully: "

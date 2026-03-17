@@ -263,24 +263,26 @@ def _list_dashboards_by_popularity(
     attach_popularity_scores(dash_objs, scores)
 
     total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 0
+    # Convert back to 1-based page for the response (request uses 1-based)
+    page_1based = page + 1
     pagination_info = PaginationInfo(
-        page=page,
+        page=page_1based,
         page_size=page_size,
         total_count=total_count,
         total_pages=total_pages,
-        has_next=page < total_pages - 1,
-        has_previous=page > 0,
+        has_next=page_1based < total_pages,
+        has_previous=page_1based > 1,
     )
 
     return DashboardList(
         dashboards=dash_objs,
         count=len(dash_objs),
         total_count=total_count,
-        page=page,
+        page=page_1based,
         page_size=page_size,
         total_pages=total_pages,
-        has_previous=page > 0,
-        has_next=page < total_pages - 1,
+        has_previous=page_1based > 1,
+        has_next=page_1based < total_pages,
         columns_requested=columns_requested,
         columns_loaded=select_columns,
         columns_available=all_columns,

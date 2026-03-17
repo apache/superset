@@ -288,7 +288,10 @@ def compute_dataset_popularity(
             if ds.extra:
                 try:
                     extra_dict = json_utils.loads(ds.extra)
-                    if extra_dict.get("certification"):
+                    certification = extra_dict.get("certification", {})
+                    if isinstance(certification, dict) and certification.get(
+                        "certified_by"
+                    ):
                         scores[ds.id] += CERTIFICATION_BONUS
                 except (TypeError, ValueError):
                     pass
