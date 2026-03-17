@@ -352,7 +352,7 @@ export const DropdownContainer = forwardRef(
               onOpenChange={visible => setPopoverVisible(visible)}
               placement="bottom"
               forceRender={forceRender}
-              destroyTooltipOnHide
+              fresh
             >
               <Tooltip title={dropdownTriggerTooltip}>
                 <Button
