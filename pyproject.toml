@@ -227,6 +227,7 @@ development = [
     "ruff",
     "sqloxide",
     "statsd",
+    "syntaqlite>=0.1.0",
 ]
 
 [project.urls]
