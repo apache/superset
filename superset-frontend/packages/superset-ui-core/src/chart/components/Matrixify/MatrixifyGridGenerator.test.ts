@@ -438,3 +438,23 @@ test('should handle metrics without labels', () => {
   expect(grid!.rowHeaders).toEqual(['']);
   expect(grid!.colHeaders).toEqual(['count']);
 });
+
+test('should preserve slice_id and dashboardId for embedded dashboard permissions', () => {
+  const formDataWithDashboardContext: TestFormData = {
+    ...baseFormData,
+    slice_id: 42,
+    dashboardId: 123,
+  };
+
+  const grid = generateMatrixifyGrid(formDataWithDashboardContext);
+
+  expect(grid).not.toBeNull();
+  const cell = grid!.cells[0][0];
+
+  // slice_id must be preserved for embedded dashboard permission checks
+  // The backend uses slice_id to verify the chart belongs to the dashboard
+  expect(cell!.formData.slice_id).toBe(42);
+
+  // dashboardId must be preserved for embedded dashboard context
+  expect(cell!.formData.dashboardId).toBe(123);
+});

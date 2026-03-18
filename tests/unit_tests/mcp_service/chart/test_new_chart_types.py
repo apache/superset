@@ -512,6 +512,25 @@ class TestMixedTimeseriesChartConfigSchema:
                 unknown_field="bad",
             )
 
+    def test_mixed_timeseries_default_row_limit(self) -> None:
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
+        )
+        assert config.row_limit == 10000
+
+    def test_mixed_timeseries_custom_row_limit(self) -> None:
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
+            row_limit=500,
+        )
+        assert config.row_limit == 500
+
 
 # ============================================================
 # Mixed Timeseries Form Data Mapping Tests
@@ -635,6 +654,35 @@ class TestMapMixedTimeseriesConfig:
         assert result["yAxisTitleSecondary"] == "Orders"
         assert result["y_axis_format_secondary"] == ",d"
         assert result["logAxisSecondary"] is True
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_mixed_form_data_row_limit(self, mock_is_temporal) -> None:
+        mock_is_temporal.return_value = True
+
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
+            row_limit=300,
+        )
+        result = map_mixed_timeseries_config(config, dataset_id=1)
+
+        assert result["row_limit"] == 300
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_mixed_form_data_default_row_limit(self, mock_is_temporal) -> None:
+        mock_is_temporal.return_value = True
+
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
+        )
+        result = map_mixed_timeseries_config(config, dataset_id=1)
+
+        assert result["row_limit"] == 10000
 
     @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
     def test_mixed_form_data_with_filters(self, mock_is_temporal) -> None:
