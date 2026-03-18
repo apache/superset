@@ -49,6 +49,7 @@ export interface CursorPosition {
 export interface QueryEditor {
   version: QueryEditorVersion;
   id: string;
+  immutableId: string;
   dbId?: number;
   name: string;
   title?: string; // keep it optional for backward compatibility

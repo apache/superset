@@ -23,6 +23,267 @@ This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
 ## Next
+
+### ClickHouse minimum driver version bump
+
+The minimum required version of `clickhouse-connect` has been raised to `>=0.13.0`. If you are using the ClickHouse connector, please upgrade your `clickhouse-connect` package. The `_mutate_label` workaround that appended hash suffixes to column aliases has also been removed, as it is no longer needed with modern versions of the driver.
+
+### MCP Tool Observability
+
+MCP (Model Context Protocol) tools now include enhanced observability instrumentation for monitoring and debugging:
+
+**Two-layer instrumentation:**
+1. **Middleware layer** (`LoggingMiddleware`): Automatically logs all MCP tool calls with `duration_ms` and `success` status in the audit log (Action Log UI, logs table)
+2. **Sub-operation tracking**: All 19 MCP tools include granular `event_logger.log_context()` blocks for tracking individual operations like validation, database writes, and query execution
+
+**Action naming convention:**
+- Tool-level logs: `mcp_tool_call` (via middleware)
+- Sub-operation logs: `mcp.{tool_name}.{operation}` (e.g., `mcp.generate_chart.validation`, `mcp.execute_sql.query_execution`)
+
+**Querying MCP logs:**
+```sql
+-- Top slowest MCP operations
+SELECT action, COUNT(*) as calls, AVG(duration_ms) as avg_ms
+FROM logs
+WHERE action LIKE 'mcp.%'
+GROUP BY action
+ORDER BY avg_ms DESC
+LIMIT 20;
+
+-- MCP tool success rate
+SELECT
+    json_extract(curated_payload, '$.tool') as tool,
+    COUNT(*) as total_calls,
+    SUM(CASE WHEN json_extract(curated_payload, '$.success') = 'true' THEN 1 ELSE 0 END) as successful,
+    ROUND(100.0 * SUM(CASE WHEN json_extract(curated_payload, '$.success') = 'true' THEN 1 ELSE 0 END) / COUNT(*), 2) as success_rate
+FROM logs
+WHERE action = 'mcp_tool_call'
+GROUP BY tool
+ORDER BY total_calls DESC;
+```
+
+**Security note:** Sensitive parameters (passwords, API keys, tokens) are automatically redacted in logs as `[REDACTED]`.
+
+### Distributed Coordination Backend
+
+A new `DISTRIBUTED_COORDINATION_CONFIG` configuration provides a unified Redis-based backend for real-time coordination features in Superset. This backend enables:
+
+- **Pub/sub messaging** for real-time event notifications between workers
+- **Atomic distributed locking** using Redis SET NX EX (more performant than database-backed locks)
+- **Event-based coordination** for background task management
+
+The distributed coordination is used by the Global Task Framework (GTF) for abort notifications and task completion signaling, and will eventually replace `GLOBAL_ASYNC_QUERIES_CACHE_BACKEND` as the standard signaling backend. Configuring this is recommended for Redis enabled production deployments.
+
+Example configuration in `superset_config.py`:
+```python
+DISTRIBUTED_COORDINATION_CONFIG = {
+    "CACHE_TYPE": "RedisCache",
+    "CACHE_KEY_PREFIX": "signal_",
+    "CACHE_REDIS_URL": "redis://localhost:6379/1",
+    "CACHE_DEFAULT_TIMEOUT": 300,
+}
+```
+
+See `superset/config.py` for complete configuration options.
+
+### WebSocket config for GAQ with Docker
+
+[35896](https://github.com/apache/superset/pull/35896) and [37624](https://github.com/apache/superset/pull/37624) updated documentation on how to run and configure Superset with Docker. Specifically for the WebSocket configuration, a new `docker/superset-websocket/config.example.json` was added to the repo, so that users could copy it to create a `docker/superset-websocket/config.json` file. The existing `docker/superset-websocket/config.json` was removed and git-ignored, so if you're using GAQ / WebSocket make sure to:
+- Stash/backup your existing `config.json` file, to re-apply it after (will get git-ignored going forward)
+- Update the `volumes` configuration for the `superset-websocket` service in your `docker-compose.override.yml` file, to include the `docker/superset-websocket/config.json` file. For example:
+``` yaml
+services:
+  superset-websocket:
+    volumes:
+      - ./superset-websocket:/home/superset-websocket
+      - /home/superset-websocket/node_modules
+      - /home/superset-websocket/dist
+      - ./docker/superset-websocket/config.json:/home/superset-websocket/config.json:ro
+```
+
+### Example Data Loading Improvements
+
+#### New Directory Structure
+Examples are now organized by name with data and configs co-located:
+```
+superset/examples/
+├── _shared/              # Shared database & metadata configs
+├── birth_names/          # Each example is self-contained
+│   ├── data.parquet     # Dataset (Parquet format)
+│   ├── dataset.yaml     # Dataset metadata
+│   ├── dashboard.yaml   # Dashboard config (optional)
+│   └── charts/          # Chart configs (optional)
+└── ...
+```
+
+#### Simplified Parquet-based Loading
+- Auto-discovery: create `superset/examples/my_dataset/data.parquet` to add a new example
+- Parquet is an Apache project format: compressed (~27% smaller), self-describing schema
+- YAML configs define datasets, charts, and dashboards declaratively
+- Removed Python-based data generation from individual example files
+
+#### Test Data Reorganization
+- Moved `big_data.py` to `superset/cli/test_loaders.py` - better reflects its purpose as a test utility
+- Fixed inverted logic for `--load-test-data` flag (now correctly includes .test.yaml files when flag is set)
+- Clarified CLI flags:
+  - `--force` / `-f`: Force reload even if tables exist
+  - `--only-metadata` / `-m`: Create table metadata without loading data
+  - `--load-test-data` / `-t`: Include test dashboards and .test.yaml configs
+  - `--load-big-data` / `-b`: Generate synthetic stress-test data
+
+#### Bug Fixes
+- Fixed numpy array serialization for PostgreSQL (converts complex types to JSON strings)
+- Fixed KeyError for `allow_csv_upload` field in database configs (now optional with default)
+- Fixed test data loading logic that was incorrectly filtering files
+
+### MCP Service
+
+The MCP (Model Context Protocol) service enables AI assistants and automation tools to interact programmatically with Superset.
+
+#### New Features
+- MCP service infrastructure with FastMCP framework
+- Tools for dashboards, charts, datasets, SQL Lab, and instance metadata
+- Optional dependency: install with `pip install apache-superset[fastmcp]`
+- Runs as separate process from Superset web server
+- JWT-based authentication for production deployments
+
+#### New Configuration Options
+
+**Development** (single-user, local testing):
+```python
+# superset_config.py
+MCP_DEV_USERNAME = "admin"  # User for MCP authentication
+MCP_SERVICE_HOST = "localhost"
+MCP_SERVICE_PORT = 5008
+```
+
+**Production** (JWT-based, multi-user):
+```python
+# superset_config.py
+MCP_AUTH_ENABLED = True
+MCP_JWT_ISSUER = "https://your-auth-provider.com"
+MCP_JWT_AUDIENCE = "superset-mcp"
+MCP_JWT_ALGORITHM = "RS256"  # or "HS256" for shared secrets
+
+# Option 1: Use JWKS endpoint (recommended for RS256)
+MCP_JWKS_URI = "https://auth.example.com/.well-known/jwks.json"
+
+# Option 2: Use static public key (RS256)
+MCP_JWT_PUBLIC_KEY = "-----BEGIN PUBLIC KEY-----..."
+
+# Option 3: Use shared secret (HS256)
+MCP_JWT_ALGORITHM = "HS256"
+MCP_JWT_SECRET = "your-shared-secret-key"
+
+# Optional overrides
+MCP_SERVICE_HOST = "0.0.0.0"
+MCP_SERVICE_PORT = 5008
+MCP_SESSION_CONFIG = {
+    "SESSION_COOKIE_SECURE": True,
+    "SESSION_COOKIE_HTTPONLY": True,
+    "SESSION_COOKIE_SAMESITE": "Strict",
+}
+```
+
+#### Running the MCP Service
+
+```bash
+# Development
+superset mcp run --port 5008 --debug
+
+# Production
+superset mcp run --port 5008
+
+# With factory config
+superset mcp run --port 5008 --use-factory-config
+```
+
+#### Deployment Considerations
+
+The MCP service runs as a **separate process** from the Superset web server.
+
+**Important**:
+- Requires same Python environment and configuration as Superset
+- Shares database connections with main Superset app
+- Can be scaled independently from web server
+- Requires `fastmcp` package (optional dependency)
+
+**Installation**:
+```bash
+# Install with MCP support
+pip install apache-superset[fastmcp]
+
+# Or add to requirements.txt
+apache-superset[fastmcp]>=X.Y.Z
+```
+
+**Process Management**:
+Use systemd, supervisord, or Kubernetes to manage the MCP service process.
+See `superset/mcp_service/PRODUCTION.md` for deployment guides.
+
+**Security**:
+- Development: Uses `MCP_DEV_USERNAME` for single-user access
+- Production: **MUST** configure JWT authentication
+- See `superset/mcp_service/SECURITY.md` for details
+
+#### Documentation
+
+- Architecture: `superset/mcp_service/ARCHITECTURE.md`
+- Security: `superset/mcp_service/SECURITY.md`
+- Production: `superset/mcp_service/PRODUCTION.md`
+- Developer Guide: `superset/mcp_service/CLAUDE.md`
+- Quick Start: `superset/mcp_service/README.md`
+
+---
+
+- [35621](https://github.com/apache/superset/pull/35621): The default hash algorithm has changed from MD5 to SHA-256 for improved security and FedRAMP compliance. This affects cache keys for thumbnails, dashboard digests, chart digests, and filter option names. Existing cached data will be invalidated upon upgrade. To opt out of this change and maintain backward compatibility, set `HASH_ALGORITHM = "md5"` in your `superset_config.py`.
+- [35062](https://github.com/apache/superset/pull/35062): Changed the function signature of `setupExtensions` to `setupCodeOverrides` with options as arguments.
+
+### Breaking Changes
+- [37370](https://github.com/apache/superset/pull/37370): The `APP_NAME` configuration variable no longer controls the browser window/tab title or other frontend branding. Application names should now be configured using the theme system with the `brandAppName` token. The `APP_NAME` config is still used for backend contexts (MCP service, logs, etc.) and serves as a fallback if `brandAppName` is not set.
+  - **Migration:**
+  ```python
+  # Before (Superset 5.x)
+  APP_NAME = "My Custom App"
+
+  # After (Superset 6.x) - Option 1: Use theme system (recommended)
+  THEME_DEFAULT = {
+    "token": {
+      "brandAppName": "My Custom App",  # Window titles
+      "brandLogoAlt": "My Custom App",  # Logo alt text
+      "brandLogoUrl": "/static/assets/images/custom_logo.png"
+    }
+  }
+
+  # After (Superset 6.x) - Option 2: Temporary fallback
+  # Keep APP_NAME for now (will be used as fallback for brandAppName)
+  APP_NAME = "My Custom App"
+  # But you should migrate to THEME_DEFAULT.token.brandAppName
+  ```
+  - **Note:** For dark mode, set the same tokens in `THEME_DARK` configuration.
+
+- [36317](https://github.com/apache/superset/pull/36317): The `CUSTOM_FONT_URLS` configuration option has been removed. Use the new per-theme `fontUrls` token in `THEME_DEFAULT` or database-managed themes instead.
+  - **Before:**
+  ```python
+  CUSTOM_FONT_URLS = [
+    "https://fonts.example.com/myfont.css",
+  ]
+  ```
+  - **After:**
+  ```python
+  THEME_DEFAULT = {
+    "token": {
+      "fontUrls": [
+        "https://fonts.example.com/myfont.css",
+        ],
+        # ... other tokens
+    }
+  }
+  ```
+
+## 6.0.0
+- [33055](https://github.com/apache/superset/pull/33055): Upgrades Flask-AppBuilder to 5.0.0. The AUTH_OID authentication type has been deprecated and is no longer available as an option in Flask-AppBuilder. OpenID (OID) is considered a deprecated authentication protocol - if you are using AUTH_OID, you will need to migrate to an alternative authentication method such as OAuth, LDAP, or database authentication before upgrading.
+- [34871](https://github.com/apache/superset/pull/34871): Fixed Jest test hanging issue from Ant Design v5 upgrade. MessageChannel is now mocked in test environment to prevent rc-overflow from causing Jest to hang. Test environment only - no production impact.
 - [34782](https://github.com/apache/superset/pull/34782): Dataset exports now include the dataset ID in their file name (similar to charts and dashboards). If managing assets as code, make sure to rename existing dataset YAMLs to include the ID (and avoid duplicated files).
 - [34536](https://github.com/apache/superset/pull/34536): The `ENVIRONMENT_TAG_CONFIG` color values have changed to support only Ant Design semantic colors. Update your `superset_config.py`:
   - Change `"error.base"` to just `"error"` after this PR

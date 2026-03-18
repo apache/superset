@@ -22,6 +22,7 @@ import getFormDataWithExtraFilters, {
 } from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import { sliceId as chartId } from 'spec/fixtures/mockChartQueries';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('getFormDataWithExtraFilters', () => {
   const filterId = 'native-filter-1';
   const mockChart = {
@@ -72,7 +73,7 @@ describe('getFormDataWithExtraFilters', () => {
     allSliceIds: [chartId],
   };
 
-  it('should include filters from the passed filters', () => {
+  test('should include filters from the passed filters', () => {
     const result = getFormDataWithExtraFilters(mockArgs);
     expect(result.extra_filters).toHaveLength(2);
     expect(result.extra_filters[0]).toEqual({
@@ -87,9 +88,123 @@ describe('getFormDataWithExtraFilters', () => {
     });
   });
 
-  it('should compose extra control', () => {
+  test('should compose extra control', () => {
     const result: CachedFormDataWithExtraControls =
       getFormDataWithExtraFilters(mockArgs);
     expect(result.stack).toEqual('Stacked');
+  });
+
+  test('should merge extraFormData from chart customizations', () => {
+    const customizationId = 'CHART_CUSTOMIZATION-1';
+    const argsWithCustomization: GetFormDataWithExtraFiltersArguments = {
+      ...mockArgs,
+      dataMask: {
+        [customizationId]: {
+          id: customizationId,
+          extraFormData: {
+            time_grain_sqla: 'PT1H',
+          },
+          filterState: {
+            value: ['category1', 'category2'],
+          },
+          ownState: {},
+        },
+      },
+      chartCustomizationItems: [
+        {
+          id: customizationId,
+          type: 'CHART_CUSTOMIZATION' as any,
+          name: 'Time Grain Customization',
+          filterType: 'chart_customization_time_grain',
+          targets: [
+            {
+              datasetId: 123,
+              column: { name: 'time_column' },
+            },
+          ],
+          scope: {
+            rootPath: [],
+            excluded: [],
+          },
+          chartsInScope: [chartId],
+          defaultDataMask: {},
+          controlValues: {},
+        },
+      ],
+    };
+
+    const result = getFormDataWithExtraFilters(argsWithCustomization);
+    expect((result as any).time_grain_sqla).toEqual('PT1H');
+  });
+
+  test('should merge both filters and customization extraFormData', () => {
+    const customizationId = 'CHART_CUSTOMIZATION-1';
+    const argsWithBoth: GetFormDataWithExtraFiltersArguments = {
+      ...mockArgs,
+      chartConfiguration: {
+        [filterId]: {
+          id: filterId,
+          targets: [
+            {
+              datasetId: 123,
+              column: { name: 'country_name' },
+            },
+          ],
+          scope: { rootPath: ['ROOT_ID'], excluded: [] },
+          cascadeParentIds: [],
+        },
+      } as any,
+      dataMask: {
+        [filterId]: {
+          id: filterId,
+          extraFormData: {
+            filters: [
+              {
+                col: 'country_name',
+                op: 'IN',
+                val: ['United States'],
+              },
+            ],
+          },
+          filterState: {},
+          ownState: {},
+        },
+        [customizationId]: {
+          id: customizationId,
+          extraFormData: {
+            time_grain_sqla: 'PT1H',
+          },
+          filterState: {
+            value: ['category1'],
+          },
+          ownState: {},
+        },
+      },
+      chartCustomizationItems: [
+        {
+          id: customizationId,
+          type: 'CHART_CUSTOMIZATION' as any,
+          name: 'Time Grain Customization',
+          filterType: 'chart_customization_time_grain',
+          targets: [
+            {
+              datasetId: 123,
+              column: { name: 'time_column' },
+            },
+          ],
+          scope: {
+            rootPath: [],
+            excluded: [],
+          },
+          chartsInScope: [chartId],
+          defaultDataMask: {},
+          controlValues: {},
+        },
+      ],
+    };
+
+    const result = getFormDataWithExtraFilters(argsWithBoth);
+    expect((result as any).time_grain_sqla).toEqual('PT1H');
+    expect(result.extra_form_data).toBeDefined();
   });
 });

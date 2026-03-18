@@ -46,12 +46,13 @@ const renderComponent = (props: Partial<Props> = {}) =>
     useDnd: true,
   });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ColorBreakpointsControl', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('should render with default props', () => {
+  test('should render with default props', () => {
     renderComponent();
     expect(screen.getByText('Click to add new breakpoint')).toBeInTheDocument();
   });

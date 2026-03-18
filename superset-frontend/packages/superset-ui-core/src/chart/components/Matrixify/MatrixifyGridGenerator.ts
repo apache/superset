@@ -125,9 +125,9 @@ function generateCellFormData(
   });
 
   // Override fields that could cause issues in grid cells
+  // Note: slice_id is intentionally preserved for embedded dashboard permission checks
   const overrides: Partial<QueryFormData> = {
     slice_name: undefined,
-    slice_id: undefined,
     header_font_size: undefined,
     subheader: undefined,
     show_title: undefined,
@@ -276,10 +276,10 @@ export function generateMatrixifyGrid(
 
       const cellFormData = generateCellFormData(
         formData,
-        rowCount > 1 ? config.rows : null,
-        colCount > 1 ? config.columns : null,
-        rowCount > 1 ? row : null,
-        colCount > 1 ? col : null,
+        config.rows,
+        config.columns,
+        row,
+        col,
       );
 
       // Generate title using template if provided

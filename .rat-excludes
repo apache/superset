@@ -11,6 +11,7 @@
 .nvmrc
 .prettierrc
 .rat-excludes
+.swcrc
 .*log
 .*pyc
 .*lock
@@ -66,21 +67,20 @@ temporary_superset_ui/*
 # skip license checks for auto-generated test snapshots
 .*snap
 
-# docs overrides for third party logos we don't have the rights to
-google-big-query.svg
-google-sheets.svg
-ibm-db2.svg
-postgresql.svg
-snowflake.svg
-ydb.svg
+# docs third-party logos (database logos, org logos, etc.)
+databases/*
+logos/*
 
 # docs-related
 erd.puml
 erd.svg
 intro_header.txt
+TODO.md
 
 # for LLMs
 llm-context.md
+llms.txt
+AGENTS.md
 LLMS.md
 CLAUDE.md
 CURSOR.md

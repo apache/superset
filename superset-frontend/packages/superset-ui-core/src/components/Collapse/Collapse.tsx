@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import { Collapse as AntdCollapse } from 'antd';
 import type { CollapseProps } from './types';
 

@@ -68,7 +68,11 @@ test('renders with default props', async () => {
   );
   await waitFor(() =>
     testColumns.forEach(column =>
-      expect(screen.getByText(column.title as string)).toBeInTheDocument(),
+      expect(
+        screen
+          .getAllByText(column.title as string)
+          .find(el => el.closest('th')),
+      ).toBeInTheDocument(),
     ),
   );
   testData.forEach(row => {

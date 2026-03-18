@@ -26,30 +26,57 @@ from pathlib import Path
 from typing import Any
 
 from flask import Flask
-from watchdog.events import FileSystemEventHandler
-from watchdog.observers import Observer
 
 logger = logging.getLogger(__name__)
 
+# Guard to prevent multiple initializations
+_watcher_initialized = False
+_watcher_lock = threading.Lock()
 
-class LocalExtensionFileHandler(FileSystemEventHandler):
-    """Custom file system event handler for LOCAL_EXTENSIONS directories."""
 
-    def on_any_event(self, event: Any) -> None:
-        """Handle any file system event in the watched directories."""
-        if event.is_directory:
-            return
+def _get_file_handler_class() -> Any:
+    """Get the file handler class, importing watchdog only when needed."""
+    try:
+        from watchdog.events import FileSystemEventHandler
 
-        logger.info(f"File change detected in LOCAL_EXTENSIONS: {event.src_path}")
+        class LocalExtensionFileHandler(FileSystemEventHandler):
+            """Custom file system event handler for LOCAL_EXTENSIONS directories."""
 
-        # Touch superset/__init__.py to trigger Flask's file watcher
-        superset_init = Path("superset/__init__.py")
-        logger.info(f"Triggering restart by touching {superset_init}")
-        os.utime(superset_init, (time.time(), time.time()))
+            def on_any_event(self, event: Any) -> None:
+                """Handle any file system event in the watched directories."""
+                if event.is_directory:
+                    return
+
+                # Only trigger on changes to files in `dist` directory
+                src = getattr(event, "src_path", None)
+                if not isinstance(src, str) or "dist" not in Path(src).parts:
+                    return
+
+                logger.info(
+                    "File change detected in LOCAL_EXTENSIONS: %s", event.src_path
+                )
+
+                # Touch superset/__init__.py to trigger Flask's file watcher
+                superset_init = Path("superset/__init__.py")
+                logger.info("Triggering restart by touching %s", superset_init)
+                os.utime(superset_init, (time.time(), time.time()))
+
+        return LocalExtensionFileHandler
+    except ImportError:
+        logger.warning("watchdog not installed, LOCAL_EXTENSIONS watcher disabled")
+        return None
 
 
 def setup_local_extensions_watcher(app: Flask) -> None:  # noqa: C901
     """Set up file watcher for LOCAL_EXTENSIONS directories."""
+    global _watcher_initialized
+
+    # Prevent multiple initializations
+    with _watcher_lock:
+        if _watcher_initialized:
+            return
+        _watcher_initialized = True
+
     # Only set up watcher in debug mode or when Flask reloader is enabled
     if not (app.debug or app.config.get("FLASK_USE_RELOAD", False)):
         return
@@ -62,45 +89,71 @@ def setup_local_extensions_watcher(app: Flask) -> None:  # noqa: C901
     if not local_extensions:
         return
 
-    # Collect dist directories to watch
-    watch_dirs = []
+    # Try to import watchdog and get handler class
+    handler_class = _get_file_handler_class()
+    if not handler_class:
+        return
+
+    # Collect extension directories to watch
+    # We watch the parent extension directory instead of just dist/
+    # to avoid the observer stopping when dist/ is deleted/recreated
+    # Use a set to avoid duplicate entries
+    watch_dirs: set[str] = set()
     for ext_path in local_extensions:
         if not ext_path:
             continue
 
         ext_path = Path(ext_path).resolve()
         if not ext_path.exists():
-            logger.warning(f"LOCAL_EXTENSIONS path does not exist: {ext_path}")
+            logger.warning("LOCAL_EXTENSIONS path does not exist: %s", ext_path)
             continue
 
-        dist_path = ext_path / "dist"
-        watch_dirs.append(str(dist_path))
-        logger.info(f"Watching LOCAL_EXTENSIONS dist directory: {dist_path}")
+        # Ensure we're watching a directory, not a file
+        if ext_path.is_file():
+            logger.warning(
+                "LOCAL_EXTENSIONS path is a file, not a directory: %s. "
+                "Provide the extension directory path instead.",
+                ext_path,
+            )
+            continue
+
+        if not ext_path.is_dir():
+            logger.warning("LOCAL_EXTENSIONS path is not a directory: %s", ext_path)
+            continue
+
+        # Add to set (automatically handles duplicates)
+        watch_dir_str = str(ext_path)
+        if watch_dir_str not in watch_dirs:
+            watch_dirs.add(watch_dir_str)
+            logger.info("Watching LOCAL_EXTENSIONS directory: %s", ext_path)
 
     if not watch_dirs:
         return
 
     try:
+        from watchdog.observers import Observer
+
         # Set up and start the file watcher
-        event_handler = LocalExtensionFileHandler()
+        event_handler = handler_class()
         observer = Observer()
 
         for watch_dir in watch_dirs:
             try:
                 observer.schedule(event_handler, watch_dir, recursive=True)
             except Exception as e:
-                logger.warning(f"Failed to watch directory {watch_dir}: {e}")
+                logger.warning("Failed to watch directory %s: %s", watch_dir, e)
                 continue
 
         observer.daemon = True
         observer.start()
 
         logger.info(
-            f"LOCAL_EXTENSIONS file watcher started for {len(watch_dirs)} directories"  # noqa: E501
+            "LOCAL_EXTENSIONS file watcher started for %s directories",  # noqa: E501
+            len(watch_dirs),
         )
 
     except Exception as e:
-        logger.error(f"Failed to start LOCAL_EXTENSIONS file watcher: {e}")
+        logger.error("Failed to start LOCAL_EXTENSIONS file watcher: %s", e)
 
 
 def start_local_extensions_watcher_thread(app: Flask) -> None:

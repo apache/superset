@@ -16,9 +16,12 @@
 # under the License.
 
 import logging
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from marshmallow import Schema
+
+if TYPE_CHECKING:
+    from superset.models.core import Theme
 
 from superset.commands.importers.v1 import ImportModelsCommand
 from superset.commands.theme.exceptions import ThemeImportError
@@ -29,7 +32,7 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
-def import_theme(config: dict[str, Any], overwrite: bool = False) -> None:
+def import_theme(config: dict[str, Any], overwrite: bool = False) -> "Theme | None":
     """Import a single theme from config dictionary"""
     from superset import db, security_manager
     from superset.models.core import Theme
@@ -40,7 +43,7 @@ def import_theme(config: dict[str, Any], overwrite: bool = False) -> None:
 
     if existing:
         if not overwrite or not can_write:
-            return
+            return existing
         config["id"] = existing.id
     elif not can_write:
         raise ThemeImportError(
@@ -60,6 +63,8 @@ def import_theme(config: dict[str, Any], overwrite: bool = False) -> None:
     if not existing and (user := get_user()):
         theme.changed_by = user
         theme.created_by = user
+
+    return theme
 
 
 class ImportThemesCommand(ImportModelsCommand):

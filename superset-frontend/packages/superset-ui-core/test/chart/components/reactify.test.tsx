@@ -77,7 +77,7 @@ describe('reactify(renderFn)', () => {
     }
   }
 
-  it('returns a React component class', () =>
+  test('returns a React component class', () =>
     new Promise(done => {
       render(<TestComponent />);
 
@@ -95,45 +95,45 @@ describe('reactify(renderFn)', () => {
       }, 20);
     }));
   describe('displayName', () => {
-    it('has displayName if renderFn.displayName is defined', () => {
+    test('has displayName if renderFn.displayName is defined', () => {
       expect(TheChart.displayName).toEqual('BoldText');
     });
-    it('does not have displayName if renderFn.displayName is not defined', () => {
+    test('does not have displayName if renderFn.displayName is not defined', () => {
       const AnotherChart = reactify(() => {});
       expect(AnotherChart.displayName).toBeUndefined();
     });
   });
   describe('propTypes', () => {
-    it('has propTypes if renderFn.propTypes is defined', () => {
+    test('has propTypes if renderFn.propTypes is defined', () => {
       /* eslint-disable-next-line react/forbid-foreign-prop-types */
       expect(Object.keys(TheChart.propTypes ?? {})).toEqual(['content']);
     });
-    it('does not have propTypes if renderFn.propTypes is not defined', () => {
+    test('does not have propTypes if renderFn.propTypes is not defined', () => {
       const AnotherChart = reactify(() => {});
       /* eslint-disable-next-line react/forbid-foreign-prop-types */
       expect(Object.keys(AnotherChart.propTypes ?? {})).toEqual([]);
     });
   });
   describe('defaultProps', () => {
-    it('has defaultProps if renderFn.defaultProps is defined', () => {
+    test('has defaultProps if renderFn.defaultProps is defined', () => {
       expect(TheChart.defaultProps).toBe(renderFn.defaultProps);
       render(<TheChart id="test" />);
       expect(screen.getByText('ghi')).toBeInTheDocument();
       expect(screen.getByText('ghi').parentNode).toHaveAttribute('id', 'test');
     });
-    it('does not have defaultProps if renderFn.defaultProps is not defined', () => {
+    test('does not have defaultProps if renderFn.defaultProps is not defined', () => {
       const AnotherChart = reactify(() => {});
       expect(AnotherChart.defaultProps).toBeUndefined();
     });
   });
-  it('does not try to render if not mounted', () => {
+  test('does not try to render if not mounted', () => {
     const anotherRenderFn = jest.fn();
     const AnotherChart = reactify(anotherRenderFn); // enables valid new AnotherChart() call
-    // @ts-ignore
+    // @ts-expect-error
     new AnotherChart({ id: 'test' }).execute();
     expect(anotherRenderFn).not.toHaveBeenCalled();
   });
-  it('calls willUnmount hook when it is provided', () =>
+  test('calls willUnmount hook when it is provided', () =>
     new Promise(done => {
       const { unmount } = render(<AnotherTestComponent />);
       setTimeout(() => {

@@ -20,72 +20,71 @@
 import { screen, fireEvent, render } from 'spec/helpers/testing-library';
 import { ErrorAlert } from './ErrorAlert';
 
-describe('ErrorAlert', () => {
-  it('renders the error message correctly', () => {
-    render(
-      <ErrorAlert
-        errorType="Error"
-        message="Something went wrong"
-        type="error"
-      />,
-    );
+// ErrorAlert
+test('ErrorAlert renders the error message correctly', () => {
+  render(
+    <ErrorAlert
+      errorType="Error"
+      message="Something went wrong"
+      type="error"
+    />,
+  );
 
-    expect(screen.getByText('Error')).toBeInTheDocument();
-    expect(screen.getByText('Something went wrong')).toBeInTheDocument();
-  });
+  expect(screen.getByText('Error')).toBeInTheDocument();
+  expect(screen.getByText('Something went wrong')).toBeInTheDocument();
+});
 
-  it('renders the description when provided', () => {
-    const description = 'This is a detailed description';
-    render(
-      <ErrorAlert
-        errorType="Error"
-        message="Something went wrong"
-        type="error"
-        description={description}
-      />,
-    );
+test('ErrorAlert renders the description when provided', () => {
+  const description = 'This is a detailed description';
+  render(
+    <ErrorAlert
+      errorType="Error"
+      message="Something went wrong"
+      type="error"
+      description={description}
+    />,
+  );
 
-    expect(screen.getByText(description)).toBeInTheDocument();
-  });
+  expect(screen.getByText(description)).toBeInTheDocument();
+});
 
-  it('toggles description details visibility when show more/less is clicked', () => {
-    const descriptionDetails = 'Additional details about the error.';
-    render(
-      <ErrorAlert
-        errorType="Error"
-        message="Something went wrong"
-        type="error"
-        descriptionDetails={descriptionDetails}
-        descriptionDetailsCollapsed
-      />,
-    );
+test('ErrorAlert toggles description details visibility when show more/less is clicked', () => {
+  const descriptionDetails = 'Additional details about the error.';
+  render(
+    <ErrorAlert
+      errorType="Error"
+      message="Something went wrong"
+      type="error"
+      descriptionDetails={descriptionDetails}
+      descriptionDetailsCollapsed
+    />,
+  );
 
-    const showMoreButton = screen.getByText('See more');
-    expect(showMoreButton).toBeInTheDocument();
+  const showMoreButton = screen.getByText('See more');
+  expect(showMoreButton).toBeInTheDocument();
 
-    fireEvent.click(showMoreButton);
-    expect(screen.getByText(descriptionDetails)).toBeInTheDocument();
+  fireEvent.click(showMoreButton);
+  expect(screen.getByText(descriptionDetails)).toBeInTheDocument();
 
-    const showLessButton = screen.getByText('See less');
-    fireEvent.click(showLessButton);
-    expect(screen.queryByText(descriptionDetails)).not.toBeInTheDocument();
-  });
+  const showLessButton = screen.getByText('See less');
+  fireEvent.click(showLessButton);
+  expect(screen.queryByText(descriptionDetails)).not.toBeInTheDocument();
+});
 
-  it('renders compact mode with a tooltip and modal', () => {
-    render(
-      <ErrorAlert
-        errorType="Error"
-        message="Compact mode example"
-        type="error"
-        compact
-        descriptionDetails="Detailed description in compact mode."
-      />,
-    );
+test('ErrorAlert renders compact mode with a tooltip and modal', () => {
+  render(
+    <ErrorAlert
+      errorType="Error"
+      message="Compact mode example"
+      type="error"
+      compact
+      descriptionDetails="Detailed description in compact mode."
+    />,
+  );
 
-    const iconTrigger = screen.getByText('Error');
-    expect(iconTrigger).toBeInTheDocument();
+  const iconTrigger = screen.getByText('Error');
+  expect(iconTrigger).toBeInTheDocument();
 
-    fireEvent.click(iconTrigger);
-    expect(screen.getByText('Compact mode example')).toBeInTheDocument();
-  });
+  fireEvent.click(iconTrigger);
+  expect(screen.getByText('Compact mode example')).toBeInTheDocument();
 });

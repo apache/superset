@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, ReactElement } from 'react';
+import { useState, useEffect, ReactElement, useCallback } from 'react';
 
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
-  styled,
-  t,
   getChartMetadataRegistry,
   getClientErrorObject,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { ResultsPaneProps, QueryResultInterface } from '../types';
@@ -33,6 +33,14 @@ import { TableControls } from './DataTableControls';
 
 const Error = styled.pre`
   margin-top: ${({ theme }) => `${theme.sizeUnit * 4}px`};
+`;
+
+const StyledDiv = styled.div`
+  ${() => `
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    `}
 `;
 
 const cache = new WeakMap();
@@ -47,6 +55,7 @@ export const useResultsPane = ({
   isVisible,
   dataSize = 50,
   canDownload,
+  columnDisplayNames,
 }: ResultsPaneProps): ReactElement[] => {
   const metadata = getChartMetadataRegistry().get(
     queryFormData?.viz_type || queryFormData?.vizType,
@@ -58,11 +67,15 @@ export const useResultsPane = ({
   const queryCount = metadata?.queryObjectCount ?? 1;
   const isQueryCountDynamic = metadata?.dynamicQueryObjectCount;
 
+  const noOpInputChange = useCallback(() => {}, []);
+
   useEffect(() => {
     // it's an invalid formData when gets a errorMessage
     if (errorMessage) return;
     if (isRequest && cache.has(queryFormData)) {
-      setResultResp(ensureIsArray(cache.get(queryFormData)));
+      setResultResp(
+        ensureIsArray(cache.get(queryFormData)) as QueryResultInterface[],
+      );
       setResponseError('');
       if (queryForce) {
         setForceQuery?.(false);
@@ -79,7 +92,7 @@ export const useResultsPane = ({
         ownState,
       })
         .then(({ json }) => {
-          setResultResp(ensureIsArray(json.result));
+          setResultResp(ensureIsArray(json.result) as QueryResultInterface[]);
           setResponseError('');
           cache.set(queryFormData, json.result);
           if (queryForce) {
@@ -123,7 +136,7 @@ export const useResultsPane = ({
           columnTypes={[]}
           rowcount={0}
           datasourceId={queryFormData.datasource}
-          onInputChange={() => {}}
+          onInputChange={noOpInputChange}
           isLoading={false}
           canDownload={canDownload}
         />
@@ -144,16 +157,18 @@ export const useResultsPane = ({
     : resultResp.slice(0, queryCount);
 
   return resultRespToDisplay.map((result, idx) => (
-    <SingleQueryResultPane
-      data={result.data}
-      colnames={result.colnames}
-      coltypes={result.coltypes}
-      rowcount={result.rowcount}
-      dataSize={dataSize}
-      datasourceId={queryFormData.datasource}
-      key={idx}
-      isVisible={isVisible}
-      canDownload={canDownload}
-    />
+    <StyledDiv key={idx}>
+      <SingleQueryResultPane
+        data={result.data}
+        colnames={result.colnames}
+        coltypes={result.coltypes}
+        rowcount={result.rowcount}
+        dataSize={dataSize}
+        datasourceId={queryFormData.datasource}
+        isVisible={isVisible}
+        canDownload={canDownload}
+        columnDisplayNames={columnDisplayNames}
+      />
+    </StyledDiv>
   ));
 };

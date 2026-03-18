@@ -77,7 +77,6 @@ x-common-build: &common-build
     INCLUDE_CHROMIUM: ${INCLUDE_CHROMIUM:-false}
     INCLUDE_FIREFOX: ${INCLUDE_FIREFOX:-false}
     BUILD_TRANSLATIONS: ${BUILD_TRANSLATIONS:-false}
-    LOAD_EXAMPLES_DUCKDB: ${LOAD_EXAMPLES_DUCKDB:-true}
 
 services:
   db-light:
@@ -86,7 +85,7 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    image: postgres:16
+    image: postgres:17
     restart: unless-stopped
     volumes:
       - db_home_light:/var/lib/postgresql/data
@@ -116,13 +115,9 @@ services:
       DATABASE_HOST: db-light
       DATABASE_DB: superset_light
       POSTGRES_DB: superset_light
-      SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb?access_mode=read_only"
       SUPERSET_CONFIG_PATH: /app/docker/pythonpath_dev/superset_config_docker_light.py
-      # DuckDB concurrency configuration: DuckDB examples database uses read-only mode
-      # to allow concurrent access from multiple workers/threads without file locking issues
-      # SERVER_WORKER_AMOUNT: 8
-      # SERVER_THREADS_AMOUNT: 1
-      # SERVER_WORKER_CLASS: sync
+      GITHUB_HEAD_REF: ${GITHUB_HEAD_REF:-}
+      GITHUB_SHA: ${GITHUB_SHA:-}
 
   superset-init-light:
     build:
@@ -142,7 +137,6 @@ services:
       DATABASE_HOST: db-light
       DATABASE_DB: superset_light
       POSTGRES_DB: superset_light
-      SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb?access_mode=read_only"
       SUPERSET_CONFIG_PATH: /app/docker/pythonpath_dev/superset_config_docker_light.py
     healthcheck:
       disable: true
@@ -165,8 +159,11 @@ services:
       SCARF_ANALYTICS: "${SCARF_ANALYTICS:-}"
       # configuring the dev-server to use the host.docker.internal to connect to the backend
       superset: "http://superset-light:8088"
+      # Webpack dev server must bind to 0.0.0.0 to be accessible from outside the container
+      WEBPACK_DEVSERVER_HOST: "${WEBPACK_DEVSERVER_HOST:-0.0.0.0}"
+      WEBPACK_DEVSERVER_PORT: "${WEBPACK_DEVSERVER_PORT:-9000}"
     ports:
-      - "127.0.0.1:${NODE_PORT:-9001}:9000"  # Parameterized port
+      - "${NODE_PORT:-9001}:9000"  # Parameterized port, accessible on all interfaces
     command: ["/app/docker/docker-frontend.sh"]
     env_file:
       - path: docker/.env # default
@@ -196,7 +193,6 @@ services:
       DATABASE_DB: test
       POSTGRES_DB: test
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@db-light:5432/test
-      SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb?access_mode=read_only"
       SUPERSET_CONFIG: superset_test_config_light
       PYTHONPATH: /app/pythonpath:/app/docker/pythonpath_dev:/app
 

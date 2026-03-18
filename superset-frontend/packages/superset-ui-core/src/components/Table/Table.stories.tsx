@@ -42,9 +42,16 @@ import HeaderWithRadioGroup from './header-renderers/HeaderWithRadioGroup';
 import TimeCell from './cell-renderers/TimeCell';
 
 export default {
-  title: 'Design System/Components/Table/Examples',
+  title: 'Design System/Components/Table',
   component: Table,
-  argTypes: { onClick: { action: 'clicked' } },
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'A data table component with sorting, pagination, row selection, resizable columns, reorderable columns, and virtualization for large datasets.',
+      },
+    },
+  },
 } as Meta<typeof Table>;
 
 interface BasicData {
@@ -210,6 +217,187 @@ const basicColumns: ColumnsType<BasicData> = [
     key: 'description',
   },
 ];
+
+// Interactive story for docs generation
+export const InteractiveTable = (args: TableProps<object>) => (
+  <Table {...args} />
+);
+
+InteractiveTable.args = {
+  size: 'small',
+  bordered: false,
+  loading: false,
+  sticky: true,
+  resizable: false,
+  reorderable: false,
+  usePagination: false,
+  data: [
+    {
+      key: 1,
+      name: 'Floppy Disk 10 pack',
+      category: 'Disk Storage',
+      price: 9.99,
+    },
+    { key: 2, name: 'DVD 100 pack', category: 'Optical Storage', price: 27.99 },
+    { key: 3, name: '128 GB SSD', category: 'Harddrive', price: 49.99 },
+    { key: 4, name: '4GB 144mhz', category: 'Memory', price: 19.99 },
+    {
+      key: 5,
+      name: '1GB USB Flash Drive',
+      category: 'Portable Storage',
+      price: 9.99,
+    },
+  ],
+  columns: [
+    { title: 'Name', dataIndex: 'name', key: 'name', width: 200 },
+    { title: 'Category', dataIndex: 'category', key: 'category', width: 150 },
+    { title: 'Price', dataIndex: 'price', key: 'price', width: 100 },
+  ],
+};
+
+InteractiveTable.argTypes = {
+  size: {
+    control: 'select',
+    options: ['small', 'middle', 'large'],
+    description: 'Table size.',
+  },
+  bordered: {
+    control: 'boolean',
+    description: 'Whether to show all table borders.',
+  },
+  loading: {
+    control: 'boolean',
+    description: 'Whether the table is in a loading state.',
+  },
+  sticky: {
+    control: 'boolean',
+    description: 'Whether the table header is sticky.',
+  },
+  resizable: {
+    control: 'boolean',
+    description: 'Whether columns can be resized by dragging column edges.',
+  },
+  reorderable: {
+    control: 'boolean',
+    description:
+      'EXPERIMENTAL: Whether columns can be reordered by dragging. May not work in all contexts.',
+  },
+  usePagination: {
+    control: 'boolean',
+    description:
+      'Whether to enable pagination. When enabled, the table displays 5 rows per page.',
+  },
+};
+
+InteractiveTable.parameters = {
+  docs: {
+    staticProps: {
+      height: 350,
+      defaultPageSize: 5,
+      pageSizeOptions: ['5', '10'],
+      data: [
+        {
+          key: 1,
+          name: 'Floppy Disk 10 pack',
+          category: 'Disk Storage',
+          price: 9.99,
+        },
+        {
+          key: 2,
+          name: 'DVD 100 pack',
+          category: 'Optical Storage',
+          price: 27.99,
+        },
+        { key: 3, name: '128 GB SSD', category: 'Harddrive', price: 49.99 },
+        { key: 4, name: '4GB 144mhz', category: 'Memory', price: 19.99 },
+        {
+          key: 5,
+          name: '1GB USB Flash Drive',
+          category: 'Portable Storage',
+          price: 9.99,
+        },
+        { key: 6, name: '256 GB SSD', category: 'Harddrive', price: 89.99 },
+        { key: 7, name: '1 TB SSD', category: 'Harddrive', price: 349.99 },
+        { key: 8, name: '16 GB DDR4', category: 'Memory', price: 59.99 },
+        { key: 9, name: '32 GB DDR5', category: 'Memory', price: 129.99 },
+        {
+          key: 10,
+          name: 'Blu-ray 50 pack',
+          category: 'Optical Storage',
+          price: 34.99,
+        },
+        {
+          key: 11,
+          name: '64 GB USB Drive',
+          category: 'Portable Storage',
+          price: 14.99,
+        },
+        { key: 12, name: '2 TB HDD', category: 'Harddrive', price: 59.99 },
+      ],
+      columns: [
+        { title: 'Name', dataIndex: 'name', key: 'name', width: 200 },
+        {
+          title: 'Category',
+          dataIndex: 'category',
+          key: 'category',
+          width: 150,
+        },
+        { title: 'Price', dataIndex: 'price', key: 'price', width: 100 },
+      ],
+    },
+    liveExample: `function Demo() {
+  const data = [
+    { key: 1, name: 'PostgreSQL', type: 'Database', status: 'Active' },
+    { key: 2, name: 'MySQL', type: 'Database', status: 'Active' },
+    { key: 3, name: 'SQLite', type: 'Database', status: 'Inactive' },
+    { key: 4, name: 'Presto', type: 'Query Engine', status: 'Active' },
+  ];
+  const columns = [
+    { title: 'Name', dataIndex: 'name', key: 'name', width: 150 },
+    { title: 'Type', dataIndex: 'type', key: 'type' },
+    { title: 'Status', dataIndex: 'status', key: 'status', width: 100 },
+  ];
+  return <Table data={data} columns={columns} size="small" />;
+}`,
+    examples: [
+      {
+        title: 'With Pagination',
+        code: `function PaginatedTable() {
+  const data = Array.from({ length: 20 }, (_, i) => ({
+    key: i,
+    name: 'Record ' + (i + 1),
+    value: Math.round(Math.random() * 1000),
+    category: ['A', 'B', 'C'][i % 3],
+  }));
+  const columns = [
+    { title: 'Name', dataIndex: 'name', key: 'name' },
+    { title: 'Value', dataIndex: 'value', key: 'value', width: 100 },
+    { title: 'Category', dataIndex: 'category', key: 'category', width: 100 },
+  ];
+  return (
+    <Table
+      data={data}
+      columns={columns}
+      size="small"
+      pageSizeOptions={['5', '10']}
+      defaultPageSize={5}
+    />
+  );
+}`,
+      },
+      {
+        title: 'Loading State',
+        code: `function LoadingTable() {
+  const columns = [
+    { title: 'Name', dataIndex: 'name', key: 'name' },
+    { title: 'Status', dataIndex: 'status', key: 'status' },
+  ];
+  return <Table data={[]} columns={columns} size="small" loading />;
+}`,
+      },
+    ],
+  },
+};
 
 const bigColumns: ColumnsType<ExampleData> = [
   {

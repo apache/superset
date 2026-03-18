@@ -18,12 +18,12 @@
  */
 import {
   DataRecordValue,
-  GenericDataType,
   NumberFormatter,
   QueryObjectFilterClause,
   TimeFormatter,
   ExtraFormData,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { FALSE_STRING, NULL_STRING, TRUE_STRING } from 'src/utils/common';
 import {
   Clauses,
@@ -50,7 +50,6 @@ export const getSelectExtraFormData = (
       {
         col,
         op: shouldExcludeFilter ? ('NOT IN' as const) : ('IN' as const),
-        // @ts-ignore
         val: value,
       },
     ];

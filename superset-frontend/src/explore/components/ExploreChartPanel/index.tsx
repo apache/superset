@@ -17,35 +17,41 @@
  * under the License.
  */
 import { useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import Split from 'react-split';
+import { t } from '@apache-superset/core/translation';
 import {
-  css,
   DatasourceType,
   ensureIsArray,
   isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
-  styled,
   SupersetClient,
-  t,
-  useTheme,
   QueryFormData,
   JsonObject,
   getExtensionsRegistry,
 } from '@superset-ui/core';
+import { Alert } from '@apache-superset/core/components';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import ChartContainer from 'src/components/Chart/ChartContainer';
+import { updateExploreChartState } from 'src/explore/actions/exploreActions';
+import {
+  convertChartStateToOwnState,
+  hasChartStateConverter,
+} from 'src/dashboard/util/chartStateConverter';
 import {
   getItem,
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
-import { Alert } from '@superset-ui/core/components';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { buildV1ChartDataPayload } from 'src/explore/exploreUtils';
 import { getChartRequiredFieldsMissingMessage } from 'src/utils/getChartRequiredFieldsMissingMessage';
 import type { ChartState, Datasource } from 'src/explore/types';
+import type { ExploreState } from 'src/explore/reducers/exploreReducer';
 import type { Slice } from 'src/types/Chart';
+import LastQueriedLabel from 'src/components/LastQueriedLabel';
 import { DataTablesPane } from '../DataTablesPane';
 import { ChartPills } from '../ChartPills';
 import { ExploreAlert } from '../ExploreAlert';
@@ -90,6 +96,7 @@ export interface ExploreChartPanelProps {
   errorMessage?: ReactNode;
   triggerRender?: boolean;
   chartAlert?: string;
+  exploreState?: JsonObject;
 }
 
 type PanelSizes = [number, number];
@@ -126,6 +133,28 @@ const Styles = styled.div<{ showSplite: boolean }>`
   }
 `;
 
+const EMPTY_OBJECT: Record<string, never> = {};
+
+const createOwnStateWithChartState = (
+  baseOwnState: JsonObject,
+  chartState: { state?: JsonObject } | undefined,
+  vizTypeArg: string,
+): JsonObject => {
+  if (!hasChartStateConverter(vizTypeArg)) {
+    return baseOwnState;
+  }
+  const state = chartState?.state;
+  if (!state) {
+    return baseOwnState;
+  }
+  const convertedState = convertChartStateToOwnState(vizTypeArg, state);
+  return {
+    ...baseOwnState,
+    ...convertedState,
+    chartState: state,
+  };
+};
+
 const ExploreChartPanel = ({
   chart,
   slice,
@@ -145,8 +174,34 @@ const ExploreChartPanel = ({
   can_download: canDownload,
 }: ExploreChartPanelProps) => {
   const theme = useTheme();
+  const dispatch = useDispatch();
   const gutterMargin = theme.sizeUnit * GUTTER_SIZE_FACTOR;
   const gutterHeight = theme.sizeUnit * GUTTER_SIZE_FACTOR;
+
+  const chartState = useSelector(
+    (state: { explore?: ExploreState }) =>
+      state.explore?.chartStates?.[chart.id],
+  );
+
+  const handleChartStateChange = useCallback(
+    (chartStateArg: JsonObject) => {
+      if (hasChartStateConverter(vizType)) {
+        dispatch(updateExploreChartState(chart.id, chartStateArg));
+      }
+    },
+    [dispatch, chart.id, vizType],
+  );
+
+  const mergedOwnState = useMemo(
+    () =>
+      createOwnStateWithChartState(
+        ownState || EMPTY_OBJECT,
+        chartState as { state?: JsonObject } | undefined,
+        vizType,
+      ),
+    [ownState, chartState, vizType],
+  );
+
   const {
     ref: chartPanelRef,
     observerRef: resizeObserverRef,
@@ -183,14 +238,14 @@ const ExploreChartPanel = ({
 
   const updateQueryContext = useCallback(
     async function fetchChartData() {
-      if (slice && slice.query_context === null) {
+      if (slice && slice.query_context === null && slice.form_data) {
         const queryContext = await buildV1ChartDataPayload({
           formData: slice.form_data,
           force,
           resultFormat: 'json',
           resultType: 'full',
-          setDataMask: null,
-          ownState: null,
+          setDataMask: undefined,
+          ownState: undefined,
         });
 
         await SupersetClient.put({
@@ -259,7 +314,7 @@ const ExploreChartPanel = ({
           <ChartContainer
             width={Math.floor(chartPanelWidth)}
             height={chartPanelHeight}
-            ownState={ownState}
+            ownState={mergedOwnState}
             annotationData={chart.annotationData}
             chartId={chart.id}
             triggerRender={triggerRender}
@@ -271,10 +326,13 @@ const ExploreChartPanel = ({
             onQuery={onQuery}
             queriesResponse={chart.queriesResponse}
             chartIsStale={chartIsStale}
-            setControlValue={actions.setControlValue}
+            setControlValue={(name, value) =>
+              actions.setControlValue(name, value, chart.id)
+            }
             timeout={timeout}
             triggerQuery={chart.triggerQuery}
             vizType={vizType}
+            onChartStateChange={handleChartStateChange}
             {...(chart.chartAlert && { chartAlert: chart.chartAlert })}
             {...(chart.chartStackTrace && {
               chartStackTrace: chart.chartStackTrace,
@@ -302,8 +360,9 @@ const ExploreChartPanel = ({
       errorMessage,
       force,
       formData,
+      handleChartStateChange,
       onQuery,
-      ownState,
+      mergedOwnState,
       timeout,
       triggerRender,
       vizType,
@@ -395,10 +454,29 @@ const ExploreChartPanel = ({
               queriesResponse: chart.queriesResponse,
             })}
             {...(chart.chartStatus && { chartStatus: chart.chartStatus })}
-            hideRowCount={formData?.matrixify_enabled === true}
+            hideRowCount={
+              (formData?.matrixify_mode_rows !== undefined &&
+                formData?.matrixify_mode_rows !== 'disabled') ||
+              (formData?.matrixify_mode_columns !== undefined &&
+                formData?.matrixify_mode_columns !== 'disabled')
+            }
+            formData={formData}
           />
         </ChartHeaderExtension>
         {renderChart()}
+        {!chart.chartStatus || chart.chartStatus !== 'loading' ? (
+          <div
+            css={css`
+              display: flex;
+              justify-content: flex-end;
+              padding-top: ${theme.sizeUnit * 2}px;
+            `}
+          >
+            <LastQueriedLabel
+              queriedDttm={chart.queriesResponse?.[0]?.queried_dttm ?? null}
+            />
+          </div>
+        ) : null}
       </div>
     ),
     [
@@ -412,8 +490,10 @@ const ExploreChartPanel = ({
       chart.chartUpdateEndTime,
       refreshCachedQuery,
       formData?.row_limit,
-      formData?.matrixify_enabled,
+      formData?.matrixify_mode_rows,
+      formData?.matrixify_mode_columns,
       renderChart,
+      theme.sizeUnit,
     ],
   );
 

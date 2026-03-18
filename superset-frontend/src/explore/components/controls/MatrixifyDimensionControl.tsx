@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
-import { t, SupersetClient, getColumnLabel } from '@superset-ui/core';
+import { useEffect, useState, useRef, useMemo } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient, getColumnLabel } from '@superset-ui/core';
 import { Select, Space } from '@superset-ui/core/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { optionLabel } from 'src/utils/common';
@@ -31,6 +32,7 @@ export interface MatrixifyDimensionControlValue {
   dimension: string;
   values: any[];
   topNValues?: TopNValue[]; // Store topN values with their metric values
+  totalValueCount?: number; // Total number of distinct values for this dimension
 }
 
 interface MatrixifyDimensionControlProps {
@@ -40,11 +42,14 @@ interface MatrixifyDimensionControlProps {
   label?: string;
   description?: string;
   hovered?: boolean;
-  selectionMode?: 'members' | 'topn';
+  renderTrigger?: boolean;
+  selectionMode?: 'members' | 'topn' | 'all';
   topNMetric?: string;
   topNValue?: number;
   topNOrder?: 'ASC' | 'DESC';
+  allSortBy?: 'a_to_z' | 'z_to_a' | 'metric';
   formData?: any; // For access to filters and time range
+  validationErrors?: string[];
 }
 
 export default function MatrixifyDimensionControl(
@@ -56,12 +61,14 @@ export default function MatrixifyDimensionControl(
     onChange,
     label,
     description,
-    hovered,
+    renderTrigger,
     selectionMode = 'members',
     topNMetric,
     topNValue,
     topNOrder = 'DESC',
+    allSortBy = 'a_to_z',
     formData,
+    validationErrors,
   } = props;
 
   const [dimensionOptions, setDimensionOptions] = useState<
@@ -71,8 +78,28 @@ export default function MatrixifyDimensionControl(
     Array<{ label: string; value: any }>
   >([]);
   const [loadingValues, setLoadingValues] = useState(false);
-  const [loadingTopN, setLoadingTopN] = useState(false);
   const [topNError, setTopNError] = useState<string | null>(null);
+  const [dimensionHovered, setDimensionHovered] = useState(false);
+  const [valuesHovered, setValuesHovered] = useState(false);
+  const prevSelectionMode = useRef(selectionMode);
+
+  // Reset values when selection mode changes
+  useEffect(() => {
+    // Only clear values when actually switching between modes, not on initial load or re-render
+    if (
+      prevSelectionMode.current !== selectionMode &&
+      prevSelectionMode.current !== undefined &&
+      value?.dimension
+    ) {
+      // Clear values when switching between members and topn modes
+      onChange({
+        dimension: value.dimension,
+        values: [],
+        topNValues: [],
+      });
+    }
+    prevSelectionMode.current = selectionMode;
+  }, [selectionMode]);
 
   // Initialize dimension options from datasource
   useEffect(() => {
@@ -85,15 +112,19 @@ export default function MatrixifyDimensionControl(
     }
   }, [datasource]);
 
-  // Load dimension values when dimension changes
+  // Load dimension values when dimension changes (members mode, or all mode with A-Z/Z-A sort)
+  const isAllWithMetric = selectionMode === 'all' && allSortBy === 'metric';
   useEffect(() => {
     if (
       !value?.dimension ||
       !datasource ||
       !datasource.id ||
-      selectionMode !== 'members'
+      (selectionMode !== 'members' && selectionMode !== 'all') ||
+      isAllWithMetric
     ) {
-      setValueOptions([]);
+      if (selectionMode !== 'members' && !isAllWithMetric) {
+        setValueOptions([]);
+      }
       return undefined;
     }
 
@@ -118,13 +149,43 @@ export default function MatrixifyDimensionControl(
           signal,
           endpoint,
         });
-        const values = json.result || [];
+        let values = json.result || [];
+
+        // Sort alphabetically for 'all' mode
+        if (selectionMode === 'all') {
+          const descending = allSortBy === 'z_to_a';
+          values = [...values].sort((a: any, b: any) => {
+            const strA = String(a).toLowerCase();
+            const strB = String(b).toLowerCase();
+            if (strA < strB) return descending ? 1 : -1;
+            if (strA > strB) return descending ? -1 : 1;
+            return 0;
+          });
+        }
+
         setValueOptions(
           values.map((v: any) => ({
             label: optionLabel(v),
             value: v,
           })),
         );
+
+        if (!signal.aborted) {
+          const MAX_ALL_DIMENSION_VALUES = 25;
+          const allValues =
+            selectionMode === 'all'
+              ? values.slice(0, MAX_ALL_DIMENSION_VALUES)
+              : value.values || [];
+          const updatedValue: MatrixifyDimensionControlValue = {
+            dimension: value.dimension,
+            values: allValues,
+            totalValueCount: values.length,
+          };
+          if (value.topNValues) {
+            updatedValue.topNValues = value.topNValues;
+          }
+          onChange(updatedValue);
+        }
       } catch (error) {
         setValueOptions([]);
       } finally {
@@ -137,41 +198,46 @@ export default function MatrixifyDimensionControl(
     return () => {
       controller.abort();
     };
-  }, [value?.dimension, datasource, selectionMode]);
+  }, [value?.dimension, datasource, selectionMode, allSortBy]);
 
   // Convert topNValue to number for consistent comparison
-  const topNValueNum =
-    typeof topNValue === 'string' ? parseInt(topNValue, 10) : topNValue;
+  const topNValueNum = useMemo(() => {
+    if (topNValue === null || topNValue === undefined) {
+      return null;
+    }
+    if (typeof topNValue === 'string') {
+      if (topNValue === '') return null;
+      const num = parseInt(topNValue, 10);
+      return Number.isNaN(num) ? null : num;
+    }
+    return typeof topNValue === 'number' ? topNValue : null;
+  }, [topNValue]);
 
-  // Load TopN values when in TopN mode
+  // Load TopN values when in TopN mode, or All + Metric sort
   useEffect(() => {
-    if (
-      !value?.dimension ||
-      !datasource ||
-      selectionMode !== 'topn' ||
-      !topNMetric ||
-      !topNValueNum
-    ) {
-      // Clear the values when not in topn mode
-      if (
-        selectionMode !== 'topn' &&
-        value?.values &&
-        value.values.length > 0
-      ) {
-        onChange({
-          dimension: value.dimension,
-          values: [],
-          topNValues: [],
-        });
-      }
+    const isTopN = selectionMode === 'topn';
+    const isAllMetric = selectionMode === 'all' && allSortBy === 'metric';
+
+    if (!value?.dimension || !datasource || (!isTopN && !isAllMetric)) {
       return undefined;
     }
+
+    if (!topNMetric) {
+      return undefined;
+    }
+
+    // For topn mode, also require a valid limit
+    if (isTopN && (!topNValueNum || topNValueNum <= 0)) {
+      return undefined;
+    }
+
+    const MAX_ALL_DIMENSION_VALUES = 25;
+    const limit = isAllMetric ? MAX_ALL_DIMENSION_VALUES : topNValueNum!;
 
     const controller = new AbortController();
     const { signal } = controller;
 
     const loadTopNValues = async () => {
-      setLoadingTopN(true);
       setTopNError(null);
 
       try {
@@ -180,14 +246,13 @@ export default function MatrixifyDimensionControl(
           datasource: datasourceId,
           column: value.dimension,
           metric: topNMetric,
-          limit: topNValueNum,
+          limit,
           sortAscending: topNOrder === 'ASC',
           filters: formData?.adhoc_filters || [],
           timeRange: formData?.time_range,
         });
 
         if (!signal.aborted) {
-          // Always update with the new topN values
           const dimensionValues = extractDimensionValues(values);
           onChange({
             dimension: value.dimension,
@@ -198,16 +263,11 @@ export default function MatrixifyDimensionControl(
       } catch (error: any) {
         if (!signal.aborted) {
           setTopNError(error.message || t('Failed to load top values'));
-          // Clear values on error
           onChange({
             dimension: value.dimension,
             values: [],
             topNValues: [],
           });
-        }
-      } finally {
-        if (!signal.aborted) {
-          setLoadingTopN(false);
         }
       }
     };
@@ -221,12 +281,12 @@ export default function MatrixifyDimensionControl(
     value?.dimension,
     datasource,
     selectionMode,
+    allSortBy,
     topNMetric,
-    topNValueNum, // Use the converted number
+    topNValueNum,
     topNOrder,
     formData?.adhoc_filters,
     formData?.time_range,
-    onChange, // Add onChange to deps
   ]);
 
   const handleDimensionChange = (dimension: string) => {
@@ -246,49 +306,60 @@ export default function MatrixifyDimensionControl(
 
   return (
     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-      <Select
-        ariaLabel={t('Select dimension')}
-        value={value?.dimension || undefined}
-        header={
-          <ControlHeader
-            label={label || t('Dimension')}
-            description={description || t('Select a dimension')}
-            hovered={hovered}
-          />
-        }
-        onChange={handleDimensionChange}
-        options={dimensionOptions.map(([val, label]) => ({
-          value: val,
-          label,
-        }))}
-        placeholder={t('Select a dimension')}
-        allowClear
-      />
-
-      {value?.dimension && selectionMode === 'members' && (
+      <div
+        onMouseEnter={() => setDimensionHovered(true)}
+        onMouseLeave={() => setDimensionHovered(false)}
+      >
         <Select
-          ariaLabel={t('Select dimension values')}
-          value={value?.values || []}
+          ariaLabel={t('Select dimension')}
+          value={value?.dimension || undefined}
           header={
             <ControlHeader
-              label={t('Dimension values')}
-              description={t('Select dimension values')}
+              label={label || t('Dimension')}
+              description={description || t('Select a dimension')}
+              hovered={dimensionHovered}
+              renderTrigger={renderTrigger}
+              validationErrors={validationErrors}
             />
           }
-          mode="multiple"
-          onChange={handleValuesChange}
-          options={valueOptions}
-          placeholder={t('Select values')}
-          loading={loadingValues}
+          onChange={handleDimensionChange}
+          options={dimensionOptions.map(([val, label]) => ({
+            value: val,
+            label,
+          }))}
+          placeholder={t('Select a dimension')}
           allowClear
-          showSearch
-          notFoundContent={t('No results')}
         />
+      </div>
+
+      {value?.dimension && selectionMode === 'members' && (
+        <div
+          onMouseEnter={() => setValuesHovered(true)}
+          onMouseLeave={() => setValuesHovered(false)}
+        >
+          <Select
+            ariaLabel={t('Select dimension values')}
+            value={value?.values || []}
+            header={
+              <ControlHeader
+                label={t('Dimension values')}
+                description={t('Select dimension values')}
+                renderTrigger={renderTrigger}
+                hovered={valuesHovered}
+              />
+            }
+            mode="multiple"
+            onChange={handleValuesChange}
+            options={valueOptions}
+            placeholder={t('Select values')}
+            loading={loadingValues}
+            allowClear
+            showSearch
+            notFoundContent={t('No results')}
+          />
+        </div>
       )}
 
-      {value?.dimension && selectionMode === 'topn' && loadingTopN && (
-        <div>{t('Loading top values...')}</div>
-      )}
       {value?.dimension && selectionMode === 'topn' && topNError && (
         <div css={theme => ({ color: theme.colorError })}>
           {t('Error: %s', topNError)}

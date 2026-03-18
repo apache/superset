@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { css, styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { css, styled } from '@apache-superset/core/theme';
 import { useEffect, useState, useRef } from 'react';
 import cx from 'classnames';
 import { Tooltip } from '../Tooltip';
@@ -34,8 +35,10 @@ const StyledEditableTitle = styled.span<{
   canEdit: boolean;
 }>`
   &.editable-title {
-    display: inline-block;
-    width: 100%;
+    display: inline;
+    &.editable-title--editing {
+      width: 100%;
+    }
 
     input,
     textarea {
@@ -83,6 +86,7 @@ export function EditableTitle({
   renderLink,
   maxWidth,
   autoSize = true,
+  onEditingChange,
   ...rest
 }: EditableTitleProps) {
   const [isEditing, setIsEditing] = useState(editing);
@@ -128,7 +132,8 @@ export function EditableTitle({
         textArea.scrollTop = textArea.scrollHeight;
       }
     }
-  }, [isEditing]);
+    onEditingChange?.(isEditing);
+  }, [isEditing, onEditingChange]);
 
   function handleClick() {
     if (!canEdit || isEditing) return;

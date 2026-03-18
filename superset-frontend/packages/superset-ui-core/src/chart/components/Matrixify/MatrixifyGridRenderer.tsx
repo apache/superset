@@ -18,7 +18,7 @@
  */
 
 import { useMemo } from 'react';
-import { styled } from '../../../theme';
+import { styled } from '@apache-superset/core/theme';
 import { MatrixifyFormData } from '../../types/matrixify';
 import { generateMatrixifyGrid } from './MatrixifyGridGenerator';
 import MatrixifyGridCell from './MatrixifyGridCell';
@@ -128,9 +128,15 @@ function MatrixifyGridRenderer({
     [formData],
   );
 
-  // Determine layout parameters
-  const showRowLabels = formData.matrixify_show_row_labels ?? true;
-  const showColumnHeaders = formData.matrixify_show_column_headers ?? true;
+  // Determine layout parameters - only show headers/labels if layout is enabled
+  const showRowLabels =
+    formData.matrixify_mode_rows !== undefined &&
+    formData.matrixify_mode_rows !== 'disabled' &&
+    (formData.matrixify_show_row_labels ?? true);
+  const showColumnHeaders =
+    formData.matrixify_mode_columns !== undefined &&
+    formData.matrixify_mode_columns !== 'disabled' &&
+    (formData.matrixify_show_column_headers ?? true);
   const rowHeight = formData.matrixify_row_height || DEFAULT_ROW_HEIGHT;
   const fitColumnsDynamically =
     formData.matrixify_fit_columns_dynamically ?? true;

@@ -26,6 +26,7 @@ import {
 import { SamplesPane } from '../components';
 import { createSamplesPaneProps } from './fixture';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SamplesPane', () => {
   fetchMock.post(
     'end:/datasource/samples?force=false&datasource_type=table&datasource_id=34',
@@ -62,7 +63,7 @@ describe('SamplesPane', () => {
   const setForceQuery = jest.fn();
 
   afterAll(() => {
-    fetchMock.reset();
+    fetchMock.clearHistory().removeRoutes();
     jest.resetAllMocks();
   });
 

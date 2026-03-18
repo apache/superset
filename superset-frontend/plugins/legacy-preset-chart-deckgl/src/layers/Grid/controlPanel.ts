@@ -20,7 +20,8 @@ import {
   ControlPanelConfig,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
-import { t, validateNonEmpty } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { validateNonEmpty } from '@superset-ui/core';
 import {
   filterNulls,
   autozoom,
@@ -33,6 +34,8 @@ import {
   viewport,
   spatial,
   mapboxStyle,
+  tooltipContents,
+  tooltipTemplate,
   legendPosition,
   generateDeckGLColorSchemeControls,
 } from '../../utilities/Shared_DeckGL';
@@ -49,6 +52,8 @@ const config: ControlPanelConfig = {
         ['row_limit'],
         [filterNulls],
         ['adhoc_filters'],
+        [tooltipContents],
+        [tooltipTemplate],
       ],
     },
     {

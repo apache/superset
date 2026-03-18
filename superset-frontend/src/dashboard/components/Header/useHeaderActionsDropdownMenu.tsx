@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { Dispatch, ReactElement, SetStateAction } from 'react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
+import { useHistory } from 'react-router-dom';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { isEmpty } from 'lodash';
 import { URL_PARAMS } from 'src/constants';
 import { useShareMenuItems } from 'src/dashboard/components/menu/ShareMenuItems';
@@ -51,6 +53,7 @@ export const useHeaderActionsMenu = ({
   userCanShare,
   userCanSave,
   userCanCurate,
+  userCanExport,
   isLoading,
   lastModifiedTime,
   addSuccessToast,
@@ -63,8 +66,13 @@ export const useHeaderActionsMenu = ({
   dashboardTitle,
   logEvent,
   setCurrentReportDeleting,
-}: HeaderDropdownProps) => {
+}: HeaderDropdownProps): [
+  ReactElement,
+  boolean,
+  Dispatch<SetStateAction<boolean>>,
+] => {
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+  const history = useHistory();
   const directPathToChild = useSelector(
     (state: RootState) => state.dashboardState.directPathToChild,
   );
@@ -97,7 +105,7 @@ export const useHeaderActionsMenu = ({
             hash: window.location.hash,
             standalone: isCurrentlyStandalone ? null : 1,
           });
-          window.location.replace(url);
+          history.replace(url);
           break;
         }
         case MenuKeys.ManageEmbedded:
@@ -114,6 +122,7 @@ export const useHeaderActionsMenu = ({
       showPropertiesModal,
       showRefreshModal,
       manageEmbedded,
+      history,
     ],
   );
 
@@ -154,17 +163,20 @@ export const useHeaderActionsMenu = ({
   const downloadMenuItem = useDownloadMenuItems({
     pdfMenuItemTitle: t('Export to PDF'),
     imageMenuItemTitle: t('Download as Image'),
-    dashboardTitle,
+    dashboardTitle: dashboardTitle ?? '',
     dashboardId,
     title: t('Download'),
     disabled: isLoading,
     logEvent,
+    userCanExport,
   });
 
   const reportMenuItem = useHeaderReportMenuItems({
     dashboardId: dashboardInfo?.id,
     showReportModal,
-    setCurrentReportDeleting,
+    setCurrentReportDeleting: setCurrentReportDeleting as (
+      report: unknown,
+    ) => void,
   });
 
   // Helper function to create menu items for components with triggerNode
@@ -192,7 +204,10 @@ export const useHeaderActionsMenu = ({
       // Auto-refresh settings (session-only in view mode)
       menuItems.push({
         key: MenuKeys.AutorefreshModal,
-        label: t('Set auto-refresh'),
+        label:
+          refreshFrequency > 0
+            ? t('Update auto-refresh')
+            : t('Set auto-refresh'),
         disabled: isLoading,
       });
     }
@@ -227,22 +242,22 @@ export const useHeaderActionsMenu = ({
             addSuccessToast={addSuccessToast}
             addDangerToast={addDangerToast}
             dashboardId={dashboardId}
-            dashboardTitle={dashboardTitle}
+            dashboardTitle={dashboardTitle ?? ''}
             dashboardInfo={dashboardInfo}
             saveType={SAVE_TYPE_NEWDASHBOARD}
             layout={layout}
-            expandedSlices={expandedSlices}
+            expandedSlices={expandedSlices ?? {}}
             refreshFrequency={refreshFrequency}
             shouldPersistRefreshFrequency={shouldPersistRefreshFrequency}
             lastModifiedTime={lastModifiedTime}
-            customCss={customCss}
+            customCss={customCss ?? ''}
             colorNamespace={colorNamespace}
             colorScheme={colorScheme}
             onSave={onSave}
             triggerNode={
               <div data-test="save-as-menu-item">{t('Save as')}</div>
             }
-            canOverwrite={userCanEdit}
+            canOverwrite={userCanEdit ?? false}
           />,
         ),
       );

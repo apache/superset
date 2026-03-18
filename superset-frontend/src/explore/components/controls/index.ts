@@ -46,6 +46,7 @@ import DndColumnSelectControl, {
   DndColumnSelect,
   DndFilterSelect,
   DndMetricSelect,
+  DndColumnMetricSelect,
 } from './DndColumnSelectControl';
 import XAxisSortControl from './XAxisSortControl';
 import CurrencyControl from './CurrencyControl';
@@ -58,6 +59,9 @@ import NumberControl from './NumberControl';
 import TimeRangeControl from './TimeRangeControl';
 import ColorBreakpointsControl from './ColorBreakpointsControl';
 import MatrixifyDimensionControl from './MatrixifyDimensionControl';
+import JSEditorControl from './JSEditorControl';
+import SwitchControl from './SwitchControl';
+import VerticalRadioControl from './VerticalRadioControl';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DateFilterControlExtension = extensionsRegistry.get(
@@ -80,9 +84,11 @@ const controlMap = {
   DndColumnSelect,
   DndFilterSelect,
   DndMetricSelect,
+  DndColumnMetricSelect,
   FixedOrMetricControl,
   ColorBreakpointsControl,
   HiddenControl,
+  JSEditorControl,
   LayerConfigsControl,
   MapViewControl,
   SelectAsyncControl,
@@ -105,6 +111,8 @@ const controlMap = {
   NumberControl,
   TimeRangeControl,
   MatrixifyDimensionControl,
+  SwitchControl,
+  VerticalRadioControl,
   ...sharedControlComponents,
 };
 export default controlMap;

@@ -27,19 +27,17 @@ import {
 
 import { RouteComponentProps, useHistory } from 'react-router-dom';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
+import { t } from '@apache-superset/core/translation';
 import {
   Behavior,
-  css,
   isFeatureEnabled,
   FeatureFlag,
-  useTheme,
   getChartMetadataRegistry,
-  styled,
-  t,
   VizType,
   BinaryQueryObjectFilterClause,
   QueryFormData,
 } from '@superset-ui/core';
+import { css, useTheme, styled } from '@apache-superset/core/theme';
 import { useSelector } from 'react-redux';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import {
@@ -54,7 +52,7 @@ import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip'
 import { Icons } from '@superset-ui/core/components/Icons';
 import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
 import { ResultsPaneOnDashboard } from 'src/explore/components/DataTablesPane';
-import { useDrillDetailMenuItems } from 'src/components/Chart/DrillDetail';
+import { useDrillDetailMenuItems } from 'src/components/Chart/useDrillDetailMenuItems';
 import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import DrillDetailModal from 'src/components/Chart/DrillDetail/DrillDetailModal';
@@ -113,6 +111,7 @@ export interface SliceHeaderControlsProps {
   chartStatus: string;
   isCached: boolean[];
   cachedDttm: string[] | null;
+  queriedDttm?: string | null;
   isExpanded?: boolean;
   updatedDttm: number | null;
   isFullSize?: boolean;
@@ -311,6 +310,7 @@ const SliceHeaderControls = (
     slice,
     isFullSize,
     cachedDttm = [],
+    queriedDttm = null,
     updatedDttm = null,
     addSuccessToast = () => {},
     addDangerToast = () => {},
@@ -320,10 +320,10 @@ const SliceHeaderControls = (
   const isTable = slice.viz_type === VizType.Table;
   const isPivotTable = slice.viz_type === VizType.PivotTable;
   const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
-    extendedDayjs.utc(itemCachedDttm).fromNow(),
+    (extendedDayjs.utc(itemCachedDttm) as any).fromNow(),
   );
   const updatedWhen = updatedDttm
-    ? extendedDayjs.utc(updatedDttm).fromNow()
+    ? (extendedDayjs.utc(updatedDttm) as any).fromNow()
     : '';
   const getCachedTitle = (itemCached: boolean) => {
     if (itemCached) {
@@ -343,6 +343,10 @@ const SliceHeaderControls = (
         : item}
     </div>
   ));
+
+  const queriedLabel = queriedDttm
+    ? extendedDayjs.utc(queriedDttm).local().format('L LTS')
+    : null;
   const fullscreenLabel = isFullSize
     ? t('Exit fullscreen')
     : t('Enter fullscreen');
@@ -357,17 +361,22 @@ const SliceHeaderControls = (
     {
       key: MenuKeys.ForceRefresh,
       label: (
-        <>
-          {t('Force refresh')}
-          <RefreshTooltip data-test="dashboard-slice-refresh-tooltip">
-            {refreshTooltip}
-          </RefreshTooltip>
-        </>
+        <Tooltip
+          title={queriedLabel ? `${t('Last queried at')}: ${queriedLabel}` : ''}
+          overlayStyle={{ maxWidth: 'none' }}
+        >
+          <div>
+            {t('Force refresh')}
+            <RefreshTooltip data-test="dashboard-slice-refresh-tooltip">
+              {refreshTooltip}
+            </RefreshTooltip>
+          </div>
+        </Tooltip>
       ),
       disabled: props.chartStatus === 'loading',
       style: { height: 'auto', lineHeight: 'initial' },
-      ...{ 'data-test': 'refresh-chart-menu-item' }, // Typescript hack to get around MenuItem type
-    },
+      'data-test': 'refresh-chart-menu-item', // Typescript hack to get around MenuItem type
+    } as any,
     {
       key: MenuKeys.Fullscreen,
       label: fullscreenLabel,
@@ -394,8 +403,8 @@ const SliceHeaderControls = (
           {t('Edit chart')}
         </Tooltip>
       ),
-      ...{ 'data-test-edit-chart-name': slice.slice_name },
-    });
+      'data-test-edit-chart-name': slice.slice_name,
+    } as any);
   }
 
   if (canEditCrossFilters) {
@@ -448,6 +457,7 @@ const SliceHeaderControls = (
               isRequest
               isVisible
               canDownload={!!props.supersetCanCSV}
+              columnDisplayNames={datasetWithVerboseMap?.verbose_map}
             />
           }
         />
@@ -455,14 +465,13 @@ const SliceHeaderControls = (
     });
   }
 
-  const { drillToDetailMenuItem, drillToDetailByMenuItem } =
-    useDrillDetailMenuItems({
-      formData: props.formData,
-      filters: modalFilters,
-      setFilters,
-      setShowModal: setDrillModalIsOpen,
-      key: MenuKeys.DrillToDetail,
-    });
+  const drillDetailMenuItems = useDrillDetailMenuItems({
+    formData: props.formData,
+    filters: modalFilters,
+    setFilters,
+    setShowModal: setDrillModalIsOpen,
+    key: MenuKeys.DrillToDetail,
+  });
 
   const shareMenuItems = useShareMenuItems({
     dashboardId,
@@ -474,13 +483,12 @@ const SliceHeaderControls = (
     addSuccessToast,
     addDangerToast,
     title: t('Share'),
+    latestQueryFormData: props.formData,
+    maxWidth: `${theme.sizeUnit * 100}px`,
   });
 
   if (isFeatureEnabled(FeatureFlag.DrillToDetail) && canDrillToDetail) {
-    newMenuItems.push(drillToDetailMenuItem);
-    if (drillToDetailByMenuItem) {
-      newMenuItems.push(drillToDetailByMenuItem);
-    }
+    newMenuItems.push(...drillDetailMenuItems);
   }
 
   if (slice.description || canExplore) {
@@ -575,7 +583,7 @@ const SliceHeaderControls = (
         <Button
           id={`slice_${slice.slice_id}-controls`}
           buttonStyle="link"
-          aria-label="More Options"
+          aria-label={t('More Options')}
           aria-haspopup="true"
           css={theme => css`
             padding: ${theme.sizeUnit * 2}px;

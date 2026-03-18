@@ -60,6 +60,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
+from superset_core.common.models import Database as CoreDatabase
 
 from superset import db, db_engine_specs, is_feature_enabled
 from superset.commands.database.exceptions import DatabaseInvalidError
@@ -94,7 +95,8 @@ metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from superset.databases.ssh_tunnel.models import SSHTunnel
+    from superset_core.queries.types import AsyncQueryHandle, QueryOptions, QueryResult
+
     from superset.models.sql_lab import Query
 
 
@@ -139,7 +141,7 @@ class ConfigurationMethod(StrEnum):
     DYNAMIC_FORM = "dynamic_form"
 
 
-class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable=too-many-public-methods
+class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: disable=too-many-public-methods
     """An ORM object that stores Database related information"""
 
     __tablename__ = "dbs"
@@ -195,6 +197,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         "allow_file_upload",
         "extra",
         "impersonate_user",
+        "configuration_method",
     ]
     extra_import_fields = [
         "password",
@@ -202,6 +205,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         "external_url",
         "encrypted_extra",
         "impersonate_user",
+        "ssh_tunnel",
     ]
     export_children = ["tables"]
 
@@ -426,7 +430,6 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         schema: str | None = None,
         nullpool: bool = True,
         source: utils.QuerySource | None = None,
-        override_ssh_tunnel: SSHTunnel | None = None,
     ) -> Engine:
         """
         Context manager for a SQLAlchemy engine.
@@ -436,19 +439,15 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         to potentially establish SSH tunnels before the connection is created, and clean
         them up once the engine is no longer used.
         """
-        from superset.daos.database import (  # pylint: disable=import-outside-toplevel
-            DatabaseDAO,
-        )
 
         sqlalchemy_uri = self.sqlalchemy_uri_decrypted
 
-        ssh_tunnel = override_ssh_tunnel or DatabaseDAO.get_ssh_tunnel(self.id)
         ssh_context_manager = (
             ssh_manager_factory.instance.create_tunnel(
-                ssh_tunnel=ssh_tunnel,
+                ssh_tunnel=self.ssh_tunnel,
                 sqlalchemy_database_uri=sqlalchemy_uri,
             )
-            if ssh_tunnel
+            if self.ssh_tunnel
             else nullcontext()
         )
 
@@ -675,7 +674,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         catalog: str | None = None,
         schema: str | None = None,
         fetch_last_result: bool = False,
-    ) -> tuple[Any, list[tuple[Any, ...]] | None]:
+    ) -> tuple[Any, list[tuple[Any, ...]] | None, DbapiDescription | None]:
         """
         Internal method to execute SQL with mutation and logging.
 
@@ -683,7 +682,8 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         :param catalog: Optional catalog name
         :param schema: Optional schema name
         :param fetch_last_result: Whether to fetch results from last statement
-        :return: Tuple of (cursor, rows) where rows is None if not fetching
+        :return: Tuple of (cursor, rows, description) where rows and description
+        are None if not fetching.
         """
         script = SQLScript(sql, self.db_engine_spec.engine)
 
@@ -705,6 +705,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         with self.get_raw_connection(catalog=catalog, schema=schema) as conn:
             cursor = conn.cursor()
             rows = None
+            description = None
 
             for i, statement in enumerate(script.statements):
                 sql_ = self.mutate_sql_based_on_config(
@@ -722,12 +723,14 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
                 # Fetch results from last statement if requested
                 if fetch_last_result and i == len(script.statements) - 1:
+                    # Capture cursor.description while it's still valid
+                    description = cursor.description
                     rows = self.db_engine_spec.fetch_data(cursor)
                 else:
                     # Consume results without storing
                     cursor.fetchall()
 
-            return cursor, rows
+            return cursor, rows, description
 
     def execute_sql_statements(
         self,
@@ -763,13 +766,13 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         schema: str | None = None,
         mutator: Callable[[pd.DataFrame], None] | None = None,
     ) -> pd.DataFrame:
-        cursor, rows = self._execute_sql_with_mutation_and_logging(
+        cursor, rows, description = self._execute_sql_with_mutation_and_logging(
             sql, catalog, schema, fetch_last_result=True
         )
 
         df = None
         if rows is not None:
-            df = self.load_into_dataframe(cursor.description, rows)
+            df = self.load_into_dataframe(description, rows)
 
         if mutator:
             df = mutator(df)
@@ -829,17 +832,17 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         cols: list[ResultSetColumnType] | None = None,
     ) -> str:
         """Generates a ``select *`` statement in the proper dialect"""
-        with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
-            return self.db_engine_spec.select_star(
-                self,
-                table,
-                engine=engine,
-                limit=limit,
-                show_cols=show_cols,
-                indent=indent,
-                latest_partition=latest_partition,
-                cols=cols,
-            )
+        dialect = self.get_dialect()
+        return self.db_engine_spec.select_star(
+            self,
+            table,
+            dialect=dialect,
+            limit=limit,
+            show_cols=show_cols,
+            indent=indent,
+            latest_partition=latest_partition,
+            cols=cols,
+        )
 
     def apply_limit_to_sql(
         self,
@@ -894,6 +897,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     )
                 }
         except Exception as ex:
+            self._handle_oauth2_error(ex)
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @cache_util.memoized_func(
@@ -928,73 +932,90 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     )
                 }
         except Exception as ex:
+            self._handle_oauth2_error(ex)
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
+
+    @cache_util.memoized_func(
+        key="db:{self.id}:catalog:{catalog}:schema:{schema}:materialized_view_list",
+        cache=cache_manager.cache,
+    )
+    def get_all_materialized_view_names_in_schema(
+        self,
+        catalog: str | None,
+        schema: str,
+    ) -> set[Table]:
+        """Get all materialized views in the specified schema.
+
+        Parameters need to be passed as keyword arguments.
+
+        For unused parameters, they are referenced in
+        cache_util.memoized_func decorator.
+
+        :param catalog: optional catalog name
+        :param schema: schema name
+        :param cache: whether cache is enabled for the function
+        :param cache_timeout: timeout in seconds for the cache
+        :param force: whether to force refresh the cache
+        :return: set of materialized views
+        """
+        try:
+            with self.get_inspector(catalog=catalog, schema=schema) as inspector:
+                return {
+                    Table(view, schema, catalog)
+                    for view in self.db_engine_spec.get_materialized_view_names(
+                        database=self,
+                        inspector=inspector,
+                        schema=schema,
+                    )
+                }
+        except Exception as ex:
+            self._handle_oauth2_error(ex)
+            raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
+
+        return set()
 
     @contextmanager
     def get_inspector(
         self,
         catalog: str | None = None,
         schema: str | None = None,
-        ssh_tunnel: SSHTunnel | None = None,
     ) -> Inspector:
-        with self.get_sqla_engine(
-            catalog=catalog,
-            schema=schema,
-            override_ssh_tunnel=ssh_tunnel,
-        ) as engine:
+        with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
             yield sqla.inspect(engine)
 
     @cache_util.memoized_func(
         key="db:{self.id}:catalog:{catalog}:schema_list",
         cache=cache_manager.cache,
     )
-    def get_all_schema_names(
-        self,
-        *,
-        catalog: str | None = None,
-        ssh_tunnel: SSHTunnel | None = None,
-    ) -> set[str]:
+    def get_all_schema_names(self, *, catalog: str | None = None) -> set[str]:
         """
         Return the schemas in a given database
 
         :param catalog: override default catalog
-        :param ssh_tunnel: SSH tunnel information needed to establish a connection
         :return: schema list
         """
         try:
-            with self.get_inspector(
-                catalog=catalog,
-                ssh_tunnel=ssh_tunnel,
-            ) as inspector:
+            with self.get_inspector(catalog=catalog) as inspector:
                 return self.db_engine_spec.get_schema_names(inspector)
         except Exception as ex:
-            if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(ex):
-                self.start_oauth2_dance()
-
+            self._handle_oauth2_error(ex)
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @cache_util.memoized_func(
         key="db:{self.id}:catalog_list",
         cache=cache_manager.cache,
     )
-    def get_all_catalog_names(
-        self,
-        *,
-        ssh_tunnel: SSHTunnel | None = None,
-    ) -> set[str]:
+    def get_all_catalog_names(self) -> set[str]:
         """
         Return the catalogs in a given database
 
-        :param ssh_tunnel: SSH tunnel information needed to establish a connection
         :return: catalog list
         """
         try:
-            with self.get_inspector(ssh_tunnel=ssh_tunnel) as inspector:
+            with self.get_inspector() as inspector:
                 return self.db_engine_spec.get_catalog_names(self, inspector)
         except Exception as ex:
-            if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(ex):
-                self.start_oauth2_dance()
-
+            self._handle_oauth2_error(ex)
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @property
@@ -1162,8 +1183,11 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
     def has_table(self, table: Table) -> bool:
         with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
+            inspector = sqla.inspect(engine)
             # do not pass "" as an empty schema; force null
-            return engine.has_table(table.table, table.schema or None)
+            if inspector.has_table(table.table, table.schema or None):
+                return True
+            return inspector.has_table(table.table.lower(), table.schema or None)
 
     def has_view(self, table: Table) -> bool:
         with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
@@ -1229,6 +1253,10 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         if oauth2_client_info := encrypted_extra.get("oauth2_client_info"):
             schema = OAuth2ClientConfigSchema()
             client_config = schema.load(oauth2_client_info)
+            if "request_content_type" not in oauth2_client_info:
+                client_config["request_content_type"] = (
+                    self.db_engine_spec.oauth2_token_request_type
+                )
             return cast(OAuth2ClientConfig, client_config)
 
         return self.db_engine_spec.get_oauth2_config()
@@ -1243,6 +1271,16 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         """
         return self.db_engine_spec.start_oauth2_dance(self)
 
+    def _handle_oauth2_error(self, ex: Exception) -> None:
+        """
+        Handle exceptions that may require OAuth2 authentication.
+
+        If OAuth2 is enabled and the exception indicates that OAuth2 is needed,
+        starts the OAuth2 dance.
+        """
+        if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(ex):
+            self.start_oauth2_dance()
+
     def purge_oauth2_tokens(self) -> None:
         """
         Delete all OAuth2 tokens associated with this database.
@@ -1254,6 +1292,38 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         db.session.query(DatabaseUserOAuth2Tokens).filter(
             DatabaseUserOAuth2Tokens.id == self.id
         ).delete()
+
+    def execute(
+        self,
+        sql: str,
+        options: QueryOptions | None = None,
+    ) -> QueryResult:
+        """
+        Execute SQL synchronously.
+
+        :param sql: SQL query to execute
+        :param options: QueryOptions with execution settings
+        :returns: QueryResult with status, data, and metadata
+        """
+        from superset.sql.execution import SQLExecutor
+
+        return SQLExecutor(self).execute(sql, options)
+
+    def execute_async(
+        self,
+        sql: str,
+        options: QueryOptions | None = None,
+    ) -> AsyncQueryHandle:
+        """
+        Execute SQL asynchronously via Celery.
+
+        :param sql: SQL query to execute
+        :param options: QueryOptions with execution settings
+        :returns: AsyncQueryHandle for tracking the query
+        """
+        from superset.sql.execution import SQLExecutor
+
+        return SQLExecutor(self).execute_async(sql, options)
 
 
 sqla.event.listen(Database, "after_insert", security_manager.database_after_insert)

@@ -18,25 +18,51 @@
 
 [project]
 name = "apache-superset-core"
-version = "0.0.1"
-description = "Common components for Apache Superset"
+version = "0.1.0rc1"
+description = "Core Python package for building Apache Superset backend extensions and integrations"
+readme = "README.md"
 authors = [
     { name = "Apache Software Foundation", email = "dev@superset.apache.org" },
 ]
 license = { file="LICENSE.txt" }
 requires-python = ">=3.10"
+keywords = ["superset", "apache", "analytics", "business-intelligence", "extensions", "visualization"]
 classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Database",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "flask-appbuilder>=4.5.3, <5.0.0",
+    "flask-appbuilder>=5.0.2,<6",
+    "pydantic>=2.8.0",
+    "sqlalchemy>=1.4.0,<2.0",
+    "sqlalchemy-utils>=0.38.0, <0.43", # expanding lowerbound to work with pydoris
+    "sqlglot>=28.10.0, <29",
+    "typing-extensions>=4.0.0",
 ]
+
+[project.urls]
+Homepage = "https://superset.apache.org/"
+Documentation = "https://superset.apache.org/docs/"
+Repository = "https://github.com/apache/superset"
+"Bug Tracker" = "https://github.com/apache/superset/issues"
+Changelog = "https://github.com/apache/superset/blob/master/CHANGELOG.md"
 
 [build-system]
 requires = ["setuptools>=76.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["superset_core"]
 package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { nanoid } from 'nanoid';
 import type { BootstrapData } from 'src/types/bootstrapTypes';
 import type { InitialState } from 'src/hooks/apiResources/sqlLab';
 import {
@@ -55,6 +56,7 @@ export default function getInitialState({
   let queryEditors: Record<string, QueryEditor> = {};
   const defaultQueryEditor = {
     version: LatestQueryEditorVersion,
+    immutableId: nanoid(11),
     loaded: true,
     name: t('Untitled query'),
     sql: '',
@@ -78,6 +80,7 @@ export default function getInitialState({
       queryEditor = {
         version: activeTab.extra_json?.version ?? QueryEditorVersion.V1,
         id: id.toString(),
+        immutableId: activeTab.extra_json?.immutableId ?? nanoid(11),
         loaded: true,
         name: activeTab.label,
         sql: activeTab.sql || '',
@@ -100,6 +103,7 @@ export default function getInitialState({
       queryEditor = {
         ...defaultQueryEditor,
         id: id.toString(),
+        immutableId: nanoid(11),
         loaded: false,
         name: label,
         dbId: undefined,
@@ -111,7 +115,7 @@ export default function getInitialState({
     };
   });
   const tabHistory = activeTab ? [activeTab.id.toString()] : [];
-  let lastUpdatedActiveTab = activeTab ? activeTab.id.toString() : '';
+  const lastUpdatedActiveTab = activeTab ? activeTab.id.toString() : '';
   let tables = {} as Record<string, Table>;
   let editorTabLastUpdatedAt = Date.now();
   if (activeTab) {
@@ -163,7 +167,10 @@ export default function getInitialState({
     if (localStorageData && sqlLabCacheData?.sqlLab) {
       const { sqlLab } = sqlLabCacheData;
 
-      if (sqlLab.queryEditors.length === 0) {
+      if (
+        sqlLab.queryEditors.length === 0 &&
+        Object.keys(sqlLab.destroyedQueryEditors ?? {}).length === 0
+      ) {
         // migration was successful
         localStorage.removeItem('redux');
       } else {
@@ -221,14 +228,16 @@ export default function getInitialState({
           });
         }
         if (sqlLab.tabHistory) {
-          tabHistory.push(...sqlLab.tabHistory);
+          tabHistory.push(
+            ...sqlLab.tabHistory.filter(
+              tabId => !sqlLab.destroyedQueryEditors?.[tabId],
+            ),
+          );
         }
-        lastUpdatedActiveTab = tabHistory.slice(tabHistory.length - 1)[0] || '';
-
         if (sqlLab.destroyedQueryEditors) {
           Object.entries(sqlLab.destroyedQueryEditors).forEach(([id, ts]) => {
+            destroyedQueryEditors[id] = ts;
             if (queryEditors[id]) {
-              destroyedQueryEditors[id] = ts;
               delete queryEditors[id];
             }
           });
@@ -244,7 +253,9 @@ export default function getInitialState({
       activeSouthPaneTab: 'Results',
       alerts: [],
       databases,
+      dbConnect: false,
       offline: false,
+      errorMessage: null,
       queries: Object.fromEntries(
         Object.entries(queries).map(([queryId, query]) => [
           queryId,

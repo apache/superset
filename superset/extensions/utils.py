@@ -26,6 +26,7 @@ from typing import Any, Generator, Iterable, Tuple
 from zipfile import ZipFile
 
 from flask import current_app
+from pydantic import ValidationError
 from superset_core.extensions.types import Manifest
 
 from superset.extensions.types import BundleFile, LoadedExtension
@@ -54,15 +55,60 @@ class InMemoryLoader(importlib.abc.Loader):
         )
         if self.is_package:
             module.__path__ = []
-        exec(self.source, module.__dict__)  # noqa: S102
+        # Compile with filename for proper tracebacks
+        code = compile(self.source, self.origin, "exec")
+        exec(code, module.__dict__)  # noqa: S102
 
 
 class InMemoryFinder(importlib.abc.MetaPathFinder):
-    def __init__(self, file_dict: dict[str, bytes]) -> None:
+    def __init__(self, file_dict: dict[str, bytes], source_base_path: str) -> None:
         self.modules: dict[str, Tuple[Any, Any, Any]] = {}
+
+        # Detect if this is a virtual path (supx://) or filesystem path
+        is_virtual_path = source_base_path.startswith("supx://")
+
         for path, content in file_dict.items():
             mod_name, is_package = self._get_module_name(path)
-            self.modules[mod_name] = (content, is_package, path)
+
+            # Reconstruct full path for tracebacks
+            if is_virtual_path:
+                # Virtual paths always use forward slashes
+                # e.g., supx://extension-id/backend/src/tasks.py
+                full_path = f"{source_base_path}/backend/src/{path}"
+            else:
+                full_path = str(Path(source_base_path) / "backend" / "src" / path)
+
+            self.modules[mod_name] = (content, is_package, full_path)
+
+        # Create namespace packages for all parent modules
+        # This ensures publisher namespace packages exist
+        namespace_packages: set[str] = set()
+        for mod_name in list(self.modules.keys()):
+            parts = mod_name.split(".")
+            for i in range(1, len(parts)):
+                namespace_name = ".".join(parts[:i])
+                if namespace_name not in self.modules:
+                    namespace_packages.add(namespace_name)
+
+        # Add namespace packages
+        for ns_name in namespace_packages:
+            # Create a virtual __init__.py path for the namespace package
+            if is_virtual_path:
+                ns_path = (
+                    f"{source_base_path}/backend/src/"
+                    f"{ns_name.replace('.', '/')}/__init__.py"
+                )
+            else:
+                ns_path = str(
+                    Path(source_base_path)
+                    / "backend"
+                    / "src"
+                    / ns_name.replace(".", "/")
+                    / "__init__.py"
+                )
+
+            # Namespace packages have empty content
+            self.modules[ns_name] = (b"", True, ns_path)
 
     def _get_module_name(self, file_path: str) -> Tuple[str, bool]:
         parts = list(Path(file_path).parts)
@@ -87,8 +133,19 @@ class InMemoryFinder(importlib.abc.MetaPathFinder):
         return None
 
 
-def install_in_memory_importer(file_dict: dict[str, bytes]) -> None:
-    finder = InMemoryFinder(file_dict)
+def install_in_memory_importer(
+    file_dict: dict[str, bytes], source_base_path: str
+) -> None:
+    """
+    Install an in-memory module importer for extension backend code.
+
+    :param file_dict: Dictionary mapping relative file paths to their content
+    :param source_base_path: Base path for traceback filenames. For LOCAL_EXTENSIONS,
+        this should be an absolute filesystem path to the dist directory.
+        For EXTENSIONS_PATH (.supx files), this should be a supx:// URL
+        (e.g., "supx://extension-id").
+    """
+    finder = InMemoryFinder(file_dict, source_base_path)
     sys.meta_path.insert(0, finder)
 
 
@@ -109,7 +166,7 @@ def get_bundle_files_from_path(base_path: str) -> Generator[BundleFile, None, No
     dist_path = os.path.join(base_path, "dist")
 
     if not os.path.isdir(dist_path):
-        raise Exception(f"Expected directory {dist_path} does not exist.")
+        raise Exception("Expected directory %s does not exist." % dist_path)
 
     for root, _, files in os.walk(dist_path):
         for file in files:
@@ -120,8 +177,20 @@ def get_bundle_files_from_path(base_path: str) -> Generator[BundleFile, None, No
             yield BundleFile(name=rel_path, content=content)
 
 
-def get_loaded_extension(files: Iterable[BundleFile]) -> LoadedExtension:
-    manifest: Manifest = {}
+def get_loaded_extension(
+    files: Iterable[BundleFile], source_base_path: str
+) -> LoadedExtension:
+    """
+    Load an extension from bundle files.
+
+    :param files: Iterable of BundleFile objects containing the extension files
+    :param source_base_path: Base path for traceback filenames. For LOCAL_EXTENSIONS,
+        this should be an absolute filesystem path to the dist directory.
+        For EXTENSIONS_PATH (.supx files), this should be a supx:// URL
+        (e.g., "supx://extension-id").
+    :returns: LoadedExtension instance
+    """
+    manifest: Manifest | None = None
     frontend: dict[str, bytes] = {}
     backend: dict[str, bytes] = {}
 
@@ -131,13 +200,12 @@ def get_loaded_extension(files: Iterable[BundleFile]) -> LoadedExtension:
 
         if filename == "manifest.json":
             try:
-                manifest = json.loads(content)
-                if "id" not in manifest:
-                    raise Exception("Missing 'id' in manifest")
-                if "name" not in manifest:
-                    raise Exception("Missing 'name' in manifest")
-            except Exception as e:
+                manifest_data = json.loads(content)
+                manifest = Manifest.model_validate(manifest_data)
+            except ValidationError as e:
                 raise Exception(f"Invalid manifest.json: {e}") from e
+            except Exception as e:
+                raise Exception(f"Failed to parse manifest.json: {e}") from e
 
         elif (match := FRONTEND_REGEX.match(filename)) is not None:
             frontend[match.group(1)] = content
@@ -148,37 +216,39 @@ def get_loaded_extension(files: Iterable[BundleFile]) -> LoadedExtension:
         else:
             raise Exception(f"Unexpected file in bundle: {filename}")
 
-    id_ = manifest["id"]
-    name = manifest["name"]
-    version = manifest["version"]
+    if manifest is None:
+        raise Exception("Missing manifest.json in extension bundle")
+
     return LoadedExtension(
-        id=id_,
-        name=name,
+        id=manifest.id,
+        name=manifest.name,
         manifest=manifest,
         frontend=frontend,
         backend=backend,
-        version=version,
+        version=manifest.version,
+        source_base_path=source_base_path,
     )
 
 
 def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
-    manifest: Manifest = extension.manifest
+    manifest = extension.manifest
     extension_data: dict[str, Any] = {
-        "id": manifest["id"],
+        "id": manifest.id,
         "name": extension.name,
         "version": extension.version,
-        "description": manifest.get("description", ""),
-        "dependencies": manifest.get("dependencies", []),
-        "extensionDependencies": manifest.get("extensionDependencies", []),
+        "description": manifest.description or "",
+        "dependencies": manifest.dependencies,
     }
-    if frontend := manifest.get("frontend"):
-        module_federation = frontend.get("moduleFederation", {})
-        remote_entry = frontend["remoteEntry"]
+    if manifest.frontend:
+        frontend = manifest.frontend
+        remote_entry_url = (
+            f"/api/v1/extensions/{manifest.publisher}/"
+            f"{manifest.name}/{frontend.remoteEntry}"
+        )
         extension_data.update(
             {
-                "remoteEntry": f"/api/v1/extensions/{manifest['id']}/{remote_entry}",  # noqa: E501
-                "exposedModules": module_federation.get("exposes", []),
-                "contributions": frontend.get("contributions", {}),
+                "remoteEntry": remote_entry_url,
+                "moduleFederationName": frontend.moduleFederationName,
             }
         )
     return extension_data
@@ -189,31 +259,40 @@ def get_extensions() -> dict[str, LoadedExtension]:
 
     # Load extensions from LOCAL_EXTENSIONS configuration (filesystem paths)
     for path in current_app.config["LOCAL_EXTENSIONS"]:
-        files = get_bundle_files_from_path(path)
-        extension = get_loaded_extension(files)
-        extension_id = extension.manifest["id"]
-        extensions[extension_id] = extension
-        logger.info(
-            f"Loading extension {extension.name} (ID: {extension_id}) "
-            "from local filesystem"
-        )
+        try:
+            files = get_bundle_files_from_path(path)
+            # Use absolute filesystem path to dist directory for tracebacks
+            abs_dist_path = str((Path(path) / "dist").resolve())
+            extension = get_loaded_extension(files, source_base_path=abs_dist_path)
+            extension_id = extension.manifest.id
+            extensions[extension_id] = extension
+            logger.info(
+                "Loading extension %s (ID: %s) from local filesystem",
+                extension.name,
+                extension_id,
+            )
+        except Exception as e:  # pylint: disable=broad-except
+            logger.error("Failed to load extension from %s: %s", path, e)
 
     # Load extensions from discovery path (.supx files)
     if extensions_path := current_app.config.get("EXTENSIONS_PATH"):
         from superset.extensions.discovery import discover_and_load_extensions
 
         for extension in discover_and_load_extensions(extensions_path):
-            extension_id = extension.manifest["id"]
+            extension_id = extension.manifest.id
             if extension_id not in extensions:  # Don't override LOCAL_EXTENSIONS
                 extensions[extension_id] = extension
                 logger.info(
-                    f"Loading extension {extension.name} (ID: {extension_id}) "
-                    "from discovery path"
+                    "Loading extension %s (ID: %s) from discovery path",
+                    extension.name,
+                    extension_id,
                 )
             else:
                 logger.info(
-                    f"Extension {extension.name} (ID: {extension_id}) already "
-                    "loaded from LOCAL_EXTENSIONS, skipping discovery version"
+                    "Extension %s (ID: %s) already loaded from LOCAL_EXTENSIONS, "
+                    "skipping discovery version",
+                    extension.name,
+                    extension_id,
                 )
 
     return extensions

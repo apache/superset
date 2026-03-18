@@ -19,10 +19,11 @@
 
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { ThemeProvider } from '@superset-ui/core';
+import { ThemeProvider } from '@apache-superset/core/theme';
+import { supersetTheme } from '@apache-superset/core/theme';
 import MatrixifyGridRenderer from './MatrixifyGridRenderer';
+import type { MatrixifyMode } from '../../types/matrixify';
 import { generateMatrixifyGrid } from './MatrixifyGridGenerator';
-import { supersetTheme } from '../../../theme';
 
 // Mock the MatrixifyGridGenerator
 jest.mock('./MatrixifyGridGenerator', () => ({
@@ -74,7 +75,9 @@ test('should create single group when fitting columns dynamically', () => {
 
   const formData = {
     viz_type: 'test_chart',
-    matrixify_enabled: true,
+    matrixify_enable: true,
+    matrixify_mode_rows: 'metrics' as MatrixifyMode,
+    matrixify_mode_columns: 'metrics' as MatrixifyMode,
     matrixify_fit_columns_dynamically: true,
     matrixify_charts_per_row: 3,
     matrixify_show_row_labels: true,
@@ -123,7 +126,9 @@ test('should create multiple groups when not fitting columns dynamically', () =>
 
   const formData = {
     viz_type: 'test_chart',
-    matrixify_enabled: true,
+    matrixify_enable: true,
+    matrixify_mode_rows: 'metrics' as MatrixifyMode,
+    matrixify_mode_columns: 'metrics' as MatrixifyMode,
     matrixify_fit_columns_dynamically: false,
     matrixify_charts_per_row: 3,
     matrixify_show_row_labels: true,
@@ -158,7 +163,9 @@ test('should handle exact division of columns', () => {
 
   const formData = {
     viz_type: 'test_chart',
-    matrixify_enabled: true,
+    matrixify_enable: true,
+    matrixify_mode_rows: 'metrics' as MatrixifyMode,
+    matrixify_mode_columns: 'metrics' as MatrixifyMode,
     matrixify_fit_columns_dynamically: false,
     matrixify_charts_per_row: 2,
     matrixify_show_row_labels: true,
@@ -186,7 +193,9 @@ test('should handle case where charts_per_row exceeds total columns', () => {
 
   const formData = {
     viz_type: 'test_chart',
-    matrixify_enabled: true,
+    matrixify_enable: true,
+    matrixify_mode_rows: 'metrics' as MatrixifyMode,
+    matrixify_mode_columns: 'metrics' as MatrixifyMode,
     matrixify_fit_columns_dynamically: false,
     matrixify_charts_per_row: 5,
     matrixify_show_row_labels: true,
@@ -216,7 +225,9 @@ test('should show headers for each group when wrapping occurs', () => {
 
   const formData = {
     viz_type: 'test_chart',
-    matrixify_enabled: true,
+    matrixify_enable: true,
+    matrixify_mode_rows: 'metrics' as MatrixifyMode,
+    matrixify_mode_columns: 'metrics' as MatrixifyMode,
     matrixify_fit_columns_dynamically: false,
     matrixify_charts_per_row: 2,
     matrixify_show_row_labels: true,
@@ -250,7 +261,9 @@ test('should show headers only on first row when not wrapping', () => {
 
   const formData = {
     viz_type: 'test_chart',
-    matrixify_enabled: true,
+    matrixify_enable: true,
+    matrixify_mode_rows: 'metrics' as MatrixifyMode,
+    matrixify_mode_columns: 'metrics' as MatrixifyMode,
     matrixify_fit_columns_dynamically: true, // No wrapping
     matrixify_show_row_labels: true,
     matrixify_show_column_headers: true,
@@ -279,7 +292,9 @@ test('should hide headers when disabled', () => {
 
   const formData = {
     viz_type: 'test_chart',
-    matrixify_enabled: true,
+    matrixify_enable: true,
+    matrixify_mode_rows: 'metrics' as MatrixifyMode,
+    matrixify_mode_columns: 'metrics' as MatrixifyMode,
     matrixify_show_row_labels: false,
     matrixify_show_column_headers: false,
   };
@@ -306,7 +321,9 @@ test('should place cells correctly in wrapped layout', () => {
 
   const formData = {
     viz_type: 'test_chart',
-    matrixify_enabled: true,
+    matrixify_enable: true,
+    matrixify_mode_rows: 'metrics' as MatrixifyMode,
+    matrixify_mode_columns: 'metrics' as MatrixifyMode,
     matrixify_fit_columns_dynamically: false,
     matrixify_charts_per_row: 2,
     matrixify_show_row_labels: true,
@@ -336,7 +353,9 @@ test('should handle null grid gracefully', () => {
 
   const formData = {
     viz_type: 'test_chart',
-    matrixify_enabled: true,
+    matrixify_enable: true,
+    matrixify_mode_rows: 'metrics' as MatrixifyMode,
+    matrixify_mode_columns: 'metrics' as MatrixifyMode,
   };
 
   const { container } = renderWithTheme(
@@ -357,7 +376,9 @@ test('should handle empty grid gracefully', () => {
 
   const formData = {
     viz_type: 'test_chart',
-    matrixify_enabled: true,
+    matrixify_enable: true,
+    matrixify_mode_rows: 'metrics' as MatrixifyMode,
+    matrixify_mode_columns: 'metrics' as MatrixifyMode,
   };
 
   const { container } = renderWithTheme(
@@ -381,7 +402,9 @@ test('should use default values for missing configuration', () => {
 
   const formData = {
     viz_type: 'test_chart',
-    matrixify_enabled: true,
+    matrixify_enable: true,
+    matrixify_mode_rows: 'metrics' as MatrixifyMode,
+    matrixify_mode_columns: 'metrics' as MatrixifyMode,
     // Missing optional configurations
   };
 

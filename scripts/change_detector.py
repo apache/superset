@@ -45,9 +45,9 @@ PATTERNS = {
     "docs": [
         r"^docs/",
     ],
-    "superset-cli": [
-        r"^\.github/workflows/superset-cli\.yml",
-        r"^superset-cli/",
+    "superset-extensions-cli": [
+        r"^\.github/workflows/superset-extensions-cli\.yml",
+        r"^superset-extensions-cli/",
         r"^superset-core/",
     ],
 }

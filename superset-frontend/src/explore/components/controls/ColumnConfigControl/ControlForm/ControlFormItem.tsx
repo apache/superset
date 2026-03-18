@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useState, FunctionComponentElement, ChangeEvent } from 'react';
-import { JsonValue, useTheme } from '@superset-ui/core';
+import { JsonValue } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/theme';
 import { ControlFormItemComponents } from './controls';
 import ControlHeader, { ControlHeaderProps } from '../../../ControlHeader';
 import { ControlFormItemDefaultSpec } from '../types';
@@ -113,7 +114,7 @@ export function ControlFormItem({
               hovered={hovered}
             />
           )}
-          {/* @ts-ignore */}
+          {/* @ts-expect-error - dynamic Control component has varying prop types */}
           <Control {...props} value={value} onChange={handleChange} />
         </>
       )}

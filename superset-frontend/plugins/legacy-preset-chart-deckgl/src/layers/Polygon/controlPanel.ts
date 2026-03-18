@@ -20,7 +20,7 @@ import {
   ControlPanelConfig,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import timeGrainSqlaAnimationOverrides from '../../utilities/controls';
 import { COLOR_SCHEME_TYPES, formatSelectOptions } from '../../utilities/utils';
 import {
@@ -48,6 +48,8 @@ import {
   deckGLLinearColorSchemeSelect,
   deckGLColorBreakpointsSelect,
   breakpointsDefaultColor,
+  tooltipContents,
+  tooltipTemplate,
 } from '../../utilities/Shared_DeckGL';
 import { dndLineColumn } from '../../utilities/sharedDndControls';
 
@@ -89,6 +91,8 @@ const config: ControlPanelConfig = {
         ['row_limit'],
         [reverseLongLat],
         [filterNulls],
+        [tooltipContents],
+        [tooltipTemplate],
       ],
     },
     {
@@ -114,10 +118,10 @@ const config: ControlPanelConfig = {
             },
           },
           fillColorPicker,
-          strokeColorPicker,
           deckGLLinearColorSchemeSelect,
           breakpointsDefaultColor,
           deckGLColorBreakpointsSelect,
+          strokeColorPicker,
         ],
         [filled, stroked],
         [extruded],

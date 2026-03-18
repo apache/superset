@@ -17,6 +17,8 @@
  * under the License.
  */
 import memoizeOne from 'memoize-one';
+import { isString, isBoolean } from 'lodash';
+import { isBlank } from '@apache-superset/core/utils';
 import { addAlpha, DataRecord } from '@superset-ui/core';
 import {
   ColorFormatters,
@@ -32,26 +34,30 @@ const MIN_OPACITY_BOUNDED = 0.05;
 const MIN_OPACITY_UNBOUNDED = 0;
 const MAX_OPACITY = 1;
 export const getOpacity = (
-  value: number | string,
+  value: number | string | boolean | null,
   cutoffPoint: number | string,
   extremeValue: number | string,
   minOpacity = MIN_OPACITY_BOUNDED,
   maxOpacity = MAX_OPACITY,
 ) => {
-  if (
-    extremeValue === cutoffPoint ||
-    typeof cutoffPoint !== 'number' ||
-    typeof extremeValue !== 'number' ||
-    typeof value !== 'number'
-  ) {
+  if (extremeValue === cutoffPoint || typeof value !== 'number') {
     return maxOpacity;
   }
+  const numCutoffPoint =
+    typeof cutoffPoint === 'string' ? parseFloat(cutoffPoint) : cutoffPoint;
+  const numExtremeValue =
+    typeof extremeValue === 'string' ? parseFloat(extremeValue) : extremeValue;
+
+  if (isNaN(numCutoffPoint) || isNaN(numExtremeValue)) {
+    return maxOpacity;
+  }
+
   return Math.min(
     maxOpacity,
     round(
       Math.abs(
-        ((maxOpacity - minOpacity) / (extremeValue - cutoffPoint)) *
-          (value - cutoffPoint),
+        ((maxOpacity - minOpacity) / (numExtremeValue - numCutoffPoint)) *
+          (value - numCutoffPoint),
       ) + minOpacity,
       2,
     ),
@@ -65,16 +71,17 @@ export const getColorFunction = (
     targetValueLeft,
     targetValueRight,
     colorScheme,
+    useGradient,
   }: ConditionalFormattingConfig,
-  columnValues: number[] | string[],
+  columnValues: number[] | string[] | (boolean | null)[],
   alpha?: boolean,
 ) => {
   let minOpacity = MIN_OPACITY_BOUNDED;
   const maxOpacity = MAX_OPACITY;
 
   let comparatorFunction: (
-    value: number | string,
-    allValues: number[] | string[],
+    value: number | string | boolean | null,
+    allValues: number[] | string[] | (boolean | null)[],
   ) => false | { cutoffValue: number | string; extremeValue: number | string };
   if (operator === undefined || colorScheme === undefined) {
     return () => undefined;
@@ -217,16 +224,51 @@ export const getColorFunction = (
         !value?.toLowerCase().includes((targetValue as string).toLowerCase())
           ? { cutoffValue: targetValue!, extremeValue: targetValue! }
           : false;
+
+      break;
+    case Comparator.IsTrue:
+      comparatorFunction = (value: boolean | null) =>
+        isBoolean(value) && value
+          ? { cutoffValue: targetValue!, extremeValue: targetValue! }
+          : false;
+      break;
+    case Comparator.IsFalse:
+      comparatorFunction = (value: boolean | null) =>
+        isBoolean(value) && !value
+          ? { cutoffValue: targetValue!, extremeValue: targetValue! }
+          : false;
+      break;
+    case Comparator.IsNull:
+      comparatorFunction = (value: boolean | null) =>
+        value === null
+          ? { cutoffValue: targetValue!, extremeValue: targetValue! }
+          : false;
+      break;
+    case Comparator.IsNotNull:
+      comparatorFunction = (value: boolean | null) =>
+        isBoolean(value) && value !== null
+          ? { cutoffValue: targetValue!, extremeValue: targetValue! }
+          : false;
       break;
     default:
       comparatorFunction = () => false;
       break;
   }
 
-  return (value: number | string) => {
+  return (value: number | string | boolean | null) => {
+    if (isBlank(value) && operator !== Comparator.IsNull) {
+      return undefined;
+    }
     const compareResult = comparatorFunction(value, columnValues);
     if (compareResult === false) return undefined;
     const { cutoffValue, extremeValue } = compareResult;
+
+    // If useGradient is explicitly false, return solid color
+    if (useGradient === false) {
+      return colorScheme;
+    }
+
+    // Otherwise apply gradient (default behavior for backward compatibility)
     if (alpha === undefined || alpha) {
       return addAlpha(
         colorScheme,
@@ -241,10 +283,21 @@ export const getColorFormatters = memoizeOne(
   (
     columnConfig: ConditionalFormattingConfig[] | undefined,
     data: DataRecord[],
+    theme?: Record<string, any>,
     alpha?: boolean,
   ) =>
     columnConfig?.reduce(
       (acc: ColorFormatters, config: ConditionalFormattingConfig) => {
+        let resolvedColorScheme = config.colorScheme;
+        if (
+          theme &&
+          typeof config.colorScheme === 'string' &&
+          config.colorScheme.startsWith('color') &&
+          theme[config.colorScheme]
+        ) {
+          resolvedColorScheme = theme[config.colorScheme] as string;
+        }
+
         if (
           config?.column !== undefined &&
           (config?.operator === Comparator.None ||
@@ -256,8 +309,12 @@ export const getColorFormatters = memoizeOne(
         ) {
           acc.push({
             column: config?.column,
+            toAllRow: config?.toAllRow,
+            toTextColor: config?.toTextColor,
+            columnFormatting: config?.columnFormatting,
+            objectFormatting: config?.objectFormatting,
             getColorFromValue: getColorFunction(
-              config,
+              { ...config, colorScheme: resolvedColorScheme },
               data.map(row => row[config.column!] as number),
               alpha,
             ),
@@ -268,7 +325,3 @@ export const getColorFormatters = memoizeOne(
       [],
     ) ?? [],
 );
-
-function isString(value: unknown) {
-  return typeof value === 'string';
-}

@@ -16,17 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useState, useEffect } from 'react';
-import {
-  GenericDataType,
-  styled,
-  SupersetTheme,
-  t,
-  useTheme,
-} from '@superset-ui/core';
+import { useMemo, useState, useEffect, useCallback } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   Comparator,
   MultipleValueComparators,
+  ObjectFormattingEnum,
+  ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
 import {
   Select,
@@ -37,16 +35,17 @@ import {
   Input,
   Col,
   Row,
+  Checkbox,
   type FormProps,
 } from '@superset-ui/core/components';
-import { ConditionalFormattingConfig } from './types';
-
-// TODO: tangled redefinition that aligns with @superset-ui/plugin-chart-table
-// used to be imported but main app shouldn't depend on plugins...
-export enum ColorSchemeEnum {
-  'Green' = 'Green',
-  'Red' = 'Red',
-}
+import { ConditionalFormattingConfig, ColumnOption } from './types';
+import {
+  operatorOptions,
+  stringOperatorOptions,
+  booleanOperatorOptions,
+  formattingOptions,
+  colorSchemeOptions,
+} from './constants';
 
 const FullWidthInputNumber = styled(InputNumber)`
   width: 100%;
@@ -60,35 +59,6 @@ const JustifyEnd = styled.div`
   display: flex;
   justify-content: flex-end;
 `;
-
-const colorSchemeOptions = (theme: SupersetTheme) => [
-  { value: theme.colorSuccessBg, label: t('success') },
-  { value: theme.colorWarningBg, label: t('alert') },
-  { value: theme.colorErrorBg, label: t('error') },
-];
-
-const operatorOptions = [
-  { value: Comparator.None, label: t('None') },
-  { value: Comparator.GreaterThan, label: '>' },
-  { value: Comparator.LessThan, label: '<' },
-  { value: Comparator.GreaterOrEqual, label: '≥' },
-  { value: Comparator.LessOrEqual, label: '≤' },
-  { value: Comparator.Equal, label: '=' },
-  { value: Comparator.NotEqual, label: '≠' },
-  { value: Comparator.Between, label: '< x <' },
-  { value: Comparator.BetweenOrEqual, label: '≤ x ≤' },
-  { value: Comparator.BetweenOrLeftEqual, label: '≤ x <' },
-  { value: Comparator.BetweenOrRightEqual, label: '< x ≤' },
-];
-
-const stringOperatorOptions = [
-  { value: Comparator.None, label: t('None') },
-  { value: Comparator.Equal, label: '=' },
-  { value: Comparator.BeginsWith, label: t('begins with') },
-  { value: Comparator.EndsWith, label: t('ends with') },
-  { value: Comparator.Containing, label: t('containing') },
-  { value: Comparator.NotContaining, label: t('not containing') },
-];
 
 const targetValueValidator =
   (
@@ -156,10 +126,17 @@ const renderOperator = ({
   showOnlyNone,
   columnType,
 }: { showOnlyNone?: boolean; columnType?: GenericDataType } = {}) => {
-  const options =
-    columnType === GenericDataType.String
-      ? stringOperatorOptions
-      : operatorOptions;
+  let options;
+  switch (columnType) {
+    case GenericDataType.String:
+      options = stringOperatorOptions;
+      break;
+    case GenericDataType.Boolean:
+      options = booleanOperatorOptions;
+      break;
+    default:
+      options = operatorOptions;
+  }
 
   return (
     <FormItem
@@ -181,8 +158,25 @@ const renderOperatorFields = (
   columnType?: GenericDataType,
 ) => {
   const columnTypeString = columnType === GenericDataType.String;
-  const operatorColSpan = columnTypeString ? 8 : 6;
+  const columnTypeBoolean = columnType === GenericDataType.Boolean;
+  const operatorColSpan = columnTypeString || columnTypeBoolean ? 8 : 6;
   const valueColSpan = columnTypeString ? 16 : 18;
+
+  if (columnTypeBoolean) {
+    return (
+      <Row gutter={12}>
+        <Col span={operatorColSpan}>{renderOperator({ columnType })}</Col>
+        <Col span={valueColSpan}>
+          <FormItem
+            name="targetValue"
+            label={t('Target value')}
+            initialValue={''}
+            hidden
+          />
+        </Col>
+      </Row>
+    );
+  }
 
   return isOperatorNone(getFieldValue('operator')) ? (
     <Row gutter={12}>
@@ -237,20 +231,26 @@ export const FormattingPopoverContent = ({
   onChange,
   columns = [],
   extraColorChoices = [],
+  allColumns = [],
 }: {
   config?: ConditionalFormattingConfig;
   onChange: (config: ConditionalFormattingConfig) => void;
   columns: { label: string; value: string; dataType: GenericDataType }[];
   extraColorChoices?: { label: string; value: string }[];
+  allColumns?: ColumnOption[];
 }) => {
-  const theme = useTheme();
   const [form] = Form.useForm();
-  const colorScheme = colorSchemeOptions(theme);
+  const colorScheme = colorSchemeOptions();
   const [showOperatorFields, setShowOperatorFields] = useState(
     config === undefined ||
       (config?.colorScheme !== ColorSchemeEnum.Green &&
         config?.colorScheme !== ColorSchemeEnum.Red),
   );
+
+  const [useGradient, setUseGradient] = useState(() =>
+    config?.useGradient !== undefined ? config.useGradient : true,
+  );
+
   const handleChange = (event: any) => {
     setShowOperatorFields(
       !(event === ColorSchemeEnum.Green || event === ColorSchemeEnum.Red),
@@ -260,6 +260,23 @@ export const FormattingPopoverContent = ({
   const [column, setColumn] = useState<string>(
     config?.column || columns[0]?.value,
   );
+  const visibleAllColumns = useMemo(
+    () => !!(allColumns && Array.isArray(allColumns) && allColumns.length),
+    [allColumns],
+  );
+
+  const [columnFormatting, setColumnFormatting] = useState<string | undefined>(
+    config?.columnFormatting ??
+      (Array.isArray(allColumns)
+        ? allColumns.find(item => item.value === column)?.value
+        : undefined),
+  );
+
+  const [objectFormatting, setObjectFormatting] =
+    useState<ObjectFormattingEnum>(
+      config?.objectFormatting || formattingOptions[0].value,
+    );
+
   const [previousColumnType, setPreviousColumnType] = useState<
     GenericDataType | undefined
   >();
@@ -272,10 +289,20 @@ export const FormattingPopoverContent = ({
   const handleColumnChange = (value: string) => {
     const newColumnType = columns.find(item => item.value === value)?.dataType;
     if (newColumnType !== previousColumnType) {
-      const defaultOperator =
-        newColumnType === GenericDataType.String
-          ? stringOperatorOptions[0].value
-          : operatorOptions[0].value;
+      let defaultOperator: Comparator;
+
+      switch (newColumnType) {
+        case GenericDataType.String:
+          defaultOperator = stringOperatorOptions[0].value;
+          break;
+
+        case GenericDataType.Boolean:
+          defaultOperator = booleanOperatorOptions[0].value;
+          break;
+
+        default:
+          defaultOperator = operatorOptions[0].value;
+      }
 
       form.setFieldsValue({
         operator: defaultOperator,
@@ -284,6 +311,51 @@ export const FormattingPopoverContent = ({
     setColumn(value);
     setPreviousColumnType(newColumnType);
   };
+
+  const handleAllColumnChange = (value: string | undefined) => {
+    setColumnFormatting(value);
+  };
+  const numericColumns = useMemo(
+    () => allColumns.filter(col => col.dataType === GenericDataType.Numeric),
+    [allColumns],
+  );
+
+  const visibleUseGradient = useMemo(
+    () =>
+      numericColumns.length > 0
+        ? numericColumns.some((col: ColumnOption) => col.value === column) &&
+          objectFormatting === ObjectFormattingEnum.BACKGROUND_COLOR
+        : false,
+    [column, numericColumns, objectFormatting],
+  );
+
+  const handleObjectChange = (value: ObjectFormattingEnum) => {
+    setObjectFormatting(value);
+
+    if (value === ObjectFormattingEnum.CELL_BAR) {
+      const currentColumnValue = form.getFieldValue('columnFormatting');
+
+      const isCurrentColumnNumeric = numericColumns.some(
+        col => col.value === currentColumnValue,
+      );
+
+      if (!isCurrentColumnNumeric && numericColumns.length > 0) {
+        const newValue = numericColumns[0]?.value || '';
+        form.setFieldsValue({
+          columnFormatting: newValue,
+        });
+        setColumnFormatting(newValue);
+      }
+    }
+  };
+
+  const getColumnOptions = useCallback(
+    () =>
+      objectFormatting === ObjectFormattingEnum.CELL_BAR
+        ? numericColumns
+        : allColumns,
+    [objectFormatting, numericColumns, allColumns],
+  );
 
   useEffect(() => {
     if (column && !previousColumnType) {
@@ -333,6 +405,68 @@ export const FormattingPopoverContent = ({
           </FormItem>
         </Col>
       </Row>
+      {visibleAllColumns && showOperatorFields ? (
+        <Row gutter={12}>
+          <Col span={12}>
+            <FormItem
+              name="columnFormatting"
+              label={t('Formatting column')}
+              rules={rulesRequired}
+              initialValue={columnFormatting}
+            >
+              <Select
+                ariaLabel={t('Select column name')}
+                options={getColumnOptions()}
+                onChange={(value: string | undefined) => {
+                  handleAllColumnChange(value as string);
+                }}
+              />
+            </FormItem>
+          </Col>
+          <Col span={12}>
+            <FormItem
+              name="objectFormatting"
+              label={t('Formatting object')}
+              rules={rulesRequired}
+              initialValue={objectFormatting}
+              tooltip={
+                objectFormatting === ObjectFormattingEnum.CELL_BAR
+                  ? t(
+                      'Applies only when "Cell bars" formatting is selected: the background of the histogram columns is displayed if the "Show cell bars" flag is enabled.',
+                    )
+                  : null
+              }
+            >
+              <Select
+                ariaLabel={t('Select object name')}
+                options={formattingOptions}
+                onChange={(value: ObjectFormattingEnum) => {
+                  handleObjectChange(value);
+                }}
+              />
+            </FormItem>
+          </Col>
+        </Row>
+      ) : null}
+      {visibleUseGradient && (
+        <Row gutter={20}>
+          <Col span={1}>
+            <FormItem
+              name="useGradient"
+              valuePropName="checked"
+              initialValue={useGradient}
+            >
+              <Checkbox
+                onChange={event => setUseGradient(event.target.checked)}
+                checked={useGradient}
+              />
+            </FormItem>
+          </Col>
+          <Col>
+            <FormItem required>{t('Use gradient')}</FormItem>
+          </Col>
+        </Row>
+      )}
       <FormItem noStyle shouldUpdate={shouldFormItemUpdate}>
         {showOperatorFields ? (
           (props: GetFieldValue) => renderOperatorFields(props, columnType)

@@ -230,3 +230,27 @@ class TestEventLogger(unittest.TestCase):
             )
 
         assert logger.records[0]["user_id"] == None  # noqa: E711
+
+    @patch.object(DBEventLogger, "log")
+    def test_log_this_with_context_and_extra_payload(self, mock_log):
+        logger = DBEventLogger()
+
+        @logger.log_this_with_context(action="test_action", allow_extra_payload=True)
+        def test_func(arg1, add_extra_log_payload, karg1=1):
+            time.sleep(0.1)
+            add_extra_log_payload(custom_field="custom_value")
+            return arg1 * karg1
+
+        with app.test_request_context():
+            result = test_func(1, karg1=2)  # pylint: disable=no-value-for-parameter
+            payload = mock_log.call_args[1]
+            assert result == 2
+            assert payload["records"] == [
+                {
+                    "custom_field": "custom_value",
+                    "path": "/",
+                    "karg1": 2,
+                    "object_ref": test_func.__qualname__,
+                }
+            ]
+            assert payload["duration_ms"] >= 100

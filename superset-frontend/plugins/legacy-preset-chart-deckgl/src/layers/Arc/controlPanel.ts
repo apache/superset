@@ -17,7 +17,8 @@
  * under the License.
  */
 import { ControlPanelConfig } from '@superset-ui/chart-controls';
-import { t, validateNonEmpty, legacyValidateInteger } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { validateNonEmpty, legacyValidateInteger } from '@superset-ui/core';
 import timeGrainSqlaAnimationOverrides, {
   columnChoices,
   PRIMARY_COLOR,
@@ -38,6 +39,8 @@ import {
   legendPosition,
   viewport,
   mapboxStyle,
+  tooltipContents,
+  tooltipTemplate,
   deckGLCategoricalColor,
   deckGLCategoricalColorSchemeSelect,
   deckGLCategoricalColorSchemeTypeSelect,
@@ -77,6 +80,8 @@ const config: ControlPanelConfig = {
         ],
         ['row_limit', filterNulls],
         ['adhoc_filters'],
+        [tooltipContents],
+        [tooltipTemplate],
       ],
     },
     {

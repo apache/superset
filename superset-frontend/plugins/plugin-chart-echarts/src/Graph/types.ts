@@ -59,7 +59,7 @@ export type EChartGraphNode = Omit<GraphNodeItemOption, 'value'> & {
   tooltip?: Pick<SeriesTooltipOption, 'formatter'>;
 };
 
-// @ts-ignore
+// @ts-expect-error
 export const DEFAULT_FORM_DATA: EchartsGraphFormData = {
   ...DEFAULT_LEGEND_FORM_DATA,
   source: '',
@@ -84,8 +84,7 @@ export type tooltipFormatParams = {
   data: { [name: string]: string };
 };
 
-export interface EchartsGraphChartProps
-  extends BaseChartProps<EchartsGraphFormData> {
+export interface EchartsGraphChartProps extends BaseChartProps<EchartsGraphFormData> {
   formData: EchartsGraphFormData;
 }
 

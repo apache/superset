@@ -19,7 +19,8 @@
 import { useRef, ReactNode } from 'react';
 
 import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
-import { styled, t, useTheme, keyframes, css } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { styled, useTheme, css, keyframes } from '@apache-superset/core/theme';
 import { InfoTooltip, Icons, Tooltip } from '@superset-ui/core/components';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
@@ -224,6 +225,7 @@ export const AddIconButton = styled.button`
   background-color: ${({ theme }) => theme.colorPrimaryText};
   border: none;
   border-radius: 2px;
+  cursor: pointer;
 
   :disabled {
     cursor: not-allowed;
@@ -257,8 +259,8 @@ export const OptionControlLabel = ({
   savedMetric?: savedMetricType;
   adhocMetric?: AdhocMetric;
   onRemove: () => void;
-  onMoveLabel: (dragIndex: number, hoverIndex: number) => void;
-  onDropLabel: () => void;
+  onMoveLabel?: (dragIndex: number, hoverIndex: number) => void;
+  onDropLabel?: () => void;
   withCaret?: boolean;
   isFunction?: boolean;
   isDraggable?: boolean;

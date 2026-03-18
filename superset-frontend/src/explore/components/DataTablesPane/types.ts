@@ -16,11 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  GenericDataType,
-  JsonObject,
-  LatestQueryFormData,
-} from '@superset-ui/core';
+import { JsonObject, LatestQueryFormData } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import type { ChartStatus, Datasource } from 'src/explore/types';
 
 export enum ResultTypes {
@@ -52,6 +49,8 @@ export interface ResultsPaneProps {
   // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
   isVisible: boolean;
   canDownload: boolean;
+  // Optional map of column/metric name -> verbose label
+  columnDisplayNames?: Record<string, string>;
 }
 
 export interface SamplesPaneProps {
@@ -91,4 +90,7 @@ export interface SingleQueryResultPaneProp extends QueryResultInterface {
   // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
   isVisible: boolean;
   canDownload: boolean;
+  // Optional map of column/metric name -> verbose label
+  columnDisplayNames?: Record<string, string>;
+  isPaginationSticky?: boolean;
 }

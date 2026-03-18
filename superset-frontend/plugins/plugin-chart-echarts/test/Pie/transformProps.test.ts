@@ -20,8 +20,8 @@ import {
   ChartProps,
   getNumberFormatter,
   SqlaFormData,
-  supersetTheme,
 } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
 import type { PieSeriesOption } from 'echarts/charts';
 import type {
   LabelFormatterCallback,
@@ -59,7 +59,7 @@ describe('Pie transformProps', () => {
     theme: supersetTheme,
   });
 
-  it('should transform chart props for viz', () => {
+  test('should transform chart props for viz', () => {
     expect(transformProps(chartProps as EchartsPieChartProps)).toEqual(
       expect.objectContaining({
         width: 800,
@@ -87,7 +87,7 @@ describe('Pie transformProps', () => {
 });
 
 describe('formatPieLabel', () => {
-  it('should generate a valid pie chart label', () => {
+  test('should generate a valid pie chart label', () => {
     const numberFormatter = getNumberFormatter();
     const params = { name: 'My Label', value: 1234, percent: 12.34 };
     expect(
@@ -191,7 +191,7 @@ describe('Pie label string template', () => {
     return (formatter as LabelFormatterCallback)(params);
   };
 
-  it('should generate a valid pie chart label with template', () => {
+  test('should generate a valid pie chart label with template', () => {
     expect(
       format({
         label_type: 'template',
@@ -200,7 +200,7 @@ describe('Pie label string template', () => {
     ).toEqual('Tablet:123k\n55.50%');
   });
 
-  it('should be formatted using the number formatter', () => {
+  test('should be formatted using the number formatter', () => {
     expect(
       format({
         label_type: 'template',
@@ -210,7 +210,7 @@ describe('Pie label string template', () => {
     ).toEqual('Tablet:123,456\n55.50%');
   });
 
-  it('should be compatible with ECharts raw variable syntax', () => {
+  test('should be compatible with ECharts raw variable syntax', () => {
     expect(
       format({
         label_type: 'template',
@@ -257,7 +257,7 @@ describe('Total value positioning with legends', () => {
     }) as EchartsPieChartProps;
   };
 
-  it('should center total text when legend is on the right', () => {
+  test('should center total text when legend is on the right', () => {
     const props = getChartPropsWithLegend(true, true, 'right', true);
     const transformed = transformProps(props);
 
@@ -280,7 +280,7 @@ describe('Total value positioning with legends', () => {
     expect(leftValue).toBeGreaterThan(30); // Should be reasonable positioning
   });
 
-  it('should center total text when legend is on the left', () => {
+  test('should center total text when legend is on the left', () => {
     const props = getChartPropsWithLegend(true, true, 'left', true);
     const transformed = transformProps(props);
 
@@ -300,7 +300,7 @@ describe('Total value positioning with legends', () => {
     expect(leftValue).toBeLessThan(70); // Should be reasonable positioning
   });
 
-  it('should center total text when legend is on top', () => {
+  test('should center total text when legend is on top', () => {
     const props = getChartPropsWithLegend(true, true, 'top', true);
     const transformed = transformProps(props);
 
@@ -319,7 +319,7 @@ describe('Total value positioning with legends', () => {
     expect(topValue).toBeGreaterThan(50); // Shifted down for top legend
   });
 
-  it('should center total text when legend is on bottom', () => {
+  test('should center total text when legend is on bottom', () => {
     const props = getChartPropsWithLegend(true, true, 'bottom', true);
     const transformed = transformProps(props);
 
@@ -338,7 +338,7 @@ describe('Total value positioning with legends', () => {
     expect(topValue).toBeLessThan(50); // Shifted up for bottom legend
   });
 
-  it('should use default positioning when no legend is shown', () => {
+  test('should use default positioning when no legend is shown', () => {
     const props = getChartPropsWithLegend(true, false, 'right', true);
     const transformed = transformProps(props);
 
@@ -351,7 +351,7 @@ describe('Total value positioning with legends', () => {
     );
   });
 
-  it('should handle regular pie chart (non-donut) positioning', () => {
+  test('should handle regular pie chart (non-donut) positioning', () => {
     const props = getChartPropsWithLegend(true, true, 'right', false);
     const transformed = transformProps(props);
 
@@ -364,7 +364,7 @@ describe('Total value positioning with legends', () => {
     );
   });
 
-  it('should not show total graphic when showTotal is false', () => {
+  test('should not show total graphic when showTotal is false', () => {
     const props = getChartPropsWithLegend(false, true, 'right', true);
     const transformed = transformProps(props);
 
@@ -429,7 +429,7 @@ describe('Other category', () => {
       theme: supersetTheme,
     });
 
-  it('generates Other category', () => {
+  test('generates Other category', () => {
     const chartProps = getChartProps({
       threshold_for_other: 20,
     });
@@ -443,5 +443,105 @@ describe('Other category', () => {
     expect(data[3].value).toBe(1 + 2);
     expect(data[3].name).toBe('Other');
     expect(data[3].isOther).toBe(true);
+  });
+});
+
+describe('legend sorting', () => {
+  const defaultFormData: SqlaFormData = {
+    colorScheme: 'bnbColors',
+    datasource: '3__table',
+    granularity_sqla: 'ds',
+    metric: 'metric',
+    groupby: ['foo', 'bar'],
+    viz_type: 'my_viz',
+  };
+
+  const getChartProps = (formData: Partial<SqlaFormData>) =>
+    new ChartProps({
+      formData: {
+        ...defaultFormData,
+        ...formData,
+      },
+      width: 800,
+      height: 600,
+      queriesData: [
+        {
+          data: [
+            {
+              foo: 'A foo',
+              bar: 'A bar',
+              metric: 1,
+            },
+            {
+              foo: 'D foo',
+              bar: 'D bar',
+              metric: 2,
+            },
+
+            {
+              foo: 'C foo',
+              bar: 'C bar',
+              metric: 3,
+            },
+            {
+              foo: 'B foo',
+              bar: 'B bar',
+              metric: 4,
+            },
+
+            {
+              foo: 'E foo',
+              bar: 'E bar',
+              metric: 5,
+            },
+          ],
+        },
+      ],
+      theme: supersetTheme,
+    });
+
+  test('sort legend by data', () => {
+    const chartProps = getChartProps({
+      legendSort: null,
+    });
+    const transformed = transformProps(chartProps as EchartsPieChartProps);
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'A foo, A bar',
+      'D foo, D bar',
+      'C foo, C bar',
+      'B foo, B bar',
+      'E foo, E bar',
+    ]);
+  });
+
+  test('sort legend by label ascending', () => {
+    const chartProps = getChartProps({
+      legendSort: 'asc',
+    });
+    const transformed = transformProps(chartProps as EchartsPieChartProps);
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'A foo, A bar',
+      'B foo, B bar',
+      'C foo, C bar',
+      'D foo, D bar',
+      'E foo, E bar',
+    ]);
+  });
+
+  test('sort legend by label descending', () => {
+    const chartProps = getChartProps({
+      legendSort: 'desc',
+    });
+    const transformed = transformProps(chartProps as EchartsPieChartProps);
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'E foo, E bar',
+      'D foo, D bar',
+      'C foo, C bar',
+      'B foo, B bar',
+      'A foo, A bar',
+    ]);
   });
 });

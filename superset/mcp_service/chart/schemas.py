@@ -1,0 +1,1223 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""
+Pydantic schemas for chart-related responses
+"""
+
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from typing import Annotated, Any, Dict, List, Literal, Protocol
+
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_serializer,
+    model_validator,
+    PositiveInt,
+)
+
+from superset.constants import TimeGrain
+from superset.daos.base import ColumnOperator, ColumnOperatorEnum
+from superset.mcp_service.common.cache_schemas import (
+    CacheStatus,
+    FormDataCacheControl,
+    MetadataCacheControl,
+    QueryCacheControl,
+)
+from superset.mcp_service.common.error_schemas import ChartGenerationError
+from superset.mcp_service.system.schemas import (
+    PaginationInfo,
+    serialize_user_object,
+    TagInfo,
+    UserInfo,
+)
+from superset.mcp_service.utils.sanitization import (
+    sanitize_filter_value,
+    sanitize_user_input,
+)
+
+
+class ChartLike(Protocol):
+    """Protocol for chart-like objects with expected attributes."""
+
+    id: int
+    slice_name: str | None
+    viz_type: str | None
+    datasource_name: str | None
+    datasource_type: str | None
+    url: str | None
+    description: str | None
+    cache_timeout: int | None
+    form_data: Dict[str, Any] | None
+    query_context: Any | None
+    changed_by: Any | None  # User object
+    changed_by_name: str | None
+    changed_on: str | datetime | None
+    changed_on_humanized: str | None
+    created_by: Any | None  # User object
+    created_by_name: str | None
+    created_on: str | datetime | None
+    created_on_humanized: str | None
+    uuid: str | None
+    tags: List[Any] | None
+    owners: List[Any] | None
+
+
+class ChartInfo(BaseModel):
+    """Full chart model with all possible attributes."""
+
+    id: int | None = Field(None, description="Chart ID")
+    slice_name: str | None = Field(None, description="Chart name")
+    viz_type: str | None = Field(None, description="Visualization type")
+    datasource_name: str | None = Field(None, description="Datasource name")
+    datasource_type: str | None = Field(None, description="Datasource type")
+    url: str | None = Field(None, description="Chart explore page URL")
+    description: str | None = Field(None, description="Chart description")
+    cache_timeout: int | None = Field(None, description="Cache timeout")
+    changed_by: str | None = Field(None, description="Last modifier (username)")
+    changed_by_name: str | None = Field(
+        None, description="Last modifier (display name)"
+    )
+    changed_on: str | datetime | None = Field(
+        None, description="Last modification timestamp"
+    )
+    changed_on_humanized: str | None = Field(
+        None, description="Humanized modification time"
+    )
+    created_by: str | None = Field(None, description="Chart creator (username)")
+    created_on: str | datetime | None = Field(None, description="Creation timestamp")
+    created_on_humanized: str | None = Field(
+        None, description="Humanized creation time"
+    )
+    uuid: str | None = Field(None, description="Chart UUID")
+    tags: List[TagInfo] = Field(default_factory=list, description="Chart tags")
+    owners: List[UserInfo] = Field(default_factory=list, description="Chart owners")
+
+    # Fields for unsaved state support
+    form_data: Dict[str, Any] | None = Field(
+        None,
+        description=(
+            "The chart's form_data configuration. When form_data_key is provided, "
+            "this contains the unsaved (cached) configuration rather than the "
+            "saved version."
+        ),
+    )
+    form_data_key: str | None = Field(
+        None,
+        description=(
+            "Cache key used to retrieve unsaved form_data. When present, indicates "
+            "the form_data came from cache (unsaved edits) rather than the saved chart."
+        ),
+    )
+    is_unsaved_state: bool = Field(
+        default=False,
+        description=(
+            "True if the form_data came from cache (unsaved edits) rather than the "
+            "saved chart configuration. When true, the data reflects what the user "
+            "sees in the Explore view, not the saved version."
+        ),
+    )
+
+    model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
+
+    @model_serializer(mode="wrap", when_used="json")
+    def _filter_fields_by_context(self, serializer: Any, info: Any) -> Dict[str, Any]:
+        """Filter fields based on serialization context.
+
+        If context contains 'select_columns', only include those fields.
+        Otherwise, include all fields (default behavior).
+        """
+        # Get full serialization
+        data = serializer(self)
+
+        # Check if we have a context with select_columns
+        if info.context and isinstance(info.context, dict):
+            select_columns = info.context.get("select_columns")
+            if select_columns:
+                # Filter to only requested fields
+                return {k: v for k, v in data.items() if k in select_columns}
+
+        # No filtering - return all fields
+        return data
+
+
+class ChartError(BaseModel):
+    error: str = Field(..., description="Error message")
+    error_type: str = Field(..., description="Type of error")
+    timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="Error timestamp",
+    )
+    model_config = ConfigDict(ser_json_timedelta="iso8601")
+
+
+class ChartCapabilities(BaseModel):
+    """Describes what the chart can do for LLM understanding."""
+
+    supports_interaction: bool = Field(description="Chart supports user interaction")
+    supports_real_time: bool = Field(description="Chart supports live data updates")
+    supports_drill_down: bool = Field(
+        description="Chart supports drill-down navigation"
+    )
+    supports_export: bool = Field(description="Chart can be exported to other formats")
+    optimal_formats: List[str] = Field(description="Recommended preview formats")
+    data_types: List[str] = Field(
+        description="Types of data shown (time_series, categorical, etc)"
+    )
+
+
+class ChartSemantics(BaseModel):
+    """Semantic information for LLM reasoning."""
+
+    primary_insight: str = Field(
+        description="Main insight or pattern the chart reveals"
+    )
+    data_story: str = Field(description="Narrative description of what the data shows")
+    recommended_actions: List[str] = Field(
+        description="Suggested next steps based on data"
+    )
+    anomalies: List[str] = Field(description="Notable outliers or unusual patterns")
+    statistical_summary: Dict[str, Any] = Field(
+        description="Key statistics (mean, median, trends)"
+    )
+
+
+class PerformanceMetadata(BaseModel):
+    """Performance information for LLM cost understanding."""
+
+    query_duration_ms: int = Field(description="Query execution time")
+    estimated_cost: str | None = Field(None, description="Resource cost estimate")
+    cache_status: str = Field(description="Cache hit/miss status")
+    optimization_suggestions: List[str] = Field(
+        default_factory=list, description="Performance improvement tips"
+    )
+
+
+class AccessibilityMetadata(BaseModel):
+    """Accessibility information for inclusive visualization."""
+
+    color_blind_safe: bool = Field(description="Uses colorblind-safe palette")
+    alt_text: str = Field(description="Screen reader description")
+    high_contrast_available: bool = Field(description="High contrast version available")
+
+
+class VersionedResponse(BaseModel):
+    """Base class for versioned API responses."""
+
+    schema_version: str = Field("2.0", description="Response schema version")
+    api_version: str = Field("v1", description="MCP API version")
+
+
+class GetChartInfoRequest(BaseModel):
+    """Request schema for get_chart_info with support for ID, UUID, or form_data_key.
+
+    When form_data_key is provided, the tool will retrieve the unsaved chart state
+    from cache, allowing you to explain what the user actually sees (not the saved
+    version). This is useful when a user edits a chart in Explore but hasn't saved yet.
+
+    For unsaved charts (no chart ID), provide only form_data_key to retrieve the
+    current chart configuration from cache.
+    """
+
+    identifier: Annotated[
+        int | str | None,
+        Field(
+            default=None,
+            description=(
+                "Chart identifier - can be numeric ID or UUID string. "
+                "Optional when form_data_key is provided (for unsaved charts)."
+            ),
+        ),
+    ]
+    form_data_key: str | None = Field(
+        default=None,
+        description=(
+            "Cache key for retrieving unsaved chart state. When a user "
+            "edits a chart in Explore but hasn't saved, the current state is stored "
+            "with this key. If provided, the tool returns the current unsaved "
+            "configuration instead of the saved version. "
+            "Can be used alone (without identifier) for unsaved charts."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def validate_identifier_or_form_data_key(self) -> "GetChartInfoRequest":
+        if not self.identifier and not self.form_data_key:
+            raise ValueError(
+                "At least one of 'identifier' or 'form_data_key' must be provided."
+            )
+        return self
+
+
+def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
+    if not chart:
+        return None
+
+    # Use the chart's native URL (explore URL) instead of screenshot URL
+    from superset.mcp_service.utils.url_utils import get_superset_base_url
+
+    chart_id = getattr(chart, "id", None)
+    chart_url = None
+    if chart_id:
+        chart_url = f"{get_superset_base_url()}/explore/?slice_id={chart_id}"
+
+    return ChartInfo(
+        id=chart_id,
+        slice_name=getattr(chart, "slice_name", None),
+        viz_type=getattr(chart, "viz_type", None),
+        datasource_name=getattr(chart, "datasource_name", None),
+        datasource_type=getattr(chart, "datasource_type", None),
+        url=chart_url,
+        description=getattr(chart, "description", None),
+        cache_timeout=getattr(chart, "cache_timeout", None),
+        changed_by=getattr(chart, "changed_by_name", None)
+        or (str(chart.changed_by) if getattr(chart, "changed_by", None) else None),
+        changed_by_name=getattr(chart, "changed_by_name", None),
+        changed_on=getattr(chart, "changed_on", None),
+        changed_on_humanized=getattr(chart, "changed_on_humanized", None),
+        created_by=getattr(chart, "created_by_name", None)
+        or (str(chart.created_by) if getattr(chart, "created_by", None) else None),
+        created_on=getattr(chart, "created_on", None),
+        created_on_humanized=getattr(chart, "created_on_humanized", None),
+        uuid=str(getattr(chart, "uuid", "")) if getattr(chart, "uuid", None) else None,
+        tags=[
+            TagInfo.model_validate(tag, from_attributes=True)
+            for tag in getattr(chart, "tags", [])
+        ]
+        if getattr(chart, "tags", None)
+        else [],
+        owners=[
+            info
+            for owner in getattr(chart, "owners", [])
+            if (info := serialize_user_object(owner)) is not None
+        ]
+        if getattr(chart, "owners", None)
+        else [],
+    )
+
+
+class ChartFilter(ColumnOperator):
+    """
+    Filter object for chart listing.
+    col: The column to filter on. Must be one of the allowed filter fields.
+    opr: The operator to use. Must be one of the supported operators.
+    value: The value to filter by (type depends on col and opr).
+    """
+
+    col: Literal[
+        "slice_name",
+        "viz_type",
+        "datasource_name",
+        "created_by_fk",
+    ] = Field(
+        ...,
+        description="Column to filter on. Use get_schema(model_type='chart') for "
+        "available filter columns. Use created_by_fk with the user ID from "
+        "get_instance_info's current_user to find charts created by a specific user.",
+    )
+    opr: ColumnOperatorEnum = Field(
+        ...,
+        description="Operator to use. Use get_schema(model_type='chart') for "
+        "available operators.",
+    )
+    value: str | int | float | bool | List[str | int | float | bool] = Field(
+        ..., description="Value to filter by (type depends on col and opr)"
+    )
+
+
+class ChartList(BaseModel):
+    charts: List[ChartInfo]
+    count: int
+    total_count: int
+    page: int
+    page_size: int
+    total_pages: int
+    has_previous: bool
+    has_next: bool
+    columns_requested: List[str] = Field(
+        default_factory=list,
+        description="Requested columns for the response",
+    )
+    columns_loaded: List[str] = Field(
+        default_factory=list,
+        description="Columns that were actually loaded for each chart",
+    )
+    columns_available: List[str] = Field(
+        default_factory=list,
+        description="All columns available for selection via select_columns parameter",
+    )
+    sortable_columns: List[str] = Field(
+        default_factory=list,
+        description="Columns that can be used with order_column parameter",
+    )
+    filters_applied: List[ChartFilter] = Field(
+        default_factory=list,
+        description="List of advanced filter dicts applied to the query.",
+    )
+    pagination: PaginationInfo | None = None
+    timestamp: datetime | None = None
+    model_config = ConfigDict(ser_json_timedelta="iso8601")
+
+
+# --- Simplified schemas for generate_chart tool ---
+
+
+# Common pieces
+class ColumnRef(BaseModel):
+    name: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        pattern=r"^[a-zA-Z0-9_][a-zA-Z0-9_\s\-\.]*$",
+    )
+    label: str | None = Field(None, max_length=500)
+    dtype: str | None = None
+    aggregate: (
+        Literal[
+            "SUM",
+            "COUNT",
+            "AVG",
+            "MIN",
+            "MAX",
+            "COUNT_DISTINCT",
+            "STDDEV",
+            "VAR",
+            "MEDIAN",
+            "PERCENTILE",
+        ]
+        | None
+    ) = Field(None, description="SQL aggregate function")
+
+    @field_validator("name")
+    @classmethod
+    def sanitize_name(cls, v: str) -> str:
+        """Sanitize column name to prevent XSS and SQL injection."""
+        # sanitize_user_input raises ValueError when allow_empty=False (default)
+        # so the return value is guaranteed to be a non-None str
+        return sanitize_user_input(
+            v, "Column name", max_length=255, check_sql_keywords=True
+        )  # type: ignore[return-value]
+
+    @field_validator("label")
+    @classmethod
+    def sanitize_label(cls, v: str | None) -> str | None:
+        """Sanitize display label to prevent XSS attacks."""
+        return sanitize_user_input(v, "Label", max_length=500, allow_empty=True)
+
+
+class AxisConfig(BaseModel):
+    title: str | None = Field(None, max_length=200)
+    scale: Literal["linear", "log"] | None = "linear"
+    format: str | None = Field(None, description="e.g. '$,.2f'", max_length=50)
+
+
+class LegendConfig(BaseModel):
+    show: bool = True
+    position: Literal["top", "bottom", "left", "right"] | None = "right"
+
+
+class FilterConfig(BaseModel):
+    column: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        pattern=r"^[a-zA-Z0-9_][a-zA-Z0-9_\s\-\.]*$",
+    )
+    op: Literal[
+        "=",
+        ">",
+        "<",
+        ">=",
+        "<=",
+        "!=",
+        "LIKE",
+        "ILIKE",
+        "NOT LIKE",
+        "IN",
+        "NOT IN",
+    ] = Field(
+        ...,
+        description="LIKE/ILIKE use % wildcards. IN/NOT IN take a list.",
+    )
+    value: str | int | float | bool | list[str | int | float | bool] = Field(
+        ...,
+        description="For IN/NOT IN, provide a list.",
+    )
+
+    @field_validator("column")
+    @classmethod
+    def sanitize_column(cls, v: str) -> str:
+        """Sanitize filter column name to prevent injection attacks."""
+        # sanitize_user_input raises ValueError when allow_empty=False (default)
+        # so the return value is guaranteed to be a non-None str
+        return sanitize_user_input(v, "Filter column", max_length=255)  # type: ignore[return-value]
+
+    @field_validator("value")
+    @classmethod
+    def sanitize_value(
+        cls, v: str | int | float | bool | list[str | int | float | bool]
+    ) -> str | int | float | bool | list[str | int | float | bool]:
+        """Sanitize filter value to prevent XSS and SQL injection attacks."""
+        if isinstance(v, list):
+            return [sanitize_filter_value(item, max_length=1000) for item in v]
+        return sanitize_filter_value(v, max_length=1000)
+
+    @model_validator(mode="after")
+    def validate_value_type_matches_operator(self) -> FilterConfig:
+        """Validate that value type matches the operator requirements."""
+        if self.op in ("IN", "NOT IN"):
+            if not isinstance(self.value, list):
+                raise ValueError(
+                    f"Operator '{self.op}' requires a list of values, "
+                    f"got {type(self.value).__name__}"
+                )
+        elif isinstance(self.value, list):
+            raise ValueError(
+                f"Operator '{self.op}' requires a single value, not a list"
+            )
+        return self
+
+
+# Actual chart types
+class PieChartConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    chart_type: Literal["pie"] = "pie"
+    dimension: ColumnRef = Field(..., description="Category column for slices")
+    metric: ColumnRef = Field(
+        ..., description="Value metric (needs aggregate e.g. SUM, COUNT)"
+    )
+    donut: bool = False
+    show_labels: bool = True
+    label_type: Literal[
+        "key",
+        "value",
+        "percent",
+        "key_value",
+        "key_percent",
+        "key_value_percent",
+        "value_percent",
+    ] = "key_value_percent"
+    sort_by_metric: bool = True
+    show_legend: bool = True
+    filters: List[FilterConfig] | None = None
+    row_limit: int = Field(100, description="Max slices", ge=1, le=10000)
+    number_format: str = Field("SMART_NUMBER", max_length=50)
+    show_total: bool = Field(False, description="Show total in center")
+    labels_outside: bool = True
+    outer_radius: int = Field(70, description="Outer radius % (1-100)", ge=1, le=100)
+    inner_radius: int = Field(
+        30, description="Donut inner radius % (1-100)", ge=1, le=100
+    )
+
+
+class PivotTableChartConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    chart_type: Literal["pivot_table"] = "pivot_table"
+    rows: List[ColumnRef] = Field(..., min_length=1, description="Row grouping columns")
+    columns: List[ColumnRef] | None = Field(
+        None, description="Column groups for cross-tabulation"
+    )
+    metrics: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description="Metrics (need aggregate e.g. SUM, COUNT, AVG)",
+    )
+    aggregate_function: Literal[
+        "Sum",
+        "Average",
+        "Median",
+        "Sample Variance",
+        "Sample Standard Deviation",
+        "Minimum",
+        "Maximum",
+        "Count",
+        "Count Unique Values",
+        "First",
+        "Last",
+    ] = "Sum"
+    show_row_totals: bool = True
+    show_column_totals: bool = True
+    transpose: bool = False
+    combine_metric: bool = Field(False, description="Metrics side by side in columns")
+    filters: List[FilterConfig] | None = None
+    row_limit: int = Field(10000, description="Max cells", ge=1, le=50000)
+    value_format: str = Field("SMART_NUMBER", max_length=50)
+
+
+class MixedTimeseriesChartConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    chart_type: Literal["mixed_timeseries"] = "mixed_timeseries"
+    x: ColumnRef = Field(..., description="Shared temporal X-axis column")
+    time_grain: TimeGrain | None = Field(None, description="PT1H, P1D, P1W, P1M, P1Y")
+    # Primary series (Query A)
+    y: List[ColumnRef] = Field(..., min_length=1, description="Primary Y-axis metrics")
+    primary_kind: Literal["line", "bar", "area", "scatter"] = "line"
+    group_by: ColumnRef | None = Field(None, description="Primary series group by")
+    # Secondary series (Query B)
+    y_secondary: List[ColumnRef] = Field(
+        ..., min_length=1, description="Secondary Y-axis metrics"
+    )
+    secondary_kind: Literal["line", "bar", "area", "scatter"] = "bar"
+    group_by_secondary: ColumnRef | None = Field(
+        None, description="Secondary series group by"
+    )
+    # Display options
+    show_legend: bool = True
+    x_axis: AxisConfig | None = None
+    y_axis: AxisConfig | None = None
+    y_axis_secondary: AxisConfig | None = None
+    filters: List[FilterConfig] | None = None
+
+
+class TableChartConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    chart_type: Literal["table"] = "table"
+    viz_type: Literal["table", "ag-grid-table"] = Field(
+        "table", description="'ag-grid-table' for interactive features"
+    )
+    columns: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description="Columns with unique labels",
+    )
+    filters: List[FilterConfig] | None = None
+    sort_by: List[str] | None = None
+
+    @model_validator(mode="after")
+    def validate_unique_column_labels(self) -> "TableChartConfig":
+        """Ensure all column labels are unique."""
+        labels_seen = set()
+        duplicates = []
+
+        for i, col in enumerate(self.columns):
+            # Generate the label that will be used (same logic as create_metric_object)
+            if col.aggregate:
+                label = col.label or f"{col.aggregate}({col.name})"
+            else:
+                label = col.label or col.name
+
+            if label in labels_seen:
+                duplicates.append(f"columns[{i}]: '{label}'")
+            else:
+                labels_seen.add(label)
+
+        if duplicates:
+            raise ValueError(
+                f"Duplicate column/metric labels: {', '.join(duplicates)}. "
+                f"Please make sure all columns and metrics have a unique label. "
+                f"Use the 'label' field to provide custom names for columns."
+            )
+
+        return self
+
+
+class XYChartConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    chart_type: Literal["xy"] = "xy"
+    x: ColumnRef = Field(..., description="X-axis column")
+    y: List[ColumnRef] = Field(
+        ..., min_length=1, description="Y-axis metrics (unique labels)"
+    )
+    kind: Literal["line", "bar", "area", "scatter"] = "line"
+    time_grain: TimeGrain | None = Field(
+        None, description="PT1S, PT1M, PT1H, P1D, P1W, P1M, P3M, P1Y"
+    )
+    orientation: Literal["vertical", "horizontal"] | None = Field(
+        None, description="Bar orientation (only for kind='bar')"
+    )
+    stacked: bool = False
+    group_by: ColumnRef | None = Field(
+        None, description="Series breakdown column (not 'series')"
+    )
+    x_axis: AxisConfig | None = None
+    y_axis: AxisConfig | None = None
+    legend: LegendConfig | None = None
+    filters: List[FilterConfig] | None = None
+
+    @model_validator(mode="after")
+    def validate_unique_column_labels(self) -> "XYChartConfig":
+        """Ensure all column labels are unique across x, y, and group_by."""
+        labels_seen = {}  # label -> field_name for error reporting
+        duplicates = []
+
+        # Check X-axis label
+        x_label = self.x.label or self.x.name
+        labels_seen[x_label] = "x"
+
+        # Check Y-axis labels
+        for i, col in enumerate(self.y):
+            if col.aggregate:
+                label = col.label or f"{col.aggregate}({col.name})"
+            else:
+                label = col.label or col.name
+
+            if label in labels_seen:
+                duplicates.append(
+                    f"y[{i}]: '{label}' (conflicts with {labels_seen[label]})"
+                )
+            else:
+                labels_seen[label] = f"y[{i}]"
+
+        # Check group_by label if present
+        if self.group_by:
+            group_label = self.group_by.label or self.group_by.name
+            if group_label in labels_seen:
+                duplicates.append(
+                    f"group_by: '{group_label}' "
+                    f"(conflicts with {labels_seen[group_label]})"
+                )
+
+        if duplicates:
+            raise ValueError(
+                f"Duplicate column/metric labels: {', '.join(duplicates)}. "
+                f"Please make sure all columns and metrics have a unique label. "
+                f"Use the 'label' field to provide custom names for columns."
+            )
+
+        return self
+
+
+# Discriminated union entry point with custom error handling
+ChartConfig = Annotated[
+    XYChartConfig
+    | TableChartConfig
+    | PieChartConfig
+    | PivotTableChartConfig
+    | MixedTimeseriesChartConfig,
+    Field(
+        discriminator="chart_type",
+        description=(
+            "Chart configuration - specify chart_type as 'xy', 'table', "
+            "'pie', 'pivot_table', or 'mixed_timeseries'"
+        ),
+    ),
+]
+
+
+class ListChartsRequest(MetadataCacheControl):
+    """Request schema for list_charts with clear, unambiguous types."""
+
+    filters: Annotated[
+        List[ChartFilter],
+        Field(
+            default_factory=list,
+            description="List of filter objects (column, operator, value). Each "
+            "filter is an object with 'col', 'opr', and 'value' "
+            "properties. Cannot be used together with 'search'.",
+        ),
+    ]
+    select_columns: Annotated[
+        List[str],
+        Field(
+            default_factory=list,
+            description="List of columns to select. Defaults to common columns if not "
+            "specified.",
+        ),
+    ]
+
+    @field_validator("filters", mode="before")
+    @classmethod
+    def parse_filters(cls, v: Any) -> List[ChartFilter]:
+        """
+        Parse filters from JSON string or list.
+
+        Handles Claude Code bug where objects are double-serialized as strings.
+        See: https://github.com/anthropics/claude-code/issues/5504
+        """
+        from superset.mcp_service.utils.schema_utils import parse_json_or_model_list
+
+        return parse_json_or_model_list(v, ChartFilter, "filters")
+
+    @field_validator("select_columns", mode="before")
+    @classmethod
+    def parse_select_columns(cls, v: Any) -> List[str]:
+        """
+        Parse select_columns from JSON string, list, or CSV string.
+
+        Handles Claude Code bug where arrays are double-serialized as strings.
+        See: https://github.com/anthropics/claude-code/issues/5504
+        """
+        from superset.mcp_service.utils.schema_utils import parse_json_or_list
+
+        return parse_json_or_list(v, "select_columns")
+
+    search: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="Text search string to match against chart fields. Cannot be "
+            "used together with 'filters'.",
+        ),
+    ]
+    order_column: Annotated[
+        str | None, Field(default=None, description="Column to order results by")
+    ]
+    order_direction: Annotated[
+        Literal["asc", "desc"],
+        Field(
+            default="asc", description="Direction to order results ('asc' or 'desc')"
+        ),
+    ]
+    page: Annotated[
+        PositiveInt,
+        Field(default=1, description="Page number for pagination (1-based)"),
+    ]
+    page_size: Annotated[
+        PositiveInt, Field(default=10, description="Number of items per page")
+    ]
+
+    @model_validator(mode="after")
+    def validate_search_and_filters(self) -> "ListChartsRequest":
+        """Prevent using both search and filters simultaneously to avoid query
+        conflicts."""
+        if self.search and self.filters:
+            raise ValueError(
+                "Cannot use both 'search' and 'filters' parameters simultaneously. "
+                "Use either 'search' for text-based searching across multiple fields, "
+                "or 'filters' for precise column-based filtering, but not both."
+            )
+        return self
+
+
+# The tool input models
+class GenerateChartRequest(QueryCacheControl):
+    dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
+    config: ChartConfig = Field(..., description="Chart configuration")
+    chart_name: str | None = Field(
+        None, description="Auto-generates if omitted", max_length=255
+    )
+    save_chart: bool = Field(default=False, description="Save permanently in Superset")
+    generate_preview: bool = True
+    preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
+        default_factory=lambda: ["url"],
+    )
+
+    @field_validator("chart_name")
+    @classmethod
+    def sanitize_chart_name(cls, v: str | None) -> str | None:
+        """Sanitize chart name to prevent XSS attacks."""
+        return sanitize_user_input(v, "Chart name", max_length=255, allow_empty=True)
+
+    @model_validator(mode="after")
+    def validate_cache_timeout(self) -> "GenerateChartRequest":
+        """Validate cache timeout is non-negative."""
+        if (
+            hasattr(self, "cache_timeout")
+            and self.cache_timeout is not None
+            and self.cache_timeout < 0
+        ):
+            raise ValueError(
+                "cache_timeout must be non-negative (0 or positive integer)"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_save_or_preview(self) -> "GenerateChartRequest":
+        """Ensure at least one of save_chart or generate_preview is enabled."""
+        if not self.save_chart and not self.generate_preview:
+            raise ValueError(
+                "At least one of 'save_chart' or 'generate_preview' must be True. "
+                "A request with both set to False would be a no-op."
+            )
+        return self
+
+
+class GenerateExploreLinkRequest(FormDataCacheControl):
+    dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
+    config: ChartConfig = Field(..., description="Chart configuration")
+
+
+class UpdateChartRequest(QueryCacheControl):
+    identifier: int | str = Field(..., description="Chart ID or UUID")
+    config: ChartConfig
+    chart_name: str | None = Field(
+        None, description="Auto-generates if omitted", max_length=255
+    )
+    generate_preview: bool = True
+    preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
+        default_factory=lambda: ["url"],
+    )
+
+    @field_validator("chart_name")
+    @classmethod
+    def sanitize_chart_name(cls, v: str | None) -> str | None:
+        """Sanitize chart name to prevent XSS attacks."""
+        return sanitize_user_input(v, "Chart name", max_length=255, allow_empty=True)
+
+
+class UpdateChartPreviewRequest(FormDataCacheControl):
+    form_data_key: str = Field(..., description="Existing form_data_key to update")
+    dataset_id: int | str = Field(..., description="Dataset ID or UUID")
+    config: ChartConfig
+    generate_preview: bool = True
+    preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
+        default_factory=lambda: ["url"],
+    )
+
+
+class GetChartDataRequest(QueryCacheControl):
+    """Request for chart data with cache control.
+
+    When form_data_key is provided, the tool will use the unsaved chart configuration
+    from cache to query data, allowing you to get data for what the user actually sees
+    (not the saved version). This is useful when a user edits a chart in Explore but
+    hasn't saved yet.
+
+    For unsaved charts (no chart ID), provide only form_data_key to query data using
+    the current chart configuration from cache.
+    """
+
+    identifier: int | str | None = Field(
+        default=None,
+        description=(
+            "Chart identifier (ID, UUID). "
+            "Optional when form_data_key is provided (for unsaved charts)."
+        ),
+    )
+    form_data_key: str | None = Field(
+        default=None,
+        description=(
+            "Cache key for retrieving unsaved chart state. When a user "
+            "edits a chart in Explore but hasn't saved, the current state is stored "
+            "with this key. If provided, the tool uses this configuration to query "
+            "data instead of the saved chart configuration. "
+            "Can be used alone (without identifier) for unsaved charts."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def validate_identifier_or_form_data_key(self) -> "GetChartDataRequest":
+        if not self.identifier and not self.form_data_key:
+            raise ValueError(
+                "At least one of 'identifier' or 'form_data_key' must be provided."
+            )
+        return self
+
+    limit: int | None = Field(
+        default=None,
+        description=(
+            "Maximum number of data rows to return. If not specified, uses the "
+            "chart's configured row limit."
+        ),
+    )
+    extra_form_data: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Extra form data to merge into the chart query, typically from "
+            "dashboard native filters. Format: "
+            '{"filters": [{"col": "country", "op": "IN", "val": ["US"]}]}'
+        ),
+    )
+    format: Literal["json", "csv", "excel"] = Field(
+        default="json", description="Data export format"
+    )
+
+
+class DataColumn(BaseModel):
+    """Enhanced column metadata with semantic information."""
+
+    name: str = Field(..., description="Column name")
+    display_name: str = Field(..., description="Human-readable column name")
+    data_type: str = Field(..., description="Inferred data type")
+    sample_values: List[Any] = Field(description="Representative sample values")
+    null_count: int = Field(description="Number of null values")
+    unique_count: int = Field(description="Number of unique values")
+    statistics: Dict[str, Any] | None = Field(
+        None, description="Column statistics if numeric"
+    )
+    semantic_type: str | None = Field(
+        None, description="Semantic type (currency, percentage, etc)"
+    )
+
+
+class ChartData(BaseModel):
+    """Rich chart data response with statistical insights."""
+
+    # Basic information
+    chart_id: int
+    chart_name: str
+    chart_type: str
+
+    # Enhanced data description
+    columns: List[DataColumn] = Field(description="Rich column metadata")
+    data: List[Dict[str, Any]] = Field(description="Actual data rows")
+
+    # Data insights
+    row_count: int = Field(description="Rows returned")
+    total_rows: int | None = Field(description="Total available rows")
+    data_freshness: datetime | None = Field(description="When data was last updated")
+
+    # LLM-friendly summaries
+    summary: str = Field(description="Human-readable data summary")
+    insights: List[str] = Field(description="Key patterns discovered in the data")
+    data_quality: Dict[str, Any] = Field(description="Data quality assessment")
+    recommended_visualizations: List[str] = Field(
+        description="Suggested chart types for this data"
+    )
+
+    # Performance and metadata
+    performance: PerformanceMetadata = Field(description="Query performance metrics")
+    cache_status: CacheStatus | None = Field(
+        None, description="Cache usage information"
+    )
+
+    # Export format fields
+    csv_data: str | None = Field(None, description="CSV content when format='csv'")
+    excel_data: str | None = Field(
+        None, description="Base64-encoded Excel content when format='excel'"
+    )
+    format: str | None = Field(
+        None, description="Export format used (json, csv, excel)"
+    )
+
+    # Inherit versioning
+    schema_version: str = Field("2.0", description="Response schema version")
+    api_version: str = Field("v1", description="MCP API version")
+
+
+class GetChartPreviewRequest(QueryCacheControl):
+    """Request for chart preview with cache control.
+
+    When form_data_key is provided, the tool will render a preview using the unsaved
+    chart configuration from cache, allowing you to preview what the user actually sees
+    (not the saved version). This is useful when a user edits a chart in Explore but
+    hasn't saved yet.
+
+    For unsaved charts (no chart ID), provide only form_data_key to render a preview
+    using the current chart configuration from cache.
+    """
+
+    identifier: int | str | None = Field(
+        default=None,
+        description=(
+            "Chart identifier (ID, UUID). "
+            "Optional when form_data_key is provided (for unsaved charts)."
+        ),
+    )
+    form_data_key: str | None = Field(
+        default=None,
+        description=(
+            "Cache key for retrieving unsaved chart state. When a user "
+            "edits a chart in Explore but hasn't saved, the current state is stored "
+            "with this key. If provided, the tool renders a preview using this "
+            "configuration instead of the saved chart configuration. "
+            "Can be used alone (without identifier) for unsaved charts."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def validate_identifier_or_form_data_key(self) -> "GetChartPreviewRequest":
+        if not self.identifier and not self.form_data_key:
+            raise ValueError(
+                "At least one of 'identifier' or 'form_data_key' must be provided."
+            )
+        return self
+
+    format: Literal["url", "ascii", "table", "vega_lite"] = Field(
+        default="url",
+        description=(
+            "Preview format: 'url' for explore link (default), "
+            "'ascii' for text art, "
+            "'table' for data table, "
+            "'vega_lite' for interactive JSON specification"
+        ),
+    )
+    width: int | None = Field(
+        default=800,
+        description="Preview image width in pixels (for url/base64 formats)",
+    )
+    height: int | None = Field(
+        default=600,
+        description="Preview image height in pixels (for url/base64 formats)",
+    )
+    ascii_width: int | None = Field(
+        default=80, description="ASCII chart width in characters (for ascii format)"
+    )
+    ascii_height: int | None = Field(
+        default=20, description="ASCII chart height in lines (for ascii format)"
+    )
+
+
+# Discriminated union preview formats for type safety
+class URLPreview(BaseModel):
+    """URL-based image preview format."""
+
+    type: Literal["url"] = "url"
+    preview_url: str = Field(..., description="Direct image URL")
+    width: int = Field(..., description="Image width in pixels")
+    height: int = Field(..., description="Image height in pixels")
+    supports_interaction: bool = Field(
+        False, description="Static image, no interaction"
+    )
+
+
+class InteractivePreview(BaseModel):
+    """Interactive HTML preview with JavaScript controls."""
+
+    type: Literal["interactive"] = "interactive"
+    html_content: str = Field(..., description="Embeddable HTML with Plotly/D3")
+    preview_url: str = Field(..., description="Iframe-compatible URL")
+    width: int = Field(..., description="Viewport width")
+    height: int = Field(..., description="Viewport height")
+    supports_pan: bool = Field(True, description="Supports pan interaction")
+    supports_zoom: bool = Field(True, description="Supports zoom interaction")
+    supports_hover: bool = Field(True, description="Supports hover details")
+
+
+class ASCIIPreview(BaseModel):
+    """ASCII art text representation."""
+
+    type: Literal["ascii"] = "ascii"
+    ascii_content: str = Field(..., description="Unicode art representation")
+    width: int = Field(..., description="Character width")
+    height: int = Field(..., description="Line height")
+    supports_color: bool = Field(False, description="Uses ANSI color codes")
+
+
+class VegaLitePreview(BaseModel):
+    """Vega-Lite grammar of graphics specification."""
+
+    type: Literal["vega_lite"] = "vega_lite"
+    specification: Dict[str, Any] = Field(..., description="Vega-Lite JSON spec")
+    data_url: str | None = Field(None, description="External data URL")
+    supports_streaming: bool = Field(False, description="Supports live data updates")
+
+
+class TablePreview(BaseModel):
+    """Tabular data preview format."""
+
+    type: Literal["table"] = "table"
+    table_data: str = Field(..., description="Formatted table content")
+    row_count: int = Field(..., description="Number of rows displayed")
+    supports_sorting: bool = Field(False, description="Table supports sorting")
+
+
+# Modern discriminated union using | syntax
+ChartPreviewContent = Annotated[
+    URLPreview | InteractivePreview | ASCIIPreview | VegaLitePreview | TablePreview,
+    Field(discriminator="type"),
+]
+
+
+class GenerateChartResponse(BaseModel):
+    """Comprehensive chart creation response with rich metadata."""
+
+    # Core chart information
+    chart: ChartInfo | None = Field(None, description="Complete chart metadata")
+
+    # Multiple preview formats available
+    previews: Dict[str, ChartPreviewContent] = Field(
+        default_factory=dict,
+        description="Available preview formats keyed by format type",
+    )
+
+    # LLM-friendly capabilities
+    capabilities: ChartCapabilities | None = Field(
+        None, description="Chart interaction capabilities"
+    )
+    semantics: ChartSemantics | None = Field(
+        None, description="Semantic chart understanding"
+    )
+
+    # Navigation and context
+    explore_url: str | None = Field(None, description="Edit chart in Superset")
+    embed_code: str | None = Field(None, description="HTML embed snippet")
+    api_endpoints: Dict[str, str] = Field(
+        default_factory=dict, description="Related API endpoints for data/updates"
+    )
+
+    # Form data for rendering charts in external clients (chatbot rendering)
+    form_data: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Complete form_data configuration for rendering the chart",
+    )
+    form_data_key: str | None = Field(
+        None,
+        description="Cache key for the form_data, used in explore URLs",
+    )
+
+    # Performance and accessibility
+    performance: PerformanceMetadata | None = Field(
+        None, description="Performance metrics"
+    )
+    accessibility: AccessibilityMetadata | None = Field(
+        None, description="Accessibility info"
+    )
+
+    # Success/error handling
+    success: bool = Field(True, description="Whether chart creation succeeded")
+    error: ChartGenerationError | None = Field(
+        None, description="Error details if creation failed"
+    )
+    warnings: List[str] = Field(default_factory=list, description="Non-fatal warnings")
+
+    # Inherit versioning
+    schema_version: str = Field("2.0", description="Response schema version")
+    api_version: str = Field("v1", description="MCP API version")
+
+
+class ChartPreview(BaseModel):
+    """Enhanced chart preview with discriminated union content."""
+
+    chart_id: int
+    chart_name: str
+    chart_type: str = Field(description="Type of chart visualization")
+    explore_url: str = Field(description="URL to open chart in Superset for editing")
+
+    # Type-safe preview content
+    content: ChartPreviewContent = Field(
+        description="Preview content in requested format"
+    )
+
+    # Rich metadata
+    chart_description: str = Field(
+        description="Human-readable description of the chart"
+    )
+    accessibility: AccessibilityMetadata = Field(
+        description="Accessibility information"
+    )
+    performance: PerformanceMetadata = Field(description="Performance metrics")
+
+    # Backward compatibility fields (populated based on content type)
+    format: str | None = Field(
+        None, description="Format of the preview (ascii, table, vega_lite)"
+    )
+    ascii_chart: str | None = Field(
+        None, description="ASCII art chart for 'ascii' format"
+    )
+    table_data: str | None = Field(
+        None, description="Formatted table for 'table' format"
+    )
+    width: int | None = Field(
+        None, description="Width (pixels for images, characters for ASCII)"
+    )
+    height: int | None = Field(
+        None, description="Height (pixels for images, lines for ASCII)"
+    )
+
+    # Inherit versioning
+    schema_version: str = Field("2.0", description="Response schema version")
+    api_version: str = Field("v1", description="MCP API version")

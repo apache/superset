@@ -16,35 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { ControlPanelSectionConfig } from '../types';
 
 export const matrixifyEnableSection: ControlPanelSectionConfig = {
-  label: t('Enable matrixify'),
+  label: t('Matrixify'),
   expanded: true,
   controlSetRows: [
     [
       {
-        name: 'matrixify_enabled',
+        name: 'matrixify_enable',
         config: {
-          type: 'CheckboxControl',
+          type: 'SwitchControl',
           label: t('Enable matrixify'),
           default: false,
           renderTrigger: true,
-          description: t(
-            'Transform this chart into a matrix/grid of charts based on dimensions or metrics',
-          ),
         },
       },
     ],
+    ['matrixify_mode_columns'],
+    ['matrixify_mode_rows'],
   ],
   tabOverride: 'matrixify',
 };
 
 export const matrixifySection: ControlPanelSectionConfig = {
-  label: t('Matrixify'),
+  label: t('Cell layout & styling'),
   expanded: false,
-  visibility: ({ controls }) => controls?.matrixify_enabled?.value === true,
+  visibility: ({ controls }) =>
+    controls?.matrixify_enable?.value === true &&
+    (controls?.matrixify_mode_rows?.value === 'metrics' ||
+      controls?.matrixify_mode_rows?.value === 'dimensions' ||
+      controls?.matrixify_mode_columns?.value === 'metrics' ||
+      controls?.matrixify_mode_columns?.value === 'dimensions'),
   controlSetRows: [
     [
       {
@@ -105,12 +109,13 @@ export const matrixifySection: ControlPanelSectionConfig = {
 };
 
 export const matrixifyRowSection: ControlPanelSectionConfig = {
-  label: t('Vertical layout'),
   expanded: false,
-  visibility: ({ controls }) => controls?.matrixify_enabled?.value === true,
+  visibility: ({ controls }) =>
+    controls?.matrixify_enable?.value === true &&
+    (controls?.matrixify_mode_rows?.value === 'metrics' ||
+      controls?.matrixify_mode_rows?.value === 'dimensions'),
   controlSetRows: [
     ['matrixify_show_row_labels'],
-    ['matrixify_mode_rows'],
     ['matrixify_rows'],
     ['matrixify_dimension_rows'],
     ['matrixify_dimension_selection_mode_rows'],
@@ -118,16 +123,17 @@ export const matrixifyRowSection: ControlPanelSectionConfig = {
     ['matrixify_topn_metric_rows'],
     ['matrixify_topn_order_rows'],
   ],
-  tabOverride: 'data',
+  tabOverride: 'matrixify',
 };
 
 export const matrixifyColumnSection: ControlPanelSectionConfig = {
-  label: t('Horizontal layout'),
   expanded: false,
-  visibility: ({ controls }) => controls?.matrixify_enabled?.value === true,
+  visibility: ({ controls }) =>
+    controls?.matrixify_enable?.value === true &&
+    (controls?.matrixify_mode_columns?.value === 'metrics' ||
+      controls?.matrixify_mode_columns?.value === 'dimensions'),
   controlSetRows: [
     ['matrixify_show_column_headers'],
-    ['matrixify_mode_columns'],
     ['matrixify_columns'],
     ['matrixify_dimension_columns'],
     ['matrixify_dimension_selection_mode_columns'],
@@ -135,5 +141,5 @@ export const matrixifyColumnSection: ControlPanelSectionConfig = {
     ['matrixify_topn_metric_columns'],
     ['matrixify_topn_order_columns'],
   ],
-  tabOverride: 'data',
+  tabOverride: 'matrixify',
 };

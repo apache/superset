@@ -76,24 +76,25 @@ const unsavedQueryEditor = {
   templateParams: '{ "my_value": "foo" }',
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ShareSqlLabQuery', () => {
   const storeQueryUrl = 'glob:*/api/v1/sqllab/permalink';
   const storeQueryMockId = 'ci39c3';
 
   beforeEach(async () => {
+    fetchMock.removeRoute(storeQueryUrl);
     fetchMock.post(
       storeQueryUrl,
       () => ({ key: storeQueryMockId, url: `/p/${storeQueryMockId}` }),
-      {
-        overwriteRoutes: true,
-      },
+      { name: storeQueryUrl },
     );
-    fetchMock.resetHistory();
+    fetchMock.clearHistory();
     jest.clearAllMocks();
   });
 
-  afterAll(() => fetchMock.reset());
+  afterAll(() => fetchMock.hardReset());
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('via permalink api', () => {
     beforeAll(() => {
       mockedIsFeatureEnabled.mockImplementation(() => true);
@@ -103,7 +104,7 @@ describe('ShareSqlLabQuery', () => {
       mockedIsFeatureEnabled.mockReset();
     });
 
-    it('calls storeQuery() with the query when getCopyUrl() is called', async () => {
+    test('calls storeQuery() with the query when getCopyUrl() is called', async () => {
       await act(async () => {
         render(<ShareSqlLabQuery {...defaultProps} />, {
           useRedux: true,
@@ -114,14 +115,16 @@ describe('ShareSqlLabQuery', () => {
       const expected = omit(mockQueryEditor, ['id', 'remoteId']);
       userEvent.click(button);
       await waitFor(() =>
-        expect(fetchMock.calls(storeQueryUrl)).toHaveLength(1),
+        expect(fetchMock.callHistory.calls(storeQueryUrl)).toHaveLength(1),
       );
       expect(
-        JSON.parse(fetchMock.calls(storeQueryUrl)[0][1]?.body as string),
+        JSON.parse(
+          fetchMock.callHistory.calls(storeQueryUrl)[0].options?.body as string,
+        ),
       ).toEqual(expected);
     });
 
-    it('calls storeQuery() with unsaved changes', async () => {
+    test('calls storeQuery() with unsaved changes', async () => {
       await act(async () => {
         render(<ShareSqlLabQuery {...defaultProps} />, {
           useRedux: true,
@@ -138,10 +141,12 @@ describe('ShareSqlLabQuery', () => {
       const expected = omit(unsavedQueryEditor, ['id']);
       userEvent.click(button);
       await waitFor(() =>
-        expect(fetchMock.calls(storeQueryUrl)).toHaveLength(1),
+        expect(fetchMock.callHistory.calls(storeQueryUrl)).toHaveLength(1),
       );
       expect(
-        JSON.parse(fetchMock.calls(storeQueryUrl)[0][1]?.body as string),
+        JSON.parse(
+          fetchMock.callHistory.calls(storeQueryUrl)[0].options?.body as string,
+        ),
       ).toEqual(expected);
     });
   });

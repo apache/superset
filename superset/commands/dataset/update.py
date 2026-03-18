@@ -20,6 +20,7 @@ import logging
 from collections import Counter
 from functools import partial
 from typing import Any, cast, Optional
+from uuid import UUID
 
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
@@ -32,6 +33,7 @@ from superset.commands.dataset.exceptions import (
     DatasetColumnNotFoundValidationError,
     DatasetColumnsDuplicateValidationError,
     DatasetColumnsExistsValidationError,
+    DatasetDataAccessIsNotAllowed,
     DatasetExistsValidationError,
     DatasetForbiddenError,
     DatasetInvalidError,
@@ -42,15 +44,23 @@ from superset.commands.dataset.exceptions import (
     DatasetUpdateFailedError,
     MultiCatalogDisabledValidationError,
 )
-from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dataset import DatasetDAO
 from superset.datasets.schemas import FolderSchema
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.models.core import Database
 from superset.sql.parse import Table
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
+
+# Default folder UUIDs matching the frontend constants.
+# Stored as strings so comparisons work whether obj["uuid"] is str or UUID.
+DEFAULT_METRICS_FOLDER_UUID = "255b537d-58c8-443d-9fc1-4e4dc75047e2"
+DEFAULT_COLUMNS_FOLDER_UUID = "83a7ae8f-2e8a-4f2b-a8cb-ebaebef95b9b"
+DEFAULT_FOLDER_UUIDS = frozenset(
+    {DEFAULT_METRICS_FOLDER_UUID, DEFAULT_COLUMNS_FOLDER_UUID}
+)
 
 
 class UpdateDatasetCommand(UpdateMixin, BaseCommand):
@@ -165,6 +175,38 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         ):
             exceptions.append(DatasetExistsValidationError(table))
 
+        self._validate_sql_access(db, catalog, schema, exceptions)
+
+    def _validate_sql_access(
+        self,
+        db: Database,
+        catalog: str | None,
+        schema: str | None,
+        exceptions: list[ValidationError],
+    ) -> None:
+        """Validate SQL query access if SQL is being updated."""
+        # we know we have a valid model
+        self._model = cast(SqlaTable, self._model)
+
+        sql = self._properties.get("sql")
+        if sql and sql != self._model.sql:
+            try:
+                security_manager.raise_for_access(
+                    database=db,
+                    sql=sql,
+                    catalog=catalog,
+                    schema=schema,
+                )
+            except SupersetSecurityException as ex:
+                exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
+            except SupersetParseError as ex:
+                exceptions.append(
+                    ValidationError(
+                        f"Invalid SQL: {ex.error.message}",
+                        field_name="sql",
+                    )
+                )
+
     def _validate_semantics(self, exceptions: list[ValidationError]) -> None:
         # we know we have a valid model
         self._model = cast(SqlaTable, self._model)
@@ -175,14 +217,28 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             self._validate_metrics(metrics, exceptions)
 
         if folders := self._properties.get("folders"):
+            valid_uuids: set[UUID] = set()
+            if metrics:
+                valid_uuids.update(
+                    metric["uuid"] for metric in metrics if "uuid" in metric
+                )
+            else:
+                valid_uuids.update(metric.uuid for metric in self._model.metrics)
+
+            if columns:
+                valid_uuids.update(
+                    column["uuid"] for column in columns if "uuid" in column
+                )
+            else:
+                valid_uuids.update(column.uuid for column in self._model.columns)
+
+            schema = FolderSchema(many=True)
             try:
-                validate_folders(folders, self._model.metrics, self._model.columns)
+                loaded_folders = schema.load(folders)
+                validate_folders(loaded_folders, valid_uuids)
+                self._properties["folders"] = schema.dump(loaded_folders)
             except ValidationError as ex:
                 exceptions.append(ex)
-
-            # dump schema to convert UUID to string
-            schema = FolderSchema(many=True)
-            self._properties["folders"] = schema.dump(folders)
 
     def _validate_columns(
         self, columns: list[dict[str, Any]], exceptions: list[ValidationError]
@@ -239,8 +295,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
 
 def validate_folders(  # noqa: C901
     folders: list[FolderSchema],
-    metrics: list[SqlMetric],
-    columns: list[TableColumn],
+    valid_uuids: set[UUID],
 ) -> None:
     """
     Additional folder validation.
@@ -252,12 +307,7 @@ def validate_folders(  # noqa: C901
     if not is_feature_enabled("DATASET_FOLDERS"):
         raise ValidationError("Dataset folders are not enabled")
 
-    existing = {
-        *[metric.uuid for metric in metrics],
-        *[column.uuid for column in columns],
-    }
-
-    queue: list[tuple[FolderSchema, list[str]]] = [(folder, []) for folder in folders]
+    queue: list[tuple[FolderSchema, list[UUID]]] = [(folder, []) for folder in folders]
     seen_uuids = set()
     seen_fqns = set()  # fully qualified folder names
     while queue:
@@ -278,11 +328,19 @@ def validate_folders(  # noqa: C901
                 raise ValidationError(f"Duplicate folder name: {name}")
             seen_fqns.add(fqn)
 
-            if name.lower() in {"metrics", "columns"}:
+            # Allow default folders (by UUID) to use reserved names
+            if (
+                name.lower() in {"metrics", "columns"}
+                and str(uuid) not in DEFAULT_FOLDER_UUIDS
+            ):
                 raise ValidationError(f"Folder cannot have name '{name}'")
 
-        # check if metric/column UUID exists
-        elif not name and uuid not in existing:
+        # check if metric/column UUID exists (skip default folders)
+        elif (
+            not name
+            and uuid not in valid_uuids
+            and str(uuid) not in DEFAULT_FOLDER_UUIDS
+        ):
             raise ValidationError(f"Invalid UUID: {uuid}")
 
         # traverse children
