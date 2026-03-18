@@ -99,10 +99,9 @@ describe('Add database', () => {
     cy.getBySel('btn-submit-connection').click({ force: true });
 
     cy.wait('@createDb', { timeout: 60000 }).then(() => {
-      cy.contains(
-        '.ant-form-item-explain-error',
-        'The port is closed',
-      ).should('exist');
+      cy.contains('.ant-form-item-explain-error', 'The port is closed').should(
+        'exist',
+      );
     });
   });
 });
