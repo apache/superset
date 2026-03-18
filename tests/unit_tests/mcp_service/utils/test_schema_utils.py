@@ -819,3 +819,41 @@ class TestParseRequestFlattenedDecorator:
         metadata_types = [type(m) for m in name_metadata]
         assert MinLen in metadata_types, f"Missing MinLen in {name_metadata}"
         assert MaxLen in metadata_types, f"Missing MaxLen in {name_metadata}"
+
+    def test_flattened_uses_alias_as_param_name(self):
+        """When a field has an alias, the flattened param name should be the alias,
+        not the Python field name. This ensures model_validate() works for models
+        without populate_by_name=True."""
+
+        class AliasedRequest(BaseModel):
+            schema_name: str | None = Field(None, description="Schema", alias="schema")
+            database_id: int = Field(..., description="DB ID")
+
+        @parse_request(AliasedRequest)
+        async def my_tool(request, ctx=None):
+            return {"schema": request.schema_name, "db": request.database_id}
+
+        sig = inspect.signature(my_tool)
+        param_names = list(sig.parameters.keys())
+        # alias "schema" should be used instead of field name "schema_name"
+        assert "schema" in param_names
+        assert "schema_name" not in param_names
+        # non-aliased field keeps its name
+        assert "database_id" in param_names
+
+    def test_flattened_alias_callable(self):
+        """Flattened wrapper with aliased fields should construct model correctly."""
+        from unittest.mock import MagicMock, patch
+
+        class AliasedRequest(BaseModel):
+            schema_name: str | None = Field(None, description="Schema", alias="schema")
+            database_id: int = Field(..., description="DB ID")
+
+        @parse_request(AliasedRequest)
+        def my_tool(request, ctx=None):
+            return {"schema": request.schema_name, "db": request.database_id}
+
+        mock_ctx = MagicMock()
+        with patch("fastmcp.server.dependencies.get_context", return_value=mock_ctx):
+            result = my_tool(schema="public", database_id=1)
+        assert result == {"schema": "public", "db": 1}

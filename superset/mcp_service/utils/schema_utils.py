@@ -618,6 +618,11 @@ def _apply_flattened_signature(
     annotations: dict[str, Any] = {}
 
     for name, field_info in request_class.model_fields.items():
+        # Use alias as param name when set, otherwise field name.
+        # This ensures model_validate() always works: aliases are always
+        # accepted, while field names require populate_by_name=True.
+        param_name = field_info.alias if isinstance(field_info.alias, str) else name
+
         # Determine the default value for this parameter.
         # Check default_factory before default because Pydantic sets
         # default to PydanticUndefined when default_factory is used.
@@ -650,13 +655,13 @@ def _apply_flattened_signature(
 
         params.append(
             inspect.Parameter(
-                name,
+                param_name,
                 kind=inspect.Parameter.KEYWORD_ONLY,
                 default=default,
                 annotation=annotation,
             )
         )
-        annotations[name] = annotation
+        annotations[param_name] = annotation
 
     # Preserve return annotation from the original function if present
     orig_sig = inspect.signature(original_func)
