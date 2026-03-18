@@ -231,7 +231,7 @@ class ChartDataRestApi(ChartRestApi):
 
                     query["extra_form_data"] = efd
 
-                # We need to apply the form data to the global context as jinga
+                # We need to apply the form data to the global context as jinja
                 # templating pulls form data from the request globally, so this
                 # fallback ensures it has the filters and extra_form_data applied
                 # when used in get_sqla_query which constructs the final query.
