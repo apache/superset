@@ -141,6 +141,7 @@ const StyledMainNav = styled(MainNav)`
     .ant-menu-submenu-selected.ant-menu-submenu-horizontal::after {
       transform: scale(1);
     }
+
   `}
 `;
 
@@ -176,6 +177,7 @@ const StyledCol = styled(Col)`
   ${({ theme }) => css`
     display: flex;
     gap: ${theme.sizeUnit * 4}px;
+    flex-wrap: wrap;
   `}
 `;
 
@@ -348,7 +350,7 @@ export function Menu({
             </StyledBrandText>
           )}
           <StyledMainNav
-            mode="horizontal"
+            mode={screens.md ? 'horizontal' : 'vertical'}
             data-test="navbar-top"
             className="main-nav"
             selectedKeys={activeTabs}
