@@ -22,6 +22,10 @@ import { kmToPixels, MILES_PER_KM } from '../utils/geo';
 import roundDecimal from '../utils/roundDecimal';
 import luminanceFromRGB from '../utils/luminanceFromRGB';
 
+// Shared radius bounds keep cluster and point sizing in sync.
+export const MIN_CLUSTER_RADIUS_RATIO = 1 / 6;
+export const MAX_POINT_RADIUS_RATIO = 1 / 3;
+
 interface GeoJSONLocation {
   geometry: {
     coordinates: [number, number];
@@ -154,12 +158,16 @@ function ScatterPlotOverlay({
         }
       });
 
-      const filteredLabels = clusterLabelMap.filter(
-        v => !Number.isNaN(v),
-      ) as number[];
-      const maxLabel =
-        filteredLabels.length > 0 ? Math.max(...filteredLabels) : 1;
-      const safeMaxLabel = maxLabel > 0 ? maxLabel : 1;
+      const finiteClusterLabels = clusterLabelMap
+        .map(value => Number(value))
+        .filter(value => Number.isFinite(value));
+      const safeMaxAbsLabel =
+        finiteClusterLabels.length > 0
+          ? Math.max(
+              Math.max(...finiteClusterLabels.map(value => Math.abs(value))),
+              1,
+            )
+          : 1;
 
       // Calculate min/max radius values for Pixels mode scaling
       let minRadiusValue = Infinity;
@@ -170,8 +178,12 @@ function ScatterPlotOverlay({
             !location.properties.cluster &&
             location.properties.radius != null
           ) {
-            const radiusValue = Number(location.properties.radius);
-            if (Number.isFinite(radiusValue)) {
+            const radiusValueRaw = location.properties.radius;
+            const radiusValue =
+              typeof radiusValueRaw === 'string' && radiusValueRaw.trim() === ''
+                ? null
+                : Number(radiusValueRaw);
+            if (radiusValue != null && Number.isFinite(radiusValue)) {
               minRadiusValue = Math.min(minRadiusValue, radiusValue);
               maxRadiusValue = Math.max(maxRadiusValue, radiusValue);
             }
@@ -204,8 +216,13 @@ function ScatterPlotOverlay({
               const safeNumericLabel = Number.isFinite(numericLabel)
                 ? numericLabel
                 : 0;
+              const minClusterRadius =
+                pointRadiusUnit === 'Pixels'
+                  ? radius * MAX_POINT_RADIUS_RATIO
+                  : radius * MIN_CLUSTER_RADIUS_RATIO;
+              const ratio = Math.abs(safeNumericLabel) / safeMaxAbsLabel;
               const scaledRadius = roundDecimal(
-                (safeNumericLabel / safeMaxLabel) ** 0.5 * radius,
+                minClusterRadius + ratio ** 0.5 * (radius - minClusterRadius),
                 1,
               );
               const fontHeight = roundDecimal(scaledRadius * 0.5, 1);
@@ -239,10 +256,12 @@ function ScatterPlotOverlay({
 
               if (Number.isFinite(safeNumericLabel)) {
                 let label: string | number = clusterLabel;
-                if (safeNumericLabel >= 10000) {
-                  label = `${Math.round(safeNumericLabel / 1000)}k`;
-                } else if (safeNumericLabel >= 1000) {
-                  label = `${Math.round(safeNumericLabel / 100) / 10}k`;
+                const absLabel = Math.abs(safeNumericLabel);
+                const sign = safeNumericLabel < 0 ? '-' : '';
+                if (absLabel >= 10000) {
+                  label = `${sign}${Math.round(absLabel / 1000)}k`;
+                } else if (absLabel >= 1000) {
+                  label = `${sign}${Math.round(absLabel / 100) / 10}k`;
                 }
                 drawText(ctx, pixelRounded, compositeOperation, {
                   fontHeight,
@@ -253,10 +272,18 @@ function ScatterPlotOverlay({
                 });
               }
             } else {
-              const defaultRadius = radius / 6;
+              const defaultRadius = radius * MIN_CLUSTER_RADIUS_RATIO;
               const rawRadius = location.properties.radius;
+              const numericRadiusProperty =
+                rawRadius != null &&
+                !(typeof rawRadius === 'string' && rawRadius.trim() === '')
+                  ? Number(rawRadius)
+                  : null;
               const radiusProperty =
-                typeof rawRadius === 'number' ? rawRadius : null;
+                numericRadiusProperty != null &&
+                Number.isFinite(numericRadiusProperty)
+                  ? numericRadiusProperty
+                  : null;
               const pointMetric = location.properties.metric ?? null;
               let pointRadius: number = radiusProperty ?? defaultRadius;
               let pointLabel: string | number | undefined;
@@ -278,8 +305,8 @@ function ScatterPlotOverlay({
                     zoom ?? 0,
                   );
                 } else if (pointRadiusUnit === 'Pixels') {
-                  const MIN_POINT_RADIUS = radius / 6;
-                  const MAX_POINT_RADIUS = radius / 3;
+                  const MIN_POINT_RADIUS = radius * MIN_CLUSTER_RADIUS_RATIO;
+                  const MAX_POINT_RADIUS = radius * MAX_POINT_RADIUS_RATIO;
 
                   if (
                     Number.isFinite(minRadiusValue) &&

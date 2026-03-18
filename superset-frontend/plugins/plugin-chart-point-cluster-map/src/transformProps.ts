@@ -29,6 +29,31 @@ const NOOP = () => {};
 // Geo precision to limit decimal places (matching legacy backend behavior)
 const GEO_PRECISION = 10;
 
+const MIN_LONGITUDE = -180;
+const MAX_LONGITUDE = 180;
+const MIN_LATITUDE = -90;
+const MAX_LATITUDE = 90;
+const MIN_ZOOM = 0;
+
+function toFiniteNumber(
+  value: string | number | null | undefined,
+): number | undefined {
+  if (value === null || value === undefined) return undefined;
+  const normalizedValue = typeof value === 'string' ? value.trim() : value;
+  if (normalizedValue === '') return undefined;
+  const num = Number(normalizedValue);
+  return Number.isFinite(num) ? num : undefined;
+}
+
+function clampNumber(
+  value: number | undefined,
+  min: number,
+  max: number,
+): number | undefined {
+  if (value === undefined) return undefined;
+  return Math.min(max, Math.max(min, value));
+}
+
 interface PointProperties {
   metric: number | string | null;
   radius: number | string | null;
@@ -126,6 +151,9 @@ export default function transformProps(chartProps: ChartProps) {
     point_radius: pointRadius,
     point_radius_unit: pointRadiusUnit,
     render_while_dragging: renderWhileDragging,
+    viewport_longitude: viewportLongitude,
+    viewport_latitude: viewportLatitude,
+    viewport_zoom: viewportZoom,
   } = formData;
 
   // Support two data formats:
@@ -216,7 +244,7 @@ export default function transformProps(chartProps: ChartProps) {
     aggregatorName: pandasAggfunc,
     bounds,
     clusterer,
-    globalOpacity,
+    globalOpacity: Math.min(1, Math.max(0, toFiniteNumber(globalOpacity) ?? 1)),
     hasCustomMetric,
     mapProvider,
     mapStyle:
@@ -240,5 +268,20 @@ export default function transformProps(chartProps: ChartProps) {
     pointRadiusUnit,
     renderWhileDragging,
     rgb,
+    viewportLongitude: clampNumber(
+      toFiniteNumber(viewportLongitude),
+      MIN_LONGITUDE,
+      MAX_LONGITUDE,
+    ),
+    viewportLatitude: clampNumber(
+      toFiniteNumber(viewportLatitude),
+      MIN_LATITUDE,
+      MAX_LATITUDE,
+    ),
+    viewportZoom: clampNumber(
+      toFiniteNumber(viewportZoom),
+      MIN_ZOOM,
+      DEFAULT_MAX_ZOOM,
+    ),
   };
 }

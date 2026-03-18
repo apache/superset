@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { memo, useCallback, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { Map as MapLibreMap } from 'react-map-gl/maplibre';
 import { Map as MapboxMap } from 'react-map-gl/mapbox';
 import { WebMercatorViewport } from '@math.gl/web-mercator';
@@ -64,6 +64,9 @@ interface MapLibreProps {
   renderWhileDragging?: boolean;
   rgb?: (string | number)[];
   bounds?: [[number, number], [number, number]]; // May be undefined for empty datasets
+  viewportLongitude?: number;
+  viewportLatitude?: number;
+  viewportZoom?: number;
 }
 
 function MapLibre({
@@ -81,25 +84,52 @@ function MapLibre({
   renderWhileDragging = true,
   rgb,
   bounds,
+  viewportLongitude,
+  viewportLatitude,
+  viewportZoom,
 }: MapLibreProps) {
-  const initialViewport = useMemo(() => {
-    let latitude = 0;
-    let longitude = 0;
-    let zoom = 1;
-
+  const computeFitBounds = useCallback((): Viewport => {
     if (bounds && bounds[0] && bounds[1]) {
-      const mercator = new WebMercatorViewport({
-        width,
-        height,
-      }).fitBounds(bounds);
-      ({ latitude, longitude, zoom } = mercator);
+      const mercator = new WebMercatorViewport({ width, height }).fitBounds(
+        bounds,
+      );
+      return {
+        latitude: mercator.latitude,
+        longitude: mercator.longitude,
+        zoom: mercator.zoom,
+      };
     }
-
-    return { longitude, latitude, zoom };
+    return { latitude: 0, longitude: 0, zoom: 1 };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const [viewport, setViewport] = useState<Viewport>(initialViewport);
+  const mergeViewportWithProps = useCallback(
+    (fitBounds: Viewport, base: Viewport = fitBounds): Viewport => ({
+      ...base,
+      longitude: viewportLongitude ?? fitBounds.longitude,
+      latitude: viewportLatitude ?? fitBounds.latitude,
+      zoom: viewportZoom ?? fitBounds.zoom,
+    }),
+    [viewportLongitude, viewportLatitude, viewportZoom],
+  );
+
+  const [viewport, setViewport] = useState<Viewport>(() =>
+    mergeViewportWithProps(computeFitBounds()),
+  );
+
+  useEffect(() => {
+    const fitBounds = computeFitBounds();
+    const next = mergeViewportWithProps(fitBounds, viewport);
+    if (
+      next.longitude !== viewport.longitude ||
+      next.latitude !== viewport.latitude ||
+      next.zoom !== viewport.zoom
+    ) {
+      setViewport(next);
+    }
+    // Only re-run when the viewport-override props change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewportLongitude, viewportLatitude, viewportZoom]);
 
   const handleMove = useCallback(
     (evt: {
