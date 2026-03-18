@@ -161,7 +161,12 @@ class SemanticLayerRestApi(BaseSupersetApi):
     resource_name = "semantic_layer"
     allow_browser_login = True
     class_permission_name = "SemanticLayer"
-    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+    method_permission_name = {
+        **MODEL_API_RW_METHOD_PERMISSION_MAP,
+        "types": "read",
+        "configuration_schema": "read",
+        "runtime_schema": "read",
+    }
     openapi_spec_tag = "Semantic Layers"
     add_model_schema = SemanticLayerPostSchema()
     edit_model_schema = SemanticLayerPutSchema()
