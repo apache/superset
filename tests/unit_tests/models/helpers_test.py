@@ -25,7 +25,6 @@ from typing import Any, cast, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
 from sqlalchemy.orm.session import Session
@@ -36,7 +35,6 @@ from sqlalchemy.sql.visitors import iterate
 from superset.superset_typing import AdhocColumn, AdhocMetric, OrderBy
 from superset.utils.core import FilterOperator, GenericDataType
 from tests.unit_tests.conftest import with_feature_flags
-
 
 if TYPE_CHECKING:
     from superset.jinja_context import BaseTemplateProcessor
