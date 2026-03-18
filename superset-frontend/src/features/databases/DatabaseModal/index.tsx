@@ -725,6 +725,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const handleClearValidationErrors = useCallback(() => {
     setValidationErrors(null);
     setHasValidated(false);
+    lastValidatedDbSnapshotRef.current = null;
     clearError();
   }, [setValidationErrors, setHasValidated, clearError]);
 
@@ -788,13 +789,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     },
     [],
   );
-
-  const handleClearValidationErrors = useCallback(() => {
-    setValidationErrors(null);
-    setHasValidated(false);
-    lastValidatedDbSnapshotRef.current = null;
-    clearError();
-  }, [setValidationErrors, setHasValidated, clearError]);
 
   const handleParametersChange = useCallback(
     ({ target }: { target: HTMLInputElement }) => {

@@ -26,6 +26,8 @@ import {
   Col,
   Row,
   LabeledErrorBoundInput,
+  Icons,
+  Tooltip,
 } from '@superset-ui/core/components';
 import { Input } from '@superset-ui/core/components/Input';
 import { Radio } from '@superset-ui/core/components/Radio';
@@ -173,7 +175,7 @@ const SSHTunnelForm = ({
                 errorMessage={sshErrors?.password}
                 isValidating={isValidating}
                 data-test="ssh-tunnel-password-input"
-                iconRender={visible =>
+                iconRender={(visible: boolean) =>
                   visible ? (
                     <Tooltip title={t('Hide password.')}>
                       <Icons.EyeInvisibleOutlined />
@@ -238,7 +240,7 @@ const SSHTunnelForm = ({
                   errorMessage={sshErrors?.private_key_password}
                   isValidating={isValidating}
                   data-test="ssh-tunnel-private_key_password-input"
-                  iconRender={visible =>
+                  iconRender={(visible: boolean) =>
                     visible ? (
                       <Tooltip title={t('Hide password.')}>
                         <Icons.EyeInvisibleOutlined />
