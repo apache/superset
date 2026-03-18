@@ -27,7 +27,7 @@ from datetime import datetime, timezone
 
 from fastmcp import Context
 from sqlalchemy.orm import subqueryload
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.dashboards.permalink.types import DashboardPermalinkValue
@@ -59,7 +59,15 @@ def _get_permalink_state(permalink_key: str) -> DashboardPermalinkValue | None:
         return None
 
 
-@tool(tags=["discovery"])
+@tool(
+    tags=["discovery"],
+    class_permission_name="Dashboard",
+    annotations=ToolAnnotations(
+        title="Get dashboard info",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 @parse_request(GetDashboardInfoRequest)
 async def get_dashboard_info(
     request: GetDashboardInfoRequest, ctx: Context

@@ -85,6 +85,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     width,
     onChartStateChange,
     chartState,
+    metricSqlExpressions,
   } = props;
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
@@ -187,6 +188,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         lastFilteredColumn: completeFilterState.lastFilteredColumn,
         lastFilteredInputPosition: completeFilterState.inputPosition,
         currentPage: 0, // Reset to first page when filtering
+        metricSqlExpressions,
       };
 
       updateTableOwnState(setDataMask, modifiedOwnState);
@@ -197,6 +199,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       serverPaginationData,
       onChartStateChange,
       chartState,
+      metricSqlExpressions,
     ],
   );
 
