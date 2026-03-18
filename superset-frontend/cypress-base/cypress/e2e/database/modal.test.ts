@@ -70,9 +70,10 @@ describe('Add database', () => {
     cy.get('input[name="password"]').type('testpass', { force: true });
     cy.get('body').click(0, 0);
 
-    cy.wait('@validateParams', { timeout: 30000 });
-
-    cy.getBySel('btn-submit-connection').should('not.be.disabled');
+    // Wait for all intermediate validation calls to settle, then check the button
+    cy.getBySel('btn-submit-connection').should('not.be.disabled', {
+      timeout: 60000,
+    });
     cy.getBySel('btn-submit-connection').click({ force: true });
 
     cy.wait('@createDb', { timeout: 60000 }).then(() => {
@@ -93,9 +94,10 @@ describe('Add database', () => {
     cy.get('input[name="password"]').type('testpass', { force: true });
     cy.get('body').click(0, 0);
 
-    cy.wait('@validateParams', { timeout: 30000 });
-
-    cy.getBySel('btn-submit-connection').should('not.be.disabled');
+    // Wait for all intermediate validation calls to settle, then check the button
+    cy.getBySel('btn-submit-connection').should('not.be.disabled', {
+      timeout: 60000,
+    });
     cy.getBySel('btn-submit-connection').click({ force: true });
 
     cy.wait('@createDb', { timeout: 60000 }).then(() => {
