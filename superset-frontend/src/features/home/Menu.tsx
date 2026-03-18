@@ -141,7 +141,6 @@ const StyledMainNav = styled(MainNav)`
     .ant-menu-submenu-selected.ant-menu-submenu-horizontal::after {
       transform: scale(1);
     }
-
   `}
 `;
 
