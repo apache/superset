@@ -27,8 +27,8 @@ import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
 from sqlalchemy.orm.session import Session
-
-from superset.connectors.sqla.models import SqlaTable, TableColumn, SqlMetric
+from superset.connectors.sqla.models import SqlaTable, SqlMetric
+from superset.connectors.sqla.models import TableColumn
 from superset.models.core import Database
 from superset.superset_typing import AdhocColumn
 
@@ -1930,3 +1930,52 @@ def test_metric_not_overridden_by_verbose_name(database: Database) -> None:
     assert "total_revenue" in metrics_by_name
     assert "total_revenue" not in columns_by_name
     assert columns_by_name["sales"] == column
+
+def test_verbose_name_does_not_override_existing_column():
+    col1 = TableColumn(column_name="sales", verbose_name="profit")
+    col2 = TableColumn(column_name="profit")
+
+    dataset = SqlaTable()
+    dataset.columns = [col1, col2]
+    dataset.metrics = []
+
+    columns = dataset.columns_by_name
+
+    assert columns["profit"] == col2  # real column wins
+
+
+def test_verbose_name_does_not_override_metric():
+    column = TableColumn(column_name="sales", verbose_name="total_revenue")
+    metric = SqlMetric(metric_name="total_revenue", expression="SUM(sales)")
+
+    dataset = SqlaTable()
+    dataset.columns = [column]
+    dataset.metrics = [metric]
+
+    columns = dataset.columns_by_name
+
+    assert "total_revenue" not in columns
+
+def test_verbose_name_added_when_no_conflict():
+    column = TableColumn(column_name="sales", verbose_name="revenue_label")
+
+    dataset = SqlaTable()
+    dataset.columns = [column]
+    dataset.metrics = []
+
+    columns = dataset.columns_by_name
+
+    assert "revenue_label" in columns
+    assert columns["revenue_label"] == column
+
+def test_column_name_always_present():
+    column = TableColumn(column_name="sales", verbose_name="sales_label")
+
+    dataset = SqlaTable()
+    dataset.columns = [column]
+    dataset.metrics = []
+
+    columns = dataset.columns_by_name
+
+    assert "sales" in columns
+    assert columns["sales"] == column
