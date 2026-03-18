@@ -25,6 +25,7 @@ from typing import Any, cast, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
 from sqlalchemy.orm.session import Session
@@ -35,6 +36,7 @@ from sqlalchemy.sql.visitors import iterate
 from superset.superset_typing import AdhocColumn, AdhocMetric, OrderBy
 from superset.utils.core import FilterOperator, GenericDataType
 from tests.unit_tests.conftest import with_feature_flags
+
 
 if TYPE_CHECKING:
     from superset.jinja_context import BaseTemplateProcessor
@@ -3800,3 +3802,78 @@ def test_like_filter_on_string_column_does_not_cast(database: Database) -> None:
     assert not any(isinstance(node, Cast) for node in iterate(whereclause)), (
         f"Unexpected Cast node in the filter expression: {whereclause}"
     )
+
+
+def test_columns_by_name_verbose_overrides_column_name(database: Database) -> None:
+    """
+    Test that verbose_name does NOT override existing column_name mapping.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    # Column1: revenue (verbose_name="sales")
+    # Column2: sales (no verbose_name)
+    col1 = TableColumn(column_name="revenue", verbose_name="sales")
+    col2 = TableColumn(column_name="sales", verbose_name=None)
+
+    table = SqlaTable(
+        database=database,
+        table_name="test_table",
+        columns=[col1, col2]
+    )
+
+    columns_by_name = table.columns_by_name
+
+    # column_name "sales" should WIN over verbose_name "sales"
+    assert columns_by_name["sales"] == col2
+    assert columns_by_name["revenue"] == col1
+
+def test_columns_by_name_excludes_metric_conflicts(database: Database) -> None:
+    """
+    Test that verbose_name does NOT conflict with metric names (exact case).
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn, SqlMetric
+
+    # Column: revenue (verbose_name="profit")
+    # Metric: profit
+    col = TableColumn(column_name="revenue", verbose_name="profit")
+    metric = SqlMetric(metric_name="profit")
+
+    table = SqlaTable(
+        database=database,
+        table_name="test_table",
+        columns=[col],
+        metrics=[metric]
+    )
+
+    columns_by_name = table.columns_by_name
+
+    # "profit" should NOT map to column (metric conflict)
+    assert "profit" not in columns_by_name
+    assert columns_by_name["revenue"] == col
+
+
+def test_metric_not_overridden_by_verbose_name(database: Database) -> None:
+    """
+    Test that verbose_name doesn't override metric names in columns_by_name.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn, SqlMetric
+
+    column = TableColumn(column_name="sales", verbose_name="total_revenue")
+    metric = SqlMetric(metric_name="total_revenue", expression="SUM(sales)")
+
+    # Use SqlaTable directly instead of MockDataset
+    table = SqlaTable(
+        database=database,
+        table_name="test_table",
+        columns=[column],
+        metrics=[metric]
+    )
+
+    # The columns_by_name property will use the logic from your PR
+    columns_by_name = table.columns_by_name
+    metrics_by_name = {metric.metric_name: metric}
+
+    # KEY ASSERTIONS:
+    assert "total_revenue" in metrics_by_name
+    assert "total_revenue" not in columns_by_name
+    assert columns_by_name["sales"] == column
