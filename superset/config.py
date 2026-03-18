@@ -958,21 +958,6 @@ THEME_DEFAULT: Theme = {
         # Editor selection color (for SQL Lab text highlighting)
         "colorEditorSelection": "#fff5cf",
     },
-    "components": {
-        "Button": {
-            # Secondary button tokens (Superset-specific)
-            # These provide full theming control for secondary buttons
-            "secondaryColor": "#2893B3",
-            "secondaryBg": "rgba(40, 147, 179, 0.15)",
-            "secondaryBorderColor": "transparent",
-            "secondaryHoverColor": "#2893B3",
-            "secondaryHoverBg": "rgba(40, 147, 179, 0.25)",
-            "secondaryHoverBorderColor": "transparent",
-            "secondaryActiveColor": "#2893B3",
-            "secondaryActiveBg": "rgba(40, 147, 179, 0.35)",
-            "secondaryActiveBorderColor": "transparent",
-        },
-    },
     "algorithm": "default",
 }
 
@@ -985,17 +970,6 @@ THEME_DARK: Optional[Theme] = {
         **THEME_DEFAULT["token"],
         # Darker selection color for dark mode
         "colorEditorSelection": "#5c4d1a",
-    },
-    "components": {
-        **THEME_DEFAULT.get("components", {}),
-        "Button": {
-            **THEME_DEFAULT.get("components", {}).get("Button", {}),
-            # Dark mode secondary button tokens
-            "secondaryColor": "#4db8d5",
-            "secondaryBg": "rgba(77, 184, 213, 0.15)",
-            "secondaryHoverBg": "rgba(77, 184, 213, 0.25)",
-            "secondaryActiveBg": "rgba(77, 184, 213, 0.35)",
-        },
     },
     "algorithm": "dark",
 }
