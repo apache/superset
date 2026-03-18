@@ -187,7 +187,8 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
             item = ReportSchedule()
 
         if attributes:
-            if recipients := attributes.pop("recipients", None):
+            if "recipients" in attributes:
+                recipients = attributes.pop("recipients")
                 attributes["recipients"] = [
                     ReportRecipients(
                         type=recipient["type"],

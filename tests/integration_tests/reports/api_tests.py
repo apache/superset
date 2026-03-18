@@ -1527,6 +1527,29 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert updated_model.chart_id == report_schedule_data["chart"]
         assert updated_model.database_id == report_schedule_data["database"]
 
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_update_report_schedule_clear_recipients(self):
+        """
+        ReportSchedule API: clear recipients on empty list
+        """
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name2")
+            .one_or_none()
+        )
+        assert len(report_schedule.recipients) == 2
+
+        self.login(ADMIN_USERNAME)
+        report_schedule_data = {
+            "recipients": [],
+        }
+
+        uri = f"api/v1/report/{report_schedule.id}"
+        rv = self.put_assert_metric(uri, report_schedule_data, "put")
+        assert rv.status_code == 200
+        db.session.expire(report_schedule)
+        assert report_schedule.recipients == []
+
     @pytest.mark.usefixtures("create_working_shared_report_schedule")
     def test_update_report_schedule_state_working(self):
         """
