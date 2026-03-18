@@ -333,7 +333,7 @@ class SchemaValidator:
                 error_code="INVALID_QUERY_MODE",
             )
 
-        if query_mode == "raw" and "columns" not in config:
+        if query_mode == "raw" and not config.get("columns"):
             return False, ChartGenerationError(
                 error_type="missing_raw_columns",
                 message="Handlebars chart in 'raw' mode requires 'columns'",
