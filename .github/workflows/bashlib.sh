@@ -45,6 +45,7 @@ npm-install() {
   say "::group::Install npm packages"
   echo "npm: $(npm --version)"
   echo "node: $(node --version)"
+  export CYPRESS_INSTALL_BINARY=0
   npm ci
   say "::endgroup::"
 
