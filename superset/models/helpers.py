@@ -2278,6 +2278,41 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     ) -> ColumnElement:
         raise NotImplementedError()
 
+    def find_adhoc_column_and_convert_to_sqla(
+        self,
+        columns: list[Column],
+        label: str,
+        template_processor: Optional[BaseTemplateProcessor] = None,
+    ) -> Optional[ColumnElement]:
+        """
+        Find an adhoc column by its label and convert it to a SQLAlchemy column.
+
+        This helper method searches through a list of columns for an adhoc column
+        with a matching label and converts it to a SQLAlchemy column expression.
+
+        Args:
+            columns: List of columns to search through
+            label: The label to match against adhoc columns
+            template_processor: Optional template processor for SQL templating
+
+        Returns:
+            SQLAlchemy column element if found, None otherwise
+        """
+        adhoc_col = next(
+            (
+                c
+                for c in columns
+                if utils.is_adhoc_column(c) and c.get("label") == label
+            ),
+            None,
+        )
+        if adhoc_col:
+            return self.adhoc_column_to_sqla(
+                col=adhoc_col,
+                template_processor=template_processor,
+            )
+        return None
+
     def _get_top_groups(
         self,
         df: pd.DataFrame,
@@ -2815,19 +2850,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
             elif isinstance(col, str) and columns:
                 # Check if this is a label reference to an adhoc column
-                adhoc_col = next(
-                    (
-                        c
-                        for c in columns
-                        if utils.is_adhoc_column(c) and c.get("label") == col
-                    ),
-                    None,
+                adhoc_sqla_col = self.find_adhoc_column_and_convert_to_sqla(
+                    columns=columns,
+                    label=col,
+                    template_processor=template_processor,
                 )
-                if adhoc_col:
-                    col = self.adhoc_column_to_sqla(
-                        col=adhoc_col,
-                        template_processor=template_processor,
-                    )
+                if adhoc_sqla_col is not None:
+                    col = adhoc_sqla_col
 
             if isinstance(col, ColumnElement):
                 orderby_exprs.append(col)
@@ -3029,6 +3058,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         template_processor=template_processor
                     )
                     is_metric_filter = True
+                elif col_obj is None and isinstance(flt_col, str):
+                    sqla_col = self.find_adhoc_column_and_convert_to_sqla(
+                        columns=columns,
+                        label=flt_col,
+                        template_processor=template_processor,
+                    )
+                    if sqla_col is not None:
+                        applied_adhoc_filters_columns.append(flt_col)
             filter_grain = flt.get("grain")
 
             # Check if this filter should be skipped because it was handled in
