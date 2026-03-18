@@ -23,6 +23,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from superset.mcp_service.chart.chart_utils import (
+    _add_adhoc_filters,
     configure_temporal_handling,
     create_metric_object,
     generate_chart_name,
@@ -313,6 +314,66 @@ class TestMapTableConfig:
 
         assert result["viz_type"] == "table"
 
+    def test_map_table_config_row_limit(self) -> None:
+        """Test that row_limit is mapped to form_data."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product")],
+            row_limit=500,
+        )
+
+        result = map_table_config(config)
+
+        assert result["row_limit"] == 500
+
+    def test_map_table_config_default_row_limit(self) -> None:
+        """Test that default row_limit is mapped to form_data."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product", aggregate="SUM")],
+        )
+
+        result = map_table_config(config)
+
+        assert result["row_limit"] == 1000
+
+
+class TestAddAdhocFilters:
+    """Test _add_adhoc_filters helper function"""
+
+    def test_adds_filters_to_form_data(self) -> None:
+        """Test that filters are correctly added to form_data."""
+        form_data: dict[str, Any] = {}
+        filters = [
+            FilterConfig(column="region", op="=", value="US"),
+            FilterConfig(column="year", op=">", value=2020),
+        ]
+
+        _add_adhoc_filters(form_data, filters)
+
+        assert "adhoc_filters" in form_data
+        assert len(form_data["adhoc_filters"]) == 2
+        assert form_data["adhoc_filters"][0]["subject"] == "region"
+        assert form_data["adhoc_filters"][0]["operator"] == "=="
+        assert form_data["adhoc_filters"][1]["subject"] == "year"
+        assert form_data["adhoc_filters"][1]["operator"] == ">"
+
+    def test_no_filters_does_nothing(self) -> None:
+        """Test that None filters leave form_data unchanged."""
+        form_data: dict[str, Any] = {"viz_type": "table"}
+
+        _add_adhoc_filters(form_data, None)
+
+        assert "adhoc_filters" not in form_data
+
+    def test_empty_list_does_nothing(self) -> None:
+        """Test that empty filter list leaves form_data unchanged."""
+        form_data: dict[str, Any] = {"viz_type": "table"}
+
+        _add_adhoc_filters(form_data, [])
+
+        assert "adhoc_filters" not in form_data
+
 
 class TestMapXYConfig:
     """Test map_xy_config function"""
@@ -459,6 +520,135 @@ class TestMapXYConfig:
         assert result["time_grain_sqla"] == "P1W"
         assert result["groupby"] == ["category"]
         assert result["x_axis"] == "order_date"
+
+    def test_map_xy_config_bar_horizontal_orientation(self) -> None:
+        """Test XY config mapping for horizontal bar chart"""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="department"),
+            y=[ColumnRef(name="headcount", aggregate="SUM")],
+            kind="bar",
+            orientation="horizontal",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["viz_type"] == "echarts_timeseries_bar"
+        assert result["orientation"] == "horizontal"
+
+    def test_map_xy_config_bar_vertical_orientation(self) -> None:
+        """Test XY config mapping for vertical bar chart (explicit)"""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+            orientation="vertical",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["viz_type"] == "echarts_timeseries_bar"
+        assert result["orientation"] == "vertical"
+
+    def test_map_xy_config_bar_no_orientation(self) -> None:
+        """Test XY config mapping for bar chart without orientation."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["viz_type"] == "echarts_timeseries_bar"
+        assert "orientation" not in result
+
+    def test_map_xy_config_line_orientation_ignored(self) -> None:
+        """Test that orientation is ignored for non-bar chart types"""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+            orientation="horizontal",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["viz_type"] == "echarts_timeseries_line"
+        assert "orientation" not in result
+
+    def test_map_xy_config_bar_horizontal_with_stacked(self) -> None:
+        """Test horizontal bar chart with stacked option"""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="department"),
+            y=[ColumnRef(name="headcount", aggregate="SUM")],
+            kind="bar",
+            orientation="horizontal",
+            stacked=True,
+            group_by=ColumnRef(name="level"),
+        )
+
+        result = map_xy_config(config)
+
+        assert result["viz_type"] == "echarts_timeseries_bar"
+        assert result["orientation"] == "horizontal"
+        assert result["stack"] == "Stack"
+        assert result["groupby"] == ["level"]
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_with_filters(self, mock_is_temporal) -> None:
+        """Test that filters are mapped to adhoc_filters in XY form_data."""
+        mock_is_temporal.return_value = True
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+            filters=[FilterConfig(column="region", op="=", value="US")],
+        )
+
+        result = map_xy_config(config)
+
+        assert "adhoc_filters" in result
+        assert len(result["adhoc_filters"]) == 1
+        assert result["adhoc_filters"][0]["subject"] == "region"
+        assert result["adhoc_filters"][0]["operator"] == "=="
+        assert result["adhoc_filters"][0]["comparator"] == "US"
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_row_limit(self, mock_is_temporal) -> None:
+        """Test that row_limit is mapped to form_data."""
+        mock_is_temporal.return_value = True
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+            row_limit=250,
+        )
+
+        result = map_xy_config(config)
+
+        assert result["row_limit"] == 250
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_default_row_limit(self, mock_is_temporal) -> None:
+        """Test that default row_limit is mapped to form_data."""
+        mock_is_temporal.return_value = True
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="bar",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["row_limit"] == 10000
 
 
 class TestMapConfigToFormData:
