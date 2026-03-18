@@ -314,6 +314,7 @@ const StyledDashboardContent = styled.div<{
       background-color: ${theme.colorBgContainer};
       position: relative;
       padding: ${theme.sizeUnit * 4}px;
+      box-sizing: border-box;
       overflow-y: visible;
 
       // transitionable traits to show filter relevance
