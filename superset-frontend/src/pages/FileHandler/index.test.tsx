@@ -113,8 +113,6 @@ type LaunchQueue = {
   ) => void;
 };
 
-const pendingTimerIds = new Set<ReturnType<typeof setTimeout>>();
-
 const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
   let savedConsumer:
     | ((params: { files?: MockFileHandle[] }) => void | Promise<void>)
@@ -123,13 +121,9 @@ const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
     setConsumer: (consumer: (params: { files?: MockFileHandle[] }) => void) => {
       savedConsumer = consumer;
       if (fileHandle) {
-        const id = setTimeout(() => {
-          pendingTimerIds.delete(id);
-          consumer({
-            files: [fileHandle],
-          });
-        }, 0);
-        pendingTimerIds.add(id);
+        // Use Promise.resolve instead of setTimeout to avoid interference
+        // from jest.useFakeTimers() in other test files within the same shard
+        Promise.resolve().then(() => consumer({ files: [fileHandle] }));
       }
     },
   };
@@ -146,8 +140,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  pendingTimerIds.forEach(id => clearTimeout(id));
-  pendingTimerIds.clear();
   delete (window as any).launchQueue;
 });
 
