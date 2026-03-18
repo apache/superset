@@ -319,19 +319,54 @@ async def generate_chart(  # noqa: C901
                 )
 
                 execution_time = int((time.time() - start_time) * 1000)
-                error = ChartGenerationError(
-                    error_type="dataset_not_found",
-                    message=f"Dataset not found: {request.dataset_id}",
-                    details=(
-                        f"No dataset found with identifier '{request.dataset_id}'. "
-                        f"This could be an invalid ID/UUID or a permissions issue."
-                    ),
-                    suggestions=[
+
+                # Detect when user passed a dataset name instead of ID/UUID
+                _is_numeric = isinstance(request.dataset_id, int) or (
+                    isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
+                )
+                _looks_like_uuid = (
+                    isinstance(request.dataset_id, str)
+                    and len(request.dataset_id) == 36
+                    and request.dataset_id.count("-") == 4
+                )
+                _looks_like_name = (
+                    isinstance(request.dataset_id, str)
+                    and not _is_numeric
+                    and not _looks_like_uuid
+                )
+
+                if _looks_like_name:
+                    details = (
+                        f"No dataset found with identifier "
+                        f"'{request.dataset_id}'. It looks like you passed "
+                        f"a dataset name instead of a numeric ID or UUID. "
+                        f"Use the list_datasets tool to find the correct "
+                        f"numeric dataset ID."
+                    )
+                    suggestions = [
+                        "Use list_datasets to find the numeric ID for this dataset",
+                        "Pass the numeric dataset ID (e.g., 123) or UUID, "
+                        "not the dataset name",
+                        "Check that you have access to this dataset",
+                    ]
+                else:
+                    details = (
+                        f"No dataset found with identifier "
+                        f"'{request.dataset_id}'. This could be an invalid "
+                        f"ID/UUID or a permissions issue."
+                    )
+                    suggestions = [
                         "Verify the dataset ID or UUID is correct",
                         "Check that you have access to this dataset",
                         "Use the list_datasets tool to find available datasets",
                         "If using UUID, ensure it's the correct format",
-                    ],
+                    ]
+
+                error = ChartGenerationError(
+                    error_type="dataset_not_found",
+                    message=f"Dataset not found: {request.dataset_id}",
+                    details=details,
+                    suggestions=suggestions,
                     error_code="DATASET_NOT_FOUND",
                 )
                 return GenerateChartResponse.model_validate(
@@ -412,53 +447,23 @@ async def generate_chart(  # noqa: C901
                 ):
                     compile_result = _compile_chart(form_data, dataset.id)
                 if not compile_result.success:
-                    # Query failed — delete the broken chart and return an error
+                    # Query failed — keep the saved chart but warn the user
                     logger.warning(
                         "Compile check failed for chart %s: %s",
                         chart.id,
                         compile_result.error,
                     )
-                    await ctx.error(
-                        "Chart compile check failed: error=%s" % (compile_result.error,)
+                    await ctx.warning(
+                        "Chart saved but compile check failed: error=%s"
+                        % (compile_result.error,)
                     )
-                    from superset.daos.chart import ChartDAO
-
-                    ChartDAO.delete([chart])
-                    from superset.mcp_service.common.error_schemas import (
-                        ChartGenerationError,
+                    compile_warning = (
+                        "Chart was saved but the query failed to execute: %s. "
+                        "The chart may need configuration adjustments before "
+                        "it renders correctly."
+                        % (compile_result.error or "unknown error")
                     )
-
-                    execution_time = int((time.time() - start_time) * 1000)
-                    error = ChartGenerationError(
-                        error_type="compile_error",
-                        message=(
-                            "Chart query failed to execute. The chart was not saved."
-                        ),
-                        details=str(compile_result.error) or "",
-                        suggestions=[
-                            "Check that all columns exist in the dataset",
-                            "Verify aggregate functions are compatible "
-                            "with column types",
-                            "Ensure filters reference valid columns",
-                            "Try simplifying the chart configuration",
-                        ],
-                        error_code="CHART_COMPILE_FAILED",
-                    )
-                    return GenerateChartResponse.model_validate(
-                        {
-                            "chart": None,
-                            "error": error.model_dump(),
-                            "form_data": form_data,
-                            "performance": {
-                                "query_duration_ms": execution_time,
-                                "cache_status": "error",
-                                "optimization_suggestions": [],
-                            },
-                            "success": False,
-                            "schema_version": "2.0",
-                            "api_version": "v1",
-                        }
-                    )
+                    response_warnings.append(compile_warning)
                 response_warnings.extend(compile_result.warnings)
 
             except CommandException as e:
@@ -560,13 +565,18 @@ async def generate_chart(  # noqa: C901
                     )
 
                     execution_time = int((time.time() - start_time) * 1000)
+                    compile_error_detail = str(compile_result.error) or ""
                     error = ChartGenerationError(
                         error_type="compile_error",
                         message=(
-                            "Chart query failed to execute. "
-                            "The chart configuration is invalid."
+                            "Chart query failed to execute: %s"
+                            % (
+                                compile_error_detail[:200]
+                                if compile_error_detail
+                                else "unknown error"
+                            )
                         ),
-                        details=str(compile_result.error) or "",
+                        details=compile_error_detail,
                         suggestions=[
                             "Check that all columns exist in the dataset",
                             "Verify aggregate functions are compatible "
