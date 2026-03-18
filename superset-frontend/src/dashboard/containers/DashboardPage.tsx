@@ -118,7 +118,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     ({ dashboardInfo }) =>
       dashboardInfo && Object.keys(dashboardInfo).length > 0,
   );
-  const dashboardTheme = useSelector(
+  const reduxTheme = useSelector(
     (state: RootState) => state.dashboardInfo.theme,
   );
   const { addDangerToast } = useToasts();
@@ -291,11 +291,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           <SyncDashboardState dashboardPageId={dashboardPageId} />
           <DashboardPageIdContext.Provider value={dashboardPageId}>
             <CrudThemeProvider
-              themeId={
-                dashboardTheme !== undefined
-                  ? dashboardTheme?.id
-                  : dashboard?.theme?.id
-              }
+              theme={reduxTheme !== undefined ? reduxTheme : dashboard?.theme}
             >
               <AutoRefreshProvider>
                 <DashboardContainer

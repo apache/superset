@@ -34,25 +34,59 @@ import {
 } from '../actions/chartCustomizationActions';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
+const preserveScopes = (existingConfig, incomingConfig) => {
+  const existingScopesMap = (existingConfig || []).reduce((acc, item) => {
+    if (item.chartsInScope != null || item.tabsInScope != null) {
+      acc[item.id] = {
+        chartsInScope: item.chartsInScope,
+        tabsInScope: item.tabsInScope,
+      };
+    }
+    return acc;
+  }, {});
+
+  return (incomingConfig || []).map(item => {
+    const existingScopes = existingScopesMap[item.id];
+    if (item.chartsInScope == null && existingScopes) {
+      return {
+        ...item,
+        chartsInScope: existingScopes.chartsInScope,
+        tabsInScope: existingScopes.tabsInScope,
+      };
+    }
+    return item;
+  });
+};
+
 export default function dashboardStateReducer(state = {}, action) {
   switch (action.type) {
     case DASHBOARD_INFO_UPDATED: {
-      const { theme_id: themeId, ...otherInfo } = action.newInfo;
-      const updatedState = {
+      const newInfo = action.newInfo || {};
+      const incomingMeta = newInfo.metadata;
+      return {
         ...state,
-        ...otherInfo,
+        ...newInfo,
+        // Preserve client-only scope data (chartsInScope, tabsInScope) when
+        // metadata is refreshed from the server, matching HYDRATE_DASHBOARD.
+        ...(incomingMeta && {
+          metadata: {
+            ...incomingMeta,
+            ...(incomingMeta.native_filter_configuration && {
+              native_filter_configuration: preserveScopes(
+                state.metadata?.native_filter_configuration,
+                incomingMeta.native_filter_configuration,
+              ),
+            }),
+            ...(incomingMeta.chart_customization_config && {
+              chart_customization_config: preserveScopes(
+                state.metadata?.chart_customization_config,
+                incomingMeta.chart_customization_config,
+              ),
+            }),
+          },
+        }),
         last_modified_time: Math.round(new Date().getTime() / 1000),
       };
-
-      if (themeId !== undefined) {
-        if (themeId === null) {
-          updatedState.theme = null;
-        } else {
-          updatedState.theme = { id: themeId, name: `Theme ${themeId}` };
-        }
-      }
-
-      return updatedState;
     }
     case DASHBOARD_INFO_FILTERS_CHANGED: {
       const existingConfig = state.metadata?.native_filter_configuration || [];
@@ -88,30 +122,6 @@ export default function dashboardStateReducer(state = {}, action) {
       };
     }
     case HYDRATE_DASHBOARD: {
-      const preserveScopes = (existingConfig, incomingConfig) => {
-        const existingScopesMap = (existingConfig || []).reduce((acc, item) => {
-          if (item.chartsInScope != null || item.tabsInScope != null) {
-            acc[item.id] = {
-              chartsInScope: item.chartsInScope,
-              tabsInScope: item.tabsInScope,
-            };
-          }
-          return acc;
-        }, {});
-
-        return (incomingConfig || []).map(item => {
-          const existingScopes = existingScopesMap[item.id];
-          if (item.chartsInScope == null && existingScopes) {
-            return {
-              ...item,
-              chartsInScope: existingScopes.chartsInScope,
-              tabsInScope: existingScopes.tabsInScope,
-            };
-          }
-          return item;
-        });
-      };
-
       const incomingMetadata = action.data.dashboardInfo.metadata || {};
 
       const mergedFilterConfig = preserveScopes(

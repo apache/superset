@@ -190,9 +190,9 @@ export type DashboardInfo = {
   pendingChartCustomizations?: Record<string, ChartCustomization>;
   theme?: {
     id: number;
-    name: string;
+    theme_name: string;
+    json_data: string;
   } | null;
-  theme_id?: number | null;
   css?: string;
   slug?: string;
   last_modified_time: number;

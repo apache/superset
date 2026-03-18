@@ -41,6 +41,7 @@ const StyledAlert = styled(Alert)`
 interface Theme {
   id: number;
   theme_name: string;
+  json_data?: string;
 }
 
 interface CssTemplate {

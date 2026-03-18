@@ -16,64 +16,73 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useEffect, useState } from 'react';
-import { useThemeContext } from 'src/theme/ThemeProvider';
-import { Theme } from '@superset-ui/core';
-import { Loading } from '@superset-ui/core/components';
+import { ReactNode, useEffect, useMemo } from 'react';
+import { logging, Theme, isThemeConfigDark } from '@superset-ui/core';
+import { normalizeThemeConfig } from '@superset-ui/core/theme/utils';
+import getBootstrapData from 'src/utils/getBootstrapData';
+import type { Dashboard } from 'src/types/Dashboard';
 
 interface CrudThemeProviderProps {
   children: ReactNode;
-  themeId?: number | null;
+  theme?: Dashboard['theme'];
 }
 
 /**
- * CrudThemeProvider asks the ThemeController for a dashboard theme provider.
- * Flow: Dashboard loads → asks controller → controller fetches theme →
- * returns provider → dashboard uses it.
- *
- * CRITICAL: This does NOT modify the global controller - it creates an isolated dashboard theme.
+ * CrudThemeProvider applies a dashboard-specific theme using theme data
+ * from the dashboard API response. Merges with the system's base theme
+ * (light or dark) and loads custom fonts. Falls back to the global theme
+ * if the theme data is missing or invalid.
  */
 export default function CrudThemeProvider({
   children,
-  themeId,
+  theme,
 }: CrudThemeProviderProps) {
-  const globalThemeContext = useThemeContext();
-  const [dashboardTheme, setDashboardTheme] = useState<Theme | null>(null);
+  const { dashboardTheme, fontUrls } = useMemo(() => {
+    if (!theme?.json_data) {
+      return { dashboardTheme: null, fontUrls: undefined };
+    }
+    try {
+      const themeConfig = JSON.parse(theme.json_data);
+      const normalizedConfig = normalizeThemeConfig(themeConfig);
+      const isDark = isThemeConfigDark(normalizedConfig);
+      const {
+        common: { theme: bootstrapTheme },
+      } = getBootstrapData();
+      const baseTheme = isDark ? bootstrapTheme.dark : bootstrapTheme.default;
+      const createdTheme = Theme.fromConfig(
+        normalizedConfig,
+        baseTheme || undefined,
+      );
+      const rawUrls = themeConfig?.token?.fontUrls;
+      const urls = Array.isArray(rawUrls) ? (rawUrls as string[]) : undefined;
+      return { dashboardTheme: createdTheme, fontUrls: urls };
+    } catch (error) {
+      logging.warn('Failed to load dashboard theme:', error);
+      return { dashboardTheme: null, fontUrls: undefined };
+    }
+  }, [theme?.json_data]);
 
   useEffect(() => {
-    if (themeId) {
-      // Ask the controller to create a SEPARATE dashboard theme provider
-      // This should NOT affect the global controller or navbar
-      const loadDashboardTheme = async () => {
-        try {
-          const dashboardThemeProvider =
-            await globalThemeContext.createDashboardThemeProvider(
-              String(themeId),
-            );
-          setDashboardTheme(dashboardThemeProvider);
-        } catch (error) {
-          console.error('Failed to load dashboard theme:', error);
-          setDashboardTheme(null);
-        }
-      };
+    if (!dashboardTheme || !fontUrls?.length) return undefined;
 
-      loadDashboardTheme();
-    } else {
-      setDashboardTheme(null);
-    }
-  }, [themeId, globalThemeContext]);
+    // JSON.stringify provides safe escaping to prevent CSS injection
+    const css = fontUrls
+      .map((url: string) => `@import url(${JSON.stringify(url)});`)
+      .join('\n');
+    const style = document.createElement('style');
+    style.setAttribute('data-superset-fonts', 'true');
+    style.textContent = css;
+    document.head.appendChild(style);
 
-  // If no themeId, just render children (they use global theme)
-  if (!themeId) {
+    return () => {
+      style.remove();
+    };
+  }, [dashboardTheme, fontUrls]);
+
+  if (!dashboardTheme) {
     return <>{children}</>;
   }
 
-  // If themeId exists, but theme is not loaded yet, return null to prevent re-mounting children
-  if (!dashboardTheme) {
-    return <Loading />;
-  }
-
-  // Render children with the dashboard theme provider from controller
   return (
     <dashboardTheme.SupersetThemeProvider>
       {children}

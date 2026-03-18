@@ -135,5 +135,6 @@ CLAUDE.local.md
 PROJECT.md
 .aider*
 .claude_rc*
+.claude/settings.local.json
 .env.local
 *.code-workspace
