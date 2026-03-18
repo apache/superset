@@ -32,27 +32,55 @@ import type {
 } from './types';
 
 /**
- * Generates CSS styles for secondary buttons using Superset-specific tokens
- * with fallbacks to Ant Design's derived colorPrimary* tokens.
+ * Secondary Button Theming
  *
- * Ant Design's filled variant (used by secondary buttons) does not expose
- * component-level tokens for customization. This utility bridges that gap
- * by providing Superset-specific tokens (buttonSecondary*) that fall back
- * to Ant Design's derived tokens when not explicitly set.
+ * Ant Design's "filled" variant (used for secondary buttons) has no component-level
+ * tokens for customization. To enable full theming of secondary buttons, we use
+ * Superset-specific tokens (buttonSecondary*) with fallbacks to Ant Design's
+ * colorPrimary* derived tokens.
+ *
+ * Implementation approach (follows PR #38679 pattern for label tokens):
+ * - Default state: Applied via inline `style` prop (higher specificity than CSS classes)
+ * - Hover/Active states: Applied via `css` prop with !important (pseudo-selectors
+ *   cannot be applied via inline styles)
+ *
+ * Available tokens (all optional, with sensible fallbacks):
+ * - buttonSecondaryColor: Text color (fallback: colorPrimary)
+ * - buttonSecondaryBg: Background color (fallback: colorPrimaryBg)
+ * - buttonSecondaryBorderColor: Border color (fallback: transparent)
+ * - buttonSecondaryHoverColor: Hover text color (fallback: colorPrimary)
+ * - buttonSecondaryHoverBg: Hover background (fallback: colorPrimaryBgHover)
+ * - buttonSecondaryHoverBorderColor: Hover border (fallback: transparent)
+ * - buttonSecondaryActiveColor: Active/pressed text color (fallback: colorPrimary)
+ * - buttonSecondaryActiveBg: Active/pressed background (fallback: colorPrimaryBorder)
+ * - buttonSecondaryActiveBorderColor: Active/pressed border (fallback: transparent)
  */
-export const getSecondaryButtonStyles = (theme: SupersetTheme) => ({
+
+/**
+ * Generates inline styles for secondary buttons (default state).
+ * Inline styles have higher specificity than CSS classes, so no !important needed.
+ */
+export const getSecondaryButtonStyle = (theme: SupersetTheme) => ({
   color: theme.buttonSecondaryColor ?? theme.colorPrimary,
   backgroundColor: theme.buttonSecondaryBg ?? theme.colorPrimaryBg,
   borderColor: theme.buttonSecondaryBorderColor ?? 'transparent',
+});
+
+/**
+ * Generates CSS styles for secondary button hover/active states.
+ * Must use CSS (not inline styles) since pseudo-selectors cannot be applied via style prop.
+ * Uses !important to override Ant Design's default styles.
+ */
+export const getSecondaryButtonHoverStyles = (theme: SupersetTheme) => ({
   '&:hover': {
-    color: theme.buttonSecondaryHoverColor ?? theme.colorPrimary,
-    backgroundColor: theme.buttonSecondaryHoverBg ?? theme.colorPrimaryBgHover,
-    borderColor: theme.buttonSecondaryHoverBorderColor ?? 'transparent',
+    color: `${theme.buttonSecondaryHoverColor ?? theme.colorPrimary} !important`,
+    backgroundColor: `${theme.buttonSecondaryHoverBg ?? theme.colorPrimaryBgHover} !important`,
+    borderColor: `${theme.buttonSecondaryHoverBorderColor ?? 'transparent'} !important`,
   },
   '&:active': {
-    color: theme.buttonSecondaryActiveColor ?? theme.colorPrimary,
-    backgroundColor: theme.buttonSecondaryActiveBg ?? theme.colorPrimaryBorder,
-    borderColor: theme.buttonSecondaryActiveBorderColor ?? 'transparent',
+    color: `${theme.buttonSecondaryActiveColor ?? theme.colorPrimary} !important`,
+    backgroundColor: `${theme.buttonSecondaryActiveBg ?? theme.colorPrimaryBorder} !important`,
+    borderColor: `${theme.buttonSecondaryActiveBorderColor ?? 'transparent'} !important`,
   },
 });
 
@@ -124,6 +152,12 @@ export function Button(props: ButtonProps) {
 
   const effectiveButtonStyle: ButtonStyle = buttonStyle ?? 'primary';
 
+  // Secondary button inline styles (default state) - inline styles override CSS classes
+  const secondaryStyle =
+    effectiveButtonStyle === 'secondary' && !disabled
+      ? getSecondaryButtonStyle(theme)
+      : undefined;
+
   const button = (
     <AntdButton
       href={disabled ? undefined : href}
@@ -140,6 +174,7 @@ export function Button(props: ButtonProps) {
         `superset-button-${buttonStyle}`,
         { cta: !!cta },
       )}
+      style={secondaryStyle}
       css={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -158,11 +193,10 @@ export function Button(props: ButtonProps) {
         '& > span > :first-of-type': {
           marginRight: firstChildMargin,
         },
-        // Secondary button styling via customizable tokens
-        // Uses Superset-specific tokens with fallbacks to Ant Design's colorPrimary* tokens
+        // Secondary button hover/active states via CSS
         ...(effectiveButtonStyle === 'secondary' &&
           !disabled &&
-          getSecondaryButtonStyles(theme)),
+          getSecondaryButtonHoverStyles(theme)),
       }}
       icon={icon}
       {...restProps}
