@@ -54,7 +54,7 @@ jobs:
       - name: Install Docs Dependencies
         run: |
           cd docs
-          yarn install --immutable || yarn install --immutable
+          yarn install --immutable
 
       - name: Cache pre-commit environments
         uses: actions/cache@v5
