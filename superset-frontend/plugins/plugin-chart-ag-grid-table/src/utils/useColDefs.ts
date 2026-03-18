@@ -21,7 +21,7 @@ import { ColDef } from '@superset-ui/core/components/ThemedAgGridReact';
 import { useCallback, useMemo } from 'react';
 import { DataRecord, DataRecordValue } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import { supersetTheme } from '@apache-superset/core/theme';
+import { useTheme } from '@apache-superset/core/theme';
 import { ColorFormatters } from '@superset-ui/chart-controls';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
 import {
@@ -62,8 +62,6 @@ type UseColDefsProps = {
   emitCrossFilters?: boolean;
   alignPositiveNegative: boolean;
   slice_id: number;
-  cellBackgroundColor?: string;
-  cellTextColor?: string;
 };
 
 function getValueRange(
@@ -227,9 +225,8 @@ export const useColDefs = ({
   emitCrossFilters,
   alignPositiveNegative,
   slice_id,
-  cellBackgroundColor = supersetTheme.colorBgBase,
-  cellTextColor = supersetTheme.colorPrimaryText,
 }: UseColDefsProps) => {
+  const theme = useTheme();
   const getCommonColProps = useCallback(
     (
       col: InputColumn,
@@ -285,17 +282,20 @@ export const useColDefs = ({
         headerName: getHeaderLabel(col),
         valueFormatter: p => valueFormatter(p, col),
         valueGetter: p => valueGetter(p, col),
-        cellStyle: p =>
-          getCellStyle({
+        cellStyle: p => {
+          const cellStyleParams = {
             ...p,
             hasColumnColorFormatters,
             columnColorFormatters,
             hasBasicColorFormatters,
             basicColorFormatters,
             col,
-            cellBackgroundColor,
-            cellTextColor,
-          }),
+            cellBackgroundColor: theme.colorBgBase,
+            cellTextColor: theme.colorPrimaryText,
+          } as Parameters<typeof getCellStyle>[0];
+
+          return getCellStyle(cellStyleParams);
+        },
         cellClass: p =>
           getCellClass({
             ...p,
@@ -392,8 +392,8 @@ export const useColDefs = ({
       allowRearrangeColumns,
       serverPagination,
       alignPositiveNegative,
-      cellBackgroundColor,
-      cellTextColor,
+      theme.colorBgBase,
+      theme.colorPrimaryText,
     ],
   );
 
