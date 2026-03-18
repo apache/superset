@@ -18,7 +18,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import Flask
 from pytest_mock import MockerFixture
@@ -85,18 +85,18 @@ def test_get_time_filter_returns_clause_with_partial_bounds(
     with app.test_request_context():
         result_start_only = dataset.get_time_filter(
             time_col=time_col,
-            start_dttm=datetime(2024, 1, 1),
+            start_dttm=datetime(2024, 1, 1, tzinfo=timezone.utc),
             end_dttm=None,
         )
         result_end_only = dataset.get_time_filter(
             time_col=time_col,
             start_dttm=None,
-            end_dttm=datetime(2024, 1, 31),
+            end_dttm=datetime(2024, 1, 31, tzinfo=timezone.utc),
         )
         result_both = dataset.get_time_filter(
             time_col=time_col,
-            start_dttm=datetime(2024, 1, 1),
-            end_dttm=datetime(2024, 1, 31),
+            start_dttm=datetime(2024, 1, 1, tzinfo=timezone.utc),
+            end_dttm=datetime(2024, 1, 31, tzinfo=timezone.utc),
         )
 
     assert result_start_only is not None
