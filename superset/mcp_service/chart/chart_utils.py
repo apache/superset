@@ -30,6 +30,7 @@ from superset.mcp_service.chart.schemas import (
     ChartCapabilities,
     ChartSemantics,
     ColumnRef,
+    FilterConfig,
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
@@ -326,6 +327,24 @@ def map_config_to_form_data(
         raise ValueError(f"Unsupported config type: {type(config)}")
 
 
+def _add_adhoc_filters(
+    form_data: Dict[str, Any], filters: list[FilterConfig] | None
+) -> None:
+    """Add adhoc filters to form_data if any are specified."""
+    if filters:
+        form_data["adhoc_filters"] = [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": filter_config.column,
+                "operator": map_filter_operator(filter_config.op),
+                "comparator": filter_config.value,
+            }
+            for filter_config in filters
+            if filter_config is not None
+        ]
+
+
 def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
     """Map table chart config to form_data with defensive validation."""
     # Early validation to prevent empty charts
@@ -362,7 +381,6 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
                 "query_mode": "raw",
                 "include_time": False,
                 "order_desc": True,
-                "row_limit": 1000,  # Reasonable limit for raw data
             }
         )
 
@@ -388,21 +406,12 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
             }
         )
 
-    if config.filters:
-        form_data["adhoc_filters"] = [
-            {
-                "clause": "WHERE",
-                "expressionType": "SIMPLE",
-                "subject": filter_config.column,
-                "operator": map_filter_operator(filter_config.op),
-                "comparator": filter_config.value,
-            }
-            for filter_config in config.filters
-            if filter_config is not None
-        ]
+    _add_adhoc_filters(form_data, config.filters)
 
     if config.sort_by:
         form_data["order_by_cols"] = config.sort_by
+
+    form_data["row_limit"] = config.row_limit
 
     return form_data
 
@@ -489,6 +498,8 @@ def configure_temporal_handling(
     For temporal columns, enables standard time series handling.
     For non-temporal columns (e.g., BIGINT year), disables DATE_TRUNC
     by setting categorical sorting options.
+
+    Stores any warnings in ``form_data["_mcp_warnings"]``.
     """
     if x_is_temporal:
         if time_grain:
@@ -499,6 +510,12 @@ def configure_temporal_handling(
         form_data["x_axis_sort_series_ascending"] = True
         form_data["time_grain_sqla"] = None
         form_data["granularity_sqla"] = None
+        if time_grain:
+            form_data.setdefault("_mcp_warnings", []).append(
+                f"time_grain='{time_grain}' was ignored because the x-axis "
+                f"column is not a temporal type. time_grain only applies to "
+                f"DATE/DATETIME/TIMESTAMP columns."
+            )
 
 
 def map_xy_config(
@@ -566,19 +583,9 @@ def map_xy_config(
     if groupby_columns:
         form_data["groupby"] = groupby_columns
 
-    # Add filters if specified
-    if config.filters:
-        form_data["adhoc_filters"] = [
-            {
-                "clause": "WHERE",
-                "expressionType": "SIMPLE",
-                "subject": filter_config.column,
-                "operator": map_filter_operator(filter_config.op),
-                "comparator": filter_config.value,
-            }
-            for filter_config in config.filters
-            if filter_config is not None
-        ]
+    _add_adhoc_filters(form_data, config.filters)
+
+    form_data["row_limit"] = config.row_limit
 
     # Add stacking configuration
     if getattr(config, "stacked", False):
@@ -615,18 +622,7 @@ def map_pie_config(config: PieChartConfig) -> Dict[str, Any]:
         "date_format": "smart_date",
     }
 
-    if config.filters:
-        form_data["adhoc_filters"] = [
-            {
-                "clause": "WHERE",
-                "expressionType": "SIMPLE",
-                "subject": filter_config.column,
-                "operator": map_filter_operator(filter_config.op),
-                "comparator": filter_config.value,
-            }
-            for filter_config in config.filters
-            if filter_config is not None
-        ]
+    _add_adhoc_filters(form_data, config.filters)
 
     return form_data
 
@@ -659,18 +655,7 @@ def map_pivot_table_config(config: PivotTableChartConfig) -> Dict[str, Any]:
         "row_limit": config.row_limit,
     }
 
-    if config.filters:
-        form_data["adhoc_filters"] = [
-            {
-                "clause": "WHERE",
-                "expressionType": "SIMPLE",
-                "subject": filter_config.column,
-                "operator": map_filter_operator(filter_config.op),
-                "comparator": filter_config.value,
-            }
-            for filter_config in config.filters
-            if filter_config is not None
-        ]
+    _add_adhoc_filters(form_data, config.filters)
 
     return form_data
 
@@ -764,21 +749,11 @@ def map_mixed_timeseries_config(
     if config.group_by_secondary and config.group_by_secondary.name != config.x.name:
         form_data["groupby_b"] = [config.group_by_secondary.name]
 
+    form_data["row_limit"] = config.row_limit
+
     _add_mixed_axis_config(form_data, config)
 
-    # Filters
-    if config.filters:
-        form_data["adhoc_filters"] = [
-            {
-                "clause": "WHERE",
-                "expressionType": "SIMPLE",
-                "subject": filter_config.column,
-                "operator": map_filter_operator(filter_config.op),
-                "comparator": filter_config.value,
-            }
-            for filter_config in config.filters
-            if filter_config is not None
-        ]
+    _add_adhoc_filters(form_data, config.filters)
 
     return form_data
 
@@ -812,7 +787,7 @@ def _humanize_column(col: ColumnRef) -> str:
 
 
 def _summarize_filters(
-    filters: list[Any] | None,
+    filters: list[FilterConfig] | None,
 ) -> str | None:
     """Extract a short context string from filter configs."""
     if not filters:
