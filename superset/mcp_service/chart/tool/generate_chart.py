@@ -25,7 +25,7 @@ from typing import Any, Dict, List
 from urllib.parse import parse_qs, urlparse
 
 from fastmcp import Context
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.exceptions import CommandException
 from superset.extensions import event_logger
@@ -39,6 +39,7 @@ from superset.mcp_service.chart.chart_utils import (
 )
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
+    ChartError,
     GenerateChartRequest,
     GenerateChartResponse,
     PerformanceMetadata,
@@ -118,7 +119,15 @@ def _compile_chart(
         return CompileResult(success=False, error=str(exc))
 
 
-@tool(tags=["mutate"])
+@tool(
+    tags=["mutate"],
+    class_permission_name="Chart",
+    annotations=ToolAnnotations(
+        title="Create chart",
+        readOnlyHint=False,
+        destructiveHint=False,
+    ),
+)
 @parse_request(GenerateChartRequest)
 async def generate_chart(  # noqa: C901
     request: GenerateChartRequest, ctx: Context
@@ -257,7 +266,7 @@ async def generate_chart(  # noqa: C901
         chart_id = None
         explore_url = None
         form_data_key = None
-        response_warnings: list[str] = []
+        response_warnings: list[str] = form_data.pop("_mcp_warnings", [])
 
         # Save chart by default (unless save_chart=False)
         if request.save_chart:
@@ -636,7 +645,12 @@ async def generate_chart(  # noqa: C901
                                 preview_request, ctx
                             )
 
-                            if hasattr(preview_result, "content"):
+                            if isinstance(preview_result, ChartError):
+                                await ctx.warning(
+                                    "Preview '%s' failed: %s"
+                                    % (format_type, preview_result.error)
+                                )
+                            elif hasattr(preview_result, "content"):
                                 previews[format_type] = preview_result.content
                         else:
                             # For preview-only mode (save_chart=false)
@@ -674,7 +688,12 @@ async def generate_chart(  # noqa: C901
                                     preview_format=format_type,
                                 )
 
-                                if not hasattr(preview_result, "error"):
+                                if isinstance(preview_result, ChartError):
+                                    await ctx.warning(
+                                        "Preview '%s' failed: %s"
+                                        % (format_type, preview_result.error)
+                                    )
+                                else:
                                     previews[format_type] = preview_result
 
             except (CommandException, ValueError, KeyError) as e:
