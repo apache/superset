@@ -703,21 +703,25 @@ class SigalrmTimeout:
 
     def __enter__(self) -> None:
         try:
-            if threading.current_thread() == threading.main_thread():
+            if (
+                threading.current_thread() == threading.main_thread()
+                and platform.system() != "Windows"
+            ):
                 signal.signal(signal.SIGALRM, self.handle_timeout)
                 signal.alarm(self.seconds)
-        except ValueError as ex:
+        except (ValueError, AttributeError) as ex:
             logger.warning("timeout can't be used in the current context")
-            logger.exception(ex)
+            logger.debug(ex)
 
     def __exit__(  # pylint: disable=redefined-outer-name,redefined-builtin
         self, type: Any, value: Any, traceback: TracebackType
     ) -> None:
         try:
-            signal.alarm(0)
-        except ValueError as ex:
+            if platform.system() != "Windows":
+                signal.alarm(0)
+        except (ValueError, AttributeError) as ex:
             logger.warning("timeout can't be used in the current context")
-            logger.exception(ex)
+            logger.debug(ex)
 
 
 class TimerTimeout:

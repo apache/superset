@@ -2721,6 +2721,41 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             m.metric_name: m for m in self.metrics
         }
 
+        # Build normalized sets for conflict detection
+        column_names = {col.column_name for col in self.columns}
+        column_names_lower = {col.column_name.lower() for col in self.columns}
+
+        metric_names = {
+            m.metric_name
+            for m in self.metrics
+            if getattr(m, "metric_name", None)
+        }
+
+        metric_names_lower = {
+            m.metric_name.lower()
+            for m in self.metrics
+            if getattr(m, "metric_name", None)
+        }
+
+        # Add verbose_name safely as alias
+        for column in self.columns:
+            if not column.verbose_name:
+                continue
+
+            vname = column.verbose_name
+            vname_lower = vname.lower()
+
+            if (
+                vname in columns_by_name
+                or vname in column_names              
+                or vname_lower in column_names_lower
+                or vname in metric_names
+                or vname_lower in metric_names_lower
+            ):
+                continue
+
+            columns_by_name[vname] = column
+
         if not granularity and is_timeseries:
             raise QueryObjectValidationError(
                 _(
