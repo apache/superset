@@ -177,3 +177,69 @@ def test_no_filter_with_other_filters_preserved(
     assert "value" in generated_sql.lower(), (
         f"Regular filter on 'value' should still appear in SQL, got: {generated_sql}"
     )
+
+
+def test_actual_from_to_dttm_produces_time_filter(
+    mocker: MockerFixture,
+    app: Flask,
+) -> None:
+    """Generating SQL with actual from/to dates applies a WHERE time filter."""
+    dataset = _make_dataset(mocker)
+
+    query_obj: QueryObjectDict = {
+        "granularity": "time_start",
+        "from_dttm": datetime(2024, 1, 1, tzinfo=timezone.utc),
+        "to_dttm": datetime(2024, 1, 31, tzinfo=timezone.utc),
+        "is_timeseries": False,
+        "filter": [],
+        "metrics": ["count"],
+        "columns": [],
+    }
+
+    with app.test_request_context():
+        sqla_query = dataset.get_query_str_extended(query_obj, mutate=False)
+        generated_sql = sqla_query.sql
+
+    assert "1 = 1" not in generated_sql, (
+        f"Expected no '1 = 1' in SQL with actual date bounds, got: {generated_sql}"
+    )
+    assert "time_start" in generated_sql.lower(), (
+        f"Expected time_start column in WHERE clause, got: {generated_sql}"
+    )
+
+
+def test_temporal_range_filter_with_actual_dates_produces_time_filter(
+    mocker: MockerFixture,
+    app: Flask,
+) -> None:
+    """TEMPORAL_RANGE filter with actual dates applies a WHERE time filter."""
+    dataset = _make_dataset(mocker)
+
+    query_obj: QueryObjectDict = {
+        "granularity": None,
+        "from_dttm": None,
+        "to_dttm": None,
+        "is_timeseries": False,
+        "filter": [
+            {
+                "col": "time_start",
+                "op": "TEMPORAL_RANGE",
+                "val": "2024-01-01T00:00:00 : 2024-01-31T00:00:00",
+            }
+        ],
+        "metrics": ["count"],
+        "columns": [],
+    }
+
+    with app.test_request_context():
+        sqla_query = dataset.get_query_str_extended(query_obj, mutate=False)
+        generated_sql = sqla_query.sql
+
+    assert "time_start" in generated_sql.lower(), (
+        f"Expected time_start in WHERE clause for TEMPORAL_RANGE with dates, "
+        f"got: {generated_sql}"
+    )
+    assert "1 = 1" not in generated_sql, (
+        f"Expected no '1 = 1' for TEMPORAL_RANGE with actual dates, "
+        f"got: {generated_sql}"
+    )
