@@ -24,6 +24,11 @@ from typing import Any
 from flask_babel import gettext as _
 
 from superset import db, security_manager
+from superset.constants import (
+    EXTRA_FORM_DATA_APPEND_KEYS,
+    EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
+    EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
+)
 from superset.models.dashboard import Dashboard
 from superset.utils import json
 
@@ -120,15 +125,11 @@ def _merge_extra_form_data(
     Merge two extra_form_data dicts, appending list-type keys (like filters,
     adhoc_filters) and overriding scalar keys (like granularity_sqla, time_range).
     """
-    append_keys = {"filters", "adhoc_filters", "custom_form_data"}
-    override_keys = {
-        "granularity_sqla",
-        "time_grain_sqla",
-        "time_range",
-        "druid_time_origin",
-        "time_column",
-        "time_grain",
-    }
+    append_keys = EXTRA_FORM_DATA_APPEND_KEYS
+    override_keys = (
+        set(EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS.keys())
+        | EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS
+    )
 
     merged: dict[str, Any] = {}
 
@@ -262,12 +263,11 @@ def get_dashboard_filter_context(
         if flt_type == "DIVIDER":
             continue
 
-        flt_id = flt.get("id", "")
-        flt_name = flt.get("name", "")
-
         if not _is_filter_in_scope_for_chart(flt, chart_id, position_json):
             continue
 
+        flt_id = flt.get("id", "")
+        flt_name = flt.get("name", "")
         target_column = _get_filter_target_column(flt)
         extra_form_data, status = _extract_filter_extra_form_data(flt)
 
