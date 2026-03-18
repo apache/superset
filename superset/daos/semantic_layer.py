@@ -21,6 +21,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from sqlalchemy.exc import StatementError
+
 from superset_core.semantic_layers.daos import (
     AbstractSemanticLayerDAO,
     AbstractSemanticViewDAO,
@@ -46,12 +48,14 @@ class SemanticLayerDAO(AbstractSemanticLayerDAO):
                 .filter(SemanticLayer.uuid == uuid_str)
                 .one_or_none()
             )
-        except ValueError:
+        except (ValueError, StatementError):
             return None
 
     @classmethod
     def find_all(cls, skip_base_filter: bool = False) -> list[SemanticLayer]:
-        return db.session.query(SemanticLayer).all()
+        query = db.session.query(SemanticLayer)
+        query = cls._apply_base_filter(query, skip_base_filter)
+        return query.all()
 
     @classmethod
     def validate_uniqueness(cls, name: str) -> bool:
