@@ -21,7 +21,7 @@ Unit tests for MCP service schema utilities.
 
 import asyncio
 import inspect
-from typing import List
+from typing import Annotated, List
 
 import pytest
 from pydantic import BaseModel, Field, ValidationError
@@ -785,3 +785,37 @@ class TestParseRequestFlattenedDecorator:
         assert get_origin(name_param.annotation) is not None or hasattr(
             name_param.annotation, "__metadata__"
         )
+
+    def test_flattened_annotations_forward_constraints(self):
+        """Constraint metadata (ge, le, min_length, pattern, etc.) should be
+        forwarded into the Annotated type so FastMCP includes them in the
+        JSON schema."""
+        from typing import get_args, get_origin
+
+        from annotated_types import Ge, Le, MaxLen, MinLen
+
+        class ConstrainedRequest(BaseModel):
+            page: int = Field(1, description="Page number", ge=1, le=1000)
+            name: str = Field(..., description="Name", min_length=1, max_length=255)
+
+        @parse_request(ConstrainedRequest)
+        async def my_tool(request, ctx=None):
+            pass
+
+        sig = inspect.signature(my_tool)
+
+        # Check page param has ge/le constraints in metadata
+        page_ann = sig.parameters["page"].annotation
+        assert get_origin(page_ann) is Annotated
+        page_metadata = get_args(page_ann)[1:]  # skip base type
+        metadata_types = [type(m) for m in page_metadata]
+        assert Ge in metadata_types, f"Missing Ge in {page_metadata}"
+        assert Le in metadata_types, f"Missing Le in {page_metadata}"
+
+        # Check name param has min_length/max_length constraints
+        name_ann = sig.parameters["name"].annotation
+        assert get_origin(name_ann) is Annotated
+        name_metadata = get_args(name_ann)[1:]
+        metadata_types = [type(m) for m in name_metadata]
+        assert MinLen in metadata_types, f"Missing MinLen in {name_metadata}"
+        assert MaxLen in metadata_types, f"Missing MaxLen in {name_metadata}"

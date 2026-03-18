@@ -610,7 +610,8 @@ def _apply_flattened_signature(
     """Build a signature from the Pydantic model's fields and apply it to *wrapper*.
 
     Each field in ``request_class.model_fields`` becomes a keyword-only parameter.
-    Field descriptions are preserved via ``Annotated[type, Field(description=...)]``
+    Field descriptions and constraints (ge, le, min_length, max_length, pattern,
+    etc.) are preserved via ``Annotated[type, Field(description=...), ...]``
     so that FastMCP propagates them into the generated JSON schema.
     """
     params: list[inspect.Parameter] = []
@@ -627,16 +628,23 @@ def _apply_flattened_signature(
         else:
             default = field_info.default  # covers None and explicit defaults
 
-        # Wrap annotation with Annotated + Field(description=...) so FastMCP
-        # includes the description in the JSON schema.
-        # We construct the Annotated type dynamically at runtime since the
-        # base type comes from Pydantic model introspection, not static code.
+        # Build Annotated type with description and all constraint metadata
+        # (ge, le, min_length, max_length, pattern, etc.) so FastMCP
+        # propagates them into the generated JSON schema.
         base_annotation = field_info.annotation
+        metadata_markers: list[Any] = []
         if field_info.description:
-            annotation: Any = Annotated[
-                base_annotation,
-                Field(description=field_info.description),
-            ]
+            metadata_markers.append(Field(description=field_info.description))
+        # Forward constraint metadata from the original Pydantic field.
+        # Pydantic v2 stores constraints (Ge, Le, MinLen, MaxLen, etc.)
+        # as annotation objects in field_info.metadata.
+        if field_info.metadata:
+            metadata_markers.extend(field_info.metadata)
+        if metadata_markers:
+            # Dynamically construct Annotated[base_type, meta1, meta2, ...]
+            annotation: Any = Annotated.__class_getitem__(  # type: ignore[attr-defined]
+                (base_annotation, *metadata_markers)
+            )
         else:
             annotation = base_annotation
 
