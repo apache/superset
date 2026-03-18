@@ -25,6 +25,7 @@ module.exports = {
         jsx: 'react',
         esModuleInterop: true,
         allowSyntheticDefaultImports: true,
+        allowJs: true,
       },
     }],
   },
