@@ -21,6 +21,7 @@ import cx from 'classnames';
 import { Button as AntdButton } from 'antd';
 import { useTheme } from '@apache-superset/core/theme';
 import { Tooltip } from '../Tooltip';
+import type { SupersetTheme } from '@apache-superset/core/theme';
 import type {
   ButtonColorType,
   ButtonProps,
@@ -29,6 +30,31 @@ import type {
   ButtonVariantType,
   OnClickHandler,
 } from './types';
+
+/**
+ * Generates CSS styles for secondary buttons using Superset-specific tokens
+ * with fallbacks to Ant Design's derived colorPrimary* tokens.
+ *
+ * Ant Design's filled variant (used by secondary buttons) does not expose
+ * component-level tokens for customization. This utility bridges that gap
+ * by providing Superset-specific tokens (buttonSecondary*) that fall back
+ * to Ant Design's derived tokens when not explicitly set.
+ */
+export const getSecondaryButtonStyles = (theme: SupersetTheme) => ({
+  color: theme.buttonSecondaryColor ?? theme.colorPrimary,
+  backgroundColor: theme.buttonSecondaryBg ?? theme.colorPrimaryBg,
+  borderColor: theme.buttonSecondaryBorderColor ?? 'transparent',
+  '&:hover': {
+    color: theme.buttonSecondaryHoverColor ?? theme.colorPrimary,
+    backgroundColor: theme.buttonSecondaryHoverBg ?? theme.colorPrimaryBgHover,
+    borderColor: theme.buttonSecondaryHoverBorderColor ?? 'transparent',
+  },
+  '&:active': {
+    color: theme.buttonSecondaryActiveColor ?? theme.colorPrimary,
+    backgroundColor: theme.buttonSecondaryActiveBg ?? theme.colorPrimaryBorder,
+    borderColor: theme.buttonSecondaryActiveBorderColor ?? 'transparent',
+  },
+});
 
 const BUTTON_STYLE_MAP: Record<
   ButtonStyle,
@@ -64,7 +90,6 @@ export function Button(props: ButtonProps) {
 
   const theme = useTheme();
   const { fontSizeSM, fontWeightStrong } = theme;
-  const buttonTokens = theme.components?.Button;
 
   let height = 32;
   let padding = 18;
@@ -134,23 +159,10 @@ export function Button(props: ButtonProps) {
           marginRight: firstChildMargin,
         },
         // Secondary button styling via customizable tokens
+        // Uses Superset-specific tokens with fallbacks to Ant Design's colorPrimary* tokens
         ...(effectiveButtonStyle === 'secondary' &&
           !disabled &&
-          buttonTokens && {
-            color: buttonTokens.secondaryColor,
-            backgroundColor: buttonTokens.secondaryBg,
-            borderColor: buttonTokens.secondaryBorderColor,
-            '&:hover': {
-              color: buttonTokens.secondaryHoverColor,
-              backgroundColor: buttonTokens.secondaryHoverBg,
-              borderColor: buttonTokens.secondaryHoverBorderColor,
-            },
-            '&:active': {
-              color: buttonTokens.secondaryActiveColor,
-              backgroundColor: buttonTokens.secondaryActiveBg,
-              borderColor: buttonTokens.secondaryActiveBorderColor,
-            },
-          }),
+          getSecondaryButtonStyles(theme)),
       }}
       icon={icon}
       {...restProps}

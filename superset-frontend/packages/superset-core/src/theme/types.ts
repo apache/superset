@@ -109,35 +109,6 @@ export interface ColorVariants {
   textActive: string;
 }
 
-/**
- * Superset-specific Button component tokens.
- * These extend Ant Design's Button tokens to support secondary button styling.
- */
-export interface SupersetButtonTokens {
-  // Secondary button tokens (Superset-specific, not available in Ant Design)
-  secondaryColor?: string;
-  secondaryBg?: string;
-  secondaryBorderColor?: string;
-  secondaryHoverColor?: string;
-  secondaryHoverBg?: string;
-  secondaryHoverBorderColor?: string;
-  secondaryActiveColor?: string;
-  secondaryActiveBg?: string;
-  secondaryActiveBorderColor?: string;
-  // Allow any other Ant Design Button tokens to pass through
-  [key: string]: any;
-}
-
-/**
- * Component-level tokens that can be customized via theme configuration.
- * This allows accessing component tokens via useTheme() for custom CSS overrides.
- */
-export interface SupersetComponentTokens {
-  Button?: SupersetButtonTokens;
-  // Other components can be added here as needed
-  [key: string]: Record<string, any> | undefined;
-}
-
 export interface SupersetSpecificTokens {
   // Font-related
   fontSizeXS: string;
@@ -198,8 +169,54 @@ export interface SupersetSpecificTokens {
    */
   colorEditorSelection?: string;
 
-  // Component-level tokens for custom styling
-  components?: SupersetComponentTokens;
+  // Secondary button tokens (Superset-specific)
+  // Ant Design's filled variant has no component tokens, so we provide our own.
+  // These fallback to colorPrimary* derived tokens when not set.
+  /**
+   * Text color for secondary buttons.
+   * Fallback: colorPrimary
+   */
+  buttonSecondaryColor?: string;
+  /**
+   * Background color for secondary buttons.
+   * Fallback: colorPrimaryBg
+   */
+  buttonSecondaryBg?: string;
+  /**
+   * Border color for secondary buttons.
+   * Fallback: transparent
+   */
+  buttonSecondaryBorderColor?: string;
+  /**
+   * Text color for secondary buttons on hover.
+   * Fallback: colorPrimary
+   */
+  buttonSecondaryHoverColor?: string;
+  /**
+   * Background color for secondary buttons on hover.
+   * Fallback: colorPrimaryBgHover
+   */
+  buttonSecondaryHoverBg?: string;
+  /**
+   * Border color for secondary buttons on hover.
+   * Fallback: transparent
+   */
+  buttonSecondaryHoverBorderColor?: string;
+  /**
+   * Text color for secondary buttons when active/pressed.
+   * Fallback: colorPrimary
+   */
+  buttonSecondaryActiveColor?: string;
+  /**
+   * Background color for secondary buttons when active/pressed.
+   * Fallback: colorPrimaryBorder
+   */
+  buttonSecondaryActiveBg?: string;
+  /**
+   * Border color for secondary buttons when active/pressed.
+   * Fallback: transparent
+   */
+  buttonSecondaryActiveBorderColor?: string;
 }
 
 /**

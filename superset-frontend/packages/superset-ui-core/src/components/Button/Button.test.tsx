@@ -23,6 +23,8 @@ import {
   SIZES as buttonSizes,
   STYLES as buttonStyles,
 } from './Button.stories';
+import { getSecondaryButtonStyles } from './index';
+import type { SupersetTheme } from '@apache-superset/core/theme';
 
 test('works with an onClick handler', () => {
   const mockAction = jest.fn();
@@ -46,4 +48,80 @@ test('All the sorybook gallery variants mount', () => {
     Object.values(buttonSizes.options).length;
 
   expect(getAllByRole('button')).toHaveLength(permutationCount);
+});
+
+test('secondary button renders without errors', () => {
+  const { getByRole } = render(
+    <Button buttonStyle="secondary">Secondary</Button>,
+  );
+  expect(getByRole('button')).toBeInTheDocument();
+});
+
+test('getSecondaryButtonStyles uses fallback tokens when custom tokens not set', () => {
+  const mockTheme = {
+    colorPrimary: '#2893B3',
+    colorPrimaryBg: '#e6f4f7',
+    colorPrimaryBgHover: '#cce9ef',
+    colorPrimaryBorder: '#99d3df',
+  } as SupersetTheme;
+
+  const styles = getSecondaryButtonStyles(mockTheme);
+
+  expect(styles.color).toBe('#2893B3');
+  expect(styles.backgroundColor).toBe('#e6f4f7');
+  expect(styles.borderColor).toBe('transparent');
+  expect(styles['&:hover'].backgroundColor).toBe('#cce9ef');
+  expect(styles['&:active'].backgroundColor).toBe('#99d3df');
+});
+
+test('getSecondaryButtonStyles uses custom tokens when provided', () => {
+  const mockTheme = {
+    colorPrimary: '#2893B3',
+    colorPrimaryBg: '#e6f4f7',
+    colorPrimaryBgHover: '#cce9ef',
+    colorPrimaryBorder: '#99d3df',
+    // Custom secondary button tokens
+    buttonSecondaryColor: '#custom-color',
+    buttonSecondaryBg: '#custom-bg',
+    buttonSecondaryBorderColor: '#custom-border',
+    buttonSecondaryHoverColor: '#custom-hover-color',
+    buttonSecondaryHoverBg: '#custom-hover-bg',
+    buttonSecondaryHoverBorderColor: '#custom-hover-border',
+    buttonSecondaryActiveColor: '#custom-active-color',
+    buttonSecondaryActiveBg: '#custom-active-bg',
+    buttonSecondaryActiveBorderColor: '#custom-active-border',
+  } as SupersetTheme;
+
+  const styles = getSecondaryButtonStyles(mockTheme);
+
+  expect(styles.color).toBe('#custom-color');
+  expect(styles.backgroundColor).toBe('#custom-bg');
+  expect(styles.borderColor).toBe('#custom-border');
+  expect(styles['&:hover'].color).toBe('#custom-hover-color');
+  expect(styles['&:hover'].backgroundColor).toBe('#custom-hover-bg');
+  expect(styles['&:hover'].borderColor).toBe('#custom-hover-border');
+  expect(styles['&:active'].color).toBe('#custom-active-color');
+  expect(styles['&:active'].backgroundColor).toBe('#custom-active-bg');
+  expect(styles['&:active'].borderColor).toBe('#custom-active-border');
+});
+
+test('getSecondaryButtonStyles supports partial token overrides', () => {
+  const mockTheme = {
+    colorPrimary: '#2893B3',
+    colorPrimaryBg: '#e6f4f7',
+    colorPrimaryBgHover: '#cce9ef',
+    colorPrimaryBorder: '#99d3df',
+    // Only override some tokens
+    buttonSecondaryBg: '#custom-bg',
+    buttonSecondaryBorderColor: '#custom-border',
+  } as SupersetTheme;
+
+  const styles = getSecondaryButtonStyles(mockTheme);
+
+  // Should use custom values where provided
+  expect(styles.backgroundColor).toBe('#custom-bg');
+  expect(styles.borderColor).toBe('#custom-border');
+  // Should fallback to Ant Design tokens where not provided
+  expect(styles.color).toBe('#2893B3');
+  expect(styles['&:hover'].backgroundColor).toBe('#cce9ef');
 });

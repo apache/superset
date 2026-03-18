@@ -120,8 +120,6 @@ export class Theme {
       ...(echartsOptionsOverridesByChartType && {
         echartsOptionsOverridesByChartType,
       }),
-      // Include component-level tokens for custom styling (e.g., Button secondary tokens)
-      ...(antdConfig.components && { components: antdConfig.components }),
     } as SupersetTheme;
 
     // Update the providers with the fully formed theme
