@@ -316,16 +316,21 @@ def extract_filters_from_form_data(
     for f in raw_adhoc or []:
         if not isinstance(f, dict):
             continue
-        adhoc_filters.append(
-            AdhocFilter(
-                clause=f.get("clause"),
-                expression_type=f.get("expressionType"),
-                subject=f.get("subject"),
-                operator=f.get("operator"),
-                comparator=f.get("comparator"),
-                sql_expression=f.get("sqlExpression"),
+        try:
+            adhoc_filters.append(
+                AdhocFilter(
+                    clause=f.get("clause"),
+                    expression_type=f.get("expressionType"),
+                    subject=f.get("subject"),
+                    operator=f.get("operator"),
+                    comparator=f.get("comparator"),
+                    sql_expression=f.get("sqlExpression"),
+                )
             )
-        )
+        except (TypeError, ValueError):
+            # Skip malformed filter entries (e.g. non-string fields in
+            # corrupted cached state or legacy payloads)
+            continue
 
     time_range = form_data.get("time_range")
     granularity_sqla = form_data.get("granularity_sqla")

@@ -111,14 +111,21 @@ def _build_query_context_from_form_data(
         "order_desc": form_data.get("order_desc", True),
     }
 
+    if (row_limit := form_data.get("row_limit")) is not None:
+        query_dict["row_limit"] = row_limit
+
     if adhoc := form_data.get("adhoc_filters"):
         query_dict["adhoc_filters"] = adhoc
 
     # Ensure datasource fields satisfy DatasourceDict typing requirements.
     # datasource_id must be int | str; datasource_type must be str.
-    resolved_id: int | str = (
-        datasource_id if isinstance(datasource_id, (int, str)) else 0
-    )
+    if not isinstance(datasource_id, (int, str)):
+        raise ValueError(
+            "Cannot determine datasource ID from form_data. "
+            "Provide a chart identifier or ensure form_data contains "
+            "'datasource_id' or 'datasource'."
+        )
+    resolved_id: int | str = datasource_id
     resolved_type: str = (
         datasource_type if isinstance(datasource_type, str) else "table"
     )
@@ -372,7 +379,7 @@ async def _handle_chart_sql_request(
         # Fallback: build query context from form_data
         try:
             return _sql_from_form_data(effective_form_data, chart)
-        except (SupersetException, CommandException) as e:
+        except (SupersetException, CommandException, ValueError) as e:
             await ctx.warning("Failed to build SQL from form_data: %s" % str(e))
             return ChartError(
                 error="Failed to generate SQL for chart %s: %s" % (chart.id, e),
@@ -413,7 +420,7 @@ async def _handle_unsaved_chart_sql(
 
         try:
             return _sql_from_form_data(form_data, chart=None)
-        except (SupersetException, CommandException) as e:
+        except (SupersetException, CommandException, ValueError) as e:
             await ctx.warning("Failed to generate SQL from form_data: %s" % str(e))
             return ChartError(
                 error="Failed to generate SQL from cached form_data: %s" % str(e),
