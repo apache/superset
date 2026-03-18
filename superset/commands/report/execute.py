@@ -79,7 +79,7 @@ from superset.utils.decorators import logs_context, transaction
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.slack import get_channels_with_search, SlackChannelTypes
-from superset.utils.urls import get_url_path
+from superset.utils.urls import get_url_path, modify_url_query
 
 logger = logging.getLogger(__name__)
 
@@ -295,15 +295,19 @@ class BaseReportState:
             dashboard.uuid if dashboard and dashboard.uuid else dashboard.id
         )
 
-        return [
-            get_url_path(
-                "Superset.dashboard",
-                user_friendly=user_friendly,
-                dashboard_id_or_slug=dashboard_id_or_slug,
-                force=force,
-                **kwargs,
-            )
-        ]
+        url = get_url_path(
+            "Superset.dashboard",
+            user_friendly=user_friendly,
+            dashboard_id_or_slug=dashboard_id_or_slug,
+            force=force,
+            **kwargs,
+        )
+
+        native_filter_params = self._report_schedule.get_native_filters_params()
+        if native_filter_params:
+            url = modify_url_query(url, native_filters=native_filter_params)
+
+        return [url]
 
     def _get_tab_url(
         self, dashboard_state: DashboardPermalinkState, user_friendly: bool = False
