@@ -163,6 +163,8 @@ class SemanticLayerRestApi(BaseSupersetApi):
     class_permission_name = "SemanticLayer"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     openapi_spec_tag = "Semantic Layers"
+    add_model_schema = SemanticLayerPostSchema()
+    edit_model_schema = SemanticLayerPutSchema()
 
     @expose("/types", methods=("GET",))
     @protect()
@@ -320,7 +322,7 @@ class SemanticLayerRestApi(BaseSupersetApi):
               $ref: '#/components/responses/422'
         """
         try:
-            item = SemanticLayerPostSchema().load(request.json)
+            item = self.add_model_schema.load(request.json)
         except ValidationError as error:
             return self.response_400(message=error.messages)
 
@@ -380,7 +382,7 @@ class SemanticLayerRestApi(BaseSupersetApi):
               $ref: '#/components/responses/422'
         """
         try:
-            item = SemanticLayerPutSchema().load(request.json)
+            item = self.edit_model_schema.load(request.json)
         except ValidationError as error:
             return self.response_400(message=error.messages)
 
