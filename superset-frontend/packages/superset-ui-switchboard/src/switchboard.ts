@@ -149,26 +149,26 @@ export class Switchboard {
   }: GetMessage): Promise<ReplyMessage | ErrorMessage> {
     const executor = this.methods[method];
     if (executor == null) {
-      return {
+      return <ErrorMessage>{
         switchboardAction: Actions.ERROR,
         messageId,
         error: `[${this.name}] Method "${method}" is not defined`,
-      } as ErrorMessage;
+      };
     }
     try {
       const result = await executor(args);
-      return {
+      return <ReplyMessage>{
         switchboardAction: Actions.REPLY,
         messageId,
         result,
-      } as ReplyMessage;
+      };
     } catch (err) {
       this.logError(err);
-      return {
+      return <ErrorMessage>{
         switchboardAction: Actions.ERROR,
         messageId,
         error: `[${this.name}] Method "${method}" threw an error`,
-      } as ErrorMessage;
+      };
     }
   }
 
