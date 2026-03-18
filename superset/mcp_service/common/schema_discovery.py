@@ -363,7 +363,7 @@ DATASET_SORTABLE_COLUMNS = [
     "created_on",
     "popularity_score",
 ]
-DATASET_SEARCH_COLUMNS = ["table_name", "description"]
+DATASET_SEARCH_COLUMNS = ["schema", "sql", "table_name", "uuid"]
 DATASET_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     "database_name": ColumnMetadata(
         name="database_name",

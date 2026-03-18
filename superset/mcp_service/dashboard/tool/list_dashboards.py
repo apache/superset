@@ -192,6 +192,13 @@ async def list_dashboards(
     # injected columns like 'id'). Fall back to result.columns_requested
     # (which holds DAO defaults) when no explicit columns were requested.
     columns_to_filter = original_select_columns or result.columns_requested
+    # When sorting by popularity_score, ensure it stays in the response
+    # even when the user's explicit select_columns didn't include it
+    if (
+        request.order_column == "popularity_score"
+        and "popularity_score" not in columns_to_filter
+    ):
+        columns_to_filter = list(columns_to_filter) + ["popularity_score"]
     await ctx.debug(
         "Applying field filtering via serialization context: columns=%s"
         % (columns_to_filter,)

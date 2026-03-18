@@ -354,8 +354,14 @@ def get_popularity_sorted_ids(
     if not all_ids:
         return [], {}, total_count
 
-    # Compute popularity scores
-    scores = compute_fn(all_ids, days=days)
+    # Compute popularity scores in chunks to avoid oversized SQL IN lists
+    # (some DB engines, like SQLite, have bind-variable limits)
+    scores: dict[int, float] = {}
+    chunk_size = 900
+    for i in range(0, len(all_ids), chunk_size):
+        chunk = all_ids[i : i + chunk_size]
+        chunk_scores = compute_fn(chunk, days=days)
+        scores.update(chunk_scores)
 
     # Sort by score
     reverse = order_direction == "desc"

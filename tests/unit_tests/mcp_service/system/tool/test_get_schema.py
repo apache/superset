@@ -233,9 +233,11 @@ class TestGetSchemaToolViaClient:
             required_columns = {"id", "table_name", "schema", "changed_on_humanized"}
             assert required_columns.issubset(set(info["default_select"]))
 
-            # Check search columns
+            # Check search columns match list_datasets actual search columns
             assert "table_name" in info["search_columns"]
-            assert "description" in info["search_columns"]
+            assert "schema" in info["search_columns"]
+            assert "sql" in info["search_columns"]
+            assert "uuid" in info["search_columns"]
 
     @patch("superset.daos.dashboard.DashboardDAO.get_filterable_columns_and_operators")
     @pytest.mark.asyncio
