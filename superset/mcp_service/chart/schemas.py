@@ -588,7 +588,7 @@ class MixedTimeseriesChartConfig(BaseModel):
     y_axis: AxisConfig | None = None
     y_axis_secondary: AxisConfig | None = None
     filters: List[FilterConfig] | None = None
-    row_limit: int = Field(10000, description="Max rows", ge=1, le=50000)
+    row_limit: int = Field(10000, description="Max data points", ge=1, le=50000)
 
 
 class TableChartConfig(BaseModel):
@@ -605,7 +605,7 @@ class TableChartConfig(BaseModel):
     )
     filters: List[FilterConfig] | None = None
     sort_by: List[str] | None = None
-    row_limit: int = Field(10000, description="Max rows", ge=1, le=50000)
+    row_limit: int = Field(1000, description="Max rows returned", ge=1, le=50000)
 
     @model_validator(mode="after")
     def validate_unique_column_labels(self) -> "TableChartConfig":
@@ -658,7 +658,7 @@ class XYChartConfig(BaseModel):
     y_axis: AxisConfig | None = None
     legend: LegendConfig | None = None
     filters: List[FilterConfig] | None = None
-    row_limit: int = Field(10000, description="Max rows", ge=1, le=50000)
+    row_limit: int = Field(10000, description="Max data points", ge=1, le=50000)
 
     @model_validator(mode="after")
     def validate_unique_column_labels(self) -> "XYChartConfig":

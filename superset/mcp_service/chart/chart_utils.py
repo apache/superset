@@ -30,6 +30,7 @@ from superset.mcp_service.chart.schemas import (
     ChartCapabilities,
     ChartSemantics,
     ColumnRef,
+    FilterConfig,
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
@@ -326,7 +327,9 @@ def map_config_to_form_data(
         raise ValueError(f"Unsupported config type: {type(config)}")
 
 
-def _add_adhoc_filters(form_data: Dict[str, Any], filters: list[Any] | None) -> None:
+def _add_adhoc_filters(
+    form_data: Dict[str, Any], filters: list[FilterConfig] | None
+) -> None:
     """Add adhoc filters to form_data if any are specified."""
     if filters:
         form_data["adhoc_filters"] = [
@@ -378,7 +381,6 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
                 "query_mode": "raw",
                 "include_time": False,
                 "order_desc": True,
-                "row_limit": 1000,  # Reasonable limit for raw data
             }
         )
 
@@ -785,7 +787,7 @@ def _humanize_column(col: ColumnRef) -> str:
 
 
 def _summarize_filters(
-    filters: list[Any] | None,
+    filters: list[FilterConfig] | None,
 ) -> str | None:
     """Extract a short context string from filter configs."""
     if not filters:

@@ -339,12 +339,12 @@ class TestRowLimit:
             )
 
     def test_table_chart_default_row_limit(self) -> None:
-        """Test that TableChartConfig has default row_limit of 10000."""
+        """Test that TableChartConfig has default row_limit of 1000."""
         config = TableChartConfig(
             chart_type="table",
             columns=[ColumnRef(name="product")],
         )
-        assert config.row_limit == 10000
+        assert config.row_limit == 1000
 
     def test_table_chart_custom_row_limit(self) -> None:
         """Test that TableChartConfig accepts custom row_limit."""
@@ -354,6 +354,21 @@ class TestRowLimit:
             row_limit=500,
         )
         assert config.row_limit == 500
+
+    def test_table_chart_row_limit_validation(self) -> None:
+        """Test that TableChartConfig rejects invalid row_limit."""
+        with pytest.raises(ValidationError):
+            TableChartConfig(
+                chart_type="table",
+                columns=[ColumnRef(name="product")],
+                row_limit=0,
+            )
+        with pytest.raises(ValidationError):
+            TableChartConfig(
+                chart_type="table",
+                columns=[ColumnRef(name="product")],
+                row_limit=100000,
+            )
 
 
 class TestTableChartConfigExtraFields:
