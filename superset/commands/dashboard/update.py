@@ -204,12 +204,12 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             new_metadata = json.loads(new_json_metadata)
             current_filter_ids = {
                 f["id"]
-                for f in current_metadata.get("native_filter_configuration", [])
+                for f in (current_metadata.get("native_filter_configuration") or [])
                 if "id" in f
             }
             new_filter_ids = {
                 f["id"]
-                for f in new_metadata.get("native_filter_configuration", [])
+                for f in (new_metadata.get("native_filter_configuration") or [])
                 if "id" in f
             }
             return list(current_filter_ids - new_filter_ids)
@@ -221,6 +221,8 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             reports: list[ReportSchedule] = []
             for filter_id in filter_ids:
                 for report in ReportScheduleDAO.find_by_native_filter_id(filter_id):
+                    if report.dashboard_id != self._model.id:  # type: ignore
+                        continue
                     if report.id not in seen:
                         seen.add(report.id)
                         reports.append(report)

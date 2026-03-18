@@ -87,11 +87,25 @@ class BaseReportScheduleCommand(BaseCommand):
         extra: Optional[ReportScheduleExtra] = self._properties.get("extra")
         dashboard = self._properties.get("dashboard")
 
+        # On PUT requests, dashboard may not be in the payload — fall back to the model
+        if dashboard is None:
+            model = getattr(self, "_model", None)
+            dashboard = getattr(model, "dashboard", None)
+
         if extra is None or dashboard is None:
             return
 
         dashboard_state = extra.get("dashboard")
         if not dashboard_state:
+            return
+
+        if not isinstance(dashboard_state, dict):
+            exceptions.append(
+                ValidationError(
+                    _("extra.dashboard must be an object"),
+                    "extra",
+                )
+            )
             return
 
         position_data = json.loads(dashboard.position_json or "{}")
@@ -110,7 +124,7 @@ class BaseReportScheduleCommand(BaseCommand):
         if invalid_tab_ids:
             exceptions.append(
                 ValidationError(
-                    _("Invalid tab ids: %s(tab_ids)", tab_ids=str(invalid_tab_ids)),
+                    _("Invalid tab ids: %(tab_ids)s", tab_ids=str(invalid_tab_ids)),
                     "extra",
                 )
             )
@@ -176,26 +190,37 @@ class BaseReportScheduleCommand(BaseCommand):
                 continue
 
             filter_id = native_filter["nativeFilterId"]
-            if filter_id is not None:
-                if valid_filter_ids is None:
-                    json_metadata = json.loads(dashboard.json_metadata or "{}")
-                    valid_filter_ids = {
-                        f["id"]
-                        for f in json_metadata.get("native_filter_configuration", [])
-                        if "id" in f
-                    }
-                if filter_id not in valid_filter_ids:
-                    exceptions.append(
-                        ValidationError(
-                            _(
-                                "nativeFilters[%(idx)s].nativeFilterId '%(filter_id)s' "
-                                "does not exist on the dashboard",
-                                idx=idx,
-                                filter_id=filter_id,
-                            ),
-                            "extra",
-                        )
+            if not isinstance(filter_id, str) or not filter_id:
+                exceptions.append(
+                    ValidationError(
+                        _(
+                            "nativeFilters[%(idx)s].nativeFilterId"
+                            " must be a non-empty string",
+                            idx=idx,
+                        ),
+                        "extra",
                     )
+                )
+                continue
+            if valid_filter_ids is None:
+                json_metadata = json.loads(dashboard.json_metadata or "{}")
+                valid_filter_ids = {
+                    f["id"]
+                    for f in json_metadata.get("native_filter_configuration", [])
+                    if "id" in f
+                }
+            if filter_id not in valid_filter_ids:
+                exceptions.append(
+                    ValidationError(
+                        _(
+                            "nativeFilters[%(idx)s].nativeFilterId '%(filter_id)s' "
+                            "does not exist on the dashboard",
+                            idx=idx,
+                            filter_id=filter_id,
+                        ),
+                        "extra",
+                    )
+                )
 
     def validate_report_frequency(
         self,
