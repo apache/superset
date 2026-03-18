@@ -859,16 +859,16 @@ export function useDatabaseValidation() {
                   return acc;
                 }
 
-                // Handle SSH tunnel errors
                 if (extra?.ssh_tunnel) {
-                  if (!acc.ssh_tunnel) {
-                    acc.ssh_tunnel = {};
-                  }
-                  if (extra?.missing) {
-                    extra.missing.forEach((field: string) => {
-                      acc.ssh_tunnel[field] = 'This is a required field';
-                    });
-                  }
+                  acc.ssh_tunnel = {
+                    ...acc.ssh_tunnel,
+                    ...Object.fromEntries(
+                      (extra.missing ?? []).map((field: string) => [
+                        field,
+                        'This is a required field',
+                      ]),
+                    ),
+                  };
                   return acc;
                 }
 
