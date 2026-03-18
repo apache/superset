@@ -65,7 +65,10 @@ const getCellStyle = (params: CellStyleParams) => {
         const formatterResult =
           value || value === 0 ? formatter.getColorFromValue(value) : false;
         if (formatterResult) {
-          if (formatter.objectFormatting === ObjectFormattingEnum.TEXT_COLOR) {
+          if (
+            formatter.objectFormatting === ObjectFormattingEnum.TEXT_COLOR ||
+            formatter.toTextColor
+          ) {
             color = formatterResult;
           } else if (
             formatter.objectFormatting !== ObjectFormattingEnum.CELL_BAR

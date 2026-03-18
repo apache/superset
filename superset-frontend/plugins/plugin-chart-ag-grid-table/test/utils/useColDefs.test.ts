@@ -229,3 +229,50 @@ test('cellStyle keeps explicit text color over adaptive contrast', () => {
     textAlign: 'right',
   });
 });
+
+test('cellStyle treats legacy toTextColor formatters as text color', () => {
+  const numericCol = makeColumn({
+    key: 'count',
+    label: 'Count',
+    dataType: GenericDataType.Numeric,
+    isNumeric: true,
+    isMetric: true,
+  });
+
+  const { result } = renderHook(() =>
+    useColDefs({
+      ...defaultProps,
+      columns: [numericCol],
+      data: [{ count: 42 }],
+      columnColorFormatters: [
+        {
+          column: 'count',
+          objectFormatting: ObjectFormattingEnum.BACKGROUND_COLOR,
+          getColorFromValue: (value: unknown) =>
+            value === 42 ? '#111111' : undefined,
+        },
+        {
+          column: 'count',
+          toTextColor: true,
+          getColorFromValue: (value: unknown) =>
+            value === 42 ? '#ace1c40d' : undefined,
+        },
+      ],
+    }),
+  );
+
+  const colDef = result.current[0];
+  const cellStyle = getCellStyleFunction(colDef.cellStyle);
+  expect(
+    cellStyle({
+      value: 42,
+      colDef: { field: 'count' },
+      rowIndex: 0,
+      node: {},
+    } as never),
+  ).toMatchObject({
+    backgroundColor: '#111111',
+    color: 'rgb(172, 225, 196)',
+    textAlign: 'right',
+  });
+});
