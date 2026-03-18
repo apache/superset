@@ -70,7 +70,6 @@ class SQLiteSQLValidator(BaseSQLValidator):  # pylint: disable=too-few-public-me
                     "validate",
                     "--allow",
                     "schema",
-                    "--input=sql",
                 ],
                 input=sql,
                 capture_output=True,
