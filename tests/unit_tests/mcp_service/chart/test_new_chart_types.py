@@ -512,6 +512,25 @@ class TestMixedTimeseriesChartConfigSchema:
                 unknown_field="bad",
             )
 
+    def test_mixed_timeseries_default_row_limit(self) -> None:
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
+        )
+        assert config.row_limit == 10000
+
+    def test_mixed_timeseries_custom_row_limit(self) -> None:
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
+            row_limit=500,
+        )
+        assert config.row_limit == 500
+
 
 # ============================================================
 # Mixed Timeseries Form Data Mapping Tests
@@ -637,6 +656,35 @@ class TestMapMixedTimeseriesConfig:
         assert result["logAxisSecondary"] is True
 
     @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_mixed_form_data_row_limit(self, mock_is_temporal) -> None:
+        mock_is_temporal.return_value = True
+
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
+            row_limit=300,
+        )
+        result = map_mixed_timeseries_config(config, dataset_id=1)
+
+        assert result["row_limit"] == 300
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_mixed_form_data_default_row_limit(self, mock_is_temporal) -> None:
+        mock_is_temporal.return_value = True
+
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
+        )
+        result = map_mixed_timeseries_config(config, dataset_id=1)
+
+        assert result["row_limit"] == 10000
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
     def test_mixed_form_data_with_filters(self, mock_is_temporal) -> None:
         mock_is_temporal.return_value = True
 
@@ -723,7 +771,7 @@ class TestGenerateChartNameNewTypes:
             metric=ColumnRef(name="revenue", aggregate="SUM"),
         )
         result = generate_chart_name(config)
-        assert result == "Pie Chart - product by revenue"
+        assert result == "product by revenue"
 
     def test_pie_chart_name_with_custom_label(self) -> None:
         config = PieChartConfig(
@@ -732,7 +780,7 @@ class TestGenerateChartNameNewTypes:
             metric=ColumnRef(name="revenue", aggregate="SUM", label="Total Revenue"),
         )
         result = generate_chart_name(config)
-        assert result == "Pie Chart - product by Total Revenue"
+        assert result == "product by Total Revenue"
 
     def test_pivot_table_chart_name(self) -> None:
         config = PivotTableChartConfig(
@@ -741,7 +789,7 @@ class TestGenerateChartNameNewTypes:
             metrics=[ColumnRef(name="revenue", aggregate="SUM")],
         )
         result = generate_chart_name(config)
-        assert result == "Pivot Table - product, region"
+        assert result == "Pivot Table \u2013 product, region"
 
     def test_mixed_timeseries_chart_name(self) -> None:
         config = MixedTimeseriesChartConfig(
@@ -751,7 +799,7 @@ class TestGenerateChartNameNewTypes:
             y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
         )
         result = generate_chart_name(config)
-        assert result == "Mixed Chart - revenue + orders"
+        assert result == "revenue + orders"
 
 
 # ============================================================
