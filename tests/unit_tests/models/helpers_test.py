@@ -17,9 +17,6 @@
 
 # pylint: disable=import-outside-toplevel
 
-from superset.connectors.sqla.models import SqlaTable, TableColumn, SqlMetric
-from superset.models.core import Database
-
 from __future__ import annotations
 
 from contextlib import contextmanager
@@ -27,15 +24,13 @@ from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
-
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
 from sqlalchemy.orm.session import Session
-from sqlalchemy.pool import StaticPool
-from sqlalchemy.sql.elements import ColumnElement
 
+from superset.connectors.sqla.models import SqlaTable, TableColumn, SqlMetric
+from superset.models.core import Database
 from superset.superset_typing import AdhocColumn
-
 
 if TYPE_CHECKING:
     from superset.models.core import Database
