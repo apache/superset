@@ -291,7 +291,7 @@ class BaseReportState:
             ]
 
         native_filter_params = self._report_schedule.get_native_filters_params()
-        if native_filter_params:
+        if native_filter_params and native_filter_params != "()":
             return [
                 self._get_tab_url(
                     {
