@@ -37,11 +37,15 @@ def test_import_new_assets(mocker: MockerFixture, session: Session) -> None:
     Test that all new assets are imported correctly.
     """
     from superset import db, security_manager
-    from superset.commands.importers.v1.assets import ImportAssetsCommand
+    from superset.commands.importers.v1.assets import (
+        feature_flag_manager,
+        ImportAssetsCommand,
+    )
     from superset.models.dashboard import dashboard_slices
     from superset.models.slice import Slice
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(feature_flag_manager, "is_feature_enabled", return_value=True)
 
     engine = db.session.get_bind()
     Slice.metadata.create_all(engine)  # pylint: disable=no-member
