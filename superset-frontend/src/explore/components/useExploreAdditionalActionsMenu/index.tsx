@@ -937,7 +937,7 @@ export const useExploreAdditionalActionsMenu = (
       {
         type: 'submenu' as const,
         key: 'export_current_png_submenu',
-        label: t('Export screenshot (png)'),
+        label: t('Export screenshot (PNG)'),
         icon: <Icons.FileImageOutlined />,
         children: [
           {
