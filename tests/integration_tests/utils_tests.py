@@ -499,19 +499,59 @@ class TestUtils(SupersetTestCase):
         df = pd.DataFrame([{"__timestamp": ts.timestamp() * 1000, "a": 1}])
         assert normalize_col(df, "epoch_ms", 0, None)[DTTM_ALIAS][0] == ts
 
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+class TestExtractDisplayLabels:
+    def get_slice(self, slice_name: str) -> Slice:
+        return db.session.query(Slice).filter_by(slice_name=slice_name).one()
+
+    @pytest.mark.parametrize(
+        ("label_map", "colnames", "expected"),
+        [
+            (
+                {
+                    "Index": ["index"],
+                    "Gender": ["gender"],
+                    "Count": ["num_boys", "num_girls"],
+                },
+                ["gender", "num_boys", "num_girls", "unknown"],
+                ["Gender", "Count", "Count", "unknown"],
+            ),
+            (
+                {},
+                ["gender", "num_boys", "num_girls"],
+                ["gender", "num_boys", "num_girls"],
+            ),
+            (
+                # self-reference
+                {"gender": ["gender"]},
+                ["gender"],
+                ["gender"],
+            ),
+            (
+                {},
+                [],
+                [],
+            ),
+        ],
+    )
     def test_extract_display_labels(
         self,
+        label_map: dict[str, list[str]],
+        colnames: list[str],
+        expected: list[str],
     ):
-        label_map = {
-            "Gender": ["gender"],
-            "Count": ["num_boys", "num_girls"],
-        }
-        colnames = ["gender", "num_boys", "num_girls"]
-        slc = self.get_slice("Trends")
         result = extract_display_labels(
             label_map,
             colnames,
-            slc.datasource,
+            self.get_slice("Trends").datasource,
         )
-        assert result == ["Gender", "Count", "Count"]
+        assert result == expected
+
+    def test_no_datasource(self):
+        result = extract_display_labels(
+            {"Index": ["index"]},
+            ["index"],
+            None,
+        )
+        assert result == ["Index"]
