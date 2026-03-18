@@ -85,9 +85,14 @@ function buildGeoJSONFromRecords(
   let maxLat = -Infinity;
 
   for (const record of records) {
-    const lon = Number(record[lonCol]);
-    const lat = Number(record[latCol]);
-    if (Number.isNaN(lon) || Number.isNaN(lat)) {
+    const rawLon = record[lonCol];
+    const rawLat = record[latCol];
+    if (rawLon == null || rawLat == null) {
+      continue;
+    }
+    const lon = Number(rawLon);
+    const lat = Number(rawLat);
+    if (!Number.isFinite(lon) || !Number.isFinite(lat)) {
       continue;
     }
 
