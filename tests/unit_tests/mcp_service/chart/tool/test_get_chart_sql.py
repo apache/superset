@@ -19,6 +19,7 @@
 Unit tests for get_chart_sql MCP tool
 """
 
+import importlib
 from unittest.mock import Mock, patch
 
 import pytest
@@ -32,6 +33,10 @@ from superset.mcp_service.chart.tool.get_chart_sql import (
     _extract_sql_from_result,
     _find_chart_by_identifier,
     _resolve_effective_form_data,
+)
+
+_get_chart_sql_mod = importlib.import_module(
+    "superset.mcp_service.chart.tool.get_chart_sql"
 )
 
 
@@ -246,7 +251,7 @@ class TestResolveEffectiveFormData:
         assert form_data == {}
         assert using_unsaved is False
 
-    @patch("superset.mcp_service.chart.tool.get_chart_sql._get_cached_form_data")
+    @patch.object(_get_chart_sql_mod, "_get_cached_form_data")
     def test_returns_cached_form_data_when_key_provided(self, mock_get_cached):
         """Test that cached form_data is used when form_data_key is provided."""
         mock_get_cached.return_value = '{"metrics": ["sum_sales"], "unsaved": true}'
@@ -260,7 +265,7 @@ class TestResolveEffectiveFormData:
         assert form_data == {"metrics": ["sum_sales"], "unsaved": True}
         assert using_unsaved is True
 
-    @patch("superset.mcp_service.chart.tool.get_chart_sql._get_cached_form_data")
+    @patch.object(_get_chart_sql_mod, "_get_cached_form_data")
     def test_falls_back_to_saved_when_cache_miss(self, mock_get_cached):
         """Test fallback to saved params when cache returns nothing."""
         mock_get_cached.return_value = None
@@ -294,8 +299,8 @@ class TestGetChartSqlTool:
 
         return mcp
 
-    @patch("superset.mcp_service.chart.tool.get_chart_sql.validate_chart_dataset")
-    @patch("superset.mcp_service.chart.tool.get_chart_sql._find_chart_by_identifier")
+    @patch.object(_get_chart_sql_mod, "validate_chart_dataset")
+    @patch.object(_get_chart_sql_mod, "_find_chart_by_identifier")
     @pytest.mark.asyncio
     async def test_chart_not_found(self, mock_find, mock_validate, mcp_server):
         """Test that a not-found chart returns an error."""
@@ -312,13 +317,11 @@ class TestGetChartSqlTool:
             assert data["error_type"] == "NotFound"
             assert "999" in data["error"]
 
-    @patch("superset.mcp_service.chart.tool.get_chart_sql._sql_from_form_data")
-    @patch(
-        "superset.mcp_service.chart.tool.get_chart_sql._sql_from_saved_query_context"
-    )
-    @patch("superset.mcp_service.chart.tool.get_chart_sql._resolve_effective_form_data")
-    @patch("superset.mcp_service.chart.tool.get_chart_sql.validate_chart_dataset")
-    @patch("superset.mcp_service.chart.tool.get_chart_sql._find_chart_by_identifier")
+    @patch.object(_get_chart_sql_mod, "_sql_from_form_data")
+    @patch.object(_get_chart_sql_mod, "_sql_from_saved_query_context")
+    @patch.object(_get_chart_sql_mod, "_resolve_effective_form_data")
+    @patch.object(_get_chart_sql_mod, "validate_chart_dataset")
+    @patch.object(_get_chart_sql_mod, "_find_chart_by_identifier")
     @pytest.mark.asyncio
     async def test_success_via_saved_query_context(
         self,
@@ -363,13 +366,11 @@ class TestGetChartSqlTool:
             assert "SELECT COUNT(*) FROM sales" in data["sql"]
             assert data["chart_id"] == 10
 
-    @patch("superset.mcp_service.chart.tool.get_chart_sql._sql_from_form_data")
-    @patch(
-        "superset.mcp_service.chart.tool.get_chart_sql._sql_from_saved_query_context"
-    )
-    @patch("superset.mcp_service.chart.tool.get_chart_sql._resolve_effective_form_data")
-    @patch("superset.mcp_service.chart.tool.get_chart_sql.validate_chart_dataset")
-    @patch("superset.mcp_service.chart.tool.get_chart_sql._find_chart_by_identifier")
+    @patch.object(_get_chart_sql_mod, "_sql_from_form_data")
+    @patch.object(_get_chart_sql_mod, "_sql_from_saved_query_context")
+    @patch.object(_get_chart_sql_mod, "_resolve_effective_form_data")
+    @patch.object(_get_chart_sql_mod, "validate_chart_dataset")
+    @patch.object(_get_chart_sql_mod, "_find_chart_by_identifier")
     @pytest.mark.asyncio
     async def test_fallback_to_form_data_when_saved_qc_fails(
         self,
@@ -415,8 +416,8 @@ class TestGetChartSqlTool:
             assert "SELECT SUM(revenue) FROM orders" in data["sql"]
             mock_form_data_sql.assert_called_once()
 
-    @patch("superset.mcp_service.chart.tool.get_chart_sql.validate_chart_dataset")
-    @patch("superset.mcp_service.chart.tool.get_chart_sql._find_chart_by_identifier")
+    @patch.object(_get_chart_sql_mod, "validate_chart_dataset")
+    @patch.object(_get_chart_sql_mod, "_find_chart_by_identifier")
     @pytest.mark.asyncio
     async def test_dataset_not_accessible(self, mock_find, mock_validate, mcp_server):
         """Test that inaccessible dataset returns error."""
