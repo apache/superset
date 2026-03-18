@@ -299,6 +299,63 @@ class TestXYChartConfig:
         assert config.orientation == "horizontal"
 
 
+class TestRowLimit:
+    """Test row_limit field on chart configs."""
+
+    def test_xy_chart_default_row_limit(self) -> None:
+        """Test that XYChartConfig has default row_limit of 10000."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+        )
+        assert config.row_limit == 10000
+
+    def test_xy_chart_custom_row_limit(self) -> None:
+        """Test that XYChartConfig accepts custom row_limit."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            row_limit=100,
+        )
+        assert config.row_limit == 100
+
+    def test_xy_chart_row_limit_validation(self) -> None:
+        """Test that XYChartConfig rejects invalid row_limit."""
+        with pytest.raises(ValidationError):
+            XYChartConfig(
+                chart_type="xy",
+                x=ColumnRef(name="date"),
+                y=[ColumnRef(name="revenue", aggregate="SUM")],
+                row_limit=0,
+            )
+        with pytest.raises(ValidationError):
+            XYChartConfig(
+                chart_type="xy",
+                x=ColumnRef(name="date"),
+                y=[ColumnRef(name="revenue", aggregate="SUM")],
+                row_limit=100000,
+            )
+
+    def test_table_chart_default_row_limit(self) -> None:
+        """Test that TableChartConfig has default row_limit of 10000."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product")],
+        )
+        assert config.row_limit == 10000
+
+    def test_table_chart_custom_row_limit(self) -> None:
+        """Test that TableChartConfig accepts custom row_limit."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product")],
+            row_limit=500,
+        )
+        assert config.row_limit == 500
+
+
 class TestTableChartConfigExtraFields:
     """Test TableChartConfig rejects unknown fields."""
 
