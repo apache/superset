@@ -221,6 +221,7 @@ class TestGetInstanceInfoCurrentUserViaMCP:
         mock_g_user.first_name = "Sophie"
         mock_g_user.last_name = "Beaumont"
         mock_g_user.email = "sophie@preset.io"
+        mock_g_user.active = True
         mock_g_user.roles = [mock_role]
 
         with (
@@ -365,6 +366,6 @@ def test_chart_filter_existing_columns_still_work():
 
 def test_dashboard_filter_existing_columns_still_work():
     """Test that pre-existing dashboard filter columns are not broken."""
-    for col in ("dashboard_title", "published", "favorite"):
+    for col in ("dashboard_title", "published", "created_by_fk"):
         f = DashboardFilter(col=col, opr="eq", value="test")
         assert f.col == col

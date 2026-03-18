@@ -68,9 +68,9 @@
     "@storybook/theming": "^8.6.15",
     "@superset-ui/core": "^0.20.4",
     "@swc/core": "^1.15.17",
-    "antd": "^6.3.2",
-    "baseline-browser-mapping": "^2.10.0",
-    "caniuse-lite": "^1.0.30001777",
+    "antd": "^6.3.3",
+    "baseline-browser-mapping": "^2.10.7",
+    "caniuse-lite": "^1.0.30001780",
     "docusaurus-plugin-openapi-docs": "^4.6.0",
     "docusaurus-theme-openapi-docs": "^4.6.0",
     "js-yaml": "^4.1.1",
@@ -106,7 +106,7 @@
     "globals": "^17.4.0",
     "prettier": "^3.8.1",
     "typescript": "~5.9.3",
-    "typescript-eslint": "^8.56.1",
+    "typescript-eslint": "^8.57.1",
     "webpack": "^5.105.4"
   },
   "browserslist": {
