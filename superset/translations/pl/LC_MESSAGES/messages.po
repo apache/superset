@@ -10973,7 +10973,7 @@ msgstr "W toku"
 
 #, fuzzy, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
-msgstr "Wykonywanie instrukcji %(statement_num)s z %(statement_count)s"
+msgstr "Wykonywanie instrukcji %(block_num)s z %(block_count)s"
 
 msgid "SAT"
 msgstr "SAT"
