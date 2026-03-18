@@ -306,7 +306,6 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: 1,
               isFloat: true,
-              renderTrigger: true,
               description: t(
                 'Opacity of all clusters, points, and labels. Between 0 and 1.',
               ),
