@@ -208,6 +208,68 @@ def test_actual_from_to_dttm_produces_time_filter(
     )
 
 
+def test_series_limit_with_time_filter_includes_time_in_inner_subquery(
+    mocker: MockerFixture,
+    app: Flask,
+) -> None:
+    """Series limit subquery includes time filter when actual dates are provided.
+
+    This covers the branch at helpers.py where inner_time_filter is set to
+    [_inner_filter] when get_time_filter returns a non-None clause inside the
+    series-limit subquery block.
+    """
+    database = Database(
+        id=1,
+        database_name="test_db",
+        sqlalchemy_uri="sqlite://",
+    )
+    columns = [
+        TableColumn(column_name="time_start", is_dttm=1, type="TIMESTAMP"),
+        TableColumn(column_name="category", type="VARCHAR(100)"),
+        TableColumn(column_name="value", type="INTEGER"),
+    ]
+    dataset = SqlaTable(
+        table_name="test_table",
+        columns=columns,
+        main_dttm_col="time_start",
+        database=database,
+        metrics=[SqlMetric(metric_name="count", expression="COUNT(*)")],
+    )
+    mocker.patch(
+        "superset.connectors.sqla.models.security_manager.get_guest_rls_filters",
+        return_value=[],
+    )
+    mocker.patch(
+        "superset.connectors.sqla.models.security_manager.is_guest_user",
+        return_value=False,
+    )
+
+    query_obj: QueryObjectDict = {
+        "granularity": "time_start",
+        "from_dttm": datetime(2024, 1, 1, tzinfo=timezone.utc),
+        "to_dttm": datetime(2024, 1, 31, tzinfo=timezone.utc),
+        "is_timeseries": True,
+        "groupby": ["category"],
+        "series_limit": 5,
+        "filter": [],
+        "metrics": ["count"],
+        "columns": [],
+    }
+
+    with app.test_request_context():
+        sqla_query = dataset.get_query_str_extended(query_obj, mutate=False)
+        generated_sql = sqla_query.sql
+
+    assert "1 = 1" not in generated_sql, (
+        f"Expected no '1 = 1' in generated SQL with series_limit and actual dates, "
+        f"but got: {generated_sql}"
+    )
+    assert "time_start" in generated_sql.lower(), (
+        f"Expected time_start to appear in SQL (inner subquery WHERE), "
+        f"but got: {generated_sql}"
+    )
+
+
 def test_temporal_range_filter_with_actual_dates_produces_time_filter(
     mocker: MockerFixture,
     app: Flask,
