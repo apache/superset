@@ -219,10 +219,16 @@ test('should render the error', async () => {
 
 test('should render pagination when results exceed page size', async () => {
   fetchWithPaginatedData();
-  await waitForRender();
+  setup();
+  // Wait for the table to render with data (async fetch)
+  await waitFor(() => {
+    expect(screen.getByRole('table')).toBeInTheDocument();
+  });
   // With total_count=100 and page size=50, pagination should render
-  const pagination = document.querySelector('.ant-pagination');
-  expect(pagination).toBeTruthy();
+  await waitFor(() => {
+    const pagination = document.querySelector('.ant-pagination');
+    expect(pagination).toBeTruthy();
+  });
 });
 
 test('should use verbose_map for column headers when available', async () => {
