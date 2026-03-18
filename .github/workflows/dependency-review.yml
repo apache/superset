@@ -53,14 +53,15 @@ jobs:
       - name: "Checkout Repository"
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: ./.github/actions/setup-backend/
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          requirements-type: base
+          python-version: '3.11'
+          cache: 'pip'
 
-      - name: "Set up liccheck"
-        run: |
-          uv pip install --system liccheck
+      - name: "Install dependencies and liccheck"
+        run: pip install -r requirements/base.txt liccheck
+
       - name: "Run liccheck"
         run: |
           # run the checks
