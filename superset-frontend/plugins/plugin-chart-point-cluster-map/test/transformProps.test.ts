@@ -198,12 +198,8 @@ test('defaults whitespace-only opacity to 1', () => {
 });
 
 test('clamps opacity to [0, 1] range', () => {
-  expect(
-    getTransformPropsResult({ global_opacity: 5 }).globalOpacity,
-  ).toBe(1);
-  expect(
-    getTransformPropsResult({ global_opacity: -1 }).globalOpacity,
-  ).toBe(0);
+  expect(getTransformPropsResult({ global_opacity: 5 }).globalOpacity).toBe(1);
+  expect(getTransformPropsResult({ global_opacity: -1 }).globalOpacity).toBe(0);
 });
 
 test('passes through numeric values unchanged', () => {

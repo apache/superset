@@ -153,8 +153,10 @@ const defaultProps = {
   rgb: ['', 255, 0, 0] as [string, number, number, number],
   globalOpacity: 1,
 };
-const MIN_VISIBLE_POINT_RADIUS = defaultProps.dotRadius * MIN_CLUSTER_RADIUS_RATIO;
-const MAX_VISIBLE_POINT_RADIUS = defaultProps.dotRadius * MAX_POINT_RADIUS_RATIO;
+const MIN_VISIBLE_POINT_RADIUS =
+  defaultProps.dotRadius * MIN_CLUSTER_RADIUS_RATIO;
+const MAX_VISIBLE_POINT_RADIUS =
+  defaultProps.dotRadius * MAX_POINT_RADIUS_RATIO;
 
 test('renders map with varying radius values in Pixels mode', () => {
   const locations = [
