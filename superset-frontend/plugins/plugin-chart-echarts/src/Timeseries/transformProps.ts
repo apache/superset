@@ -702,6 +702,29 @@ export default function transformProps(
           .map(entry => entry.name || '')
           .concat(extractAnnotationLabels(annotationLayers));
 
+  // When showMaxLabel is true, ECharts may render a label at the axis
+  // boundary that formats identically to the last data-point tick (e.g.
+  // "2005" appears twice with Year grain). Wrap the formatter to suppress
+  // consecutive duplicate labels.
+  const showMaxLabel =
+    xAxisType === AxisType.Time && xAxisLabelRotation === 0;
+  const deduplicatedFormatter = showMaxLabel
+    ? (() => {
+        let lastLabel: string | undefined;
+        return (value: number | string) => {
+          const label =
+            typeof xAxisFormatter === 'function'
+              ? (xAxisFormatter as Function)(value)
+              : String(value);
+          if (label === lastLabel) {
+            return '';
+          }
+          lastLabel = label;
+          return label;
+        };
+      })()
+    : xAxisFormatter;
+
   let xAxis: any = {
     type: xAxisType,
     name: xAxisTitle,
@@ -715,17 +738,16 @@ export default function transformProps(
       // from overlapping each other, with showMaxLabel to ensure
       // the last data point label stays visible (#37181).
       hideOverlap: !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0),
-      formatter: xAxisFormatter,
+      formatter: deduplicatedFormatter,
       rotate: xAxisLabelRotation,
       interval: xAxisLabelInterval,
       // Force last label on non-rotated time axes to prevent
       // hideOverlap from hiding it. Skipped when rotated to
       // avoid phantom labels at the axis boundary.
-      ...(xAxisType === AxisType.Time &&
-        xAxisLabelRotation === 0 && {
-          showMaxLabel: true,
-          alignMaxLabel: 'right',
-        }),
+      ...(showMaxLabel && {
+        showMaxLabel: true,
+        alignMaxLabel: 'right',
+      }),
     },
     minorTick: { show: minorTicks },
     minInterval:

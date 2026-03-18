@@ -28,7 +28,9 @@ import {
   SqlaFormData,
   TimeseriesAnnotationLayer,
   ChartDataResponseResult,
+  TimeGranularity,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { EchartsTimeseriesChartProps } from '../../src/types';
 import type { SeriesOption } from 'echarts';
 import transformProps from '../../src/Timeseries/transformProps';
@@ -1316,4 +1318,43 @@ test('should not apply axis bounds calculation when seriesType is not Bar for ho
   const xAxisRaw = transformedProps.echartOptions.xAxis as any;
   // Should not have explicit max set when seriesType is not Bar
   expect(xAxisRaw.max).toBeUndefined();
+});
+
+test('x-axis formatter deduplicates consecutive identical labels for coarse time grains', () => {
+  const yearData = [
+    { __timestamp: Date.UTC(2003, 0, 1), sales: 100 },
+    { __timestamp: Date.UTC(2004, 0, 1), sales: 200 },
+    { __timestamp: Date.UTC(2005, 0, 1), sales: 300 },
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      granularity_sqla: 'ds',
+      time_grain_sqla: TimeGranularity.YEAR,
+      xAxisTimeFormat: '%Y',
+    },
+    queriesData: [
+      createTestQueryData(yearData, {
+        colnames: ['__timestamp', 'sales'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      }),
+    ],
+  });
+
+  const transformedProps = transformProps(chartProps);
+  const xAxisResult = transformedProps.echartOptions.xAxis as any;
+  const { formatter } = xAxisResult.axisLabel;
+
+  expect(typeof formatter).toBe('function');
+  expect(xAxisResult.axisLabel.showMaxLabel).toBe(true);
+
+  const label1 = formatter(Date.UTC(2003, 0, 1));
+  const label2 = formatter(Date.UTC(2004, 0, 1));
+  const label3 = formatter(Date.UTC(2005, 0, 1));
+  const label4 = formatter(Date.UTC(2005, 6, 1));
+
+  expect(label1).toBe('2003');
+  expect(label2).toBe('2004');
+  expect(label3).toBe('2005');
+  expect(label4).toBe('');
 });
