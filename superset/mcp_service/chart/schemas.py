@@ -660,6 +660,32 @@ class XYChartConfig(BaseModel):
     filters: List[FilterConfig] | None = None
     row_limit: int = Field(10000, description="Max data points", ge=1, le=50000)
 
+    @model_validator(mode="before")
+    @classmethod
+    def handle_legacy_field_names(cls, data: Any) -> Any:
+        """Map Superset-native field names to MCP schema field names.
+
+        LLMs sometimes use native Superset field names instead of MCP field names.
+        This validator remaps known aliases before extra="forbid" validation runs.
+        """
+        if not isinstance(data, dict):
+            return data
+        # groupby: list[str] -> group_by: ColumnRef (take first item only)
+        # Always pop groupby to avoid extra="forbid" rejection; only map it if
+        # group_by is not already set (explicit group_by takes precedence).
+        if "groupby" in data:
+            groupby_val = data.pop("groupby")
+            if "group_by" not in data:
+                if isinstance(groupby_val, list) and groupby_val:
+                    data["group_by"] = {"name": str(groupby_val[0])}
+                elif isinstance(groupby_val, str):
+                    data["group_by"] = {"name": groupby_val}
+        # adhoc_filters: incompatible format with MCP FilterConfig - strip silently
+        data.pop("adhoc_filters", None)
+        # order_desc: no equivalent in MCP schema - strip silently
+        data.pop("order_desc", None)
+        return data
+
     @model_validator(mode="after")
     def validate_unique_column_labels(self) -> "XYChartConfig":
         """Ensure all column labels are unique across x, y, and group_by."""

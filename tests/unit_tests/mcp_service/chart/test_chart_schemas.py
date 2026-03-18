@@ -382,3 +382,98 @@ class TestTableChartConfigExtraFields:
                 columns=[ColumnRef(name="product")],
                 foo="bar",
             )
+
+
+class TestXYChartConfigLegacyFields:
+    """Test XYChartConfig handles Superset-native field names."""
+
+    def test_groupby_list_converts_to_group_by(self) -> None:
+        config = XYChartConfig(
+            **{
+                "chart_type": "xy",
+                "x": {"name": "date"},
+                "y": [{"name": "sales", "aggregate": "SUM"}],
+                "groupby": ["product_line"],
+            }
+        )
+        assert config.group_by is not None
+        assert config.group_by.name == "product_line"
+
+    def test_adhoc_filters_stripped_silently(self) -> None:
+        config = XYChartConfig(
+            **{
+                "chart_type": "xy",
+                "x": {"name": "date"},
+                "y": [{"name": "sales", "aggregate": "SUM"}],
+                "adhoc_filters": [
+                    {
+                        "clause": "WHERE",
+                        "expressionType": "SQL",
+                        "sqlExpression": "x > 0",
+                    }
+                ],
+            }
+        )
+        assert config.filters is None
+
+    def test_order_desc_stripped_silently(self) -> None:
+        config = XYChartConfig(
+            **{
+                "chart_type": "xy",
+                "x": {"name": "date"},
+                "y": [{"name": "sales", "aggregate": "SUM"}],
+                "order_desc": True,
+            }
+        )
+        assert config.x.name == "date"
+
+    def test_all_legacy_fields_together(self) -> None:
+        """LLM scenario: groupby, adhoc_filters, and order_desc sent together."""
+        config = XYChartConfig(
+            **{
+                "chart_type": "xy",
+                "x": {"name": "customer_name"},
+                "y": [{"name": "sales", "aggregate": "SUM"}],
+                "kind": "bar",
+                "groupby": ["product_line"],
+                "adhoc_filters": [
+                    {
+                        "clause": "WHERE",
+                        "expressionType": "SQL",
+                        "sqlExpression": "x > 0",
+                    }
+                ],
+                "row_limit": 100,
+                "order_desc": True,
+            }
+        )
+        assert config.group_by is not None
+        assert config.group_by.name == "product_line"
+        assert config.filters is None
+
+    def test_group_by_still_works_directly(self) -> None:
+        """group_by field continues to work (no regression)."""
+        config = XYChartConfig(
+            **{
+                "chart_type": "xy",
+                "x": {"name": "date"},
+                "y": [{"name": "sales", "aggregate": "SUM"}],
+                "group_by": {"name": "region"},
+            }
+        )
+        assert config.group_by is not None
+        assert config.group_by.name == "region"
+
+    def test_groupby_does_not_override_group_by(self) -> None:
+        """If both present, group_by wins (explicit takes precedence)."""
+        config = XYChartConfig(
+            **{
+                "chart_type": "xy",
+                "x": {"name": "date"},
+                "y": [{"name": "sales", "aggregate": "SUM"}],
+                "group_by": {"name": "region"},
+                "groupby": ["product_line"],
+            }
+        )
+        assert config.group_by is not None
+        assert config.group_by.name == "region"
