@@ -30,6 +30,7 @@ from superset.mcp_service.chart.schemas import (
     ChartCapabilities,
     ChartSemantics,
     ColumnRef,
+    FilterConfig,
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
@@ -326,6 +327,24 @@ def map_config_to_form_data(
         raise ValueError(f"Unsupported config type: {type(config)}")
 
 
+def _add_adhoc_filters(
+    form_data: Dict[str, Any], filters: list[FilterConfig] | None
+) -> None:
+    """Add adhoc filters to form_data if any are specified."""
+    if filters:
+        form_data["adhoc_filters"] = [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": filter_config.column,
+                "operator": map_filter_operator(filter_config.op),
+                "comparator": filter_config.value,
+            }
+            for filter_config in filters
+            if filter_config is not None
+        ]
+
+
 def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
     """Map table chart config to form_data with defensive validation."""
     # Early validation to prevent empty charts
@@ -362,7 +381,6 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
                 "query_mode": "raw",
                 "include_time": False,
                 "order_desc": True,
-                "row_limit": 1000,  # Reasonable limit for raw data
             }
         )
 
@@ -388,21 +406,12 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
             }
         )
 
-    if config.filters:
-        form_data["adhoc_filters"] = [
-            {
-                "clause": "WHERE",
-                "expressionType": "SIMPLE",
-                "subject": filter_config.column,
-                "operator": map_filter_operator(filter_config.op),
-                "comparator": filter_config.value,
-            }
-            for filter_config in config.filters
-            if filter_config is not None
-        ]
+    _add_adhoc_filters(form_data, config.filters)
 
     if config.sort_by:
         form_data["order_by_cols"] = config.sort_by
+
+    form_data["row_limit"] = config.row_limit
 
     return form_data
 
@@ -489,6 +498,8 @@ def configure_temporal_handling(
     For temporal columns, enables standard time series handling.
     For non-temporal columns (e.g., BIGINT year), disables DATE_TRUNC
     by setting categorical sorting options.
+
+    Stores any warnings in ``form_data["_mcp_warnings"]``.
     """
     if x_is_temporal:
         if time_grain:
@@ -499,6 +510,12 @@ def configure_temporal_handling(
         form_data["x_axis_sort_series_ascending"] = True
         form_data["time_grain_sqla"] = None
         form_data["granularity_sqla"] = None
+        if time_grain:
+            form_data.setdefault("_mcp_warnings", []).append(
+                f"time_grain='{time_grain}' was ignored because the x-axis "
+                f"column is not a temporal type. time_grain only applies to "
+                f"DATE/DATETIME/TIMESTAMP columns."
+            )
 
 
 def map_xy_config(
@@ -549,36 +566,16 @@ def map_xy_config(
     # Configure temporal handling based on whether column is truly temporal
     configure_temporal_handling(form_data, x_is_temporal, config.time_grain)
 
-    # CRITICAL FIX: For time series charts, handle groupby carefully to avoid duplicates
-    # The x_axis field already tells Superset which column to use for time grouping
-    groupby_columns = []
+    # Only add groupby columns that differ from x_axis to avoid
+    # "Duplicate column/metric labels" errors in Superset.
+    if config.group_by:
+        groupby_columns = [c.name for c in config.group_by if c.name != config.x.name]
+        if groupby_columns:
+            form_data["groupby"] = groupby_columns
 
-    # Only add groupby columns if there's an explicit group_by specified
-    # The x_axis column should NOT be duplicated in groupby as it causes
-    # "Duplicate column/metric labels" errors in Superset
-    # Only add group_by column if it's specified AND different from x_axis
-    # NEVER add the x_axis column to groupby as it creates duplicate labels
-    if config.group_by and config.group_by.name != config.x.name:
-        groupby_columns.append(config.group_by.name)
+    _add_adhoc_filters(form_data, config.filters)
 
-    # Set the groupby in form_data only if we have valid columns
-    # Don't set empty groupby - let Superset handle x_axis grouping automatically
-    if groupby_columns:
-        form_data["groupby"] = groupby_columns
-
-    # Add filters if specified
-    if config.filters:
-        form_data["adhoc_filters"] = [
-            {
-                "clause": "WHERE",
-                "expressionType": "SIMPLE",
-                "subject": filter_config.column,
-                "operator": map_filter_operator(filter_config.op),
-                "comparator": filter_config.value,
-            }
-            for filter_config in config.filters
-            if filter_config is not None
-        ]
+    form_data["row_limit"] = config.row_limit
 
     # Add stacking configuration
     if getattr(config, "stacked", False):
@@ -615,18 +612,7 @@ def map_pie_config(config: PieChartConfig) -> Dict[str, Any]:
         "date_format": "smart_date",
     }
 
-    if config.filters:
-        form_data["adhoc_filters"] = [
-            {
-                "clause": "WHERE",
-                "expressionType": "SIMPLE",
-                "subject": filter_config.column,
-                "operator": map_filter_operator(filter_config.op),
-                "comparator": filter_config.value,
-            }
-            for filter_config in config.filters
-            if filter_config is not None
-        ]
+    _add_adhoc_filters(form_data, config.filters)
 
     return form_data
 
@@ -659,18 +645,7 @@ def map_pivot_table_config(config: PivotTableChartConfig) -> Dict[str, Any]:
         "row_limit": config.row_limit,
     }
 
-    if config.filters:
-        form_data["adhoc_filters"] = [
-            {
-                "clause": "WHERE",
-                "expressionType": "SIMPLE",
-                "subject": filter_config.column,
-                "operator": map_filter_operator(filter_config.op),
-                "comparator": filter_config.value,
-            }
-            for filter_config in config.filters
-            if filter_config is not None
-        ]
+    _add_adhoc_filters(form_data, config.filters)
 
     return form_data
 
@@ -757,28 +732,24 @@ def map_mixed_timeseries_config(
     configure_temporal_handling(form_data, x_is_temporal, config.time_grain)
 
     # Primary groupby (Query A)
-    if config.group_by and config.group_by.name != config.x.name:
-        form_data["groupby"] = [config.group_by.name]
+    if config.group_by:
+        groupby = [c.name for c in config.group_by if c.name != config.x.name]
+        if groupby:
+            form_data["groupby"] = groupby
 
     # Secondary groupby (Query B)
-    if config.group_by_secondary and config.group_by_secondary.name != config.x.name:
-        form_data["groupby_b"] = [config.group_by_secondary.name]
+    if config.group_by_secondary:
+        groupby_b = [
+            c.name for c in config.group_by_secondary if c.name != config.x.name
+        ]
+        if groupby_b:
+            form_data["groupby_b"] = groupby_b
+
+    form_data["row_limit"] = config.row_limit
 
     _add_mixed_axis_config(form_data, config)
 
-    # Filters
-    if config.filters:
-        form_data["adhoc_filters"] = [
-            {
-                "clause": "WHERE",
-                "expressionType": "SIMPLE",
-                "subject": filter_config.column,
-                "operator": map_filter_operator(filter_config.op),
-                "comparator": filter_config.value,
-            }
-            for filter_config in config.filters
-            if filter_config is not None
-        ]
+    _add_adhoc_filters(form_data, config.filters)
 
     return form_data
 
@@ -812,7 +783,7 @@ def _humanize_column(col: ColumnRef) -> str:
 
 
 def _summarize_filters(
-    filters: list[Any] | None,
+    filters: list[FilterConfig] | None,
 ) -> str | None:
     """Extract a short context string from filter configs."""
     if not filters:
@@ -856,10 +827,10 @@ def _xy_chart_what(config: XYChartConfig) -> str:
     primary_metric = _humanize_column(config.y[0]) if config.y else "Value"
     dimension = _humanize_column(config.x)
 
-    if config.kind in ("line", "area") and config.group_by is None:
+    if config.kind in ("line", "area") and not config.group_by:
         return f"{primary_metric} Over Time"
-    if config.group_by is not None:
-        group_label = _humanize_column(config.group_by)
+    if config.group_by:
+        group_label = _humanize_column(config.group_by[0])
         return f"{primary_metric} by {group_label}"
     if config.kind == "scatter":
         return f"{primary_metric} vs {dimension}"
