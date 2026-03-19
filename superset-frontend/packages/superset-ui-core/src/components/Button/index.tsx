@@ -61,9 +61,9 @@ import type {
  * Inline styles have higher specificity than CSS classes, so no !important needed.
  */
 export const getSecondaryButtonStyle = (theme: SupersetTheme) => ({
-  color: theme.buttonSecondaryColor ?? theme.colorPrimary,
-  backgroundColor: theme.buttonSecondaryBg ?? theme.colorPrimaryBg,
-  borderColor: theme.buttonSecondaryBorderColor ?? 'transparent',
+  color: theme.buttonSecondaryColor || theme.colorPrimary,
+  backgroundColor: theme.buttonSecondaryBg || theme.colorPrimaryBg,
+  borderColor: theme.buttonSecondaryBorderColor || 'transparent',
 });
 
 /**
@@ -73,14 +73,14 @@ export const getSecondaryButtonStyle = (theme: SupersetTheme) => ({
  */
 export const getSecondaryButtonHoverStyles = (theme: SupersetTheme) => ({
   '&:hover': {
-    color: `${theme.buttonSecondaryHoverColor ?? theme.colorPrimary} !important`,
-    backgroundColor: `${theme.buttonSecondaryHoverBg ?? theme.colorPrimaryBgHover} !important`,
-    borderColor: `${theme.buttonSecondaryHoverBorderColor ?? 'transparent'} !important`,
+    color: `${theme.buttonSecondaryHoverColor || theme.colorPrimary} !important`,
+    backgroundColor: `${theme.buttonSecondaryHoverBg || theme.colorPrimaryBgHover} !important`,
+    borderColor: `${theme.buttonSecondaryHoverBorderColor || 'transparent'} !important`,
   },
   '&:active': {
-    color: `${theme.buttonSecondaryActiveColor ?? theme.colorPrimary} !important`,
-    backgroundColor: `${theme.buttonSecondaryActiveBg ?? theme.colorPrimaryBorder} !important`,
-    borderColor: `${theme.buttonSecondaryActiveBorderColor ?? 'transparent'} !important`,
+    color: `${theme.buttonSecondaryActiveColor || theme.colorPrimary} !important`,
+    backgroundColor: `${theme.buttonSecondaryActiveBg || theme.colorPrimaryBorder} !important`,
+    borderColor: `${theme.buttonSecondaryActiveBorderColor || 'transparent'} !important`,
   },
 });
 
