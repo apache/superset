@@ -66,6 +66,17 @@ export class Theme {
       mergedConfig = mergeWith({}, baseTheme, config, (objValue, srcValue) =>
         Array.isArray(srcValue) ? srcValue : undefined,
       );
+
+      // In Ant Design v5, colorLink derives from colorInfo, not colorPrimary.
+      // Currently we expectlinks to follow the brand/primary color. When the user
+      // overrides colorPrimary without explicitly setting colorLink, update the
+      // merged colorLink so links match the new primary palette.
+      if (config.token?.colorPrimary && !config.token?.colorLink) {
+        const mToken = mergedConfig?.token;
+        if (mToken) {
+          mToken.colorLink = mToken.colorPrimary;
+        }
+      }
     } else if (baseTheme && !config) {
       mergedConfig = baseTheme;
     }
@@ -97,6 +108,10 @@ export class Theme {
    */
   setConfig(config: AnyThemeConfig): void {
     const antdConfig = normalizeThemeConfig(config);
+
+    if (antdConfig.token?.colorPrimary && !antdConfig.token?.colorLink) {
+      antdConfig.token.colorLink = antdConfig.token.colorPrimary;
+    }
 
     // First phase: Let Ant Design compute the tokens
     const tokens = Theme.getFilteredAntdTheme(antdConfig);
