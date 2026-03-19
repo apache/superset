@@ -101,9 +101,17 @@ const getCellStyle = (params: CellStyleParams) => {
 
   return {
     backgroundColor: backgroundColor || '',
-    color: resolvedTextColor ? 'var(--ag-cell-value-color)' : '',
-    '--ag-cell-value-color': resolvedTextColor || '',
-    '--ag-cell-value-hover-color': hoverResolvedTextColor || '',
+    ...(resolvedTextColor
+      ? {
+          color: 'var(--ag-cell-value-color)',
+          '--ag-cell-value-color': resolvedTextColor,
+        }
+      : {}),
+    ...(hoverResolvedTextColor
+      ? {
+          '--ag-cell-value-hover-color': hoverResolvedTextColor,
+        }
+      : {}),
     textAlign,
   };
 };
