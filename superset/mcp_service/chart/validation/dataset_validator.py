@@ -187,7 +187,7 @@ class DatasetValidator:
             refs.append(config.x)
             refs.extend(config.y)
             if config.group_by:
-                refs.append(config.group_by)
+                refs.extend(config.group_by)
 
         # Add filter columns
         if hasattr(config, "filters") and config.filters:
@@ -265,13 +265,12 @@ class DatasetValidator:
                     y_col["name"], dataset_context
                 )
 
-        # Normalize group_by column
+        # Normalize group_by columns
         if "group_by" in config_dict and config_dict["group_by"]:
-            config_dict["group_by"]["name"] = (
-                DatasetValidator._get_canonical_column_name(
-                    config_dict["group_by"]["name"], dataset_context
+            for gb_col in config_dict["group_by"]:
+                gb_col["name"] = DatasetValidator._get_canonical_column_name(
+                    gb_col["name"], dataset_context
                 )
-            )
 
     @staticmethod
     def _normalize_table_config(
