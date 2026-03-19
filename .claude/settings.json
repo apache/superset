@@ -6,7 +6,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_input.command // \"\"' | grep -qE '^git commit' && cd \"$CLAUDE_PROJECT_DIR\" && echo '🔍 Running pre-commit before commit...' && pre-commit run || true"
+            "command": "npx --yes block-no-verify@1.1.2"
+          },
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command // \"\"' | grep -qE '^git commit' && cd \"$CLAUDE_PROJECT_DIR\" && echo 'Running pre-commit before commit...' && pre-commit run || true"
           }
         ]
       }
