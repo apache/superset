@@ -158,15 +158,30 @@ class TestXYChartConfig:
         )
         assert len(config.y) == 2
 
-    def test_group_by_duplicate_with_x_rejected(self) -> None:
-        """Test that group_by conflicts with x are rejected."""
+    def test_group_by_duplicate_label_with_x_rejected(self) -> None:
+        """Test that group_by with a custom label conflicting with x is rejected."""
         with pytest.raises(ValidationError, match="Duplicate column/metric labels"):
             XYChartConfig(
                 chart_type="xy",
                 x=ColumnRef(name="region"),
                 y=[ColumnRef(name="sales", aggregate="SUM")],
-                group_by=ColumnRef(name="category", label="region"),
+                group_by=[ColumnRef(name="category", label="region")],
             )
+
+    def test_group_by_same_column_as_x_allowed(self) -> None:
+        """Test that group_by with the same column name as x is allowed.
+
+        The mapping layer filters these out, so validation should not reject them.
+        """
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="line",
+            group_by=[ColumnRef(name="date")],
+        )
+        assert config.group_by is not None
+        assert config.group_by[0].name == "date"
 
     def test_realistic_chart_configurations(self) -> None:
         """Test realistic chart configurations."""
@@ -220,19 +235,34 @@ class TestXYChartConfig:
         )
         assert config.kind == "area"
 
-    def test_unknown_fields_rejected(self) -> None:
-        """Test that unknown fields like 'series' are rejected."""
-        with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
-            XYChartConfig(
-                chart_type="xy",
-                x=ColumnRef(name="territory"),
-                y=[ColumnRef(name="sales", aggregate="SUM")],
-                kind="bar",
-                series=ColumnRef(name="year"),
-            )
+    def test_unknown_fields_ignored(self) -> None:
+        """Test that unknown fields are silently ignored (extra='ignore')."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="territory"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+            unknown_field="bad",
+        )
+        assert config.kind == "bar"
+        assert not hasattr(config, "unknown_field")
+
+    def test_series_alias_accepted(self) -> None:
+        """Test that 'series' is accepted as alias for 'group_by'."""
+        config = XYChartConfig.model_validate(
+            {
+                "chart_type": "xy",
+                "x": {"name": "territory"},
+                "y": [{"name": "sales", "aggregate": "SUM"}],
+                "kind": "bar",
+                "series": {"name": "year"},
+            }
+        )
+        assert config.group_by is not None
+        assert config.group_by[0].name == "year"
 
     def test_group_by_accepted(self) -> None:
-        """Test that group_by is the correct field for series grouping."""
+        """Test that group_by accepts a single ColumnRef (auto-wrapped in list)."""
         config = XYChartConfig(
             chart_type="xy",
             x=ColumnRef(name="territory"),
@@ -241,7 +271,20 @@ class TestXYChartConfig:
             group_by=ColumnRef(name="year"),
         )
         assert config.group_by is not None
-        assert config.group_by.name == "year"
+        assert len(config.group_by) == 1
+        assert config.group_by[0].name == "year"
+
+    def test_group_by_multiple(self) -> None:
+        """Test that group_by accepts a list of ColumnRefs."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="territory"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+            group_by=[ColumnRef(name="year"), ColumnRef(name="region")],
+        )
+        assert config.group_by is not None
+        assert len(config.group_by) == 2
 
 
 class TestRowLimit:
@@ -319,11 +362,12 @@ class TestRowLimit:
 class TestTableChartConfigExtraFields:
     """Test TableChartConfig rejects unknown fields."""
 
-    def test_unknown_fields_rejected(self) -> None:
-        """Test that unknown fields are rejected."""
-        with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
-            TableChartConfig(
-                chart_type="table",
-                columns=[ColumnRef(name="product")],
-                foo="bar",
-            )
+    def test_unknown_fields_ignored(self) -> None:
+        """Test that unknown fields are silently ignored (extra='ignore')."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product")],
+            foo="bar",
+        )
+        assert len(config.columns) == 1
+        assert not hasattr(config, "foo")
