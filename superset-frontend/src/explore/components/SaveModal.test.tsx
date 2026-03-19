@@ -281,7 +281,10 @@ test('does not preselect an externally managed dashboard on mount', async () => 
   });
 
   const selectInput = queryByTestId('mock-async-select') as HTMLInputElement;
-  expect(selectInput?.value).toBeFalsy();
+  expect(selectInput).toBeInTheDocument();
+  expect(
+    fetchMock.callHistory.calls(`glob:*/api/v1/dashboard/${dashboardId}/tabs`),
+  ).toHaveLength(0);
 
   // Restore the default dashboard endpoint mock and clear history
   // so subsequent tests that count calls are not affected
