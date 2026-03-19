@@ -103,15 +103,14 @@ def test_jwt_context_raises_for_unknown_user(app) -> None:
                 _resolve_user_from_jwt_context(app)
 
 
-def test_jwt_context_returns_none_when_no_username_in_claims(app) -> None:
-    """JWT present but claims have no extractable username — returns None."""
+def test_jwt_context_raises_when_no_username_in_claims(app) -> None:
+    """JWT present but claims have no extractable username — fails closed."""
     token = _make_access_token(claims={"iss": "some-issuer"})
 
     with app.app_context():
         with patch("fastmcp.server.dependencies.get_access_token", return_value=token):
-            result = _resolve_user_from_jwt_context(app)
-
-    assert result is None
+            with pytest.raises(ValueError, match="no username could be extracted"):
+                _resolve_user_from_jwt_context(app)
 
 
 def test_jwt_context_uses_custom_resolver(app) -> None:
@@ -139,6 +138,30 @@ def test_jwt_context_uses_custom_resolver(app) -> None:
     assert result is not None
     assert result.username == "custom_user"
     custom_resolver.assert_called_once_with(app, token)
+
+
+def test_jwt_context_email_fallback_lookup(app) -> None:
+    """When resolver returns an email, tries email lookup after username miss."""
+    mock_user = _make_mock_user("alice")
+    token = _make_access_token(claims={"email": "alice@example.com"})
+
+    def _load_side_effect(username=None, email=None):
+        if email == "alice@example.com":
+            return mock_user
+        return None
+
+    with app.app_context():
+        with (
+            patch("fastmcp.server.dependencies.get_access_token", return_value=token),
+            patch(
+                "superset.mcp_service.auth.load_user_with_relationships",
+                side_effect=_load_side_effect,
+            ),
+        ):
+            result = _resolve_user_from_jwt_context(app)
+
+    assert result is not None
+    assert result.username == "alice"
 
 
 # -- get_user_from_request priority order --
@@ -274,16 +297,37 @@ def test_mcp_auth_hook_clears_stale_g_user_async(app) -> None:
             "superset.mcp_service.auth.get_user_from_request",
             return_value=fresh_user,
         ):
-            result = asyncio.get_event_loop().run_until_complete(wrapped())
+            result = asyncio.run(wrapped())
 
     assert result == "fresh"
+
+
+def test_mcp_auth_hook_preserves_g_user_in_request_context(app) -> None:
+    """g.user is NOT cleared when a request context is active (middleware compat)."""
+    middleware_user = _make_mock_user("middleware_user")
+
+    def dummy_tool():
+        """Dummy tool."""
+        return g.user.username
+
+    wrapped = mcp_auth_hook(dummy_tool)
+
+    with app.test_request_context():
+        g.user = middleware_user
+        with patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=middleware_user,
+        ):
+            result = wrapped()
+
+    assert result == "middleware_user"
 
 
 # -- default_user_resolver --
 
 
 def test_default_resolver_extracts_sub_from_claims() -> None:
-    """Extracts 'sub' claim from AccessToken.claims dict."""
+    """Extracts 'sub' claim as last-resort from AccessToken.claims dict."""
     token = _make_access_token(claims={"sub": "alice"})
     assert default_user_resolver(None, token) == "alice"
 
@@ -324,7 +368,13 @@ def test_default_resolver_returns_none_for_empty_token() -> None:
     assert default_user_resolver(None, token) is None
 
 
-def test_default_resolver_sub_takes_priority_over_email() -> None:
-    """'sub' takes priority over 'email' in claims dict."""
-    token = _make_access_token(claims={"sub": "alice", "email": "alice@example.com"})
+def test_default_resolver_preferred_username_takes_priority() -> None:
+    """'preferred_username' takes priority over 'sub' and 'email' in claims."""
+    token = _make_access_token(
+        claims={
+            "sub": "opaque-id-123",
+            "preferred_username": "alice",
+            "email": "alice@example.com",
+        }
+    )
     assert default_user_resolver(None, token) == "alice"

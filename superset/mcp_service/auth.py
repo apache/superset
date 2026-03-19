@@ -225,12 +225,16 @@ def _resolve_user_from_jwt_context(app: Any) -> User | None:
     username = resolver(app, access_token)
 
     if not username:
-        logger.warning(
+        # Fail closed: JWT is present but identity cannot be determined.
+        # Do NOT fall through to weaker auth sources.
+        raise ValueError(
             "JWT context present but no username could be extracted from claims"
         )
-        return None
 
+    # Try username lookup first, then email fallback for OIDC email claims
     user = load_user_with_relationships(username)
+    if not user and "@" in username:
+        user = load_user_with_relationships(email=username)
     if not user:
         # Fail closed: JWT says this user should exist but they don't.
         # Do NOT fall through to MCP_DEV_USERNAME or stale g.user.
@@ -525,7 +529,12 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
             with _get_app_context_manager():
                 # Clear stale g.user to prevent user impersonation across
                 # tool calls when no per-request middleware refreshes it.
-                g.pop("user", None)
+                # Only clear in app-context-only mode; preserve g.user when
+                # a request context is active (external middleware set it).
+                from flask import has_request_context
+
+                if not has_request_context():
+                    g.pop("user", None)
                 user = _setup_user_context()
 
                 # No Flask context - this is a FastMCP internal operation
@@ -568,7 +577,12 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
             with _get_app_context_manager():
                 # Clear stale g.user to prevent user impersonation across
                 # tool calls when no per-request middleware refreshes it.
-                g.pop("user", None)
+                # Only clear in app-context-only mode; preserve g.user when
+                # a request context is active (external middleware set it).
+                from flask import has_request_context
+
+                if not has_request_context():
+                    g.pop("user", None)
                 user = _setup_user_context()
 
                 # No Flask context - this is a FastMCP internal operation

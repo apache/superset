@@ -327,11 +327,13 @@ def default_user_resolver(app: Any, access_token: Any) -> str | None:
     # FastMCP AccessToken stores JWT claims in a dict
     claims = getattr(access_token, "claims", None)
     if isinstance(claims, dict) and claims:
+        # Prefer human-readable username claims over opaque `sub`
+        # (OIDC `sub` is often a stable opaque ID, not a Superset username)
         username = (
-            claims.get("sub")
-            or claims.get("preferred_username")
-            or claims.get("email")
+            claims.get("preferred_username")
             or claims.get("username")
+            or claims.get("email")
+            or claims.get("sub")
         )
         if username:
             return username
