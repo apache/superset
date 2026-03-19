@@ -240,6 +240,14 @@ def test_merge_extra_form_data_empty_inputs() -> None:
     assert _merge_extra_form_data({}, {}) == {}
 
 
+def test_merge_extra_form_data_merges_custom_form_data_dicts() -> None:
+    """custom_form_data is a dict; multiple filters' contributions are merged."""
+    base = {"custom_form_data": {"groupby": ["col1"]}}
+    new = {"custom_form_data": {"foo": "bar"}}
+    merged = _merge_extra_form_data(base, new)
+    assert merged["custom_form_data"] == {"groupby": ["col1"], "foo": "bar"}
+
+
 # --- _get_filter_target_column ---
 
 

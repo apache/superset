@@ -1614,8 +1614,6 @@ class ChartDataResponseSchema(Schema):
             "the query. Only present when filters_dashboard_id is provided."
         },
         required=False,
-        allow_none=True,
-        load_default=None,
     )
 
 
@@ -1757,6 +1755,7 @@ CHART_SCHEMAS = (
     ChartCacheWarmUpRequestSchema,
     ChartCacheWarmUpResponseSchema,
     ChartDataQueryContextSchema,
+    DashboardFiltersResponseSchema,
     ChartDataResponseSchema,
     ChartDataAsyncResponseSchema,
     # TODO: These should optimally be included in the QueryContext schema as an `anyOf`

@@ -1745,12 +1745,10 @@
           "dashboard_filters": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/DashboardFiltersResponse"
+                "$ref": "#/components/schemas/DashboardFiltersResponseSchema"
               }
             ],
-            "default": null,
-            "description": "Metadata about dashboard native filters applied to the query. Only present when filters_dashboard_id is provided.",
-            "nullable": true
+            "description": "Metadata about dashboard native filters applied to the query. Only present when filters_dashboard_id is provided."
           },
           "result": {
             "description": "A list of results for each corresponding query in the request.",
@@ -3487,7 +3485,7 @@
         ],
         "type": "object"
       },
-      "DashboardFiltersResponse": {
+      "DashboardFiltersResponseSchema": {
         "properties": {
           "filters": {
             "description": "Metadata about each in-scope dashboard native filter and whether its default value was applied to the query",

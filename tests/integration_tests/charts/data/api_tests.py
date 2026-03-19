@@ -1813,12 +1813,6 @@ def test_chart_data_subquery_allowed(
 
 
 @pytest.mark.chart_data_flow
-@pytest.mark.skip(
-    reason=(
-        "TODO: Fix test class to work with DuckDB example data format. "
-        "Birth names fixture conflicts with new example data structure."
-    )
-)
 class TestGetChartDataWithDashboardFilter(BaseTestChartDataApi):
     """Tests for the filters_dashboard_id parameter on GET /api/v1/chart/<pk>/data/."""
 

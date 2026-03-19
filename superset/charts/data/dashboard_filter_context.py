@@ -123,9 +123,10 @@ def _merge_extra_form_data(
 ) -> dict[str, Any]:
     """
     Merge two extra_form_data dicts, appending list-type keys (like filters,
-    adhoc_filters) and overriding scalar keys (like granularity_sqla, time_range).
+    adhoc_filters), merging dict-type keys (like custom_form_data), and overriding
+    scalar keys (like granularity_sqla, time_range).
     """
-    append_keys = EXTRA_FORM_DATA_APPEND_KEYS
+    append_keys = EXTRA_FORM_DATA_APPEND_KEYS - {"custom_form_data"}
     override_keys = (
         set(EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS.keys())
         | EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS
@@ -139,6 +140,14 @@ def _merge_extra_form_data(
         combined = list(base_val) + list(new_val)
         if combined:
             merged[key] = combined
+
+    # Merge custom_form_data as dicts so multiple filters' contributions combine
+    base_custom = base.get("custom_form_data") or {}
+    new_custom = new.get("custom_form_data") or {}
+    if isinstance(base_custom, dict) and isinstance(new_custom, dict):
+        merged_custom = {**base_custom, **new_custom}
+        if merged_custom:
+            merged["custom_form_data"] = merged_custom
 
     for key in override_keys:
         if key in new:
