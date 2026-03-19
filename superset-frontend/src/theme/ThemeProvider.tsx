@@ -78,7 +78,8 @@ export function SupersetThemeProvider({
   // setCrudTheme removed - dashboards should NOT modify the global controller
 
   const setTemporaryTheme = useCallback(
-    (config: AnyThemeConfig) => themeController.setTemporaryTheme(config),
+    (config: AnyThemeConfig, themeId?: number | null) =>
+      themeController.setTemporaryTheme(config, themeId),
     [themeController],
   );
 

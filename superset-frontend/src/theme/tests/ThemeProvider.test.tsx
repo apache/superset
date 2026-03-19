@@ -76,6 +76,15 @@ describe('SupersetThemeProvider', () => {
       onChange: jest.fn().mockReturnValue(jest.fn()),
       canUpdateTheme: jest.fn().mockReturnValue(true),
       canUpdateMode: jest.fn().mockReturnValue(true),
+      setTemporaryTheme: jest.fn(),
+      clearLocalOverrides: jest.fn(),
+      getCurrentCrudThemeId: jest.fn().mockReturnValue(null),
+      hasDevOverride: jest.fn().mockReturnValue(false),
+      canSetMode: jest.fn().mockReturnValue(true),
+      canSetTheme: jest.fn().mockReturnValue(true),
+      canDetectOSPreference: jest.fn().mockReturnValue(true),
+      createDashboardThemeProvider: jest.fn(),
+      getAppliedThemeId: jest.fn().mockReturnValue(null),
       destroy: jest.fn(),
     } as unknown as jest.Mocked<ThemeController>;
 
@@ -233,6 +242,30 @@ describe('SupersetThemeProvider', () => {
       });
 
       expect(mockThemeController.resetTheme).toHaveBeenCalled();
+    });
+
+    test('should call setTemporaryTheme with config and themeId when invoked', () => {
+      const wrapper = createWrapper(mockThemeController);
+
+      const { result } = renderHook((): ThemeContextType => useThemeContext(), {
+        wrapper,
+      });
+
+      const tempTheme = {
+        token: {
+          colorPrimary: '#00ff00',
+          colorBgBase: '#ffffff',
+        },
+      };
+
+      act(() => {
+        result.current.setTemporaryTheme(tempTheme, 42);
+      });
+
+      expect(mockThemeController.setTemporaryTheme).toHaveBeenCalledWith(
+        tempTheme,
+        42,
+      );
     });
   });
 });
