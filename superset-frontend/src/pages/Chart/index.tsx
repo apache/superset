@@ -150,11 +150,27 @@ export default function ExplorePage() {
               )
             : result.form_data;
 
+          let chartStates: Record<number, JsonObject> | undefined;
+          if (result.chartState) {
+            const sliceId =
+              getUrlParam(URL_PARAMS.sliceId) ||
+              (formData as JsonObject).slice_id ||
+              0;
+            chartStates = {
+              [sliceId]: {
+                chartId: sliceId,
+                state: result.chartState,
+                lastModified: Date.now(),
+              },
+            };
+          }
+
           dispatch(
             hydrateExplore({
               ...result,
               form_data: formData,
               saveAction,
+              chartStates,
             }),
           );
         })
