@@ -99,7 +99,7 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
                 return
 
             for dash in accessible_dashboards:
-                if dash.is_managed_externally:
+                            if dash.is_managed_externally or not security_manager.is_owner(dash):
                     raise DashboardsForbiddenError()
 
             # Additional ownership check - must match CreateChartCommand behavior
