@@ -325,6 +325,15 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     [currentTheme],
   );
 
+  const onFormat = useCallback(() => {
+    if (currentTheme?.json_data) {
+      const formatted = formatJsonData(currentTheme.json_data);
+      if (formatted !== currentTheme.json_data) {
+        onJsonDataChange(formatted || '');
+      }
+    }
+  }, [currentTheme?.json_data, onJsonDataChange]);
+
   const validate = () => {
     if (isReadOnly || !currentTheme) {
       setDisableSave(true);
@@ -535,27 +544,46 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
                 annotations={toEditorAnnotations(validation.annotations)}
               />
             </StyledEditorWrapper>
-            {canDevelopThemes && (
-              <div className="apply-button-container">
-                <Tooltip
-                  title={t('Set local theme for testing (preview only)')}
-                  placement="top"
-                >
-                  <Button
-                    icon={<Icons.ThunderboltOutlined />}
-                    onClick={onApply}
-                    disabled={
-                      !currentTheme?.json_data ||
-                      !isValidJson(currentTheme.json_data) ||
-                      validation.hasErrors
-                    }
-                    buttonStyle="secondary"
+            <div className="apply-button-container">
+              <Space>
+                {!isReadOnly && (
+                  <Tooltip
+                    title={t('Format JSON configuration')}
+                    placement="top"
                   >
-                    {t('Apply')}
-                  </Button>
-                </Tooltip>
-              </div>
-            )}
+                    <Button
+                      icon={<Icons.FormatPainterOutlined />}
+                      onClick={onFormat}
+                      disabled={
+                        !currentTheme?.json_data ||
+                        !isValidJson(currentTheme.json_data)
+                      }
+                    >
+                      {t('Format')}
+                    </Button>
+                  </Tooltip>
+                )}
+                {canDevelopThemes && (
+                  <Tooltip
+                    title={t('Set local theme for testing (preview only)')}
+                    placement="top"
+                  >
+                    <Button
+                      icon={<Icons.ThunderboltOutlined />}
+                      onClick={onApply}
+                      disabled={
+                        !currentTheme?.json_data ||
+                        !isValidJson(currentTheme.json_data) ||
+                        validation.hasErrors
+                      }
+                      buttonStyle="secondary"
+                    >
+                      {t('Apply')}
+                    </Button>
+                  </Tooltip>
+                )}
+              </Space>
+            </div>
           </Form.Item>
         </Form>
       </StyledFormWrapper>
