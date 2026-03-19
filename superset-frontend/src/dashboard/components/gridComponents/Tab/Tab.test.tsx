@@ -154,6 +154,44 @@ test('Render tab (no content)', () => {
   expect(getByTestId('dragdroppable-object')).toBeInTheDocument();
 });
 
+test('passes correct canEdit and editing props to EditableTitle', () => {
+  const props = createProps();
+
+  props.editMode = true;
+  props.isFocused = false;
+  props.renderType = 'RENDER_TAB';
+  render(<Tab {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+
+  expect(EditableTitle).toHaveBeenCalledWith(
+    expect.objectContaining({
+      title: '🚀 Aspiring Developers',
+      canEdit: true,
+      editing: false,
+    }),
+    expect.anything(),
+  );
+
+  (EditableTitle as jest.Mock).mockClear();
+
+  const focusedProps = { ...props, isFocused: true };
+  render(<Tab {...focusedProps} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+
+  expect(EditableTitle).toHaveBeenCalledWith(
+    expect.objectContaining({
+      title: '🚀 Aspiring Developers',
+      canEdit: true,
+      editing: true,
+    }),
+    expect.anything(),
+  );
+});
+
 test('Render tab (no content) editMode:true', () => {
   const props = createProps();
   props.editMode = true;
