@@ -55,7 +55,7 @@ extraLabels: {}
 globalPodAnnotations: {}
   # Policy engine exemptions (Kyverno):
   # policies.kyverno.io/exclude: "true"
-  # 
+  #
   # Policy engine exemptions (OPA Gatekeeper):
   # admission.gatekeeper.sh/exempt: "true"
   #
@@ -279,7 +279,7 @@ database:
     mode: require
 
 # -- Redis cache configuration for Superset
-# Redis is optional but recommended for caching and Celery. 
+# Redis is optional but recommended for caching and Celery.
 # If redis.enabled (chart dependency) is true, defaults point to the chart's Redis instance.
 # If redis.enabled is false, configure this to point to your external Redis or set cacheConfig/celeryConfig manually.
 cache:
@@ -1372,7 +1372,7 @@ topologySpreadConstraints: []
   #     matchLabels:
   #       app.kubernetes.io/name: {{ include "superset.name" . }}
   #       app.kubernetes.io/instance: {{ .Release.Name }}
-  # 
+  #
   # Alternative: Spread across nodes instead of zones:
   # - maxSkew: 1
   #   topologyKey: kubernetes.io/hostname

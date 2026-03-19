@@ -150,7 +150,7 @@ cache:
    database:
      ssl:
        enabled: false
-   
+
    cache:
      ssl:
        enabled: false

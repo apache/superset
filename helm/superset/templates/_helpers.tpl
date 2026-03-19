@@ -672,7 +672,7 @@ TALISMAN_CONFIG = {
 Component-specific selector labels
 These use the standardized Kubernetes recommended labels pattern:
   - app.kubernetes.io/name: Application name
-  - app.kubernetes.io/instance: Release name  
+  - app.kubernetes.io/instance: Release name
   - app.kubernetes.io/component: Component identifier
 See: https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/
 */}}
