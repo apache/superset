@@ -594,9 +594,11 @@ test('cellStyle falls back to cellTextColor when no formatter matches', () => {
   };
   expect(cellStyleResult).toMatchObject({
     backgroundColor: '',
+    color: '',
+    '--ag-cell-value-color': '',
+    '--ag-cell-value-hover-color': '',
     textAlign: 'right',
   });
-  expect(cellStyleResult.color).toBeUndefined();
 });
 
 test('cellStyle preserves invalid explicit text color', () => {
@@ -674,8 +676,10 @@ test('cellStyle ignores cell-bar formatters for text and background resolution',
   };
   expect(cellStyleResult).toMatchObject({
     backgroundColor: '',
+    color: '',
+    '--ag-cell-value-color': '',
+    '--ag-cell-value-hover-color': '',
   });
-  expect(cellStyleResult.color).toBeUndefined();
 });
 
 test('cellStyle lets basic color formatters override column formatter background', () => {
