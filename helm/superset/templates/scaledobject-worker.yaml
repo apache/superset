@@ -32,9 +32,10 @@ limitations under the License.
 {{- $redisProto = "rediss" }}
 {{- end }}
 {{- $celeryDb := .Values.cache.celeryDb | default 0 }}
+{{- $redisPasswordEncoded := include "superset.urlencodeUserinfo" $redisPassword }}
 {{- $redisAddress := "" }}
 {{- if $redisPassword }}
-{{- $redisAddress = printf "%s://:%s@%s:%d/%d" $redisProto $redisPassword $redisHost (int $redisPort) (int $celeryDb) }}
+{{- $redisAddress = printf "%s://:%s@%s:%d/%d" $redisProto $redisPasswordEncoded $redisHost (int $redisPort) (int $celeryDb) }}
 {{- else }}
 {{- $redisAddress = printf "%s://%s:%d/%d" $redisProto $redisHost (int $redisPort) (int $celeryDb) }}
 {{- end }}

@@ -32,13 +32,25 @@ This validates that users have migrated from deprecated configuration patterns.
 {{- end -}}
 
 {{/*
-URL-encode a string for use in URI userinfo (e.g. database user or password).
+URL-encode a string for use in URI userinfo (e.g. database or Redis user/password).
 Reserved characters (@, :, /, #, ?, etc.) are percent-encoded so credentials
 with special characters produce a valid connection string.
+Use [?] for literal question mark — RE2 treats \\? as "optional backslash" and corrupts input.
 */}}
 {{- define "superset.urlencodeUserinfo" -}}
 {{- $v := . | default "" | toString -}}
-{{- $v | regexReplaceAll "%" "%25" | regexReplaceAll ":" "%3A" | regexReplaceAll "@" "%40" | regexReplaceAll "/" "%2F" | regexReplaceAll "\\?" "%3F" | regexReplaceAll "#" "%23" | regexReplaceAll "\\[" "%5B" | regexReplaceAll "\\]" "%5D" | regexReplaceAll " " "%20" | regexReplaceAll "\\\\" "%5C" -}}
+{{- /* regexReplaceAll(regex, source, repl) — do not pipe source; pipe puts it last and breaks arg order */}}
+{{- $v = regexReplaceAll "%" $v "%25" -}}
+{{- $v = regexReplaceAll ":" $v "%3A" -}}
+{{- $v = regexReplaceAll "@" $v "%40" -}}
+{{- $v = regexReplaceAll "/" $v "%2F" -}}
+{{- $v = regexReplaceAll "[?]" $v "%3F" -}}
+{{- $v = regexReplaceAll "#" $v "%23" -}}
+{{- $v = regexReplaceAll "\\[" $v "%5B" -}}
+{{- $v = regexReplaceAll "\\]" $v "%5D" -}}
+{{- $v = regexReplaceAll " " $v "%20" -}}
+{{- $v = regexReplaceAll "\\\\" $v "%5C" -}}
+{{- $v -}}
 {{- end -}}
 
 {{/*
@@ -207,12 +219,14 @@ CACHE_REDIS_URL = {{ .Values.cache.cacheUrl | quote }}
 {{- $redisUser := .Values.cache.user | default "" }}
 {{- $redisPort := .Values.cache.port }}
 {{- $redisPassword := .Values.cache.password }}
+{{- $redisUserEncoded := include "superset.urlencodeUserinfo" $redisUser }}
+{{- $redisPasswordEncoded := include "superset.urlencodeUserinfo" $redisPassword }}
 {{- $useSSL := and (hasKey .Values.cache "ssl") .Values.cache.ssl.enabled }}
 {{- if $redisPassword }}
 {{- if $redisUser }}
-REDIS_BASE_URL = f"{{ if $useSSL }}rediss{{ else }}redis{{ end }}://{{ $redisUser }}:{{ $redisPassword }}@{{ $redisHost }}:{{ $redisPort }}"
+REDIS_BASE_URL = f"{{ if $useSSL }}rediss{{ else }}redis{{ end }}://{{ $redisUserEncoded }}:{{ $redisPasswordEncoded }}@{{ $redisHost }}:{{ $redisPort }}"
 {{- else }}
-REDIS_BASE_URL = f"{{ if $useSSL }}rediss{{ else }}redis{{ end }}://:{{ $redisPassword }}@{{ $redisHost }}:{{ $redisPort }}"
+REDIS_BASE_URL = f"{{ if $useSSL }}rediss{{ else }}redis{{ end }}://:{{ $redisPasswordEncoded }}@{{ $redisHost }}:{{ $redisPort }}"
 {{- end }}
 {{- else }}
 REDIS_BASE_URL = f"{{ if $useSSL }}rediss{{ else }}redis{{ end }}://{{ $redisHost }}:{{ $redisPort }}"
