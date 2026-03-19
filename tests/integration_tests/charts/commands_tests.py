@@ -373,7 +373,10 @@ class TestChartsCreateCommand(SupersetTestCase):
     def test_create_chart_rejects_externally_managed_dashboard(
         self, mock_sm_g, mock_c_g, mock_u_g
     ):
-        """Test that creating a chart fails when a selected dashboard is managed externally"""
+        """
+        Test that creating a chart fails when a selected dashboard is managed 
+        externally
+        """
         from superset.models.dashboard import Dashboard
 
         user = security_manager.find_user(username="admin")
