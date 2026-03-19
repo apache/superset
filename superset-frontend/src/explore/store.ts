@@ -41,6 +41,9 @@ type FormData = QueryFormData & {
   y_axis_zero?: boolean;
   y_axis_bounds?: [number | null, number | null];
   datasource?: string;
+  matrixify_enable?: boolean;
+  matrixify_mode_rows?: string;
+  matrixify_mode_columns?: string;
 };
 
 function handleDeprecatedControls(formData: FormData): void {
@@ -50,6 +53,15 @@ function handleDeprecatedControls(formData: FormData): void {
   // y_axis_zero was a boolean forcing 0 to be part of the Y Axis
   if (formData.y_axis_zero) {
     formData.y_axis_bounds = [0, null];
+  }
+
+  // #38519: reset stale matrixify mode defaults for legacy charts.
+  // Pre-revamp charts have matrixify_mode_rows/columns set to non-disabled
+  // values but no matrixify_enable key. Without this cleanup, the stale modes
+  // cause isMatrixifyVisible() to inject validators that silently block save.
+  if (!('matrixify_enable' in formData)) {
+    formData.matrixify_mode_rows = 'disabled';
+    formData.matrixify_mode_columns = 'disabled';
   }
 }
 
