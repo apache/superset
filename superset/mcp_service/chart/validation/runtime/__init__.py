@@ -138,7 +138,7 @@ class RuntimeValidator:
                 dataset_id=dataset_id,
                 x_column=config.x.name,
                 chart_type=chart_type,
-                group_by_column=config.group_by.name if config.group_by else None,
+                group_by_column=config.group_by[0].name if config.group_by else None,
             )
 
             if not is_ok and cardinality_info:

@@ -10425,8 +10425,8 @@ msgstr "E Rere Ana"
 #, fuzzy, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
 msgstr ""
-"E whakahaere ana i te kīanga %(statement_num)s i waho o "
-"%(statement_count)s"
+"E whakahaere ana i te kīanga %(block_num)s i waho o "
+"%(block_count)s"
 
 msgid "SAT"
 msgstr "HĀT"
