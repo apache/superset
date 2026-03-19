@@ -412,13 +412,12 @@ export function transformSeries(
     symbolSize: markerSize,
     label: {
       show: !!showValue,
-      position: (
+      position:
         labelPosition === 'auto' || !labelPosition
           ? isHorizontal
             ? 'inside'
             : 'top'
-          : labelPosition
-      ) as 'top' | 'bottom' | 'left' | 'right' | 'inside' | 'insideTop' | 'insideBottom' | 'insideLeft' | 'insideRight',
+          : labelPosition,
       overflow: 'truncate',
       color: theme?.colorText,
       textBorderWidth: 0,

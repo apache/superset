@@ -129,8 +129,6 @@ export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   seriesTypeB: TIMESERIES_DEFAULTS.seriesType,
   showValue: TIMESERIES_DEFAULTS.showValue,
   showValueB: TIMESERIES_DEFAULTS.showValue,
-  labelPosition: TIMESERIES_DEFAULTS.labelPosition,
-  labelPositionB: TIMESERIES_DEFAULTS.labelPosition,
   stack: TIMESERIES_DEFAULTS.stack,
   stackB: TIMESERIES_DEFAULTS.stack,
   yAxisIndex: 0,
@@ -142,6 +140,8 @@ export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   showQueryIdentifiers: false,
   xAxisLabelRotation: TIMESERIES_DEFAULTS.xAxisLabelRotation,
   xAxisLabelInterval: TIMESERIES_DEFAULTS.xAxisLabelInterval,
+  labelPosition: TIMESERIES_DEFAULTS.labelPosition,
+  labelPositionB: TIMESERIES_DEFAULTS.labelPosition,
   ...DEFAULT_TITLE_FORM_DATA,
 };
 
