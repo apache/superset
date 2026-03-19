@@ -105,7 +105,9 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
         """
         return (
             db.session.query(ReportSchedule)
-            .filter(ReportSchedule.extra_json.like(f"%{native_filter_id}%"))
+            .filter(
+                ReportSchedule.extra_json.contains(native_filter_id, autoescape=True)
+            )
             .all()
         )
 
