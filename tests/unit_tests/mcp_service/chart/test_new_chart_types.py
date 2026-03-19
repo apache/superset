@@ -103,14 +103,15 @@ class TestPieChartConfigSchema:
         assert config.filters is not None
         assert len(config.filters) == 1
 
-    def test_pie_config_rejects_extra_fields(self) -> None:
-        with pytest.raises(ValidationError):
-            PieChartConfig(
-                chart_type="pie",
-                dimension=ColumnRef(name="product"),
-                metric=ColumnRef(name="revenue", aggregate="SUM"),
-                unknown_field="bad",
-            )
+    def test_pie_config_ignores_extra_fields(self) -> None:
+        config = PieChartConfig(
+            chart_type="pie",
+            dimension=ColumnRef(name="product"),
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            unknown_field="bad",
+        )
+        assert config.dimension.name == "product"
+        assert not hasattr(config, "unknown_field")
 
     def test_pie_config_missing_dimension(self) -> None:
         with pytest.raises(ValidationError):
@@ -323,14 +324,15 @@ class TestPivotTableChartConfigSchema:
                 metrics=[ColumnRef(name="revenue", aggregate="SUM")],
             )
 
-    def test_pivot_table_rejects_extra_fields(self) -> None:
-        with pytest.raises(ValidationError):
-            PivotTableChartConfig(
-                chart_type="pivot_table",
-                rows=[ColumnRef(name="product")],
-                metrics=[ColumnRef(name="revenue", aggregate="SUM")],
-                unknown_field="bad",
-            )
+    def test_pivot_table_ignores_extra_fields(self) -> None:
+        config = PivotTableChartConfig(
+            chart_type="pivot_table",
+            rows=[ColumnRef(name="product")],
+            metrics=[ColumnRef(name="revenue", aggregate="SUM")],
+            unknown_field="bad",
+        )
+        assert config.rows[0].name == "product"
+        assert not hasattr(config, "unknown_field")
 
     def test_pivot_table_valid_aggregate_functions(self) -> None:
         for agg in ["Sum", "Average", "Median", "Count", "Minimum", "Maximum"]:
@@ -459,10 +461,10 @@ class TestMixedTimeseriesChartConfigSchema:
             time_grain="P1M",
             y=[ColumnRef(name="revenue", aggregate="SUM")],
             primary_kind="area",
-            group_by=ColumnRef(name="region"),
+            group_by=[ColumnRef(name="region")],
             y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
             secondary_kind="scatter",
-            group_by_secondary=ColumnRef(name="channel"),
+            group_by_secondary=[ColumnRef(name="channel")],
             show_legend=False,
             x_axis=AxisConfig(title="Date"),
             y_axis=AxisConfig(title="Revenue", format="$,.2f"),
@@ -473,9 +475,9 @@ class TestMixedTimeseriesChartConfigSchema:
         assert config.secondary_kind == "scatter"
         assert config.time_grain == "P1M"
         assert config.group_by is not None
-        assert config.group_by.name == "region"
+        assert config.group_by[0].name == "region"
         assert config.group_by_secondary is not None
-        assert config.group_by_secondary.name == "channel"
+        assert config.group_by_secondary[0].name == "channel"
 
     def test_mixed_timeseries_missing_y(self) -> None:
         with pytest.raises(ValidationError):
@@ -502,15 +504,35 @@ class TestMixedTimeseriesChartConfigSchema:
                 y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
             )
 
-    def test_mixed_timeseries_rejects_extra_fields(self) -> None:
-        with pytest.raises(ValidationError):
-            MixedTimeseriesChartConfig(
-                chart_type="mixed_timeseries",
-                x=ColumnRef(name="date"),
-                y=[ColumnRef(name="revenue", aggregate="SUM")],
-                y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
-                unknown_field="bad",
-            )
+    def test_mixed_timeseries_ignores_extra_fields(self) -> None:
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
+            unknown_field="bad",
+        )
+        assert config.x.name == "date"
+        assert not hasattr(config, "unknown_field")
+
+    def test_mixed_timeseries_default_row_limit(self) -> None:
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
+        )
+        assert config.row_limit == 10000
+
+    def test_mixed_timeseries_custom_row_limit(self) -> None:
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
+            row_limit=500,
+        )
+        assert config.row_limit == 500
 
 
 # ============================================================
@@ -587,9 +609,9 @@ class TestMapMixedTimeseriesConfig:
             chart_type="mixed_timeseries",
             x=ColumnRef(name="date"),
             y=[ColumnRef(name="revenue", aggregate="SUM")],
-            group_by=ColumnRef(name="region"),
+            group_by=[ColumnRef(name="region")],
             y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
-            group_by_secondary=ColumnRef(name="channel"),
+            group_by_secondary=[ColumnRef(name="channel")],
         )
         result = map_mixed_timeseries_config(config, dataset_id=1)
 
@@ -604,9 +626,9 @@ class TestMapMixedTimeseriesConfig:
             chart_type="mixed_timeseries",
             x=ColumnRef(name="date"),
             y=[ColumnRef(name="revenue", aggregate="SUM")],
-            group_by=ColumnRef(name="date"),  # same as x
+            group_by=[ColumnRef(name="date")],  # same as x
             y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
-            group_by_secondary=ColumnRef(name="date"),  # same as x
+            group_by_secondary=[ColumnRef(name="date")],  # same as x
         )
         result = map_mixed_timeseries_config(config, dataset_id=1)
 
@@ -635,6 +657,35 @@ class TestMapMixedTimeseriesConfig:
         assert result["yAxisTitleSecondary"] == "Orders"
         assert result["y_axis_format_secondary"] == ",d"
         assert result["logAxisSecondary"] is True
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_mixed_form_data_row_limit(self, mock_is_temporal) -> None:
+        mock_is_temporal.return_value = True
+
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
+            row_limit=300,
+        )
+        result = map_mixed_timeseries_config(config, dataset_id=1)
+
+        assert result["row_limit"] == 300
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_mixed_form_data_default_row_limit(self, mock_is_temporal) -> None:
+        mock_is_temporal.return_value = True
+
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
+        )
+        result = map_mixed_timeseries_config(config, dataset_id=1)
+
+        assert result["row_limit"] == 10000
 
     @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
     def test_mixed_form_data_with_filters(self, mock_is_temporal) -> None:
@@ -723,7 +774,7 @@ class TestGenerateChartNameNewTypes:
             metric=ColumnRef(name="revenue", aggregate="SUM"),
         )
         result = generate_chart_name(config)
-        assert result == "Pie Chart - product by revenue"
+        assert result == "product by revenue"
 
     def test_pie_chart_name_with_custom_label(self) -> None:
         config = PieChartConfig(
@@ -732,7 +783,7 @@ class TestGenerateChartNameNewTypes:
             metric=ColumnRef(name="revenue", aggregate="SUM", label="Total Revenue"),
         )
         result = generate_chart_name(config)
-        assert result == "Pie Chart - product by Total Revenue"
+        assert result == "product by Total Revenue"
 
     def test_pivot_table_chart_name(self) -> None:
         config = PivotTableChartConfig(
@@ -741,7 +792,7 @@ class TestGenerateChartNameNewTypes:
             metrics=[ColumnRef(name="revenue", aggregate="SUM")],
         )
         result = generate_chart_name(config)
-        assert result == "Pivot Table - product, region"
+        assert result == "Pivot Table \u2013 product, region"
 
     def test_mixed_timeseries_chart_name(self) -> None:
         config = MixedTimeseriesChartConfig(
@@ -751,7 +802,7 @@ class TestGenerateChartNameNewTypes:
             y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
         )
         result = generate_chart_name(config)
-        assert result == "Mixed Chart - revenue + orders"
+        assert result == "revenue + orders"
 
 
 # ============================================================

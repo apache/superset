@@ -54,14 +54,14 @@ jobs:
       - name: Save Docker Image as Artifact
         if: steps.check.outputs.frontend
         run: |
-          docker save $TAG | gzip > docker-image.tar.gz
+          docker save $TAG | zstd -3 --threads=0 > docker-image.tar.zst
 
       - name: Upload Docker Image Artifact
         if: steps.check.outputs.frontend
         uses: actions/upload-artifact@v7
         with:
           name: docker-image
-          path: docker-image.tar.gz
+          path: docker-image.tar.zst
 
   sharded-jest-tests:
     needs: frontend-build
@@ -78,7 +78,8 @@ jobs:
           name: docker-image
 
       - name: Load Docker Image
-        run: docker load < docker-image.tar.gz
+        run: |
+          zstd -d < docker-image.tar.zst | docker load
 
       - name: npm run test with coverage
         run: |
@@ -148,7 +149,7 @@ jobs:
 
       - name: Load Docker Image
         run: |
-          docker load < docker-image.tar.gz
+          zstd -d < docker-image.tar.zst | docker load
 
       - name: lint
         run: |
@@ -171,7 +172,8 @@ jobs:
           name: docker-image
 
       - name: Load Docker Image
-        run: docker load < docker-image.tar.gz
+        run: |
+          zstd -d < docker-image.tar.zst | docker load
 
       - name: Build Plugins Packages
         run: |
@@ -189,7 +191,8 @@ jobs:
           name: docker-image
 
       - name: Load Docker Image
-        run: docker load < docker-image.tar.gz
+        run: |
+          zstd -d < docker-image.tar.zst | docker load
 
       - name: Build Storybook and Run Tests
         run: |

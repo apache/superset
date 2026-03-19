@@ -118,7 +118,7 @@ export interface ResultSetProps {
 const ResultContainer = styled.div`
   display: flex;
   flex-direction: column;
-  row-gap: ${({ theme }) => theme.sizeUnit * 2}px;
+  row-gap: ${({ theme }) => theme.sizeUnit * 3}px;
   height: 100%;
 `;
 

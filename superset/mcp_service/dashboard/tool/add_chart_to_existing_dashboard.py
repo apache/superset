@@ -22,12 +22,14 @@ This tool adds a chart to an existing dashboard with automatic layout positionin
 """
 
 import logging
+import re
 from typing import Any, Dict
 
 from fastmcp import Context
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
+from superset.mcp_service.chart.schemas import serialize_chart_object
 from superset.mcp_service.dashboard.constants import (
     generate_id,
     GRID_COLUMN_COUNT,
@@ -43,6 +45,22 @@ from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
+
+# Compiled regex for stripping common emoji Unicode ranges from tab text.
+# Uses specific Unicode blocks to avoid overly permissive ranges.
+_EMOJI_RE = re.compile(
+    "["
+    "\U0001f300-\U0001f5ff"  # Misc Symbols and Pictographs
+    "\U0001f600-\U0001f64f"  # Emoticons
+    "\U0001f680-\U0001f6ff"  # Transport and Map Symbols
+    "\U0001f900-\U0001f9ff"  # Supplemental Symbols and Pictographs
+    "\U0001fa70-\U0001faff"  # Symbols and Pictographs Extended-A
+    "\u2600-\u26ff"  # Misc Symbols
+    "\u2700-\u27bf"  # Dingbats
+    "\ufe00-\ufe0f"  # Variation Selectors
+    "\u200d"  # Zero-width joiner
+    "]+"
+)
 
 
 def _find_next_row_position(layout: Dict[str, Any]) -> str:
@@ -63,33 +81,97 @@ def _find_next_row_position(layout: Dict[str, Any]) -> str:
     return row_key
 
 
-def _find_tab_insert_target(layout: Dict[str, Any]) -> str | None:
+def _normalize_tab_text(text: str | None) -> str:
+    """Strip emoji and extra whitespace from tab text for flexible matching."""
+    if not text:
+        return ""
+    cleaned = _EMOJI_RE.sub("", text)
+    return cleaned.strip().lower()
+
+
+def _match_tab_in_children(
+    layout: Dict[str, Any],
+    tabs_children: list[str],
+    target_tab: str,
+) -> str | None:
+    """Search tabs_children for a tab matching target_tab by ID or name.
+
+    Matching is flexible: exact ID match, exact text match, or
+    case-insensitive text match after stripping emoji characters.
     """
-    Detect if the dashboard uses tabs and return the first tab's ID.
+    target_normalized = _normalize_tab_text(target_tab)
+    for tab_id in tabs_children:
+        tab = layout.get(tab_id)
+        if not tab or tab.get("type") != "TAB":
+            continue
+        tab_text = (tab.get("meta") or {}).get("text", "")
+        # Exact match on ID or text
+        if target_tab in (tab_id, tab_text):
+            return tab_id
+        # Flexible match: case-insensitive, emoji-stripped
+        if target_normalized and _normalize_tab_text(tab_text) == target_normalized:
+            return tab_id
+    return None
 
-    If ``GRID_ID`` has children that are ``TABS`` components, this walks
-    into the first ``TAB`` child so that new rows are placed inside the
-    active tab rather than directly under GRID_ID.
 
-    Returns:
-        The ID of the first TAB component, or ``None`` if the dashboard
-        does not use top-level tabs.
+def _collect_tabs_groups(layout: Dict[str, Any]) -> list[list[str]]:
+    """Collect all TABS groups from ROOT_ID and GRID_ID children.
+
+    Superset dashboards can place TABS under either ROOT_ID or GRID_ID
+    depending on how the layout was constructed.
     """
-    grid = layout.get("GRID_ID")
-    if not grid:
-        return None
-
-    for child_id in grid.get("children", []):
-        child = layout.get(child_id)
-        if child and child.get("type") == "TABS":
-            # Found a TABS component; use its first TAB child
+    groups: list[list[str]] = []
+    for parent_key in ("ROOT_ID", "GRID_ID"):
+        parent = layout.get(parent_key)
+        if not parent:
+            continue
+        for child_id in parent.get("children", []):
+            child = layout.get(child_id)
+            if not child or child.get("type") != "TABS":
+                continue
             tabs_children = child.get("children", [])
             if tabs_children:
-                first_tab_id = tabs_children[0]
-                first_tab = layout.get(first_tab_id)
-                if first_tab and first_tab.get("type") == "TAB":
-                    return first_tab_id
+                groups.append(tabs_children)
+    return groups
+
+
+def _first_tab_from_groups(
+    layout: Dict[str, Any], groups: list[list[str]]
+) -> str | None:
+    """Return the first valid TAB ID from the collected groups."""
+    for tabs_children in groups:
+        first_tab_id = tabs_children[0]
+        first_tab = layout.get(first_tab_id)
+        if first_tab and first_tab.get("type") == "TAB":
+            return first_tab_id
     return None
+
+
+def _find_tab_insert_target(
+    layout: Dict[str, Any], target_tab: str | None = None
+) -> str | None:
+    """
+    Detect if the dashboard uses tabs and return the appropriate tab's ID.
+
+    If *target_tab* is provided the function first tries to match it against
+    tab ``meta.text`` (display name) or the raw component ID.  When no match
+    is found (or *target_tab* is ``None``) the first ``TAB`` child is used as
+    a fallback so that new rows are still placed inside the tab structure
+    rather than directly under ``GRID_ID``.
+
+    Returns:
+        The ID of the matched (or first) TAB component, or ``None`` if the
+        dashboard does not use top-level tabs.
+    """
+    groups = _collect_tabs_groups(layout)
+
+    if target_tab:
+        for tabs_children in groups:
+            matched = _match_tab_in_children(layout, tabs_children, target_tab)
+            if matched:
+                return matched
+
+    return _first_tab_from_groups(layout, groups)
 
 
 def _add_chart_to_layout(
@@ -223,7 +305,15 @@ def _ensure_layout_structure(
         layout["DASHBOARD_VERSION_KEY"] = "v2"
 
 
-@tool(tags=["mutate"])
+@tool(
+    tags=["mutate"],
+    class_permission_name="Dashboard",
+    annotations=ToolAnnotations(
+        title="Add chart to dashboard",
+        readOnlyHint=False,
+        destructiveHint=False,
+    ),
+)
 @parse_request(AddChartToDashboardRequest)
 def add_chart_to_existing_dashboard(
     request: AddChartToDashboardRequest, ctx: Context
@@ -284,8 +374,10 @@ def add_chart_to_existing_dashboard(
             # Generate a unique ROW ID for the new row
             row_key = _find_next_row_position(current_layout)
 
-            # Detect tabbed dashboards: if GRID has TABS, target the first tab
-            tab_target = _find_tab_insert_target(current_layout)
+            # Detect tabbed dashboards and resolve target_tab by name or ID
+            tab_target = _find_tab_insert_target(
+                current_layout, target_tab=request.target_tab
+            )
             parent_id = tab_target if tab_target else "GRID_ID"
 
             # Add chart, column, and row to layout
@@ -348,7 +440,10 @@ def add_chart_to_existing_dashboard(
                 if serialize_tag_object(tag) is not None
             ],
             roles=[],
-            charts=[],
+            charts=[
+                serialize_chart_object(chart)
+                for chart in getattr(updated_dashboard, "slices", [])
+            ],
         )
 
         dashboard_url = (

@@ -63,6 +63,7 @@ const TABS_KEYS = {
 const StyledPane = styled.div`
   width: 100%;
   height: 100%;
+
   .ant-tabs .ant-tabs-content-holder {
     overflow: visible;
   }
@@ -79,6 +80,7 @@ const StyledPane = styled.div`
       ${({ theme }) => theme.sizeUnit * 2}px;
   }
   .ant-tabs-tabpane {
+    padding-top: ${({ theme }) => theme.sizeUnit * 3}px;
     .scrollable {
       overflow-y: auto;
     }
