@@ -71,6 +71,15 @@ const toEditorAnnotations = (
     message: ann.text,
   }));
 
+const formatJsonData = (jsonData?: string): string | undefined => {
+  if (!jsonData) return jsonData;
+  try {
+    return JSON.stringify(JSON.parse(jsonData), null, 2);
+  } catch {
+    return jsonData;
+  }
+};
+
 interface ThemeModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast?: (msg: string) => void;
@@ -357,8 +366,12 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
 
   useEffect(() => {
     if (resource) {
-      setCurrentTheme(resource);
-      setInitialTheme(resource);
+      const formatted = {
+        ...resource,
+        json_data: formatJsonData(resource.json_data),
+      };
+      setCurrentTheme(formatted);
+      setInitialTheme(formatted);
     }
   }, [resource]);
 
