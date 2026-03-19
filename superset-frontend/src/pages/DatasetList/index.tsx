@@ -238,7 +238,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       .finally(() => {
         setLoading(false);
       });
-  }, []);
+  }, [addDangerToast]);
 
   const refreshData = useCallback(() => {
     if (lastFetchConfig) {
@@ -525,7 +525,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
       {
         Cell: ({ row: { original } }: any) => {
-          const isSemanticView = original.source_type === 'semantic_layer';
+          const isSemanticView = original.kind === 'semantic_view';
 
           // Semantic view: only show edit button
           if (isSemanticView) {
