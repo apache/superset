@@ -145,7 +145,16 @@ def _merge_extra_form_data(
     base_custom = base.get("custom_form_data") or {}
     new_custom = new.get("custom_form_data") or {}
     if isinstance(base_custom, dict) and isinstance(new_custom, dict):
-        merged_custom = {**base_custom, **new_custom}
+        merged_custom = dict(base_custom)
+        for key, value in new_custom.items():
+            if (
+                key in merged_custom
+                and isinstance(merged_custom[key], list)
+                and isinstance(value, list)
+            ):
+                merged_custom[key] = merged_custom[key] + value
+            else:
+                merged_custom[key] = value
         if merged_custom:
             merged["custom_form_data"] = merged_custom
 
