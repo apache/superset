@@ -383,11 +383,14 @@ class ChartList(BaseModel):
 
 # Common pieces
 class ColumnRef(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     name: str = Field(
         ...,
         min_length=1,
         max_length=255,
         pattern=r"^[a-zA-Z0-9_][a-zA-Z0-9_\s\-\.]*$",
+        validation_alias=AliasChoices("name", "column_name"),
     )
     label: str | None = Field(None, max_length=500)
     dtype: str | None = None
@@ -507,7 +510,11 @@ class PieChartConfig(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["pie"] = "pie"
-    dimension: ColumnRef = Field(..., description="Category column for slices")
+    dimension: ColumnRef = Field(
+        ...,
+        description="Category column for slices",
+        validation_alias=AliasChoices("dimension", "groupby"),
+    )
     metric: ColumnRef = Field(
         ..., description="Value metric (needs aggregate e.g. SUM, COUNT)"
     )
@@ -547,7 +554,7 @@ class PivotTableChartConfig(BaseModel):
         ...,
         min_length=1,
         description="Row grouping columns",
-        validation_alias=AliasChoices("rows", "groupby"),
+        validation_alias=AliasChoices("rows", "groupby", "dimension"),
     )
     columns: List[ColumnRef] | None = Field(
         None, description="Column groups for cross-tabulation"
@@ -587,23 +594,37 @@ class MixedTimeseriesChartConfig(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["mixed_timeseries"] = "mixed_timeseries"
-    x: ColumnRef = Field(..., description="Shared temporal X-axis column")
+    x: ColumnRef = Field(
+        ...,
+        description="Shared temporal X-axis column",
+        validation_alias=AliasChoices("x", "x_axis"),
+    )
     time_grain: TimeGrain | None = Field(None, description="PT1H, P1D, P1W, P1M, P1Y")
     # Primary series (Query A)
-    y: List[ColumnRef] = Field(..., min_length=1, description="Primary Y-axis metrics")
+    y: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description="Primary Y-axis metrics",
+        validation_alias=AliasChoices("y", "metrics"),
+    )
     primary_kind: Literal["line", "bar", "area", "scatter"] = "line"
     group_by: List[ColumnRef] | None = Field(
         None,
         description="Primary series group by",
-        validation_alias=AliasChoices("group_by", "groupby", "series"),
+        validation_alias=AliasChoices("group_by", "groupby", "series", "dimension"),
     )
     # Secondary series (Query B)
     y_secondary: List[ColumnRef] = Field(
-        ..., min_length=1, description="Secondary Y-axis metrics"
+        ...,
+        min_length=1,
+        description="Secondary Y-axis metrics",
+        validation_alias=AliasChoices("y_secondary", "metrics_b"),
     )
     secondary_kind: Literal["line", "bar", "area", "scatter"] = "bar"
     group_by_secondary: List[ColumnRef] | None = Field(
-        None, description="Secondary series group by"
+        None,
+        description="Secondary series group by",
+        validation_alias=AliasChoices("group_by_secondary", "groupby_b"),
     )
     # Display options
     show_legend: bool = True
@@ -683,9 +704,16 @@ class XYChartConfig(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["xy"] = "xy"
-    x: ColumnRef = Field(..., description="X-axis column")
+    x: ColumnRef = Field(
+        ...,
+        description="X-axis column",
+        validation_alias=AliasChoices("x", "x_axis", "x_column"),
+    )
     y: List[ColumnRef] = Field(
-        ..., min_length=1, description="Y-axis metrics (unique labels)"
+        ...,
+        min_length=1,
+        description="Y-axis metrics (unique labels)",
+        validation_alias=AliasChoices("y", "metrics"),
     )
     kind: Literal["line", "bar", "area", "scatter"] = "line"
     time_grain: TimeGrain | None = Field(
@@ -698,7 +726,9 @@ class XYChartConfig(BaseModel):
     group_by: List[ColumnRef] | None = Field(
         None,
         description="Series breakdown columns",
-        validation_alias=AliasChoices("group_by", "groupby", "series", "breakdown"),
+        validation_alias=AliasChoices(
+            "group_by", "groupby", "series", "breakdown", "dimension"
+        ),
     )
     x_axis: AxisConfig | None = None
     y_axis: AxisConfig | None = None
