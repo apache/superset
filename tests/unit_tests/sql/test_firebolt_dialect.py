@@ -28,6 +28,7 @@ def test_firebolt_exclude_syntax() -> None:
     generated = script.format()
     assert "EXCLUDE" in generated
     assert "EXCEPT" not in generated
+    assert "source_file_timestamp" in generated
 
 
 def test_firebolt_exclude_multiple_columns() -> None:
@@ -38,6 +39,9 @@ def test_firebolt_exclude_multiple_columns() -> None:
     generated = script.format()
     assert "EXCLUDE" in generated
     assert "EXCEPT" not in generated
+    assert "col1" in generated
+    assert "col2" in generated
+    assert "col3" in generated
 
 
 def test_firebolt_sql_parsing() -> None:
