@@ -416,7 +416,7 @@ def test_generate_native_filter_empty_filter_id():
 @pytest.mark.xfail(
     reason="BUG: models.py:296-302 uses truthiness (`if min_val and max_val`) "
     "instead of `is not None`, so zero is treated as missing",
-    strict=False,
+    strict=True,
 )
 def test_generate_native_filter_range_zero_min():
     """Zero min_val should produce a two-sided label, not a max-only label."""
@@ -436,7 +436,7 @@ def test_generate_native_filter_range_zero_min():
 @pytest.mark.xfail(
     reason="BUG: models.py:296-302 uses truthiness (`if min_val and max_val`) "
     "instead of `is not None`, so zero is treated as missing",
-    strict=False,
+    strict=True,
 )
 def test_generate_native_filter_range_zero_max():
     """Zero max_val should produce a two-sided label, not a min-only label."""
@@ -454,7 +454,7 @@ def test_generate_native_filter_range_zero_max():
 @pytest.mark.xfail(
     reason="BUG: models.py:296-302 uses truthiness (`if min_val and max_val`) "
     "instead of `is not None`, so zero is treated as missing",
-    strict=False,
+    strict=True,
 )
 def test_generate_native_filter_range_both_zero():
     """Both values zero should produce a two-sided label, not an empty string."""
