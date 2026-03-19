@@ -188,7 +188,7 @@ const Styles = styled.div`
   }
 
   .ant-collapse-content-box {
-    overflow: visible;
+    overflow: hidden;
   }
 
   .Select__menu {
