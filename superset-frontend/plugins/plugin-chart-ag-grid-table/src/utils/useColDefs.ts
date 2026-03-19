@@ -283,6 +283,16 @@ export const useColDefs = ({
         valueFormatter: p => valueFormatter(p, col),
         valueGetter: p => valueGetter(p, col),
         cellStyle: p => {
+          const cellSurfaceColor =
+            p.node?.rowPinned != null
+              ? theme.colorBgBase
+              : p.rowIndex % 2 === 0
+                ? theme.colorBgBase
+                : theme.colorFillQuaternary;
+          const hoverCellSurfaceColor =
+            p.node?.rowPinned != null
+              ? cellSurfaceColor
+              : theme.colorFillSecondary;
           const cellStyleParams = {
             ...p,
             hasColumnColorFormatters,
@@ -290,8 +300,8 @@ export const useColDefs = ({
             hasBasicColorFormatters,
             basicColorFormatters,
             col,
-            cellBackgroundColor: theme.colorBgBase,
-            cellTextColor: theme.colorPrimaryText,
+            cellSurfaceColor,
+            hoverCellSurfaceColor,
           } as Parameters<typeof getCellStyle>[0];
 
           return getCellStyle(cellStyleParams);
@@ -393,7 +403,8 @@ export const useColDefs = ({
       serverPagination,
       alignPositiveNegative,
       theme.colorBgBase,
-      theme.colorPrimaryText,
+      theme.colorFillSecondary,
+      theme.colorFillQuaternary,
     ],
   );
 

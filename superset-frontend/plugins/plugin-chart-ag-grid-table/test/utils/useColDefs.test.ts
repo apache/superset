@@ -265,7 +265,8 @@ test('cellStyle derives readable text color from dark background formatting', ()
     } as never),
   ).toMatchObject({
     backgroundColor: '#111111',
-    color: 'rgb(255, 255, 255)',
+    color: 'var(--ag-cell-value-color)',
+    '--ag-cell-value-color': 'rgb(255, 255, 255)',
     textAlign: 'right',
   });
 });
@@ -314,7 +315,8 @@ test('cellStyle keeps explicit text color over adaptive contrast', () => {
     } as never),
   ).toMatchObject({
     backgroundColor: '#111111',
-    color: 'rgb(172, 225, 196)',
+    color: 'var(--ag-cell-value-color)',
+    '--ag-cell-value-color': 'rgb(172, 225, 196)',
     textAlign: 'right',
   });
 });
@@ -356,7 +358,8 @@ test('cellStyle treats legacy toTextColor formatters as text color', () => {
   const cellStyle = getCellStyleFunction(colDef.cellStyle);
   expect(getCellStyleResult(cellStyle)).toMatchObject({
     backgroundColor: '#111111',
-    color: 'rgb(172, 225, 196)',
+    color: 'var(--ag-cell-value-color)',
+    '--ag-cell-value-color': 'rgb(172, 225, 196)',
     textAlign: 'right',
   });
 });
@@ -422,15 +425,134 @@ test('cellStyle uses caller-provided surface color for adaptive contrast', () =>
 
   expect(getCellStyleResult(lightCellStyle)).toMatchObject({
     backgroundColor,
-    color: getExpectedTextColor({ backgroundColor }, '#ffffff'),
+    color: 'var(--ag-cell-value-color)',
+    '--ag-cell-value-color': getExpectedTextColor(
+      { backgroundColor },
+      '#ffffff',
+    ),
   });
   expect(getCellStyleResult(darkCellStyle)).toMatchObject({
     backgroundColor,
-    color: getExpectedTextColor({ backgroundColor }, '#000000'),
+    color: 'var(--ag-cell-value-color)',
+    '--ag-cell-value-color': getExpectedTextColor(
+      { backgroundColor },
+      '#000000',
+    ),
   });
   expect(getCellStyleResult(lightCellStyle)).not.toEqual(
     getCellStyleResult(darkCellStyle),
   );
+});
+
+test('cellStyle uses striped odd-row surface for adaptive contrast', () => {
+  const numericCol = makeColumn({
+    key: 'count',
+    label: 'Count',
+    dataType: GenericDataType.Numeric,
+    isNumeric: true,
+    isMetric: true,
+  });
+  const backgroundColor = 'rgba(0, 0, 0, 0.4)';
+
+  const { result } = renderHook(
+    () =>
+      useColDefs({
+        ...defaultProps,
+        columns: [numericCol],
+        data: [{ count: 42 }, { count: 43 }],
+        columnColorFormatters: [
+          {
+            column: 'count',
+            objectFormatting: ObjectFormattingEnum.BACKGROUND_COLOR,
+            getColorFromValue: (value: unknown) =>
+              typeof value === 'number' ? backgroundColor : undefined,
+          },
+        ],
+      }),
+    {
+      wrapper: makeThemeWrapper({
+        ...supersetTheme,
+        colorBgBase: '#ffffff',
+        colorFillQuaternary: '#000000',
+      }),
+    },
+  );
+
+  const cellStyle = getCellStyleFunction(result.current[0].cellStyle);
+
+  expect(
+    getCellStyleResult(cellStyle, {
+      rowIndex: 0,
+    }),
+  ).toMatchObject({
+    backgroundColor,
+    color: 'var(--ag-cell-value-color)',
+    '--ag-cell-value-color': getExpectedTextColor(
+      { backgroundColor },
+      '#ffffff',
+    ),
+  });
+  expect(
+    getCellStyleResult(cellStyle, {
+      rowIndex: 1,
+    }),
+  ).toMatchObject({
+    backgroundColor,
+    color: 'var(--ag-cell-value-color)',
+    '--ag-cell-value-color': getExpectedTextColor(
+      { backgroundColor },
+      '#000000',
+    ),
+  });
+});
+
+test('cellStyle exposes hover-specific adaptive contrast for formatted cells', () => {
+  const numericCol = makeColumn({
+    key: 'count',
+    label: 'Count',
+    dataType: GenericDataType.Numeric,
+    isNumeric: true,
+    isMetric: true,
+  });
+  const backgroundColor = 'rgba(0, 0, 0, 0.4)';
+
+  const { result } = renderHook(
+    () =>
+      useColDefs({
+        ...defaultProps,
+        columns: [numericCol],
+        data: [{ count: 42 }],
+        columnColorFormatters: [
+          {
+            column: 'count',
+            objectFormatting: ObjectFormattingEnum.BACKGROUND_COLOR,
+            getColorFromValue: (value: unknown) =>
+              value === 42 ? backgroundColor : undefined,
+          },
+        ],
+      }),
+    {
+      wrapper: makeThemeWrapper({
+        ...supersetTheme,
+        colorBgBase: '#ffffff',
+        colorFillSecondary: '#000000',
+      }),
+    },
+  );
+
+  const cellStyle = getCellStyleFunction(result.current[0].cellStyle);
+  expect(getCellStyleResult(cellStyle)).toMatchObject({
+    backgroundColor,
+    color: 'var(--ag-cell-value-color)',
+    '--ag-cell-value-color': getExpectedTextColor(
+      { backgroundColor },
+      '#ffffff',
+    ),
+    '--ag-cell-value-hover-color': getExpectedTextColor(
+      { backgroundColor },
+      '#000000',
+    ),
+  });
 });
 
 test('cellStyle falls back to cellTextColor when no formatter matches', () => {
@@ -465,11 +587,16 @@ test('cellStyle falls back to cellTextColor when no formatter matches', () => {
   );
 
   const cellStyle = getCellStyleFunction(result.current[0].cellStyle);
-  expect(getCellStyleResult(cellStyle)).toMatchObject({
+  const cellStyleResult = getCellStyleResult(cellStyle) as {
+    backgroundColor: string;
+    color?: string;
+    textAlign: string;
+  };
+  expect(cellStyleResult).toMatchObject({
     backgroundColor: '',
-    color: '#123456',
     textAlign: 'right',
   });
+  expect(cellStyleResult.color).toBeUndefined();
 });
 
 test('cellStyle preserves invalid explicit text color', () => {
@@ -502,7 +629,9 @@ test('cellStyle preserves invalid explicit text color', () => {
   const cellStyle = getCellStyleFunction(result.current[0].cellStyle);
   expect(getCellStyleResult(cellStyle)).toMatchObject({
     backgroundColor: '',
-    color: 'not-a-color',
+    color: 'var(--ag-cell-value-color)',
+    '--ag-cell-value-color': 'not-a-color',
+    '--ag-cell-value-hover-color': 'not-a-color',
   });
 });
 
@@ -539,10 +668,14 @@ test('cellStyle ignores cell-bar formatters for text and background resolution',
   );
 
   const cellStyle = getCellStyleFunction(result.current[0].cellStyle);
-  expect(getCellStyleResult(cellStyle)).toMatchObject({
+  const cellStyleResult = getCellStyleResult(cellStyle) as {
+    backgroundColor: string;
+    color?: string;
+  };
+  expect(cellStyleResult).toMatchObject({
     backgroundColor: '',
-    color: '#654321',
   });
+  expect(cellStyleResult.color).toBeUndefined();
 });
 
 test('cellStyle lets basic color formatters override column formatter background', () => {
@@ -586,7 +719,11 @@ test('cellStyle lets basic color formatters override column formatter background
   const cellStyle = getCellStyleFunction(result.current[0].cellStyle);
   expect(getCellStyleResult(cellStyle)).toMatchObject({
     backgroundColor: '#abcdef',
-    color: getExpectedTextColor({ backgroundColor: '#abcdef' }, '#ffffff'),
+    color: 'var(--ag-cell-value-color)',
+    '--ag-cell-value-color': getExpectedTextColor(
+      { backgroundColor: '#abcdef' },
+      '#ffffff',
+    ),
   });
 });
 
@@ -627,7 +764,6 @@ test('cellStyle ignores basic color formatters for pinned bottom rows', () => {
     }),
   ).toMatchObject({
     backgroundColor: '',
-    color: supersetTheme.colorPrimaryText,
   });
 });
 

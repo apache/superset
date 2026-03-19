@@ -25,65 +25,14 @@ import PropTypes from 'prop-types';
 import { FaSort } from 'react-icons/fa';
 import { FaSortDown as FaSortDesc } from 'react-icons/fa';
 import { FaSortUp as FaSortAsc } from 'react-icons/fa';
-import tinycolor from 'tinycolor2';
 import {
   ColorFormatters,
+  getTextColorForBackground,
   ObjectFormattingEnum,
+  ResolvedColorFormatterResult,
 } from '@superset-ui/chart-controls';
 import { PivotData, flatKey } from './utilities';
 import { Styles } from './Styles';
-
-type ResolvedColorFormatterResult = {
-  backgroundColor?: string;
-  color?: string;
-};
-
-const READABLE_TEXT_COLORS = [
-  { r: 0, g: 0, b: 0 },
-  { r: 255, g: 255, b: 255 },
-];
-
-const getTextColorForBackground = (
-  result: ResolvedColorFormatterResult,
-  surfaceColor: string,
-) => {
-  if (result.color) {
-    const parsedColor = tinycolor(result.color);
-    return parsedColor.isValid()
-      ? parsedColor.setAlpha(1).toRgbString()
-      : result.color;
-  }
-
-  if (!result.backgroundColor) {
-    return undefined;
-  }
-
-  const background = tinycolor(result.backgroundColor);
-  const surface = tinycolor(surfaceColor);
-  if (!background.isValid() || !surface.isValid()) {
-    return undefined;
-  }
-
-  const { r: bgR, g: bgG, b: bgB, a: bgAlpha } = background.toRgb();
-  const { r: surfaceR, g: surfaceG, b: surfaceB } = surface.toRgb();
-  const alpha = bgAlpha ?? 1;
-
-  return tinycolor
-    .mostReadable(
-      tinycolor({
-        r: bgR * alpha + surfaceR * (1 - alpha),
-        g: bgG * alpha + surfaceG * (1 - alpha),
-        b: bgB * alpha + surfaceB * (1 - alpha),
-      }),
-      READABLE_TEXT_COLORS,
-      {
-        includeFallbackColors: true,
-        level: 'AA',
-        size: 'small',
-      },
-    )
-    .toRgbString();
-};
 
 type ClickCallback = (
   e: MouseEvent,
@@ -819,7 +768,6 @@ export class TableRenderer extends Component<
       cellColorFormatters,
       dateFormatters,
       cellBackgroundColor = supersetTheme.colorBgBase,
-      cellTextColor = supersetTheme.colorPrimaryText,
     } = this.props.tableOptions;
 
     if (!visibleColKeys || !colAttrSpans) {
@@ -886,6 +834,7 @@ export class TableRenderer extends Component<
         ) {
           colLabelClass += ' active';
         }
+        const isActiveHeader = colLabelClass.includes('active');
         const maxRowIndex = pivotSettings.maxRowVisible!;
         const mColVisible = pivotSettings.maxColVisible!;
         const visibleSortIcon = mColVisible - 1 === attrIdx;
@@ -922,9 +871,12 @@ export class TableRenderer extends Component<
           [attrName],
           headerCellFormattedValue,
           cellColorFormatters,
-          cellBackgroundColor,
+          isActiveHeader ? supersetTheme.colorPrimaryBg : cellBackgroundColor,
         );
-        const style = { backgroundColor, color: color ?? cellTextColor };
+        const style = {
+          backgroundColor,
+          ...(color ? { color } : {}),
+        };
         attrValueCells.push(
           <th
             className={colLabelClass}
@@ -1144,6 +1096,7 @@ export class TableRenderer extends Component<
       ) {
         valueCellClassName += ' active';
       }
+      const isActiveHeader = valueCellClassName.includes('active');
       const rowSpan = rowAttrSpans![rowIdx][i];
       if (rowSpan > 0) {
         const flatRowKey = flatKey(rowKey.slice(0, i + 1));
@@ -1161,9 +1114,12 @@ export class TableRenderer extends Component<
           [rowAttrs[i]],
           headerCellFormattedValue,
           cellColorFormatters,
-          cellBackgroundColor,
+          isActiveHeader ? supersetTheme.colorPrimaryBg : cellBackgroundColor,
         );
-        const style = { backgroundColor, color: color ?? cellTextColor };
+        const style = {
+          backgroundColor,
+          ...(color ? { color } : {}),
+        };
         return (
           <th
             key={`rowKeyLabel-${i}`}

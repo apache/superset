@@ -33,8 +33,8 @@ type CellStyleParams = CellClassParams & {
     [Key: string]: BasicColorFormatterType;
   }[];
   col: InputColumn;
-  cellBackgroundColor: string;
-  cellTextColor: string;
+  cellSurfaceColor: string;
+  hoverCellSurfaceColor: string;
 };
 
 const getCellStyle = (params: CellStyleParams) => {
@@ -48,8 +48,8 @@ const getCellStyle = (params: CellStyleParams) => {
     columnColorFormatters,
     col,
     node,
-    cellBackgroundColor,
-    cellTextColor,
+    cellSurfaceColor,
+    hoverCellSurfaceColor,
   } = params;
   let backgroundColor;
   let color;
@@ -90,14 +90,28 @@ const getCellStyle = (params: CellStyleParams) => {
 
   const textAlign =
     col?.config?.horizontalAlign || (col?.isNumeric ? 'right' : 'left');
+  const resolvedTextColor = getTextColorForBackground(
+    { backgroundColor, color },
+    cellSurfaceColor,
+  );
+  const hoverResolvedTextColor = getTextColorForBackground(
+    { backgroundColor, color },
+    hoverCellSurfaceColor,
+  );
 
   return {
     backgroundColor: backgroundColor || '',
-    color:
-      getTextColorForBackground(
-        { backgroundColor, color },
-        cellBackgroundColor,
-      ) || cellTextColor,
+    ...(resolvedTextColor
+      ? {
+          color: 'var(--ag-cell-value-color)',
+          '--ag-cell-value-color': resolvedTextColor,
+        }
+      : {}),
+    ...(hoverResolvedTextColor
+      ? {
+          '--ag-cell-value-hover-color': hoverResolvedTextColor,
+        }
+      : {}),
     textAlign,
   };
 };
