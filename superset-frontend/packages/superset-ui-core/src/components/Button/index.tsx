@@ -174,7 +174,6 @@ export function Button(props: ButtonProps) {
         `superset-button-${buttonStyle}`,
         { cta: !!cta },
       )}
-      style={secondaryStyle}
       css={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -200,6 +199,11 @@ export function Button(props: ButtonProps) {
       }}
       icon={icon}
       {...restProps}
+      style={
+        secondaryStyle
+          ? { ...secondaryStyle, ...restProps.style }
+          : restProps.style
+      }
     >
       {children}
     </AntdButton>

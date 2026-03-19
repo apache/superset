@@ -185,3 +185,32 @@ test('getSecondaryButtonHoverStyles supports partial token overrides', () => {
   expect(hoverStyles['&:hover'].color).toBe('#2893B3 !important');
   expect(hoverStyles['&:active'].backgroundColor).toBe('#99d3df !important');
 });
+
+test('getSecondaryButtonStyle falls back when tokens are empty strings', () => {
+  const mockTheme = {
+    colorPrimary: '#2893B3',
+    colorPrimaryBg: '#e6f4f7',
+    buttonSecondaryColor: '',
+    buttonSecondaryBg: '',
+    buttonSecondaryBorderColor: '',
+  } as SupersetTheme;
+
+  const styles = getSecondaryButtonStyle(mockTheme);
+
+  // Empty strings should trigger fallback to primary tokens
+  expect(styles.color).toBe('#2893B3');
+  expect(styles.backgroundColor).toBe('#e6f4f7');
+  expect(styles.borderColor).toBe('transparent');
+});
+
+test('secondary button merges consumer style with theme styles', () => {
+  const { getByRole } = render(
+    <Button buttonStyle="secondary" style={{ marginTop: 10, padding: 20 }}>
+      Styled Secondary
+    </Button>,
+  );
+  const button = getByRole('button');
+
+  // Consumer styles should be applied
+  expect(button).toHaveStyle({ marginTop: '10px', padding: '20px' });
+});
