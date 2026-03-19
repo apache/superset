@@ -286,6 +286,19 @@ class TestXYChartConfig:
         assert config.group_by is not None
         assert len(config.group_by) == 2
 
+    def test_group_by_bare_string(self) -> None:
+        """Test that group_by accepts a bare string (auto-wrapped)."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="territory"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+            group_by="region",
+        )
+        assert config.group_by is not None
+        assert len(config.group_by) == 1
+        assert config.group_by[0].name == "region"
+
     def test_orientation_horizontal_accepted(self) -> None:
         """Test that orientation='horizontal' is accepted for bar charts."""
         config = XYChartConfig(
