@@ -77,8 +77,9 @@ test('applyDefaultFormData keeps null if key is defined with null', () => {
 });
 
 // ============================================================
-// Migration tests: handleDeprecatedControls cleans stale matrixify modes
-// (TDD: tests for fix to apache/superset#38519 regression)
+// Migration tests: handleDeprecatedControls normalizes stale matrixify modes
+// (fix for apache/superset#38519 regression — guards validators AND
+// downstream UI consumers that infer matrixify state from mode values)
 // ============================================================
 
 test('getControlsState resets stale matrixify_mode_rows to disabled when matrixify_enable key absent', () => {
@@ -86,7 +87,7 @@ test('getControlsState resets stale matrixify_mode_rows to disabled when matrixi
   const formData = {
     datasource: '1__table',
     viz_type: 'test-chart',
-    matrixify_mode_rows: 'dimensions', // stale in form_data
+    matrixify_mode_rows: 'dimensions', // stale pre-revamp default
   };
 
   const result = getControlsState(state as any, formData as any);
@@ -99,7 +100,7 @@ test('getControlsState resets stale matrixify_mode_columns to disabled when matr
   const formData = {
     datasource: '1__table',
     viz_type: 'test-chart',
-    matrixify_mode_columns: 'metrics', // stale in form_data
+    matrixify_mode_columns: 'metrics', // stale pre-revamp default
   };
 
   const result = getControlsState(state as any, formData as any);
@@ -132,7 +133,7 @@ test('getControlsState preserves matrixify mode values when matrixify_enable is 
 
   const result = getControlsState(state as any, formData as any);
   const modeControl = result.matrixify_mode_rows as any;
-  // matrixify_enable key IS present (just false) — migration should NOT fire
+  // matrixify_enable key IS present (just false) — migration does NOT fire
   expect(modeControl?.value).toBe('dimensions');
 });
 

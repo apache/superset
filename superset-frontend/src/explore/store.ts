@@ -55,10 +55,12 @@ function handleDeprecatedControls(formData: FormData): void {
     formData.y_axis_bounds = [0, null];
   }
 
-  // #38519: reset stale matrixify mode defaults for legacy charts.
-  // Pre-revamp charts have matrixify_mode_rows/columns set to non-disabled
-  // values but no matrixify_enable key. Without this cleanup, the stale modes
-  // cause isMatrixifyVisible() to inject validators that silently block save.
+  // #38519: normalize stale matrixify mode defaults for pre-revamp charts.
+  // Before the matrixify revamp, matrixify_mode_rows/columns defaulted to
+  // non-disabled values ('dimensions'/'metrics') and matrixify_enable did not
+  // exist. Multiple UI consumers (ExploreChartPanel, ChartContextMenu,
+  // DrillBySubmenu, ChartRenderer) infer "matrixify is active" from mode
+  // values alone, so stale non-disabled modes must be reset to 'disabled'.
   if (!('matrixify_enable' in formData)) {
     formData.matrixify_mode_rows = 'disabled';
     formData.matrixify_mode_columns = 'disabled';
