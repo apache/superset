@@ -21,6 +21,7 @@ from flask import current_app as app, request
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.api.schemas import get_list_schema
 from sqlalchemy import and_, func, literal, or_, select, union_all
+from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import Select
 
 from superset import db, event_logger, is_feature_enabled, security_manager
@@ -342,7 +343,12 @@ class DatasourceRestApi(BaseSupersetApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not security_manager.can_access("can_read", "Dataset"):
+        can_read_datasets = security_manager.can_access("can_read", "Dataset")
+        can_read_sv = is_feature_enabled(
+            "SEMANTIC_LAYERS"
+        ) and security_manager.can_access("can_read", "SemanticView")
+
+        if not can_read_datasets and not can_read_sv:
             return self.response(403, message="Access denied")
 
         args = kwargs.get("rison", {})
@@ -356,9 +362,13 @@ class DatasourceRestApi(BaseSupersetApi):
             self._parse_combined_list_filters(filters)
         )
 
-        # If semantic layers feature flag is off, only show datasets
-        if not is_feature_enabled("SEMANTIC_LAYERS"):
+        # If semantic layers feature flag is off or no SV access, only show datasets
+        if not can_read_sv:
             source_type = "database"
+
+        # If no dataset access, only show semantic views
+        if not can_read_datasets:
+            source_type = "semantic_layer"
 
         ds_q = self._build_dataset_query(name_filter, sql_filter)
 
@@ -417,7 +427,7 @@ class DatasourceRestApi(BaseSupersetApi):
     ) -> Select:
         """Build the dataset subquery with filters."""
         ds_q = select(
-            SqlaTable.id.label("item_id"),  # type: ignore
+            SqlaTable.id.label("item_id"),
             literal("database").label("source_type"),
             SqlaTable.changed_on,
             SqlaTable.table_name,
@@ -445,7 +455,7 @@ class DatasourceRestApi(BaseSupersetApi):
     def _build_semantic_view_query(name_filter: str | None) -> Select:
         """Build the semantic view subquery with filters."""
         sv_q = select(
-            SemanticView.id.label("item_id"),  # type: ignore
+            SemanticView.id.label("item_id"),
             literal("semantic_layer").label("source_type"),
             SemanticView.changed_on,
             SemanticView.name.label("table_name"),
@@ -498,14 +508,24 @@ class DatasourceRestApi(BaseSupersetApi):
         datasets_map: dict[int, SqlaTable] = {}
         if dataset_ids:
             ds_objs = (
-                db.session.query(SqlaTable).filter(SqlaTable.id.in_(dataset_ids)).all()  # type: ignore
+                db.session.query(SqlaTable)
+                .options(
+                    joinedload(SqlaTable.database),
+                    joinedload(SqlaTable.owners),
+                    joinedload(SqlaTable.changed_by),
+                )
+                .filter(SqlaTable.id.in_(dataset_ids))
+                .all()
             )
             datasets_map = {obj.id: obj for obj in ds_objs}
 
         sv_map: dict[int, SemanticView] = {}
         if sv_ids:
             sv_objs = (
-                db.session.query(SemanticView).filter(SemanticView.id.in_(sv_ids)).all()  # type: ignore
+                db.session.query(SemanticView)
+                .options(joinedload(SemanticView.changed_by))
+                .filter(SemanticView.id.in_(sv_ids))
+                .all()
             )
             sv_map = {obj.id: obj for obj in sv_objs}
 
