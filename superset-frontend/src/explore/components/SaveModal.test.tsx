@@ -242,18 +242,17 @@ test('renders a message when saving as with new dashboard', () => {
 
 test('does not preselect an externally managed dashboard on mount', async () => {
   const dashboardId = 1;
-  fetchMock.get(
-    `glob:*/api/v1/dashboard/${dashboardId}`,
-    {
-      result: {
-        id: dashboardId,
-        dashboard_title: 'Managed Dashboard',
-        owners: [{ id: 1 }],
-        is_managed_externally: true,
-      },
+  fetchMock.removeRoutes();
+  fetchMock.get(fetchDashboardsEndpoint, mockDashboardData);
+  fetchMock.get(fetchChartEndpoint, { id: 1, dashboards: [1] });
+  fetchMock.get(`glob:*/api/v1/dashboard/${dashboardId}`, {
+    result: {
+      id: dashboardId,
+      dashboard_title: 'Managed Dashboard',
+      owners: [{ id: 1 }],
+      is_managed_externally: true,
     },
-    { overwriteRoutes: true },
-  );
+  });
 
   const store = mockStore({
     ...initialState,
@@ -286,14 +285,14 @@ test('does not preselect an externally managed dashboard on mount', async () => 
     fetchMock.callHistory.calls(`glob:*/api/v1/dashboard/${dashboardId}/tabs`),
   ).toHaveLength(0);
 
-  // Restore the default dashboard endpoint mock and clear history
-  // so subsequent tests that count calls are not affected
-  fetchMock.get(
-    fetchDashboardEndpoint,
-    { result: [{ id: 'id', dashboard_title: 'dashboard title' }] },
-    { overwriteRoutes: true },
-  );
+  // Restore default mocks
+  fetchMock.removeRoutes();
   fetchMock.clearHistory();
+  fetchMock.get(fetchDashboardsEndpoint, mockDashboardData);
+  fetchMock.get(fetchChartEndpoint, { id: 1, dashboards: [1] });
+  fetchMock.get(fetchDashboardEndpoint, {
+    result: [{ id: 'id', dashboard_title: 'dashboard title' }],
+  });
 });
 
 test('loadDashboards includes is_managed_externally filter', async () => {
@@ -303,14 +302,16 @@ test('loadDashboards includes is_managed_externally filter', async () => {
   });
   const dashboardListEndpoint = `glob:*/api/v1/dashboard/?q=*`;
 
-  fetchMock.get(
-    dashboardListEndpoint,
-    {
-      result: [{ id: 1, dashboard_title: 'Test' }],
-      count: 1,
-    },
-    { overwriteRoutes: true },
-  );
+  fetchMock.removeRoutes();
+  fetchMock.get(fetchDashboardsEndpoint, mockDashboardData);
+  fetchMock.get(fetchChartEndpoint, { id: 1, dashboards: [1] });
+  fetchMock.get(fetchDashboardEndpoint, {
+    result: [{ id: 'id', dashboard_title: 'dashboard title' }],
+  });
+  fetchMock.get(dashboardListEndpoint, {
+    result: [{ id: 1, dashboard_title: 'Test' }],
+    count: 1,
+  });
 
   await component.loadDashboards('test', 0, 25);
 

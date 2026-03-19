@@ -374,7 +374,7 @@ class TestChartsCreateCommand(SupersetTestCase):
         self, mock_sm_g, mock_c_g, mock_u_g
     ):
         """
-        Test that creating a chart fails when a selected dashboard is managed 
+        Test that creating a chart fails when a selected dashboard is managed
         externally
         """
         from superset.models.dashboard import Dashboard
