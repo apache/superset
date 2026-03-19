@@ -24,7 +24,7 @@ import inspect
 from typing import Annotated, List
 
 import pytest
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from superset.mcp_service.utils.schema_utils import (
     JSONParseError,
@@ -758,9 +758,15 @@ class TestParseRequestFlattenedDecorator:
         for param in sig.parameters.values():
             assert param.kind == inspect.Parameter.KEYWORD_ONLY
 
-    def test_flattened_validation_error(self):
-        """Pydantic validation errors should propagate when constructing model."""
+    def test_flattened_validation_error_raises_tool_error(self):
+        """Pydantic validation errors should be converted to ToolError.
+
+        Raw ValidationError propagation causes LangGraph serialization failures
+        (TypeError: encoding without a string argument).
+        """
         from unittest.mock import MagicMock, patch
+
+        from fastmcp.exceptions import ToolError
 
         @parse_request(self.SimpleRequest)
         def my_tool(request, ctx=None):
@@ -768,8 +774,63 @@ class TestParseRequestFlattenedDecorator:
 
         mock_ctx = MagicMock()
         with patch("fastmcp.server.dependencies.get_context", return_value=mock_ctx):
-            with pytest.raises(ValidationError):
+            with pytest.raises(ToolError):
                 my_tool(name="test", count="not_a_number")
+
+    async def test_flattened_validation_error_raises_tool_error_async(self):
+        """Async flattened wrapper should also convert ValidationError to ToolError."""
+        from unittest.mock import MagicMock, patch
+
+        from fastmcp.exceptions import ToolError
+
+        @parse_request(self.SimpleRequest)
+        async def my_tool(request, ctx=None):
+            return "ok"
+
+        mock_ctx = MagicMock()
+        with patch("fastmcp.server.dependencies.get_context", return_value=mock_ctx):
+            with pytest.raises(ToolError):
+                await my_tool(name="test", count="not_a_number")
+
+    def test_flattened_missing_required_field_raises_tool_error(self):
+        """Missing required fields should raise ToolError with helpful message."""
+        from unittest.mock import MagicMock, patch
+
+        from fastmcp.exceptions import ToolError
+
+        class RequiredFieldRequest(BaseModel):
+            model_config = ConfigDict(extra="forbid")
+            name: str = Field(..., description="Required name")
+            count: int = Field(..., description="Required count")
+
+        @parse_request(RequiredFieldRequest)
+        def my_tool(request, ctx=None):
+            return "ok"
+
+        mock_ctx = MagicMock()
+        with patch("fastmcp.server.dependencies.get_context", return_value=mock_ctx):
+            with pytest.raises(ToolError, match="Invalid request parameters"):
+                my_tool(name="test")  # missing count
+
+    async def test_flattened_missing_required_field_raises_tool_error_async(self):
+        """Async: missing required fields should raise ToolError."""
+        from unittest.mock import MagicMock, patch
+
+        from fastmcp.exceptions import ToolError
+
+        class RequiredFieldRequest(BaseModel):
+            model_config = ConfigDict(extra="forbid")
+            name: str = Field(..., description="Required name")
+            count: int = Field(..., description="Required count")
+
+        @parse_request(RequiredFieldRequest)
+        async def my_tool(request, ctx=None):
+            return "ok"
+
+        mock_ctx = MagicMock()
+        with patch("fastmcp.server.dependencies.get_context", return_value=mock_ctx):
+            with pytest.raises(ToolError, match="Invalid request parameters"):
+                await my_tool(name="test")  # missing count
 
     def test_flattened_annotations_have_descriptions(self):
         """Annotations should include Field descriptions for FastMCP schema."""

@@ -561,10 +561,27 @@ def _create_flattened_wrapper(
 
         @wraps(func)
         async def async_wrapper(**kwargs: Any) -> Any:
+            from fastmcp.exceptions import ToolError
             from fastmcp.server.dependencies import get_context
 
             ctx = get_context()
-            model = request_class.model_validate(kwargs)
+            try:
+                model = request_class.model_validate(kwargs)
+            except ValidationError as e:
+                details = []
+                for err in e.errors():
+                    field = " -> ".join(str(loc) for loc in err["loc"])
+                    details.append(f"{field}: {err['msg']}")
+                required_fields = [
+                    f.alias or name
+                    for name, f in request_class.model_fields.items()
+                    if f.is_required()
+                ]
+                raise ToolError(
+                    f"Invalid request parameters: {'; '.join(details)}. "
+                    f"Required fields for {request_class.__name__}: "
+                    f"{', '.join(required_fields)}"
+                ) from None
             return await func(model, ctx)
 
         wrapper = async_wrapper
@@ -572,10 +589,27 @@ def _create_flattened_wrapper(
 
         @wraps(func)
         def sync_wrapper(**kwargs: Any) -> Any:
+            from fastmcp.exceptions import ToolError
             from fastmcp.server.dependencies import get_context
 
             ctx = get_context()
-            model = request_class.model_validate(kwargs)
+            try:
+                model = request_class.model_validate(kwargs)
+            except ValidationError as e:
+                details = []
+                for err in e.errors():
+                    field = " -> ".join(str(loc) for loc in err["loc"])
+                    details.append(f"{field}: {err['msg']}")
+                required_fields = [
+                    f.alias or name
+                    for name, f in request_class.model_fields.items()
+                    if f.is_required()
+                ]
+                raise ToolError(
+                    f"Invalid request parameters: {'; '.join(details)}. "
+                    f"Required fields for {request_class.__name__}: "
+                    f"{', '.join(required_fields)}"
+                ) from None
             return func(model, ctx)
 
         wrapper = sync_wrapper
