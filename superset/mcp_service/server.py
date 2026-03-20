@@ -25,7 +25,7 @@ For multi-pod deployments, configure MCP_EVENT_STORE_CONFIG with Redis URL.
 import logging
 import os
 from collections.abc import Sequence
-from typing import Any
+from typing import Annotated, Any
 
 import uvicorn
 
@@ -42,6 +42,7 @@ from superset.mcp_service.middleware import (
     StructuredContentStripperMiddleware,
 )
 from superset.mcp_service.storage import _create_redis_store
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -214,6 +215,37 @@ def _fix_call_tool_arguments(tool: Any) -> Any:
     return tool
 
 
+def _normalize_call_tool_arguments(
+    arguments: dict[str, Any] | None,
+    tool_schema: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """JSON-serialize dict/list values when the tool schema accepts both
+    string and object variants (anyOf or oneOf with a string type).
+
+    When the BM25/regex ``call_tool`` proxy forwards arguments to the
+    actual tool, dict/list values must be serialized if the tool's schema
+    declares ``anyOf``/``oneOf`` with a string variant
+    (e.g. ``request: str | RequestModel``).
+
+    Without this, the MCP transport calls ``bytes(dict, 'utf-8')``
+    which raises ``TypeError: encoding without a string argument``.
+    """
+    if not arguments or not isinstance(tool_schema, dict):
+        return arguments
+
+    properties = tool_schema.get("properties", {})
+    result = dict(arguments)
+    for key, value in result.items():
+        if not isinstance(value, (dict, list)) or key not in properties:
+            continue
+        prop_schema = properties[key]
+        variants = prop_schema.get("oneOf") or prop_schema.get("anyOf") or []
+        has_string = any(v.get("type") == "string" for v in variants)
+        if has_string:
+            result[key] = json.dumps(value)
+    return result
+
+
 def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> None:
     """Apply tool search transform to reduce initial context size.
 
@@ -222,12 +254,16 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
     discover other tools on-demand via natural language search.
 
     Uses subclassing (not monkey-patching) to override ``_make_call_tool``
-    and fix the ``arguments`` schema for MCP bridge compatibility.
+    and fix the ``arguments`` schema for MCP bridge compatibility, and
+    normalize forwarded arguments to prevent encoding errors.
 
     NOTE: ``_make_call_tool`` is a private API in FastMCP 3.x
     (fastmcp>=3.1.0,<4.0). If FastMCP changes or removes this method
     in a future major version, these subclasses will need to be updated.
     """
+    from fastmcp.server.context import Context
+    from fastmcp.tools.tool import Tool, ToolResult
+
     strategy = config.get("strategy", "bm25")
     kwargs: dict[str, Any] = {
         "max_results": config.get("max_results", 5),
@@ -237,24 +273,61 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
         "search_result_serializer": _serialize_tools_without_output_schema,
     }
 
+    def _make_normalizing_call_tool(transform: Any) -> Tool:
+        """Create a call_tool proxy that normalizes arguments before forwarding.
+
+        This fixes two issues:
+        1. anyOf schema incompatibility with MCP bridges (schema fix).
+        2. ``encoding without a string argument`` TypeError when dict/list
+           values are forwarded for parameters declared as
+           ``str | SomeModel`` (argument normalization).
+        """
+
+        async def call_tool(
+            name: Annotated[str, "The name of the tool to call"],
+            arguments: Annotated[
+                dict[str, Any] | None, "Arguments to pass to the tool"
+            ] = None,
+            ctx: Context = None,
+        ) -> ToolResult:
+            """Call a tool by name with the given arguments.
+
+            Use this to execute tools discovered via search_tools.
+            """
+            if name in {transform._call_tool_name, transform._search_tool_name}:
+                raise ValueError(
+                    f"'{name}' is a synthetic search tool and cannot be "
+                    f"called via the call_tool proxy"
+                )
+            if arguments:
+                target_tool = await ctx.fastmcp.get_tool(name)
+                if target_tool is not None:
+                    arguments = _normalize_call_tool_arguments(
+                        arguments, target_tool.parameters
+                    )
+            return await ctx.fastmcp.call_tool(name, arguments)
+
+        tool = Tool.from_function(fn=call_tool, name=transform._call_tool_name)
+        return _fix_call_tool_arguments(tool)
+
     if strategy == "regex":
         from fastmcp.server.transforms.search import RegexSearchTransform
 
         class _FixedRegexSearchTransform(RegexSearchTransform):
-            """Regex search with fixed call_tool arguments schema."""
+            """Regex search with fixed call_tool schema and arg normalization."""
 
-            def _make_call_tool(self) -> Any:
-                return _fix_call_tool_arguments(super()._make_call_tool())
+            def _make_call_tool(self) -> Tool:
+                return _make_normalizing_call_tool(self)
 
         transform = _FixedRegexSearchTransform(**kwargs)
     else:
         from fastmcp.server.transforms.search import BM25SearchTransform
 
         class _FixedBM25SearchTransform(BM25SearchTransform):
-            """BM25 search with fixed call_tool arguments schema."""
+            """BM25 search with fixed call_tool schema and arg normalization."""
 
-            def _make_call_tool(self) -> Any:
-                return _fix_call_tool_arguments(super()._make_call_tool())
+            def _make_call_tool(self) -> Tool:
+                return _make_normalizing_call_tool(self)
 
         transform = _FixedBM25SearchTransform(**kwargs)
 
