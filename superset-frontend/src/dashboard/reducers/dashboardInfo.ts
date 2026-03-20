@@ -46,9 +46,7 @@ import {
 
 interface DashboardInfoAction {
   type: string;
-  newInfo?: Partial<DashboardInfo> & {
-    theme_id?: number | null;
-  };
+  newInfo?: Partial<DashboardInfo>;
   filterBarOrientation?: FilterBarOrientation;
   crossFiltersEnabled?: boolean;
   chartCustomization?: (ChartCustomization | ChartCustomizationDivider)[];
@@ -124,22 +122,31 @@ export default function dashboardInfoReducer(
     case DASHBOARD_INFO_UPDATED: {
       const dashAction = action as DashboardInfoAction;
       const newInfo = dashAction.newInfo || {};
-      const { theme_id: themeId, ...otherInfo } = newInfo;
-      const updatedState: DashboardInfoState = {
+      const incomingMeta = newInfo.metadata;
+      return {
         ...state,
-        ...otherInfo,
+        ...newInfo,
+        // Preserve client-only scope data (chartsInScope, tabsInScope) when
+        // metadata is refreshed from the server, matching HYDRATE_DASHBOARD.
+        ...(incomingMeta && {
+          metadata: {
+            ...incomingMeta,
+            ...(incomingMeta.native_filter_configuration && {
+              native_filter_configuration: preserveScopes(
+                state.metadata?.native_filter_configuration,
+                incomingMeta.native_filter_configuration,
+              ),
+            }),
+            ...(incomingMeta.chart_customization_config && {
+              chart_customization_config: preserveScopes(
+                state.metadata?.chart_customization_config,
+                incomingMeta.chart_customization_config,
+              ),
+            }),
+          },
+        }),
         last_modified_time: Math.round(new Date().getTime() / 1000),
       };
-
-      if (themeId !== undefined) {
-        if (themeId === null) {
-          updatedState.theme = null;
-        } else {
-          updatedState.theme = { id: themeId, name: `Theme ${themeId}` };
-        }
-      }
-
-      return updatedState;
     }
     case DASHBOARD_INFO_FILTERS_CHANGED: {
       const dashAction = action as DashboardInfoAction;
