@@ -39,6 +39,7 @@ const createSqlMetric = (label: string, sql: string): AdhocMetric => ({
 const baseFormData: TestFormData = {
   viz_type: 'table',
   datasource: '1__table',
+  matrixify_enable: true,
   matrixify_mode_rows: 'metrics',
   matrixify_mode_columns: 'metrics',
   matrixify_rows: [createAdhocMetric('Revenue'), createAdhocMetric('Profit')],
@@ -77,6 +78,7 @@ test('should generate grid for dimensions mode', () => {
   const dimensionFormData: TestFormData = {
     viz_type: 'table',
     datasource: '1__table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'dimensions',
     matrixify_mode_columns: 'dimensions',
     matrixify_dimension_rows: {
@@ -117,6 +119,7 @@ test('should generate grid for mixed mode (metrics rows, dimensions columns)', (
   const mixedFormData: TestFormData = {
     viz_type: 'table',
     datasource: '1__table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'metrics',
     matrixify_mode_columns: 'dimensions',
     matrixify_rows: [createAdhocMetric('Total Sales')],
@@ -139,6 +142,7 @@ test('should handle empty configuration', () => {
   const emptyFormData: TestFormData = {
     viz_type: 'table',
     datasource: '1__table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'metrics',
     matrixify_mode_columns: 'metrics',
     matrixify_rows: [],
@@ -157,6 +161,7 @@ test('should handle single row and column', () => {
   const singleCellFormData: TestFormData = {
     viz_type: 'table',
     datasource: '1__table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'metrics',
     matrixify_mode_columns: 'metrics',
     matrixify_rows: [createAdhocMetric('Count')],
@@ -177,6 +182,7 @@ test('should handle string metrics', () => {
   const stringMetricFormData: TestFormData = {
     viz_type: 'table',
     datasource: '1__table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'metrics',
     matrixify_mode_columns: 'metrics',
     matrixify_rows: ['count', 'sum'],
@@ -194,6 +200,7 @@ test('should not escape HTML entities in cell titles', () => {
   const formDataWithSpecialChars: TestFormData = {
     viz_type: 'table',
     datasource: '1__table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'metrics',
     matrixify_mode_columns: 'metrics',
     matrixify_rows: [createAdhocMetric('Sales & Revenue')],
@@ -309,6 +316,7 @@ test('should generate single-column grid when only rows are configured', () => {
   const rowsOnlyFormData: TestFormData = {
     viz_type: 'table',
     datasource: '1__table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'metrics',
     matrixify_rows: [createAdhocMetric('Revenue'), createAdhocMetric('Profit')],
     // No column config
@@ -326,6 +334,7 @@ test('should generate single-row grid when only columns are configured', () => {
   const colsOnlyFormData: TestFormData = {
     viz_type: 'table',
     datasource: '1__table',
+    matrixify_enable: true,
     matrixify_mode_columns: 'metrics',
     matrixify_columns: [
       createSqlMetric('Q1', 'SUM(q1)'),
@@ -359,6 +368,7 @@ test('should return empty string header for null metric in array (line 76)', () 
   const formData: TestFormData = {
     viz_type: 'table',
     datasource: '1__table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'metrics',
     matrixify_mode_columns: 'metrics',
     matrixify_rows: [null],
@@ -373,6 +383,7 @@ test('should return empty string header for empty-string dimension value (line 8
   const formData: TestFormData = {
     viz_type: 'table',
     datasource: '1__table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'dimensions',
     matrixify_mode_columns: 'dimensions',
     matrixify_dimension_rows: { dimension: 'country', values: [''] },
@@ -387,6 +398,7 @@ test('should skip dimension filter when value is undefined (lines 151, 165)', ()
   const formData: TestFormData = {
     viz_type: 'table',
     datasource: '1__table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'dimensions',
     matrixify_mode_columns: 'dimensions',
     matrixify_dimension_rows: {
@@ -418,6 +430,7 @@ test('should handle metrics without labels', () => {
   const metricsWithoutLabels: TestFormData = {
     viz_type: 'table',
     datasource: '1__table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'metrics',
     matrixify_mode_columns: 'metrics',
     matrixify_rows: [
