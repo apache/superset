@@ -24,10 +24,7 @@ import {
   ExplorePageState,
 } from 'src/explore/types';
 import { getChartKey } from 'src/explore/exploreUtils';
-import {
-  getControlsState,
-  handleDeprecatedControls,
-} from 'src/explore/store';
+import { getControlsState, handleDeprecatedControls } from 'src/explore/store';
 import { Dispatch } from 'redux';
 import {
   Currency,
