@@ -107,10 +107,11 @@ class TestGenerateDashboard:
     """Tests for generate_dashboard MCP tool."""
 
     @patch("superset.commands.dashboard.create.CreateDashboardCommand")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
     @pytest.mark.asyncio
     async def test_generate_dashboard_basic(
-        self, mock_db_session, mock_create_command, mcp_server
+        self, mock_db_session, mock_find_by_id, mock_create_command, mcp_server
     ):
         """Test basic dashboard generation with valid charts."""
         mock_query = Mock()
@@ -125,6 +126,7 @@ class TestGenerateDashboard:
 
         mock_dashboard = _mock_dashboard(id=10, title="Analytics Dashboard")
         mock_create_command.return_value.run.return_value = mock_dashboard
+        mock_find_by_id.return_value = mock_dashboard
 
         request = {
             "chart_ids": [1, 2],
@@ -170,10 +172,11 @@ class TestGenerateDashboard:
             assert result.structured_content["dashboard_url"] is None
 
     @patch("superset.commands.dashboard.create.CreateDashboardCommand")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
     @pytest.mark.asyncio
     async def test_generate_dashboard_single_chart(
-        self, mock_db_session, mock_create_command, mcp_server
+        self, mock_db_session, mock_find_by_id, mock_create_command, mcp_server
     ):
         """Test dashboard generation with a single chart."""
         mock_query = Mock()
@@ -185,6 +188,7 @@ class TestGenerateDashboard:
 
         mock_dashboard = _mock_dashboard(id=20, title="Single Chart Dashboard")
         mock_create_command.return_value.run.return_value = mock_dashboard
+        mock_find_by_id.return_value = mock_dashboard
 
         request = {
             "chart_ids": [5],
@@ -200,10 +204,11 @@ class TestGenerateDashboard:
             assert result.structured_content["dashboard"]["published"] is True
 
     @patch("superset.commands.dashboard.create.CreateDashboardCommand")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
     @pytest.mark.asyncio
     async def test_generate_dashboard_many_charts(
-        self, mock_db_session, mock_create_command, mcp_server
+        self, mock_db_session, mock_find_by_id, mock_create_command, mcp_server
     ):
         """Test dashboard generation with many charts (grid layout)."""
         chart_ids = list(range(1, 7))
@@ -218,6 +223,7 @@ class TestGenerateDashboard:
 
         mock_dashboard = _mock_dashboard(id=30, title="Multi Chart Dashboard")
         mock_create_command.return_value.run.return_value = mock_dashboard
+        mock_find_by_id.return_value = mock_dashboard
 
         request = {"chart_ids": chart_ids, "dashboard_title": "Multi Chart Dashboard"}
 
@@ -295,10 +301,11 @@ class TestGenerateDashboard:
             assert result.structured_content["dashboard"] is None
 
     @patch("superset.commands.dashboard.create.CreateDashboardCommand")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
     @pytest.mark.asyncio
     async def test_generate_dashboard_minimal_request(
-        self, mock_db_session, mock_create_command, mcp_server
+        self, mock_db_session, mock_find_by_id, mock_create_command, mcp_server
     ):
         """Test dashboard generation with minimal required parameters."""
         mock_query = Mock()
@@ -310,6 +317,7 @@ class TestGenerateDashboard:
 
         mock_dashboard = _mock_dashboard(id=40, title="Minimal Dashboard")
         mock_create_command.return_value.run.return_value = mock_dashboard
+        mock_find_by_id.return_value = mock_dashboard
 
         request = {
             "chart_ids": [3],
@@ -332,10 +340,11 @@ class TestGenerateDashboard:
             )
 
     @patch("superset.commands.dashboard.create.CreateDashboardCommand")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
     @pytest.mark.asyncio
     async def test_generate_dashboard_auto_title_from_charts(
-        self, mock_db_session, mock_create_command, mcp_server
+        self, mock_db_session, mock_find_by_id, mock_create_command, mcp_server
     ):
         """Test that omitting dashboard_title generates a title from chart names."""
         mock_query = Mock()
@@ -350,6 +359,7 @@ class TestGenerateDashboard:
 
         mock_dashboard = _mock_dashboard(id=50, title="Sales Revenue & Customer Count")
         mock_create_command.return_value.run.return_value = mock_dashboard
+        mock_find_by_id.return_value = mock_dashboard
 
         # No dashboard_title provided
         request = {"chart_ids": [1, 2]}
@@ -363,10 +373,11 @@ class TestGenerateDashboard:
             assert call_args["dashboard_title"] == "Sales Revenue & Customer Count"
 
     @patch("superset.commands.dashboard.create.CreateDashboardCommand")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
     @pytest.mark.asyncio
     async def test_generate_dashboard_empty_string_title_preserved(
-        self, mock_db_session, mock_create_command, mcp_server
+        self, mock_db_session, mock_find_by_id, mock_create_command, mcp_server
     ):
         """Test that an explicit empty-string title is NOT replaced by auto-gen."""
         mock_query = Mock()
@@ -380,6 +391,7 @@ class TestGenerateDashboard:
 
         mock_dashboard = _mock_dashboard(id=60, title="")
         mock_create_command.return_value.run.return_value = mock_dashboard
+        mock_find_by_id.return_value = mock_dashboard
 
         # Explicit empty string title
         request = {"chart_ids": [1], "dashboard_title": ""}
@@ -439,17 +451,19 @@ class TestAddChartToExistingDashboard:
                 "DASHBOARD_VERSION_KEY": "v2",
             }
         )
-        mock_find_dashboard.return_value = mock_dashboard
-
-        mock_chart = _mock_chart(id=30, slice_name="New Chart")
-        mock_db_session.get.return_value = mock_chart
-
         updated_dashboard = _mock_dashboard(id=1, title="Existing Dashboard")
         updated_dashboard.slices = [
             _mock_chart(id=10),
             _mock_chart(id=20),
             _mock_chart(id=30),
         ]
+        # First call: initial validation returns original dashboard
+        # Second call: re-fetch after update returns updated dashboard
+        mock_find_dashboard.side_effect = [mock_dashboard, updated_dashboard]
+
+        mock_chart = _mock_chart(id=30, slice_name="New Chart")
+        mock_db_session.get.return_value = mock_chart
+
         mock_update_command.return_value.run.return_value = updated_dashboard
 
         request = {"dashboard_id": 1, "chart_id": 30}
