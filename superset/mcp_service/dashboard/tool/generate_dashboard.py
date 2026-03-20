@@ -207,14 +207,8 @@ def generate_dashboard(
         from superset.models.slice import Slice
 
         with event_logger.log_context(action="mcp.generate_dashboard.chart_validation"):
-            from sqlalchemy.orm import subqueryload
-
             chart_objects = (
                 db.session.query(Slice)
-                .options(
-                    subqueryload(Slice.owners),
-                    subqueryload(Slice.tags),
-                )
                 .filter(Slice.id.in_(request.chart_ids))
                 .order_by(Slice.id)
                 .all()
