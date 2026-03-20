@@ -707,17 +707,19 @@ async def generate_chart(  # noqa: C901
         # Build chart info using serialize_chart_object for saved charts
         chart_info = None
         if request.save_chart and chart:
-            from sqlalchemy.orm import subqueryload
+            from sqlalchemy.orm import joinedload
 
             from superset import db
             from superset.mcp_service.chart.schemas import serialize_chart_object
             from superset.models.slice import Slice
 
+            # Use joinedload (single JOIN query) instead of subqueryload
+            # (3 separate queries) since we're fetching a single chart.
             chart = (
                 db.session.query(Slice)
                 .options(
-                    subqueryload(Slice.owners),
-                    subqueryload(Slice.tags),
+                    joinedload(Slice.owners),
+                    joinedload(Slice.tags),
                 )
                 .filter(Slice.id == chart.id)
                 .one_or_none()

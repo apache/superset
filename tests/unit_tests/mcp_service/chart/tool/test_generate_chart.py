@@ -411,8 +411,12 @@ class TestChartSerializationEagerLoading:
             serialize_chart_object(chart)
 
     @patch("superset.mcp_service.chart.tool.generate_chart.db")
-    def test_generate_chart_refetches_with_subqueryload(self, mock_db):
-        """The serialization path re-fetches the chart with eager loading."""
+    def test_generate_chart_refetches_with_joinedload(self, mock_db):
+        """The serialization path re-fetches the chart with eager loading.
+
+        Uses joinedload (single JOIN query) rather than subqueryload
+        (3 queries) since only one chart is fetched.
+        """
         original_chart = _make_mock_chart()
         refetched_chart = _make_mock_chart()
         refetched_chart.tags = [Mock(id=1, name="tag1", type="custom")]
@@ -426,15 +430,15 @@ class TestChartSerializationEagerLoading:
         mock_query.one_or_none.return_value = refetched_chart
 
         # Simulate the re-fetch logic from generate_chart.py
-        from sqlalchemy.orm import subqueryload
+        from sqlalchemy.orm import joinedload
 
         from superset.models.slice import Slice
 
         chart = (
             mock_db.session.query(Slice)
             .options(
-                subqueryload(Slice.owners),
-                subqueryload(Slice.tags),
+                joinedload(Slice.owners),
+                joinedload(Slice.tags),
             )
             .filter(Slice.id == original_chart.id)
             .one_or_none()
