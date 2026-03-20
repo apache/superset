@@ -98,17 +98,10 @@ export const getCrossFiltersConfiguration = (
           },
         };
       }
-      chartConfiguration[chartId].crossFilters.chartsInScope =
-        isCrossFilterScopeGlobal(chartConfiguration[chartId].crossFilters.scope)
-          ? globalChartConfiguration.chartsInScope.filter(
-              id => id !== Number(chartId),
-            )
-          : getChartIdsInFilterScope(
-              chartConfiguration[chartId].crossFilters
-                .scope as NativeFilterScope,
-              Object.values(charts).map(chart => chart.id),
-              chartLayoutItems,
-            );
+        chartConfiguration[chartId].crossFilters.chartsInScope =
+          Object.values(charts)
+            .map(chart => chart.id)
+            .filter(id => id !== Number(chartId));
     }
   });
 
