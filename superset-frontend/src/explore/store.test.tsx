@@ -17,7 +17,11 @@
  * under the License.
  */
 import { getChartControlPanelRegistry } from '@superset-ui/core';
-import { applyDefaultFormData, getControlsState } from 'src/explore/store';
+import {
+  applyDefaultFormData,
+  getControlsState,
+  handleDeprecatedControls,
+} from 'src/explore/store';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (window as any).featureFlags = {};
@@ -193,26 +197,179 @@ test('getControlsState round-trip: pre-revamp form_data produces no matrixify va
 // Dashboard hydration: applyDefaultFormData with stale form_data
 // ============================================================
 
-test('applyDefaultFormData with pre-revamp form_data: stale modes pass through but are harmless', () => {
-  // Documents dashboard hydration behavior: applyDefaultFormData passes null
-  // state to getAllControlsState, so mapStateToProps is never invoked and
-  // validators are never injected. Stale matrixify modes pass through unchanged
-  // but cannot cause validation errors on this path. The runtime guard in
-  // isMatrixifyVisible covers the case where controls ARE evaluated with state
-  // (e.g., re-render after dashboard hydration).
+test('applyDefaultFormData normalizes stale matrixify modes for legacy charts', () => {
+  // Dashboard hydration now runs handleDeprecatedControls too, so stale
+  // matrixify modes from pre-revamp charts are normalized to 'disabled'.
+  // This protects downstream consumers (ChartContextMenu, DrillBySubmenu,
+  // ChartRenderer) that infer "matrixify is active" from mode values alone.
   const preRevampFormData = {
     datasource: '1__table',
     viz_type: 'test-chart',
     matrixify_mode_rows: 'dimensions',
     matrixify_mode_columns: 'metrics',
-    // No matrixify_enable key — legacy chart
+    // No matrixify_enable key — legacy chart that never used matrixify
   };
 
   const outputFormData = applyDefaultFormData(preRevampFormData as any);
 
-  // Stale values pass through (no handleDeprecatedControls on this path)
+  // Stale values are now normalized to 'disabled'
+  expect(outputFormData.matrixify_mode_rows).toBe('disabled');
+  expect(outputFormData.matrixify_mode_columns).toBe('disabled');
+  expect(outputFormData.matrixify_enable).toBe(false);
+});
+
+// ============================================================
+// P1: Pre-revamp charts that actually used matrixify via old per-axis flags
+// (matrixify_enable_vertical_layout / matrixify_enable_horizontal_layout)
+// ============================================================
+
+test('getControlsState preserves modes and sets matrixify_enable when old vertical flag is true', () => {
+  const state = buildExploreState();
+  const formData = {
+    datasource: '1__table',
+    viz_type: 'test-chart',
+    matrixify_enable_vertical_layout: true,
+    matrixify_mode_rows: 'dimensions',
+    matrixify_mode_columns: 'metrics',
+  };
+
+  const result = getControlsState(state as any, formData as any);
+  // Vertical layout was enabled — rows mode preserved, matrixify_enable migrated
+  expect((result.matrixify_mode_rows as any)?.value).toBe('dimensions');
+  expect((result.matrixify_enable as any)?.value).toBe(true);
+  // Horizontal layout was NOT enabled — columns mode reset
+  expect((result.matrixify_mode_columns as any)?.value).toBe('disabled');
+});
+
+test('getControlsState preserves modes and sets matrixify_enable when old horizontal flag is true', () => {
+  const state = buildExploreState();
+  const formData = {
+    datasource: '1__table',
+    viz_type: 'test-chart',
+    matrixify_enable_horizontal_layout: true,
+    matrixify_mode_rows: 'dimensions',
+    matrixify_mode_columns: 'metrics',
+  };
+
+  const result = getControlsState(state as any, formData as any);
+  // Horizontal layout was enabled — columns mode preserved, matrixify_enable migrated
+  expect((result.matrixify_mode_columns as any)?.value).toBe('metrics');
+  expect((result.matrixify_enable as any)?.value).toBe(true);
+  // Vertical layout was NOT enabled — rows mode reset
+  expect((result.matrixify_mode_rows as any)?.value).toBe('disabled');
+});
+
+test('getControlsState preserves both modes when both old per-axis flags are true', () => {
+  const state = buildExploreState();
+  const formData = {
+    datasource: '1__table',
+    viz_type: 'test-chart',
+    matrixify_enable_vertical_layout: true,
+    matrixify_enable_horizontal_layout: true,
+    matrixify_mode_rows: 'dimensions',
+    matrixify_mode_columns: 'metrics',
+  };
+
+  const result = getControlsState(state as any, formData as any);
+  expect((result.matrixify_mode_rows as any)?.value).toBe('dimensions');
+  expect((result.matrixify_mode_columns as any)?.value).toBe('metrics');
+  expect((result.matrixify_enable as any)?.value).toBe(true);
+});
+
+test('getControlsState resets modes when old per-axis flags are explicitly false', () => {
+  const state = buildExploreState();
+  const formData = {
+    datasource: '1__table',
+    viz_type: 'test-chart',
+    matrixify_enable_vertical_layout: false,
+    matrixify_enable_horizontal_layout: false,
+    matrixify_mode_rows: 'dimensions',
+    matrixify_mode_columns: 'metrics',
+  };
+
+  const result = getControlsState(state as any, formData as any);
+  // Old flags present but false — chart never used matrixify, reset stale modes
+  expect((result.matrixify_mode_rows as any)?.value).toBe('disabled');
+  expect((result.matrixify_mode_columns as any)?.value).toBe('disabled');
+});
+
+// ============================================================
+// P2: Dashboard hydration (applyDefaultFormData) with old per-axis flags
+// ============================================================
+
+test('applyDefaultFormData preserves modes when old vertical flag is true', () => {
+  const formData = {
+    datasource: '1__table',
+    viz_type: 'test-chart',
+    matrixify_enable_vertical_layout: true,
+    matrixify_mode_rows: 'dimensions',
+    matrixify_mode_columns: 'metrics',
+  };
+
+  const outputFormData = applyDefaultFormData(formData as any);
+  expect(outputFormData.matrixify_mode_rows).toBe('dimensions');
+  expect(outputFormData.matrixify_enable).toBe(true);
+  // Horizontal not enabled — columns reset
+  expect(outputFormData.matrixify_mode_columns).toBe('disabled');
+});
+
+test('applyDefaultFormData preserves modes when both old flags are true', () => {
+  const formData = {
+    datasource: '1__table',
+    viz_type: 'test-chart',
+    matrixify_enable_vertical_layout: true,
+    matrixify_enable_horizontal_layout: true,
+    matrixify_mode_rows: 'dimensions',
+    matrixify_mode_columns: 'metrics',
+  };
+
+  const outputFormData = applyDefaultFormData(formData as any);
   expect(outputFormData.matrixify_mode_rows).toBe('dimensions');
   expect(outputFormData.matrixify_mode_columns).toBe('metrics');
-  // matrixify_enable gets its default (false) from the control definition
-  expect(outputFormData.matrixify_enable).toBe(false);
+  expect(outputFormData.matrixify_enable).toBe(true);
+});
+
+// ============================================================
+// Direct handleDeprecatedControls tests: verify form_data mutation
+// so callers (hydrateExplore) can propagate migrated fields into state
+// ============================================================
+
+test('handleDeprecatedControls sets matrixify_enable on form_data when old vertical flag is true', () => {
+  const formData: any = {
+    matrixify_enable_vertical_layout: true,
+    matrixify_mode_rows: 'dimensions',
+    matrixify_mode_columns: 'metrics',
+  };
+  handleDeprecatedControls(formData);
+
+  expect(formData.matrixify_enable).toBe(true);
+  expect(formData.matrixify_mode_rows).toBe('dimensions');
+  // Horizontal not enabled — columns reset
+  expect(formData.matrixify_mode_columns).toBe('disabled');
+});
+
+test('handleDeprecatedControls resets modes when no matrixify_enable and no old flags', () => {
+  const formData: any = {
+    matrixify_mode_rows: 'dimensions',
+    matrixify_mode_columns: 'metrics',
+  };
+  handleDeprecatedControls(formData);
+
+  expect(formData.matrixify_enable).toBeUndefined();
+  expect(formData.matrixify_mode_rows).toBe('disabled');
+  expect(formData.matrixify_mode_columns).toBe('disabled');
+});
+
+test('handleDeprecatedControls is idempotent — no-op when matrixify_enable already present', () => {
+  const formData: any = {
+    matrixify_enable: true,
+    matrixify_mode_rows: 'dimensions',
+    matrixify_mode_columns: 'metrics',
+  };
+  handleDeprecatedControls(formData);
+
+  // No mutation — matrixify_enable key is present
+  expect(formData.matrixify_enable).toBe(true);
+  expect(formData.matrixify_mode_rows).toBe('dimensions');
+  expect(formData.matrixify_mode_columns).toBe('metrics');
 });
