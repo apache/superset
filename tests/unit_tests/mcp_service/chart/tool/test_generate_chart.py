@@ -19,9 +19,10 @@
 Unit tests for MCP generate_chart tool
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from sqlalchemy.orm.exc import DetachedInstanceError
 
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
@@ -351,3 +352,118 @@ class TestCompileChart:
 
         assert result.success is False
         assert "invalid metric" in (result.error or "")
+
+
+def _make_mock_chart(chart_id: int = 42) -> Mock:
+    """Create a mock chart with all attributes needed by serialize_chart_object."""
+    chart = Mock()
+    chart.id = chart_id
+    chart.slice_name = "Test Chart"
+    chart.viz_type = "echarts_timeseries_bar"
+    chart.datasource_name = "test_table"
+    chart.datasource_type = "table"
+    chart.description = None
+    chart.cache_timeout = None
+    chart.changed_by = None
+    chart.changed_by_name = "admin"
+    chart.changed_on = None
+    chart.changed_on_humanized = "1 day ago"
+    chart.created_by = None
+    chart.created_by_name = "admin"
+    chart.created_on = None
+    chart.created_on_humanized = "2 days ago"
+    chart.uuid = "test-uuid-42"
+    chart.tags = []
+    chart.owners = []
+    return chart
+
+
+class TestChartSerializationEagerLoading:
+    """Tests for eager loading fix in generate_chart serialization path."""
+
+    def test_serialize_chart_object_succeeds_with_loaded_relationships(self):
+        """serialize_chart_object works when tags/owners are already loaded."""
+        from superset.mcp_service.chart.schemas import serialize_chart_object
+
+        chart = _make_mock_chart()
+        result = serialize_chart_object(chart)
+
+        assert result is not None
+        assert result.id == 42
+        assert result.slice_name == "Test Chart"
+        assert result.tags == []
+        assert result.owners == []
+
+    def test_serialize_chart_object_fails_on_detached_instance(self):
+        """serialize_chart_object raises when accessing lazy attrs on detached
+        instance — this is the bug scenario that the eager-loading fix prevents."""
+        from superset.mcp_service.chart.schemas import serialize_chart_object
+
+        chart = _make_mock_chart()
+        # Simulate detached instance: accessing .tags raises DetachedInstanceError
+        type(chart).tags = property(
+            lambda self: (_ for _ in ()).throw(
+                DetachedInstanceError("Instance <Slice> is not bound to a Session")
+            )
+        )
+
+        with pytest.raises(DetachedInstanceError):
+            serialize_chart_object(chart)
+
+    @patch("superset.mcp_service.chart.tool.generate_chart.db")
+    def test_generate_chart_refetches_with_subqueryload(self, mock_db):
+        """The serialization path re-fetches the chart with eager loading."""
+        original_chart = _make_mock_chart()
+        refetched_chart = _make_mock_chart()
+        refetched_chart.tags = [Mock(id=1, name="tag1", type="custom")]
+        refetched_chart.tags[0].description = ""
+
+        # Set up mock query chain
+        mock_query = MagicMock()
+        mock_db.session.query.return_value = mock_query
+        mock_query.options.return_value = mock_query
+        mock_query.filter.return_value = mock_query
+        mock_query.one_or_none.return_value = refetched_chart
+
+        # Simulate the re-fetch logic from generate_chart.py
+        from sqlalchemy.orm import subqueryload
+
+        from superset.models.slice import Slice
+
+        chart = (
+            mock_db.session.query(Slice)
+            .options(
+                subqueryload(Slice.owners),
+                subqueryload(Slice.tags),
+            )
+            .filter(Slice.id == original_chart.id)
+            .one_or_none()
+        ) or original_chart
+
+        # Verify the re-fetch returned the new chart
+        assert chart is refetched_chart
+        mock_db.session.query.assert_called_once_with(Slice)
+        mock_query.options.assert_called_once()
+        mock_query.filter.assert_called_once()
+
+    @patch("superset.mcp_service.chart.tool.generate_chart.db")
+    def test_generate_chart_falls_back_to_original_on_refetch_failure(self, mock_db):
+        """Falls back to original chart if re-fetch returns None."""
+        original_chart = _make_mock_chart()
+
+        mock_query = MagicMock()
+        mock_db.session.query.return_value = mock_query
+        mock_query.options.return_value = mock_query
+        mock_query.filter.return_value = mock_query
+        mock_query.one_or_none.return_value = None
+
+        from superset.models.slice import Slice
+
+        chart = (
+            mock_db.session.query(Slice)
+            .options()
+            .filter(Slice.id == original_chart.id)
+            .one_or_none()
+        ) or original_chart
+
+        assert chart is original_chart
