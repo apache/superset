@@ -21,7 +21,7 @@ import {
   Behavior,
   getChartMetadataRegistry,
   isDefined,
-  NativeFilterScope,
+  type NativeFilterScope,
 } from '@superset-ui/core';
 import { getChartIdsInFilterScope } from './getChartIdsInFilterScope';
 import {
