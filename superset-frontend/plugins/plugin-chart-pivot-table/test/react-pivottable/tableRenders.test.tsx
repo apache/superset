@@ -927,6 +927,7 @@ test('renderColHeaderRow preserves default header text color without formatting'
 
   expect(headerCell.props.style).toEqual({
     backgroundColor: undefined,
+    color: undefined,
   });
 });
 
@@ -974,6 +975,7 @@ test('renderTableRow preserves default row-header text color without formatting'
 
   expect(headerCell.props.style).toEqual({
     backgroundColor: undefined,
+    color: undefined,
   });
 });
 

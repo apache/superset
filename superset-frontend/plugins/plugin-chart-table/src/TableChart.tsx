@@ -1007,7 +1007,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             rowSurfaceColor,
           );
           const StyledCell = styled.td`
-            color: ${resolvedTextColor || theme.colorText};
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
@@ -1106,6 +1105,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 : '',
               isActiveFilterValue(key, value) ? ' dt-is-active-filter' : '',
             ].join(' '),
+            style: resolvedTextColor
+              ? ({ color: resolvedTextColor } as CSSProperties)
+              : undefined,
             tabIndex: 0,
           };
           if (html) {
