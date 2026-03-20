@@ -89,6 +89,7 @@ const setup = (overrides = {}) => (
 afterEach(() => {
   fetchMock.clearHistory().removeRoutes();
   cleanupExtensions();
+  mockedIsFeatureEnabled.mockReset();
 });
 
 test('Renders an empty state for query history', () => {

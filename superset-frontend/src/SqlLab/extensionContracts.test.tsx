@@ -29,7 +29,14 @@ import {
   cleanupExtensions,
 } from 'src/SqlLab/test-utils/extensionTestHelpers';
 
-afterEach(cleanupExtensions);
+let consoleErrorSpy: jest.SpyInstance;
+
+afterEach(() => {
+  cleanupExtensions();
+  if (consoleErrorSpy) {
+    consoleErrorSpy.mockRestore();
+  }
+});
 
 test('disposing a registered view removes it from rendering', () => {
   const disposable = views.registerView(
@@ -47,9 +54,7 @@ test('disposing a registered view removes it from rendering', () => {
 });
 
 test('extension throwing during render does not crash host', () => {
-  const consoleError = jest
-    .spyOn(console, 'error')
-    .mockImplementation(() => {});
+  consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
   const ThrowingComponent = () => {
     throw new Error('Extension error');
@@ -72,8 +77,8 @@ test('extension throwing during render does not crash host', () => {
 
   // Healthy extension still renders despite the throwing extension
   expect(screen.getByText('Healthy Content')).toBeInTheDocument();
-
-  consoleError.mockRestore();
+  // Verify the error boundary caught the throwing extension
+  expect(consoleErrorSpy).toHaveBeenCalled();
 });
 
 test('PanelToolbar click executes registered command callback', async () => {

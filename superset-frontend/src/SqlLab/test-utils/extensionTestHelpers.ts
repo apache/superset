@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import { views, menus, commands } from 'src/core';
 import { resetContributions } from 'src/core/commands';
 

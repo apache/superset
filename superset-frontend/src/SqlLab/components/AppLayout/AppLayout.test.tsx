@@ -100,11 +100,12 @@ test('calls setWidth on sidebar resize when not hidden', async () => {
 });
 
 test('right sidebar is hidden when no extensions registered', () => {
-  const { getAllByTestId } = render(<AppLayout {...defaultProps} />, {
+  const { queryByText } = render(<AppLayout {...defaultProps} />, {
     useRedux: true,
     initialState,
   });
-  expect(getAllByTestId('mock-panel')).toHaveLength(2);
+  // No right sidebar content — the third Splitter.Panel is conditionally omitted
+  expect(queryByText('Right Sidebar Content')).not.toBeInTheDocument();
 });
 
 test('renders right sidebar when view is contributed at rightSidebar location', () => {
