@@ -16,13 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, forwardRef } from 'react';
+import { useMemo, useRef, useCallback, forwardRef } from 'react';
 import { css } from '@emotion/react';
 import { AgGridReact, type AgGridReactProps } from 'ag-grid-react';
 import {
   themeQuartz,
   colorSchemeDark,
   colorSchemeLight,
+  type GridReadyEvent,
+  type FirstDataRenderedEvent,
 } from 'ag-grid-community';
 import { useTheme, useThemeMode } from '@apache-superset/core/theme';
 
@@ -71,9 +73,13 @@ export interface ThemedAgGridReactProps extends AgGridReactProps {
 export const ThemedAgGridReact = forwardRef<
   AgGridReact,
   ThemedAgGridReactProps
->(function ThemedAgGridReact({ themeOverrides, ...props }, ref) {
+>(function ThemedAgGridReact(
+  { themeOverrides, onGridReady, onFirstDataRendered, ...props },
+  ref,
+) {
   const theme = useTheme();
   const isDarkMode = useThemeMode();
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Get the appropriate ag-grid theme based on dark/light mode
   const agGridTheme = useMemo(() => {
@@ -140,8 +146,31 @@ export const ThemedAgGridReact = forwardRef<
     return baseTheme.withParams(finalParams);
   }, [theme, isDarkMode, themeOverrides]);
 
+  // Expose gridApi and first-data-rendered flag on the container for downloadAsImage.
+  const handleGridReady = useCallback(
+    (event: GridReadyEvent) => {
+      if (containerRef.current) {
+        (containerRef.current as any)._agGridApi = event.api;
+      }
+      onGridReady?.(event);
+    },
+    [onGridReady],
+  );
+
+  // Mark the container once rows are painted so downloadAsImage can gate on readiness.
+  const handleFirstDataRendered = useCallback(
+    (event: FirstDataRenderedEvent) => {
+      if (containerRef.current) {
+        (containerRef.current as any)._agGridFirstDataRendered = true;
+      }
+      onFirstDataRendered?.(event);
+    },
+    [onFirstDataRendered],
+  );
+
   return (
     <div
+      ref={containerRef}
       css={css`
         width: 100%;
         height: 100%;
@@ -151,7 +180,13 @@ export const ThemedAgGridReact = forwardRef<
       `}
       data-themed-ag-grid="true"
     >
-      <AgGridReact ref={ref} theme={agGridTheme} {...props} />
+      <AgGridReact
+        ref={ref}
+        theme={agGridTheme}
+        onGridReady={handleGridReady}
+        onFirstDataRendered={handleFirstDataRendered}
+        {...props}
+      />
     </div>
   );
 });
