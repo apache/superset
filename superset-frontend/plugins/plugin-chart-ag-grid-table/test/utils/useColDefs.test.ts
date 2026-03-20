@@ -555,7 +555,7 @@ test('cellStyle exposes hover-specific adaptive contrast for formatted cells', (
   });
 });
 
-test('cellStyle falls back to cellTextColor when no formatter matches', () => {
+test('cellStyle resets inline text color variables when no formatter matches', () => {
   const numericCol = makeColumn({
     key: 'count',
     label: 'Count',

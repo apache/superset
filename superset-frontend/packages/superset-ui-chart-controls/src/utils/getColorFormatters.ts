@@ -336,7 +336,7 @@ export const getColorFormatters = memoizeOne(
 export const getReadableTextColor = (
   backgroundColor: string | undefined,
   surfaceColor: string,
-) => {
+): string | undefined => {
   if (!backgroundColor) {
     return undefined;
   }
@@ -367,7 +367,9 @@ export const getReadableTextColor = (
     .toRgbString();
 };
 
-export const getNormalizedTextColor = (color: string | undefined) => {
+export const getNormalizedTextColor = (
+  color: string | undefined,
+): string | undefined => {
   if (!color) {
     return undefined;
   }
@@ -383,6 +385,6 @@ export const getNormalizedTextColor = (color: string | undefined) => {
 export const getTextColorForBackground = (
   result: ResolvedColorFormatterResult,
   surfaceColor: string,
-) =>
+): string | undefined =>
   getNormalizedTextColor(result.color) ??
   getReadableTextColor(result.backgroundColor, surfaceColor);
