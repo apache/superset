@@ -55,10 +55,10 @@ function getRelatedChartsForCrossFilter(
   slices: Record<string, Slice>,
   scope: number[],
 ): number[] {
-  // Always return all charts except source chart
+  const chartsInScopeSet = new Set(scope);
   return Object.values(slices)
     .map(slice => slice.slice_id)
-    .filter(id => id !== Number(filterKey));
+    .filter(id => chartsInScopeSet.has(id) && id !== Number(filterKey));
 }
 
 export function getRelatedCharts(
