@@ -56,6 +56,7 @@ export default class Translator {
    */
   addTranslation(key: string, texts: ReadonlyArray<string>) {
     const translations = this.i18n.options.locale_data.superset;
+    /* istanbul ignore next */
     if (process.env.WEBPACK_MODE !== 'test' && key in translations) {
       logging.warn(`Duplicate translation key "${key}", will override.`);
     }

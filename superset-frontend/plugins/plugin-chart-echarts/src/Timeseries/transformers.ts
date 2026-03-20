@@ -31,7 +31,6 @@ import {
   ValueFormatter,
 } from '@superset-ui/core';
 import { SupersetTheme, isThemeDark } from '@apache-superset/core/theme';
-import { getContrastingColor } from '@superset-ui/core';
 import type {
   CallbackDataParams,
   DefaultStatesMixin,
@@ -143,39 +142,28 @@ export const getBaselineSeriesForStream = (
   };
 };
 
-export function optimizeBarLabelPlacement(
+export function transformNegativeLabelsPosition(
   series: SeriesOption,
   isHorizontal: boolean,
 ): TimeseriesDataRecord[] {
   /*
-   * Adjusts label position for all values in bar series
-   * Positions labels inside bars at appropriate edges to avoid axis overlap
+   * Adjusts label position for negative values in bar series
    * @param series - Array of series options
    * @param isHorizontal - Whether chart is horizontal
-   * @returns data with adjusted label positions for all values
+   * @returns data with adjusted label positions for negative values
    */
   const transformValue = (value: any) => {
     const [xValue, yValue] = Array.isArray(value) ? value : [null, null];
     const axisValue = isHorizontal ? xValue : yValue;
 
-    if (axisValue === null || axisValue === undefined) {
-      return value;
-    }
-
-    // Use inside positioning for all bar charts to avoid axis overlap
-    const labelPosition =
-      axisValue < 0
-        ? isHorizontal
-          ? 'insideLeft'
-          : 'insideBottom'
-        : isHorizontal
-          ? 'insideRight'
-          : 'insideTop';
-
-    return {
-      value,
-      label: { position: labelPosition },
-    };
+    return axisValue < 0
+      ? {
+          value,
+          label: {
+            position: 'outside',
+          },
+        }
+      : value;
   };
 
   return (series.data as TimeseriesDataRecord[]).map(transformValue);
@@ -388,7 +376,7 @@ export function transformSeries(
             ),
           }
         : seriesType === 'bar' && !stack
-          ? { data: optimizeBarLabelPlacement(series, isHorizontal) }
+          ? { data: transformNegativeLabelsPosition(series, isHorizontal) }
           : null
       : null),
     connectNulls,
@@ -422,11 +410,8 @@ export function transformSeries(
     symbolSize: markerSize,
     label: {
       show: !!showValue,
-      position: stack ? 'inside' : isHorizontal ? 'right' : 'top',
-      color:
-        stack || seriesType === 'bar'
-          ? getContrastingColor(String(itemStyle.color))
-          : theme?.colorText,
+      position: isHorizontal ? 'right' : 'top',
+      color: theme?.colorText,
       textBorderWidth: 0,
       formatter: (params: any) => {
         // don't show confidence band value labels, as they're already visible on the tooltip
