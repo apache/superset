@@ -115,9 +115,7 @@ test('returns true when selectionMode matches', () => {
     matrixify_mode_rows: 'dimensions',
     matrixify_dimension_selection_mode_rows: 'topn',
   });
-  expect(isMatrixifyVisible(controls, 'rows', 'dimensions', 'topn')).toBe(
-    true,
-  );
+  expect(isMatrixifyVisible(controls, 'rows', 'dimensions', 'topn')).toBe(true);
 });
 
 test('returns false when selectionMode does not match', () => {
@@ -137,7 +135,5 @@ test('ignores selectionMode filter when mode is metrics', () => {
     matrixify_mode_columns: 'metrics',
   });
   // selectionMode only applies to dimensions mode, should be ignored
-  expect(isMatrixifyVisible(controls, 'columns', 'metrics', 'topn')).toBe(
-    true,
-  );
+  expect(isMatrixifyVisible(controls, 'columns', 'metrics', 'topn')).toBe(true);
 });
