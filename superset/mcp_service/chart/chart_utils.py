@@ -349,6 +349,27 @@ def _add_adhoc_filters(
         ]
 
 
+def adhoc_filters_to_query_filters(
+    adhoc_filters: list[Dict[str, Any]],
+) -> list[Dict[str, Any]]:
+    """Convert adhoc filter format to QueryObject filter format.
+
+    Adhoc filters use ``{subject, operator, comparator}`` keys while
+    ``QueryContextFactory`` expects ``{col, op, val}`` (QueryObjectFilterClause).
+    """
+    result: list[Dict[str, Any]] = []
+    for f in adhoc_filters:
+        if f.get("expressionType") == "SIMPLE":
+            result.append(
+                {
+                    "col": f.get("subject"),
+                    "op": f.get("operator"),
+                    "val": f.get("comparator"),
+                }
+            )
+    return result
+
+
 def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
     """Map table chart config to form_data with defensive validation."""
     # Early validation to prevent empty charts

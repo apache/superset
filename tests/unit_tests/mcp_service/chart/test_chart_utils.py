@@ -24,6 +24,7 @@ import pytest
 
 from superset.mcp_service.chart.chart_utils import (
     _add_adhoc_filters,
+    adhoc_filters_to_query_filters,
     configure_temporal_handling,
     create_metric_object,
     generate_chart_name,
@@ -1334,3 +1335,56 @@ class TestValidateChartDataset:
         mock_find.side_effect = SQLAlchemyError("db gone")
         url = generate_explore_link(5, {"viz_type": "table"})
         assert "datasource_id=5" in url
+
+
+class TestAdhocFiltersToQueryFilters:
+    """Tests for adhoc_filters_to_query_filters conversion."""
+
+    def test_converts_simple_filters(self) -> None:
+        adhoc = [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "genre",
+                "operator": "==",
+                "comparator": "Action",
+            }
+        ]
+        result = adhoc_filters_to_query_filters(adhoc)
+        assert result == [{"col": "genre", "op": "==", "val": "Action"}]
+
+    def test_converts_multiple_filters(self) -> None:
+        adhoc = [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "genre",
+                "operator": "==",
+                "comparator": "Action",
+            },
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "year",
+                "operator": ">=",
+                "comparator": "2010",
+            },
+        ]
+        result = adhoc_filters_to_query_filters(adhoc)
+        assert len(result) == 2
+        assert result[0] == {"col": "genre", "op": "==", "val": "Action"}
+        assert result[1] == {"col": "year", "op": ">=", "val": "2010"}
+
+    def test_empty_list(self) -> None:
+        assert adhoc_filters_to_query_filters([]) == []
+
+    def test_skips_non_simple_expression_types(self) -> None:
+        adhoc = [
+            {
+                "clause": "WHERE",
+                "expressionType": "SQL",
+                "sqlExpression": "col > 5",
+            }
+        ]
+        result = adhoc_filters_to_query_filters(adhoc)
+        assert result == []
