@@ -187,6 +187,55 @@ export interface SupersetSpecificTokens {
   echartsOptionsOverridesByChartType?: {
     [chartType: string]: any;
   };
+
+  // Secondary button tokens (Superset-specific)
+  // Ant Design's filled variant has no component tokens, so we provide our own.
+  // These fallback to colorPrimary* derived tokens when not set.
+  /**
+   * Text color for secondary buttons.
+   * Fallback: colorPrimary
+   */
+  buttonSecondaryColor?: string;
+  /**
+   * Background color for secondary buttons.
+   * Fallback: colorPrimaryBg
+   */
+  buttonSecondaryBg?: string;
+  /**
+   * Border color for secondary buttons.
+   * Fallback: transparent
+   */
+  buttonSecondaryBorderColor?: string;
+  /**
+   * Text color for secondary buttons on hover.
+   * Fallback: colorPrimary
+   */
+  buttonSecondaryHoverColor?: string;
+  /**
+   * Background color for secondary buttons on hover.
+   * Fallback: colorPrimaryBgHover
+   */
+  buttonSecondaryHoverBg?: string;
+  /**
+   * Border color for secondary buttons on hover.
+   * Fallback: transparent
+   */
+  buttonSecondaryHoverBorderColor?: string;
+  /**
+   * Text color for secondary buttons when active/pressed.
+   * Fallback: colorPrimary
+   */
+  buttonSecondaryActiveColor?: string;
+  /**
+   * Background color for secondary buttons when active/pressed.
+   * Fallback: colorPrimaryBorder
+   */
+  buttonSecondaryActiveBg?: string;
+  /**
+   * Border color for secondary buttons when active/pressed.
+   * Fallback: transparent
+   */
+  buttonSecondaryActiveBorderColor?: string;
 }
 
 /**
