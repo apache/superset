@@ -799,7 +799,7 @@ export default function transformProps(
     }
   }
 
-  const dynamicZoomBottom = Math.min(
+  const dynamicZoomBottom = Math.max(
     TIMESERIES_CONSTANTS.zoomBottom,
     Math.floor(height * 0.08),
   );
