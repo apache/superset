@@ -628,6 +628,7 @@ const PropertiesModal = ({
       }}
       title={t('Dashboard properties')}
       isEditMode
+      resizable
       saveDisabled={dashboardInfo?.isManagedExternally || hasErrors}
       saveLoading={isApplying}
       contentLoading={isLoading}
