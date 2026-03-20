@@ -45,9 +45,7 @@ logger = logging.getLogger(__name__)
 
 
 @mcp.tool(tags=["mutate"])
-@mcp_auth_hook(
-    class_permission_name="SQLLab", method_permission_name="execute_sql_query"
-)
+@mcp_auth_hook(class_permission_name="SavedQuery", method_permission_name="write")
 @parse_request(SaveSqlQueryRequest)
 async def save_sql_query(
     request: SaveSqlQueryRequest, ctx: Context
