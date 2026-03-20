@@ -185,7 +185,7 @@
     "lodash": "^4.17.23",
     "mapbox-gl": "^3.19.0",
     "markdown-to-jsx": "^9.7.6",
-    "match-sorter": "^6.3.4",
+    "match-sorter": "^8.2.0",
     "memoize-one": "^5.2.1",
     "mousetrap": "^1.6.5",
     "mustache": "^4.2.0",
