@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { ColumnConfig, Entry } from '../../types';
+import { calculateCellValue } from '../valueCalculations/valueCalculations';
 /**
  * Simple numeric value comparison that handles null, undefined, and mixed types
  * @param a - First value to compare
@@ -42,23 +44,64 @@ function compareValues(
 }
 
 /**
- * Sorts table rows with mixed data types for react-table
+ * Sorts table rows with mixed data types for react-table.
+ *
  * @param rowA - First row to compare
  * @param rowB - Second row to compare
  * @param columnId - Column identifier for sorting
  * @param descending - Whether to sort in descending order
  * @returns Numeric comparison result for react-table
+ * react-table handles the asc/desc direction flip internally after calling
+ * this function, so we only return the raw comparison result.
  */
 export function sortNumberWithMixedTypes(
   rowA: any,
   rowB: any,
   columnId: string,
-  descending: boolean,
 ) {
-  const valueA = rowA.values[columnId].props['data-value'];
-  const valueB = rowB.values[columnId].props['data-value'];
+  const cellA = rowA.values?.[columnId];
+  const cellB = rowB.values?.[columnId];
 
-  const comparison = compareValues(valueA, valueB, 'asSmallest');
+  // Both ValueCell and Sparkline cells pass React elements here.
+  // ValueCell uses { valueField, column, reversedEntries }
+  // Sparkline/SparklineCell uses { valueField, column, entries }
+  // Normalize to reversedEntries before delegating to calculateCellValue.
+  const propsA = cellA?.props as
+    | {
+        valueField: string;
+        column: ColumnConfig;
+        reversedEntries?: Entry[];
+        entries?: Entry[];
+      }
+    | undefined;
+  const propsB = cellB?.props as
+    | {
+        valueField: string;
+        column: ColumnConfig;
+        reversedEntries?: Entry[];
+        entries?: Entry[];
+      }
+    | undefined;
 
-  return comparison * (descending ? -1 : 1);
+  const reversedEntriesA =
+    propsA?.reversedEntries ?? propsA?.entries?.slice().reverse();
+  const reversedEntriesB =
+    propsB?.reversedEntries ?? propsB?.entries?.slice().reverse();
+
+  if (!propsA || !propsB || !reversedEntriesA || !reversedEntriesB) {
+    return 0;
+  }
+
+  const { value: valueA } = calculateCellValue(
+    propsA.valueField,
+    propsA.column,
+    reversedEntriesA,
+  );
+  const { value: valueB } = calculateCellValue(
+    propsB.valueField,
+    propsB.column,
+    reversedEntriesB,
+  );
+
+  return compareValues(valueA, valueB, 'asSmallest');
 }
