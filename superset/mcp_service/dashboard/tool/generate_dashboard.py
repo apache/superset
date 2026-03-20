@@ -207,8 +207,14 @@ def generate_dashboard(
         from superset.models.slice import Slice
 
         with event_logger.log_context(action="mcp.generate_dashboard.chart_validation"):
+            from sqlalchemy.orm import subqueryload
+
             chart_objects = (
                 db.session.query(Slice)
+                .options(
+                    subqueryload(Slice.owners),
+                    subqueryload(Slice.tags),
+                )
                 .filter(Slice.id.in_(request.chart_ids))
                 .order_by(Slice.id)
                 .all()
@@ -273,6 +279,25 @@ def generate_dashboard(
             # Create the dashboard using Superset's command pattern
             command = CreateDashboardCommand(dashboard_data)
             dashboard = command.run()
+
+        # Re-fetch the dashboard with eager-loaded relationships to avoid
+        # "Instance is not bound to a Session" errors when serializing
+        # chart .tags and .owners.
+        from sqlalchemy.orm import subqueryload
+
+        from superset.models.dashboard import Dashboard
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .options(
+                subqueryload(Dashboard.slices).subqueryload(Slice.owners),
+                subqueryload(Dashboard.slices).subqueryload(Slice.tags),
+                subqueryload(Dashboard.owners),
+                subqueryload(Dashboard.tags),
+            )
+            .filter(Dashboard.id == dashboard.id)
+            .one_or_none()
+        ) or dashboard
 
         # Convert to our response format
         from superset.mcp_service.dashboard.schemas import (
