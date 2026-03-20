@@ -98,18 +98,18 @@ export const getCrossFiltersConfiguration = (
           },
         };
       }
-        const scope = chartConfiguration[chartId].crossFilters.scope;
+      const scope = chartConfiguration[chartId].crossFilters.scope;
 
-        const effectiveScope: NativeFilterScope = isCrossFilterScopeGlobal(scope)
-          ? globalChartConfiguration.scope
-          : scope;
-        
-        chartConfiguration[chartId].crossFilters.chartsInScope =
-          getChartIdsInFilterScope(
-            effectiveScope,
-            Object.values(charts).map(chart => chart.id),
-            chartLayoutItems,
-          ).filter(id => id !== Number(chartId));
+      const effectiveScope: NativeFilterScope = isCrossFilterScopeGlobal(scope)
+        ? globalChartConfiguration.scope
+        : scope;
+
+      chartConfiguration[chartId].crossFilters.chartsInScope =
+        getChartIdsInFilterScope(
+          effectiveScope,
+          Object.values(charts).map(chart => chart.id),
+          chartLayoutItems,
+        ).filter(id => id !== Number(chartId));
     }
   });
 
