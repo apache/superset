@@ -709,21 +709,24 @@ async def generate_chart(  # noqa: C901
         if request.save_chart and chart:
             from sqlalchemy.orm import joinedload
 
-            from superset import db
+            from superset.daos.chart import ChartDAO
             from superset.mcp_service.chart.schemas import serialize_chart_object
             from superset.models.slice import Slice
 
-            # Use joinedload (single JOIN query) instead of subqueryload
-            # (3 separate queries) since we're fetching a single chart.
+            # Re-fetch with eager-loaded relationships to avoid detached
+            # instance errors when serialize_chart_object accesses .tags
+            # and .owners.  Use joinedload (single JOIN query) since we
+            # are fetching a single chart.
             chart = (
-                db.session.query(Slice)
-                .options(
-                    joinedload(Slice.owners),
-                    joinedload(Slice.tags),
+                ChartDAO.find_by_id(
+                    chart.id,
+                    query_options=[
+                        joinedload(Slice.owners),
+                        joinedload(Slice.tags),
+                    ],
                 )
-                .filter(Slice.id == chart.id)
-                .one_or_none()
-            ) or chart
+                or chart
+            )
 
             chart_info = serialize_chart_object(chart)
             if chart_info:

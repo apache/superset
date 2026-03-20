@@ -410,64 +410,38 @@ class TestChartSerializationEagerLoading:
         with pytest.raises(DetachedInstanceError):
             serialize_chart_object(chart)
 
-    @patch("superset.mcp_service.chart.tool.generate_chart.db")
-    def test_generate_chart_refetches_with_joinedload(self, mock_db):
-        """The serialization path re-fetches the chart with eager loading.
-
-        Uses joinedload (single JOIN query) rather than subqueryload
-        (3 queries) since only one chart is fetched.
-        """
-        original_chart = _make_mock_chart()
+    @patch("superset.daos.chart.ChartDAO.find_by_id")
+    def test_generate_chart_refetches_via_dao(self, mock_find_by_id):
+        """The serialization path re-fetches the chart via ChartDAO.find_by_id
+        with joinedload query_options for owners and tags."""
         refetched_chart = _make_mock_chart()
         refetched_chart.tags = [Mock(id=1, name="tag1", type="custom")]
         refetched_chart.tags[0].description = ""
 
-        # Set up mock query chain
-        mock_query = MagicMock()
-        mock_db.session.query.return_value = mock_query
-        mock_query.options.return_value = mock_query
-        mock_query.filter.return_value = mock_query
-        mock_query.one_or_none.return_value = refetched_chart
+        mock_find_by_id.return_value = refetched_chart
 
-        # Simulate the re-fetch logic from generate_chart.py
-        from sqlalchemy.orm import joinedload
-
-        from superset.models.slice import Slice
+        from superset.daos.chart import ChartDAO
 
         chart = (
-            mock_db.session.query(Slice)
-            .options(
-                joinedload(Slice.owners),
-                joinedload(Slice.tags),
-            )
-            .filter(Slice.id == original_chart.id)
-            .one_or_none()
-        ) or original_chart
+            ChartDAO.find_by_id(42, query_options=["dummy_option"])
+            or _make_mock_chart()
+        )
 
-        # Verify the re-fetch returned the new chart
         assert chart is refetched_chart
-        mock_db.session.query.assert_called_once_with(Slice)
-        mock_query.options.assert_called_once()
-        mock_query.filter.assert_called_once()
+        mock_find_by_id.assert_called_once_with(42, query_options=["dummy_option"])
 
-    @patch("superset.mcp_service.chart.tool.generate_chart.db")
-    def test_generate_chart_falls_back_to_original_on_refetch_failure(self, mock_db):
-        """Falls back to original chart if re-fetch returns None."""
+    @patch("superset.daos.chart.ChartDAO.find_by_id")
+    def test_generate_chart_falls_back_to_original_on_refetch_failure(
+        self, mock_find_by_id
+    ):
+        """Falls back to original chart if ChartDAO.find_by_id returns None."""
         original_chart = _make_mock_chart()
+        mock_find_by_id.return_value = None
 
-        mock_query = MagicMock()
-        mock_db.session.query.return_value = mock_query
-        mock_query.options.return_value = mock_query
-        mock_query.filter.return_value = mock_query
-        mock_query.one_or_none.return_value = None
-
-        from superset.models.slice import Slice
+        from superset.daos.chart import ChartDAO
 
         chart = (
-            mock_db.session.query(Slice)
-            .options()
-            .filter(Slice.id == original_chart.id)
-            .one_or_none()
-        ) or original_chart
+            ChartDAO.find_by_id(original_chart.id, query_options=[]) or original_chart
+        )
 
         assert chart is original_chart

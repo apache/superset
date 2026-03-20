@@ -411,21 +411,22 @@ def add_chart_to_existing_dashboard(
         # chart .tags and .owners.
         from sqlalchemy.orm import subqueryload
 
-        from superset import db
+        from superset.daos.dashboard import DashboardDAO
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
 
         updated_dashboard = (
-            db.session.query(Dashboard)
-            .options(
-                subqueryload(Dashboard.slices).subqueryload(Slice.owners),
-                subqueryload(Dashboard.slices).subqueryload(Slice.tags),
-                subqueryload(Dashboard.owners),
-                subqueryload(Dashboard.tags),
+            DashboardDAO.find_by_id(
+                updated_dashboard.id,
+                query_options=[
+                    subqueryload(Dashboard.slices).subqueryload(Slice.owners),
+                    subqueryload(Dashboard.slices).subqueryload(Slice.tags),
+                    subqueryload(Dashboard.owners),
+                    subqueryload(Dashboard.tags),
+                ],
             )
-            .filter(Dashboard.id == updated_dashboard.id)
-            .one_or_none()
-        ) or updated_dashboard
+            or updated_dashboard
+        )
 
         # Convert to response format
         from superset.mcp_service.dashboard.schemas import (

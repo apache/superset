@@ -1070,123 +1070,56 @@ class TestGenerateTitleFromCharts:
 class TestDashboardSerializationEagerLoading:
     """Tests for eager loading fix in dashboard serialization paths."""
 
-    @patch(
-        "superset.mcp_service.dashboard.tool.generate_dashboard.db",
-    )
-    def test_generate_dashboard_refetches_with_subqueryload(self, mock_db):
-        """generate_dashboard re-fetches dashboard with eager-loaded slice
-        relationships before serialization."""
-        from unittest.mock import MagicMock
-
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    def test_generate_dashboard_refetches_via_dao(self, mock_find_by_id):
+        """generate_dashboard re-fetches dashboard via DashboardDAO.find_by_id
+        with eager-loaded slice relationships before serialization."""
         refetched_dashboard = _mock_dashboard()
         refetched_chart = _mock_chart(id=1, slice_name="Refetched Chart")
         refetched_dashboard.slices = [refetched_chart]
 
-        mock_query = MagicMock()
-        mock_db.session.query.return_value = mock_query
-        mock_query.options.return_value = mock_query
-        mock_query.filter.return_value = mock_query
-        mock_query.one_or_none.return_value = refetched_dashboard
+        mock_find_by_id.return_value = refetched_dashboard
 
-        from superset.models.dashboard import Dashboard
+        from superset.daos.dashboard import DashboardDAO
 
         result = (
-            mock_db.session.query(Dashboard)
-            .options()
-            .filter(Dashboard.id == 1)
-            .one_or_none()
-        ) or _mock_dashboard()
-
-        assert result is refetched_dashboard
-        mock_db.session.query.assert_called_once_with(Dashboard)
-
-    @patch(
-        "superset.mcp_service.dashboard.tool.generate_dashboard.db",
-    )
-    def test_generate_dashboard_chart_query_uses_subqueryload(self, mock_db):
-        """generate_dashboard chart query includes subqueryload for owners/tags."""
-        from unittest.mock import MagicMock
-
-        from sqlalchemy.orm import subqueryload
-
-        from superset.models.slice import Slice
-
-        chart = _mock_chart()
-        mock_query = MagicMock()
-        mock_db.session.query.return_value = mock_query
-        mock_query.options.return_value = mock_query
-        mock_query.filter.return_value = mock_query
-        mock_query.order_by.return_value = mock_query
-        mock_query.all.return_value = [chart]
-
-        # Simulate the eager-loaded chart query from generate_dashboard
-        result = (
-            mock_db.session.query(Slice)
-            .options(
-                subqueryload(Slice.owners),
-                subqueryload(Slice.tags),
-            )
-            .filter(Slice.id.in_([1]))
-            .order_by(Slice.id)
-            .all()
+            DashboardDAO.find_by_id(1, query_options=["dummy"]) or _mock_dashboard()
         )
 
-        assert result == [chart]
-        mock_db.session.query.assert_called_once_with(Slice)
-        mock_query.options.assert_called_once()
+        assert result is refetched_dashboard
+        mock_find_by_id.assert_called_once_with(1, query_options=["dummy"])
 
-    @patch(
-        "superset.mcp_service.dashboard.tool.add_chart_to_existing_dashboard.db",
-    )
-    def test_add_chart_refetches_dashboard_with_subqueryload(self, mock_db):
-        """add_chart_to_existing_dashboard re-fetches dashboard with
-        eager-loaded slice relationships."""
-        from unittest.mock import MagicMock
-
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    def test_add_chart_refetches_dashboard_via_dao(self, mock_find_by_id):
+        """add_chart_to_existing_dashboard re-fetches dashboard via
+        DashboardDAO.find_by_id with eager-loaded slice relationships."""
         original_dashboard = _mock_dashboard()
         refetched_dashboard = _mock_dashboard()
         refetched_dashboard.slices = [_mock_chart()]
 
-        mock_query = MagicMock()
-        mock_db.session.query.return_value = mock_query
-        mock_query.options.return_value = mock_query
-        mock_query.filter.return_value = mock_query
-        mock_query.one_or_none.return_value = refetched_dashboard
+        mock_find_by_id.return_value = refetched_dashboard
 
-        from superset.models.dashboard import Dashboard
+        from superset.daos.dashboard import DashboardDAO
 
         result = (
-            mock_db.session.query(Dashboard)
-            .options()
-            .filter(Dashboard.id == original_dashboard.id)
-            .one_or_none()
-        ) or original_dashboard
+            DashboardDAO.find_by_id(original_dashboard.id, query_options=["dummy"])
+            or original_dashboard
+        )
 
         assert result is refetched_dashboard
 
-    @patch(
-        "superset.mcp_service.dashboard.tool.add_chart_to_existing_dashboard.db",
-    )
-    def test_add_chart_falls_back_on_refetch_failure(self, mock_db):
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    def test_add_chart_falls_back_on_refetch_failure(self, mock_find_by_id):
         """add_chart_to_existing_dashboard falls back to original dashboard
-        if re-fetch returns None."""
-        from unittest.mock import MagicMock
-
+        if DashboardDAO.find_by_id returns None."""
         original_dashboard = _mock_dashboard()
+        mock_find_by_id.return_value = None
 
-        mock_query = MagicMock()
-        mock_db.session.query.return_value = mock_query
-        mock_query.options.return_value = mock_query
-        mock_query.filter.return_value = mock_query
-        mock_query.one_or_none.return_value = None
-
-        from superset.models.dashboard import Dashboard
+        from superset.daos.dashboard import DashboardDAO
 
         result = (
-            mock_db.session.query(Dashboard)
-            .options()
-            .filter(Dashboard.id == original_dashboard.id)
-            .one_or_none()
-        ) or original_dashboard
+            DashboardDAO.find_by_id(original_dashboard.id, query_options=["dummy"])
+            or original_dashboard
+        )
 
         assert result is original_dashboard

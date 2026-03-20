@@ -285,19 +285,21 @@ def generate_dashboard(
         # chart .tags and .owners.
         from sqlalchemy.orm import subqueryload
 
+        from superset.daos.dashboard import DashboardDAO
         from superset.models.dashboard import Dashboard
 
         dashboard = (
-            db.session.query(Dashboard)
-            .options(
-                subqueryload(Dashboard.slices).subqueryload(Slice.owners),
-                subqueryload(Dashboard.slices).subqueryload(Slice.tags),
-                subqueryload(Dashboard.owners),
-                subqueryload(Dashboard.tags),
+            DashboardDAO.find_by_id(
+                dashboard.id,
+                query_options=[
+                    subqueryload(Dashboard.slices).subqueryload(Slice.owners),
+                    subqueryload(Dashboard.slices).subqueryload(Slice.tags),
+                    subqueryload(Dashboard.owners),
+                    subqueryload(Dashboard.tags),
+                ],
             )
-            .filter(Dashboard.id == dashboard.id)
-            .one_or_none()
-        ) or dashboard
+            or dashboard
+        )
 
         # Convert to our response format
         from superset.mcp_service.dashboard.schemas import (
