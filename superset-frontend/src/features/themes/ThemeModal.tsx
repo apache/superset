@@ -552,7 +552,8 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
                     placement="top"
                   >
                     <Button
-                      icon={<Icons.FormatPainterOutlined />}
+                      icon={<Icons.AlignLeftOutlined />}
+                      buttonStyle="secondary"
                       onClick={onFormat}
                       disabled={
                         !currentTheme?.json_data ||
