@@ -692,6 +692,138 @@ test('applies theme locally when clicking Apply button', async () => {
   expect(mockThemeContext.setTemporaryTheme).toHaveBeenCalled();
 });
 
+test('shows Format button when modal is in edit mode', () => {
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  expect(screen.getByRole('button', { name: /format/i })).toBeInTheDocument();
+});
+
+test('does not show Format button for read-only system themes', async () => {
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+      theme={mockSystemTheme}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  await screen.findByText('System Theme - Read Only');
+
+  expect(
+    screen.queryByRole('button', { name: /format/i }),
+  ).not.toBeInTheDocument();
+});
+
+test('disables Format button when JSON is invalid', async () => {
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  const jsonEditor = screen.getByTestId('json-editor');
+  userEvent.clear(jsonEditor);
+  userEvent.type(jsonEditor, '{invalid json');
+
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: /format/i })).toBeDisabled();
+  });
+});
+
+test('enables Format button when JSON is valid', async () => {
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  await addValidJsonData();
+
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: /format/i })).toBeEnabled();
+  });
+});
+
+test('Format button pretty-prints minified JSON', async () => {
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  const minifiedJson = '{"token":{"colorPrimary":"#1890ff"}}';
+  const jsonEditor = screen.getByTestId('json-editor');
+  userEvent.clear(jsonEditor);
+  userEvent.type(jsonEditor, minifiedJson);
+
+  const formatButton = screen.getByRole('button', { name: /format/i });
+  userEvent.click(formatButton);
+
+  const expectedFormatted = JSON.stringify(
+    { token: { colorPrimary: '#1890ff' } },
+    null,
+    2,
+  );
+  await waitFor(() => {
+    expect(jsonEditor).toHaveValue(expectedFormatted);
+  });
+});
+
+test('Format button is disabled when JSON editor is empty', async () => {
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  // The editor initializes with `{}` — clear it to reach the empty state
+  const jsonEditor = screen.getByTestId('json-editor');
+  userEvent.clear(jsonEditor);
+
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: /format/i })).toBeDisabled();
+  });
+});
+
 test('disables Apply button when JSON configuration is invalid', async () => {
   fetchMock.reset();
   fetchMock.get('glob:*/api/v1/theme/*', {
