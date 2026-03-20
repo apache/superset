@@ -265,7 +265,7 @@ test('cellStyle derives readable text color from dark background formatting', ()
     } as never),
   ).toMatchObject({
     backgroundColor: '#111111',
-    color: 'var(--ag-cell-value-color)',
+    color: '',
     '--ag-cell-value-color': 'rgb(255, 255, 255)',
     textAlign: 'right',
   });
@@ -315,7 +315,7 @@ test('cellStyle keeps explicit text color over adaptive contrast', () => {
     } as never),
   ).toMatchObject({
     backgroundColor: '#111111',
-    color: 'var(--ag-cell-value-color)',
+    color: '',
     '--ag-cell-value-color': 'rgb(172, 225, 196)',
     textAlign: 'right',
   });
@@ -358,7 +358,7 @@ test('cellStyle treats legacy toTextColor formatters as text color', () => {
   const cellStyle = getCellStyleFunction(colDef.cellStyle);
   expect(getCellStyleResult(cellStyle)).toMatchObject({
     backgroundColor: '#111111',
-    color: 'var(--ag-cell-value-color)',
+    color: '',
     '--ag-cell-value-color': 'rgb(172, 225, 196)',
     textAlign: 'right',
   });
@@ -425,7 +425,7 @@ test('cellStyle uses caller-provided surface color for adaptive contrast', () =>
 
   expect(getCellStyleResult(lightCellStyle)).toMatchObject({
     backgroundColor,
-    color: 'var(--ag-cell-value-color)',
+    color: '',
     '--ag-cell-value-color': getExpectedTextColor(
       { backgroundColor },
       '#ffffff',
@@ -433,7 +433,7 @@ test('cellStyle uses caller-provided surface color for adaptive contrast', () =>
   });
   expect(getCellStyleResult(darkCellStyle)).toMatchObject({
     backgroundColor,
-    color: 'var(--ag-cell-value-color)',
+    color: '',
     '--ag-cell-value-color': getExpectedTextColor(
       { backgroundColor },
       '#000000',
@@ -486,7 +486,7 @@ test('cellStyle uses striped odd-row surface for adaptive contrast', () => {
     }),
   ).toMatchObject({
     backgroundColor,
-    color: 'var(--ag-cell-value-color)',
+    color: '',
     '--ag-cell-value-color': getExpectedTextColor(
       { backgroundColor },
       '#ffffff',
@@ -498,7 +498,7 @@ test('cellStyle uses striped odd-row surface for adaptive contrast', () => {
     }),
   ).toMatchObject({
     backgroundColor,
-    color: 'var(--ag-cell-value-color)',
+    color: '',
     '--ag-cell-value-color': getExpectedTextColor(
       { backgroundColor },
       '#000000',
@@ -543,7 +543,7 @@ test('cellStyle exposes hover-specific adaptive contrast for formatted cells', (
   const cellStyle = getCellStyleFunction(result.current[0].cellStyle);
   expect(getCellStyleResult(cellStyle)).toMatchObject({
     backgroundColor,
-    color: 'var(--ag-cell-value-color)',
+    color: '',
     '--ag-cell-value-color': getExpectedTextColor(
       { backgroundColor },
       '#ffffff',
@@ -631,7 +631,7 @@ test('cellStyle preserves invalid explicit text color', () => {
   const cellStyle = getCellStyleFunction(result.current[0].cellStyle);
   expect(getCellStyleResult(cellStyle)).toMatchObject({
     backgroundColor: '',
-    color: 'var(--ag-cell-value-color)',
+    color: '',
     '--ag-cell-value-color': 'not-a-color',
     '--ag-cell-value-hover-color': 'not-a-color',
   });
@@ -723,7 +723,7 @@ test('cellStyle lets basic color formatters override column formatter background
   const cellStyle = getCellStyleFunction(result.current[0].cellStyle);
   expect(getCellStyleResult(cellStyle)).toMatchObject({
     backgroundColor: '#abcdef',
-    color: 'var(--ag-cell-value-color)',
+    color: '',
     '--ag-cell-value-color': getExpectedTextColor(
       { backgroundColor: '#abcdef' },
       '#ffffff',

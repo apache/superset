@@ -578,6 +578,7 @@ export default function PivotTableChart(props: PivotTableProps) {
       dateFormatters,
       cellBackgroundColor: theme.colorBgBase,
       cellTextColor: theme.colorPrimaryText,
+      activeHeaderBackgroundColor: theme.colorPrimaryBg,
     }),
     [
       colTotals,
@@ -589,6 +590,7 @@ export default function PivotTableChart(props: PivotTableProps) {
       rowSubTotals,
       selectedFilters,
       theme.colorBgBase,
+      theme.colorPrimaryBg,
       theme.colorPrimaryText,
       toggleFilter,
     ],

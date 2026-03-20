@@ -65,6 +65,7 @@ interface TableOptions {
   dateFormatters?: Record<string, ((val: unknown) => string) | undefined>;
   cellBackgroundColor?: string;
   cellTextColor?: string;
+  activeHeaderBackgroundColor?: string;
 }
 
 interface SubtotalDisplay {
@@ -768,6 +769,7 @@ export class TableRenderer extends Component<
       cellColorFormatters,
       dateFormatters,
       cellBackgroundColor = supersetTheme.colorBgBase,
+      activeHeaderBackgroundColor = supersetTheme.colorPrimaryBg,
     } = this.props.tableOptions;
 
     if (!visibleColKeys || !colAttrSpans) {
@@ -871,7 +873,7 @@ export class TableRenderer extends Component<
           [attrName],
           headerCellFormattedValue,
           cellColorFormatters,
-          isActiveHeader ? supersetTheme.colorPrimaryBg : cellBackgroundColor,
+          isActiveHeader ? activeHeaderBackgroundColor : cellBackgroundColor,
         );
         const style = {
           backgroundColor,
@@ -1073,6 +1075,7 @@ export class TableRenderer extends Component<
       dateFormatters,
       cellBackgroundColor = supersetTheme.colorBgBase,
       cellTextColor = supersetTheme.colorPrimaryText,
+      activeHeaderBackgroundColor = supersetTheme.colorPrimaryBg,
     } = this.props.tableOptions;
     const flatRowKey = flatKey(rowKey);
 
@@ -1114,7 +1117,7 @@ export class TableRenderer extends Component<
           [rowAttrs[i]],
           headerCellFormattedValue,
           cellColorFormatters,
-          isActiveHeader ? supersetTheme.colorPrimaryBg : cellBackgroundColor,
+          isActiveHeader ? activeHeaderBackgroundColor : cellBackgroundColor,
         );
         const style = {
           backgroundColor,
