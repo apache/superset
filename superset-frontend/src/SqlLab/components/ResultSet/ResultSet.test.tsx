@@ -41,6 +41,11 @@ import {
   queryWithNoQueryLimit,
   failedQueryWithFrontendTimeoutErrors,
 } from 'src/SqlLab/fixtures';
+import { ViewLocations } from 'src/SqlLab/contributions';
+import {
+  registerToolbarAction,
+  cleanupExtensions,
+} from 'src/SqlLab/test-utils/extensionTestHelpers';
 
 jest.mock('src/components/ErrorMessage', () => ({
   ErrorMessageWithStackTrace: () => <div data-test="error-message">Error</div>,
@@ -152,6 +157,7 @@ describe('ResultSet', () => {
   // Add cleanup after each test
   afterEach(async () => {
     fetchMock.clearHistory();
+    cleanupExtensions();
     // Wait for any pending effects to complete
     await new Promise(resolve => setTimeout(resolve, 0));
   });
@@ -753,4 +759,35 @@ describe('ResultSet', () => {
       );
     },
   );
+
+  test('renders contributed toolbar action in results slot', async () => {
+    registerToolbarAction(
+      ViewLocations.sqllab.results,
+      'test-results-action',
+      'Results Action',
+      jest.fn(),
+    );
+
+    const { getByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user,
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: queries[0],
+          },
+        },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(getByTestId('table-container')).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByRole('button', { name: 'Results Action' }),
+    ).toBeInTheDocument();
+  });
 });

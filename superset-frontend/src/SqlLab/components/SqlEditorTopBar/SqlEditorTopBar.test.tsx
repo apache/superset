@@ -17,31 +17,16 @@
  * under the License.
  */
 import { render, screen } from 'spec/helpers/testing-library';
-import { MenuItemType } from '@superset-ui/core/components/Menu';
 import SqlEditorTopBar, {
   SqlEditorTopBarProps,
 } from 'src/SqlLab/components/SqlEditorTopBar';
+import { ViewLocations } from 'src/SqlLab/contributions';
+import {
+  registerToolbarAction,
+  cleanupExtensions,
+} from 'src/SqlLab/test-utils/extensionTestHelpers';
 
-jest.mock('src/components/PanelToolbar', () => ({
-  __esModule: true,
-  default: ({
-    viewId,
-    defaultPrimaryActions,
-    defaultSecondaryActions,
-  }: {
-    viewId: string;
-    defaultPrimaryActions?: React.ReactNode;
-    defaultSecondaryActions?: MenuItemType[];
-  }) => (
-    <div
-      data-test="mock-panel-toolbar"
-      data-view-id={viewId}
-      data-default-secondary-count={defaultSecondaryActions?.length ?? 0}
-    >
-      {defaultPrimaryActions}
-    </div>
-  ),
-}));
+afterEach(cleanupExtensions);
 
 const defaultProps: SqlEditorTopBarProps = {
   queryEditorId: 'test-query-editor-id',
@@ -54,24 +39,6 @@ const defaultProps: SqlEditorTopBarProps = {
 
 const setup = (props?: Partial<SqlEditorTopBarProps>) =>
   render(<SqlEditorTopBar {...defaultProps} {...props} />);
-
-test('renders SqlEditorTopBar component', () => {
-  setup();
-  const panelToolbar = screen.getByTestId('mock-panel-toolbar');
-  expect(panelToolbar).toBeInTheDocument();
-});
-
-test('renders PanelToolbar with correct viewId', () => {
-  setup();
-  const panelToolbar = screen.getByTestId('mock-panel-toolbar');
-  expect(panelToolbar).toHaveAttribute('data-view-id', 'sqllab.editor');
-});
-
-test('renders PanelToolbar with correct secondary actions count', () => {
-  setup();
-  const panelToolbar = screen.getByTestId('mock-panel-toolbar');
-  expect(panelToolbar).toHaveAttribute('data-default-secondary-count', '2');
-});
 
 test('renders defaultPrimaryActions', () => {
   setup();
@@ -98,9 +65,24 @@ test('renders with custom primary actions', () => {
   ).toBeInTheDocument();
 });
 
-test('renders with empty secondary actions', () => {
-  setup({ defaultSecondaryActions: [] });
+test('renders contributed toolbar action in editor slot', () => {
+  registerToolbarAction(
+    ViewLocations.sqllab.editor,
+    'test-editor-action',
+    'Test Editor Action',
+    jest.fn(),
+  );
+  setup();
+  expect(
+    screen.getByRole('button', { name: 'Test Editor Action' }),
+  ).toBeInTheDocument();
+});
 
-  const panelToolbar = screen.getByTestId('mock-panel-toolbar');
-  expect(panelToolbar).toHaveAttribute('data-default-secondary-count', '0');
+test('renders nothing when no toolbar actions registered and no default actions', () => {
+  setup({
+    defaultPrimaryActions: undefined,
+    defaultSecondaryActions: [],
+  });
+  // PanelToolbar returns null when there are no actions at all
+  expect(screen.queryByRole('button')).not.toBeInTheDocument();
 });

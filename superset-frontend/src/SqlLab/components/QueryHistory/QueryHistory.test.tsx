@@ -25,6 +25,11 @@ import {
   defaultQueryEditor,
   extraQueryEditor3,
 } from 'src/SqlLab/fixtures';
+import { ViewLocations } from 'src/SqlLab/contributions';
+import {
+  registerToolbarAction,
+  cleanupExtensions,
+} from 'src/SqlLab/test-utils/extensionTestHelpers';
 
 const mockedProps = {
   queryEditorId: defaultQueryEditor.id,
@@ -81,7 +86,10 @@ const setup = (overrides = {}) => (
   <QueryHistory {...mockedProps} {...overrides} />
 );
 
-afterEach(() => fetchMock.clearHistory().removeRoutes());
+afterEach(() => {
+  fetchMock.clearHistory().removeRoutes();
+  cleanupExtensions();
+});
 
 test('Renders an empty state for query history', () => {
   render(setup(), { useRedux: true, initialState });
@@ -241,4 +249,45 @@ test('displays multiple queries with newest query first', async () => {
   expect(secondDataRow).toHaveTextContent('443');
 
   isFeatureEnabledMock.mockClear();
+});
+
+test('renders contributed toolbar action in queryHistory slot', () => {
+  registerToolbarAction(
+    ViewLocations.sqllab.queryHistory,
+    'test-history-action',
+    'History Action',
+    jest.fn(),
+  );
+
+  const stateWithQueries = {
+    ...initialState,
+    sqlLab: {
+      ...initialState.sqlLab,
+      queries: {
+        testQuery: {
+          id: 'testQuery',
+          sqlEditorId: defaultQueryEditor.id,
+          sql: 'SELECT 1',
+          state: QueryState.Success,
+          startDttm: Date.now(),
+          endDttm: Date.now() + 100,
+          progress: 100,
+          rows: 1,
+          cached: false,
+          changed_on: new Date().toISOString(),
+          db: 'main',
+          dbId: 1,
+        },
+      },
+    },
+  };
+
+  render(setup(), {
+    useRedux: true,
+    initialState: stateWithQueries,
+  });
+
+  expect(
+    screen.getByRole('button', { name: 'History Action' }),
+  ).toBeInTheDocument();
 });

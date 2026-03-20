@@ -16,26 +16,47 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import StatusBar from 'src/SqlLab/components/StatusBar';
+import { ViewLocations } from 'src/SqlLab/contributions';
+import {
+  registerTestView,
+  cleanupExtensions,
+} from 'src/SqlLab/test-utils/extensionTestHelpers';
 
-jest.mock('src/core/views', () => ({
-  views: {
-    getViews: jest.fn().mockReturnValue([{ id: 'test-status-bar' }]),
-    registerView: jest.fn(),
-  },
-}));
+afterEach(cleanupExtensions);
 
-jest.mock('src/components/ViewListExtension', () => ({
-  __esModule: true,
-  default: ({ viewId }: { viewId: string }) => (
-    <div data-test="mock-view-extension" data-view-id={viewId}>
-      ViewListExtension
-    </div>
-  ),
-}));
-
-test('renders StatusBar component', () => {
+test('renders extension content when registered at statusBar slot', () => {
+  registerTestView(
+    ViewLocations.sqllab.statusBar,
+    'test-status',
+    'Test Status',
+    () => React.createElement('div', null, 'Status Extension'),
+  );
   render(<StatusBar />);
-  expect(screen.getByTestId('mock-view-extension')).toBeInTheDocument();
+  expect(screen.getByText('Status Extension')).toBeInTheDocument();
+});
+
+test('does not render container when no extensions registered', () => {
+  const { container } = render(<StatusBar />);
+  expect(container).toBeEmptyDOMElement();
+});
+
+test('renders multiple extensions in status bar', () => {
+  registerTestView(
+    ViewLocations.sqllab.statusBar,
+    'test-status-1',
+    'Status One',
+    () => React.createElement('div', null, 'Extension One'),
+  );
+  registerTestView(
+    ViewLocations.sqllab.statusBar,
+    'test-status-2',
+    'Status Two',
+    () => React.createElement('div', null, 'Extension Two'),
+  );
+  render(<StatusBar />);
+  expect(screen.getByText('Extension One')).toBeInTheDocument();
+  expect(screen.getByText('Extension Two')).toBeInTheDocument();
 });
