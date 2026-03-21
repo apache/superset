@@ -20,8 +20,10 @@ import time
 from collections import defaultdict
 from typing import Any, Awaitable, Callable, Dict, Protocol
 
+import mcp.types as mt
 from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware, MiddlewareContext
+from fastmcp.tools.tool import ToolResult
 from flask import has_app_context
 from pydantic import ValidationError
 from sqlalchemy.exc import OperationalError, TimeoutError
@@ -257,6 +259,29 @@ class PrivateToolMiddleware(Middleware):
         if "private" in getattr(tool, "tags", set()):
             raise ToolError(f"Access denied to private tool: {context.message.name}")
         return await call_next(context)
+
+
+class StructuredContentStripperMiddleware(Middleware):
+    """Strip ``structured_content`` from tool results to prevent encoding errors.
+
+    FastMCP 3.x auto-generates ``structuredContent`` in tool call responses
+    when the tool has a typed return annotation or output schema.  Some MCP
+    client transports (e.g. Claude.ai's MCP bridge) mishandle this dict,
+    causing ``TypeError: encoding without a string argument``.
+
+    This middleware intercepts every ``tools/call`` result and clears
+    ``structured_content`` so only the text ``content`` list is returned.
+    """
+
+    async def on_call_tool(
+        self,
+        context: MiddlewareContext[mt.CallToolRequestParams],
+        call_next: Callable[[MiddlewareContext], Awaitable[ToolResult]],
+    ) -> ToolResult:
+        result = await call_next(context)
+        if isinstance(result, ToolResult) and result.structured_content is not None:
+            result = ToolResult(content=result.content, meta=result.meta)
+        return result
 
 
 class GlobalErrorHandlerMiddleware(Middleware):
