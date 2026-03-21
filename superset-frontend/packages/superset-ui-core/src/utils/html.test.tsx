@@ -64,6 +64,9 @@ describe('isProbablyHTML', () => {
     // Mathematical expressions
     expect(isProbablyHTML('if x < 5 and y > 10')).toBe(false);
     expect(isProbablyHTML('price < $100')).toBe(false);
+
+    // HTML-ish but non-parseable input
+    expect(isProbablyHTML('<!-- <div> -->')).toBe(false)
   });
 
   test('should return true for all known HTML tags', () => {
