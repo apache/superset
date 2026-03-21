@@ -345,6 +345,9 @@ shortid==0.1.2
     # via apache-superset (pyproject.toml)
 simplejson==3.19.3
     # via apache-superset (pyproject.toml)
+setuptools==80.9.0
+    # via
+    #   liccheck
 six==1.16.0
     # via
     #   prison

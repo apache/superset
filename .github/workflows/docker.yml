@@ -14,7 +14,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-
   setup_matrix:
     runs-on: ubuntu-24.04
     outputs:
@@ -40,9 +39,8 @@ jobs:
       IMAGE_TAG: apache/superset:GHA-${{ matrix.build_preset }}-${{ github.run_id }}
 
     steps:
-
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
 
@@ -91,7 +89,7 @@ jobs:
       # in the context of push (using multi-platform build), we need to pull the image locally
       - name: Docker pull
         if: github.event_name == 'push' && (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker)
-        run:  docker pull $IMAGE_TAG
+        run: docker pull $IMAGE_TAG
 
       - name: Print docker stats
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
@@ -114,7 +112,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
       - name: Check for file changes

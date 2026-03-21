@@ -11,27 +11,27 @@ jobs:
       contents: write
 
     steps:
-    - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-      uses: actions/checkout@v4
-      with:
-        persist-credentials: false
-        submodules: recursive
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+          submodules: recursive
 
-    - name: Check for latest tag
-      id: latest-tag
-      run: |
-        source ./scripts/tag_latest_release.sh $(echo ${{ github.event.release.tag_name }}) --dry-run
+      - name: Check for latest tag
+        id: latest-tag
+        run: |
+          source ./scripts/tag_latest_release.sh $(echo ${{ github.event.release.tag_name }}) --dry-run
 
-    - name: Configure Git
-      run: |
-        git config user.name "$GITHUB_ACTOR"
-        git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
-    - name: Run latest-tag
-      uses: ./.github/actions/latest-tag
-      if: (! ${{ steps.latest-tag.outputs.SKIP_TAG }} )
-      with:
-        description: Superset latest release
-        tag-name: latest
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
+      - name: Run latest-tag
+        uses: ./.github/actions/latest-tag
+        if: (! ${{ steps.latest-tag.outputs.SKIP_TAG }} )
+        with:
+          description: Superset latest release
+          tag-name: latest
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
