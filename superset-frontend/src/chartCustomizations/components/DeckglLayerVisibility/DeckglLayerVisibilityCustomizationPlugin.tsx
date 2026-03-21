@@ -19,14 +19,7 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { DataMask, ExtraFormData } from '@superset-ui/core';
-import { useTheme } from '@apache-superset/core/theme';
-import {
-  Select,
-  FormItem,
-  Tooltip,
-  Icons,
-  Flex,
-} from '@superset-ui/core/components';
+import { Select, FormItem } from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { PluginDeckglLayerVisibilityProps } from './types';
@@ -72,7 +65,6 @@ export default function DeckglLayerVisibilityCustomizationPlugin(
   props: PluginDeckglLayerVisibilityProps,
 ) {
   const { formData, filterState, setDataMask, width, height } = props;
-  const theme = useTheme();
   const [hiddenLayers, setHiddenLayers] = useState<number[]>(
     filterState?.value || [],
   );
@@ -157,48 +149,21 @@ export default function DeckglLayerVisibilityCustomizationPlugin(
     [apiLayers],
   );
 
-  if (isLoadingMetadata && apiLayers.length === 0) {
-    return (
-      <FilterPluginStyle height={height} width={width}>
-        <div>{t('Loading deck.gl layers...')}</div>
-      </FilterPluginStyle>
-    );
-  }
-
   return (
     <FilterPluginStyle height={height} width={width}>
-      {apiLayers.length === 0 ? (
-        <div>{t('No deck.gl multi layer charts found in this dashboard.')}</div>
-      ) : (
-        <FormItem
-          label={
-            <Flex gap={theme.sizeUnit}>
-              <span>{t('Exclude layers (deck.gl)')}</span>
-              <Tooltip
-                title={t(
-                  'Choose layers to hide from all deck.gl Multiple Layer charts in this dashboard.',
-                )}
-              >
-                <span className="tooltip-icon">
-                  <Icons.InfoCircleOutlined
-                    iconSize="m"
-                    iconColor={theme.colorIcon}
-                  />
-                </span>
-              </Tooltip>
-            </Flex>
-          }
-        >
-          <Select
-            mode="multiple"
-            value={hiddenLayers}
-            onChange={handleLayerChange}
-            options={selectOptions}
-            placeholder={t('Select layers to hide')}
-            allowClear
-          />
-        </FormItem>
-      )}
+      <FormItem>
+        <Select
+          data-testid="deckgl-layer-visibility-select"
+          mode="multiple"
+          value={hiddenLayers}
+          onChange={handleLayerChange}
+          options={selectOptions}
+          placeholder={t('Select layers to hide')}
+          allowClear
+          disabled={apiLayers.length === 0}
+          loading={isLoadingMetadata && apiLayers.length === 0}
+        />
+      </FormItem>
     </FilterPluginStyle>
   );
 }

@@ -126,10 +126,10 @@ test('renders layer selection control with layers from API', async () => {
   });
 
   await waitFor(() => {
-    expect(screen.getByText('Exclude layers (deck.gl)')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('deckgl-layer-visibility-select'),
+    ).toBeInTheDocument();
   });
-
-  expect(screen.getByRole('combobox')).toBeInTheDocument();
 });
 
 test('collects unique layer IDs from multiple deck_multi charts', async () => {
@@ -168,7 +168,9 @@ test('handles layer selection and calls setDataMask', async () => {
   );
 
   await waitFor(() => {
-    expect(screen.getByText('Exclude layers (deck.gl)')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('deckgl-layer-visibility-select'),
+    ).toBeInTheDocument();
   });
 
   const select = screen.getByRole('combobox');
@@ -211,7 +213,9 @@ test('initializes with filterState value when provided', async () => {
   );
 
   await waitFor(() => {
-    expect(screen.getByText('Exclude layers (deck.gl)')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('deckgl-layer-visibility-select'),
+    ).toBeInTheDocument();
   });
 
   const select = screen.getByRole('combobox');
@@ -280,7 +284,9 @@ test('does not auto-initialize when defaultToAllLayersVisible is false', async (
   );
 
   await waitFor(() => {
-    expect(screen.getByText('Exclude layers (deck.gl)')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('deckgl-layer-visibility-select'),
+    ).toBeInTheDocument();
   });
 
   expect(setDataMaskMock).not.toHaveBeenCalled();
@@ -304,7 +310,9 @@ test('handles multiple layer selection', async () => {
   );
 
   await waitFor(() => {
-    expect(screen.getByText('Exclude layers (deck.gl)')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('deckgl-layer-visibility-select'),
+    ).toBeInTheDocument();
   });
 
   const select = screen.getByRole('combobox');
@@ -342,7 +350,9 @@ test('displays tooltip info icon', async () => {
   });
 
   await waitFor(() => {
-    expect(screen.getByText('Exclude layers (deck.gl)')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('deckgl-layer-visibility-select'),
+    ).toBeInTheDocument();
   });
 
   const tooltipIcon = screen.getByRole('img', { name: /info-circle/i });
@@ -477,7 +487,9 @@ test('respects existing visible_deckgl_layers from Redux state', async () => {
   );
 
   await waitFor(() => {
-    expect(screen.getByText('Exclude layers (deck.gl)')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('deckgl-layer-visibility-select'),
+    ).toBeInTheDocument();
   });
 
   expect(setDataMaskMock).not.toHaveBeenCalled();
