@@ -274,6 +274,27 @@ def generate_dashboard(
             command = CreateDashboardCommand(dashboard_data)
             dashboard = command.run()
 
+        # Re-fetch the dashboard with eager-loaded relationships to avoid
+        # "Instance is not bound to a Session" errors when serializing
+        # chart .tags and .owners.
+        from sqlalchemy.orm import subqueryload
+
+        from superset.daos.dashboard import DashboardDAO
+        from superset.models.dashboard import Dashboard
+
+        dashboard = (
+            DashboardDAO.find_by_id(
+                dashboard.id,
+                query_options=[
+                    subqueryload(Dashboard.slices).subqueryload(Slice.owners),
+                    subqueryload(Dashboard.slices).subqueryload(Slice.tags),
+                    subqueryload(Dashboard.owners),
+                    subqueryload(Dashboard.tags),
+                ],
+            )
+            or dashboard
+        )
+
         # Convert to our response format
         from superset.mcp_service.dashboard.schemas import (
             serialize_tag_object,
