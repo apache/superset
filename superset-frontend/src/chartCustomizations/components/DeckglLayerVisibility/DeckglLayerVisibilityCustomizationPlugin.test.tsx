@@ -32,6 +32,7 @@ jest.mock('@superset-ui/core', () => ({
 const mockSupersetClientGet = SupersetClient.get as jest.Mock;
 
 const defaultProps: PluginDeckglLayerVisibilityProps = {
+  data: [],
   formData: {
     viz_type: 'deckgl_layer_visibility',
     defaultToAllLayersVisible: true,
@@ -40,7 +41,13 @@ const defaultProps: PluginDeckglLayerVisibilityProps = {
   height: 400,
   width: 600,
   filterState: {},
+  inputRef: { current: null },
   setDataMask: jest.fn(),
+  setFocusedFilter: jest.fn(),
+  unsetFocusedFilter: jest.fn(),
+  setHoveredFilter: jest.fn(),
+  unsetHoveredFilter: jest.fn(),
+  setFilterActive: jest.fn(),
 };
 
 const mockCharts = {

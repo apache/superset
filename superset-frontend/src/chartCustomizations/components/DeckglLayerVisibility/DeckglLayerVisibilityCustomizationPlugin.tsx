@@ -19,12 +19,17 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { DataMask, ExtraFormData } from '@superset-ui/core';
-import { Select, FormItem } from '@superset-ui/core/components';
+import {
+  Select,
+  FormItem,
+  Tooltip,
+  type FormItemProps,
+} from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { PluginDeckglLayerVisibilityProps } from './types';
 import { useDeckLayerMetadata } from './useDeckLayerMetadata';
-import { FilterPluginStyle } from '../common';
+import { FilterPluginStyle, StatusMessage } from '../common';
 import { Slice } from 'src/dashboard/types';
 
 type SliceEntitiesState = {
@@ -120,6 +125,19 @@ export default function DeckglLayerVisibilityCustomizationPlugin(
     setDataMask,
   ]);
 
+  const formItemData: FormItemProps = useMemo(() => {
+    if (filterState.validateMessage) {
+      return {
+        extra: (
+          <StatusMessage status={filterState.validateStatus}>
+            {filterState.validateMessage}
+          </StatusMessage>
+        ),
+      };
+    }
+    return EMPTY_OBJECT as FormItemProps;
+  }, [filterState.validateMessage, filterState.validateStatus]);
+
   const handleLayerChange = useCallback(
     (selectedHiddenLayers: number[]) => {
       setHiddenLayers(selectedHiddenLayers);
@@ -151,18 +169,31 @@ export default function DeckglLayerVisibilityCustomizationPlugin(
 
   return (
     <FilterPluginStyle height={height} width={width}>
-      <FormItem>
-        <Select
-          data-testid="deckgl-layer-visibility-select"
-          mode="multiple"
-          value={hiddenLayers}
-          onChange={handleLayerChange}
-          options={selectOptions}
-          placeholder={t('Select layers to hide')}
-          allowClear
-          disabled={apiLayers.length === 0}
-          loading={isLoadingMetadata && apiLayers.length === 0}
-        />
+      <FormItem validateStatus={filterState.validateStatus} {...formItemData}>
+        <Tooltip
+          title={
+            !isLoadingMetadata && apiLayers.length === 0
+              ? t(
+                  'No multilayer deck.gl charts are currently added to this dashboard.',
+                )
+              : null
+          }
+        >
+          <div>
+            <Select
+              data-testid="deckgl-layer-visibility-select"
+              mode="multiple"
+              oneLine
+              value={hiddenLayers}
+              onChange={handleLayerChange}
+              options={selectOptions}
+              placeholder={t('Select layers to hide')}
+              allowClear
+              disabled={apiLayers.length === 0}
+              loading={isLoadingMetadata && apiLayers.length === 0}
+            />
+          </div>
+        </Tooltip>
       </FormItem>
     </FilterPluginStyle>
   );
