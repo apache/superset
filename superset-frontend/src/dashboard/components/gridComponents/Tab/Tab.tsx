@@ -446,7 +446,7 @@ const Tab = (props: TabProps): ReactElement => {
             title={component.meta.text}
             defaultTitle={component.meta.defaultText}
             placeholder={component.meta.placeholder}
-            canEdit={editMode && isFocused}
+            canEdit={editMode}
             onSaveTitle={handleChangeText}
             showTooltip={false}
             editing={editMode && isFocused}

@@ -525,7 +525,7 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
     return DashboardInfo(
         id=dashboard_id,
         dashboard_title=getattr(dashboard, "dashboard_title", None),
-        slug=slug,
+        slug=slug or "",
         url=dashboard_url,
         published=getattr(dashboard, "published", None),
         changed_by=getattr(dashboard, "changed_by_name", None),
