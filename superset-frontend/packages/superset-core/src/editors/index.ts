@@ -370,6 +370,28 @@ export interface EditorProps {
 }
 
 /**
+ * A single text change expressed as an offset-based replacement.
+ */
+export interface ContentChange {
+  /** Character offset in the document where the replaced range starts */
+  rangeOffset: number;
+  /** Length in characters of the replaced range (0 for pure insertions) */
+  rangeLength: number;
+  /** Text inserted at rangeOffset (empty string for pure deletions) */
+  text: string;
+}
+
+/**
+ * Payload delivered to `onDidChangeContent` listeners.
+ */
+export interface ContentChangeEvent {
+  /** Returns the full current content of the editor */
+  getValue(): string;
+  /** The individual changes that occurred in this event */
+  changes: ReadonlyArray<ContentChange>;
+}
+
+/**
  * Imperative API for controlling the editor programmatically.
  *
  * This handle provides a unified interface for interacting with text editors
@@ -492,6 +514,27 @@ export interface EditorHandle {
    * - CodeMirror: editor.requestMeasure()
    */
   resize(): void;
+
+  /**
+   * Subscribe to content changes in the editor.
+   *
+   * The listener receives a {@link ContentChangeEvent} with:
+   * - `getValue()` — lazy accessor for the full content (call only when needed
+   *   to avoid unnecessary O(n) string allocation on every keystroke)
+   * - `changes` — the individual edits that occurred, as offset-based replacements
+   *
+   * @param listener Called with a ContentChangeEvent on every change
+   * @param thisArgs Optional `this` context for the listener
+   * @returns A Disposable that unsubscribes the listener when disposed
+   *
+   * @example
+   * const disposable = editor.onDidChangeContent(e => {
+   *   setStatements(parseStatements(e.getValue()));
+   * });
+   * // Later, to unsubscribe:
+   * disposable.dispose();
+   */
+  onDidChangeContent: Event<ContentChangeEvent>;
 }
 
 /**

@@ -98,7 +98,10 @@ export interface ExplorePageInitialData {
 }
 
 export interface ExploreResponsePayload {
-  result: ExplorePageInitialData & { message: string };
+  result: ExplorePageInitialData & {
+    message: string;
+    chartState?: JsonObject;
+  };
 }
 
 export interface ExplorePageState {
