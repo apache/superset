@@ -87,19 +87,21 @@ def test_get_succeeds_for_authorised_user(
     mock_security_manager: MagicMock,
     mock_sanitize: MagicMock,
 ) -> None:
-    """raise_for_access is called without raising for authorised callers."""
+    """raise_for_access is called without raising; sanitized data is returned."""
     mock_datasource = MagicMock()
     mock_datasource.data = {"id": 1}
     mock_get_datasource.return_value = mock_datasource
     mock_security_manager.raise_for_access.return_value = None
     mock_sanitize.return_value = {"id": 1}
 
+    view = _view_self()
     raw_get = _get_view_func("get")
-    raw_get(_view_self(), "table", 1)
+    raw_get(view, "table", 1)
 
     mock_security_manager.raise_for_access.assert_called_once_with(
         datasource=mock_datasource
     )
+    view.json_response.assert_called_once_with({"id": 1})
 
 
 # ---------------------------------------------------------------------------
@@ -137,12 +139,14 @@ def test_external_metadata_succeeds_for_authorised_user(
     mock_get_datasource.return_value = mock_datasource
     mock_security_manager.raise_for_access.return_value = None
 
+    view = _view_self()
     raw_fn = _get_view_func("external_metadata")
-    raw_fn(_view_self(), "table", 1)
+    raw_fn(view, "table", 1)
 
     mock_security_manager.raise_for_access.assert_called_once_with(
         datasource=mock_datasource
     )
+    view.json_response.assert_called_once_with([{"name": "col1"}])
 
 
 # ---------------------------------------------------------------------------

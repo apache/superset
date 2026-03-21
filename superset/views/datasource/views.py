@@ -184,17 +184,18 @@ class Datasource(BaseSupersetView):
                     .filter_by(database_name=params["database_name"])
                     .one()
                 )
+                table = Table(
+                    params["table_name"],
+                    params["schema_name"],
+                    params.get("catalog_name"),
+                )
                 security_manager.raise_for_access(
                     database=database,
-                    table=Table(
-                        params["table_name"],
-                        params["schema_name"],
-                        params.get("catalog_name"),
-                    ),
+                    table=table,
                 )
                 external_metadata = get_physical_table_metadata(
                     database=database,
-                    table=Table(params["table_name"], params["schema_name"]),
+                    table=table,
                     normalize_columns=params.get("normalize_columns") or False,
                 )
         except (NoResultFound, NoSuchTableError) as ex:
