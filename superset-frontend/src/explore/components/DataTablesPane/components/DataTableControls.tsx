@@ -21,7 +21,6 @@ import { GenericDataType } from '@apache-superset/core/common';
 import { t } from '@apache-superset/core/translation';
 import { useMemo } from 'react';
 import { zip } from 'lodash';
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { Tooltip } from '@superset-ui/core/components';
 import {
   CopyToClipboardButton,
@@ -73,10 +72,8 @@ export const TableControls = ({
     () => applyFormattingToTabularData(data, formattedTimeColumns),
     [data, formattedTimeColumns],
   );
-  const { canCopyClipboard: canCopyClipboardPerm } = usePermissions();
-  const copyEnabled = isFeatureEnabled(FeatureFlag.GranularExportControls)
-    ? canCopyClipboardPerm
-    : canDownload;
+  const { canCopyClipboard } = usePermissions();
+  const copyEnabled = canCopyClipboard;
   return (
     <TableControlsWrapper>
       <FilterInput onChangeHandler={onInputChange} shouldFocus />

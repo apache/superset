@@ -1389,9 +1389,10 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
-            if not security_manager.can_access("can_export_image", "Superset"):
-                return self.response_403()
+        if is_feature_enabled(
+            "GRANULAR_EXPORT_CONTROLS"
+        ) and not security_manager.can_access("can_export_image", "Superset"):
+            return self.response_403()
         try:
             payload = CacheScreenshotSchema().load(request.json)
         except ValidationError as error:
@@ -1508,9 +1509,10 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
-            if not security_manager.can_access("can_export_image", "Superset"):
-                return self.response_403()
+        if is_feature_enabled(
+            "GRANULAR_EXPORT_CONTROLS"
+        ) and not security_manager.can_access("can_export_image", "Superset"):
+            return self.response_403()
         dashboard = self.datamodel.get(pk, self._base_filters)
 
         # Making sure the dashboard still exists

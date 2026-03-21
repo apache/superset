@@ -788,7 +788,9 @@ describe('ResultSet', () => {
         },
       }),
     );
-    expect(queryByTestId('export-csv-button')).toBeInTheDocument();
+    const csvButton = queryByTestId('export-csv-button');
+    expect(csvButton).toBeInTheDocument();
+    expect(csvButton).toBeEnabled();
     mockIsFeatureEnabled.mockReset();
   });
 

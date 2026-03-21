@@ -153,9 +153,7 @@ export const useDownloadMenuItems = (
     }
   };
 
-  const imageDisabled =
-    isFeatureEnabled(FeatureFlag.GranularExportControls) &&
-    canExportImage === false;
+  const imageDisabled = canExportImage === false;
 
   const imageExportLabel = (text: string) =>
     imageDisabled ? (

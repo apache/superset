@@ -237,11 +237,8 @@ export const useExploreAdditionalActionsMenu = (
     state => state.explore?.can_export_image ?? true,
   );
 
-  const granularExportEnabled = isFeatureEnabled(
-    FeatureFlag.GranularExportControls,
-  );
-  const dataExportDisabled = granularExportEnabled && !canDownloadCSV;
-  const imageExportDisabled = granularExportEnabled && !canExportImage;
+  const dataExportDisabled = !canDownloadCSV;
+  const imageExportDisabled = !canExportImage;
 
   const dataExportLabel = (text: string) =>
     dataExportDisabled ? (

@@ -36,16 +36,7 @@ A new feature flag `GRANULAR_EXPORT_CONTROLS` introduces three fine-grained perm
 
 When the feature flag is enabled, these permissions are enforced on both the frontend (disabled buttons with tooltips) and backend (403 responses from API endpoints). When disabled, legacy `can_csv` behavior is preserved.
 
-**Default role assignments after migration:**
-
-| Role | `can_export_data` | `can_export_image` | `can_copy_clipboard` |
-|---|---|---|---|
-| Admin | Yes | Yes | Yes |
-| Alpha | Yes | Yes | Yes |
-| Gamma | No | No | Yes |
-| sql_lab | Yes | N/A | Yes |
-
-Admins can grant or revoke these permissions individually on any role.
+**Migration behavior:** All three new permissions are granted to every role that currently has `can_csv`, preserving existing access. Admins can then selectively revoke individual export permissions from specific roles as needed.
 
 ### Deck.gl MapBox viewport and opacity controls are functional
 

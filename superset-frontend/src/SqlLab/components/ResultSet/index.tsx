@@ -414,7 +414,7 @@ const ResultSet = ({
               color="primary"
               icon={<Icons.DownloadOutlined iconSize="m" />}
               tooltip={
-                !canExportData && granularExport
+                !canExportData
                   ? t("You don't have permission to export data")
                   : t('Download to CSV')
               }
@@ -458,7 +458,7 @@ const ResultSet = ({
                 color="primary"
                 icon={<Icons.CopyOutlined iconSize="m" />}
                 tooltip={
-                  !canCopyClipboard && granularExport
+                  !canCopyClipboard
                     ? t("You don't have permission to copy to clipboard")
                     : t('Copy to Clipboard')
                 }

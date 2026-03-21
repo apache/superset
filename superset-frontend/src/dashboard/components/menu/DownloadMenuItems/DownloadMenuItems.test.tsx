@@ -199,10 +199,10 @@ test('Screenshot menu items should be enabled when GranularExportControls is ON 
   mockIsFeatureEnabled.mockReset();
 });
 
-test('Screenshot menu items should not be disabled when GranularExportControls is OFF even with canExportImage false', () => {
+test('Screenshot menu items should not be disabled when canExportImage is not provided', () => {
   mockIsFeatureEnabled.mockReturnValue(false);
 
-  render(<MenuWrapperWithProps canExportImage={false} />, {
+  render(<MenuWrapperWithProps />, {
     useRedux: true,
   });
 

@@ -27,16 +27,9 @@ FEATURE_FLAGS = {
 
 ## Default Role Assignments
 
-When the migration runs, permissions are assigned based on existing `can_csv` access:
+The migration grants all three new permissions (`can_export_data`, `can_export_image`, `can_copy_clipboard`) to every role that currently has `can_csv`. This preserves existing behavior — no role loses access during the upgrade.
 
-| Role | `can_export_data` | `can_export_image` | `can_copy_clipboard` |
-|---|---|---|---|
-| Admin | Yes | Yes | Yes |
-| Alpha | Yes | Yes | Yes |
-| Gamma | No | No | Yes |
-| sql_lab | Yes | N/A | Yes |
-
-Gamma users do not receive `can_export_data` or `can_export_image` by default. Admins can grant these permissions to Gamma or custom roles as needed.
+After the migration, admins can selectively revoke individual export permissions from any role to restrict access. For example, to prevent Gamma users from exporting data or images while still allowing clipboard operations, revoke `can_export_data` and `can_export_image` from the Gamma role.
 
 ## Configuration Steps
 

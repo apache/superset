@@ -38,16 +38,12 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 
 def _deny_can_export_image(perm: str, view: str) -> bool:
     """Return False only for can_export_image on Superset, allow everything else."""
-    if perm == "can_export_image" and view == "Superset":
-        return False
-    return True
+    return perm != "can_export_image" or view != "Superset"
 
 
 def _deny_can_export_data(perm: str, view: str) -> bool:
     """Return False only for can_export_data on Superset, allow everything else."""
-    if perm == "can_export_data" and view == "Superset":
-        return False
-    return True
+    return perm != "can_export_data" or view != "Superset"
 
 
 class TestGranularExportChartAPI(SupersetTestCase):

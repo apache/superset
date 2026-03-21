@@ -34,18 +34,20 @@ export const usePermissions = () => {
   const canCsvLegacy = useSelector((state: RootState) =>
     findPermission('can_csv', 'Superset', state.user?.roles),
   );
-  const canExportData = useSelector((state: RootState) =>
+  const canExportDataRaw = useSelector((state: RootState) =>
     findPermission('can_export_data', 'Superset', state.user?.roles),
   );
-  const canExportImage = useSelector((state: RootState) =>
+  const canExportImageRaw = useSelector((state: RootState) =>
     findPermission('can_export_image', 'Superset', state.user?.roles),
   );
-  const canCopyClipboard = useSelector((state: RootState) =>
+  const canCopyClipboardRaw = useSelector((state: RootState) =>
     findPermission('can_copy_clipboard', 'Superset', state.user?.roles),
   );
-  const canDownload = isFeatureEnabled(FeatureFlag.GranularExportControls)
-    ? canExportData
-    : canCsvLegacy;
+  const granularExport = isFeatureEnabled(FeatureFlag.GranularExportControls);
+  const canExportData = granularExport ? canExportDataRaw : canCsvLegacy;
+  const canExportImage = granularExport ? canExportImageRaw : canCsvLegacy;
+  const canCopyClipboard = granularExport ? canCopyClipboardRaw : canCsvLegacy;
+  const canDownload = canExportData;
   const canDrill = useSelector((state: RootState) =>
     findPermission('can_drill', 'Dashboard', state.user?.roles),
   );
