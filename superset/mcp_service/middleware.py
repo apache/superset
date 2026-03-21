@@ -18,12 +18,13 @@
 import logging
 import time
 from collections import defaultdict
-from typing import Any, Awaitable, Callable, Dict, Protocol
+from typing import Any, Awaitable, Callable, Dict, Protocol, Sequence
 
 import mcp.types as mt
 from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware, MiddlewareContext
-from fastmcp.tools.tool import ToolResult
+from fastmcp.server.middleware.middleware import CallNext
+from fastmcp.tools.tool import Tool, ToolResult
 from flask import has_app_context
 from pydantic import ValidationError
 from sqlalchemy.exc import OperationalError, TimeoutError
@@ -262,16 +263,36 @@ class PrivateToolMiddleware(Middleware):
 
 
 class StructuredContentStripperMiddleware(Middleware):
-    """Strip ``structured_content`` from tool results to prevent encoding errors.
+    """Strip ``outputSchema`` and ``structured_content`` to prevent encoding errors.
 
-    FastMCP 3.x auto-generates ``structuredContent`` in tool call responses
-    when the tool has a typed return annotation or output schema.  Some MCP
-    client transports (e.g. Claude.ai's MCP bridge) mishandle this dict,
-    causing ``TypeError: encoding without a string argument``.
+    FastMCP 3.x auto-generates ``outputSchema`` in tool definitions
+    (``tools/list``) and ``structuredContent`` in tool call responses
+    (``tools/call``) when the tool has a typed return annotation.
 
-    This middleware intercepts every ``tools/call`` result and clears
-    ``structured_content`` so only the text ``content`` list is returned.
+    Some MCP client transports (e.g. Claude.ai's MCP bridge) cannot handle
+    ``structuredContent`` dicts, causing ``TypeError: encoding without a
+    string argument``.  Additionally, if ``outputSchema`` is advertised but
+    ``structuredContent`` is stripped from the response, clients may raise
+    ``Output validation error: outputSchema defined but no structured output
+    returned``.
+
+    This middleware handles both sides:
+    - ``on_list_tools``: removes ``output_schema`` from every tool definition
+    - ``on_call_tool``: removes ``structured_content`` from every tool result
     """
+
+    async def on_list_tools(
+        self,
+        context: MiddlewareContext[mt.ListToolsRequest],
+        call_next: CallNext[mt.ListToolsRequest, Sequence[Tool]],
+    ) -> Sequence[Tool]:
+        tools = await call_next(context)
+        return [
+            t.model_copy(update={"output_schema": None})
+            if t.output_schema is not None
+            else t
+            for t in tools
+        ]
 
     async def on_call_tool(
         self,
