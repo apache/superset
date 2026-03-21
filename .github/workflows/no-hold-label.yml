@@ -13,13 +13,13 @@ jobs:
   check-hold-label:
     runs-on: ubuntu-24.04
     steps:
-    - name: Check for 'hold' label
-      uses: actions/github-script@v7
-      with:
-        github-token: ${{secrets.GITHUB_TOKEN}}
-        script: |
-          const payload = context.payload.pull_request
-          const holdLabelPresent = !!payload.labels.find(label => label.name.includes('hold'))
-          if (holdLabelPresent) {
-            core.setFailed('Hold label is present, merge is blocked.')
-          }
+      - name: Check for 'hold' label
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const payload = context.payload.pull_request
+            const holdLabelPresent = !!payload.labels.find(label => label.name.includes('hold'))
+            if (holdLabelPresent) {
+              core.setFailed('Hold label is present, merge is blocked.')
+            }

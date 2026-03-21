@@ -24,7 +24,7 @@ jobs:
         working-directory: superset-extensions-cli
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
           submodules: recursive
@@ -49,7 +49,7 @@ jobs:
 
       - name: Upload coverage reports to Codecov
         if: steps.check.outputs.superset-extensions-cli
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5
         with:
           file: ./coverage.xml
           flags: superset-extensions-cli
@@ -58,7 +58,7 @@ jobs:
 
       - name: Upload HTML coverage report
         if: steps.check.outputs.superset-extensions-cli
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
         with:
           name: superset-extensions-cli-coverage-html
           path: htmlcov/
