@@ -41,7 +41,6 @@ interface StandardModalProps {
   maskClosable?: boolean;
   wrapProps?: object;
   contentLoading?: boolean;
-  resizable?: boolean;
 }
 
 // Standard modal widths
@@ -49,9 +48,9 @@ export const MODAL_STANDARD_WIDTH = 500;
 export const MODAL_MEDIUM_WIDTH = 600;
 export const MODAL_LARGE_WIDTH = 900;
 
-const StyledModal = styled(Modal)<{ $resizable?: boolean }>`
+const StyledModal = styled(Modal)`
   .ant-modal-body {
-    max-height: ${({ $resizable }) => ($resizable ? 'none' : '60vh')};
+    max-height: 80vh;
     height: auto;
     overflow-y: auto;
     padding: 0;
@@ -117,7 +116,6 @@ export function StandardModal({
   maskClosable = false,
   wrapProps,
   contentLoading = false,
-  resizable = false,
 }: StandardModalProps) {
   const primaryButtonName = saveText || (isEditMode ? t('Save') : t('Add'));
 
@@ -132,8 +130,7 @@ export function StandardModal({
       show={show}
       width={`${width}px`}
       wrapProps={wrapProps}
-      $resizable={resizable}
-      resizable={resizable}
+      centered={centered}
       title={
         icon ? (
           <ModalTitleWithIcon
