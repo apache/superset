@@ -736,9 +736,7 @@ const Select = forwardRef(
           popupRender={popupRender}
           filterOption={handleFilterOption}
           filterSort={sortComparatorWithSearch}
-          getPopupContainer={
-            getPopupContainer || (triggerNode => triggerNode.parentNode)
-          }
+
           headerPosition={headerPosition}
           labelInValue={labelInValue}
           maxTagCount={actualMaxTagCount}
