@@ -406,6 +406,28 @@ def add_chart_to_existing_dashboard(
             command = UpdateDashboardCommand(request.dashboard_id, update_data)
             updated_dashboard = command.run()
 
+        # Re-fetch the dashboard with eager-loaded relationships to avoid
+        # "Instance is not bound to a Session" errors when serializing
+        # chart .tags and .owners.
+        from sqlalchemy.orm import subqueryload
+
+        from superset.daos.dashboard import DashboardDAO
+        from superset.models.dashboard import Dashboard
+        from superset.models.slice import Slice
+
+        updated_dashboard = (
+            DashboardDAO.find_by_id(
+                updated_dashboard.id,
+                query_options=[
+                    subqueryload(Dashboard.slices).subqueryload(Slice.owners),
+                    subqueryload(Dashboard.slices).subqueryload(Slice.tags),
+                    subqueryload(Dashboard.owners),
+                    subqueryload(Dashboard.tags),
+                ],
+            )
+            or updated_dashboard
+        )
+
         # Convert to response format
         from superset.mcp_service.dashboard.schemas import (
             serialize_tag_object,
