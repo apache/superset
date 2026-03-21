@@ -179,11 +179,19 @@ class SupersetApp(Flask):
 
             logger.info("Syncing configuration to database...")
 
-            # Register SQLA event listeners for tagging system
+            # Connect signal handlers for tagging system
             if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-                from superset.tags.core import register_sqla_event_listeners
+                from superset.tags.core import connect_tag_signal_handlers
 
-                register_sqla_event_listeners()
+                connect_tag_signal_handlers()
+
+            # Connect signal handlers for thumbnail generation
+            if feature_flag_manager.is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
+                from superset.models.signal_handlers import (
+                    connect_thumbnail_handlers,
+                )
+
+                connect_thumbnail_handlers()
 
             # Seed system themes from configuration
             from superset.commands.theme.seed import SeedSystemThemesCommand

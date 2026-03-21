@@ -84,17 +84,19 @@ class TestSupersetApp:
         with (
             patch.object(app, "_is_database_up_to_date", return_value=True),
             patch(
-                "superset.tags.core.register_sqla_event_listeners"
+                "superset.tags.core.connect_tag_signal_handlers"
             ) as mock_register_listeners,
+            patch(
+                "superset.models.signal_handlers.connect_thumbnail_handlers"
+            ) as mock_thumbnail_handlers,
         ):
             # Execute
             app.sync_config_to_db()
 
         # Assert
-        mock_feature_flag_manager.is_feature_enabled.assert_called_with(
-            "TAGGING_SYSTEM"
-        )
+        mock_feature_flag_manager.is_feature_enabled.assert_any_call("TAGGING_SYSTEM")
         mock_register_listeners.assert_called_once()
+        mock_thumbnail_handlers.assert_called_once()
         # Should seed themes
         mock_seed_themes_command.assert_called_once()
         mock_seed_themes.run.assert_called_once()
@@ -127,6 +129,7 @@ class TestSupersetAppInitializer:
             patch.object(app_initializer, "configure_ssh_manager"),
             patch.object(app_initializer, "configure_stats_manager"),
             patch.object(app_initializer, "init_views"),
+            patch("superset.models.signal_handlers.connect_security_handlers"),
         ):
             app_initializer.init_app_in_ctx()
 

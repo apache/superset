@@ -15,75 +15,80 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=import-outside-toplevel
+from __future__ import annotations
+
+import warnings
+from typing import Any, Callable
+
+import blinker
+
+
+def _get_tag_signal_bindings() -> list[
+    tuple[blinker.NamedSignal, Callable[..., Any], type]
+]:
+    """Return (signal, handler, sender) triples for all tag handlers."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import FavStar
+    from superset.models.dashboard import Dashboard
+    from superset.models.signals import after_delete, after_insert, after_update
+    from superset.models.slice import Slice
+    from superset.models.sql_lab import SavedQuery
+    from superset.tags.models import (
+        ChartUpdater,
+        DashboardUpdater,
+        DatasetUpdater,
+        FavStarUpdater,
+        QueryUpdater,
+    )
+
+    return [
+        (after_insert, DatasetUpdater.on_after_insert, SqlaTable),
+        (after_update, DatasetUpdater.on_after_update, SqlaTable),
+        (after_delete, DatasetUpdater.on_after_delete, SqlaTable),
+        (after_insert, ChartUpdater.on_after_insert, Slice),
+        (after_update, ChartUpdater.on_after_update, Slice),
+        (after_delete, ChartUpdater.on_after_delete, Slice),
+        (after_insert, DashboardUpdater.on_after_insert, Dashboard),
+        (after_update, DashboardUpdater.on_after_update, Dashboard),
+        (after_delete, DashboardUpdater.on_after_delete, Dashboard),
+        (after_insert, FavStarUpdater.on_after_insert, FavStar),
+        (after_delete, FavStarUpdater.on_after_delete, FavStar),
+        (after_insert, QueryUpdater.on_after_insert, SavedQuery),
+        (after_update, QueryUpdater.on_after_update, SavedQuery),
+        (after_delete, QueryUpdater.on_after_delete, SavedQuery),
+    ]
+
+
+def connect_tag_signal_handlers() -> None:
+    """Connect blinker signal handlers for the tagging system."""
+    for signal, handler, sender in _get_tag_signal_bindings():
+        signal.connect(handler, sender=sender)
+
+
+def disconnect_tag_signal_handlers() -> None:
+    """Disconnect blinker signal handlers for the tagging system."""
+    for signal, handler, sender in _get_tag_signal_bindings():
+        signal.disconnect(handler, sender=sender)
+
+
+# Backward-compatible aliases (deprecated, will be removed in 7.0)
 
 
 def register_sqla_event_listeners() -> None:
-    import sqlalchemy as sqla
-
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.models.core import FavStar
-    from superset.models.dashboard import Dashboard
-    from superset.models.slice import Slice
-    from superset.models.sql_lab import SavedQuery
-    from superset.tags.models import (
-        ChartUpdater,
-        DashboardUpdater,
-        DatasetUpdater,
-        FavStarUpdater,
-        QueryUpdater,
+    """Deprecated: Use connect_tag_signal_handlers(). Will be removed in 7.0."""
+    warnings.warn(
+        "register_sqla_event_listeners is deprecated, use connect_tag_signal_handlers",
+        DeprecationWarning,
+        stacklevel=2,
     )
-
-    sqla.event.listen(SqlaTable, "after_insert", DatasetUpdater.after_insert)
-    sqla.event.listen(SqlaTable, "after_update", DatasetUpdater.after_update)
-    sqla.event.listen(SqlaTable, "after_delete", DatasetUpdater.after_delete)
-
-    sqla.event.listen(Slice, "after_insert", ChartUpdater.after_insert)
-    sqla.event.listen(Slice, "after_update", ChartUpdater.after_update)
-    sqla.event.listen(Slice, "after_delete", ChartUpdater.after_delete)
-
-    sqla.event.listen(Dashboard, "after_insert", DashboardUpdater.after_insert)
-    sqla.event.listen(Dashboard, "after_update", DashboardUpdater.after_update)
-    sqla.event.listen(Dashboard, "after_delete", DashboardUpdater.after_delete)
-
-    sqla.event.listen(FavStar, "after_insert", FavStarUpdater.after_insert)
-    sqla.event.listen(FavStar, "after_delete", FavStarUpdater.after_delete)
-
-    sqla.event.listen(SavedQuery, "after_insert", QueryUpdater.after_insert)
-    sqla.event.listen(SavedQuery, "after_update", QueryUpdater.after_update)
-    sqla.event.listen(SavedQuery, "after_delete", QueryUpdater.after_delete)
+    connect_tag_signal_handlers()
 
 
 def clear_sqla_event_listeners() -> None:
-    import sqlalchemy as sqla
-
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.models.core import FavStar
-    from superset.models.dashboard import Dashboard
-    from superset.models.slice import Slice
-    from superset.models.sql_lab import SavedQuery
-    from superset.tags.models import (
-        ChartUpdater,
-        DashboardUpdater,
-        DatasetUpdater,
-        FavStarUpdater,
-        QueryUpdater,
+    """Deprecated: Use disconnect_tag_signal_handlers(). Will be removed in 7.0."""
+    warnings.warn(
+        "clear_sqla_event_listeners is deprecated, use disconnect_tag_signal_handlers",
+        DeprecationWarning,
+        stacklevel=2,
     )
-
-    sqla.event.remove(SqlaTable, "after_insert", DatasetUpdater.after_insert)
-    sqla.event.remove(SqlaTable, "after_update", DatasetUpdater.after_update)
-    sqla.event.remove(SqlaTable, "after_delete", DatasetUpdater.after_delete)
-
-    sqla.event.remove(Slice, "after_insert", ChartUpdater.after_insert)
-    sqla.event.remove(Slice, "after_update", ChartUpdater.after_update)
-    sqla.event.remove(Slice, "after_delete", ChartUpdater.after_delete)
-
-    sqla.event.remove(Dashboard, "after_insert", DashboardUpdater.after_insert)
-    sqla.event.remove(Dashboard, "after_update", DashboardUpdater.after_update)
-    sqla.event.remove(Dashboard, "after_delete", DashboardUpdater.after_delete)
-
-    sqla.event.remove(FavStar, "after_insert", FavStarUpdater.after_insert)
-    sqla.event.remove(FavStar, "after_delete", FavStarUpdater.after_delete)
-
-    sqla.event.remove(SavedQuery, "after_insert", QueryUpdater.after_insert)
-    sqla.event.remove(SavedQuery, "after_update", QueryUpdater.after_update)
-    sqla.event.remove(SavedQuery, "after_delete", QueryUpdater.after_delete)
+    disconnect_tag_signal_handlers()

@@ -20,7 +20,6 @@ import logging
 from typing import Any, TYPE_CHECKING
 from urllib import parse
 
-import sqlalchemy as sqla
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from markupsafe import escape, Markup
@@ -40,7 +39,7 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql.elements import BinaryExpression
 from superset_core.common.models import Chart as CoreChart
 
-from superset import db, is_feature_enabled, security_manager
+from superset import db, security_manager
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.tasks.thumbnails import cache_chart_thumbnail
@@ -380,11 +379,3 @@ def event_after_chart_changed(
     cache_chart_thumbnail.delay(
         current_user=get_current_user(), chart_id=target.id, force=True
     )
-
-
-sqla.event.listen(Slice, "before_insert", set_related_perm)
-sqla.event.listen(Slice, "before_update", set_related_perm)
-
-if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
-    sqla.event.listen(Slice, "after_insert", event_after_chart_changed)
-    sqla.event.listen(Slice, "after_update", event_after_chart_changed)

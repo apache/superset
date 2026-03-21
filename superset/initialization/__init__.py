@@ -612,6 +612,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_stats_manager()
         self.configure_task_manager()
 
+        # Connect security signal handlers before any model operations
+        from superset.models.signal_handlers import connect_security_handlers
+
+        connect_security_handlers()
+
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
         if flask_app_mutator := self.config["FLASK_APP_MUTATOR"]:

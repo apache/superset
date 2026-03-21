@@ -75,6 +75,7 @@ from superset.extensions import (
     ssh_manager_factory,
 )
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin, UUIDMixin
+from superset.models.signals import SignalMixin
 from superset.result_set import SupersetResultSet
 from superset.sql.parse import SQLScript, Table
 from superset.superset_typing import (
@@ -1326,11 +1327,6 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         return SQLExecutor(self).execute_async(sql, options)
 
 
-sqla.event.listen(Database, "after_insert", security_manager.database_after_insert)
-sqla.event.listen(Database, "after_update", security_manager.database_after_update)
-sqla.event.listen(Database, "after_delete", security_manager.database_after_delete)
-
-
 class DatabaseUserOAuth2Tokens(Model, AuditMixinNullable):
     """
     Store OAuth2 tokens, for authenticating to DBs using user personal tokens.
@@ -1384,7 +1380,7 @@ class FavStarClassName(StrEnum):
     DASHBOARD = "Dashboard"
 
 
-class FavStar(UUIDMixin, Model):
+class FavStar(UUIDMixin, Model, SignalMixin):
     __tablename__ = "favstar"
 
     id = Column(Integer, primary_key=True)

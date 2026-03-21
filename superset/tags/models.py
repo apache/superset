@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 import enum
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from flask_appbuilder import Model
 from sqlalchemy import (
@@ -290,6 +290,21 @@ class ObjectUpdater:
 
             session.commit()
 
+    # Signal-compatible wrappers: delegate to the (mapper, connection, target)
+    # classmethods so existing logic is untouched.
+
+    @classmethod
+    def on_after_insert(cls, sender: type, event: Any, **kw: Any) -> None:
+        cls.after_insert(event.mapper, event.connection, event.model)
+
+    @classmethod
+    def on_after_update(cls, sender: type, event: Any, **kw: Any) -> None:
+        cls.after_update(event.mapper, event.connection, event.model)
+
+    @classmethod
+    def on_after_delete(cls, sender: type, event: Any, **kw: Any) -> None:
+        cls.after_delete(event.mapper, event.connection, event.model)
+
 
 class ChartUpdater(ObjectUpdater):
     object_type = "chart"
@@ -360,3 +375,13 @@ class FavStarUpdater:
             )
 
             session.commit()
+
+    # Signal-compatible wrappers
+
+    @classmethod
+    def on_after_insert(cls, sender: type, event: Any, **kw: Any) -> None:
+        cls.after_insert(event.mapper, event.connection, event.model)
+
+    @classmethod
+    def on_after_delete(cls, sender: type, event: Any, **kw: Any) -> None:
+        cls.after_delete(event.mapper, event.connection, event.model)

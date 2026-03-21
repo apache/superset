@@ -19,13 +19,12 @@ from __future__ import annotations
 import logging
 import uuid
 from collections import defaultdict, deque
-from typing import Any, Callable
+from typing import Any
 
-import sqlalchemy as sqla
 from flask import current_app as app
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
-from flask_appbuilder.security.sqla.models import User
+from flask_appbuilder.security.signals import user_creating
 from markupsafe import escape, Markup
 from sqlalchemy import (
     Boolean,
@@ -37,13 +36,11 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship, subqueryload
-from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql.elements import BinaryExpression
 from superset_core.common.models import Dashboard as CoreDashboard
 
-from superset import db, is_feature_enabled, security_manager
+from superset import db, security_manager
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.daos.datasource import DatasourceDAO
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
@@ -58,16 +55,24 @@ metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
 
 
-def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) -> None:
+def copy_dashboard(sender: Any, event: Any, **kwargs: Any) -> None:
+    """Copy a template dashboard to a newly created user.
+
+    Connected to FAB's user_creating signal (pre-commit), so changes
+    are committed atomically with the user creation.
+    """
     dashboard_id = app.config["DASHBOARD_TEMPLATE_ID"]
     if dashboard_id is None:
         return
 
-    session = sqla.inspect(target).session  # pylint: disable=disallowed-name
-    new_user = session.query(User).filter_by(id=target.id).first()
+    user = event.model
+    if user is None:
+        return
 
-    # copy template dashboard to user
-    template = session.query(Dashboard).filter_by(id=int(dashboard_id)).first()
+    template = db.session.query(Dashboard).filter_by(id=int(dashboard_id)).first()
+    if template is None:
+        return
+
     dashboard = Dashboard(
         dashboard_title=template.dashboard_title,
         position_json=template.position_json,
@@ -75,19 +80,15 @@ def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) 
         css=template.css,
         json_metadata=template.json_metadata,
         slices=template.slices,
-        owners=[new_user],
+        owners=[user],
     )
-    session.add(dashboard)
+    db.session.add(dashboard)
 
-    # set dashboard as the welcome dashboard
-    extra_attributes = UserAttribute(
-        user_id=target.id, welcome_dashboard_id=dashboard.id
-    )
-    session.add(extra_attributes)
-    session.commit()  # pylint: disable=consider-using-transaction
+    extra_attributes = UserAttribute(user_id=user.id, welcome_dashboard_id=dashboard.id)
+    db.session.add(extra_attributes)
 
 
-sqla.event.listen(User, "after_insert", copy_dashboard)
+user_creating.connect(copy_dashboard)
 
 
 dashboard_slices = Table(
@@ -459,11 +460,3 @@ def id_or_slug_filter(id_or_slug: int | str) -> BinaryExpression:
     if is_uuid(id_or_slug):
         return Dashboard.uuid == uuid.UUID(str(id_or_slug))
     return Dashboard.slug == id_or_slug
-
-
-OnDashboardChange = Callable[[Mapper, Connection, Dashboard], Any]
-
-if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
-    update_thumbnail: OnDashboardChange = lambda _, __, dash: dash.update_thumbnail()  # noqa: E731
-    sqla.event.listen(Dashboard, "after_insert", update_thumbnail)
-    sqla.event.listen(Dashboard, "after_update", update_thumbnail)

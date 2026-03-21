@@ -18,7 +18,10 @@
 import pytest
 
 from superset import db
-from superset.tags.core import clear_sqla_event_listeners, register_sqla_event_listeners
+from superset.tags.core import (
+    connect_tag_signal_handlers,
+    disconnect_tag_signal_handlers,
+)
 from superset.tags.models import Tag
 from tests.integration_tests.test_app import app
 
@@ -28,10 +31,10 @@ def with_tagging_system_feature():
     is_enabled = app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"]
     if not is_enabled:
         app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"] = True
-        register_sqla_event_listeners()
+        connect_tag_signal_handlers()
         yield
         app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"] = False
-        clear_sqla_event_listeners()
+        disconnect_tag_signal_handlers()
 
 
 @pytest.fixture

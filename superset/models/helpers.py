@@ -87,6 +87,7 @@ from superset.exceptions import (
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
+from superset.models.signals import SignalMixin
 from superset.sql.parse import sanitize_clause, SQLScript, SQLStatement
 from superset.superset_typing import (
     AdhocMetric,
@@ -558,7 +559,7 @@ def _user(user: User) -> str:
     return escape(user)
 
 
-class AuditMixinNullable(AuditMixin):
+class AuditMixinNullable(AuditMixin, SignalMixin):
     """Altering the AuditMixin to use nullable fields
 
     Allows creating objects programmatically outside of CRUD

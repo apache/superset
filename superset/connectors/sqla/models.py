@@ -2064,10 +2064,6 @@ class SqlaTable(
         return ExploreMixin.text(self, clause)
 
 
-sa.event.listen(SqlaTable, "before_update", SqlaTable.before_update)
-sa.event.listen(SqlaTable, "after_insert", SqlaTable.after_insert)
-sa.event.listen(SqlaTable, "after_delete", SqlaTable.after_delete)
-
 RLSFilterRoles = DBTable(
     "rls_filter_roles",
     metadata,
