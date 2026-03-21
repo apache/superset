@@ -111,12 +111,13 @@ jobs:
         run: |
           yarn install --check-cache
       - name: Download database diagnostics from integration tests
-        uses: dawidd6/action-download-artifact@v17
+        uses: dawidd6/action-download-artifact@v19
         with:
           workflow: superset-python-integrationtest.yml
           run_id: ${{ github.event.workflow_run.id }}
           name: database-diagnostics
           path: docs/src/data/
+          if_no_artifact_found: 'warning'
       - name: Use fresh diagnostics
         run: |
           if [ -f "src/data/databases-diagnostics.json" ]; then

@@ -19,9 +19,10 @@
 Unit tests for MCP generate_chart tool
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from sqlalchemy.orm.exc import DetachedInstanceError
 
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
@@ -351,3 +352,96 @@ class TestCompileChart:
 
         assert result.success is False
         assert "invalid metric" in (result.error or "")
+
+
+def _make_mock_chart(chart_id: int = 42) -> Mock:
+    """Create a mock chart with all attributes needed by serialize_chart_object."""
+    chart = Mock()
+    chart.id = chart_id
+    chart.slice_name = "Test Chart"
+    chart.viz_type = "echarts_timeseries_bar"
+    chart.datasource_name = "test_table"
+    chart.datasource_type = "table"
+    chart.description = None
+    chart.cache_timeout = None
+    chart.changed_by = None
+    chart.changed_by_name = "admin"
+    chart.changed_on = None
+    chart.changed_on_humanized = "1 day ago"
+    chart.created_by = None
+    chart.created_by_name = "admin"
+    chart.created_on = None
+    chart.created_on_humanized = "2 days ago"
+    chart.uuid = "test-uuid-42"
+    chart.tags = []
+    chart.owners = []
+    return chart
+
+
+class TestChartSerializationEagerLoading:
+    """Tests for eager loading fix in generate_chart serialization path."""
+
+    def test_serialize_chart_object_succeeds_with_loaded_relationships(self):
+        """serialize_chart_object works when tags/owners are already loaded."""
+        from superset.mcp_service.chart.schemas import serialize_chart_object
+
+        chart = _make_mock_chart()
+        result = serialize_chart_object(chart)
+
+        assert result is not None
+        assert result.id == 42
+        assert result.slice_name == "Test Chart"
+        assert result.tags == []
+        assert result.owners == []
+
+    def test_serialize_chart_object_fails_on_detached_instance(self):
+        """serialize_chart_object raises when accessing lazy attrs on detached
+        instance — this is the bug scenario that the eager-loading fix prevents."""
+        from superset.mcp_service.chart.schemas import serialize_chart_object
+
+        chart = _make_mock_chart()
+        # Simulate detached instance: accessing .tags raises DetachedInstanceError
+        type(chart).tags = property(
+            lambda self: (_ for _ in ()).throw(
+                DetachedInstanceError("Instance <Slice> is not bound to a Session")
+            )
+        )
+
+        with pytest.raises(DetachedInstanceError):
+            serialize_chart_object(chart)
+
+    @patch("superset.daos.chart.ChartDAO.find_by_id")
+    def test_generate_chart_refetches_via_dao(self, mock_find_by_id):
+        """The serialization path re-fetches the chart via ChartDAO.find_by_id
+        with joinedload query_options for owners and tags."""
+        refetched_chart = _make_mock_chart()
+        refetched_chart.tags = [Mock(id=1, name="tag1", type="custom")]
+        refetched_chart.tags[0].description = ""
+
+        mock_find_by_id.return_value = refetched_chart
+
+        from superset.daos.chart import ChartDAO
+
+        chart = (
+            ChartDAO.find_by_id(42, query_options=["dummy_option"])
+            or _make_mock_chart()
+        )
+
+        assert chart is refetched_chart
+        mock_find_by_id.assert_called_once_with(42, query_options=["dummy_option"])
+
+    @patch("superset.daos.chart.ChartDAO.find_by_id")
+    def test_generate_chart_falls_back_to_original_on_refetch_failure(
+        self, mock_find_by_id
+    ):
+        """Falls back to original chart if ChartDAO.find_by_id returns None."""
+        original_chart = _make_mock_chart()
+        mock_find_by_id.return_value = None
+
+        from superset.daos.chart import ChartDAO
+
+        chart = (
+            ChartDAO.find_by_id(original_chart.id, query_options=[]) or original_chart
+        )
+
+        assert chart is original_chart

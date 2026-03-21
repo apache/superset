@@ -25,10 +25,11 @@ Database.execute() API with RLS, template rendering, and security validation.
 from __future__ import annotations
 
 import logging
+from decimal import Decimal
 from typing import Any
 
 from fastmcp import Context
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset_core.queries.types import (
     CacheOptions,
     QueryOptions,
@@ -55,6 +56,11 @@ logger = logging.getLogger(__name__)
     tags=["mutate"],
     class_permission_name="SQLLab",
     method_permission_name="execute_sql_query",
+    annotations=ToolAnnotations(
+        title="Execute SQL query",
+        readOnlyHint=False,
+        destructiveHint=True,
+    ),
 )
 @parse_request(ExecuteSqlRequest)
 async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlResponse:
@@ -154,6 +160,22 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
         raise
 
 
+def _sanitize_row_values(rows: list[dict[str, Any]]) -> None:
+    """Sanitize non-serializable values in rows for JSON serialization."""
+    for row in rows:
+        for key, value in row.items():
+            if isinstance(value, (bytes, memoryview)):
+                raw = bytes(value) if isinstance(value, memoryview) else value
+                try:
+                    row[key] = raw.decode("utf-8")
+                except (UnicodeDecodeError, AttributeError):
+                    row[key] = raw.hex()
+            elif isinstance(value, Decimal):
+                row[key] = float(value)
+            elif not isinstance(value, (str, int, float, bool, type(None), list, dict)):
+                row[key] = str(value)
+
+
 def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
     """Convert QueryResult to ExecuteSqlResponse."""
     if result.status != QueryStatus.SUCCESS:
@@ -172,8 +194,10 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
         stmt_data: StatementData | None = None
         if stmt.data is not None:
             df = stmt.data
+            rows_data = df.to_dict(orient="records")
+            _sanitize_row_values(rows_data)
             stmt_data = StatementData(
-                rows=df.to_dict(orient="records"),
+                rows=rows_data,
                 columns=[
                     ColumnInfo(name=col, type=str(df[col].dtype)) for col in df.columns
                 ],
