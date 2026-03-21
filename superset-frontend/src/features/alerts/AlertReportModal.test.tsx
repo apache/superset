@@ -274,6 +274,33 @@ const restoreDefaultTabsRoute = () => {
 
 afterEach(() => {
   restoreDefaultTabsRoute();
+
+  // Clear call history so stale counts don't leak between tests
+  fetchMock.callHistory.clear();
+
+  // Remove test-specific named routes (try/catch — may not exist)
+  for (const name of [
+    'put-condition',
+    'put-edit',
+    'put-extra-dashboard',
+    'create-post',
+    'put-dashboard-payload',
+    'put-report-1',
+    'put-no-recipients',
+    'tabs-99',
+  ]) {
+    try {
+      fetchMock.removeRoute(name);
+    } catch {
+      // route may not exist
+    }
+  }
+
+  // Reset chartData mock so stale resolved values don't leak
+  mockGetChartDataRequest.mockReset();
+  mockGetChartDataRequest.mockResolvedValue({
+    json: { result: [{ data: [] }] },
+  });
 });
 
 // Create a valid alert with all required fields entered for validation check
@@ -997,10 +1024,7 @@ test('dashboard switching resets tab and filter selections', async () => {
 
   // Confirm the filter dropdown has options by opening it
   userEvent.click(filterCombobox);
-  await waitFor(() => {
-    const virtualLists = document.querySelectorAll('.rc-virtual-list');
-    expect(virtualLists.length).toBeGreaterThan(0);
-  });
+  await screen.findByText('Country Filter', {}, { timeout: 5000 });
   // Close the dropdown by pressing Escape
   fireEvent.keyDown(filterCombobox, { key: 'Escape' });
 
@@ -1115,20 +1139,10 @@ test('different dashboard populates its own tabs and filters', async () => {
   );
   userEvent.click(filterSelect);
 
-  await waitFor(() => {
-    const virtualLists = document.querySelectorAll('.rc-virtual-list');
-    const lastVirtualList = virtualLists[virtualLists.length - 1];
-    expect(
-      within(lastVirtualList as HTMLElement).getByText('Region Filter'),
-    ).toBeInTheDocument();
-  });
+  await screen.findByText('Region Filter', {}, { timeout: 5000 });
 
   // Dashboard 1's filters (Country/City) should NOT appear
-  const virtualLists = document.querySelectorAll('.rc-virtual-list');
-  const lastVirtualList = virtualLists[virtualLists.length - 1];
-  expect(
-    within(lastVirtualList as HTMLElement).queryByText('Country Filter'),
-  ).not.toBeInTheDocument();
+  expect(screen.queryByText('Country Filter')).not.toBeInTheDocument();
 
   // Cleanup
   fetchMock.removeRoute(FETCH_REPORT_DASH99_ENDPOINT);
@@ -1302,9 +1316,7 @@ test('submit includes conditionNotNull without threshold in alert payload', asyn
   await waitFor(() => {
     expect(screen.getByRole('button', { name: /save/i })).toBeEnabled();
   });
-  await waitFor(() =>
-    userEvent.click(screen.getByRole('button', { name: /save/i })),
-  );
+  userEvent.click(screen.getByRole('button', { name: /save/i }));
 
   // Verify the PUT payload
   await waitFor(() => {
@@ -1342,9 +1354,7 @@ test('edit mode submit uses PUT and excludes read-only fields', async () => {
   await waitFor(() => {
     expect(screen.getByRole('button', { name: /save/i })).toBeEnabled();
   });
-  await waitFor(() =>
-    userEvent.click(screen.getByRole('button', { name: /save/i })),
-  );
+  userEvent.click(screen.getByRole('button', { name: /save/i }));
 
   await waitFor(() => {
     const calls = fetchMock.callHistory.calls('put-edit');
@@ -1402,9 +1412,7 @@ test('edit mode preserves extra.dashboard tab/filter state in payload', async ()
     },
     { timeout: 10000 },
   );
-  await waitFor(() =>
-    userEvent.click(screen.getByRole('button', { name: /save/i })),
-  );
+  userEvent.click(screen.getByRole('button', { name: /save/i }));
 
   await waitFor(() => {
     const calls = fetchMock.callHistory.calls('put-extra-dashboard');
@@ -1487,9 +1495,7 @@ test('create mode submits POST and calls onAdd with response', async () => {
   );
 
   // Click Add
-  await waitFor(() =>
-    userEvent.click(screen.getByRole('button', { name: 'Add' })),
-  );
+  userEvent.click(screen.getByRole('button', { name: 'Add' }));
 
   // Verify POST was called (not PUT)
   await waitFor(() => {
@@ -1596,9 +1602,7 @@ test('dashboard content type submits dashboard id and null chart', async () => {
   await waitFor(() => {
     expect(screen.getByRole('button', { name: /save/i })).toBeEnabled();
   });
-  await waitFor(() =>
-    userEvent.click(screen.getByRole('button', { name: /save/i })),
-  );
+  userEvent.click(screen.getByRole('button', { name: /save/i }));
 
   await waitFor(() => {
     const calls = fetchMock.callHistory.calls('put-dashboard-payload');
@@ -1680,10 +1684,7 @@ test('filter reappears in dropdown after clearing with X icon', async () => {
 
   userEvent.click(filterDropdown);
 
-  const filterOption = await waitFor(() => {
-    const virtualList = document.querySelector('.rc-virtual-list');
-    return within(virtualList as HTMLElement).getByText('Test Filter 1');
-  });
+  const filterOption = await screen.findByText('Test Filter 1', {}, { timeout: 5000 });
 
   userEvent.click(filterOption);
 
@@ -1724,12 +1725,7 @@ test('filter reappears in dropdown after clearing with X icon', async () => {
   });
 
   userEvent.click(filterDropdown);
-  await waitFor(() => {
-    const virtualList = document.querySelector('.rc-virtual-list');
-    expect(
-      within(virtualList as HTMLElement).getByText('Test Filter 1'),
-    ).toBeInTheDocument();
-  });
+  await screen.findByText('Test Filter 1', {}, { timeout: 5000 });
 });
 
 const setupAnchorMocks = (
@@ -2411,19 +2407,17 @@ test('selected filter excluded from other row dropdowns', async () => {
   userEvent.click(filterDropdowns[1]);
 
   // Country Filter should be excluded (dedup), City Filter should remain.
-  // Use the last virtual list since the first may belong to the closed row 1 dropdown.
+  // Scope to the last dropdown popup to avoid matching selected items in row 1.
   await waitFor(() => {
-    const virtualLists = document.querySelectorAll('.rc-virtual-list');
-    const lastVirtualList = virtualLists[virtualLists.length - 1];
+    const dropdowns = document.querySelectorAll('.ant-select-dropdown');
+    const lastDropdown = dropdowns[dropdowns.length - 1];
     expect(
-      within(lastVirtualList as HTMLElement).queryByText('Country Filter'),
+      within(lastDropdown as HTMLElement).queryByText('Country Filter'),
     ).not.toBeInTheDocument();
     expect(
-      within(lastVirtualList as HTMLElement).getByText('City Filter'),
+      within(lastDropdown as HTMLElement).getByText('City Filter'),
     ).toBeInTheDocument();
   });
-
-  mockGetChartDataRequest.mockReset();
 }, 30000);
 
 test('invalid CC email blocks submit', async () => {
