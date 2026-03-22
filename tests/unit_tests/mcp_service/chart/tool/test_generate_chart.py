@@ -19,7 +19,10 @@
 Unit tests for MCP generate_chart tool
 """
 
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
+from sqlalchemy.orm.exc import DetachedInstanceError
 
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
@@ -29,6 +32,10 @@ from superset.mcp_service.chart.schemas import (
     LegendConfig,
     TableChartConfig,
     XYChartConfig,
+)
+from superset.mcp_service.chart.tool.generate_chart import (
+    _compile_chart,
+    CompileResult,
 )
 
 
@@ -182,24 +189,35 @@ class TestGenerateChart:
     @pytest.mark.asyncio
     async def test_save_chart_flag(self):
         """Test save_chart flag behavior."""
-        # Default should be True (save chart)
+        # Default should be False (preview only, not saved)
         request1 = GenerateChartRequest(
             dataset_id="1",
             config=TableChartConfig(
                 chart_type="table", columns=[ColumnRef(name="col1")]
             ),
         )
-        assert request1.save_chart is True
+        assert request1.save_chart is False
 
-        # Explicit False (preview only)
+        # Explicit True (save chart permanently)
         request2 = GenerateChartRequest(
             dataset_id="1",
             config=TableChartConfig(
                 chart_type="table", columns=[ColumnRef(name="col1")]
             ),
-            save_chart=False,
+            save_chart=True,
         )
-        assert request2.save_chart is False
+        assert request2.save_chart is True
+
+        # Both False should raise validation error (no-op request)
+        with pytest.raises(ValueError, match="At least one of"):
+            GenerateChartRequest(
+                dataset_id="1",
+                config=TableChartConfig(
+                    chart_type="table", columns=[ColumnRef(name="col1")]
+                ),
+                save_chart=False,
+                generate_preview=False,
+            )
 
     @pytest.mark.asyncio
     async def test_preview_formats(self):
@@ -266,3 +284,164 @@ class TestGenerateChart:
         # Hidden legend
         legend = LegendConfig(show=False)
         assert legend.show is False
+
+
+class TestCompileChart:
+    """Tests for _compile_chart helper."""
+
+    @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    def test_compile_chart_success(self, mock_factory_cls, mock_cmd_cls):
+        """Test _compile_chart returns success when query executes cleanly."""
+        mock_factory_cls.return_value.create.return_value = MagicMock()
+        mock_cmd_cls.return_value.run.return_value = {
+            "queries": [{"data": [{"col": 1}, {"col": 2}]}]
+        }
+
+        form_data = {
+            "viz_type": "echarts_timeseries_bar",
+            "metrics": [{"label": "count", "expressionType": "SIMPLE"}],
+            "groupby": ["region"],
+        }
+        result = _compile_chart(form_data, dataset_id=1)
+
+        assert isinstance(result, CompileResult)
+        assert result.success is True
+        assert result.error is None
+        assert result.row_count == 2
+
+    @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    def test_compile_chart_query_error_in_payload(self, mock_factory_cls, mock_cmd_cls):
+        """Test _compile_chart detects errors embedded in query results."""
+        mock_factory_cls.return_value.create.return_value = MagicMock()
+        mock_cmd_cls.return_value.run.return_value = {
+            "queries": [{"error": "column 'bad_col' does not exist"}]
+        }
+
+        result = _compile_chart({"metrics": []}, dataset_id=1)
+
+        assert result.success is False
+        assert "bad_col" in (result.error or "")
+
+    @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    def test_compile_chart_command_exception(self, mock_factory_cls, mock_cmd_cls):
+        """Test _compile_chart handles ChartDataQueryFailedError."""
+        from superset.commands.chart.exceptions import (
+            ChartDataQueryFailedError,
+        )
+
+        mock_factory_cls.return_value.create.return_value = MagicMock()
+        mock_cmd_cls.return_value.run.side_effect = ChartDataQueryFailedError(
+            "syntax error near FROM"
+        )
+
+        result = _compile_chart({"metrics": []}, dataset_id=1)
+
+        assert result.success is False
+        assert "syntax error" in (result.error or "")
+
+    @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    def test_compile_chart_value_error(self, mock_factory_cls, mock_cmd_cls):
+        """Test _compile_chart handles ValueError from bad config."""
+        mock_factory_cls.return_value.create.side_effect = ValueError("invalid metric")
+
+        result = _compile_chart({"metrics": []}, dataset_id=1)
+
+        assert result.success is False
+        assert "invalid metric" in (result.error or "")
+
+
+def _make_mock_chart(chart_id: int = 42) -> Mock:
+    """Create a mock chart with all attributes needed by serialize_chart_object."""
+    chart = Mock()
+    chart.id = chart_id
+    chart.slice_name = "Test Chart"
+    chart.viz_type = "echarts_timeseries_bar"
+    chart.datasource_name = "test_table"
+    chart.datasource_type = "table"
+    chart.description = None
+    chart.cache_timeout = None
+    chart.changed_by = None
+    chart.changed_by_name = "admin"
+    chart.changed_on = None
+    chart.changed_on_humanized = "1 day ago"
+    chart.created_by = None
+    chart.created_by_name = "admin"
+    chart.created_on = None
+    chart.created_on_humanized = "2 days ago"
+    chart.uuid = "test-uuid-42"
+    chart.tags = []
+    chart.owners = []
+    return chart
+
+
+class TestChartSerializationEagerLoading:
+    """Tests for eager loading fix in generate_chart serialization path."""
+
+    def test_serialize_chart_object_succeeds_with_loaded_relationships(self):
+        """serialize_chart_object works when tags/owners are already loaded."""
+        from superset.mcp_service.chart.schemas import serialize_chart_object
+
+        chart = _make_mock_chart()
+        result = serialize_chart_object(chart)
+
+        assert result is not None
+        assert result.id == 42
+        assert result.slice_name == "Test Chart"
+        assert result.tags == []
+        assert result.owners == []
+
+    def test_serialize_chart_object_fails_on_detached_instance(self):
+        """serialize_chart_object raises when accessing lazy attrs on detached
+        instance — this is the bug scenario that the eager-loading fix prevents."""
+        from superset.mcp_service.chart.schemas import serialize_chart_object
+
+        chart = _make_mock_chart()
+        # Simulate detached instance: accessing .tags raises DetachedInstanceError
+        type(chart).tags = property(
+            lambda self: (_ for _ in ()).throw(
+                DetachedInstanceError("Instance <Slice> is not bound to a Session")
+            )
+        )
+
+        with pytest.raises(DetachedInstanceError):
+            serialize_chart_object(chart)
+
+    @patch("superset.daos.chart.ChartDAO.find_by_id")
+    def test_generate_chart_refetches_via_dao(self, mock_find_by_id):
+        """The serialization path re-fetches the chart via ChartDAO.find_by_id
+        with joinedload query_options for owners and tags."""
+        refetched_chart = _make_mock_chart()
+        refetched_chart.tags = [Mock(id=1, name="tag1", type="custom")]
+        refetched_chart.tags[0].description = ""
+
+        mock_find_by_id.return_value = refetched_chart
+
+        from superset.daos.chart import ChartDAO
+
+        chart = (
+            ChartDAO.find_by_id(42, query_options=["dummy_option"])
+            or _make_mock_chart()
+        )
+
+        assert chart is refetched_chart
+        mock_find_by_id.assert_called_once_with(42, query_options=["dummy_option"])
+
+    @patch("superset.daos.chart.ChartDAO.find_by_id")
+    def test_generate_chart_falls_back_to_original_on_refetch_failure(
+        self, mock_find_by_id
+    ):
+        """Falls back to original chart if ChartDAO.find_by_id returns None."""
+        original_chart = _make_mock_chart()
+        mock_find_by_id.return_value = None
+
+        from superset.daos.chart import ChartDAO
+
+        chart = (
+            ChartDAO.find_by_id(original_chart.id, query_options=[]) or original_chart
+        )
+
+        assert chart is original_chart

@@ -33,8 +33,8 @@
  * control interface.
  */
 import { isEmpty } from 'lodash';
+import { t } from '@apache-superset/core/translation';
 import {
-  t,
   getCategoricalSchemeRegistry,
   getSequentialSchemeRegistry,
   SequentialScheme,
@@ -325,6 +325,9 @@ const currency_format: SharedControlConfig<'CurrencyControl'> = {
   type: 'CurrencyControl',
   label: t('Currency format'),
   renderTrigger: true,
+  description: t(
+    "Format metrics or columns with currency symbols as prefixes or suffixes. Choose a symbol manually or use 'Auto-detect' to apply the correct symbol based on the dataset's currency code column. When multiple currencies are present, formatting falls back to neutral numbers.",
+  ),
 };
 
 const x_axis_time_format: SharedControlConfig<
@@ -440,16 +443,28 @@ const order_by_cols: SharedControlConfig<'SelectControl'> = {
   default: [],
   shouldMapStateToProps: () => true,
   mapStateToProps: ({ datasource }) => ({
-    choices: (datasource?.columns || [])
-      .map(col =>
-        [true, false].map(asc => [
-          JSON.stringify([col.column_name, asc]),
-          `${getColumnLabel(col.column_name)} [${asc ? 'asc' : 'desc'}]`,
-        ]),
-      )
-      .flat(),
+    choices: (datasource?.columns || []).flatMap(col =>
+      [true, false].map(asc => [
+        JSON.stringify([col.column_name, asc]),
+        `${getColumnLabel(col.column_name)} [${asc ? 'asc' : 'desc'}]`,
+      ]),
+    ),
   }),
   resetOnHide: false,
+};
+
+const echart_options: SharedControlConfig<'JSEditorControl'> = {
+  type: 'JSEditorControl',
+  label: t('ECharts Options (JS object literals)'),
+  description: t(
+    'A JavaScript object that adheres to the ECharts options specification, ' +
+      'overriding other control options with higher precedence. ' +
+      '(i.e. { title: { text: "My Chart" }, tooltip: { trigger: "item" } }). ' +
+      'Details: https://echarts.apache.org/en/option.html. ',
+  ),
+  default: '{}',
+  renderTrigger: true,
+  validators: [],
 };
 
 const sharedControls: Record<string, SharedControlConfig<any>> = {
@@ -498,6 +513,7 @@ const sharedControls: Record<string, SharedControlConfig<any>> = {
   currency_format,
   sort_by_metric,
   order_by_cols,
+  echart_options,
 
   // Add all Matrixify controls
   ...matrixifyControls,

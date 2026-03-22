@@ -20,23 +20,23 @@ import { DEFAULT_FORM_DATA } from '../../src/Timeseries/constants';
 
 describe('Timeseries constants', () => {
   describe('DEFAULT_FORM_DATA', () => {
-    it('should include xAxisTimeFormat in default form data', () => {
+    test('should include xAxisTimeFormat in default form data', () => {
       expect(DEFAULT_FORM_DATA).toHaveProperty('xAxisTimeFormat');
       expect(DEFAULT_FORM_DATA.xAxisTimeFormat).toBe('smart_date');
     });
 
-    it('should include tooltipTimeFormat in default form data', () => {
+    test('should include tooltipTimeFormat in default form data', () => {
       expect(DEFAULT_FORM_DATA).toHaveProperty('tooltipTimeFormat');
       expect(DEFAULT_FORM_DATA.tooltipTimeFormat).toBe('smart_date');
     });
 
-    it('should have consistent time format defaults', () => {
+    test('should have consistent time format defaults', () => {
       expect(DEFAULT_FORM_DATA.xAxisTimeFormat).toBe(
         DEFAULT_FORM_DATA.tooltipTimeFormat,
       );
     });
 
-    it('should have vertical orientation as default', () => {
+    test('should have vertical orientation as default', () => {
       expect(DEFAULT_FORM_DATA.orientation).toBe('vertical');
     });
   });

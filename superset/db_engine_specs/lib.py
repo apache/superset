@@ -17,7 +17,10 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any
+
+import yaml
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs import load_engine_specs
@@ -662,11 +665,169 @@ def generate_table() -> list[list[Any]]:
     return rows
 
 
+def infer_category(name: str) -> str:
+    """
+    Infer database category from name for unmigrated specs.
+
+    This is used as a fallback when a spec doesn't have category in metadata.
+    Once all specs are migrated to use metadata.category, this can be removed.
+    """
+    from superset.db_engine_specs.base import DatabaseCategory
+
+    name_lower = name.lower()
+
+    if "aws" in name_lower or "amazon" in name_lower:
+        return DatabaseCategory.CLOUD_AWS
+    if "google" in name_lower or "bigquery" in name_lower:
+        return DatabaseCategory.CLOUD_GCP
+    if "azure" in name_lower or "microsoft" in name_lower:
+        return DatabaseCategory.CLOUD_AZURE
+    if "snowflake" in name_lower or "databricks" in name_lower:
+        return DatabaseCategory.CLOUD_DATA_WAREHOUSES
+    if (
+        "apache" in name_lower
+        or "druid" in name_lower
+        or "hive" in name_lower
+        or "spark" in name_lower
+    ):
+        return DatabaseCategory.APACHE_PROJECTS
+    if (
+        "postgres" in name_lower
+        or "mysql" in name_lower
+        or "sqlite" in name_lower
+        or "mariadb" in name_lower
+    ):
+        return DatabaseCategory.TRADITIONAL_RDBMS
+    if (
+        "clickhouse" in name_lower
+        or "vertica" in name_lower
+        or "starrocks" in name_lower
+    ):
+        return DatabaseCategory.ANALYTICAL_DATABASES
+    if "elastic" in name_lower or "solr" in name_lower or "couchbase" in name_lower:
+        return DatabaseCategory.SEARCH_NOSQL
+    if "trino" in name_lower or "presto" in name_lower:
+        return DatabaseCategory.QUERY_ENGINES
+
+    return DatabaseCategory.OTHER
+
+
+def get_documentation_metadata(spec: type[BaseEngineSpec], name: str) -> dict[str, Any]:
+    """
+    Get documentation metadata for a database engine spec.
+
+    Documentation metadata should be defined in the spec's `metadata` attribute.
+    If not present, returns minimal fallback with just connection string.
+    """
+    # Check if the spec has metadata attribute with content
+    if spec_metadata := getattr(spec, "metadata", {}):
+        result = dict(spec_metadata)
+        # Ensure category is present
+        if "category" not in result:
+            result["category"] = infer_category(name)
+        return result
+
+    # Minimal fallback for specs without metadata
+    return {
+        "pypi_packages": [],
+        "connection_string": getattr(spec, "sqlalchemy_uri_placeholder", ""),
+        "category": infer_category(name),
+    }
+
+
+def generate_yaml_docs(output_dir: str | None = None) -> dict[str, dict[str, Any]]:
+    """
+    Generate YAML documentation files for all database engine specs.
+
+    Args:
+        output_dir: Directory to write YAML files. If None, returns dict only.
+
+    Returns:
+        Dictionary mapping database names to their full documentation data.
+    """
+    all_docs: dict[str, dict[str, Any]] = {}
+
+    for spec in sorted(load_engine_specs(), key=get_name):
+        # Skip non-superset modules (3rd party)
+        if not spec.__module__.startswith("superset"):
+            continue
+
+        name = get_name(spec)
+        doc_data = diagnose(spec)
+
+        # Get documentation metadata (prefers spec.metadata over DATABASE_DOCS)
+        doc_data["documentation"] = get_documentation_metadata(spec, name)
+
+        # Add engine spec metadata
+        doc_data["engine"] = spec.engine
+        doc_data["engine_name"] = name
+        doc_data["engine_aliases"] = list(getattr(spec, "engine_aliases", set()))
+        doc_data["default_driver"] = getattr(spec, "default_driver", None)
+        doc_data["supports_file_upload"] = spec.supports_file_upload
+        doc_data["supports_dynamic_schema"] = spec.supports_dynamic_schema
+        doc_data["supports_catalog"] = spec.supports_catalog
+
+        all_docs[name] = doc_data
+
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Write individual YAML files for each database
+        for name, data in all_docs.items():
+            # Create a safe filename
+            safe_name = name.lower().replace(" ", "-").replace(".", "")
+            filepath = os.path.join(output_dir, f"{safe_name}.yaml")
+            with open(filepath, "w") as f:
+                yaml.dump(
+                    {name: data},
+                    f,
+                    default_flow_style=False,
+                    sort_keys=False,
+                    allow_unicode=True,
+                )
+
+        # Also write a combined index file
+        index_filepath = os.path.join(output_dir, "_index.yaml")
+        with open(index_filepath, "w") as f:
+            yaml.dump(
+                all_docs,
+                f,
+                default_flow_style=False,
+                sort_keys=False,
+                allow_unicode=True,
+            )
+
+        print(f"Generated {len(all_docs)} YAML files in {output_dir}")
+
+    return all_docs
+
+
 if __name__ == "__main__":
+    import argparse
+
     from superset.app import create_app
+
+    parser = argparse.ArgumentParser(description="Generate database documentation")
+    parser.add_argument(
+        "--format",
+        choices=["markdown", "yaml"],
+        default="markdown",
+        help="Output format (default: markdown)",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=None,
+        help="Directory for YAML output files",
+    )
+    args = parser.parse_args()
 
     app = create_app()
     with app.app_context():
-        output = generate_feature_tables()
-
-    print(output)
+        if args.format == "yaml":
+            output_dir = args.output_dir or "docs/static/databases"
+            docs = generate_yaml_docs(output_dir)
+            print(f"\nGenerated documentation for {len(docs)} databases")
+        else:
+            output = generate_feature_tables()
+            print(output)

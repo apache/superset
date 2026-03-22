@@ -55,7 +55,10 @@ export class DuplicateDatasetModal extends Modal {
     datasetName: string,
     options?: { timeout?: number; force?: boolean },
   ): Promise<void> {
-    await this.nameInput.fill(datasetName, options);
+    const input = this.nameInput.element;
+    // Clear existing text then fill (fill() clears first, but explicit clear is more reliable)
+    await input.clear();
+    await input.fill(datasetName, options);
   }
 
   /**

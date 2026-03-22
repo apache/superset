@@ -126,37 +126,52 @@ class SchemaValidator:
             return False, ChartGenerationError(
                 error_type="missing_chart_type",
                 message="Missing required field: chart_type",
-                details="Chart configuration must specify 'chart_type' as either 'xy' "
-                "or 'table'",
+                details="Chart configuration must specify 'chart_type'",
                 suggestions=[
                     "Add 'chart_type': 'xy' for line/bar/area/scatter charts",
                     "Add 'chart_type': 'table' for table visualizations",
-                    "Example: 'config': {'chart_type': 'xy', ...}",
+                    "Add 'chart_type': 'pie' for pie or donut charts",
+                    "Add 'chart_type': 'pivot_table' for interactive pivot tables",
+                    "Add 'chart_type': 'mixed_timeseries' for dual-series time charts",
                 ],
                 error_code="MISSING_CHART_TYPE",
             )
 
-        if chart_type not in ["xy", "table"]:
+        return SchemaValidator._pre_validate_chart_type(chart_type, config)
+
+    @staticmethod
+    def _pre_validate_chart_type(
+        chart_type: str,
+        config: Dict[str, Any],
+    ) -> Tuple[bool, ChartGenerationError | None]:
+        """Validate chart type and dispatch to type-specific pre-validation."""
+        chart_type_validators = {
+            "xy": SchemaValidator._pre_validate_xy_config,
+            "table": SchemaValidator._pre_validate_table_config,
+            "pie": SchemaValidator._pre_validate_pie_config,
+            "pivot_table": SchemaValidator._pre_validate_pivot_table_config,
+            "mixed_timeseries": SchemaValidator._pre_validate_mixed_timeseries_config,
+        }
+
+        if not isinstance(chart_type, str) or chart_type not in chart_type_validators:
+            valid_types = ", ".join(chart_type_validators.keys())
             return False, ChartGenerationError(
                 error_type="invalid_chart_type",
                 message=f"Invalid chart_type: '{chart_type}'",
-                details=f"Chart type '{chart_type}' is not supported. Must be 'xy' or "
-                f"'table'",
+                details=f"Chart type '{chart_type}' is not supported. "
+                f"Must be one of: {valid_types}",
                 suggestions=[
                     "Use 'chart_type': 'xy' for line, bar, area, or scatter charts",
                     "Use 'chart_type': 'table' for tabular data display",
+                    "Use 'chart_type': 'pie' for pie or donut charts",
+                    "Use 'chart_type': 'pivot_table' for interactive pivot tables",
+                    "Use 'chart_type': 'mixed_timeseries' for dual-series time charts",
                     "Check spelling and ensure lowercase",
                 ],
                 error_code="INVALID_CHART_TYPE",
             )
 
-        # Pre-validate structure based on chart type
-        if chart_type == "xy":
-            return SchemaValidator._pre_validate_xy_config(config)
-        elif chart_type == "table":
-            return SchemaValidator._pre_validate_table_config(config)
-
-        return True, None
+        return chart_type_validators[chart_type](config)
 
     @staticmethod
     def _pre_validate_xy_config(
@@ -234,6 +249,134 @@ class SchemaValidator:
                 ],
                 error_code="INVALID_COLUMNS_FORMAT",
             )
+
+        return True, None
+
+    @staticmethod
+    def _pre_validate_pie_config(
+        config: Dict[str, Any],
+    ) -> Tuple[bool, ChartGenerationError | None]:
+        """Pre-validate pie chart configuration."""
+        missing_fields = []
+
+        if "dimension" not in config:
+            missing_fields.append("'dimension' (category column for slices)")
+        if "metric" not in config:
+            missing_fields.append("'metric' (value metric for slice sizes)")
+
+        if missing_fields:
+            return False, ChartGenerationError(
+                error_type="missing_pie_fields",
+                message=f"Pie chart missing required "
+                f"fields: {', '.join(missing_fields)}",
+                details="Pie charts require a dimension (categories) and a metric "
+                "(values)",
+                suggestions=[
+                    "Add 'dimension' field: {'name': 'category_column'}",
+                    "Add 'metric' field: {'name': 'value_column', 'aggregate': 'SUM'}",
+                    "Example: {'chart_type': 'pie', 'dimension': {'name': "
+                    "'product'}, 'metric': {'name': 'revenue', 'aggregate': 'SUM'}}",
+                ],
+                error_code="MISSING_PIE_FIELDS",
+            )
+
+        return True, None
+
+    @staticmethod
+    def _pre_validate_pivot_table_config(
+        config: Dict[str, Any],
+    ) -> Tuple[bool, ChartGenerationError | None]:
+        """Pre-validate pivot table configuration."""
+        missing_fields = []
+
+        if "rows" not in config:
+            missing_fields.append("'rows' (row grouping columns)")
+        if "metrics" not in config:
+            missing_fields.append("'metrics' (aggregation metrics)")
+
+        if missing_fields:
+            return False, ChartGenerationError(
+                error_type="missing_pivot_fields",
+                message=f"Pivot table missing required "
+                f"fields: {', '.join(missing_fields)}",
+                details="Pivot tables require row groupings and metrics",
+                suggestions=[
+                    "Add 'rows' field: [{'name': 'category'}]",
+                    "Add 'metrics' field: [{'name': 'sales', 'aggregate': 'SUM'}]",
+                    "Optional 'columns' for cross-tabulation: [{'name': 'region'}]",
+                ],
+                error_code="MISSING_PIVOT_FIELDS",
+            )
+
+        if not isinstance(config.get("rows", []), list):
+            return False, ChartGenerationError(
+                error_type="invalid_rows_format",
+                message="Rows must be a list of columns",
+                details="The 'rows' field must be an array of column specifications",
+                suggestions=[
+                    "Wrap row columns in array: 'rows': [{'name': 'category'}]",
+                ],
+                error_code="INVALID_ROWS_FORMAT",
+            )
+
+        if not isinstance(config.get("metrics", []), list):
+            return False, ChartGenerationError(
+                error_type="invalid_metrics_format",
+                message="Metrics must be a list",
+                details="The 'metrics' field must be an array of metric specifications",
+                suggestions=[
+                    "Wrap metrics in array: 'metrics': [{'name': 'sales', "
+                    "'aggregate': 'SUM'}]",
+                ],
+                error_code="INVALID_METRICS_FORMAT",
+            )
+
+        return True, None
+
+    @staticmethod
+    def _pre_validate_mixed_timeseries_config(
+        config: Dict[str, Any],
+    ) -> Tuple[bool, ChartGenerationError | None]:
+        """Pre-validate mixed timeseries configuration."""
+        missing_fields = []
+
+        if "x" not in config:
+            missing_fields.append("'x' (X-axis temporal column)")
+        if "y" not in config:
+            missing_fields.append("'y' (primary Y-axis metrics)")
+        if "y_secondary" not in config:
+            missing_fields.append("'y_secondary' (secondary Y-axis metrics)")
+
+        if missing_fields:
+            return False, ChartGenerationError(
+                error_type="missing_mixed_timeseries_fields",
+                message=f"Mixed timeseries chart missing required "
+                f"fields: {', '.join(missing_fields)}",
+                details="Mixed timeseries charts require an x-axis, primary metrics, "
+                "and secondary metrics",
+                suggestions=[
+                    "Add 'x' field: {'name': 'date_column'}",
+                    "Add 'y' field: [{'name': 'revenue', 'aggregate': 'SUM'}]",
+                    "Add 'y_secondary' field: [{'name': 'orders', "
+                    "'aggregate': 'COUNT'}]",
+                    "Optional: 'primary_kind' and 'secondary_kind' for chart types",
+                ],
+                error_code="MISSING_MIXED_TIMESERIES_FIELDS",
+            )
+
+        for field_name in ["y", "y_secondary"]:
+            if not isinstance(config.get(field_name, []), list):
+                return False, ChartGenerationError(
+                    error_type=f"invalid_{field_name}_format",
+                    message=f"'{field_name}' must be a list of metrics",
+                    details=f"The '{field_name}' field must be an array of metric "
+                    "specifications",
+                    suggestions=[
+                        f"Wrap in array: '{field_name}': "
+                        "[{'name': 'col', 'aggregate': 'SUM'}]",
+                    ],
+                    error_code=f"INVALID_{field_name.upper()}_FORMAT",
+                )
 
         return True, None
 

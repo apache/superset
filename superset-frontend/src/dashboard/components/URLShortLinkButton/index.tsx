@@ -17,8 +17,9 @@
  * under the License.
  */
 import { useState } from 'react';
-import { getClientErrorObject, t } from '@superset-ui/core';
-import { useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { getClientErrorObject } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/theme';
 import {
   Button,
   Icons,
@@ -69,7 +70,7 @@ export default function URLShortLinkButton({
         chartStates &&
         Object.keys(chartStates).length > 0;
 
-      const url = await getDashboardPermalink({
+      const result = await getDashboardPermalink({
         dashboardId,
         dataMask,
         activeTabs,
@@ -77,7 +78,9 @@ export default function URLShortLinkButton({
         chartStates: includeChartState ? chartStates : undefined,
         includeChartState,
       });
-      setShortUrl(url);
+      if (result?.url) {
+        setShortUrl(result.url);
+      }
     } catch (error) {
       if (error) {
         addDangerToast(
@@ -111,7 +114,7 @@ export default function URLShortLinkButton({
             }
           />
           &nbsp;&nbsp;
-          <Typography.Link href={emailLink} aria-label="Email link">
+          <Typography.Link href={emailLink} aria-label={t('Email link')}>
             <Icons.MailOutlined iconSize="m" iconColor={theme.colorPrimary} />
           </Typography.Link>
         </div>

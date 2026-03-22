@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import type { ReactNode } from 'react';
 import Owner from 'src/types/Owner';
 import { NotificationFormats } from 'src/features/reports/types';
 
@@ -45,6 +46,7 @@ export enum NotificationMethodOption {
   Email = 'Email',
   Slack = 'Slack',
   SlackV2 = 'SlackV2',
+  Webhook = 'Webhook',
 }
 
 export type SelectValue = {
@@ -84,8 +86,9 @@ export type Recipient = {
 
 export type MetaObject = {
   id?: number;
-  label?: string;
+  label?: ReactNode;
   value?: number | string;
+  [key: string]: unknown;
 };
 
 export type DashboardState = {
@@ -173,6 +176,7 @@ export enum RecipientIconName {
   Email = 'Email',
   Slack = 'Slack',
   SlackV2 = 'SlackV2',
+  Webhook = 'Webhook',
 }
 export interface AlertsReportsConfig {
   ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT: number;
@@ -227,6 +231,7 @@ export type NativeFilterObject = {
     rootPath: string[];
   };
   tabsInScope: string[];
+  adhoc_filters: any[];
   targets: Array<{
     column: {
       name: string;
@@ -234,4 +239,10 @@ export type NativeFilterObject = {
     datasetId: number;
   }>;
   type: string;
+};
+
+export type DashboardTabsResponse = {
+  tab_tree: TabNode[];
+  all_tabs: Record<string, string>;
+  native_filters: Partial<Record<string, NativeFilterObject[]>>;
 };

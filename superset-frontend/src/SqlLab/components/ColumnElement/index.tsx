@@ -18,8 +18,8 @@
  */
 import { ReactNode } from 'react';
 import { ClassNames } from '@emotion/react';
-import { t } from '@superset-ui/core';
-import { styled, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { Flex, Tooltip } from '@superset-ui/core/components';
 
 const StyledTooltip = (props: any) => {

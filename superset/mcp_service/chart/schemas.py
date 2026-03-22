@@ -21,12 +21,11 @@ Pydantic schemas for chart-related responses
 
 from __future__ import annotations
 
-import html
-import re
 from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List, Literal, Protocol
 
 from pydantic import (
+    AliasChoices,
     BaseModel,
     ConfigDict,
     Field,
@@ -36,6 +35,7 @@ from pydantic import (
     PositiveInt,
 )
 
+from superset.constants import TimeGrain
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import (
     CacheStatus,
@@ -46,8 +46,13 @@ from superset.mcp_service.common.cache_schemas import (
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
+    serialize_user_object,
     TagInfo,
     UserInfo,
+)
+from superset.mcp_service.utils.sanitization import (
+    sanitize_filter_value,
+    sanitize_user_input,
 )
 
 
@@ -85,11 +90,9 @@ class ChartInfo(BaseModel):
     viz_type: str | None = Field(None, description="Visualization type")
     datasource_name: str | None = Field(None, description="Datasource name")
     datasource_type: str | None = Field(None, description="Datasource type")
-    url: str | None = Field(None, description="Chart URL")
+    url: str | None = Field(None, description="Chart explore page URL")
     description: str | None = Field(None, description="Chart description")
     cache_timeout: int | None = Field(None, description="Cache timeout")
-    form_data: Dict[str, Any] | None = Field(None, description="Chart form data")
-    query_context: Any | None = Field(None, description="Query context")
     changed_by: str | None = Field(None, description="Last modifier (username)")
     changed_by_name: str | None = Field(
         None, description="Last modifier (display name)"
@@ -108,6 +111,32 @@ class ChartInfo(BaseModel):
     uuid: str | None = Field(None, description="Chart UUID")
     tags: List[TagInfo] = Field(default_factory=list, description="Chart tags")
     owners: List[UserInfo] = Field(default_factory=list, description="Chart owners")
+
+    # Fields for unsaved state support
+    form_data: Dict[str, Any] | None = Field(
+        None,
+        description=(
+            "The chart's form_data configuration. When form_data_key is provided, "
+            "this contains the unsaved (cached) configuration rather than the "
+            "saved version."
+        ),
+    )
+    form_data_key: str | None = Field(
+        None,
+        description=(
+            "Cache key used to retrieve unsaved form_data. When present, indicates "
+            "the form_data came from cache (unsaved edits) rather than the saved chart."
+        ),
+    )
+    is_unsaved_state: bool = Field(
+        default=False,
+        description=(
+            "True if the form_data came from cache (unsaved edits) rather than the "
+            "saved chart configuration. When true, the data reflects what the user "
+            "sees in the Explore view, not the saved version."
+        ),
+    )
+
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
 
     @model_serializer(mode="wrap", when_used="json")
@@ -129,25 +158,6 @@ class ChartInfo(BaseModel):
 
         # No filtering - return all fields
         return data
-
-
-class GetChartAvailableFiltersRequest(BaseModel):
-    """
-    Request schema for get_chart_available_filters tool.
-
-    Currently has no parameters but provides consistent API for future extensibility.
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-        str_strip_whitespace=True,
-    )
-
-
-class ChartAvailableFiltersResponse(BaseModel):
-    column_operators: Dict[str, Any] = Field(
-        ..., description="Available filter operators and metadata for each column"
-    )
 
 
 class ChartError(BaseModel):
@@ -218,25 +228,57 @@ class VersionedResponse(BaseModel):
 
 
 class GetChartInfoRequest(BaseModel):
-    """Request schema for get_chart_info with support for ID or UUID."""
+    """Request schema for get_chart_info with support for ID, UUID, or form_data_key.
+
+    When form_data_key is provided, the tool will retrieve the unsaved chart state
+    from cache, allowing you to explain what the user actually sees (not the saved
+    version). This is useful when a user edits a chart in Explore but hasn't saved yet.
+
+    For unsaved charts (no chart ID), provide only form_data_key to retrieve the
+    current chart configuration from cache.
+    """
 
     identifier: Annotated[
-        int | str,
-        Field(description="Chart identifier - can be numeric ID or UUID string"),
+        int | str | None,
+        Field(
+            default=None,
+            description=(
+                "Chart identifier - can be numeric ID or UUID string. "
+                "Optional when form_data_key is provided (for unsaved charts)."
+            ),
+        ),
     ]
+    form_data_key: str | None = Field(
+        default=None,
+        description=(
+            "Cache key for retrieving unsaved chart state. When a user "
+            "edits a chart in Explore but hasn't saved, the current state is stored "
+            "with this key. If provided, the tool returns the current unsaved "
+            "configuration instead of the saved version. "
+            "Can be used alone (without identifier) for unsaved charts."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def validate_identifier_or_form_data_key(self) -> "GetChartInfoRequest":
+        if not self.identifier and not self.form_data_key:
+            raise ValueError(
+                "At least one of 'identifier' or 'form_data_key' must be provided."
+            )
+        return self
 
 
 def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     if not chart:
         return None
 
-    # Generate MCP service screenshot URL instead of chart's native URL
-    from superset.mcp_service.utils.url_utils import get_chart_screenshot_url
+    # Use the chart's native URL (explore URL) instead of screenshot URL
+    from superset.mcp_service.utils.url_utils import get_superset_base_url
 
     chart_id = getattr(chart, "id", None)
-    screenshot_url = None
+    chart_url = None
     if chart_id:
-        screenshot_url = get_chart_screenshot_url(chart_id)
+        chart_url = f"{get_superset_base_url()}/explore/?slice_id={chart_id}"
 
     return ChartInfo(
         id=chart_id,
@@ -244,11 +286,9 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         viz_type=getattr(chart, "viz_type", None),
         datasource_name=getattr(chart, "datasource_name", None),
         datasource_type=getattr(chart, "datasource_type", None),
-        url=screenshot_url,
+        url=chart_url,
         description=getattr(chart, "description", None),
         cache_timeout=getattr(chart, "cache_timeout", None),
-        form_data=getattr(chart, "form_data", None),
-        query_context=getattr(chart, "query_context", None),
         changed_by=getattr(chart, "changed_by_name", None)
         or (str(chart.changed_by) if getattr(chart, "changed_by", None) else None),
         changed_by_name=getattr(chart, "changed_by_name", None),
@@ -266,8 +306,9 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         if getattr(chart, "tags", None)
         else [],
         owners=[
-            UserInfo.model_validate(owner, from_attributes=True)
+            info
             for owner in getattr(chart, "owners", [])
+            if (info := serialize_user_object(owner)) is not None
         ]
         if getattr(chart, "owners", None)
         else [],
@@ -286,15 +327,17 @@ class ChartFilter(ColumnOperator):
         "slice_name",
         "viz_type",
         "datasource_name",
+        "created_by_fk",
     ] = Field(
         ...,
-        description="Column to filter on. See get_chart_available_filters for "
-        "allowed values.",
+        description="Column to filter on. Use get_schema(model_type='chart') for "
+        "available filter columns. Use created_by_fk with the user ID from "
+        "get_instance_info's current_user to find charts created by a specific user.",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
-        description="Operator to use. See get_chart_available_filters for "
-        "allowed values.",
+        description="Operator to use. Use get_schema(model_type='chart') for "
+        "available operators.",
     )
     value: str | int | float | bool | List[str | int | float | bool] = Field(
         ..., description="Value to filter by (type depends on col and opr)"
@@ -310,8 +353,22 @@ class ChartList(BaseModel):
     total_pages: int
     has_previous: bool
     has_next: bool
-    columns_requested: List[str] | None = None
-    columns_loaded: List[str] | None = None
+    columns_requested: List[str] = Field(
+        default_factory=list,
+        description="Requested columns for the response",
+    )
+    columns_loaded: List[str] = Field(
+        default_factory=list,
+        description="Columns that were actually loaded for each chart",
+    )
+    columns_available: List[str] = Field(
+        default_factory=list,
+        description="All columns available for selection via select_columns parameter",
+    )
+    sortable_columns: List[str] = Field(
+        default_factory=list,
+        description="Columns that can be used with order_column parameter",
+    )
     filters_applied: List[ChartFilter] = Field(
         default_factory=list,
         description="List of advanced filter dicts applied to the query.",
@@ -325,18 +382,31 @@ class ChartList(BaseModel):
 
 
 # Common pieces
+
+
+def _normalize_group_by_input(v: Any) -> Any:
+    """Accept a single ColumnRef/dict/str and normalize to list of dicts."""
+    if isinstance(v, str):
+        return [{"name": v}]
+    if isinstance(v, (dict, ColumnRef)):
+        return [v]
+    if isinstance(v, list):
+        return [{"name": item} if isinstance(item, str) else item for item in v]
+    return v
+
+
 class ColumnRef(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     name: str = Field(
         ...,
-        description="Column name",
         min_length=1,
         max_length=255,
         pattern=r"^[a-zA-Z0-9_][a-zA-Z0-9_\s\-\.]*$",
+        validation_alias=AliasChoices("name", "column_name"),
     )
-    label: str | None = Field(
-        None, description="Display label for the column", max_length=500
-    )
-    dtype: str | None = Field(None, description="Data type hint")
+    label: str | None = Field(None, max_length=500)
+    dtype: str | None = None
     aggregate: (
         Literal[
             "SUM",
@@ -351,280 +421,264 @@ class ColumnRef(BaseModel):
             "PERCENTILE",
         ]
         | None
-    ) = Field(
-        None,
-        description="SQL aggregation function. Only these validated functions are "
-        "supported to prevent SQL errors.",
-    )
+    ) = Field(None, description="SQL aggregate function")
 
     @field_validator("name")
     @classmethod
     def sanitize_name(cls, v: str) -> str:
         """Sanitize column name to prevent XSS and SQL injection."""
-        if not v or not v.strip():
-            raise ValueError("Column name cannot be empty")
-
-        # Length check first to prevent ReDoS attacks
-        if len(v) > 255:
-            raise ValueError(
-                f"Column name too long ({len(v)} characters). "
-                f"Maximum allowed length is 255 characters."
-            )
-
-        # Remove HTML tags and decode entities
-        sanitized = html.escape(v.strip())
-
-        # Check for dangerous HTML tags using substring checks (safe)
-        dangerous_tags = ["<script", "</script>", "<iframe", "<object", "<embed"]
-        v_lower = v.lower()
-        for tag in dangerous_tags:
-            if tag in v_lower:
-                raise ValueError(
-                    "Column name contains potentially malicious script content"
-                )
-
-        # Check URL schemes with word boundaries to match only actual URLs
-        if re.search(r"\b(javascript|vbscript|data):", v, re.IGNORECASE):
-            raise ValueError("Column name contains potentially malicious URL scheme")
-
-        # Basic SQL injection patterns (basic protection)
-        # Use simple patterns without backtracking
-        dangerous_patterns = [
-            r"[;|&$`]",  # Dangerous shell characters
-            r"\b(DROP|DELETE|INSERT|UPDATE|CREATE|ALTER|EXEC|EXECUTE)\b",
-            r"--",  # SQL comment
-            r"/\*",  # SQL comment start (just check for start, not full pattern)
-        ]
-
-        for pattern in dangerous_patterns:
-            if re.search(pattern, v, re.IGNORECASE):
-                raise ValueError(
-                    "Column name contains potentially unsafe characters or SQL keywords"
-                )
-
-        return sanitized
+        # sanitize_user_input raises ValueError when allow_empty=False (default)
+        # so the return value is guaranteed to be a non-None str
+        return sanitize_user_input(
+            v, "Column name", max_length=255, check_sql_keywords=True
+        )  # type: ignore[return-value]
 
     @field_validator("label")
     @classmethod
     def sanitize_label(cls, v: str | None) -> str | None:
         """Sanitize display label to prevent XSS attacks."""
-        if v is None:
-            return v
-
-        # Strip whitespace
-        v = v.strip()
-        if not v:
-            return None
-
-        # Length check first to prevent ReDoS attacks
-        if len(v) > 500:
-            raise ValueError(
-                f"Label too long ({len(v)} characters). "
-                f"Maximum allowed length is 500 characters."
-            )
-
-        # Check for dangerous HTML tags and JavaScript protocols using substring checks
-        # This avoids ReDoS vulnerabilities from regex patterns
-        dangerous_tags = [
-            "<script",
-            "</script>",
-            "<iframe",
-            "</iframe>",
-            "<object",
-            "</object>",
-            "<embed",
-            "</embed>",
-            "<link",
-            "<meta",
-        ]
-
-        v_lower = v.lower()
-        for tag in dangerous_tags:
-            if tag in v_lower:
-                raise ValueError(
-                    "Label contains potentially malicious content. "
-                    "HTML tags, JavaScript, and event handlers are not allowed "
-                    "in labels."
-                )
-
-        # Check URL schemes and event handlers with word boundaries
-        dangerous_patterns = [
-            r"\b(javascript|vbscript|data):",  # URL schemes
-            r"on\w+\s*=",  # Event handlers
-        ]
-        for pattern in dangerous_patterns:
-            if re.search(pattern, v, re.IGNORECASE):
-                raise ValueError(
-                    "Label contains potentially malicious content. "
-                    "HTML tags, JavaScript, and event handlers are not allowed."
-                )
-
-        # Filter dangerous Unicode characters
-        v = re.sub(
-            r"[\u200B-\u200D\uFEFF\u0000-\u0008\u000B\u000C\u000E-\u001F]", "", v
-        )
-
-        # HTML escape the cleaned content
-        sanitized = html.escape(v)
-
-        return sanitized if sanitized else None
+        return sanitize_user_input(v, "Label", max_length=500, allow_empty=True)
 
 
 class AxisConfig(BaseModel):
-    title: str | None = Field(None, description="Axis title", max_length=200)
-    scale: Literal["linear", "log"] | None = Field(
-        "linear", description="Axis scale type"
-    )
-    format: str | None = Field(
-        None, description="Format string (e.g. '$,.2f')", max_length=50
-    )
+    title: str | None = Field(None, max_length=200)
+    scale: Literal["linear", "log"] | None = "linear"
+    format: str | None = Field(None, description="e.g. '$,.2f'", max_length=50)
 
 
 class LegendConfig(BaseModel):
-    show: bool = Field(True, description="Whether to show legend")
-    position: Literal["top", "bottom", "left", "right"] | None = Field(
-        "right", description="Legend position"
-    )
+    show: bool = True
+    position: Literal["top", "bottom", "left", "right"] | None = "right"
 
 
 class FilterConfig(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     column: str = Field(
-        ..., description="Column to filter on", min_length=1, max_length=255
+        ...,
+        min_length=1,
+        max_length=255,
+        pattern=r"^[a-zA-Z0-9_][a-zA-Z0-9_\s\-\.]*$",
+        validation_alias=AliasChoices("column", "col"),
     )
-    op: Literal["=", ">", "<", ">=", "<=", "!="] = Field(
-        ..., description="Filter operator"
+    op: Literal[
+        "=",
+        ">",
+        "<",
+        ">=",
+        "<=",
+        "!=",
+        "LIKE",
+        "ILIKE",
+        "NOT LIKE",
+        "IN",
+        "NOT IN",
+    ] = Field(
+        ...,
+        description="LIKE/ILIKE use % wildcards. IN/NOT IN take a list.",
+        validation_alias=AliasChoices("op", "operator", "opr"),
     )
-    value: str | int | float | bool = Field(..., description="Filter value")
+    value: str | int | float | bool | list[str | int | float | bool] = Field(
+        ...,
+        description="For IN/NOT IN, provide a list.",
+        validation_alias=AliasChoices("value", "val"),
+    )
 
     @field_validator("column")
     @classmethod
     def sanitize_column(cls, v: str) -> str:
         """Sanitize filter column name to prevent injection attacks."""
-        if not v or not v.strip():
-            raise ValueError("Filter column name cannot be empty")
-
-        # Length check first to prevent ReDoS attacks
-        if len(v) > 255:
-            raise ValueError(
-                f"Filter column name too long ({len(v)} characters). "
-                f"Maximum allowed length is 255 characters."
-            )
-
-        # Remove HTML tags and decode entities
-        sanitized = html.escape(v.strip())
-
-        # Check for dangerous HTML tags using substring checks (safe)
-        dangerous_tags = ["<script", "</script>"]
-        v_lower = v.lower()
-        for tag in dangerous_tags:
-            if tag in v_lower:
-                raise ValueError(
-                    "Filter column contains potentially malicious script content"
-                )
-
-        # Check URL schemes with word boundaries
-        if re.search(r"\b(javascript|vbscript|data):", v, re.IGNORECASE):
-            raise ValueError("Filter column contains potentially malicious URL scheme")
-
-        return sanitized
-
-    @staticmethod
-    def _validate_string_value(v: str) -> None:
-        """Validate string filter value for security issues."""
-        # Check for dangerous HTML tags and SQL procedures
-        dangerous_substrings = [
-            "<script",
-            "</script>",
-            "<iframe",
-            "<object",
-            "<embed",
-            "xp_cmdshell",
-            "sp_executesql",
-        ]
-        v_lower = v.lower()
-        for substring in dangerous_substrings:
-            if substring in v_lower:
-                raise ValueError(
-                    "Filter value contains potentially malicious content. "
-                    "HTML tags and JavaScript are not allowed."
-                )
-
-        # Check URL schemes with word boundaries
-        if re.search(r"\b(javascript|vbscript|data):", v, re.IGNORECASE):
-            raise ValueError("Filter value contains potentially malicious URL scheme")
-
-        # SQL injection patterns
-        sql_patterns = [
-            r";\s*(DROP|DELETE|INSERT|UPDATE|CREATE|ALTER|EXEC|EXECUTE)\b",
-            r"'\s*OR\s*'",
-            r"'\s*AND\s*'",
-            r"--\s*",
-            r"/\*",
-            r"UNION\s+SELECT",
-        ]
-        for pattern in sql_patterns:
-            if re.search(pattern, v, re.IGNORECASE):
-                raise ValueError(
-                    "Filter value contains potentially malicious SQL patterns."
-                )
-
-        # Check for other dangerous patterns
-        if re.search(r"[;&|`$()]", v):
-            raise ValueError(
-                "Filter value contains potentially unsafe shell characters."
-            )
-        if re.search(r"on\w+\s*=", v, re.IGNORECASE):
-            raise ValueError(
-                "Filter value contains potentially malicious event handlers."
-            )
-        if re.search(r"\\x[0-9a-fA-F]{2}", v):
-            raise ValueError("Filter value contains hex encoding which is not allowed.")
+        # sanitize_user_input raises ValueError when allow_empty=False (default)
+        # so the return value is guaranteed to be a non-None str
+        return sanitize_user_input(v, "Filter column", max_length=255)  # type: ignore[return-value]
 
     @field_validator("value")
     @classmethod
-    def sanitize_value(cls, v: str | int | float | bool) -> str | int | float | bool:
+    def sanitize_value(
+        cls, v: str | int | float | bool | list[str | int | float | bool]
+    ) -> str | int | float | bool | list[str | int | float | bool]:
         """Sanitize filter value to prevent XSS and SQL injection attacks."""
-        if isinstance(v, str):
-            v = v.strip()
+        if isinstance(v, list):
+            return [sanitize_filter_value(item, max_length=1000) for item in v]
+        return sanitize_filter_value(v, max_length=1000)
 
-            # Length check FIRST to prevent ReDoS attacks
-            if len(v) > 1000:
+    @model_validator(mode="after")
+    def validate_value_type_matches_operator(self) -> FilterConfig:
+        """Validate that value type matches the operator requirements."""
+        if self.op in ("IN", "NOT IN"):
+            if not isinstance(self.value, list):
                 raise ValueError(
-                    f"Filter value too long ({len(v)} characters). "
-                    f"Maximum allowed length is 1000 characters."
+                    f"Operator '{self.op}' requires a list of values, "
+                    f"got {type(self.value).__name__}"
                 )
-
-            # Validate security
-            cls._validate_string_value(v)
-
-            # Filter dangerous Unicode characters
-            v = re.sub(
-                r"[\u200B-\u200D\uFEFF\u0000-\u0008\u000B\u000C\u000E-\u001F]", "", v
+        elif isinstance(self.value, list):
+            raise ValueError(
+                f"Operator '{self.op}' requires a single value, not a list"
             )
-
-            # HTML escape the cleaned content
-            return html.escape(v)
-
-        return v  # Return non-string values as-is
+        return self
 
 
 # Actual chart types
+class PieChartConfig(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["pie"] = "pie"
+    dimension: ColumnRef = Field(
+        ...,
+        description="Category column for slices",
+        validation_alias=AliasChoices("dimension", "groupby"),
+    )
+    metric: ColumnRef = Field(
+        ..., description="Value metric (needs aggregate e.g. SUM, COUNT)"
+    )
+    donut: bool = False
+    show_labels: bool = True
+    label_type: Literal[
+        "key",
+        "value",
+        "percent",
+        "key_value",
+        "key_percent",
+        "key_value_percent",
+        "value_percent",
+    ] = "key_value_percent"
+    sort_by_metric: bool = True
+    show_legend: bool = True
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    row_limit: int = Field(100, description="Max slices", ge=1, le=10000)
+    number_format: str = Field("SMART_NUMBER", max_length=50)
+    show_total: bool = Field(False, description="Show total in center")
+    labels_outside: bool = True
+    outer_radius: int = Field(70, description="Outer radius % (1-100)", ge=1, le=100)
+    inner_radius: int = Field(
+        30, description="Donut inner radius % (1-100)", ge=1, le=100
+    )
+
+
+class PivotTableChartConfig(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["pivot_table"] = "pivot_table"
+    rows: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description="Row grouping columns",
+        validation_alias=AliasChoices("rows", "groupby", "dimension"),
+    )
+    columns: List[ColumnRef] | None = Field(
+        None, description="Column groups for cross-tabulation"
+    )
+    metrics: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description="Metrics (need aggregate e.g. SUM, COUNT, AVG)",
+    )
+    aggregate_function: Literal[
+        "Sum",
+        "Average",
+        "Median",
+        "Sample Variance",
+        "Sample Standard Deviation",
+        "Minimum",
+        "Maximum",
+        "Count",
+        "Count Unique Values",
+        "First",
+        "Last",
+    ] = "Sum"
+    show_row_totals: bool = True
+    show_column_totals: bool = True
+    transpose: bool = False
+    combine_metric: bool = Field(False, description="Metrics side by side in columns")
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    row_limit: int = Field(10000, description="Max cells", ge=1, le=50000)
+    value_format: str = Field("SMART_NUMBER", max_length=50)
+
+
+class MixedTimeseriesChartConfig(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["mixed_timeseries"] = "mixed_timeseries"
+    x: ColumnRef = Field(
+        ...,
+        description="Shared temporal X-axis column",
+        validation_alias=AliasChoices("x", "x_axis"),
+    )
+    time_grain: TimeGrain | None = Field(None, description="PT1H, P1D, P1W, P1M, P1Y")
+    # Primary series (Query A)
+    y: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description="Primary Y-axis metrics",
+        validation_alias=AliasChoices("y", "metrics"),
+    )
+    primary_kind: Literal["line", "bar", "area", "scatter"] = "line"
+    group_by: List[ColumnRef] | None = Field(
+        None,
+        description="Primary series group by",
+        validation_alias=AliasChoices("group_by", "groupby", "series", "dimension"),
+    )
+    # Secondary series (Query B)
+    y_secondary: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description="Secondary Y-axis metrics",
+        validation_alias=AliasChoices("y_secondary", "metrics_b"),
+    )
+    secondary_kind: Literal["line", "bar", "area", "scatter"] = "bar"
+    group_by_secondary: List[ColumnRef] | None = Field(
+        None,
+        description="Secondary series group by",
+        validation_alias=AliasChoices(
+            "group_by_secondary", "groupby_b", "groupby_secondary"
+        ),
+    )
+    # Display options
+    show_legend: bool = True
+    x_axis: AxisConfig | None = None
+    y_axis: AxisConfig | None = None
+    y_axis_secondary: AxisConfig | None = None
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    row_limit: int = Field(10000, description="Max data points", ge=1, le=50000)
+
+    @field_validator("group_by", "group_by_secondary", mode="before")
+    @classmethod
+    def wrap_single_group_by(cls, v: Any) -> Any:
+        return _normalize_group_by_input(v)
+
+
 class TableChartConfig(BaseModel):
-    chart_type: Literal["table"] = Field(
-        ..., description="Chart type (REQUIRED: must be 'table')"
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["table"] = "table"
+    viz_type: Literal["table", "ag-grid-table"] = Field(
+        "table", description="'ag-grid-table' for interactive features"
     )
     columns: List[ColumnRef] = Field(
         ...,
         min_length=1,
-        description=(
-            "Columns to display. Must have at least one column. Each column must have "
-            "a unique label "
-            "(either explicitly set via 'label' field or auto-generated "
-            "from name/aggregate)"
-        ),
+        description="Columns with unique labels",
+        validation_alias=AliasChoices("columns", "all_columns", "groupby"),
     )
-    filters: List[FilterConfig] | None = Field(None, description="Filters to apply")
-    sort_by: List[str] | None = Field(None, description="Columns to sort by")
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    sort_by: List[str] | None = None
+    row_limit: int = Field(1000, description="Max rows returned", ge=1, le=50000)
 
     @model_validator(mode="after")
     def validate_unique_column_labels(self) -> "TableChartConfig":
@@ -655,31 +709,49 @@ class TableChartConfig(BaseModel):
 
 
 class XYChartConfig(BaseModel):
-    chart_type: Literal["xy"] = Field(
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["xy"] = "xy"
+    x: ColumnRef = Field(
         ...,
-        description=(
-            "Chart type discriminator - MUST be 'xy' for XY charts "
-            "(line, bar, area, scatter). "
-            "This field is REQUIRED and tells Superset which chart "
-            "configuration schema to use."
-        ),
+        description="X-axis column",
+        validation_alias=AliasChoices("x", "x_axis", "x_column"),
     )
-    x: ColumnRef = Field(..., description="X-axis column")
     y: List[ColumnRef] = Field(
         ...,
         min_length=1,
-        description="Y-axis columns (metrics). Must have at least one Y-axis column. "
-        "Each column must have a unique label "
-        "that doesn't conflict with x-axis or group_by labels",
+        description="Y-axis metrics (unique labels)",
+        validation_alias=AliasChoices("y", "metrics"),
     )
-    kind: Literal["line", "bar", "area", "scatter"] = Field(
-        "line", description="Chart visualization type"
+    kind: Literal["line", "bar", "area", "scatter"] = "line"
+    time_grain: TimeGrain | None = Field(
+        None, description="PT1S, PT1M, PT1H, P1D, P1W, P1M, P3M, P1Y"
     )
-    group_by: ColumnRef | None = Field(None, description="Column to group by")
-    x_axis: AxisConfig | None = Field(None, description="X-axis configuration")
-    y_axis: AxisConfig | None = Field(None, description="Y-axis configuration")
-    legend: LegendConfig | None = Field(None, description="Legend configuration")
-    filters: List[FilterConfig] | None = Field(None, description="Filters to apply")
+    orientation: Literal["vertical", "horizontal"] | None = Field(
+        None, description="Bar orientation (only for kind='bar')"
+    )
+    stacked: bool = False
+    group_by: List[ColumnRef] | None = Field(
+        None,
+        description="Series breakdown columns",
+        validation_alias=AliasChoices(
+            "group_by", "groupby", "series", "breakdown", "dimension"
+        ),
+    )
+    x_axis: AxisConfig | None = None
+    y_axis: AxisConfig | None = None
+    legend: LegendConfig | None = None
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    row_limit: int = Field(10000, description="Max data points", ge=1, le=50000)
+
+    @field_validator("group_by", mode="before")
+    @classmethod
+    def wrap_single_group_by(cls, v: Any) -> Any:
+        return _normalize_group_by_input(v)
 
     @model_validator(mode="after")
     def validate_unique_column_labels(self) -> "XYChartConfig":
@@ -705,14 +777,22 @@ class XYChartConfig(BaseModel):
             else:
                 labels_seen[label] = f"y[{i}]"
 
-        # Check group_by label if present
+        # Check group_by labels if present
         if self.group_by:
-            group_label = self.group_by.label or self.group_by.name
-            if group_label in labels_seen:
-                duplicates.append(
-                    f"group_by: '{group_label}' "
-                    f"(conflicts with {labels_seen[group_label]})"
-                )
+            for i, col in enumerate(self.group_by):
+                if col.name == self.x.name:
+                    # map_xy_config() strips group_by entries that match x
+                    # to prevent Superset "duplicate label" errors, so
+                    # we allow them through validation.
+                    continue
+                group_label = col.label or col.name
+                if group_label in labels_seen:
+                    duplicates.append(
+                        f"group_by[{i}]: '{group_label}' "
+                        f"(conflicts with {labels_seen[group_label]})"
+                    )
+                else:
+                    labels_seen[group_label] = f"group_by[{i}]"
 
         if duplicates:
             raise ValueError(
@@ -726,10 +806,17 @@ class XYChartConfig(BaseModel):
 
 # Discriminated union entry point with custom error handling
 ChartConfig = Annotated[
-    XYChartConfig | TableChartConfig,
+    XYChartConfig
+    | TableChartConfig
+    | PieChartConfig
+    | PivotTableChartConfig
+    | MixedTimeseriesChartConfig,
     Field(
         discriminator="chart_type",
-        description="Chart configuration - specify chart_type as 'xy' or 'table'",
+        description=(
+            "Chart configuration - specify chart_type as 'xy', 'table', "
+            "'pie', 'pivot_table', or 'mixed_timeseries'"
+        ),
     ),
 ]
 
@@ -749,18 +836,7 @@ class ListChartsRequest(MetadataCacheControl):
     select_columns: Annotated[
         List[str],
         Field(
-            default_factory=lambda: [
-                "id",
-                "slice_name",
-                "viz_type",
-                "datasource_name",
-                "description",
-                "changed_by_name",
-                "created_by_name",
-                "changed_on",
-                "created_on",
-                "uuid",
-            ],
+            default_factory=list,
             description="List of columns to select. Defaults to common columns if not "
             "specified.",
         ),
@@ -834,20 +910,20 @@ class ListChartsRequest(MetadataCacheControl):
 class GenerateChartRequest(QueryCacheControl):
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
     config: ChartConfig = Field(..., description="Chart configuration")
-    save_chart: bool = Field(
-        default=True,
-        description="Whether to permanently save the chart in Superset",
+    chart_name: str | None = Field(
+        None, description="Auto-generates if omitted", max_length=255
     )
-    generate_preview: bool = Field(
-        default=True,
-        description="Whether to generate a preview image",
-    )
-    preview_formats: List[
-        Literal["url", "interactive", "ascii", "vega_lite", "table", "base64"]
-    ] = Field(
+    save_chart: bool = Field(default=False, description="Save permanently in Superset")
+    generate_preview: bool = True
+    preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
         default_factory=lambda: ["url"],
-        description="List of preview formats to generate",
     )
+
+    @field_validator("chart_name")
+    @classmethod
+    def sanitize_chart_name(cls, v: str | None) -> str | None:
+        """Sanitize chart name to prevent XSS attacks."""
+        return sanitize_user_input(v, "Chart name", max_length=255, allow_empty=True)
 
     @model_validator(mode="after")
     def validate_cache_timeout(self) -> "GenerateChartRequest":
@@ -862,6 +938,16 @@ class GenerateChartRequest(QueryCacheControl):
             )
         return self
 
+    @model_validator(mode="after")
+    def validate_save_or_preview(self) -> "GenerateChartRequest":
+        """Ensure at least one of save_chart or generate_preview is enabled."""
+        if not self.save_chart and not self.generate_preview:
+            raise ValueError(
+                "At least one of 'save_chart' or 'generate_preview' must be True. "
+                "A request with both set to False would be a no-op."
+            )
+        return self
+
 
 class GenerateExploreLinkRequest(FormDataCacheControl):
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
@@ -869,108 +955,85 @@ class GenerateExploreLinkRequest(FormDataCacheControl):
 
 
 class UpdateChartRequest(QueryCacheControl):
-    identifier: int | str = Field(..., description="Chart identifier (ID, UUID)")
-    config: ChartConfig = Field(..., description="New chart configuration")
+    identifier: int | str = Field(..., description="Chart ID or UUID")
+    config: ChartConfig
     chart_name: str | None = Field(
-        None,
-        description="New chart name (optional, will auto-generate if not provided)",
-        max_length=255,
+        None, description="Auto-generates if omitted", max_length=255
     )
-    generate_preview: bool = Field(
-        default=True,
-        description="Whether to generate a preview after updating",
-    )
-    preview_formats: List[
-        Literal["url", "interactive", "ascii", "vega_lite", "table", "base64"]
-    ] = Field(
+    generate_preview: bool = True
+    preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
         default_factory=lambda: ["url"],
-        description="List of preview formats to generate",
     )
 
     @field_validator("chart_name")
     @classmethod
     def sanitize_chart_name(cls, v: str | None) -> str | None:
         """Sanitize chart name to prevent XSS attacks."""
-        if v is None:
-            return v
-
-        # Strip whitespace
-        v = v.strip()
-        if not v:
-            return None
-
-        # Length check first to prevent ReDoS attacks
-        if len(v) > 255:
-            raise ValueError(
-                f"Chart name too long ({len(v)} characters). "
-                f"Maximum allowed length is 255 characters."
-            )
-
-        # Check for dangerous HTML tags using substring checks (safe)
-        dangerous_tags = [
-            "<script",
-            "</script>",
-            "<iframe",
-            "</iframe>",
-            "<object",
-            "</object>",
-            "<embed",
-            "</embed>",
-            "<link",
-            "<meta",
-        ]
-
-        v_lower = v.lower()
-        for tag in dangerous_tags:
-            if tag in v_lower:
-                raise ValueError(
-                    "Chart name contains potentially malicious content. "
-                    "HTML tags and JavaScript are not allowed in chart names."
-                )
-
-        # Check URL schemes with word boundaries
-        if re.search(r"\b(javascript|vbscript|data):", v, re.IGNORECASE):
-            raise ValueError("Chart name contains potentially malicious URL scheme")
-
-        # Check for event handlers with simple regex
-        if re.search(r"on\w+\s*=", v, re.IGNORECASE):
-            raise ValueError(
-                "Chart name contains potentially malicious event handlers."
-            )
-
-        # Filter dangerous Unicode characters
-        v = re.sub(
-            r"[\u200B-\u200D\uFEFF\u0000-\u0008\u000B\u000C\u000E-\u001F]", "", v
-        )
-
-        # HTML escape the cleaned content
-        sanitized = html.escape(v)
-
-        return sanitized if sanitized else None
+        return sanitize_user_input(v, "Chart name", max_length=255, allow_empty=True)
 
 
 class UpdateChartPreviewRequest(FormDataCacheControl):
     form_data_key: str = Field(..., description="Existing form_data_key to update")
-    dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
-    config: ChartConfig = Field(..., description="New chart configuration")
-    generate_preview: bool = Field(
-        default=True,
-        description="Whether to generate a preview after updating",
-    )
-    preview_formats: List[
-        Literal["url", "interactive", "ascii", "vega_lite", "table", "base64"]
-    ] = Field(
+    dataset_id: int | str = Field(..., description="Dataset ID or UUID")
+    config: ChartConfig
+    generate_preview: bool = True
+    preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
         default_factory=lambda: ["url"],
-        description="List of preview formats to generate",
     )
 
 
 class GetChartDataRequest(QueryCacheControl):
-    """Request for chart data with cache control."""
+    """Request for chart data with cache control.
 
-    identifier: int | str = Field(description="Chart identifier (ID, UUID)")
+    When form_data_key is provided, the tool will use the unsaved chart configuration
+    from cache to query data, allowing you to get data for what the user actually sees
+    (not the saved version). This is useful when a user edits a chart in Explore but
+    hasn't saved yet.
+
+    For unsaved charts (no chart ID), provide only form_data_key to query data using
+    the current chart configuration from cache.
+    """
+
+    identifier: int | str | None = Field(
+        default=None,
+        description=(
+            "Chart identifier (ID, UUID). "
+            "Optional when form_data_key is provided (for unsaved charts)."
+        ),
+    )
+    form_data_key: str | None = Field(
+        default=None,
+        description=(
+            "Cache key for retrieving unsaved chart state. When a user "
+            "edits a chart in Explore but hasn't saved, the current state is stored "
+            "with this key. If provided, the tool uses this configuration to query "
+            "data instead of the saved chart configuration. "
+            "Can be used alone (without identifier) for unsaved charts."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def validate_identifier_or_form_data_key(self) -> "GetChartDataRequest":
+        if not self.identifier and not self.form_data_key:
+            raise ValueError(
+                "At least one of 'identifier' or 'form_data_key' must be provided."
+            )
+        return self
+
     limit: int | None = Field(
-        default=100, description="Maximum number of data rows to return"
+        default=None,
+        description=(
+            "Maximum number of data rows to return. If not specified, uses the "
+            "chart's configured row limit."
+        ),
+    )
+    extra_form_data: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Extra form data to merge into the chart query, typically from "
+            "dashboard native filters. Format: "
+            '{"filters": [{"col": "country", "op": "IN", "val": ["US"]}]}'
+        ),
     )
     format: Literal["json", "csv", "excel"] = Field(
         default="json", description="Data export format"
@@ -1040,14 +1103,49 @@ class ChartData(BaseModel):
 
 
 class GetChartPreviewRequest(QueryCacheControl):
-    """Request for chart preview with cache control."""
+    """Request for chart preview with cache control.
 
-    identifier: int | str = Field(description="Chart identifier (ID, UUID)")
-    format: Literal["url", "ascii", "table", "base64", "vega_lite"] = Field(
+    When form_data_key is provided, the tool will render a preview using the unsaved
+    chart configuration from cache, allowing you to preview what the user actually sees
+    (not the saved version). This is useful when a user edits a chart in Explore but
+    hasn't saved yet.
+
+    For unsaved charts (no chart ID), provide only form_data_key to render a preview
+    using the current chart configuration from cache.
+    """
+
+    identifier: int | str | None = Field(
+        default=None,
+        description=(
+            "Chart identifier (ID, UUID). "
+            "Optional when form_data_key is provided (for unsaved charts)."
+        ),
+    )
+    form_data_key: str | None = Field(
+        default=None,
+        description=(
+            "Cache key for retrieving unsaved chart state. When a user "
+            "edits a chart in Explore but hasn't saved, the current state is stored "
+            "with this key. If provided, the tool renders a preview using this "
+            "configuration instead of the saved chart configuration. "
+            "Can be used alone (without identifier) for unsaved charts."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def validate_identifier_or_form_data_key(self) -> "GetChartPreviewRequest":
+        if not self.identifier and not self.form_data_key:
+            raise ValueError(
+                "At least one of 'identifier' or 'form_data_key' must be provided."
+            )
+        return self
+
+    format: Literal["url", "ascii", "table", "vega_lite"] = Field(
         default="url",
         description=(
-            "Preview format: 'url' for image URL, 'ascii' for text art, "
-            "'table' for data table, 'base64' for embedded image, "
+            "Preview format: 'url' for explore link (default), "
+            "'ascii' for text art, "
+            "'table' for data table, "
             "'vega_lite' for interactive JSON specification"
         ),
     )
@@ -1209,9 +1307,8 @@ class ChartPreview(BaseModel):
 
     # Backward compatibility fields (populated based on content type)
     format: str | None = Field(
-        None, description="Format of the preview (url, ascii, table, base64)"
+        None, description="Format of the preview (ascii, table, vega_lite)"
     )
-    preview_url: str | None = Field(None, description="Image URL for 'url' format")
     ascii_chart: str | None = Field(
         None, description="ASCII art chart for 'ascii' format"
     )

@@ -39,7 +39,7 @@ const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
   typeof isFeatureEnabled
 >;
 
-const users = new Array(10).fill(undefined).map((_, i) => ({
+const users = Array.from({ length: 10 }, (_, i) => ({
   first_name: 'user',
   last_name: `${i}`,
   id: i,

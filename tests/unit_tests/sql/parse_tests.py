@@ -1867,6 +1867,23 @@ def test_as_cte(sql: str, engine: str, expected: str) -> None:
     assert SQLStatement(sql, engine).as_cte().format() == expected
 
 
+def test_as_cte_called_twice() -> None:
+    """
+    Test that calling as_cte() multiple times on the same instance works.
+
+    Regression test for a bug where as_cte() sets self._parsed.args["with_"] = None
+    after extracting CTEs, but has_cte() only checked if the key existed, not if
+    the value was truthy. This caused an AttributeError on subsequent as_cte() calls.
+    """
+    sql = "WITH cte AS (SELECT 1) SELECT * FROM cte"
+    stmt = SQLStatement(sql, "postgresql")
+
+    assert stmt.has_cte() is True
+    stmt.as_cte()
+    assert stmt.has_cte() is False
+    stmt.as_cte()
+
+
 @pytest.mark.parametrize(
     "sql, rules, expected",
     [
@@ -2163,7 +2180,7 @@ FROM (
   FROM public.flights
   WHERE
     "AIRLINE" LIKE 'A%'
-) AS "public.flights"
+) AS "flights"
 LIMIT 100
         """.strip(),
         ),
@@ -2891,6 +2908,20 @@ def test_singlestore_engine_mapping():
     assert "COUNT(*)" in formatted
 
 
+def test_awsathena_engine_mapping():
+    """
+    Test the `awsathena` dialect is properly mapped to ATHENA instead of PRESTO.
+    """
+    sql = (
+        "USING EXTERNAL FUNCTION my_func(x INT) RETURNS INT LAMBDA 'lambda_name' "
+        "SELECT my_func(id) FROM my_table"
+    )
+    statement = SQLStatement(sql, engine="awsathena")
+
+    # Should parse without errors using Athena dialect
+    statement.format()
+
+
 def test_remove_quotes() -> None:
     """
     Test the `remove_quotes` helper function.
@@ -2926,6 +2957,39 @@ def test_check_functions_present(sql: str, engine: str, expected: bool) -> None:
     """
     functions = {"version", "query_to_xml"}
     assert SQLScript(sql, engine).check_functions_present(functions) == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT * FROM my_table", "postgresql", False),
+        ("SELECT * FROM pg_stat_activity", "postgresql", True),
+        ("SELECT * FROM PG_STAT_ACTIVITY", "postgresql", True),
+        ("SELECT * FROM pg_roles", "postgresql", True),
+        (
+            "WITH cte AS (SELECT 1) SELECT * FROM cte",
+            "postgresql",
+            False,
+        ),
+        (
+            "SELECT * FROM my_table; SELECT * FROM pg_settings",
+            "postgresql",
+            True,
+        ),
+        (
+            "SELECT * FROM schema.pg_stat_activity",
+            "postgresql",
+            True,
+        ),
+        ("Table | limit 10", "kustokql", False),
+    ],
+)
+def test_check_tables_present(sql: str, engine: str, expected: bool) -> None:
+    """
+    Check the `check_tables_present` method.
+    """
+    tables = {"pg_stat_activity", "pg_roles", "pg_settings"}
+    assert SQLScript(sql, engine).check_tables_present(tables) == expected
 
 
 @pytest.mark.parametrize(

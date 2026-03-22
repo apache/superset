@@ -26,6 +26,7 @@ import {
   addPropertiesToFeature,
 } from '../transformUtils';
 import { DeckPolygonFormData } from './buildQuery';
+import { decode_bbox } from 'ngeohash';
 
 function parseElevationValue(value: string): number | undefined {
   const parsed = parseFloat(value);
@@ -114,6 +115,10 @@ function processPolygonData(
 
             if (parsed.coordinates) {
               polygonCoords = parsed.coordinates[0] || parsed.coordinates;
+            } else if (parsed.geometry?.coordinates) {
+              // Non-standard format with nested geometry
+              polygonCoords =
+                parsed.geometry.coordinates[0] || parsed.geometry.coordinates;
             } else if (Array.isArray(parsed)) {
               polygonCoords = parsed;
             } else {
@@ -122,6 +127,16 @@ function processPolygonData(
             break;
           }
           case 'geohash':
+            polygonCoords = [];
+            const decoded = decode_bbox(String(rawPolygonData));
+            if (decoded) {
+              polygonCoords.push([decoded[1], decoded[0]]); // SW (minLon, minLat)
+              polygonCoords.push([decoded[1], decoded[2]]); // NW (minLon, maxLat)
+              polygonCoords.push([decoded[3], decoded[2]]); // NE (maxLon, maxLat)
+              polygonCoords.push([decoded[3], decoded[0]]); // SE (maxLon, minLat)
+              polygonCoords.push([decoded[1], decoded[0]]); // SW (close polygon)
+            }
+            break;
           case 'zipcode':
           default: {
             polygonCoords = Array.isArray(rawPolygonData) ? rawPolygonData : [];

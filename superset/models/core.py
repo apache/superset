@@ -61,7 +61,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
-from superset_core.api.models import Database as CoreDatabase
+from superset_core.common.models import Database as CoreDatabase
 
 from superset import db, db_engine_specs, is_feature_enabled
 from superset.commands.database.exceptions import DatabaseInvalidError
@@ -96,7 +96,7 @@ metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from superset_core.api.types import AsyncQueryHandle, QueryOptions, QueryResult
+    from superset_core.queries.types import AsyncQueryHandle, QueryOptions, QueryResult
 
     from superset.models.sql_lab import Query
 
@@ -198,6 +198,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         "allow_file_upload",
         "extra",
         "impersonate_user",
+        "configuration_method",
     ]
     extra_import_fields = [
         "password",
@@ -832,17 +833,17 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         cols: list[ResultSetColumnType] | None = None,
     ) -> str:
         """Generates a ``select *`` statement in the proper dialect"""
-        with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
-            return self.db_engine_spec.select_star(
-                self,
-                table,
-                engine=engine,
-                limit=limit,
-                show_cols=show_cols,
-                indent=indent,
-                latest_partition=latest_partition,
-                cols=cols,
-            )
+        dialect = self.get_dialect()
+        return self.db_engine_spec.select_star(
+            self,
+            table,
+            dialect=dialect,
+            limit=limit,
+            show_cols=show_cols,
+            indent=indent,
+            latest_partition=latest_partition,
+            cols=cols,
+        )
 
     def apply_limit_to_sql(
         self,
@@ -897,6 +898,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                     )
                 }
         except Exception as ex:
+            self._handle_oauth2_error(ex)
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @cache_util.memoized_func(
@@ -931,6 +933,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                     )
                 }
         except Exception as ex:
+            self._handle_oauth2_error(ex)
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @cache_util.memoized_func(
@@ -967,6 +970,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                     )
                 }
         except Exception as ex:
+            self._handle_oauth2_error(ex)
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
         return set()
@@ -995,9 +999,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             with self.get_inspector(catalog=catalog) as inspector:
                 return self.db_engine_spec.get_schema_names(inspector)
         except Exception as ex:
-            if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(ex):
-                self.start_oauth2_dance()
-
+            self._handle_oauth2_error(ex)
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @cache_util.memoized_func(
@@ -1014,9 +1016,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             with self.get_inspector() as inspector:
                 return self.db_engine_spec.get_catalog_names(self, inspector)
         except Exception as ex:
-            if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(ex):
-                self.start_oauth2_dance()
-
+            self._handle_oauth2_error(ex)
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @property
@@ -1199,10 +1199,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
     def has_table(self, table: Table) -> bool:
         with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
+            inspector = sqla.inspect(engine)
             # do not pass "" as an empty schema; force null
-            if engine.has_table(table.table, table.schema or None):
+            if inspector.has_table(table.table, table.schema or None):
                 return True
-            return engine.has_table(table.table.lower(), table.schema or None)
+            return inspector.has_table(table.table.lower(), table.schema or None)
 
     def has_view(self, table: Table) -> bool:
         with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
@@ -1268,6 +1269,10 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         if oauth2_client_info := encrypted_extra.get("oauth2_client_info"):
             schema = OAuth2ClientConfigSchema()
             client_config = schema.load(oauth2_client_info)
+            if "request_content_type" not in oauth2_client_info:
+                client_config["request_content_type"] = (
+                    self.db_engine_spec.oauth2_token_request_type
+                )
             return cast(OAuth2ClientConfig, client_config)
 
         return self.db_engine_spec.get_oauth2_config()
@@ -1281,6 +1286,16 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         trigger the OAuth2 dance in the frontend.
         """
         return self.db_engine_spec.start_oauth2_dance(self)
+
+    def _handle_oauth2_error(self, ex: Exception) -> None:
+        """
+        Handle exceptions that may require OAuth2 authentication.
+
+        If OAuth2 is enabled and the exception indicates that OAuth2 is needed,
+        starts the OAuth2 dance.
+        """
+        if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(ex):
+            self.start_oauth2_dance()
 
     def purge_oauth2_tokens(self) -> None:
         """

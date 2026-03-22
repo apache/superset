@@ -25,7 +25,7 @@ import {
   TableBodyPropGetter,
   TablePropGetter,
 } from 'react-table';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { Table, TableSize } from '@superset-ui/core/components/Table';
 import { TableRowSelection, SorterResult } from 'antd/es/table/interface';
 import { mapColumns, mapRows } from './utils';
@@ -280,7 +280,9 @@ function TableCollection<T extends object>({
 
   const getRowClassName = useCallback(
     (record: Record<string, unknown>) =>
-      record?.id === highlightRowId ? 'table-row-highlighted' : '',
+      highlightRowId !== undefined && record?.id === highlightRowId
+        ? 'table-row-highlighted'
+        : '',
     [highlightRowId],
   );
 

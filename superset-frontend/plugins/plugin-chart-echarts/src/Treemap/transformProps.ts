@@ -119,8 +119,12 @@ export default function transformProps(
     emitCrossFilters,
     datasource,
   } = chartProps;
-  const { data = [] } = queriesData[0];
-  const { columnFormats = {}, currencyFormats = {} } = datasource;
+  const { data = [], detected_currency: detectedCurrency } = queriesData[0];
+  const {
+    columnFormats = {},
+    currencyFormats = {},
+    currencyCodeColumn,
+  } = datasource;
   const { setDataMask = () => {}, onContextMenu } = hooks;
   const coltypeMapping = getColtypesMapping(queriesData[0]);
   const BORDER_COLOR = theme.colorBgBase;
@@ -150,6 +154,10 @@ export default function transformProps(
     columnFormats,
     numberFormat,
     currencyFormat,
+    undefined,
+    data,
+    currencyCodeColumn,
+    detectedCurrency,
   );
 
   const formatter = (params: TreemapSeriesCallbackDataParams) =>
@@ -165,8 +173,6 @@ export default function transformProps(
   const treeData = treeBuilder(data, groupbyLabels, metricLabel);
   const labelProps = {
     color: theme.colorText,
-    borderColor: theme.colorBgBase,
-    borderWidth: 1,
   };
   const traverse = (treeNodes: TreeNode[], path: string[]) =>
     treeNodes.map(treeNode => {

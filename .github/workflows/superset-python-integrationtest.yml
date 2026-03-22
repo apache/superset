@@ -41,7 +41,7 @@ jobs:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
           submodules: recursive
@@ -68,11 +68,41 @@ jobs:
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5
         with:
           flags: python,mysql
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
+      - name: Generate database diagnostics for docs
+        if: steps.check.outputs.python
+        env:
+          SUPERSET_CONFIG: tests.integration_tests.superset_test_config
+          SUPERSET__SQLALCHEMY_DATABASE_URI: |
+            mysql+mysqldb://superset:superset@127.0.0.1:13306/superset?charset=utf8mb4&binary_prefix=true
+        run: |
+          python -c "
+          import json
+          from superset.app import create_app
+          from superset.db_engine_specs.lib import generate_yaml_docs
+          app = create_app()
+          with app.app_context():
+              docs = generate_yaml_docs()
+              # Wrap in the expected format
+              output = {
+                  'generated': '$(date -Iseconds)',
+                  'databases': docs
+              }
+              with open('databases-diagnostics.json', 'w') as f:
+                  json.dump(output, f, indent=2, default=str)
+              print(f'Generated diagnostics for {len(docs)} databases')
+          "
+      - name: Upload database diagnostics artifact
+        if: steps.check.outputs.python
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+        with:
+          name: database-diagnostics
+          path: databases-diagnostics.json
+          retention-days: 7
   test-postgres:
     runs-on: ubuntu-24.04
     strategy:
@@ -85,7 +115,7 @@ jobs:
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:17-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -99,7 +129,7 @@ jobs:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
           submodules: recursive
@@ -129,7 +159,7 @@ jobs:
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5
         with:
           flags: python,postgres
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -152,7 +182,7 @@ jobs:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
           submodules: recursive
@@ -181,7 +211,7 @@ jobs:
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5
         with:
           flags: python,sqlite
           token: ${{ secrets.CODECOV_TOKEN }}

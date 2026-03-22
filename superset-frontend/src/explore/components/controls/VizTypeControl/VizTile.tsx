@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { t } from '@superset-ui/core';
-import { css, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { Tooltip } from '@superset-ui/core/components';
 import { usePluginContext } from 'src/components';
 import { VizTileProps } from './types';
@@ -137,7 +137,7 @@ export const VizTile = ({
             font-size: ${theme.fontSizeSM}px;
             min-width: 0;
             padding-right: ${theme.sizeUnit}px;
-            line-height: 1;
+            line-height: 1.5;
           `}
           ref={chartNameRef}
         >

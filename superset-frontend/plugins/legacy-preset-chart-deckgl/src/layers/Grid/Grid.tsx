@@ -105,9 +105,9 @@ export const getLayer: GetLayerType<GridLayer> = function ({
         : undefined,
     colorRange,
     outline: false,
-    // @ts-ignore
+    // @ts-expect-error
     getElevationValue: aggFunc,
-    // @ts-ignore
+    // @ts-expect-error
     getColorValue: colorAggFunc,
     ...commonLayerProps({
       formData: fd,
@@ -158,7 +158,7 @@ export const getHighlightLayer: GetLayerType<GridLayer> = function ({
     colorRange: [TRANSPARENT_COLOR_ARRAY, HIGHLIGHT_COLOR_ARRAY],
     colorAggregation: 'MAX',
     outline: false,
-    // @ts-ignore
+    // @ts-expect-error
     getElevationValue: aggFunc,
     getColorWeight: colorAggFunc,
     opacity: 1,

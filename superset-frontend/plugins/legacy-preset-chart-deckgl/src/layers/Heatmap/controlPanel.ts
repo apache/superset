@@ -20,8 +20,8 @@ import {
   ControlPanelConfig,
   formatSelectOptions,
 } from '@superset-ui/chart-controls';
+import { t } from '@apache-superset/core/translation';
 import {
-  t,
   validateNonEmpty,
   legacyValidateNumber,
   legacyValidateInteger,

@@ -20,18 +20,21 @@ import { FormatLocaleDefinition } from 'd3-format';
 import { TimeLocaleDefinition } from 'd3-time-format';
 import { isPlainObject } from 'lodash';
 import { Languages } from 'src/features/home/LanguagePicker';
-import type {
+import {
   AnyThemeConfig,
   SerializableThemeConfig,
-} from '@apache-superset/core/ui';
+} from '@apache-superset/core/theme';
 import type {
   ColorSchemeConfig,
   FeatureFlagMap,
   JsonObject,
-  LanguagePack,
-  Locale,
   SequentialSchemeConfig,
 } from '@superset-ui/core';
+
+import {
+  type LanguagePack,
+  type Locale,
+} from '@apache-superset/core/translation';
 
 export type User = {
   createdOn?: string;
