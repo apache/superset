@@ -58,7 +58,7 @@ dependencies = [
     "flask-wtf>=1.1.0, <2.0",
     "geopy",
     "greenlet>=3.0.3, <=3.1.1",
-    "gunicorn>=22.0.0; sys_platform != 'win32'",
+    "gunicorn>=25.0.0; sys_platform != 'win32'",
     "hashids>=1.3.1, <2",
     # holidays>=0.45 required for security fix
     "holidays>=0.45, <1",
