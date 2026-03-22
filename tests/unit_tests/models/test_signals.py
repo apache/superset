@@ -31,14 +31,21 @@ from superset.models.signals import (
 )
 
 
-def test_signal_mixin_skips_abstract_base():
+def test_signal_mixin_skips_abstract_base(monkeypatch):
     """SignalMixin does not register events on classes without __tablename__."""
+
+    listen_calls = []
+
+    def _record_listen(*args, **kwargs):
+        listen_calls.append((args, kwargs))
+
+    monkeypatch.setattr("superset.models.signals.sa.event.listen", _record_listen)
 
     class AbstractBase(SignalMixin):
         pass
 
     # No __tablename__ in __dict__, so __init_subclass__ should skip registration
-    assert not hasattr(AbstractBase, "__mapper__")
+    assert listen_calls == []
 
 
 def test_model_change_event_fields():
