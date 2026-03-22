@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -16,18 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { RefObject, useEffect, useRef, KeyboardEvent } from 'react';
-
+import { RefObject, useEffect } from 'react';
 import { useSelector } from 'react-redux';
+import { MenuProps } from 'antd';
 import { t } from '@apache-superset/core/translation';
-import { useTheme } from '@apache-superset/core/theme';
-import { List, Popover } from '@superset-ui/core/components';
-import {
-  FiltersContainer,
-  FiltersDetailsContainer,
-  Separator,
-  SectionName,
-} from 'src/dashboard/components/FiltersBadge/Styles';
+import { css, useTheme } from '@apache-superset/core/theme';
+import { Menu } from '@superset-ui/core/components/Menu';
+import { NoAnimationDropdown } from '@superset-ui/core/components';
 import { Indicator } from 'src/dashboard/components/nativeFilters/selectors';
 import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';
 import { RootState } from 'src/dashboard/types';
@@ -49,148 +44,97 @@ const DetailsPanelPopover = ({
   onHighlightFilterSource,
   children,
   popoverVisible,
-  popoverContentRef,
-  popoverTriggerRef,
   setPopoverVisible,
 }: DetailsPanelProps) => {
+  const theme = useTheme();
   const activeTabs = useSelector<RootState>(
     state => state.dashboardState?.activeTabs,
   );
-  // Combined ref array for all filter indicator elements
-  const indicatorRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    switch (event.key) {
-      case 'Escape':
-      case 'Enter':
-        // timing out to allow for filter selection to happen first
-        setTimeout(() => {
-          // move back to the popover trigger element
-          popoverTriggerRef?.current?.focus();
-          // Close popover on ESC or ENTER
-          setPopoverVisible(false);
-        });
-        break;
-      case 'ArrowDown':
-      case 'ArrowUp': {
-        event.preventDefault(); // Prevent scrolling
-        // Navigate through filters with arrows up/down
-        const currentFocusIndex = indicatorRefs.current.findIndex(
-          ref => ref === document.activeElement,
-        );
-        const maxIndex = indicatorRefs.current.length - 1;
-        let nextFocusIndex = 0;
-
-        if (event.key === 'ArrowDown') {
-          nextFocusIndex =
-            currentFocusIndex >= maxIndex ? 0 : currentFocusIndex + 1;
-        } else if (event.key === 'ArrowUp') {
-          nextFocusIndex =
-            currentFocusIndex <= 0 ? maxIndex : currentFocusIndex - 1;
-        }
-        indicatorRefs.current[nextFocusIndex]?.focus();
-        break;
-      }
-      case 'Tab':
-        // forcing popover context until ESC or ENTER are pressed
-        event.preventDefault();
-        break;
-      default:
-        break;
-    }
-  };
-
-  const handleVisibility = (isOpen: boolean) => {
-    setPopoverVisible(isOpen);
-  };
-
-  // we don't need to clean up useEffect, setting { once: true } removes the event listener after handle function is called
-  useEffect(() => {
-    if (popoverVisible) {
-      window.addEventListener('resize', () => setPopoverVisible(false), {
-        once: true,
-      });
-    }
-  }, [popoverVisible]);
-
-  // if tabs change, popover doesn't close automatically
   useEffect(() => {
     setPopoverVisible(false);
-  }, [activeTabs]);
+  }, [activeTabs, setPopoverVisible]);
 
   const indicatorKey = (indicator: Indicator): string =>
     `${indicator.column} - ${indicator.name}`;
-  const theme = useTheme();
-  const content = (
-    <FiltersDetailsContainer
-      ref={popoverContentRef}
-      tabIndex={-1}
-      onMouseLeave={() => setPopoverVisible(false)}
-      onKeyDown={handleKeyDown}
-      role="menu"
-    >
-      <div>
-        {appliedCrossFilterIndicators.length ? (
-          <div>
-            <SectionName>
-              {t(
-                'Applied cross-filters (%d)',
-                appliedCrossFilterIndicators.length,
-              )}
-            </SectionName>
-            <FiltersContainer>
-              {appliedCrossFilterIndicators.map(indicator => (
-                <FilterIndicator
-                  ref={el => indicatorRefs.current.push(el)}
-                  key={indicatorKey(indicator)}
-                  indicator={indicator}
-                  onClick={onHighlightFilterSource}
-                />
-              ))}
-            </FiltersContainer>
-          </div>
-        ) : null}
-        {appliedCrossFilterIndicators.length && appliedIndicators.length ? (
-          <Separator />
-        ) : null}
-        {appliedIndicators.length ? (
-          <div>
-            <SectionName>
-              {t('Applied filters (%d)', appliedIndicators.length)}
-            </SectionName>
-            <FiltersContainer>
-              <List
-                dataSource={appliedIndicators}
-                renderItem={indicator => (
-                  <List.Item>
-                    <FilterIndicator
-                      ref={el => indicatorRefs.current.push(el)}
-                      key={indicatorKey(indicator)}
-                      indicator={indicator}
-                      onClick={onHighlightFilterSource}
-                    />
-                  </List.Item>
-                )}
-              />
-            </FiltersContainer>
-          </div>
-        ) : null}
-      </div>
-    </FiltersDetailsContainer>
-  );
+
+  const menuItems: MenuProps['items'] = [];
+
+  if (appliedCrossFilterIndicators.length > 0) {
+    menuItems.push({
+      key: 'grp-cross',
+      type: 'group',
+      label: t(
+        'Applied cross-filters (%d)',
+        appliedCrossFilterIndicators.length,
+      ),
+      children: appliedCrossFilterIndicators.map(indicator => ({
+        key: `cross-${indicatorKey(indicator)}`,
+        label: (
+          <FilterIndicator
+            indicator={indicator}
+            onClick={onHighlightFilterSource}
+          />
+        ),
+      })),
+    });
+  }
+
+  if (appliedIndicators.length > 0) {
+    if (appliedCrossFilterIndicators.length > 0) {
+      menuItems.push({ type: 'divider' });
+    }
+    menuItems.push({
+      key: 'grp-applied',
+      type: 'group',
+      label: t('Applied filters (%d)', appliedIndicators.length),
+      children: appliedIndicators.map(indicator => ({
+        key: `applied-${indicatorKey(indicator)}`,
+        label: (
+          <FilterIndicator
+            indicator={indicator}
+            onClick={onHighlightFilterSource}
+          />
+        ),
+      })),
+    });
+  }
 
   return (
-    <Popover
-      color={`${theme.colorBgElevated}cc`}
-      content={content}
+    <NoAnimationDropdown
+      popupRender={() => (
+        <Menu
+          selectable={false}
+          items={menuItems}
+          onClick={() => setPopoverVisible(false)}
+        />
+      )}
+      overlayStyle={{ zIndex: 1001, animationDuration: '0s' }}
+      trigger={['click', 'hover']}
       open={popoverVisible}
-      onOpenChange={handleVisibility}
+      onOpenChange={visible => setPopoverVisible(visible)}
       placement="bottomRight"
-      trigger={['hover']}
-      data-test="filter-status-popover"
     >
-      {children}
-    </Popover>
+      <span
+        role="button"
+        aria-label={t('View applied filters')}
+        aria-haspopup="menu"
+        aria-expanded={popoverVisible}
+        css={css`
+          display: inline-flex;
+          outline: none;
+          cursor: pointer;
+          border-radius: 4px;
+
+          &:focus-visible {
+            outline: 2px solid ${theme.colorPrimary};
+            outline-offset: 1px;
+          }
+        `}
+      >
+        {children}
+      </span>
+    </NoAnimationDropdown>
   );
 };
 
