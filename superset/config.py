@@ -781,6 +781,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @category: runtime_config
     # @docs: https://superset.apache.org/docs/configuration/cache
     "THUMBNAILS": False,
+    # Should thumbnails be recomputed when charts/dashboards are updated
+    # @lifecycle: stable
+    # @category: runtime_config
+    "THUMBNAILS_SQLA_LISTENERS": False,
     # =================================================================
     # STABLE - INTERNAL/ADMIN
     # =================================================================
@@ -789,7 +793,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable factory reset CLI command
     # @lifecycle: stable
     # @category: internal
-    "THUMBNAILS_SQLA_LISTENERS": False,
     "ENABLE_FACTORY_RESET_COMMAND": False,
     # =================================================================
     # DEPRECATED

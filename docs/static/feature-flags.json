@@ -380,6 +380,13 @@
         "description": "Exposes API endpoint to compute thumbnails",
         "docs": "https://superset.apache.org/docs/configuration/cache",
         "category": "runtime_config"
+      },
+      {
+        "name": "THUMBNAILS_SQLA_LISTENERS",
+        "default": false,
+        "lifecycle": "stable",
+        "description": "Should thumbnails be recomputed when charts/dashboards are updated",
+        "category": "runtime_config"
       }
     ],
     "deprecated": [
