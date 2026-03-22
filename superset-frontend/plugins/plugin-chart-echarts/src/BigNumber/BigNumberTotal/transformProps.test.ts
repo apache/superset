@@ -234,7 +234,9 @@ describe('BigNumberTotal transformProps', () => {
   test('should propagate colorThresholdFormatters from getColorFormatters', () => {
     // Override the getColorFormatters mock to return specific value
     const mockFormatters = [{ formatter: 'red' }];
-    (getColorFormatters as jest.Mock).mockReturnValueOnce(mockFormatters);
+    (getColorFormatters as unknown as jest.Mock).mockReturnValueOnce(
+      mockFormatters,
+    );
 
     const chartProps = {
       width: 800,
