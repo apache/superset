@@ -47,6 +47,20 @@ const SUPERSET_CUSTOM_TOKENS: Set<string> = new Set([
 
   // Font loading
   'fontUrls',
+
+  // Editor tokens
+  'colorEditorSelection',
+
+  // Secondary button tokens
+  'buttonSecondaryColor',
+  'buttonSecondaryBg',
+  'buttonSecondaryBorderColor',
+  'buttonSecondaryHoverColor',
+  'buttonSecondaryHoverBg',
+  'buttonSecondaryHoverBorderColor',
+  'buttonSecondaryActiveColor',
+  'buttonSecondaryActiveBg',
+  'buttonSecondaryActiveBorderColor',
 ]);
 
 /**

@@ -23,7 +23,7 @@ InstanceInfoCore for flexible, extensible metrics calculation.
 import logging
 
 from fastmcp import Context
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
 from superset.mcp_service.mcp_core import InstanceInfoCore
@@ -73,7 +73,14 @@ _instance_info_core = InstanceInfoCore(
 )
 
 
-@tool(tags=["core"])
+@tool(
+    tags=["core"],
+    annotations=ToolAnnotations(
+        title="Get instance info",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 @parse_request(GetSupersetInstanceInfoRequest)
 def get_instance_info(
     request: GetSupersetInstanceInfoRequest, ctx: Context
