@@ -18,12 +18,12 @@
  */
 import type React from 'react';
 import { createRef, Component, type RefObject } from 'react';
-import type { SupersetTheme } from '@apache-superset/core/ui';
+import { type SupersetTheme } from '@apache-superset/core/theme';
 import { Button, Icons, Select } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components';
 import { SupersetClient } from '@superset-ui/core';
-import { t } from '@apache-superset/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 
 import Tabs from '@superset-ui/core/components/Tabs';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
@@ -470,7 +470,7 @@ export default class AdhocFilterEditPopover extends Component<
           </Button>
           <Icons.ArrowsAltOutlined
             role="button"
-            aria-label="Resize"
+            aria-label={t('Resize')}
             tabIndex={0}
             onMouseDown={this.onDragDown}
             className="edit-popover-resize"

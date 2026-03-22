@@ -27,7 +27,7 @@ import {
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 import { type TagType } from 'src/components';
 import rison from 'rison';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   isFeatureEnabled,
@@ -55,6 +55,7 @@ import {
 } from 'src/dashboard/actions/dashboardState';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { StandardModal, useModalValidation } from 'src/components/Modal';
+import { validateRefreshFrequency } from '../RefreshFrequency';
 import {
   BasicInfoSection,
   AccessSection,
@@ -137,6 +138,7 @@ const PropertiesModal = ({
     Array<{
       id: number;
       theme_name: string;
+      json_data?: string;
     }>
   >([]);
   const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
@@ -384,7 +386,9 @@ const PropertiesModal = ({
       colorNamespace,
       certifiedBy,
       certificationDetails,
-      themeId: selectedThemeId,
+      theme: selectedThemeId
+        ? themes.find(t => t.id === selectedThemeId)
+        : null,
       css: customCss,
       ...moreOnSubmitProps,
     };
@@ -440,7 +444,7 @@ const PropertiesModal = ({
 
       // Fetch themes (excluding system themes)
       const themeQuery = rison.encode({
-        columns: ['id', 'theme_name', 'is_system'],
+        columns: ['id', 'theme_name', 'is_system', 'json_data'],
         filters: [
           {
             col: 'is_system',
@@ -515,7 +519,7 @@ const PropertiesModal = ({
 
   // Section handlers for extracted components
   const handleThemeChange = (value: any) => setSelectedThemeId(value || null);
-  const handleRefreshFrequencyChange = (value: any) =>
+  const handleRefreshFrequencyChange = (value: number) =>
     setRefreshFrequency(value);
 
   // Helper function for styling section
@@ -555,23 +559,10 @@ const PropertiesModal = ({
         key: 'refresh',
         name: t('Refresh settings'),
         validator: () => {
-          const errors = [];
           const refreshLimit =
             dashboardInfo?.common?.conf
               ?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
-          if (
-            refreshLimit &&
-            refreshFrequency > 0 &&
-            refreshFrequency < refreshLimit
-          ) {
-            errors.push(
-              t(
-                'Refresh frequency must be at least %s seconds',
-                refreshLimit / 1000,
-              ),
-            );
-          }
-          return errors;
+          return validateRefreshFrequency(refreshFrequency, refreshLimit);
         },
       },
       {

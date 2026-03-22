@@ -28,7 +28,7 @@ import {
   COMMON_ERR_MESSAGES,
   getClientErrorObject,
 } from '@superset-ui/core';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { invert, mapKeys } from 'lodash';
 
 import { now } from '@superset-ui/core/utils/dates';
@@ -46,6 +46,7 @@ import type { QueryEditor, SqlLabRootState, Table } from '../types';
 import { newQueryTabName } from '../utils/newQueryTabName';
 import getInitialState from '../reducers/getInitialState';
 import { rehydratePersistedState } from '../utils/reduxStateToLocalStorageHelper';
+import { PREVIEW_QUERY_LIMIT } from '../constants';
 
 // Type definitions for SqlLab actions
 export interface Query {
@@ -1317,6 +1318,7 @@ export function runTablePreviewQuery(
         runAsync: database.allow_run_async,
         ctas: false,
         isDataPreview: true,
+        queryLimit: PREVIEW_QUERY_LIMIT,
       };
       if (runPreviewOnly) {
         return dispatch(runQuery(dataPreviewQuery, runPreviewOnly));

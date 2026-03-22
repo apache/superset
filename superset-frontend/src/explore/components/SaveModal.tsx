@@ -33,11 +33,19 @@ import {
   Input,
   Loading,
   Divider,
+  Flex,
   TreeSelect,
 } from '@superset-ui/core/components';
-import { t, logging } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
+import { t } from '@apache-superset/core/translation';
 import { DatasourceType, isDefined, SupersetClient } from '@superset-ui/core';
-import { css, styled, Alert } from '@apache-superset/core/ui';
+import { Alert } from '@apache-superset/core/components';
+import {
+  css,
+  styled,
+  withTheme,
+  type SupersetTheme,
+} from '@apache-superset/core/theme';
 import { Radio } from '@superset-ui/core/components/Radio';
 import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
 import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
@@ -67,6 +75,7 @@ interface SaveModalProps extends RouteComponentProps {
   dashboardId: '' | number | null;
   isVisible: boolean;
   dispatch: Dispatch;
+  theme: SupersetTheme;
 }
 
 type SaveModalState = {
@@ -616,22 +625,32 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
           <Input
             name="new_slice_name"
             type="text"
-            placeholder="Name"
+            placeholder={t('Name')}
             value={this.state.newSliceName}
             onChange={this.onSliceNameChange}
             data-test="new-chart-name"
           />
         </FormItem>
         {this.props.datasource?.type === 'query' && (
-          <FormItem label={t('Dataset Name')} required>
-            <InfoTooltip
-              tooltip={t('A reusable dataset will be saved with your chart.')}
-              placement="right"
-            />
+          <FormItem
+            label={
+              <Flex align="center" gap={this.props.theme.sizeUnit}>
+                {t('Dataset Name')}
+                <InfoTooltip
+                  data-test="info-tooltip-icon"
+                  tooltip={t(
+                    'A reusable dataset will be saved with your chart.',
+                  )}
+                  placement="right"
+                />
+              </Flex>
+            }
+            required
+          >
             <Input
               name="dataset_name"
               type="text"
-              placeholder="Dataset Name"
+              placeholder={t('Dataset Name')}
               value={this.state.datasetName}
               onChange={this.handleDatasetNameChange}
               data-test="new-dataset-name"
@@ -804,7 +823,7 @@ function mapStateToProps({
   };
 }
 
-export default withRouter(connect(mapStateToProps)(SaveModal));
+export default withRouter(connect(mapStateToProps)(withTheme(SaveModal)));
 
 // User for testing purposes need to revisit once we convert this to functional component
 export { SaveModal as PureSaveModal };

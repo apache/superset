@@ -19,15 +19,16 @@ under the License.
 
 This is the public documentation site for Superset, built using
 [Docusaurus 3](https://docusaurus.io/). See the
-[Developer Portal](https://superset.apache.org/developer_portal/contributing/development-setup#documentation)
+[Developer Docs](https://superset.apache.org/developer-docs/contributing/development-setup#documentation)
 for documentation on contributing to documentation.
 
 ## Version Management
 
-The Superset documentation site uses Docusaurus versioning with three independent versioned sections:
+The Superset documentation site uses Docusaurus versioning with four independent sections:
 
-- **Main Documentation** (`/docs/`) - Core Superset documentation
-- **Developer Portal** (`/developer_portal/`) - Developer guides and tutorials  
+- **User Documentation** (`/user-docs/`) - End-user guides and tutorials
+- **Admin Documentation** (`/admin-docs/`) - Installation, configuration, and security
+- **Developer Docs** (`/developer-docs/`) - Developer guides, contributing, and extensions
 - **Component Playground** (`/components/`) - Interactive component examples (currently disabled)
 
 Each section maintains its own version history and can be versioned independently.

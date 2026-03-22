@@ -18,7 +18,7 @@
  */
 import memoizeOne from 'memoize-one';
 import { isString, isBoolean } from 'lodash';
-import { isBlank } from '@apache-superset/core';
+import { isBlank } from '@apache-superset/core/utils';
 import { addAlpha, DataRecord } from '@superset-ui/core';
 import {
   ColorFormatters,
@@ -311,6 +311,8 @@ export const getColorFormatters = memoizeOne(
             column: config?.column,
             toAllRow: config?.toAllRow,
             toTextColor: config?.toTextColor,
+            columnFormatting: config?.columnFormatting,
+            objectFormatting: config?.objectFormatting,
             getColorFromValue: getColorFunction(
               { ...config, colorScheme: resolvedColorScheme },
               data.map(row => row[config.column!] as number),

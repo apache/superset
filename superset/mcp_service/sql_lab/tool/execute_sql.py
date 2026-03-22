@@ -25,11 +25,17 @@ Database.execute() API with RLS, template rendering, and security validation.
 from __future__ import annotations
 
 import logging
+from decimal import Decimal
 from typing import Any
 
 from fastmcp import Context
-from superset_core.api.types import CacheOptions, QueryOptions, QueryResult, QueryStatus
-from superset_core.mcp import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
+from superset_core.queries.types import (
+    CacheOptions,
+    QueryOptions,
+    QueryResult,
+    QueryStatus,
+)
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetSecurityException
@@ -38,6 +44,7 @@ from superset.mcp_service.sql_lab.schemas import (
     ColumnInfo,
     ExecuteSqlRequest,
     ExecuteSqlResponse,
+    StatementData,
     StatementInfo,
 )
 from superset.mcp_service.utils.schema_utils import parse_request
@@ -45,7 +52,16 @@ from superset.mcp_service.utils.schema_utils import parse_request
 logger = logging.getLogger(__name__)
 
 
-@tool(tags=["mutate"])
+@tool(
+    tags=["mutate"],
+    class_permission_name="SQLLab",
+    method_permission_name="execute_sql_query",
+    annotations=ToolAnnotations(
+        title="Execute SQL query",
+        readOnlyHint=False,
+        destructiveHint=True,
+    ),
+)
 @parse_request(ExecuteSqlRequest)
 async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlResponse:
     """Execute SQL query against database using the unified Database.execute() API."""
@@ -144,6 +160,22 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
         raise
 
 
+def _sanitize_row_values(rows: list[dict[str, Any]]) -> None:
+    """Sanitize non-serializable values in rows for JSON serialization."""
+    for row in rows:
+        for key, value in row.items():
+            if isinstance(value, (bytes, memoryview)):
+                raw = bytes(value) if isinstance(value, memoryview) else value
+                try:
+                    row[key] = raw.decode("utf-8")
+                except (UnicodeDecodeError, AttributeError):
+                    row[key] = raw.hex()
+            elif isinstance(value, Decimal):
+                row[key] = float(value)
+            elif not isinstance(value, (str, int, float, bool, type(None), list, dict)):
+                row[key] = str(value)
+
+
 def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
     """Convert QueryResult to ExecuteSqlResponse."""
     if result.status != QueryStatus.SUCCESS:
@@ -153,33 +185,70 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
             error_type=result.status.value,
         )
 
-    # Build statement info list
-    statements = [
-        StatementInfo(
-            original_sql=stmt.original_sql,
-            executed_sql=stmt.executed_sql,
-            row_count=stmt.row_count,
-            execution_time_ms=stmt.execution_time_ms,
-        )
-        for stmt in result.statements
-    ]
+    # Build statement info list, including per-statement row data
+    # for data-bearing statements (e.g., SELECT).
+    statements: list[StatementInfo] = []
+    data_bearing_count = 0
 
-    # Get first statement's data for backward compatibility
-    first_stmt = result.statements[0] if result.statements else None
+    for stmt in result.statements:
+        stmt_data: StatementData | None = None
+        if stmt.data is not None:
+            df = stmt.data
+            rows_data = df.to_dict(orient="records")
+            _sanitize_row_values(rows_data)
+            stmt_data = StatementData(
+                rows=rows_data,
+                columns=[
+                    ColumnInfo(name=col, type=str(df[col].dtype)) for col in df.columns
+                ],
+            )
+            data_bearing_count += 1
+
+        statements.append(
+            StatementInfo(
+                original_sql=stmt.original_sql,
+                executed_sql=stmt.executed_sql,
+                row_count=stmt.row_count,
+                execution_time_ms=stmt.execution_time_ms,
+                data=stmt_data,
+            )
+        )
+
+    # Top-level rows/columns come from the last data-bearing statement
+    # for backward compatibility.
     rows: list[dict[str, Any]] | None = None
     columns: list[ColumnInfo] | None = None
     row_count: int | None = None
     affected_rows: int | None = None
 
-    if first_stmt and first_stmt.data is not None:
-        # SELECT query - convert DataFrame
-        df = first_stmt.data
-        rows = df.to_dict(orient="records")
-        columns = [ColumnInfo(name=col, type=str(df[col].dtype)) for col in df.columns]
-        row_count = len(df)
-    elif first_stmt:
-        # DML query
-        affected_rows = first_stmt.row_count
+    last_data_stmt = None
+    for stmt in reversed(statements):
+        if stmt.data is not None:
+            last_data_stmt = stmt
+            break
+
+    if last_data_stmt is not None and last_data_stmt.data is not None:
+        rows = last_data_stmt.data.rows
+        columns = last_data_stmt.data.columns
+        row_count = len(last_data_stmt.data.rows)
+    elif result.statements:
+        # DML-only query
+        last_stmt = result.statements[-1]
+        affected_rows = last_stmt.row_count
+
+    # Warn when multiple data-bearing statements exist so the LLM
+    # knows to inspect the statements array for all results.
+    multi_statement_warning: str | None = None
+    if data_bearing_count > 1:
+        multi_statement_warning = (
+            f"This query contained {data_bearing_count} "
+            "data-bearing statements. "
+            "The top-level rows/columns contain only the "
+            "last data-bearing statement's results. "
+            "Check the 'data' field in each entry of the "
+            "'statements' array to see results from ALL "
+            "statements."
+        )
 
     return ExecuteSqlResponse(
         success=True,
@@ -193,4 +262,5 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
             else None
         ),
         statements=statements,
+        multi_statement_warning=multi_statement_warning,
     )

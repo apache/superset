@@ -25,7 +25,7 @@ jobs:
       SUPERSET__SQLALCHEMY_EXAMPLES_URI: presto://localhost:15433/memory/default
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:17-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -48,7 +48,7 @@ jobs:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
           submodules: recursive
@@ -77,7 +77,7 @@ jobs:
         run: |
           ./scripts/python_tests.sh -m 'chart_data_flow or sql_json_flow'
       - name: Upload code coverage
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5
         with:
           flags: python,presto
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -94,7 +94,7 @@ jobs:
       UPLOAD_FOLDER: /tmp/.superset/uploads/
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:17-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -108,7 +108,7 @@ jobs:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
           submodules: recursive
@@ -145,7 +145,7 @@ jobs:
           pip install -e .[hive]
           ./scripts/python_tests.sh -m 'chart_data_flow or sql_json_flow'
       - name: Upload code coverage
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5
         with:
           flags: python,hive
           token: ${{ secrets.CODECOV_TOKEN }}

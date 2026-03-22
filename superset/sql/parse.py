@@ -60,6 +60,7 @@ SQLGLOT_DIALECTS = {
     "ascend": Dialects.HIVE,
     "awsathena": Dialects.ATHENA,
     "bigquery": Dialects.BIGQUERY,
+    "datastore": Dialects.BIGQUERY,
     "clickhouse": Dialects.CLICKHOUSE,
     "clickhousedb": Dialects.CLICKHOUSE,
     "cockroachdb": Dialects.POSTGRES,
@@ -259,12 +260,13 @@ class RLSAsSubqueryTransformer(RLSTransformer):
             if node.alias:
                 alias = node.alias
             else:
-                name = ".".join(
-                    part
-                    for part in (node.catalog or "", node.db or "", node.name)
-                    if part
-                )
-                alias = exp.TableAlias(this=exp.Identifier(this=name, quoted=True))
+                # Use just the table name (not schema-qualified) so that
+                # column references like ``table.column`` still resolve after
+                # the table is replaced with a subquery.  Using the full
+                # ``schema.table`` path as a quoted identifier creates a
+                # mismatch: the columns reference ``table`` but the alias is
+                # ``"schema.table"``, which are different identifiers.
+                alias = exp.TableAlias(this=exp.Identifier(this=node.name, quoted=True))
 
             node.set("alias", None)
             node = exp.Subquery(

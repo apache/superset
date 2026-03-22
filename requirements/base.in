@@ -18,8 +18,8 @@
 #
 # Security: CVE-2026-21441 - decompression bomb bypass on redirects
 urllib3>=2.6.3,<3.0.0
-# Security: GHSA-87hc-h4r5-73f7 - Windows path traversal fix
-werkzeug>=3.1.5,<4.0.0
+# Security: CVE-2026-27199 - Windows device name handling in safe_join
+werkzeug>=3.1.6,<4.0.0
 # Security: CVE-2025-68146 - TOCTOU symlink vulnerability
 filelock>=3.20.3,<4.0.0
 # Security: decompression bomb fix (required by aiohttp 3.13.3)

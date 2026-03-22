@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { validateMapboxStylesUrl } from '@superset-ui/core';
 import {
   columnChoices,
@@ -241,6 +241,7 @@ const config: ControlPanelConfig = {
               label: t('Opacity'),
               default: 1,
               isFloat: true,
+              renderTrigger: true,
               description: t(
                 'Opacity of all clusters, points, and labels. Between 0 and 1.',
               ),
@@ -273,7 +274,7 @@ const config: ControlPanelConfig = {
               type: 'TextControl',
               label: t('Default longitude'),
               renderTrigger: true,
-              default: -122.405293,
+              default: '',
               isFloat: true,
               description: t('Longitude of default viewport'),
               places: 8,
@@ -287,7 +288,7 @@ const config: ControlPanelConfig = {
               type: 'TextControl',
               label: t('Default latitude'),
               renderTrigger: true,
-              default: 37.772123,
+              default: '',
               isFloat: true,
               description: t('Latitude of default viewport'),
               places: 8,
@@ -304,7 +305,7 @@ const config: ControlPanelConfig = {
               label: t('Zoom'),
               renderTrigger: true,
               isFloat: true,
-              default: 11,
+              default: '',
               description: t('Zoom level of the map'),
               places: 8,
               // Viewport zoom shouldn't prompt user to re-run query

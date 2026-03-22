@@ -32,8 +32,9 @@ import {
   isMatrixifyEnabled,
   MatrixifyFormData,
 } from '@superset-ui/core';
-import { logging } from '@apache-superset/core';
-import { css, t, SupersetTheme } from '@apache-superset/core/ui';
+import { logging } from '@apache-superset/core/utils';
+import { css, SupersetTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { Icons } from '@superset-ui/core/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';

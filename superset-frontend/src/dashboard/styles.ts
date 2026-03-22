@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, SupersetTheme } from '@apache-superset/core/ui';
+import { css, SupersetTheme } from '@apache-superset/core/theme';
 
 export const headerStyles = (theme: SupersetTheme) => css`
   body {
