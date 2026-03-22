@@ -33,7 +33,9 @@ bcrypt==4.3.0
 billiard==4.2.1
     # via celery
 blinker==1.9.0
-    # via flask
+    # via
+    #   apache-superset (pyproject.toml)
+    #   flask
 bottleneck==1.5.0
     # via apache-superset (pyproject.toml)
 brotli==1.2.0

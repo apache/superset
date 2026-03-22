@@ -128,9 +128,6 @@ docker-compose.override.yml
 test-report.html
 superset/static/stats/statistics.html
 
-# Worktree context (per-worktree, not committed)
-WORKTREE.md
-
 # LLM-related
 CLAUDE.local.md
 PROJECT.md
