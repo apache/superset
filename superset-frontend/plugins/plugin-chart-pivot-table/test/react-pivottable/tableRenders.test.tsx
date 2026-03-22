@@ -35,18 +35,13 @@ type RenderColHeaderRowSettings = Parameters<
   TableRenderer['renderColHeaderRow']
 >[2];
 type RenderTableRowSettings = Parameters<TableRenderer['renderTableRow']>[2];
-type PivotDataLike = Pick<PivotData, 'getAggregator'>;
-type PivotDataWithSubtotals = Pick<PivotData, 'subtotals'>;
 type TableRendererStateStub = TableRenderer['state'];
+type CachedBasePivotSettings = NonNullable<
+  TableRenderer['cachedBasePivotSettings']
+>;
 
 const columnIndex = 0;
 const visibleColKeys = [['col1'], ['col2']];
-const pivotData: PivotDataWithSubtotals = {
-  subtotals: {
-    rowEnabled: true,
-    rowPartialOnTop: false,
-  },
-};
 const maxRowIndex = 2;
 
 const mockProps = {
@@ -72,16 +67,40 @@ const mockProps = {
   colPartialOnTop: false,
 };
 
+const toPivotData = (value: Partial<PivotData>): PivotData =>
+  value as unknown as PivotData;
+
+const toCachedBasePivotSettings = (
+  value: Partial<CachedBasePivotSettings>,
+): CachedBasePivotSettings => value as unknown as CachedBasePivotSettings;
+
+const createActiveHeaderTableOptions = (
+  activeHeaderBackgroundColor: string,
+  overrides: Record<string, unknown> = {},
+): TableRenderer['props']['tableOptions'] =>
+  ({
+    ...overrides,
+    activeHeaderBackgroundColor,
+  }) as unknown as TableRenderer['props']['tableOptions'];
+
 const createPivotDataStub = (
   aggregatorValue = 200,
   isSubtotal = false,
-): PivotDataLike => ({
-  getAggregator: () => ({
-    push: jest.fn(),
-    value: () => aggregatorValue,
-    format: (value: number) => String(value),
-    isSubtotal,
-  }),
+): PivotData =>
+  toPivotData({
+    getAggregator: () => ({
+      push: jest.fn(),
+      value: () => aggregatorValue,
+      format: (value: number) => String(value),
+      isSubtotal,
+    }),
+  });
+
+const pivotData = toPivotData({
+  subtotals: {
+    rowEnabled: true,
+    rowPartialOnTop: false,
+  },
 });
 
 const createColHeaderRowSettings = (
@@ -105,7 +124,7 @@ const createColHeaderRowSettings = (
     },
     maxColVisible: 1,
     maxRowVisible: 0,
-    pivotData: createPivotDataStub() as PivotData,
+    pivotData: createPivotDataStub(),
     namesMapping: {},
     allowRenderHtml: false,
     arrowExpanded: null,
@@ -123,7 +142,7 @@ const createTableRowSettings = (
     colAttrs: [],
     rowAttrSpans: [[1]],
     visibleColKeys: [[]],
-    pivotData: createPivotDataStub() as PivotData,
+    pivotData: createPivotDataStub(),
     rowTotals: false,
     rowSubtotalDisplay: {
       displayOnTop: false,
@@ -148,17 +167,17 @@ beforeEach(() => {
   tableRenderer.getAggregatedData = mockGetAggregatedData;
   tableRenderer.sortAndCacheData = mockSortAndCacheData;
 
-  tableRenderer.cachedBasePivotSettings = {
-    pivotData: {
+  tableRenderer.cachedBasePivotSettings = toCachedBasePivotSettings({
+    pivotData: toPivotData({
       subtotals: {
         rowEnabled: true,
         rowPartialOnTop: false,
         colEnabled: false,
         colPartialOnTop: false,
       },
-    },
+    }),
     rowKeys: [['A'], ['B'], ['C']],
-  } as unknown as NonNullable<TableRenderer['cachedBasePivotSettings']>;
+  });
 
   tableRenderer.state = {
     sortingOrder: [],
@@ -187,14 +206,14 @@ const mockGroups = {
 };
 
 const createMockPivotData = (rowData: Record<string, number>): PivotData =>
-  ({
+  toPivotData({
     rowKeys: Object.keys(rowData).map(key => key.split('.')),
     getAggregator: (rowKey: string[]) => ({
       push: jest.fn(),
       value: () => rowData[rowKey.join('.')],
       format: (value: number) => String(value),
     }),
-  }) as unknown as PivotData;
+  });
 
 test('should set initial ascending sort when no active sort column', () => {
   mockGetAggregatedData.mockReturnValue({
@@ -206,12 +225,7 @@ test('should set initial ascending sort when no active sort column', () => {
   const setStateMock = jest.fn();
   tableRenderer.setState = setStateMock;
 
-  tableRenderer.sortData(
-    columnIndex,
-    visibleColKeys,
-    pivotData as PivotData,
-    maxRowIndex,
-  );
+  tableRenderer.sortData(columnIndex, visibleColKeys, pivotData, maxRowIndex);
 
   expect(setStateMock).toHaveBeenCalled();
 
@@ -265,12 +279,7 @@ test('should toggle from asc to desc when clicking same column', () => {
   });
   tableRenderer.setState = setStateMock;
 
-  tableRenderer.sortData(
-    columnIndex,
-    visibleColKeys,
-    pivotData as PivotData,
-    maxRowIndex,
-  );
+  tableRenderer.sortData(columnIndex, visibleColKeys, pivotData, maxRowIndex);
 
   expect(mockSortAndCacheData).toHaveBeenCalledWith(
     { A: { currentVal: 30 }, B: { currentVal: 10 }, C: { currentVal: 20 } },
@@ -307,12 +316,7 @@ test('should check second call in sequence', () => {
     collapsedRows: {},
     collapsedCols: {},
   } as TableRendererStateStub;
-  tableRenderer.sortData(
-    columnIndex,
-    visibleColKeys,
-    pivotData as PivotData,
-    maxRowIndex,
-  );
+  tableRenderer.sortData(columnIndex, visibleColKeys, pivotData, maxRowIndex);
 
   tableRenderer.state = {
     sortingOrder: ['asc' as never],
@@ -320,12 +324,7 @@ test('should check second call in sequence', () => {
     collapsedRows: {},
     collapsedCols: {},
   } as TableRendererStateStub;
-  tableRenderer.sortData(
-    columnIndex,
-    visibleColKeys,
-    pivotData as PivotData,
-    maxRowIndex,
-  );
+  tableRenderer.sortData(columnIndex, visibleColKeys, pivotData, maxRowIndex);
 
   expect(mockSortAndCacheData).toHaveBeenCalledTimes(2);
 
@@ -435,14 +434,14 @@ test('should calculate groups from pivot data', () => {
     isSubtotal: false,
   });
 
-  const mockPivotData = {
+  const mockPivotData = toPivotData({
     rowKeys: [['A'], ['B'], ['C']],
     getAggregator: jest
       .fn()
       .mockReturnValueOnce(mockAggregator(30))
       .mockReturnValueOnce(mockAggregator(10))
       .mockReturnValueOnce(mockAggregator(20)),
-  } as unknown as PivotData;
+  });
 
   const result = tableRenderer.getAggregatedData(
     mockPivotData,
@@ -822,7 +821,7 @@ test('renderTableRow keeps subtotal background and readable text in sync', () =>
     ['revenue'],
     0,
     createTableRowSettings({
-      pivotData: createPivotDataStub(200, true) as PivotData,
+      pivotData: createPivotDataStub(200, true),
     }),
   ) as ReactElement;
 
@@ -878,7 +877,7 @@ test('renderColAttrsHeader uses active header surface for adaptive contrast', ()
   const activeHeaderBackgroundColor = '#102a43';
   tableRenderer = new TableRenderer({
     ...mockProps,
-    tableOptions: {
+    tableOptions: createActiveHeaderTableOptions(activeHeaderBackgroundColor, {
       highlightedHeaderCells: {
         region: ['EMEA'],
       },
@@ -894,8 +893,7 @@ test('renderColAttrsHeader uses active header surface for adaptive contrast', ()
       },
       cellBackgroundColor: '#ffffff',
       cellTextColor: '#000000',
-      activeHeaderBackgroundColor,
-    } as unknown as TableRenderer['props']['tableOptions'],
+    }),
   });
 
   const row = tableRenderer.renderColHeaderRow(
@@ -1013,7 +1011,7 @@ test('renderTableRow uses active header surface for adaptive contrast', () => {
   const activeHeaderBackgroundColor = '#102a43';
   tableRenderer = new TableRenderer({
     ...mockProps,
-    tableOptions: {
+    tableOptions: createActiveHeaderTableOptions(activeHeaderBackgroundColor, {
       highlightedHeaderCells: {
         metric: ['revenue'],
       },
@@ -1029,8 +1027,7 @@ test('renderTableRow uses active header surface for adaptive contrast', () => {
       },
       cellBackgroundColor: '#ffffff',
       cellTextColor: '#000000',
-      activeHeaderBackgroundColor,
-    } as unknown as TableRenderer['props']['tableOptions'],
+    }),
   });
 
   const row = tableRenderer.renderTableRow(
