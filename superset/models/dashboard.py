@@ -85,7 +85,7 @@ def copy_dashboard(sender: Any, event: Any, **kwargs: Any) -> None:
     )
     db.session.add(dashboard)
 
-    extra_attributes = UserAttribute(user_id=user.id, welcome_dashboard_id=dashboard.id)
+    extra_attributes = UserAttribute(user=user, welcome_dashboard=dashboard)
     db.session.add(extra_attributes)
 
 
