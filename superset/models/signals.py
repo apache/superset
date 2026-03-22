@@ -124,7 +124,8 @@ class SignalMixin:
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
-        if "__tablename__" not in cls.__dict__:
+        tablename = cls.__dict__.get("__tablename__")
+        if not tablename:
             return
 
         for event_name, signal in _EVENT_SIGNAL_MAP.items():

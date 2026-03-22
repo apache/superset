@@ -1380,7 +1380,7 @@ class FavStarClassName(StrEnum):
     DASHBOARD = "Dashboard"
 
 
-class FavStar(UUIDMixin, Model, SignalMixin):
+class FavStar(UUIDMixin, SignalMixin, Model):
     __tablename__ = "favstar"
 
     id = Column(Integer, primary_key=True)
