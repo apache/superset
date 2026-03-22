@@ -163,12 +163,12 @@ class TestNormalizeXYConfig:
             "x": {"name": "OrderDate"},
             "y": [{"name": "Sales", "aggregate": "SUM"}],
             "kind": "line",
-            "group_by": {"name": "productline"},
+            "group_by": [{"name": "productline"}],
         }
 
         DatasetValidator._normalize_xy_config(config_dict, mock_dataset_context)
 
-        assert config_dict["group_by"]["name"] == "ProductLine"
+        assert config_dict["group_by"][0]["name"] == "ProductLine"
 
 
 class TestNormalizeTableConfig:
@@ -397,7 +397,7 @@ class TestNormalizeUppercaseDataset:
         assert normalized.x.name == "ds"
         assert normalized.y[0].name == "DISTANCE"
         assert normalized.group_by is not None
-        assert normalized.group_by.name == "AIRLINE"
+        assert normalized.group_by[0].name == "AIRLINE"
         assert normalized.filters is not None
         assert normalized.filters[0].column == "AIRLINE"
 
@@ -531,7 +531,7 @@ class TestNormalizeEdgeCases:
         assert normalized.y[0].name == "Sales"
         assert normalized.y[1].name == "quantity_ordered"
         assert normalized.group_by is not None
-        assert normalized.group_by.name == "ProductLine"
+        assert normalized.group_by[0].name == "ProductLine"
         assert normalized.filters is not None
         assert normalized.filters[0].column == "ProductLine"
         assert normalized.filters[1].column == "OrderDate"
@@ -678,4 +678,4 @@ class TestNormalizeXAxisFilterConsistency:
 
         assert normalized.group_by is not None
         assert normalized.filters is not None
-        assert normalized.group_by.name == normalized.filters[0].column == "AIRLINE"
+        assert normalized.group_by[0].name == normalized.filters[0].column == "AIRLINE"

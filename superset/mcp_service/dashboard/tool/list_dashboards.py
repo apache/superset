@@ -26,7 +26,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from fastmcp import Context
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
@@ -63,7 +63,15 @@ SORTABLE_DASHBOARD_COLUMNS = [
 ]
 
 
-@tool(tags=["core"], class_permission_name="Dashboard")
+@tool(
+    tags=["core"],
+    class_permission_name="Dashboard",
+    annotations=ToolAnnotations(
+        title="List dashboards",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 @parse_request(ListDashboardsRequest)
 async def list_dashboards(
     request: ListDashboardsRequest, ctx: Context
