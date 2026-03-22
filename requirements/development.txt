@@ -386,7 +386,7 @@ grpcio==1.71.0
     #   grpcio-status
 grpcio-status==1.60.1
     # via google-api-core
-gunicorn==25.1.0
+gunicorn==25.0.3
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
