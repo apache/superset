@@ -89,3 +89,7 @@ test('returns true for set GranularExportControls feature flag', () => {
   });
   expect(isFeatureEnabled(FeatureFlag.GranularExportControls)).toEqual(true);
 });
+
+test('ThumbnailsSqlaListeners feature flag has expected string value', () => {
+  expect(FeatureFlag.ThumbnailsSqlaListeners).toBe('THUMBNAILS_SQLA_LISTENERS');
+});
