@@ -102,6 +102,7 @@ from superset.models.helpers import (
     QueryResult,
     SQLA_QUERY_KEYS,
 )
+from superset.models.signals import SignalMixin
 from superset.models.slice import Slice
 from superset.models.sql_types.base import CurrencyType
 from superset.sql.parse import Table
@@ -1198,6 +1199,7 @@ class SqlaTable(
     CoreDataset,
     BaseDatasource,
     ExploreMixin,
+    SignalMixin,
 ):  # pylint: disable=too-many-public-methods
     """An ORM object for SqlAlchemy table references"""
 

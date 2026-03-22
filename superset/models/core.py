@@ -142,7 +142,7 @@ class ConfigurationMethod(StrEnum):
     DYNAMIC_FORM = "dynamic_form"
 
 
-class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: disable=too-many-public-methods
+class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin, SignalMixin):  # pylint: disable=too-many-public-methods
     """An ORM object that stores Database related information"""
 
     __tablename__ = "dbs"

@@ -61,6 +61,7 @@ from superset.models.helpers import (
     ExtraJSONMixin,
     ImportExportMixin,
 )
+from superset.models.signals import SignalMixin
 from superset.sql.parse import (
     CTASMethod,
     process_jinja_sql,
@@ -425,6 +426,7 @@ class SavedQuery(
     AuditMixinNullable,
     ExtraJSONMixin,
     ImportExportMixin,
+    SignalMixin,
 ):
     """ORM model for SQL query"""
 
