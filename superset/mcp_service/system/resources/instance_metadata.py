@@ -16,10 +16,16 @@
 # under the License.
 
 """
-System resources for providing Superset configuration and stats
+System resources for providing instance configuration and stats.
+
+This resource differs from the get_instance_info tool by also including
+available dataset IDs and database IDs, so LLMs can immediately call
+get_dataset_info or execute_sql without an extra list call.
 """
 
 import logging
+
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import mcp_auth_hook
@@ -27,23 +33,19 @@ from superset.mcp_service.auth import mcp_auth_hook
 logger = logging.getLogger(__name__)
 
 
-@mcp.resource("superset://instance/metadata")
+@mcp.resource("instance://metadata")
 @mcp_auth_hook
 def get_instance_metadata_resource() -> str:
     """
-    Provide comprehensive metadata about the Superset instance.
+    Provide instance metadata with available dataset and database IDs.
 
     This resource gives LLMs context about:
-    - Available datasets and their popularity
+    - Instance summary stats (counts of dashboards, charts, datasets)
+    - Available database connections with their IDs (for execute_sql)
+    - Available datasets with IDs and table names (for get_dataset_info)
     - Dashboard and chart statistics
-    - Database connections
-    - Popular queries and usage patterns
-    - Available visualization types
-    - Feature flags and configuration
     """
     try:
-        # Import the shared core and DAOs at runtime
-        # Create a shared core instance for the resource
         from typing import Any, cast, Type
 
         from superset.daos.base import BaseDAO
@@ -55,13 +57,14 @@ def get_instance_metadata_resource() -> str:
         from superset.daos.user import UserDAO
         from superset.mcp_service.mcp_core import InstanceInfoCore
         from superset.mcp_service.system.schemas import InstanceInfo
-        from superset.mcp_service.system.tool.get_instance_info import (
+        from superset.mcp_service.system.system_utils import (
             calculate_dashboard_breakdown,
             calculate_database_breakdown,
             calculate_instance_summary,
             calculate_popular_content,
             calculate_recent_activity,
         )
+        from superset.utils import json
 
         instance_info_core = InstanceInfoCore(
             dao_classes={
@@ -88,12 +91,57 @@ def get_instance_metadata_resource() -> str:
             logger=logger,
         )
 
-        # Use the shared core's resource method
-        return instance_info_core.get_resource()
+        # Get base instance info
+        base_result = json.loads(instance_info_core.get_resource())
 
-    except Exception as e:
+        # Remove empty popular_content if it has no useful data
+        popular = base_result.get("popular_content", {})
+        if popular and not any(popular.get(k) for k in popular):
+            del base_result["popular_content"]
+
+        # Add available datasets (top 20 by most recent modification)
+        dataset_dao = instance_info_core.dao_classes["datasets"]
+        try:
+            datasets = dataset_dao.find_all()
+            # Convert to string to avoid TypeError when comparing datetime with None
+            sorted_datasets = sorted(
+                datasets,
+                key=lambda d: str(getattr(d, "changed_on", "") or ""),
+                reverse=True,
+            )[:20]
+            base_result["available_datasets"] = [
+                {
+                    "id": ds.id,
+                    "table_name": ds.table_name,
+                    "schema": getattr(ds, "schema", None),
+                    "database_id": getattr(ds, "database_id", None),
+                }
+                for ds in sorted_datasets
+            ]
+        except (SQLAlchemyError, AttributeError) as e:
+            logger.warning("Could not fetch datasets for metadata: %s", e)
+            base_result["available_datasets"] = []
+
+        # Add available databases (for execute_sql)
+        database_dao = instance_info_core.dao_classes["databases"]
+        try:
+            databases = database_dao.find_all()
+            base_result["available_databases"] = [
+                {
+                    "id": db.id,
+                    "database_name": db.database_name,
+                    "backend": getattr(db, "backend", None),
+                }
+                for db in databases
+            ]
+        except (SQLAlchemyError, AttributeError) as e:
+            logger.warning("Could not fetch databases for metadata: %s", e)
+            base_result["available_databases"] = []
+
+        return json.dumps(base_result, indent=2)
+
+    except (SQLAlchemyError, AttributeError, KeyError, ValueError) as e:
         logger.error("Error generating instance metadata: %s", e)
-        # Return minimal metadata on error
         from superset.utils import json
 
         return json.dumps(

@@ -17,9 +17,10 @@
  * under the License.
  */
 
-import { Page, Response } from '@playwright/test';
+import { Page, Response, Cookie } from '@playwright/test';
 import { Form } from '../components/core';
 import { URL } from '../utils/urls';
+import { TIMEOUT } from '../utils/constants';
 
 export class AuthPage {
   private readonly page: Page;
@@ -56,7 +57,7 @@ export class AuthPage {
    * Wait for login form to be visible
    */
   async waitForLoginForm(): Promise<void> {
-    await this.loginForm.waitForVisible({ timeout: 5000 });
+    await this.loginForm.waitForVisible({ timeout: TIMEOUT.FORM_LOAD });
   }
 
   /**
@@ -84,6 +85,67 @@ export class AuthPage {
   }
 
   /**
+   * Wait for successful login by verifying the login response and session cookie.
+   * Call this after loginWithCredentials to ensure authentication completed.
+   *
+   * This does NOT assume a specific landing page (which is configurable).
+   * Instead it:
+   * 1. Checks if session cookie already exists (guards against race condition)
+   * 2. Waits for POST /login/ response with redirect status
+   * 3. Polls for session cookie to appear
+   *
+   * @param options - Optional wait options
+   */
+  async waitForLoginSuccess(options?: { timeout?: number }): Promise<void> {
+    const timeout = options?.timeout ?? TIMEOUT.PAGE_LOAD;
+    const startTime = Date.now();
+
+    // 1. Guard: Check if session cookie already exists (race condition protection)
+    const existingCookie = await this.getSessionCookie();
+    if (existingCookie?.value) {
+      // Already authenticated - login completed before we started waiting
+      return;
+    }
+
+    // 2. Wait for POST /login/ response (bounded by caller's timeout)
+    const loginResponse = await this.page.waitForResponse(
+      response =>
+        response.url().includes('/login/') &&
+        response.request().method() === 'POST',
+      { timeout },
+    );
+
+    // 3. Verify it's a redirect (3xx status code indicates successful login)
+    const status = loginResponse.status();
+    if (status < 300 || status >= 400) {
+      throw new Error(`Login failed: expected redirect (3xx), got ${status}`);
+    }
+
+    // 4. Poll for session cookie to appear (HttpOnly cookie, not accessible via document.cookie)
+    // Use page.context().cookies() since session cookie is HttpOnly
+    const pollInterval = 500; // 500ms instead of 100ms for less chattiness
+    while (true) {
+      const remaining = timeout - (Date.now() - startTime);
+      if (remaining <= 0) {
+        break; // Timeout exceeded
+      }
+
+      const sessionCookie = await this.getSessionCookie();
+      if (sessionCookie && sessionCookie.value) {
+        // Success - session cookie has landed
+        return;
+      }
+
+      await this.page.waitForTimeout(Math.min(pollInterval, remaining));
+    }
+
+    const currentUrl = await this.page.url();
+    throw new Error(
+      `Login timeout: session cookie did not appear within ${timeout}ms. Current URL: ${currentUrl}`,
+    );
+  }
+
+  /**
    * Get current page URL
    */
   async getCurrentUrl(): Promise<string> {
@@ -93,9 +155,9 @@ export class AuthPage {
   /**
    * Get the session cookie specifically
    */
-  async getSessionCookie(): Promise<{ name: string; value: string } | null> {
+  async getSessionCookie(): Promise<Cookie | null> {
     const cookies = await this.page.context().cookies();
-    return cookies.find((c: any) => c.name === 'session') || null;
+    return cookies.find(c => c.name === 'session') || null;
   }
 
   /**
@@ -106,7 +168,7 @@ export class AuthPage {
       selector => this.page.locator(selector).isVisible(),
     );
     const visibilityResults = await Promise.all(visibilityPromises);
-    return visibilityResults.some((isVisible: any) => isVisible);
+    return visibilityResults.some(isVisible => isVisible);
   }
 
   /**
@@ -114,7 +176,7 @@ export class AuthPage {
    */
   async waitForLoginRequest(): Promise<Response> {
     return this.page.waitForResponse(
-      (response: any) =>
+      response =>
         response.url().includes('/login/') &&
         response.request().method() === 'POST',
     );

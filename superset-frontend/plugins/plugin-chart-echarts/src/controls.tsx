@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, VizType } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { VizType } from '@superset-ui/core';
 import {
   ControlPanelsContainerProps,
   ControlSetItem,
@@ -27,7 +28,11 @@ import {
   SORT_SERIES_CHOICES,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { DEFAULT_LEGEND_FORM_DATA, StackControlOptions } from './constants';
+import {
+  DEFAULT_LEGEND_FORM_DATA,
+  StackControlOptions,
+  StackControlOptionsWithoutStream,
+} from './constants';
 import { DEFAULT_FORM_DATA } from './Timeseries/constants';
 import { defaultXAxis } from './defaults';
 
@@ -67,7 +72,7 @@ const legendTypeControl: ControlSetItem = {
     label: t('Type'),
     choices: [
       ['scroll', t('Scroll')],
-      ['plain', t('Plain')],
+      ['plain', t('List')],
     ],
     default: legendType,
     renderTrigger: true,
@@ -135,6 +140,30 @@ export const showValueControl: ControlSetItem = {
   },
 };
 
+export const colorByPrimaryAxisControl: ControlSetItem = {
+  name: 'color_by_primary_axis',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Color By X-Axis'),
+    default: false,
+    renderTrigger: true,
+    description: t('Color bars by x-axis'),
+    visibility: ({ controls }: { controls: any }) =>
+      (!controls?.stack?.value || controls?.stack?.value === null) &&
+      (!controls?.groupby?.value || controls?.groupby?.value?.length === 0),
+    shouldMapStateToProps: () => true,
+    mapStateToProps: (state: any) => {
+      const isHorizontal = state?.controls?.orientation?.value === 'horizontal';
+      return {
+        label: isHorizontal ? t('Color By Y-Axis') : t('Color By X-Axis'),
+        description: isHorizontal
+          ? t('Color bars by y-axis')
+          : t('Color bars by x-axis'),
+      };
+    },
+  },
+};
+
 export const stackControl: ControlSetItem = {
   name: 'stack',
   config: {
@@ -144,6 +173,14 @@ export const stackControl: ControlSetItem = {
     choices: StackControlOptions,
     default: null,
     description: t('Stack series on top of each other'),
+  },
+};
+
+export const stackControlWithoutStream: ControlSetItem = {
+  ...stackControl,
+  config: {
+    ...stackControl.config,
+    choices: StackControlOptionsWithoutStream,
   },
 };
 
@@ -187,9 +224,20 @@ export const showValueSection: ControlSetRow[] = [
   [percentageThresholdControl],
 ];
 
+export const colorByPrimaryAxisSection: ControlSetRow[] = [
+  [colorByPrimaryAxisControl],
+];
+
 export const showValueSectionWithoutStack: ControlSetRow[] = [
   [showValueControl],
   [onlyTotalControl],
+];
+
+export const showValueSectionWithoutStream: ControlSetRow[] = [
+  [showValueControl],
+  [stackControlWithoutStream],
+  [onlyTotalControl],
+  [percentageThresholdControl],
 ];
 
 const richTooltipControl: ControlSetItem = {

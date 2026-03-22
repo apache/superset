@@ -28,30 +28,30 @@ describe('createMultiFormatter()', () => {
           id: 'my_format',
           useLocalTime: false,
         });
-        it('formats millisecond', () => {
+        test('formats millisecond', () => {
           expect(formatter(new Date(2018, 10, 20, 11, 22, 33, 100))).toEqual(
             '.100',
           );
         });
-        it('formats second', () => {
+        test('formats second', () => {
           expect(formatter(new Date(2018, 10, 20, 11, 22, 33))).toEqual(':33');
         });
-        it('format minutes', () => {
+        test('format minutes', () => {
           expect(formatter(new Date(2018, 10, 20, 11, 22))).toEqual('04:22');
         });
-        it('format hours', () => {
+        test('format hours', () => {
           expect(formatter(new Date('2018-11-18 11:00 UTC'))).toEqual('11 AM');
         });
-        it('format first day of week', () => {
+        test('format first day of week', () => {
           expect(formatter(new Date('2018-11-18 UTC'))).toEqual('Nov 18');
         });
-        it('format other day of week', () => {
+        test('format other day of week', () => {
           expect(formatter(new Date('2018-11-20 UTC'))).toEqual('Tue 20');
         });
-        it('format month', () => {
+        test('format month', () => {
           expect(formatter(new Date('2018-11-1 UTC'))).toEqual('November');
         });
-        it('format year', () => {
+        test('format year', () => {
           expect(formatter(new Date('2018-1-1 UTC'))).toEqual('2018');
         });
       });
@@ -60,30 +60,30 @@ describe('createMultiFormatter()', () => {
           id: 'my_format',
           useLocalTime: true,
         });
-        it('formats millisecond', () => {
+        test('formats millisecond', () => {
           expect(formatter(new Date(2018, 10, 20, 11, 22, 33, 100))).toEqual(
             '.100',
           );
         });
-        it('formats second', () => {
+        test('formats second', () => {
           expect(formatter(new Date(2018, 10, 20, 11, 22, 33))).toEqual(':33');
         });
-        it('format minutes', () => {
+        test('format minutes', () => {
           expect(formatter(new Date(2018, 10, 20, 11, 22))).toEqual('11:22');
         });
-        it('format hours', () => {
+        test('format hours', () => {
           expect(formatter(new Date(2018, 10, 20, 11))).toEqual('11 AM');
         });
-        it('format first day of week', () => {
+        test('format first day of week', () => {
           expect(formatter(new Date(2018, 10, 18))).toEqual('Nov 18');
         });
-        it('format other day of week', () => {
+        test('format other day of week', () => {
           expect(formatter(new Date(2018, 10, 20))).toEqual('Tue 20');
         });
-        it('format month', () => {
+        test('format month', () => {
           expect(formatter(new Date(2018, 10))).toEqual('November');
         });
-        it('format year', () => {
+        test('format year', () => {
           expect(formatter(new Date(2018, 0))).toEqual('2018');
         });
       });
@@ -140,30 +140,30 @@ describe('createMultiFormatter()', () => {
         useLocalTime: false,
         locale,
       });
-      it('formats millisecond', () => {
+      test('formats millisecond', () => {
         expect(formatter(new Date(2018, 10, 20, 11, 22, 33, 100))).toEqual(
           '.100',
         );
       });
-      it('formats second', () => {
+      test('formats second', () => {
         expect(formatter(new Date(2018, 10, 20, 11, 22, 33))).toEqual(':33');
       });
-      it('format minutes', () => {
+      test('format minutes', () => {
         expect(formatter(new Date(2018, 10, 20, 11, 22))).toEqual('04:22');
       });
-      it('format hours', () => {
+      test('format hours', () => {
         expect(formatter(new Date('2018-11-18 11:00 UTC'))).toEqual('11 AM');
       });
-      it('format first day of week', () => {
+      test('format first day of week', () => {
         expect(formatter(new Date('2018-11-18 UTC'))).toEqual('Nov 18');
       });
-      it('format other day of week', () => {
+      test('format other day of week', () => {
         expect(formatter(new Date('2018-11-20 UTC'))).toEqual('Ter 20');
       });
-      it('format month', () => {
+      test('format month', () => {
         expect(formatter(new Date('2018-11-1 UTC'))).toEqual('Novembro');
       });
-      it('format year', () => {
+      test('format year', () => {
         expect(formatter(new Date('2018-1-1 UTC'))).toEqual('2018');
       });
     });
@@ -173,30 +173,30 @@ describe('createMultiFormatter()', () => {
         useLocalTime: true,
         locale,
       });
-      it('formats millisecond', () => {
+      test('formats millisecond', () => {
         expect(formatter(new Date(2018, 10, 20, 11, 22, 33, 100))).toEqual(
           '.100',
         );
       });
-      it('formats second', () => {
+      test('formats second', () => {
         expect(formatter(new Date(2018, 10, 20, 11, 22, 33))).toEqual(':33');
       });
-      it('format minutes', () => {
+      test('format minutes', () => {
         expect(formatter(new Date(2018, 10, 20, 11, 22))).toEqual('11:22');
       });
-      it('format hours', () => {
+      test('format hours', () => {
         expect(formatter(new Date(2018, 10, 20, 11))).toEqual('11 AM');
       });
-      it('format first day of week', () => {
+      test('format first day of week', () => {
         expect(formatter(new Date(2018, 10, 18))).toEqual('Nov 18');
       });
-      it('format other day of week', () => {
+      test('format other day of week', () => {
         expect(formatter(new Date(2018, 10, 20))).toEqual('Ter 20');
       });
-      it('format month', () => {
+      test('format month', () => {
         expect(formatter(new Date(2018, 10))).toEqual('Novembro');
       });
-      it('format year', () => {
+      test('format year', () => {
         expect(formatter(new Date(2018, 0))).toEqual('2018');
       });
     });

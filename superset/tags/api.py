@@ -109,7 +109,6 @@ class TagRestApi(BaseSupersetModelRestApi):
         "created_on_delta_humanized",
         "created_by.first_name",
         "created_by.last_name",
-        "created_by",
     ]
 
     base_related_field_filters = {

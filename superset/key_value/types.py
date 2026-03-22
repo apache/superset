@@ -45,6 +45,7 @@ class KeyValueResource(StrEnum):
     EXPLORE_PERMALINK = "explore_permalink"
     METASTORE_CACHE = "superset_metastore_cache"
     LOCK = "lock"
+    PKCE_CODE_VERIFIER = "pkce_code_verifier"
     SQLLAB_PERMALINK = "sqllab_permalink"
 
 

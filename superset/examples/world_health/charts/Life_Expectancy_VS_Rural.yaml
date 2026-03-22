@@ -1,0 +1,67 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: 69e9de42-fe7f-4948-946a-f7913227aee8
+description: null
+params:
+  adhoc_filters:
+  - clause: WHERE
+    comparator:
+    - TCA
+    - MNP
+    - DMA
+    - MHL
+    - MCO
+    - SXM
+    - CYM
+    - TUV
+    - IMY
+    - KNA
+    - ASM
+    - ADO
+    - AMA
+    - PLW
+    expressionType: SIMPLE
+    filterOptionName: 2745eae5
+    operator: NOT IN
+    subject: country_code
+  compare_lag: '10'
+  compare_suffix: o10Y
+  country_fieldtype: cca3
+  entity: country_name
+  granularity_sqla: year
+  groupby: []
+  limit: 0
+  markup_type: markdown
+  max_bubble_size: '50'
+  row_limit: 50000
+  series: region
+  show_bubbles: true
+  since: '2011-01-01'
+  size: sum__SP_POP_TOTL
+  time_range: '2014-01-01 : 2014-01-02'
+  until: '2011-01-02'
+  viz_type: bubble
+  x: sum__SP_RUR_TOTL_ZS
+  y: sum__SP_DYN_LE00_IN
+query_context: null
+slice_name: Life Expectancy VS Rural %
+uuid: c18faec9-ec43-4d36-8b66-4c8b1372020f
+version: 1.0.0
+viz_type: bubble

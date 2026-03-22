@@ -399,15 +399,30 @@ class SupersetDisallowedSQLFunctionException(SupersetErrorException):
         )
 
 
-class CreateKeyValueDistributedLockFailedException(Exception):  # noqa: N818
+class SupersetDisallowedSQLTableException(SupersetErrorException):
+    """
+    Disallowed table/view found in SQL statement
+    """
+
+    def __init__(self, tables: set[str]):
+        super().__init__(
+            SupersetError(
+                message=f"SQL statement references disallowed table(s): {tables}",
+                error_type=SupersetErrorType.SYNTAX_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
+
+
+class AcquireDistributedLockFailedException(Exception):  # noqa: N818
     """
     Exception to signalize failure to acquire lock.
     """
 
 
-class DeleteKeyValueDistributedLockFailedException(Exception):  # noqa: N818
+class ReleaseDistributedLockFailedException(Exception):  # noqa: N818
     """
-    Exception to signalize failure to delete lock.
+    Exception to signalize failure to release lock.
     """
 
 

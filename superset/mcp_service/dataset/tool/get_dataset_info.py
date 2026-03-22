@@ -26,9 +26,10 @@ import logging
 from datetime import datetime, timezone
 
 from fastmcp import Context
+from sqlalchemy.orm import joinedload, subqueryload
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
+from superset.extensions import event_logger
 from superset.mcp_service.dataset.schemas import (
     DatasetError,
     DatasetInfo,
@@ -36,18 +37,46 @@ from superset.mcp_service.dataset.schemas import (
     serialize_dataset_object,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
+from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool
-@mcp_auth_hook
+@tool(
+    tags=["discovery"],
+    class_permission_name="Dataset",
+    annotations=ToolAnnotations(
+        title="Get dataset info",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
+@parse_request(GetDatasetInfoRequest)
 async def get_dataset_info(
     request: GetDatasetInfoRequest, ctx: Context
 ) -> DatasetInfo | DatasetError:
     """Get dataset metadata by ID or UUID.
 
     Returns columns, metrics, and schema details.
+
+    IMPORTANT FOR LLM CLIENTS:
+    - Use numeric ID (e.g., 123) or UUID string (e.g., "a1b2c3d4-...")
+    - DO NOT use schema.table_name format (e.g., "public.customers")
+    - To find a dataset ID, use the list_datasets tool first
+
+    Example usage:
+    ```json
+    {
+        "identifier": 123
+    }
+    ```
+
+    Or with UUID:
+    ```json
+    {
+        "identifier": "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+    }
+    ```
     """
     await ctx.info(
         "Retrieving dataset information: identifier=%s" % (request.identifier,)
@@ -62,18 +91,30 @@ async def get_dataset_info(
     )
 
     try:
+        from superset.connectors.sqla.models import SqlaTable
         from superset.daos.dataset import DatasetDAO
 
-        tool = ModelGetInfoCore(
-            dao_class=DatasetDAO,
-            output_schema=DatasetInfo,
-            error_schema=DatasetError,
-            serializer=serialize_dataset_object,
-            supports_slug=False,  # Datasets don't have slugs
-            logger=logger,
-        )
+        # Eager load columns, metrics, and database to avoid N+1 queries.
+        # Without this, serialize_dataset_object triggers lazy loads for each
+        # relationship, which can time out on datasets with many columns.
+        eager_options = [
+            subqueryload(SqlaTable.columns),
+            subqueryload(SqlaTable.metrics),
+            joinedload(SqlaTable.database),
+        ]
 
-        result = tool.run_tool(request.identifier)
+        with event_logger.log_context(action="mcp.get_dataset_info.lookup"):
+            tool = ModelGetInfoCore(
+                dao_class=DatasetDAO,
+                output_schema=DatasetInfo,
+                error_schema=DatasetError,
+                serializer=serialize_dataset_object,
+                supports_slug=False,  # Datasets don't have slugs
+                logger=logger,
+                query_options=eager_options,
+            )
+
+            result = tool.run_tool(request.identifier)
 
         if isinstance(result, DatasetInfo):
             await ctx.info(

@@ -33,6 +33,7 @@ cover
 .env
 .envrc
 .idea
+.roo
 .mypy_cache
 .python-version
 .tox
@@ -60,21 +61,18 @@ tmp
 rat-results.txt
 superset/app/
 superset-websocket/config.json
+.direnv
 
 # Node.js, webpack artifacts, storybook
 *.entry.js
 *.js.map
 node_modules
 npm-debug.log*
+superset/static/*
 superset/static/assets/*
 !superset/static/assets/.gitkeep
 superset/static/uploads/*
 !superset/static/uploads/.gitkeep
-superset/static/version_info.json
-superset-frontend/**/esm/*
-superset-frontend/**/lib/*
-superset-frontend/**/storybook-static/*
-superset-frontend/migration-storybook.log
 yarn-error.log
 *.map
 *.min.js
@@ -135,5 +133,8 @@ CLAUDE.local.md
 PROJECT.md
 .aider*
 .claude_rc*
+.claude/settings.local.json
 .env.local
 oxc-custom-build/
+*.code-workspace
+*.duckdb

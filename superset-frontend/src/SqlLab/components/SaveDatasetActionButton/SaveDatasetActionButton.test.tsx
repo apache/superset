@@ -16,50 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import { Menu } from '@superset-ui/core/components/Menu';
+import { render, screen } from 'spec/helpers/testing-library';
 import SaveDatasetActionButton from 'src/SqlLab/components/SaveDatasetActionButton';
-
-const overlayMenu = (
-  <Menu items={[{ label: 'Save dataset', key: 'save-dataset' }]} />
-);
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SaveDatasetActionButton', () => {
   test('renders a split save button', async () => {
+    const onSaveAsExplore = jest.fn();
     render(
       <SaveDatasetActionButton
         setShowSave={() => true}
-        overlayMenu={overlayMenu}
+        onSaveAsExplore={onSaveAsExplore}
       />,
     );
 
-    const saveBtn = screen.getByRole('button', { name: /save/i });
-    const caretBtn = screen.getByRole('button', { name: /down/i });
+    const saveBtn = screen.getByRole('button', { name: 'Save' });
+    const saveDatasetBtn = screen.getByRole('button', {
+      name: /save dataset/i,
+    });
 
     expect(
-      await screen.findByRole('button', { name: /save/i }),
+      await screen.findByRole('button', { name: 'Save' }),
     ).toBeInTheDocument();
     expect(saveBtn).toBeVisible();
-    expect(caretBtn).toBeVisible();
-  });
-
-  test('renders a "save dataset" dropdown menu item when user clicks caret button', async () => {
-    render(
-      <SaveDatasetActionButton
-        setShowSave={() => true}
-        overlayMenu={overlayMenu}
-      />,
-    );
-
-    const caretBtn = screen.getByRole('button', { name: /down/i });
-    expect(
-      await screen.findByRole('button', { name: /down/i }),
-    ).toBeInTheDocument();
-    userEvent.click(caretBtn);
-
-    const saveDatasetMenuItem = screen.getByText(/save dataset/i);
-
-    expect(saveDatasetMenuItem).toBeInTheDocument();
+    expect(saveDatasetBtn).toBeVisible();
   });
 });

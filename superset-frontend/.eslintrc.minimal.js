@@ -17,6 +17,9 @@
  * under the License.
  */
 
+// Register TypeScript require hook so ESLint can load .ts plugin files
+require('tsx/cjs');
+
 /**
  * MINIMAL ESLint config - ONLY for rules OXC doesn't support
  * This config is designed to be run alongside OXC linter
@@ -66,7 +69,7 @@ module.exports = {
     // Custom Superset plugins
     'theme-colors/no-literal-colors': 'error',
     'icons/no-fa-icons-usage': 'error',
-    'i18n-strings/no-template-vars': ['error', true],
+    'i18n-strings/no-template-vars': 'error',
     'file-progress/activate': 1,
 
     // Explicitly turn off all other rules to avoid conflicts

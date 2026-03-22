@@ -38,13 +38,120 @@ export const DesignSystem = () => (
   </a>
 
   While the Superset Design System will use Atomic Design principles, we choose a different language to describe the elements.
-
-  | Atomic Design   |    Atoms    | Molecules  | Organisms | Templates | Pages / Screens |
-  | :-------------- | :---------: | :--------: | :-------: | :-------: | :-------------: |
-  | Superset Design | Foundations | Components | Patterns  | Templates |    Features     |
-
       `}
     </Markdown>
+    <table style={{ borderCollapse: 'collapse', margin: '16px 0' }}>
+      <thead>
+        <tr>
+          <th
+            style={{
+              border: '1px solid #ddd',
+              padding: '8px',
+              textAlign: 'left',
+            }}
+          >
+            Atomic Design
+          </th>
+          <th
+            style={{
+              border: '1px solid #ddd',
+              padding: '8px',
+              textAlign: 'center',
+            }}
+          >
+            Atoms
+          </th>
+          <th
+            style={{
+              border: '1px solid #ddd',
+              padding: '8px',
+              textAlign: 'center',
+            }}
+          >
+            Molecules
+          </th>
+          <th
+            style={{
+              border: '1px solid #ddd',
+              padding: '8px',
+              textAlign: 'center',
+            }}
+          >
+            Organisms
+          </th>
+          <th
+            style={{
+              border: '1px solid #ddd',
+              padding: '8px',
+              textAlign: 'center',
+            }}
+          >
+            Templates
+          </th>
+          <th
+            style={{
+              border: '1px solid #ddd',
+              padding: '8px',
+              textAlign: 'center',
+            }}
+          >
+            Pages / Screens
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style={{ border: '1px solid #ddd', padding: '8px' }}>
+            Superset Design
+          </td>
+          <td
+            style={{
+              border: '1px solid #ddd',
+              padding: '8px',
+              textAlign: 'center',
+            }}
+          >
+            Foundations
+          </td>
+          <td
+            style={{
+              border: '1px solid #ddd',
+              padding: '8px',
+              textAlign: 'center',
+            }}
+          >
+            Components
+          </td>
+          <td
+            style={{
+              border: '1px solid #ddd',
+              padding: '8px',
+              textAlign: 'center',
+            }}
+          >
+            Patterns
+          </td>
+          <td
+            style={{
+              border: '1px solid #ddd',
+              padding: '8px',
+              textAlign: 'center',
+            }}
+          >
+            Templates
+          </td>
+          <td
+            style={{
+              border: '1px solid #ddd',
+              padding: '8px',
+              textAlign: 'center',
+            }}
+          >
+            Features
+          </td>
+        </tr>
+      </tbody>
+    </table>
     <img
       src={AtomicDesign}
       alt="Atoms = Foundations, Molecules = Components, Organisms = Patterns, Templates = Templates, Pages / Screens = Features"

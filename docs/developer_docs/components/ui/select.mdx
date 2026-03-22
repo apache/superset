@@ -1,0 +1,308 @@
+---
+title: Select
+sidebar_label: Select
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# Select
+
+A versatile select component supporting single and multi-select modes, search filtering, option creation, and both synchronous and asynchronous data sources.
+
+## Live Example
+
+<StoryWithControls
+  component="Select"
+  props={{
+  mode: "single",
+  placeholder: "Select ...",
+  showSearch: true,
+  allowNewOptions: false,
+  allowClear: false,
+  allowSelectAll: true,
+  disabled: false,
+  invertSelection: false,
+  oneLine: false,
+  maxTagCount: 4,
+  options: [
+    {
+      label: "Such an incredibly awesome long long label",
+      value: "long-label-1"
+    },
+    {
+      label: "Another incredibly awesome long long label",
+      value: "long-label-2"
+    },
+    {
+      label: "Option A",
+      value: "A"
+    },
+    {
+      label: "Option B",
+      value: "B"
+    },
+    {
+      label: "Option C",
+      value: "C"
+    },
+    {
+      label: "Option D",
+      value: "D"
+    },
+    {
+      label: "Option E",
+      value: "E"
+    },
+    {
+      label: "Option F",
+      value: "F"
+    },
+    {
+      label: "Option G",
+      value: "G"
+    },
+    {
+      label: "Option H",
+      value: "H"
+    },
+    {
+      label: "Option I",
+      value: "I"
+    }
+  ]
+}}
+  controls={[
+  {
+    name: "mode",
+    label: "Mode",
+    type: "inline-radio",
+    options: [
+      "single",
+      "multiple"
+    ],
+    description: "Whether to allow selection of a single option or multiple."
+  },
+  {
+    name: "placeholder",
+    label: "Placeholder",
+    type: "text",
+    description: "Placeholder text when no option is selected."
+  },
+  {
+    name: "showSearch",
+    label: "Show Search",
+    type: "boolean",
+    description: "Whether to show a search input for filtering."
+  },
+  {
+    name: "allowNewOptions",
+    label: "Allow New Options",
+    type: "boolean",
+    description: "Whether users can create new options by typing a value not in the list."
+  },
+  {
+    name: "allowClear",
+    label: "Allow Clear",
+    type: "boolean",
+    description: "Whether to show a clear button to reset the selection."
+  },
+  {
+    name: "allowSelectAll",
+    label: "Allow Select All",
+    type: "boolean",
+    description: "Whether to show a \"Select All\" option in multiple mode."
+  },
+  {
+    name: "disabled",
+    label: "Disabled",
+    type: "boolean",
+    description: "Whether the select is disabled."
+  },
+  {
+    name: "invertSelection",
+    label: "Invert Selection",
+    type: "boolean",
+    description: "Shows a stop icon instead of a checkmark on selected options, indicating deselection on click."
+  },
+  {
+    name: "oneLine",
+    label: "One Line",
+    type: "boolean",
+    description: "Forces tags onto one line with overflow count. Requires multiple mode."
+  },
+  {
+    name: "maxTagCount",
+    label: "Max Tag Count",
+    type: "number",
+    description: "Maximum number of tags to display in multiple mode before showing an overflow count."
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <div style={{ width: 300 }}>
+      <Select
+        ariaLabel="demo-select"
+        options={[
+          { label: 'Dashboards', value: 'dashboards' },
+          { label: 'Charts', value: 'charts' },
+          { label: 'Datasets', value: 'datasets' },
+          { label: 'SQL Lab', value: 'sqllab' },
+          { label: 'Settings', value: 'settings' },
+        ]}
+        placeholder="Select ..."
+        showSearch
+      />
+    </div>
+  );
+}
+```
+
+## Multi Select
+
+```tsx live
+function MultiSelectDemo() {
+  return (
+    <div style={{ width: 400 }}>
+      <Select
+        ariaLabel="multi-select"
+        mode="multiple"
+        options={[
+          { label: 'Dashboards', value: 'dashboards' },
+          { label: 'Charts', value: 'charts' },
+          { label: 'Datasets', value: 'datasets' },
+          { label: 'SQL Lab', value: 'sqllab' },
+          { label: 'Settings', value: 'settings' },
+        ]}
+        placeholder="Select items..."
+        allowSelectAll
+        maxTagCount={3}
+      />
+    </div>
+  );
+}
+```
+
+## Allow New Options
+
+```tsx live
+function AllowNewDemo() {
+  return (
+    <div style={{ width: 300 }}>
+      <Select
+        ariaLabel="allow-new-select"
+        mode="multiple"
+        options={[
+          { label: 'Red', value: 'red' },
+          { label: 'Green', value: 'green' },
+          { label: 'Blue', value: 'blue' },
+        ]}
+        placeholder="Type to add tags..."
+        allowNewOptions
+        showSearch
+      />
+    </div>
+  );
+}
+```
+
+## Inverted Selection
+
+```tsx live
+function InvertedDemo() {
+  return (
+    <div style={{ width: 400 }}>
+      <Select
+        ariaLabel="inverted-select"
+        mode="multiple"
+        options={[
+          { label: 'Admin', value: 'admin' },
+          { label: 'Editor', value: 'editor' },
+          { label: 'Viewer', value: 'viewer' },
+          { label: 'Public', value: 'public' },
+        ]}
+        placeholder="Exclude roles..."
+        invertSelection
+      />
+    </div>
+  );
+}
+```
+
+## One Line Mode
+
+```tsx live
+function OneLineDemo() {
+  return (
+    <div style={{ width: 300 }}>
+      <Select
+        ariaLabel="oneline-select"
+        mode="multiple"
+        options={[
+          { label: 'Dashboard 1', value: 'd1' },
+          { label: 'Dashboard 2', value: 'd2' },
+          { label: 'Dashboard 3', value: 'd3' },
+          { label: 'Dashboard 4', value: 'd4' },
+          { label: 'Dashboard 5', value: 'd5' },
+        ]}
+        placeholder="Select dashboards..."
+        oneLine
+      />
+    </div>
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `mode` | `string` | `"single"` | Whether to allow selection of a single option or multiple. |
+| `placeholder` | `string` | `"Select ..."` | Placeholder text when no option is selected. |
+| `showSearch` | `boolean` | `true` | Whether to show a search input for filtering. |
+| `allowNewOptions` | `boolean` | `false` | Whether users can create new options by typing a value not in the list. |
+| `allowClear` | `boolean` | `false` | Whether to show a clear button to reset the selection. |
+| `allowSelectAll` | `boolean` | `true` | Whether to show a "Select All" option in multiple mode. |
+| `disabled` | `boolean` | `false` | Whether the select is disabled. |
+| `invertSelection` | `boolean` | `false` | Shows a stop icon instead of a checkmark on selected options, indicating deselection on click. |
+| `oneLine` | `boolean` | `false` | Forces tags onto one line with overflow count. Requires multiple mode. |
+| `maxTagCount` | `number` | `4` | Maximum number of tags to display in multiple mode before showing an overflow count. |
+| `options` | `any` | `[{"label":"Such an incredibly awesome long long label","value":"long-label-1"},{"label":"Another incredibly awesome long long label","value":"long-label-2"},{"label":"Option A","value":"A"},{"label":"Option B","value":"B"},{"label":"Option C","value":"C"},{"label":"Option D","value":"D"},{"label":"Option E","value":"E"},{"label":"Option F","value":"F"},{"label":"Option G","value":"G"},{"label":"Option H","value":"H"},{"label":"Option I","value":"I"}]` | - |
+
+## Import
+
+```tsx
+import { Select } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/Select/Select.stories.tsx).
+:::

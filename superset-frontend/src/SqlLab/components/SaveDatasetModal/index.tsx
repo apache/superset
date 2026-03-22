@@ -30,8 +30,8 @@ import {
   Icons,
   Flex,
 } from '@superset-ui/core/components';
+import { t } from '@apache-superset/core/translation';
 import {
-  t,
   SupersetClient,
   JsonResponse,
   JsonObject,
@@ -42,7 +42,7 @@ import {
   isFeatureEnabled,
   getClientErrorObject,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import { useSelector, useDispatch } from 'react-redux';
 import rison from 'rison';
@@ -59,6 +59,7 @@ import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
 import { isEmpty } from 'lodash';
+import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
 
 interface QueryDatabase {
   id?: number;
@@ -170,6 +171,9 @@ const updateDataset = async (
     headers,
     body,
   });
+
+  clearDatasetCache(datasetId);
+
   return data.json.result;
 };
 
@@ -254,7 +258,7 @@ export const SaveDatasetModal = ({
       ]);
       setLoading(false);
 
-      const url = mountExploreUrl(null, {
+      const url = mountExploreUrl('base', {
         [URL_PARAMS.formDataKey.name]: key,
       });
       createWindow(url);
@@ -340,25 +344,27 @@ export const SaveDatasetModal = ({
     dispatch(
       createDatasource({
         sql: datasource.sql,
-        dbId: datasource.dbId || datasource?.database?.id,
-        catalog: datasource?.catalog,
-        schema: datasource?.schema,
+        dbId: (datasource.dbId ?? datasource?.database?.id) as number,
+        catalog: datasource?.catalog ?? null,
+        schema: datasource?.schema ?? '',
         templateParams,
         datasourceName: datasetName,
       }),
     )
-      .then((data: { id: number }) =>
-        postFormData(data.id, 'table', {
+      .then((data: { id: number }) => {
+        clearDatasetCache(data.id);
+
+        return postFormData(data.id, 'table', {
           ...formDataWithDefaults,
           datasource: `${data.id}__table`,
           ...(defaultVizType === VizType.Table && {
             all_columns: selectedColumns.map(column => column.column_name),
           }),
-        }),
-      )
+        });
+      })
       .then((key: string) => {
         setLoading(false);
-        const url = mountExploreUrl(null, {
+        const url = mountExploreUrl('base', {
           [URL_PARAMS.formDataKey.name]: key,
         });
         createWindow(url);

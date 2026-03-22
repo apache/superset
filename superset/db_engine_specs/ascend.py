@@ -17,6 +17,7 @@
 from sqlalchemy.dialects import registry
 
 from superset.constants import TimeGrain
+from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.impala import ImpalaEngineSpec
 
 
@@ -27,6 +28,24 @@ class AscendEngineSpec(ImpalaEngineSpec):
     registry.register("ascend", "impala.sqlalchemy", "ImpalaDialect")
 
     engine_name = "Ascend"
+
+    metadata = {
+        "description": (
+            "Ascend.io is a data automation platform for building data pipelines."
+        ),
+        "logo": "ascend.webp",
+        "homepage_url": "https://www.ascend.io/",
+        "categories": [
+            DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.HOSTED_OPEN_SOURCE,
+        ],
+        "pypi_packages": ["impyla"],
+        "connection_string": (
+            "ascend://{username}:{password}@{hostname}:{port}/{database}"
+            "?auth_mechanism=PLAIN;use_ssl=true"
+        ),
+    }
 
     _time_grain_expressions = {
         None: "{col}",

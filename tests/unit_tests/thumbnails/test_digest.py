@@ -86,7 +86,8 @@ def prepare_datasource_mock(
             False,
             False,
             [],
-            "71452fee8ffbd8d340193d611bcd4559",
+            # SHA-256 hash with default HASH_ALGORITHM
+            "73653fa5724a23c28fdf3bba4c7e8a4f6f3470f888b55c986d56e2553c38713e",
         ),
         (
             None,
@@ -94,7 +95,8 @@ def prepare_datasource_mock(
             True,
             False,
             [],
-            "209dc060ac19271b8708731e3b8280f5",
+            # SHA-256 hash with default HASH_ALGORITHM
+            "62d7d89c426fb4f11787095f309c573c69e5d47a92af9cad792b03ba60a1f1cd",
         ),
         (
             {
@@ -104,7 +106,8 @@ def prepare_datasource_mock(
             True,
             False,
             [],
-            "209dc060ac19271b8708731e3b8280f5",
+            # SHA-256 hash with default HASH_ALGORITHM
+            "62d7d89c426fb4f11787095f309c573c69e5d47a92af9cad792b03ba60a1f1cd",
         ),
         (
             {
@@ -114,7 +117,8 @@ def prepare_datasource_mock(
             True,
             False,
             [],
-            "06a4144466dbd5ffad0c3c2225e96296",
+            # SHA-256 hash with default HASH_ALGORITHM
+            "b4004c6d418121e012a6b6d6e8566aca4907e4fb204beaced17d8f8e6f7ff2dd",
         ),
         (
             {
@@ -124,7 +128,8 @@ def prepare_datasource_mock(
             True,
             False,
             [],
-            "a823ece9563895ccb14f3d9095e84f7a",
+            # SHA-256 hash with default HASH_ALGORITHM
+            "e1226d050fde6acda8cc6630d677a971362a87f2e1b4c35df76de4048b5787bc",
         ),
         (
             {
@@ -134,7 +139,8 @@ def prepare_datasource_mock(
             True,
             False,
             [],
-            "33c5475f92a904925ab3ef493526e5b5",
+            # SHA-256 hash with default HASH_ALGORITHM
+            "6073a59a3b7428f03cc72db8de43b74e3f203cac4fb0c84216201924043e8b41",
         ),
         (
             {
@@ -144,7 +150,8 @@ def prepare_datasource_mock(
             True,
             False,
             [],
-            "cec57345e6402c0d4b3caee5cfaa0a03",
+            # SHA-256 hash with default HASH_ALGORITHM
+            "7e3e9ca5bd1493022a3b97a449cf17c931263b4a9d99b1fcad2781766535c116",
         ),
         (
             {
@@ -154,7 +161,8 @@ def prepare_datasource_mock(
             True,
             False,
             [],
-            "5380dcbe94621a0759b09554404f3d02",
+            # SHA-256 hash with default HASH_ALGORITHM
+            "bb0f8d2a1a4e406528ca027b4252856a69037ec7272587026f720521210123fe",
         ),
         (
             None,
@@ -167,7 +175,8 @@ def prepare_datasource_mock(
                     "get_sqla_row_level_filters": MagicMock(return_value=["filter1"]),
                 }
             ],
-            "4138959f275c1991466cafcfb190fd72",
+            # SHA-256 hash with default HASH_ALGORITHM
+            "88c66714ce66ee9de15bfa82e5bb35479838190ca6662d3088a00802827c195c",
         ),
         (
             None,
@@ -188,7 +197,8 @@ def prepare_datasource_mock(
                     ),
                 },
             ],
-            "80d3bfcc7144bccdba8c718cf49b6420",
+            # SHA-256 hash with default HASH_ALGORITHM
+            "1a686c28c9c866832428616a0f9bd12d5b2452ea20645113c86dd2be88980c42",
         ),
         (
             None,
@@ -207,7 +217,8 @@ def prepare_datasource_mock(
                     ),
                 },
             ],
-            "e8fc68cd5aba22a5f1acf06164bfc0f4",
+            # SHA-256 hash with default HASH_ALGORITHM
+            "f0d428a30a62b000fa92e87c7bb29c2c55bddc49abf8408d395502653e702cd6",
         ),
         (
             None,
@@ -296,7 +307,8 @@ def test_dashboard_digest(
             False,
             False,
             None,
-            "47d852b5c4df211c115905617bb722c1",
+            # SHA-256 hash with default HASH_ALGORITHM
+            "053d9488ff5da47d00d236084c34261d608f0fb006aceb0084738ccb6fe7a838",
         ),
         (
             None,
@@ -304,7 +316,8 @@ def test_dashboard_digest(
             True,
             False,
             None,
-            "4f8109d3761e766e650af514bb358f10",
+            # SHA-256 hash with default HASH_ALGORITHM
+            "d69f16940a8de1b35088a79424f40ed388f1a7a5f2a7692dd14bf77964fb6898",
         ),
         (
             None,
@@ -323,7 +336,8 @@ def test_dashboard_digest(
                 "is_rls_supported": True,
                 "get_sqla_row_level_filters": MagicMock(return_value=["filter1"]),
             },
-            "61e70336c27eb97fb050328a0b050373",
+            # SHA-256 hash with default HASH_ALGORITHM
+            "90a543199890b9b2a6583a27a2fed66948f907d28070437250e3b4d715e5bd3e",
         ),
         (
             None,
@@ -336,7 +350,8 @@ def test_dashboard_digest(
                     return_value=["filter1", "filter2"]
                 ),
             },
-            "95c7cefde8cb519f005f33bfb33cb196",
+            # SHA-256 hash with default HASH_ALGORITHM
+            "42fbf56bf1dcbdcd4a84d26ed159ade36ab2bffbab85230799d719ce779c3312",
         ),
         (
             None,
@@ -347,7 +362,8 @@ def test_dashboard_digest(
                 "is_rls_supported": False,
                 "get_sqla_row_level_filters": MagicMock(return_value=[]),
             },
-            "4f8109d3761e766e650af514bb358f10",
+            # SHA-256 hash with default HASH_ALGORITHM
+            "d69f16940a8de1b35088a79424f40ed388f1a7a5f2a7692dd14bf77964fb6898",
         ),
         (
             None,
@@ -391,6 +407,7 @@ def test_chart_digest(
         **(chart_overrides or {}),
     }
     chart = Slice(**kwargs)
+    chart.table = datasource
 
     user: User | None = None
     if has_current_user:
@@ -406,12 +423,6 @@ def test_chart_digest(
                 "THUMBNAIL_CHART_DIGEST_FUNC": func,
             },
         ),
-        patch.object(
-            type(chart),
-            "datasource",
-            new_callable=PropertyMock,
-            return_value=datasource,
-        ),
         patch.object(security_manager, "find_user", return_value=user),
         override_user(user),
     ):
@@ -422,3 +433,111 @@ def test_chart_digest(
         )
         with cm:
             assert get_chart_digest(chart=chart) == expected_result
+
+
+def test_dashboard_digest_deterministic_datasource_order(
+    app_context: None,
+) -> None:
+    """
+    Test that different datasource orderings produce the same digest.
+
+    dashboard.datasources returns a set, whose iteration order is
+    non-deterministic across Python processes (due to PYTHONHASHSEED).
+    The digest must sort datasources by ID to ensure stability.
+    """
+    from superset import security_manager
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.thumbnails.digest import get_dashboard_digest
+
+    kwargs = {**_DEFAULT_DASHBOARD_KWARGS}
+    slices = [Slice(**slice_kwargs) for slice_kwargs in kwargs.pop("slices")]
+    dashboard = Dashboard(**kwargs, slices=slices)
+
+    def make_datasource(ds_id: int) -> MagicMock:
+        ds = MagicMock(spec=BaseDatasource)
+        ds.id = ds_id
+        ds.type = DatasourceType.TABLE
+        ds.is_rls_supported = True
+        ds.get_sqla_row_level_filters = MagicMock(return_value=[f"filter_ds_{ds_id}"])
+        return ds
+
+    ds_a = make_datasource(5)
+    ds_b = make_datasource(3)
+    ds_c = make_datasource(9)
+
+    user = User(id=1, username="1")
+
+    digests = []
+    for ordering in [[ds_a, ds_b, ds_c], [ds_c, ds_a, ds_b], [ds_b, ds_c, ds_a]]:
+        with (
+            patch.dict(
+                current_app.config,
+                {
+                    "THUMBNAIL_EXECUTORS": [ExecutorType.CURRENT_USER],
+                    "THUMBNAIL_DASHBOARD_DIGEST_FUNC": None,
+                },
+            ),
+            patch.object(
+                type(dashboard),
+                "datasources",
+                new_callable=PropertyMock,
+                return_value=ordering,
+            ),
+            patch.object(security_manager, "find_user", return_value=user),
+            patch.object(security_manager, "prefetch_rls_filters", return_value=None),
+            override_user(user),
+        ):
+            digests.append(get_dashboard_digest(dashboard=dashboard))
+
+    assert digests[0] == digests[1] == digests[2]
+    assert digests[0] is not None
+
+
+def test_dashboard_digest_prefetches_rls_filters(
+    app_context: None,
+) -> None:
+    """
+    Test that _adjust_string_with_rls calls prefetch_rls_filters with
+    table IDs from RLS-supporting datasources before iterating.
+    """
+    from superset import security_manager
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.thumbnails.digest import get_dashboard_digest
+
+    kwargs = {**_DEFAULT_DASHBOARD_KWARGS}
+    slices = [Slice(**slice_kwargs) for slice_kwargs in kwargs.pop("slices")]
+    dashboard = Dashboard(**kwargs, slices=slices)
+
+    datasources = []
+    for ds_id, rls_supported in [(10, True), (20, True), (30, False)]:
+        ds = MagicMock(spec=BaseDatasource)
+        ds.id = ds_id
+        ds.is_rls_supported = rls_supported
+        ds.get_sqla_row_level_filters = MagicMock(return_value=[])
+        datasources.append(ds)
+
+    user = User(id=1, username="1")
+
+    with (
+        patch.dict(
+            current_app.config,
+            {
+                "THUMBNAIL_EXECUTORS": [ExecutorType.CURRENT_USER],
+                "THUMBNAIL_DASHBOARD_DIGEST_FUNC": None,
+            },
+        ),
+        patch.object(
+            type(dashboard),
+            "datasources",
+            new_callable=PropertyMock,
+            return_value=datasources,
+        ),
+        patch.object(security_manager, "find_user", return_value=user),
+        patch.object(security_manager, "prefetch_rls_filters") as mock_prefetch,
+        override_user(user),
+    ):
+        get_dashboard_digest(dashboard=dashboard)
+        # Should be called with only the RLS-supporting datasource IDs
+        mock_prefetch.assert_called_once_with([10, 20])

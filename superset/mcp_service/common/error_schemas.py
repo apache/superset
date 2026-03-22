@@ -48,9 +48,16 @@ class ValidationError(BaseModel):
 class DatasetContext(BaseModel):
     """Dataset information for error context"""
 
+    model_config = {"populate_by_name": True}
+
     id: int = Field(..., description="Dataset ID")
     table_name: str = Field(..., description="Table name")
-    schema: str | None = Field(None, description="Schema name")
+    schema_name: str | None = Field(
+        None,
+        alias="schema",
+        serialization_alias="schema",
+        description="Schema name",
+    )
     database_name: str = Field(..., description="Database name")
     available_columns: List[Dict[str, Any]] = Field(
         default_factory=list, description="Available columns with metadata"

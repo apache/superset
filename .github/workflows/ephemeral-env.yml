@@ -63,7 +63,7 @@ jobs:
       - name: Get event SHA
         id: get-sha
         if: steps.eval-label.outputs.result == 'up'
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -94,7 +94,7 @@ jobs:
             core.setOutput("sha", prSha);
 
       - name: Looking for feature flags in PR description
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         id: eval-feature-flags
         if: steps.eval-label.outputs.result == 'up'
         with:
@@ -116,7 +116,7 @@ jobs:
             return results;
 
       - name: Reply with confirmation comment
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         if: steps.eval-label.outputs.result == 'up'
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -160,7 +160,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ needs.ephemeral-env-label.outputs.sha }} : ${{steps.get-sha.outputs.sha}} )"
-        uses: actions/checkout@v5
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           ref: ${{ needs.ephemeral-env-label.outputs.sha }}
           persist-credentials: false
@@ -189,7 +189,7 @@ jobs:
             --extra-flags "--build-arg INCLUDE_CHROMIUM=false"
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v5
+        uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7 # v6
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -197,7 +197,7 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+        uses: aws-actions/amazon-ecr-login@c962da2960ed15f492addc26fffa274485265950 # v2
 
       - name: Load, tag and push image to ECR
         id: push-image
@@ -220,12 +220,12 @@ jobs:
       pull-requests: write
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v5
+        uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7 # v6
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -233,7 +233,7 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+        uses: aws-actions/amazon-ecr-login@c962da2960ed15f492addc26fffa274485265950 # v2
 
       - name: Check target image exists in ECR
         id: check-image
@@ -248,7 +248,7 @@ jobs:
 
       - name: Fail on missing container image
         if: steps.check-image.outcome == 'failure'
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           github-token: ${{ github.token }}
           script: |
@@ -263,7 +263,7 @@ jobs:
 
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        uses: aws-actions/amazon-ecs-render-task-definition@77954e213ba1f9f9cb016b86a1d4f6fcdea0d57e # v1
         with:
           task-definition: .github/workflows/ecs-task-definition.json
           container-name: superset-ci
@@ -296,7 +296,7 @@ jobs:
           --tags key=pr,value=$PR_NUMBER key=github_user,value=${{ github.actor }}
       - name: Deploy Amazon ECS task definition
         id: deploy-task
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        uses: aws-actions/amazon-ecs-deploy-task-definition@cbf54ec46642b86ff78c2f5793da6746954cf8ff # v2
         with:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
           service: pr-${{ github.event.inputs.issue_number || github.event.pull_request.number }}-service
@@ -318,7 +318,7 @@ jobs:
           echo "ip=$(aws ec2 describe-network-interfaces --network-interface-ids ${{ steps.get-eni.outputs.eni }} | jq -r '.NetworkInterfaces | first | .Association.PublicIp')" >> $GITHUB_OUTPUT
       - name: Comment (success)
         if: ${{ success() }}
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           github-token: ${{github.token}}
           script: |
@@ -331,7 +331,7 @@ jobs:
             });
       - name: Comment (failure)
         if: ${{ failure() }}
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           github-token: ${{github.token}}
           script: |

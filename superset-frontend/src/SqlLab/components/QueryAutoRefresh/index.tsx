@@ -122,7 +122,7 @@ function QueryAutoRefresh({
                   dispatch(
                     queryFailed(
                       query,
-                      query.errorMessage,
+                      query.errorMessage ?? '',
                       query.extra?.errors?.[0]?.extra?.link,
                       query.extra?.errors,
                     ),

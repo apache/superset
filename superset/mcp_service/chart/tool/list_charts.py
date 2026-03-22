@@ -20,15 +20,15 @@ MCP tool: list_charts (advanced filtering with metadata cache control)
 """
 
 import logging
-from typing import Any, cast, TYPE_CHECKING
+from typing import cast, TYPE_CHECKING
 
 from fastmcp import Context
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
     from superset.models.slice import Slice
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
+from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import (
     ChartFilter,
     ChartInfo,
@@ -38,20 +38,17 @@ from superset.mcp_service.chart.schemas import (
     serialize_chart_object,
 )
 from superset.mcp_service.mcp_core import ModelListCore
+from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
+# Minimal defaults for reduced token usage - users can request more via select_columns
 DEFAULT_CHART_COLUMNS = [
     "id",
     "slice_name",
     "viz_type",
-    "uuid",
-    "datasource_name",
-    "description",
-    "changed_by_name",
-    "created_by_name",
-    "changed_on",
-    "created_on",
+    "url",
+    "changed_on_humanized",
 ]
 
 SORTABLE_CHART_COLUMNS = [
@@ -65,12 +62,21 @@ SORTABLE_CHART_COLUMNS = [
 ]
 
 
-@mcp.tool
-@mcp_auth_hook
+@tool(
+    tags=["core"],
+    class_permission_name="Chart",
+    annotations=ToolAnnotations(
+        title="List charts",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
+@parse_request(ListChartsRequest)
 async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
     """List charts with filtering and search.
 
-    Returns chart metadata including id, name, and viz_type.
+    Returns chart metadata including id, name, viz_type, URL, and last
+    modified time.
 
     Sortable columns for order_column: id, slice_name, viz_type,
     datasource_name, description, changed_on, created_on
@@ -93,9 +99,19 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
     )
 
     from superset.daos.chart import ChartDAO
+    from superset.mcp_service.common.schema_discovery import (
+        CHART_SORTABLE_COLUMNS,
+        get_all_column_names,
+        get_chart_columns,
+    )
 
-    def _serialize_chart(obj: "Slice | None", cols: Any) -> ChartInfo | None:
-        """Serialize chart object with proper type casting."""
+    # Get all column names dynamically from the model
+    all_columns = get_all_column_names(get_chart_columns())
+
+    def _serialize_chart(
+        obj: "Slice | None", cols: list[str] | None
+    ) -> ChartInfo | None:
+        """Serialize chart object (field filtering handled by model_serializer)."""
         return serialize_chart_object(cast(ChartLike | None, obj))
 
     tool = ModelListCore(
@@ -110,26 +126,41 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
         ],
         list_field_name="charts",
         output_list_schema=ChartList,
+        all_columns=all_columns,
+        sortable_columns=CHART_SORTABLE_COLUMNS,
         logger=logger,
     )
 
     try:
-        result = tool.run_tool(
-            filters=request.filters,
-            search=request.search,
-            select_columns=request.select_columns,
-            order_column=request.order_column,
-            order_direction=request.order_direction,
-            page=max(request.page - 1, 0),
-            page_size=request.page_size,
-        )
+        with event_logger.log_context(action="mcp.list_charts.query"):
+            result = tool.run_tool(
+                filters=request.filters,
+                search=request.search,
+                select_columns=request.select_columns,
+                order_column=request.order_column,
+                order_direction=request.order_direction,
+                page=max(request.page - 1, 0),
+                page_size=request.page_size,
+            )
         count = len(result.charts) if hasattr(result, "charts") else 0
         total_pages = getattr(result, "total_pages", None)
         await ctx.info(
             "Charts listed successfully: count=%s, total_pages=%s"
             % (count, total_pages)
         )
-        return result
+
+        # Apply field filtering via serialization context
+        # Always use columns_requested (either explicit select_columns or defaults)
+        # This triggers ChartInfo._filter_fields_by_context for each chart
+        columns_to_filter = result.columns_requested
+        await ctx.debug(
+            "Applying field filtering via serialization context: columns=%s"
+            % (columns_to_filter,)
+        )
+        with event_logger.log_context(action="mcp.list_charts.serialization"):
+            return result.model_dump(
+                mode="json", context={"select_columns": columns_to_filter}
+            )
     except Exception as e:
         await ctx.error("Failed to list charts: %s" % (str(e),))
         raise
