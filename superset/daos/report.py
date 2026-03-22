@@ -99,6 +99,19 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
         )
 
     @staticmethod
+    def find_by_native_filter_id(native_filter_id: str) -> list[ReportSchedule]:
+        """
+        searches extra_json for a filter ID string
+        """
+        return (
+            db.session.query(ReportSchedule)
+            .filter(
+                ReportSchedule.extra_json.contains(native_filter_id, autoescape=True)
+            )
+            .all()
+        )
+
+    @staticmethod
     def validate_unique_creation_method(
         dashboard_id: int | None = None, chart_id: int | None = None
     ) -> bool:
