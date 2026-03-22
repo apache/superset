@@ -789,6 +789,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable factory reset CLI command
     # @lifecycle: stable
     # @category: internal
+    "THUMBNAILS_SQLA_LISTENERS": False,
     "ENABLE_FACTORY_RESET_COMMAND": False,
     # =================================================================
     # DEPRECATED

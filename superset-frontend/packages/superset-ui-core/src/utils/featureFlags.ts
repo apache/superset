@@ -65,6 +65,7 @@ export enum FeatureFlag {
   SshTunneling = 'SSH_TUNNELING',
   TaggingSystem = 'TAGGING_SYSTEM',
   Thumbnails = 'THUMBNAILS',
+  ThumbnailsSqlaListeners = 'THUMBNAILS_SQLA_LISTENERS',
   UseAnalogousColors = 'USE_ANALOGOUS_COLORS',
   ForceSqlLabRunAsync = 'SQLLAB_FORCE_RUN_ASYNC',
   SlackEnableAvatars = 'SLACK_ENABLE_AVATARS',
