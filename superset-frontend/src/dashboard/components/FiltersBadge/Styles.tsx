@@ -118,6 +118,9 @@ export const FiltersDetailsContainer = styled.div`
     overflow-x: hidden;
 
     color: ${theme.colorText};
+    &:focus {
+      outline: none;
+    }
   `}
 `;
 
