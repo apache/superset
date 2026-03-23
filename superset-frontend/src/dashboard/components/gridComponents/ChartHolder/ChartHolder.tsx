@@ -260,7 +260,11 @@ const ChartHolder = ({
       >
         <div
           ref={el => {
-            dragSourceRef?.(el);
+            if (typeof dragSourceRef === 'function') {
+              dragSourceRef(el);
+            } else if (dragSourceRef && 'current' in dragSourceRef) {
+              (dragSourceRef as any).current = el;
+            }
             chartHolderRef.current = el;
           }}
           data-test="dashboard-component-chart-holder"
