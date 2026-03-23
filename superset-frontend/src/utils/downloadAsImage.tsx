@@ -340,13 +340,19 @@ export default function downloadAsImageOptimized(
           !node.className.includes('header-controls')
         : true;
 
-    // ag-grid: switch to print layout (all rows in DOM), capture the live element
-    const agContainer = elementToPrint.querySelector(
-      '[data-themed-ag-grid]',
-    ) as HTMLElement | null;
-    const agRootWrapper = elementToPrint.querySelector(
-      '.ag-root-wrapper',
-    ) as HTMLElement | null;
+    // Only apply ag-grid path for single-chart captures.
+    // Skip entirely for dashboard-level exports (selector targets the .dashboard root).
+    const isDashboardCapture = (
+      elementToPrint as HTMLElement
+    ).classList.contains('dashboard');
+    const agContainers = isDashboardCapture
+      ? []
+      : elementToPrint.querySelectorAll('[data-themed-ag-grid]');
+    const agContainer =
+      agContainers.length === 1 ? (agContainers[0] as HTMLElement) : null;
+    const agRootWrapper = agContainer
+      ? (agContainer.querySelector('.ag-root-wrapper') as HTMLElement | null)
+      : null;
 
     if (agContainer && agRootWrapper) {
       const api = (agContainer as any)._agGridApi as
@@ -388,7 +394,7 @@ export default function downloadAsImageOptimized(
           // Wait for ResizeObserver + any triggered sizeColumnsToFit() to settle,
           // then restore column widths before measurement.
           await new Promise<void>(resolve =>
-            requestAnimationFrame(() => requestAnimationFrame(resolve)),
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
           );
 
           if (visibleColumnState.length > 0) {
@@ -411,7 +417,8 @@ export default function downloadAsImageOptimized(
 
         agRootWrapper.querySelectorAll('.ag-cell').forEach(cell => {
           const el = cell as HTMLElement;
-          const rowHeight = (el.parentElement as HTMLElement)?.offsetHeight ?? 0;
+          const rowHeight =
+            (el.parentElement as HTMLElement)?.offsetHeight ?? 0;
           // scrollHeight catches any cells where resetRowHeights lagged behind.
           const minH = Math.max(rowHeight, el.scrollHeight);
           cellFixups.push({
@@ -426,7 +433,7 @@ export default function downloadAsImageOptimized(
         const imageHeight = agRootWrapper.scrollHeight;
 
         const dataUrl = await domToImage.toJpeg(agRootWrapper, {
-          bgcolor: theme?.colorBgContainer ?? '#ffffff',
+          bgcolor: theme?.colorBgContainer,
           filter,
           quality: IMAGE_DOWNLOAD_QUALITY,
           height: imageHeight,
@@ -448,7 +455,15 @@ export default function downloadAsImageOptimized(
           el.style.minHeight = minHeight;
           el.style.overflow = overflow;
         });
-        api?.setGridOption('domLayout', 'normal');
+        if (api) {
+          api.setGridOption('domLayout', 'normal');
+          if (savedColumnState) {
+            (api as any).applyColumnState?.({
+              state: savedColumnState,
+              applyOrder: false,
+            });
+          }
+        }
       }
       return;
     }
@@ -464,7 +479,7 @@ export default function downloadAsImageOptimized(
       cleanup = cleanupFn;
 
       const dataUrl = await domToImage.toJpeg(clone, {
-        bgcolor: theme?.colorBgContainer ?? '#ffffff',
+        bgcolor: theme?.colorBgContainer,
         filter,
         quality: IMAGE_DOWNLOAD_QUALITY,
         height: clone.scrollHeight,

@@ -150,6 +150,7 @@ export const ThemedAgGridReact = forwardRef<
   const handleGridReady = useCallback(
     (event: GridReadyEvent) => {
       if (containerRef.current) {
+        (containerRef.current as any)._agGridFirstDataRendered = false;
         (containerRef.current as any)._agGridApi = event.api;
       }
       onGridReady?.(event);

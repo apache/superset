@@ -83,6 +83,10 @@ beforeEach(() => {
   mockToJpeg.mockResolvedValue('data:image/jpeg;base64,test');
 });
 
+afterEach(() => {
+  jest.useRealTimers();
+});
+
 test('waitForStableScrollHeight resolves after 2 consecutive stable scrollHeight readings', async () => {
   jest.useFakeTimers();
   const el = document.createElement('div');
@@ -93,7 +97,7 @@ test('waitForStableScrollHeight resolves after 2 consecutive stable scrollHeight
 
   const promise = waitForStableScrollHeight(el);
   await jest.runAllTimersAsync();
-  await promise;
+  await expect(promise).resolves.toBeUndefined();
 
   jest.useRealTimers();
 });
@@ -110,14 +114,16 @@ test('waitForStableScrollHeight respects a custom minStablePolls', async () => {
   const promise = waitForStableScrollHeight(el, 5000, 5);
   jest.advanceTimersByTime(300);
   let resolved = false;
-  promise.then(() => { resolved = true; });
+  promise.then(() => {
+    resolved = true;
+  });
   // Flush microtasks so the .then() above has a chance to run if resolved
   await Promise.resolve();
   expect(resolved).toBe(false);
 
   // Now run the remaining polls (2 more stable polls → total 5) and confirm resolution.
   jest.advanceTimersByTime(300);
-  await promise;
+  await expect(promise).resolves.toBeUndefined();
 
   jest.useRealTimers();
 });
@@ -138,7 +144,7 @@ test('waitForStableScrollHeight resets stable count when height changes mid-poll
   height = 200;
   // Run until new height stabilises (2 consecutive 100 ms polls)
   jest.advanceTimersByTime(300);
-  await promise;
+  await expect(promise).resolves.toBeUndefined();
 
   jest.useRealTimers();
 });
@@ -158,7 +164,7 @@ test('waitForStableScrollHeight resolves after maxMs even if height never stabil
 
   const promise = waitForStableScrollHeight(el, 200);
   jest.advanceTimersByTime(400); // past the 200 ms deadline
-  await promise;
+  await expect(promise).resolves.toBeUndefined();
 
   jest.useRealTimers();
 });
@@ -179,7 +185,7 @@ test('waitForStableScrollHeight resolves if scrollHeight throws (element removed
   jest.advanceTimersByTime(100); // poll 1: stable, stableCount = 1
   shouldThrow = true; // simulate DOM removal
   jest.advanceTimersByTime(100); // poll 2: throws → resolves immediately
-  await promise;
+  await expect(promise).resolves.toBeUndefined();
 
   jest.useRealTimers();
 });
@@ -278,7 +284,10 @@ test('resolves ag-cell min-height to row pixel height when content fits within i
   // Build a row with a cell inside the grid
   const row = document.createElement('div');
   row.className = 'ag-row';
-  Object.defineProperty(row, 'offsetHeight', { get: () => 32, configurable: true });
+  Object.defineProperty(row, 'offsetHeight', {
+    get: () => 32,
+    configurable: true,
+  });
   const cell = document.createElement('div');
   cell.className = 'ag-cell';
   row.appendChild(cell);
@@ -312,10 +321,16 @@ test('uses cell scrollHeight when it exceeds row offsetHeight (stale row heights
 
   const row = document.createElement('div');
   row.className = 'ag-row';
-  Object.defineProperty(row, 'offsetHeight', { get: () => 25, configurable: true }); // stale default
+  Object.defineProperty(row, 'offsetHeight', {
+    get: () => 25,
+    configurable: true,
+  }); // stale default
   const cell = document.createElement('div');
   cell.className = 'ag-cell';
-  Object.defineProperty(cell, 'scrollHeight', { get: () => 120, configurable: true }); // actual content
+  Object.defineProperty(cell, 'scrollHeight', {
+    get: () => 120,
+    configurable: true,
+  }); // actual content
   row.appendChild(cell);
   agRootWrapper.appendChild(row);
 
@@ -353,10 +368,12 @@ test('derives image width from getColumnState by summing visible column pixel wi
   (api as any).applyColumnState = jest.fn();
 
   let capturedWidth: number | undefined;
-  mockToJpeg.mockImplementation((_el: HTMLElement, opts: { width?: number }) => {
-    capturedWidth = opts.width;
-    return Promise.resolve('data:image/jpeg;base64,test');
-  });
+  mockToJpeg.mockImplementation(
+    (_el: HTMLElement, opts: { width?: number }) => {
+      capturedWidth = opts.width;
+      return Promise.resolve('data:image/jpeg;base64,test');
+    },
+  );
 
   const handler = downloadAsImageOptimized('div', 'My Chart');
   const exportPromise = handler(syntheticEventFor(container));
@@ -401,6 +418,33 @@ test('restores column pixel widths via applyColumnState with flex stripped after
   jest.useRealTimers();
 });
 
+test('restores original column state with flex in finally after capture', async () => {
+  jest.useFakeTimers();
+  const { container, agContainer, cleanup } = buildAgGridElement();
+  const api = attachMockApi(agContainer);
+
+  const savedState = [
+    { colId: 'col1', width: 300, flex: 1, hide: false },
+    { colId: 'col2', width: 400, flex: 1.5, hide: false },
+  ];
+  (api as any).getColumnState = jest.fn(() => savedState);
+  (api as any).applyColumnState = jest.fn();
+
+  const handler = downloadAsImageOptimized('div', 'My Chart');
+  const exportPromise = handler(syntheticEventFor(container));
+  await jest.runAllTimersAsync();
+  await exportPromise;
+
+  // Last call must restore the original state (with flex) so the live grid is unaffected
+  expect((api as any).applyColumnState.mock.calls.at(-1)[0]).toEqual({
+    state: savedState,
+    applyOrder: false,
+  });
+
+  cleanup();
+  jest.useRealTimers();
+});
+
 test('falls back to agRootWrapper.offsetWidth when getColumnState returns no visible columns', async () => {
   jest.useFakeTimers();
   const { container, agContainer, agRootWrapper, cleanup } =
@@ -419,10 +463,12 @@ test('falls back to agRootWrapper.offsetWidth when getColumnState returns no vis
   });
 
   let capturedWidth: number | undefined;
-  mockToJpeg.mockImplementation((_el: HTMLElement, opts: { width?: number }) => {
-    capturedWidth = opts.width;
-    return Promise.resolve('data:image/jpeg;base64,test');
-  });
+  mockToJpeg.mockImplementation(
+    (_el: HTMLElement, opts: { width?: number }) => {
+      capturedWidth = opts.width;
+      return Promise.resolve('data:image/jpeg;base64,test');
+    },
+  );
 
   const handler = downloadAsImageOptimized('div', 'My Chart');
   const exportPromise = handler(syntheticEventFor(container));
@@ -444,7 +490,10 @@ test('restores ag-cell styles after capture even when toJpeg throws', async () =
 
   const row = document.createElement('div');
   row.className = 'ag-row';
-  Object.defineProperty(row, 'offsetHeight', { get: () => 28, configurable: true });
+  Object.defineProperty(row, 'offsetHeight', {
+    get: () => 28,
+    configurable: true,
+  });
   const cell = document.createElement('div');
   cell.className = 'ag-cell';
   cell.style.minHeight = '100%';
@@ -496,6 +545,58 @@ test('does not throw when resetRowHeights is absent from the api', async () => {
 
   cleanup();
   jest.useRealTimers();
+});
+
+test('falls through to clone path for dashboard export with a single ag-grid chart', async () => {
+  const dashboard = document.createElement('div');
+  dashboard.className = 'dashboard';
+
+  const agContainer = document.createElement('div');
+  agContainer.setAttribute('data-themed-ag-grid', 'true');
+  const agRootWrapper = document.createElement('div');
+  agRootWrapper.className = 'ag-root-wrapper';
+  agContainer.appendChild(agRootWrapper);
+  (agContainer as any)._agGridFirstDataRendered = true;
+  dashboard.appendChild(agContainer);
+  document.body.appendChild(dashboard);
+
+  const handler = downloadAsImageOptimized('.dashboard', 'My Dashboard', true);
+  await handler({ currentTarget: {} } as any);
+
+  expect(mockToJpeg).toHaveBeenCalledWith(
+    expect.any(HTMLElement),
+    expect.objectContaining({ quality: 0.95 }),
+  );
+  expect(mockAddWarningToast).not.toHaveBeenCalled();
+
+  document.body.removeChild(dashboard);
+});
+
+test('falls through to clone path for dashboard export with multiple ag-grid charts', async () => {
+  const dashboard = document.createElement('div');
+  dashboard.className = 'dashboard';
+
+  for (let i = 0; i < 2; i += 1) {
+    const agContainer = document.createElement('div');
+    agContainer.setAttribute('data-themed-ag-grid', 'true');
+    const agRootWrapper = document.createElement('div');
+    agRootWrapper.className = 'ag-root-wrapper';
+    agContainer.appendChild(agRootWrapper);
+    (agContainer as any)._agGridFirstDataRendered = true;
+    dashboard.appendChild(agContainer);
+  }
+  document.body.appendChild(dashboard);
+
+  const handler = downloadAsImageOptimized('.dashboard', 'My Dashboard', true);
+  await handler({ currentTarget: {} } as any);
+
+  expect(mockToJpeg).toHaveBeenCalledWith(
+    expect.any(HTMLElement),
+    expect.objectContaining({ quality: 0.95 }),
+  );
+  expect(mockAddWarningToast).not.toHaveBeenCalled();
+
+  document.body.removeChild(dashboard);
 });
 
 test('captures JPEG for non-ag-grid elements via the clone path', async () => {
@@ -561,7 +662,7 @@ test('ag-grid path falls back to white background when theme is absent', async (
 
   expect(mockToJpeg).toHaveBeenCalledWith(
     expect.any(HTMLElement),
-    expect.objectContaining({ bgcolor: '#ffffff' }),
+    expect.objectContaining({ bgcolor: undefined }),
   );
 
   cleanup();
@@ -577,7 +678,7 @@ test('clone path falls back to white background when theme is absent', async () 
 
   expect(mockToJpeg).toHaveBeenCalledWith(
     expect.any(HTMLElement),
-    expect.objectContaining({ bgcolor: '#ffffff' }),
+    expect.objectContaining({ bgcolor: undefined }),
   );
 
   document.body.removeChild(container);
