@@ -67,6 +67,20 @@ const SUPERSET_CUSTOM_TOKENS: Set<string> = new Set([
   'labelDatasetVirtualBg',
   'labelDatasetVirtualBorderColor',
   'labelDatasetVirtualIconColor',
+
+  // Editor tokens
+  'colorEditorSelection',
+
+  // Secondary button tokens
+  'buttonSecondaryColor',
+  'buttonSecondaryBg',
+  'buttonSecondaryBorderColor',
+  'buttonSecondaryHoverColor',
+  'buttonSecondaryHoverBg',
+  'buttonSecondaryHoverBorderColor',
+  'buttonSecondaryActiveColor',
+  'buttonSecondaryActiveBg',
+  'buttonSecondaryActiveBorderColor',
 ]);
 
 /**
