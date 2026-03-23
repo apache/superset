@@ -177,11 +177,14 @@ class UploadCommand(BaseCommand):
             .one_or_none()
         )
         if not sqla_table:
+            from superset.subjects.utils import subjects_from_owners
+
+            user = get_user()
             sqla_table = SqlaTable(
                 table_name=self._table_name,
                 database=self._model,
                 database_id=self._model_id,
-                owners=[get_user()],
+                editors=subjects_from_owners([user] if user else []),
                 schema=self._schema,
             )
             db.session.add(sqla_table)

@@ -21,15 +21,16 @@ from flask_appbuilder import Model
 from flask_appbuilder.security.sqla.models import User
 
 from superset import db
-from superset.connectors.sqla.models import SqlaTable, sqlatable_user
+from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
-from superset.models.dashboard import (
-    Dashboard,
-    dashboard_slices,
-    dashboard_user,
-    DashboardRoles,
+from superset.models.dashboard import Dashboard, dashboard_slices
+from superset.models.slice import Slice
+from superset.subjects.models import (
+    chart_editors,
+    dashboard_editors,
+    dashboard_viewers,
+    sqlatable_editors,
 )
-from superset.models.slice import Slice, slice_user
 from tests.integration_tests.dashboards.dashboard_test_utils import (
     random_slug,
     random_str,
@@ -80,20 +81,23 @@ def create_dashboard(
     json_metadata: str = "",
     position_json: str = "",
 ) -> Dashboard:
+    from tests.integration_tests.base_tests import subjects_from_users
+
     dashboard_title = dashboard_title if dashboard_title is not None else random_title()
     slug = slug if slug is not None else random_slug()
-    owners = owners if owners is not None else []
     slices = slices if slices is not None else []
-    return Dashboard(
+    dashboard = Dashboard(
         dashboard_title=dashboard_title,
         slug=slug,
         published=published,
-        owners=owners,
         css=css,
         position_json=position_json,
         json_metadata=json_metadata,
         slices=slices,
     )
+    if owners:
+        dashboard.editors = subjects_from_users(owners)
+    return dashboard
 
 
 def insert_model(dashboard: Model) -> None:
@@ -161,12 +165,14 @@ def create_datasource_table(
     database: Optional[Database] = None,
     owners: Optional[list[User]] = None,
 ) -> SqlaTable:
+    from tests.integration_tests.base_tests import subjects_from_users
+
     name = name if name is not None else random_str()
-    owners = owners if owners is not None else []
+    editors = subjects_from_users(owners) if owners else []
     if database:
-        return SqlaTable(table_name=name, database=database, owners=owners)
+        return SqlaTable(table_name=name, database=database, editors=editors)
     db_id = db_id if db_id is not None else create_database_to_db(name=name + "_db").id
-    return SqlaTable(table_name=name, database_id=db_id, owners=owners)
+    return SqlaTable(table_name=name, database_id=db_id, editors=editors)
 
 
 def create_database_to_db(name: Optional[str] = None) -> Database:
@@ -213,23 +219,27 @@ def delete_all_inserted_dashboards():
 
 def delete_dashboard(dashboard: Dashboard, do_commit: bool = False) -> None:
     logger.info("deleting dashboard%s", dashboard.id)
-    delete_dashboard_roles_associations(dashboard)
-    delete_dashboard_users_associations(dashboard)
+    delete_dashboard_editor_associations(dashboard)
+    delete_dashboard_viewer_associations(dashboard)
     delete_dashboard_slices_associations(dashboard)
     db.session.delete(dashboard)
     if do_commit:
         db.session.commit()
 
 
-def delete_dashboard_users_associations(dashboard: Dashboard) -> None:
+def delete_dashboard_editor_associations(dashboard: Dashboard) -> None:
     db.session.execute(
-        dashboard_user.delete().where(dashboard_user.c.dashboard_id == dashboard.id)
+        dashboard_editors.delete().where(
+            dashboard_editors.c.dashboard_id == dashboard.id
+        )
     )
 
 
-def delete_dashboard_roles_associations(dashboard: Dashboard) -> None:
+def delete_dashboard_viewer_associations(dashboard: Dashboard) -> None:
     db.session.execute(
-        DashboardRoles.delete().where(DashboardRoles.c.dashboard_id == dashboard.id)
+        dashboard_viewers.delete().where(
+            dashboard_viewers.c.dashboard_id == dashboard.id
+        )
     )
 
 
@@ -260,14 +270,16 @@ def delete_all_inserted_slices():
 
 def delete_slice(slice_: Slice, do_commit: bool = False) -> None:
     logger.info("deleting slice%s", slice_.id)
-    delete_slice_users_associations(slice_)
+    delete_slice_editor_associations(slice_)
     db.session.delete(slice_)
     if do_commit:
         db.session.commit()
 
 
-def delete_slice_users_associations(slice_: Slice) -> None:
-    db.session.execute(slice_user.delete().where(slice_user.c.slice_id == slice_.id))
+def delete_slice_editor_associations(slice_: Slice) -> None:
+    db.session.execute(
+        chart_editors.delete().where(chart_editors.c.chart_id == slice_.id)
+    )
 
 
 def delete_all_inserted_tables():
@@ -293,15 +305,15 @@ def delete_all_inserted_tables():
 
 def delete_sqltable(table: SqlaTable, do_commit: bool = False) -> None:
     logger.info("deleting table%s", table.id)
-    delete_table_users_associations(table)
+    delete_table_editor_associations(table)
     db.session.delete(table)
     if do_commit:
         db.session.commit()
 
 
-def delete_table_users_associations(table: SqlaTable) -> None:
+def delete_table_editor_associations(table: SqlaTable) -> None:
     db.session.execute(
-        sqlatable_user.delete().where(sqlatable_user.c.table_id == table.id)
+        sqlatable_editors.delete().where(sqlatable_editors.c.table_id == table.id)
     )
 
 

@@ -268,7 +268,7 @@ describe('ChartList - Global Filter Interactions', () => {
     const standardFilters = [
       'Type',
       'Dataset',
-      'Owner',
+      'Editor',
       'Certified',
       'Favorite',
       'Dashboard',

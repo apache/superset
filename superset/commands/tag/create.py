@@ -100,7 +100,7 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
             try:
                 if model := to_object_model(object_type, obj_id):
                     try:
-                        security_manager.raise_for_ownership(model)
+                        security_manager.raise_for_editorship(model)
                     except SupersetSecurityException:
                         if (
                             not model.created_by

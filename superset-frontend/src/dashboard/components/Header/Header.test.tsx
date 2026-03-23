@@ -23,7 +23,7 @@ import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import fetchMock from 'fetch-mock';
 import { getExtensionsRegistry, JsonObject } from '@superset-ui/core';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
-import getOwnerName from 'src/utils/getOwnerName';
+import getUserName from 'src/utils/getUserName';
 import { render, createStore } from 'spec/helpers/testing-library';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import Header from '.';
@@ -60,6 +60,7 @@ const initialState = {
       last_name: 'Mon',
     },
     owners: [{ first_name: 'John', last_name: 'Doe', id: 1 }],
+    editors: [{ id: 1, label: 'John Doe', type: 1 }],
   },
   user: {
     createdOn: '2021-04-27T18:12:38.952304',
@@ -303,7 +304,7 @@ test('should publish', () => {
 test('should render metadata', () => {
   setup();
   expect(
-    screen.getByText(getOwnerName(initialState.dashboardInfo.created_by)),
+    screen.getByText(getUserName(initialState.dashboardInfo.created_by)),
   ).toBeInTheDocument();
   expect(
     screen.getByText(initialState.dashboardInfo.changed_on_delta_humanized),

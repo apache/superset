@@ -31,7 +31,6 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
-    Table,
     Text,
 )
 from sqlalchemy.engine.base import Connection
@@ -43,6 +42,8 @@ from superset_core.common.models import Chart as CoreChart
 from superset import db, is_feature_enabled, security_manager
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
+from superset.subjects.models import chart_editors, chart_viewers, Subject
+from superset.subjects.types import SubjectType
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_chart_digest
@@ -50,18 +51,13 @@ from superset.utils import core as utils, json
 from superset.viz import BaseViz, viz_types
 
 if TYPE_CHECKING:
+    from flask_appbuilder.security.sqla.models import User
+
     from superset.common.query_context import QueryContext
     from superset.common.query_context_factory import QueryContextFactory
     from superset.connectors.sqla.models import SqlaTable
 
 metadata = Model.metadata  # pylint: disable=no-member
-slice_user = Table(
-    "slice_user",
-    metadata,
-    Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("ab_user.id", ondelete="CASCADE")),
-    Column("slice_id", Integer, ForeignKey("slices.id", ondelete="CASCADE")),
-)
 logger = logging.getLogger(__name__)
 
 
@@ -97,11 +93,22 @@ class Slice(  # pylint: disable=too-many-public-methods
     last_saved_by = relationship(
         security_manager.user_model, foreign_keys=[last_saved_by_fk]
     )
-    owners = relationship(
-        security_manager.user_model,
-        secondary=slice_user,
+    editors = relationship(
+        Subject,
+        secondary=chart_editors,
         passive_deletes=True,
     )
+    viewers = relationship(
+        Subject,
+        secondary=chart_viewers,
+        passive_deletes=True,
+    )
+
+    @property
+    def owners(self) -> list[User]:
+        """Derive owners from user-type editors (backwards compat)."""
+        return [s.user for s in self.editors if s.type == SubjectType.USER and s.user]
+
     tags = relationship(
         "Tag",
         secondary="tagged_object",
@@ -225,6 +232,8 @@ class Slice(  # pylint: disable=too-many-public-methods
             "query_context": self.query_context,
             "modified": self.modified(),
             "owners": [owner.id for owner in self.owners],
+            "editors": [s.id for s in self.editors],
+            "viewers": [s.id for s in self.viewers],
             "slice_id": self.id,
             "slice_name": self.slice_name,
             "slice_url": self.slice_url,

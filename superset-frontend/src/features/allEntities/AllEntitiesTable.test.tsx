@@ -40,7 +40,7 @@ describe('AllEntitiesTable', () => {
         changed_on: '2023-11-20T12:34:56Z',
         created_by: 1,
         creator: 'John Doe',
-        owners: [{ id: 1, first_name: 'John', last_name: 'Doe' }],
+        editors: [],
         tags: [
           { id: 101, name: 'Sales', type: 'TagType.custom' },
           { id: 42, name: 'Current Tag', type: 'TagType.custom' },
@@ -56,7 +56,7 @@ describe('AllEntitiesTable', () => {
         changed_on: '2023-11-19T12:00:00Z',
         created_by: 2,
         creator: 'Jane Smith',
-        owners: [{ id: 2, first_name: 'Jane', last_name: 'Smith' }],
+        editors: [],
         tags: [
           { id: 102, name: 'Revenue', type: 'TagType.custom' },
           { id: 42, name: 'Current Tag', type: 'TagType.custom' },
@@ -72,7 +72,7 @@ describe('AllEntitiesTable', () => {
         changed_on: '2023-11-18T09:30:00Z',
         created_by: 3,
         creator: 'Alice Brown',
-        owners: [{ id: 3, first_name: 'Alice', last_name: 'Brown' }],
+        editors: [],
         tags: [
           { id: 103, name: 'Engagement', type: 'TagType.custom' },
           { id: 42, name: 'Current Tag', type: 'TagType.custom' },

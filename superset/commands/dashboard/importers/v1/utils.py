@@ -205,7 +205,8 @@ def import_dashboard(  # noqa: C901
     if existing:
         if overwrite and can_write and user:
             if not security_manager.can_access_dashboard(existing) or (
-                user not in existing.owners and not security_manager.is_admin()
+                not security_manager.is_editor(existing)
+                and not security_manager.is_admin()
             ):
                 raise ImportFailedError(
                     "A dashboard already exists and user doesn't "
@@ -241,7 +242,11 @@ def import_dashboard(  # noqa: C901
     if dashboard.id is None:
         db.session.flush()
 
-    if (user := get_user()) and user not in dashboard.owners:
-        dashboard.owners.append(user)
+    if user := get_user():
+        from superset.subjects.utils import subjects_from_owners
+
+        for subj in subjects_from_owners([user]):
+            if subj not in dashboard.editors:
+                dashboard.editors.append(subj)
 
     return dashboard

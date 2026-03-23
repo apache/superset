@@ -19,7 +19,7 @@
 
 import { ClientErrorObject, SupersetError } from '@superset-ui/core';
 import { FC } from 'react';
-import { useChartOwnerNames } from 'src/hooks/apiResources';
+import { useChartEditorNames } from 'src/hooks/apiResources';
 import { ErrorMessageWithStackTrace } from 'src/components';
 import { ChartSource } from 'src/types/ChartSource';
 
@@ -35,13 +35,13 @@ export type Props = {
 const DEFAULT_CHART_ERROR = 'Data error';
 
 export const ChartErrorMessage: FC<Props> = ({ chartId, error, ...props }) => {
-  // fetches the chart owners and adds them to the extra data of the error message
-  const { result: owners } = useChartOwnerNames(chartId);
+  // fetches the chart editors and adds them to the extra data of the error message
+  const { result: editors } = useChartEditorNames(chartId);
 
   // don't mutate props
   const ownedError = error && {
     ...error,
-    extra: { ...error.extra, owners },
+    extra: { ...error.extra, owners: editors },
   };
 
   return (

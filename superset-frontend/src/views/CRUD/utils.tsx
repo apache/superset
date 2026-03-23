@@ -38,10 +38,10 @@ import { findPermission } from 'src/utils/findPermission';
 import { User } from 'src/types/bootstrapTypes';
 import { RecentActivity, WelcomeTable } from 'src/features/home/types';
 import {
-  OwnerSelectLabel,
-  OWNER_TEXT_LABEL_PROP,
-  OWNER_EMAIL_PROP,
-} from 'src/features/owners/OwnerSelectLabel';
+  SubjectSelectLabel,
+  SUBJECT_TEXT_LABEL_PROP,
+  SUBJECT_DETAIL_PROP,
+} from 'src/features/subjects/SubjectSelectLabel';
 import {
   Dashboard,
   EncryptedExtraField,
@@ -199,14 +199,17 @@ export const getEditedObjects = (userId: string | number) => {
     .catch(err => err);
 };
 
-export const getUserOwnedObjects = (
+export const getUserEditedObjects = (
   userId: string | number,
   resource: string,
   filters: Filter[] = [
     {
-      col: 'owners',
-      opr: 'rel_m_m',
-      value: `${userId}`,
+      col: 'id',
+      opr:
+        resource === 'dashboard'
+          ? 'dashboard_is_editable'
+          : 'chart_is_editable',
+      value: true,
     },
   ],
   selectColumns?: string[],
@@ -269,34 +272,46 @@ export const getRecentActivityObjs = (
 export const createFetchRelated = createFetchResourceMethod('related');
 export const createFetchDistinct = createFetchResourceMethod('distinct');
 
-export const createFetchOwners = (
-  resource: string,
-  handleError: (error: Response) => void,
-  user?: { userId: string | number; firstName: string; lastName: string },
-) => {
-  const fetchRelated = createFetchRelated(
-    resource,
-    'owners',
-    handleError,
-    user,
-  );
-  return async (filterValue = '', page: number, pageSize: number) => {
-    const result = await fetchRelated(filterValue, page, pageSize);
-    return {
-      ...result,
-      data: result.data.map(item => {
-        const email = item.extra?.email as string | undefined;
-        return {
-          label: OwnerSelectLabel({ name: item.label, email }),
-          value: item.value,
-          title: item.label,
-          [OWNER_TEXT_LABEL_PROP]: item.label,
-          [OWNER_EMAIL_PROP]: email ?? '',
-        };
-      }),
+const createFetchSubjects =
+  (relation: string) =>
+  (
+    resource: string,
+    handleError: (error: Response) => void,
+    user?: { userId: string | number; firstName: string; lastName: string },
+  ) => {
+    const fetchRelated = createFetchRelated(
+      resource,
+      relation,
+      handleError,
+      user,
+    );
+    return async (filterValue = '', page: number, pageSize: number) => {
+      const result = await fetchRelated(filterValue, page, pageSize);
+      return {
+        ...result,
+        data: result.data.map(item => {
+          const secondaryLabel = item.extra?.secondary_label as
+            | string
+            | undefined;
+          const type = item.extra?.type as number | undefined;
+          return {
+            label: SubjectSelectLabel({
+              label: item.label,
+              type,
+              secondaryLabel,
+            }),
+            value: item.value,
+            title: item.label,
+            [SUBJECT_TEXT_LABEL_PROP]: item.label,
+            [SUBJECT_DETAIL_PROP]: secondaryLabel ?? '',
+          };
+        }),
+      };
     };
   };
-};
+
+export const createFetchEditors = createFetchSubjects('editors');
+export const createFetchViewers = createFetchSubjects('viewers');
 
 export function createErrorHandler(
   handleErrorFunc: (
@@ -383,9 +398,9 @@ export function handleDashboardDelete(
         ],
         filters: [
           {
-            id: 'owners',
-            operator: 'rel_m_m',
-            value: `${userId}`,
+            id: 'id',
+            operator: 'dashboard_is_editable',
+            value: true,
           },
         ],
       };
@@ -637,9 +652,12 @@ export function getFilterValues(
   if (tab === TableTab.Mine && user) {
     return [
       {
-        id: 'owners',
-        operator: 'rel_m_m',
-        value: `${user.userId}`,
+        id: 'id',
+        operator:
+          welcomeTable === WelcomeTable.Dashboards
+            ? 'dashboard_is_editable'
+            : 'chart_is_editable',
+        value: true,
       },
     ];
   }

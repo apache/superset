@@ -104,6 +104,23 @@ class BaseFilterRelatedRoles(BaseFilter):  # pylint: disable=too-few-public-meth
         return query
 
 
+class BaseFilterRelatedGroups(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    Filter to apply on related groups.
+    """
+
+    name = lazy_gettext("group")
+    arg_name = "group"
+
+    def apply(self, query: Query, value: Optional[Any]) -> Query:
+        if extra_filters := app.config["EXTRA_RELATED_QUERY_FILTERS"].get(
+            "group",
+        ):
+            return extra_filters(query)
+
+        return query
+
+
 class FilterRelatedTables(BaseFilter):  # pylint: disable=too-few-public-methods
     """
     A filter to allow searching for related tables.

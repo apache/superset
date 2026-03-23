@@ -741,17 +741,17 @@ async def generate_chart(  # noqa: C901
 
             # Re-fetch with eager-loaded relationships to avoid detached
             # instance errors when serialize_chart_object accesses .tags
-            # and .owners.  The preceding commit may invalidate the session
+            # and .editors.  The preceding commit may invalidate the session
             # in multi-tenant environments; on failure, build a minimal
             # chart_data dict from scalar attributes that are already loaded
-            # — relationship fields (owners, tags) would trigger
+            # — relationship fields (editors, tags) would trigger
             # lazy-loading on the same dead session.
             try:
                 chart = (
                     ChartDAO.find_by_id(
                         chart.id,
                         query_options=[
-                            joinedload(Slice.owners),
+                            joinedload(Slice.editors),
                             joinedload(Slice.tags),
                         ],
                     )

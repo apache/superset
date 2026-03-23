@@ -165,8 +165,9 @@ export const hydrateExplore =
       can_copy_clipboard: granularExport
         ? findPermission('can_copy_clipboard', 'Superset', user?.roles)
         : true,
-      can_overwrite: ensureIsArray(slice?.owners).includes(
-        user?.userId as number,
+      can_overwrite: ensureIsArray(slice?.editors).some(
+        (editor: { id: number } | number) =>
+          (typeof editor === 'number' ? editor : editor.id) === user?.userId,
       ),
       isDatasourceMetaLoading: false,
       isStarred: false,

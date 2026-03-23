@@ -16,9 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type Owner from 'src/types/Owner';
 
-export interface FacePileProps {
-  users: Owner[];
-  maxCount?: number;
+/**
+ * Minimal User reference as returned from the API
+ * (used for changed_by, created_by, etc.)
+ */
+
+export default interface User {
+  first_name?: string;
+  id: number;
+  last_name?: string;
+  full_name?: string;
+  email?: string;
 }

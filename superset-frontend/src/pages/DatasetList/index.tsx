@@ -25,10 +25,11 @@ import rison from 'rison';
 import {
   createFetchRelated,
   createFetchDistinct,
-  createFetchOwners,
+  createFetchEditors,
   createErrorHandler,
 } from 'src/views/CRUD/utils';
-import { OWNER_OPTION_FILTER_PROPS } from 'src/features/owners/OwnerSelectLabel';
+import { SUBJECT_OPTION_FILTER_PROPS } from 'src/features/subjects/SubjectSelectLabel';
+import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { ColumnObject } from 'src/features/datasets/types';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
@@ -43,7 +44,6 @@ import {
 } from '@superset-ui/core/components';
 import { DatasourceModal, GenericLink } from 'src/components';
 import {
-  FacePile,
   ImportModal as ImportModelsModal,
   ModifiedInfo,
   ListView,
@@ -54,7 +54,7 @@ import {
 import { Typography } from '@superset-ui/core/components/Typography';
 import handleResourceExport from 'src/utils/export';
 import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
-import Owner from 'src/types/Owner';
+import Subject from 'src/types/Subject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Icons } from '@superset-ui/core/components/Icons';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
@@ -124,7 +124,7 @@ type Dataset = {
   kind: string;
   explore_url: string;
   id: number;
-  owners: Array<Owner>;
+  editors: Array<Subject>;
   schema: string;
   table_name: string;
 };
@@ -392,11 +392,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       {
         Cell: ({
           row: {
-            original: { owners = [] },
+            original: { editors = [] },
           },
-        }: any) => <FacePile users={owners} />,
-        Header: t('Owners'),
-        id: 'owners',
+        }: any) => <SubjectPile subjects={editors} />,
+        Header: t('Editors'),
+        id: 'editors',
         disableSortBy: true,
         size: 'lg',
       },
@@ -424,7 +424,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Cell: ({ row: { original } }: any) => {
           // Verify owner or isAdmin
           const allowEdit =
-            original.owners.map((o: Owner) => o.id).includes(user.userId) ||
+            original.editors?.map((o: Subject) => o.id).includes(user.userId) ||
             isUserAdmin(user);
 
           const handleEdit = () => openDatasetEditModal(original);
@@ -590,23 +590,23 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
-        Header: t('Owner'),
+        Header: t('Editor'),
         key: 'owner',
-        id: 'owners',
+        id: 'editors',
         input: 'select',
         operator: FilterOperator.RelationManyMany,
         unfilteredLabel: 'All',
-        fetchSelects: createFetchOwners(
+        fetchSelects: createFetchEditors(
           'dataset',
           createErrorHandler(errMsg =>
             t(
-              'An error occurred while fetching dataset owner values: %s',
+              'An error occurred while fetching dataset editor values: %s',
               errMsg,
             ),
           ),
           user,
         ),
-        optionFilterProps: OWNER_OPTION_FILTER_PROPS,
+        optionFilterProps: SUBJECT_OPTION_FILTER_PROPS,
         paginate: true,
         dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },

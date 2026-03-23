@@ -436,6 +436,18 @@ def get_default_spinner_svg() -> str | None:
         return None
 
 
+def _get_user_subjects(user_id: int | None) -> list[int]:
+    """Return subject IDs for the current user, or empty list."""
+    if user_id is None:
+        return []
+    try:
+        from superset.subjects.utils import get_user_subject_ids
+
+        return get_user_subject_ids(user_id)
+    except Exception:  # noqa: S110
+        return []
+
+
 @cache_manager.cache.memoize(timeout=60)
 def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     user_id: int | None, locale: Locale | None
@@ -534,6 +546,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         ],
         "menu_data": menu_data(g.user),
         "pdf_compression_level": app.config["PDF_COMPRESSION_LEVEL"],
+        "user_subjects": _get_user_subjects(user_id),
     }
 
     bootstrap_data.update(app.config["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))

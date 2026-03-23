@@ -88,7 +88,7 @@ test('fetches data', async () => {
 
   const calls = fetchMock.callHistory.calls(/dashboard\/\?q/);
   expect(calls[0].url).toMatchInlineSnapshot(
-    `"http://localhost/api/v1/dashboard/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25,select_columns:!(id,dashboard_title,published,url,slug,changed_by,changed_by.id,changed_by.first_name,changed_by.last_name,changed_on_delta_humanized,owners,owners.id,owners.first_name,owners.last_name,tags.id,tags.name,tags.type,status,certified_by,certification_details,changed_on))"`,
+    `"http://localhost/api/v1/dashboard/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25,select_columns:!(id,dashboard_title,published,url,slug,changed_by,changed_by.id,changed_by.first_name,changed_by.last_name,changed_on_delta_humanized,owners,owners.id,owners.first_name,owners.last_name,editors.id,editors.label,editors.img,editors.type,tags.id,tags.name,tags.type,status,certified_by,certification_details,changed_on))"`,
   );
 });
 
@@ -184,7 +184,7 @@ test('renders all standard filters', async () => {
   await screen.findByTestId('dashboard-list-view');
 
   // Verify filter labels exist
-  expect(screen.getByText('Owner')).toBeInTheDocument();
+  expect(screen.getByText('Editor')).toBeInTheDocument();
   expect(screen.getByText('Status')).toBeInTheDocument();
   expect(screen.getByText('Modified by')).toBeInTheDocument();
   expect(screen.getByText('Certified')).toBeInTheDocument();
@@ -242,7 +242,7 @@ test('selecting Owner filter encodes rel_m_m owner in API call', async () => {
     ).toBeInTheDocument();
   });
 
-  await selectOption('Admin User', 'Owner');
+  await selectOption('Admin User', 'Editor');
 
   await waitFor(() => {
     const latest = getLatestDashboardApiCall();

@@ -26,7 +26,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy import select
 from sqlalchemy.orm import Query
 
-from superset import is_feature_enabled, security_manager
+from superset import security_manager
 from superset.commands.dashboard.exceptions import (
     DashboardAccessDeniedError,
     DashboardForbiddenError,
@@ -79,11 +79,19 @@ class DashboardDAO(BaseDAO[Dashboard]):
             if not isinstance(c, ColumnOperator):
                 c = ColumnOperator.model_validate(c)
             if c.col == "owner":
-                from superset.models.dashboard import dashboard_user
+                from superset.subjects.models import dashboard_editors, Subject
 
                 operator_enum = ColumnOperatorEnum(c.opr)
-                subq = select(dashboard_user.c.dashboard_id).where(
-                    operator_enum.apply(dashboard_user.c.user_id, c.value)
+                subq = (
+                    select(dashboard_editors.c.dashboard_id)
+                    .join(
+                        Subject.__table__,
+                        Subject.__table__.c.id == dashboard_editors.c.subject_id,
+                    )
+                    .where(
+                        Subject.__table__.c.type == 1,
+                        operator_enum.apply(Subject.__table__.c.user_id, c.value),
+                    )
                 )
                 query = query.filter(
                     Dashboard.id.in_(subq)  # type: ignore[attr-defined,unused-ignore]
@@ -125,8 +133,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
             query = (
                 db.session.query(Dashboard)
                 .filter(id_or_slug_filter(id_or_slug))
-                .outerjoin(Dashboard.owners)
-                .outerjoin(Dashboard.roles)
+                .outerjoin(Dashboard.editors)
             )
             # Apply dashboard base filters
             query = cls.base_filter("id", SQLAInterface(Dashboard, db.session)).apply(
@@ -352,13 +359,15 @@ class DashboardDAO(BaseDAO[Dashboard]):
     def copy_dashboard(
         cls, original_dash: Dashboard, data: dict[str, Any]
     ) -> Dashboard:
-        if is_feature_enabled("DASHBOARD_RBAC") and not security_manager.is_owner(
-            original_dash
-        ):
+        if not security_manager.is_editor(original_dash):
             raise DashboardForbiddenError()
 
         dash = Dashboard()
-        dash.owners = [g.user] if g.user else []
+        if g.user:
+            from superset.subjects.utils import get_user_subject
+
+            user_subject = get_user_subject(g.user.id)
+            dash.editors = [user_subject] if user_subject else []
         dash.dashboard_title = data["dashboard_title"]
         dash.css = data.get("css")
 
@@ -368,7 +377,11 @@ class DashboardDAO(BaseDAO[Dashboard]):
             # Duplicating slices as well, mapping old ids to new ones
             for slc in original_dash.slices:
                 new_slice = slc.clone()
-                new_slice.owners = [g.user] if g.user else []
+                if g.user:
+                    from superset.subjects.utils import get_user_subject
+
+                    user_subject = get_user_subject(g.user.id)
+                    new_slice.editors = [user_subject] if user_subject else []
                 db.session.add(new_slice)
                 db.session.flush()
                 new_slice.dashboards.append(dash)

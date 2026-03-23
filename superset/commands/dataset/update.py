@@ -44,6 +44,7 @@ from superset.commands.dataset.exceptions import (
     DatasetUpdateFailedError,
     MultiCatalogDisabledValidationError,
 )
+from superset.commands.utils import compute_subjects
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dataset import DatasetDAO
 from superset.datasets.schemas import FolderSchema
@@ -93,7 +94,6 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []
-        owner_ids: Optional[list[int]] = self._properties.get("owners")
 
         # Validate/populate model exists
         self._model = DatasetDAO.find_by_id(self._model_id)
@@ -102,19 +102,12 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
 
         # Check permission to update the dataset
         try:
-            security_manager.raise_for_ownership(self._model)
+            security_manager.raise_for_editorship(self._model)
         except SupersetSecurityException as ex:
             raise DatasetForbiddenError() from ex
 
-        # Validate/Populate owner
-        try:
-            owners = self.compute_owners(
-                self._model.owners,
-                owner_ids,
-            )
-            self._properties["owners"] = owners
-        except ValidationError as ex:
-            exceptions.append(ex)
+        # Validate/Populate editors (and derive owners)
+        compute_subjects(self._model, self._properties, exceptions)
 
         self._validate_dataset_source(exceptions)
         self._validate_semantics(exceptions)

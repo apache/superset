@@ -516,7 +516,7 @@ class Superset(BaseSupersetView):
 
         # slc perms
         slice_add_perm = security_manager.can_access("can_write", "Chart")
-        slice_overwrite_perm = security_manager.is_owner(slc) if slc else False
+        slice_overwrite_perm = security_manager.is_editor(slc) if slc else False
         if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
             slice_download_perm = security_manager.can_access(
                 "can_export_data", "Superset"
@@ -630,7 +630,9 @@ class Superset(BaseSupersetView):
         if action == "saveas":
             if "slice_id" in form_data:
                 form_data.pop("slice_id")  # don't save old slice_id
-            slc = Slice(owners=[g.user] if g.user else [])
+            from superset.subjects.utils import subjects_from_owners
+
+            slc = Slice(editors=subjects_from_owners([g.user] if g.user else []))
 
         utils.remove_extra_adhoc_filters(form_data)
 
@@ -666,7 +668,7 @@ class Superset(BaseSupersetView):
                 .one(),
             )
             # check edit dashboard permissions
-            dash_overwrite_perm = security_manager.is_owner(dash)
+            dash_overwrite_perm = security_manager.is_editor(dash)
             if not dash_overwrite_perm:
                 return json_error_response(
                     _("You don't have the rights to alter this dashboard"),
@@ -682,9 +684,11 @@ class Superset(BaseSupersetView):
                     status=403,
                 )
 
+            from superset.subjects.utils import subjects_from_owners
+
             dash = Dashboard(
                 dashboard_title=request.args.get("new_dashboard_name"),
-                owners=[g.user] if g.user else [],
+                editors=subjects_from_owners([g.user] if g.user else []),
             )
 
         if dash and slc not in dash.slices:
@@ -818,7 +822,7 @@ class Superset(BaseSupersetView):
             dashboard_id=dashboard.id,
             dashboard_version="v2",
             dash_edit_perm=(
-                security_manager.is_owner(dashboard)
+                security_manager.is_editor(dashboard)
                 and security_manager.can_access("can_write", "Dashboard")
             ),
             edit_mode=(

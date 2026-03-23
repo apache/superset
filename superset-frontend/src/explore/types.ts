@@ -85,7 +85,7 @@ export interface ExplorePageInitialData {
   metadata?: {
     created_on_humanized: string;
     changed_on_humanized: string;
-    owners: string[];
+    editors: string[];
     created_by?: string;
     changed_by?: string;
     color_namespace?: string;

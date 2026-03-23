@@ -39,7 +39,7 @@ import {
 import { findPermission } from 'src/utils/findPermission';
 import { safeStringify } from 'src/utils/safeStringify';
 import Role from 'src/types/Role';
-import Owner from 'src/types/Owner';
+import Subject from 'src/types/Subject';
 import { DashboardLayout, RootState } from 'src/dashboard/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { AlertObject } from 'src/features/alerts/types';
@@ -104,7 +104,7 @@ type DashboardPropertiesUpdate = {
   jsonMetadata?: string;
   certifiedBy?: string;
   certificationDetails?: string;
-  owners?: Owner[];
+  editors?: Subject[];
   roles?: Role[];
   tags?: TagType[];
   theme?: { id: number; theme_name: string; json_data: string } | null;
@@ -439,7 +439,7 @@ const Header = (): JSX.Element => {
       css: customCss,
       dashboard_title: dashboardTitle,
       last_modified_time: actualLastModifiedTime,
-      owners: dashboardInfo.owners,
+      editors: dashboardInfo.editors,
       roles: dashboardInfo.roles,
       slug,
       tags: (dashboardInfo.tags || []).filter(
@@ -488,7 +488,7 @@ const Header = (): JSX.Element => {
     dashboardInfo.common?.conf?.SUPERSET_DASHBOARD_POSITION_DATA_LIMIT,
     dashboardInfo.id,
     dashboardInfo.metadata,
-    dashboardInfo.owners,
+    dashboardInfo.editors,
     dashboardInfo.roles,
     dashboardInfo.tags,
     dashboardTitle,
@@ -558,7 +558,7 @@ const Header = (): JSX.Element => {
         metadata: JSON.parse(updates.jsonMetadata || '{}'),
         certified_by: updates.certifiedBy,
         certification_details: updates.certificationDetails,
-        owners: updates.owners,
+        editors: updates.editors,
         roles: updates.roles,
         tags: updates.tags,
         // Conditional spread: omit `theme` key entirely when undefined

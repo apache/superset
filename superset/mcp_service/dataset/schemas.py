@@ -39,9 +39,9 @@ from superset.mcp_service.common.cache_schemas import MetadataCacheControl
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
-    serialize_user_object,
+    serialize_subject_object,
+    SubjectInfo,
     TagInfo,
-    UserInfo,
 )
 from superset.utils import json
 
@@ -58,7 +58,7 @@ class DatasetFilter(ColumnOperator):
         "table_name",
         "schema",
         "database_name",
-        "owner",
+        "editor",
     ] = Field(
         ...,
         description="Column to filter on. Use get_schema(model_type='dataset') for "
@@ -121,8 +121,8 @@ class DatasetInfo(BaseModel):
         None, description="Humanized creation time"
     )
     tags: List[TagInfo] = Field(default_factory=list, description="Dataset tags")
-    owners: List[UserInfo] = Field(
-        default_factory=list, description="DatasetInfo owners"
+    editors: List[SubjectInfo] = Field(
+        default_factory=list, description="Dataset editors"
     )
     is_virtual: bool | None = Field(
         None, description="Whether the dataset is virtual (uses SQL)"
@@ -385,12 +385,12 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         ]
         if getattr(dataset, "tags", None)
         else [],
-        owners=[
+        editors=[
             info
-            for owner in getattr(dataset, "owners", [])
-            if (info := serialize_user_object(owner)) is not None
+            for editor in getattr(dataset, "editors", [])
+            if (info := serialize_subject_object(editor)) is not None
         ]
-        if getattr(dataset, "owners", None)
+        if getattr(dataset, "editors", None)
         else [],
         is_virtual=getattr(dataset, "is_virtual", None),
         database_id=getattr(dataset, "database_id", None),

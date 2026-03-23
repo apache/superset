@@ -28,6 +28,7 @@ import {
   Flex,
 } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core/translation';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/theme';
 
 import {
@@ -110,7 +111,7 @@ function SaveModal({
       ? refreshFrequency
       : dashboardInfo.metadata?.refresh_frequency; // eslint-disable camelcase
 
-    const data = {
+    const data: Record<string, unknown> = {
       certified_by: dashboardInfo.certified_by,
       certification_details: dashboardInfo.certification_details,
       css: customCss,
@@ -118,7 +119,7 @@ function SaveModal({
         saveType === SAVE_TYPE_NEWDASHBOARD ? newDashName : dashboardTitle,
       duplicate_slices: duplicateSlices,
       last_modified_time: lastModifiedTime,
-      owners: dashboardInfo.owners,
+      editors: dashboardInfo.editors,
       roles: dashboardInfo.roles,
       metadata: {
         ...dashboardInfo?.metadata,
@@ -126,6 +127,10 @@ function SaveModal({
         refresh_frequency: refreshFrequencyToUse,
       },
     };
+
+    if (isFeatureEnabled(FeatureFlag.EnableViewers)) {
+      data.viewers = dashboardInfo.viewers;
+    }
 
     if (saveType === SAVE_TYPE_NEWDASHBOARD && !newDashName) {
       addDangerToast(t('You must pick a name for the new dashboard'));

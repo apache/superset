@@ -52,7 +52,6 @@ import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
 import {
   DatasetRadioState,
   EXPLORE_CHART_DEFAULT,
-  DatasetOwner,
   SqlLabRootState,
 } from 'src/SqlLab/types';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
@@ -245,7 +244,7 @@ export const SaveDatasetModal = ({
               is_dttm: d.is_dttm,
             }),
           ),
-          datasetToOverwrite?.owners?.map((o: DatasetOwner) => o.id),
+          datasetToOverwrite?.editors?.map((o: { id: number }) => o.id),
           true,
         ),
         postFormData(datasetToOverwrite.datasetid, 'table', {
@@ -302,11 +301,15 @@ export const SaveDatasetModal = ({
         endpoint: `/api/v1/dataset/?q=${queryParams}`,
       }).then(response => ({
         data: response.json.result.map(
-          (r: { table_name: string; id: number; owners: [DatasetOwner] }) => ({
+          (r: {
+            table_name: string;
+            id: number;
+            editors: { id: number }[];
+          }) => ({
             value: r.table_name,
             label: r.table_name,
             datasetid: r.id,
-            owners: r.owners,
+            editors: r.editors,
           }),
         ),
         totalCount: response.json.count,

@@ -122,10 +122,23 @@ tables in the **Permissions** dropdown. To select the data sources you want to a
 You can then confirm with users assigned to the **Gamma** role that they see the
 objects (dashboards and slices) associated with the tables you just extended them.
 
+### Subjects
+
+A **subject** is a unified identity that can be granted access to Superset resources such as
+dashboards, charts, and datasets. Subjects come in three types:
+
+- **User** — an individual Superset user
+- **Role** — a FAB role (e.g. Alpha, Gamma, or any custom role)
+- **Group** — a FAB group
+
+Subjects are used throughout Superset to assign **editors** (who can modify a resource) and
+**viewers** (who can view it). For example, adding a role as an editor on a dashboard grants
+everyone with that role edit access, without having to add each user individually.
+
 ### Dashboard Access Control
 
-Access to dashboards is managed via owners (users that have edit permissions to the dashboard).
-Non-owner user access can be managed in two ways. Note that dashboards must be published to be
+Access to dashboards is managed via editors (subjects that have edit permissions to the dashboard).
+Non-editor user access can be managed in two ways. Note that dashboards must be published to be
 visible to other users.
 
 #### Dataset-Based Access (Default)

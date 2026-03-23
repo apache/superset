@@ -22,6 +22,7 @@ from superset import db, security_manager
 from superset.commands.dashboard.update import UpdateDashboardCommand
 from superset.models.dashboard import Dashboard
 from superset.utils.json import dumps
+from tests.integration_tests.base_tests import subjects_from_users
 from tests.integration_tests.fixtures.tabbed_dashboard import (
     tabbed_dashboard,  # noqa: F401
 )
@@ -65,7 +66,7 @@ def test_tab_deletion_single_report(
     report = create_report_notification(
         dashboard=tabbed_dashboard,
         extra={"dashboard": {"anchor": tab_to_delete}},
-        owners=[users[0]],
+        editors=subjects_from_users([users[0]]),
     )
     assert report.active is True
     UpdateDashboardCommand(
@@ -99,19 +100,19 @@ def test_tab_deletion_multiple_reports(
         name="report 1",
         dashboard=tabbed_dashboard,
         extra={"dashboard": {"anchor": tab_to_delete}},
-        owners=[users[0], users[1]],
+        editors=subjects_from_users([users[0], users[1]]),
     )
     report2 = create_report_notification(
         name="report 2",
         dashboard=tabbed_dashboard,
         extra={"dashboard": {"anchor": tab_to_delete}},
-        owners=[users[1]],
+        editors=subjects_from_users([users[1]]),
     )
     report3 = create_report_notification(
         name="report 3",
         dashboard=tabbed_dashboard,
         extra={"dashboard": {"anchor": retained_tab}},
-        owners=[users[2]],
+        editors=subjects_from_users([users[2]]),
     )
 
     assert report1.active is True
@@ -171,13 +172,13 @@ def test_multitple_tabs_removed(
         name="report 1",
         dashboard=tabbed_dashboard,
         extra={"dashboard": {"anchor": tabs_to_delete[0]}},
-        owners=[users[0], users[1]],
+        editors=subjects_from_users([users[0], users[1]]),
     )
     report2 = create_report_notification(
         name="report 2",
         dashboard=tabbed_dashboard,
         extra={"dashboard": {"anchor": tabs_to_delete[1]}},
-        owners=[users[2]],
+        editors=subjects_from_users([users[2]]),
     )
 
     assert report1.active is True

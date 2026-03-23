@@ -60,7 +60,7 @@ import { Link } from 'react-router-dom';
 interface ExtendedDatasource extends Datasource {
   sql?: string;
   select_star?: string;
-  owners?: Array<{
+  editors?: Array<{
     id: number;
     first_name: string;
     last_name: string;
@@ -370,7 +370,7 @@ class DatasourceControl extends PureComponent<
 
     const { user } = this.props;
     const allowEdit =
-      datasource.owners?.map(o => o.id || o.value).includes(user.userId) ||
+      datasource.editors?.map(o => o.id || o.value).includes(user.userId) ||
       isUserAdmin(user);
 
     const canAccessSqlLab = userHasPermission(user, 'SQL Lab', 'menu_access');

@@ -39,6 +39,7 @@ export const mockCharts = [
 
     // ✅ Basic case - has some data
     owners: [{ first_name: 'Test', last_name: 'User', id: 1 }],
+    editors: [{ id: 1, label: 'Test User', type: 1 }],
     dashboards: [{ dashboard_title: 'Test Dashboard', id: 1 }],
     tags: [{ name: 'basic', type: 1, id: 1 }],
 
@@ -80,6 +81,10 @@ export const mockCharts = [
     owners: [
       { first_name: 'Admin', last_name: 'User', id: 2 },
       { first_name: 'Data', last_name: 'Analyst', id: 3 },
+    ],
+    editors: [
+      { id: 2, label: 'Admin User', type: 1 },
+      { id: 3, label: 'Data Analyst', type: 1 },
     ],
     dashboards: [
       { dashboard_title: 'Sales Dashboard', id: 2 },
@@ -125,6 +130,7 @@ export const mockCharts = [
 
     // ✅ EDGE CASE - no owners, no dataset, no dashboards, no tags
     owners: [],
+    editors: [],
     dashboards: [],
     tags: [],
 
@@ -160,6 +166,12 @@ export const mockCharts = [
       { first_name: 'Data', last_name: 'Analyst', id: 3 },
       { first_name: 'Limit', last_name: 'User', id: 40 },
       { first_name: 'Test', last_name: 'User', id: 43 },
+    ],
+    editors: [
+      { id: 2, label: 'Admin User', type: 1 },
+      { id: 3, label: 'Data Analyst', type: 1 },
+      { id: 40, label: 'Limit User', type: 1 },
+      { id: 43, label: 'Test User', type: 1 },
     ],
     dashboards: Array.from({ length: 20 }, (_, i) => ({
       dashboard_title: `Dashboard ${i + 1}`,
@@ -200,6 +212,13 @@ export const mockCharts = [
       { first_name: 'Limit', last_name: 'User', id: 40 },
       { first_name: 'Test', last_name: 'User', id: 43 },
       { first_name: 'Overflow', last_name: 'User', id: 50 },
+    ],
+    editors: [
+      { id: 2, label: 'Admin User', type: 1 },
+      { id: 3, label: 'Data Analyst', type: 1 },
+      { id: 40, label: 'Limit User', type: 1 },
+      { id: 43, label: 'Test User', type: 1 },
+      { id: 50, label: 'Overflow User', type: 1 },
     ],
     dashboards: Array.from({ length: 21 }, (_, i) => ({
       dashboard_title: `Extra Dashboard ${i + 1}`,

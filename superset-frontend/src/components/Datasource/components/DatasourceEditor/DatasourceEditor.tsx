@@ -17,9 +17,8 @@
  * under the License.
  */
 import rison from 'rison';
-import { PureComponent, useCallback, type ReactNode } from 'react';
+import { PureComponent, type ReactNode } from 'react';
 import { connect, ConnectedProps } from 'react-redux';
-import type { JsonObject } from '@superset-ui/core';
 import { type SupersetTheme } from '@apache-superset/core/theme';
 import type { AnyAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
@@ -50,7 +49,6 @@ import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
 import {
-  AsyncSelect,
   Badge,
   Button,
   Card,
@@ -80,11 +78,14 @@ import Mousetrap from 'mousetrap';
 import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
 import { makeUrl } from 'src/utils/pathUtils';
 import {
-  OwnerSelectLabel,
-  OWNER_TEXT_LABEL_PROP,
-  OWNER_EMAIL_PROP,
-  OWNER_OPTION_FILTER_PROPS,
-} from 'src/features/owners/OwnerSelectLabel';
+  SubjectSelectLabel,
+  SUBJECT_TEXT_LABEL_PROP,
+  SUBJECT_DETAIL_PROP,
+} from 'src/features/subjects/SubjectSelectLabel';
+import Subject, { SubjectType } from 'src/types/Subject';
+import SubjectPicker, {
+  type SubjectPickerValue,
+} from 'src/features/subjects/SubjectPicker';
 import { DatabaseSelector } from '../../../DatabaseSelector';
 import CollectionTable from '../CollectionTable';
 import Fieldset from '../Fieldset';
@@ -180,7 +181,7 @@ interface DatasourceObject {
   sql?: string;
   columns: Column[];
   metrics?: Metric[];
-  owners: Owner[];
+  editors: Owner[];
   main_dttm_col?: string;
   currency_code_column?: string;
   filter_select_enabled?: boolean;
@@ -250,7 +251,7 @@ interface ChartUsageData {
   certified_by?: string;
   certification_details?: string;
   description?: string;
-  owners?: Owner[];
+  editors?: Subject[];
   changed_on_delta_humanized?: string;
   changed_on?: string;
   changed_by?: {
@@ -323,9 +324,9 @@ interface FormContainerProps {
   children: ReactNode;
 }
 
-interface OwnersSelectorProps {
+interface EditorsSelectorProps {
   datasource: DatasourceObject;
-  onChange: (owners: Owner[]) => void;
+  onChange: (editors: Owner[]) => void;
 }
 
 const DatasourceContainer = styled.div`
@@ -791,48 +792,18 @@ function StackedField({ label, formElement }: StackedFieldProps): JSX.Element {
   );
 }
 
-function OwnersSelector({
+function EditorsSelector({
   datasource,
   onChange,
-}: OwnersSelectorProps): JSX.Element {
-  const loadOptions = useCallback(
-    (
-      search = '',
-      page: number,
-      pageSize: number,
-    ): Promise<{ data: Owner[]; totalCount: number }> => {
-      const query = rison.encode({ filter: search, page, page_size: pageSize });
-      return SupersetClient.get({
-        endpoint: `/api/v1/dataset/related/owners?q=${query}`,
-      }).then(response => ({
-        data: (response.json.result as Array<JsonObject>)
-          .filter(item => item.extra.active)
-          .map(item => ({
-            value: item.value as number,
-            label: OwnerSelectLabel({
-              name: item.text as string,
-              email: item.extra?.email as string | undefined,
-            }),
-            [OWNER_TEXT_LABEL_PROP]: item.text as string,
-            [OWNER_EMAIL_PROP]: (item.extra?.email as string) ?? '',
-          })),
-        totalCount: response.json.count,
-      }));
-    },
-    [],
-  );
-
+}: EditorsSelectorProps): JSX.Element {
   return (
-    <AsyncSelect
-      ariaLabel={t('Select owners')}
-      mode="multiple"
-      name="owners"
-      value={datasource.owners as { value: number; label: string }[]}
-      options={loadOptions}
+    <SubjectPicker
+      relatedUrl="/api/v1/dataset/related/editors"
+      ariaLabel={t('Select editors')}
+      value={datasource.editors as SubjectPickerValue[]}
       onChange={value => onChange(value as Owner[])}
-      header={<FormLabel>{t('Owners')}</FormLabel>}
+      header={<FormLabel>{t('Editors')}</FormLabel>}
       allowClear
-      optionFilterProps={OWNER_OPTION_FILTER_PROPS}
     />
   );
 }
@@ -905,18 +876,24 @@ class DatasourceEditor extends PureComponent<
     this.state = {
       datasource: {
         ...props.datasource,
-        owners: props.datasource.owners.map(owner => {
-          const ownerName =
-            owner.label || `${owner.first_name} ${owner.last_name}`;
+        editors: (props.datasource.editors || []).map(editor => {
+          const editorName =
+            editor.label ||
+            (editor.first_name
+              ? `${editor.first_name} ${editor.last_name}`
+              : '');
           return {
-            value: owner.value || owner.id,
-            label: OwnerSelectLabel({
-              name: typeof ownerName === 'string' ? ownerName : '',
-              email: owner.email,
+            value: editor.value || editor.id,
+            label: SubjectSelectLabel({
+              label: typeof editorName === 'string' ? editorName : '',
+              type: editor.type as SubjectType | undefined,
+              secondaryLabel: (editor.secondary_label || editor.email) as
+                | string
+                | undefined,
             }),
-            [OWNER_TEXT_LABEL_PROP]:
-              typeof ownerName === 'string' ? ownerName : '',
-            [OWNER_EMAIL_PROP]: owner.email ?? '',
+            [SUBJECT_TEXT_LABEL_PROP]:
+              typeof editorName === 'string' ? editorName : '',
+            [SUBJECT_DETAIL_PROP]: editor.secondary_label || editor.email || '',
           };
         }),
         metrics: props.datasource.metrics?.map(metric => {
@@ -1304,9 +1281,9 @@ class DatasourceEditor extends PureComponent<
           'certified_by',
           'certification_details',
           'description',
-          'owners.first_name',
-          'owners.last_name',
-          'owners.id',
+          'editors.id',
+          'editors.label',
+          'editors.type',
           'changed_on_delta_humanized',
           'changed_on',
           'changed_by.first_name',
@@ -1630,10 +1607,10 @@ class DatasourceEditor extends PureComponent<
             }
           />
         )}
-        <OwnersSelector
+        <EditorsSelector
           datasource={datasource}
-          onChange={newOwners => {
-            this.onDatasourceChange({ ...datasource, owners: newOwners });
+          onChange={newEditors => {
+            this.onDatasourceChange({ ...datasource, editors: newEditors });
           }}
         />
       </Fieldset>

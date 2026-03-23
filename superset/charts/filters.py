@@ -21,7 +21,7 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.query import Query
 
-from superset import db, security_manager
+from superset import db, is_feature_enabled, security_manager
 from superset.connectors.sqla import models
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import FavStar
@@ -104,12 +104,110 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         if security_manager.can_access_all_datasources():
             return query
 
+        if is_feature_enabled("ENABLE_VIEWERS"):
+            return self._apply_viewers(query)
+        return self._apply_legacy(query)
+
+    def _apply_viewers(self, query: Query) -> Query:
+        from superset.subjects.models import chart_editors, chart_viewers
+        from superset.subjects.utils import get_user_subject_ids_subquery
+
+        user_id = get_user_id()
+        subject_subquery = get_user_subject_ids_subquery(user_id) if user_id else None
+
+        filters: list[Any] = []
+
+        # (A) Editor query: editors see all their charts
+        if subject_subquery is not None:
+            editor_query = (
+                db.session.query(Slice.id)
+                .join(chart_editors, Slice.id == chart_editors.c.chart_id)
+                .filter(chart_editors.c.subject_id.in_(subject_subquery))
+            )
+            filters.append(Slice.id.in_(editor_query))
+
+        # (B) Viewer query: viewers see their charts
+        if subject_subquery is not None:
+            viewer_query = (
+                db.session.query(Slice.id)
+                .join(chart_viewers, Slice.id == chart_viewers.c.chart_id)
+                .filter(chart_viewers.c.subject_id.in_(subject_subquery))
+            )
+            filters.append(Slice.id.in_(viewer_query))
+
+        # (C) No-viewer fallback: charts with no viewers → dataset-based access
+        chart_has_viewers = Slice.viewers.any()
+        table_alias = aliased(SqlaTable)
+        no_viewer_query = (
+            db.session.query(Slice.id)
+            .join(table_alias, Slice.datasource_id == table_alias.id)
+            .join(models.Database, table_alias.database_id == models.Database.id)
+            .filter(
+                and_(
+                    ~chart_has_viewers,
+                    get_dataset_access_filters(Slice),
+                )
+            )
+        )
+        filters.append(Slice.id.in_(no_viewer_query))
+
+        return query.filter(or_(*filters)) if filters else query
+
+    def _apply_legacy(self, query: Query) -> Query:
         table_alias = aliased(SqlaTable)
         query = query.join(table_alias, self.model.datasource_id == table_alias.id)
         query = query.join(
             models.Database, table_alias.database_id == models.Database.id
         )
         return query.filter(get_dataset_access_filters(self.model))
+
+
+class ChartEditableFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    Filter for charts the user can edit (subject-based).
+
+    When ``ENABLE_VIEWERS`` is on: join chart_editors, filter by subject subquery.
+    When off: legacy owner-based query via user-type subjects.
+    Admin: no filter.
+    """
+
+    name = _("Editable")
+    arg_name = "chart_is_editable"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        if security_manager.is_admin():
+            return query
+
+        if is_feature_enabled("ENABLE_VIEWERS"):
+            from superset.subjects.models import chart_editors
+            from superset.subjects.utils import get_user_subject_ids_subquery
+
+            user_id = get_user_id()
+            if not user_id:
+                return query.filter(Slice.id < 0)
+
+            subject_subquery = get_user_subject_ids_subquery(user_id)
+            editor_query = (
+                db.session.query(Slice.id)
+                .join(chart_editors, Slice.id == chart_editors.c.chart_id)
+                .filter(chart_editors.c.subject_id.in_(subject_subquery))
+            )
+            return query.filter(Slice.id.in_(editor_query))
+
+        from superset.subjects.models import chart_editors, Subject
+
+        editor_ids_query = (
+            db.session.query(chart_editors.c.chart_id)
+            .join(
+                Subject.__table__,
+                Subject.__table__.c.id == chart_editors.c.subject_id,
+            )
+            .filter(
+                Subject.__table__.c.type == 1,
+                Subject.__table__.c.user_id == get_user_id(),
+            )
+        )
+        return query.filter(Slice.id.in_(editor_ids_query))
 
 
 class ChartHasCreatedByFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -157,10 +255,18 @@ class ChartOwnedCreatedFavoredByMeFilter(BaseFilter):  # pylint: disable=too-few
         if security_manager.current_user is None:
             return query
 
-        owner_ids_query = (
-            db.session.query(Slice.id)
-            .join(Slice.owners)
-            .filter(security_manager.user_model.id == get_user_id())
+        from superset.subjects.models import chart_editors, Subject
+
+        editor_ids_query = (
+            db.session.query(chart_editors.c.chart_id)
+            .join(
+                Subject.__table__,
+                Subject.__table__.c.id == chart_editors.c.subject_id,
+            )
+            .filter(
+                Subject.__table__.c.type == 1,
+                Subject.__table__.c.user_id == get_user_id(),
+            )
         )
 
         return query.join(
@@ -174,7 +280,7 @@ class ChartOwnedCreatedFavoredByMeFilter(BaseFilter):  # pylint: disable=too-few
         ).filter(
             # pylint: disable=comparison-with-callable
             or_(
-                Slice.id.in_(owner_ids_query),
+                Slice.id.in_(editor_ids_query),
                 Slice.created_by_fk == get_user_id(),
                 Slice.changed_by_fk == get_user_id(),
                 FavStar.user_id == get_user_id(),

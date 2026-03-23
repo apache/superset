@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Owner from 'src/types/Owner';
+import User from 'src/types/User';
 
-export default function getOwnerName(owner?: Owner): string {
-  if (!owner) {
+export default function getUserName(user?: User): string {
+  if (!user) {
     return '';
   }
-  return owner.full_name || `${owner.first_name} ${owner.last_name}`;
+  return user.full_name || `${user.first_name} ${user.last_name}`;
 }

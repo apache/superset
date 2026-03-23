@@ -715,6 +715,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @category: runtime_config
     # @docs: https://superset.apache.org/docs/using-superset/creating-your-first-dashboard
     "DASHBOARD_RBAC": False,
+    # Subject-based viewer access control for dashboards and charts.
+    # When enabled, resources can have explicit viewer Subject assignments.
+    # @lifecycle: experimental
+    # @category: security
+    "ENABLE_VIEWERS": False,
     # Supports simultaneous data and dashboard virtualization for backend performance
     # @lifecycle: stable
     # @category: runtime_config
@@ -1018,8 +1023,11 @@ THEME_FONT_URL_ALLOWED_DOMAINS: list[str] = [
 EXTRA_SEQUENTIAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
 # User used to execute cache warmup tasks
-# By default, the cache is warmed up using the primary owner. To fall back to using
-# a fixed user (admin in this example), use the following configuration:
+# By default, the cache is warmed up using the primary user-type editor (giving
+# priority to the last modifier, then the creator, then the first user-type editor).
+# Only user-type subjects from the editors list are considered, since tasks can only
+# be executed as actual users (not roles or groups). To fall back to using a fixed
+# user (admin in this example), use the following configuration:
 #
 # from superset.tasks.types import ExecutorType, FixedExecutor
 #
@@ -1942,13 +1950,16 @@ MACHINE_AUTH_PROVIDER_CLASS = "superset.utils.machine_auth.MachineAuthProvider"
 ALERT_REPORTS_CRON_WINDOW_SIZE = 59
 ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 # Which user to attempt to execute Alerts/Reports as. By default,
-# execute as the primary owner of the alert/report (giving priority to the last
-# modifier and then the creator if either is contained within the list of owners,
-# otherwise the first owner will be used).
+# execute as the primary user-type editor of the alert/report (giving priority to
+# the last modifier and then the creator if either is a user-type editor, otherwise
+# the first user-type editor will be used). Only user-type subjects from the editors
+# list are considered, since tasks can only be executed as actual users (not roles
+# or groups).
 #
-# To first try to execute as the creator in the owners list (if present), then fall
-# back to the creator, then the last modifier in the owners list (if present), then the
-# last modifier, then an owner and finally the "admin" user, set as follows:
+# To first try to execute as the creator in the editors list (if present), then fall
+# back to the creator, then the last modifier in the editors list (if present), then
+# the last modifier, then a user-type editor and finally the "admin" user, set as
+# follows:
 #
 # from superset.tasks.types import ExecutorType, FixedExecutor
 #
@@ -2430,8 +2441,8 @@ ENVIRONMENT_TAG_CONFIG = {
 
 
 # Extra related query filters make it possible to limit which objects are shown
-# in the UI. For examples, to only show "admin" or users starting with the letter "b" in
-# the "Owners" dropdowns, you could add the following in your config:
+# in the UI. For example, to only show "admin" or users starting with the letter "b"
+# in subject dropdowns, you could add the following in your config:
 # def user_filter(query: Query, *args, *kwargs):
 #     from superset import security_manager
 #
@@ -2444,14 +2455,31 @@ ENVIRONMENT_TAG_CONFIG = {
 #
 #  EXTRA_RELATED_QUERY_FILTERS = {"user": user_filter}
 #
-# Similarly, to restrict the roles in the "Roles" dropdown you can provide a custom
-# filter callback for the "role" key.
+# Similarly, to restrict the roles or groups in their respective dropdowns you can
+# provide custom filter callbacks for the "role" and "group" keys.
 class ExtraRelatedQueryFilters(TypedDict, total=False):
     role: Callable[[Query], Query]
     user: Callable[[Query], Query]
+    group: Callable[[Query], Query]
 
 
 EXTRA_RELATED_QUERY_FILTERS: ExtraRelatedQueryFilters = {}
+
+# When True, viewers of a dashboard/chart bypass dataset-level RBAC checks,
+# similar to how DASHBOARD_RBAC works. Only effective when ENABLE_SUBJECTS is on.
+VIEWER_PROMISCUOUS_MODE = False
+
+# Controls which Subject types appear in the editor/viewer picker.
+# None = show all types (USER, ROLE, GROUP). Example: [1, 3] = USER + GROUP only.
+SUBJECTS_RELATED_TYPES: list[int] | None = None
+
+# Per-entity overrides for SUBJECTS_RELATED_TYPES.
+# When set, the effective types = intersection of the global and entity-specific list.
+# None = inherit global behavior. Example: [3] = show only GROUP subjects.
+SUBJECTS_RELATED_TYPES_DASHBOARDS: list[int] | None = None
+SUBJECTS_RELATED_TYPES_CHARTS: list[int] | None = None
+SUBJECTS_RELATED_TYPES_RLS: list[int] | None = None
+SUBJECTS_RELATED_TYPES_ALERT_REPORTS: list[int] | None = None
 
 
 # Extra dynamic query filters make it possible to limit which objects are shown

@@ -36,10 +36,6 @@ export type Dataset = {
   created_on_humanized?: string;
   description?: string;
   table_name?: string;
-  owners?: {
-    first_name: string;
-    last_name: string;
-  }[];
   columns?: Column[];
   drillable_columns?: Column[];
   metrics?: Metric[];

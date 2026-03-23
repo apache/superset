@@ -42,7 +42,7 @@ import {
   ServerPagination,
   SortByType,
 } from '@superset-ui/core/components/TableView/types';
-import { FacePile } from 'src/components';
+import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import Dataset from 'src/types/Dataset';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
@@ -230,11 +230,11 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     {
       Cell: ({
         row: {
-          original: { owners = [] },
+          original: { editors = [] },
         },
-      }: any) => <FacePile users={owners} />,
-      Header: t('Owners'),
-      id: 'owners',
+      }: any) => <SubjectPile subjects={editors} />,
+      Header: t('Editors'),
+      id: 'editors',
       disableSortBy: true,
     },
   ];

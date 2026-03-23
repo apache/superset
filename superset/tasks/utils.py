@@ -57,8 +57,12 @@ def get_executor(  # noqa: C901
 ) -> ChosenExecutor:
     """
     Extract the user that should be used to execute a scheduled task. Certain executor
-    types extract the user from the underlying object (e.g. CREATOR), the constant
-    Selenium user (SELENIUM), or the user that initiated the request.
+    types extract the user from the underlying object (e.g. CREATOR), a fixed user
+    account, or the user that initiated the request.
+
+    The OWNER, CREATOR_OWNER, and MODIFIER_OWNER types resolve users from the model's
+    editors (subjects). Only user-type subjects are considered, since tasks can only be
+    executed as actual users (not roles or groups).
 
     :param executors: The requested executor in descending order. When the
            first user is found it is returned.
@@ -72,8 +76,16 @@ def get_executor(  # noqa: C901
     :raises ExecutorNotFoundError: If no users were found in after
             iterating through all entries in `executors`
     """
-    owners = model.owners
-    owner_dict = {owner.id: owner for owner in owners}
+    from superset.subjects.types import SubjectType
+
+    # Extract user-type editors (only actual users can execute tasks)
+    editor_users = [
+        editor.user
+        for editor in getattr(model, "editors", [])
+        if editor.type == SubjectType.USER and editor.user is not None
+    ]
+    editor_user_dict = {user.id: user for user in editor_users}
+
     for executor in executors:
         if isinstance(executor, FixedExecutor):
             return ExecutorType.FIXED_USER, executor.username
@@ -82,29 +94,28 @@ def get_executor(  # noqa: C901
         if executor == ExecutorType.CURRENT_USER and current_user:
             return executor, current_user
         if executor == ExecutorType.CREATOR_OWNER:
-            if (user := model.created_by) and (owner := owner_dict.get(user.id)):
-                return executor, owner.username
+            if (user := model.created_by) and (editor := editor_user_dict.get(user.id)):
+                return executor, editor.username
         if executor == ExecutorType.CREATOR:
             if user := model.created_by:
                 return executor, user.username
         if executor == ExecutorType.MODIFIER_OWNER:
-            if (user := model.changed_by) and (owner := owner_dict.get(user.id)):
-                return executor, owner.username
+            if (user := model.changed_by) and (editor := editor_user_dict.get(user.id)):
+                return executor, editor.username
         if executor == ExecutorType.MODIFIER:
             if user := model.changed_by:
                 return executor, user.username
         if executor == ExecutorType.OWNER:
-            owners = model.owners
-            if len(owners) == 1:
-                return executor, owners[0].username
-            if len(owners) > 1:
+            if len(editor_users) == 1:
+                return executor, editor_users[0].username
+            if len(editor_users) > 1:
                 if modifier := model.changed_by:
-                    if modifier and (user := owner_dict.get(modifier.id)):
+                    if modifier and (user := editor_user_dict.get(modifier.id)):
                         return executor, user.username
                 if creator := model.created_by:
-                    if creator and (user := owner_dict.get(creator.id)):
+                    if creator and (user := editor_user_dict.get(creator.id)):
                         return executor, user.username
-                return executor, owners[0].username
+                return executor, editor_users[0].username
 
     raise ExecutorNotFoundError()
 

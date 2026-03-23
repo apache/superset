@@ -373,6 +373,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             ),
         )
 
+        if feature_flag_manager.is_feature_enabled("ENABLE_VIEWERS"):
+            from superset.subjects.views import SubjectModelView
+
+            appbuilder.add_view(
+                SubjectModelView,
+                "Subjects",
+                label=_("Subjects"),
+                category="Security",
+                category_label=_("Security"),
+            )
+
         appbuilder.add_view(
             DynamicPluginsView,
             "Plugins",
@@ -604,6 +615,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         Runs init logic in the context of the app
         """
         self.configure_fab()
+        self.configure_subjects()
         self.configure_url_map_converters()
         self.configure_data_sources()
         self.configure_auth_provider()
@@ -836,6 +848,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.indexview = SupersetIndexView
         appbuilder.security_manager_class = custom_sm
         appbuilder.init_app(self.superset_app, db.session)
+
+    def configure_subjects(self) -> None:
+        from superset.subjects.hooks import register_subject_hooks
+
+        register_subject_hooks()
+
+        # Backward compat: DASHBOARD_RBAC implies ENABLE_VIEWERS
+        # and VIEWER_PROMISCUOUS_MODE are enabled
+        if feature_flag_manager.is_feature_enabled("DASHBOARD_RBAC"):
+            self.config["FEATURE_FLAGS"]["ENABLE_VIEWERS"] = True
+            self.config["VIEWER_PROMISCUOUS_MODE"] = True
 
     def configure_url_map_converters(self) -> None:
         #

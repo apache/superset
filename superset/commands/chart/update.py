@@ -33,7 +33,12 @@ from superset.commands.chart.exceptions import (
     DashboardsNotFoundValidationError,
     DatasourceTypeUpdateRequiredValidationError,
 )
-from superset.commands.utils import get_datasource_by_id, update_tags, validate_tags
+from superset.commands.utils import (
+    compute_subjects,
+    get_datasource_by_id,
+    update_tags,
+    validate_tags,
+)
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
 from superset.exceptions import SupersetSecurityException
@@ -97,7 +102,6 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
     def validate(self) -> None:  # noqa: C901
         exceptions: list[ValidationError] = []
         dashboard_ids = self._properties.get("dashboards")
-        owner_ids: Optional[list[int]] = self._properties.get("owners")
         tag_ids: Optional[list[int]] = self._properties.get("tags")
 
         # Validate if datasource_id is provided datasource_type is required
@@ -116,16 +120,11 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         # ownership so the update can be performed by report workers
         if not is_query_context_update(self._properties):
             try:
-                security_manager.raise_for_ownership(self._model)
-                owners = self.compute_owners(
-                    self._model.owners,
-                    owner_ids,
-                )
-                self._properties["owners"] = owners
+                security_manager.raise_for_editorship(self._model)
             except SupersetSecurityException as ex:
                 raise ChartForbiddenError() from ex
-            except ValidationError as ex:
-                exceptions.append(ex)
+
+            compute_subjects(self._model, self._properties, exceptions)
 
         # validate tags
         try:

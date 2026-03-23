@@ -36,7 +36,7 @@ import { MenuItem } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Dashboard } from 'src/views/CRUD/types';
 import { assetUrl } from 'src/utils/assetUrl';
-import { FacePile } from 'src/components';
+import { SubjectPile } from 'src/features/subjects/SubjectPile';
 
 interface DashboardCardProps {
   isChart?: boolean;
@@ -176,7 +176,7 @@ function DashboardCard({
           '/static/assets/images/dashboard-card-fallback.svg',
         )}
         description={t('Modified %s', dashboard.changed_on_delta_humanized)}
-        coverLeft={<FacePile users={dashboard.owners || []} />}
+        coverLeft={<SubjectPile subjects={dashboard.editors || []} />}
         actions={
           <ListViewCard.Actions
             onClick={e => {

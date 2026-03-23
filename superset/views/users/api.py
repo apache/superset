@@ -154,10 +154,8 @@ class CurrentUserRestApi(BaseSupersetApi):
             if not item:
                 return self.response_400(message="At least one field must be provided.")
 
-            for key, value in item.items():
-                setattr(g.user, key, value)
-
             self.pre_update(g.user, item)
+            UserDAO.update(item=g.user, attributes=item)
             db.session.commit()  # pylint: disable=consider-using-transaction
             return self.response(200, result=user_response_schema.dump(g.user))
         except ValidationError as error:

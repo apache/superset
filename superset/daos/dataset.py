@@ -79,11 +79,19 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 )
                 query = query.filter(SqlaTable.database_id.in_(subq))
             elif c.col == "owner":
-                from superset.connectors.sqla.models import sqlatable_user
+                from superset.subjects.models import sqlatable_editors, Subject
 
                 operator_enum = ColumnOperatorEnum(c.opr)
-                subq = select(sqlatable_user.c.table_id).where(
-                    operator_enum.apply(sqlatable_user.c.user_id, c.value)
+                subq = (
+                    select(sqlatable_editors.c.table_id)
+                    .join(
+                        Subject.__table__,
+                        Subject.__table__.c.id == sqlatable_editors.c.subject_id,
+                    )
+                    .where(
+                        Subject.__table__.c.type == 1,
+                        operator_enum.apply(Subject.__table__.c.user_id, c.value),
+                    )
                 )
                 query = query.filter(
                     SqlaTable.id.in_(subq)  # type: ignore[attr-defined,unused-ignore]

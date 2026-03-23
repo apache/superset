@@ -31,8 +31,8 @@ import {
   ListView,
   ListViewFilterOperator as FilterOperator,
   type ListViewFilters,
-  FacePile,
 } from 'src/components';
+import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu from 'src/features/home/SubMenu';
@@ -338,14 +338,14 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
             return '-';
           }
 
-          // Convert subscribers to FacePile format
-          const users = subscribers.map((sub: TaskSubscriber) => ({
+          // Convert subscribers to SubjectPile format
+          const subjects = subscribers.map((sub: TaskSubscriber) => ({
             id: sub.user_id,
-            first_name: sub.first_name,
-            last_name: sub.last_name,
+            label: `${sub.first_name} ${sub.last_name}`.trim(),
+            type: 1,
           }));
 
-          return <FacePile users={users} maxCount={3} />;
+          return <SubjectPile subjects={subjects} maxCount={3} />;
         },
         accessor: 'subscriber_count',
         Header: t('Subscribers'),

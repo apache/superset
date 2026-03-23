@@ -38,10 +38,9 @@ import {
 } from '@superset-ui/core';
 
 import withToasts from 'src/components/MessageToasts/withToasts';
-import {
-  OWNER_TEXT_LABEL_PROP,
-  OWNER_EMAIL_PROP,
-} from 'src/features/owners/OwnerSelectLabel';
+import { SUBJECT_TEXT_LABEL_PROP } from 'src/features/subjects/SubjectSelectLabel';
+import type { SubjectPickerValue } from 'src/features/subjects/SubjectPicker';
+import Subject from 'src/types/Subject';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
 import {
   applyColors,
@@ -80,13 +79,6 @@ type PropertiesModalProps = {
 };
 
 type Roles = { id: number; name: string }[];
-type Owners = {
-  id: number;
-  full_name?: string;
-  first_name?: string;
-  last_name?: string;
-  email?: string;
-}[];
 type DashboardInfo = {
   id: number;
   title: string;
@@ -127,8 +119,9 @@ const PropertiesModal = ({
   const jsonAnnotations = useJsonValidation(jsonMetadata, {
     errorPrefix: 'Invalid JSON metadata',
   });
-  const [owners, setOwners] = useState<Owners>([]);
   const [roles, setRoles] = useState<Roles>([]);
+  const [editors, setEditors] = useState<Subject[]>([]);
+  const [viewers, setViewers] = useState<Subject[]>([]);
   const saveLabel = onlyApply ? t('Apply') : t('Save');
   const [tags, setTags] = useState<TagType[]>([]);
   const [customCss, setCustomCss] = useState('');
@@ -175,8 +168,9 @@ const PropertiesModal = ({
         slug,
         certified_by,
         certification_details,
-        owners,
         roles,
+        editors,
+        viewers,
         metadata,
         is_managed_externally,
         theme,
@@ -195,8 +189,9 @@ const PropertiesModal = ({
 
       form.setFieldsValue(dashboardInfo);
       setDashboardInfo(dashboardInfo);
-      setOwners(owners);
       setRoles(roles);
+      setEditors(editors || []);
+      setViewers(viewers || []);
       setCustomCss(css || '');
       if (originalCss.current === null) {
         originalCss.current = css || '';
@@ -253,26 +248,36 @@ const PropertiesModal = ({
     }
   };
 
-  const handleOnChangeOwners = (
-    owners: { value: number; label: string }[],
-    options: Record<string, unknown>[],
-  ) => {
-    const parsedOwners: Owners = ensureIsArray(owners).map((o, i) => ({
-      id: o.value,
-      full_name:
-        (options?.[i]?.[OWNER_TEXT_LABEL_PROP] as string) ||
-        (typeof o.label === 'string' ? o.label : ''),
-      email: (options?.[i]?.[OWNER_EMAIL_PROP] as string) || '',
-    }));
-    setOwners(parsedOwners);
-  };
-
   const handleOnChangeRoles = (roles: { value: number; label: string }[]) => {
     const parsedRoles: Roles = ensureIsArray(roles).map(r => ({
       id: r.value,
       name: r.label,
     }));
     setRoles(parsedRoles);
+  };
+
+  const handleOnChangeEditors = (values: SubjectPickerValue[]) => {
+    const parsedEditors: Subject[] = ensureIsArray(values).map(v => ({
+      id: v.value,
+      label:
+        (v[SUBJECT_TEXT_LABEL_PROP] as string) ||
+        (typeof v.label === 'string' ? v.label : ''),
+      type: (v.type as number) ?? 0,
+      secondary_label: (v.secondary_label as string) || undefined,
+    }));
+    setEditors(parsedEditors);
+  };
+
+  const handleOnChangeViewers = (values: SubjectPickerValue[]) => {
+    const parsedViewers: Subject[] = ensureIsArray(values).map(v => ({
+      id: v.value,
+      label:
+        (v[SUBJECT_TEXT_LABEL_PROP] as string) ||
+        (typeof v.label === 'string' ? v.label : ''),
+      type: (v.type as number) ?? 0,
+      secondary_label: (v.secondary_label as string) || undefined,
+    }));
+    setViewers(parsedViewers);
   };
 
   const handleOnCancel = () => {
@@ -381,14 +386,19 @@ const PropertiesModal = ({
 
     currentJsonMetadata = jsonStringify(jsonMetadataObj);
 
-    const moreOnSubmitProps: { roles?: Roles; tags?: TagType[] } = {};
+    const moreOnSubmitProps: {
+      roles?: Roles;
+      tags?: TagType[];
+      viewers?: Subject[];
+    } = {};
     const morePutProps: {
       roles?: number[];
       tags?: (string | number | undefined)[];
+      viewers?: number[];
     } = {};
-    if (isFeatureEnabled(FeatureFlag.DashboardRbac)) {
-      moreOnSubmitProps.roles = roles;
-      morePutProps.roles = (roles || []).map(r => r.id);
+    if (isFeatureEnabled(FeatureFlag.EnableViewers)) {
+      moreOnSubmitProps.viewers = viewers;
+      morePutProps.viewers = (viewers || []).map(v => v.id);
     }
     if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
       moreOnSubmitProps.tags = tags;
@@ -399,7 +409,7 @@ const PropertiesModal = ({
       title,
       slug,
       jsonMetadata: currentJsonMetadata,
-      owners,
+      editors,
       colorScheme: currentColorScheme,
       colorNamespace,
       certifiedBy,
@@ -426,7 +436,7 @@ const PropertiesModal = ({
         dashboard_title: title,
         slug: slug || null,
         json_metadata: currentJsonMetadata || null,
-        owners: (owners || []).map(o => o.id),
+        editors: (editors || []).map(e => e.id),
         certified_by: certifiedBy || null,
         certification_details:
           certifiedBy && certificationDetails ? certificationDetails : null,
@@ -573,7 +583,7 @@ const PropertiesModal = ({
       },
       {
         key: 'access',
-        name: t('Access & ownership'),
+        name: t('Access'),
         validator: () => [],
       },
       {
@@ -733,8 +743,10 @@ const PropertiesModal = ({
               key: 'access',
               label: (
                 <CollapseLabelInModal
-                  title={t('Access & ownership')}
-                  subtitle={t('Manage dashboard owners and access permissions')}
+                  title={t('Access')}
+                  subtitle={t(
+                    'Manage dashboard editors and access permissions',
+                  )}
                   validateCheckStatus={!validationStatus.access?.hasErrors}
                   testId="access-section"
                 />
@@ -742,11 +754,15 @@ const PropertiesModal = ({
               children: (
                 <AccessSection
                   isLoading={isLoading}
-                  owners={owners}
+                  owners={[]}
                   roles={roles}
                   tags={tags}
-                  onChangeOwners={handleOnChangeOwners}
+                  editors={editors}
+                  viewers={viewers}
+                  onChangeOwners={() => {}}
                   onChangeRoles={handleOnChangeRoles}
+                  onChangeEditors={handleOnChangeEditors}
+                  onChangeViewers={handleOnChangeViewers}
                   onChangeTags={handleChangeTags}
                   onClearTags={handleClearTags}
                 />

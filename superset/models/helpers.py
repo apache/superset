@@ -533,15 +533,19 @@ class ImportExportMixin(UUIDMixin):
         self.params = json.dumps(params)
 
     def reset_ownership(self) -> None:
-        """object will belong to the user the current user"""
+        """object will belong to the current user"""
+        from superset.subjects.utils import get_user_subject
+
         # make sure the object doesn't have relations to a user
         # it will be filled by appbuilder on save
         self.created_by = None
         self.changed_by = None
         # flask global context might not exist (in cli or tests for example)
-        self.owners = []
-        if g and hasattr(g, "user"):
-            self.owners = [g.user]
+        self.editors = []
+        if g and hasattr(g, "user") and g.user:
+            user_subject = get_user_subject(g.user.id)
+            if user_subject:
+                self.editors = [user_subject]
 
     @property
     def params_dict(self) -> dict[Any, Any]:

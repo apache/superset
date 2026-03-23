@@ -303,7 +303,7 @@ test('Click on Edit dataset', async () => {
 test('Edit dataset should be disabled when user is not admin', async () => {
   const props = createProps();
   props.user.roles = {};
-  props.datasource.owners = [];
+  props.datasource.editors = [];
 
   render(<DatasourceControl {...props} />, {
     useRedux: true,

@@ -40,7 +40,7 @@ from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.utils.core import get_example_default_schema, override_user
 from superset.utils.database import get_example_database
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.base_tests import SupersetTestCase, user_is_editor
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
@@ -390,6 +390,8 @@ class TestImportDatasetsCommand(SupersetTestCase):
 
         # user should be included as one of the owners
         assert dataset.owners == [admin]
+        assert len(dataset.editors) == 1
+        assert user_is_editor(admin, dataset)
 
         # database is also imported
         assert str(dataset.database.uuid) == "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89"
@@ -601,6 +603,8 @@ class TestCreateDatasetCommand(SupersetTestCase):
             )
             assert table == fetched_table
             assert [owner.username for owner in table.owners] == ["admin"]
+            assert len(table.editors) == 1
+            assert user_is_editor(security_manager.find_user("admin"), table)
 
         db.session.delete(table)
         with examples_db.get_sqla_engine() as engine:

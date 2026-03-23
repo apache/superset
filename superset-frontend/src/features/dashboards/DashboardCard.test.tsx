@@ -119,7 +119,6 @@ test('should fetch thumbnail when dashboard has no thumbnail URL and feature fla
         dashboard_title: '',
         published: false,
         url: '',
-        owners: [],
       }}
       hasPerm={() => true}
       bulkSelectEnabled={false}
@@ -145,7 +144,6 @@ test('should fetch thumbnail when dashboard has no thumbnail URL and feature fla
         dashboard_title: '',
         published: false,
         url: '',
-        owners: [],
       }}
       hasPerm={() => true}
       bulkSelectEnabled={false}

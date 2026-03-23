@@ -55,21 +55,22 @@ fetchMock.get('glob:*/api/v1/chart/318*', {
     description_columns: {},
     id: 318,
     label_columns: {
-      'owners.first_name': 'Owners First Name',
-      'owners.id': 'Owners Id',
-      'owners.last_name': 'Owners Last Name',
       'tags.id': 'Tags Id',
       'tags.name': 'Tags Name',
       'tags.type': 'Tags Type',
+      'editors.id': 'Editors Id',
+      'editors.label': 'Editors Label',
+      'editors.type': 'Editors Type',
     },
     result: {
-      owners: [
+      editors: [
         {
-          first_name: 'Superset',
           id: 1,
-          last_name: 'Admin',
+          label: 'Superset Admin',
+          type: 1,
         },
       ],
+      viewers: [],
       tags: [
         {
           id: 1,
@@ -95,28 +96,15 @@ fetchMock.get('glob:*/api/v1/chart/318*', {
       slice_name: 'Test chart new name',
     },
     show_columns: [
-      'owners.id',
-      'owners.first_name',
-      'owners.last_name',
       'tags.id',
       'tags.name',
       'tags.type',
+      'editors.id',
+      'editors.label',
+      'editors.type',
     ],
     show_title: 'Show Slice',
   },
-});
-
-fetchMock.get('glob:*/api/v1/chart/related/owners?q=(filter:%27%27)', {
-  body: {
-    count: 1,
-    result: [
-      {
-        text: 'Superset Admin',
-        value: 1,
-      },
-    ],
-  },
-  sendAsJson: true,
 });
 
 fetchMock.put('glob:*/api/v1/chart/318', {
@@ -213,14 +201,14 @@ test('Should render all elements inside modal', async () => {
       // Check for visible labels and fields in the expanded section
       expect(screen.getByText('Name')).toBeInTheDocument();
       expect(screen.getByText('Description')).toBeInTheDocument();
-      expect(screen.getByText('Owners')).toBeInTheDocument();
+      expect(screen.getByText('Editors')).toBeInTheDocument();
 
       // Check that we have the expected number of textboxes visible
       const textboxes = screen.getAllByRole('textbox');
       expect(textboxes.length).toBeGreaterThanOrEqual(2); // At least Name and Description
 
-      // Owners combobox should be visible
-      expect(screen.getByRole('combobox')).toBeInTheDocument();
+      // Editors combobox should be visible
+      expect(screen.getAllByRole('combobox').length).toBeGreaterThanOrEqual(1);
     },
     { timeout: 10000 },
   );
@@ -468,6 +456,27 @@ test('Should display only custom tags when tagging system is enabled', async () 
   expect(await screen.findByText('my test tag')).toBeInTheDocument();
   expect(screen.queryByText('type:chart')).not.toBeInTheDocument();
   expect(screen.queryByText('owner:1')).not.toBeInTheDocument();
+
+  mockIsFeatureEnabled.mockRestore();
+});
+
+test('Should show Viewers picker when ENABLE_VIEWERS is on', async () => {
+  const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
+    typeof isFeatureEnabled
+  >;
+  mockIsFeatureEnabled.mockImplementation(
+    flag => flag === FeatureFlag.EnableViewers,
+  );
+
+  const props = createProps();
+  renderModal(props);
+
+  await waitFor(() => {
+    expect(screen.getByText('Viewers')).toBeInTheDocument();
+    expect(
+      screen.getByRole('combobox', { name: 'Viewers' }),
+    ).toBeInTheDocument();
+  });
 
   mockIsFeatureEnabled.mockRestore();
 });

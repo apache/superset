@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
+import { SubjectType } from 'src/types/Subject';
 
 const StyledLabelContainer = styled.div`
   overflow: hidden;
@@ -39,24 +41,45 @@ const StyledLabelDetail = styled.span`
     line-height: 1.6;
     display: block;
   `}
+
+  .ant-select-selection-item & {
+    display: none;
+  }
 `;
 
-export const OWNER_TEXT_LABEL_PROP = 'textLabel';
-export const OWNER_EMAIL_PROP = 'ownerEmail';
-export const OWNER_OPTION_FILTER_PROPS = [
-  OWNER_TEXT_LABEL_PROP,
-  OWNER_EMAIL_PROP,
+const SUBJECT_TYPE_LABELS: Record<SubjectType, string> = {
+  [SubjectType.User]: t('User'),
+  [SubjectType.Role]: t('Role'),
+  [SubjectType.Group]: t('Group'),
+};
+
+export const SUBJECT_TEXT_LABEL_PROP = 'textLabel';
+export const SUBJECT_DETAIL_PROP = 'subjectDetail';
+export const SUBJECT_OPTION_FILTER_PROPS = [
+  SUBJECT_TEXT_LABEL_PROP,
+  SUBJECT_DETAIL_PROP,
 ];
 
-export const OwnerSelectLabel = ({
-  name,
-  email,
+export const SubjectSelectLabel = ({
+  label,
+  type,
+  secondaryLabel,
 }: {
-  name: string;
-  email?: string;
-}) => (
-  <StyledLabelContainer>
-    <StyledLabel>{name}</StyledLabel>
-    {email && <StyledLabelDetail>{email}</StyledLabelDetail>}
-  </StyledLabelContainer>
-);
+  label: string;
+  type?: SubjectType;
+  secondaryLabel?: string;
+}) => {
+  const typeLabel = type != null ? SUBJECT_TYPE_LABELS[type] : undefined;
+  const detail = secondaryLabel
+    ? typeLabel
+      ? `${typeLabel} · ${secondaryLabel}`
+      : secondaryLabel
+    : typeLabel;
+
+  return (
+    <StyledLabelContainer>
+      <StyledLabel>{label}</StyledLabel>
+      {detail && <StyledLabelDetail>{detail}</StyledLabelDetail>}
+    </StyledLabelContainer>
+  );
+};

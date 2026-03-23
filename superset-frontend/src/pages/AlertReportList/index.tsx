@@ -34,7 +34,6 @@ import {
   LastUpdated,
 } from '@superset-ui/core/components';
 import {
-  FacePile,
   ModifiedInfo,
   ListView,
   ListViewFilterOperator as FilterOperator,
@@ -56,11 +55,11 @@ import {
 import {
   createErrorHandler,
   createFetchRelated,
-  createFetchOwners,
+  createFetchEditors,
 } from 'src/views/CRUD/utils';
-import { OWNER_OPTION_FILTER_PROPS } from 'src/features/owners/OwnerSelectLabel';
+import { SUBJECT_OPTION_FILTER_PROPS } from 'src/features/subjects/SubjectSelectLabel';
+import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
-import Owner from 'src/types/Owner';
 import AlertReportModal from 'src/features/alerts/AlertReportModal';
 import { AlertObject, AlertState } from 'src/features/alerts/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
@@ -331,11 +330,11 @@ function AlertList({
       {
         Cell: ({
           row: {
-            original: { owners = [] },
+            original: { editors = [] },
           },
-        }: any) => <FacePile users={owners} />,
-        Header: t('Owners'),
-        id: 'owners',
+        }: any) => <SubjectPile subjects={editors} />,
+        Header: t('Editors'),
+        id: 'editors',
         disableSortBy: true,
         size: 'xl',
       },
@@ -356,8 +355,9 @@ function AlertList({
       {
         Cell: ({ row: { original } }: any) => {
           const allowEdit =
-            original.owners.map((o: Owner) => o.id).includes(user.userId) ||
-            isUserAdmin(user);
+            original.editors
+              ?.map((e: any) => e.value || e.id)
+              .includes(user.userId) || isUserAdmin(user);
 
           return (
             <Switch
@@ -383,8 +383,9 @@ function AlertList({
             history.push(`/${original.type.toLowerCase()}/${original.id}/log`);
 
           const allowEdit =
-            original.owners.map((o: Owner) => o.id).includes(user.userId) ||
-            isUserAdmin(user);
+            original.editors
+              ?.map((e: any) => e.value || e.id)
+              .includes(user.userId) || isUserAdmin(user);
 
           const actions = [
             canEdit
@@ -483,20 +484,20 @@ function AlertList({
         inputName: 'alert_report_list_search',
       },
       {
-        Header: t('Owner'),
+        Header: t('Editor'),
         key: 'owner',
-        id: 'owners',
+        id: 'editors',
         input: 'select',
         operator: FilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
-        fetchSelects: createFetchOwners(
+        fetchSelects: createFetchEditors(
           'report',
           createErrorHandler(errMsg =>
-            t('An error occurred while fetching owners values: %s', errMsg),
+            t('An error occurred while fetching editor values: %s', errMsg),
           ),
           user,
         ),
-        optionFilterProps: OWNER_OPTION_FILTER_PROPS,
+        optionFilterProps: SUBJECT_OPTION_FILTER_PROPS,
         paginate: true,
         dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },

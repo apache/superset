@@ -54,7 +54,8 @@ def import_chart(
     if existing:
         if overwrite and can_write and user:
             if not security_manager.can_access_chart(existing) or (
-                user not in existing.owners and not security_manager.is_admin()
+                not security_manager.is_editor(existing)
+                and not security_manager.is_admin()
             ):
                 raise ImportFailedError(
                     "A chart already exists and user doesn't "
@@ -80,8 +81,12 @@ def import_chart(
     if chart.id is None:
         db.session.flush()
 
-    if (user := get_user()) and user not in chart.owners:
-        chart.owners.append(user)
+    if user := get_user():
+        from superset.subjects.utils import subjects_from_owners
+
+        for subj in subjects_from_owners([user]):
+            if subj not in chart.editors:
+                chart.editors.append(subj)
 
     return chart
 

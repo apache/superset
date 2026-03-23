@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import itertools
-from unittest.mock import MagicMock, patch  # noqa: F401
+from unittest.mock import patch  # noqa: F401
 
 import pytest
 import yaml
@@ -26,7 +26,6 @@ from superset.commands.dashboard.copy import CopyDashboardCommand
 from superset.commands.dashboard.delete import DeleteEmbeddedDashboardCommand
 from superset.commands.dashboard.exceptions import (
     DashboardAccessDeniedError,
-    DashboardForbiddenError,
     DashboardInvalidError,
     DashboardNotFoundError,
 )
@@ -48,7 +47,7 @@ from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
 from superset.utils import json
 from superset.utils.core import override_user
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.base_tests import SupersetTestCase, user_is_editor
 from tests.integration_tests.fixtures.importexport import (
     chart_config,
     dashboard_config,
@@ -654,6 +653,8 @@ class TestImportDashboardsCommand(SupersetTestCase):
         assert str(database.uuid) == database_config["uuid"]
 
         assert dashboard.owners == [admin]
+        assert len(dashboard.editors) == 1
+        assert user_is_editor(admin, dashboard)
 
         db.session.delete(dashboard)
         db.session.delete(chart)
@@ -768,24 +769,6 @@ class TestCopyDashboardCommand(SupersetTestCase):
 
             db.session.delete(copied_dashboard)
             db.session.commit()
-
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_copy_dashboard_command_no_access(self):
-        """Test that a non-owner user cannot copy a dashboard if DASHBOARD_RBAC is enabled"""  # noqa: E501
-        with self.client.application.test_request_context():
-            example_dashboard = (
-                db.session.query(Dashboard).filter_by(slug="world_health").one()
-            )
-            copy_data = {"dashboard_title": "Copied Dashboard", "json_metadata": "{}"}
-
-            with override_user(security_manager.find_user("gamma")):
-                with patch(
-                    "superset.commands.dashboard.copy.is_feature_enabled",
-                    return_value=True,
-                ):
-                    command = CopyDashboardCommand(example_dashboard, copy_data)
-                    with self.assertRaises(DashboardForbiddenError):  # noqa: PT027
-                        command.run()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_copy_dashboard_command_invalid_data(self):

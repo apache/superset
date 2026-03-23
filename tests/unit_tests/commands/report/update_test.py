@@ -46,6 +46,7 @@ def _make_model(
     model.crontab = "0 9 * * *"
     model.last_state = "noop"
     model.owners = []
+    model.editors = []
     return model
 
 
@@ -59,7 +60,7 @@ def _setup_mocks(mocker: MockerFixture, model: Mock) -> None:
         return_value=True,
     )
     mocker.patch(
-        "superset.commands.report.update.security_manager.raise_for_ownership",
+        "superset.commands.report.update.security_manager.raise_for_editorship",
     )
     mocker.patch(
         "superset.commands.report.update.DatabaseDAO.find_by_id",
@@ -77,6 +78,9 @@ def _setup_mocks(mocker: MockerFixture, model: Mock) -> None:
         UpdateReportScheduleCommand,
         "compute_owners",
         return_value=[],
+    )
+    mocker.patch(
+        "superset.commands.report.update.compute_subjects",
     )
 
 

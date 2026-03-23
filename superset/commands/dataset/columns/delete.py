@@ -52,6 +52,6 @@ class DeleteDatasetColumnCommand(BaseCommand):
             raise DatasetColumnNotFoundError()
         # Check ownership
         try:
-            security_manager.raise_for_ownership(self._model)
+            security_manager.raise_for_editorship(self._model)
         except SupersetSecurityException as ex:
             raise DatasetColumnForbiddenError() from ex

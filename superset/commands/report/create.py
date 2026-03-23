@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from functools import partial
-from typing import Any, Optional
+from typing import Any
 
 from flask import g
 from marshmallow import ValidationError
@@ -32,6 +32,7 @@ from superset.commands.report.exceptions import (
     ReportScheduleNameUniquenessValidationError,
     ReportScheduleUserEmailNotFoundError,
 )
+from superset.commands.utils import populate_subjects
 from superset.daos.database import DatabaseDAO
 from superset.daos.report import ReportScheduleDAO
 from superset.reports.models import (
@@ -84,6 +85,13 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
                 exceptions.append(ReportScheduleUserEmailNotFoundError())
         # For creation from alerts_reports view, keep the recipients as provided
 
+    def _populate_subjects(self, exceptions: list[ValidationError]) -> None:
+        populate_subjects(
+            self._properties,
+            exceptions,
+            include_viewers=False,
+        )
+
     def validate(self) -> None:
         """
         Validates the properties of a report schedule configuration, including uniqueness
@@ -101,7 +109,6 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
         chart_id = self._properties.get("chart")
         creation_method = self._properties.get("creation_method")
         dashboard_id = self._properties.get("dashboard")
-        owner_ids: Optional[list[int]] = self._properties.get("owners")
 
         exceptions: list[ValidationError] = []
 
@@ -155,10 +162,7 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
                 self._properties["validator_config_json"]
             )
 
-        try:
-            owners = self.populate_owners(owner_ids)
-            self._properties["owners"] = owners
-        except ValidationError as ex:
-            exceptions.append(ex)
+        self._populate_subjects(exceptions)
+
         if exceptions:
             raise ReportScheduleInvalidError(exceptions=exceptions)

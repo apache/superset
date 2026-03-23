@@ -109,7 +109,7 @@ const parseResult = (result: any[]) =>
         modified: slice.changed_on_delta_humanized,
         changed_on_humanized: slice.changed_on_delta_humanized,
         thumbnail_url: slice.thumbnail_url,
-        owners: slice.owners,
+        editors: slice.editors,
         created_by: slice.created_by,
       },
     };
@@ -138,7 +138,7 @@ export function fetchSlices(
       : [];
 
     if (userId) {
-      filters.push({ col: 'owners', opr: 'rel_m_m', value: userId });
+      filters.push({ col: 'id', opr: 'chart_is_editable', value: true });
     }
 
     return SupersetClient.get({
@@ -158,7 +158,7 @@ export function fetchSlices(
           'thumbnail_url',
           'url',
           'viz_type',
-          'owners.id',
+          'editors.id',
           'created_by.id',
         ],
         filters,

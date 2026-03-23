@@ -20,7 +20,9 @@ from collections import Counter
 from typing import Any, Optional, TYPE_CHECKING
 
 from flask import g
+from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import Role, User
+from marshmallow import ValidationError
 
 from superset import security_manager
 from superset.commands.exceptions import (
@@ -33,6 +35,10 @@ from superset.commands.exceptions import (
 from superset.daos.datasource import DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound
 from superset.daos.tag import TagDAO
+from superset.subjects.exceptions import SubjectsNotFoundValidationError
+from superset.subjects.models import Subject
+from superset.subjects.types import SubjectType
+from superset.subjects.utils import get_subject, get_user_subject, get_user_subject_ids
 from superset.tags.models import ObjectType, Tag, TagType
 from superset.utils import json
 from superset.utils.core import DatasourceType, get_user_id
@@ -99,6 +105,170 @@ def populate_roles(role_ids: list[int] | None = None) -> list[Role]:
         if len(roles) != len(role_ids):
             raise RolesNotFoundValidationError()
     return roles
+
+
+def populate_subject_list(
+    subject_ids: list[int] | None,
+    default_to_user: bool,
+    ensure_no_lockout: bool = False,
+) -> list[Subject]:
+    """
+    Helper function for commands, will fetch all subjects from subject id's.
+    Mirrors populate_owner_list but for Subject IDs.
+
+    :param subject_ids: list of subject id's
+    :param default_to_user: add current user's subject if list is empty
+    :param ensure_no_lockout: prevent non-admins from removing themselves
+    :raises SubjectsNotFoundValidationError: if a subject id can't be resolved
+    :returns: Final list of subjects
+    """
+    subject_ids = subject_ids or []
+    subjects: list[Subject] = []
+    user_id = get_user_id()
+
+    if not subject_ids and default_to_user:
+        if user_id:
+            user_subject = get_user_subject(user_id)
+            return [user_subject] if user_subject else []
+        return []
+
+    if not security_manager.is_admin() and ensure_no_lockout and user_id:
+        user_subject = get_user_subject(user_id)
+        if user_subject and user_subject.id not in subject_ids:
+            user_subject_ids = set(get_user_subject_ids(user_id))
+            if not (user_subject_ids & set(subject_ids)):
+                subjects.append(user_subject)
+
+    for sid in subject_ids:
+        subject = get_subject(sid)
+        if not subject:
+            raise SubjectsNotFoundValidationError()
+        subjects.append(subject)
+    return subjects
+
+
+def compute_subject_list(
+    current_subjects: list[Subject] | None,
+    new_subject_ids: list[int] | None,
+    ensure_no_lockout: bool = False,
+) -> list[Subject]:
+    """
+    Helper function for update commands, to properly handle the subjects list.
+    Preserve the previous configuration unless included in the update payload.
+    Mirrors compute_owner_list but for Subjects.
+
+    :param current_subjects: list of current subjects
+    :param new_subject_ids: list of new subject ids specified in the update payload
+    :param ensure_no_lockout: prevent non-admins from removing themselves
+    :returns: Final list of subjects
+    """
+    current_subjects = current_subjects or []
+    subject_ids = (
+        [s.id for s in current_subjects] if new_subject_ids is None else new_subject_ids
+    )
+    return populate_subject_list(
+        subject_ids,
+        default_to_user=False,
+        ensure_no_lockout=ensure_no_lockout,
+    )
+
+
+def owners_from_editors(editors: list[Subject]) -> list[User]:
+    """Derive User objects from USER-type subjects in an editors list."""
+    return [s.user for s in editors if s.type == SubjectType.USER and s.user]
+
+
+def populate_subjects(
+    properties: dict[str, Any],
+    exceptions: list[ValidationError],
+    *,
+    include_viewers: bool = True,
+) -> None:
+    """
+    Populate editors (and optionally viewers) on a properties dict for
+    create commands.
+
+    If the payload contains ``owners`` (user IDs) but no ``editors``,
+    the owner IDs are bridged to editor subject IDs for backwards
+    compatibility.
+
+    Appends any validation errors to *exceptions*.
+    """
+    # Bridge: convert owner user IDs → editor subject IDs when editors absent
+    if properties.get("editors") is None and properties.get("owners") is not None:
+        subject_ids = []
+        for uid in properties["owners"]:
+            if subj := get_user_subject(uid):
+                subject_ids.append(subj.id)
+        properties["editors"] = subject_ids
+
+    # Remove owners from properties - it's a computed property on models
+    properties.pop("owners", None)
+
+    try:
+        properties["editors"] = populate_subject_list(
+            properties.get("editors"),
+            default_to_user=True,
+            ensure_no_lockout=True,
+        )
+    except ValidationError as ex:
+        exceptions.append(ex)
+
+    if include_viewers and properties.get("viewers") is not None:
+        try:
+            properties["viewers"] = populate_subject_list(
+                properties["viewers"],
+                default_to_user=False,
+            )
+        except ValidationError as ex:
+            exceptions.append(ex)
+
+
+def compute_subjects(
+    model: Model,
+    properties: dict[str, Any],
+    exceptions: list[ValidationError],
+    *,
+    include_viewers: bool = True,
+) -> None:
+    """
+    Compute editors (and optionally viewers) on a properties dict for
+    update commands, preserving existing values when the payload omits them.
+
+    If the payload contains ``owners`` (user IDs) but no ``editors``,
+    the owner IDs are bridged to editor subject IDs for backwards
+    compatibility.
+
+    Appends any validation errors to *exceptions*.
+    """
+    # Bridge: convert owner user IDs → editor subject IDs when editors absent
+    if properties.get("editors") is None and properties.get("owners") is not None:
+        subject_ids = []
+        for uid in properties["owners"]:
+            if subj := get_user_subject(uid):
+                subject_ids.append(subj.id)
+        properties["editors"] = subject_ids
+
+    # Remove owners from properties - it's a computed property on models
+    properties.pop("owners", None)
+
+    try:
+        properties["editors"] = compute_subject_list(
+            model.editors,
+            properties.get("editors"),
+            ensure_no_lockout=True,
+        )
+    except ValidationError as ex:
+        exceptions.append(ex)
+
+    if include_viewers and hasattr(model, "viewers"):
+        try:
+            properties["viewers"] = compute_subject_list(
+                model.viewers,
+                properties.get("viewers"),
+            )
+        except ValidationError as ex:
+            exceptions.append(ex)
 
 
 def get_datasource_by_id(datasource_id: int, datasource_type: str) -> BaseDatasource:

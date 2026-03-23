@@ -166,6 +166,7 @@ describe('SliceAdder', () => {
       description_markdown: '',
       modified: '2020-01-01',
       owners: [],
+      editors: [],
       created_by: { id: 1 }, // Fix: provide required user object instead of null
       cache_timeout: null,
       uuid: '1234',
