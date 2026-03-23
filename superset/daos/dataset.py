@@ -479,6 +479,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 existing_ids = {f["id"] for f in result.get(ds_id, [])}
                 for f in filters:
                     if f["id"] not in existing_ids:
+                        existing_ids.add(f["id"])
                         result.setdefault(ds_id, []).append(f)
 
         return result
@@ -486,18 +487,22 @@ class DatasetDAO(BaseDAO[SqlaTable]):
     @staticmethod
     def _parse_tables_from_virtual_datasets(
         virtual_datasets: list[tuple[int, str, str | None, int]],
+        db_engines: dict[int, str] | None = None,
     ) -> tuple[dict[int, set[str]], dict[int, int]]:
         """
         Parse SQL from virtual datasets and return:
         - ds_to_tables: mapping of dataset_id -> set of referenced table names
         - ds_db_map: mapping of dataset_id -> database_id
         """
+        if db_engines is None:
+            db_engines = {}
         ds_to_tables: dict[int, set[str]] = {}
         ds_db_map: dict[int, int] = {}
         for ds_id, sql, _schema, database_id in virtual_datasets:
             ds_db_map[ds_id] = database_id
+            engine = db_engines.get(database_id, "")
             try:
-                parsed = SQLScript(sql, engine="")
+                parsed = SQLScript(sql, engine=engine)
                 table_names: set[str] = set()
                 for statement in parsed.statements:
                     for table_ref in statement.tables:
@@ -580,8 +585,23 @@ class DatasetDAO(BaseDAO[SqlaTable]):
 
         Each tuple is (dataset_id, sql, schema, database_id).
         """
+        # Batch-fetch database engines for accurate SQL parsing
+        unique_db_ids = {row[3] for row in virtual_datasets}
+        db_engines: dict[int, str] = {}
+        if unique_db_ids:
+            db_objs = (
+                db.session.query(Database)
+                .filter(Database.id.in_(unique_db_ids))  # type: ignore[attr-defined,unused-ignore]
+                .all()
+            )
+            for database_obj in db_objs:
+                try:
+                    db_engines[database_obj.id] = database_obj.backend
+                except Exception:  # noqa: BLE001
+                    db_engines[database_obj.id] = ""
+
         ds_to_tables, ds_db_map = DatasetDAO._parse_tables_from_virtual_datasets(
-            virtual_datasets
+            virtual_datasets, db_engines=db_engines
         )
 
         if not ds_to_tables:
@@ -647,7 +667,15 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         )
         if dataset and dataset.sql:
             try:
-                parsed = SQLScript(dataset.sql, engine="")
+                engine = ""
+                database_obj = (
+                    db.session.query(Database)
+                    .filter(Database.id == dataset.database_id)
+                    .one_or_none()
+                )
+                if database_obj:
+                    engine = database_obj.backend
+                parsed = SQLScript(dataset.sql, engine=engine)
                 table_names: set[str] = set()
                 for statement in parsed.statements:
                     for table_ref in statement.tables:
@@ -680,6 +708,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                         existing_ids = {f["id"] for f in result}
                         for f in inherited_filters:
                             if f.id not in existing_ids:
+                                existing_ids.add(f.id)
                                 result.append(
                                     {
                                         "id": f.id,
