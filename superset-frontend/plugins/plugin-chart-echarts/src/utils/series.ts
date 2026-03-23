@@ -122,8 +122,20 @@ function measureLegendTextWidth(text: string, theme: SupersetTheme): number {
   return width;
 }
 
+function hasLegendLabel(item: LegendDataItem): boolean {
+  if (item === null || item === undefined) {
+    return false;
+  }
+
+  if (typeof item === 'object') {
+    return item.name !== null && item.name !== undefined;
+  }
+
+  return true;
+}
+
 function getLegendLabels(items: LegendDataItem[]): string[] {
-  return items.map(getLegendLabel).filter(Boolean);
+  return items.filter(hasLegendLabel).map(getLegendLabel);
 }
 
 function getLegendItemWidths(labels: string[], theme: SupersetTheme): number[] {
