@@ -18,6 +18,7 @@
  */
 import { render, screen } from '@superset-ui/core/spec';
 import '@testing-library/jest-dom';
+import { GenericDataType } from '@superset-ui/core';
 import {
   getColumnLabelText,
   getColumnTooltipNode,
@@ -87,6 +88,24 @@ test('should get column datatype rendered as tooltip when column has a type', ()
 
   expect(screen.getByText('Column type')).toBeVisible();
   expect(screen.getByText('text')).toBeVisible();
+});
+
+test('should fall back to generic data type label when type is "column"', () => {
+  render(
+    <>
+      {getColumnTypeTooltipNode({
+        id: 123,
+        column_name: 'column name',
+        verbose_name: '',
+        description: '',
+        type: 'column',
+        type_generic: GenericDataType.String,
+      })}
+    </>,
+  );
+
+  expect(screen.getByText('Column type')).toBeVisible();
+  expect(screen.getByText('string')).toBeVisible();
 });
 
 test('should get column name, verbose name and description when it has a verbose name', () => {

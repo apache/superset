@@ -18,7 +18,7 @@
  */
 import { ReactNode, RefObject } from 'react';
 
-import { css, styled, t } from '@superset-ui/core';
+import { css, styled, t, GenericDataType } from '@superset-ui/core';
 import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
 
 const TooltipSectionWrapper = styled.div`
@@ -63,11 +63,29 @@ export const getColumnLabelText = (column: ColumnMeta): string =>
   column.verbose_name || column.column_name;
 
 export const getColumnTypeTooltipNode = (column: ColumnMeta): ReactNode => {
-  if (!column.type) {
+  const rawType = typeof column.type === 'string' ? column.type.trim() : '';
+
+  let typeLabel: ReactNode | null = null;
+
+  if (rawType && rawType.toLowerCase() !== 'column') {
+    typeLabel = rawType;
+  } else if (typeof column.type_generic === 'number') {
+    if (column.type_generic === GenericDataType.String) {
+      typeLabel = t('string');
+    } else if (column.type_generic === GenericDataType.Numeric) {
+      typeLabel = t('numeric');
+    } else if (column.type_generic === GenericDataType.Temporal) {
+      typeLabel = t('timestamp');
+    } else if (column.type_generic === GenericDataType.Boolean) {
+      typeLabel = t('boolean');
+    }
+  }
+
+  if (!typeLabel) {
     return null;
   }
 
-  return <TooltipSection label={t('Column type')} text={column.type} />;
+  return <TooltipSection label={t('Column type')} text={typeLabel} />;
 };
 
 export const getColumnTooltipNode = (
