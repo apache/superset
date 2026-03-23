@@ -25,7 +25,7 @@ from typing import Any, Dict, List
 from urllib.parse import parse_qs, urlparse
 
 from fastmcp import Context
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.exceptions import CommandException
 from superset.extensions import event_logger
@@ -39,6 +39,7 @@ from superset.mcp_service.chart.chart_utils import (
 )
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
+    ChartError,
     GenerateChartRequest,
     GenerateChartResponse,
     PerformanceMetadata,
@@ -80,10 +81,14 @@ def _compile_chart(
         ChartDataQueryFailedError,
     )
     from superset.common.query_context_factory import QueryContextFactory
+    from superset.mcp_service.chart.chart_utils import adhoc_filters_to_query_filters
     from superset.mcp_service.chart.preview_utils import _build_query_columns
 
     try:
         columns = _build_query_columns(form_data)
+        query_filters = adhoc_filters_to_query_filters(
+            form_data.get("adhoc_filters", [])
+        )
         factory = QueryContextFactory()
         query_context = factory.create(
             datasource={"id": dataset_id, "type": "table"},
@@ -93,7 +98,7 @@ def _compile_chart(
                     "metrics": form_data.get("metrics", []),
                     "orderby": form_data.get("orderby", []),
                     "row_limit": 2,
-                    "filters": form_data.get("adhoc_filters", []),
+                    "filters": query_filters,
                     "time_range": form_data.get("time_range", "No filter"),
                 }
             ],
@@ -118,7 +123,15 @@ def _compile_chart(
         return CompileResult(success=False, error=str(exc))
 
 
-@tool(tags=["mutate"])
+@tool(
+    tags=["mutate"],
+    class_permission_name="Chart",
+    annotations=ToolAnnotations(
+        title="Create chart",
+        readOnlyHint=False,
+        destructiveHint=False,
+    ),
+)
 @parse_request(GenerateChartRequest)
 async def generate_chart(  # noqa: C901
     request: GenerateChartRequest, ctx: Context
@@ -257,7 +270,7 @@ async def generate_chart(  # noqa: C901
         chart_id = None
         explore_url = None
         form_data_key = None
-        response_warnings: list[str] = []
+        response_warnings: list[str] = form_data.pop("_mcp_warnings", [])
 
         # Save chart by default (unless save_chart=False)
         if request.save_chart:
@@ -636,7 +649,12 @@ async def generate_chart(  # noqa: C901
                                 preview_request, ctx
                             )
 
-                            if hasattr(preview_result, "content"):
+                            if isinstance(preview_result, ChartError):
+                                await ctx.warning(
+                                    "Preview '%s' failed: %s"
+                                    % (format_type, preview_result.error)
+                                )
+                            elif hasattr(preview_result, "content"):
                                 previews[format_type] = preview_result.content
                         else:
                             # For preview-only mode (save_chart=false)
@@ -674,7 +692,12 @@ async def generate_chart(  # noqa: C901
                                     preview_format=format_type,
                                 )
 
-                                if not hasattr(preview_result, "error"):
+                                if isinstance(preview_result, ChartError):
+                                    await ctx.warning(
+                                        "Preview '%s' failed: %s"
+                                        % (format_type, preview_result.error)
+                                    )
+                                else:
                                     previews[format_type] = preview_result
 
             except (CommandException, ValueError, KeyError) as e:
@@ -688,7 +711,26 @@ async def generate_chart(  # noqa: C901
         # Build chart info using serialize_chart_object for saved charts
         chart_info = None
         if request.save_chart and chart:
+            from sqlalchemy.orm import joinedload
+
+            from superset.daos.chart import ChartDAO
             from superset.mcp_service.chart.schemas import serialize_chart_object
+            from superset.models.slice import Slice
+
+            # Re-fetch with eager-loaded relationships to avoid detached
+            # instance errors when serialize_chart_object accesses .tags
+            # and .owners.  Use joinedload (single JOIN query) since we
+            # are fetching a single chart.
+            chart = (
+                ChartDAO.find_by_id(
+                    chart.id,
+                    query_options=[
+                        joinedload(Slice.owners),
+                        joinedload(Slice.tags),
+                    ],
+                )
+                or chart
+            )
 
             chart_info = serialize_chart_object(chart)
             if chart_info:
