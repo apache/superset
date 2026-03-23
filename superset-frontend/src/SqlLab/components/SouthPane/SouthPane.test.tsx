@@ -28,7 +28,7 @@ import {
   registerTestView,
   registerToolbarAction,
   cleanupExtensions,
-} from 'src/SqlLab/test-utils/extensionTestHelpers';
+} from 'spec/helpers/extensionTestHelpers';
 
 afterEach(cleanupExtensions);
 

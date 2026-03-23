@@ -24,7 +24,7 @@ import { ViewLocations } from 'src/SqlLab/contributions';
 import {
   registerTestView,
   cleanupExtensions,
-} from 'src/SqlLab/test-utils/extensionTestHelpers';
+} from 'spec/helpers/extensionTestHelpers';
 import AppLayout from './index';
 
 jest.mock('src/components/ResizableSidebar/useStoredSidebarWidth');

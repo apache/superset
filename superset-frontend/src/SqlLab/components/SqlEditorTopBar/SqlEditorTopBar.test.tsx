@@ -24,7 +24,7 @@ import { ViewLocations } from 'src/SqlLab/contributions';
 import {
   registerToolbarAction,
   cleanupExtensions,
-} from 'src/SqlLab/test-utils/extensionTestHelpers';
+} from 'spec/helpers/extensionTestHelpers';
 
 afterEach(cleanupExtensions);
 

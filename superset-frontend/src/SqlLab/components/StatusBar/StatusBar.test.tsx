@@ -23,9 +23,16 @@ import { ViewLocations } from 'src/SqlLab/contributions';
 import {
   registerTestView,
   cleanupExtensions,
-} from 'src/SqlLab/test-utils/extensionTestHelpers';
+} from 'spec/helpers/extensionTestHelpers';
 
-afterEach(cleanupExtensions);
+let consoleErrorSpy: jest.SpyInstance;
+
+afterEach(() => {
+  cleanupExtensions();
+  if (consoleErrorSpy) {
+    consoleErrorSpy.mockRestore();
+  }
+});
 
 test('renders extension content when registered at statusBar slot', () => {
   registerTestView(
@@ -41,6 +48,34 @@ test('renders extension content when registered at statusBar slot', () => {
 test('does not render container when no extensions registered', () => {
   const { container } = render(<StatusBar />);
   expect(container).toBeEmptyDOMElement();
+});
+
+test('extension throwing during render does not crash host', () => {
+  consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+  const ThrowingComponent = () => {
+    throw new Error('Extension error');
+  };
+
+  registerTestView(
+    ViewLocations.sqllab.statusBar,
+    'throwing-ext',
+    'Throwing',
+    () => React.createElement(ThrowingComponent),
+  );
+  registerTestView(
+    ViewLocations.sqllab.statusBar,
+    'healthy-ext',
+    'Healthy',
+    () => React.createElement('div', null, 'Healthy Content'),
+  );
+
+  render(<StatusBar />);
+
+  // Healthy extension still renders despite the throwing extension
+  expect(screen.getByText('Healthy Content')).toBeInTheDocument();
+  // Verify the error boundary caught the throwing extension
+  expect(consoleErrorSpy).toHaveBeenCalled();
 });
 
 test('renders multiple extensions in status bar', () => {
