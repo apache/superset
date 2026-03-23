@@ -21,7 +21,7 @@ from collections import defaultdict
 from typing import Any, Awaitable, Callable, Dict, Protocol, Sequence
 
 import mcp.types as mt
-from fastmcp.exceptions import FastMCPError, NotFoundError, ToolError
+from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from fastmcp.server.middleware.middleware import CallNext
 from fastmcp.tools.tool import Tool, ToolResult
@@ -301,13 +301,15 @@ class StructuredContentStripperMiddleware(Middleware):
     ) -> ToolResult:
         try:
             result = await call_next(context)
-        except (FastMCPError, NotFoundError, ValidationError) as e:
+        except Exception as e:
             # When exceptions propagate past the middleware chain to the
             # MCP SDK layer, they become CallToolResult(isError=True).
             # Some transports (Claude.ai's MCP bridge) cannot encode these
             # error responses, producing "encoding without a string argument".
-            # Convert to a plain text ToolResult so the error message reaches
-            # the client through the normal response path.
+            # Catch ALL exceptions (not just specific types) because any
+            # unhandled exception — including ToolError from
+            # GlobalErrorHandlerMiddleware, ValueError, TypeError, etc. —
+            # will cause encoding failures on the wire.
             return ToolResult(
                 content=[mt.TextContent(type="text", text=f"Error: {e}")],
             )
