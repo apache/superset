@@ -23,6 +23,14 @@ import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import { getExtensionsRegistry } from '@superset-ui/core';
 import { Menu } from './Menu';
 
+jest.mock('antd', () => ({
+  ...jest.requireActual('antd'),
+  Grid: {
+    ...jest.requireActual('antd').Grid,
+    useBreakpoint: () => ({ md: true }),
+  },
+}));
+
 const dropdownItems = [
   {
     label: 'Data',
