@@ -1456,9 +1456,10 @@ test('create mode submits POST and calls onAdd with response', async () => {
 
   expect(screen.getByText('Add report')).toBeInTheDocument();
 
-  // Fill name
+  // Fill name — fireEvent.change is instant vs userEvent.type firing 13
+  // individual keystroke events, keeping this test well under the 20s timeout.
   const nameInput = screen.getByPlaceholderText(/enter report name/i);
-  userEvent.type(nameInput, 'My New Report');
+  fireEvent.change(nameInput, { target: { value: 'My New Report' } });
 
   // Open contents panel — content type defaults to Dashboard
   userEvent.click(screen.getByTestId('contents-panel'));
@@ -1480,10 +1481,10 @@ test('create mode submits POST and calls onAdd with response', async () => {
   const tableChart = await screen.findByText('table chart');
   userEvent.click(tableChart);
 
-  // Open notification panel and type recipient email
+  // Open notification panel and set recipient email
   userEvent.click(screen.getByTestId('notification-method-panel'));
   const recipientInput = await screen.findByTestId('recipients');
-  userEvent.type(recipientInput, 'test@example.com');
+  fireEvent.change(recipientInput, { target: { value: 'test@example.com' } });
 
   // Wait for Add button to be enabled (use exact name to avoid matching
   // "Add CC Recipients" and "Add BCC Recipients" buttons)
@@ -1673,6 +1674,17 @@ test('filter reappears in dropdown after clearing with X icon', async () => {
   userEvent.click(screen.getByTestId('contents-panel'));
   await screen.findByText(/test dashboard/i);
 
+  // Wait for tabs endpoint to be called so filter options are populated before
+  // opening the dropdown — in CI the async chain (fetch report → set dashboard →
+  // fetch tabs → set filter options) can lag behind the UI interactions.
+  await waitFor(
+    () => {
+      const tabsCalls = fetchMock.callHistory.calls(tabsEndpoint);
+      expect(tabsCalls.length).toBeGreaterThan(0);
+    },
+    { timeout: 5000 },
+  );
+
   const filterDropdown = screen.getByRole('combobox', {
     name: /select filter/i,
   });
@@ -1684,7 +1696,11 @@ test('filter reappears in dropdown after clearing with X icon', async () => {
 
   userEvent.click(filterDropdown);
 
-  const filterOption = await screen.findByText('Test Filter 1', {}, { timeout: 5000 });
+  const filterOption = await screen.findByText(
+    'Test Filter 1',
+    {},
+    { timeout: 5000 },
+  );
 
   userEvent.click(filterOption);
 
