@@ -199,7 +199,15 @@ function buildGroupAggregates(
 ): GroupNode {
   const root: GroupNode = { auto_agg_sum: 0 } as GroupNode;
 
-  for (const key of keys) {
+  const terminalKeys = keys.filter(
+    key =>
+      !keys.some(
+        other =>
+          other.length > key.length &&
+          key.every((segment, idx) => other[idx] === segment),
+      ),
+  );
+  for (const key of terminalKeys) {
     let current: GroupNode = root;
 
     for (let i = 0; i < key.length - 1; i += 1) {

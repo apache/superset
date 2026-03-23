@@ -740,6 +740,7 @@ test('should place subtotal at top when top=true and ascending', () => {
     ['Region', 'City2'],
   ];
   const data = {
+    Region: 150,
     'Region|City1': 100,
     'Region|City2': 50,
   };
@@ -877,6 +878,8 @@ test('should handle product categories with subcategories', () => {
   expect(keys[8]).toEqual(['Clothing', 'Pants', 'Jeans']);
   expect(keys[9]).toEqual(['Clothing', 'Shirts']);
   expect(keys[10]).toEqual(['Clothing', 'Shirts', 'T-Shirt']);
+});
+
 test('getCellColor derives readable text from the winning background', () => {
   expect(
     getCellColor(
