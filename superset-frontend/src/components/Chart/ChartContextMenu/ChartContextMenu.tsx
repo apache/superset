@@ -187,10 +187,11 @@ const ChartContextMenu = (
     canDrillBy &&
     isDisplayed(ContextMenuItem.DrillBy) &&
     !(
-      (formData.matrixify_mode_rows !== undefined &&
+      formData.matrixify_enable === true &&
+      ((formData.matrixify_mode_rows !== undefined &&
         formData.matrixify_mode_rows !== 'disabled') ||
-      (formData.matrixify_mode_columns !== undefined &&
-        formData.matrixify_mode_columns !== 'disabled')
+        (formData.matrixify_mode_columns !== undefined &&
+          formData.matrixify_mode_columns !== 'disabled'))
     ); // Disable drill by when matrixify is enabled
 
   const datasetResource = useDatasetDrillInfo(
