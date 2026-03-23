@@ -97,8 +97,10 @@ const VerticalDotsTrigger = () => {
     />
   );
 };
+const FULLSCREEN_Z_INDEX = 10001;
 
 export interface SliceHeaderControlsProps {
+  chartHolderRef?: RefObject<HTMLDivElement>;
   slice: {
     description: string;
     viz_type: string;
@@ -235,20 +237,18 @@ const SliceHeaderControls = (
         props.exportPivotCSV?.(props.slice.slice_id);
         break;
       case MenuKeys.Fullscreen: {
-        const el = document.querySelector(
-          `#chart-id-${props.slice.slice_id}`,
-        )?.closest('[data-test="dashboard-component-chart-holder"]') as HTMLElement;
+        const el = props.chartHolderRef?.current;
 
         if (!document.fullscreenElement) {
           el?.requestFullscreen?.()
             .then(() => {
               props.handleToggleFullSize();
-              // Once entering fullscreen, force the chart to recalculate its dimensions
+              // Trigger resize to fit the fullscreen container
               setTimeout(() => {
                 window.dispatchEvent(new Event('resize'));
               }, 300);
             })
-            .catch(err => {
+            .catch((err: Error) => {
               props.addDangerToast(
                 t('Error enabling fullscreen: %s', err.message),
               );
@@ -256,7 +256,7 @@ const SliceHeaderControls = (
         } else {
           document.exitFullscreen?.().then(() => {
             props.handleToggleFullSize();
-            // Also resize when exiting to go back to original size
+            // Trigger resize to original dimensions
             setTimeout(() => {
               window.dispatchEvent(new Event('resize'));
             }, 300);
@@ -342,8 +342,8 @@ const SliceHeaderControls = (
     cachedDttm = [],
     queriedDttm = null,
     updatedDttm = null,
-    addSuccessToast = () => {},
-    addDangerToast = () => {},
+    addSuccessToast = () => { },
+    addDangerToast = () => { },
     supersetCanShare = false,
     isCached = [],
   } = props;
@@ -383,7 +383,7 @@ const SliceHeaderControls = (
 
   // @z-index-below-dashboard-header (100) - 1 = 99 for !isFullSize and 101 for isFullSize
   const dropdownOverlayStyle = {
-    zIndex: isFullSize ? 10001 : 99,
+    zIndex: isFullSize ? FULLSCREEN_Z_INDEX : 99,
     animationDuration: '0s',
   };
 
@@ -542,17 +542,17 @@ const SliceHeaderControls = (
         },
         ...(isPivotTable
           ? [
-              {
-                key: MenuKeys.ExportPivotCsv,
-                label: t('Export to Pivoted .CSV'),
-                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
-              },
-              {
-                key: MenuKeys.ExportPivotXlsx,
-                label: t('Export to Pivoted Excel'),
-                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
-              },
-            ]
+            {
+              key: MenuKeys.ExportPivotCsv,
+              label: t('Export to Pivoted .CSV'),
+              icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+            },
+            {
+              key: MenuKeys.ExportPivotXlsx,
+              label: t('Export to Pivoted Excel'),
+              icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+            },
+          ]
           : []),
         {
           key: MenuKeys.ExportXlsx,
@@ -560,20 +560,20 @@ const SliceHeaderControls = (
           icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
         },
         ...(isFeatureEnabled(FeatureFlag.AllowFullCsvExport) &&
-        props.supersetCanCSV &&
-        isTable
+          props.supersetCanCSV &&
+          isTable
           ? [
-              {
-                key: MenuKeys.ExportFullCsv,
-                label: t('Export to full .CSV'),
-                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
-              },
-              {
-                key: MenuKeys.ExportFullXlsx,
-                label: t('Export to full Excel'),
-                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
-              },
-            ]
+            {
+              key: MenuKeys.ExportFullCsv,
+              label: t('Export to full .CSV'),
+              icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+            },
+            {
+              key: MenuKeys.ExportFullXlsx,
+              label: t('Export to full Excel'),
+              icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+            },
+          ]
           : []),
         {
           key: MenuKeys.DownloadAsImage,

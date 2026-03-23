@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useMemo, useCallback, useEffect, memo } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef, memo } from 'react';
 
 import { ResizeCallback, ResizeStartCallback } from 're-resizable';
 import cx from 'classnames';
@@ -106,6 +106,7 @@ const ChartHolder = ({
   `;
   const { chartId } = component.meta;
   const isFullSize = fullSizeChartId === chartId;
+  const chartHolderRef = useRef<HTMLDivElement | null>(null);
 
   const focusHighlightStyles = useFilterFocusHighlightStyles(chartId ?? 0);
   const directPathToChild = useSelector(
@@ -195,8 +196,8 @@ const ChartHolder = ({
     } else {
       width = Math.floor(
         widthMultiple * columnWidth +
-          (widthMultiple - 1) * GRID_GUTTER_SIZE -
-          CHART_MARGIN,
+        (widthMultiple - 1) * GRID_GUTTER_SIZE -
+        CHART_MARGIN,
       );
       height = Math.floor(
         (component.meta.height ?? 0) * GRID_BASE_UNIT - CHART_MARGIN,
@@ -258,7 +259,10 @@ const ChartHolder = ({
         editMode={editMode}
       >
         <div
-          ref={dragSourceRef}
+          ref={el => {
+            dragSourceRef?.(el);
+            chartHolderRef.current = el;
+          }}
           data-test="dashboard-component-chart-holder"
           style={focusHighlightStyles}
           css={isFullSize ? fullSizeStyle : undefined}
@@ -271,12 +275,13 @@ const ChartHolder = ({
           )}
         >
           <AntdThemeProvider
-            getPopupContainer={(triggerNode: HTMLElement) => {
-              const container = triggerNode?.closest?.(
-                '[data-test="dashboard-component-chart-holder"]',
-              );
-              return container instanceof HTMLElement ? container : document.body;
-            }}
+            getPopupContainer={(triggerNode: HTMLElement) =>
+              document.fullscreenElement
+                ? (triggerNode?.closest?.(
+                  '[data-test="dashboard-component-chart-holder"]',
+                ) as HTMLElement) || document.body
+                : document.body
+            }
           >
             {!editMode && (
               <AnchorLink
@@ -312,6 +317,7 @@ const ChartHolder = ({
               setControlValue={handleExtraControl}
               extraControls={extraControls}
               isInView={isInView}
+              chartHolderRef={chartHolderRef}
             />
             {editMode && (
               <HoverMenu position="top">

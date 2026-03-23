@@ -19,6 +19,7 @@
 import {
   forwardRef,
   ReactNode,
+  RefObject,
   useContext,
   useEffect,
   useRef,
@@ -61,6 +62,7 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   height: number;
   queriedDttm?: string | null;
   exportPivotExcel?: (arg0: string) => void;
+  chartHolderRef?: RefObject<HTMLDivElement>;
 };
 
 const annotationsLoading = t('Annotation layers are still loading.');
@@ -171,6 +173,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       width,
       height,
       exportPivotExcel = () => ({}),
+      chartHolderRef,
     },
     ref,
   ) => {
@@ -211,10 +214,10 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       countFromSecondQuery != null
         ? countFromSecondQuery
         : Number(
-            firstQueryResponse?.sql_rowcount ??
-              firstQueryResponse?.rowcount ??
-              0,
-          );
+          firstQueryResponse?.sql_rowcount ??
+          firstQueryResponse?.rowcount ??
+          0,
+        );
 
     const canExplore = !editMode && supersetCanExplore;
     const showRowLimitWarning =
@@ -374,6 +377,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   exploreUrl={exploreUrl}
                   crossFiltersEnabled={isCrossFiltersEnabled}
                   exportPivotExcel={exportPivotExcel}
+                  chartHolderRef={chartHolderRef}
                 />
               )}
             </>

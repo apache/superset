@@ -17,7 +17,7 @@
  * under the License.
  */
 import cx from 'classnames';
-import { useCallback, useEffect, useRef, useMemo, useState, memo } from 'react';
+import { useCallback, useEffect, useRef, useMemo, useState, memo, RefObject } from 'react';
 import type { ChartCustomization, JsonObject } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
@@ -88,6 +88,7 @@ interface ChartProps {
   extraControls?: JsonObject;
   isInView?: boolean;
   cacheBusterProp?: string | number;
+  chartHolderRef?: RefObject<HTMLDivElement>;
 }
 
 const RESIZE_TIMEOUT = 500;
@@ -345,7 +346,7 @@ const Chart = (props: ChartProps) => {
 
   const queriedDttm: string | null = Array.isArray(queriesResponse)
     ? (((queriesResponse[queriesResponse.length - 1] as JsonObject)
-        ?.queried_dttm as string | null) ?? null)
+      ?.queried_dttm as string | null) ?? null)
     : null;
 
   const getChartHeight = useCallback((): number => {
@@ -538,9 +539,9 @@ const Chart = (props: ChartProps) => {
 
       const exportOwnState = state
         ? {
-            ...baseOwnState,
-            ...convertChartStateToOwnState(sliceVizType, state),
-          }
+          ...baseOwnState,
+          ...convertChartStateToOwnState(sliceVizType, state),
+        }
         : baseOwnState;
 
       exportChart({
@@ -552,13 +553,13 @@ const Chart = (props: ChartProps) => {
         ownState: exportOwnState,
         onStartStreamingExport: shouldUseStreaming
           ? (exportParams: JsonObject) => {
-              setIsStreamingModalVisible(true);
-              startExport({
-                ...(exportParams as Record<string, unknown>),
-                filename,
-                expectedRows: actualRowCount,
-              } as Parameters<typeof startExport>[0]);
-            }
+            setIsStreamingModalVisible(true);
+            startExport({
+              ...(exportParams as Record<string, unknown>),
+              filename,
+              expectedRows: actualRowCount,
+            } as Parameters<typeof startExport>[0]);
+          }
           : null,
       });
     },
@@ -688,6 +689,7 @@ const Chart = (props: ChartProps) => {
         width={width}
         height={getHeaderHeight()}
         exportPivotExcel={exportPivotExcel as unknown as (arg0: string) => void}
+        chartHolderRef={props.chartHolderRef}
       />
 
       {/*

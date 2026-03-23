@@ -1,58 +1,54 @@
-import { css } from '@apache-superset/core/theme';
+import { css, SupersetTheme } from '@apache-superset/core/theme';
 
-export const fullscreenStyles = (theme: any) => css`
-  /* 1. Target the specific chart holder when it IS in fullscreen mode */
-  [data-test='dashboard-component-chart-holder']:fullscreen {
-    background-color: ${theme?.colors?.grayscale?.light5 || '#ffffff'} !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    display: flex !important;
-    flex-direction: column !important;
-    padding: ${theme?.gridUnit ? theme.gridUnit * 4 : 16}px !important;
-    overflow: visible !important; /* Allow tooltips and menus to be fully visible */
-    position: relative !important;
-    pointer-events: auto !important;
-    z-index: 1000 !important;
-    
-    /* Force visibility and opacity to override classes like 'fade-out' */
-    opacity: 1 !important;
-    visibility: visible !important;
+export const fullscreenStyles = (theme: SupersetTheme) => css`
+  /* Using && to increase specificity without needing !important as often */
+  &&[data-test='dashboard-component-chart-holder']:fullscreen {
+    background-color: ${theme.colorBgBase};
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: ${theme.sizeUnit * 4}px;
+    overflow: visible;
+    position: relative;
+    pointer-events: auto;
+    z-index: 1000;
+    opacity: 1;
+    visibility: visible;
+
+    /* Ensure children take up available space */
+    .dashboard-chart,
+    .chart-container,
+    .slice_container,
+    .chart-slice {
+      flex: 1 1 auto;
+      height: 100%;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: visible;
+    }
+
+    /* Portaled components inside the fullscreen layer */
+    .ant-dropdown,
+    .ant-tooltip,
+    .ant-modal-root,
+    .ant-select-dropdown,
+    .ant-popover {
+      z-index: 2000;
+      pointer-events: auto;
+      visibility: visible;
+      opacity: 1;
+    }
   }
 
-  /* Ensure ALL children of the fullscreen holder are interactive */
+  /* Interaction and Header fixes */
   [data-test='dashboard-component-chart-holder']:fullscreen * {
-    pointer-events: auto !important;
+    pointer-events: auto;
   }
 
-  /* 2. FORCE the internal chart container to take up all remaining space */
-  [data-test='dashboard-component-chart-holder']:fullscreen .dashboard-chart,
-  [data-test='dashboard-component-chart-holder']:fullscreen .chart-container,
-  [data-test='dashboard-component-chart-holder']:fullscreen .slice_container,
-  [data-test='dashboard-component-chart-holder']:fullscreen .chart-slice {
-    flex: 1 1 auto !important;
-    height: 100% !important;
-    width: 100% !important;
-    display: flex !important;
-    flex-direction: column !important;
-    overflow: visible !important;
-  }
-
-  /* 3. Ensure header and interactive elements are ON TOP */
   [data-test='dashboard-component-chart-header'] {
-    z-index: 100 !important;
-    position: relative !important;
-  }
-
-  /* 4. FIX INTERACTIVITY: Portaled components inside the fullscreen layer */
-  /* These are now portaled into the chart holder via ConfigProvider */
-  .ant-dropdown,
-  .ant-tooltip,
-  .ant-modal-root,
-  .ant-select-dropdown,
-  .ant-popover {
-    z-index: 2000 !important;
-    pointer-events: auto !important;
-    visibility: visible !important;
-    opacity: 1 !important;
+    z-index: 100;
+    position: relative;
   }
 `;
