@@ -22,6 +22,7 @@ import {
   KeyboardEvent,
   useState,
   useRef,
+  useEffect,
   RefObject,
 } from 'react';
 
@@ -61,6 +62,8 @@ import { useDatasetDrillInfo } from 'src/hooks/apiResources/datasets';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 import { ViewResultsModalTrigger } from './ViewResultsModalTrigger';
+import { Global } from '@emotion/react';
+import { fullscreenStyles } from './Styles';
 
 const RefreshTooltip = styled.div`
   ${({ theme }) => css`
@@ -231,9 +234,36 @@ const SliceHeaderControls = (
         // eslint-disable-next-line no-unused-expressions
         props.exportPivotCSV?.(props.slice.slice_id);
         break;
-      case MenuKeys.Fullscreen:
-        props.handleToggleFullSize();
+      case MenuKeys.Fullscreen: {
+        const el = document.querySelector(
+          `#chart-id-${props.slice.slice_id}`,
+        )?.closest('[data-test="dashboard-component-chart-holder"]') as HTMLElement;
+
+        if (!document.fullscreenElement) {
+          el?.requestFullscreen?.()
+            .then(() => {
+              props.handleToggleFullSize();
+              // Once entering fullscreen, force the chart to recalculate its dimensions
+              setTimeout(() => {
+                window.dispatchEvent(new Event('resize'));
+              }, 300);
+            })
+            .catch(err => {
+              props.addDangerToast(
+                t('Error enabling fullscreen: %s', err.message),
+              );
+            });
+        } else {
+          document.exitFullscreen?.().then(() => {
+            props.handleToggleFullSize();
+            // Also resize when exiting to go back to original size
+            setTimeout(() => {
+              window.dispatchEvent(new Event('resize'));
+            }, 300);
+          });
+        }
         break;
+      }
       case MenuKeys.ExportFullCsv:
         // eslint-disable-next-line no-unused-expressions
         props.exportFullCSV?.(props.slice.slice_id);
@@ -353,7 +383,7 @@ const SliceHeaderControls = (
 
   // @z-index-below-dashboard-header (100) - 1 = 99 for !isFullSize and 101 for isFullSize
   const dropdownOverlayStyle = {
-    zIndex: isFullSize ? 101 : 99,
+    zIndex: isFullSize ? 10001 : 99,
     animationDuration: '0s',
   };
 
@@ -554,13 +584,32 @@ const SliceHeaderControls = (
     });
   }
 
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement && isFullSize) {
+        props.handleToggleFullSize();
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, [isFullSize, props]);
+
   return (
     <>
       {isFullSize && (
         <Icons.FullscreenExitOutlined
           style={{ fontSize: 22 }}
           onClick={() => {
-            props.handleToggleFullSize();
+            if (document.fullscreenElement) {
+              document.exitFullscreen()?.then(() => {
+                props.handleToggleFullSize();
+              });
+            } else {
+              props.handleToggleFullSize();
+            }
           }}
         />
       )}
@@ -605,6 +654,8 @@ const SliceHeaderControls = (
       />
 
       {canEditCrossFilters && scopingModal}
+
+      <Global styles={fullscreenStyles(theme)} />
     </>
   );
 };
