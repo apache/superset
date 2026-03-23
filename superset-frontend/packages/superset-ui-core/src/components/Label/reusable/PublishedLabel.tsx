@@ -32,12 +32,24 @@ export const PublishedLabel: React.FC<PublishedLabelProps> = ({
 }) => {
   const theme = useTheme();
   const label = isPublished ? t('Published') : t('Draft');
-  const icon = isPublished ? (
-    <Icons.CheckCircleOutlined iconSize="s" iconColor={theme.colorSuccess} />
-  ) : (
-    <Icons.MinusCircleOutlined iconSize="s" iconColor={theme.colorPrimary} />
-  );
   const labelType = isPublished ? 'success' : 'primary';
+
+  const color = isPublished
+    ? (theme.labelPublishedColor ?? theme.colorSuccessText)
+    : (theme.labelDraftColor ?? theme.colorPrimaryText);
+  const bg = isPublished ? theme.labelPublishedBg : theme.labelDraftBg;
+  const borderColor = isPublished
+    ? theme.labelPublishedBorderColor
+    : theme.labelDraftBorderColor;
+  const iconColor = isPublished
+    ? (theme.labelPublishedIconColor ?? theme.colorSuccess)
+    : (theme.labelDraftIconColor ?? theme.colorPrimary);
+
+  const icon = isPublished ? (
+    <Icons.CheckCircleOutlined iconSize="s" iconColor={iconColor} />
+  ) : (
+    <Icons.MinusCircleOutlined iconSize="s" iconColor={iconColor} />
+  );
 
   return (
     <Label
@@ -45,7 +57,9 @@ export const PublishedLabel: React.FC<PublishedLabelProps> = ({
       icon={icon}
       onClick={onClick}
       style={{
-        color: isPublished ? theme.colorSuccessText : theme.colorPrimaryText,
+        color,
+        ...(bg && { backgroundColor: bg }),
+        ...(borderColor && { borderColor }),
       }}
     >
       {label}
