@@ -342,8 +342,8 @@ const SliceHeaderControls = (
     cachedDttm = [],
     queriedDttm = null,
     updatedDttm = null,
-    addSuccessToast = () => { },
-    addDangerToast = () => { },
+    addSuccessToast = () => {},
+    addDangerToast = () => {},
     supersetCanShare = false,
     isCached = [],
   } = props;
@@ -542,17 +542,17 @@ const SliceHeaderControls = (
         },
         ...(isPivotTable
           ? [
-            {
-              key: MenuKeys.ExportPivotCsv,
-              label: t('Export to Pivoted .CSV'),
-              icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
-            },
-            {
-              key: MenuKeys.ExportPivotXlsx,
-              label: t('Export to Pivoted Excel'),
-              icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
-            },
-          ]
+              {
+                key: MenuKeys.ExportPivotCsv,
+                label: t('Export to Pivoted .CSV'),
+                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+              },
+              {
+                key: MenuKeys.ExportPivotXlsx,
+                label: t('Export to Pivoted Excel'),
+                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+              },
+            ]
           : []),
         {
           key: MenuKeys.ExportXlsx,
@@ -560,20 +560,20 @@ const SliceHeaderControls = (
           icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
         },
         ...(isFeatureEnabled(FeatureFlag.AllowFullCsvExport) &&
-          props.supersetCanCSV &&
-          isTable
+        props.supersetCanCSV &&
+        isTable
           ? [
-            {
-              key: MenuKeys.ExportFullCsv,
-              label: t('Export to full .CSV'),
-              icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
-            },
-            {
-              key: MenuKeys.ExportFullXlsx,
-              label: t('Export to full Excel'),
-              icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
-            },
-          ]
+              {
+                key: MenuKeys.ExportFullCsv,
+                label: t('Export to full .CSV'),
+                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+              },
+              {
+                key: MenuKeys.ExportFullXlsx,
+                label: t('Export to full Excel'),
+                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+              },
+            ]
           : []),
         {
           key: MenuKeys.DownloadAsImage,

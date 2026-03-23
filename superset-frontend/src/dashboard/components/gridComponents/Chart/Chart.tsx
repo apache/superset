@@ -346,7 +346,7 @@ const Chart = (props: ChartProps) => {
 
   const queriedDttm: string | null = Array.isArray(queriesResponse)
     ? (((queriesResponse[queriesResponse.length - 1] as JsonObject)
-      ?.queried_dttm as string | null) ?? null)
+        ?.queried_dttm as string | null) ?? null)
     : null;
 
   const getChartHeight = useCallback((): number => {
@@ -539,9 +539,9 @@ const Chart = (props: ChartProps) => {
 
       const exportOwnState = state
         ? {
-          ...baseOwnState,
-          ...convertChartStateToOwnState(sliceVizType, state),
-        }
+            ...baseOwnState,
+            ...convertChartStateToOwnState(sliceVizType, state),
+          }
         : baseOwnState;
 
       exportChart({
@@ -553,13 +553,13 @@ const Chart = (props: ChartProps) => {
         ownState: exportOwnState,
         onStartStreamingExport: shouldUseStreaming
           ? (exportParams: JsonObject) => {
-            setIsStreamingModalVisible(true);
-            startExport({
-              ...(exportParams as Record<string, unknown>),
-              filename,
-              expectedRows: actualRowCount,
-            } as Parameters<typeof startExport>[0]);
-          }
+              setIsStreamingModalVisible(true);
+              startExport({
+                ...(exportParams as Record<string, unknown>),
+                filename,
+                expectedRows: actualRowCount,
+              } as Parameters<typeof startExport>[0]);
+            }
           : null,
       });
     },

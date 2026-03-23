@@ -196,8 +196,8 @@ const ChartHolder = ({
     } else {
       width = Math.floor(
         widthMultiple * columnWidth +
-        (widthMultiple - 1) * GRID_GUTTER_SIZE -
-        CHART_MARGIN,
+          (widthMultiple - 1) * GRID_GUTTER_SIZE -
+          CHART_MARGIN,
       );
       height = Math.floor(
         (component.meta.height ?? 0) * GRID_BASE_UNIT - CHART_MARGIN,
