@@ -20,6 +20,17 @@ import { render, screen } from 'spec/helpers/testing-library';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import Login from './index';
 
+const defaultBootstrapData = {
+  common: {
+    conf: {
+      AUTH_TYPE: 1,
+      AUTH_PROVIDERS: [],
+      AUTH_USER_REGISTRATION: false,
+    },
+    feature_flags: {},
+  },
+};
+
 jest.mock('src/utils/getBootstrapData', () => ({
   __esModule: true,
   default: jest.fn(() => ({

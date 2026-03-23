@@ -26,9 +26,10 @@ import re
 from typing import Any, Dict
 
 from fastmcp import Context
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
+from superset.mcp_service.chart.schemas import serialize_chart_object
 from superset.mcp_service.dashboard.constants import (
     generate_id,
     GRID_COLUMN_COUNT,
@@ -304,7 +305,15 @@ def _ensure_layout_structure(
         layout["DASHBOARD_VERSION_KEY"] = "v2"
 
 
-@tool(tags=["mutate"])
+@tool(
+    tags=["mutate"],
+    class_permission_name="Dashboard",
+    annotations=ToolAnnotations(
+        title="Add chart to dashboard",
+        readOnlyHint=False,
+        destructiveHint=False,
+    ),
+)
 @parse_request(AddChartToDashboardRequest)
 def add_chart_to_existing_dashboard(
     request: AddChartToDashboardRequest, ctx: Context
@@ -397,6 +406,28 @@ def add_chart_to_existing_dashboard(
             command = UpdateDashboardCommand(request.dashboard_id, update_data)
             updated_dashboard = command.run()
 
+        # Re-fetch the dashboard with eager-loaded relationships to avoid
+        # "Instance is not bound to a Session" errors when serializing
+        # chart .tags and .owners.
+        from sqlalchemy.orm import subqueryload
+
+        from superset.daos.dashboard import DashboardDAO
+        from superset.models.dashboard import Dashboard
+        from superset.models.slice import Slice
+
+        updated_dashboard = (
+            DashboardDAO.find_by_id(
+                updated_dashboard.id,
+                query_options=[
+                    subqueryload(Dashboard.slices).subqueryload(Slice.owners),
+                    subqueryload(Dashboard.slices).subqueryload(Slice.tags),
+                    subqueryload(Dashboard.owners),
+                    subqueryload(Dashboard.tags),
+                ],
+            )
+            or updated_dashboard
+        )
+
         # Convert to response format
         from superset.mcp_service.dashboard.schemas import (
             serialize_tag_object,
@@ -431,7 +462,10 @@ def add_chart_to_existing_dashboard(
                 if serialize_tag_object(tag) is not None
             ],
             roles=[],
-            charts=[],
+            charts=[
+                serialize_chart_object(chart)
+                for chart in getattr(updated_dashboard, "slices", [])
+            ],
         )
 
         dashboard_url = (
