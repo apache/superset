@@ -96,7 +96,6 @@ export const FilterItem = styled.button`
   `}
 `;
 
-
 export const FilterValue = styled.span`
   max-width: 100%;
   flex-grow: 1;

@@ -56,7 +56,7 @@ const DetailsPanelPopover = ({
   }, [activeTabs, setPopoverVisible]);
 
   const indicatorKey = (indicator: Indicator): string =>
-  `${indicator.column} - ${indicator.name} - ${indicator.path?.join('>') ?? ''}`;
+    `${indicator.column} - ${indicator.name} - ${indicator.path?.join('>') ?? ''}`;
 
   const menuItems: MenuProps['items'] = [];
 
