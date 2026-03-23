@@ -289,8 +289,11 @@ def _setup_user_context() -> User | None:
                 e,
                 g.user.username,
             )
-            return g.user
-        raise
+            # Assign to local so relationship validation below runs
+            # (same as the normal path) to prevent detached instance errors.
+            user = g.user
+        else:
+            raise
 
     # Validate user has necessary relationships loaded
     # (Force access to ensure they're loaded if lazy)
