@@ -31,12 +31,14 @@ from superset.commands.report.exceptions import (
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
+    ReportScheduleStateNotFoundError,
     ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
 )
 from superset.commands.report.execute import (
     BaseReportState,
     ReportNotTriggeredErrorState,
+    ReportScheduleStateMachine,
     ReportSuccessState,
     ReportWorkingState,
 )
@@ -1219,3 +1221,87 @@ def test_get_notification_content_pdf_format(mock_ff, mocker: MockerFixture) -> 
     content = state._get_notification_content()
     assert content.pdf == b"%PDF-fake"
     assert content.text is None
+
+
+# ---------------------------------------------------------------------------
+# Phase 1 gap closure: state machine, feature flag, create_log, success path
+# ---------------------------------------------------------------------------
+
+
+def test_state_machine_unknown_state_raises_not_found(
+    mocker: MockerFixture,
+) -> None:
+    """State machine raises StateNotFoundError when last_state matches no class."""
+    schedule = mocker.Mock(spec=ReportSchedule)
+    # Use a string that isn't in any state class's current_states
+    schedule.last_state = "NONEXISTENT_STATE"
+
+    sm = ReportScheduleStateMachine(uuid4(), schedule, datetime.utcnow())
+    with pytest.raises(ReportScheduleStateNotFoundError):
+        sm.run()
+
+
+@patch("superset.commands.report.execute.feature_flag_manager")
+def test_get_notification_content_alert_no_flag_skips_attachment(
+    mock_ff, mocker: MockerFixture
+) -> None:
+    """Alert with ALERTS_ATTACH_REPORTS=False skips screenshot/pdf/csv attachment."""
+    mock_ff.is_feature_enabled.return_value = False
+    state = _make_notification_state(
+        mocker,
+        report_format=ReportDataFormat.PNG,
+        schedule_type=ReportScheduleType.ALERT,
+        has_chart=True,
+    )
+    mock_screenshots = mocker.patch.object(state, "_get_screenshots")
+
+    content = state._get_notification_content()
+
+    # _get_screenshots should NOT be called — the attachment block is skipped
+    mock_screenshots.assert_not_called()
+    assert content.screenshots == []
+    assert content.text is None
+
+
+def test_create_log_success_commits(mocker: MockerFixture) -> None:
+    """Successful create_log creates a log entry and commits."""
+    schedule = mocker.Mock(spec=ReportSchedule)
+    schedule.last_value = "42"
+    schedule.last_value_row_json = '{"col": 42}'
+    schedule.last_state = ReportState.SUCCESS
+
+    state = BaseReportState(schedule, datetime.utcnow(), uuid4())
+    state._report_schedule = schedule
+
+    mock_db = mocker.patch("superset.commands.report.execute.db")
+    mock_log_cls = mocker.patch(
+        "superset.commands.report.execute.ReportExecutionLog",
+        return_value=mocker.Mock(),
+    )
+
+    state.create_log(error_message=None)
+
+    mock_log_cls.assert_called_once()
+    mock_db.session.add.assert_called_once()
+    mock_db.session.commit.assert_called_once()
+    mock_db.session.rollback.assert_not_called()
+
+
+def test_success_state_report_sends_and_logs_success(
+    mocker: MockerFixture,
+) -> None:
+    """REPORT type success path: send() + update state to SUCCESS."""
+    state = _make_state_instance(
+        mocker,
+        ReportSuccessState,
+        schedule_type=ReportScheduleType.REPORT,
+    )
+    mock_send = mocker.patch.object(state, "send")
+    mocker.patch.object(state, "update_report_schedule_and_log")
+
+    state.next()
+
+    mock_send.assert_called_once()
+    state.update_report_schedule_and_log.assert_called_once_with(  # type: ignore[attr-defined]
+        ReportState.SUCCESS,
+    )

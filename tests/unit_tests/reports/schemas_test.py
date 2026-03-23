@@ -180,3 +180,79 @@ def test_alert_type_allows_database(mocker: MockerFixture) -> None:
     schema = ReportSchedulePostSchema()
     result = schema.load({**MINIMAL_POST_PAYLOAD, "type": "Alert", "database": 1})
     assert result["database"] == 1
+
+
+# ---------------------------------------------------------------------------
+# Phase 1b gap closure: crontab validator, name length, PUT parity
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "crontab,should_pass",
+    [
+        ("* * * * *", True),
+        ("0 0 * * 0", True),
+        ("*/5 * * * *", True),
+        ("not a cron", False),
+        ("* * * *", False),  # too few fields
+        ("", False),
+    ],
+    ids=["every-min", "weekly", "every-5", "invalid-text", "too-few-fields", "empty"],
+)
+def test_crontab_validation(
+    mocker: MockerFixture,
+    crontab: str,
+    should_pass: bool,
+) -> None:
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    schema = ReportSchedulePostSchema()
+    payload = {**MINIMAL_POST_PAYLOAD, "crontab": crontab}
+
+    if should_pass:
+        result = schema.load(payload)
+        assert result["crontab"] == crontab
+    else:
+        with pytest.raises(ValidationError) as exc:
+            schema.load(payload)
+        assert "crontab" in exc.value.messages
+
+
+def test_name_empty_rejected(mocker: MockerFixture) -> None:
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    schema = ReportSchedulePostSchema()
+
+    with pytest.raises(ValidationError) as exc:
+        schema.load({**MINIMAL_POST_PAYLOAD, "name": ""})
+    assert "name" in exc.value.messages
+
+
+def test_name_at_max_length_accepted(mocker: MockerFixture) -> None:
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    schema = ReportSchedulePostSchema()
+    long_name = "x" * 150
+    result = schema.load({**MINIMAL_POST_PAYLOAD, "name": long_name})
+    assert result["name"] == long_name
+
+
+def test_name_over_max_length_rejected(mocker: MockerFixture) -> None:
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    schema = ReportSchedulePostSchema()
+
+    with pytest.raises(ValidationError) as exc:
+        schema.load({**MINIMAL_POST_PAYLOAD, "name": "x" * 151})
+    assert "name" in exc.value.messages
+
+
+def test_put_schema_allows_database_on_report_type(mocker: MockerFixture) -> None:
+    """PUT schema lacks validate_report_references — database on Report type is
+    accepted (documents current behavior; POST schema correctly rejects this)."""
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    put_schema = ReportSchedulePutSchema()
+    result = put_schema.load({"type": "Report", "database": 1})
+    assert result["database"] == 1
+
+    # POST schema rejects it (verify the asymmetry)
+    post_schema = ReportSchedulePostSchema()
+    with pytest.raises(ValidationError) as exc:
+        post_schema.load({**MINIMAL_POST_PAYLOAD, "database": 1})
+    assert "database" in exc.value.messages
