@@ -35,6 +35,8 @@ const isMatrixifyVisible = (
   mode?: 'metrics' | 'dimensions',
   selectionMode?: 'members' | 'topn' | 'all',
 ) => {
+  if (controls?.matrixify_enable?.value !== true) return false;
+
   const modeControl = `matrixify_mode_${axis}`;
   const selectionModeControl = `matrixify_dimension_selection_mode_${axis}`;
 
@@ -371,4 +373,4 @@ matrixifyControls.matrixify_show_column_headers = {
   visibility: ({ controls }) => isMatrixifyVisible(controls, 'columns'),
 };
 
-export { matrixifyControls };
+export { matrixifyControls, isMatrixifyVisible };

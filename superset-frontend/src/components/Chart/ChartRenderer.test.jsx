@@ -150,6 +150,7 @@ test('should identify matrixify property changes correctly', () => {
   const initialProps = {
     ...requiredProps,
     formData: {
+      matrixify_enable: true,
       matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: { dimension: 'country', values: ['USA'] },
       matrixify_charts_per_row: 3,
@@ -168,6 +169,7 @@ test('should identify matrixify property changes correctly', () => {
   const updatedProps = {
     ...initialProps,
     formData: {
+      matrixify_enable: true,
       matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: {
         dimension: 'country',
@@ -205,6 +207,7 @@ test('should handle matrixify-related form data changes', () => {
   const updatedProps = {
     ...initialProps,
     formData: {
+      matrixify_enable: true,
       matrixify_mode_rows: 'metrics', // This is a significant change
       regular_control: 'value1',
     },
@@ -222,6 +225,7 @@ test('should detect matrixify property addition', () => {
   const initialProps = {
     ...requiredProps,
     formData: {
+      matrixify_enable: true,
       matrixify_mode_rows: 'metrics',
       // No matrixify_dimension_x initially
     },
@@ -239,6 +243,7 @@ test('should detect matrixify property addition', () => {
   const updatedProps = {
     ...initialProps,
     formData: {
+      matrixify_enable: true,
       matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: { dimension: 'country', values: ['USA'] }, // Added
     },
@@ -256,6 +261,7 @@ test('should detect nested matrixify property changes', () => {
   const initialProps = {
     ...requiredProps,
     formData: {
+      matrixify_enable: true,
       matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: {
         dimension: 'country',
@@ -277,6 +283,7 @@ test('should detect nested matrixify property changes', () => {
   const updatedProps = {
     ...initialProps,
     formData: {
+      matrixify_enable: true,
       matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: {
         dimension: 'country',

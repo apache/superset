@@ -396,10 +396,11 @@ const ExploreChartPanel = ({
             })}
             {...(chart.chartStatus && { chartStatus: chart.chartStatus })}
             hideRowCount={
-              (formData?.matrixify_mode_rows !== undefined &&
+              formData?.matrixify_enable === true &&
+              ((formData?.matrixify_mode_rows !== undefined &&
                 formData?.matrixify_mode_rows !== 'disabled') ||
-              (formData?.matrixify_mode_columns !== undefined &&
-                formData?.matrixify_mode_columns !== 'disabled')
+                (formData?.matrixify_mode_columns !== undefined &&
+                  formData?.matrixify_mode_columns !== 'disabled'))
             }
             formData={formData}
           />
