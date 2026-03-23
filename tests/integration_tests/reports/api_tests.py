@@ -2345,3 +2345,371 @@ class TestReportSchedulesApi(SupersetTestCase):
         )
 
         assert json.loads(report_schedule.extra_json) == extra_json
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_create_report_schedule_with_garbage_native_filters(self):
+        """
+        ReportSchedule API: POST with nativeFilters containing garbage data returns 422
+        """
+        dashboard = db.session.query(Dashboard).first()
+        self.login(ADMIN_USERNAME)
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "garbage_native_filters_test",
+            "description": "description",
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
+            "crontab": "0 9 * * *",
+            "working_timeout": 3600,
+            "dashboard": dashboard.id,
+            "extra": {"dashboard": {"nativeFilters": [{"garbage": True}]}},
+        }
+        uri = "api/v1/report/"
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
+        assert rv.status_code == 422
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "message" in data
+        assert "extra" in data["message"]
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_create_report_schedule_with_missing_native_filter_keys(self):
+        """
+        ReportSchedule API: POST with nativeFilters missing required keys returns 422
+        """
+        dashboard = db.session.query(Dashboard).first()
+        self.login(ADMIN_USERNAME)
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "missing_keys_native_filters_test",
+            "description": "description",
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
+            "crontab": "0 9 * * *",
+            "working_timeout": 3600,
+            "dashboard": dashboard.id,
+            "extra": {
+                "dashboard": {
+                    "nativeFilters": [{"nativeFilterId": "NATIVE_FILTER-abc"}]
+                }
+            },
+        }
+        uri = "api/v1/report/"
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
+        assert rv.status_code == 422
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "message" in data
+        assert "extra" in data["message"]
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_create_report_schedule_with_nonexistent_native_filter_id(self):
+        """
+        ReportSchedule API: POST with nativeFilterId not on dashboard returns 422
+        """
+        dashboard = db.session.query(Dashboard).first()
+        self.login(ADMIN_USERNAME)
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "nonexistent_filter_id_test",
+            "description": "description",
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
+            "crontab": "0 9 * * *",
+            "working_timeout": 3600,
+            "dashboard": dashboard.id,
+            "extra": {
+                "dashboard": {
+                    "nativeFilters": [
+                        {
+                            "nativeFilterId": "NATIVE_FILTER-does-not-exist",
+                            "filterType": "filter_select",
+                            "columnName": "col",
+                            "filterValues": ["a"],
+                        }
+                    ]
+                }
+            },
+        }
+        uri = "api/v1/report/"
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
+        assert rv.status_code == 422
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "message" in data
+        assert "extra" in data["message"]
+
+    def test_create_report_schedule_with_valid_native_filter_empty_values(self):
+        """
+        ReportSchedule API: POST with valid nativeFilterId and empty filterValues
+        returns 201
+        """
+        # Create a dashboard with a native filter in json_metadata
+        filter_id = "NATIVE_FILTER-valid123"
+        dashboard = Dashboard()
+        dashboard.dashboard_title = "dash_with_native_filter"
+        dashboard.slug = "dash_with_native_filter"
+        dashboard.json_metadata = json.dumps(
+            {"native_filter_configuration": [{"id": filter_id, "name": "Test Filter"}]}
+        )
+        db.session.add(dashboard)
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "valid_native_filter_empty_values",
+            "description": "description",
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
+            "crontab": "0 9 * * *",
+            "working_timeout": 3600,
+            "dashboard": dashboard.id,
+            "extra": {
+                "dashboard": {
+                    "nativeFilters": [
+                        {
+                            "nativeFilterId": filter_id,
+                            "filterType": "filter_select",
+                            "columnName": "col",
+                            "filterValues": [],
+                        }
+                    ]
+                }
+            },
+        }
+        uri = "api/v1/report/"
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
+        assert rv.status_code == 201
+
+        created_id = json.loads(rv.data.decode("utf-8")).get("id")
+        created_model = db.session.query(ReportSchedule).get(created_id)
+        db.session.delete(created_model)
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_update_report_schedule_with_garbage_native_filters(self):
+        """
+        ReportSchedule API: PUT with nativeFilters containing garbage data returns 422
+        """
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name2")
+            .one_or_none()
+        )
+        dashboard = db.session.query(Dashboard).first()
+        self.login(ADMIN_USERNAME)
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "name2",
+            "crontab": "0 10 * * *",
+            "dashboard": dashboard.id,
+            "extra": {"dashboard": {"nativeFilters": [{"garbage": True}]}},
+        }
+        uri = f"api/v1/report/{report_schedule.id}"
+        rv = self.put_assert_metric(uri, report_schedule_data, "put")
+        assert rv.status_code == 422
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "message" in data
+        assert "extra" in data["message"]
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_update_report_schedule_with_stale_native_filter_id(self):
+        """
+        ReportSchedule API: PUT with nativeFilterId no longer on dashboard returns 422
+        """
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name2")
+            .one_or_none()
+        )
+        # Dashboard with no native filters configured
+        dashboard = db.session.query(Dashboard).first()
+        self.login(ADMIN_USERNAME)
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "name2",
+            "crontab": "0 10 * * *",
+            "dashboard": dashboard.id,
+            "extra": {
+                "dashboard": {
+                    "nativeFilters": [
+                        {
+                            "nativeFilterId": "NATIVE_FILTER-stale",
+                            "filterType": "filter_select",
+                            "columnName": "col",
+                            "filterValues": ["val"],
+                        }
+                    ]
+                }
+            },
+        }
+        uri = f"api/v1/report/{report_schedule.id}"
+        rv = self.put_assert_metric(uri, report_schedule_data, "put")
+        assert rv.status_code == 422
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "message" in data
+        assert "extra" in data["message"]
+
+    @patch("superset.commands.dashboard.update.send_email_smtp")
+    def test_dashboard_update_deletes_native_filter_deactivates_reports(
+        self, mock_send_email: Any
+    ):
+        """
+        Dashboard API: removing a native filter deactivates referencing reports
+        and emails each owner
+        """
+        filter_id = "NATIVE_FILTER-todelete"
+
+        # Create dashboard with that filter
+        dashboard = Dashboard()
+        dashboard.dashboard_title = "dash_filter_delete"
+        dashboard.slug = "dash_filter_delete"
+        dashboard.json_metadata = json.dumps(
+            {"native_filter_configuration": [{"id": filter_id, "name": "To Delete"}]}
+        )
+        db.session.add(dashboard)
+        db.session.flush()
+
+        admin = self.get_user("admin")
+
+        # Create report referencing that filter
+        report = insert_report_schedule(
+            type=ReportScheduleType.REPORT,
+            name="report_with_filter",
+            crontab="0 9 * * *",
+            owners=[admin],
+            dashboard=dashboard,
+            extra={
+                "dashboard": {
+                    "nativeFilters": [
+                        {
+                            "nativeFilterId": filter_id,
+                            "filterType": "filter_select",
+                            "columnName": "col",
+                            "filterValues": [],
+                        }
+                    ]
+                }
+            },
+        )
+
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        # Update dashboard removing the native filter
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        rv = self.put_assert_metric(
+            uri,
+            {"json_metadata": json.dumps({"native_filter_configuration": []})},
+            "put",
+        )
+        assert rv.status_code == 200
+
+        db.session.refresh(report)
+        assert report.active is False
+        assert mock_send_email.called
+
+        db.session.delete(report)
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    @patch("superset.commands.dashboard.update.send_email_smtp")
+    def test_dashboard_update_unrelated_filter_removal_no_side_effects(
+        self, mock_send_email: Any
+    ):
+        """
+        Dashboard API: removing a filter not referenced by any report has no
+        side effects
+        """
+        filter_id = "NATIVE_FILTER-unreferenced"
+
+        dashboard = Dashboard()
+        dashboard.dashboard_title = "dash_no_reports"
+        dashboard.slug = "dash_no_reports"
+        dashboard.json_metadata = json.dumps(
+            {"native_filter_configuration": [{"id": filter_id, "name": "Unused"}]}
+        )
+        db.session.add(dashboard)
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        rv = self.put_assert_metric(
+            uri,
+            {"json_metadata": json.dumps({"native_filter_configuration": []})},
+            "put",
+        )
+        assert rv.status_code == 200
+        assert not mock_send_email.called
+
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    @patch("superset.commands.dashboard.update.send_email_smtp")
+    def test_dashboard_update_deleted_filter_multiple_reports_notifies_all_owners(
+        self, mock_send_email: Any
+    ):
+        """
+        Dashboard API: removing a filter referenced by multiple reports deactivates
+        all of them and emails each owner once per report
+        """
+        filter_id = "NATIVE_FILTER-shared"
+
+        dashboard = Dashboard()
+        dashboard.dashboard_title = "dash_shared_filter"
+        dashboard.slug = "dash_shared_filter"
+        dashboard.json_metadata = json.dumps(
+            {"native_filter_configuration": [{"id": filter_id, "name": "Shared"}]}
+        )
+        db.session.add(dashboard)
+        db.session.flush()
+
+        admin = self.get_user("admin")
+
+        native_filter_extra = {
+            "dashboard": {
+                "nativeFilters": [
+                    {
+                        "nativeFilterId": filter_id,
+                        "filterType": "filter_select",
+                        "columnName": "col",
+                        "filterValues": [],
+                    }
+                ]
+            }
+        }
+
+        report_a = insert_report_schedule(
+            type=ReportScheduleType.REPORT,
+            name="report_shared_filter_a",
+            crontab="0 9 * * *",
+            owners=[admin],
+            dashboard=dashboard,
+            extra=native_filter_extra,
+        )
+        report_b = insert_report_schedule(
+            type=ReportScheduleType.REPORT,
+            name="report_shared_filter_b",
+            crontab="0 10 * * *",
+            owners=[admin],
+            dashboard=dashboard,
+            extra=native_filter_extra,
+        )
+
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        rv = self.put_assert_metric(
+            uri,
+            {"json_metadata": json.dumps({"native_filter_configuration": []})},
+            "put",
+        )
+        assert rv.status_code == 200
+
+        db.session.refresh(report_a)
+        db.session.refresh(report_b)
+        assert report_a.active is False
+        assert report_b.active is False
+        # One email call per report (admin owns both)
+        assert mock_send_email.call_count == 2
+
+        db.session.delete(report_a)
+        db.session.delete(report_b)
+        db.session.delete(dashboard)
+        db.session.commit()

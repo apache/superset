@@ -34,9 +34,11 @@ def apply_rls(
     catalog: str | None,
     schema: str,
     parsed_statement: BaseSQLStatement[Any],
-) -> None:
+) -> bool:
     """
     Modify statement inplace to ensure RLS rules are applied.
+
+    :returns: True if any RLS predicates were actually applied, False otherwise.
     """
     # There are two ways to insert RLS: either replacing the table with a subquery
     # that has the RLS, or appending the RLS to the ``WHERE`` clause. The former is
@@ -57,7 +59,9 @@ def apply_rls(
             if predicate
         ]
 
+    has_predicates = any(predicates.values())
     parsed_statement.apply_rls(catalog, schema, predicates, method)
+    return has_predicates
 
 
 def get_predicates_for_table(
