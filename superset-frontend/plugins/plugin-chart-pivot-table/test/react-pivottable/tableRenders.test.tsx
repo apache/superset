@@ -761,6 +761,7 @@ test('should place subtotal at bottom when top=false and descending', () => {
   const data = {
     'Region|City1': 100,
     'Region|City2': 50,
+    Region: 150,
   };
 
   groupingValueSort(keys, createMockAggregator(data), false, false);
