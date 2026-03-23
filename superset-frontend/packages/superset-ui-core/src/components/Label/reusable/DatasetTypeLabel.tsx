@@ -62,6 +62,7 @@ export const DatasetTypeLabel: React.FC<DatasetTypeLabelProps> = ({
     <Label
       icon={icon}
       type={labelType}
+      data-test="dataset-type-label"
       style={{
         color,
         ...(bg && { backgroundColor: bg }),

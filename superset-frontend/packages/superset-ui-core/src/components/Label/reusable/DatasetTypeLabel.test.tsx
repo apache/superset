@@ -34,13 +34,13 @@ test('renders "Virtual" text for virtual dataset', () => {
 
 test('uses default primary color for physical label', () => {
   renderWithTheme(<DatasetTypeLabel datasetType="physical" />);
-  const tag = screen.getByText('Physical').closest('.ant-tag');
+  const tag = screen.getByText('Physical').closest('[data-test="dataset-type-label"]');
   expect(tag).toHaveStyle({ color: supersetTheme.colorPrimaryText });
 });
 
 test('uses default color for virtual label', () => {
   renderWithTheme(<DatasetTypeLabel datasetType="virtual" />);
-  const tag = screen.getByText('Virtual').closest('.ant-tag');
+  const tag = screen.getByText('Virtual').closest('[data-test="dataset-type-label"]');
   expect(tag).toHaveStyle({ color: supersetTheme.colorPrimary });
 });
 
@@ -50,7 +50,7 @@ test('applies custom labelDatasetPhysical tokens when set', () => {
     labelDatasetPhysicalBg: '#222222',
     labelDatasetPhysicalBorderColor: '#333333',
   });
-  const tag = screen.getByText('Physical').closest('.ant-tag');
+  const tag = screen.getByText('Physical').closest('[data-test="dataset-type-label"]');
   expect(tag).toHaveStyle({
     color: '#111111',
     backgroundColor: '#222222',
@@ -64,7 +64,7 @@ test('applies custom labelDatasetVirtual tokens when set', () => {
     labelDatasetVirtualBg: '#555555',
     labelDatasetVirtualBorderColor: '#666666',
   });
-  const tag = screen.getByText('Virtual').closest('.ant-tag');
+  const tag = screen.getByText('Virtual').closest('[data-test="dataset-type-label"]');
   expect(tag).toHaveStyle({
     color: '#444444',
     backgroundColor: '#555555',
@@ -110,7 +110,7 @@ test('partial token override uses custom bg with default color fallback', () => 
   renderWithTheme(<DatasetTypeLabel datasetType="physical" />, {
     labelDatasetPhysicalBg: '#ff0000',
   });
-  const tag = screen.getByText('Physical').closest('.ant-tag');
+  const tag = screen.getByText('Physical').closest('[data-test="dataset-type-label"]');
   expect(tag).toHaveStyle({
     backgroundColor: '#ff0000',
     color: supersetTheme.colorPrimaryText,
