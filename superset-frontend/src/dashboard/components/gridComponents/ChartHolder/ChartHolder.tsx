@@ -282,8 +282,8 @@ const ChartHolder = ({
             getPopupContainer={(triggerNode: HTMLElement) =>
               document.fullscreenElement
                 ? (triggerNode?.closest?.(
-                  '[data-test="dashboard-component-chart-holder"]',
-                ) as HTMLElement) || document.body
+                    '[data-test="dashboard-component-chart-holder"]',
+                  ) as HTMLElement) || document.body
                 : document.body
             }
           >

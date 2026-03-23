@@ -17,7 +17,15 @@
  * under the License.
  */
 import cx from 'classnames';
-import { useCallback, useEffect, useRef, useMemo, useState, memo, RefObject } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useMemo,
+  useState,
+  memo,
+  RefObject,
+} from 'react';
 import type { ChartCustomization, JsonObject } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
