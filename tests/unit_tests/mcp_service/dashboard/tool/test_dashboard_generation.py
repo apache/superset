@@ -96,6 +96,7 @@ def _mock_dashboard(id: int = 1, title: str = "Test Dashboard") -> Mock:
     dashboard.created_by.username = "test_user"
     dashboard.changed_by = Mock()
     dashboard.changed_by.username = "test_user"
+    dashboard.created_by_name = "test_user"
     dashboard.changed_by_name = "test_user"
     dashboard.uuid = f"dashboard-uuid-{id}"
     dashboard.slices = []

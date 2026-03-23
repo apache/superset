@@ -322,7 +322,7 @@ def generate_dashboard(
             published=dashboard.published,
             created_on=dashboard.created_on,
             changed_on=dashboard.changed_on,
-            created_by=dashboard.changed_by_name or None,
+            created_by=dashboard.created_by_name or None,
             changed_by=dashboard.changed_by_name or None,
             uuid=str(dashboard.uuid) if dashboard.uuid else None,
             url=f"{get_superset_base_url()}/superset/dashboard/{dashboard.id}/",
