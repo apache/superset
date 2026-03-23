@@ -233,7 +233,7 @@ class TestSaveSqlQueryToolLogic:
     directly (without unwrapping).
     """
 
-    @pytest.mark.anyio
+    @pytest.mark.anyio()
     async def test_save_query_creates_saved_query(self) -> None:
         """Verify the tool calls SavedQueryDAO.create with correct attrs."""
         mod, saved = _get_tool_module()
@@ -248,6 +248,9 @@ class TestSaveSqlQueryToolLogic:
             mock_sq.id = 42
             mock_sq.label = "Revenue Query"
             mock_sq.sql = "SELECT SUM(revenue) FROM sales"
+            mock_sq.db_id = 1
+            mock_sq.schema = ""
+            mock_sq.description = ""
             mock_sq.catalog = None
 
             request = SaveSqlQueryRequest(
@@ -306,7 +309,7 @@ class TestSaveSqlQueryToolLogic:
         finally:
             _restore_modules(saved)
 
-    @pytest.mark.anyio
+    @pytest.mark.anyio()
     async def test_save_query_database_not_found(self) -> None:
         mod, saved = _get_tool_module()
         try:
@@ -348,7 +351,7 @@ class TestSaveSqlQueryToolLogic:
         finally:
             _restore_modules(saved)
 
-    @pytest.mark.anyio
+    @pytest.mark.anyio()
     async def test_save_query_access_denied(self) -> None:
         mod, saved = _get_tool_module()
         try:
@@ -398,7 +401,7 @@ class TestSaveSqlQueryToolLogic:
         finally:
             _restore_modules(saved)
 
-    @pytest.mark.anyio
+    @pytest.mark.anyio()
     async def test_save_query_with_schema_and_description(self) -> None:
         mod, saved = _get_tool_module()
         try:
@@ -412,6 +415,9 @@ class TestSaveSqlQueryToolLogic:
             mock_sq.id = 10
             mock_sq.label = "Test"
             mock_sq.sql = "SELECT 1"
+            mock_sq.db_id = 1
+            mock_sq.schema = "public"
+            mock_sq.description = ""
             mock_sq.catalog = None
 
             request = SaveSqlQueryRequest(
