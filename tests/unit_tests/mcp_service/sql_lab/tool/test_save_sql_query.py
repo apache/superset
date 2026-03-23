@@ -233,7 +233,7 @@ class TestSaveSqlQueryToolLogic:
     directly (without unwrapping).
     """
 
-    @pytest.mark.anyio()
+    @pytest.mark.anyio
     async def test_save_query_creates_saved_query(self) -> None:
         """Verify the tool calls SavedQueryDAO.create with correct attrs."""
         mod, saved = _get_tool_module()
@@ -309,7 +309,7 @@ class TestSaveSqlQueryToolLogic:
         finally:
             _restore_modules(saved)
 
-    @pytest.mark.anyio()
+    @pytest.mark.anyio
     async def test_save_query_database_not_found(self) -> None:
         mod, saved = _get_tool_module()
         try:
@@ -351,7 +351,7 @@ class TestSaveSqlQueryToolLogic:
         finally:
             _restore_modules(saved)
 
-    @pytest.mark.anyio()
+    @pytest.mark.anyio
     async def test_save_query_access_denied(self) -> None:
         mod, saved = _get_tool_module()
         try:
@@ -401,7 +401,7 @@ class TestSaveSqlQueryToolLogic:
         finally:
             _restore_modules(saved)
 
-    @pytest.mark.anyio()
+    @pytest.mark.anyio
     async def test_save_query_with_schema_and_description(self) -> None:
         mod, saved = _get_tool_module()
         try:
