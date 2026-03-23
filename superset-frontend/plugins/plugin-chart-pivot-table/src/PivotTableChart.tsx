@@ -576,6 +576,9 @@ export default function PivotTableChart(props: PivotTableProps) {
       omittedHighlightHeaderGroups: [METRIC_KEY],
       cellColorFormatters: { [METRIC_KEY]: metricColorFormatters },
       dateFormatters,
+      cellBackgroundColor: theme.colorBgBase,
+      cellTextColor: theme.colorPrimaryText,
+      activeHeaderBackgroundColor: theme.colorPrimaryBg,
     }),
     [
       colTotals,
@@ -586,6 +589,9 @@ export default function PivotTableChart(props: PivotTableProps) {
       rowTotals,
       rowSubTotals,
       selectedFilters,
+      theme.colorBgBase,
+      theme.colorPrimaryBg,
+      theme.colorPrimaryText,
       toggleFilter,
     ],
   );
