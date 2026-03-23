@@ -383,8 +383,17 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                         if "id" in item
                     ]
                     rls_map = DatasetDAO.get_rls_filters_for_datasets(dataset_ids)
+                    can_read_rls = security_manager.can_access(
+                        "can_read", "RowLevelSecurity"
+                    )
                     for item in payload[API_RESULT_RES_KEY]:
-                        item["rls_filters"] = rls_map.get(item.get("id"), [])
+                        filters = rls_map.get(item.get("id"), [])
+                        if can_read_rls:
+                            item["rls_filters"] = filters
+                        else:
+                            item["rls_filters"] = [
+                                {"id": f["id"], "name": f["name"]} for f in filters
+                            ]
                     response = self.response(200, **payload)
             except Exception:  # noqa: BLE001
                 logger.warning(
@@ -1576,9 +1585,19 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             except SupersetTemplateException as ex:
                 return self.response(ex.status, message=str(ex))
 
-        response[API_RESULT_RES_KEY]["rls_filters"] = (
-            DatasetDAO.get_rls_filters_for_dataset(table.id)
-        )
+        detailed_rls = DatasetDAO.get_rls_filters_for_dataset(table.id)
+        if security_manager.can_access("can_read", "RowLevelSecurity"):
+            response[API_RESULT_RES_KEY]["rls_filters"] = detailed_rls
+        else:
+            response[API_RESULT_RES_KEY]["rls_filters"] = [
+                {
+                    "id": f["id"],
+                    "name": f["name"],
+                    "filter_type": f["filter_type"],
+                    "group_key": f.get("group_key"),
+                }
+                for f in detailed_rls
+            ]
 
         return set_version_etag(
             self.response(200, **response),

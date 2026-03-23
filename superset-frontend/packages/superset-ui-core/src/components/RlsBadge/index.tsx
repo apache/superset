@@ -28,6 +28,8 @@ export interface RlsFilterSummary {
   filter_type: string;
   group_key?: string | null;
   inherited?: boolean;
+  clause?: string;
+  roles?: Array<{ id: number; name: string }>;
 }
 
 export interface RlsBadgeProps {
@@ -55,9 +57,21 @@ export function RlsBadge({ rlsFilters, size = 'l' }: RlsBadgeProps) {
       <ul style={{ paddingLeft: 16, margin: '4px 0 0' }}>
         {rlsFilters.map(filter => (
           <li key={filter.id}>
-            {filter.name} ({filter.filter_type})
-            {filter.group_key ? ` [${filter.group_key}]` : ''}
-            {filter.inherited ? ` — ${t('from underlying table')}` : ''}
+            <div>
+              {filter.name} ({filter.filter_type})
+              {filter.group_key ? ` [${filter.group_key}]` : ''}
+              {filter.inherited ? ` — ${t('from underlying table')}` : ''}
+            </div>
+            {filter.roles && filter.roles.length > 0 && (
+              <div>
+                {t('Roles')}: {filter.roles.map(role => role.name).join(', ')}
+              </div>
+            )}
+            {filter.clause && (
+              <div>
+                {t('Clause')}: {filter.clause}
+              </div>
+            )}
           </li>
         ))}
       </ul>
