@@ -296,6 +296,7 @@ class ExplorableData(TypedDict, total=False):
     extra: str | None
     always_filter_main_dttm: bool
     normalize_columns: bool
+    rls_filters: list[dict[str, Any]]
 
 
 VizData: TypeAlias = list[Any] | dict[Any, Any] | None

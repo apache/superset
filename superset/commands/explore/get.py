@@ -31,6 +31,7 @@ from superset.commands.explore.form_data.parameters import (
 from superset.commands.explore.parameters import CommandParameters
 from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
+from superset.daos.dataset import DatasetDAO
 from superset.daos.datasource import DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import SupersetException
@@ -152,6 +153,14 @@ class GetExploreCommand(BaseCommand, ABC):
             message = ex.message
         except SQLAlchemyError:
             message = "SQLAlchemy error"
+
+        if self._datasource_id is not None:
+            try:
+                datasource_data["rls_filters"] = DatasetDAO.get_rls_filters_for_dataset(
+                    self._datasource_id
+                )
+            except Exception:  # pylint: disable=broad-except
+                datasource_data["rls_filters"] = []
 
         metadata = None
 

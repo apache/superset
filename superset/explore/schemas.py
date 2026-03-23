@@ -100,6 +100,10 @@ class DatasetSchema(Schema):
     verbose_map = fields.Dict(
         metadata={"description": "Mapping from raw name to verbose name."}
     )
+    rls_filters = fields.List(
+        fields.Dict(),
+        metadata={"description": "Row-level security filters applied to this dataset."},
+    )
 
 
 class SliceSchema(Schema):
