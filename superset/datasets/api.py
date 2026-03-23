@@ -371,6 +371,28 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     list_outer_default_load = True
     show_outer_default_load = True
 
+    def get_list_headless(self, **kwargs: Any) -> Response:
+        response = super().get_list_headless(**kwargs)
+        if response.status_code == 200:
+            try:
+                payload = response.json
+                if payload and API_RESULT_RES_KEY in payload:
+                    dataset_ids = [
+                        item["id"]
+                        for item in payload[API_RESULT_RES_KEY]
+                        if "id" in item
+                    ]
+                    rls_map = DatasetDAO.get_rls_filters_for_datasets(dataset_ids)
+                    for item in payload[API_RESULT_RES_KEY]:
+                        item["rls_filters"] = rls_map.get(item.get("id"), [])
+                    response = self.response(200, **payload)
+            except Exception:  # noqa: BLE001
+                logger.warning(
+                    "Failed to annotate dataset list with RLS info",
+                    exc_info=True,
+                )
+        return response
+
     @expose("/", methods=("POST",))
     @protect()
     @safe
@@ -1553,6 +1575,10 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 )
             except SupersetTemplateException as ex:
                 return self.response(ex.status, message=str(ex))
+
+        response[API_RESULT_RES_KEY]["rls_filters"] = (
+            DatasetDAO.get_rls_filters_for_dataset(table.id)
+        )
 
         return set_version_etag(
             self.response(200, **response),

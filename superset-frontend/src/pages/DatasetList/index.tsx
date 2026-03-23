@@ -57,6 +57,7 @@ import {
   DatasetTypeLabel,
   Loading,
   List,
+  RlsBadge,
 } from '@superset-ui/core/components';
 import {
   DatasourceModal,
@@ -683,6 +684,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               table_name: datasetTitle,
               description,
               explore_url: exploreURL,
+              rls_filters: rlsFilters,
             },
           },
         }: CellProps<Dataset>) => {
@@ -726,6 +728,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     warningMarkdown={parsedExtra.warning_markdown}
                     size="l"
                   />
+                )}
+                {rlsFilters?.length > 0 && (
+                  <RlsBadge rlsFilters={rlsFilters} size="l" />
                 )}
                 {titleLink}
                 {description && <InfoTooltip tooltip={description} />}
