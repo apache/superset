@@ -652,10 +652,8 @@ const SliceHeaderControls = (
         showModal={drillModalIsOpen}
         dataset={datasetWithVerboseMap}
       />
-
       {canEditCrossFilters && scopingModal}
-
-      <Global styles={fullscreenStyles(theme)} />
+      {isFullSize && <Global styles={fullscreenStyles(theme)} />}
     </>
   );
 };

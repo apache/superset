@@ -35,10 +35,8 @@ export const fullscreenStyles = (theme: SupersetTheme) => css`
     .ant-modal-root,
     .ant-select-dropdown,
     .ant-popover {
-      z-index: 2000;
+      z-index: 99999;
       pointer-events: auto;
-      visibility: visible;
-      opacity: 1;
     }
   }
 
