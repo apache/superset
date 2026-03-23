@@ -350,6 +350,7 @@ export const DropdownContainer = forwardRef(
               onOpenChange={visible => setPopoverVisible(visible)}
               placement="bottom"
               forceRender={forceRender}
+              fresh // This prop prevents caching and stale data for filter scoping.
             >
               <Tooltip title={dropdownTriggerTooltip}>
                 <Button
