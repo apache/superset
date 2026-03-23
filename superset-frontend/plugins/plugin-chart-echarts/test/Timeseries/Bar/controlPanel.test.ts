@@ -16,11 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ControlPanelsContainerProps } from '@superset-ui/chart-controls/types';
 import controlPanel from '../../../src/Timeseries/Regular/Bar/controlPanel';
 import {
   StackControlOptionsWithoutStream,
   StackControlsValue,
 } from '../../../src/constants';
+import { OrientationType } from '../../../src/Timeseries/types';
 
 const config = controlPanel;
 
@@ -217,4 +219,65 @@ test('should preserve stack value when formData does not have stack property', (
   const result = config.formDataOverrides!(mockFormData);
 
   expect(result).not.toHaveProperty('stack');
+});
+
+// x_axis_number_format visibility tests
+
+const mockBarControls = (
+  xAxisColumn: string | null,
+  xAxisType: string | null,
+  orientation: string = OrientationType.Vertical,
+): ControlPanelsContainerProps => {
+  const options = xAxisType
+    ? [{ column_name: xAxisColumn, type: xAxisType }]
+    : [];
+
+  return {
+    controls: {
+      // @ts-expect-error
+      x_axis: {
+        value: xAxisColumn,
+        options,
+      },
+      // @ts-expect-error
+      orientation: {
+        value: orientation,
+      },
+    },
+  };
+};
+
+const numberFormatControl: any = getControl('x_axis_number_format');
+const timeFormatControl: any = getControl('x_axis_time_format');
+
+test('should include x_axis_number_format control in the panel', () => {
+  expect(numberFormatControl).toBeDefined();
+});
+
+test('x_axis_number_format should be visible for numeric columns in vertical orientation', () => {
+  const visibilityFn = numberFormatControl?.config?.visibility;
+  expect(visibilityFn(mockBarControls('year', 'INTEGER'))).toBe(true);
+  expect(visibilityFn(mockBarControls('id', 'BIGINT'))).toBe(true);
+  expect(visibilityFn(mockBarControls('price', 'FLOAT'))).toBe(true);
+  expect(visibilityFn(mockBarControls('amount', 'DECIMAL'))).toBe(true);
+});
+
+test('x_axis_number_format should be hidden for time columns', () => {
+  const visibilityFn = numberFormatControl?.config?.visibility;
+  expect(visibilityFn(mockBarControls('date', 'TIMESTAMP'))).toBe(false);
+  expect(
+    visibilityFn(mockBarControls('date', 'TIMESTAMP WITH TIME ZONE')),
+  ).toBe(false);
+});
+
+test('x_axis_number_format should be hidden for non-numeric columns', () => {
+  const visibilityFn = numberFormatControl?.config?.visibility;
+  expect(visibilityFn(mockBarControls('name', 'VARCHAR'))).toBe(false);
+  expect(visibilityFn(mockBarControls('name', 'TEXT'))).toBe(false);
+});
+
+test('x_axis_time_format should be hidden for numeric columns', () => {
+  const visibilityFn = timeFormatControl?.config?.visibility;
+  expect(visibilityFn(mockBarControls('year', 'INTEGER'))).toBe(false);
+  expect(visibilityFn(mockBarControls('price', 'FLOAT'))).toBe(false);
 });

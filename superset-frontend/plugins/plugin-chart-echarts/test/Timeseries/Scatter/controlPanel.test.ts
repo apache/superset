@@ -138,15 +138,18 @@ const isNumberVisible = (
   return visibilityFn ? visibilityFn(props) : false;
 };
 
-test('x_axis_number_format control should be visible for any floating-point data types', () => {
+test('x_axis_number_format control should be visible for any numeric data types', () => {
   expect(isNumberVisible('float_column', 'FLOAT')).toBe(true);
   expect(isNumberVisible('double_column', 'DOUBLE')).toBe(true);
   expect(isNumberVisible('real_column', 'REAL')).toBe(true);
   expect(isNumberVisible('numeric_column', 'NUMERIC')).toBe(true);
   expect(isNumberVisible('decimal_column', 'DECIMAL')).toBe(true);
+  expect(isNumberVisible('int_column', 'INTEGER')).toBe(true);
+  expect(isNumberVisible('bigint_column', 'BIGINT')).toBe(true);
+  expect(isNumberVisible('smallint_column', 'SMALLINT')).toBe(true);
 });
 
-test('x_axis_number_format control should be hidden for any non-floating-point data types', () => {
+test('x_axis_number_format control should be hidden for any non-numeric data types', () => {
   expect(isNumberVisible('string_column', 'VARCHAR')).toBe(false);
   expect(isNumberVisible('null', 'null')).toBe(false);
   expect(isNumberVisible(null, null)).toBe(false);

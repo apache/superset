@@ -136,8 +136,9 @@ const config: ControlPanelConfig = {
             name: 'x_axis_number_format',
             config: {
               ...sharedControls.x_axis_number_format,
+              mapStateToProps: undefined,
               visibility: ({ controls }: ControlPanelsContainerProps) => {
-                // check if x axis is a floating-point column
+                // check if x axis is a numeric column
                 const xAxisColumn = controls?.x_axis?.value;
                 const xAxisOptions = controls?.x_axis?.options;
 
@@ -155,9 +156,22 @@ const config: ControlPanelConfig = {
 
                 const typeUpper = xAxisType.toUpperCase();
 
-                return ['FLOAT', 'DOUBLE', 'REAL', 'NUMERIC', 'DECIMAL'].some(
-                  t => typeUpper.includes(t),
-                );
+                if (typeUpper.includes('TIME')) {
+                  return false;
+                }
+
+                return [
+                  'INT',
+                  'INTEGER',
+                  'BIGINT',
+                  'SMALLINT',
+                  'TINYINT',
+                  'FLOAT',
+                  'DOUBLE',
+                  'REAL',
+                  'NUMERIC',
+                  'DECIMAL',
+                ].some(t => typeUpper.includes(t));
               },
             },
           },

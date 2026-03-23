@@ -146,6 +146,73 @@ const config: ControlPanelConfig = {
               ...sharedControls.x_axis_time_format,
               default: 'smart_date',
               description: `${D3_TIME_FORMAT_DOCS}. ${TIME_SERIES_DESCRIPTION_TEXT}`,
+              visibility: ({ controls }: ControlPanelsContainerProps) => {
+                const xAxisColumn = controls?.x_axis?.value;
+                const xAxisOptions = controls?.x_axis?.options;
+                if (!xAxisColumn || !Array.isArray(xAxisOptions)) {
+                  return true;
+                }
+                const xAxisType = (
+                  xAxisOptions as { column_name: string; type?: string }[]
+                ).find(option => option.column_name === xAxisColumn)?.type;
+                if (typeof xAxisType !== 'string') {
+                  return true;
+                }
+                const typeUpper = xAxisType.toUpperCase();
+                if (typeUpper.includes('TIME')) {
+                  return true;
+                }
+                return ![
+                  'INT',
+                  'INTEGER',
+                  'BIGINT',
+                  'SMALLINT',
+                  'TINYINT',
+                  'FLOAT',
+                  'DOUBLE',
+                  'REAL',
+                  'NUMERIC',
+                  'DECIMAL',
+                ].some(t => typeUpper.includes(t));
+              },
+            },
+          },
+        ],
+        [
+          {
+            name: 'x_axis_number_format',
+            config: {
+              ...sharedControls.x_axis_number_format,
+              mapStateToProps: undefined,
+              visibility: ({ controls }: ControlPanelsContainerProps) => {
+                const xAxisColumn = controls?.x_axis?.value;
+                const xAxisOptions = controls?.x_axis?.options;
+                if (!xAxisColumn || !Array.isArray(xAxisOptions)) {
+                  return false;
+                }
+                const xAxisType = (
+                  xAxisOptions as { column_name: string; type?: string }[]
+                ).find(option => option.column_name === xAxisColumn)?.type;
+                if (typeof xAxisType !== 'string') {
+                  return false;
+                }
+                const typeUpper = xAxisType.toUpperCase();
+                if (typeUpper.includes('TIME')) {
+                  return false;
+                }
+                return [
+                  'INT',
+                  'INTEGER',
+                  'BIGINT',
+                  'SMALLINT',
+                  'TINYINT',
+                  'FLOAT',
+                  'DOUBLE',
+                  'REAL',
+                  'NUMERIC',
+                  'DECIMAL',
+                ].some(t => typeUpper.includes(t));
+              },
             },
           },
         ],

@@ -154,6 +154,37 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
     Boolean(controls?.orientation.value === OrientationType.Vertical);
   const isHorizontal = (controls: ControlStateMapping) =>
     Boolean(controls?.orientation.value === OrientationType.Horizontal);
+  const isNumericColumn = (controls: ControlStateMapping) => {
+    const xAxisColumn = controls?.x_axis?.value;
+    const xAxisOptions = controls?.x_axis?.options;
+    if (!xAxisColumn || !Array.isArray(xAxisOptions)) {
+      return false;
+    }
+    const xAxisType = xAxisOptions.find(
+      (option: { column_name: string; type?: string }) =>
+        option.column_name === xAxisColumn,
+    )?.type;
+    if (typeof xAxisType !== 'string') {
+      return false;
+    }
+    const typeUpper = xAxisType.toUpperCase();
+    if (typeUpper.includes('TIME')) {
+      return false;
+    }
+    return [
+      'INT',
+      'INTEGER',
+      'BIGINT',
+      'SMALLINT',
+      'TINYINT',
+      'FLOAT',
+      'DOUBLE',
+      'REAL',
+      'NUMERIC',
+      'DECIMAL',
+    ].some(t => typeUpper.includes(t));
+  };
+
   return [
     [
       {
@@ -163,7 +194,22 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
           default: 'smart_date',
           description: `${D3_TIME_FORMAT_DOCS}. ${TIME_SERIES_DESCRIPTION_TEXT}`,
           visibility: ({ controls }: ControlPanelsContainerProps) =>
-            isXAxis ? isVertical(controls) : isHorizontal(controls),
+            (isXAxis ? isVertical(controls) : isHorizontal(controls)) &&
+            !isNumericColumn(controls),
+          disableStash: true,
+          resetOnHide: false,
+        },
+      },
+    ],
+    [
+      {
+        name: 'x_axis_number_format',
+        config: {
+          ...sharedControls.x_axis_number_format,
+          mapStateToProps: undefined,
+          visibility: ({ controls }: ControlPanelsContainerProps) =>
+            (isXAxis ? isVertical(controls) : isHorizontal(controls)) &&
+            isNumericColumn(controls),
           disableStash: true,
           resetOnHide: false,
         },
