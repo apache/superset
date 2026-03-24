@@ -42,7 +42,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
-@pytest.fixture()
+@pytest.fixture
 def mcp_server():
     return mcp
 
@@ -145,7 +145,7 @@ class TestGenerateDashboard:
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_generate_dashboard_basic(
         self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
     ):
@@ -182,7 +182,7 @@ class TestGenerateDashboard:
             )
 
     @patch("superset.db.session")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_generate_dashboard_missing_charts(self, mock_db_session, mcp_server):
         """Test error handling when some charts don't exist."""
         mock_query = Mock()
@@ -205,7 +205,7 @@ class TestGenerateDashboard:
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_generate_dashboard_single_chart(
         self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
     ):
@@ -232,7 +232,7 @@ class TestGenerateDashboard:
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_generate_dashboard_many_charts(
         self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
     ):
@@ -301,7 +301,7 @@ class TestGenerateDashboard:
 
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.db.session")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_generate_dashboard_creation_failure(
         self, mock_db_session, mock_dashboard_cls, mcp_server
     ):
@@ -341,7 +341,7 @@ class TestGenerateDashboard:
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_generate_dashboard_minimal_request(
         self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
     ):
@@ -373,7 +373,7 @@ class TestGenerateDashboard:
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_generate_dashboard_auto_title_from_charts(
         self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
     ):
@@ -402,7 +402,7 @@ class TestGenerateDashboard:
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_generate_dashboard_empty_string_title_preserved(
         self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
     ):
@@ -432,7 +432,7 @@ class TestAddChartToExistingDashboard:
     @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_add_chart_to_dashboard_basic(
         self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
     ):
@@ -518,7 +518,7 @@ class TestAddChartToExistingDashboard:
             assert layout[column_key]["type"] == "COLUMN"
 
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_add_chart_dashboard_not_found(self, mock_find_dashboard, mcp_server):
         """Test error when dashboard doesn't exist."""
         mock_find_dashboard.return_value = None
@@ -535,7 +535,7 @@ class TestAddChartToExistingDashboard:
 
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_add_chart_chart_not_found(
         self, mock_db_session, mock_find_dashboard, mcp_server
     ):
@@ -553,7 +553,7 @@ class TestAddChartToExistingDashboard:
 
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_add_chart_already_in_dashboard(
         self, mock_db_session, mock_find_dashboard, mcp_server
     ):
@@ -577,7 +577,7 @@ class TestAddChartToExistingDashboard:
     @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_add_chart_empty_dashboard(
         self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
     ):
@@ -633,7 +633,7 @@ class TestAddChartToExistingDashboard:
     @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_add_chart_to_tabbed_dashboard(
         self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
     ):
@@ -733,7 +733,7 @@ class TestAddChartToExistingDashboard:
     @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_add_chart_to_specific_tab_by_name(
         self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
     ):
@@ -834,7 +834,7 @@ class TestAddChartToExistingDashboard:
     @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_add_chart_dashboard_with_nanoid_rows(
         self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
     ):
