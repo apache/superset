@@ -277,6 +277,23 @@ def _setup_user_context() -> User | None:
             logger.debug("No Flask app context available for user setup")
             return None
         raise
+    except ValueError as e:
+        # JWT user resolution failed (e.g. SAML subject not in DB).
+        # If middleware already set g.user (request context exists),
+        # use that instead of failing closed.
+        from flask import has_request_context
+
+        if has_request_context() and hasattr(g, "user") and g.user:
+            logger.warning(
+                "JWT user resolution failed (%s), using middleware-provided g.user=%s",
+                e,
+                g.user.username,
+            )
+            # Assign to local so relationship validation below runs
+            # (same as the normal path) to prevent detached instance errors.
+            user = g.user
+        else:
+            raise
 
     # Validate user has necessary relationships loaded
     # (Force access to ensure they're loaded if lazy)

@@ -415,12 +415,8 @@ def add_chart_to_existing_dashboard(
             published=updated_dashboard.published,
             created_on=updated_dashboard.created_on,
             changed_on=updated_dashboard.changed_on,
-            created_by=updated_dashboard.created_by.username
-            if updated_dashboard.created_by
-            else None,
-            changed_by=updated_dashboard.changed_by.username
-            if updated_dashboard.changed_by
-            else None,
+            created_by=updated_dashboard.created_by_name or None,
+            changed_by=updated_dashboard.changed_by_name or None,
             uuid=str(updated_dashboard.uuid) if updated_dashboard.uuid else None,
             url=f"{get_superset_base_url()}/superset/dashboard/{updated_dashboard.id}/",
             chart_count=len(updated_dashboard.slices),

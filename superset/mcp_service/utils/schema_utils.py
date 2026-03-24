@@ -512,6 +512,7 @@ def _apply_signature_for_fastmcp(
     wrapper: Any,
     original_func: Callable[..., Any],
     request_annotation: Any,
+    request_default: Any = None,
 ) -> None:
     """Apply annotations and signature to wrapper, stripping ctx for FastMCP.
 
@@ -539,7 +540,10 @@ def _apply_signature_for_fastmcp(
         if _is_context_param(param, name, FMContext):
             continue
         if name == "request":
-            new_params.append(param.replace(annotation=request_annotation))
+            replacement = {"annotation": request_annotation}
+            if request_default is not None:
+                replacement["default"] = request_default
+            new_params.append(param.replace(**replacement))
         else:
             new_params.append(param)
     wrapper.__signature__ = orig_sig.replace(parameters=new_params)

@@ -121,10 +121,10 @@ async def save_sql_query(
             id=saved_query.id,
             label=saved_query.label,
             sql=saved_query.sql,
-            database_id=request.database_id,
-            schema_name=request.schema_name,
+            database_id=saved_query.db_id,
+            schema_name=saved_query.schema or None,
             catalog=getattr(saved_query, "catalog", None),
-            description=request.description,
+            description=saved_query.description or None,
             url=saved_query_url,
         )
 
