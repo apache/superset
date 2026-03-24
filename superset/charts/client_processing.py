@@ -338,6 +338,10 @@ def apply_client_processing(  # noqa: C901
             # do not try to process empty data
             continue
 
+        csv_export_config = current_app.config.get("CSV_EXPORT", {})
+        sep = csv_export_config.get("sep", ",")
+        decimal = csv_export_config.get("decimal", ".")
+
         if query["result_format"] == ChartDataResultFormat.JSON:
             df = pd.DataFrame.from_dict(data)
         elif query["result_format"] == ChartDataResultFormat.CSV:
@@ -349,6 +353,8 @@ def apply_client_processing(  # noqa: C901
                 StringIO(data),
                 keep_default_na=na_values is None,
                 na_values=na_values,
+                sep=sep,
+                decimal=decimal,
             )
 
         # convert all columns to verbose (label) name
@@ -389,7 +395,7 @@ def apply_client_processing(  # noqa: C901
             query["data"] = processed_df.to_dict()
         elif query["result_format"] == ChartDataResultFormat.CSV:
             buf = StringIO()
-            processed_df.to_csv(buf, index=show_default_index)
+            processed_df.to_csv(buf, index=show_default_index, sep=sep, decimal=decimal)
             buf.seek(0)
             query["data"] = buf.getvalue()
 
