@@ -748,7 +748,13 @@ export default function transformProps(
     initialLegendLayout.effectiveLegendType === LegendType.Plain
       ? getLegendLayout(initialLegendLayout.effectiveLegendMargin)
       : initialLegendLayout;
-  const { effectiveLegendMargin, effectiveLegendType } = legendLayout;
+  const { effectiveLegendType } = legendLayout;
+  const effectiveLegendMargin =
+    isHorizontal &&
+    legendOrientation === LegendOrientation.Bottom &&
+    legendLayout.effectiveLegendType === LegendType.Scroll
+      ? legendMargin
+      : legendLayout.effectiveLegendMargin;
   const padding = getPadding(
     showLegend,
     legendOrientation,

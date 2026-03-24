@@ -24,6 +24,10 @@ import {
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
+import type {
+  GridComponentOption,
+  LegendComponentOption,
+} from 'echarts/components';
 import {
   EchartsTimeseriesChartProps,
   LegendOrientation,
@@ -815,11 +819,11 @@ describe('Bar Chart X-axis Time Formatting', () => {
       });
       const baselineTransformed = transformProps(baselineChartProps);
       const legendItems = (
-        (baselineTransformed.echartOptions.legend as any).data as Array<
-          string | { name: string }
-        >
+        (baselineTransformed.echartOptions.legend as LegendComponentOption)
+          .data as Array<string | { name: string }>
       ).map(item => (typeof item === 'string' ? item : item.name));
       let chartWidth: number | undefined;
+      let expandedLegendMargin: number | null = null;
 
       for (let width = 300; width <= 700; width += 1) {
         const initialLayout = getBottomLegendLayout(width, legendItems, null);
@@ -836,11 +840,13 @@ describe('Bar Chart X-axis Time Formatting', () => {
 
         if (refinedLayout.effectiveType === LegendType.Scroll) {
           chartWidth = width;
+          expandedLegendMargin = initialLayout.effectiveMargin ?? null;
           break;
         }
       }
 
       expect(chartWidth).toBeDefined();
+      expect(expandedLegendMargin).not.toBeNull();
       const resolvedChartWidth = chartWidth ?? baseChartPropsConfig.width;
 
       const chartProps = createEchartsTimeseriesTestChartProps<
@@ -855,10 +861,45 @@ describe('Bar Chart X-axis Time Formatting', () => {
       });
 
       const transformedProps = transformProps(chartProps);
-
-      expect((transformedProps.echartOptions.legend as any).type).toBe(
-        LegendType.Scroll,
+      const legend = transformedProps.echartOptions
+        .legend as LegendComponentOption;
+      const grid = transformedProps.echartOptions.grid as GridComponentOption;
+      const expectedPadding = getPadding(
+        true,
+        LegendOrientation.Bottom,
+        false,
+        false,
+        null,
+        false,
+        undefined,
+        undefined,
+        undefined,
+        true,
       );
+      [expectedPadding.bottom, expectedPadding.left] = [
+        expectedPadding.left,
+        expectedPadding.bottom,
+      ];
+      const expandedPadding = getPadding(
+        true,
+        LegendOrientation.Bottom,
+        false,
+        false,
+        expandedLegendMargin,
+        false,
+        undefined,
+        undefined,
+        undefined,
+        true,
+      );
+      [expandedPadding.bottom, expandedPadding.left] = [
+        expandedPadding.left,
+        expandedPadding.bottom,
+      ];
+
+      expect(legend.type).toBe(LegendType.Scroll);
+      expect(grid.bottom).toBe(expectedPadding.bottom);
+      expect(grid.bottom).not.toBe(expandedPadding.bottom);
     });
   });
 });
