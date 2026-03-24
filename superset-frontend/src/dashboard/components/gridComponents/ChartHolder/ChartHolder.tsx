@@ -262,8 +262,13 @@ const ChartHolder = ({
           ref={el => {
             if (typeof dragSourceRef === 'function') {
               dragSourceRef(el);
-            } else if (dragSourceRef && 'current' in dragSourceRef) {
-              (dragSourceRef as any).current = el;
+            } else if (
+              dragSourceRef &&
+              Object.prototype.hasOwnProperty.call(dragSourceRef, 'current')
+            ) {
+              (
+                dragSourceRef as React.MutableRefObject<HTMLDivElement | null>
+              ).current = el;
             }
             chartHolderRef.current = el;
           }}
