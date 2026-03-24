@@ -20,7 +20,7 @@ import { css, SupersetTheme } from '@apache-superset/core/theme';
 
 export const fullscreenStyles = (theme: SupersetTheme) => css`
   /* Using && to increase specificity without needing !important as often */
-  &&[data-test='dashboard-component-chart-holder']:fullscreen {
+  [data-test='dashboard-component-chart-holder']:fullscreen {
     background-color: ${theme.colorBgBase};
     width: 100vw;
     height: 100vh;
