@@ -237,10 +237,8 @@ def generate_dashboard(
 
         # Prepare dashboard data and create dashboard
         with event_logger.log_context(action="mcp.generate_dashboard.db_write"):
-            dashboard_data = {
+            dashboard_data: Dict[str, Any] = {
                 "dashboard_title": dashboard_title,
-                "slug": None,  # Let Superset auto-generate slug
-                "css": "",
                 "json_metadata": json.dumps(
                     {
                         "filter_scopes": {},
@@ -271,8 +269,44 @@ def generate_dashboard(
                 dashboard_data["description"] = request.description
 
             # Create the dashboard using Superset's command pattern
-            command = CreateDashboardCommand(dashboard_data)
-            dashboard = command.run()
+            try:
+                command = CreateDashboardCommand(dashboard_data)
+                dashboard = command.run()
+            except Exception as cmd_err:
+                # Surface the root cause from @transaction's error wrapping
+                root_cause = cmd_err.__cause__ or cmd_err
+                logger.error(
+                    "CreateDashboardCommand failed: %s (cause: %s)",
+                    cmd_err,
+                    root_cause,
+                    exc_info=True,
+                )
+                return GenerateDashboardResponse(
+                    dashboard=None,
+                    dashboard_url=None,
+                    error=f"Failed to create dashboard: {root_cause}",
+                )
+
+        # Re-fetch the dashboard with eager-loaded relationships to avoid
+        # "Instance is not bound to a Session" errors when serializing
+        # chart .tags and .owners.
+        from sqlalchemy.orm import subqueryload
+
+        from superset.daos.dashboard import DashboardDAO
+        from superset.models.dashboard import Dashboard
+
+        dashboard = (
+            DashboardDAO.find_by_id(
+                dashboard.id,
+                query_options=[
+                    subqueryload(Dashboard.slices).subqueryload(Slice.owners),
+                    subqueryload(Dashboard.slices).subqueryload(Slice.tags),
+                    subqueryload(Dashboard.owners),
+                    subqueryload(Dashboard.tags),
+                ],
+            )
+            or dashboard
+        )
 
         # Convert to our response format
         from superset.mcp_service.dashboard.schemas import (
@@ -288,8 +322,8 @@ def generate_dashboard(
             published=dashboard.published,
             created_on=dashboard.created_on,
             changed_on=dashboard.changed_on,
-            created_by=dashboard.created_by.username if dashboard.created_by else None,
-            changed_by=dashboard.changed_by.username if dashboard.changed_by else None,
+            created_by=dashboard.created_by_name or None,
+            changed_by=dashboard.changed_by_name or None,
             uuid=str(dashboard.uuid) if dashboard.uuid else None,
             url=f"{get_superset_base_url()}/superset/dashboard/{dashboard.id}/",
             chart_count=len(request.chart_ids),
