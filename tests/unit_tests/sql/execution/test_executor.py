@@ -37,7 +37,7 @@ import pandas as pd
 import pytest
 from flask import current_app
 from pytest_mock import MockerFixture
-from superset_core.api.types import (
+from superset_core.queries.types import (
     CacheOptions,
     QueryOptions,
     QueryStatus,
@@ -1907,7 +1907,7 @@ def test_store_in_cache_with_failed_status(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
     """Test that failed queries are not cached."""
-    from superset_core.api.types import QueryResult as QueryResultType
+    from superset_core.queries.types import QueryResult as QueryResultType
 
     from superset.sql.execution.executor import SQLExecutor
 
@@ -1930,7 +1930,10 @@ def test_store_in_cache_with_no_data(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
     """Test that DML queries (with no data) are cached."""
-    from superset_core.api.types import QueryResult as QueryResultType, StatementResult
+    from superset_core.queries.types import (
+        QueryResult as QueryResultType,
+        StatementResult,
+    )
 
     from superset.sql.execution.executor import SQLExecutor
 
@@ -1960,7 +1963,10 @@ def test_create_cached_async_result_cancel(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
     """Test that cached async result cancel returns False."""
-    from superset_core.api.types import QueryResult as QueryResultType, StatementResult
+    from superset_core.queries.types import (
+        QueryResult as QueryResultType,
+        StatementResult,
+    )
 
     from superset.sql.execution.executor import SQLExecutor
 
@@ -2144,7 +2150,10 @@ def test_cached_async_result_get_result_returns_cached(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
     """Test that cached async result returns the original cached result."""
-    from superset_core.api.types import QueryResult as QueryResultType, StatementResult
+    from superset_core.queries.types import (
+        QueryResult as QueryResultType,
+        StatementResult,
+    )
 
     from superset.sql.execution.executor import SQLExecutor
 

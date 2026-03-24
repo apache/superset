@@ -10706,7 +10706,7 @@ msgstr "Läuft"
 
 #, fuzzy, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
-msgstr "Führe Anweisung %(statement_num)s von %(statement_count)s aus"
+msgstr "Führe Anweisung %(block_num)s von %(block_count)s aus"
 
 msgid "SAT"
 msgstr "SA"

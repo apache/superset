@@ -23,6 +23,7 @@ import { AdhocMetric } from '../../query';
  * Constants for Matrixify filter generation
  * These match the literal types used in Filter.ts
  */
+
 export const MatrixifyFilterConstants = {
   // Filter expression types
   ExpressionType: {
@@ -46,12 +47,12 @@ export const MatrixifyFilterConstants = {
 /**
  * Mode for selecting matrix axis values
  */
-export type MatrixifyMode = 'metrics' | 'dimensions';
+export type MatrixifyMode = 'disabled' | 'metrics' | 'dimensions';
 
 /**
  * Selection method for dimension values
  */
-export type MatrixifySelectionMode = 'members' | 'topn';
+export type MatrixifySelectionMode = 'members' | 'topn' | 'all';
 
 /**
  * Sort order for top N selection
@@ -96,18 +97,18 @@ export interface MatrixifyAxisConfig {
  * Complete Matrixify configuration in form data
  */
 export interface MatrixifyFormData {
-  // Layout enable controls
-  matrixify_enable_vertical_layout?: boolean;
-  matrixify_enable_horizontal_layout?: boolean;
+  // Global enable switch
+  matrixify_enable?: boolean;
 
-  // Row axis configuration
+  // Row axis configuration (mode 'disabled' means axis is off)
   matrixify_mode_rows?: MatrixifyMode;
   matrixify_rows?: AdhocMetric[];
   matrixify_dimension_selection_mode_rows?: MatrixifySelectionMode;
   matrixify_dimension_rows?: MatrixifyDimensionValue;
   matrixify_topn_value_rows?: number;
   matrixify_topn_metric_rows?: AdhocMetric;
-  matrixify_topn_order_rows?: MatrixifySortOrder;
+  matrixify_topn_order_rows?: boolean;
+  matrixify_all_sort_by_rows?: 'a_to_z' | 'z_to_a' | 'metric';
 
   // Column axis configuration
   matrixify_mode_columns?: MatrixifyMode;
@@ -116,7 +117,8 @@ export interface MatrixifyFormData {
   matrixify_dimension_columns?: MatrixifyDimensionValue;
   matrixify_topn_value_columns?: number;
   matrixify_topn_metric_columns?: AdhocMetric;
-  matrixify_topn_order_columns?: MatrixifySortOrder;
+  matrixify_topn_order_columns?: boolean;
+  matrixify_all_sort_by_columns?: 'a_to_z' | 'z_to_a' | 'metric';
 
   // Grid layout configuration
   matrixify_row_height?: number;
@@ -140,74 +142,88 @@ export interface MatrixifyConfig {
 }
 
 /**
+ * Check if a given axis mode is active (not disabled)
+ */
+function isAxisEnabled(mode?: MatrixifyMode): boolean {
+  return mode === 'metrics' || mode === 'dimensions';
+}
+
+/**
  * Helper function to extract Matrixify configuration from form data
  */
 export function getMatrixifyConfig(
   formData: MatrixifyFormData & any,
 ): MatrixifyConfig | null {
-  const hasRowConfig = formData.matrixify_mode_rows;
-  const hasColumnConfig = formData.matrixify_mode_columns;
+  if (formData.matrixify_enable !== true) {
+    return null;
+  }
 
-  if (!hasRowConfig && !hasColumnConfig) {
+  const rowEnabled = isAxisEnabled(formData.matrixify_mode_rows);
+  const colEnabled = isAxisEnabled(formData.matrixify_mode_columns);
+
+  if (!rowEnabled && !colEnabled) {
     return null;
   }
 
   return {
     rows: {
-      mode: formData.matrixify_mode_rows || 'metrics',
+      mode: formData.matrixify_mode_rows || 'disabled',
       metrics: formData.matrixify_rows,
       selectionMode: formData.matrixify_dimension_selection_mode_rows,
       dimension: formData.matrixify_dimension_rows,
       topnValue: formData.matrixify_topn_value_rows,
       topnMetric: formData.matrixify_topn_metric_rows,
-      topnOrder: formData.matrixify_topn_order_rows,
+      topnOrder: formData.matrixify_topn_order_rows === false ? 'asc' : 'desc',
     },
     columns: {
-      mode: formData.matrixify_mode_columns || 'metrics',
+      mode: formData.matrixify_mode_columns || 'disabled',
       metrics: formData.matrixify_columns,
       selectionMode: formData.matrixify_dimension_selection_mode_columns,
       dimension: formData.matrixify_dimension_columns,
       topnValue: formData.matrixify_topn_value_columns,
       topnMetric: formData.matrixify_topn_metric_columns,
-      topnOrder: formData.matrixify_topn_order_columns,
+      topnOrder:
+        formData.matrixify_topn_order_columns === false ? 'asc' : 'desc',
     },
   };
 }
 
-/**
- * Check if Matrixify is enabled and properly configured
- */
 export function isMatrixifyEnabled(formData: MatrixifyFormData): boolean {
-  // Check if either vertical or horizontal layout is enabled
-  const hasVerticalLayout = formData.matrixify_enable_vertical_layout === true;
-  const hasHorizontalLayout =
-    formData.matrixify_enable_horizontal_layout === true;
-
-  if (!hasVerticalLayout && !hasHorizontalLayout) {
+  if (formData.matrixify_enable !== true) {
     return false;
   }
 
-  // Then validate that we have proper configuration
+  const rowEnabled = isAxisEnabled(formData.matrixify_mode_rows);
+  const colEnabled = isAxisEnabled(formData.matrixify_mode_columns);
+
+  if (!rowEnabled && !colEnabled) {
+    return false;
+  }
+
   const config = getMatrixifyConfig(formData);
   if (!config) {
     return false;
   }
 
   const hasRowData =
-    config.rows.mode === 'metrics'
+    rowEnabled &&
+    (config.rows.mode === 'metrics'
       ? config.rows.metrics && config.rows.metrics.length > 0
       : config.rows.dimension?.dimension &&
         (config.rows.selectionMode === 'topn' ||
+          config.rows.selectionMode === 'all' ||
           (config.rows.dimension.values &&
-            config.rows.dimension.values.length > 0));
+            config.rows.dimension.values.length > 0)));
 
   const hasColumnData =
-    config.columns.mode === 'metrics'
+    colEnabled &&
+    (config.columns.mode === 'metrics'
       ? config.columns.metrics && config.columns.metrics.length > 0
       : config.columns.dimension?.dimension &&
         (config.columns.selectionMode === 'topn' ||
+          config.columns.selectionMode === 'all' ||
           (config.columns.dimension.values &&
-            config.columns.dimension.values.length > 0));
+            config.columns.dimension.values.length > 0)));
 
   return Boolean(hasRowData || hasColumnData);
 }
@@ -218,14 +234,16 @@ export function isMatrixifyEnabled(formData: MatrixifyFormData): boolean {
 export function getMatrixifyValidationErrors(
   formData: MatrixifyFormData,
 ): string[] {
+  if (formData.matrixify_enable !== true) {
+    return [];
+  }
+
   const errors: string[] = [];
 
-  // Only validate if matrixify is enabled
-  const hasVerticalLayout = formData.matrixify_enable_vertical_layout === true;
-  const hasHorizontalLayout =
-    formData.matrixify_enable_horizontal_layout === true;
+  const rowEnabled = isAxisEnabled(formData.matrixify_mode_rows);
+  const colEnabled = isAxisEnabled(formData.matrixify_mode_columns);
 
-  if (!hasVerticalLayout && !hasHorizontalLayout) {
+  if (!rowEnabled && !colEnabled) {
     return errors;
   }
 
@@ -243,6 +261,7 @@ export function getMatrixifyValidationErrors(
         ? config.rows.metrics && config.rows.metrics.length > 0
         : config.rows.dimension?.dimension &&
           (config.rows.selectionMode === 'topn' ||
+            config.rows.selectionMode === 'all' ||
             (config.rows.dimension.values &&
               config.rows.dimension.values.length > 0));
 
@@ -263,6 +282,7 @@ export function getMatrixifyValidationErrors(
         ? config.columns.metrics && config.columns.metrics.length > 0
         : config.columns.dimension?.dimension &&
           (config.columns.selectionMode === 'topn' ||
+            config.columns.selectionMode === 'all' ||
             (config.columns.dimension.values &&
               config.columns.dimension.values.length > 0));
 
@@ -276,28 +296,26 @@ export function getMatrixifyValidationErrors(
   }
 
   // Must have at least one valid axis
-  if (hasRowMode || hasColumnMode) {
-    const hasRowData =
-      config.rows.mode === 'metrics'
-        ? config.rows.metrics && config.rows.metrics.length > 0
-        : config.rows.dimension?.dimension &&
-          (config.rows.selectionMode === 'topn' ||
-            (config.rows.dimension.values &&
-              config.rows.dimension.values.length > 0));
+  const hasAnyRowData =
+    config.rows.mode === 'metrics'
+      ? config.rows.metrics && config.rows.metrics.length > 0
+      : config.rows.dimension?.dimension &&
+        (config.rows.selectionMode === 'topn' ||
+          config.rows.selectionMode === 'all' ||
+          (config.rows.dimension.values &&
+            config.rows.dimension.values.length > 0));
 
-    const hasColumnData =
-      config.columns.mode === 'metrics'
-        ? config.columns.metrics && config.columns.metrics.length > 0
-        : config.columns.dimension?.dimension &&
-          (config.columns.selectionMode === 'topn' ||
-            (config.columns.dimension.values &&
-              config.columns.dimension.values.length > 0));
+  const hasAnyColumnData =
+    config.columns.mode === 'metrics'
+      ? config.columns.metrics && config.columns.metrics.length > 0
+      : config.columns.dimension?.dimension &&
+        (config.columns.selectionMode === 'topn' ||
+          config.columns.selectionMode === 'all' ||
+          (config.columns.dimension.values &&
+            config.columns.dimension.values.length > 0));
 
-    if (!hasRowData && !hasColumnData) {
-      errors.push('Configure at least one complete row or column axis');
-    }
-  } else {
-    errors.push('Please configure at least one row or column axis');
+  if (!hasAnyRowData && !hasAnyColumnData) {
+    errors.push('Configure at least one complete row or column axis');
   }
 
   return errors;

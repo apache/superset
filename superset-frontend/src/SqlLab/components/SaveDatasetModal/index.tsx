@@ -30,7 +30,7 @@ import {
   Icons,
   Flex,
 } from '@superset-ui/core/components';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   SupersetClient,
   JsonResponse,
@@ -42,7 +42,7 @@ import {
   isFeatureEnabled,
   getClientErrorObject,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import { useSelector, useDispatch } from 'react-redux';
 import rison from 'rison';

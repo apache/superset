@@ -1,26 +1,8 @@
 {
-  "id": "{{ id }}",
+  "publisher": "{{ publisher }}",
   "name": "{{ name }}",
+  "displayName": "{{ display_name }}",
   "version": "{{ version }}",
   "license": "{{ license }}",
-  {% if include_frontend -%}
-  "frontend": {
-    "contributions": {
-      "commands": [],
-      "views": {},
-      "menus": {}
-    },
-    "moduleFederation": {
-      "name": "{{ mf_name }}",
-      "exposes": ["./index"]
-    }
-  },
-  {% endif -%}
-  {% if include_backend -%}
-  "backend": {
-    "entryPoints": ["{{ backend_entry }}"],
-    "files": ["backend/src/superset_extensions/{{ backend_name }}/**/*.py"]
-  },
-  {% endif -%}
   "permissions": []
 }

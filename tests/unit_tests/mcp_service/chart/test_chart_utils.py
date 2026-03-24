@@ -18,11 +18,13 @@
 """Tests for chart utilities module"""
 
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from superset.mcp_service.chart.chart_utils import (
+    _add_adhoc_filters,
+    adhoc_filters_to_query_filters,
     configure_temporal_handling,
     create_metric_object,
     generate_chart_name,
@@ -32,6 +34,7 @@ from superset.mcp_service.chart.chart_utils import (
     map_filter_operator,
     map_table_config,
     map_xy_config,
+    validate_chart_dataset,
 )
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
@@ -312,6 +315,66 @@ class TestMapTableConfig:
 
         assert result["viz_type"] == "table"
 
+    def test_map_table_config_row_limit(self) -> None:
+        """Test that row_limit is mapped to form_data."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product")],
+            row_limit=500,
+        )
+
+        result = map_table_config(config)
+
+        assert result["row_limit"] == 500
+
+    def test_map_table_config_default_row_limit(self) -> None:
+        """Test that default row_limit is mapped to form_data."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product", aggregate="SUM")],
+        )
+
+        result = map_table_config(config)
+
+        assert result["row_limit"] == 1000
+
+
+class TestAddAdhocFilters:
+    """Test _add_adhoc_filters helper function"""
+
+    def test_adds_filters_to_form_data(self) -> None:
+        """Test that filters are correctly added to form_data."""
+        form_data: dict[str, Any] = {}
+        filters = [
+            FilterConfig(column="region", op="=", value="US"),
+            FilterConfig(column="year", op=">", value=2020),
+        ]
+
+        _add_adhoc_filters(form_data, filters)
+
+        assert "adhoc_filters" in form_data
+        assert len(form_data["adhoc_filters"]) == 2
+        assert form_data["adhoc_filters"][0]["subject"] == "region"
+        assert form_data["adhoc_filters"][0]["operator"] == "=="
+        assert form_data["adhoc_filters"][1]["subject"] == "year"
+        assert form_data["adhoc_filters"][1]["operator"] == ">"
+
+    def test_no_filters_does_nothing(self) -> None:
+        """Test that None filters leave form_data unchanged."""
+        form_data: dict[str, Any] = {"viz_type": "table"}
+
+        _add_adhoc_filters(form_data, None)
+
+        assert "adhoc_filters" not in form_data
+
+    def test_empty_list_does_nothing(self) -> None:
+        """Test that empty filter list leaves form_data unchanged."""
+        form_data: dict[str, Any] = {"viz_type": "table"}
+
+        _add_adhoc_filters(form_data, [])
+
+        assert "adhoc_filters" not in form_data
+
 
 class TestMapXYConfig:
     """Test map_xy_config function"""
@@ -459,6 +522,135 @@ class TestMapXYConfig:
         assert result["groupby"] == ["category"]
         assert result["x_axis"] == "order_date"
 
+    def test_map_xy_config_bar_horizontal_orientation(self) -> None:
+        """Test XY config mapping for horizontal bar chart"""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="department"),
+            y=[ColumnRef(name="headcount", aggregate="SUM")],
+            kind="bar",
+            orientation="horizontal",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["viz_type"] == "echarts_timeseries_bar"
+        assert result["orientation"] == "horizontal"
+
+    def test_map_xy_config_bar_vertical_orientation(self) -> None:
+        """Test XY config mapping for vertical bar chart (explicit)"""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+            orientation="vertical",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["viz_type"] == "echarts_timeseries_bar"
+        assert result["orientation"] == "vertical"
+
+    def test_map_xy_config_bar_no_orientation(self) -> None:
+        """Test XY config mapping for bar chart without orientation."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["viz_type"] == "echarts_timeseries_bar"
+        assert "orientation" not in result
+
+    def test_map_xy_config_line_orientation_ignored(self) -> None:
+        """Test that orientation is ignored for non-bar chart types"""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+            orientation="horizontal",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["viz_type"] == "echarts_timeseries_line"
+        assert "orientation" not in result
+
+    def test_map_xy_config_bar_horizontal_with_stacked(self) -> None:
+        """Test horizontal bar chart with stacked option"""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="department"),
+            y=[ColumnRef(name="headcount", aggregate="SUM")],
+            kind="bar",
+            orientation="horizontal",
+            stacked=True,
+            group_by=ColumnRef(name="level"),
+        )
+
+        result = map_xy_config(config)
+
+        assert result["viz_type"] == "echarts_timeseries_bar"
+        assert result["orientation"] == "horizontal"
+        assert result["stack"] == "Stack"
+        assert result["groupby"] == ["level"]
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_with_filters(self, mock_is_temporal) -> None:
+        """Test that filters are mapped to adhoc_filters in XY form_data."""
+        mock_is_temporal.return_value = True
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+            filters=[FilterConfig(column="region", op="=", value="US")],
+        )
+
+        result = map_xy_config(config)
+
+        assert "adhoc_filters" in result
+        assert len(result["adhoc_filters"]) == 1
+        assert result["adhoc_filters"][0]["subject"] == "region"
+        assert result["adhoc_filters"][0]["operator"] == "=="
+        assert result["adhoc_filters"][0]["comparator"] == "US"
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_row_limit(self, mock_is_temporal) -> None:
+        """Test that row_limit is mapped to form_data."""
+        mock_is_temporal.return_value = True
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+            row_limit=250,
+        )
+
+        result = map_xy_config(config)
+
+        assert result["row_limit"] == 250
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_default_row_limit(self, mock_is_temporal) -> None:
+        """Test that default row_limit is mapped to form_data."""
+        mock_is_temporal.return_value = True
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="bar",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["row_limit"] == 10000
+
 
 class TestMapConfigToFormData:
     """Test map_config_to_form_data function"""
@@ -489,8 +681,8 @@ class TestMapConfigToFormData:
 class TestGenerateChartName:
     """Test generate_chart_name function"""
 
-    def test_generate_table_chart_name(self) -> None:
-        """Test generating name for table chart"""
+    def test_table_no_aggregates(self) -> None:
+        """Table without aggregates uses column names."""
         config = TableChartConfig(
             chart_type="table",
             columns=[
@@ -500,24 +692,137 @@ class TestGenerateChartName:
         )
 
         result = generate_chart_name(config)
-        assert result == "Table Chart - product, revenue"
+        assert result == "Product, Revenue Table"
 
-    def test_generate_xy_chart_name(self) -> None:
-        """Test generating name for XY chart"""
+    def test_table_no_aggregates_with_dataset_name(self) -> None:
+        """Table without aggregates includes dataset name when available."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product")],
+        )
+
+        result = generate_chart_name(config, dataset_name="Orders")
+        assert result == "Orders Records"
+
+    def test_table_with_aggregates(self) -> None:
+        """Table with aggregates produces a summary name."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[
+                ColumnRef(name="product"),
+                ColumnRef(name="revenue", aggregate="SUM"),
+            ],
+        )
+
+        result = generate_chart_name(config)
+        assert result == "Sum(Revenue) Summary"
+
+    def test_line_chart_over_time(self) -> None:
+        """Line chart without group_by uses 'Over Time' format."""
         config = XYChartConfig(
             chart_type="xy",
-            x=ColumnRef(name="date"),
-            y=[ColumnRef(name="revenue"), ColumnRef(name="orders")],
+            x=ColumnRef(name="order_date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
             kind="line",
         )
 
         result = generate_chart_name(config)
-        assert result == "Line Chart - date vs revenue, orders"
+        assert result == "Sum(Revenue) Over Time"
 
-    def test_generate_chart_name_unsupported(self) -> None:
-        """Test generating name for unsupported config type"""
+    def test_bar_chart_by_dimension(self) -> None:
+        """Bar chart uses 'by [X]' format."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="product_category"),
+            y=[ColumnRef(name="order_count", aggregate="COUNT")],
+            kind="bar",
+        )
+
+        result = generate_chart_name(config)
+        assert result == "Count(Order Count) by Product Category"
+
+    def test_line_chart_with_group_by(self) -> None:
+        """Line chart with group_by uses 'by [group]' format."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+            group_by=ColumnRef(name="sales_rep"),
+        )
+
+        result = generate_chart_name(config)
+        assert result == "Sum(Revenue) by Sales Rep"
+
+    def test_scatter_plot(self) -> None:
+        """Scatter plot uses 'Y vs X' format."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="age"),
+            y=[ColumnRef(name="income")],
+            kind="scatter",
+        )
+
+        result = generate_chart_name(config)
+        assert result == "Income vs Age"
+
+    def test_time_grain_in_context(self) -> None:
+        """Time grain is appended as context."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+            time_grain="P1M",
+        )
+
+        result = generate_chart_name(config)
+        assert result == "Sum(Revenue) Over Time \u2013 Monthly"
+
+    def test_filter_context(self) -> None:
+        """Filters are appended as context."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product")],
+            filters=[FilterConfig(column="region", op="=", value="West")],
+        )
+
+        result = generate_chart_name(config, dataset_name="Orders")
+        assert result == "Orders Records \u2013 Region West"
+
+    def test_name_truncation(self) -> None:
+        """Names exceeding 60 chars are truncated."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[
+                ColumnRef(
+                    name="very_long_metric_name_that_goes_on_and_on", aggregate="SUM"
+                )
+            ],
+            kind="line",
+            group_by=ColumnRef(name="another_very_long_dimension_name_here"),
+        )
+
+        result = generate_chart_name(config)
+        assert len(result) <= 60
+
+    def test_unsupported_config_type(self) -> None:
+        """Unsupported config type returns generic name."""
         result = generate_chart_name("invalid_config")  # type: ignore
         assert result == "Chart"
+
+    def test_custom_labels_used(self) -> None:
+        """Column labels are preferred over names."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="ds", label="Date"),
+            y=[ColumnRef(name="cnt", aggregate="COUNT", label="Order Count")],
+            kind="bar",
+        )
+
+        result = generate_chart_name(config)
+        assert result == "Order Count by Date"
 
 
 class TestGenerateExploreLink:
@@ -1045,3 +1350,154 @@ class TestFilterConfigValidation:
         """Test IN operator with empty list"""
         f = FilterConfig(column="platform", op="IN", value=[])
         assert f.value == []
+
+
+class TestValidateChartDataset:
+    """Test validate_chart_dataset function"""
+
+    @patch("superset.mcp_service.auth.has_dataset_access")
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_validate_chart_dataset_no_datasource_id(
+        self, mock_find: MagicMock, mock_access: MagicMock
+    ) -> None:
+        """Chart with no datasource_id returns invalid result."""
+        chart = MagicMock(spec=[])  # no datasource_id attribute
+        result = validate_chart_dataset(chart)
+        assert not result.is_valid
+        assert result.dataset_id is None
+        assert "no dataset reference" in (result.error or "").lower()
+        mock_find.assert_not_called()
+
+    @patch("superset.mcp_service.auth.has_dataset_access")
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=None)
+    def test_validate_chart_dataset_deleted_dataset(
+        self, mock_find: MagicMock, mock_access: MagicMock
+    ) -> None:
+        """Chart whose dataset was deleted returns invalid result."""
+        chart = MagicMock()
+        chart.datasource_id = 42
+        result = validate_chart_dataset(chart)
+        assert not result.is_valid
+        assert result.dataset_id == 42
+        assert "deleted" in (result.error or "").lower()
+
+    @patch("superset.mcp_service.auth.has_dataset_access", return_value=True)
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_validate_chart_dataset_valid(
+        self, mock_find: MagicMock, mock_access: MagicMock
+    ) -> None:
+        """Valid chart with accessible dataset returns valid result."""
+        dataset = MagicMock()
+        dataset.table_name = "my_table"
+        dataset.sql = None
+        mock_find.return_value = dataset
+        chart = MagicMock()
+        chart.datasource_id = 7
+        result = validate_chart_dataset(chart)
+        assert result.is_valid
+        assert result.dataset_id == 7
+        assert result.dataset_name == "my_table"
+        assert result.warnings == []
+
+    @patch("superset.mcp_service.auth.has_dataset_access", return_value=True)
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_validate_chart_dataset_virtual_warns(
+        self, mock_find: MagicMock, mock_access: MagicMock
+    ) -> None:
+        """Virtual dataset emits a warning."""
+        dataset = MagicMock()
+        dataset.table_name = "virt_ds"
+        dataset.sql = "SELECT 1"
+        mock_find.return_value = dataset
+        chart = MagicMock()
+        chart.datasource_id = 10
+        result = validate_chart_dataset(chart)
+        assert result.is_valid
+        assert len(result.warnings) == 1
+        assert "virtual" in result.warnings[0].lower()
+
+    @patch("superset.mcp_service.auth.has_dataset_access")
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_validate_chart_dataset_sqlalchemy_error(
+        self, mock_find: MagicMock, mock_access: MagicMock
+    ) -> None:
+        """SQLAlchemy errors are caught and produce an invalid result."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        mock_find.side_effect = SQLAlchemyError("connection lost")
+        chart = MagicMock()
+        chart.datasource_id = 99
+        result = validate_chart_dataset(chart)
+        assert not result.is_valid
+        assert result.dataset_id == 99
+        assert "error" in (result.error or "").lower()
+
+    @patch(
+        "superset.mcp_service.chart.chart_utils.get_superset_base_url",
+        return_value="http://localhost:8088",
+    )
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_generate_explore_link_sqlalchemy_error(
+        self,
+        mock_find: MagicMock,
+        mock_base_url: MagicMock,
+    ) -> None:
+        """SQLAlchemy errors in generate_explore_link fall back to basic URL."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        mock_find.side_effect = SQLAlchemyError("db gone")
+        url = generate_explore_link(5, {"viz_type": "table"})
+        assert "datasource_id=5" in url
+
+
+class TestAdhocFiltersToQueryFilters:
+    """Tests for adhoc_filters_to_query_filters conversion."""
+
+    def test_converts_simple_filters(self) -> None:
+        adhoc = [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "genre",
+                "operator": "==",
+                "comparator": "Action",
+            }
+        ]
+        result = adhoc_filters_to_query_filters(adhoc)
+        assert result == [{"col": "genre", "op": "==", "val": "Action"}]
+
+    def test_converts_multiple_filters(self) -> None:
+        adhoc = [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "genre",
+                "operator": "==",
+                "comparator": "Action",
+            },
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "year",
+                "operator": ">=",
+                "comparator": "2010",
+            },
+        ]
+        result = adhoc_filters_to_query_filters(adhoc)
+        assert len(result) == 2
+        assert result[0] == {"col": "genre", "op": "==", "val": "Action"}
+        assert result[1] == {"col": "year", "op": ">=", "val": "2010"}
+
+    def test_empty_list(self) -> None:
+        assert adhoc_filters_to_query_filters([]) == []
+
+    def test_skips_non_simple_expression_types(self) -> None:
+        adhoc = [
+            {
+                "clause": "WHERE",
+                "expressionType": "SQL",
+                "sqlExpression": "col > 5",
+            }
+        ]
+        result = adhoc_filters_to_query_filters(adhoc)
+        assert result == []

@@ -18,7 +18,7 @@
  */
 import { AnyAction } from 'redux';
 import { ThunkAction, ThunkDispatch } from 'redux-thunk';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   makeApi,
   getClientErrorObject,

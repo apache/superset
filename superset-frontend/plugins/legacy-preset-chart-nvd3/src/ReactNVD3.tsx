@@ -18,7 +18,7 @@
  */
 // @ts-nocheck -- legacy reactified component with untyped `this` context from reactify callbacks
 import { reactify } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import PropTypes from 'prop-types';
 import Component from './NVD3Vis';
 import { hideTooltips, removeTooltip } from './utils';

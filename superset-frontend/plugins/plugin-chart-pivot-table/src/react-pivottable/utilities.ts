@@ -18,7 +18,7 @@
  */
 
 import PropTypes from 'prop-types';
-import { t } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
 
 type SortFunction = (
   a: string | number | null,

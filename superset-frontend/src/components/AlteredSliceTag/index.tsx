@@ -18,7 +18,7 @@
  */
 import { useEffect, useMemo, useState, FC } from 'react';
 import { isEmpty } from 'lodash';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
 import {
   Label,

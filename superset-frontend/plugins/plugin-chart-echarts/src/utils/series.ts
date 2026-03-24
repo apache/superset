@@ -31,8 +31,8 @@ import {
   TimeFormatter,
   ValueFormatter,
 } from '@superset-ui/core';
-import { SupersetTheme } from '@apache-superset/core/ui';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { SupersetTheme } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
 import { format } from 'echarts/core';
 import type { LegendComponentOption } from 'echarts/components';
@@ -171,8 +171,8 @@ export function sortAndFilterSeries(
 
   return orderBy(
     sortedValues,
-    ['value'],
-    [sortSeriesAscending ? 'asc' : 'desc'],
+    ['value', 'name'],
+    [sortSeriesAscending ? 'asc' : 'desc', 'asc'],
   ).map(({ name }) => name);
 }
 
@@ -452,7 +452,7 @@ export function getLegendProps(
       : 'vertical',
     show,
     type: effectiveType,
-    selected: legendState,
+    selected: legendState ?? {},
     selector: ['all', 'inverse'],
     selectorLabel: {
       fontFamily: theme.fontFamily,

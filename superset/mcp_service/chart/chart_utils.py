@@ -23,12 +23,17 @@ generation that can be used by both generate_chart and generate_explore_link too
 """
 
 import logging
+from dataclasses import dataclass
 from typing import Any, Dict
 
 from superset.mcp_service.chart.schemas import (
     ChartCapabilities,
     ChartSemantics,
     ColumnRef,
+    FilterConfig,
+    MixedTimeseriesChartConfig,
+    PieChartConfig,
+    PivotTableChartConfig,
     TableChartConfig,
     XYChartConfig,
 )
@@ -38,6 +43,113 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class DatasetValidationResult:
+    """Result of dataset accessibility validation."""
+
+    is_valid: bool
+    dataset_id: int | str | None
+    dataset_name: str | None
+    warnings: list[str]
+    error: str | None = None
+
+
+def validate_chart_dataset(
+    chart: Any,
+    check_access: bool = True,
+) -> DatasetValidationResult:
+    """
+    Validate that a chart's dataset exists and is accessible.
+
+    This shared utility should be called by MCP tools after creating or retrieving
+    charts to detect issues like missing or deleted datasets early.
+
+    Args:
+        chart: A chart-like object with datasource_id, datasource_type attributes
+        check_access: Whether to also check user permissions (default True)
+
+    Returns:
+        DatasetValidationResult with validation status and any warnings
+    """
+    from sqlalchemy.exc import SQLAlchemyError
+
+    from superset.daos.dataset import DatasetDAO
+    from superset.mcp_service.auth import has_dataset_access
+
+    warnings: list[str] = []
+    datasource_id = getattr(chart, "datasource_id", None)
+
+    # Check if chart has a datasource reference
+    if datasource_id is None:
+        return DatasetValidationResult(
+            is_valid=False,
+            dataset_id=None,
+            dataset_name=None,
+            warnings=[],
+            error="Chart has no dataset reference (datasource_id is None)",
+        )
+
+    # Try to look up the dataset
+    try:
+        dataset = DatasetDAO.find_by_id(datasource_id)
+
+        if dataset is None:
+            return DatasetValidationResult(
+                is_valid=False,
+                dataset_id=datasource_id,
+                dataset_name=None,
+                warnings=[],
+                error=(
+                    f"Dataset (ID: {datasource_id}) has been deleted or does not "
+                    f"exist. The chart will not render correctly. "
+                    f"Consider updating the chart to use a different dataset."
+                ),
+            )
+
+        dataset_name = getattr(dataset, "table_name", None) or getattr(
+            dataset, "name", None
+        )
+
+        # Check if it's a virtual dataset (SQL Lab query)
+        is_virtual = bool(getattr(dataset, "sql", None))
+        if is_virtual:
+            warnings.append(
+                f"This chart uses a virtual dataset (SQL-based). "
+                f"If the dataset '{dataset_name}' is deleted, this chart will break."
+            )
+
+        # Check access permissions if requested
+        if check_access and not has_dataset_access(dataset):
+            return DatasetValidationResult(
+                is_valid=False,
+                dataset_id=datasource_id,
+                dataset_name=dataset_name,
+                warnings=warnings,
+                error=(
+                    f"Access denied to dataset '{dataset_name}' (ID: {datasource_id}). "
+                    f"You do not have permission to view this dataset."
+                ),
+            )
+
+        return DatasetValidationResult(
+            is_valid=True,
+            dataset_id=datasource_id,
+            dataset_name=dataset_name,
+            warnings=warnings,
+            error=None,
+        )
+
+    except (AttributeError, ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Error validating chart dataset %s: %s", datasource_id, e)
+        return DatasetValidationResult(
+            is_valid=False,
+            dataset_id=datasource_id,
+            dataset_name=None,
+            warnings=[],
+            error=f"Error validating dataset (ID: {datasource_id}): {str(e)}",
+        )
+
+
 def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> str:
     """Generate an explore link for the given dataset and form data."""
     from sqlalchemy.exc import SQLAlchemyError
@@ -45,6 +157,7 @@ def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> s
     from superset.commands.exceptions import CommandException
     from superset.commands.explore.form_data.parameters import CommandParameters
     from superset.daos.dataset import DatasetDAO
+    from superset.exceptions import SupersetException
     from superset.mcp_service.commands.create_form_data import (
         MCPCreateFormDataCommand,
     )
@@ -95,8 +208,17 @@ def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> s
         # Return URL with just the form_data_key
         return f"{base_url}/explore/?form_data_key={form_data_key}"
 
-    except (CommandException, SQLAlchemyError, ValueError, AttributeError):
+    except (
+        CommandException,
+        SupersetException,
+        SQLAlchemyError,
+        KeyError,
+        ValueError,
+        AttributeError,
+        TypeError,
+    ) as e:
         # Fallback to basic explore URL with numeric ID if available
+        logger.debug("Explore link generation fallback due to: %s", e)
         if numeric_dataset_id is not None:
             return (
                 f"{base_url}/explore/?datasource_type=table"
@@ -183,7 +305,11 @@ def is_column_truly_temporal(column_name: str, dataset_id: int | str | None) -> 
 
 
 def map_config_to_form_data(
-    config: TableChartConfig | XYChartConfig,
+    config: TableChartConfig
+    | XYChartConfig
+    | PieChartConfig
+    | PivotTableChartConfig
+    | MixedTimeseriesChartConfig,
     dataset_id: int | str | None = None,
 ) -> Dict[str, Any]:
     """Map chart config to Superset form_data."""
@@ -191,8 +317,53 @@ def map_config_to_form_data(
         return map_table_config(config)
     elif isinstance(config, XYChartConfig):
         return map_xy_config(config, dataset_id=dataset_id)
+    elif isinstance(config, PieChartConfig):
+        return map_pie_config(config)
+    elif isinstance(config, PivotTableChartConfig):
+        return map_pivot_table_config(config)
+    elif isinstance(config, MixedTimeseriesChartConfig):
+        return map_mixed_timeseries_config(config, dataset_id=dataset_id)
     else:
         raise ValueError(f"Unsupported config type: {type(config)}")
+
+
+def _add_adhoc_filters(
+    form_data: Dict[str, Any], filters: list[FilterConfig] | None
+) -> None:
+    """Add adhoc filters to form_data if any are specified."""
+    if filters:
+        form_data["adhoc_filters"] = [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": filter_config.column,
+                "operator": map_filter_operator(filter_config.op),
+                "comparator": filter_config.value,
+            }
+            for filter_config in filters
+            if filter_config is not None
+        ]
+
+
+def adhoc_filters_to_query_filters(
+    adhoc_filters: list[Dict[str, Any]],
+) -> list[Dict[str, Any]]:
+    """Convert adhoc filter format to QueryObject filter format.
+
+    Adhoc filters use ``{subject, operator, comparator}`` keys while
+    ``QueryContextFactory`` expects ``{col, op, val}`` (QueryObjectFilterClause).
+    """
+    result: list[Dict[str, Any]] = []
+    for f in adhoc_filters:
+        if f.get("expressionType") == "SIMPLE":
+            result.append(
+                {
+                    "col": f.get("subject"),
+                    "op": f.get("operator"),
+                    "val": f.get("comparator"),
+                }
+            )
+    return result
 
 
 def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
@@ -231,7 +402,6 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
                 "query_mode": "raw",
                 "include_time": False,
                 "order_desc": True,
-                "row_limit": 1000,  # Reasonable limit for raw data
             }
         )
 
@@ -257,21 +427,12 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
             }
         )
 
-    if config.filters:
-        form_data["adhoc_filters"] = [
-            {
-                "clause": "WHERE",
-                "expressionType": "SIMPLE",
-                "subject": filter_config.column,
-                "operator": map_filter_operator(filter_config.op),
-                "comparator": filter_config.value,
-            }
-            for filter_config in config.filters
-            if filter_config is not None
-        ]
+    _add_adhoc_filters(form_data, config.filters)
 
     if config.sort_by:
         form_data["order_by_cols"] = config.sort_by
+
+    form_data["row_limit"] = config.row_limit
 
     return form_data
 
@@ -337,6 +498,17 @@ def add_legend_config(form_data: Dict[str, Any], config: XYChartConfig) -> None:
             form_data["legend_orientation"] = config.legend.position
 
 
+def add_orientation_config(form_data: Dict[str, Any], config: XYChartConfig) -> None:
+    """Add orientation configuration to form_data for bar charts.
+
+    Only applies when kind='bar' and an explicit orientation is set.
+    When orientation is None (the default), Superset uses its own default
+    (vertical bars).
+    """
+    if config.kind == "bar" and config.orientation:
+        form_data["orientation"] = config.orientation
+
+
 def configure_temporal_handling(
     form_data: Dict[str, Any],
     x_is_temporal: bool,
@@ -347,6 +519,8 @@ def configure_temporal_handling(
     For temporal columns, enables standard time series handling.
     For non-temporal columns (e.g., BIGINT year), disables DATE_TRUNC
     by setting categorical sorting options.
+
+    Stores any warnings in ``form_data["_mcp_warnings"]``.
     """
     if x_is_temporal:
         if time_grain:
@@ -357,6 +531,12 @@ def configure_temporal_handling(
         form_data["x_axis_sort_series_ascending"] = True
         form_data["time_grain_sqla"] = None
         form_data["granularity_sqla"] = None
+        if time_grain:
+            form_data.setdefault("_mcp_warnings", []).append(
+                f"time_grain='{time_grain}' was ignored because the x-axis "
+                f"column is not a temporal type. time_grain only applies to "
+                f"DATE/DATETIME/TIMESTAMP columns."
+            )
 
 
 def map_xy_config(
@@ -407,36 +587,16 @@ def map_xy_config(
     # Configure temporal handling based on whether column is truly temporal
     configure_temporal_handling(form_data, x_is_temporal, config.time_grain)
 
-    # CRITICAL FIX: For time series charts, handle groupby carefully to avoid duplicates
-    # The x_axis field already tells Superset which column to use for time grouping
-    groupby_columns = []
+    # Only add groupby columns that differ from x_axis to avoid
+    # "Duplicate column/metric labels" errors in Superset.
+    if config.group_by:
+        groupby_columns = [c.name for c in config.group_by if c.name != config.x.name]
+        if groupby_columns:
+            form_data["groupby"] = groupby_columns
 
-    # Only add groupby columns if there's an explicit group_by specified
-    # The x_axis column should NOT be duplicated in groupby as it causes
-    # "Duplicate column/metric labels" errors in Superset
-    # Only add group_by column if it's specified AND different from x_axis
-    # NEVER add the x_axis column to groupby as it creates duplicate labels
-    if config.group_by and config.group_by.name != config.x.name:
-        groupby_columns.append(config.group_by.name)
+    _add_adhoc_filters(form_data, config.filters)
 
-    # Set the groupby in form_data only if we have valid columns
-    # Don't set empty groupby - let Superset handle x_axis grouping automatically
-    if groupby_columns:
-        form_data["groupby"] = groupby_columns
-
-    # Add filters if specified
-    if config.filters:
-        form_data["adhoc_filters"] = [
-            {
-                "clause": "WHERE",
-                "expressionType": "SIMPLE",
-                "subject": filter_config.column,
-                "operator": map_filter_operator(filter_config.op),
-                "comparator": filter_config.value,
-            }
-            for filter_config in config.filters
-            if filter_config is not None
-        ]
+    form_data["row_limit"] = config.row_limit
 
     # Add stacking configuration
     if getattr(config, "stacked", False):
@@ -445,6 +605,172 @@ def map_xy_config(
     # Add configurations
     add_axis_config(form_data, config)
     add_legend_config(form_data, config)
+    add_orientation_config(form_data, config)
+
+    return form_data
+
+
+def map_pie_config(config: PieChartConfig) -> Dict[str, Any]:
+    """Map pie chart config to Superset form_data."""
+    metric = create_metric_object(config.metric)
+
+    form_data: Dict[str, Any] = {
+        "viz_type": "pie",
+        "groupby": [config.dimension.name],
+        "metric": metric,
+        "color_scheme": "supersetColors",
+        "show_labels": config.show_labels,
+        "show_legend": config.show_legend,
+        "label_type": config.label_type,
+        "number_format": config.number_format,
+        "sort_by_metric": config.sort_by_metric,
+        "row_limit": config.row_limit,
+        "donut": config.donut,
+        "show_total": config.show_total,
+        "labels_outside": config.labels_outside,
+        "outerRadius": config.outer_radius,
+        "innerRadius": config.inner_radius,
+        "date_format": "smart_date",
+    }
+
+    _add_adhoc_filters(form_data, config.filters)
+
+    return form_data
+
+
+def map_pivot_table_config(config: PivotTableChartConfig) -> Dict[str, Any]:
+    """Map pivot table config to Superset form_data."""
+    if not config.rows:
+        raise ValueError("Pivot table must have at least one row grouping column")
+    if not config.metrics:
+        raise ValueError("Pivot table must have at least one metric")
+
+    metrics = [create_metric_object(col) for col in config.metrics]
+
+    form_data: Dict[str, Any] = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": [col.name for col in config.rows],
+        "groupbyColumns": [col.name for col in config.columns]
+        if config.columns
+        else [],
+        "metrics": metrics,
+        "aggregateFunction": config.aggregate_function,
+        "rowTotals": config.show_row_totals,
+        "colTotals": config.show_column_totals,
+        "transposePivot": config.transpose,
+        "combineMetric": config.combine_metric,
+        "valueFormat": config.value_format,
+        "metricsLayout": "COLUMNS",
+        "rowOrder": "key_a_to_z",
+        "colOrder": "key_a_to_z",
+        "row_limit": config.row_limit,
+    }
+
+    _add_adhoc_filters(form_data, config.filters)
+
+    return form_data
+
+
+_MIXED_SERIES_TYPE_MAP = {
+    "line": "line",
+    "bar": "bar",
+    "area": "line",  # area uses line type with area=True
+    "scatter": "scatter",
+}
+
+
+def _apply_axis_to_form_data(
+    form_data: Dict[str, Any],
+    axis_config: Any,
+    title_key: str,
+    format_key: str,
+    log_key: str | None = None,
+) -> None:
+    """Apply a single axis configuration to form_data."""
+    if not axis_config:
+        return
+    if axis_config.title:
+        form_data[title_key] = axis_config.title
+    if axis_config.format:
+        form_data[format_key] = axis_config.format
+    if log_key and axis_config.scale == "log":
+        form_data[log_key] = True
+
+
+def _add_mixed_axis_config(
+    form_data: Dict[str, Any],
+    config: MixedTimeseriesChartConfig,
+) -> None:
+    """Add axis configurations to mixed timeseries form_data."""
+    _apply_axis_to_form_data(
+        form_data, config.x_axis, "xAxisTitle", "x_axis_time_format"
+    )
+    _apply_axis_to_form_data(
+        form_data, config.y_axis, "yAxisTitle", "y_axis_format", "logAxis"
+    )
+    _apply_axis_to_form_data(
+        form_data,
+        config.y_axis_secondary,
+        "yAxisTitleSecondary",
+        "y_axis_format_secondary",
+        "logAxisSecondary",
+    )
+
+
+def map_mixed_timeseries_config(
+    config: MixedTimeseriesChartConfig,
+    dataset_id: int | str | None = None,
+) -> Dict[str, Any]:
+    """Map mixed timeseries chart config to Superset form_data."""
+    if not config.y:
+        raise ValueError("Mixed timeseries must have at least one primary metric")
+    if not config.y_secondary:
+        raise ValueError("Mixed timeseries must have at least one secondary metric")
+
+    # Check if x-axis column is truly temporal
+    x_is_temporal = is_column_truly_temporal(config.x.name, dataset_id)
+
+    form_data: Dict[str, Any] = {
+        "viz_type": "mixed_timeseries",
+        "x_axis": config.x.name,
+        # Query A
+        "metrics": [create_metric_object(col) for col in config.y],
+        "seriesType": _MIXED_SERIES_TYPE_MAP.get(config.primary_kind, "line"),
+        "area": config.primary_kind == "area",
+        "yAxisIndex": 0,
+        # Query B
+        "metrics_b": [create_metric_object(col) for col in config.y_secondary],
+        "seriesTypeB": _MIXED_SERIES_TYPE_MAP.get(config.secondary_kind, "bar"),
+        "areaB": config.secondary_kind == "area",
+        "yAxisIndexB": 1,
+        # Display
+        "show_legend": config.show_legend,
+        "zoomable": True,
+        "rich_tooltip": True,
+    }
+
+    # Configure temporal handling
+    configure_temporal_handling(form_data, x_is_temporal, config.time_grain)
+
+    # Primary groupby (Query A)
+    if config.group_by:
+        groupby = [c.name for c in config.group_by if c.name != config.x.name]
+        if groupby:
+            form_data["groupby"] = groupby
+
+    # Secondary groupby (Query B)
+    if config.group_by_secondary:
+        groupby_b = [
+            c.name for c in config.group_by_secondary if c.name != config.x.name
+        ]
+        if groupby_b:
+            form_data["groupby_b"] = groupby_b
+
+    form_data["row_limit"] = config.row_limit
+
+    _add_mixed_axis_config(form_data, config)
+
+    _add_adhoc_filters(form_data, config.filters)
 
     return form_data
 
@@ -467,17 +793,164 @@ def map_filter_operator(op: str) -> str:
     return operator_map.get(op, op)
 
 
-def generate_chart_name(config: TableChartConfig | XYChartConfig) -> str:
-    """Generate a chart name based on the configuration."""
+def _humanize_column(col: ColumnRef) -> str:
+    """Return a human-readable label for a column reference."""
+    if col.label:
+        return col.label
+    name = col.name.replace("_", " ").title()
+    if col.aggregate:
+        return f"{col.aggregate.capitalize()}({name})"
+    return name
+
+
+def _summarize_filters(
+    filters: list[FilterConfig] | None,
+) -> str | None:
+    """Extract a short context string from filter configs."""
+    if not filters:
+        return None
+    parts: list[str] = []
+    for f in filters[:2]:
+        col = getattr(f, "column", "")
+        val = getattr(f, "value", "")
+        if isinstance(val, list):
+            val = ", ".join(str(v) for v in val[:3])
+        parts.append(f"{str(col).replace('_', ' ').title()} {val}")
+    return ", ".join(parts) if parts else None
+
+
+def _truncate(name: str, max_length: int = 60) -> str:
+    """Truncate to *max_length*, preserving the en-dash context portion."""
+    if len(name) <= max_length:
+        return name
+    if " \u2013 " in name:
+        what, _context = name.split(" \u2013 ", 1)
+        if len(what) <= max_length:
+            return what
+    return name[: max_length - 1] + "\u2026"
+
+
+def _table_chart_what(config: TableChartConfig, dataset_name: str | None) -> str:
+    """Build the descriptive fragment for a table chart."""
+    has_agg = any(col.aggregate for col in config.columns)
+    if has_agg:
+        metrics = [col for col in config.columns if col.aggregate]
+        what = ", ".join(_humanize_column(m) for m in metrics[:2])
+        return f"{what} Summary"
+    if dataset_name:
+        return f"{dataset_name} Records"
+    cols = ", ".join(_humanize_column(c) for c in config.columns[:3])
+    return f"{cols} Table"
+
+
+def _xy_chart_what(config: XYChartConfig) -> str:
+    """Build the descriptive fragment for an XY chart."""
+    primary_metric = _humanize_column(config.y[0]) if config.y else "Value"
+    dimension = _humanize_column(config.x)
+
+    if config.kind in ("line", "area") and not config.group_by:
+        return f"{primary_metric} Over Time"
+    if config.group_by:
+        group_label = _humanize_column(config.group_by[0])
+        return f"{primary_metric} by {group_label}"
+    if config.kind == "scatter":
+        return f"{primary_metric} vs {dimension}"
+    return f"{primary_metric} by {dimension}"
+
+
+_GRAIN_MAP: dict[str, str] = {
+    "PT1H": "Hourly",
+    "P1D": "Daily",
+    "P1W": "Weekly",
+    "P1M": "Monthly",
+    "P3M": "Quarterly",
+    "P1Y": "Yearly",
+}
+
+
+def _xy_chart_context(config: XYChartConfig) -> str | None:
+    """Build context (time grain / filters) for an XY chart name."""
+    parts: list[str] = []
+    if config.time_grain:
+        grain_val = (
+            config.time_grain.value
+            if hasattr(config.time_grain, "value")
+            else str(config.time_grain)
+        )
+        grain_str = _GRAIN_MAP.get(grain_val, grain_val)
+        parts.append(grain_str)
+    if filter_ctx := _summarize_filters(config.filters):
+        parts.append(filter_ctx)
+    return ", ".join(parts) if parts else None
+
+
+def _pie_chart_what(config: PieChartConfig) -> str:
+    """Build the 'what' portion for a pie chart name."""
+    dim = config.dimension.name
+    metric_label = config.metric.label or config.metric.name
+    return f"{dim} by {metric_label}"
+
+
+def _pivot_table_what(config: PivotTableChartConfig) -> str:
+    """Build the 'what' portion for a pivot table chart name."""
+    row_names = ", ".join(r.name for r in config.rows)
+    return f"Pivot Table \u2013 {row_names}"
+
+
+def _mixed_timeseries_what(config: MixedTimeseriesChartConfig) -> str:
+    """Build the 'what' portion for a mixed timeseries chart name."""
+    primary = config.y[0].label or config.y[0].name if config.y else "primary"
+    secondary = (
+        config.y_secondary[0].label or config.y_secondary[0].name
+        if config.y_secondary
+        else "secondary"
+    )
+    return f"{primary} + {secondary}"
+
+
+def generate_chart_name(
+    config: TableChartConfig
+    | XYChartConfig
+    | PieChartConfig
+    | PivotTableChartConfig
+    | MixedTimeseriesChartConfig,
+    dataset_name: str | None = None,
+) -> str:
+    """Generate a descriptive chart name following a standard format.
+
+    Format conventions (by chart type):
+      Aggregated (bar/scatter with group_by): [Metric] by [Dimension]
+      Time-series (line/area, no group_by):   [Metric] Over Time
+      Table (no aggregates):                  [Dataset] Records
+      Table (with aggregates):                [Metric] Summary
+      Pie:                                    [Dimension] by [Metric]
+      Pivot Table:                            Pivot Table – [Row1, Row2]
+      Mixed Timeseries:                       [Primary] + [Secondary]
+    An en-dash followed by context (filters / time grain) is appended
+    when such information is available.
+    """
     if isinstance(config, TableChartConfig):
-        return f"Table Chart - {', '.join(col.name for col in config.columns)}"
+        what = _table_chart_what(config, dataset_name)
+        context = _summarize_filters(config.filters)
     elif isinstance(config, XYChartConfig):
-        chart_type = config.kind.capitalize()
-        x_col = config.x.name
-        y_cols = ", ".join(col.name for col in config.y)
-        return f"{chart_type} Chart - {x_col} vs {y_cols}"
+        what = _xy_chart_what(config)
+        context = _xy_chart_context(config)
+    elif isinstance(config, PieChartConfig):
+        what = _pie_chart_what(config)
+        context = _summarize_filters(config.filters)
+    elif isinstance(config, PivotTableChartConfig):
+        what = _pivot_table_what(config)
+        context = _summarize_filters(config.filters)
+    elif isinstance(config, MixedTimeseriesChartConfig):
+        what = _mixed_timeseries_what(config)
+        context = _summarize_filters(config.filters)
     else:
         return "Chart"
+
+    name = what
+    if context:
+        name = f"{what} \u2013 {context}"
+    return _truncate(name)
 
 
 def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilities:
@@ -485,22 +958,7 @@ def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilit
     if chart:
         viz_type = getattr(chart, "viz_type", "unknown")
     else:
-        # Map config chart_type to viz_type
-        chart_type = getattr(config, "chart_type", "unknown")
-        if chart_type == "xy":
-            kind = getattr(config, "kind", "line")
-            viz_type_map = {
-                "line": "echarts_timeseries_line",
-                "bar": "echarts_timeseries_bar",
-                "area": "echarts_area",
-                "scatter": "echarts_timeseries_scatter",
-            }
-            viz_type = viz_type_map.get(kind, "echarts_timeseries_line")
-        elif chart_type == "table":
-            # Use the viz_type from config if available (table or ag-grid-table)
-            viz_type = getattr(config, "viz_type", "table")
-        else:
-            viz_type = "unknown"
+        viz_type = _resolve_viz_type(config)
 
     # Determine interaction capabilities based on chart type
     interactive_types = [
@@ -545,27 +1003,35 @@ def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilit
     )
 
 
+def _resolve_viz_type(config: Any) -> str:
+    """Resolve viz_type from a chart config object."""
+    chart_type = getattr(config, "chart_type", "unknown")
+    if chart_type == "xy":
+        kind = getattr(config, "kind", "line")
+        viz_type_map = {
+            "line": "echarts_timeseries_line",
+            "bar": "echarts_timeseries_bar",
+            "area": "echarts_area",
+            "scatter": "echarts_timeseries_scatter",
+        }
+        return viz_type_map.get(kind, "echarts_timeseries_line")
+    elif chart_type == "table":
+        return getattr(config, "viz_type", "table")
+    elif chart_type == "pie":
+        return "pie"
+    elif chart_type == "pivot_table":
+        return "pivot_table_v2"
+    elif chart_type == "mixed_timeseries":
+        return "mixed_timeseries"
+    return "unknown"
+
+
 def analyze_chart_semantics(chart: Any | None, config: Any) -> ChartSemantics:
     """Generate semantic understanding of the chart."""
     if chart:
         viz_type = getattr(chart, "viz_type", "unknown")
     else:
-        # Map config chart_type to viz_type
-        chart_type = getattr(config, "chart_type", "unknown")
-        if chart_type == "xy":
-            kind = getattr(config, "kind", "line")
-            viz_type_map = {
-                "line": "echarts_timeseries_line",
-                "bar": "echarts_timeseries_bar",
-                "area": "echarts_area",
-                "scatter": "echarts_timeseries_scatter",
-            }
-            viz_type = viz_type_map.get(kind, "echarts_timeseries_line")
-        elif chart_type == "table":
-            # Use the viz_type from config if available (table or ag-grid-table)
-            viz_type = getattr(config, "viz_type", "table")
-        else:
-            viz_type = "unknown"
+        viz_type = _resolve_viz_type(config)
 
     # Generate primary insight based on chart type
     insights_map = {
@@ -578,6 +1044,14 @@ def analyze_chart_semantics(chart: Any | None, config: Any) -> ChartSemantics:
         ),
         "pie": "Shows proportional relationships within a dataset",
         "echarts_area": "Emphasizes cumulative totals and part-to-whole relationships",
+        "pivot_table_v2": (
+            "Cross-tabulates data with rows, columns, and aggregated metrics "
+            "for multi-dimensional analysis"
+        ),
+        "mixed_timeseries": (
+            "Combines two different chart types on the same time axis "
+            "for comparing related metrics with different scales"
+        ),
     }
 
     primary_insight = insights_map.get(

@@ -42,7 +42,7 @@ import {
   CellClickedEvent,
   IMenuActionParams,
 } from '@superset-ui/core/components/ThemedAgGridReact';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   AgGridChartState,
   DataRecordValue,

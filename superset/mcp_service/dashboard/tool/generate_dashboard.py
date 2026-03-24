@@ -25,9 +25,10 @@ import logging
 from typing import Any, Dict, List
 
 from fastmcp import Context
-from superset_core.mcp import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
+from superset.mcp_service.chart.schemas import serialize_chart_object
 from superset.mcp_service.dashboard.constants import (
     generate_id,
     GRID_COLUMN_COUNT,
@@ -138,7 +139,54 @@ def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
     return layout
 
 
-@tool(tags=["mutate"])
+_DEFAULT_DASHBOARD_TITLE = "Dashboard"
+_MAX_TITLE_LENGTH = 150
+
+
+def _generate_title_from_charts(chart_objects: List[Any]) -> str:
+    """
+    Build a descriptive dashboard title from the included chart names.
+
+    Joins up to three chart ``slice_name`` values with " & " (two charts)
+    or ", " (three charts).  When there are more than three charts the
+    remaining count is appended as "+ N more".  The result is capped at
+    ``_MAX_TITLE_LENGTH`` characters.
+
+    Returns ``"Dashboard"`` when *chart_objects* is empty or no chart has
+    a usable name.
+    """
+    names = [
+        c.slice_name
+        for c in sorted(chart_objects, key=lambda c: getattr(c, "id", 0))
+        if getattr(c, "slice_name", None)
+    ]
+    if not names:
+        return _DEFAULT_DASHBOARD_TITLE
+
+    if len(names) == 1:
+        title = names[0]
+    elif len(names) == 2:
+        title = f"{names[0]} & {names[1]}"
+    elif len(names) == 3:
+        title = f"{names[0]}, {names[1]}, {names[2]}"
+    else:
+        title = f"{names[0]}, {names[1]}, {names[2]} + {len(names) - 3} more"
+
+    if len(title) > _MAX_TITLE_LENGTH:
+        title = title[: _MAX_TITLE_LENGTH - 1] + "\u2026"
+
+    return title
+
+
+@tool(
+    tags=["mutate"],
+    class_permission_name="Dashboard",
+    annotations=ToolAnnotations(
+        title="Create dashboard",
+        readOnlyHint=False,
+        destructiveHint=False,
+    ),
+)
 @parse_request(GenerateDashboardRequest)
 def generate_dashboard(
     request: GenerateDashboardRequest, ctx: Context
@@ -160,7 +208,10 @@ def generate_dashboard(
 
         with event_logger.log_context(action="mcp.generate_dashboard.chart_validation"):
             chart_objects = (
-                db.session.query(Slice).filter(Slice.id.in_(request.chart_ids)).all()
+                db.session.query(Slice)
+                .filter(Slice.id.in_(request.chart_ids))
+                .order_by(Slice.id)
+                .all()
             )
             found_chart_ids = [chart.id for chart in chart_objects]
 
@@ -177,10 +228,17 @@ def generate_dashboard(
         with event_logger.log_context(action="mcp.generate_dashboard.layout"):
             layout = _create_dashboard_layout(chart_objects)
 
+        # Resolve dashboard title: use provided title or derive from chart names
+        dashboard_title = (
+            request.dashboard_title
+            if request.dashboard_title is not None
+            else _generate_title_from_charts(chart_objects)
+        )
+
         # Prepare dashboard data and create dashboard
         with event_logger.log_context(action="mcp.generate_dashboard.db_write"):
             dashboard_data = {
-                "dashboard_title": request.dashboard_title,
+                "dashboard_title": dashboard_title,
                 "slug": None,  # Let Superset auto-generate slug
                 "css": "",
                 "json_metadata": json.dumps(
@@ -216,6 +274,27 @@ def generate_dashboard(
             command = CreateDashboardCommand(dashboard_data)
             dashboard = command.run()
 
+        # Re-fetch the dashboard with eager-loaded relationships to avoid
+        # "Instance is not bound to a Session" errors when serializing
+        # chart .tags and .owners.
+        from sqlalchemy.orm import subqueryload
+
+        from superset.daos.dashboard import DashboardDAO
+        from superset.models.dashboard import Dashboard
+
+        dashboard = (
+            DashboardDAO.find_by_id(
+                dashboard.id,
+                query_options=[
+                    subqueryload(Dashboard.slices).subqueryload(Slice.owners),
+                    subqueryload(Dashboard.slices).subqueryload(Slice.tags),
+                    subqueryload(Dashboard.owners),
+                    subqueryload(Dashboard.tags),
+                ],
+            )
+            or dashboard
+        )
+
         # Convert to our response format
         from superset.mcp_service.dashboard.schemas import (
             serialize_tag_object,
@@ -246,7 +325,11 @@ def generate_dashboard(
                 if serialize_tag_object(tag) is not None
             ],
             roles=[],  # Dashboard roles not typically set at creation
-            charts=[],  # Chart details not needed in response
+            charts=[
+                obj
+                for chart in getattr(dashboard, "slices", [])
+                if (obj := serialize_chart_object(chart)) is not None
+            ],
         )
 
         dashboard_url = f"{get_superset_base_url()}/superset/dashboard/{dashboard.id}/"
