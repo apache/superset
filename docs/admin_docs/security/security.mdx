@@ -252,7 +252,7 @@ for the last 30 days and apply it to a specific role, with a clause
 like `date_field > DATE_SUB(NOW(), INTERVAL 30 DAY)`. It can also support
 multiple conditions: `client_id = 6` AND `advertiser="foo"`, etc.
 
-RLS clauses also support **Jinja templating**, so you can write dynamic filters such as
+RLS clauses also support **Jinja templating** when `ENABLE_TEMPLATE_PROCESSING` is enabled, so you can write dynamic filters such as
 `user_id = '{{ current_username() }}'` to restrict rows based on the logged-in user.
 
 #### Filter Types
