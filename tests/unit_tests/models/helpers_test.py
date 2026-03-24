@@ -1897,7 +1897,7 @@ def test_filter_adhoc_column(database: Database) -> None:
     sql = str(result.sqla_query)
     sql_upper = sql.upper()
     assert "WHERE" in sql_upper
-    assert " ILIKE " in sql_upper
+    assert " LIKE " in sql_upper
     assert "CUSTOMERID" in sql_upper
 
 
