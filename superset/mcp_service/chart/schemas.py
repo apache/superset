@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import difflib
 from datetime import datetime, timezone
-from typing import Annotated, Any, Dict, List, Literal, Protocol
+from typing import Annotated, Any, Dict, List, Literal, Protocol, Self
 
 from pydantic import (
     AliasChoices,
@@ -928,7 +928,7 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
     )
 
     @model_validator(mode="after")
-    def validate_trendline_fields(self) -> "BigNumberChartConfig":
+    def validate_trendline_fields(self) -> Self:
         """Validate trendline requires temporal column."""
         if self.show_trendline and not self.temporal_column:
             raise ValueError(
@@ -945,7 +945,7 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
         return self
 
     @model_validator(mode="after")
-    def validate_metric_aggregate(self) -> "BigNumberChartConfig":
+    def validate_metric_aggregate(self) -> Self:
         """Ensure metric has an aggregate function."""
         if not self.metric.aggregate:
             raise ValueError(
