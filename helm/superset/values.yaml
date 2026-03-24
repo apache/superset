@@ -81,42 +81,36 @@ globalPodAnnotations: {}
 # Change this if your image requires a different UID
 runAsUser: 0
 
-# -- Specify rather or not helm should create the secret described in `secret-env.yaml` template
+# -- Secret management configuration
+# For production: disable chart-managed secrets and reference existing secrets
+# Supports any external secret management tool (ESO, Sealed Secrets, Vault, etc.)
+#
+# Examples of using existing secrets:
+#
+# Option 1: Reference a single secret containing all environment variables
+#   secretEnv:
+#     create: false
+#   envFromSecret: "my-superset-secret"
+#
+# Option 2: Reference specific keys from different secrets
+#   secretEnv:
+#     create: false
+#   extraEnv:
+#     - name: DB_PASS
+#       valueFrom:
+#         secretKeyRef:
+#           name: postgres-credentials
+#           key: password
+#     - name: REDIS_PASSWORD
+#       valueFrom:
+#         secretKeyRef:
+#           name: redis-credentials
+#           key: password
 secretEnv:
-  # -- Change to false in order to support externally created secret (Binami "Sealed Secrets" for Kubernetes or External Secrets Operator)
-  # note: when externally creating the secret, the chart still expects to pull values from a secret with the name of the release defaults to `release-name-superset-env` - full logic located in _helpers.tpl file: `define "superset.fullname"`
+  # -- Set to false to use externally managed secrets
+  # When false, the chart expects secrets to already exist in the cluster
+  # (created by External Secrets Operator, Sealed Secrets, Vault, kubectl, etc.)
   create: true
-
-# -- External Secrets Operator integration
-# Use this to integrate with External Secrets Operator (ESO) for secret management
-# Supports both ExternalSecret CRD and direct secret references
-externalSecrets:
-  # -- Enable External Secrets Operator integration
-  enabled: false
-  # -- External Secrets Operator configuration
-  # Use this when you want the chart to create an ExternalSecret CRD
-  secretStoreRef:
-    # -- Name of the SecretStore or ClusterSecretStore
-    name: ""
-    # -- Kind of the secret store (SecretStore or ClusterSecretStore)
-    kind: ClusterSecretStore
-  # -- Alternative: Use an existing secret name directly
-  # If set, the chart will reference this secret instead of creating one
-  # This is useful when External Secrets Operator has already synced a secret
-  existingSecret: ""
-  # -- Key mapping for External Secrets
-  # Maps chart secret keys to external secret keys
-  keys:
-    # -- External secret key for database password
-    databasePassword: "superset/database-password"
-    # -- External secret key for Redis password
-    redisPassword: "superset/redis-password"
-    # -- External secret key for Superset secret key
-    secretKey: "superset/secret-key"
-    # -- External secret key for admin user password
-    adminPassword: "superset/admin-password"
-    # -- External secret key for JWT secret (websockets)
-    jwtSecret: "superset/jwt-secret"
 
 # -- ServiceAccount configuration
 # Best Practice: RBAC and ServiceAccount should be under separate keys

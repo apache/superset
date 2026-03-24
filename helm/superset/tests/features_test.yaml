@@ -138,31 +138,6 @@ tests:
           path: spec.endpoints[0].path
           value: /custom-metrics
 
-  # External Secrets Tests
-  - it: should not create ExternalSecret by default
-    template: templates/external-secret.yaml
-    asserts:
-      - hasDocuments:
-          count: 0
-
-  - it: should create ExternalSecret when enabled
-    template: templates/external-secret.yaml
-    set:
-      externalSecrets:
-        enabled: true
-        secretStoreRef:
-          name: vault-backend
-          kind: ClusterSecretStore
-    asserts:
-      - isKind:
-          of: ExternalSecret
-      - equal:
-          path: spec.secretStoreRef.name
-          value: vault-backend
-      - equal:
-          path: spec.secretStoreRef.kind
-          value: ClusterSecretStore
-
   # KEDA ScaledObject Tests
   - it: should not create ScaledObject by default
     template: templates/scaledobject-worker.yaml

@@ -1,0 +1,265 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+# Test deployment values file
+# This file contains minimal configuration for testing the Helm chart
+
+# SECRET_KEY is REQUIRED for Superset to start
+# Generate with: openssl rand -base64 42
+config:
+  SECRET_KEY: "TYiGpr9tUBLgY3qwEK9rohhAG4fxuFiY8mHUMpxeLc6UyMvqmkH4hbARcYghKYJfdLjh8m9MAktJtrqarHpMYPpsZw6ahqB8p7zr"
+  GUEST_TOKEN_JWT_SECRET: "xdFlkJN6nb/8ptrsWFTLVIPg/9vhlLrcGqccikVINpCYOl1pG80fi8HP"
+  GUEST_TOKEN_JWT_AUDIENCE: "superset"
+  # Example configuration overrides demonstrating the new config system
+  # See https://github.com/apache/superset/blob/master/superset/config.py for all options
+
+  # Basic settings
+  DEBUG: false
+  APP_NAME: "Superset Test Environment"
+  ROW_LIMIT: 10000
+
+  # Performance and limits
+  SUPERSET_WEBSERVER_TIMEOUT: 300
+  SAMPLES_ROW_LIMIT: 500
+  DISPLAY_MAX_ROW: 5000
+
+  # Email settings (example - not configured for test environment)
+  # SMTP_HOST: "smtp.example.com"
+  # SMTP_PORT: 587
+  # EMAIL_REPORTS_SUBJECT_PREFIX: "[Test] "
+
+  # Internationalization
+  BABEL_DEFAULT_LOCALE: "en"
+  LANGUAGES: {}  # Disable i18n for faster testing
+
+  # Security settings
+  WTF_CSRF_ENABLED: true
+  ENABLE_PROXY_FIX: true
+  PROXY_FIX_CONFIG:
+    x_for: 1
+    x_proto: 1
+    x_host: 1
+    x_port: 1
+    x_prefix: 1
+
+  # Logging (more verbose for testing)
+  LOG_LEVEL: "INFO"
+
+  # SQL Lab settings
+  SQLLAB_TIMEOUT: 30
+  SQLLAB_DEFAULT_LIMIT: 500
+
+  # Dashboard settings
+  SUPERSET_DASHBOARD_POSITION_DATA_LIMIT: 65535
+
+  # File upload settings (reduced for testing)
+  UPLOAD_FOLDER: "/app/superset_home/uploads/"
+  ZIPPED_FILE_MAX_SIZE: 10485760  # 10MB for testing
+  CSV_STREAMING_ROW_THRESHOLD: 50000
+
+  # Custom D3 formatting (example)
+  D3_FORMAT:
+    decimal: "."
+    thousands: ","
+    grouping: [3]
+    currency: ["$", ""]
+
+  # Welcome page configuration
+  WELCOME_PAGE_LAST_TAB: "all"
+
+# Feature flags configuration
+featureFlags:
+  DASHBOARD_RBAC: true
+  GLOBAL_ASYNC_QUERIES: true
+  HORIZONTAL_FILTER_BAR: true
+
+# Extra environment variables
+extraEnv:
+  - name: SUPERSET_FEATURE_EMBEDDED_SUPERSET
+    value: "true"
+
+# Optional dependencies to install (required for database drivers)
+# Installing drivers for: PostgreSQL, Redis, Snowflake, Redshift, Trino, and BigQuery
+optionalDependencies:
+  - "postgres"      # PostgreSQL (psycopg2)
+  - "snowflake"    # Snowflake
+  - "redshift"     # Amazon Redshift
+  - "trino"        # Trino
+  - "bigquery"     # Google BigQuery
+  # Note: Redis support is included in core dependencies, no optional dependency needed
+
+extraPipPackages:
+  - "google-cloud-bigquery-storage"
+
+# Enable pre-install validation to catch issues early
+preInstallValidation:
+  enabled: false
+  checkRedis: true
+
+# Database configuration - using existing RDS instance
+database:
+  host: "bi-dev-usw2-supersetpg-01.cluster-c2gwfp7ba55m.us-west-2.rds.amazonaws.com"
+  port: "5432"
+  user: "master_user"
+  password: "po1nbiIrWVseoCpQLQ6whOeI"
+  name: "superset"
+  driver: "postgresql+psycopg2"
+  ssl:
+    enabled: true
+    mode: require  # SECURITY: Using "require" for strong security. Use "verify-ca" or "verify-full" for even stronger validation.
+
+# Redis cache configuration - using existing ElastiCache instance
+# This section configures Superset to connect to external Redis for caching and Celery
+cache:
+  enabled: true
+  host: "master.bi-dev-usw2-supersetred.oinr8i.usw2.cache.amazonaws.com"
+  port: "6379"
+  user: ""
+  password: "8ppCUGveulwyBPnYEEis8oFA"
+  cacheDb: 1
+  celeryDb: 0
+  keyPrefix: "superset_"
+  defaultTimeout: 86400
+  resultsBackendKeyPrefix: "superset_results"
+  asyncQueries:
+    # db: defaults to cacheDb if not specified
+    keyPrefix: "qc-"
+    timeout: 86400
+  ssl:
+    enabled: true
+    # SECURITY: Using "none" for testing only. For production, use "required"
+    ssl_cert_reqs: none
+
+# Bitnami Redis chart dependency - disabled (using existing ElastiCache instance)
+redis:
+  enabled: false  # Disable Bitnami Redis chart - using external ElastiCache
+
+# Minimal resource limits for testing
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Enable Celery worker for processing async tasks
+supersetWorker:
+  replicas:
+    enabled: true
+    replicaCount: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+
+# Enable Celery components for testing
+supersetCeleryBeat:
+  enabled: true
+  # Celery Beat is a singleton - only one instance should run
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+
+supersetCeleryFlower:
+  enabled: false  # Flower is optional - disable to reduce resource usage
+
+supersetWebsockets:
+  enabled: true
+  replicaCount: 1
+  # WebSocket URL accessible from browser - using HTTPS (wss://) for secure connection
+  websocketUrl: "wss://superset.biprdgdv.io/ws"
+  config:
+    port: 8080
+    logLevel: "debug"
+    logToFile: false
+    redis:
+      port: 6379
+      host: "master.bi-dev-usw2-supersetred.oinr8i.usw2.cache.amazonaws.com"
+      password: "8ppCUGveulwyBPnYEEis8oFA"
+      db: 0
+      ssl: true
+    redisStreamPrefix: "async-events-"
+    jwtSecret: "eQRgt3urfrNV6bfqZZtWoT9dfzUo3nFzr6bwGeCdFB26CYX4Nhx3GNmBJqJw8adTmPsKu9J94HQcNUG3qsVxtVJbPg2Hcj3ToaMM"  # ⚠️ CHANGE THIS for production
+    jwtCookieName: "async-token"
+  ingress:
+    # WebSocket ingress path
+    path: /ws
+    pathType: Prefix
+
+# Init job configuration
+init:
+  enabled: false
+  createAdmin: true
+  adminUser:
+    username: admin
+    firstname: Test
+    lastname: Admin
+    email: admin@test.local
+    password: admin-test-password  # ⚠️ CHANGE THIS for production
+  loadExamples: false
+
+# PostgreSQL dependency - disabled (using existing RDS instance)
+postgresql:
+  enabled: false
+
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 8088
+
+# Ingress - enabled with HTTPS/TLS for secure access
+ingress:
+  enabled: true
+  ingressClassName: alb  # Required for AWS Load Balancer Controller to pick up this ingress
+  annotations:
+    # AWS ALB annotations for HTTPS/TLS
+    alb.ingress.kubernetes.io/scheme: internal
+    alb.ingress.kubernetes.io/target-type: ip
+    # Explicit subnet specification (required when subnets lack kubernetes.io/role/elb tag)
+    alb.ingress.kubernetes.io/subnets: subnet-087e5e3a9a1f552fd, subnet-0b93b55b1022f7ef3, subnet-01a685b96e3c094a8
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    # WebSocket support for ALB - increase idle timeout (default 60s is too short for WebSocket)
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=3600
+    # Health check configuration
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "30"
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: "5"
+    # Target group attributes for WebSocket connections
+    alb.ingress.kubernetes.io/target-group-attributes: stickiness.enabled=true,stickiness.lb_cookie.duration_seconds=86400
+    # Certificate ARN for HTTPS (replace with your certificate ARN)
+    # alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:region:account:certificate/cert-id"
+    # External DNS annotation to update Route53
+    external-dns.alpha.kubernetes.io/hostname: superset.biprdgdv.io
+  path: /
+  pathType: Prefix
+  hosts:
+    - superset.biprdgdv.io
+  tls:
+    - secretName: superset-tls
+      hosts:
+        - superset.biprdgdv.io
