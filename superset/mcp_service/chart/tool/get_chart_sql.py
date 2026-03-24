@@ -58,6 +58,51 @@ def _get_cached_form_data(form_data_key: str) -> str | None:
         return None
 
 
+def _resolve_metrics_and_groupby(
+    form_data: dict[str, Any],
+    chart: "Slice | None",
+) -> tuple[list[Any], list[str]]:
+    """Resolve metrics and groupby columns from form_data.
+
+    Handles chart-type-specific field names: singular ``metric`` for
+    big-number variants, and fallback fields ``entity``, ``series``,
+    and ``columns`` for dimension resolution.
+    """
+    viz_type = form_data.get(
+        "viz_type", getattr(chart, "viz_type", "") if chart else ""
+    )
+
+    singular_metric_no_groupby = (
+        "big_number",
+        "big_number_total",
+        "pop_kpi",
+    )
+    if viz_type in singular_metric_no_groupby:
+        metrics: list[Any] = [metric] if (metric := form_data.get("metric")) else []
+        return metrics, []
+
+    metrics = form_data.get("metrics", [])
+    # Fallback: some chart types store the measure as singular "metric"
+    if not metrics and (metric := form_data.get("metric")):
+        metrics = [metric]
+
+    groupby = list(form_data.get("groupby") or [])
+    # Fallback: some chart types store dimensions in entity/series/columns
+    if not groupby:
+        for field in ("entity", "series"):
+            value = form_data.get(field)
+            if isinstance(value, str) and value not in groupby:
+                groupby.append(value)
+
+        form_columns = form_data.get("columns")
+        if isinstance(form_columns, list):
+            for col in form_columns:
+                if isinstance(col, str) and col not in groupby:
+                    groupby.append(col)
+
+    return metrics, groupby
+
+
 def _build_query_context_from_form_data(
     form_data: dict[str, Any],
     chart: "Slice | None" = None,
@@ -88,21 +133,7 @@ def _build_query_context_from_form_data(
     if not datasource_type and chart:
         datasource_type = getattr(chart, "datasource_type", None)
 
-    viz_type = form_data.get(
-        "viz_type", getattr(chart, "viz_type", "") if chart else ""
-    )
-
-    singular_metric_no_groupby = (
-        "big_number",
-        "big_number_total",
-        "pop_kpi",
-    )
-    if viz_type in singular_metric_no_groupby:
-        metrics = [metric] if (metric := form_data.get("metric")) else []
-        groupby: list[str] = []
-    else:
-        metrics = form_data.get("metrics", [])
-        groupby = list(form_data.get("groupby") or [])
+    metrics, groupby = _resolve_metrics_and_groupby(form_data, chart)
 
     query_dict: dict[str, Any] = {
         "filters": form_data.get("filters", []),
@@ -241,7 +272,12 @@ def _extract_sql_from_result(
     chart_name: str | None,
     datasource_name: str | None,
 ) -> ChartSql | ChartError:
-    """Extract SQL query string from the ChartDataCommand result."""
+    """Extract SQL query string(s) from the ChartDataCommand result.
+
+    Charts with multiple queries (e.g. mixed timeseries) produce multiple
+    query entries.  This collects SQL from all of them so that composite
+    visualisations do not silently lose part of their SQL.
+    """
     queries = result.get("queries", [])
     if not queries:
         return ChartError(
@@ -251,24 +287,38 @@ def _extract_sql_from_result(
             error_type="EmptyQuery",
         )
 
-    query_result = queries[0]
-    sql = query_result.get("query", "")
-    language = query_result.get("language", "sql")
-    error = query_result.get("error")
+    sql_parts: list[str] = []
+    errors: list[str] = []
+    language = "sql"
 
-    if not sql and error:
+    for idx, query_result in enumerate(queries, start=1):
+        if not isinstance(query_result, dict):
+            continue
+        if "language" in query_result and isinstance(query_result["language"], str):
+            language = query_result["language"]
+        query_sql = query_result.get("query", "")
+        query_error = query_result.get("error")
+
+        if query_sql:
+            sql_parts.append(
+                query_sql if len(queries) == 1 else f"-- Query {idx}\n{query_sql}"
+            )
+        if query_error:
+            errors.append(f"Query {idx}: {query_error}")
+
+    if not sql_parts and errors:
         return ChartError(
-            error=f"SQL generation failed: {error}",
+            error="SQL generation failed: " + "; ".join(errors),
             error_type="QueryGenerationFailed",
         )
 
     return ChartSql(
         chart_id=chart_id,
         chart_name=chart_name,
-        sql=sql,
+        sql="\n\n".join(sql_parts),
         language=language,
         datasource_name=datasource_name,
-        error=error,
+        error="; ".join(errors) if errors else None,
     )
 
 
