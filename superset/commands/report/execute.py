@@ -99,6 +99,7 @@ class BaseReportState:
         self._scheduled_dttm = scheduled_dttm
         self._start_dttm = datetime.utcnow()
         self._execution_id = execution_id
+        self._filter_warnings: list[str] = []
 
     def update_report_schedule_and_log(
         self,
@@ -265,7 +266,11 @@ class BaseReportState:
         if (
             dashboard_state := self._report_schedule.extra.get("dashboard")
         ) and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS"):
-            native_filter_params = self._report_schedule.get_native_filters_params()
+            native_filter_params, filter_warnings = (
+                self._report_schedule.get_native_filters_params()
+            )
+            if filter_warnings:
+                self._filter_warnings.extend(filter_warnings)
             if anchor := dashboard_state.get("anchor"):
                 try:
                     anchor_list = json.loads(anchor)
@@ -835,7 +840,13 @@ class ReportNotTriggeredErrorState(BaseReportState):
                     )
                     return
             self.send()
-            self.update_report_schedule_and_log(ReportState.SUCCESS)
+            # Include filter warnings in the log if any were collected
+            warning_message = (
+                ";".join(self._filter_warnings) if self._filter_warnings else None
+            )
+            self.update_report_schedule_and_log(
+                ReportState.SUCCESS, error_message=warning_message
+            )
         except (SupersetErrorsException, Exception) as first_ex:
             error_message = str(first_ex)
             if isinstance(first_ex, SupersetErrorsException):
@@ -980,7 +991,13 @@ class ReportSuccessState(BaseReportState):
 
         try:
             self.send()
-            self.update_report_schedule_and_log(ReportState.SUCCESS)
+            # Include filter warnings in the log if any were collected
+            warning_message = (
+                ";".join(self._filter_warnings) if self._filter_warnings else None
+            )
+            self.update_report_schedule_and_log(
+                ReportState.SUCCESS, error_message=warning_message
+            )
         except Exception as ex:  # pylint: disable=broad-except
             try:
                 self.update_report_schedule_and_log(
