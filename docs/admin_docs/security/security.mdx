@@ -333,8 +333,9 @@ SELECT * FROM (
 - If you assign an RLS filter directly to a virtual dataset, the clause must reference
   columns available in the virtual dataset's _output_, not necessarily the underlying
   table's columns.
-- In **SQL Lab**, RLS is also enforced: queries run against tables that have associated
-  datasets with RLS filters will have the appropriate predicates injected automatically.
+- In **SQL Lab**, RLS is enforced only when the `RLS_IN_SQLLAB` feature flag is enabled:
+  queries run against tables that have associated datasets with RLS filters will then have
+  the appropriate predicates injected automatically.
 
 #### Checking RLS Filters via the API
 
