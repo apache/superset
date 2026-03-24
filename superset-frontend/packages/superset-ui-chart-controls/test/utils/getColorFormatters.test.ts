@@ -24,6 +24,11 @@ import {
   getColorFormatters,
   getColorFunction,
 } from '../../src';
+import {
+  getReadableTextColor,
+  getNormalizedTextColor,
+  getTextColorForBackground,
+} from '../../src/utils/getColorFormatters';
 
 configure();
 const mockData = [
@@ -105,6 +110,55 @@ test('getColorFunction LESS_THAN', () => {
   );
   expect(colorFunction(100)).toBeUndefined();
   expect(colorFunction(50)).toEqual('#FF0000FF');
+});
+
+test('getReadableTextColor returns white for dark backgrounds', () => {
+  expect(getReadableTextColor('#111111', '#ffffff')).toBe('rgb(255, 255, 255)');
+});
+
+test('getReadableTextColor returns black for light backgrounds', () => {
+  expect(getReadableTextColor('#f5f5f5', '#ffffff')).toBe('rgb(0, 0, 0)');
+});
+
+test('getReadableTextColor blends alpha over the provided surface', () => {
+  expect(getReadableTextColor('rgba(0, 0, 0, 0.6)', '#ffffff')).toBe(
+    'rgb(255, 255, 255)',
+  );
+  expect(getReadableTextColor('rgba(255, 255, 255, 0.6)', '#000000')).toBe(
+    'rgb(0, 0, 0)',
+  );
+});
+
+test('getTextColorForBackground prefers explicit text color', () => {
+  expect(
+    getTextColorForBackground(
+      { backgroundColor: '#111111', color: '#ace1c4ff' },
+      '#ffffff',
+    ),
+  ).toBe('rgb(172, 225, 196)');
+});
+
+test('getNormalizedTextColor removes alpha from explicit text colors', () => {
+  expect(getNormalizedTextColor('#ace1c40d')).toBe('rgb(172, 225, 196)');
+  expect(getNormalizedTextColor('rgba(172, 225, 196, 0.2)')).toBe(
+    'rgb(172, 225, 196)',
+  );
+});
+
+test('getTextColorForBackground normalizes explicit text color alpha', () => {
+  expect(
+    getTextColorForBackground(
+      { backgroundColor: '#111111', color: '#ace1c40d' },
+      '#ffffff',
+    ),
+  ).toBe('rgb(172, 225, 196)');
+});
+
+test('getTextColorForBackground falls back to adaptive contrast', () => {
+  expect(
+    getTextColorForBackground({ backgroundColor: '#111111' }, '#ffffff'),
+  ).toBe('rgb(255, 255, 255)');
+  expect(getTextColorForBackground({}, '#ffffff')).toBeUndefined();
 });
 
 test('getColorFunction GREATER_OR_EQUAL', () => {

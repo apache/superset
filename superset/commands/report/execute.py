@@ -273,7 +273,11 @@ class BaseReportState:
                 self._filter_warnings.extend(filter_warnings)
             if anchor := dashboard_state.get("anchor"):
                 try:
-                    anchor_list: list[str] = json.loads(anchor)
+                    anchor_list = json.loads(anchor)
+                    if not isinstance(anchor_list, list):
+                        raise json.JSONDecodeError(
+                            "Anchor value is not a list", anchor, 0
+                        )
                     urls = self._get_tabs_urls(
                         anchor_list,
                         native_filter_params=native_filter_params,

@@ -29,7 +29,7 @@ import logging
 
 from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetSecurityException
@@ -43,7 +43,16 @@ from superset.mcp_service.utils.schema_utils import parse_request
 logger = logging.getLogger(__name__)
 
 
-@tool(tags=["mutate"])
+@tool(
+    tags=["mutate"],
+    class_permission_name="SavedQuery",
+    method_permission_name="write",
+    annotations=ToolAnnotations(
+        title="Save SQL query",
+        readOnlyHint=False,
+        destructiveHint=False,
+    ),
+)
 @parse_request(SaveSqlQueryRequest)
 async def save_sql_query(
     request: SaveSqlQueryRequest, ctx: Context
@@ -117,10 +126,10 @@ async def save_sql_query(
             id=saved_query.id,
             label=saved_query.label,
             sql=saved_query.sql,
-            database_id=request.database_id,
-            schema_name=request.schema_name,
+            database_id=saved_query.db_id,
+            schema_name=saved_query.schema or None,
             catalog=getattr(saved_query, "catalog", None),
-            description=request.description,
+            description=saved_query.description or None,
             url=saved_query_url,
         )
 
@@ -129,7 +138,7 @@ async def save_sql_query(
     except SQLAlchemyError as e:
         from superset import db
 
-        db.session.rollback()
+        db.session.rollback()  # pylint: disable=consider-using-transaction
         await ctx.error(
             "Failed to save SQL query: error=%s, database_id=%s"
             % (str(e), request.database_id)

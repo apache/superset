@@ -26,7 +26,7 @@ import re
 from typing import Any, Dict
 
 from fastmcp import Context
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import serialize_chart_object
@@ -305,7 +305,15 @@ def _ensure_layout_structure(
         layout["DASHBOARD_VERSION_KEY"] = "v2"
 
 
-@tool(tags=["mutate"], class_permission_name="Dashboard")
+@tool(
+    tags=["mutate"],
+    class_permission_name="Dashboard",
+    annotations=ToolAnnotations(
+        title="Add chart to dashboard",
+        readOnlyHint=False,
+        destructiveHint=False,
+    ),
+)
 @parse_request(AddChartToDashboardRequest)
 def add_chart_to_existing_dashboard(
     request: AddChartToDashboardRequest, ctx: Context
@@ -398,6 +406,28 @@ def add_chart_to_existing_dashboard(
             command = UpdateDashboardCommand(request.dashboard_id, update_data)
             updated_dashboard = command.run()
 
+        # Re-fetch the dashboard with eager-loaded relationships to avoid
+        # "Instance is not bound to a Session" errors when serializing
+        # chart .tags and .owners.
+        from sqlalchemy.orm import subqueryload
+
+        from superset.daos.dashboard import DashboardDAO
+        from superset.models.dashboard import Dashboard
+        from superset.models.slice import Slice
+
+        updated_dashboard = (
+            DashboardDAO.find_by_id(
+                updated_dashboard.id,
+                query_options=[
+                    subqueryload(Dashboard.slices).subqueryload(Slice.owners),
+                    subqueryload(Dashboard.slices).subqueryload(Slice.tags),
+                    subqueryload(Dashboard.owners),
+                    subqueryload(Dashboard.tags),
+                ],
+            )
+            or updated_dashboard
+        )
+
         # Convert to response format
         from superset.mcp_service.dashboard.schemas import (
             serialize_tag_object,
@@ -412,12 +442,8 @@ def add_chart_to_existing_dashboard(
             published=updated_dashboard.published,
             created_on=updated_dashboard.created_on,
             changed_on=updated_dashboard.changed_on,
-            created_by=updated_dashboard.created_by.username
-            if updated_dashboard.created_by
-            else None,
-            changed_by=updated_dashboard.changed_by.username
-            if updated_dashboard.changed_by
-            else None,
+            created_by=updated_dashboard.created_by_name or None,
+            changed_by=updated_dashboard.changed_by_name or None,
             uuid=str(updated_dashboard.uuid) if updated_dashboard.uuid else None,
             url=f"{get_superset_base_url()}/superset/dashboard/{updated_dashboard.id}/",
             chart_count=len(updated_dashboard.slices),

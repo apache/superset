@@ -259,6 +259,12 @@ def test_log_data_with_missing_values(mocker: MockerFixture) -> None:
             ["url1"],
             ["superset/dashboard/p/url1/"],
         ),
+        # Test JSON scalar string anchor falls back to single tab
+        (
+            json.dumps("mock_tab_anchor_1"),
+            ["url1"],
+            ["superset/dashboard/p/url1/"],
+        ),
     ],
 )
 @patch(
