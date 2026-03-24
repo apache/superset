@@ -234,7 +234,7 @@ def get_user_from_request() -> User:
                         "FAB SecurityManager does not have validate_api_key; "
                         "cannot validate API key"
                     )
-                    raise ValueError(
+                    raise PermissionError(
                         "API key validation is not available in this FAB version."
                     )
                 user = sm.validate_api_key(api_key_string)
@@ -253,7 +253,7 @@ def get_user_from_request() -> User:
                         )
                         return user
                     return user_with_rels
-                raise ValueError(
+                raise PermissionError(
                     "Invalid or expired API key. "
                     "Create a new key at /api/v1/security/api_keys/."
                 )

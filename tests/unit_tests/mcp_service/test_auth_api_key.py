@@ -79,12 +79,12 @@ def test_valid_api_key_returns_user(app, mock_user) -> None:
     mock_sm.validate_api_key.assert_called_once_with("sst_abc123")
 
 
-# -- Invalid API key -> ValueError --
+# -- Invalid API key -> PermissionError --
 
 
 @pytest.mark.usefixtures("_enable_api_keys")
 def test_invalid_api_key_raises(app) -> None:
-    """An invalid API key should raise ValueError."""
+    """An invalid API key should raise PermissionError."""
     mock_sm = MagicMock()
     mock_sm._extract_api_key_from_request.return_value = "sst_bad_key"
     mock_sm.validate_api_key.return_value = None
@@ -94,7 +94,7 @@ def test_invalid_api_key_raises(app) -> None:
         app.appbuilder = MagicMock()
         app.appbuilder.sm = mock_sm
 
-        with pytest.raises(ValueError, match="Invalid or expired API key"):
+        with pytest.raises(PermissionError, match="Invalid or expired API key"):
             get_user_from_request()
 
 
@@ -187,7 +187,7 @@ def test_fab_without_extract_method_skips_gracefully(app) -> None:
 @pytest.mark.usefixtures("_enable_api_keys")
 def test_fab_without_validate_method_raises(app) -> None:
     """If FAB has _extract_api_key_from_request but not validate_api_key,
-    should raise ValueError about unavailable validation."""
+    should raise PermissionError about unavailable validation."""
     mock_sm = MagicMock(spec=["_extract_api_key_from_request"])
     mock_sm._extract_api_key_from_request.return_value = "sst_abc123"
 
@@ -196,7 +196,9 @@ def test_fab_without_validate_method_raises(app) -> None:
         app.appbuilder = MagicMock()
         app.appbuilder.sm = mock_sm
 
-        with pytest.raises(ValueError, match="API key validation is not available"):
+        with pytest.raises(
+            PermissionError, match="API key validation is not available"
+        ):
             get_user_from_request()
 
 

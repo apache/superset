@@ -77,9 +77,22 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Drop ab_api_key table if it exists."""
+    """Remove indexes that this migration conditionally created.
+
+    The upgrade explicitly handles the case where the table already exists
+    (created by FAB's create_all()), so downgrade should not destroy data
+    that was there before the migration.  Only drop the indexes that were
+    conditionally added by upgrade().
+    """
     conn = op.get_bind()
     inspector = sa.inspect(conn)
     if "ab_api_key" not in inspector.get_table_names():
         return
-    op.drop_table("ab_api_key")
+
+    existing_indexes = {idx["name"] for idx in inspector.get_indexes("ab_api_key")}
+
+    with op.batch_alter_table("ab_api_key") as batch_op:
+        if "idx_api_key_prefix" in existing_indexes:
+            batch_op.drop_index("idx_api_key_prefix")
+        if "idx_api_key_user_id" in existing_indexes:
+            batch_op.drop_index("idx_api_key_user_id")
