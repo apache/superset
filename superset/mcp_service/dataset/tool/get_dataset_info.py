@@ -122,14 +122,15 @@ async def get_dataset_info(
             result = tool.run_tool(request.identifier)
 
         if isinstance(result, DatasetInfo):
-            # Compute popularity_score only when explicitly requested via
-            # select_columns (opt-in). Isolated so a failure here does not
-            # prevent returning dataset info.
-            if (
-                result.id is not None
-                and request.select_columns
-                and "popularity_score" in request.select_columns
-            ):
+            # Only compute popularity_score when select_columns is empty/None
+            # (meaning "return everything") or when it explicitly includes
+            # "popularity_score". This avoids unnecessary DB queries when a
+            # caller requests a specific column subset that excludes it.
+            should_compute_popularity = (
+                not request.select_columns
+                or "popularity_score" in request.select_columns
+            )
+            if should_compute_popularity and result.id is not None:
                 try:
                     scores = compute_dataset_popularity([result.id])
                     result.popularity_score = scores.get(result.id, 0.0)
