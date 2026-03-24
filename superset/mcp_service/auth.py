@@ -419,6 +419,15 @@ def _setup_user_context() -> User | None:
     Returns:
         User object with roles and groups loaded, or None if no Flask context
     """
+    # Clear stale g.user to prevent user impersonation across
+    # tool calls when no per-request middleware refreshes it.
+    # Only clear in app-context-only mode; preserve g.user when
+    # a request context is active (external middleware set it).
+    from flask import has_request_context
+
+    if not has_request_context():
+        g.pop("user", None)
+
     try:
         user = get_user_from_request()
     except RuntimeError as e:
@@ -527,14 +536,6 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
         @functools.wraps(tool_func)
         async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
             with _get_app_context_manager():
-                # Clear stale g.user to prevent user impersonation across
-                # tool calls when no per-request middleware refreshes it.
-                # Only clear in app-context-only mode; preserve g.user when
-                # a request context is active (external middleware set it).
-                from flask import has_request_context
-
-                if not has_request_context():
-                    g.pop("user", None)
                 user = _setup_user_context()
 
                 # No Flask context - this is a FastMCP internal operation
@@ -575,14 +576,6 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
         @functools.wraps(tool_func)
         def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
             with _get_app_context_manager():
-                # Clear stale g.user to prevent user impersonation across
-                # tool calls when no per-request middleware refreshes it.
-                # Only clear in app-context-only mode; preserve g.user when
-                # a request context is active (external middleware set it).
-                from flask import has_request_context
-
-                if not has_request_context():
-                    g.pop("user", None)
                 user = _setup_user_context()
 
                 # No Flask context - this is a FastMCP internal operation
