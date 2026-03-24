@@ -467,7 +467,18 @@ def _create_string_parsing_wrapper(
     """
     import types
 
+    # Detect empty request models (no required fields) so
+    # FastMCP doesn't reject calls without arguments
+    # (e.g. get_instance_info via call_tool proxy).
+    _model_has_no_required_fields = not any(
+        f.is_required() for f in request_class.model_fields.values()
+    )
+
     def _maybe_parse(request: Any) -> Any:
+        # Auto-instantiate empty request models when no arguments provided
+        if (request is None or request == "{}") and _model_has_no_required_fields:
+            return request_class()
+
         if _is_parse_request_enabled():
             try:
                 return parse_json_or_model(request, request_class, "request")
@@ -539,7 +550,12 @@ def _create_string_parsing_wrapper(
     new_wrapper.__doc__ = func.__doc__
 
     request_annotation = str | request_class
-    _apply_signature_for_fastmcp(new_wrapper, func, request_annotation)
+    _apply_signature_for_fastmcp(
+        new_wrapper,
+        func,
+        request_annotation,
+        request_default="{}" if _model_has_no_required_fields else None,
+    )
 
     return new_wrapper
 
@@ -678,6 +694,7 @@ def _apply_signature_for_fastmcp(
     wrapper: Any,
     original_func: Callable[..., Any],
     request_annotation: Any,
+    request_default: Any = None,
 ) -> None:
     """Apply annotations and signature to wrapper, stripping ctx for FastMCP.
 
@@ -705,7 +722,10 @@ def _apply_signature_for_fastmcp(
         if _is_context_param(param, name, FMContext):
             continue
         if name == "request":
-            new_params.append(param.replace(annotation=request_annotation))
+            replacement = {"annotation": request_annotation}
+            if request_default is not None:
+                replacement["default"] = request_default
+            new_params.append(param.replace(**replacement))
         else:
             new_params.append(param)
     wrapper.__signature__ = orig_sig.replace(parameters=new_params)
