@@ -257,7 +257,11 @@ def test_dev_username_not_found_raises(app) -> None:
 
 
 def test_mcp_auth_hook_clears_stale_g_user(app) -> None:
-    """mcp_auth_hook clears g.user before setting up user context."""
+    """mcp_auth_hook clears g.user before setting up user context.
+
+    Uses a side_effect that asserts g.user was cleared before user
+    resolution runs, so the test fails if g.pop("user") is removed.
+    """
     stale_user = _make_mock_user("stale")
     fresh_user = _make_mock_user("fresh")
 
@@ -267,11 +271,19 @@ def test_mcp_auth_hook_clears_stale_g_user(app) -> None:
 
     wrapped = mcp_auth_hook(dummy_tool)
 
+    def _assert_cleared_then_return():
+        """Verify stale g.user was cleared before returning fresh user."""
+        assert not hasattr(g, "user") or g.user is None, (
+            "g.user should have been cleared before get_user_from_request() "
+            f"but found g.user={getattr(g, 'user', '<missing>')}"
+        )
+        return fresh_user
+
     with app.app_context():
         g.user = stale_user
         with patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=fresh_user,
+            side_effect=lambda: _assert_cleared_then_return(),
         ):
             result = wrapped()
 
@@ -279,7 +291,11 @@ def test_mcp_auth_hook_clears_stale_g_user(app) -> None:
 
 
 def test_mcp_auth_hook_clears_stale_g_user_async(app) -> None:
-    """mcp_auth_hook clears g.user before setting up user context (async)."""
+    """mcp_auth_hook clears g.user before setting up user context (async).
+
+    Uses a side_effect that asserts g.user was cleared before user
+    resolution runs, so the test fails if g.pop("user") is removed.
+    """
     import asyncio
 
     stale_user = _make_mock_user("stale")
@@ -291,11 +307,19 @@ def test_mcp_auth_hook_clears_stale_g_user_async(app) -> None:
 
     wrapped = mcp_auth_hook(dummy_tool)
 
+    def _assert_cleared_then_return():
+        """Verify stale g.user was cleared before returning fresh user."""
+        assert not hasattr(g, "user") or g.user is None, (
+            "g.user should have been cleared before get_user_from_request() "
+            f"but found g.user={getattr(g, 'user', '<missing>')}"
+        )
+        return fresh_user
+
     with app.app_context():
         g.user = stale_user
         with patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=fresh_user,
+            side_effect=lambda: _assert_cleared_then_return(),
         ):
             result = asyncio.run(wrapped())
 
@@ -303,7 +327,12 @@ def test_mcp_auth_hook_clears_stale_g_user_async(app) -> None:
 
 
 def test_mcp_auth_hook_preserves_g_user_in_request_context(app) -> None:
-    """g.user is NOT cleared when a request context is active (middleware compat)."""
+    """g.user is NOT cleared when a request context is active (middleware compat).
+
+    Uses a side_effect that asserts g.user is still the middleware-set
+    user when get_user_from_request() is called, proving the hook did
+    NOT clear it.
+    """
     middleware_user = _make_mock_user("middleware_user")
 
     def dummy_tool():
@@ -312,11 +341,22 @@ def test_mcp_auth_hook_preserves_g_user_in_request_context(app) -> None:
 
     wrapped = mcp_auth_hook(dummy_tool)
 
+    def _assert_preserved_then_return():
+        """Verify g.user was preserved (not cleared) before returning."""
+        assert hasattr(g, "user"), (
+            "g.user should be preserved in request context but was removed"
+        )
+        assert g.user is middleware_user, (
+            "g.user should be preserved in request context but was changed; "
+            f"g.user={g.user}"
+        )
+        return middleware_user
+
     with app.test_request_context():
         g.user = middleware_user
         with patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=middleware_user,
+            side_effect=lambda: _assert_preserved_then_return(),
         ):
             result = wrapped()
 
