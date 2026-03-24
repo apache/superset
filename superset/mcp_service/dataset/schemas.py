@@ -310,6 +310,15 @@ class GetDatasetInfoRequest(MetadataCacheControl):
         int | str,
         Field(description="Dataset identifier - can be numeric ID or UUID string"),
     ]
+    select_columns: Annotated[
+        List[str],
+        Field(
+            default_factory=list,
+            description="List of columns to include in the response. When empty or "
+            "omitted, all columns are returned. Use 'popularity_score' to include "
+            "computed popularity scoring.",
+        ),
+    ]
 
 
 def _parse_json_field(obj: Any, field_name: str) -> Dict[str, Any] | None:

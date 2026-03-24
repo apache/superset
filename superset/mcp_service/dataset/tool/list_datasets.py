@@ -194,6 +194,11 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
                     scores = compute_dataset_popularity(ds_ids)
                     attach_popularity_scores(result.datasets, scores)
 
+            # Overwrite columns_requested so the metadata reflects the user's
+            # original request, not the internally-mutated dao_columns.
+            if original_select_columns:
+                result.columns_requested = original_select_columns
+
         await ctx.info(
             "Datasets listed successfully: count=%s, total_count=%s, total_pages=%s"
             % (
@@ -263,9 +268,19 @@ def _list_datasets_by_popularity(
     start = page * page_size
     end = start + page_size
 
-    # Fetch full models for page IDs
+    # Fetch full models for page IDs with eager loading to avoid N+1
+    # lazy loads during serialization (columns, metrics, database).
     if page_ids := sorted_ids[start:end]:
-        items = dao_class.find_by_ids(page_ids)
+        from sqlalchemy.orm import joinedload, subqueryload
+
+        from superset.connectors.sqla.models import SqlaTable
+
+        eager_options = [
+            subqueryload(SqlaTable.columns),
+            subqueryload(SqlaTable.metrics),
+            joinedload(SqlaTable.database),
+        ]
+        items = dao_class.find_by_ids(page_ids, query_options=eager_options)
         id_to_item = {item.id: item for item in items}
         ordered_items = [id_to_item[pid] for pid in page_ids if pid in id_to_item]
     else:

@@ -313,6 +313,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         model_ids: Sequence[str | int],
         skip_base_filter: bool = False,
         id_column: str | None = None,
+        query_options: list[Any] | None = None,
     ) -> list[T]:
         """
         Find a List of models by a list of ids, if defined applies `base_filter`
@@ -321,6 +322,8 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         :param skip_base_filter: If true, skip applying the base filter
         :param id_column: Optional column name to use for ID lookup
                          (defaults to id_column_name)
+        :param query_options: SQLAlchemy query options (e.g., joinedload,
+                             subqueryload) to apply to the query for eager loading
         """
         column = id_column or cls.id_column_name
         id_col = getattr(cls.model_cls, column, None)
@@ -349,6 +352,9 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
 
         query = db.session.query(cls.model_cls).filter(id_col.in_(converted_ids))
         query = cls._apply_base_filter(query, skip_base_filter)
+
+        if query_options:
+            query = query.options(*query_options)
 
         try:
             results = query.all()

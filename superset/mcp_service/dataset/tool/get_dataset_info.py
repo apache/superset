@@ -26,6 +26,7 @@ import logging
 from datetime import datetime, timezone
 
 from fastmcp import Context
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload, subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
@@ -121,13 +122,23 @@ async def get_dataset_info(
             result = tool.run_tool(request.identifier)
 
         if isinstance(result, DatasetInfo):
-            # Compute popularity_score for single dataset retrieval
-            # Isolated so a failure here doesn't prevent returning dataset info
-            if result.id is not None:
+            # Compute popularity_score only when explicitly requested via
+            # select_columns (opt-in). Isolated so a failure here does not
+            # prevent returning dataset info.
+            if (
+                result.id is not None
+                and request.select_columns
+                and "popularity_score" in request.select_columns
+            ):
                 try:
                     scores = compute_dataset_popularity([result.id])
                     result.popularity_score = scores.get(result.id, 0.0)
-                except (ValueError, TypeError, AttributeError) as e:
+                except (
+                    ValueError,
+                    TypeError,
+                    AttributeError,
+                    SQLAlchemyError,
+                ) as e:
                     await ctx.warning(
                         "Failed to compute popularity score: %s" % (str(e),)
                     )

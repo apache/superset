@@ -180,6 +180,11 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
                     scores = compute_chart_popularity(chart_ids)
                     attach_popularity_scores(result.charts, scores)
 
+            # Overwrite columns_requested so the metadata reflects the user's
+            # original request, not the internally-mutated dao_columns.
+            if original_select_columns:
+                result.columns_requested = original_select_columns
+
         count = len(result.charts) if hasattr(result, "charts") else 0
         total_pages = getattr(result, "total_pages", None)
         await ctx.info(

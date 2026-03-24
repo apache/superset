@@ -180,6 +180,11 @@ async def list_dashboards(
                 scores = compute_dashboard_popularity(dash_ids)
                 attach_popularity_scores(result.dashboards, scores)
 
+        # Overwrite columns_requested so the metadata reflects the user's
+        # original request, not the internally-mutated dao_columns.
+        if original_select_columns:
+            result.columns_requested = original_select_columns
+
     count = len(result.dashboards) if hasattr(result, "dashboards") else 0
     total_pages = getattr(result, "total_pages", None)
     await ctx.info(
