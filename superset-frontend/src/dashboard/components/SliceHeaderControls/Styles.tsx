@@ -23,6 +23,7 @@ export const fullscreenStyles = (theme: SupersetTheme) => css`
     background-color: ${theme.colorBgBase};
     width: 100vw;
     height: 100vh;
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     padding: ${theme.sizeUnit * 4}px;
