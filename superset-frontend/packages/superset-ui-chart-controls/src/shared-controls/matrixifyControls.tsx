@@ -34,7 +34,7 @@ import { defineSavedMetrics } from '../utils';
 // The matrixify_enable guard prevents hidden validators from firing on
 // pre-revamp charts with stale matrixify_mode defaults (fix for #38519).
 const isMatrixifyVisible = (
-  controls: ControlStateMapping,
+  controls: ControlStateMapping | undefined,
   axis: 'rows' | 'columns',
   mode?: 'metrics' | 'dimensions',
   selectionMode?: 'members' | 'topn' | 'all',

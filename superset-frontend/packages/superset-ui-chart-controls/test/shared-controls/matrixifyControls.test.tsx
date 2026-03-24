@@ -31,15 +31,17 @@ import {
   matrixifyControls,
   isMatrixifyVisible,
 } from '../../src/shared-controls/matrixifyControls';
-import type { ControlPanelState } from '../../src/types';
+import type { ControlPanelState, ControlStateMapping } from '../../src/types';
 
 // Helper: build a minimal controls object for ControlPanelState
-const buildControls = (overrides: Record<string, any> = {}) => {
+const buildControls = (
+  overrides: Record<string, any> = {},
+): ControlStateMapping => {
   const controls: Record<string, { value: any }> = {};
   Object.entries(overrides).forEach(([key, value]) => {
     controls[key] = { value };
   });
-  return controls;
+  return controls as ControlStateMapping;
 };
 
 // Helper: build a minimal ControlPanelState for mapStateToProps.
