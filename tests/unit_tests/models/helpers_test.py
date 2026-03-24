@@ -1871,7 +1871,7 @@ def test_filter_adhoc_column(database: Database) -> None:
         table_name="test_table",
         database=database,
         columns=[
-            TableColumn(column_name="CustomerId", type="NUMERIC"),
+            TableColumn(column_name="CustomerId", type="TEXT"),
             TableColumn(column_name="FullName", type="TEXT"),
         ],
     )
@@ -1895,8 +1895,10 @@ def test_filter_adhoc_column(database: Database) -> None:
 
     # Verify the SQL contains the expression from the adhoc column
     sql = str(result.sqla_query)
-    assert "WHERE" in sql.upper()
-    assert "LIKE" in sql.upper()
+    sql_upper = sql.upper()
+    assert "WHERE" in sql_upper
+    assert " ILIKE " in sql_upper
+    assert "CUSTOMERID" in sql_upper
 
 
 def test_find_adhoc_column_and_convert_to_sqla_found(database: Database) -> None:
@@ -1992,7 +1994,7 @@ def test_find_adhoc_column_and_convert_to_sqla_empty_columns(
     )
 
     # Empty columns list
-    columns: list[TableColumn] = []
+    columns: list[AdhocColumn | str] = []
 
     # Try to find an adhoc column in empty list
     result = table.find_adhoc_column_and_convert_to_sqla(
