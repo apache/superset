@@ -162,8 +162,7 @@ def _stub_validate_deps(mocker: MockerFixture) -> None:
     can exercise a single validation branch in isolation."""
     mocker.patch.object(CreateReportScheduleCommand, "_populate_recipients")
     mocker.patch(
-        "superset.commands.report.create.ReportScheduleDAO"
-        ".validate_update_uniqueness",
+        "superset.commands.report.create.ReportScheduleDAO.validate_update_uniqueness",
         return_value=True,
     )
     mocker.patch.object(CreateReportScheduleCommand, "validate_report_frequency")
