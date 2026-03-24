@@ -52,7 +52,7 @@ export const fullscreenStyles = (theme: SupersetTheme) => css`
     .ant-modal-root,
     .ant-select-dropdown,
     .ant-popover {
-      z-index: ${theme.zIndexPopupBase+1};
+      z-index: ${theme.zIndexPopupBase + 1};
       pointer-events: auto;
     }
   }
