@@ -77,6 +77,7 @@ from superset.sql.parse import SQLScript
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
+    import pandas as pd
     from superset_core.queries.types import (
         AsyncQueryHandle,
         QueryOptions,
@@ -818,19 +819,29 @@ class SQLExecutor:
         return None
 
     @staticmethod
-    def _deserialize_cached_data(data: Any) -> Any:
-        """Deserialize cached statement data back to a DataFrame."""
+    def _deserialize_cached_data(data: Any) -> pd.DataFrame | None:
+        """Deserialize cached statement data back to a DataFrame.
+
+        _store_in_cache serialises DataFrames via to_dict("records"),
+        so cached data is either list[dict], None, or (for legacy entries)
+        a dict with "records"/"columns" keys.  Convert recognised shapes
+        back to DataFrames; return None for anything else so that invalid
+        cache entries do not propagate an unexpected type into
+        StatementResult.data (which expects DataFrame | None).
+        """
         import pandas as pd
 
         if data is None:
             return None
         if isinstance(data, pd.DataFrame):
             return data
+        if isinstance(data, list):
+            return pd.DataFrame(data) if data else pd.DataFrame()
         if isinstance(data, dict) and "records" in data and "columns" in data:
             return pd.DataFrame(data["records"], columns=data["columns"])
-        if isinstance(data, (bytes, memoryview)):
-            return None
-        return data
+        # Unrecognised type (bytes, memoryview, or anything else):
+        # discard instead of passing through.
+        return None
 
     def _store_in_cache(
         self, result: QueryResult, sql: str, opts: QueryOptions

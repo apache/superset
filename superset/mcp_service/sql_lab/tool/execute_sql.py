@@ -197,7 +197,8 @@ def _data_to_statement_data(data: Any) -> StatementData:
         return StatementData(
             rows=rows_data,
             columns=[
-                ColumnInfo(name=col, type=str(data[col].dtype)) for col in data.columns
+                ColumnInfo(name=col, type=str(dtype))
+                for col, dtype in data.dtypes.items()
             ],
         )
     elif isinstance(data, bytes):

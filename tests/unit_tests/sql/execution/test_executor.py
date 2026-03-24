@@ -2249,14 +2249,42 @@ def test_deserialize_cached_data_memoryview_returns_none(
     assert result is None
 
 
-def test_deserialize_cached_data_unknown_type_passthrough(
+def test_deserialize_cached_data_unknown_type_returns_none(
     database: Database, app_context: None
 ) -> None:
-    """Test that unknown types pass through unchanged."""
+    """Test that unknown types return None instead of passing through."""
     from superset.sql.execution.executor import SQLExecutor
 
     result = SQLExecutor._deserialize_cached_data("some string")
-    assert result == "some string"
+    assert result is None
+
+
+def test_deserialize_cached_data_list_to_dataframe(
+    database: Database, app_context: None
+) -> None:
+    """Test that list of dicts (from to_dict('records')) is converted to DataFrame."""
+    import pandas as pd
+
+    from superset.sql.execution.executor import SQLExecutor
+
+    data = [{"col_a": 1, "col_b": "x"}, {"col_a": 2, "col_b": "y"}]
+    result = SQLExecutor._deserialize_cached_data(data)
+    assert isinstance(result, pd.DataFrame)
+    assert list(result.columns) == ["col_a", "col_b"]
+    assert len(result) == 2
+
+
+def test_deserialize_cached_data_empty_list_to_empty_dataframe(
+    database: Database, app_context: None
+) -> None:
+    """Test that an empty list is converted to an empty DataFrame."""
+    import pandas as pd
+
+    from superset.sql.execution.executor import SQLExecutor
+
+    result = SQLExecutor._deserialize_cached_data([])
+    assert isinstance(result, pd.DataFrame)
+    assert len(result) == 0
 
 
 def test_store_in_cache_serializes_dataframe(
@@ -2299,9 +2327,6 @@ def test_store_in_cache_serializes_dataframe(
     mock_set.assert_called_once()
     cached_arg = mock_set.call_args[0][1]
     stmt_data = cached_arg["statements"][0]["data"]
-    # DataFrame should be serialized to dict with records and columns
-    assert isinstance(stmt_data, dict)
-    assert "records" in stmt_data
-    assert "columns" in stmt_data
-    assert stmt_data["columns"] == ["id"]
-    assert stmt_data["records"] == [{"id": 1}, {"id": 2}, {"id": 3}]
+    # DataFrame is serialized via to_dict(orient="records") as a list of dicts
+    assert isinstance(stmt_data, list)
+    assert stmt_data == [{"id": 1}, {"id": 2}, {"id": 3}]
