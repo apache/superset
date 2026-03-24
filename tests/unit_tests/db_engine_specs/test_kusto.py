@@ -180,7 +180,7 @@ def test_handle_null_filter() -> None:
 
     # Test invalid operator - should raise ValueError
     with pytest.raises(ValueError, match="Invalid null filter operator"):
-        KustoKqlEngineSpec.handle_null_filter(test_col, "INVALID_OPERATOR")
+        KustoKqlEngineSpec.handle_null_filter(test_col, "INVALID_OPERATOR")  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize(
