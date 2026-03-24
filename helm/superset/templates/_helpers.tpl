@@ -766,6 +766,8 @@ app.kubernetes.io/component: websocket
 {{- define "superset.defaultInitContainers" -}}
 {{- $waitCommands := "" }}
 {{- /* Database - Superset always requires a database */}}
+{{- /* Only add wait-for-database if database.uri is NOT set (when using host/port config) */}}
+{{- if not .Values.database.uri }}
 {{- /* Auto-detect host from release name if not explicitly set */}}
 {{- $dbHost := .Values.database.host }}
 {{- if not $dbHost }}
@@ -777,8 +779,9 @@ app.kubernetes.io/component: websocket
 {{- end }}
 {{- $dbPort := .Values.database.port | default 5432 }}
 {{- $waitCommands = printf "-wait tcp://%s:%d" $dbHost (int $dbPort) }}
-{{- /* Redis - only wait if cache is enabled */}}
-{{- if .Values.cache.enabled }}
+{{- end }}
+{{- /* Redis - only wait if cache is enabled and using host/port config (not URL) */}}
+{{- if and .Values.cache.enabled (not .Values.cache.cacheUrl) }}
 {{- $redisHost := .Values.cache.host }}
 {{- if not $redisHost }}
 {{- if .Values.cluster.redisServiceName }}
@@ -788,8 +791,14 @@ app.kubernetes.io/component: websocket
 {{- end }}
 {{- end }}
 {{- $redisPort := .Values.cache.port | default 6379 }}
+{{- if ne $waitCommands "" }}
 {{- $waitCommands = printf "%s -wait tcp://%s:%d" $waitCommands $redisHost (int $redisPort) }}
+{{- else }}
+{{- $waitCommands = printf "-wait tcp://%s:%d" $redisHost (int $redisPort) }}
 {{- end }}
+{{- end }}
+{{- /* Only create init container if we have something to wait for */}}
+{{- if ne $waitCommands "" }}
 - name: wait-for-services
   image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
   imagePullPolicy: "{{ .Values.initImage.pullPolicy }}"
@@ -809,6 +818,7 @@ app.kubernetes.io/component: websocket
       echo "Waiting for dependencies to be available..."
       dockerize {{ $waitCommands }} -timeout 120s
       echo "All dependencies are available!"
+{{- end }}
 {{- end }}
 
 {{/*
