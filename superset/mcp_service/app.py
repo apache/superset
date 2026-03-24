@@ -123,6 +123,10 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
 - chart_type="pie": Pie chart for proportional data (set donut=True for donut)
 - chart_type="pivot_table": Interactive pivot table for cross-tabulation
 - chart_type="mixed_timeseries": Dual-series chart combining two chart types
+- chart_type="handlebars": Custom HTML template chart (KPI cards, leaderboards, reports)
+  Requires handlebars_template with Handlebars HTML template string.
+  Supports query_mode="aggregate" (with metrics/groupby) or "raw" (with columns).
+  Data available as {{{{data}}}} array; helpers: dateFormat, formatNumber, stringify.
 
 To create a chart:
 1. list_datasets -> find a dataset
