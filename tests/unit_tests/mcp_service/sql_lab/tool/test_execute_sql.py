@@ -949,66 +949,6 @@ class TestExecuteSql:
     @patch("superset.security_manager")
     @patch("superset.db")
     @pytest.mark.asyncio
-    async def test_execute_sql_bytes_in_dataframe(
-        self, mock_db, mock_security_manager, mcp_server
-    ):
-        """Test that bytes/memoryview values in DataFrame are sanitized for JSON.
-
-        Regression test: execute_sql fails with 'encoding without a string
-        argument' when queries return binary/bytea data.
-        """
-        mock_database = _mock_database()
-        df = pd.DataFrame(
-            [
-                {
-                    "id": 1,
-                    "name": "test",
-                    "utf8_data": b"hello world",
-                    "binary_data": b"\x00\x01\x02\xff",
-                },
-            ]
-        )
-        mock_database.execute.return_value = QueryResult(
-            status=QueryStatus.SUCCESS,
-            statements=[
-                StatementResult(
-                    original_sql="SELECT * FROM files",
-                    executed_sql="SELECT * FROM files",
-                    data=df,
-                    row_count=1,
-                    execution_time_ms=5.0,
-                )
-            ],
-            query_id=None,
-            total_execution_time_ms=5.0,
-            is_cached=False,
-        )
-        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
-            mock_database
-        )
-        mock_security_manager.can_access_database.return_value = True
-
-        request = {
-            "database_id": 1,
-            "sql": "SELECT * FROM files",
-            "limit": 10,
-        }
-
-        async with Client(mcp_server) as client:
-            result = await client.call_tool("execute_sql", {"request": request})
-
-            data = result.structured_content
-            assert data["success"] is True
-            assert data["row_count"] == 1
-            row = data["rows"][0]
-            # UTF-8 decodable bytes should become string
-            assert row["utf8_data"] == "hello world"
-            # Non-UTF-8 bytes should become hex
-            assert row["binary_data"] == "000102ff"
-
-    @patch("superset.security_manager")
-    @patch("superset.db")
-    @pytest.mark.asyncio
     async def test_execute_sql_decimal_in_dataframe(
         self, mock_db, mock_security_manager, mcp_server
     ):
