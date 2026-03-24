@@ -18,7 +18,15 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { css, t, SupersetClient, useTheme, styled } from '@superset-ui/core';
+import {
+  css,
+  t,
+  SupersetClient,
+  useTheme,
+  styled,
+  FeatureFlag,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { Descriptions } from 'src/components/Descriptions';
@@ -28,6 +36,7 @@ import {
   UserInfoResetPasswordModal,
 } from 'src/features/userInfo/UserInfoModal';
 import { Icons, Collapse } from '@superset-ui/core/components';
+import { ApiKeyList } from 'src/features/apiKeys/ApiKeyList';
 
 const StyledHeader = styled.div`
   ${({ theme }) => css`
@@ -157,7 +166,16 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
     <StyledLayout>
       <StyledHeader>Your user information</StyledHeader>
       <DescriptionsContainer>
-        <Collapse defaultActiveKey={['userInfo', 'personalInfo']} ghost>
+        <Collapse
+          defaultActiveKey={[
+            'userInfo',
+            'personalInfo',
+            ...(isFeatureEnabled(FeatureFlag.FabApiKeyEnabled)
+              ? ['apiKeys']
+              : []),
+          ]}
+          ghost
+        >
           <Collapse.Panel
             header={<DescriptionTitle>User info</DescriptionTitle>}
             key="userInfo"
@@ -201,6 +219,14 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
               <Descriptions.Item label="Email">{user.email}</Descriptions.Item>
             </Descriptions>
           </Collapse.Panel>
+          {isFeatureEnabled(FeatureFlag.FabApiKeyEnabled) && (
+            <Collapse.Panel
+              header={<DescriptionTitle>{t('API Keys')}</DescriptionTitle>}
+              key="apiKeys"
+            >
+              <ApiKeyList />
+            </Collapse.Panel>
+          )}
         </Collapse>
       </DescriptionsContainer>
       {modalState.resetPassword && (

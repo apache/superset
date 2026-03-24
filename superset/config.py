@@ -648,6 +648,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable support for date range timeshifts (e.g., "2015-01-03 : 2015-01-04")
     # in addition to relative timeshifts (e.g., "1 day ago")
     "DATE_RANGE_TIMESHIFTS_ENABLED": False,
+    # Enable API key authentication via FAB SecurityManager
+    # When enabled, users can create/manage API keys in the User Info page
+    # @lifecycle: development
+    "FAB_API_KEY_ENABLED": False,
     # Enable Matrixify feature for matrix-style chart layouts
     "MATRIXIFY": False,
     # Enable AWS IAM authentication for database connections (Aurora, Redshift).
@@ -1478,6 +1482,13 @@ FAB_ADD_SECURITY_API = True
 FAB_ADD_SECURITY_PERMISSION_VIEW = False
 FAB_ADD_SECURITY_VIEW_MENU_VIEW = False
 FAB_ADD_SECURITY_PERMISSION_VIEWS_VIEW = False
+
+# API Key Authentication via FAB SecurityManager
+# FAB reads this config directly to register the ApiKeyApi blueprint.
+# The FAB_API_KEY_ENABLED feature flag (in DEFAULT_FEATURE_FLAGS) controls
+# the frontend UI visibility independently.
+FAB_API_KEY_ENABLED = False
+FAB_API_KEY_PREFIXES = ["sst_"]
 
 # The link to a page containing common errors and their resolutions
 # It will be appended at the bottom of sql_lab errors.
