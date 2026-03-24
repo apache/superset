@@ -37,6 +37,7 @@ from pydantic import (
     model_validator,
     PositiveInt,
     TypeAdapter,
+    ValidationError,
 )
 from typing_extensions import Self
 
@@ -327,9 +328,10 @@ def extract_filters_from_form_data(
                     sql_expression=f.get("sqlExpression"),
                 )
             )
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, ValidationError):
             # Skip malformed filter entries (e.g. non-string fields in
-            # corrupted cached state or legacy payloads)
+            # corrupted cached state, legacy payloads, or Pydantic
+            # validation failures from unexpected field types)
             continue
 
     time_range = form_data.get("time_range")
@@ -339,6 +341,8 @@ def extract_filters_from_form_data(
         item
         for item in (raw_extra if isinstance(raw_extra, list) else [])
         if isinstance(item, dict)
+        and isinstance(item.get("col"), str)
+        and item.get("col")
     ]
     where = form_data.get("where")
     having = form_data.get("having")

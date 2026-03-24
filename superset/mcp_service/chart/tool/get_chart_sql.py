@@ -317,6 +317,12 @@ async def get_chart_sql(
             error=f"Superset error: {e}",
             error_type="SupersetError",
         )
+    except (ValueError, TypeError) as e:
+        logger.exception("Unexpected error in get_chart_sql")
+        return ChartError(
+            error=f"Failed to generate chart SQL: {e}",
+            error_type="QueryGenerationFailed",
+        )
 
 
 async def _handle_chart_sql_request(
