@@ -97,7 +97,6 @@ const VerticalDotsTrigger = () => {
     />
   );
 };
-const FULLSCREEN_Z_INDEX = 10001;
 
 export interface SliceHeaderControlsProps {
   chartHolderRef?: RefObject<HTMLDivElement>;
@@ -381,9 +380,9 @@ const SliceHeaderControls = (
     ? t('Exit fullscreen')
     : t('Enter fullscreen');
 
-  // @z-index-below-dashboard-header (100) - 1 = 99 for !isFullSize and 101 for isFullSize
+  // Use theme.zIndexPopupBase to keep dropdown above fullscreen (+1) or below dashboard header (-1)
   const dropdownOverlayStyle = {
-    zIndex: isFullSize ? FULLSCREEN_Z_INDEX : 99,
+    zIndex: isFullSize ? theme.zIndexPopupBase + 1 : theme.zIndexPopupBase - 1,
     animationDuration: '0s',
   };
 
