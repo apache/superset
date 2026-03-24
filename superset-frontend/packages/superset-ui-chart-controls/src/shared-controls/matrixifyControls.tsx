@@ -20,7 +20,7 @@
 
 import { t } from '@apache-superset/core/translation';
 import { validateNonEmpty } from '@superset-ui/core';
-import { SharedControlConfig } from '../types';
+import { ControlStateMapping, SharedControlConfig } from '../types';
 import { dndAdhocMetricControl } from './dndControls';
 import { defineSavedMetrics } from '../utils';
 
@@ -34,7 +34,7 @@ import { defineSavedMetrics } from '../utils';
 // The matrixify_enable guard prevents hidden validators from firing on
 // pre-revamp charts with stale matrixify_mode defaults (fix for #38519).
 const isMatrixifyVisible = (
-  controls: any,
+  controls: ControlStateMapping,
   axis: 'rows' | 'columns',
   mode?: 'metrics' | 'dimensions',
   selectionMode?: 'members' | 'topn' | 'all',
