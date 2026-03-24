@@ -13,6 +13,7 @@ feat(helm): Chart 2.0 refactor and configuration fixes
 This PR updates the Superset Helm chart to **0.16.0** with new capabilities, security and operational improvements, and configuration fixes.
 
 **New features and integrations:**
+- **Security hardening** – Secure defaults: non-root user (1000), Pod Security Standards compliant security contexts, no default passwords
 - **Gateway API** – HTTPRoute template (alternative to Ingress)
 - **Observability** – ServiceMonitor (Prometheus Operator) and VPA (Vertical Pod Autoscaler)
 - **Autoscaling** – KEDA ScaledObject for Celery workers

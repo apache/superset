@@ -32,6 +32,47 @@ This validates that users have migrated from deprecated configuration patterns.
 {{- end -}}
 
 {{/*
+Validate runtime pip install configuration
+Ensures security requirements are met when runtime pip installs are enabled
+*/}}
+{{- define "superset.validateRuntimePipInstall" -}}
+{{- if or .Values.optionalDependencies .Values.extraPipPackages }}
+{{- if not .Values.enableRuntimePipInstall }}
+{{- fail "ERROR: optionalDependencies or extraPipPackages are set but enableRuntimePipInstall is false.\n\nFor POC/dev with runtime pip installs, set:\n  enableRuntimePipInstall: true\n  runAsUser: 0\n\nFor production, remove optionalDependencies/extraPipPackages and build a custom image with dependencies pre-installed." }}
+{{- end }}
+{{- if ne (.Values.runAsUser | int) 0 }}
+{{- fail "ERROR: Runtime pip installs require root access.\n\nWhen enableRuntimePipInstall is true, you must also set:\n  runAsUser: 0\n\nNote: This is only suitable for POC/dev environments.\nFor production, build a custom image with dependencies pre-installed and use runAsUser: 1000." }}
+{{- end }}
+{{- end }}
+{{- end -}}
+
+{{/*
+Get effective security context for pods
+When enableRuntimePipInstall is true, this relaxes security contexts to allow root access
+*/}}
+{{- define "superset.podSecurityContext" -}}
+{{- if .Values.enableRuntimePipInstall }}
+runAsUser: 0
+fsGroup: 0
+{{- else }}
+{{- toYaml .context | nindent 0 }}
+{{- end }}
+{{- end -}}
+
+{{/*
+Get effective container security context
+When enableRuntimePipInstall is true, this relaxes security contexts to allow root access
+*/}}
+{{- define "superset.containerSecurityContext" -}}
+{{- if .Values.enableRuntimePipInstall }}
+runAsUser: 0
+allowPrivilegeEscalation: true
+{{- else }}
+{{- toYaml .context | nindent 0 }}
+{{- end }}
+{{- end -}}
+
+{{/*
 URL-encode a string for use in URI userinfo (e.g. database or Redis user/password).
 Reserved characters (@, :, /, #, ?, etc.) are percent-encoded so credentials
 with special characters produce a valid connection string.

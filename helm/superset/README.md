@@ -91,23 +91,24 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | configMountPath | string | `"/app/pythonpath"` |  |
 | configOverrides | object | `{}` | A dictionary of overrides to append at the end of superset_config.py - the name does not matter WARNING: the order is not guaranteed Files can be passed as helm --set-file configOverrides.my-override=my-file.py Use this for advanced customizations that can't be expressed in the config section above |
 | configOverridesFiles | object | `{}` | Same as above but the values are files |
-| database | object | `{"driver":"postgresql+psycopg2","host":null,"name":"superset","password":"superset","port":5432,"ssl":{"enabled":true,"mode":"require"},"uri":null,"user":"superset"}` | Database configuration for Superset Superset always requires a database connection. This section configures how Superset connects. If postgresql.enabled is true, defaults point to the chart's PostgreSQL instance. If postgresql.enabled is false, configure this to point to your external database. |
+| database | object | `{"driver":"postgresql+psycopg2","host":null,"name":"superset","password":"","port":5432,"ssl":{"enabled":true,"mode":"require"},"uri":null,"user":"superset"}` | Database configuration for Superset Superset always requires a database connection. This section configures how Superset connects. If postgresql.enabled is true, defaults point to the chart's PostgreSQL instance. If postgresql.enabled is false, configure this to point to your external database. |
 | database.driver | string | `"postgresql+psycopg2"` | Database driver (used when uri is not set) Examples: "postgresql+psycopg2", "mysql+pymysql", "sqlite:///path/to/db" |
 | database.host | string | `nil` | Database host (default: {{ .Release.Name }}-postgresql) |
-| database.password | string | `"superset"` | SECURITY: Use existingSecret for production deployments Example: existingSecret: "superset-db-secret"          existingSecretKey: "password" Or set via: --set database.password="secure-password" |
+| database.password | string | `""` | SECURITY: Database password is REQUIRED and has no default Must be set via --set database.password="secure-password" or reference existing secret For production, use existing secret: secretEnv.create=false and reference via extraEnv Example with existing secret:   extraEnv:     - name: DB_PASS       valueFrom:         secretKeyRef:           name: postgres-credentials           key: password |
 | database.port | int | `5432` | Database port |
 | database.ssl | object | `{"enabled":true,"mode":"require"}` | Database SSL/TLS configuration |
 | database.ssl.enabled | bool | `true` | Enable SSL/TLS for database connections (SECURITY: Enabled by default for strong security) |
 | database.ssl.mode | string | `"require"` | SSL mode for PostgreSQL (require, verify-ca, verify-full, disable) SECURITY: Default is "require" for strong security. Use "verify-ca" or "verify-full" for even stronger validation. For RDS/Aurora, typically use "require" or "verify-ca" |
 | database.uri | string | `nil` | Full database URI (overrides host/port/user/pass/name if set) Example: "postgresql+psycopg2://user:pass@host:5432/dbname" |
 | database.user | string | `"superset"` | Database user |
+| enableRuntimePipInstall | bool | `false` | Enable runtime dependency installation for POC/dev environments SECURITY WARNING: This is disabled by default for production security When enabled, allows installing pip packages at container startup via optionalDependencies This requires running as root (runAsUser: 0) and relaxed security contexts For production: Keep this disabled and build a custom image with dependencies pre-installed |
 | envFromSecret | string | `"{{ template \"superset.fullname\" . }}-env"` | The name of the secret which we will use to populate env vars in deployed pods This can be useful for secret keys, etc. |
 | envFromSecrets | list | `[]` | This can be a list of templated strings |
 | extraConfigMountPath | string | `"/app/configs"` |  |
 | extraConfigs | object | `{}` | Extra files to be mounted as ConfigMap on the path specified in `extraConfigMountPath` |
 | extraEnv | list | `[]` | Extra environment variables that will be passed into pods Supports both simple values and valueFrom references (secrets, configmaps) |
 | extraLabels | object | `{}` | Labels to be added to all resources |
-| extraPipPackages | list | `[]` | Extra pip packages to install at container startup (for POC/dev only) ⚠️ PRODUCTION: Leave this empty in production - dependencies should be pre-installed in a custom image These are arbitrary Python packages that will be installed via `uv pip install` Use this for packages not available in Superset's optional dependencies Example: ["redis>=4.0.0", "boto3", "my-custom-package==1.2.3"] |
+| extraPipPackages | list | `[]` | Extra pip packages to install at container startup (for POC/dev only) ⚠️ REQUIRES: enableRuntimePipInstall: true AND runAsUser: 0 These are arbitrary Python packages that will be installed via `uv pip install` Use this for packages not available in Superset's optional dependencies Example: ["redis>=4.0.0", "boto3", "my-custom-package==1.2.3"]  ⚠️ PRODUCTION: Leave this empty in production - dependencies should be pre-installed in a custom image |
 | extraSecretEnv | object | `{}` | Extra environment variables to pass as secrets |
 | extraSecrets | object | `{}` | Extra files to be mounted as Secrets on the path specified in `configMountPath` |
 | extraVolumeMounts | list | `[]` |  |
@@ -150,7 +151,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | init.adminUser.username | string | `"admin"` |  |
 | init.affinity | object | `{}` |  |
 | init.command | list | a `superset_init.sh` command | Command |
-| init.containerSecurityContext | object | `{}` |  |
+| init.containerSecurityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"runAsNonRoot":true,"runAsUser":1000}` | Container security context - applied to init job containers SECURITY: Secure defaults to prevent privilege escalation |
 | init.createAdmin | bool | `false` | SECURITY: Default to false - admin user creation must be explicitly enabled Set to true and provide a secure password via --set or secret |
 | init.enabled | bool | `true` |  |
 | init.extraContainers | list | `[]` | Launch additional containers into init job pod |
@@ -159,9 +160,12 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | init.loadExamples | bool | `false` |  |
 | init.podAnnotations | object | `{}` |  |
 | init.podLabels | object | `{}` |  |
-| init.podSecurityContext | object | `{}` |  |
+| init.podSecurityContext | object | `{"fsGroup":1000,"runAsNonRoot":true,"runAsUser":1000,"seccompProfile":{"type":"RuntimeDefault"}}` | Pod security context - applied to init job pods SECURITY: Secure defaults enabled for production compliance |
 | init.priorityClassName | string | `nil` | Set priorityClassName for init job pods |
-| init.resources | object | `{}` |  |
+| init.resources.limits.cpu | string | `"1000m"` |  |
+| init.resources.limits.memory | string | `"1Gi"` |  |
+| init.resources.requests.cpu | string | `"100m"` |  |
+| init.resources.requests.memory | string | `"512Mi"` |  |
 | init.tolerations | list | `[]` |  |
 | init.topologySpreadConstraints | list | `[]` | TopologySpreadConstrains to be added to init job |
 | init.upgradeJob | object | `{"enabled":true,"jobAnnotations":{"helm.sh/hook":"post-install,post-upgrade","helm.sh/hook-delete-policy":"before-hook-creation","helm.sh/hook-weight":"0"}}` | Upgrade job for DB migrations and role initialization Runs on every install/upgrade (weight 0, before init job) |
@@ -189,21 +193,21 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | networkPolicy.redis.namespaceSelector | object | `{}` | Namespace selector for Redis |
 | networkPolicy.redis.podSelector | object | `{}` | Pod selector for Redis |
 | nodeSelector | object | `{}` |  |
-| optionalDependencies | list | `[]` | Optional dependencies to install at container startup (for POC/dev only) ⚠️ PRODUCTION: Leave this empty in production - dependencies should be pre-installed in a custom image Dependencies are installed in the bootstrap script of each container (node, worker, beat, flower, ws) This simplifies deployment but adds startup time. For production, build a custom image with deps pre-installed. |
+| optionalDependencies | list | `[]` | Optional dependencies to install at container startup (for POC/dev only) ⚠️ REQUIRES: enableRuntimePipInstall: true AND runAsUser: 0 These correspond to Superset's optional dependency groups (e.g., postgres, bigquery, elasticsearch) See: https://github.com/apache/superset/blob/master/pyproject.toml#L109 Example: ["postgres", "bigquery", "elasticsearch"]  SECURITY WARNING: Runtime pip installs are disabled by default for production security To enable for POC/dev:   enableRuntimePipInstall: true   runAsUser: 0  ⚠️ PRODUCTION: Leave this empty in production - dependencies should be pre-installed in a custom image Dependencies are installed in the bootstrap script of each container (node, worker, beat, flower, ws) This simplifies deployment but adds startup time and security risk. For production, build a custom image. |
 | postgresql | object | see `values.yaml` | Configuration values for the postgresql dependency. ref: https://github.com/bitnami/charts/tree/main/bitnami/postgresql |
-| preInstallValidation | object | `{"checkRedis":true,"containerSecurityContext":{},"enabled":true,"initContainers":[],"podAnnotations":{},"podLabels":{},"podSecurityContext":{},"resources":{"limits":{"cpu":"200m","memory":"128Mi"},"requests":{"cpu":"50m","memory":"64Mi"}}}` | Pre-install validation job configuration This job runs before installation/upgrade to verify database and Redis connectivity SECURITY: Pre-install validation prevents deployment failures by catching configuration errors early |
+| preInstallValidation | object | `{"checkRedis":true,"containerSecurityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"runAsNonRoot":true,"runAsUser":1000},"enabled":true,"initContainers":[],"podAnnotations":{},"podLabels":{},"podSecurityContext":{"fsGroup":1000,"runAsNonRoot":true,"runAsUser":1000,"seccompProfile":{"type":"RuntimeDefault"}},"resources":{"limits":{"cpu":"200m","memory":"128Mi"},"requests":{"cpu":"50m","memory":"64Mi"}}}` | Pre-install validation job configuration This job runs before installation/upgrade to verify database and Redis connectivity SECURITY: Pre-install validation prevents deployment failures by catching configuration errors early |
 | preInstallValidation.checkRedis | bool | `true` | Check Redis connectivity during pre-install validation Set to false if Redis is not required or will be configured later |
-| preInstallValidation.containerSecurityContext | object | `{}` | Container security context for validation job |
+| preInstallValidation.containerSecurityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"runAsNonRoot":true,"runAsUser":1000}` | Container security context for validation job SECURITY: Secure defaults to prevent privilege escalation |
 | preInstallValidation.enabled | bool | `true` | Enable pre-install validation job |
 | preInstallValidation.initContainers | list | `[]` | Init containers for validation job (overrides default) |
 | preInstallValidation.podAnnotations | object | `{}` | Annotations to be added to validation job pods |
 | preInstallValidation.podLabels | object | `{}` | Labels to be added to validation job pods |
-| preInstallValidation.podSecurityContext | object | `{}` | Pod security context for validation job |
+| preInstallValidation.podSecurityContext | object | `{"fsGroup":1000,"runAsNonRoot":true,"runAsUser":1000,"seccompProfile":{"type":"RuntimeDefault"}}` | Pod security context for validation job SECURITY: Secure defaults enabled for production compliance |
 | preInstallValidation.resources | object | `{"limits":{"cpu":"200m","memory":"128Mi"},"requests":{"cpu":"50m","memory":"64Mi"}}` | Resource settings for the validation job |
 | priorityClassName | string | `nil` | Set priorityClassName for superset pods |
 | redis | object | see `values.yaml` | Configuration values for the Redis dependency. ref: https://github.com/bitnami/charts/blob/master/bitnami/redis More documentation can be found here: https://artifacthub.io/packages/helm/bitnami/redis |
-| resources | object | `{"limits":{"cpu":"2000m","memory":"2Gi"},"requests":{"cpu":"100m","memory":"256Mi"}}` | Default resource requests and limits for all components Component-specific resources (supersetNode.resources, etc.) override these values SECURITY: Resource limits are required for production to prevent resource exhaustion ⚠️ PRODUCTION WARNING: If resources are not set, pods may consume unlimited resources This can lead to node resource exhaustion and cluster instability. Always set appropriate resource limits for production deployments. |
-| runAsUser | int | `0` | User ID directive. This user must have enough permissions to run the bootstrap script ⚠️ PRODUCTION SECURITY WARNING: Default is 0 (root) for easier POC/dev testing For production deployments, you MUST:   1. Set runAsUser to a non-root user (e.g., 1000)   2. Set runAsNonRoot: true in podSecurityContext   3. Consider using a custom image with dependencies pre-installed to avoid init container permission issues   4. Review and harden all security contexts Change this if your image requires a different UID |
+| resources | object | `{"limits":{"cpu":"1000m","memory":"2Gi"},"requests":{"cpu":"100m","memory":"256Mi"}}` | Default resource requests and limits for all components Component-specific resources (supersetNode.resources, etc.) override these values SECURITY: Resource limits prevent resource exhaustion and improve cluster stability These defaults are suitable for small-medium deployments; adjust based on your workload |
+| runAsUser | int | `1000` | User ID directive. This user must have enough permissions to run the bootstrap script SECURITY: Default is 1000 (non-root) for production security For development/testing with runtime pip installs, you may need root (0) access but this is NOT recommended for production deployments. Production best practice: Build a custom image with dependencies pre-installed, then use non-root user (1000) with proper fsGroup in podSecurityContext |
 | secretEnv | object | `{"create":true}` | Secret management configuration For production: disable chart-managed secrets and reference existing secrets Supports any external secret management tool (ESO, Sealed Secrets, Vault, etc.)  Examples of using existing secrets:  Option 1: Reference a single secret containing all environment variables   secretEnv:     create: false   envFromSecret: "my-superset-secret"  Option 2: Reference specific keys from different secrets   secretEnv:     create: false   extraEnv:     - name: DB_PASS       valueFrom:         secretKeyRef:           name: postgres-credentials           key: password     - name: REDIS_PASSWORD       valueFrom:         secretKeyRef:           name: redis-credentials           key: password |
 | secretEnv.create | bool | `true` | Set to false to use externally managed secrets When false, the chart expects secrets to already exist in the cluster (created by External Secrets Operator, Sealed Secrets, Vault, kubectl, etc.) |
 | service | object | `{"annotations":{},"loadBalancerIP":null,"nodePort":{"http":null},"port":8088,"type":"ClusterIP"}` | Kubernetes Service configuration for the main Superset web application |
@@ -219,7 +223,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | serviceAccount.name | string | `nil` | The name of the ServiceAccount to use. If not set and create is true, a name is generated using the fullname template |
 | supersetCeleryBeat.affinity | object | `{}` | Affinity to be added to supersetCeleryBeat deployment |
 | supersetCeleryBeat.command | list | a `celery beat` command | Command |
-| supersetCeleryBeat.containerSecurityContext | object | `{}` | Container security context - applied to CeleryBeat containers |
+| supersetCeleryBeat.containerSecurityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"runAsNonRoot":true,"runAsUser":1000}` | Container security context - applied to CeleryBeat containers SECURITY: Secure defaults to prevent privilege escalation |
 | supersetCeleryBeat.deploymentAnnotations | object | `{}` | Annotations to be added to supersetCeleryBeat deployment |
 | supersetCeleryBeat.enabled | bool | `false` | This is only required if you intend to use alerts and reports |
 | supersetCeleryBeat.extraContainers | list | `[]` | Launch additional containers into supersetCeleryBeat pods |
@@ -238,7 +242,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetCeleryBeat.podDisruptionBudget.maxUnavailable | int | `1` | If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget |
 | supersetCeleryBeat.podDisruptionBudget.minAvailable | int | `1` | If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget |
 | supersetCeleryBeat.podLabels | object | `{}` | Labels to be added to supersetCeleryBeat pods |
-| supersetCeleryBeat.podSecurityContext | object | `{}` | Pod security context - applied to CeleryBeat pods |
+| supersetCeleryBeat.podSecurityContext | object | `{"fsGroup":1000,"runAsNonRoot":true,"runAsUser":1000,"seccompProfile":{"type":"RuntimeDefault"}}` | Pod security context - applied to CeleryBeat pods SECURITY: Secure defaults enabled for production compliance |
 | supersetCeleryBeat.priorityClassName | string | `nil` | Set priorityClassName for CeleryBeat pods |
 | supersetCeleryBeat.readinessProbe | object | `{"exec":{"command":["python3","/app/pythonpath/health_check.py"]},"failureThreshold":3,"initialDelaySeconds":10,"periodSeconds":10,"successThreshold":1,"timeoutSeconds":10}` | Readiness probe - checks if the Beat process is running Note: Dependencies (DB/Redis) are validated by init containers at startup, not repeatedly in probes. Probes should only check if the pod itself is healthy. |
 | supersetCeleryBeat.resources | object | `{}` | Resource settings for the CeleryBeat pods - these settings overwrite any existing values from the global resources object defined above. |
@@ -246,7 +250,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetCeleryBeat.topologySpreadConstraints | list | `[]` | TopologySpreadConstrains to be added to supersetCeleryBeat deployments |
 | supersetCeleryFlower.affinity | object | `{}` | Affinity to be added to supersetCeleryFlower deployment |
 | supersetCeleryFlower.command | list | a `celery flower` command | Command |
-| supersetCeleryFlower.containerSecurityContext | object | `{}` | Container security context - applied to Flower containers |
+| supersetCeleryFlower.containerSecurityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"runAsNonRoot":true,"runAsUser":1000}` | Container security context - applied to Flower containers SECURITY: Secure defaults to prevent privilege escalation |
 | supersetCeleryFlower.deploymentAnnotations | object | `{}` | Annotations to be added to supersetCeleryFlower deployment |
 | supersetCeleryFlower.enabled | bool | `false` | Enables a Celery flower deployment (management UI to monitor celery jobs) WARNING: on superset 1.x, this requires a Superset image that has `flower<1.0.0` installed (which is NOT the case of the default images) flower>=1.0.0 requires Celery 5+ which Superset 1.5 does not support |
 | supersetCeleryFlower.extraContainers | list | `[]` | Launch additional containers into supersetCeleryFlower pods |
@@ -264,7 +268,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetCeleryFlower.podDisruptionBudget.maxUnavailable | int | `1` | If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget |
 | supersetCeleryFlower.podDisruptionBudget.minAvailable | int | `1` | If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget |
 | supersetCeleryFlower.podLabels | object | `{}` | Labels to be added to supersetCeleryFlower pods |
-| supersetCeleryFlower.podSecurityContext | object | `{}` | Pod security context - applied to Flower pods |
+| supersetCeleryFlower.podSecurityContext | object | `{"fsGroup":1000,"runAsNonRoot":true,"runAsUser":1000,"seccompProfile":{"type":"RuntimeDefault"}}` | Pod security context - applied to Flower pods SECURITY: Secure defaults enabled for production compliance |
 | supersetCeleryFlower.priorityClassName | string | `nil` | Set priorityClassName for supersetCeleryFlower pods |
 | supersetCeleryFlower.readinessProbe.failureThreshold | int | `3` |  |
 | supersetCeleryFlower.readinessProbe.httpGet.path | string | `"/api/workers"` |  |
@@ -294,7 +298,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetNode.autoscaling.minReplicas | int | `1` |  |
 | supersetNode.autoscaling.targetCPUUtilizationPercentage | int | `80` |  |
 | supersetNode.command | list | See `values.yaml` | Startup command |
-| supersetNode.containerSecurityContext | object | `{}` | Container security context - applied to supersetNode containers Defaults to non-root, no privilege escalation, all capabilities dropped |
+| supersetNode.containerSecurityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"runAsNonRoot":true,"runAsUser":1000}` | Container security context - applied to supersetNode containers SECURITY: Secure defaults to prevent privilege escalation These are automatically relaxed when enableRuntimePipInstall is true (POC/dev only) |
 | supersetNode.deploymentAnnotations | object | `{}` | Annotations to be added to supersetNode deployment |
 | supersetNode.deploymentLabels | object | `{}` | Labels to be added to supersetNode deployment |
 | supersetNode.env | object | `{}` |  |
@@ -308,7 +312,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetNode.podDisruptionBudget.maxUnavailable | int | `1` | If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget |
 | supersetNode.podDisruptionBudget.minAvailable | int | `1` | If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget |
 | supersetNode.podLabels | object | `{}` | Labels to be added to supersetNode pods |
-| supersetNode.podSecurityContext | object | `{}` | Pod security context - applied to supersetNode pods Defaults to non-root user with seccomp profile |
+| supersetNode.podSecurityContext | object | `{"fsGroup":1000,"runAsNonRoot":true,"runAsUser":1000,"seccompProfile":{"type":"RuntimeDefault"}}` | Pod security context - applied to supersetNode pods SECURITY: Secure defaults enabled for production compliance These are automatically relaxed when enableRuntimePipInstall is true (POC/dev only) |
 | supersetNode.readinessProbe | object | `{"failureThreshold":3,"httpGet":{"path":"/health","port":8088},"initialDelaySeconds":10,"periodSeconds":10,"successThreshold":1,"timeoutSeconds":10}` | Readiness probe configuration using HTTP health endpoint |
 | supersetNode.replicas.enabled | bool | `true` |  |
 | supersetNode.replicas.replicaCount | int | `1` |  |
@@ -321,7 +325,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetWebsockets.config | object | see `values.yaml` | The config.json to pass to the server, see https://github.com/apache/superset/tree/master/superset-websocket Note that the configuration can also read from environment variables (which will have priority), see https://github.com/apache/superset/blob/master/superset-websocket/src/config.ts for a list of supported variables |
 | supersetWebsockets.config.jwtSecret | string | `""` | SECURITY: JWT secret must be explicitly set - no default value ⚠️ REQUIRED if supersetWebsockets.enabled=true Use --set supersetWebsockets.config.jwtSecret="secure-random-secret" or external secret Generate with: openssl rand -base64 32 |
 | supersetWebsockets.config.redis.host | string | `""` | Redis host for websocket server (default: uses cache.host if set, otherwise {{ .Release.Name }}-redis-headless) |
-| supersetWebsockets.containerSecurityContext | object | `{}` |  |
+| supersetWebsockets.containerSecurityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"runAsNonRoot":true,"runAsUser":1000}` | Container security context - applied to WebSocket containers SECURITY: Secure defaults to prevent privilege escalation |
 | supersetWebsockets.deploymentAnnotations | object | `{}` |  |
 | supersetWebsockets.enabled | bool | `false` | This is only required if you intend to use `GLOBAL_ASYNC_QUERIES` in `ws` mode see https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries |
 | supersetWebsockets.extraContainers | list | `[]` | Launch additional containers into supersetWebsockets pods |
@@ -344,7 +348,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetWebsockets.podDisruptionBudget.maxUnavailable | int | `1` | If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget |
 | supersetWebsockets.podDisruptionBudget.minAvailable | int | `1` | If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget |
 | supersetWebsockets.podLabels | object | `{}` |  |
-| supersetWebsockets.podSecurityContext | object | `{}` |  |
+| supersetWebsockets.podSecurityContext | object | `{"fsGroup":1000,"runAsNonRoot":true,"runAsUser":1000,"seccompProfile":{"type":"RuntimeDefault"}}` | Pod security context - applied to WebSocket pods SECURITY: Secure defaults enabled for production compliance |
 | supersetWebsockets.priorityClassName | string | `nil` | Set priorityClassName for supersetWebsockets pods |
 | supersetWebsockets.readinessProbe.failureThreshold | int | `3` |  |
 | supersetWebsockets.readinessProbe.httpGet.path | string | `"/health"` |  |
@@ -376,7 +380,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetWorker.autoscaling.minReplicas | int | `1` |  |
 | supersetWorker.autoscaling.targetCPUUtilizationPercentage | int | `80` |  |
 | supersetWorker.command | list | a `celery worker` command with prefork pool | Worker startup command Concurrency can be configured via CELERYD_CONCURRENCY environment variable |
-| supersetWorker.containerSecurityContext | object | `{}` | Container security context - applied to supersetWorker containers Defaults to non-root, no privilege escalation, all capabilities dropped |
+| supersetWorker.containerSecurityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"runAsNonRoot":true,"runAsUser":1000}` | Container security context - applied to supersetWorker containers SECURITY: Secure defaults to prevent privilege escalation |
 | supersetWorker.deploymentAnnotations | object | `{}` | Annotations to be added to supersetWorker deployment |
 | supersetWorker.deploymentLabels | object | `{}` | Labels to be added to supersetWorker deployment |
 | supersetWorker.extraContainers | list | `[]` | Launch additional containers into supersetWorker pod |
@@ -401,7 +405,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetWorker.podDisruptionBudget.maxUnavailable | int | `1` | If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget |
 | supersetWorker.podDisruptionBudget.minAvailable | int | `1` | If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget |
 | supersetWorker.podLabels | object | `{}` | Labels to be added to supersetWorker pods |
-| supersetWorker.podSecurityContext | object | `{}` | Pod security context - applied to supersetWorker pods Defaults to non-root user with seccomp profile |
+| supersetWorker.podSecurityContext | object | `{"fsGroup":1000,"runAsNonRoot":true,"runAsUser":1000,"seccompProfile":{"type":"RuntimeDefault"}}` | Pod security context - applied to supersetWorker pods SECURITY: Secure defaults enabled for production compliance |
 | supersetWorker.priorityClassName | string | `nil` | Set priorityClassName for supersetWorker pods |
 | supersetWorker.readinessProbe | object | `{"exec":{"command":["python3","/app/pythonpath/health_check.py","--celery-readiness"]},"failureThreshold":3,"initialDelaySeconds":10,"periodSeconds":10,"successThreshold":1,"timeoutSeconds":10}` | Readiness probe configuration Checks if Celery worker is ready to process tasks (worker_ready signal) |
 | supersetWorker.replicas.enabled | bool | `true` |  |

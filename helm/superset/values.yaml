@@ -72,14 +72,19 @@ globalPodAnnotations: {}
   # prometheus.io/port: "8088"
 
 # -- User ID directive. This user must have enough permissions to run the bootstrap script
-# ⚠️ PRODUCTION SECURITY WARNING: Default is 0 (root) for easier POC/dev testing
-# For production deployments, you MUST:
-#   1. Set runAsUser to a non-root user (e.g., 1000)
-#   2. Set runAsNonRoot: true in podSecurityContext
-#   3. Consider using a custom image with dependencies pre-installed to avoid init container permission issues
-#   4. Review and harden all security contexts
-# Change this if your image requires a different UID
-runAsUser: 0
+# SECURITY: Default is 1000 (non-root) for production security
+# For development/testing with runtime pip installs, you may need root (0) access
+# but this is NOT recommended for production deployments.
+# Production best practice: Build a custom image with dependencies pre-installed,
+# then use non-root user (1000) with proper fsGroup in podSecurityContext
+runAsUser: 1000
+
+# -- Enable runtime dependency installation for POC/dev environments
+# SECURITY WARNING: This is disabled by default for production security
+# When enabled, allows installing pip packages at container startup via optionalDependencies
+# This requires running as root (runAsUser: 0) and relaxed security contexts
+# For production: Keep this disabled and build a custom image with dependencies pre-installed
+enableRuntimePipInstall: false
 
 # -- Secret management configuration
 # For production: disable chart-managed secrets and reference existing secrets
@@ -124,24 +129,32 @@ serviceAccount:
   # -- Annotations to add to the ServiceAccount
   annotations: {}
 
-# -- Optional dependencies to install via pip/uv
+# -- Optional dependencies to install at container startup (for POC/dev only)
+# ⚠️ REQUIRES: enableRuntimePipInstall: true AND runAsUser: 0
 # These correspond to Superset's optional dependency groups (e.g., postgres, bigquery, elasticsearch)
 # See: https://github.com/apache/superset/blob/master/pyproject.toml#L109
 # Example: ["postgres", "bigquery", "elasticsearch"]
-# -- Optional dependencies to install at container startup (for POC/dev only)
+#
+# SECURITY WARNING: Runtime pip installs are disabled by default for production security
+# To enable for POC/dev:
+#   enableRuntimePipInstall: true
+#   runAsUser: 0
+#
 # ⚠️ PRODUCTION: Leave this empty in production - dependencies should be pre-installed in a custom image
 # Dependencies are installed in the bootstrap script of each container (node, worker, beat, flower, ws)
-# This simplifies deployment but adds startup time. For production, build a custom image with deps pre-installed.
+# This simplifies deployment but adds startup time and security risk. For production, build a custom image.
 optionalDependencies: []
   # - "postgres"      # For PostgreSQL (psycopg2)
   # - "bigquery"      # For Google BigQuery
   # - "elasticsearch" # For Elasticsearch
 
 # -- Extra pip packages to install at container startup (for POC/dev only)
-# ⚠️ PRODUCTION: Leave this empty in production - dependencies should be pre-installed in a custom image
+# ⚠️ REQUIRES: enableRuntimePipInstall: true AND runAsUser: 0
 # These are arbitrary Python packages that will be installed via `uv pip install`
 # Use this for packages not available in Superset's optional dependencies
 # Example: ["redis>=4.0.0", "boto3", "my-custom-package==1.2.3"]
+#
+# ⚠️ PRODUCTION: Leave this empty in production - dependencies should be pre-installed in a custom image
 extraPipPackages: []
   # - "redis>=4.0.0"           # Install specific version of redis
   # - "boto3"                  # AWS SDK
@@ -257,11 +270,17 @@ database:
   port: 5432
   # -- Database user
   user: superset
-  # -- SECURITY: Use existingSecret for production deployments
-  # Example: existingSecret: "superset-db-secret"
-  #          existingSecretKey: "password"
-  # Or set via: --set database.password="secure-password"
-  password: superset  # ⚠️ CHANGE THIS for production - Never use default in production!
+  # -- SECURITY: Database password is REQUIRED and has no default
+  # Must be set via --set database.password="secure-password" or reference existing secret
+  # For production, use existing secret: secretEnv.create=false and reference via extraEnv
+  # Example with existing secret:
+  #   extraEnv:
+  #     - name: DB_PASS
+  #       valueFrom:
+  #         secretKeyRef:
+  #           name: postgres-credentials
+  #           key: password
+  password: ""  # REQUIRED: Must be explicitly set (no default for security)
   name: superset
   # -- Database SSL/TLS configuration
   ssl:
@@ -581,17 +600,15 @@ gateway:
 
 # -- Default resource requests and limits for all components
 # Component-specific resources (supersetNode.resources, etc.) override these values
-# SECURITY: Resource limits are required for production to prevent resource exhaustion
-# ⚠️ PRODUCTION WARNING: If resources are not set, pods may consume unlimited resources
-# This can lead to node resource exhaustion and cluster instability.
-# Always set appropriate resource limits for production deployments.
+# SECURITY: Resource limits prevent resource exhaustion and improve cluster stability
+# These defaults are suitable for small-medium deployments; adjust based on your workload
 resources:
   requests:
     cpu: 100m
     memory: 256Mi
   limits:
-    cpu: 2000m
-    memory: 2Gi
+    cpu: 1000m    # 1 CPU core max
+    memory: 2Gi   # Prevent OOM killing other pods
 
 # -- Custom hostAliases for all superset pods
 ## https://kubernetes.io/docs/tasks/network/customize-hosts-file-for-pods/
@@ -691,22 +708,25 @@ supersetNode:
     #  cpu: 100m
     #  memory: 128Mi
   # -- Pod security context - applied to supersetNode pods
-  # Defaults to non-root user with seccomp profile
-  podSecurityContext: {}
-    # runAsNonRoot: true
-    # runAsUser: 1000
-    # fsGroup: 1000
-    # seccompProfile:
-    #   type: RuntimeDefault
+  # SECURITY: Secure defaults enabled for production compliance
+  # These are automatically relaxed when enableRuntimePipInstall is true (POC/dev only)
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
   # -- Container security context - applied to supersetNode containers
-  # Defaults to non-root, no privilege escalation, all capabilities dropped
-  containerSecurityContext: {}
-    # allowPrivilegeEscalation: false
-    # runAsNonRoot: true
-    # runAsUser: 1000
-    # capabilities:
-    #   drop:
-    #     - ALL
+  # SECURITY: Secure defaults to prevent privilege escalation
+  # These are automatically relaxed when enableRuntimePipInstall is true (POC/dev only)
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    runAsUser: 1000
+    capabilities:
+      drop:
+        - ALL
+    # readOnlyRootFilesystem: false  # Superset needs writable /tmp and /app/pythonpath
   strategy: {}
     # type: RollingUpdate
     # rollingUpdate:
@@ -804,22 +824,22 @@ supersetWorker:
     #  cpu: 100m
     #  memory: 128Mi
   # -- Pod security context - applied to supersetWorker pods
-  # Defaults to non-root user with seccomp profile
-  podSecurityContext: {}
-    # runAsNonRoot: true
-    # runAsUser: 1000
-    # fsGroup: 1000
-    # seccompProfile:
-    #   type: RuntimeDefault
+  # SECURITY: Secure defaults enabled for production compliance
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
   # -- Container security context - applied to supersetWorker containers
-  # Defaults to non-root, no privilege escalation, all capabilities dropped
-  containerSecurityContext: {}
-    # allowPrivilegeEscalation: false
-    # runAsNonRoot: true
-    # runAsUser: 1000
-    # capabilities:
-    #   drop:
-    #     - ALL
+  # SECURITY: Secure defaults to prevent privilege escalation
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    runAsUser: 1000
+    capabilities:
+      drop:
+        - ALL
   strategy: {}
     # type: RollingUpdate
     # rollingUpdate:
@@ -918,9 +938,22 @@ supersetCeleryBeat:
     #  cpu: 100m
     #  memory: 128Mi
   # -- Pod security context - applied to CeleryBeat pods
-  podSecurityContext: {}
+  # SECURITY: Secure defaults enabled for production compliance
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
   # -- Container security context - applied to CeleryBeat containers
-  containerSecurityContext: {}
+  # SECURITY: Secure defaults to prevent privilege escalation
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    runAsUser: 1000
+    capabilities:
+      drop:
+        - ALL
   # -- Health check probes for CeleryBeat
   startupProbe:
     exec:
@@ -1041,9 +1074,22 @@ supersetCeleryFlower:
     #  cpu: 100m
     #  memory: 128Mi
   # -- Pod security context - applied to Flower pods
-  podSecurityContext: {}
+  # SECURITY: Secure defaults enabled for production compliance
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
   # -- Container security context - applied to Flower containers
-  containerSecurityContext: {}
+  # SECURITY: Secure defaults to prevent privilege escalation
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    runAsUser: 1000
+    capabilities:
+      drop:
+        - ALL
   # -- Set priorityClassName for supersetCeleryFlower pods
   priorityClassName: ~
 
@@ -1125,8 +1171,23 @@ supersetWebsockets:
   podAnnotations: {}
   podLabels: {}
   strategy: {}
-  podSecurityContext: {}
-  containerSecurityContext: {}
+  # -- Pod security context - applied to WebSocket pods
+  # SECURITY: Secure defaults enabled for production compliance
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  # -- Container security context - applied to WebSocket containers
+  # SECURITY: Secure defaults to prevent privilege escalation
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    runAsUser: 1000
+    capabilities:
+      drop:
+        - ALL
   startupProbe:
     httpGet:
       path: /health
@@ -1179,9 +1240,22 @@ preInstallValidation:
   # -- Labels to be added to validation job pods
   podLabels: {}
   # -- Pod security context for validation job
-  podSecurityContext: {}
+  # SECURITY: Secure defaults enabled for production compliance
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
   # -- Container security context for validation job
-  containerSecurityContext: {}
+  # SECURITY: Secure defaults to prevent privilege escalation
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    runAsUser: 1000
+    capabilities:
+      drop:
+        - ALL
   # -- Init containers for validation job (overrides default)
   initContainers: []
 
@@ -1191,13 +1265,14 @@ init:
   # cause the process to be killed due to OOM if it exceeds limit
   # Make sure you are giving a strong password for the admin user creation( else make sure you are changing after setup)
   # Also change the admin email to your own custom email.
-  resources: {}
-    # limits:
-    #   cpu:
-    #   memory:
-    # requests:
-    #   cpu:
-    #   memory:
+  # SECURITY: Resource limits prevent init job from exhausting cluster resources
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi   # Init needs more memory for DB migrations
+    limits:
+      cpu: 1000m
+      memory: 1Gi     # Prevent OOM during initialization
   # -- Command
   # @default -- a `superset_init.sh` command
   command:
@@ -1243,8 +1318,23 @@ init:
   podAnnotations: {}
   # Labels to be added to init job pods
   podLabels: {}
-  podSecurityContext: {}
-  containerSecurityContext: {}
+  # -- Pod security context - applied to init job pods
+  # SECURITY: Secure defaults enabled for production compliance
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  # -- Container security context - applied to init job containers
+  # SECURITY: Secure defaults to prevent privilege escalation
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    runAsUser: 1000
+    capabilities:
+      drop:
+        - ALL
   ## Tolerations to be added to init job pods
   tolerations: []
   ## Affinity to be added to init job pods
@@ -1270,7 +1360,8 @@ postgresql:
     ## PostgreSQL name for a custom user to create
     username: superset
     ## PostgreSQL password for the custom user to create. Ignored if `auth.existingSecret` with key `password` is provided
-    password: superset
+    ## SECURITY: No default password - must be explicitly set or use existingSecret
+    password: ""
     ## PostgreSQL name for a custom database to create
     database: superset
 
@@ -1318,13 +1409,15 @@ redis:
   ##
   auth:
     ## Enable password authentication
+    ## SECURITY: Disabled by default for POC/dev. Enable for production with strong password.
     enabled: false
     ## The name of an existing secret that contains the redis password.
     existingSecret: ""
     ## Name of the key containing the secret.
     existingSecretKey: ""
-    ## Redis password
-    password: superset
+    ## Redis password (only used if auth.enabled=true and existingSecret is not set)
+    ## SECURITY: No default password - must be explicitly set if auth is enabled
+    password: ""
   ##
   ## Master configuration
   ##
