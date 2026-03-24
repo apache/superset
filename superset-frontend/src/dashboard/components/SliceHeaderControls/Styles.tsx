@@ -19,7 +19,6 @@
 import { css, SupersetTheme } from '@apache-superset/core/theme';
 
 export const fullscreenStyles = (theme: SupersetTheme) => css`
-  /* Using && to increase specificity without needing !important as often */
   [data-test='dashboard-component-chart-holder']:fullscreen {
     background-color: ${theme.colorBgBase};
     width: 100vw;
@@ -30,7 +29,7 @@ export const fullscreenStyles = (theme: SupersetTheme) => css`
     overflow: visible;
     position: relative;
     pointer-events: auto;
-    z-index: 1000;
+    z-index: ${theme.zIndexPopupBase};
     opacity: 1;
     visibility: visible;
 
@@ -53,7 +52,7 @@ export const fullscreenStyles = (theme: SupersetTheme) => css`
     .ant-modal-root,
     .ant-select-dropdown,
     .ant-popover {
-      z-index: 99999;
+      z-index: ${theme.zIndexPopupBase+1};
       pointer-events: auto;
     }
   }
