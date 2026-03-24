@@ -2680,14 +2680,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         Returns:
             SQLAlchemy column element if found, None otherwise
         """
-        adhoc_col = next(
-            (
-                c
-                for c in columns
-                if utils.is_adhoc_column(c) and c.get("label") == label
-            ),
-            None,
-        )
+        adhoc_col = None
+        for c in columns:
+            if utils.is_adhoc_column(c):
+                if c.get("label") == label:
+                    adhoc_col = c
+                    break
         if adhoc_col:
             sqla_col, _unused = self.adhoc_column_to_sqla(
                 col=adhoc_col,
@@ -3438,6 +3436,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         template_processor=template_processor,
                     )
                     applied_adhoc_filters_columns.append(flt_col)
+                    applied_template_filters.append(get_column_name(flt_col))
                 except ColumnNotFoundException:
                     rejected_adhoc_filters_columns.append(flt_col)
                     continue
@@ -3472,6 +3471,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                     if sqla_col is not None:
                         applied_adhoc_filters_columns.append(flt_col)
+                        applied_template_filters.append(get_column_name(flt_col))
             filter_grain = flt.get("grain")
 
             # Check if this filter should be skipped because it was handled in
