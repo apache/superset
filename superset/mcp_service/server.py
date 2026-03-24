@@ -39,6 +39,7 @@ from superset.mcp_service.middleware import (
     create_response_size_guard_middleware,
     GlobalErrorHandlerMiddleware,
     LoggingMiddleware,
+    StructuredContentStripperMiddleware,
 )
 from superset.mcp_service.storage import _create_redis_store
 from superset.utils import json
@@ -436,8 +437,14 @@ def run_server(
         # Add logging middleware (logs all tool calls with duration tracking)
         middleware_list.append(LoggingMiddleware())
 
-        # Add global error handler (outermost – catches all exceptions)
+        # Add global error handler (catches all exceptions, raises ToolError)
         middleware_list.append(GlobalErrorHandlerMiddleware())
+
+        # Strip outputSchema from tool definitions and structuredContent from
+        # tool responses to prevent encoding errors on Claude.ai's MCP bridge.
+        # MUST be outermost so it catches ToolError from GlobalErrorHandler
+        # and converts to plain text before the MCP SDK tries to encode it.
+        middleware_list.append(StructuredContentStripperMiddleware())
 
         mcp_instance = init_fastmcp_server(
             auth=auth_provider,
