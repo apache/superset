@@ -81,10 +81,10 @@ import {
   getAxisType,
   getColtypesMapping,
   getHorizontalLegendAvailableWidth,
-  getLegendLayoutResult,
   getLegendProps,
   getMinAndMaxFromBounds,
 } from '../utils/series';
+import { resolveLegendLayout } from '../utils/legendLayout';
 import {
   extractAnnotationLabels,
   getAnnotationData,
@@ -716,7 +716,7 @@ export default function transformProps(
       isHorizontal,
     );
 
-    return getLegendLayoutResult({
+    return resolveLegendLayout({
       availableWidth:
         legendOrientation === LegendOrientation.Top ||
         legendOrientation === LegendOrientation.Bottom
@@ -745,11 +745,10 @@ export default function transformProps(
   const legendLayout =
     isHorizontal &&
     legendOrientation === LegendOrientation.Bottom &&
-    initialLegendLayout.effectiveType === LegendType.Plain
-      ? getLegendLayout(initialLegendLayout.effectiveMargin ?? legendMargin)
+    initialLegendLayout.effectiveLegendType === LegendType.Plain
+      ? getLegendLayout(initialLegendLayout.effectiveLegendMargin)
       : initialLegendLayout;
-  const effectiveLegendMargin = legendLayout.effectiveMargin ?? legendMargin;
-  const effectiveLegendType = legendLayout.effectiveType;
+  const { effectiveLegendMargin, effectiveLegendType } = legendLayout;
   const padding = getPadding(
     showLegend,
     legendOrientation,

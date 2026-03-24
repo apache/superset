@@ -39,10 +39,10 @@ import { DEFAULT_GRAPH_SERIES_OPTION } from './constants';
 import {
   getChartPadding,
   getColtypesMapping,
-  getLegendLayoutResult,
   getLegendProps,
   sanitizeHtml,
 } from '../utils/series';
+import { resolveLegendLayout } from '../utils/legendLayout';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 
@@ -303,7 +303,7 @@ export default function transformProps(
     if (!legendSort) return 0;
     return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
   });
-  const legendLayout = getLegendLayoutResult({
+  const { effectiveLegendMargin, effectiveLegendType } = resolveLegendLayout({
     chartHeight: height,
     chartWidth: width,
     legendItems: legendData,
@@ -313,8 +313,6 @@ export default function transformProps(
     theme,
     type: legendType,
   });
-  const effectiveLegendMargin = legendLayout.effectiveMargin ?? legendMargin;
-  const effectiveLegendType = legendLayout.effectiveType;
   const series: GraphSeriesOption[] = [
     {
       zoom: DEFAULT_GRAPH_SERIES_OPTION.zoom,

@@ -46,10 +46,10 @@ import { DEFAULT_FORM_DATA, TIMESERIES_CONSTANTS } from '../constants';
 import { LegendOrientation, Refs } from '../types';
 import {
   getHorizontalLegendAvailableWidth,
-  getLegendLayoutResult,
   getLegendProps,
   groupData,
 } from '../utils/series';
+import { resolveLegendLayout } from '../utils/legendLayout';
 import {
   getTooltipTimeFormatter,
   getXAxisFormatter,
@@ -350,7 +350,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
       if (!legendSort) return 0;
       return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
     });
-  const legendLayout = getLegendLayoutResult({
+  const { legendLayout, effectiveLegendType } = resolveLegendLayout({
     availableWidth:
       legendOrientation === LegendOrientation.Top ||
       legendOrientation === LegendOrientation.Bottom
@@ -370,7 +370,6 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     theme,
     type: legendType,
   });
-  const effectiveLegendType = legendLayout.effectiveType;
   if (legendLayout.effectiveMargin !== undefined) {
     const adjustedPadding = getPadding(
       showLegend,

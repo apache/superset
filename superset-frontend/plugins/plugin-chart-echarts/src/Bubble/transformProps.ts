@@ -30,11 +30,8 @@ import {
 import { EchartsBubbleChartProps, EchartsBubbleFormData } from './types';
 import { DEFAULT_FORM_DATA, MINIMUM_BUBBLE_SIZE } from './constants';
 import { defaultGrid } from '../defaults';
-import {
-  getLegendLayoutResult,
-  getLegendProps,
-  getMinAndMaxFromBounds,
-} from '../utils/series';
+import { getLegendProps, getMinAndMaxFromBounds } from '../utils/series';
+import { resolveLegendLayout } from '../utils/legendLayout';
 import { Refs } from '../types';
 import { parseAxisBound } from '../utils/controls';
 import { getDefaultTooltip } from '../utils/tooltip';
@@ -180,7 +177,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     if (!legendSort) return 0;
     return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
   });
-  const legendLayout = getLegendLayoutResult({
+  const { effectiveLegendMargin, effectiveLegendType } = resolveLegendLayout({
     chartHeight: height,
     chartWidth: width,
     legendItems: legendData,
@@ -190,8 +187,6 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     theme,
     type: legendType,
   });
-  const effectiveLegendMargin = legendLayout.effectiveMargin ?? legendMargin;
-  const effectiveLegendType = legendLayout.effectiveType;
 
   const [xAxisMin, xAxisMax] = (xAxisBounds || []).map(parseAxisBound);
   const [yAxisMin, yAxisMax] = (yAxisBounds || []).map(parseAxisBound);

@@ -69,11 +69,11 @@ import {
   getAxisType,
   getColtypesMapping,
   getHorizontalLegendAvailableWidth,
-  getLegendLayoutResult,
   getLegendProps,
   getMinAndMaxFromBounds,
   getOverMaxHiddenFormatter,
 } from '../utils/series';
+import { resolveLegendLayout } from '../utils/legendLayout';
 import {
   extractAnnotationLabels,
   getAnnotationData,
@@ -610,7 +610,7 @@ export default function transformProps(
       if (!legendSort) return 0;
       return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
     });
-  const legendLayout = getLegendLayoutResult({
+  const { effectiveLegendMargin, effectiveLegendType } = resolveLegendLayout({
     availableWidth:
       legendOrientation === LegendOrientation.Top ||
       legendOrientation === LegendOrientation.Bottom
@@ -630,8 +630,6 @@ export default function transformProps(
     theme,
     type: legendType,
   });
-  const effectiveLegendMargin = legendLayout.effectiveMargin ?? legendMargin;
-  const effectiveLegendType = legendLayout.effectiveType;
 
   const chartPadding = getPadding(
     showLegend,

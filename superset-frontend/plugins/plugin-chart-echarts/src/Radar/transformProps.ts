@@ -43,9 +43,9 @@ import {
   extractGroupbyLabel,
   getChartPadding,
   getColtypesMapping,
-  getLegendLayoutResult,
   getLegendProps,
 } from '../utils/series';
+import { resolveLegendLayout } from '../utils/legendLayout';
 import { defaultGrid } from '../defaults';
 import { Refs } from '../types';
 import { getDefaultTooltip } from '../utils/tooltip';
@@ -320,7 +320,7 @@ export default function transformProps(
       return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
     },
   );
-  const legendLayout = getLegendLayoutResult({
+  const { effectiveLegendMargin, effectiveLegendType } = resolveLegendLayout({
     chartHeight: height,
     chartWidth: width,
     legendItems: legendData,
@@ -330,7 +330,6 @@ export default function transformProps(
     theme,
     type: legendType,
   });
-  const effectiveLegendMargin = legendLayout.effectiveMargin ?? legendMargin;
 
   const series: RadarSeriesOption[] = [
     {
@@ -373,7 +372,7 @@ export default function transformProps(
     },
     legend: {
       ...getLegendProps(
-        legendLayout.effectiveType,
+        effectiveLegendType,
         legendOrientation,
         showLegend,
         theme,

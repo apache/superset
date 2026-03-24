@@ -16,10 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  LegendPaddingType,
-  SortSeriesType,
-} from '@superset-ui/chart-controls';
+import { LegendPaddingType, SortSeriesType } from '@superset-ui/chart-controls';
 import {
   AxisType,
   DataRecord,
@@ -87,6 +84,37 @@ const {
     effectiveType: LegendType;
   };
 } = require('../../src/utils/series');
+
+const {
+  resolveLegendLayout,
+}: {
+  resolveLegendLayout: (args: {
+    availableHeight?: number;
+    availableWidth?: number;
+    chartHeight: number;
+    chartWidth: number;
+    legendItems?: (
+      | string
+      | number
+      | null
+      | undefined
+      | { name?: string | number | null }
+    )[];
+    legendMargin?: string | number | null;
+    orientation: LegendOrientation;
+    show: boolean;
+    showSelectors?: boolean;
+    theme: typeof theme;
+    type: LegendType;
+  }) => {
+    effectiveLegendMargin?: string | number | null;
+    effectiveLegendType: LegendType;
+    legendLayout: {
+      effectiveMargin?: number;
+      effectiveType: LegendType;
+    };
+  };
+} = require('../../src/utils/legendLayout');
 
 const expectedThemeProps = {
   selector: ['all', 'inverse'],
@@ -1166,6 +1194,28 @@ test('getLegendLayoutResult counts empty-string legend labels when estimating la
     }),
   ).toEqual({
     effectiveType: LegendType.Scroll,
+  });
+});
+
+test('resolveLegendLayout returns both raw and effective legend layout values', () => {
+  expect(
+    resolveLegendLayout({
+      chartHeight: 400,
+      chartWidth: 800,
+      legendItems: ['Alpha', 'Beta'],
+      legendMargin: null,
+      orientation: LegendOrientation.Top,
+      show: true,
+      theme,
+      type: LegendType.Plain,
+    }),
+  ).toEqual({
+    effectiveLegendMargin: defaultLegendPadding[LegendOrientation.Top],
+    effectiveLegendType: LegendType.Plain,
+    legendLayout: {
+      effectiveMargin: defaultLegendPadding[LegendOrientation.Top],
+      effectiveType: LegendType.Plain,
+    },
   });
 });
 
