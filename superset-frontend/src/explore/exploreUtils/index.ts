@@ -373,7 +373,7 @@ export const exportChart = async ({
     });
     payload = formData;
   } else {
-    url = ensureAppRoot('/api/v1/chart/data');
+    url = '/api/v1/chart/data';
     payload = await buildV1ChartDataPayload({
       formData,
       force,

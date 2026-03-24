@@ -59,7 +59,10 @@ beforeEach(() => {
 });
 
 // Tests for exportChart URL prefix handling in streaming export
-test('exportChart v1 API passes prefixed URL to onStartStreamingExport when app root is configured', async () => {
+// v1 API should pass raw /api/v1/chart/data without app root prefix.
+// Prefixing is handled downstream by SupersetClient.postForm (via getUrl())
+// and useStreamingExport (via ensureUrlPrefix).
+test('exportChart v1 API passes unprefixed URL regardless of app root config', async () => {
   const appRoot = '/superset';
   ensureAppRoot.mockImplementation((path: string) => `${appRoot}${path}`);
 
@@ -73,7 +76,8 @@ test('exportChart v1 API passes prefixed URL to onStartStreamingExport when app 
 
   expect(onStartStreamingExport).toHaveBeenCalledTimes(1);
   const callArgs = onStartStreamingExport.mock.calls[0][0];
-  expect(callArgs.url).toBe('/superset/api/v1/chart/data');
+  // URL should NOT be prefixed — downstream consumers add the prefix
+  expect(callArgs.url).toBe('/api/v1/chart/data');
   expect(callArgs.exportType).toBe('csv');
 });
 
@@ -93,7 +97,7 @@ test('exportChart v1 API passes unprefixed URL when no app root is configured', 
   expect(callArgs.url).toBe('/api/v1/chart/data');
 });
 
-test('exportChart v1 API passes nested prefix for deeply nested deployments', async () => {
+test('exportChart v1 API passes unprefixed URL even for deeply nested app root', async () => {
   const appRoot = '/my-company/analytics/superset';
   ensureAppRoot.mockImplementation((path: string) => `${appRoot}${path}`);
 
@@ -107,7 +111,8 @@ test('exportChart v1 API passes nested prefix for deeply nested deployments', as
 
   expect(onStartStreamingExport).toHaveBeenCalledTimes(1);
   const callArgs = onStartStreamingExport.mock.calls[0][0];
-  expect(callArgs.url).toBe('/my-company/analytics/superset/api/v1/chart/data');
+  // URL should NOT be prefixed — downstream consumers add the prefix
+  expect(callArgs.url).toBe('/api/v1/chart/data');
   expect(callArgs.exportType).toBe('xlsx');
 });
 
