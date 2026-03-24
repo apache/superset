@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import difflib
 from datetime import datetime, timezone
-from typing import Annotated, Any, Dict, List, Literal, Protocol, Self
+from typing import Annotated, Any, Dict, List, Literal, Protocol
 
 from pydantic import (
     AliasChoices,
@@ -36,6 +36,7 @@ from pydantic import (
     model_validator,
     PositiveInt,
 )
+from typing_extensions import Self
 
 from superset.constants import TimeGrain
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
