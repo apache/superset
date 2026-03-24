@@ -14,11 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 import re
 from datetime import datetime
 from typing import Any, Optional, TYPE_CHECKING
 
-from sqlalchemy import text, types
+from sqlalchemy import func, types
 from sqlalchemy.dialects.mssql.base import SMALLDATETIME
 
 from superset.constants import TimeGrain
@@ -32,7 +33,9 @@ from superset.db_engine_specs.exceptions import (
 if TYPE_CHECKING:
     from superset.models.core import Database
 from superset.sql.parse import LimitMethod
-from superset.utils.core import GenericDataType
+from superset.utils.core import FilterOperator, GenericDataType
+
+logger = logging.getLogger(__name__)
 
 
 class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
@@ -216,7 +219,7 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     def handle_null_filter(
         cls,
         sqla_col: Any,
-        op: Any,
+        op: FilterOperator,
     ) -> Any:
         """
         Handle null/not null filter operations for KQL.
@@ -229,12 +232,10 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         :param op: Filter operator (IS_NULL or IS_NOT_NULL)
         :return: SQLAlchemy expression for the null filter
         """
-        from superset.utils import core as utils
-
-        if op == utils.FilterOperator.IS_NULL:
-            return text(f"isnull({sqla_col})")
-        if op == utils.FilterOperator.IS_NOT_NULL:
-            return text(f"isnotnull({sqla_col})")
+        if op == FilterOperator.IS_NULL:
+            return func.isnull(sqla_col)
+        if op == FilterOperator.IS_NOT_NULL:
+            return func.isnotnull(sqla_col)
 
         raise ValueError(f"Invalid null filter operator: {op}")
 
@@ -281,15 +282,11 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             ARRAY(["age"]) -> ["age"]
             ARRAY(["user_name"]) -> ["user_name"]
         """
-        import logging
-        import re
-
-        logger = logging.getLogger(__name__)
         logger.debug("execute: input query: %s", query)
 
         # Replace ARRAY(["identifier"]) with ["identifier"]
         processed_query = re.sub(
-            r'ARRAY\(\[("[^"]+")\]\)',
+            r'ARRAY\(\[("(?:[^"\\]|\\.)*")\]\)',
             r"[\1]",
             query,
         )
