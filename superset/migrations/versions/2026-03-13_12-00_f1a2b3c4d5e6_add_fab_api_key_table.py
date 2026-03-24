@@ -20,16 +20,6 @@ Revision ID: f1a2b3c4d5e6
 Revises: a1b2c3d4e5f6
 Create Date: 2026-02-14 12:00:00.000000
 
-SIP-59 compliance notes:
-- Runtime estimate: Near-instant (<1s) for all data volumes — this is a
-  CREATE TABLE with two small indexes, no data migration involved.
-- Downtime expectations: Zero downtime. This is an additive-only migration
-  that creates a new table and indexes without altering existing tables.
-- Downgrade: Only drops the indexes added by upgrade(). The table itself is
-  NOT dropped because it may have been created by FAB's create_all() before
-  this migration ran. This is intentional and aligns with SIP-59's
-  non-breaking requirement.
-
 """
 
 import sqlalchemy as sa
@@ -66,12 +56,7 @@ def upgrade() -> None:
             sa.Column("expires_on", sa.DateTime(), nullable=True),
             sa.Column("revoked_on", sa.DateTime(), nullable=True),
             sa.Column("last_used_on", sa.DateTime(), nullable=True),
-            sa.ForeignKeyConstraint(
-                ["user_id"],
-                ["ab_user.id"],
-                name="fk_ab_api_key_user_id",
-                ondelete="CASCADE",
-            ),
+            sa.ForeignKeyConstraint(["user_id"], ["ab_user.id"], ondelete="CASCADE"),
             sa.PrimaryKeyConstraint("id"),
             sa.UniqueConstraint("uuid"),
         )
