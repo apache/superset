@@ -201,6 +201,7 @@ def generate_dashboard(
     Returns:
     - Dashboard ID and URL
     """
+    from pydantic import ValidationError
     from sqlalchemy.exc import SQLAlchemyError
 
     try:
@@ -318,7 +319,7 @@ def generate_dashboard(
                 return GenerateDashboardResponse(
                     dashboard=None,
                     dashboard_url=None,
-                    error=f"Failed to create dashboard: {db_err}",
+                    error="Failed to create dashboard due to a database error.",
                 )
 
         # Re-fetch with eager-loaded relationships for serialization
@@ -384,7 +385,7 @@ def generate_dashboard(
             dashboard=dashboard_info, dashboard_url=dashboard_url, error=None
         )
 
-    except (SQLAlchemyError, ValueError, AttributeError) as e:
+    except (SQLAlchemyError, ValueError, AttributeError, ValidationError) as e:
         logger.error("Error creating dashboard: %s", e, exc_info=True)
         return GenerateDashboardResponse(
             dashboard=None,
