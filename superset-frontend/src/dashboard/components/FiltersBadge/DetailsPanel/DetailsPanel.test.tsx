@@ -218,7 +218,7 @@ test('Close popover with ESC or ENTER', async () => {
   expect(props.setPopoverVisible).toHaveBeenCalledWith(false);
 });
 
-test('Arrow key navigation switches focus between indicators', () => {
+test('Arrow key navigation switches focus between indicators', async () => {
   // Prepare props with two indicators
   const props = createProps();
 
@@ -251,11 +251,9 @@ test('Arrow key navigation switches focus between indicators', () => {
   expect(firstMenuItem).toBeInTheDocument();
   expect(secondMenuItem).toBeInTheDocument();
 
-  // Focus the first indicator
-  firstMenuItem.focus();
+  userEvent.type(firstMenuItem, '{arrowdown}');
   expect(firstMenuItem).toHaveFocus();
 
-  // Focus the second indicator
-  secondMenuItem.focus();
+  userEvent.type(secondMenuItem, '{arrowdown}');
   expect(secondMenuItem).toHaveFocus();
 });
