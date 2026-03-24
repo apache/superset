@@ -32,6 +32,7 @@ from superset.db_engine_specs.exceptions import (
 
 if TYPE_CHECKING:
     from superset.models.core import Database
+
 from superset.sql.parse import LimitMethod
 from superset.utils.core import FilterOperator, GenericDataType
 
@@ -282,14 +283,16 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             ARRAY(["age"]) -> ["age"]
             ARRAY(["user_name"]) -> ["user_name"]
         """
-        logger.debug("execute: input query: %s", query)
-
         # Replace ARRAY(["identifier"]) with ["identifier"]
-        processed_query = re.sub(
+        processed_query, num_replacements = re.subn(
             r'ARRAY\(\[("(?:[^"\\]|\\.)*")\]\)',
             r"[\1]",
             query,
         )
 
-        logger.debug("execute: processed query: %s", processed_query)
+        if num_replacements:
+            logger.debug(
+                "execute: rewrote %d ARRAY wrapper(s) in query", num_replacements
+            )
+
         super().execute(cursor, processed_query, database, **kwargs)
