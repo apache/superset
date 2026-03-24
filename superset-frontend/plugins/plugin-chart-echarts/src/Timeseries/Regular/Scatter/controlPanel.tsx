@@ -17,7 +17,10 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
+import { getColumnLabel, QueryFormColumn } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
+  checkColumnType,
   ControlPanelConfig,
   ControlPanelsContainerProps,
   ControlSubSectionHeader,
@@ -112,67 +115,30 @@ const config: ControlPanelConfig = {
               ...sharedControls.x_axis_time_format,
               default: 'smart_date',
               description: `${D3_TIME_FORMAT_DOCS}. ${TIME_SERIES_DESCRIPTION_TEXT}`,
-              visibility: ({ controls }: ControlPanelsContainerProps) => {
-                // check if x axis is a time column
-                const xAxisColumn = controls?.x_axis?.value;
-                const xAxisOptions = controls?.x_axis?.options;
-
-                if (!xAxisColumn || !Array.isArray(xAxisOptions)) {
-                  return false;
-                }
-
-                const xAxisType = xAxisOptions.find(
-                  option => option.column_name === xAxisColumn,
-                )?.type;
-
-                return (
-                  typeof xAxisType === 'string' &&
-                  xAxisType.toUpperCase().includes('TIME')
-                );
-              },
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                !checkColumnType(
+                  getColumnLabel(
+                    controls?.x_axis?.value as QueryFormColumn,
+                  ),
+                  controls?.datasource?.datasource,
+                  [GenericDataType.Numeric],
+                ),
             },
           },
           {
             name: 'x_axis_number_format',
             config: {
               ...sharedControls.x_axis_number_format,
+              default: 'd',
               mapStateToProps: undefined,
-              visibility: ({ controls }: ControlPanelsContainerProps) => {
-                // check if x axis is a numeric column
-                const xAxisColumn = controls?.x_axis?.value;
-                const xAxisOptions = controls?.x_axis?.options;
-
-                if (!xAxisColumn || !Array.isArray(xAxisOptions)) {
-                  return false;
-                }
-
-                const xAxisType = xAxisOptions.find(
-                  option => option.column_name === xAxisColumn,
-                )?.type;
-
-                if (typeof xAxisType !== 'string') {
-                  return false;
-                }
-
-                const typeUpper = xAxisType.toUpperCase();
-
-                if (typeUpper.includes('TIME')) {
-                  return false;
-                }
-
-                return [
-                  'INT',
-                  'INTEGER',
-                  'BIGINT',
-                  'SMALLINT',
-                  'TINYINT',
-                  'FLOAT',
-                  'DOUBLE',
-                  'REAL',
-                  'NUMERIC',
-                  'DECIMAL',
-                ].some(t => typeUpper.includes(t));
-              },
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                checkColumnType(
+                  getColumnLabel(
+                    controls?.x_axis?.value as QueryFormColumn,
+                  ),
+                  controls?.datasource?.datasource,
+                  [GenericDataType.Numeric],
+                ),
             },
           },
         ],

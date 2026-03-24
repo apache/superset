@@ -17,8 +17,15 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { ensureIsArray, JsonArray } from '@superset-ui/core';
 import {
+  ensureIsArray,
+  getColumnLabel,
+  JsonArray,
+  QueryFormColumn,
+} from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
+import {
+  checkColumnType,
   ControlPanelConfig,
   ControlPanelsContainerProps,
   ControlSetRow,
@@ -154,36 +161,12 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
     Boolean(controls?.orientation.value === OrientationType.Vertical);
   const isHorizontal = (controls: ControlStateMapping) =>
     Boolean(controls?.orientation.value === OrientationType.Horizontal);
-  const isNumericColumn = (controls: ControlStateMapping) => {
-    const xAxisColumn = controls?.x_axis?.value;
-    const xAxisOptions = controls?.x_axis?.options;
-    if (!xAxisColumn || !Array.isArray(xAxisOptions)) {
-      return false;
-    }
-    const xAxisType = xAxisOptions.find(
-      (option: { column_name: string; type?: string }) =>
-        option.column_name === xAxisColumn,
-    )?.type;
-    if (typeof xAxisType !== 'string') {
-      return false;
-    }
-    const typeUpper = xAxisType.toUpperCase();
-    if (typeUpper.includes('TIME')) {
-      return false;
-    }
-    return [
-      'INT',
-      'INTEGER',
-      'BIGINT',
-      'SMALLINT',
-      'TINYINT',
-      'FLOAT',
-      'DOUBLE',
-      'REAL',
-      'NUMERIC',
-      'DECIMAL',
-    ].some(t => typeUpper.includes(t));
-  };
+  const isNumericXAxis = (controls: ControlStateMapping) =>
+    checkColumnType(
+      getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+      controls?.datasource?.datasource,
+      [GenericDataType.Numeric],
+    );
 
   return [
     [
@@ -195,7 +178,7 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
           description: `${D3_TIME_FORMAT_DOCS}. ${TIME_SERIES_DESCRIPTION_TEXT}`,
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             (isXAxis ? isVertical(controls) : isHorizontal(controls)) &&
-            !isNumericColumn(controls),
+            !isNumericXAxis(controls),
           disableStash: true,
           resetOnHide: false,
         },
@@ -206,10 +189,11 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
         name: 'x_axis_number_format',
         config: {
           ...sharedControls.x_axis_number_format,
+          default: 'd',
           mapStateToProps: undefined,
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             (isXAxis ? isVertical(controls) : isHorizontal(controls)) &&
-            isNumericColumn(controls),
+            isNumericXAxis(controls),
           disableStash: true,
           resetOnHide: false,
         },
