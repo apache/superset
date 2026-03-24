@@ -16,6 +16,7 @@
 # under the License.
 """A collection of ORM sqlalchemy models for Superset"""
 
+import logging
 from typing import Any, Optional
 
 import prison
@@ -46,6 +47,8 @@ from superset.models.slice import Slice
 from superset.reports.types import ReportScheduleExtra
 from superset.utils.backports import StrEnum
 from superset.utils.core import MediumText
+
+logger = logging.getLogger(__name__)
 
 metadata = Model.metadata  # pylint: disable=no-member
 
@@ -187,27 +190,46 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     def crontab_humanized(self) -> str:
         return get_description(self.crontab)
 
-    def get_native_filters_params(self) -> str:
+    def get_native_filters_params(self) -> tuple[str, list[str]]:
+        """
+        Generate native filter params for dashboard URL.
+
+        Returns:
+            A tuple of (rison_encoded_params, list_of_warning_messages).
+            Warnings are returned so they can be surfaced to users in the
+            execution log.
+        """
         params: dict[str, Any] = {}
+        warnings: list[str] = []
         dashboard = self.extra.get("dashboard")
         if dashboard and dashboard.get("nativeFilters"):
-            for filter in dashboard.get("nativeFilters") or []:  # type: ignore
-                native_filter_id = filter.get("nativeFilterId")
-                if not native_filter_id:
+            native_filters = dashboard.get("nativeFilters") or []
+            for native_filter in native_filters:  # type: ignore
+                native_filter_id = native_filter.get("nativeFilterId")
+                filter_type = native_filter.get("filterType")
+
+                if native_filter_id is None or filter_type is None:
+                    warning_msg = (
+                        f"Skipping malformed native filter missing required "
+                        f"fields: {native_filter}"
+                    )
+                    warnings.append(warning_msg)
+                    logger.warning(warning_msg)
                     continue
+
                 params = {
                     **params,
                     **self._generate_native_filter(
                         native_filter_id,
-                        filter["filterType"],
-                        filter["columnName"],
-                        filter["filterValues"],
+                        filter_type,
+                        native_filter.get("columnName") or "",
+                        native_filter.get("filterValues") or [],
                     ),
                 }
         # hack(hughhh): workaround for escaping prison not handling quotes right
         rison = prison.dumps(params)
         rison = rison.replace("'", "%27")
-        return rison
+        return rison, warnings
 
     def _generate_native_filter(
         self,

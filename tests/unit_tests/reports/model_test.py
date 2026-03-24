@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
 import pytest
 
 from superset.reports.models import ReportSchedule
@@ -37,9 +38,14 @@ def test_get_native_filters_params():
         }
     }
 
-    assert report_schedule.get_native_filters_params() == (
-        "(filter_id:(extraFormData:(filters:!((col:column_name,op:IN,val:!(value1,value2)))),filterState:(label:column_name,validateStatus:!f,value:!(value1,value2)),id:filter_id,ownState:()))"
+    result, warnings = report_schedule.get_native_filters_params()
+    expected = (
+        "(filter_id:(extraFormData:(filters:!((col:column_name,op:IN,"
+        "val:!(value1,value2)))),filterState:(label:column_name,"
+        "validateStatus:!f,value:!(value1,value2)),id:filter_id,ownState:()))"
     )
+    assert result == expected
+    assert warnings == []
 
 
 def test_get_native_filters_params_multiple_filters():
@@ -66,9 +72,17 @@ def test_get_native_filters_params_multiple_filters():
         }
     }
 
-    assert report_schedule.get_native_filters_params() == (
-        "(filter_id_1:(extraFormData:(filters:!((col:column_name_1,op:IN,val:!(value1,value2)))),filterState:(label:column_name_1,validateStatus:!f,value:!(value1,value2)),id:filter_id_1,ownState:()),filter_id_2:(extraFormData:(filters:!((col:column_name_2,op:IN,val:!(value3,value4)))),filterState:(label:column_name_2,validateStatus:!f,value:!(value3,value4)),id:filter_id_2,ownState:()))"
+    result, warnings = report_schedule.get_native_filters_params()
+    expected = (
+        "(filter_id_1:(extraFormData:(filters:!((col:column_name_1,op:IN,"
+        "val:!(value1,value2)))),filterState:(label:column_name_1,"
+        "validateStatus:!f,value:!(value1,value2)),id:filter_id_1,ownState:()),"
+        "filter_id_2:(extraFormData:(filters:!((col:column_name_2,op:IN,"
+        "val:!(value3,value4)))),filterState:(label:column_name_2,"
+        "validateStatus:!f,value:!(value3,value4)),id:filter_id_2,ownState:()))"
     )
+    assert result == expected
+    assert warnings == []
 
 
 def test_report_generate_native_filter_no_values():
@@ -99,9 +113,10 @@ def test_report_generate_native_filter_no_values():
     }
 
 
-def test_get_native_filters_params_invalid_structure():
+def test_get_native_filters_params_missing_filter_values():
     """
-    Test the ``get_native_filters_params`` method with invalid structure.
+    Test the ``get_native_filters_params`` method with missing filterValues.
+    Should handle gracefully by using empty list as default.
     """
     report_schedule = ReportSchedule()
     report_schedule.extra = {
@@ -111,29 +126,85 @@ def test_get_native_filters_params_invalid_structure():
                     "nativeFilterId": "filter_id",
                     "columnName": "column_name",
                     "filterType": "filter_select",
-                    # Missing "filterValues" key
+                    # Missing "filterValues" key - should default to []
                 }
             ]
         }
     }
 
-    with pytest.raises(KeyError, match="'filterValues'"):
-        report_schedule.get_native_filters_params()
+    # Should not raise, should handle gracefully with empty filterValues
+    result, warnings = report_schedule.get_native_filters_params()
+    assert "filter_id" in result
+    assert "column_name" in result
+    assert warnings == []
 
 
-# todo(hugh): how do we want to handle this case?
-# def test_report_generate_native_filter_invalid_filter_id():
-#     """
-#     Test the ``_generate_native_filter`` method with invalid filter id.
-#     """
-#     report_schedule = ReportSchedule()
-#     native_filter_id = None
-#     column_name = "column_name"
-#     values = ["value1", "value2"]
+def test_get_native_filters_params_explicit_none_values():
+    """
+    Test the ``get_native_filters_params`` method with explicit None values.
+    Should handle gracefully by coercing None to empty string/list.
+    """
+    report_schedule = ReportSchedule()
+    report_schedule.extra = {
+        "dashboard": {
+            "nativeFilters": [
+                {
+                    "nativeFilterId": "filter_id",
+                    "columnName": None,  # Explicit None
+                    "filterType": "filter_select",
+                    "filterValues": None,  # Explicit None
+                }
+            ]
+        }
+    }
 
-#     assert report_schedule._generate_native_filter(
-#         native_filter_id, column_name, values
-#     ) == {}
+    # Should not raise TypeError, should handle gracefully
+    result, warnings = report_schedule.get_native_filters_params()
+    assert "filter_id" in result
+    assert warnings == []
+
+
+def test_get_native_filters_params_missing_required_fields():
+    """
+    Test the ``get_native_filters_params`` method with missing required fields.
+    Filters missing nativeFilterId or filterType should be skipped.
+    """
+    report_schedule = ReportSchedule()
+    report_schedule.extra = {
+        "dashboard": {
+            "nativeFilters": [
+                {
+                    # Missing nativeFilterId - should be skipped
+                    "filterType": "filter_select",
+                    "columnName": "column_name",
+                    "filterValues": ["value1"],
+                },
+                {
+                    # Missing filterType - should be skipped
+                    "nativeFilterId": "filter_2",
+                    "columnName": "column_name",
+                    "filterValues": ["value2"],
+                },
+                {
+                    # Valid filter - should be processed
+                    "nativeFilterId": "filter_3",
+                    "filterType": "filter_select",
+                    "columnName": "column_name",
+                    "filterValues": ["value3"],
+                },
+            ]
+        }
+    }
+
+    result, warnings = report_schedule.get_native_filters_params()
+    # Only the valid filter should be in the result
+    assert "filter_3" in result
+    assert "filter_2" not in result
+    assert "value1" not in result
+    assert "value3" in result
+    # Two malformed filters should generate two warnings
+    assert len(warnings) == 2
+    assert all("Skipping malformed native filter" in w for w in warnings)
 
 
 def test_report_generate_native_filter():
@@ -173,7 +244,9 @@ def test_get_native_filters_params_empty():
     report_schedule = ReportSchedule()
     report_schedule.extra = {}
 
-    assert report_schedule.get_native_filters_params() == "()"
+    result, warnings = report_schedule.get_native_filters_params()
+    assert result == "()"
+    assert warnings == []
 
 
 def test_get_native_filters_params_no_native_filters():
@@ -183,7 +256,9 @@ def test_get_native_filters_params_no_native_filters():
     report_schedule = ReportSchedule()
     report_schedule.extra = {"dashboard": {"nativeFilters": []}}
 
-    assert report_schedule.get_native_filters_params() == "()"
+    result, warnings = report_schedule.get_native_filters_params()
+    assert result == "()"
+    assert warnings == []
 
 
 def test_report_generate_native_filter_empty_values():
@@ -365,7 +440,9 @@ def test_generate_native_filter_unknown_type():
 def test_get_native_filters_params_null_native_filters():
     report_schedule = ReportSchedule()
     report_schedule.extra = {"dashboard": {"nativeFilters": None}}
-    assert report_schedule.get_native_filters_params() == "()"
+    result, warnings = report_schedule.get_native_filters_params()
+    assert result == "()"
+    assert warnings == []
 
 
 def test_get_native_filters_params_rison_quote_escaping():
@@ -382,9 +459,10 @@ def test_get_native_filters_params_rison_quote_escaping():
             ]
         }
     }
-    result = report_schedule.get_native_filters_params()
+    result, warnings = report_schedule.get_native_filters_params()
     assert "'" not in result
     assert "%27" in result
+    assert warnings == []
 
 
 def test_get_native_filters_params_missing_filter_id_key():
@@ -401,8 +479,10 @@ def test_get_native_filters_params_missing_filter_id_key():
             ]
         }
     }
-    result = report_schedule.get_native_filters_params()
+    result, warnings = report_schedule.get_native_filters_params()
     assert result == "()"
+    assert len(warnings) == 1
+    assert "Skipping malformed native filter" in warnings[0]
 
 
 def test_generate_native_filter_empty_filter_id():
@@ -488,7 +568,7 @@ def test_generate_native_filter_timecolumn_empty_values():
 
 
 def test_get_native_filters_params_missing_filter_type():
-    """Missing filterType key causes KeyError at line 202."""
+    """Missing filterType skips the filter and emits a warning."""
     report_schedule = ReportSchedule()
     report_schedule.extra = {
         "dashboard": {
@@ -501,12 +581,14 @@ def test_get_native_filters_params_missing_filter_type():
             ]
         }
     }
-    with pytest.raises(KeyError, match="filterType"):
-        report_schedule.get_native_filters_params()
+    result, warnings = report_schedule.get_native_filters_params()
+    assert result == "()"
+    assert len(warnings) == 1
+    assert "Skipping malformed native filter" in warnings[0]
 
 
 def test_get_native_filters_params_missing_column_name():
-    """Missing columnName key causes KeyError at line 203."""
+    """Missing columnName defaults to empty string via .get() fallback."""
     report_schedule = ReportSchedule()
     report_schedule.extra = {
         "dashboard": {
@@ -519,8 +601,9 @@ def test_get_native_filters_params_missing_column_name():
             ]
         }
     }
-    with pytest.raises(KeyError, match="columnName"):
-        report_schedule.get_native_filters_params()
+    result, warnings = report_schedule.get_native_filters_params()
+    assert "F1" in result
+    assert warnings == []
 
 
 def test_generate_native_filter_range_null_column():

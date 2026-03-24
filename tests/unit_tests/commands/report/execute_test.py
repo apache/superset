@@ -278,6 +278,12 @@ def test_log_data_with_missing_values(mocker: MockerFixture) -> None:
             ["url1"],
             ["superset/dashboard/p/url1/"],
         ),
+        # Test JSON scalar string anchor falls back to single tab
+        (
+            json.dumps("mock_tab_anchor_1"),
+            ["url1"],
+            ["superset/dashboard/p/url1/"],
+        ),
     ],
 )
 @patch(
@@ -303,6 +309,10 @@ def test_get_dashboard_urls_with_multiple_tabs(
             "urlParams": None,
         }
     }
+    mock_report_schedule.get_native_filters_params.return_value = (  # type: ignore
+        "()",
+        [],
+    )
 
     class_instance: BaseReportState = BaseReportState(
         mock_report_schedule, "January 1, 2021", "execution_id_example"
@@ -346,6 +356,10 @@ def test_get_dashboard_urls_with_exporting_dashboard_only(
             "urlParams": None,
         }
     }
+    mock_report_schedule.get_native_filters_params.return_value = (  # type: ignore
+        "()",
+        [],
+    )
     mock_run.return_value = "url1"
 
     class_instance: BaseReportState = BaseReportState(
@@ -394,7 +408,10 @@ def test_get_dashboard_urls_with_filters_and_tabs(
             ],
         }
     }
-    mock_report_schedule.get_native_filters_params.return_value = native_filter_rison  # type: ignore[attr-defined]
+    mock_report_schedule.get_native_filters_params.return_value = (  # type: ignore[attr-defined]
+        native_filter_rison,
+        [],
+    )
     mock_permalink_cls.return_value.run.side_effect = ["key1", "key2"]
 
     class_instance: BaseReportState = BaseReportState(
@@ -457,7 +474,10 @@ def test_get_dashboard_urls_with_filters_no_tabs(
             ],
         }
     }
-    mock_report_schedule.get_native_filters_params.return_value = native_filter_rison  # type: ignore[attr-defined]
+    mock_report_schedule.get_native_filters_params.return_value = (  # type: ignore[attr-defined]
+        native_filter_rison,
+        [],
+    )
     mock_permalink_cls.return_value.run.return_value = "key1"
 
     class_instance: BaseReportState = BaseReportState(
@@ -517,7 +537,10 @@ def test_get_dashboard_urls_preserves_existing_url_params(
             ],
         }
     }
-    mock_report_schedule.get_native_filters_params.return_value = native_filter_rison  # type: ignore[attr-defined]
+    mock_report_schedule.get_native_filters_params.return_value = (  # type: ignore[attr-defined]
+        native_filter_rison,
+        [],
+    )
     mock_permalink_cls.return_value.run.return_value = "key1"
 
     class_instance: BaseReportState = BaseReportState(
@@ -569,7 +592,10 @@ def test_get_dashboard_urls_deduplicates_stale_native_filters(
             "nativeFilters": [],  # type: ignore[typeddict-unknown-key]
         }
     }
-    mock_report_schedule.get_native_filters_params.return_value = native_filter_rison  # type: ignore[attr-defined]
+    mock_report_schedule.get_native_filters_params.return_value = (  # type: ignore[attr-defined]
+        native_filter_rison,
+        [],
+    )
     mock_permalink_cls.return_value.run.return_value = "key1"
 
     class_instance: BaseReportState = BaseReportState(
@@ -1304,4 +1330,5 @@ def test_success_state_report_sends_and_logs_success(
     mock_send.assert_called_once()
     state.update_report_schedule_and_log.assert_called_once_with(  # type: ignore[attr-defined]
         ReportState.SUCCESS,
+        error_message=None,
     )
