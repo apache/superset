@@ -38,22 +38,32 @@ export type UrlParamType = 'string' | 'number' | 'boolean' | 'object' | 'rison';
 export type UrlParam = (typeof URL_PARAMS)[keyof typeof URL_PARAMS];
 export function getUrlParam(
   param: UrlParam & { type: 'string' },
+  search?: string,
 ): string | null;
 export function getUrlParam(
   param: UrlParam & { type: 'number' },
+  search?: string,
 ): number | null;
 export function getUrlParam(
   param: UrlParam & { type: 'boolean' },
+  search?: string,
 ): boolean | null;
 export function getUrlParam(
   param: UrlParam & { type: 'object' },
+  search?: string,
 ): object | null;
-export function getUrlParam(param: UrlParam & { type: 'rison' }): object | null;
+export function getUrlParam(
+  param: UrlParam & { type: 'rison' },
+  search?: string,
+): object | null;
 export function getUrlParam(
   param: UrlParam & { type: 'rison | string' },
+  search?: string,
 ): string | object | null;
-export function getUrlParam({ name, type }: UrlParam): unknown {
-  const urlParam = new URLSearchParams(window.location.search).get(name);
+export function getUrlParam({ name, type }: UrlParam, search?: string): unknown {
+  const urlParam = new URLSearchParams(
+    search ?? window.location.search,
+  ).get(name);
   switch (type) {
     case 'number':
       if (!urlParam) {

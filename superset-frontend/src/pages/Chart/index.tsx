@@ -84,11 +84,11 @@ const getDashboardPageContext = (pageId?: string | null) => {
   return getItem(LocalStorageKeys.DashboardExploreContext, {})[pageId] || null;
 };
 
-const getDashboardContextFormData = () => {
-  const dashboardPageId = getUrlParam(URL_PARAMS.dashboardPageId);
+const getDashboardContextFormData = (search: string) => {
+  const dashboardPageId = getUrlParam(URL_PARAMS.dashboardPageId, search);
   const dashboardContext = getDashboardPageContext(dashboardPageId);
   if (dashboardContext) {
-    const sliceId = getUrlParam(URL_PARAMS.sliceId) || 0;
+    const sliceId = getUrlParam(URL_PARAMS.sliceId, search) || 0;
     const {
       colorScheme,
       labelsColor,
@@ -137,7 +137,9 @@ export default function ExplorePage() {
     const saveAction = getUrlParam(
       URL_PARAMS.saveAction,
     ) as SaveActionType | null;
-    const dashboardContextFormData = getDashboardContextFormData();
+    const dashboardContextFormData = getDashboardContextFormData(
+      location.search,
+    );
 
     if (!isExploreInitialized.current || !!saveAction) {
       fetchExploreData(exploreUrlParams)
