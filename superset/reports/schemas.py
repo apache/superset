@@ -121,7 +121,6 @@ class ValidatorConfigJSONSchema(Schema):
 
 
 class ReportRecipientConfigJSONSchema(Schema):
-    # TODO if email check validity
     target = fields.String()
     ccTarget = fields.String()  # noqa: N815
     bccTarget = fields.String()  # noqa: N815
@@ -137,6 +136,31 @@ class ReportRecipientSchema(Schema):
         ),
     )
     recipient_config_json = fields.Nested(ReportRecipientConfigJSONSchema)
+
+    @validates_schema
+    def validate_email_fields(self, data: dict[str, Any], **kwargs: Any) -> None:
+        if data.get("type") != ReportRecipientType.EMAIL.value:
+            return
+        config = data.get("recipient_config_json") or {}
+        email_validator = validate.Email()
+        for field_name in ("target", "ccTarget", "bccTarget"):
+            email = config.get(field_name) or ""
+            if not email:
+                continue
+            try:
+                email_validator(email)
+            except validate.ValidationError as ex:
+                raise validate.ValidationError(
+                    {
+                        "recipient_config_json": [
+                            _(
+                                "%(field)s is not a valid email address: %(email)s",
+                                field=field_name,
+                                email=email,
+                            )
+                        ]
+                    }
+                ) from ex
 
 
 class ReportSchedulePostSchema(Schema):

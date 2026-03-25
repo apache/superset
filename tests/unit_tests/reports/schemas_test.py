@@ -19,7 +19,7 @@ import pytest
 from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 
-from superset.reports.schemas import ReportSchedulePostSchema
+from superset.reports.schemas import ReportRecipientSchema, ReportSchedulePostSchema
 
 
 def test_report_post_schema_custom_width_validation(mocker: MockerFixture) -> None:
@@ -75,3 +75,66 @@ def test_report_post_schema_custom_width_validation(mocker: MockerFixture) -> No
     assert excinfo.value.messages == {
         "custom_width": ["Screenshot width must be between 100px and 200px"]
     }
+
+
+def test_report_recipient_schema_email_valid() -> None:
+    schema = ReportRecipientSchema()
+    result = schema.load(
+        {
+            "type": "Email",
+            "recipient_config_json": {"target": "user@example.com"},
+        }
+    )
+    assert result["recipient_config_json"]["target"] == "user@example.com"
+
+
+def test_report_recipient_schema_email_invalid_target() -> None:
+    schema = ReportRecipientSchema()
+    with pytest.raises(ValidationError) as excinfo:
+        schema.load(
+            {
+                "type": "Email",
+                "recipient_config_json": {"target": "not-an-email"},
+            }
+        )
+    assert "recipient_config_json" in str(excinfo.value.messages)
+
+
+def test_report_recipient_schema_email_invalid_cc() -> None:
+    schema = ReportRecipientSchema()
+    with pytest.raises(ValidationError) as excinfo:
+        schema.load(
+            {
+                "type": "Email",
+                "recipient_config_json": {
+                    "target": "user@example.com",
+                    "ccTarget": "bad-email",
+                },
+            }
+        )
+    assert "recipient_config_json" in str(excinfo.value.messages)
+
+
+def test_report_recipient_schema_email_empty_cc_allowed() -> None:
+    schema = ReportRecipientSchema()
+    result = schema.load(
+        {
+            "type": "Email",
+            "recipient_config_json": {
+                "target": "user@example.com",
+                "ccTarget": "",
+            },
+        }
+    )
+    assert result["recipient_config_json"]["target"] == "user@example.com"
+
+
+def test_report_recipient_schema_slack_skips_email_validation() -> None:
+    schema = ReportRecipientSchema()
+    result = schema.load(
+        {
+            "type": "Slack",
+            "recipient_config_json": {"target": "#general"},
+        }
+    )
+    assert result["recipient_config_json"]["target"] == "#general"
