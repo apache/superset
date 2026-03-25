@@ -23,11 +23,12 @@ chart configuration.
 """
 
 from typing import Any, Dict
+from urllib.parse import parse_qs, urlparse
 
 from fastmcp import Context
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
+from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_utils import (
     generate_explore_link as generate_url,
     map_config_to_form_data,
@@ -35,10 +36,19 @@ from superset.mcp_service.chart.chart_utils import (
 from superset.mcp_service.chart.schemas import (
     GenerateExploreLinkRequest,
 )
+from superset.mcp_service.utils.schema_utils import parse_request
 
 
-@mcp.tool
-@mcp_auth_hook
+@tool(
+    tags=["explore"],
+    class_permission_name="Explore",
+    annotations=ToolAnnotations(
+        title="Generate explore link",
+        readOnlyHint=False,
+        destructiveHint=False,
+    ),
+)
+@parse_request(GenerateExploreLinkRequest)
 async def generate_explore_link(
     request: GenerateExploreLinkRequest, ctx: Context
 ) -> Dict[str, Any]:
@@ -51,6 +61,23 @@ async def generate_explore_link(
     - "Visualize [data]"
     - General data exploration
     - When user wants to SEE data visually
+
+    IMPORTANT:
+    - Use numeric dataset ID or UUID (NOT schema.table_name format)
+    - MUST include chart_type in config (either 'xy' or 'table')
+
+    Example usage:
+    ```json
+    {
+        "dataset_id": 123,
+        "config": {
+            "chart_type": "xy",
+            "x": {"name": "date"},
+            "y": [{"name": "sales", "aggregate": "SUM"}],
+            "kind": "bar"
+        }
+    }
+    ```
 
     Better UX because:
     - Users can interact with chart before saving
@@ -73,8 +100,29 @@ async def generate_explore_link(
 
     try:
         await ctx.report_progress(1, 3, "Converting configuration to form data")
-        # Map config to form_data using shared utilities
-        form_data = map_config_to_form_data(request.config)
+        with event_logger.log_context(action="mcp.generate_explore_link.form_data"):
+            # Normalize column names to match canonical dataset column names
+            # This fixes case sensitivity issues (e.g., 'order_date' vs 'OrderDate')
+            try:
+                from superset.mcp_service.chart.validation.dataset_validator import (
+                    DatasetValidator,
+                )
+
+                normalized_config = DatasetValidator.normalize_column_names(
+                    request.config, request.dataset_id
+                )
+            except (ImportError, AttributeError, KeyError, ValueError, TypeError):
+                normalized_config = request.config
+
+            # Map config to form_data using shared utilities
+            form_data = map_config_to_form_data(
+                normalized_config, dataset_id=request.dataset_id
+            )
+
+        # Add datasource to form_data for consistency with generate_chart
+        # Only set if not already present to avoid overwriting
+        if "datasource" not in form_data:
+            form_data["datasource"] = f"{request.dataset_id}__table"
 
         await ctx.debug(
             "Form data generated with keys: %s, has_viz_type=%s, has_datasource=%s"
@@ -86,17 +134,34 @@ async def generate_explore_link(
         )
 
         await ctx.report_progress(2, 3, "Generating explore URL")
-        # Generate explore link using shared utilities
-        explore_url = generate_url(dataset_id=request.dataset_id, form_data=form_data)
+        with event_logger.log_context(
+            action="mcp.generate_explore_link.url_generation"
+        ):
+            # Generate explore link using shared utilities
+            explore_url = generate_url(
+                dataset_id=request.dataset_id, form_data=form_data
+            )
+
+        # Extract form_data_key from the explore URL using proper URL parsing
+        form_data_key = None
+        if explore_url:
+            parsed = urlparse(explore_url)
+            query_params = parse_qs(parsed.query)
+            form_data_key_list = query_params.get("form_data_key", [])
+            if form_data_key_list:
+                form_data_key = form_data_key_list[0]
 
         await ctx.report_progress(3, 3, "URL generation complete")
         await ctx.info(
-            "Explore link generated successfully: url_length=%s, dataset_id=%s"
-            % (len(explore_url), request.dataset_id)
+            "Explore link generated successfully: url_length=%s, dataset_id=%s, "
+            "form_data_key=%s"
+            % (len(explore_url or ""), request.dataset_id, form_data_key)
         )
 
         return {
             "url": explore_url,
+            "form_data": form_data,
+            "form_data_key": form_data_key,
             "error": None,
         }
 
@@ -107,5 +172,7 @@ async def generate_explore_link(
         )
         return {
             "url": "",
+            "form_data": {},
+            "form_data_key": None,
             "error": f"Failed to generate explore link: {str(e)}",
         }

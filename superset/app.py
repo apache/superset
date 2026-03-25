@@ -60,7 +60,10 @@ def create_app(
         # Allow application to sit on a non-root path
         # *Please be advised that this feature is in BETA.*
         app_root = cast(
-            str, superset_app_root or os.environ.get("SUPERSET_APP_ROOT", "/")
+            str,
+            superset_app_root
+            or os.environ.get("SUPERSET_APP_ROOT")
+            or app.config["APPLICATION_ROOT"],
         )
         if app_root != "/":
             app.wsgi_app = AppRootMiddleware(app.wsgi_app, app_root)
@@ -68,6 +71,22 @@ def create_app(
             # value of app_root so things work out of the box
             if not app.config["STATIC_ASSETS_PREFIX"]:
                 app.config["STATIC_ASSETS_PREFIX"] = app_root
+            # Prefix APP_ICON path with subdirectory root for subdirectory deployments
+            if (
+                app.config.get("APP_ICON", "").startswith("/static/")
+                and app_root != "/"
+            ):
+                app.config["APP_ICON"] = f"{app_root}{app.config['APP_ICON']}"
+                # Also update theme tokens for subdirectory deployments
+                for theme_key in ("THEME_DEFAULT", "THEME_DARK"):
+                    theme = app.config[theme_key]
+                    token = theme.get("token", {})
+                    # Update brandLogoUrl if it points to /static/
+                    if token.get("brandLogoUrl", "").startswith("/static/"):
+                        token["brandLogoUrl"] = f"{app_root}{token['brandLogoUrl']}"
+                    # Update brandLogoHref if it's the default "/"
+                    if token.get("brandLogoHref") == "/":
+                        token["brandLogoHref"] = app_root
             if app.config["APPLICATION_ROOT"] == "/":
                 app.config["APPLICATION_ROOT"] = app_root
 

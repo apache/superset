@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 import builtins
+import copy
 import dataclasses
 import logging
 import re
@@ -52,11 +53,12 @@ from flask_appbuilder.security.sqla.models import User
 from flask_babel import get_locale, lazy_gettext as _
 from jinja2.exceptions import TemplateError
 from markupsafe import escape, Markup
+from pandas import DateOffset
 from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import Mapper, validates
-from sqlalchemy.sql.elements import ColumnElement, literal_column, TextClause
+from sqlalchemy.sql.elements import ColumnElement, Grouping, literal_column, TextClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy_utils import UUIDType
@@ -64,15 +66,22 @@ from sqlalchemy_utils import UUIDType
 from superset import db, is_feature_enabled
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
-from superset.common.utils.time_range_utils import get_since_until_from_time_range
-from superset.constants import EMPTY_STRING, NULL_STRING
+from superset.common.utils import dataframe_utils
+from superset.common.utils.time_range_utils import (
+    get_since_until_from_query_object,
+    get_since_until_from_time_range,
+)
+from superset.constants import CacheRegion, EMPTY_STRING, NULL_STRING, TimeGrain
 from superset.db_engine_specs.base import TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     AdvancedDataTypeResponseError,
     ColumnNotFoundException,
+    InvalidPostProcessingError,
     QueryClauseValidationException,
     QueryObjectValidationError,
+    SupersetErrorException,
+    SupersetErrorsException,
     SupersetSecurityException,
     SupersetSyntaxErrorException,
 )
@@ -90,15 +99,25 @@ from superset.superset_typing import (
 )
 from superset.utils import core as utils, json
 from superset.utils.core import (
+    DateColumn,
+    DTTM_ALIAS,
+    FilterOperator,
     GenericDataType,
+    get_base_axis_labels,
     get_column_name,
+    get_metric_names,
     get_non_base_axis_columns,
     get_user_id,
+    get_x_axis_label,
     is_adhoc_column,
     MediumText,
+    normalize_dttm_col,
+    QueryObjectFilterClause,
     remove_duplicates,
     SqlExpressionType,
+    TIME_COMPARISON,
 )
+from superset.utils.date_parser import get_past_or_future, normalize_time_delta
 from superset.utils.dates import datetime_to_epoch
 from superset.utils.rls import apply_rls
 
@@ -111,6 +130,7 @@ class ValidationResultDict(TypedDict):
 
 
 if TYPE_CHECKING:
+    from superset.common.query_object import QueryObject
     from superset.connectors.sqla.models import SqlMetric, TableColumn
     from superset.db_engine_specs import BaseEngineSpec
     from superset.models.core import Database
@@ -119,6 +139,21 @@ logger = logging.getLogger(__name__)
 
 VIRTUAL_TABLE_ALIAS = "virtual_table"
 SERIES_LIMIT_SUBQ_ALIAS = "series_limit"
+
+# Offset join column suffix used for joining offset results
+OFFSET_JOIN_COLUMN_SUFFIX = "__offset_join_column_"
+
+# Right suffix used for joining offset results
+R_SUFFIX = "__right_suffix"
+
+
+class CachedTimeOffset(TypedDict):
+    """Result type for time offset processing"""
+
+    df: pd.DataFrame
+    queries: list[str]
+    cache_keys: list[str | None]
+
 
 # Keys used to filter QueryObjectDict for get_sqla_query parameters
 SQLA_QUERY_KEYS = {
@@ -167,6 +202,7 @@ def validate_adhoc_subquery(
     nested sub-queries with table
     """
     parsed_statement = SQLStatement(sql, engine)
+    rls_applied = False
     if parsed_statement.has_subquery():
         if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
             raise SupersetSecurityException(
@@ -178,9 +214,12 @@ def validate_adhoc_subquery(
             )
 
         # enforce RLS rules in any relevant tables
-        apply_rls(database, catalog, default_schema, parsed_statement)
+        rls_applied = apply_rls(database, catalog, default_schema, parsed_statement)
 
-    return parsed_statement.format()
+    # Only regenerate the SQL if RLS predicates were actually applied;
+    # unnecessary round-tripping through sqlglot can alter dialect-specific
+    # syntax.
+    return parsed_statement.format() if rls_applied else sql
 
 
 def json_to_dict(json_str: str) -> dict[Any, Any]:
@@ -432,7 +471,9 @@ class ImportExportMixin(UUIDMixin):
             if parent_ref:
                 parent_excludes = {c.name for c in parent_ref.local_columns}
         dict_rep = {
-            c.name: getattr(self, c.name)
+            # Convert c.name to str to handle SQLAlchemy's quoted_name type
+            # which is not YAML-serializable
+            str(c.name): getattr(self, c.name)
             for c in cls.__table__.columns  # type: ignore
             if (
                 c.name in export_fields
@@ -781,9 +822,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def db_extra(self) -> Optional[dict[str, Any]]:
         raise NotImplementedError()
 
-    def query(self, query_obj: QueryObjectDict) -> QueryResult:
-        raise NotImplementedError()
-
     @property
     def database_id(self) -> int:
         raise NotImplementedError()
@@ -805,7 +843,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         raise NotImplementedError()
 
     @property
-    def cache_timeout(self) -> int:
+    def cache_timeout(self) -> int | None:
         raise NotImplementedError()
 
     @property
@@ -869,6 +907,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def get_sqla_row_level_filters(
         self,
         template_processor: Optional[BaseTemplateProcessor] = None,  # pylint: disable=unused-argument
+        include_global_guest_rls: bool = True,  # pylint: disable=unused-argument
     ) -> list[TextClause]:
         # TODO: We should refactor this mixin and remove this method
         # as it exists in the BaseDatasource and is not applicable
@@ -1107,9 +1146,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if is_alias_used_in_orderby(col):
                 col.name = f"{col.name}__"
 
-    def exc_query(self, qry: Any) -> QueryResult:
+    def query(self, query_obj: QueryObjectDict) -> QueryResult:
+        """
+        Executes the query and returns a dataframe.
+
+        This method is the unified entry point for query execution across all
+        datasource types (Query, SqlaTable, etc.).
+        """
         qry_start_dttm = datetime.now()
-        query_str_ext = self.get_query_str_extended(qry)
+        query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql
         status = QueryStatus.SUCCESS
         errors = None
@@ -1146,6 +1191,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 mutator=assign_column_label,
             )
         except Exception as ex:  # pylint: disable=broad-except
+            # Re-raise SupersetErrorException (includes OAuth2RedirectError)
+            # to bubble up to API layer
+            if isinstance(ex, (SupersetErrorException, SupersetErrorsException)):
+                raise
             df = pd.DataFrame()
             status = QueryStatus.FAILED
             logger.warning(
@@ -1171,6 +1220,774 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             errors=errors,
             error_message=error_message,
         )
+
+    def exc_query(self, qry: Any) -> QueryResult:
+        """
+        Deprecated: Use query() instead.
+        This method is kept for backward compatibility.
+        """
+        return self.query(qry)
+
+    def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
+        """
+        Normalize the dataframe by converting datetime columns and ensuring
+        numerical metrics.
+
+        :param df: The dataframe to normalize
+        :param query_object: The query object with metadata about columns
+        :return: Normalized dataframe
+        """
+
+        def _get_timestamp_format(column: str | None) -> str | None:
+            if not hasattr(self, "get_column"):
+                return None
+            column_obj = self.get_column(column)
+            if (
+                column_obj
+                and hasattr(column_obj, "python_date_format")
+                and (formatter := column_obj.python_date_format)
+            ):
+                return str(formatter)
+            return None
+
+        # Collect datetime columns
+        labels = tuple(
+            label
+            for label in [
+                *get_base_axis_labels(query_object.columns),
+                query_object.granularity,
+            ]
+            if hasattr(self, "get_column")
+            and (col := self.get_column(label))
+            and (col.get("is_dttm") if isinstance(col, dict) else col.is_dttm)
+        )
+
+        dttm_cols = [
+            DateColumn(
+                timestamp_format=_get_timestamp_format(label),
+                offset=self.offset,
+                time_shift=query_object.time_shift,
+                col_label=label,
+            )
+            for label in labels
+            if label
+        ]
+
+        if DTTM_ALIAS in df:
+            dttm_cols.append(
+                DateColumn.get_legacy_time_column(
+                    timestamp_format=_get_timestamp_format(query_object.granularity),
+                    offset=self.offset,
+                    time_shift=query_object.time_shift,
+                )
+            )
+
+        # Build format map from detected datetime formats stored in dataset columns
+        format_map: dict[str, str] = {}
+        if hasattr(self, "columns"):
+            for col in self.columns:
+                if hasattr(col, "datetime_format") and col.datetime_format:
+                    format_map[col.column_name] = col.datetime_format
+
+        normalize_dttm_col(
+            df=df,
+            dttm_cols=tuple(dttm_cols),
+            format_map=format_map if format_map else None,
+        )
+
+        # Convert metrics to numerical values if enforced
+        if getattr(self, "enforce_numerical_metrics", True):
+            dataframe_utils.df_metrics_to_num(df, query_object)
+
+        df.replace([np.inf, -np.inf], np.nan, inplace=True)
+
+        return df
+
+    def get_query_result(self, query_object: QueryObject) -> QueryResult:
+        """
+        Execute query and return results with full processing pipeline.
+
+        This method handles:
+        1. Query execution via self.query()
+        2. DataFrame normalization
+        3. Time offset processing (if applicable)
+        4. Post-processing operations
+
+        :param query_object: The query configuration
+        :return: QueryResult with processed dataframe
+        """
+        # Execute the base query
+        result = self.query(query_object.to_dict())
+        query = result.query + ";\n\n" if result.query else ""
+
+        # Process the dataframe if not empty
+        df = result.df
+        if not df.empty:
+            # Normalize datetime columns and metrics
+            df = self.normalize_df(df, query_object)
+
+            # Process time offsets if requested
+            if query_object.time_offsets:
+                # Process time offsets using the datasource's own method
+                # Note: caching is disabled here as we don't have query context
+                time_offsets = self.processing_time_offsets(
+                    df, query_object, cache_key_fn=None, cache_timeout_fn=None
+                )
+                df = time_offsets["df"]
+                queries = time_offsets["queries"]
+                query += ";\n\n".join(queries)
+                query += ";\n\n"
+
+            # Execute post-processing operations
+            try:
+                df = query_object.exec_post_processing(df)
+            except InvalidPostProcessingError as ex:
+                raise QueryObjectValidationError(ex.message) from ex
+
+        # Update result with processed data
+        result.df = df
+        result.query = query
+        result.from_dttm = query_object.from_dttm
+        result.to_dttm = query_object.to_dttm
+
+        return result
+
+    def processing_time_offsets(  # pylint: disable=too-many-locals,too-many-statements # noqa: C901
+        self,
+        df: pd.DataFrame,
+        query_object: QueryObject,
+        cache_key_fn: Callable[[QueryObject, str, Any], str | None] | None = None,
+        cache_timeout_fn: Callable[[], int] | None = None,
+        force_cache: bool = False,
+    ) -> CachedTimeOffset:
+        """
+        Process time offsets for time comparison feature.
+
+        This method handles both relative time offsets (e.g., "1 week ago") and
+        absolute date range offsets (e.g., "2015-01-03 : 2015-01-04").
+
+        :param df: The main dataframe
+        :param query_object: The query object with time offset configuration
+        :param cache_key_fn: Optional function to generate cache keys
+        :param cache_timeout_fn: Optional function to get cache timeout
+        :param force_cache: Whether to force cache refresh
+        :return: CachedTimeOffset with processed dataframe and queries
+        """
+        # Import here to avoid circular dependency
+        # pylint: disable=import-outside-toplevel
+        from superset.common.utils.query_cache_manager import QueryCacheManager
+
+        # ensure query_object is immutable
+        query_object_clone = copy.copy(query_object)
+        queries: list[str] = []
+        cache_keys: list[str | None] = []
+        offset_dfs: dict[str, pd.DataFrame] = {}
+
+        outer_from_dttm, outer_to_dttm = get_since_until_from_query_object(query_object)
+        if not outer_from_dttm or not outer_to_dttm:
+            raise QueryObjectValidationError(
+                _(
+                    "An enclosed time range (both start and end) must be specified "
+                    "when using a Time Comparison."
+                )
+            )
+
+        time_grain = self.get_time_grain(query_object)
+        metric_names = get_metric_names(query_object.metrics)
+        # use columns that are not metrics as join keys
+        join_keys = [col for col in df.columns if col not in metric_names]
+
+        for offset in query_object.time_offsets:
+            try:
+                original_offset = offset
+                is_date_range_offset = self.is_valid_date_range(offset)
+
+                if is_date_range_offset and feature_flag_manager.is_feature_enabled(
+                    "DATE_RANGE_TIMESHIFTS_ENABLED"
+                ):
+                    # DATE RANGE OFFSET LOGIC (like "2015-01-03 : 2015-01-04")
+                    try:
+                        # Parse the specified range
+                        offset_from_dttm, offset_to_dttm = (
+                            get_since_until_from_time_range(time_range=offset)
+                        )
+                    except ValueError as ex:
+                        raise QueryObjectValidationError(str(ex)) from ex
+
+                    # Use the specified range directly
+                    query_object_clone.from_dttm = offset_from_dttm
+                    query_object_clone.to_dttm = offset_to_dttm
+
+                    # For date range offsets, we must NOT set inner bounds
+                    # These create additional WHERE clauses that conflict with our
+                    # date range
+                    query_object_clone.inner_from_dttm = None
+                    query_object_clone.inner_to_dttm = None
+
+                elif is_date_range_offset:
+                    # Date range timeshift feature is disabled
+                    raise QueryObjectValidationError(
+                        "Date range timeshifts are not enabled. "
+                        "Please contact your administrator to enable the "
+                        "DATE_RANGE_TIMESHIFTS_ENABLED feature flag."
+                    )
+
+                else:
+                    # RELATIVE OFFSET LOGIC (like "1 day ago")
+                    if self.is_valid_date(offset) or offset == "inherit":
+                        offset = self.get_offset_custom_or_inherit(
+                            offset,
+                            outer_from_dttm,
+                            outer_to_dttm,
+                        )
+                    query_object_clone.from_dttm = get_past_or_future(
+                        offset,
+                        outer_from_dttm,
+                    )
+                    query_object_clone.to_dttm = get_past_or_future(
+                        offset, outer_to_dttm
+                    )
+
+                    query_object_clone.inner_from_dttm = query_object_clone.from_dttm
+                    query_object_clone.inner_to_dttm = query_object_clone.to_dttm
+
+                x_axis_label = get_x_axis_label(query_object.columns)
+                query_object_clone.granularity = (
+                    query_object_clone.granularity or x_axis_label
+                )
+
+            except ValueError as ex:
+                raise QueryObjectValidationError(str(ex)) from ex
+
+            query_object_clone.time_offsets = []
+            query_object_clone.post_processing = []
+
+            # Get time offset index
+            index = (get_base_axis_labels(query_object.columns) or [DTTM_ALIAS])[0]
+
+            if is_date_range_offset and feature_flag_manager.is_feature_enabled(
+                "DATE_RANGE_TIMESHIFTS_ENABLED"
+            ):
+                # Create a completely new filter list to preserve original filters
+                query_object_clone.filter = copy.deepcopy(query_object_clone.filter)
+
+                # Remove any existing temporal filters that might conflict
+                query_object_clone.filter = [
+                    flt
+                    for flt in query_object_clone.filter
+                    if not (flt.get("op") == FilterOperator.TEMPORAL_RANGE)
+                ]
+
+                # Determine the temporal column with multiple fallback strategies
+                temporal_col = self._get_temporal_column_for_filter(
+                    query_object, x_axis_label
+                )
+
+                # Always add a temporal filter for date range offsets
+                if temporal_col:
+                    new_temporal_filter: QueryObjectFilterClause = {
+                        "col": temporal_col,
+                        "op": FilterOperator.TEMPORAL_RANGE,
+                        "val": (
+                            f"{query_object_clone.from_dttm} : "
+                            f"{query_object_clone.to_dttm}"
+                        ),
+                    }
+                    query_object_clone.filter.append(new_temporal_filter)
+
+                else:
+                    # This should rarely happen with proper fallbacks
+                    raise QueryObjectValidationError(
+                        _(
+                            "Unable to identify temporal column for date range time comparison."  # noqa: E501
+                            "Please ensure your dataset has a properly configured time column."  # noqa: E501
+                        )
+                    )
+
+            else:
+                # RELATIVE OFFSET: Original logic for non-date-range offsets
+                # The comparison is not using a temporal column so we need to modify
+                # the temporal filter so we run the query with the correct time range
+                if not dataframe_utils.is_datetime_series(df.get(index)):
+                    query_object_clone.filter = copy.deepcopy(query_object_clone.filter)
+
+                    # Find and update temporal filters
+                    for flt in query_object_clone.filter:
+                        if flt.get(
+                            "op"
+                        ) == FilterOperator.TEMPORAL_RANGE and isinstance(
+                            flt.get("val"), str
+                        ):
+                            time_range = cast(str, flt.get("val"))
+                            (
+                                new_outer_from_dttm,
+                                new_outer_to_dttm,
+                            ) = get_since_until_from_time_range(
+                                time_range=time_range,
+                                time_shift=offset,
+                            )
+                            flt["val"] = f"{new_outer_from_dttm} : {new_outer_to_dttm}"
+                else:
+                    # If it IS a datetime series, we still need to clear conflicts
+                    query_object_clone.filter = copy.deepcopy(query_object_clone.filter)
+
+                    # For relative offsets with datetime series, ensure the temporal
+                    # filter matches our range
+                    temporal_col = query_object_clone.granularity or x_axis_label
+
+                    # Update any existing temporal filters to match our shifted range
+                    for flt in query_object_clone.filter:
+                        if (
+                            flt.get("op") == FilterOperator.TEMPORAL_RANGE
+                            and flt.get("col") == temporal_col
+                        ):
+                            flt["val"] = (
+                                f"{query_object_clone.from_dttm} : "
+                                f"{query_object_clone.to_dttm}"
+                            )
+
+            # Remove non-temporal x-axis filters (but keep temporal ones)
+            query_object_clone.filter = [
+                flt
+                for flt in query_object_clone.filter
+                if not (
+                    flt.get("col") == x_axis_label
+                    and flt.get("op") != FilterOperator.TEMPORAL_RANGE
+                )
+            ]
+
+            # Continue with the rest of the method (caching, execution, etc.)
+            cached_time_offset_key = (
+                offset if offset == original_offset else f"{offset}_{original_offset}"
+            )
+
+            cache_key = None
+            if cache_key_fn:
+                cache_key = cache_key_fn(
+                    query_object_clone,
+                    cached_time_offset_key,
+                    time_grain,
+                )
+
+            cache = QueryCacheManager.get(cache_key, CacheRegion.DATA, force_cache)
+
+            if cache.is_loaded:
+                offset_dfs[offset] = cache.df
+                queries.append(cache.query)
+                cache_keys.append(cache_key)
+                continue
+
+            query_object_clone_dct = query_object_clone.to_dict()
+
+            # rename metrics: SUM(value) => SUM(value) 1 year ago
+            metrics_mapping = {
+                metric: TIME_COMPARISON.join([metric, original_offset])
+                for metric in metric_names
+            }
+
+            # When the original query has limit or offset we wont apply those
+            # to the subquery so we prevent data inconsistency due to missing records
+            # in the dataframes when performing the join
+            if query_object.row_limit or query_object.row_offset:
+                query_object_clone_dct["row_limit"] = app.config["ROW_LIMIT"]
+                query_object_clone_dct["row_offset"] = 0
+
+            # Call the unified query method on the datasource
+            result = self.query(query_object_clone_dct)
+
+            queries.append(result.query)
+            cache_keys.append(None)
+
+            offset_metrics_df = result.df
+            if offset_metrics_df.empty:
+                offset_metrics_df = pd.DataFrame(
+                    {
+                        col: [np.NaN]
+                        for col in join_keys + list(metrics_mapping.values())
+                    }
+                )
+            else:
+                # 1. normalize df, set dttm column
+                offset_metrics_df = self.normalize_df(
+                    offset_metrics_df, query_object_clone
+                )
+
+                # 2. rename extra query columns
+                offset_metrics_df = offset_metrics_df.rename(columns=metrics_mapping)
+
+            # cache df and query if caching is enabled
+            if cache_key and cache_timeout_fn:
+                value = {
+                    "df": offset_metrics_df,
+                    "query": result.query,
+                }
+                cache.set(
+                    key=cache_key,
+                    value=value,
+                    timeout=cache_timeout_fn(),
+                    datasource_uid=self.uid,
+                    region=CacheRegion.DATA,
+                )
+            offset_dfs[offset] = offset_metrics_df
+
+        if offset_dfs:
+            df = self.join_offset_dfs(
+                df,
+                offset_dfs,
+                time_grain,
+                join_keys,
+            )
+
+        return CachedTimeOffset(df=df, queries=queries, cache_keys=cache_keys)
+
+    @staticmethod
+    def get_time_grain(query_object: QueryObject) -> Any | None:
+        if (
+            query_object.columns
+            and len(query_object.columns) > 0
+            and isinstance(query_object.columns[0], dict)
+        ):
+            # If the time grain is in the columns it will be the first one
+            # and it will be of AdhocColumn type
+            return query_object.columns[0].get("timeGrain")
+
+        return query_object.extras.get("time_grain_sqla")
+
+    def is_valid_date(self, date_string: str) -> bool:
+        try:
+            # Attempt to parse the string as a date in the format YYYY-MM-DD
+            datetime.strptime(date_string, "%Y-%m-%d")
+            return True
+        except ValueError:
+            # If parsing fails, it's not a valid date in the format YYYY-MM-DD
+            return False
+
+    def is_valid_date_range(self, date_range: str) -> bool:
+        try:
+            # Attempt to parse the string as a date range in the format
+            # YYYY-MM-DD:YYYY-MM-DD
+            start_date, end_date = date_range.split(":")
+            datetime.strptime(start_date.strip(), "%Y-%m-%d")
+            datetime.strptime(end_date.strip(), "%Y-%m-%d")
+            return True
+        except ValueError:
+            # If parsing fails, it's not a valid date range in the format
+            # YYYY-MM-DD:YYYY-MM-DD
+            return False
+
+    def get_offset_custom_or_inherit(
+        self,
+        offset: str,
+        outer_from_dttm: datetime,
+        outer_to_dttm: datetime,
+    ) -> str:
+        """
+        Get the time offset for custom or inherit.
+
+        :param offset: The offset string.
+        :param outer_from_dttm: The outer from datetime.
+        :param outer_to_dttm: The outer to datetime.
+        :returns: The time offset.
+        """
+        if offset == "inherit":
+            # return the difference in days between the from and the to dttm formatted as a string with the " days ago" suffix  # noqa: E501
+            return f"{(outer_to_dttm - outer_from_dttm).days} days ago"
+        if self.is_valid_date(offset):
+            # return the offset as the difference in days between the outer from dttm and the offset date (which is a YYYY-MM-DD string) formatted as a string with the " days ago" suffix  # noqa: E501
+            offset_date = datetime.strptime(offset, "%Y-%m-%d")
+            return f"{(outer_from_dttm - offset_date).days} days ago"
+        return ""
+
+    def _get_temporal_column_for_filter(  # noqa: C901
+        self, query_object: QueryObject, x_axis_label: str | None
+    ) -> str | None:
+        """
+        Helper method to reliably determine the temporal column for filtering.
+
+        This method tries multiple strategies to find the correct temporal column:
+        1. Use the column from existing TEMPORAL_RANGE filter
+        2. Use explicitly set granularity
+        3. Use x_axis_label if it exists
+
+        :param query_object: The query object
+        :param x_axis_label: The x-axis label from the query
+        :return: The name of the temporal column, or None if not found
+        """
+        # Strategy 1: Use the column from existing TEMPORAL_RANGE filter
+        if query_object.filter:
+            for flt in query_object.filter:
+                if flt.get("op") == FilterOperator.TEMPORAL_RANGE:
+                    col = flt.get("col")
+                    if isinstance(col, str):
+                        return col
+                    elif isinstance(col, dict) and col.get("sqlExpression"):
+                        return str(col.get("label") or col.get("sqlExpression"))
+
+        # Strategy 2: Use explicitly set granularity
+        if query_object.granularity:
+            return query_object.granularity
+
+        # Strategy 3: Use x_axis_label if it exists
+        if x_axis_label:
+            return x_axis_label
+
+        return None
+
+    def _process_date_range_offset(
+        self, offset_df: pd.DataFrame, join_keys: list[str]
+    ) -> tuple[pd.DataFrame, list[str]]:
+        """Process date range offset data and return modified DataFrame and keys."""
+        temporal_cols = ["ds", "__timestamp", "dttm"]
+        non_temporal_join_keys = [key for key in join_keys if key not in temporal_cols]
+
+        if non_temporal_join_keys:
+            return offset_df, non_temporal_join_keys
+
+        metric_columns = [col for col in offset_df.columns if col not in temporal_cols]
+
+        if metric_columns:
+            aggregated_values = {}
+            for col in metric_columns:
+                if pd.api.types.is_numeric_dtype(offset_df[col]):
+                    aggregated_values[col] = offset_df[col].sum()
+                else:
+                    aggregated_values[col] = (
+                        offset_df[col].iloc[0] if not offset_df.empty else None
+                    )
+
+            offset_df = pd.DataFrame([aggregated_values])
+
+        return offset_df, []
+
+    def _apply_cleanup_logic(
+        self,
+        df: pd.DataFrame,
+        offset: str,
+        time_grain: str | None,
+        join_keys: list[str],
+        is_date_range_offset: bool,
+    ) -> pd.DataFrame:
+        """Apply appropriate cleanup logic based on offset type."""
+        if time_grain and not is_date_range_offset:
+            if join_keys:
+                col = df.pop(join_keys[0])
+                df.insert(0, col.name, col)
+
+            df.drop(
+                list(df.filter(regex=f"{OFFSET_JOIN_COLUMN_SUFFIX}|{R_SUFFIX}")),
+                axis=1,
+                inplace=True,
+            )
+        elif is_date_range_offset:
+            df.drop(
+                list(df.filter(regex=f"{R_SUFFIX}")),
+                axis=1,
+                inplace=True,
+            )
+        else:
+            df.drop(
+                list(df.filter(regex=f"{R_SUFFIX}")),
+                axis=1,
+                inplace=True,
+            )
+
+        return df
+
+    def _determine_join_keys(
+        self,
+        df: pd.DataFrame,
+        offset_df: pd.DataFrame,
+        offset: str,
+        time_grain: str | None,
+        join_keys: list[str],
+        is_date_range_offset: bool,
+        join_column_producer: Any,
+    ) -> tuple[pd.DataFrame, list[str]]:
+        """Determine appropriate join keys and modify DataFrames if needed."""
+        if time_grain and not is_date_range_offset:
+            # When there are no join keys (e.g., totals query with columns=[]),
+            # check if the first column is a datetime before attempting to use it
+            # for join column generation. If it's not a datetime (e.g., only metric
+            # columns exist), fall back to empty join keys which will trigger the
+            # __temp_join_key__ mechanism in _perform_join.
+            if not join_keys and len(df.columns) > 0:
+                first_col_dtype = df.iloc[:, 0].dtype
+                if not pd.api.types.is_datetime64_any_dtype(first_col_dtype):
+                    return offset_df, []
+
+            column_name = OFFSET_JOIN_COLUMN_SUFFIX + offset
+
+            # Add offset join columns for relative time offsets
+            self.add_offset_join_column(
+                df, column_name, time_grain, offset, join_column_producer
+            )
+            self.add_offset_join_column(
+                offset_df, column_name, time_grain, None, join_column_producer
+            )
+            return offset_df, [column_name, *join_keys[1:]]
+
+        elif is_date_range_offset:
+            return self._process_date_range_offset(offset_df, join_keys)
+
+        else:
+            return offset_df, join_keys
+
+    def _perform_join(
+        self, df: pd.DataFrame, offset_df: pd.DataFrame, actual_join_keys: list[str]
+    ) -> pd.DataFrame:
+        """Perform the appropriate join operation."""
+        if actual_join_keys:
+            return dataframe_utils.left_join_df(
+                left_df=df,
+                right_df=offset_df,
+                join_keys=actual_join_keys,
+                rsuffix=R_SUFFIX,
+            )
+        else:
+            temp_key = "__temp_join_key__"
+            df[temp_key] = 1
+            offset_df[temp_key] = 1
+
+            result_df = dataframe_utils.left_join_df(
+                left_df=df,
+                right_df=offset_df,
+                join_keys=[temp_key],
+                rsuffix=R_SUFFIX,
+            )
+
+            # Remove temporary join keys
+            result_df.drop(columns=[temp_key], inplace=True, errors="ignore")
+            result_df.drop(
+                columns=[f"{temp_key}{R_SUFFIX}"], inplace=True, errors="ignore"
+            )
+            return result_df
+
+    def join_offset_dfs(
+        self,
+        df: pd.DataFrame,
+        offset_dfs: dict[str, pd.DataFrame],
+        time_grain: str | None,
+        join_keys: list[str],
+    ) -> pd.DataFrame:
+        """
+        Join offset DataFrames with the main DataFrame.
+
+        :param df: The main DataFrame.
+        :param offset_dfs: A list of offset DataFrames.
+        :param time_grain: The time grain used to calculate the temporal join key.
+        :param join_keys: The keys to join on.
+        """
+        join_column_producer = app.config["TIME_GRAIN_JOIN_COLUMN_PRODUCERS"].get(
+            time_grain
+        )
+
+        if join_column_producer and not time_grain:
+            raise QueryObjectValidationError(
+                _("Time Grain must be specified when using Time Shift.")
+            )
+
+        for offset, offset_df in offset_dfs.items():
+            is_date_range_offset = self.is_valid_date_range(
+                offset
+            ) and feature_flag_manager.is_feature_enabled(
+                "DATE_RANGE_TIMESHIFTS_ENABLED"
+            )
+
+            offset_df, actual_join_keys = self._determine_join_keys(
+                df,
+                offset_df,
+                offset,
+                time_grain,
+                join_keys,
+                is_date_range_offset,
+                join_column_producer,
+            )
+
+            df = self._perform_join(df, offset_df, actual_join_keys)
+            df = self._apply_cleanup_logic(
+                df, offset, time_grain, join_keys, is_date_range_offset
+            )
+
+        return df
+
+    def add_offset_join_column(
+        self,
+        df: pd.DataFrame,
+        name: str,
+        time_grain: str,
+        time_offset: str | None = None,
+        join_column_producer: Any = None,
+    ) -> None:
+        """
+        Adds an offset join column to the provided DataFrame.
+
+        The function modifies the DataFrame in-place.
+
+        :param df: pandas DataFrame to which the offset join column will be added.
+        :param name: The name of the new column to be added.
+        :param time_grain: The time grain used to calculate the new column.
+        :param time_offset: The time offset used to calculate the new column.
+        :param join_column_producer: A function to generate the join column.
+        """
+        if join_column_producer:
+            df[name] = df.apply(lambda row: join_column_producer(row, 0), axis=1)
+        else:
+            df[name] = df.apply(
+                lambda row: self.generate_join_column(row, 0, time_grain, time_offset),
+                axis=1,
+            )
+
+    @staticmethod
+    def generate_join_column(
+        row: pd.Series,
+        column_index: int,
+        time_grain: str,
+        time_offset: str | None = None,
+    ) -> str:
+        value = row[column_index]
+
+        if hasattr(value, "strftime"):
+            if time_offset and not ExploreMixin.is_valid_date_range_static(time_offset):
+                value = value + DateOffset(**normalize_time_delta(time_offset))
+
+            if time_grain in (
+                TimeGrain.WEEK_STARTING_SUNDAY,
+                TimeGrain.WEEK_ENDING_SATURDAY,
+            ):
+                return value.strftime("%Y-W%U")
+
+            if time_grain in (
+                TimeGrain.WEEK,
+                TimeGrain.WEEK_STARTING_MONDAY,
+                TimeGrain.WEEK_ENDING_SUNDAY,
+            ):
+                return value.strftime("%Y-W%W")
+
+            if time_grain == TimeGrain.MONTH:
+                return value.strftime("%Y-%m")
+
+            if time_grain == TimeGrain.QUARTER:
+                return value.strftime("%Y-Q") + str(value.quarter)
+
+            if time_grain == TimeGrain.YEAR:
+                return value.strftime("%Y")
+
+        return str(value)
+
+    @staticmethod
+    def is_valid_date_range_static(date_range: str) -> bool:
+        """Static version of is_valid_date_range for use in static methods"""
+        try:
+            # Attempt to parse the string as a date range in the format
+            # YYYY-MM-DD:YYYY-MM-DD
+            start_date, end_date = date_range.split(":")
+            datetime.strptime(start_date.strip(), "%Y-%m-%d")
+            datetime.strptime(end_date.strip(), "%Y-%m-%d")
+            return True
+        except ValueError:
+            # If parsing fails, it's not a valid date range in the format
+            # YYYY-MM-DD:YYYY-MM-DD
+            return False
 
     def get_rendered_sql(
         self,
@@ -1236,15 +2053,23 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if parsed_script.statements:
             default_schema = self.database.get_default_schema(self.catalog)
             try:
+                rls_applied = False
                 for statement in parsed_script.statements:
-                    apply_rls(
+                    if apply_rls(
                         self.database,
                         self.catalog,
                         self.schema or default_schema or "",
                         statement,
-                    )
-                # Regenerate the SQL after RLS application
-                from_sql = parsed_script.format()
+                    ):
+                        rls_applied = True
+
+                # Only regenerate the SQL if RLS predicates were actually applied.
+                # Unnecessary round-tripping through sqlglot can alter SQL in
+                # dialect-specific ways (e.g. dropping column aliases, rewriting
+                # Redshift-specific syntax) and break virtual dataset queries.
+                if rls_applied:
+                    from_sql = parsed_script.format()
+
             except Exception as ex:
                 # Log the error but don't fail - RLS application is best-effort
                 logger.warning("Failed to apply RLS to virtual dataset SQL: %s", ex)
@@ -1344,6 +2169,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     not in {
                         utils.FilterOperator.ILIKE,
                         utils.FilterOperator.LIKE,
+                        utils.FilterOperator.NOT_ILIKE,
+                        utils.FilterOperator.NOT_LIKE,
                     }
                 ):
                     # For backwards compatibility and edge cases
@@ -1572,7 +2399,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         time_grain: Optional[str] = None,
         label: Optional[str] = "__time",
         template_processor: Optional[BaseTemplateProcessor] = None,
-    ) -> ColumnElement:
+    ) -> Optional[ColumnElement]:
         col = (
             time_col.get_timestamp_expression(
                 time_grain=time_grain,
@@ -1600,7 +2427,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     self.dttm_sql_literal(end_dttm, time_col)
                 )
             )
-        return and_(*l)
+        if not l:
+            return None
+        return and_(True, *l)
 
     def values_for_column(  # pylint: disable=too-many-locals
         self,
@@ -1986,6 +2815,21 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 col = self.convert_tbl_column_to_sqla_col(
                     columns_by_name[col], template_processor=template_processor
                 )
+            elif isinstance(col, str) and columns:
+                # Check if this is a label reference to an adhoc column
+                adhoc_col = next(
+                    (
+                        c
+                        for c in columns
+                        if utils.is_adhoc_column(c) and c.get("label") == col
+                    ),
+                    None,
+                )
+                if adhoc_col:
+                    col = self.adhoc_column_to_sqla(
+                        col=adhoc_col,
+                        template_processor=template_processor,
+                    )
 
             if isinstance(col, ColumnElement):
                 orderby_exprs.append(col)
@@ -2103,14 +2947,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 and self.main_dttm_col != dttm_col.column_name
                 and self.main_dttm_col not in removed_filters
             ):
-                time_filters.append(
-                    self.get_time_filter(
-                        time_col=columns_by_name[self.main_dttm_col],
-                        start_dttm=from_dttm,
-                        end_dttm=to_dttm,
-                        template_processor=template_processor,
-                    )
+                _main_dttm_filter = self.get_time_filter(
+                    time_col=columns_by_name[self.main_dttm_col],
+                    start_dttm=from_dttm,
+                    end_dttm=to_dttm,
+                    template_processor=template_processor,
                 )
+                if _main_dttm_filter is not None:
+                    time_filters.append(_main_dttm_filter)
 
             # Check if time filter should be skipped because it was handled in template.
             # Check both the actual column name and __timestamp alias
@@ -2126,7 +2970,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     end_dttm=to_dttm,
                     template_processor=template_processor,
                 )
-                time_filters.append(time_filter_column)
+                if time_filter_column is not None:
+                    time_filters.append(time_filter_column)
 
         # Always remove duplicates by column name, as sometimes `metrics_exprs`
         # can have the same name as a groupby column (e.g. when users use
@@ -2151,7 +2996,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         where_clause_and: list[ColumnElement] = []
         having_clause_and: list[ColumnElement] = []
 
-        for flt in filter:  # type: ignore
+        for flt in filter or []:
             if not all(flt.get(s) for s in ["col", "op"]):
                 continue
             flt_col = flt["col"]
@@ -2342,11 +3187,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             target_clause_list.append(sqla_col.like(eq))
                         else:
                             target_clause_list.append(sqla_col.ilike(eq))
-                    elif op in {utils.FilterOperator.NOT_LIKE}:
+                    elif op in {
+                        utils.FilterOperator.NOT_LIKE,
+                        utils.FilterOperator.NOT_ILIKE,
+                    }:
                         if target_generic_type != GenericDataType.STRING:
                             sqla_col = sa.cast(sqla_col, sa.String)
 
-                        target_clause_list.append(sqla_col.not_like(eq))
+                        if op == utils.FilterOperator.NOT_LIKE:
+                            target_clause_list.append(sqla_col.not_like(eq))
+                        else:
+                            target_clause_list.append(sqla_col.not_ilike(eq))
                     elif (
                         op == utils.FilterOperator.TEMPORAL_RANGE
                         and isinstance(eq, str)
@@ -2357,16 +3208,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             time_shift=time_shift,
                             extras=extras,
                         )
-                        target_clause_list.append(
-                            self.get_time_filter(
-                                time_col=col_obj,
-                                start_dttm=_since,
-                                end_dttm=_until,
-                                time_grain=flt_grain,
-                                label=sqla_col.key,
-                                template_processor=template_processor,
-                            )
+                        _temporal_filter = self.get_time_filter(
+                            time_col=col_obj,
+                            start_dttm=_since,
+                            end_dttm=_until,
+                            time_grain=flt_grain,
+                            label=sqla_col.key,
+                            template_processor=template_processor,
                         )
+                        if _temporal_filter is not None:
+                            target_clause_list.append(_temporal_filter)
                     else:
                         raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)
@@ -2386,7 +3237,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     schema=self.schema,
                     template_processor=template_processor,
                 )
-                where_clause_and += [self.text(where)]
+                where_clause_and += [Grouping(self.text(where))]
             having = extras.get("having")
             if having:
                 having = self._process_select_expression(
@@ -2396,7 +3247,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     schema=self.schema,
                     template_processor=template_processor,
                 )
-                having_clause_and += [self.text(having)]
+                having_clause_and += [Grouping(self.text(having))]
 
         if apply_fetch_values_predicate and self.fetch_values_predicate:
             qry = qry.where(
@@ -2404,10 +3255,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
 
         if granularity:
-            qry = qry.where(and_(*(time_filters + where_clause_and)))
-        else:
+            if time_filters or where_clause_and:
+                qry = qry.where(and_(*(time_filters + where_clause_and)))
+        elif where_clause_and:
             qry = qry.where(and_(*where_clause_and))
-        qry = qry.having(and_(*having_clause_and))
+        if having_clause_and:
+            qry = qry.having(and_(*having_clause_and))
 
         self.make_orderby_compatible(select_exprs, orderby_exprs)
 
@@ -2451,14 +3304,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 inner_time_filter = []
 
                 if dttm_col and not db_engine_spec.time_groupby_inline:
-                    inner_time_filter = [
-                        self.get_time_filter(
-                            time_col=dttm_col,
-                            start_dttm=inner_from_dttm or from_dttm,
-                            end_dttm=inner_to_dttm or to_dttm,
-                            template_processor=template_processor,
-                        )
-                    ]
+                    _inner_filter = self.get_time_filter(
+                        time_col=dttm_col,
+                        start_dttm=inner_from_dttm or from_dttm,
+                        end_dttm=inner_to_dttm or to_dttm,
+                        template_processor=template_processor,
+                    )
+                    if _inner_filter is not None:
+                        inner_time_filter = [_inner_filter]
                 subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
                 subq = subq.group_by(*inner_groupby_exprs)
 

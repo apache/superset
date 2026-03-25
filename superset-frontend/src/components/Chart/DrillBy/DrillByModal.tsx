@@ -18,6 +18,7 @@
  */
 
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { t } from '@apache-superset/core/translation';
 import {
   BinaryQueryObjectFilterClause,
   BaseFormData,
@@ -25,11 +26,11 @@ import {
   QueryData,
   ensureIsArray,
   isDefined,
-  t,
   ContextMenuFilters,
   AdhocFilter,
 } from '@superset-ui/core';
-import { css, useTheme, Alert } from '@apache-superset/core/ui';
+import { Alert } from '@apache-superset/core/components';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import {

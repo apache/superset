@@ -20,7 +20,7 @@ import {
   DEFAULT_SORT_SERIES_DATA,
   sections,
 } from '@superset-ui/chart-controls';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { LegendOrientation, LegendType } from '../types';
 import {
   OrientationType,
@@ -33,7 +33,7 @@ import {
 // } from '../constants';
 import { defaultXAxis } from '../defaults';
 
-// @ts-ignore
+// @ts-expect-error
 export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   // ...DEFAULT_LEGEND_FORM_DATA, // TODO: figure out why these break things for stories (e.g. Bubble Chart)
   // Here are the contents of DEFAULT_LEGEND_FORM_DATA:
@@ -46,7 +46,7 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   xAxisTitle: '',
   xAxisTitleMargin: 0,
   yAxisTitle: '',
-  yAxisTitleMargin: 0,
+  yAxisTitleMargin: 15,
   yAxisTitlePosition: 'Top',
   // Now that the weird bug workaround is over, here's the rest...
   ...DEFAULT_SORT_SERIES_DATA,

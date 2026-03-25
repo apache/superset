@@ -17,13 +17,58 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
-import { render, screen } from '@superset-ui/core/spec';
+import {
+  getTextColorForBackground,
+  ObjectFormattingEnum,
+} from '@superset-ui/chart-controls';
+import { supersetTheme } from '@apache-superset/core/theme';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from '@superset-ui/core/spec';
 import { cloneDeep } from 'lodash';
+import {
+  QueryMode,
+  TimeGranularity,
+  SMART_DATE_ID,
+  getTimeFormatterForGranularity,
+} from '@superset-ui/core';
 import TableChart, { sanitizeHeaderId } from '../src/TableChart';
+import { GenericDataType } from '@apache-superset/core/common';
 import transformProps from '../src/transformProps';
 import DateWithFormatter from '../src/utils/DateWithFormatter';
 import testData from './testData';
 import { ProviderWrapper } from './testHelpers';
+
+const expectValidAriaLabels = (container: HTMLElement) => {
+  const allCells = container.querySelectorAll('tbody td');
+  const cellsWithLabels = container.querySelectorAll(
+    'tbody td[aria-labelledby]',
+  );
+
+  // Table must render data cells (catch empty table regression)
+  expect(allCells.length).toBeGreaterThan(0);
+
+  // ALL data cells must have aria-labelledby (no unlabeled cells)
+  expect(cellsWithLabels.length).toBe(allCells.length);
+
+  // ALL aria-labelledby values should be valid
+  cellsWithLabels.forEach(cell => {
+    const labelledBy = cell.getAttribute('aria-labelledby');
+    expect(labelledBy).not.toBeNull();
+    expect(labelledBy).toEqual(expect.stringMatching(/\S/));
+    const labelledByValue = labelledBy as string;
+    expect(labelledByValue).not.toMatch(/\s/);
+    expect(labelledByValue).not.toMatch(/[%#△]/);
+    const referencedHeader = container.querySelector(
+      `#${CSS.escape(labelledByValue)}`,
+    );
+    expect(referencedHeader).toBeTruthy();
+  });
+};
 
 test('sanitizeHeaderId should sanitize percent sign', () => {
   expect(sanitizeHeaderId('%pct_nice')).toBe('percentpct_nice');
@@ -342,6 +387,52 @@ describe('plugin-chart-table', () => {
       expect(percentMetric2?.originalLabel).toBe('metric_2');
     });
 
+    test('should not apply time grain formatting in Raw Records mode', () => {
+      const rawRecordsProps = {
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          query_mode: QueryMode.Raw,
+          time_grain_sqla: TimeGranularity.MONTH,
+          table_timestamp_format: SMART_DATE_ID,
+        },
+      };
+
+      const transformedProps = transformProps(rawRecordsProps);
+      const timestampColumn = transformedProps.columns.find(
+        col => col.key === '__timestamp',
+      );
+
+      expect(timestampColumn).toBeDefined();
+      const testValue = new Date('2023-01-15T10:30:45');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const formatted = (timestampColumn?.formatter as any)?.(testValue);
+      const granularityFormatted = getTimeFormatterForGranularity(
+        TimeGranularity.MONTH,
+      )(testValue as number | Date | null);
+      expect(formatted).not.toBe(granularityFormatted);
+      expect(typeof formatted).toBe('string');
+      expect(formatted).toContain('2023');
+    });
+
+    test('should handle null/undefined timestamp values correctly', () => {
+      const rawRecordsProps = {
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          query_mode: QueryMode.Raw,
+        },
+      };
+
+      const transformedProps = transformProps(rawRecordsProps);
+      expect(transformedProps.isRawRecords).toBe(true);
+
+      const timestampColumn = transformedProps.columns.find(
+        col => col.key === '__timestamp',
+      );
+      expect(timestampColumn).toBeDefined();
+    });
+
     describe('TableChart', () => {
       test('render basic data', () => {
         render(
@@ -351,7 +442,8 @@ describe('plugin-chart-table', () => {
         const firstDataRow = screen.getAllByRole('rowgroup')[1];
         const cells = firstDataRow.querySelectorAll('td');
         expect(cells).toHaveLength(12);
-        expect(cells[0]).toHaveTextContent('2020-01-01 12:34:56');
+        // Date is rendered as ISO string format
+        expect(cells[0]).toHaveTextContent('2020-01-01T12:34:56');
         expect(cells[1]).toHaveTextContent('Michael');
         // number is not in `metrics` list, so it should output raw value
         // (in real world Superset, this would mean the column is used in GROUP BY)
@@ -582,6 +674,52 @@ describe('plugin-chart-table', () => {
         );
         expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
       });
+
+      test('preserves muted null styling when no formatter resolves text color', () => {
+        const dataWithEmptyCell = cloneDeep(testData.advanced.queriesData[0]);
+        dataWithEmptyCell.data.push({
+          __timestamp: null,
+          name: 'Noah',
+          sum__num: null,
+          '%pct_nice': 0.643,
+          'abc.com': 'bazzinga',
+        });
+
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  queriesData: [dataWithEmptyCell],
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'sum__num',
+                        operator: '<',
+                        targetValue: 12342,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        const noahRow = screen.getByText('Noah').closest('tr');
+        expect(noahRow).not.toBeNull();
+
+        const nullCell = noahRow?.querySelector('td.dt-is-null');
+        expect(nullCell).not.toBeNull();
+        expect((nullCell as HTMLElement).style.color).toBe('');
+        expect(getComputedStyle(nullCell as Element).color).toBe(
+          'rgba(0, 0, 0, 0.45)',
+        );
+      });
+
       test('should display original label in grouped headers', () => {
         const props = transformProps(testData.comparison);
 
@@ -602,7 +740,7 @@ describe('plugin-chart-table', () => {
         // Uses originalLabel (e.g., "metric_1") which is sanitized for CSS safety
         const props = transformProps(testData.comparison);
 
-        const { container } = render(<TableChart {...props} sticky={false} />);
+        render(<TableChart {...props} sticky={false} />);
 
         const headers = screen.getAllByRole('columnheader');
 
@@ -632,25 +770,71 @@ describe('plugin-chart-table', () => {
           // IDs should only contain valid characters: alphanumeric, underscore, hyphen
           expect(header.id).toMatch(/^header-[a-zA-Z0-9_-]+$/);
         });
+      });
 
-        // CRITICAL: Verify ALL cells reference valid headers (no broken ARIA)
-        const cellsWithLabels = container.querySelectorAll(
-          'td[aria-labelledby]',
+      test('should validate ARIA references for time-comparison table cells', () => {
+        // Test that ALL cells with aria-labelledby have valid references
+        // This is critical for screen reader accessibility
+        const props = transformProps(testData.comparison);
+
+        const { container } = render(<TableChart {...props} sticky={false} />);
+
+        expectValidAriaLabels(container);
+      });
+
+      test('should align group headers correctly when some comparison columns are hidden (#37074)', () => {
+        // Test that group headers align correctly when columns have visible: false
+        // This reproduces issue #37074 where headers became misaligned
+        const props = transformProps(testData.comparisonWithHiddenColumns);
+
+        const { container } = render(<TableChart {...props} sticky={false} />);
+
+        // Get all header rows - first row contains group headers, second row contains column headers
+        const headerRows = container.querySelectorAll('thead tr');
+        expect(headerRows.length).toBe(2);
+
+        // Get group headers from the first row (th elements with colSpan > 1 or group headers)
+        const groupHeaderRow = headerRows[0];
+        const groupHeaders = groupHeaderRow.querySelectorAll('th');
+
+        // Extract group header text content (filter out empty placeholder headers)
+        const groupHeaderTexts = Array.from(groupHeaders)
+          .map(th => th.textContent?.trim())
+          .filter(text => text && text.length > 0);
+
+        // Verify metric_1 group header appears before metric_2
+        // With hidden columns: metric_1 has 2 visible columns (△, %), metric_2 has 4 (Main, #, △, %)
+        const metric1Index = groupHeaderTexts.findIndex(
+          text => text?.includes('metric_1') || text?.includes('Metric 1'),
         );
-        cellsWithLabels.forEach(cell => {
-          const labelledBy = cell.getAttribute('aria-labelledby');
-          if (labelledBy) {
-            // Check that the ID doesn't contain spaces (would be interpreted as multiple IDs)
-            expect(labelledBy).not.toMatch(/\s/);
-            // Check that the ID doesn't contain special characters
-            expect(labelledBy).not.toMatch(/[%#△]/);
-            // Verify the referenced header actually exists
-            const referencedHeader = container.querySelector(
-              `#${CSS.escape(labelledBy)}`,
-            );
-            expect(referencedHeader).toBeTruthy();
-          }
-        });
+        const metric2Index = groupHeaderTexts.findIndex(
+          text => text?.includes('metric_2') || text?.includes('Metric 2'),
+        );
+
+        // Both headers should exist and metric_1 should come before metric_2
+        expect(metric1Index).toBeGreaterThanOrEqual(0);
+        expect(metric2Index).toBeGreaterThanOrEqual(0);
+        expect(metric1Index).toBeLessThan(metric2Index);
+
+        // Verify colSpan values match the number of visible columns
+        const metric1Header = Array.from(groupHeaders).find(
+          th =>
+            th.textContent?.includes('metric_1') ||
+            th.textContent?.includes('Metric 1'),
+        );
+        const metric2Header = Array.from(groupHeaders).find(
+          th =>
+            th.textContent?.includes('metric_2') ||
+            th.textContent?.includes('Metric 2'),
+        );
+
+        // metric_1 should span 2 columns (△ and % are visible, Main and # are hidden)
+        expect(metric1Header?.getAttribute('colspan')).toBe('2');
+        // metric_2 should span 4 columns (all visible)
+        expect(metric2Header?.getAttribute('colspan')).toBe('4');
+
+        // Verify ARIA labels are still valid after filtering
+        expectValidAriaLabels(container);
       });
 
       test('should set meaningful header IDs for regular table columns', () => {
@@ -711,25 +895,20 @@ describe('plugin-chart-table', () => {
           // IDs should only contain valid CSS selector characters
           expect(header.id).toMatch(/^header-[a-zA-Z0-9_-]+$/);
         });
+      });
 
-        // Test 6: Verify ALL cells reference valid headers (no broken ARIA)
-        const cellsWithLabels = container.querySelectorAll(
-          'td[aria-labelledby]',
+      test('should validate ARIA references for regular table cells', () => {
+        // Test that ALL cells with aria-labelledby have valid references
+        // This is critical for screen reader accessibility
+        const props = transformProps(testData.advanced);
+
+        const { container } = render(
+          ProviderWrapper({
+            children: <TableChart {...props} sticky={false} />,
+          }),
         );
-        cellsWithLabels.forEach(cell => {
-          const labelledBy = cell.getAttribute('aria-labelledby');
-          if (labelledBy) {
-            // Verify no spaces (would be interpreted as multiple IDs)
-            expect(labelledBy).not.toMatch(/\s/);
-            // Verify no special characters
-            expect(labelledBy).not.toMatch(/[%#△]/);
-            // Verify the referenced header actually exists
-            const referencedHeader = container.querySelector(
-              `#${CSS.escape(labelledBy)}`,
-            );
-            expect(referencedHeader).toBeTruthy();
-          }
-        });
+
+        expectValidAriaLabels(container);
       });
 
       test('render cell bars properly, and only when it is toggled on in both regular and percent metrics', () => {
@@ -780,6 +959,77 @@ describe('plugin-chart-table', () => {
           }),
         );
         cells = document.querySelectorAll('td');
+      });
+
+      test('render cell bars even when column contains NULL values', () => {
+        const props = transformProps({
+          ...testData.raw,
+          queriesData: [
+            {
+              ...testData.raw.queriesData[0],
+              colnames: ['category', 'value1', 'value2', 'value3', 'value4'],
+              coltypes: [
+                GenericDataType.String,
+                GenericDataType.Numeric,
+                GenericDataType.Numeric,
+                GenericDataType.Numeric,
+                GenericDataType.Numeric,
+              ],
+              data: [
+                {
+                  category: 'Category A',
+                  value1: 10,
+                  value2: 20,
+                  value3: 30,
+                  value4: null,
+                },
+                {
+                  category: 'Category B',
+                  value1: 15,
+                  value2: 25,
+                  value3: 35,
+                  value4: 100,
+                },
+                {
+                  category: 'Category C',
+                  value1: 18,
+                  value2: 28,
+                  value3: 38,
+                  value4: null,
+                },
+              ],
+            },
+          ],
+          rawFormData: {
+            ...testData.raw.rawFormData,
+            show_cell_bars: true,
+            metrics: ['value1', 'value2', 'value3', 'value4'],
+          },
+        });
+
+        const { container } = render(
+          ProviderWrapper({
+            children: <TableChart {...props} sticky={false} />,
+          }),
+        );
+
+        // Get all cell bars - should exist for both columns with and without NULL values
+        const cellBars = container.querySelectorAll('div.cell-bar');
+
+        // Should have cell bars in all numeric columns, even those with NULL values
+        // value1, value2, value3 all have 3 values, value4 has 1 non-NULL value
+        // Total: 3 + 3 + 3 + 1 = 10 cell bars
+        expect(cellBars.length).toBeGreaterThan(0);
+
+        // Specifically check that value4 column (which has NULLs) still renders bars for non-NULL cells
+        const rows = container.querySelectorAll('tbody tr');
+        expect(rows.length).toBe(3);
+
+        // Row 2 should have a cell bar in value4 column (value: 100)
+        const row2Cells = rows[1].querySelectorAll('td');
+        const value4Cell = row2Cells[4]; // 5th column (0-indexed)
+        const value4Bar = value4Cell.querySelector('div.cell-bar');
+        expect(value4Bar).toBeTruthy();
       });
 
       test('render color with string column color formatter(operator begins with)', () => {
@@ -967,6 +1217,128 @@ describe('plugin-chart-table', () => {
         );
       });
 
+      test('render color with boolean column color formatter (operator is true)', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.nameAndBoolean,
+                  rawFormData: {
+                    ...testData.nameAndBoolean.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'is_adult',
+                        operator: 'is true',
+                        targetValue: '',
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+        expect(getComputedStyle(screen.getByText('true')).background).toBe(
+          'rgba(172, 225, 196, 1)',
+        );
+        expect(getComputedStyle(screen.getByText('false')).background).toBe('');
+      });
+
+      test('render color with boolean column color formatter (operator is false)', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.nameAndBoolean,
+                  rawFormData: {
+                    ...testData.nameAndBoolean.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'is_adult',
+                        operator: 'is false',
+                        targetValue: '',
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+        expect(getComputedStyle(screen.getByText('false')).background).toBe(
+          'rgba(172, 225, 196, 1)',
+        );
+        expect(getComputedStyle(screen.getByText('true')).background).toBe('');
+      });
+
+      test('render color with boolean column color formatter (operator is null)', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.nameAndBoolean,
+                  rawFormData: {
+                    ...testData.nameAndBoolean.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'is_adult',
+                        operator: 'is null',
+                        targetValue: '',
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+        expect(getComputedStyle(screen.getByText('N/A')).background).toBe(
+          'rgba(172, 225, 196, 1)',
+        );
+        expect(getComputedStyle(screen.getByText('true')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('false')).background).toBe('');
+      });
+
+      test('render color with boolean column color formatter (operator is not null)', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.nameAndBoolean,
+                  rawFormData: {
+                    ...testData.nameAndBoolean.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'is_adult',
+                        operator: 'is not null',
+                        targetValue: '',
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+        const trueElements = screen.getAllByText('true');
+        const falseElements = screen.getAllByText('false');
+        expect(getComputedStyle(trueElements[0]).background).toBe(
+          'rgba(172, 225, 196, 1)',
+        );
+        expect(getComputedStyle(falseElements[0]).background).toBe(
+          'rgba(172, 225, 196, 1)',
+        );
+        expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
+      });
+
       test('render color with column color formatter to entire row', () => {
         render(
           ProviderWrapper({
@@ -982,7 +1354,7 @@ describe('plugin-chart-table', () => {
                         column: 'sum__num',
                         operator: '>',
                         targetValue: 2467,
-                        toAllRow: true,
+                        columnFormatting: ObjectFormattingEnum.ENTIRE_ROW,
                       },
                     ],
                   },
@@ -1018,7 +1390,7 @@ describe('plugin-chart-table', () => {
                         column: 'sum__num',
                         operator: '>',
                         targetValue: 2467,
-                        toTextColor: true,
+                        objectFormatting: ObjectFormattingEnum.TEXT_COLOR,
                       },
                     ],
                   },
@@ -1029,11 +1401,9 @@ describe('plugin-chart-table', () => {
         );
 
         expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).color).toBe(
-          'rgba(0, 0, 0, 0.88)',
-        );
+        expect((screen.getByTitle('2467') as HTMLElement).style.color).toBe('');
       });
 
       test('display text color using column color formatter for entire row', () => {
@@ -1051,8 +1421,8 @@ describe('plugin-chart-table', () => {
                         column: 'sum__num',
                         operator: '>',
                         targetValue: 2467,
-                        toAllRow: true,
-                        toTextColor: true,
+                        columnFormatting: ObjectFormattingEnum.ENTIRE_ROW,
+                        objectFormatting: ObjectFormattingEnum.TEXT_COLOR,
                       },
                     ],
                   },
@@ -1063,14 +1433,358 @@ describe('plugin-chart-table', () => {
         );
 
         expect(getComputedStyle(screen.getByText('Michael')).color).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByTitle('0.123456')).color).toBe(
+          'rgb(172, 225, 196)',
+        );
+      });
+
+      test('derive readable text color from dark background formatting', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#111111',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        useGradient: false,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+          'rgb(17, 17, 17)',
+        );
+        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
+          'rgb(255, 255, 255)',
+        );
+      });
+
+      test('keep explicit text color over adaptive contrast', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#111111',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        useGradient: false,
+                      },
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        objectFormatting: ObjectFormattingEnum.TEXT_COLOR,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+          'rgb(17, 17, 17)',
+        );
+        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
+          'rgb(172, 225, 196)',
+        );
+      });
+
+      test('support legacy toTextColor formatters', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#111111',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        useGradient: false,
+                      },
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        toTextColor: true,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+          'rgb(17, 17, 17)',
+        );
+        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
+          'rgb(172, 225, 196)',
+        );
+      });
+
+      test('use striped row surface when deriving adaptive text color', () => {
+        const backgroundColor = Array.from(
+          { length: 0xff },
+          (_, index) => `#000000${(index + 1).toString(16).padStart(2, '0')}`,
+        ).find(candidate => {
+          const baseColor = getTextColorForBackground(
+            { backgroundColor: candidate },
+            supersetTheme.colorBgBase,
+          );
+          const layoutColor = getTextColorForBackground(
+            { backgroundColor: candidate },
+            supersetTheme.colorBgLayout,
+          );
+          return baseColor !== layoutColor;
+        });
+
+        expect(backgroundColor).toBeDefined();
+
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: backgroundColor,
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2000,
+                        useGradient: false,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
+          getTextColorForBackground(
+            { backgroundColor },
+            supersetTheme.colorBgLayout,
+          ),
+        );
+        expect(getComputedStyle(screen.getByTitle('2467')).color).toBe(
+          getTextColorForBackground(
+            { backgroundColor },
+            supersetTheme.colorBgBase,
+          ),
+        );
+      });
+
+      test('render color with useGradient false returns solid color', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        useGradient: false,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        // When useGradient is false, should return solid color (no opacity variation)
+        // The color should be the same for all matching values
+        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+          'rgb(172, 225, 196)',
+        );
+        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
+      });
+
+      test('render color with useGradient true returns gradient color', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        useGradient: true,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        // When useGradient is true, should return gradient color with opacity
+        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
           'rgba(172, 225, 196, 1)',
         );
+        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
+      });
+
+      test('render color with useGradient undefined defaults to gradient (backward compatibility)', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        // When useGradient is undefined, should default to gradient for backward compatibility
+        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+          'rgba(172, 225, 196, 1)',
+        );
+        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
+      });
+
+      test('render color with useGradient false and None operator returns solid color', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'sum__num',
+                        operator: 'None',
+                        useGradient: false,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        // When useGradient is false with None operator, all values should have solid color
+        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+          'rgb(172, 225, 196)',
+        );
+        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
+          'rgb(172, 225, 196)',
+        );
+      });
+
+      test('recalculates totals when user filters data', async () => {
+        const formDataWithTotals = {
+          ...testData.basic.formData,
+          show_totals: true,
+          include_search: true,
+          server_pagination: false,
+          metrics: ['sum__num'],
+        };
+
+        const { data } = testData.basic.queriesData[0];
+        const totalBeforeFilter = data.reduce(
+          (sum, row) => sum + Number(row.sum__num || 0),
+          0,
+        );
+        const totalAfterFilter =
+          data.find(item => item.name === 'Michael')?.sum__num || 0;
+
+        const props = transformProps({
+          ...testData.basic,
+          formData: formDataWithTotals,
+        });
+        props.totals = { sum__num: totalBeforeFilter };
+        props.includeSearch = true;
+        render(
+          <ProviderWrapper>
+            <TableChart {...props} sticky={false} />
+          </ProviderWrapper>,
+        );
+
+        const table = screen.getByRole('table');
+        const totalCellBefore = within(table).getByText(
+          String(totalBeforeFilter),
+        );
+        expect(totalCellBefore).toBeInTheDocument();
+
+        const searchInput = screen.getByRole('textbox');
+        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+
+        await waitFor(() => {
+          const totalCellAfter = within(table).getByText(
+            String(totalAfterFilter),
+          );
+          expect(totalCellAfter).toBeInTheDocument();
+        });
       });
     });
   });

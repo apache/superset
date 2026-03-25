@@ -19,7 +19,7 @@
 import { getColorControlsProps } from '../../src';
 
 describe('getColorControlsProps', () => {
-  it('should return default values when state is empty', () => {
+  test('should return default values when state is empty', () => {
     const state = {};
     const result = getColorControlsProps(state);
     expect(result).toEqual({
@@ -33,7 +33,7 @@ describe('getColorControlsProps', () => {
     });
   });
 
-  it('should return correct values when state has form_data with dashboardId and color scheme', () => {
+  test('should return correct values when state has form_data with dashboardId and color scheme', () => {
     const state = {
       form_data: {
         dashboardId: 123,
@@ -54,7 +54,7 @@ describe('getColorControlsProps', () => {
     });
   });
 
-  it('should detect custom label colors correctly', () => {
+  test('should detect custom label colors correctly', () => {
     const state = {
       form_data: {
         dashboardId: 123,
@@ -74,7 +74,7 @@ describe('getColorControlsProps', () => {
     });
   });
 
-  it('should return shared label colors when available', () => {
+  test('should return shared label colors when available', () => {
     const state = {
       form_data: {
         shared_label_colors: ['#FF5733', '#33FF57'],
@@ -92,7 +92,7 @@ describe('getColorControlsProps', () => {
     });
   });
 
-  it('should handle missing form_data and slice properties', () => {
+  test('should handle missing form_data and slice properties', () => {
     const state = {
       form_data: {
         dashboardId: 789,

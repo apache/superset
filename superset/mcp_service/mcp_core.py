@@ -107,16 +107,30 @@ class ModelListCore(BaseCore, Generic[L]):
         list_field_name: str,
         output_list_schema: Type[L],
         logger: logging.Logger | None = None,
+        all_columns: List[str] | None = None,
+        sortable_columns: List[str] | None = None,
     ) -> None:
         super().__init__(logger)
         self.dao_class = dao_class
         self.output_schema = output_schema
         self.item_serializer = item_serializer
         self.filter_type = filter_type
-        self.default_columns = default_columns
-        self.search_columns = search_columns
+        self.default_columns = list(default_columns)  # Copy to prevent mutation
+        self.search_columns = list(search_columns)  # Copy to prevent mutation
         self.list_field_name = list_field_name
         self.output_list_schema = output_list_schema
+        self._all_columns = list(all_columns) if all_columns else list(default_columns)
+        self._sortable_columns = list(sortable_columns) if sortable_columns else []
+
+    @property
+    def all_columns(self) -> List[str]:
+        """Return a copy of all_columns to prevent external mutation."""
+        return list(self._all_columns)
+
+    @property
+    def sortable_columns(self) -> List[str]:
+        """Return a copy of sortable_columns to prevent external mutation."""
+        return list(self._sortable_columns)
 
     def run_tool(
         self,
@@ -128,17 +142,19 @@ class ModelListCore(BaseCore, Generic[L]):
         page: int = 0,
         page_size: int = 10,
     ) -> L:
-        # If filters is a string (e.g., from a test), parse it as JSON
-        if isinstance(filters, str):
-            from superset.utils import json
+        # Parse filters using generic utility (accepts JSON string or object)
+        from superset.mcp_service.utils.schema_utils import (
+            parse_json_or_list,
+            parse_json_or_passthrough,
+        )
 
-            filters = json.loads(filters)
-        # Ensure select_columns is a list and track what was requested
+        filters = parse_json_or_passthrough(filters, param_name="filters")
+
+        # Parse select_columns using generic utility (accepts JSON, list, or CSV)
         if select_columns:
-            if isinstance(select_columns, str):
-                select_columns = [
-                    col.strip() for col in select_columns.split(",") if col.strip()
-                ]
+            select_columns = parse_json_or_list(
+                select_columns, param_name="select_columns"
+            )
             columns_to_load = select_columns
             columns_requested = select_columns
         else:
@@ -165,8 +181,11 @@ class ModelListCore(BaseCore, Generic[L]):
         total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 0
         from superset.mcp_service.system.schemas import PaginationInfo
 
+        # Report 1-based page in response to match the 1-based input convention
+        # used by all list tool wrappers (list_charts, list_datasets, etc.)
+        page_1based = page + 1
         pagination_info = PaginationInfo(
-            page=page,
+            page=page_1based,
             page_size=page_size,
             total_count=total_count,
             total_pages=total_pages,
@@ -186,13 +205,15 @@ class ModelListCore(BaseCore, Generic[L]):
             self.list_field_name: item_objs,
             "count": len(item_objs),
             "total_count": total_count,
-            "page": page,
+            "page": page_1based,
             "page_size": page_size,
             "total_pages": total_pages,
             "has_previous": page > 0,
             "has_next": page < total_pages - 1,
             "columns_requested": columns_requested,
             "columns_loaded": columns_to_load,
+            "columns_available": self.all_columns,
+            "sortable_columns": self.sortable_columns,
             "filters_applied": filters if isinstance(filters, list) else [],
             "pagination": pagination_info,
             "timestamp": datetime.now(timezone.utc),
@@ -222,6 +243,7 @@ class ModelGetInfoCore(BaseCore):
         serializer: Callable[[T], BaseModel],
         supports_slug: bool = False,
         logger: logging.Logger | None = None,
+        query_options: list[Any] | None = None,
     ) -> None:
         super().__init__(logger)
         self.dao_class = dao_class
@@ -229,29 +251,35 @@ class ModelGetInfoCore(BaseCore):
         self.error_schema = error_schema
         self.serializer = serializer
         self.supports_slug = supports_slug
+        self.query_options = query_options or []
 
     def _find_object(self, identifier: int | str) -> Any:
         """Find object by identifier using appropriate method."""
+        opts = self.query_options or None
         # If it's an integer or string that can be converted to int, use find_by_id
         if isinstance(identifier, int):
-            return self.dao_class.find_by_id(identifier)
+            return self.dao_class.find_by_id(identifier, query_options=opts)
 
         try:
             # Try to convert string to int
             id_val = int(identifier)
-            return self.dao_class.find_by_id(id_val)
+            return self.dao_class.find_by_id(id_val, query_options=opts)
         except ValueError:
             pass
 
         # Check if it's a UUID
         if _is_uuid(identifier):
             # Use the new flexible find_by_id with uuid column
-            return self.dao_class.find_by_id(identifier, id_column="uuid")
+            return self.dao_class.find_by_id(
+                identifier, id_column="uuid", query_options=opts
+            )
 
         # For dashboards, also check slug
         if self.supports_slug:
             # Try to find by slug using the new flexible method
-            result = self.dao_class.find_by_id(identifier, id_column="slug")
+            result = self.dao_class.find_by_id(
+                identifier, id_column="slug", query_options=opts
+            )
             if result:
                 return result
 
@@ -260,11 +288,10 @@ class ModelGetInfoCore(BaseCore):
             from superset.models.dashboard import id_or_slug_filter
 
             model_class = self.dao_class.model_cls
-            return (
-                db.session.query(model_class)
-                .filter(id_or_slug_filter(identifier))
-                .one_or_none()
-            )
+            query = db.session.query(model_class).filter(id_or_slug_filter(identifier))
+            if opts:
+                query = query.options(*opts)
+            return query.one_or_none()
 
         # If we get here, it's an invalid identifier
         return None
@@ -471,34 +498,110 @@ class InstanceInfoCore(BaseCore):
             raise
 
 
-class ModelGetAvailableFiltersCore(BaseCore, Generic[S]):
+class ModelGetSchemaCore(BaseCore, Generic[S]):
     """
-    Generic tool for retrieving available filterable columns and operators for a
-    model. Used for get_dataset_available_filters, get_chart_available_filters,
-    get_dashboard_available_filters, etc.
+    Generic tool for retrieving comprehensive schema metadata for a model type.
+
+    Provides unified schema discovery for list tools:
+    - select_columns: All columns available for selection
+    - filter_columns: Filterable columns with their operators
+    - sortable_columns: Columns valid for order_column
+    - default_columns: Columns returned when select_columns not specified
+    - search_columns: Columns searched by the search parameter
+    - default_sort: Default column for sorting
+    - default_sort_direction: Default sort direction ("asc" or "desc")
+
+    Replaces the individual get_*_available_filters tools with a unified approach.
     """
 
     def __init__(
         self,
+        model_type: Literal["chart", "dataset", "dashboard"],
         dao_class: Type[BaseDAO[Any]],
         output_schema: Type[S],
+        select_columns: List[Any],
+        sortable_columns: List[str],
+        default_columns: List[str],
+        search_columns: List[str],
+        default_sort: str = "changed_on",
+        default_sort_direction: Literal["asc", "desc"] = "desc",
         logger: logging.Logger | None = None,
     ) -> None:
+        """
+        Initialize the schema discovery core.
+
+        Args:
+            model_type: The type of model (chart, dataset, dashboard)
+            dao_class: The DAO class to query for filter columns
+            output_schema: Pydantic schema for the response (e.g., ModelSchemaInfo)
+            select_columns: Column metadata (List[ColumnMetadata] or similar)
+            sortable_columns: Column names that support sorting
+            default_columns: Column names returned by default
+            search_columns: Column names used for text search
+            default_sort: Default sort column
+            default_sort_direction: Default sort direction
+            logger: Optional logger instance
+        """
         super().__init__(logger)
+        self.model_type = model_type
         self.dao_class = dao_class
         self.output_schema = output_schema
+        self.select_columns = select_columns
+        self.sortable_columns = sortable_columns
+        self.default_columns = default_columns
+        self.search_columns = search_columns
+        self.default_sort = default_sort
+        self.default_sort_direction = default_sort_direction
 
-    def run_tool(self) -> S:
+    def _get_filter_columns(self) -> Dict[str, List[str]]:
+        """Get filterable columns and operators from the DAO."""
         try:
             filterable = self.dao_class.get_filterable_columns_and_operators()
-            # Ensure column_operators is a plain dict, not a custom type
-            column_operators = dict(filterable)
-            response = self.output_schema(column_operators=column_operators)
+            # Defensive handling: ensure we have a valid mapping
+            if filterable is None:
+                return {}
+            # Convert to dict safely - handle both dict and dict-like objects
+            if isinstance(filterable, dict):
+                return dict(filterable)
+            # Try to convert mapping-like objects
+            try:
+                return dict(filterable)
+            except (TypeError, ValueError):
+                self._log_warning(
+                    f"Unexpected filter columns type for {self.model_type}: "
+                    f"{type(filterable)}"
+                )
+                return {}
+        except Exception as e:
+            self._log_warning(
+                f"Failed to get filter columns for {self.model_type}: {e}"
+            )
+            return {}
+
+    def run_tool(self) -> S:
+        """Execute schema discovery and return comprehensive schema info."""
+        try:
+            filter_columns = self._get_filter_columns()
+
+            response = self.output_schema(
+                model_type=self.model_type,
+                select_columns=self.select_columns,
+                filter_columns=filter_columns,
+                sortable_columns=self.sortable_columns,
+                default_select=self.default_columns,
+                default_sort=self.default_sort,
+                default_sort_direction=self.default_sort_direction,
+                search_columns=self.search_columns,
+            )
+
+            select_count = len(self.select_columns) if self.select_columns else 0
             self._log_info(
-                f"Successfully retrieved available filters for "
-                f"{self.dao_class.__class__.__name__}"
+                f"Successfully retrieved schema for {self.model_type}: "
+                f"{select_count} select columns, "
+                f"{len(filter_columns)} filter columns, "
+                f"{len(self.sortable_columns)} sortable columns"
             )
             return response
-        except Exception as e:
-            self._log_error(e)
+        except (AttributeError, TypeError, ValueError) as e:
+            self._log_error(e, f"getting schema for {self.model_type}")
             raise

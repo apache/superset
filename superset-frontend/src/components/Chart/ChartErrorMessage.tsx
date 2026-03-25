@@ -49,6 +49,7 @@ export const ChartErrorMessage: FC<Props> = ({ chartId, error, ...props }) => {
       {...props}
       error={ownedError}
       title={DEFAULT_CHART_ERROR}
+      closable={false}
     />
   );
 };

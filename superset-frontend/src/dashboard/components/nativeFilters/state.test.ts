@@ -296,3 +296,214 @@ test('filter with chartsInScope takes precedence over rootPath', () => {
   const { result } = renderHook(() => useIsFilterInScope());
   expect(result.current(filter)).toBe(true);
 });
+
+test('filter should be hidden on excluded nested tab even when parent tab is active', () => {
+  (useSelector as jest.Mock).mockImplementation((selector: Function) => {
+    const mockState = {
+      dashboardState: { activeTabs: ['TAB-Parent1', 'TAB-P1_Child2'] },
+      dashboardLayout: {
+        present: {
+          'CHART-1': {
+            type: 'CHART',
+            meta: { chartId: 1 },
+            parents: ['ROOT_ID', 'TAB-Parent1', 'TAB-P1_Child1'],
+          },
+          'CHART-2': {
+            type: 'CHART',
+            meta: { chartId: 2 },
+            parents: ['ROOT_ID', 'TAB-Parent1', 'TAB-P1_Child1'],
+          },
+          'CHART-5': {
+            type: 'CHART',
+            meta: { chartId: 5 },
+            parents: ['ROOT_ID', 'TAB-Parent2'],
+          },
+          'CHART-6': {
+            type: 'CHART',
+            meta: { chartId: 6 },
+            parents: ['ROOT_ID', 'TAB-Parent2'],
+          },
+          'TAB-Parent1': { type: 'TAB', id: 'TAB-Parent1' },
+          'TAB-P1_Child1': { type: 'TAB', id: 'TAB-P1_Child1' },
+          'TAB-P1_Child2': { type: 'TAB', id: 'TAB-P1_Child2' },
+          'TAB-Parent2': { type: 'TAB', id: 'TAB-Parent2' },
+        },
+      },
+    };
+    return selector(mockState);
+  });
+
+  const filter: Filter = {
+    id: 'filter_nested',
+    name: 'Nested Tab Filter',
+    filterType: 'filter_select',
+    type: NativeFilterType.NativeFilter,
+    chartsInScope: [1, 2, 5, 6],
+    scope: { rootPath: ['TAB-P1_Child1', 'TAB-Parent2'], excluded: [3, 4] },
+    controlValues: {},
+    defaultDataMask: {},
+    cascadeParentIds: [],
+    targets: [{ column: { name: 'column_name' }, datasetId: 1 }],
+    description: 'Filter excluding P1_Child2',
+  };
+
+  const { result } = renderHook(() => useIsFilterInScope());
+  expect(result.current(filter)).toBe(false);
+});
+
+test('filter should be visible on included nested tab', () => {
+  (useSelector as jest.Mock).mockImplementation((selector: Function) => {
+    const mockState = {
+      dashboardState: { activeTabs: ['TAB-Parent1', 'TAB-P1_Child1'] },
+      dashboardLayout: {
+        present: {
+          'CHART-1': {
+            type: 'CHART',
+            meta: { chartId: 1 },
+            parents: ['ROOT_ID', 'TAB-Parent1', 'TAB-P1_Child1'],
+          },
+          'CHART-2': {
+            type: 'CHART',
+            meta: { chartId: 2 },
+            parents: ['ROOT_ID', 'TAB-Parent1', 'TAB-P1_Child1'],
+          },
+          'TAB-Parent1': { type: 'TAB', id: 'TAB-Parent1' },
+          'TAB-P1_Child1': { type: 'TAB', id: 'TAB-P1_Child1' },
+          'TAB-P1_Child2': { type: 'TAB', id: 'TAB-P1_Child2' },
+        },
+      },
+    };
+    return selector(mockState);
+  });
+
+  const filter: Filter = {
+    id: 'filter_nested_visible',
+    name: 'Nested Tab Filter Visible',
+    filterType: 'filter_select',
+    type: NativeFilterType.NativeFilter,
+    chartsInScope: [1, 2, 5, 6],
+    scope: { rootPath: ['TAB-P1_Child1', 'TAB-Parent2'], excluded: [3, 4] },
+    controlValues: {},
+    defaultDataMask: {},
+    cascadeParentIds: [],
+    targets: [{ column: { name: 'column_name' }, datasetId: 1 }],
+    description: 'Filter including P1_Child1',
+  };
+
+  const { result } = renderHook(() => useIsFilterInScope());
+  expect(result.current(filter)).toBe(true);
+});
+
+test('filter should be visible on top-level tab when charts have no nested parents', () => {
+  (useSelector as jest.Mock).mockImplementation((selector: Function) => {
+    const mockState = {
+      dashboardState: { activeTabs: ['TAB-Parent2'] },
+      dashboardLayout: {
+        present: {
+          'CHART-5': {
+            type: 'CHART',
+            meta: { chartId: 5 },
+            parents: ['ROOT_ID', 'TAB-Parent2'],
+          },
+          'CHART-6': {
+            type: 'CHART',
+            meta: { chartId: 6 },
+            parents: ['ROOT_ID', 'TAB-Parent2'],
+          },
+          'TAB-Parent2': { type: 'TAB', id: 'TAB-Parent2' },
+        },
+      },
+    };
+    return selector(mockState);
+  });
+
+  const filter: Filter = {
+    id: 'filter_top_level',
+    name: 'Top Level Tab Filter',
+    filterType: 'filter_select',
+    type: NativeFilterType.NativeFilter,
+    chartsInScope: [1, 2, 5, 6],
+    scope: { rootPath: ['TAB-P1_Child1', 'TAB-Parent2'], excluded: [3, 4] },
+    controlValues: {},
+    defaultDataMask: {},
+    cascadeParentIds: [],
+    targets: [{ column: { name: 'column_name' }, datasetId: 1 }],
+    description: 'Filter including Parent2',
+  };
+
+  const { result } = renderHook(() => useIsFilterInScope());
+  expect(result.current(filter)).toBe(true);
+});
+
+test('filter with chartsInScope referencing non-existent chart should still work', () => {
+  (useSelector as jest.Mock).mockImplementation((selector: Function) => {
+    const mockState = {
+      dashboardState: { activeTabs: ['TAB-Parent1'] },
+      dashboardLayout: {
+        present: {
+          'CHART-1': {
+            type: 'CHART',
+            meta: { chartId: 1 },
+            parents: ['ROOT_ID', 'TAB-Parent1'],
+          },
+          'TAB-Parent1': { type: 'TAB', id: 'TAB-Parent1' },
+        },
+      },
+    };
+    return selector(mockState);
+  });
+
+  const filter: Filter = {
+    id: 'filter_missing_chart',
+    name: 'Filter With Missing Chart',
+    filterType: 'filter_select',
+    type: NativeFilterType.NativeFilter,
+    chartsInScope: [999],
+    scope: { rootPath: ['TAB-Parent1'], excluded: [] },
+    controlValues: {},
+    defaultDataMask: {},
+    cascadeParentIds: [],
+    targets: [{ column: { name: 'column_name' }, datasetId: 1 }],
+    description: 'Filter referencing non-existent chart',
+  };
+
+  const { result } = renderHook(() => useIsFilterInScope());
+  expect(result.current(filter)).toBe(true);
+});
+
+test('filter with mix of existing and non-existent charts in chartsInScope', () => {
+  (useSelector as jest.Mock).mockImplementation((selector: Function) => {
+    const mockState = {
+      dashboardState: { activeTabs: ['TAB-Parent2'] },
+      dashboardLayout: {
+        present: {
+          'CHART-1': {
+            type: 'CHART',
+            meta: { chartId: 1 },
+            parents: ['ROOT_ID', 'TAB-Parent1'],
+          },
+          'TAB-Parent1': { type: 'TAB', id: 'TAB-Parent1' },
+          'TAB-Parent2': { type: 'TAB', id: 'TAB-Parent2' },
+        },
+      },
+    };
+    return selector(mockState);
+  });
+
+  const filter: Filter = {
+    id: 'filter_mixed_charts',
+    name: 'Filter With Mixed Charts',
+    filterType: 'filter_select',
+    type: NativeFilterType.NativeFilter,
+    chartsInScope: [1, 999],
+    scope: { rootPath: ['TAB-Parent1'], excluded: [] },
+    controlValues: {},
+    defaultDataMask: {},
+    cascadeParentIds: [],
+    targets: [{ column: { name: 'column_name' }, datasetId: 1 }],
+    description: 'Filter with mix of existing and non-existent charts',
+  };
+
+  const { result } = renderHook(() => useIsFilterInScope());
+  expect(result.current(filter)).toBe(true);
+});

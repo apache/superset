@@ -19,7 +19,7 @@ from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.types import TypeEngine
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 
 
 class PinotEngineSpec(BaseEngineSpec):
@@ -30,6 +30,40 @@ class PinotEngineSpec(BaseEngineSpec):
     allows_joins = False
     allows_alias_in_select = False
     allows_alias_in_orderby = False
+
+    metadata = {
+        "description": "Apache Pinot is a real-time distributed OLAP datastore.",
+        "logo": "apache-pinot.svg",
+        "homepage_url": "https://pinot.apache.org/",
+        "categories": [
+            DatabaseCategory.APACHE_PROJECTS,
+            DatabaseCategory.TIME_SERIES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["pinotdb"],
+        "connection_string": (
+            "pinot+http://{broker_host}:{broker_port}/query"
+            "?controller=http://{controller_host}:{controller_port}/"
+        ),
+        "default_port": 8099,
+        "connection_examples": [
+            {
+                "description": "With authentication",
+                "connection_string": (
+                    "pinot://{username}:{password}@{broker_host}:{broker_port}/query/sql"
+                    "?controller=http://{controller_host}:{controller_port}/verify_ssl=true"
+                ),
+            },
+        ],
+        "engine_parameters": [
+            {
+                "name": "Multi-stage Query Engine",
+                "description": "Enable for Explore view, joins, window functions",
+                "json": {"connect_args": {"use_multistage_engine": "true"}},
+                "docs_url": "https://docs.pinot.apache.org/reference/multi-stage-engine",
+            },
+        ],
+    }
 
     # https://docs.pinot.apache.org/users/user-guide-query/supported-transformations#datetime-functions
     _time_grain_expressions = {

@@ -16,6 +16,7 @@
 # under the License.
 """A collection of ORM sqlalchemy models for Superset"""
 
+import logging
 from typing import Any, Optional
 
 import prison
@@ -47,6 +48,8 @@ from superset.reports.types import ReportScheduleExtra
 from superset.utils.backports import StrEnum
 from superset.utils.core import MediumText
 
+logger = logging.getLogger(__name__)
+
 metadata = Model.metadata  # pylint: disable=no-member
 
 
@@ -66,6 +69,7 @@ class ReportRecipientType(StrEnum):
     EMAIL = "Email"
     SLACK = "Slack"
     SLACKV2 = "SlackV2"
+    WEBHOOK = "Webhook"
 
 
 class ReportState(StrEnum):
@@ -186,24 +190,46 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     def crontab_humanized(self) -> str:
         return get_description(self.crontab)
 
-    def get_native_filters_params(self) -> str:
+    def get_native_filters_params(self) -> tuple[str, list[str]]:
+        """
+        Generate native filter params for dashboard URL.
+
+        Returns:
+            A tuple of (rison_encoded_params, list_of_warning_messages).
+            Warnings are returned so they can be surfaced to users in the
+            execution log.
+        """
         params: dict[str, Any] = {}
+        warnings: list[str] = []
         dashboard = self.extra.get("dashboard")
         if dashboard and dashboard.get("nativeFilters"):
-            for filter in dashboard.get("nativeFilters") or []:  # type: ignore
-                params = {
-                    **params,
-                    **self._generate_native_filter(
-                        filter["nativeFilterId"],
-                        filter["filterType"],
-                        filter["columnName"],
-                        filter["filterValues"],
-                    ),
-                }
+            native_filters = dashboard.get("nativeFilters") or []
+            for native_filter in native_filters:  # type: ignore
+                native_filter_id = native_filter.get("nativeFilterId")
+                filter_type = native_filter.get("filterType")
+
+                if native_filter_id is None or filter_type is None:
+                    warning_msg = (
+                        f"Skipping malformed native filter missing required "
+                        f"fields: {native_filter}"
+                    )
+                    warnings.append(warning_msg)
+                    logger.warning(warning_msg)
+                    continue
+
+                filter_config, filter_warning = self._generate_native_filter(
+                    native_filter_id,
+                    filter_type,
+                    native_filter.get("columnName") or "",
+                    native_filter.get("filterValues") or [],
+                )
+                if filter_warning:
+                    warnings.append(filter_warning)
+                params = {**params, **filter_config}
         # hack(hughhh): workaround for escaping prison not handling quotes right
         rison = prison.dumps(params)
         rison = rison.replace("'", "%27")
-        return rison
+        return rison, warnings
 
     def _generate_native_filter(
         self,
@@ -211,62 +237,85 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
         filter_type: str,
         column_name: str,
         values: list[Optional[str]],
-    ) -> dict[str, Any]:
+    ) -> tuple[dict[str, Any], Optional[str]]:
+        """
+        Generate a native filter configuration for the given filter type.
+
+        Returns:
+            A tuple of (filter_config, warning_message). If the filter type is
+            unrecognized, returns an empty dict and a warning message.
+        """
         if filter_type == "filter_time":
             # For select filters, we need to use the "IN" operator
-            return {
-                native_filter_id or "": {
-                    "id": native_filter_id or "",
-                    "extraFormData": {"time_range": values[0]},
-                    "filterState": {"value": values[0]},
-                    "ownState": {},
-                }
-            }
-        elif filter_type == "filter_timegrain":
-            return {
-                native_filter_id or "": {
-                    "id": native_filter_id or "",
-                    "extraFormData": {
-                        "time_grain_sqla": values[0],  # grain
-                    },
-                    "filterState": {
-                        # "label": "30 second", # grain_label
-                        "value": values  # grain
-                    },
-                    "ownState": {},
-                }
-            }
+            return (
+                {
+                    native_filter_id or "": {
+                        "id": native_filter_id or "",
+                        "extraFormData": {"time_range": values[0]},
+                        "filterState": {"value": values[0]},
+                        "ownState": {},
+                    }
+                },
+                None,
+            )
+        if filter_type == "filter_timegrain":
+            return (
+                {
+                    native_filter_id or "": {
+                        "id": native_filter_id or "",
+                        "extraFormData": {
+                            "time_grain_sqla": values[0],  # grain
+                        },
+                        "filterState": {
+                            # "label": "30 second", # grain_label
+                            "value": values  # grain
+                        },
+                        "ownState": {},
+                    }
+                },
+                None,
+            )
 
-        elif filter_type == "filter_timecolumn":
-            return {
-                native_filter_id or "": {
-                    "extraFormData": {
-                        "granularity_sqla": values[0]  # column_name
-                    },
-                    "filterState": {
-                        "value": values  # column_name
-                    },
-                }
-            }
+        if filter_type == "filter_timecolumn":
+            return (
+                {
+                    native_filter_id or "": {
+                        "extraFormData": {
+                            "granularity_sqla": values[0]  # column_name
+                        },
+                        "filterState": {
+                            "value": values  # column_name
+                        },
+                    }
+                },
+                None,
+            )
 
-        elif filter_type == "filter_select":
-            return {
-                native_filter_id or "": {
-                    "id": native_filter_id or "",
-                    "extraFormData": {
-                        "filters": [
-                            {"col": column_name or "", "op": "IN", "val": values or []}
-                        ]
-                    },
-                    "filterState": {
-                        "label": column_name or "",
-                        "validateStatus": False,
-                        "value": values or [],
-                    },
-                    "ownState": {},
-                }
-            }
-        elif filter_type == "filter_range":
+        if filter_type == "filter_select":
+            return (
+                {
+                    native_filter_id or "": {
+                        "id": native_filter_id or "",
+                        "extraFormData": {
+                            "filters": [
+                                {
+                                    "col": column_name or "",
+                                    "op": "IN",
+                                    "val": values or [],
+                                }
+                            ]
+                        },
+                        "filterState": {
+                            "label": column_name or "",
+                            "validateStatus": False,
+                            "value": values or [],
+                        },
+                        "ownState": {},
+                    }
+                },
+                None,
+            )
+        if filter_type == "filter_range":
             # For range filters, values should be [min, max] or [value] for single value
             min_val = values[0] if len(values) > 0 else None
             max_val = values[1] if len(values) > 1 else None
@@ -277,25 +326,33 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
             if max_val is not None:
                 filters.append({"col": column_name or "", "op": "<=", "val": max_val})
 
-            return {
-                native_filter_id or "": {
-                    "id": native_filter_id or "",
-                    "extraFormData": {"filters": filters},
-                    "filterState": {
-                        "value": [min_val, max_val],
-                        "label": f"{min_val} ≤ x ≤ {max_val}"
-                        if min_val and max_val
-                        else f"x ≥ {min_val}"
-                        if min_val
-                        else f"x ≤ {max_val}"
-                        if max_val
-                        else "",
-                    },
-                    "ownState": {},
-                }
-            }
+            return (
+                {
+                    native_filter_id or "": {
+                        "id": native_filter_id or "",
+                        "extraFormData": {"filters": filters},
+                        "filterState": {
+                            "value": [min_val, max_val],
+                            "label": f"{min_val} ≤ x ≤ {max_val}"
+                            if min_val and max_val
+                            else f"x ≥ {min_val}"
+                            if min_val
+                            else f"x ≤ {max_val}"
+                            if max_val
+                            else "",
+                        },
+                        "ownState": {},
+                    }
+                },
+                None,
+            )
 
-        return {}
+        warning_msg = (
+            f"Skipping native filter with unrecognized filter type '{filter_type}' "
+            f"(filter_id: {native_filter_id})"
+        )
+        logger.warning(warning_msg)
+        return {}, warning_msg
 
 
 class ReportRecipients(Model, AuditMixinNullable):

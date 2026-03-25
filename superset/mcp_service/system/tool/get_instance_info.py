@@ -16,28 +16,31 @@
 # under the License.
 
 """
-Get Superset instance high-level information FastMCP tool using configurable
+Get instance high-level information FastMCP tool using configurable
 InstanceInfoCore for flexible, extensible metrics calculation.
 """
 
 import logging
 
 from fastmcp import Context
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
+from superset.extensions import event_logger
 from superset.mcp_service.mcp_core import InstanceInfoCore
 from superset.mcp_service.system.schemas import (
     GetSupersetInstanceInfoRequest,
     InstanceInfo,
+    serialize_user_object,
 )
 from superset.mcp_service.system.system_utils import (
     calculate_dashboard_breakdown,
     calculate_database_breakdown,
+    calculate_feature_availability,
     calculate_instance_summary,
     calculate_popular_content,
     calculate_recent_activity,
 )
+from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +62,7 @@ _instance_info_core = InstanceInfoCore(
         "dashboard_breakdown": calculate_dashboard_breakdown,
         "database_breakdown": calculate_database_breakdown,
         "popular_content": calculate_popular_content,
+        "feature_availability": calculate_feature_availability,
     },
     time_windows={
         "recent": 7,
@@ -69,17 +73,26 @@ _instance_info_core = InstanceInfoCore(
 )
 
 
-@mcp.tool
-@mcp_auth_hook
+@tool(
+    tags=["core"],
+    annotations=ToolAnnotations(
+        title="Get instance info",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
+@parse_request(GetSupersetInstanceInfoRequest)
 def get_instance_info(
     request: GetSupersetInstanceInfoRequest, ctx: Context
 ) -> InstanceInfo:
-    """Get Superset instance statistics.
+    """Get instance statistics.
 
     Returns counts, activity metrics, and database types.
     """
     try:
         # Import DAOs at runtime to avoid circular imports
+        from flask import g
+
         from superset.daos.chart import ChartDAO
         from superset.daos.dashboard import DashboardDAO
         from superset.daos.database import DatabaseDAO
@@ -98,7 +111,15 @@ def get_instance_info(
         }
 
         # Run the configurable core
-        return _instance_info_core.run_tool()
+        with event_logger.log_context(action="mcp.get_instance_info.metrics"):
+            result = _instance_info_core.run_tool()
+
+        # Attach the authenticated user's identity to the response
+        user = getattr(g, "user", None)
+        if user is not None:
+            result.current_user = serialize_user_object(user)
+
+        return result
 
     except Exception as e:
         error_msg = f"Unexpected error in instance info: {str(e)}"

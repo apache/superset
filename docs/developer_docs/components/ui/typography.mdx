@@ -1,0 +1,236 @@
+---
+title: Typography
+sidebar_label: Typography
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# Typography
+
+Typography is a component for displaying text with various styles and formats. It includes subcomponents like Title, Paragraph, and Link.
+
+## Live Example
+
+<StoryWithControls
+  component="Typography"
+  renderComponent="Typography.Text"
+  props={{
+  children: "Sample Text",
+  code: false,
+  copyable: false,
+  delete: false,
+  disabled: false,
+  ellipsis: false,
+  keyboard: false,
+  mark: false,
+  italic: false,
+  underline: false,
+  strong: false
+}}
+  controls={[
+  {
+    name: "children",
+    label: "Children",
+    type: "text",
+    description: "The text content."
+  },
+  {
+    name: "code",
+    label: "Code",
+    type: "boolean",
+    description: "Code style."
+  },
+  {
+    name: "copyable",
+    label: "Copyable",
+    type: "boolean",
+    description: "Whether the text is copyable."
+  },
+  {
+    name: "delete",
+    label: "Delete",
+    type: "boolean",
+    description: "Deleted line style."
+  },
+  {
+    name: "disabled",
+    label: "Disabled",
+    type: "boolean",
+    description: "Disabled content."
+  },
+  {
+    name: "ellipsis",
+    label: "Ellipsis",
+    type: "boolean",
+    description: "Display ellipsis when text overflows."
+  },
+  {
+    name: "keyboard",
+    label: "Keyboard",
+    type: "boolean",
+    description: "Keyboard style."
+  },
+  {
+    name: "mark",
+    label: "Mark",
+    type: "boolean",
+    description: "Marked/highlighted style."
+  },
+  {
+    name: "italic",
+    label: "Italic",
+    type: "boolean",
+    description: "Italic style."
+  },
+  {
+    name: "underline",
+    label: "Underline",
+    type: "boolean",
+    description: "Underlined style."
+  },
+  {
+    name: "strong",
+    label: "Strong",
+    type: "boolean",
+    description: "Bold style."
+  },
+  {
+    name: "type",
+    label: "Type",
+    type: "select",
+    options: [
+      "secondary",
+      "success",
+      "warning",
+      "danger"
+    ],
+    description: "Text type for semantic coloring."
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <div>
+      <Typography.Text>Default Text</Typography.Text>
+      <br />
+      <Typography.Text type="secondary">Secondary</Typography.Text>
+      <br />
+      <Typography.Text type="success">Success</Typography.Text>
+      <br />
+      <Typography.Text type="warning">Warning</Typography.Text>
+      <br />
+      <Typography.Text type="danger">Danger</Typography.Text>
+      <br />
+      <Typography.Text code>Code</Typography.Text>
+      <br />
+      <Typography.Text keyboard>Keyboard</Typography.Text>
+      <br />
+      <Typography.Text mark>Marked</Typography.Text>
+      <br />
+      <Typography.Text underline>Underline</Typography.Text>
+      <br />
+      <Typography.Text delete>Deleted</Typography.Text>
+      <br />
+      <Typography.Text strong>Strong</Typography.Text>
+      <br />
+      <Typography.Text italic>Italic</Typography.Text>
+    </div>
+  );
+}
+```
+
+## All Subcomponents
+
+```tsx live
+function AllSubcomponents() {
+  return (
+    <div>
+      <Typography.Title level={2}>Typography Components</Typography.Title>
+      <Typography.Paragraph>
+        The Typography component includes several subcomponents for different text needs.
+        Use <Typography.Text strong>Title</Typography.Text> for headings,
+        <Typography.Text code>Text</Typography.Text> for inline text styling,
+        and <Typography.Text mark>Paragraph</Typography.Text> for block content.
+      </Typography.Paragraph>
+      <Typography.Link href="https://superset.apache.org" target="_blank">
+        Learn more about Apache Superset
+      </Typography.Link>
+    </div>
+  );
+}
+```
+
+## Text Styling Options
+
+```tsx live
+function TextStyles() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <Typography.Text code>Code style</Typography.Text>
+      <Typography.Text keyboard>Keyboard style</Typography.Text>
+      <Typography.Text mark>Highlighted text</Typography.Text>
+      <Typography.Text underline>Underlined text</Typography.Text>
+      <Typography.Text delete>Deleted text</Typography.Text>
+      <Typography.Text strong>Bold text</Typography.Text>
+      <Typography.Text italic>Italic text</Typography.Text>
+      <Typography.Text type="success">Success type</Typography.Text>
+      <Typography.Text type="warning">Warning type</Typography.Text>
+      <Typography.Text type="danger">Danger type</Typography.Text>
+    </div>
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `string` | `"Sample Text"` | The text content. |
+| `code` | `boolean` | `false` | Code style. |
+| `copyable` | `boolean` | `false` | Whether the text is copyable. |
+| `delete` | `boolean` | `false` | Deleted line style. |
+| `disabled` | `boolean` | `false` | Disabled content. |
+| `ellipsis` | `boolean` | `false` | Display ellipsis when text overflows. |
+| `keyboard` | `boolean` | `false` | Keyboard style. |
+| `mark` | `boolean` | `false` | Marked/highlighted style. |
+| `italic` | `boolean` | `false` | Italic style. |
+| `underline` | `boolean` | `false` | Underlined style. |
+| `strong` | `boolean` | `false` | Bold style. |
+
+## Import
+
+```tsx
+import { Typography } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/Typography/Typography.stories.tsx).
+:::

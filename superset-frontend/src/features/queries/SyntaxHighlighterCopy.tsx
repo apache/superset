@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useEffect } from 'react';
-import { t } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import CodeSyntaxHighlighter, {
   SupportedLanguage,
   CodeSyntaxHighlighterProps,
@@ -64,8 +64,10 @@ const SyntaxHighlighterWrapper = styled.div`
   }
 `;
 
-interface SyntaxHighlighterCopyProps
-  extends Omit<CodeSyntaxHighlighterProps, 'children'> {
+interface SyntaxHighlighterCopyProps extends Omit<
+  CodeSyntaxHighlighterProps,
+  'children'
+> {
   children: string;
   addDangerToast?: ToastProps['addDangerToast'];
   addSuccessToast?: ToastProps['addSuccessToast'];

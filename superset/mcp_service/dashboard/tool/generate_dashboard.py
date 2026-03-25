@@ -25,14 +25,22 @@ import logging
 from typing import Any, Dict, List
 
 from fastmcp import Context
+from flask import g
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
+from superset.extensions import event_logger
+from superset.mcp_service.chart.schemas import serialize_chart_object
+from superset.mcp_service.dashboard.constants import (
+    generate_id,
+    GRID_COLUMN_COUNT,
+    GRID_DEFAULT_CHART_WIDTH,
+)
 from superset.mcp_service.dashboard.schemas import (
     DashboardInfo,
     GenerateDashboardRequest,
     GenerateDashboardResponse,
 )
+from superset.mcp_service.utils.schema_utils import parse_request
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
@@ -43,8 +51,8 @@ def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
     """
     Create a simple dashboard layout with charts arranged in a grid.
 
-    This creates a basic 2-column layout where charts are arranged
-    vertically in alternating columns.
+    This creates a ``ROW > COLUMN > CHART`` hierarchy for each row,
+    matching the component structure that the Superset frontend expects.
 
     Args:
         chart_objects: List of Chart ORM objects (not IDs)
@@ -54,23 +62,26 @@ def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
     # Grid configuration based on real Superset dashboard patterns
     # Use 2-chart rows with medium-sized charts (like existing dashboards)
     charts_per_row = 2
-    chart_width = 5  # Balanced width for good proportions
+    chart_width = GRID_DEFAULT_CHART_WIDTH
     chart_height = 50  # Good height for most chart types
 
-    # Create rows with charts
+    # Create rows with charts wrapped in columns
     row_ids = []
     for i in range(0, len(chart_objects), charts_per_row):
-        row_index = i // charts_per_row
-        row_id = f"ROW-{row_index}"
+        row_id = generate_id("ROW")
         row_ids.append(row_id)
 
         # Get charts for this row (up to 2 charts like real dashboards)
         row_charts = chart_objects[i : i + charts_per_row]
-        chart_keys = []
+        column_keys = []
+
+        # Calculate column width: divide grid evenly among charts in this row
+        col_width = GRID_COLUMN_COUNT // len(row_charts)
 
         for chart in row_charts:
             chart_key = f"CHART-{chart.id}"
-            chart_keys.append(chart_key)
+            column_key = generate_id("COLUMN")
+            column_keys.append(column_key)
 
             # Create chart component with standard dimensions
             layout[chart_key] = {
@@ -83,13 +94,25 @@ def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
                     "uuid": str(chart.uuid) if chart.uuid else f"chart-{chart.id}",
                     "width": chart_width,
                 },
-                "parents": ["ROOT_ID", "GRID_ID", row_id],
+                "parents": ["ROOT_ID", "GRID_ID", row_id, column_key],
                 "type": "CHART",
             }
 
-        # Create row containing the charts
+            # Create column wrapper for the chart (ROW > COLUMN > CHART)
+            layout[column_key] = {
+                "children": [chart_key],
+                "id": column_key,
+                "meta": {
+                    "background": "BACKGROUND_TRANSPARENT",
+                    "width": col_width,
+                },
+                "parents": ["ROOT_ID", "GRID_ID", row_id],
+                "type": "COLUMN",
+            }
+
+        # Create row containing the columns
         layout[row_id] = {
-            "children": chart_keys,
+            "children": column_keys,
             "id": row_id,
             "meta": {"background": "BACKGROUND_TRANSPARENT"},
             "parents": ["ROOT_ID", "GRID_ID"],
@@ -117,8 +140,55 @@ def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
     return layout
 
 
-@mcp.tool
-@mcp_auth_hook
+_DEFAULT_DASHBOARD_TITLE = "Dashboard"
+_MAX_TITLE_LENGTH = 150
+
+
+def _generate_title_from_charts(chart_objects: List[Any]) -> str:
+    """
+    Build a descriptive dashboard title from the included chart names.
+
+    Joins up to three chart ``slice_name`` values with " & " (two charts)
+    or ", " (three charts).  When there are more than three charts the
+    remaining count is appended as "+ N more".  The result is capped at
+    ``_MAX_TITLE_LENGTH`` characters.
+
+    Returns ``"Dashboard"`` when *chart_objects* is empty or no chart has
+    a usable name.
+    """
+    names = [
+        c.slice_name
+        for c in sorted(chart_objects, key=lambda c: getattr(c, "id", 0))
+        if getattr(c, "slice_name", None)
+    ]
+    if not names:
+        return _DEFAULT_DASHBOARD_TITLE
+
+    if len(names) == 1:
+        title = names[0]
+    elif len(names) == 2:
+        title = f"{names[0]} & {names[1]}"
+    elif len(names) == 3:
+        title = f"{names[0]}, {names[1]}, {names[2]}"
+    else:
+        title = f"{names[0]}, {names[1]}, {names[2]} + {len(names) - 3} more"
+
+    if len(title) > _MAX_TITLE_LENGTH:
+        title = title[: _MAX_TITLE_LENGTH - 1] + "\u2026"
+
+    return title
+
+
+@tool(
+    tags=["mutate"],
+    class_permission_name="Dashboard",
+    annotations=ToolAnnotations(
+        title="Create dashboard",
+        readOnlyHint=False,
+        destructiveHint=False,
+    ),
+)
+@parse_request(GenerateDashboardRequest)
 def generate_dashboard(
     request: GenerateDashboardRequest, ctx: Context
 ) -> GenerateDashboardResponse:
@@ -131,35 +201,56 @@ def generate_dashboard(
     Returns:
     - Dashboard ID and URL
     """
+    from pydantic import ValidationError
+    from sqlalchemy.exc import SQLAlchemyError
+
     try:
         # Get chart objects from IDs (required for SQLAlchemy relationships)
         from superset import db
-        from superset.commands.dashboard.create import CreateDashboardCommand
         from superset.models.slice import Slice
 
-        chart_objects = (
-            db.session.query(Slice).filter(Slice.id.in_(request.chart_ids)).all()
-        )
-        found_chart_ids = [chart.id for chart in chart_objects]
-
-        # Check if all requested charts were found
-        missing_chart_ids = set(request.chart_ids) - set(found_chart_ids)
-        if missing_chart_ids:
-            return GenerateDashboardResponse(
-                dashboard=None,
-                dashboard_url=None,
-                error=f"Charts not found: {list(missing_chart_ids)}",
+        with event_logger.log_context(action="mcp.generate_dashboard.chart_validation"):
+            chart_objects = (
+                db.session.query(Slice)
+                .filter(Slice.id.in_(request.chart_ids))
+                .order_by(Slice.id)
+                .all()
             )
+            found_chart_ids = [chart.id for chart in chart_objects]
+
+            # Check if all requested charts were found
+            missing_chart_ids = set(request.chart_ids) - set(found_chart_ids)
+            if missing_chart_ids:
+                return GenerateDashboardResponse(
+                    dashboard=None,
+                    dashboard_url=None,
+                    error=f"Charts not found: {list(missing_chart_ids)}",
+                )
 
         # Create dashboard layout with chart objects
-        layout = _create_dashboard_layout(chart_objects)
+        with event_logger.log_context(action="mcp.generate_dashboard.layout"):
+            layout = _create_dashboard_layout(chart_objects)
 
-        # Prepare dashboard data
-        dashboard_data = {
-            "dashboard_title": request.dashboard_title,
-            "slug": None,  # Let Superset auto-generate slug
-            "css": "",
-            "json_metadata": json.dumps(
+        # Resolve dashboard title: use provided title or derive from chart names
+        dashboard_title = (
+            request.dashboard_title
+            if request.dashboard_title is not None
+            else _generate_title_from_charts(chart_objects)
+        )
+
+        # Create the dashboard directly with db.session instead of using
+        # CreateDashboardCommand.  The command's @transaction decorator
+        # may operate in a different SQLAlchemy scoped-session than the
+        # one g.user and chart ORM objects are bound to in the MCP
+        # context, causing "Object is already attached to session X
+        # (this is Y)" errors.  By re-querying all ORM objects in the
+        # tool's own db.session we keep everything in a single session.
+        from sqlalchemy.orm import subqueryload
+
+        from superset.models.dashboard import Dashboard
+
+        with event_logger.log_context(action="mcp.generate_dashboard.db_write"):
+            json_metadata = json.dumps(
                 {
                     "filter_scopes": {},
                     "expanded_slices": {},
@@ -172,22 +263,80 @@ def generate_dashboard(
                     "cross_filters_enabled": False,
                     "native_filter_configuration": [],
                     "global_chart_configuration": {
-                        "scope": {"rootPath": ["ROOT_ID"], "excluded": []}
+                        "scope": {
+                            "rootPath": ["ROOT_ID"],
+                            "excluded": [],
+                        }
                     },
                     "chart_configuration": {},
                 }
-            ),
-            "position_json": json.dumps(layout),
-            "published": request.published,
-            "slices": chart_objects,  # Pass ORM objects, not IDs
-        }
+            )
 
-        if request.description:
-            dashboard_data["description"] = request.description
+            try:
+                dashboard = Dashboard()
+                dashboard.dashboard_title = dashboard_title
+                dashboard.json_metadata = json_metadata
+                dashboard.position_json = json.dumps(layout)
+                dashboard.published = request.published
 
-        # Create the dashboard using Superset's command pattern
-        command = CreateDashboardCommand(dashboard_data)
-        dashboard = command.run()
+                if request.description:
+                    dashboard.description = request.description
+
+                # Re-query the current user and charts directly in the
+                # current db.session.  g.user was loaded in a Flask
+                # app_context that has since been torn down (the
+                # middleware's ``with flask_app.app_context()`` exits
+                # before the tool function runs), so the User object
+                # is bound to a dead/different scoped session.
+                # Querying fresh avoids all cross-session errors.
+                from superset.extensions import security_manager
+
+                current_user = (
+                    db.session.query(security_manager.user_model)
+                    .filter_by(id=g.user.id)
+                    .first()
+                )
+                if current_user:
+                    dashboard.owners = [current_user]
+
+                fresh_charts = (
+                    db.session.query(Slice)
+                    .filter(Slice.id.in_(request.chart_ids))
+                    .order_by(Slice.id)
+                    .all()
+                )
+                dashboard.slices = fresh_charts
+
+                db.session.add(dashboard)
+                db.session.commit()
+            except SQLAlchemyError as db_err:
+                db.session.rollback()
+                logger.error(
+                    "Dashboard creation failed: %s",
+                    db_err,
+                    exc_info=True,
+                )
+                return GenerateDashboardResponse(
+                    dashboard=None,
+                    dashboard_url=None,
+                    error="Failed to create dashboard due to a database error.",
+                )
+
+        # Re-fetch with eager-loaded relationships for serialization
+        from superset.daos.dashboard import DashboardDAO
+
+        dashboard = (
+            DashboardDAO.find_by_id(
+                dashboard.id,
+                query_options=[
+                    subqueryload(Dashboard.slices).subqueryload(Slice.owners),
+                    subqueryload(Dashboard.slices).subqueryload(Slice.tags),
+                    subqueryload(Dashboard.owners),
+                    subqueryload(Dashboard.tags),
+                ],
+            )
+            or dashboard
+        )
 
         # Convert to our response format
         from superset.mcp_service.dashboard.schemas import (
@@ -203,8 +352,8 @@ def generate_dashboard(
             published=dashboard.published,
             created_on=dashboard.created_on,
             changed_on=dashboard.changed_on,
-            created_by=dashboard.created_by.username if dashboard.created_by else None,
-            changed_by=dashboard.changed_by.username if dashboard.changed_by else None,
+            created_by=dashboard.created_by_name or None,
+            changed_by=dashboard.changed_by_name or None,
             uuid=str(dashboard.uuid) if dashboard.uuid else None,
             url=f"{get_superset_base_url()}/superset/dashboard/{dashboard.id}/",
             chart_count=len(request.chart_ids),
@@ -219,7 +368,11 @@ def generate_dashboard(
                 if serialize_tag_object(tag) is not None
             ],
             roles=[],  # Dashboard roles not typically set at creation
-            charts=[],  # Chart details not needed in response
+            charts=[
+                obj
+                for chart in getattr(dashboard, "slices", [])
+                if (obj := serialize_chart_object(chart)) is not None
+            ],
         )
 
         dashboard_url = f"{get_superset_base_url()}/superset/dashboard/{dashboard.id}/"
@@ -232,8 +385,8 @@ def generate_dashboard(
             dashboard=dashboard_info, dashboard_url=dashboard_url, error=None
         )
 
-    except Exception as e:
-        logger.error("Error creating dashboard: %s", e)
+    except (SQLAlchemyError, ValueError, AttributeError, ValidationError) as e:
+        logger.error("Error creating dashboard: %s", e, exc_info=True)
         return GenerateDashboardResponse(
             dashboard=None,
             dashboard_url=None,

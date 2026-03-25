@@ -17,16 +17,17 @@
  * under the License.
  */
 import { useState, useEffect, useRef, MouseEvent } from 'react';
+import { t } from '@apache-superset/core/translation';
 import {
-  t,
   getNumberFormatter,
   getTimeFormatter,
   SMART_DATE_VERBOSE_ID,
   computeMaxFontSize,
   BRAND_COLOR,
   BinaryQueryObjectFilterClause,
+  DTTM_ALIAS,
 } from '@superset-ui/core';
-import { styled, useTheme } from '@apache-superset/core/ui';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import Echart from '../components/Echart';
 import { BigNumberVizProps } from './types';
 import { EventHandlers } from '../types';
@@ -191,8 +192,19 @@ function BigNumberVis({
 
   const renderHeader = (maxHeight: number) => {
     const { bigNumber, width, colorThresholdFormatters, onContextMenu } = props;
-    // @ts-ignore
-    const text = bigNumber === null ? t('No data') : headerFormatter(bigNumber);
+    // Format bigNumber based on its type: null/undefined -> "No data", number -> format, else -> string
+    let text: string;
+    if (bigNumber === null || bigNumber === undefined) {
+      text = t('No data');
+    } else if (typeof bigNumber === 'number') {
+      text = headerFormatter(bigNumber);
+    } else {
+      // For string/boolean/Date values, convert to number if possible, else show as string
+      const numValue = Number(bigNumber);
+      text = Number.isNaN(numValue)
+        ? String(bigNumber)
+        : headerFormatter(numValue);
+    }
 
     const hasThresholdColorFormatter =
       Array.isArray(colorThresholdFormatters) &&
@@ -357,7 +369,10 @@ function BigNumberVis({
             const pointerEvent = eventParams.event.event;
             const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
             drillToDetailFilters.push({
-              col: formData?.granularitySqla,
+              col:
+                formData?.xAxis === DTTM_ALIAS
+                  ? formData?.granularitySqla
+                  : formData?.xAxis,
               grain: formData?.timeGrainSqla,
               op: '==',
               val: data[0],
@@ -379,6 +394,7 @@ function BigNumberVis({
           height={maxHeight}
           echartOptions={echartOptions}
           eventHandlers={eventHandlers}
+          vizType={formData?.vizType}
         />
       )
     );

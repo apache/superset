@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { configure } from '@superset-ui/core';
+import { configure } from '@apache-superset/core/translation';
 import {
   Comparator,
   getOpacity,
@@ -24,6 +24,11 @@ import {
   getColorFormatters,
   getColorFunction,
 } from '../../src';
+import {
+  getReadableTextColor,
+  getNormalizedTextColor,
+  getTextColorForBackground,
+} from '../../src/utils/getColorFormatters';
 
 configure();
 const mockData = [
@@ -34,6 +39,9 @@ const countValues = mockData.map(row => row.count);
 
 const strData = [{ name: 'Brian' }, { name: 'Carlos' }, { name: 'Diana' }];
 const strValues = strData.map(row => row.name);
+
+const boolData = [{ isMember: true }, { isMember: false }, { isMember: null }];
+const boolValues = boolData.map(row => row.isMember);
 
 test('round', () => {
   expect(round(1)).toEqual(1);
@@ -102,6 +110,55 @@ test('getColorFunction LESS_THAN', () => {
   );
   expect(colorFunction(100)).toBeUndefined();
   expect(colorFunction(50)).toEqual('#FF0000FF');
+});
+
+test('getReadableTextColor returns white for dark backgrounds', () => {
+  expect(getReadableTextColor('#111111', '#ffffff')).toBe('rgb(255, 255, 255)');
+});
+
+test('getReadableTextColor returns black for light backgrounds', () => {
+  expect(getReadableTextColor('#f5f5f5', '#ffffff')).toBe('rgb(0, 0, 0)');
+});
+
+test('getReadableTextColor blends alpha over the provided surface', () => {
+  expect(getReadableTextColor('rgba(0, 0, 0, 0.6)', '#ffffff')).toBe(
+    'rgb(255, 255, 255)',
+  );
+  expect(getReadableTextColor('rgba(255, 255, 255, 0.6)', '#000000')).toBe(
+    'rgb(0, 0, 0)',
+  );
+});
+
+test('getTextColorForBackground prefers explicit text color', () => {
+  expect(
+    getTextColorForBackground(
+      { backgroundColor: '#111111', color: '#ace1c4ff' },
+      '#ffffff',
+    ),
+  ).toBe('rgb(172, 225, 196)');
+});
+
+test('getNormalizedTextColor removes alpha from explicit text colors', () => {
+  expect(getNormalizedTextColor('#ace1c40d')).toBe('rgb(172, 225, 196)');
+  expect(getNormalizedTextColor('rgba(172, 225, 196, 0.2)')).toBe(
+    'rgb(172, 225, 196)',
+  );
+});
+
+test('getTextColorForBackground normalizes explicit text color alpha', () => {
+  expect(
+    getTextColorForBackground(
+      { backgroundColor: '#111111', color: '#ace1c40d' },
+      '#ffffff',
+    ),
+  ).toBe('rgb(172, 225, 196)');
+});
+
+test('getTextColorForBackground falls back to adaptive contrast', () => {
+  expect(
+    getTextColorForBackground({ backgroundColor: '#111111' }, '#ffffff'),
+  ).toBe('rgb(255, 255, 255)');
+  expect(getTextColorForBackground({}, '#ffffff')).toBeUndefined();
 });
 
 test('getColorFunction GREATER_OR_EQUAL', () => {
@@ -303,7 +360,7 @@ test('getColorFunction BETWEEN with target value right undefined', () => {
 test('getColorFunction unsupported operator', () => {
   const colorFunction = getColorFunction(
     {
-      // @ts-ignore
+      // @ts-expect-error
       operator: 'unsupported operator',
       targetValue: 50,
       colorScheme: '#FF0000',
@@ -443,6 +500,190 @@ test('getColorFunction None', () => {
   expect(colorFunction('Brian')).toEqual('#FF0000FF');
 });
 
+test('getColorFunction IsTrue', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.IsTrue,
+      targetValue: '',
+      colorScheme: '#FF0000',
+      column: 'isMember',
+    },
+    boolValues,
+  );
+  expect(colorFunction(true)).toEqual('#FF0000FF');
+  expect(colorFunction(false)).toBeUndefined();
+  expect(colorFunction(null)).toBeUndefined();
+});
+
+test('getColorFunction IsFalse', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.IsFalse,
+      targetValue: '',
+      colorScheme: '#FF0000',
+      column: 'isMember',
+    },
+    boolValues,
+  );
+  expect(colorFunction(true)).toBeUndefined();
+  expect(colorFunction(false)).toEqual('#FF0000FF');
+  expect(colorFunction(null)).toBeUndefined();
+});
+
+test('getColorFunction IsNull', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.IsNull,
+      targetValue: '',
+      colorScheme: '#FF0000',
+      column: 'isMember',
+    },
+    boolValues,
+  );
+  expect(colorFunction(true)).toBeUndefined();
+  expect(colorFunction(false)).toBeUndefined();
+  expect(colorFunction(null)).toEqual('#FF0000FF');
+});
+
+test('getColorFunction IsNotNull', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.IsNotNull,
+      targetValue: '',
+      colorScheme: '#FF0000',
+      column: 'isMember',
+    },
+    boolValues,
+  );
+  expect(colorFunction(true)).toEqual('#FF0000FF');
+  expect(colorFunction(false)).toEqual('#FF0000FF');
+  expect(colorFunction(null)).toBeUndefined();
+});
+
+test('getColorFunction IsNotNull returns undefined for non-boolean value', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.IsNotNull,
+      targetValue: '',
+      colorScheme: '#FF0000',
+      column: 'isMember',
+    },
+    boolValues,
+  );
+  expect(colorFunction(50 as unknown as boolean)).toBeUndefined();
+});
+
+test('getColorFunction returns undefined for null values on numeric comparators', () => {
+  const operators = [
+    { operator: Comparator.LessThan, targetValue: 50 },
+    { operator: Comparator.LessOrEqual, targetValue: 50 },
+    { operator: Comparator.GreaterThan, targetValue: 50 },
+    { operator: Comparator.GreaterOrEqual, targetValue: 50 },
+    { operator: Comparator.Equal, targetValue: 50 },
+    { operator: Comparator.NotEqual, targetValue: 50 },
+  ];
+  operators.forEach(({ operator, targetValue }) => {
+    const colorFunction = getColorFunction(
+      {
+        operator,
+        targetValue,
+        colorScheme: '#FF0000',
+        column: 'count',
+      },
+      countValues,
+    );
+    expect(colorFunction(null)).toBeUndefined();
+    expect(colorFunction(undefined as unknown as null)).toBeUndefined();
+  });
+});
+
+test('getColorFunction returns undefined for null values on Between comparators', () => {
+  const operators = [
+    Comparator.Between,
+    Comparator.BetweenOrEqual,
+    Comparator.BetweenOrLeftEqual,
+    Comparator.BetweenOrRightEqual,
+  ];
+  operators.forEach(operator => {
+    const colorFunction = getColorFunction(
+      {
+        operator,
+        targetValueLeft: -10,
+        targetValueRight: 50,
+        colorScheme: '#FF0000',
+        column: 'count',
+      },
+      countValues,
+    );
+    expect(colorFunction(null)).toBeUndefined();
+    expect(colorFunction(undefined as unknown as null)).toBeUndefined();
+  });
+});
+
+test('getColorFunction returns undefined for null values on None operator', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#FF0000',
+      column: 'count',
+    },
+    countValues,
+  );
+  expect(colorFunction(null)).toBeUndefined();
+  expect(colorFunction(undefined as unknown as null)).toBeUndefined();
+});
+
+test('getColorFunction returns undefined for null values on string comparators', () => {
+  const operators = [
+    Comparator.BeginsWith,
+    Comparator.EndsWith,
+    Comparator.Containing,
+    Comparator.NotContaining,
+  ];
+  operators.forEach(operator => {
+    const colorFunction = getColorFunction(
+      {
+        operator,
+        targetValue: 'test',
+        colorScheme: '#FF0000',
+        column: 'name',
+      },
+      strValues,
+    );
+    expect(colorFunction(null)).toBeUndefined();
+    expect(colorFunction(undefined as unknown as null)).toBeUndefined();
+  });
+});
+
+test('getColorFunction returns undefined for empty and whitespace string values', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.LessThan,
+      targetValue: 50,
+      colorScheme: '#FF0000',
+      column: 'count',
+    },
+    countValues,
+  );
+  expect(colorFunction('' as unknown as number)).toBeUndefined();
+  expect(colorFunction('  ' as unknown as number)).toBeUndefined();
+  expect(colorFunction('\t' as unknown as number)).toBeUndefined();
+});
+
+test('getColorFunction IsNull still matches null values', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.IsNull,
+      targetValue: '',
+      colorScheme: '#FF0000',
+      column: 'isMember',
+    },
+    boolValues,
+  );
+  expect(colorFunction(null)).toEqual('#FF0000FF');
+  expect(colorFunction(true)).toBeUndefined();
+});
+
 test('correct column config', () => {
   const columnConfig = [
     {
@@ -531,4 +772,174 @@ test('correct column string config', () => {
 
   expect(colorFormatters[3].column).toEqual('name');
   expect(colorFormatters[3].getColorFromValue('Carlos')).toEqual('#FF0000FF');
+});
+
+test('getColorFunction with useGradient false returns solid color', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.GreaterOrEqual,
+      targetValue: 50,
+      colorScheme: '#FF0000',
+      column: 'count',
+      useGradient: false,
+    },
+    countValues,
+  );
+  // When useGradient is false, should return solid color without opacity
+  expect(colorFunction(50)).toEqual('#FF0000');
+  expect(colorFunction(100)).toEqual('#FF0000');
+  expect(colorFunction(0)).toBeUndefined();
+});
+
+test('getColorFunction with useGradient true returns gradient color', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.GreaterOrEqual,
+      targetValue: 50,
+      colorScheme: '#FF0000',
+      column: 'count',
+      useGradient: true,
+    },
+    countValues,
+  );
+  // When useGradient is true, should return gradient color with opacity
+  expect(colorFunction(50)).toEqual('#FF00000D');
+  expect(colorFunction(100)).toEqual('#FF0000FF');
+  expect(colorFunction(0)).toBeUndefined();
+});
+
+test('getColorFunction with useGradient undefined defaults to gradient (backward compatibility)', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.GreaterOrEqual,
+      targetValue: 50,
+      colorScheme: '#FF0000',
+      column: 'count',
+      // useGradient is undefined
+    },
+    countValues,
+  );
+  // When useGradient is undefined, should default to gradient for backward compatibility
+  expect(colorFunction(50)).toEqual('#FF00000D');
+  expect(colorFunction(100)).toEqual('#FF0000FF');
+  expect(colorFunction(0)).toBeUndefined();
+});
+
+test('getColorFunction with useGradient false and None operator returns solid color', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#FF0000',
+      column: 'count',
+      useGradient: false,
+    },
+    countValues,
+  );
+  // When useGradient is false, all matching values should return solid color
+  expect(colorFunction(20)).toBeUndefined();
+  expect(colorFunction(50)).toEqual('#FF0000');
+  expect(colorFunction(75)).toEqual('#FF0000');
+  expect(colorFunction(100)).toEqual('#FF0000');
+  expect(colorFunction(120)).toBeUndefined();
+});
+
+test('getColorFormatters with useGradient flag', () => {
+  const columnConfig = [
+    {
+      operator: Comparator.GreaterThan,
+      targetValue: 50,
+      colorScheme: '#FF0000',
+      column: 'count',
+      useGradient: false,
+    },
+    {
+      operator: Comparator.GreaterThan,
+      targetValue: 50,
+      colorScheme: '#00FF00',
+      column: 'count',
+      useGradient: true,
+    },
+  ];
+  const colorFormatters = getColorFormatters(columnConfig, mockData);
+  expect(colorFormatters.length).toEqual(2);
+
+  // First formatter with useGradient: false should return solid color
+  expect(colorFormatters[0].column).toEqual('count');
+  expect(colorFormatters[0].getColorFromValue(100)).toEqual('#FF0000');
+
+  // Second formatter with useGradient: true should return gradient color
+  expect(colorFormatters[1].column).toEqual('count');
+  expect(colorFormatters[1].getColorFromValue(100)).toEqual('#00FF00FF');
+});
+
+test('getColorFunction NOT_EQUAL returns undefined when targetValue is non-numeric', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.NotEqual,
+      targetValue: 'not-a-number' as unknown as number,
+      colorScheme: '#FF0000',
+      column: 'count',
+    },
+    countValues,
+  );
+  expect(colorFunction(50)).toBeUndefined();
+  expect(colorFunction(100)).toBeUndefined();
+});
+
+test('getColorFormatters resolves colorScheme from theme when it starts with "color"', () => {
+  const theme = { colorPrimary: '#AABBCC' };
+  const columnConfig = [
+    {
+      operator: Comparator.None,
+      colorScheme: 'colorPrimary',
+      column: 'count',
+    },
+  ];
+  const colorFormatters = getColorFormatters(columnConfig, mockData, theme);
+  expect(colorFormatters).toHaveLength(1);
+  expect(colorFormatters[0].getColorFromValue(75)).toContain('#AABBCC');
+});
+
+test('correct column boolean config', () => {
+  const columnConfigBoolean = [
+    {
+      operator: Comparator.IsTrue,
+      targetValue: '',
+      colorScheme: '#FF0000',
+      column: 'isMember',
+    },
+    {
+      operator: Comparator.IsFalse,
+      targetValue: '',
+      colorScheme: '#FF0000',
+      column: 'isMember',
+    },
+    {
+      operator: Comparator.IsNull,
+      targetValue: '',
+      colorScheme: '#FF0000',
+      column: 'isMember',
+    },
+    {
+      operator: Comparator.IsNotNull,
+      targetValue: '',
+      colorScheme: '#FF0000',
+      column: 'isMember',
+    },
+  ];
+  const colorFormatters = getColorFormatters(columnConfigBoolean, boolData);
+  expect(colorFormatters.length).toEqual(4);
+
+  expect(colorFormatters[0].column).toEqual('isMember');
+  expect(colorFormatters[0].getColorFromValue(true)).toEqual('#FF0000FF');
+
+  expect(colorFormatters[1].column).toEqual('isMember');
+  expect(colorFormatters[1].getColorFromValue(false)).toEqual('#FF0000FF');
+
+  expect(colorFormatters[2].column).toEqual('isMember');
+  expect(colorFormatters[2].getColorFromValue(null)).toEqual('#FF0000FF');
+
+  expect(colorFormatters[3].column).toEqual('isMember');
+  expect(colorFormatters[3].getColorFromValue(true)).toEqual('#FF0000FF');
+  expect(colorFormatters[3].getColorFromValue(false)).toEqual('#FF0000FF');
 });

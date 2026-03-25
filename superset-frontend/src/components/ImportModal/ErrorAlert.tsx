@@ -18,8 +18,9 @@
  */
 
 import { FunctionComponent } from 'react';
-import { t } from '@superset-ui/core';
-import { SupersetTheme, Alert } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
+import { SupersetTheme } from '@apache-superset/core/theme';
 
 import { getDatabaseDocumentationLinks } from 'src/views/CRUD/hooks';
 import { antdWarningAlertStyles } from './styles';

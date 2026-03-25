@@ -21,7 +21,7 @@ import '@testing-library/jest-dom';
 import { Radio } from '.';
 
 describe('Radio Component', () => {
-  it('renders radio button and allows selection', () => {
+  test('renders radio button and allows selection', () => {
     render(
       <Radio.Group>
         <Radio value="option1">Option 1</Radio>

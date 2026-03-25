@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// Type augmentation for dayjs plugins
+import 'dayjs/plugin/utc';
 import { Metric } from '@superset-ui/chart-controls';
 import {
   ChartProps,
@@ -26,7 +28,6 @@ import {
   ensureIsArray,
 } from '@superset-ui/core';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
-import 'dayjs/plugin/utc';
 import {
   getComparisonFontSize,
   getHeaderFontSize,
@@ -81,7 +82,11 @@ export default function transformProps(chartProps: ChartProps) {
     height,
     formData,
     queriesData,
-    datasource: { currencyFormats = {}, columnFormats = {} },
+    datasource: {
+      currencyFormats = {},
+      columnFormats = {},
+      currencyCodeColumn,
+    },
   } = chartProps;
   const {
     boldText,
@@ -99,7 +104,8 @@ export default function transformProps(chartProps: ChartProps) {
     subtitleFontSize,
     columnConfig = {},
   } = formData;
-  const { data: dataA = [] } = queriesData[0];
+  const { data: dataA = [], detected_currency: detectedCurrency } =
+    queriesData[0] || {};
   const data = dataA;
   const metricName = metric ? getMetricLabel(metric) : '';
   const metrics = chartProps.datasource?.metrics || [];
@@ -161,6 +167,10 @@ export default function transformProps(chartProps: ChartProps) {
     columnFormats,
     metricEntry?.d3format || yAxisFormat,
     currencyFormat,
+    undefined,
+    data,
+    currencyCodeColumn,
+    detectedCurrency,
   );
 
   const compTitles = {

@@ -288,6 +288,25 @@ class TestSqlLabApi(SupersetTestCase):
         self.assertDictEqual(resp_data, success_resp)  # noqa: PT009
         assert rv.status_code == 200
 
+    def test_format_sql_request_with_jinja(self):
+        self.login(ADMIN_USERNAME)
+        example_db = get_example_database()
+
+        data = {
+            "sql": "select * from {{tbl}}",
+            "database_id": example_db.id,
+            "template_params": json.dumps({"tbl": '"Vehicle Sales"'}),
+        }
+        rv = self.client.post(
+            "/api/v1/sqllab/format_sql/",
+            json=data,
+        )
+        resp_data = json.loads(rv.data.decode("utf-8"))
+        # Verify that Jinja template was processed before formatting
+        assert "{{tbl}}" not in resp_data["result"]
+        assert '"Vehicle Sales"' in resp_data["result"]
+        assert rv.status_code == 200
+
     @mock.patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
     def test_execute_required_params(self):
         self.login(ADMIN_USERNAME)

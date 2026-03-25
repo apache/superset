@@ -109,7 +109,9 @@ test('fetches chart favorites and renders chart cards', async () => {
   await renderChartTable(mockedProps);
   userEvent.click(screen.getByText(/favorite/i));
   await waitFor(() => {
-    expect(fetchMock.calls(chartFavoriteStatusEndpoint)).toHaveLength(1);
+    expect(
+      fetchMock.callHistory.calls(chartFavoriteStatusEndpoint),
+    ).toHaveLength(1);
     expect(screen.getAllByText(/cool chart/i)).toHaveLength(3);
   });
 });

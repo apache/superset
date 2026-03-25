@@ -85,6 +85,8 @@ export const LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD =
   'sqllab_copy_result_to_clipboard';
 export const LOG_ACTIONS_SQLLAB_CREATE_CHART = 'sqllab_create_chart';
 export const LOG_ACTIONS_SQLLAB_LOAD_TAB_STATE = 'sqllab_load_tab_state';
+export const LOG_ACTIONS_SQLLAB_SWITCH_SOUTH_PANE_TAB =
+  'sqllab_switch_south_pane_tab';
 
 // Log event types --------------------------------------------------------------
 export const LOG_EVENT_TYPE_TIMING = new Set([
