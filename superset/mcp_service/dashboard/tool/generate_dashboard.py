@@ -227,6 +227,21 @@ def generate_dashboard(
                     error=f"Charts not found: {list(missing_chart_ids)}",
                 )
 
+            # Check if user has access to all charts
+            from superset.extensions import security_manager
+
+            inaccessible_chart_ids = [
+                chart.id
+                for chart in chart_objects
+                if not security_manager.can_access_chart(chart)
+            ]
+            if inaccessible_chart_ids:
+                return GenerateDashboardResponse(
+                    dashboard=None,
+                    dashboard_url=None,
+                    error=f"Access denied to charts: {inaccessible_chart_ids}",
+                )
+
         # Create dashboard layout with chart objects
         with event_logger.log_context(action="mcp.generate_dashboard.layout"):
             layout = _create_dashboard_layout(chart_objects)

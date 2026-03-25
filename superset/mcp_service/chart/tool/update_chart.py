@@ -134,6 +134,26 @@ async def update_chart(
                 }
             )
 
+        # Validate dataset access before allowing update
+        from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+
+        validation_result = validate_chart_dataset(chart, check_access=True)
+        if not validation_result.is_valid:
+            error_msg = validation_result.error or "Chart's dataset is not accessible"
+            return GenerateChartResponse.model_validate(
+                {
+                    "chart": None,
+                    "error": {
+                        "error_type": "DatasetNotAccessible",
+                        "message": error_msg,
+                        "details": error_msg,
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
+            )
+
         # Map the new config to form_data format
         # Get dataset_id from existing chart for column type checking
         dataset_id = chart.datasource_id if chart.datasource_id else None
