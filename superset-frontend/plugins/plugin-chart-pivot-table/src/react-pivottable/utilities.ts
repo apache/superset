@@ -263,12 +263,12 @@ function createHierarchicalComparator(
       const valA = dataFunc(a, []) as string | number | null;
       const valB = dataFunc(b, []) as string | number | null;
 
-      let result = naturalSort(valA, valB) * valueMultiplier;
+      const result = naturalSort(valA, valB) * valueMultiplier;
 
       if (result === 0) {
         const lastA = a[a.length - 1] ?? '';
         const lastB = b[b.length - 1] ?? '';
-        return lastA.localeCompare(lastB);
+        return lastA.localeCompare(lastB) * valueMultiplier;
       }
       return result;
     }
@@ -283,7 +283,7 @@ function createHierarchicalComparator(
     const sumB = nodeB?.auto_agg_sum ?? 0;
 
     if (sumA === sumB) {
-      return segmentA.localeCompare(segmentB);
+      return segmentA.localeCompare(segmentB) * valueMultiplier;
     }
     return (sumA > sumB ? 1 : -1) * valueMultiplier;
   };
