@@ -301,6 +301,7 @@ const Row = memo((props: RowProps) => {
             <IconButton
               onClick={() => handleChangeFocus(true)}
               icon={<Icons.SettingOutlined iconSize="l" />}
+              aria-label={t('Edit row settings')}
             />
           </HoverMenu>
         )}

@@ -245,6 +245,7 @@ const Column = (props: ColumnProps) => {
               <IconButton
                 onClick={() => handleChangeFocus(true)}
                 icon={<Icons.SettingOutlined iconSize="m" />}
+                aria-label={t('Edit column settings')}
               />
             </HoverMenu>
           )}

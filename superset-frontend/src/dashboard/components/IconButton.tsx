@@ -22,6 +22,7 @@ import { styled } from '@apache-superset/core/ui';
 interface IconButtonProps {
   icon: JSX.Element;
   label?: string;
+  'aria-label'?: string;
   onClick: MouseEventHandler<HTMLDivElement>;
 }
 
@@ -39,11 +40,16 @@ const StyledSpan = styled.span`
   margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
-const IconButton = ({ icon, label, onClick }: IconButtonProps) => (
+const IconButton = ({
+  icon,
+  label,
+  'aria-label': ariaLabel,
+  onClick,
+}: IconButtonProps) => (
   <StyledDiv
     tabIndex={0}
     role="button"
-    aria-label={label}
+    aria-label={ariaLabel || label}
     onClick={e => {
       e.preventDefault();
       onClick(e);
