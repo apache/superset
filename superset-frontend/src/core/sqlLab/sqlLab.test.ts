@@ -102,9 +102,15 @@ let mockStore = createMockStore();
 // Mocks — must use "mock" prefix for jest.mock() scoping rules
 // ---------------------------------------------------------------------------
 
-jest.mock('nanoid', () => ({
-  nanoid: jest.fn(() => 'mock-nanoid'),
-}));
+jest.mock('nanoid', () => {
+  let counter = 0;
+  return {
+    nanoid: jest.fn(() => {
+      counter += 1;
+      return `mock-nanoid-${counter}`;
+    }),
+  };
+});
 
 jest.mock('src/views/store', () => ({
   get store() {
