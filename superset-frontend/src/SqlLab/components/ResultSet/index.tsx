@@ -749,6 +749,7 @@ const ResultSet = ({
               <div
                 css={css`
                   flex: 1 1 auto;
+                  padding-bottom: ${theme.sizeUnit * 3}px;
                 `}
               >
                 <AutoSizer disableWidth>
