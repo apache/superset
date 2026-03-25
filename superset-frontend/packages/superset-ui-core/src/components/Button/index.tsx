@@ -134,9 +134,11 @@ export function Button(props: ButtonProps) {
         },
         ':not(:hover)': effectiveButtonStyle === 'secondary' &&
           !disabled && {
-            // WCAG 1.4.11: Use colorPrimaryText for sufficient contrast (>= 3:1)
-            // on the filled primary background (colorPrimaryBg).
-            color: `${theme.colorPrimaryText} !important`,
+            // WCAG 1.4.11: Use colorText for sufficient contrast (>= 3:1)
+            // on the filled primary background in both light and dark mode.
+            // colorPrimaryText fails in dark mode (~2.7:1), colorPrimaryTextHover
+            // fails in light mode (~2.5:1). colorText works in both (>= 4:1).
+            color: `${theme.colorText} !important`,
           },
       }}
       icon={icon}
