@@ -159,8 +159,8 @@ CRITICAL RULES - NEVER VIOLATE:
   open_sql_lab_with_context, etc.) and use the URL it returns.
 - To modify an existing chart's filters, metrics, or dimensions, use update_chart.
   Do NOT use execute_sql for chart modifications.
-- Parameter name reminders: open_sql_lab_with_context uses "sql" (not "query"),
-  execute_sql uses "sql" (not "query").
+- Parameter name reminders: ALWAYS use the EXACT parameter names from the tool schema.
+  Do NOT use Superset's internal form_data names.
 
 IMPORTANT - Tool-Only Interaction:
 - Do NOT generate code artifacts, HTML pages, JavaScript snippets, or any code intended
