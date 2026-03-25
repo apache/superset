@@ -33,7 +33,7 @@ import {
 } from 'src/SqlLab/fixtures';
 import { SupersetClient, isFeatureEnabled } from '@superset-ui/core';
 import { ADD_TOAST } from 'src/components/MessageToasts/actions';
-import { TMP_QUERY_ID } from 'src/SqlLab/hooks/useQueryEditor';
+import { EMPTY_STATE_QE_ID } from 'src/SqlLab/hooks/useQueryEditor';
 import { ToastType } from '../../components/MessageToasts/types';
 
 const isFeatureEnabledMock = isFeatureEnabled as unknown as jest.Mock;
@@ -886,7 +886,7 @@ describe('async actions', () => {
 
       test('creates a new query editor from the saved state in the empty tab', () => {
         const unsavedEmptyTabState = {
-          id: TMP_QUERY_ID,
+          id: EMPTY_STATE_QE_ID,
           dbId: 2,
           catalog: 'test_catalog',
           schema: 'test_schema',
@@ -895,7 +895,7 @@ describe('async actions', () => {
           ...initialState,
           sqlLab: {
             ...initialState.sqlLab,
-            tabHistory: [TMP_QUERY_ID],
+            tabHistory: [EMPTY_STATE_QE_ID],
             unsavedQueryEditor: unsavedEmptyTabState,
           },
         });

@@ -47,7 +47,7 @@ import { newQueryTabName } from '../utils/newQueryTabName';
 import getInitialState from '../reducers/getInitialState';
 import { rehydratePersistedState } from '../utils/reduxStateToLocalStorageHelper';
 import { PREVIEW_QUERY_LIMIT } from '../constants';
-import { TMP_QUERY_ID } from '../hooks/useQueryEditor';
+import { EMPTY_STATE_QE_ID } from '../hooks/useQueryEditor';
 
 // Type definitions for SqlLab actions
 export interface Query {
@@ -755,7 +755,7 @@ export function addNewQueryEditor(): SqlLabThunkAction<SqlLabAction> {
     const defaultDbId = common.conf.SQLLAB_DEFAULT_DBID as number | undefined;
     const activeQueryEditor = queryEditors.find(
       (qe: QueryEditor) => qe.id === tabHistory[tabHistory.length - 1],
-    ) ?? { id: TMP_QUERY_ID };
+    ) ?? { id: EMPTY_STATE_QE_ID };
     const dbIds = Object.values(databases).map(
       (database: { id: number }) => database.id,
     );
