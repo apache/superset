@@ -88,6 +88,20 @@ def test_dataset_post_schema_has_all_put_scalar_fields() -> None:
     )
 
 
+def test_dataset_post_schema_includes_currency_code_column() -> None:
+    """Test that DatasetPostSchema accepts currency_code_column."""
+    from superset.datasets.schemas import DatasetPostSchema
+
+    schema = DatasetPostSchema()
+    data = {
+        "database": 1,
+        "table_name": "virtual_dataset",
+        "currency_code_column": "currency",
+    }
+    result = schema.load(data)
+    assert result["currency_code_column"] == "currency"
+
+
 def test_dataset_metrics_put_schema_parses_currency_string() -> None:
     """Test that DatasetMetricsPutSchema parses string currency payloads."""
     from superset.datasets.schemas import DatasetMetricsPutSchema
