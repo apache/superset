@@ -329,3 +329,116 @@ def test_get_predicates_for_table(mocker: MockerFixture) -> None:
     dataset.get_sqla_row_level_filters.assert_called_once_with(
         include_global_guest_rls=False
     )
+
+
+@with_config(
+    {
+        "SQLLAB_PAYLOAD_MAX_MB": 50,
+        "DISALLOWED_SQL_FUNCTIONS": {},
+        "DISALLOWED_SQL_TABLES": {},
+        "SQLLAB_CTAS_NO_LIMIT": False,
+        "SQL_MAX_ROW": 100000,
+        "QUERY_LOGGER": None,
+        "TROUBLESHOOTING_LINK": None,
+        "STATS_LOGGER": MagicMock(),
+    }
+)
+def test_rls_in_sqllab_rejects_write_on_rls_table(mocker: MockerFixture, app) -> None:
+    """Write statements on tables with RLS rules raise an error when RLS_IN_SQLLAB=True."""  # noqa: E501
+    from superset.exceptions import SupersetSecurityException
+
+    query = mocker.MagicMock()
+    query.limit = 0
+    query.select_as_cta = False
+    query.catalog = "examples"
+    query.database.allow_dml = True
+    query.database.allow_run_async = False
+    query.database.db_engine_spec = mocker.MagicMock()
+    query.database.db_engine_spec.engine = "postgresql"
+    query.database.db_engine_spec.run_multiple_statements_as_one = False
+    query.database.db_engine_spec.allows_sql_comments = True
+    query.database.get_default_schema_for_query.return_value = "public"
+    query.database.get_default_catalog.return_value = "examples"
+
+    mocker.patch("superset.sql_lab.get_query", return_value=query)
+    mocker.patch("superset.sql_lab.db.session.commit")
+    mocker.patch("superset.sql_lab.db.session.refresh")
+    mocker.patch("superset.sql_lab.results_backend", None)
+    mocker.patch("superset.sql_lab.is_feature_enabled", return_value=True)
+    mocker.patch(
+        "superset.sql_lab.get_predicates_for_table",
+        return_value=["region_id = 2"],
+    )
+
+    with pytest.raises(SupersetSecurityException):
+        execute_sql_statements(
+            query_id=1,
+            rendered_query="UPDATE orders SET status='pending' WHERE region_id=1",
+            return_results=True,
+            store_results=False,
+            start_time=None,
+            expand_data=False,
+            log_params={},
+        )
+
+
+@with_config(
+    {
+        "SQLLAB_PAYLOAD_MAX_MB": 50,
+        "DISALLOWED_SQL_FUNCTIONS": {},
+        "DISALLOWED_SQL_TABLES": {},
+        "SQLLAB_CTAS_NO_LIMIT": False,
+        "SQL_MAX_ROW": 100000,
+        "QUERY_LOGGER": None,
+        "TROUBLESHOOTING_LINK": None,
+        "STATS_LOGGER": MagicMock(),
+    }
+)
+def test_rls_allows_mutation_on_unprotected_table(mocker: MockerFixture, app) -> None:
+    """Mutation on a table with no RLS rules is not blocked."""
+    from superset.exceptions import SupersetSecurityException
+
+    query = mocker.MagicMock()
+    query.limit = 0
+    query.select_as_cta = False
+    query.catalog = "examples"
+    query.database.allow_dml = True
+    query.database.allow_run_async = False
+    query.database.db_engine_spec = mocker.MagicMock()
+    query.database.db_engine_spec.engine = "postgresql"
+    query.database.db_engine_spec.run_multiple_statements_as_one = False
+    query.database.db_engine_spec.allows_sql_comments = True
+    query.database.get_default_schema_for_query.return_value = "public"
+    query.database.get_default_catalog.return_value = "examples"
+
+    mocker.patch("superset.sql_lab.get_query", return_value=query)
+    mocker.patch("superset.sql_lab.db.session.commit")
+    mocker.patch("superset.sql_lab.db.session.refresh")
+    mocker.patch("superset.sql_lab.results_backend", None)
+    mocker.patch("superset.sql_lab.is_feature_enabled", return_value=True)
+    mock_get_predicates = mocker.patch(
+        "superset.sql_lab.get_predicates_for_table",
+        return_value=[],
+    )
+    try:
+        execute_sql_statements(
+            query_id=1,
+            rendered_query="UPDATE public_table SET name='x' WHERE id=1",
+            return_results=True,
+            store_results=False,
+            start_time=None,
+            expand_data=False,
+            log_params={},
+        )
+    except SupersetSecurityException:
+        pytest.fail(
+            "SupersetSecurityException should not be raised for unprotected table"
+        )
+    except Exception:  # noqa: BLE001, S110
+        # Other exceptions from incomplete mocks are acceptable; the important
+        # assertion is that SupersetSecurityException was NOT raised.
+        pass
+
+    # Verify the RLS check was actually reached — if this wasn't called the test
+    # would pass vacuously even if the code crashed before the security check.
+    mock_get_predicates.assert_called()
