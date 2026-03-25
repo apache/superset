@@ -57,10 +57,9 @@ const StyledHeader = styled.header`
       display: none;
     }
 
-    /* WCAG 1.4.10 Reflow: prevent horizontal overflow at narrow viewports */
+    /* WCAG 1.4.10 Reflow: allow content to reflow at narrow viewports (400% zoom) */
     @media (max-width: 768px) {
       padding: 0 ${theme.sizeUnit * 2}px;
-      overflow-x: hidden;
     }
   `}
 `;
@@ -348,7 +347,6 @@ export function Menu({
         <Typography.Link
           className="navbar-brand"
           href={ensureAppRoot(brand.path)}
-          tabIndex={-1}
         >
           <StyledImage
             preview={false}

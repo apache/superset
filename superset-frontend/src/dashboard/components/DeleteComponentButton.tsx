@@ -18,6 +18,7 @@
  */
 import { MouseEventHandler, FC } from 'react';
 
+import { t } from '@apache-superset/core';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { IconType } from '@superset-ui/core/components/Icons/types';
 import IconButton from './IconButton';
@@ -34,6 +35,7 @@ const DeleteComponentButton: FC<DeleteComponentButtonProps> = ({
   <IconButton
     onClick={onDelete}
     icon={<Icons.DeleteOutlined iconSize={iconSize ?? 'l'} />}
+    aria-label={t('Delete component')}
   />
 );
 

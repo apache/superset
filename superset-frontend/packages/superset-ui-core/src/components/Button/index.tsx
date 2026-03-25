@@ -134,9 +134,9 @@ export function Button(props: ButtonProps) {
         },
         ':not(:hover)': effectiveButtonStyle === 'secondary' &&
           !disabled && {
-            // NOTE: This is the best we can do contrast wise for the secondary button using antd tokens
-            // and abusing the semantics. Should be revisited when possible. https://github.com/apache/superset/pull/34253#issuecomment-3104834692
-            color: `${theme.colorPrimaryTextHover} !important`,
+            // WCAG 1.4.11: Use colorPrimaryText for sufficient contrast (>= 3:1)
+            // on the filled primary background (colorPrimaryBg).
+            color: `${theme.colorPrimaryText} !important`,
           },
       }}
       icon={icon}
