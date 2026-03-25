@@ -417,7 +417,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   return (
     <>
-      <Global styles={[...globalStyles, dashboardTooltipStyles]} />
+      <Global styles={[...globalStyles, dashboardTooltipStyles(theme)]} />
       {readyToRender && hasDashboardInfoInitiated ? (
         <>
           <SyncDashboardState dashboardPageId={dashboardPageId} />
