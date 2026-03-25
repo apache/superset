@@ -158,6 +158,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  mockSvg.on.mockReset();
+  mockSvg.on.mockReturnThis();
   document.body.removeChild(container);
 });
 
@@ -165,7 +167,9 @@ test('sets up only contextmenu and click handlers on countries', () => {
   WorldMap(container, baseProps);
 
   expect(mockSvg.selectAll).toHaveBeenCalledWith('.datamaps-subunit');
-  const onCalls = mockSvg.on.mock.calls;
+  const onCalls = mockSvg.on.mock.calls.filter(
+    call => call[0] === 'contextmenu' || call[0] === 'click',
+  );
 
   const hasContextMenu = onCalls.some(call => call[0] === 'contextmenu');
   const hasClick = onCalls.some(call => call[0] === 'click');
@@ -174,13 +178,17 @@ test('sets up only contextmenu and click handlers on countries', () => {
   expect(hasClick).toBe(true);
 
   // Ensure removed handlers are NOT present
-  const hasMouseover = onCalls.some(
-    call => call[0] === 'mouseover.fillPreserve',
-  );
-  const hasMouseout = onCalls.some(call => call[0] === 'mouseout.fillPreserve');
+  expect(
+    mockSvg.on.mock.calls.some(call =>
+      call[0].includes('mouseover.fillPreserve'),
+    ),
+  ).toBe(false);
 
-  expect(hasMouseover).toBe(false);
-  expect(hasMouseout).toBe(false);
+  expect(
+    mockSvg.on.mock.calls.some(call =>
+      call[0].includes('mouseout.fillPreserve'),
+    ),
+  ).toBe(false);
 });
 
 test('does not throw error when onContextMenu is undefined', () => {
@@ -204,16 +212,26 @@ test('calls onContextMenu when provided and right-click occurs', () => {
 
   let contextMenuHandler: ((source: any) => void) | undefined;
 
-  mockSvg.on.mockImplementation((event: string, handler: any) => {
-    if (event === 'contextmenu') {
+  const originalOn = mockSvg.on;
+
+  mockSvg.on = jest.fn(function (event: string, handler: any) {
+    if (event === 'contextmenu' && !contextMenuHandler) {
       contextMenuHandler = handler;
     }
-    return mockSvg;
+    return originalOn.call(this, event, handler);
   });
 
   WorldMap(container, propsWithContextMenu);
 
   expect(contextMenuHandler).toBeDefined();
+
+  const d3 = require('d3');
+  d3.event = {
+    preventDefault: jest.fn(),
+    clientX: 100,
+    clientY: 200,
+  };
+
   contextMenuHandler!({ country: 'USA' });
 
   expect(mockOnContextMenu).toHaveBeenCalledWith(100, 200, expect.any(Object));
