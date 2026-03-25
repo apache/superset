@@ -1809,9 +1809,7 @@ describe('plugin-chart-table', () => {
             ...testData.basic.queriesData[0],
             colnames: ['Name_Renamed', 'sum__num'],
             coltypes: [GenericDataType.String, GenericDataType.Numeric],
-            data: [
-              { Name_Renamed: 'Michael', sum__num: 2467063 },
-            ],
+            data: [{ Name_Renamed: 'Michael', sum__num: 2467063 }],
           },
         ],
       });
@@ -1909,11 +1907,7 @@ describe('plugin-chart-table', () => {
 
       render(
         <ProviderWrapper>
-          <TableChart
-            {...baseProps}
-            emitCrossFilters
-            sticky={false}
-          />
+          <TableChart {...baseProps} emitCrossFilters sticky={false} />
         </ProviderWrapper>,
       );
 
@@ -1927,7 +1921,7 @@ describe('plugin-chart-table', () => {
       expect(setDataMask).toHaveBeenCalled();
       const lastCall =
         setDataMask.mock.calls[setDataMask.mock.calls.length - 1][0];
-      const {filters} = lastCall.extraFormData;
+      const { filters } = lastCall.extraFormData;
       expect(filters).toHaveLength(1);
       // Should emit the original column name, not the label
       expect(filters[0].col).toBe('name');

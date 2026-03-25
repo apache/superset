@@ -471,8 +471,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                       val: val.map(el =>
                         el instanceof Date ? el.getTime() : el!,
                       ),
-                      grain:
-                        resolvedCol === DTTM_ALIAS ? timeGrain : undefined,
+                      grain: resolvedCol === DTTM_ALIAS ? timeGrain : undefined,
                     };
                   }),
           },
