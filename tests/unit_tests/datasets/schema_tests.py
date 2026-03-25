@@ -48,61 +48,43 @@ def test_validate_python_date_format_raises(payload) -> None:
         validate_python_date_format(payload)
 
 
-def test_dataset_post_schema_includes_currency_code_column() -> None:
-    """Test that DatasetPostSchema properly handles currency_code_column field."""
-    from superset.datasets.schemas import DatasetPostSchema
+def test_dataset_post_schema_has_all_put_scalar_fields() -> None:
+    """
+    Every scalar model field accepted by DatasetPutSchema should also be accepted
+    by DatasetPostSchema, unless it is intentionally excluded (fields that only
+    make sense after a dataset already exists).
 
-    schema = DatasetPostSchema()
+    This prevents the class of bug where a new column is added to the update
+    schema but forgotten in the create schema.
+    """
+    from superset.datasets.schemas import DatasetPostSchema, DatasetPutSchema
 
-    data = {
-        "database": 1,
-        "table_name": "test_table",
-        "currency_code_column": "currency",
+    # Fields that are intentionally only on Put: they require an existing dataset
+    # or are populated server-side during creation.
+    put_only_fields = {
+        "columns",
+        "metrics",
+        "folders",
+        "database_id",  # Post uses "database" (integer id) instead
+        "description",
+        "main_dttm_col",
+        "filter_select_enabled",
+        "fetch_values_predicate",
+        "offset",
+        "default_endpoint",
+        "cache_timeout",
+        "is_sqllab_view",
+        "extra",
     }
-    result = schema.load(data)
-    assert result["currency_code_column"] == "currency"
 
+    put_fields = set(DatasetPutSchema().fields.keys())
+    post_fields = set(DatasetPostSchema().fields.keys())
 
-def test_dataset_post_schema_currency_code_column_optional() -> None:
-    """Test that currency_code_column is optional in DatasetPostSchema."""
-    from superset.datasets.schemas import DatasetPostSchema
-
-    schema = DatasetPostSchema()
-
-    data = {
-        "database": 1,
-        "table_name": "test_table",
-    }
-    result = schema.load(data)
-    assert "currency_code_column" not in result
-
-
-def test_dataset_put_schema_includes_currency_code_column() -> None:
-    """Test that DatasetPutSchema properly handles currency_code_column field."""
-    from superset.datasets.schemas import DatasetPutSchema
-
-    schema = DatasetPutSchema()
-
-    # Dataset with currency code column
-    data = {
-        "currency_code_column": "currency",
-    }
-    result = schema.load(data)
-    assert result["currency_code_column"] == "currency"
-
-
-def test_dataset_put_schema_currency_code_column_optional() -> None:
-    """Test that currency_code_column is optional in DatasetPutSchema."""
-    from superset.datasets.schemas import DatasetPutSchema
-
-    schema = DatasetPutSchema()
-
-    # Dataset without currency code column (should not fail)
-    data: dict[str, str | None] = {}
-    result = schema.load(data)
-    assert (
-        "currency_code_column" not in result
-        or result.get("currency_code_column") is None
+    missing = put_fields - post_fields - put_only_fields
+    assert missing == set(), (
+        f"Fields {missing} are in DatasetPutSchema but missing from "
+        f"DatasetPostSchema. Either add them to DatasetPostSchema or to "
+        f"the put_only_fields exclusion list in this test."
     )
 
 
