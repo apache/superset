@@ -62,6 +62,7 @@ import {
   focusStyle,
   headerStyles,
   chartHeaderStyles,
+  dashboardTooltipStyles,
 } from '../styles';
 import SyncDashboardState, {
   getDashboardContextLocalStorage,
@@ -416,7 +417,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   return (
     <>
-      <Global styles={globalStyles} />
+      <Global styles={[...globalStyles, dashboardTooltipStyles]} />
       {readyToRender && hasDashboardInfoInitiated ? (
         <>
           <SyncDashboardState dashboardPageId={dashboardPageId} />
