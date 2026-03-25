@@ -84,6 +84,7 @@ export const FaveStar = ({
       <Tooltip
         id="fave-unfave-tooltip"
         title={t('Click to favorite/unfavorite')}
+        overlayClassName="dashboard-header-tooltip"
       >
         {content}
       </Tooltip>
