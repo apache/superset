@@ -37,7 +37,8 @@ import {
   OrientationType,
   EchartsTimeseriesFormData,
 } from '../../src/Timeseries/types';
-import { StackControlsValue } from '../../src/constants';
+import { StackControlsValue, TIMESERIES_CONSTANTS } from '../../src/constants';
+import { LegendOrientation, LegendType } from '../../src/types';
 import { DEFAULT_FORM_DATA } from '../../src/Timeseries/constants';
 import { createEchartsTimeseriesTestChartProps } from '../helpers';
 import { BASE_TIMESTAMP, createTestData } from './helpers';
@@ -897,6 +898,40 @@ describe('legend sorting', () => {
       'Milton',
       'Boston',
     ]);
+  });
+
+  test('falls back to scroll for zoomable top legends when toolbox space reduces available width', () => {
+    const narrowLegendData = [
+      createTestQueryData(
+        createTestData(
+          [
+            {
+              Alpha: 1,
+              Beta: 2,
+              Gamma: 3,
+            },
+          ],
+          { intervalMs: 300000000 },
+        ),
+      ),
+    ];
+    const chartProps = createTestChartProps({
+      width: 190 + TIMESERIES_CONSTANTS.legendTopRightOffset,
+      formData: {
+        ...formData,
+        legendType: LegendType.Plain,
+        legendOrientation: LegendOrientation.Top,
+        showLegend: true,
+        zoomable: true,
+      },
+      queriesData: narrowLegendData,
+    });
+
+    const transformed = transformProps(chartProps);
+
+    expect((transformed.echartOptions.legend as any).type).toBe(
+      LegendType.Scroll,
+    );
   });
 });
 

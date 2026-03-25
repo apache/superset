@@ -24,7 +24,7 @@ jobs:
     name: Link Checking
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       # Do not bump this linkinator-action version without opening
       # an ASF Infra ticket to allow the new version first!
       - uses: JustinBeckwith/linkinator-action@af984b9f30f63e796ae2ea5be5e07cb587f1bbd9  # v2.3
@@ -67,12 +67,12 @@ jobs:
         working-directory: docs
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
           submodules: recursive
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version-file: './docs/.nvmrc'
       - name: yarn install
@@ -98,20 +98,20 @@ jobs:
         working-directory: docs
     steps:
       - name: "Checkout PR head: ${{ github.event.workflow_run.head_sha }}"
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
           submodules: recursive
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version-file: './docs/.nvmrc'
       - name: yarn install
         run: |
           yarn install --check-cache
       - name: Download database diagnostics from integration tests
-        uses: dawidd6/action-download-artifact@v17
+        uses: dawidd6/action-download-artifact@8a338493df3d275e4a7a63bcff3b8fe97e51a927 # v19
         with:
           workflow: superset-python-integrationtest.yml
           run_id: ${{ github.event.workflow_run.id }}

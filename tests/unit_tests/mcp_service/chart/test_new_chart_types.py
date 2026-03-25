@@ -104,7 +104,7 @@ class TestPieChartConfigSchema:
         assert len(config.filters) == 1
 
     def test_pie_config_rejects_extra_fields(self) -> None:
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match="Unknown field"):
             PieChartConfig(
                 chart_type="pie",
                 dimension=ColumnRef(name="product"),
@@ -324,7 +324,7 @@ class TestPivotTableChartConfigSchema:
             )
 
     def test_pivot_table_rejects_extra_fields(self) -> None:
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match="Unknown field"):
             PivotTableChartConfig(
                 chart_type="pivot_table",
                 rows=[ColumnRef(name="product")],
@@ -459,10 +459,10 @@ class TestMixedTimeseriesChartConfigSchema:
             time_grain="P1M",
             y=[ColumnRef(name="revenue", aggregate="SUM")],
             primary_kind="area",
-            group_by=ColumnRef(name="region"),
+            group_by=[ColumnRef(name="region")],
             y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
             secondary_kind="scatter",
-            group_by_secondary=ColumnRef(name="channel"),
+            group_by_secondary=[ColumnRef(name="channel")],
             show_legend=False,
             x_axis=AxisConfig(title="Date"),
             y_axis=AxisConfig(title="Revenue", format="$,.2f"),
@@ -473,9 +473,9 @@ class TestMixedTimeseriesChartConfigSchema:
         assert config.secondary_kind == "scatter"
         assert config.time_grain == "P1M"
         assert config.group_by is not None
-        assert config.group_by.name == "region"
+        assert config.group_by[0].name == "region"
         assert config.group_by_secondary is not None
-        assert config.group_by_secondary.name == "channel"
+        assert config.group_by_secondary[0].name == "channel"
 
     def test_mixed_timeseries_missing_y(self) -> None:
         with pytest.raises(ValidationError):
@@ -503,7 +503,7 @@ class TestMixedTimeseriesChartConfigSchema:
             )
 
     def test_mixed_timeseries_rejects_extra_fields(self) -> None:
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match="Unknown field"):
             MixedTimeseriesChartConfig(
                 chart_type="mixed_timeseries",
                 x=ColumnRef(name="date"),
@@ -606,9 +606,9 @@ class TestMapMixedTimeseriesConfig:
             chart_type="mixed_timeseries",
             x=ColumnRef(name="date"),
             y=[ColumnRef(name="revenue", aggregate="SUM")],
-            group_by=ColumnRef(name="region"),
+            group_by=[ColumnRef(name="region")],
             y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
-            group_by_secondary=ColumnRef(name="channel"),
+            group_by_secondary=[ColumnRef(name="channel")],
         )
         result = map_mixed_timeseries_config(config, dataset_id=1)
 
@@ -623,9 +623,9 @@ class TestMapMixedTimeseriesConfig:
             chart_type="mixed_timeseries",
             x=ColumnRef(name="date"),
             y=[ColumnRef(name="revenue", aggregate="SUM")],
-            group_by=ColumnRef(name="date"),  # same as x
+            group_by=[ColumnRef(name="date")],  # same as x
             y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
-            group_by_secondary=ColumnRef(name="date"),  # same as x
+            group_by_secondary=[ColumnRef(name="date")],  # same as x
         )
         result = map_mixed_timeseries_config(config, dataset_id=1)
 

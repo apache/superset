@@ -19,20 +19,36 @@
 Authentication and authorization hooks for MCP tools.
 
 This module provides:
-- User authentication from JWT or configured dev user
+- User authentication from JWT, API key, or configured dev user
 - RBAC permission checking aligned with Superset's REST API permissions
 - Dataset access validation
 - Session lifecycle management
 
 The RBAC enforcement mirrors Flask-AppBuilder's @protect() decorator,
 ensuring MCP tools respect the same permission model as the REST API.
+
+Supports multiple authentication methods:
+1. API Key authentication via FAB SecurityManager (configurable prefix)
+2. JWT token authentication (via FastMCP BearerAuthProvider)
+3. Development mode (MCP_DEV_USERNAME configuration)
+
+API Key Authentication:
+- Users create API keys via FAB's /api/v1/security/api_keys/ endpoints
+- Keys use configurable prefixes (FAB_API_KEY_PREFIXES, default: ["sst_"])
+- Keys are validated by FAB's SecurityManager.validate_api_key()
+- Keys inherit the user's roles and permissions via FAB's RBAC
+
+Configuration:
+- FAB_API_KEY_ENABLED: Flask config key to enable API key auth (default: False)
+- FAB_API_KEY_PREFIXES: Key prefixes (default: ["sst_"])
+- MCP_DEV_USERNAME: Fallback username for development
 """
 
 import logging
 from contextlib import AbstractContextManager
 from typing import Any, Callable, TYPE_CHECKING, TypeVar
 
-from flask import g
+from flask import g, has_request_context
 from flask_appbuilder.security.sqla.models import Group, User
 
 if TYPE_CHECKING:
@@ -177,8 +193,9 @@ def get_user_from_request() -> User:
     Get the current user for the MCP tool request.
 
     Priority order:
-    1. g.user if already set (by Preset workspace middleware)
-    2. MCP_DEV_USERNAME from configuration (for development/testing)
+    1. g.user if already set (by Preset workspace middleware or FastMCP auth)
+    2. API key from Authorization header (via FAB SecurityManager)
+    3. MCP_DEV_USERNAME from configuration (for development/testing)
 
     Returns:
         User object with roles and groups eagerly loaded
@@ -191,6 +208,55 @@ def get_user_from_request() -> User:
     # First check if user is already set by Preset workspace middleware
     if hasattr(g, "user") and g.user:
         return g.user
+
+    # Try API key authentication via FAB SecurityManager
+    # Only attempt when in a request context (not for MCP internal operations
+    # like tool discovery that run with only an application context)
+    # Use the Flask config key FAB_API_KEY_ENABLED (not the feature flag),
+    # because the config key controls whether FAB registers the API key
+    # endpoints and validation logic. The feature flag with the same name
+    # in DEFAULT_FEATURE_FLAGS only controls the frontend UI visibility.
+    if current_app.config.get("FAB_API_KEY_ENABLED", False) and has_request_context():
+        sm = current_app.appbuilder.sm
+        # _extract_api_key_from_request is FAB's internal method for reading
+        # the Bearer token from the Authorization header and matching prefixes.
+        # Not all FAB versions include this method, so guard with hasattr.
+        if not hasattr(sm, "_extract_api_key_from_request"):
+            logger.debug(
+                "FAB SecurityManager does not have _extract_api_key_from_request; "
+                "API key authentication is not available in this FAB version"
+            )
+        else:
+            api_key_string = sm._extract_api_key_from_request()
+            if api_key_string is not None:
+                if not hasattr(sm, "validate_api_key"):
+                    logger.warning(
+                        "FAB SecurityManager does not have validate_api_key; "
+                        "cannot validate API key"
+                    )
+                    raise PermissionError(
+                        "API key validation is not available in this FAB version."
+                    )
+                user = sm.validate_api_key(api_key_string)
+                if user:
+                    # Reload user with all relationships eagerly loaded to avoid
+                    # detached-instance errors during later permission checks.
+                    user_with_rels = load_user_with_relationships(
+                        username=user.username,
+                    )
+                    if user_with_rels is None:
+                        logger.warning(
+                            "Failed to reload API key user %s with relationships; "
+                            "using original user object which may have lazy-loaded "
+                            "relationships",
+                            user.username,
+                        )
+                        return user
+                    return user_with_rels
+                raise PermissionError(
+                    "Invalid or expired API key. "
+                    "Create a new key at /api/v1/security/api_keys/."
+                )
 
     # Fall back to configured username for development/single-user deployments
     username = current_app.config.get("MCP_DEV_USERNAME")
@@ -209,11 +275,13 @@ def get_user_from_request() -> User:
             f"JWT keys configured={jwt_configured})"
         )
         details.append("MCP_DEV_USERNAME is not configured")
+        configured_prefixes = current_app.config.get("FAB_API_KEY_PREFIXES", ["sst_"])
+        prefix_example = configured_prefixes[0] if configured_prefixes else "sst_"
         raise ValueError(
             "No authenticated user found. Tried:\n"
             + "\n".join(f"  - {d}" for d in details)
-            + "\n\nEither pass a valid JWT bearer token or configure "
-            "MCP_DEV_USERNAME for development."
+            + f"\n\nEither pass a valid API key (Bearer {prefix_example}...), "
+            "JWT token, or configure MCP_DEV_USERNAME for development."
         )
 
     # Use helper function to load user with all required relationships
@@ -277,6 +345,23 @@ def _setup_user_context() -> User | None:
             logger.debug("No Flask app context available for user setup")
             return None
         raise
+    except ValueError as e:
+        # JWT user resolution failed (e.g. SAML subject not in DB).
+        # If middleware already set g.user (request context exists),
+        # use that instead of failing closed.
+        from flask import has_request_context
+
+        if has_request_context() and hasattr(g, "user") and g.user:
+            logger.warning(
+                "JWT user resolution failed (%s), using middleware-provided g.user=%s",
+                e,
+                g.user.username,
+            )
+            # Assign to local so relationship validation below runs
+            # (same as the normal path) to prevent detached instance errors.
+            user = g.user
+        else:
+            raise
 
     # Validate user has necessary relationships loaded
     # (Force access to ensure they're loaded if lazy)
