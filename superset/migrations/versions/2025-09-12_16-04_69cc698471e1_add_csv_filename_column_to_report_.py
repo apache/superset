@@ -18,7 +18,7 @@
 """add csv_filename column to report schedule
 
 Revision ID: 69cc698471e1
-Revises: 48cbb571fa3a
+Revises: c233f5365c9e
 Create Date: 2025-09-12 16:04:31.052234
 
 """
@@ -28,7 +28,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "69cc698471e1"
-down_revision = "48cbb571fa3a"
+down_revision = "c233f5365c9e"
 
 
 def upgrade():
