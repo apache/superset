@@ -350,13 +350,13 @@ def add_chart_to_existing_dashboard(
                     error=f"Chart with ID {request.chart_id} not found",
                 )
 
-            # Validate dataset access for the chart using the same
-            # pattern as get_chart_info / get_chart_data / get_chart_preview.
-            from superset.mcp_service.chart.chart_utils import (
-                validate_chart_dataset,
-            )
+            # Validate dataset access for the chart.
+            # check_chart_data_access is the centralized data-level
+            # permission check that complements the class-level RBAC
+            # enforced by mcp_auth_hook.
+            from superset.mcp_service.auth import check_chart_data_access
 
-            validation = validate_chart_dataset(new_chart, check_access=True)
+            validation = check_chart_data_access(new_chart)
             if not validation.is_valid:
                 return AddChartToDashboardResponse(
                     dashboard=None,

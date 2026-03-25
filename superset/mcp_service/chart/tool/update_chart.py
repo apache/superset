@@ -135,10 +135,13 @@ async def update_chart(
                 }
             )
 
-        # Validate dataset access before allowing update
-        from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+        # Validate dataset access before allowing update.
+        # check_chart_data_access is the centralized data-level
+        # permission check that complements the class-level RBAC
+        # enforced by mcp_auth_hook.
+        from superset.mcp_service.auth import check_chart_data_access
 
-        validation_result = validate_chart_dataset(chart, check_access=True)
+        validation_result = check_chart_data_access(chart)
         if not validation_result.is_valid:
             error_msg = validation_result.error or "Chart's dataset is not accessible"
             return GenerateChartResponse.model_validate(

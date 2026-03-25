@@ -410,7 +410,7 @@ class TestUpdateChartDatasetAccess:
     """Tests for dataset access validation in update_chart."""
 
     @patch(
-        "superset.mcp_service.chart.chart_utils.validate_chart_dataset",
+        "superset.mcp_service.auth.check_chart_data_access",
         new_callable=Mock,
     )
     @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
@@ -452,7 +452,7 @@ class TestUpdateChartDatasetAccess:
             assert "Access denied" in error["message"]
 
     @patch(
-        "superset.mcp_service.chart.chart_utils.validate_chart_dataset",
+        "superset.mcp_service.auth.check_chart_data_access",
         new_callable=Mock,
     )
     @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)

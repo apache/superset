@@ -63,7 +63,7 @@ def mock_auth():
 def mock_chart_access():
     """Mock chart dataset validation so tests don't hit real security manager."""
     with patch(
-        "superset.mcp_service.chart.chart_utils.validate_chart_dataset",
+        "superset.mcp_service.auth.check_chart_data_access",
         return_value=DatasetValidationResult(
             is_valid=True,
             dataset_id=1,
@@ -261,7 +261,7 @@ class TestGenerateDashboard:
             )
 
         with patch(
-            "superset.mcp_service.chart.chart_utils.validate_chart_dataset",
+            "superset.mcp_service.auth.check_chart_data_access",
             side_effect=mock_validate,
         ):
             request = {
@@ -642,7 +642,7 @@ class TestAddChartToExistingDashboard:
 
         # Override autouse fixture: chart 7 has inaccessible dataset
         with patch(
-            "superset.mcp_service.chart.chart_utils.validate_chart_dataset",
+            "superset.mcp_service.auth.check_chart_data_access",
             return_value=DatasetValidationResult(
                 is_valid=False,
                 dataset_id=10,
