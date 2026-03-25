@@ -162,7 +162,7 @@
     "content-disposition": "^1.0.1",
     "d3-color": "^3.1.0",
     "d3-scale": "^4.0.2",
-    "dayjs": "^1.11.19",
+    "dayjs": "^1.11.20",
     "dom-to-image-more": "^3.7.2",
     "dom-to-pdf": "^0.3.2",
     "echarts": "^5.6.0",
