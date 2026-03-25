@@ -412,15 +412,15 @@ def _get_known_fields(model_class: type[BaseModel]) -> set[str]:
     for field_name, field_info in model_class.model_fields.items():
         known.add(field_name)
         alias = field_info.validation_alias
-        if isinstance(alias, (str, AliasPath)):
-            key = _top_level_key(alias)
-            if key:
-                known.add(key)
-        elif isinstance(alias, AliasChoices):
+        if isinstance(alias, AliasChoices):
             for choice in alias.choices:
                 key = _top_level_key(choice)
                 if key:
                     known.add(key)
+        elif alias is not None:
+            key = _top_level_key(alias)
+            if key:
+                known.add(key)
     return known
 
 
