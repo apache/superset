@@ -63,13 +63,7 @@ import {
   TimeseriesChartTransformedProps,
 } from './types';
 import { DEFAULT_FORM_DATA } from './constants';
-import {
-  ForecastSeriesEnum,
-  ForecastValue,
-  LegendOrientation,
-  LegendType,
-  Refs,
-} from '../types';
+import { ForecastSeriesEnum, ForecastValue, Refs } from '../types';
 import { parseAxisBound } from '../utils/controls';
 import {
   calculateLowerLogTick,
@@ -80,11 +74,9 @@ import {
   extractTooltipKeys,
   getAxisType,
   getColtypesMapping,
-  getHorizontalLegendAvailableWidth,
   getLegendProps,
   getMinAndMaxFromBounds,
 } from '../utils/series';
-import { resolveLegendLayout } from '../utils/legendLayout';
 import {
   extractAnnotationLabels,
   getAnnotationData,
@@ -322,7 +314,14 @@ export default function transformProps(
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
 
-  const offsetLineWidths: { [key: string]: number } = {};
+  const offsetPatternIndexes: { [key: string]: number } = {};
+  const visibleDashPatterns: [number, number][] = [
+    [6, 4],
+    [10, 4],
+    [14, 4],
+    [8, 6],
+    [12, 6],
+  ];
 
   // For horizontal bar charts, calculate min/max from data to avoid cutting off labels
   const shouldCalculateDataBounds =
@@ -347,18 +346,33 @@ export default function transformProps(
 
     const lineStyle: LineStyleOption = {};
     if (derivedSeries) {
-      // Get the time offset for this series to assign different dash patterns
       const offset = getTimeOffset(entry, array) || seriesName;
-      if (!offsetLineWidths[offset]) {
-        offsetLineWidths[offset] = Object.keys(offsetLineWidths).length + 1;
+
+      const configuredOffsetIndex = array.indexOf(offset);
+
+      if (offsetPatternIndexes[offset] === undefined) {
+        if (configuredOffsetIndex >= 0) {
+          offsetPatternIndexes[offset] = configuredOffsetIndex;
+        } else {
+          const usedIndexes = new Set(Object.values(offsetPatternIndexes));
+          let nextIndex = 0;
+
+          while (usedIndexes.has(nextIndex)) {
+            nextIndex += 1;
+          }
+
+          offsetPatternIndexes[offset] = nextIndex;
+        }
       }
       // Use visible dash patterns that vary by offset index
       // Pattern: [dash length, gap length] - scaled to be clearly visible
-      const patternIndex = offsetLineWidths[offset];
-      lineStyle.type = [
-        (patternIndex % 5) + 4, // dash: 4-8px (visible)
-        (patternIndex % 3) + 3, // gap: 3-5px (visible)
-      ];
+      const patternIndex = offsetPatternIndexes[offset];
+
+      lineStyle.type =
+        patternIndex < visibleDashPatterns.length
+          ? visibleDashPatterns[patternIndex]
+          : [6 + (patternIndex - visibleDashPatterns.length + 1) * 4, 4];
+
       lineStyle.opacity = OpacityEnum.DerivedSeries;
     }
 
@@ -655,10 +669,29 @@ export default function transformProps(
     onLegendScroll,
   } = hooks;
 
+  const addYAxisLabelOffset =
+    !!yAxisTitle && convertInteger(yAxisTitleMargin) !== 0;
+  const addXAxisLabelOffset =
+    !!xAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
+  const padding = getPadding(
+    showLegend,
+    legendOrientation,
+    addYAxisLabelOffset,
+    zoomable,
+    legendMargin,
+    addXAxisLabelOffset,
+    yAxisTitlePosition,
+    convertInteger(yAxisTitleMargin),
+    convertInteger(xAxisTitleMargin),
+    isHorizontal,
+  );
+
   const legendData =
     colorByPrimaryAxis && groupBy.length === 0 && series.length > 0
-      ? (() => {
+      ? // When colorByPrimaryAxis is enabled, show only primary axis values (deduped + filtered)
+        (() => {
           const firstSeries = series[0];
+          // For horizontal charts the category is at index 1, for vertical at index 0
           const primaryAxisIndex = isHorizontal ? 1 : 0;
           if (firstSeries && Array.isArray(firstSeries.data)) {
             const names = (firstSeries.data as any[])
@@ -681,7 +714,8 @@ export default function transformProps(
           }
           return [];
         })()
-      : rawSeries
+      : // Otherwise show original series names
+        rawSeries
           .filter(
             entry =>
               extractForecastSeriesContext(entry.name || '').type ===
@@ -689,84 +723,6 @@ export default function transformProps(
           )
           .map(entry => entry.name || '')
           .concat(extractAnnotationLabels(annotationLayers));
-  const addYAxisLabelOffset =
-    !!yAxisTitle && convertInteger(yAxisTitleMargin) !== 0;
-  const addXAxisLabelOffset =
-    !!xAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
-
-  const sortedLegendData = [...legendData].sort((a: string, b: string) => {
-    if (!legendSort) return 0;
-    return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
-  });
-  const colorByPrimaryAxisLegendData = legendData.map(name => ({
-    name,
-    icon: 'roundRect',
-  }));
-  const getLegendLayout = (candidateLegendMargin?: string | number | null) => {
-    const padding = getPadding(
-      showLegend,
-      legendOrientation,
-      addYAxisLabelOffset,
-      zoomable,
-      candidateLegendMargin,
-      addXAxisLabelOffset,
-      yAxisTitlePosition,
-      convertInteger(yAxisTitleMargin),
-      convertInteger(xAxisTitleMargin),
-      isHorizontal,
-    );
-
-    return resolveLegendLayout({
-      availableWidth:
-        legendOrientation === LegendOrientation.Top ||
-        legendOrientation === LegendOrientation.Bottom
-          ? getHorizontalLegendAvailableWidth({
-              chartWidth: width,
-              orientation: legendOrientation,
-              padding,
-              zoomable,
-            })
-          : undefined,
-      chartHeight: height,
-      chartWidth: width,
-      legendItems:
-        colorByPrimaryAxis && groupBy.length === 0
-          ? colorByPrimaryAxisLegendData
-          : sortedLegendData,
-      legendMargin: candidateLegendMargin,
-      orientation: legendOrientation,
-      show: showLegend,
-      showSelectors: !(colorByPrimaryAxis && groupBy.length === 0),
-      theme,
-      type: legendType,
-    });
-  };
-  const initialLegendLayout = getLegendLayout(legendMargin);
-  const legendLayout =
-    isHorizontal &&
-    legendOrientation === LegendOrientation.Bottom &&
-    initialLegendLayout.effectiveLegendType === LegendType.Plain
-      ? getLegendLayout(initialLegendLayout.effectiveLegendMargin)
-      : initialLegendLayout;
-  const { effectiveLegendType } = legendLayout;
-  const effectiveLegendMargin =
-    isHorizontal &&
-    legendOrientation === LegendOrientation.Bottom &&
-    legendLayout.effectiveLegendType === LegendType.Scroll
-      ? legendMargin
-      : legendLayout.effectiveLegendMargin;
-  const padding = getPadding(
-    showLegend,
-    legendOrientation,
-    addYAxisLabelOffset,
-    zoomable,
-    effectiveLegendMargin,
-    addXAxisLabelOffset,
-    yAxisTitlePosition,
-    convertInteger(yAxisTitleMargin),
-    convertInteger(xAxisTitleMargin),
-    isHorizontal,
-  );
 
   let xAxis: any = {
     type: xAxisType,
@@ -976,7 +932,7 @@ export default function transformProps(
     },
     legend: {
       ...getLegendProps(
-        effectiveLegendType,
+        legendType,
         legendOrientation,
         showLegend,
         theme,
@@ -987,8 +943,18 @@ export default function transformProps(
       scrollDataIndex: legendIndex || 0,
       data:
         colorByPrimaryAxis && groupBy.length === 0
-          ? colorByPrimaryAxisLegendData
-          : sortedLegendData,
+          ? // When colorByPrimaryAxis, configure legend items with roundRect icons
+            legendData.map(name => ({
+              name,
+              icon: 'roundRect',
+            }))
+          : // Otherwise use normal legend data
+            legendData.sort((a: string, b: string) => {
+              if (!legendSort) return 0;
+              return legendSort === 'asc'
+                ? a.localeCompare(b)
+                : b.localeCompare(a);
+            }),
       // Disable legend selection and buttons when colorByPrimaryAxis is enabled
       ...(colorByPrimaryAxis && groupBy.length === 0
         ? {

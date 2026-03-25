@@ -37,8 +37,7 @@ import {
   OrientationType,
   EchartsTimeseriesFormData,
 } from '../../src/Timeseries/types';
-import { StackControlsValue, TIMESERIES_CONSTANTS } from '../../src/constants';
-import { LegendOrientation, LegendType } from '../../src/types';
+import { StackControlsValue } from '../../src/constants';
 import { DEFAULT_FORM_DATA } from '../../src/Timeseries/constants';
 import { createEchartsTimeseriesTestChartProps } from '../helpers';
 import { BASE_TIMESTAMP, createTestData } from './helpers';
@@ -899,40 +898,6 @@ describe('legend sorting', () => {
       'Boston',
     ]);
   });
-
-  test('falls back to scroll for zoomable top legends when toolbox space reduces available width', () => {
-    const narrowLegendData = [
-      createTestQueryData(
-        createTestData(
-          [
-            {
-              Alpha: 1,
-              Beta: 2,
-              Gamma: 3,
-            },
-          ],
-          { intervalMs: 300000000 },
-        ),
-      ),
-    ];
-    const chartProps = createTestChartProps({
-      width: 190 + TIMESERIES_CONSTANTS.legendTopRightOffset,
-      formData: {
-        ...formData,
-        legendType: LegendType.Plain,
-        legendOrientation: LegendOrientation.Top,
-        showLegend: true,
-        zoomable: true,
-      },
-      queriesData: narrowLegendData,
-    });
-
-    const transformed = transformProps(chartProps);
-
-    expect((transformed.echartOptions.legend as any).type).toBe(
-      LegendType.Scroll,
-    );
-  });
 });
 
 const timeCompareFormData: SqlaFormData = {
@@ -1070,6 +1035,53 @@ test('should apply connectNulls to time comparison series', () => {
 
   expect(comparisonSeries).toBeDefined();
   expect(comparisonSeries?.connectNulls).toBe(true);
+});
+
+test('should assign distinct dash patterns for multiple time offsets consistently', () => {
+  const queriesDataWithMultipleOffsets = [
+    createTestQueryData([
+      {
+        sum__num: 100,
+        '1 year ago': 80,
+        '2 years ago': 60,
+        __timestamp: 599616000000,
+      },
+      {
+        sum__num: 150,
+        '1 year ago': 120,
+        '2 years ago': 90,
+        __timestamp: 599916000000,
+      },
+    ]),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...timeCompareFormData,
+      time_compare: ['1 year ago', '2 years ago'],
+      comparison_type: ComparisonType.Values,
+    },
+    queriesData: queriesDataWithMultipleOffsets,
+  });
+
+  const transformed = transformProps(chartProps);
+  const series = (transformed.echartOptions.series as SeriesOption[]) || [];
+
+  const series1 = series.find(s => s.name === '1 year ago') as any;
+  const series2 = series.find(s => s.name === '2 years ago') as any;
+
+  expect(series1).toBeDefined();
+  expect(series2).toBeDefined();
+
+  const pattern1 = series1.lineStyle?.type;
+  const pattern2 = series2.lineStyle?.type;
+
+  // ✅ must both be dashed
+  expect(Array.isArray(pattern1)).toBe(true);
+  expect(Array.isArray(pattern2)).toBe(true);
+
+  // ✅ must be different patterns
+  expect(pattern1).not.toEqual(pattern2);
 });
 
 test('should not apply dashed line style for non-Values comparison types', () => {
