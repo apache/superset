@@ -964,6 +964,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             is_virtual=bool(self.sql),
         )
         sql = self._apply_cte(sql, sqlaq.cte)
+        sql = f"-- SUPERSET CHART {query_obj.get('chart_id')} \n" + sql
 
         if mutate:
             sql = self.database.mutate_sql_based_on_config(sql)
@@ -1678,6 +1679,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         timeseries_limit: Optional[int] = None,
         timeseries_limit_metric: Optional[Metric] = None,
         time_shift: Optional[str] = None,
+        chart_id: Optional[int] = None,
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface"""
         if granularity not in self.dttm_cols and granularity is not None:

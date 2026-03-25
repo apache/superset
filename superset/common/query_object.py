@@ -395,6 +395,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             "group_others_when_limit_reached": self.group_others_when_limit_reached,
             "to_dttm": self.to_dttm,
             "time_shift": self.time_shift,
+            "chart_id": self.chart_id,
         }
         return query_object_dict
 

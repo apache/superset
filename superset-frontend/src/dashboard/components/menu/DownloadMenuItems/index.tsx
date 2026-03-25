@@ -30,6 +30,9 @@ import {
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { DownloadScreenshotFormat } from './types';
 
+const getExportGoogleSheetsUrl = (dashboardId: number) =>
+  `/export/dashboard/${dashboardId}/google-sheets/`;
+
 export interface UseDownloadMenuItemsProps {
   pdfMenuItemTitle: string;
   imageMenuItemTitle: string;
@@ -107,6 +110,18 @@ export const useDownloadMenuItems = (
           onClick: (e: any) => onDownloadImage(e.domEvent),
         },
       ];
+
+  if (isFeatureEnabled(FeatureFlag.GoogleSheetsExport)) {
+    children.unshift({
+      key: 'google-sheets',
+      label: t('Export to Google Sheets'),
+      onClick: () => {
+        window
+          .open(getExportGoogleSheetsUrl(dashboardId), '_blank')
+          ?.focus();
+      },
+    });
+  }
 
   return {
     key: MenuKeys.Download,

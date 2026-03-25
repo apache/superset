@@ -54,6 +54,9 @@ import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
 import { useDashboardsMenuItems } from './DashboardsSubMenu';
 
+const getExportGoogleSheetsUrl = sliceId =>
+  `/export/chart/${sliceId}/google-sheets/`;
+
 export const SEARCH_THRESHOLD = 10;
 
 const MENU_KEYS = {
@@ -421,6 +424,20 @@ export const useExploreAdditionalActionsMenu = (
         },
       },
     );
+
+    if (isFeatureEnabled(FeatureFlag.GoogleSheetsExport)) {
+      downloadChildren.push({
+        key: 'google-sheets-export',
+        label: t('Export to Google Sheets'),
+        icon: <Icons.FileOutlined />,
+        onClick: () => {
+          window
+            .open(getExportGoogleSheetsUrl(slice?.slice_id), '_blank')
+            ?.focus();
+          setIsDropdownVisible(false);
+        },
+      });
+    }
 
     menuItems.push({
       key: MENU_KEYS.DOWNLOAD_SUBMENU,
