@@ -261,6 +261,24 @@ export function Menu({
     }
   }, [location.pathname]);
 
+  // WCAG 2.1.1: Make submenu triggers reachable via Tab key.
+  // Ant Design menubar uses arrow-key navigation by default and sets
+  // tabIndex=-1 on all items except the first. This override ensures
+  // every top-level menu item (including submenus like "SQL") is
+  // focusable via Tab.
+  useEffect(() => {
+    const menuEl = document.getElementById('main-menu');
+    if (menuEl) {
+      menuEl
+        .querySelectorAll<HTMLElement>(
+          '.ant-menu-submenu-title, .ant-menu-item',
+        )
+        .forEach(el => {
+          el.setAttribute('tabindex', '0');
+        });
+    }
+  });
+
   const standalone = getUrlParam(URL_PARAMS.standalone);
   if (standalone || uiConfig.hideNav) return <></>;
 
