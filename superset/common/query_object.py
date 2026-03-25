@@ -108,6 +108,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     time_shift: str | None
     time_range: str | None
     to_dttm: datetime | None
+    chart_id: int | None
 
     def __init__(  # pylint: disable=too-many-locals, too-many-arguments
         self,
@@ -164,6 +165,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self.time_offsets = kwargs.get("time_offsets", [])
         self.inner_from_dttm = kwargs.get("inner_from_dttm")
         self.inner_to_dttm = kwargs.get("inner_to_dttm")
+        self.chart_id = kwargs.get("chart_id")
         self._rename_deprecated_fields(kwargs)
         self._move_deprecated_extra_fields(kwargs)
 
@@ -393,6 +395,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             "group_others_when_limit_reached": self.group_others_when_limit_reached,
             "to_dttm": self.to_dttm,
             "time_shift": self.time_shift,
+            "chart_id": self.chart_id,
         }
         return query_object_dict
 
