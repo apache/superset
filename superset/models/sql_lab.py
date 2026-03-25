@@ -536,7 +536,7 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
 
     # latest query that was run
     latest_query_id = Column(
-        Integer, ForeignKey("query.client_id", ondelete="SET NULL")
+        String(11), ForeignKey("query.client_id", ondelete="SET NULL")
     )
     latest_query = relationship("Query")
 
