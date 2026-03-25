@@ -175,7 +175,7 @@
     "geostyler-openlayers-parser": "^5.4.1",
     "geostyler-style": "11.0.2",
     "geostyler-wfs-parser": "^3.0.1",
-    "google-auth-library": "^10.6.1",
+    "google-auth-library": "^10.6.2",
     "immer": "^11.1.4",
     "interweave": "^13.1.1",
     "jquery": "^4.0.0",
