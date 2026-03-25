@@ -26,6 +26,7 @@ import pytest
 from fastmcp import Client
 
 from superset.mcp_service.app import mcp
+from superset.mcp_service.chart.chart_utils import DatasetValidationResult
 from superset.mcp_service.dashboard.constants import generate_id
 from superset.mcp_service.dashboard.tool.add_chart_to_existing_dashboard import (
     _add_chart_to_layout,
@@ -42,7 +43,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
-@pytest.fixture
+@pytest.fixture()
 def mcp_server():
     return mcp
 
@@ -60,10 +61,16 @@ def mock_auth():
 
 @pytest.fixture(autouse=True)
 def mock_chart_access():
-    """Mock chart access check so tests don't hit real security manager."""
+    """Mock chart dataset validation so tests don't hit real security manager."""
     with patch(
-        "superset.extensions.security_manager.can_access_chart",
-        return_value=True,
+        "superset.mcp_service.chart.chart_utils.validate_chart_dataset",
+        return_value=DatasetValidationResult(
+            is_valid=True,
+            dataset_id=1,
+            dataset_name="test_dataset",
+            warnings=[],
+            error=None,
+        ),
     ):
         yield
 
@@ -155,7 +162,7 @@ class TestGenerateDashboard:
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_generate_dashboard_basic(
         self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
     ):
@@ -192,7 +199,7 @@ class TestGenerateDashboard:
             )
 
     @patch("superset.db.session")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_generate_dashboard_missing_charts(self, mock_db_session, mcp_server):
         """Test error handling when some charts don't exist."""
         mock_query = Mock()
@@ -212,10 +219,71 @@ class TestGenerateDashboard:
             assert result.structured_content["dashboard"] is None
             assert result.structured_content["dashboard_url"] is None
 
+    @patch("superset.db.session")
+    @pytest.mark.asyncio()
+    async def test_generate_dashboard_inaccessible_charts(
+        self, mock_db_session, mock_chart_access, mcp_server
+    ):
+        """Test error when user lacks access to some charts."""
+        charts = [
+            _mock_chart(id=1, slice_name="Accessible"),
+            _mock_chart(id=2, slice_name="Restricted"),
+            _mock_chart(id=3, slice_name="Also Restricted"),
+        ]
+
+        mock_query = Mock()
+        mock_filter = Mock()
+        mock_query.filter.return_value = mock_filter
+        mock_filter.order_by.return_value = mock_filter
+        mock_filter.all.return_value = charts
+        mock_db_session.query.return_value = mock_query
+
+        # Override the autouse fixture: chart 2 has inaccessible dataset
+        def mock_validate(chart, check_access=False):
+            if chart.id == 2:
+                return DatasetValidationResult(
+                    is_valid=False,
+                    dataset_id=10,
+                    dataset_name="restricted_dataset",
+                    warnings=[],
+                    error=(
+                        "Access denied to dataset 'restricted_dataset' "
+                        "(ID: 10). You do not have permission to view "
+                        "this dataset."
+                    ),
+                )
+            return DatasetValidationResult(
+                is_valid=True,
+                dataset_id=chart.id,
+                dataset_name=f"dataset_{chart.id}",
+                warnings=[],
+                error=None,
+            )
+
+        with patch(
+            "superset.mcp_service.chart.chart_utils.validate_chart_dataset",
+            side_effect=mock_validate,
+        ):
+            request = {
+                "chart_ids": [1, 2, 3],
+                "dashboard_title": "Test Dashboard",
+            }
+
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "generate_dashboard", {"request": request}
+                )
+
+                assert result.structured_content["error"] is not None
+                assert "not accessible" in result.structured_content["error"]
+                assert "2" in result.structured_content["error"]
+                assert result.structured_content["dashboard"] is None
+                assert result.structured_content["dashboard_url"] is None
+
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_generate_dashboard_single_chart(
         self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
     ):
@@ -242,7 +310,7 @@ class TestGenerateDashboard:
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_generate_dashboard_many_charts(
         self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
     ):
@@ -311,7 +379,7 @@ class TestGenerateDashboard:
 
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.db.session")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_generate_dashboard_creation_failure(
         self, mock_db_session, mock_dashboard_cls, mcp_server
     ):
@@ -351,7 +419,7 @@ class TestGenerateDashboard:
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_generate_dashboard_minimal_request(
         self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
     ):
@@ -380,47 +448,10 @@ class TestGenerateDashboard:
             created = mock_dashboard_cls.return_value
             assert created.published is True
 
-    @patch(
-        "superset.extensions.security_manager.can_access_chart",
-        new_callable=Mock,
-    )
-    @patch("superset.db.session")
-    @pytest.mark.asyncio
-    async def test_generate_dashboard_inaccessible_charts(
-        self, mock_db_session, mock_can_access, mock_chart_access, mcp_server
-    ):
-        """Test error when user lacks access to some charts."""
-        charts = [
-            _mock_chart(id=1, slice_name="Accessible Chart"),
-            _mock_chart(id=2, slice_name="Secret Chart"),
-            _mock_chart(id=3, slice_name="Hidden Chart"),
-        ]
-        mock_query = Mock()
-        mock_filter = Mock()
-        mock_query.filter.return_value = mock_filter
-        mock_filter.order_by.return_value = mock_filter
-        mock_filter.all.return_value = charts
-        mock_db_session.query.return_value = mock_query
-
-        # Only chart 1 is accessible
-        mock_can_access.side_effect = lambda chart: chart.id == 1
-
-        request = {"chart_ids": [1, 2, 3], "dashboard_title": "Mixed Access Dashboard"}
-
-        async with Client(mcp_server) as client:
-            result = await client.call_tool("generate_dashboard", {"request": request})
-
-            assert result.structured_content["dashboard"] is None
-            assert result.structured_content["dashboard_url"] is None
-            error = result.structured_content["error"]
-            assert "Access denied" in error
-            assert "2" in error
-            assert "3" in error
-
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_generate_dashboard_auto_title_from_charts(
         self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
     ):
@@ -449,7 +480,7 @@ class TestGenerateDashboard:
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_generate_dashboard_empty_string_title_preserved(
         self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
     ):
@@ -479,7 +510,7 @@ class TestAddChartToExistingDashboard:
     @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_add_chart_to_dashboard_basic(
         self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
     ):
@@ -565,7 +596,7 @@ class TestAddChartToExistingDashboard:
             assert layout[column_key]["type"] == "COLUMN"
 
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_add_chart_dashboard_not_found(self, mock_find_dashboard, mcp_server):
         """Test error when dashboard doesn't exist."""
         mock_find_dashboard.return_value = None
@@ -582,7 +613,7 @@ class TestAddChartToExistingDashboard:
 
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_add_chart_chart_not_found(
         self, mock_db_session, mock_find_dashboard, mcp_server
     ):
@@ -600,7 +631,44 @@ class TestAddChartToExistingDashboard:
 
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
+    async def test_add_chart_dataset_not_accessible(
+        self, mock_db_session, mock_find_dashboard, mcp_server
+    ):
+        """Test error when chart's dataset is not accessible."""
+        mock_find_dashboard.return_value = _mock_dashboard()
+        mock_chart = _mock_chart(id=7)
+        mock_db_session.get.return_value = mock_chart
+
+        # Override autouse fixture: chart 7 has inaccessible dataset
+        with patch(
+            "superset.mcp_service.chart.chart_utils.validate_chart_dataset",
+            return_value=DatasetValidationResult(
+                is_valid=False,
+                dataset_id=10,
+                dataset_name="restricted_dataset",
+                warnings=[],
+                error=(
+                    "Access denied to dataset 'restricted_dataset' "
+                    "(ID: 10). You do not have permission to view "
+                    "this dataset."
+                ),
+            ),
+        ):
+            request = {"dashboard_id": 1, "chart_id": 7}
+
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "add_chart_to_existing_dashboard", {"request": request}
+                )
+                assert result.structured_content["error"] is not None
+                assert "not accessible" in result.structured_content["error"]
+                assert "7" in result.structured_content["error"]
+                assert result.structured_content["dashboard"] is None
+
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio()
     async def test_add_chart_already_in_dashboard(
         self, mock_db_session, mock_find_dashboard, mcp_server
     ):
@@ -624,7 +692,7 @@ class TestAddChartToExistingDashboard:
     @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_add_chart_empty_dashboard(
         self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
     ):
@@ -680,7 +748,7 @@ class TestAddChartToExistingDashboard:
     @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_add_chart_to_tabbed_dashboard(
         self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
     ):
@@ -780,7 +848,7 @@ class TestAddChartToExistingDashboard:
     @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_add_chart_to_specific_tab_by_name(
         self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
     ):
@@ -881,7 +949,7 @@ class TestAddChartToExistingDashboard:
     @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_add_chart_dashboard_with_nanoid_rows(
         self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
     ):

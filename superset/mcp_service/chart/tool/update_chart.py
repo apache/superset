@@ -25,6 +25,7 @@ import time
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.commands.exceptions import CommandException
 from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
@@ -266,7 +267,7 @@ async def update_chart(
         }
         return GenerateChartResponse.model_validate(result)
 
-    except Exception as e:
+    except (CommandException, ValueError, KeyError, AttributeError) as e:
         execution_time = int((time.time() - start_time) * 1000)
         return GenerateChartResponse.model_validate(
             {

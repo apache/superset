@@ -227,20 +227,22 @@ def generate_dashboard(
                     error=f"Charts not found: {list(missing_chart_ids)}",
                 )
 
-            # Check if user has access to all charts
-            from superset.extensions import security_manager
+            # Validate dataset access for each chart using the same
+            # pattern as get_chart_info / get_chart_data / get_chart_preview.
+            from superset.mcp_service.chart.chart_utils import (
+                validate_chart_dataset,
+            )
 
-            inaccessible_chart_ids = [
-                chart.id
-                for chart in chart_objects
-                if not security_manager.can_access_chart(chart)
-            ]
-            if inaccessible_chart_ids:
-                return GenerateDashboardResponse(
-                    dashboard=None,
-                    dashboard_url=None,
-                    error=f"Access denied to charts: {inaccessible_chart_ids}",
-                )
+            for chart in chart_objects:
+                validation = validate_chart_dataset(chart, check_access=True)
+                if not validation.is_valid:
+                    return GenerateDashboardResponse(
+                        dashboard=None,
+                        dashboard_url=None,
+                        error=(
+                            f"Chart {chart.id} is not accessible: {validation.error}"
+                        ),
+                    )
 
         # Create dashboard layout with chart objects
         with event_logger.log_context(action="mcp.generate_dashboard.layout"):
