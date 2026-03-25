@@ -136,6 +136,7 @@ export default function ExplorePage() {
     const exploreUrlParams = getParsedExploreURLParams(location);
     const saveAction = getUrlParam(
       URL_PARAMS.saveAction,
+      location.search,
     ) as SaveActionType | null;
     const dashboardContextFormData = getDashboardContextFormData(
       location.search,

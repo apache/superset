@@ -55,15 +55,18 @@ export function getUrlParam(
 export function getUrlParam(
   param: UrlParam & { type: 'rison' },
   search?: string,
-): object | null;
+): string | object | null;
 export function getUrlParam(
   param: UrlParam & { type: 'rison | string' },
   search?: string,
 ): string | object | null;
-export function getUrlParam({ name, type }: UrlParam, search?: string): unknown {
-  const urlParam = new URLSearchParams(
-    search ?? window.location.search,
-  ).get(name);
+export function getUrlParam(
+  { name, type }: UrlParam,
+  search?: string,
+): unknown {
+  const urlParam = new URLSearchParams(search ?? window.location.search).get(
+    name,
+  );
   switch (type) {
     case 'number':
       if (!urlParam) {
