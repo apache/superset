@@ -211,9 +211,10 @@ def test_validate_adhoc_subquery_preserves_jinja_on_non_predicate():
 
     with (
         patch("superset.models.helpers.is_feature_enabled", return_value=True),
-        patch("superset.utils.rls.apply_rls"),
+        patch("superset.utils.rls.apply_rls", return_value=True) as mock_apply_rls,
     ):
         result = validate_adhoc_subquery(sql, mock_db, None, "public", "postgresql")
+    mock_apply_rls.assert_called_once()
     assert "{{" in result
     assert "__jinja__" not in result
 
