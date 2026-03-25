@@ -33,7 +33,7 @@ from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils import json
-from superset.utils.core import get_email_address_list, HeaderDataType, send_email_smtp
+from superset.utils.core import HeaderDataType, recipients_string_to_list, send_email_smtp
 from superset.utils.decorators import statsd_gauge
 
 logger = logging.getLogger(__name__)
@@ -170,11 +170,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             <p>Your report/alert was unable to be generated because of the following error: %(text)s</p>
             <p>Please check your dashboard/chart for errors.</p>
             <p><b><a href="%(url)s">%(call_to_action)s</a></b></p>
-<<<<<<< HEAD
             """,  # noqa: E501
-=======
-            """,
->>>>>>> origin/avenmaster
             text=text,
             url=self._content.url,
             call_to_action=call_to_action,
@@ -256,9 +252,6 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         )
         csv_data = None
         if self._content.csv:
-<<<<<<< HEAD
-            csv_data = {__("%(name)s.csv", name=self._name): self._content.csv}
-=======
             # Use custom CSV filename if provided, otherwise use the default name
             csv_name = self._content.csv_filename or __(
                 "%(name)s.csv", name=self._content.name
@@ -266,11 +259,10 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             # Replace date placeholders in CSV filename
             csv_name = replace_date_placeholders(csv_name)
             csv_data = {csv_name: self._content.csv}
->>>>>>> origin/avenmaster
 
         pdf_data = None
         if self._content.pdf:
-            pdf_data = {__("%(name)s.pdf", name=self._name): self._content.pdf}
+            pdf_data = {__("%(name)s.pdf", name=self._content.name): self._content.pdf}
 
         return EmailContent(
             body=body,
@@ -286,16 +278,15 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             subject = replace_date_placeholders(self._content.email_subject)
             return __(
                 "%(prefix)s %(title)s",
-                prefix=app.config["EMAIL_REPORTS_SUBJECT_PREFIX"],
+                prefix=current_app.config["EMAIL_REPORTS_SUBJECT_PREFIX"],
                 title=subject,
             )
         return __(
             "%(prefix)s %(title)s",
             prefix=current_app.config["EMAIL_REPORTS_SUBJECT_PREFIX"],
-            title=self._name,
+            title=self._content.name,
         )
 
-<<<<<<< HEAD
     def _parse_name(self, name: str) -> str:
         """If user add a date format to the subject, parse it to the real date
         This feature is hidden behind a feature flag `DATE_FORMAT_IN_EMAIL_SUBJECT`
@@ -304,15 +295,11 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         return self.now.strftime(name)
 
     def _get_call_to_action(self) -> str:
-        return __(current_app.config["EMAIL_REPORTS_CTA"])
-=======
-    def _get_call_to_action(self) -> str:
-        email_address_list = get_email_address_list(self._get_to())
+        email_address_list = recipients_string_to_list(self._get_to())
         for email_address in email_address_list:
             if INTERNAL_EMAIL_DOMAIN not in email_address:
                 return ""
-        return __(app.config["EMAIL_REPORTS_CTA"])
->>>>>>> origin/avenmaster
+        return __(current_app.config["EMAIL_REPORTS_CTA"])
 
     def _get_to(self) -> str:
         return json.loads(self._recipient.recipient_config_json)["target"]
@@ -332,16 +319,13 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         to = self._get_to()
         cc = self._get_cc()
         bcc = self._get_bcc()
-<<<<<<< HEAD
-=======
         from_address = self._content.email_from
 
         logger.info(
             "Sending email with from_address=%s (default would be %s)",
             from_address,
-            app.config["SMTP_MAIL_FROM"],
+            current_app.config["SMTP_MAIL_FROM"],
         )
->>>>>>> origin/avenmaster
 
         try:
             send_email_smtp(
@@ -361,10 +345,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 from_address=from_address,
             )
             logger.info(
-                "Report sent to email, task_id: %s, notification content is %s",
-                content.header_data.get("execution_id")
-                if content.header_data
-                else None,
+                "Report sent to email, notification content is %s",
                 content.header_data,
             )
         except SupersetErrorsException as ex:

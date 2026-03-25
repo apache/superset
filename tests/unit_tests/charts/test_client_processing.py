@@ -469,11 +469,7 @@ def test_pivot_df_single_row_null_values():
 |                  |   ('SUM(num)', 'boy') |   ('SUM(num)', 'girl') |   ('MAX(num)', 'boy') |   ('MAX(num)', 'girl') |
 |:-----------------|----------------------:|-----------------------:|----------------------:|-----------------------:|
 | ('Total (Sum)',) |                   nan |                 118065 |                   nan |                   2588 |
-<<<<<<< HEAD:tests/unit_tests/charts/test_client_processing.py
     """.strip()  # noqa: E501
-=======
-    """.strip()
->>>>>>> origin/avenmaster:tests/unit_tests/charts/test_post_processing.py
     )
 
     # combine_metrics does nothing in this case
@@ -643,11 +639,7 @@ def test_pivot_df_single_row_null_mix_values_strings():
 |:-----------------|:----------------------|-----------------------:|----------------------:|-----------------------:|
 | ('Total (Sum)',) | NULL                  |                 118065 |                   nan |                   2588 |
 
-<<<<<<< HEAD:tests/unit_tests/charts/test_client_processing.py
     """.strip()  # noqa: E501
-=======
-    """.strip()
->>>>>>> origin/avenmaster:tests/unit_tests/charts/test_post_processing.py
     )
 
     # combine_metrics does nothing in this case
@@ -784,11 +776,7 @@ def test_pivot_df_single_row_null_mix_values_numbers():
         == """
 |                  |   ('SUM(num)', 'boy') |   ('SUM(num)', 'girl') |   ('MAX(num)', 'boy') |   ('MAX(num)', 'girl') |
 |:-----------------|----------------------:|-----------------------:|----------------------:|-----------------------:|
-<<<<<<< HEAD:tests/unit_tests/charts/test_client_processing.py
 | ('Total (Sum)',) |                    21 |                 118065 |                   nan |                   2588 |    """.strip()  # noqa: E501
-=======
-| ('Total (Sum)',) |                    21 |                 118065 |                   nan |                   2588 |    """.strip()
->>>>>>> origin/avenmaster:tests/unit_tests/charts/test_post_processing.py
     )
 
     # combine_metrics does nothing in this case
@@ -1623,11 +1611,7 @@ def test_pivot_df_complex_null_values():
 |        |   ('SUM(num)', 'boy', 'Edward') |   ('SUM(num)', 'boy', 'Tony') |   ('SUM(num)', 'girl', 'Amy') |   ('SUM(num)', 'girl', 'Cindy') |   ('SUM(num)', 'girl', 'Dawn') |   ('SUM(num)', 'girl', 'Sophia') |   ('MAX(num)', 'boy', 'Edward') |   ('MAX(num)', 'boy', 'Tony') |   ('MAX(num)', 'girl', 'Amy') |   ('MAX(num)', 'girl', 'Cindy') |   ('MAX(num)', 'girl', 'Dawn') |   ('MAX(num)', 'girl', 'Sophia') |
 |:-------|--------------------------------:|------------------------------:|------------------------------:|--------------------------------:|-------------------------------:|---------------------------------:|--------------------------------:|------------------------------:|------------------------------:|--------------------------------:|-------------------------------:|---------------------------------:|
 | (nan,) |                           40685 |                          6438 |                         60166 |                           15367 |                          16492 |                            26040 |                            1669 |                           845 |                          3081 |                            1059 |                           1618 |                             3775 |
-<<<<<<< HEAD:tests/unit_tests/charts/test_client_processing.py
     """.strip()  # noqa: E501
-=======
-    """.strip()
->>>>>>> origin/avenmaster:tests/unit_tests/charts/test_post_processing.py
     )
 
     # combine_metrics
@@ -1684,11 +1668,7 @@ def test_pivot_df_complex_null_values():
 | ('girl', 'Sophia')   |               26040 |                      26040 |                3775 |                       3775 |                 29815 |
 | ('girl', 'Subtotal') |              118065 |                     118065 |                9533 |                       9533 |                127598 |
 | ('Total (Sum)', '')  |              165188 |                     165188 |               12047 |                      12047 |                177235 |
-<<<<<<< HEAD:tests/unit_tests/charts/test_client_processing.py
   """.strip()  # noqa: E501
-=======
-  """.strip()
->>>>>>> origin/avenmaster:tests/unit_tests/charts/test_post_processing.py
     )
 
     # apply_metrics_on_rows
@@ -1779,11 +1759,7 @@ def test_pivot_df_complex_null_values():
 | (nan, 'MAX(num)')   |                1669 |               845 |                  2514 |              3081 |                1059 |               1618 |                 3775 |                   9533 |                 12047 |
 | (nan, 'Subtotal')   |               42354 |              7283 |                 49637 |             63247 |               16426 |              18110 |                29815 |                 127598 |                177235 |
 | ('Total (Sum)', '') |               42354 |              7283 |                 49637 |             63247 |               16426 |              18110 |                29815 |                 127598 |                177235 |
-<<<<<<< HEAD:tests/unit_tests/charts/test_client_processing.py
     """.strip()  # noqa: E501
-=======
-    """.strip()
->>>>>>> origin/avenmaster:tests/unit_tests/charts/test_post_processing.py
     )
 
     # fraction
@@ -1813,11 +1789,7 @@ def test_pivot_df_complex_null_values():
 | ('girl', 'Sophia')                         |           0.157639  |           0.313356  |
 | ('girl', 'Subtotal')                       |           0.714731  |           0.791317  |
 | ('Total (Sum as Fraction of Columns)', '') |           1         |           1         |
-<<<<<<< HEAD:tests/unit_tests/charts/test_client_processing.py
     """.strip()  # noqa: E501
-=======
-    """.strip()
->>>>>>> origin/avenmaster:tests/unit_tests/charts/test_post_processing.py
     )
 
 

@@ -16,19 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-<<<<<<< HEAD
 import { useMemo } from 'react';
 import { Filter, useTheme } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 
 import { RootState } from 'src/dashboard/types';
-=======
-import { Filter, useTheme } from '@superset-ui/core';
-import { useSelector } from 'react-redux';
-
-import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
-import { DashboardState, RootState } from 'src/dashboard/types';
->>>>>>> origin/avenmaster
 import { getRelatedCharts } from './getRelatedCharts';
 
 const unfocusedChartStyles = { opacity: 0.3, pointerEvents: 'none' };
@@ -48,23 +40,6 @@ const useFilterFocusHighlightStyles = (chartId: number) => {
   );
 
   const nativeFilters = useSelector((state: RootState) => state.nativeFilters);
-<<<<<<< HEAD
-
-  const slices =
-    useSelector((state: RootState) => state.sliceEntities.slices) || {};
-=======
-  const dashboardState = useSelector(
-    (state: RootState) => state.dashboardState,
-  );
-
-  const dashboardFilters = useSelector(
-    (state: RootState) => state.dashboardFilters,
-  );
-  const focusedFilterScope = selectFocusedFilterScope(
-    dashboardState,
-    dashboardFilters,
-  );
->>>>>>> origin/avenmaster
 
   const slices =
     useSelector((state: RootState) => state.sliceEntities.slices) || {};
@@ -72,13 +47,8 @@ const useFilterFocusHighlightStyles = (chartId: number) => {
   const highlightedFilterId =
     nativeFilters?.focusedFilterId || nativeFilters?.hoveredFilterId;
 
-<<<<<<< HEAD
   if (!highlightedFilterId) {
     return EMPTY;
-=======
-  if (!(focusedFilterScope || highlightedFilterId)) {
-    return {};
->>>>>>> origin/avenmaster
   }
 
   const relatedCharts = getRelatedCharts(
@@ -86,35 +56,8 @@ const useFilterFocusHighlightStyles = (chartId: number) => {
     nativeFilters.filters[highlightedFilterId as string] as Filter,
     slices,
   );
-<<<<<<< HEAD
 
   if (highlightedFilterId && relatedCharts.includes(chartId)) {
-=======
-
-  // we use local styles here instead of a conditionally-applied class,
-  // because adding any conditional class to this container
-  // causes performance issues in Chrome.
-
-  // default to the "de-emphasized" state
-  const unfocusedChartStyles = { opacity: 0.3, pointerEvents: 'none' };
-  const focusedChartStyles = {
-    borderColor: theme.colors.primary.light2,
-    opacity: 1,
-    boxShadow: `0px 0px ${theme.gridUnit * 2}px ${theme.colors.primary.base}`,
-    pointerEvents: 'auto',
-  };
-
-  if (highlightedFilterId) {
-    if (relatedCharts.includes(chartId)) {
-      return focusedChartStyles;
-    }
-  } else if (
-    chartId === focusedFilterScope?.chartId ||
-    getChartIdsInFilterScope({
-      filterScope: focusedFilterScope?.scope,
-    }).includes(chartId)
-  ) {
->>>>>>> origin/avenmaster
     return focusedChartStyles;
   }
 

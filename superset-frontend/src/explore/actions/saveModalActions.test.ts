@@ -24,10 +24,7 @@ import {
   DatasourceType,
   QueryFormData,
   SimpleAdhocFilter,
-<<<<<<< HEAD
   VizType,
-=======
->>>>>>> origin/avenmaster
 } from '@superset-ui/core';
 import {
   createDashboard,
@@ -644,11 +641,7 @@ describe('getSlicePayload', () => {
     );
   });
 
-<<<<<<< HEAD
   test('should return the correct payload when formDataFromSliceWithAdhocFilter has no time range filters in mixed chart', async () => {
-=======
-  test('should return the correct payload when formDataFromSliceWithAdhocFilter has no time range filters in mixed chart', () => {
->>>>>>> origin/avenmaster
     const formDataFromSliceWithAdhocFilterB: QueryFormData = {
       ...formDataFromSlice,
       adhoc_filters: [],
@@ -657,11 +650,7 @@ describe('getSlicePayload', () => {
 
     const formDataWithAdhocFiltersWithExtra: QueryFormData = {
       ...formDataWithNativeFilters,
-<<<<<<< HEAD
       viz_type: VizType.MixedTimeseries,
-=======
-      viz_type: 'mixed_timeseries',
->>>>>>> origin/avenmaster
       adhoc_filters: [
         {
           clause: 'WHERE',
@@ -683,11 +672,7 @@ describe('getSlicePayload', () => {
         },
       ],
     };
-<<<<<<< HEAD
     const result = await getSlicePayload(
-=======
-    const result = getSlicePayload(
->>>>>>> origin/avenmaster
       sliceName,
       formDataWithAdhocFiltersWithExtra,
       dashboards,
@@ -704,7 +689,6 @@ describe('getSlicePayload', () => {
 
     expect(hasTemporalRange).toBe(true);
   });
-<<<<<<< HEAD
 
   test('should reset isExtra flag to false for temporal filter when saving as a new chart', async () => {
     const formDataWithTemporalFilterWithExtra: QueryFormData = {
@@ -741,6 +725,4 @@ describe('getSlicePayload', () => {
       isExtra: false,
     });
   });
-=======
->>>>>>> origin/avenmaster
 });

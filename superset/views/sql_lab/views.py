@@ -30,11 +30,6 @@ from superset.utils import json
 from superset.utils.core import error_msg_from_exception, get_user_id
 from superset.views.base import (
     BaseSupersetView,
-<<<<<<< HEAD
-=======
-    DeleteMixin,
-    DeprecateModelViewMixin,
->>>>>>> origin/avenmaster
     json_error_response,
     json_success,
 )

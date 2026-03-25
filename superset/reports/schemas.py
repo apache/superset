@@ -124,13 +124,8 @@ class ValidatorConfigJSONSchema(Schema):
 class ReportRecipientConfigJSONSchema(Schema):
     # TODO if email check validity
     target = fields.String()
-<<<<<<< HEAD
     ccTarget = fields.String()  # noqa: N815
     bccTarget = fields.String()  # noqa: N815
-=======
-    ccTarget = fields.String()
-    bccTarget = fields.String()
->>>>>>> origin/avenmaster
 
 
 class ReportRecipientSchema(Schema):

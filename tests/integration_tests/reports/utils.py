@@ -117,14 +117,9 @@ def create_report_notification(
     extra: Optional[dict[str, Any]] = None,
     force_screenshot: bool = False,
     owners: Optional[list[User]] = None,
-<<<<<<< HEAD
     ccTarget: Optional[str] = None,  # noqa: N803
     bccTarget: Optional[str] = None,  # noqa: N803
     use_slack_v2: bool = False,
-=======
-    ccTarget: Optional[str] = None,
-    bccTarget: Optional[str] = None,
->>>>>>> origin/avenmaster
 ) -> ReportSchedule:
     if not owners:
         owners = [

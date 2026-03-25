@@ -28,13 +28,9 @@ import {
   formatSelectOptionsForRange,
   dndGroupByControl,
   columnsByType,
-<<<<<<< HEAD
   D3_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
   D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
-=======
-  sections,
->>>>>>> origin/avenmaster
 } from '@superset-ui/chart-controls';
 import { showLegendControl, showValueControl } from '../controls';
 
@@ -112,7 +108,6 @@ const config: ControlPanelConfig = {
         ],
       ],
     },
-    sections.titleControls,
     {
       label: t('Chart Options'),
       expanded: true,
@@ -120,7 +115,6 @@ const config: ControlPanelConfig = {
         ['color_scheme'],
         [showValueControl],
         [showLegendControl],
-<<<<<<< HEAD
         [
           {
             name: 'x_axis_title',
@@ -171,8 +165,6 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-=======
->>>>>>> origin/avenmaster
       ],
     },
   ],

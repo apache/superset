@@ -203,12 +203,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.dynamic_plugins import DynamicPluginsView
         from superset.views.error_handling import set_app_error_handlers
         from superset.views.explore import ExplorePermalinkView, ExploreView
-<<<<<<< HEAD
-        from superset.views.groups import GroupsListView
-=======
         from superset.views.export import ExportChartView, ExportView
-        from superset.views.key_value import KV
->>>>>>> origin/avenmaster
+        from superset.views.groups import GroupsListView
         from superset.views.log.api import LogRestApi
         from superset.views.logs import ActionLogView
         from superset.views.roles import RolesListView
@@ -272,12 +268,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(SavedQueryRestApi)
         appbuilder.add_api(TagRestApi)
         appbuilder.add_api(SqlLabRestApi)
-<<<<<<< HEAD
         appbuilder.add_api(SqlLabPermalinkRestApi)
         appbuilder.add_api(LogRestApi)
-=======
         appbuilder.add_api(AvenRestApi)
->>>>>>> origin/avenmaster
         #
         # Setup regular views
         #
@@ -404,12 +397,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Setup views with no menu
         #
         appbuilder.add_view_no_menu(Api)
-<<<<<<< HEAD
-=======
-        appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
         appbuilder.add_view_no_menu(ExportView)
         appbuilder.add_view_no_menu(ExportChartView)
->>>>>>> origin/avenmaster
         appbuilder.add_view_no_menu(Dashboard)
         appbuilder.add_view_no_menu(Datasource)
         appbuilder.add_view_no_menu(DatasetEditor)
@@ -664,22 +653,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         set_isolation_level_to = None
 
         if not isolation_level:
-<<<<<<< HEAD
             backend = make_url_safe(self.database_uri).get_backend_name()
-=======
-            backend = make_url_safe(
-                self.config["SQLALCHEMY_DATABASE_URI"]
-            ).get_backend_name()
->>>>>>> origin/avenmaster
             if backend in ("mysql", "postgresql"):
                 set_isolation_level_to = "READ COMMITTED"
 
         if set_isolation_level_to:
-<<<<<<< HEAD
             logger.debug(
-=======
-            logger.info(
->>>>>>> origin/avenmaster
                 "Setting database isolation level to %s",
                 set_isolation_level_to,
             )
@@ -718,16 +697,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         feature_flag_manager.init_app(self.superset_app)
 
     def configure_sqlglot_dialects(self) -> None:
-<<<<<<< HEAD
         extensions = self.config["SQLGLOT_DIALECTS_EXTENSIONS"]
 
         if callable(extensions):
             extensions = extensions()
 
         SQLGLOT_DIALECTS.update(extensions)
-=======
-        SQLGLOT_DIALECTS.update(self.config["SQLGLOT_DIALECTS_EXTENSIONS"])
->>>>>>> origin/avenmaster
 
     @transaction()
     def configure_fab(self) -> None:

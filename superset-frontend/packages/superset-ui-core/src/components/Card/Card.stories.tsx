@@ -16,19 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-<<<<<<< HEAD:superset-frontend/packages/superset-ui-core/src/components/Card/Card.stories.tsx
 import { Card } from '.';
 import type { CardProps } from './types';
-=======
-import Slider, { SliderSingleProps, SliderRangeProps } from '.';
->>>>>>> origin/avenmaster:superset-frontend/src/components/Slider/Slider.stories.tsx
 
 export default {
   title: 'Components/Card',
   component: Card,
 };
 
-<<<<<<< HEAD:superset-frontend/packages/superset-ui-core/src/components/Card/Card.stories.tsx
 export const InteractiveCard = (args: CardProps) => <Card {...args} />;
 
 InteractiveCard.args = {
@@ -51,87 +46,5 @@ InteractiveCard.argTypes = {
     table: {
       disable: true,
     },
-=======
-const tooltipPlacement = [
-  'top',
-  'left',
-  'bottom',
-  'right',
-  'topLeft',
-  'topRight',
-  'bottomLeft',
-  'bottomRight',
-  'leftTop',
-  'leftBottom',
-  'rightTop',
-  'rightBottom',
-] as const;
-
-export const InteractiveSlider = ({
-  tooltipOpen,
-  tooltipPosition,
-  ...args
-}: SliderSingleProps & {
-  tooltipOpen: boolean;
-  tooltipPosition: (typeof tooltipPlacement)[number];
-}) => (
-  <Slider
-    {...args}
-    tooltip={{
-      ...args.tooltip,
-      open: tooltipOpen,
-      placement: tooltipPosition,
-    }}
-    style={{ width: 400, height: 400 }}
-  />
-);
-
-export const InteractiveRangeSlider = ({
-  tooltipOpen,
-  draggableTrack,
-  ...args
-}: SliderRangeProps & { tooltipOpen: boolean; draggableTrack: boolean }) => (
-  <Slider
-    {...args}
-    tooltip={{ open: tooltipOpen }}
-    range={{ draggableTrack }}
-    style={{ width: 400, height: 400 }}
-  />
-);
-
-InteractiveSlider.args = {
-  min: 0,
-  max: 100,
-  defaultValue: 70,
-  step: 1,
-  marks: {},
-  disabled: false,
-  reverse: false,
-  vertical: false,
-  autoFocus: false,
-  keyboard: true,
-  dots: false,
-  included: true,
-  tooltipPosition: 'bottom',
-};
-
-InteractiveSlider.argTypes = {
-  onChange: { action: 'onChange' },
-  onChangeComplete: { action: 'onChangeComplete' },
-  tooltipOpen: {
-    control: { type: 'boolean' },
-  },
-  tooltipPosition: {
-    options: tooltipPlacement,
-    control: { type: 'select' },
->>>>>>> origin/avenmaster:superset-frontend/src/components/Slider/Slider.stories.tsx
   },
 };
-
-InteractiveRangeSlider.args = {
-  ...InteractiveSlider.args,
-  defaultValue: [50, 70],
-  draggableTrack: false,
-};
-
-InteractiveRangeSlider.argTypes = InteractiveSlider.argTypes;

@@ -120,12 +120,6 @@ const getDashboardContextFormData = () => {
     Object.assign(dashboardContextWithFilters, {
       dashboardId,
     });
-<<<<<<< HEAD
-=======
-    Object.assign(dashboardContextWithFilters, {
-      dashboardId,
-    });
->>>>>>> origin/avenmaster
     return dashboardContextWithFilters;
   }
   return null;

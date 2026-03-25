@@ -18,7 +18,6 @@
  */
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { t, styled } from '@superset-ui/core';
-<<<<<<< HEAD
 import {
   TableView,
   EmptyWrapperType,
@@ -27,15 +26,6 @@ import { EmptyState } from '@superset-ui/core/components';
 import { FacePile, TagsList, type TagType } from 'src/components';
 import { TaggedObject, TaggedObjects } from 'src/types/TaggedObject';
 import { Typography } from '@superset-ui/core/components/Typography';
-=======
-import TableView, { EmptyWrapperType } from 'src/components/TableView';
-import { TagsList } from 'src/components/Tags';
-import FacePile from 'src/components/FacePile';
-import Tag from 'src/types/TagType';
-import Owner from 'src/types/Owner';
-import { EmptyStateBig } from 'src/components/EmptyState';
-import { NumberParam, useQueryParam } from 'use-query-params';
->>>>>>> origin/avenmaster
 
 const MAX_TAGS_TO_SHOW = 3;
 const PAGE_SIZE = 10;
@@ -75,18 +65,10 @@ export default function AllEntitiesTable({
 }: AllEntitiesTableProps) {
   type objectType = 'dashboard' | 'chart' | 'query';
 
-<<<<<<< HEAD
   const showDashboardList = objects.dashboard.length > 0;
   const showChartList = objects.chart.length > 0;
   const showQueryList = objects.query.length > 0;
   const showListViewObjs = showDashboardList || showChartList || showQueryList;
-=======
-  const [tagId] = useQueryParam('id', NumberParam);
-  const showListViewObjs =
-    objects.dashboard.length > 0 ||
-    objects.chart.length > 0 ||
-    objects.query.length > 0;
->>>>>>> origin/avenmaster
 
   const renderTable = (type: objectType) => {
     const data = objects[type].map((o: TaggedObject) => ({
@@ -123,16 +105,9 @@ export default function AllEntitiesTable({
               // Only show custom type tags
               <TagsList
                 tags={tags.filter(
-<<<<<<< HEAD
                   (tag: TagType) =>
                     tag.type !== undefined &&
                     ['TagType.custom', 1].includes(tag.type),
-=======
-                  (tag: Tag) =>
-                    tag.type !== undefined &&
-                    ['TagType.custom', 1].includes(tag.type) &&
-                    tag.id !== tagId,
->>>>>>> origin/avenmaster
                 )}
                 maxTags={MAX_TAGS_TO_SHOW}
               />

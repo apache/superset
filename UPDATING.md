@@ -22,7 +22,6 @@ under the License.
 This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
-<<<<<<< HEAD
 ## 6.0.0
 - [33055](https://github.com/apache/superset/pull/33055): Upgrades Flask-AppBuilder to 5.0.0. The AUTH_OID authentication type has been deprecated and is no longer available as an option in Flask-AppBuilder. OpenID (OID) is considered a deprecated authentication protocol - if you are using AUTH_OID, you will need to migrate to an alternative authentication method such as OAuth, LDAP, or database authentication before upgrading.
 - [34871](https://github.com/apache/superset/pull/34871): Fixed Jest test hanging issue from Ant Design v5 upgrade. MessageChannel is now mocked in test environment to prevent rc-overflow from causing Jest to hang. Test environment only - no production impact.
@@ -73,18 +72,11 @@ Note: Pillow is now a required dependency (previously optional) to support image
 
 ### Potential Downtime
 
-=======
->>>>>>> origin/avenmaster
 ## 4.1.2
 
 - [31198](https://github.com/apache/superset/pull/31198) Disallows by default the use of the following ClickHouse functions: "version", "currentDatabase", "hostName".
 - [31173](https://github.com/apache/superset/pull/31173) Modified `fetch_csrf_token` to align with HTTP standards, particularly regarding how cookies are handled. If you encounter any issues related to CSRF functionality, please report them as a new issue and reference this PR for context.
 
-<<<<<<< HEAD
-=======
-### Potential Downtime
-
->>>>>>> origin/avenmaster
 ## 4.1.0
 
 - [29274](https://github.com/apache/superset/pull/29274): We made it easier to trigger CI on your
@@ -121,11 +113,7 @@ Note: Pillow is now a required dependency (previously optional) to support image
   backend, as well as the .json files used by the frontend. If you were doing anything before
   as part of your bundling to expose translation packages, it's probably not needed anymore.
 - [29264](https://github.com/apache/superset/pull/29264) Slack has updated its file upload api, and we are now supporting this new api in Superset, although the Slack api is not backward compatible. The original Slack integration is deprecated and we will require a new Slack scope `channels:read` to be added to Slack workspaces in order to use this new api. In an upcoming release, we will make this new Slack scope mandatory and remove the old Slack functionality.
-<<<<<<< HEAD
 - [30274](https://github.com/apache/superset/pull/30274) Moved SLACK_ENABLE_AVATAR from config.py to the feature flag framework, please adapt your configs.
-=======
-- [30274](https://github.com/apache/superset/pull/30274) Moved SLACK_ENABLE_AVATAR from config.py to the feature flag framework, please adapt your configs
->>>>>>> origin/avenmaster
 
 ### Potential Downtime
 

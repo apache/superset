@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-<<<<<<<< HEAD:superset-frontend/src/dashboard/util/getChartIdsFromComponent.ts
 import { CHART_TYPE } from './componentTypes';
 import type { DashboardLayout } from '../types';
 
@@ -42,33 +41,4 @@ export default function getChartIdsFromComponent(
   }
 
   return chartIds;
-========
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
-import { Menu } from 'src/components/Menu';
-
-const getExportGoogleSheetsUrl = (sliceId: number) =>
-  `/export/chart/${sliceId}/google-sheets/`;
-
-export default function ExportSliceToGoogleSheet({
-  sliceId,
-  ...rest
-}: {
-  sliceId: number;
-}) {
-  if (!isFeatureEnabled(FeatureFlag.GoogleSheetsExport)) {
-    return <div id="export-to-sheets-for-chart-disabled" />;
-  }
-
-  const handleGoogleSheetsExport = () => {
-    window.open(getExportGoogleSheetsUrl(sliceId), '_blank')?.focus();
-  };
-
-  return (
-    <Menu.Item key="google-sheets-export" {...rest}>
-      <div onClick={handleGoogleSheetsExport} role="button" tabIndex={0}>
-        {t('Export to Google Sheets')}
-      </div>
-    </Menu.Item>
-  );
->>>>>>>> origin/avenmaster:superset-frontend/src/dashboard/components/SliceHeaderControls/ExportSliceToGoogleSheet.tsx
 }

@@ -199,7 +199,6 @@ def test_rename_with_catalog(
     database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
     database_dao.find_by_id.return_value = original_database
     database_with_catalog.database_name = "my_other_db"
-<<<<<<< HEAD
     database_dao.update.return_value = database_with_catalog
     sync_db_perms_dao = mocker.patch(
         "superset.commands.database.sync_permissions.DatabaseDAO"
@@ -213,15 +212,6 @@ def test_rename_with_catalog(
     sync_db_perms_dao.get_datasets.return_value = [dataset]
     dataset_dao = mocker.patch("superset.commands.database.sync_permissions.DatasetDAO")
     dataset_dao.get_related_objects.return_value = {"charts": [chart]}
-=======
-    DatabaseDAO.update.return_value = database_with_catalog
-
-    dataset = mocker.MagicMock()
-    chart = mocker.MagicMock()
-    DatabaseDAO.get_datasets.return_value = [dataset]
-    DatasetDAO = mocker.patch("superset.commands.database.update.DatasetDAO")
-    DatasetDAO.get_related_objects.return_value = {"charts": [chart]}
->>>>>>> origin/avenmaster
 
     find_permission_view_menu = mocker.patch.object(
         security_manager,
@@ -288,11 +278,6 @@ def test_rename_with_catalog(
     assert dataset.schema_perm == f"[{database_with_catalog.name}].[catalog2].[schema4]"
     assert chart.catalog_perm == f"[{database_with_catalog.name}].[catalog2]"
     assert chart.schema_perm == f"[{database_with_catalog.name}].[catalog2].[schema4]"
-
-    assert dataset.catalog_perm == "[my_other_db].[catalog2]"
-    assert dataset.schema_perm == "[my_other_db].[catalog2].[schema4]"
-    assert chart.catalog_perm == "[my_other_db].[catalog2]"
-    assert chart.schema_perm == "[my_other_db].[catalog2].[schema4]"
 
 
 def test_rename_without_catalog(

@@ -31,11 +31,7 @@ from superset.db_engine_specs import BaseEngineSpec
 from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-<<<<<<< HEAD
 from superset.exceptions import SupersetErrorException, SupersetInvalidCVASException
-=======
-from superset.exceptions import SupersetErrorException
->>>>>>> origin/avenmaster
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
 from superset.sqllab.limiting_factor import LimitingFactor
@@ -135,7 +131,6 @@ class TestSqlLab(SupersetTestCase):
         self.login(ADMIN_USERNAME)
 
         data = self.run_sql("DELETE FROM birth_names", "1")
-<<<<<<< HEAD
         assert (
             data["errors"][0]["error_type"] == SupersetErrorType.DML_NOT_ALLOWED_ERROR
         )
@@ -143,33 +138,6 @@ class TestSqlLab(SupersetTestCase):
     @parameterized.expand([CTASMethod.TABLE, CTASMethod.VIEW])
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_json_cta_dynamic_db(self, ctas_method: CTASMethod) -> None:
-=======
-        assert data == {
-            "errors": [
-                {
-                    "message": (
-                        "This database does not allow for DDL/DML, and the query "
-                        "could not be parsed to confirm it is a read-only query. Please "
-                        "contact your administrator for more assistance."
-                    ),
-                    "error_type": SupersetErrorType.DML_NOT_ALLOWED_ERROR,
-                    "level": ErrorLevel.ERROR,
-                    "extra": {
-                        "issue_codes": [
-                            {
-                                "code": 1022,
-                                "message": "Issue 1022 - Database does not allow data manipulation.",
-                            }
-                        ]
-                    },
-                }
-            ]
-        }
-
-    @parameterized.expand([CtasMethod.TABLE, CtasMethod.VIEW])
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_sql_json_cta_dynamic_db(self, ctas_method):
->>>>>>> origin/avenmaster
         examples_db = get_example_database()
         if examples_db.backend == "sqlite":
             # sqlite doesn't support database creation

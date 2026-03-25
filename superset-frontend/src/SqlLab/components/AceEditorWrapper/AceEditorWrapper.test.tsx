@@ -16,11 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-<<<<<<< HEAD
-=======
-import configureStore from 'redux-mock-store';
-import thunk from 'redux-thunk';
->>>>>>> origin/avenmaster
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { render, waitFor, createStore } from 'spec/helpers/testing-library';
 import { QueryEditor } from 'src/SqlLab/types';
@@ -28,15 +23,9 @@ import { Store } from 'redux';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import AceEditorWrapper from 'src/SqlLab/components/AceEditorWrapper';
 import {
-<<<<<<< HEAD
   FullSQLEditor,
   type AsyncAceEditorProps,
 } from '@superset-ui/core/components';
-=======
-  AsyncAceEditorProps,
-  FullSQLEditor,
-} from 'src/components/AsyncAceEditor';
->>>>>>> origin/avenmaster
 import {
   queryEditorSetCursorPosition,
   queryEditorSetDb,
@@ -47,26 +36,14 @@ fetchMock.get('glob:*/api/v1/database/*/function_names/', {
   function_names: [],
 });
 
-<<<<<<< HEAD
 jest.mock('@superset-ui/core/components/Select/Select', () => () => (
-=======
-fetchMock.get('glob:*/api/v1/database/*/function_names/', {
-  function_names: [],
-});
-
-jest.mock('src/components/Select/Select', () => () => (
->>>>>>> origin/avenmaster
   <div data-test="mock-deprecated-select-select" />
 ));
 jest.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
   <div data-test="mock-deprecated-async-select" />
 ));
 
-<<<<<<< HEAD
 jest.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
-=======
-jest.mock('src/components/AsyncAceEditor', () => ({
->>>>>>> origin/avenmaster
   FullSQLEditor: jest
     .fn()
     .mockImplementation((props: AsyncAceEditorProps) => (
@@ -142,11 +119,7 @@ describe('AceEditorWrapper', () => {
       queryEditorSetCursorPosition(defaultQueryEditor, updatedCursorPosition),
     );
     expect(FullSQLEditor).toHaveBeenCalledTimes(renderCount);
-<<<<<<< HEAD
     store.dispatch(queryEditorSetDb(defaultQueryEditor, 2));
-=======
-    store.dispatch(queryEditorSetDb(defaultQueryEditor, 1));
->>>>>>> origin/avenmaster
     expect(FullSQLEditor).toHaveBeenCalledTimes(renderCount + 1);
   });
 });

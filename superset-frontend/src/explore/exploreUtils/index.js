@@ -326,7 +326,6 @@ export const getSimpleSQLExpression = (subject, operator, comparator) => {
       firstValue !== undefined && Number.isNaN(Number(firstValue));
     const quote = isString ? "'" : '';
     const [prefix, suffix] = isMulti ? ['(', ')'] : ['', ''];
-<<<<<<< HEAD
     if (comparatorArray.length > 0 && showComparator) {
       const formattedComparators = comparatorArray
         .map(val => optionLabel(val))
@@ -334,15 +333,6 @@ export const getSimpleSQLExpression = (subject, operator, comparator) => {
           val =>
             `${quote}${isString ? String(val).replace(/'/g, "''") : val}${quote}`,
         );
-=======
-    const formattedComparators = comparatorArray
-      .map(val => optionLabel(val))
-      .map(
-        val =>
-          `${quote}${isString ? String(val).replace(/'/g, "''") : val}${quote}`,
-      );
-    if (comparatorArray.length > 0) {
->>>>>>> origin/avenmaster
       expression += ` ${prefix}${formattedComparators.join(', ')}${suffix}`;
     }
   }

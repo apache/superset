@@ -20,10 +20,6 @@ from __future__ import annotations
 import builtins
 import dataclasses
 import logging
-<<<<<<< HEAD
-=======
-import re
->>>>>>> origin/avenmaster
 from collections import defaultdict
 from collections.abc import Hashable
 from dataclasses import dataclass, field
@@ -72,11 +68,7 @@ from sqlalchemy.sql.expression import Label
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy.types import JSON
 
-<<<<<<< HEAD
 from superset import db, is_feature_enabled, security_manager
-=======
-from superset import app, db, is_feature_enabled, security_manager
->>>>>>> origin/avenmaster
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.utils import (
@@ -111,11 +103,7 @@ from superset.models.helpers import (
     QueryResult,
 )
 from superset.models.slice import Slice
-<<<<<<< HEAD
 from superset.sql.parse import Table
-=======
-from superset.sql_parse import ParsedQuery, Table
->>>>>>> origin/avenmaster
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -520,69 +508,6 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
 
         return data
 
-<<<<<<< HEAD
-=======
-    @staticmethod
-    def filter_values_handler(  # pylint: disable=too-many-arguments
-        values: FilterValues | None,
-        operator: str,
-        target_generic_type: utils.GenericDataType,
-        target_native_type: str | None = None,
-        is_list_target: bool = False,
-        db_engine_spec: builtins.type[BaseEngineSpec] | None = None,
-        db_extra: dict[str, Any] | None = None,
-    ) -> FilterValues | None:
-        if values is None:
-            return None
-
-        def handle_single_value(value: FilterValue | None) -> FilterValue | None:
-            if operator == utils.FilterOperator.TEMPORAL_RANGE:
-                return value
-            if (
-                isinstance(value, (float, int))
-                and target_generic_type == utils.GenericDataType.TEMPORAL
-                and target_native_type is not None
-                and db_engine_spec is not None
-            ):
-                value = db_engine_spec.convert_dttm(
-                    target_type=target_native_type,
-                    dttm=datetime.utcfromtimestamp(value / 1000),
-                    db_extra=db_extra,
-                )
-                value = literal_column(value)
-            if isinstance(value, str):
-                value = value.strip("\t\n")
-
-                if (
-                    target_generic_type == utils.GenericDataType.NUMERIC
-                    and operator
-                    not in {
-                        utils.FilterOperator.ILIKE,
-                        utils.FilterOperator.LIKE,
-                    }
-                ):
-                    # For backwards compatibility and edge cases
-                    # where a column data type might have changed
-                    return utils.cast_to_num(value)
-                if value == NULL_STRING:
-                    return None
-                if value == EMPTY_STRING:
-                    return ""
-            if target_generic_type == utils.GenericDataType.BOOLEAN:
-                return utils.cast_to_boolean(value)
-            return value
-
-        if isinstance(values, (list, tuple)):
-            values = [handle_single_value(v) for v in values]  # type: ignore
-        else:
-            values = handle_single_value(values)
-        if is_list_target and not isinstance(values, (tuple, list)):
-            values = [values]  # type: ignore
-        elif not is_list_target and isinstance(values, (tuple, list)):
-            values = values[0] if values else None
-        return values
-
->>>>>>> origin/avenmaster
     def external_metadata(self) -> list[ResultSetColumnType]:
         """Returns column information from the external system"""
         raise NotImplementedError()
@@ -744,11 +669,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
 
         :param template_processor: The template processor to apply to the filters.
         :returns: A list of SQL clauses to be ANDed together.
-<<<<<<< HEAD
         """  # noqa: E501
-=======
-        """
->>>>>>> origin/avenmaster
         template_processor = template_processor or self.get_template_processor()
 
         all_filters: list[TextClause] = []
@@ -773,20 +694,12 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             grouped_filters = [or_(*clauses) for clauses in filter_groups.values()]
             all_filters.extend(grouped_filters)
             return all_filters
-<<<<<<< HEAD
         except (TemplateError, SupersetSyntaxErrorException) as ex:
             msg = getattr(ex, "message", str(ex))
             raise QueryObjectValidationError(
                 _(
                     "Error in jinja expression in RLS filters: %(msg)s",
                     msg=msg,
-=======
-        except TemplateError as ex:
-            raise QueryObjectValidationError(
-                _(
-                    "Error in jinja expression in RLS filters: %(msg)s",
-                    msg=ex.message,
->>>>>>> origin/avenmaster
                 )
             ) from ex
 
@@ -1557,7 +1470,6 @@ class SqlaTable(
                 sqla_column = column(column_name)
             sqla_metric = self.sqla_aggregations[metric["aggregate"]](sqla_column)
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
-<<<<<<< HEAD
             expression = metric.get("sqlExpression")
 
             if not processed:
@@ -1572,18 +1484,6 @@ class SqlaTable(
                 except SupersetSecurityException as ex:
                     raise QueryObjectValidationError(ex.message) from ex
 
-=======
-            try:
-                expression = self._process_sql_expression(
-                    expression=metric["sqlExpression"],
-                    database_id=self.database_id,
-                    engine=self.database.backend,
-                    schema=self.schema,
-                    template_processor=template_processor,
-                )
-            except SupersetSecurityException as ex:
-                raise QueryObjectValidationError(ex.message) from ex
->>>>>>> origin/avenmaster
             sqla_metric = literal_column(expression)
         else:
             raise QueryObjectValidationError("Adhoc metric expressionType is invalid")
@@ -1608,20 +1508,7 @@ class SqlaTable(
         :rtype: sqlalchemy.sql.column
         """
         label = utils.get_column_name(col)
-<<<<<<< HEAD
         sql_expression = col["sqlExpression"]
-=======
-        try:
-            expression = self._process_sql_expression(
-                expression=col["sqlExpression"],
-                database_id=self.database_id,
-                engine=self.database.backend,
-                schema=self.schema,
-                template_processor=template_processor,
-            )
-        except SupersetSecurityException as ex:
-            raise QueryObjectValidationError(ex.message) from ex
->>>>>>> origin/avenmaster
         time_grain = col.get("timeGrain")
         has_timegrain = col.get("columnType") == "BASE_AXIS" and time_grain
         is_dttm = False
@@ -1713,46 +1600,6 @@ class SqlaTable(
             )
         return ob
 
-<<<<<<< HEAD
-=======
-    def _normalize_prequery_result_type(
-        self,
-        row: pd.Series,
-        dimension: str,
-        columns_by_name: dict[str, TableColumn],
-    ) -> str | int | float | bool | Text:
-        """
-        Convert a prequery result type to its equivalent Python type.
-
-        Some databases like Druid will return timestamps as strings, but do not perform
-        automatic casting when comparing these strings to a timestamp. For cases like
-        this we convert the value via the appropriate SQL transform.
-
-        :param row: A prequery record
-        :param dimension: The dimension name
-        :param columns_by_name: The mapping of columns by name
-        :return: equivalent primitive python type
-        """
-
-        value = row[dimension]
-
-        if isinstance(value, np.generic):
-            value = value.item()
-
-        column_ = columns_by_name.get(dimension)
-        db_extra: dict[str, Any] = self.database.get_extra()
-
-        if column_ and column_.type and column_.is_temporal and isinstance(value, str):
-            sql = self.db_engine_spec.convert_dttm(
-                column_.type, dateutil.parser.parse(value), db_extra=db_extra
-            )
-
-            if sql:
-                value = self.text(sql)
-
-        return value
-
->>>>>>> origin/avenmaster
     def _get_top_groups(
         self,
         df: pd.DataFrame,
@@ -2083,7 +1930,6 @@ class SqlaTable(
         if self.has_extra_cache_key_calls(query_obj):
             sqla_query = self.get_sqla_query(**query_obj)
             extra_cache_keys += sqla_query.extra_cache_keys
-<<<<<<< HEAD
 
         # For virtual datasets, include RLS predicates in the cache key
         if self.is_virtual and self.sql:
@@ -2097,8 +1943,6 @@ class SqlaTable(
             # Add each predicate as a separate cache key component
             extra_cache_keys.extend(rls_predicates)
 
-=======
->>>>>>> origin/avenmaster
         return list(set(extra_cache_keys))
 
     @property

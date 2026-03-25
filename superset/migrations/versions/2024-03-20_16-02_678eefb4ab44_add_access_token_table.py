@@ -36,15 +36,6 @@ from superset.migrations.shared.utils import (
 revision = "678eefb4ab44"
 down_revision = "be1b217cd8cd"
 
-<<<<<<< HEAD
-=======
-import sqlalchemy as sa  # noqa: E402
-from alembic import op  # noqa: E402
-from sqlalchemy_utils import EncryptedType  # noqa: E402
-
-from superset.migrations.shared.constraints import drop_fks_for_table  # noqa: E402
-
->>>>>>> origin/avenmaster
 
 def upgrade():
     create_table(

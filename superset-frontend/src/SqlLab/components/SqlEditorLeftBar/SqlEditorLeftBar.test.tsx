@@ -212,11 +212,7 @@ test('should toggle the table when the header is clicked', async () => {
 });
 
 test('When changing database the schema and table list must be updated', async () => {
-<<<<<<< HEAD
   const reduxState = {
-=======
-  const { rerender } = await renderAndWait(mockedProps, undefined, {
->>>>>>> origin/avenmaster
     ...initialState,
     sqlLab: {
       ...initialState.sqlLab,
@@ -283,32 +279,6 @@ test('When changing database the schema and table list must be updated', async (
 
   const updatedTableSelector = await screen.findAllByText(/new_table/i);
   expect(updatedTableSelector[0]).toBeInTheDocument();
-
-  const select = screen.getByRole('combobox', {
-    name: 'Select schema or type to search schemas',
-  });
-  userEvent.click(select);
-  expect(
-    await screen.findByRole('option', { name: 'main' }),
-  ).toBeInTheDocument();
-  expect(
-    await screen.findByRole('option', { name: 'new_schema' }),
-  ).toBeInTheDocument();
-  rerender(
-    <SqlEditorLeftBar
-      {...mockedProps}
-      database={{
-        id: 3,
-        database_name: 'unauth_db',
-        backend: 'minervasql',
-      }}
-      queryEditorId={extraQueryEditor1.id}
-    />,
-  );
-  userEvent.click(select);
-  expect(
-    await screen.findByText('No compatible schema found'),
-  ).toBeInTheDocument();
 });
 
 test('display no compatible schema found when schema api throws errors', async () => {

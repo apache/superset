@@ -243,7 +243,6 @@ export const getFormDataWithDashboardContext = (
   const dashboardColorScheme = dashboardContextFormData.color_scheme;
   const appliedColorScheme = dashboardColorScheme || ownColorScheme;
 
-<<<<<<< HEAD
   const deckGLProperties: JsonObject = {};
 
   if (
@@ -292,12 +291,6 @@ export const getFormDataWithDashboardContext = (
 
   // Default behavior: Dashboard context overrides explore data, but adhoc filters, color schemes
   // and specific properties from filterBox and native filters take final precedence
-=======
-  const ownColorScheme = exploreFormData.color_scheme;
-  const dashboardColorScheme = dashboardContextFormData.color_scheme;
-  const appliedColorScheme = dashboardColorScheme || ownColorScheme;
-
->>>>>>> origin/avenmaster
   return {
     ...exploreFormData,
     ...dashboardContextFormData,
@@ -307,9 +300,6 @@ export const getFormDataWithDashboardContext = (
     own_color_scheme: ownColorScheme,
     color_scheme: appliedColorScheme,
     dashboard_color_scheme: dashboardColorScheme,
-<<<<<<< HEAD
     ...deckGLProperties,
-=======
->>>>>>> origin/avenmaster
   };
 };

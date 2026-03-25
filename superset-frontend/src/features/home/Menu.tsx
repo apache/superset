@@ -53,109 +53,9 @@ const StyledHeader = styled.header`
       margin-bottom: 2px;
     }
 
-<<<<<<< HEAD
     .caret {
       display: none;
     }
-=======
-      &:nth-last-of-type(2) nav {
-        margin-bottom: 2px;
-      }
-      .caret {
-        display: none;
-      }
-      .navbar-brand {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        /* must be exactly the height of the Antd navbar */
-        min-height: 50px;
-        padding: ${theme.gridUnit}px
-          ${theme.gridUnit * 2}px
-          ${theme.gridUnit}px
-          ${theme.gridUnit * 4}px;
-        max-width: ${theme.gridUnit * theme.brandIconMaxWidth}px;
-        img {
-          height: 100%;
-          object-fit: contain;
-        }
-        &:focus {
-          border-color: transparent;
-        }
-        &:focus-visible {
-          border-color: ${theme.colors.primary.dark1};
-        }
-      }
-      .navbar-brand-text {
-        border-left: 1px solid ${theme.colors.grayscale.light2};
-        border-right: 1px solid ${theme.colors.grayscale.light2};
-        height: 100%;
-        color: ${theme.colors.grayscale.dark1};
-        padding-left: ${theme.gridUnit * 4}px;
-        padding-right: ${theme.gridUnit * 4}px;
-        margin-right: ${theme.gridUnit * 6}px;
-        font-size: ${theme.gridUnit * 4}px;
-        float: left;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-
-        span {
-          max-width: ${theme.gridUnit * 58}px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-        @media (max-width: 1127px) {
-          display: none;
-        }
-      }
-      .main-nav .ant-menu-submenu-title > svg {
-        top: ${theme.gridUnit * 5.25}px;
-      }
-      @media (max-width: 767px) {
-        .navbar-brand {
-          float: none;
-        }
-      }
-      .ant-menu-horizontal .ant-menu-item {
-        height: 100%;
-        line-height: inherit;
-      }
-      .ant-menu > .ant-menu-item > a {
-        padding: ${theme.gridUnit * 4}px;
-      }
-      @media (max-width: 767px) {
-        .ant-menu-item {
-          padding: 0 ${theme.gridUnit * 6}px 0
-            ${theme.gridUnit * 3}px !important;
-        }
-        .ant-menu > .ant-menu-item > a {
-          padding: 0px;
-        }
-        .main-nav .ant-menu-submenu-title > svg:nth-of-type(1) {
-          display: none;
-        }
-        .ant-menu-item-active > a {
-          &:hover {
-            color: ${theme.colors.primary.base} !important;
-            background-color: transparent !important;
-          }
-        }
-      }
-      .ant-menu-item a {
-        &:hover {
-          color: ${theme.colors.grayscale.dark1};
-          background-color: ${theme.colors.primary.light5};
-          border-bottom: none;
-          margin: 0;
-          &:after {
-            opacity: 1;
-            width: 100%;
-          }
-        }
-      }
->>>>>>> origin/avenmaster
   `}
 `;
 
@@ -440,19 +340,7 @@ export function Menu({
             title={brand.tooltip}
             arrow={{ pointAtCenter: true }}
           >
-<<<<<<< HEAD
             {renderBrand()}
-=======
-            {isFrontendRoute(window.location.pathname) ? (
-              <GenericLink className="navbar-brand" to={brand.path}>
-                <img src={brand.icon} alt={brand.alt} />
-              </GenericLink>
-            ) : (
-              <a className="navbar-brand" href={brand.path} tabIndex={-1}>
-                <img src={brand.icon} alt={brand.alt} />
-              </a>
-            )}
->>>>>>> origin/avenmaster
           </Tooltip>
           {brand.text && (
             <StyledBrandText>

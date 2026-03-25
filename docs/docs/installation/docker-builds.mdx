@@ -32,11 +32,7 @@ for the build, and/or base image.
 Here are the build presets that are exposed through the `supersetbot docker` utility:
 
 - `lean`: The default Docker image, including both frontend and backend. Tags
-<<<<<<< HEAD
   without a build_preset are lean builds (ie: `latest`, `5.0.0`, `4.1.2`, ...). `lean`
-=======
-  without a build_preset are lean builds (ie: `latest`, `4.0.0`, `3.0.0`, ...). `lean`
->>>>>>> origin/avenmaster
   builds do not contain database
   drivers, meaning you need to install your own. That applies to analytics databases **AND
   the metadata database**. You'll likely want to layer either `mysqlclient` or `psycopg2-binary`

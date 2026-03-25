@@ -16,8 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-<<<<<<<< HEAD:superset-frontend/packages/superset-ui-core/__mocks__/mockExportObject.js
 module.exports = {};
-========
-module.exports = 'test-file-stub';
->>>>>>>> origin/avenmaster:superset-frontend/plugins/plugin-aven-ab-chart/test/__mocks__/mockExportString.js

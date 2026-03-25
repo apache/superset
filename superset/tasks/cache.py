@@ -32,12 +32,8 @@ from superset.models.core import Log
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.tags.models import Tag, TaggedObject
-<<<<<<< HEAD
 from superset.tasks.exceptions import ExecutorNotFoundError, InvalidExecutorError
 from superset.tasks.utils import fetch_csrf_token, get_executor
-=======
-from superset.tasks.utils import fetch_csrf_token
->>>>>>> origin/avenmaster
 from superset.utils import json
 from superset.utils.date_parser import parse_human_datetime
 from superset.utils.machine_auth import MachineAuthProvider

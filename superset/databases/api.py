@@ -143,11 +143,7 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
-<<<<<<< HEAD
 from superset.views.error_handling import handle_api_exception, json_error_response
-=======
-from superset.views.error_handling import json_error_response
->>>>>>> origin/avenmaster
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)

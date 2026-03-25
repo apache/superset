@@ -46,11 +46,7 @@ export const getColorNamespace = (namespace?: string) => namespace || undefined;
  */
 export const enforceSharedLabelsColorsArray = (
   sharedLabelsColors: string[] | Record<string, string> | undefined,
-<<<<<<< HEAD
 ) => (Array.isArray(sharedLabelsColors) ? sharedLabelsColors : EMPTY_ARRAY);
-=======
-) => (Array.isArray(sharedLabelsColors) ? sharedLabelsColors : []);
->>>>>>> origin/avenmaster
 
 /**
  * Get labels shared across all charts in a dashboard.
@@ -65,7 +61,6 @@ export const getFreshSharedLabels = (
   const { chartsLabelsMap } = getLabelsColorMap();
   const allLabels = Array.from(chartsLabelsMap.values()).flatMap(
     ({ labels }) => labels,
-<<<<<<< HEAD
   );
 
   const duplicates = Array.from(
@@ -80,51 +75,6 @@ export const getFreshSharedLabels = (
   return Array.from(
     new Set([...ensureIsArray(currentSharedLabels), ...duplicates]),
   );
-=======
-  );
-
-  const duplicates = Array.from(
-    allLabels.reduce(
-      (counts, label) => counts.set(label, (counts.get(label) || 0) + 1),
-      new Map(),
-    ),
-  )
-    .filter(([, count]) => count > 1)
-    .map(([label]) => label);
-
-  return Array.from(new Set([...currentSharedLabels, ...duplicates]));
-};
-
-export const getSharedLabelsColorMapEntries = (
-  currentColorMap: Record<string, string>,
-  sharedLabels: string[],
-): Record<string, string> =>
-  Object.fromEntries(
-    Object.entries(currentColorMap).filter(([label]) =>
-      sharedLabels.includes(label),
-    ),
-  );
-
-/**
- * Returns all entries (labels and colors) except custom label colors.
- *
- * @param customLabelsColor - the custom label colors in label_colors field
- * @returns all color entries except custom label colors
- */
-export const getLabelsColorMapEntries = (
-  customLabelsColor: Record<string, string> = {},
-): Record<string, string> => {
-  const labelsColorMapInstance = getLabelsColorMap();
-  const allEntries = Object.fromEntries(labelsColorMapInstance.getColorMap());
-
-  // custom label colors are applied and stored separetely via label_colors
-  // removing all instances of custom label colors from the entries
-  Object.keys(customLabelsColor).forEach(label => {
-    delete allEntries[label];
-  });
-
-  return allEntries;
->>>>>>> origin/avenmaster
 };
 
 export const getSharedLabelsColorMapEntries = (
@@ -184,7 +134,6 @@ export const isLabelsColorMapSynced = (
   freshLabelsColors: Record<string, any>,
   customLabelColors: Record<string, string>,
 ): boolean => {
-<<<<<<< HEAD
   const freshLabelsCount = Object.keys(freshLabelsColors).length;
 
   // still updating, pass
@@ -206,22 +155,6 @@ export const isLabelsColorMapSynced = (
     },
   );
 
-=======
-  const storedLabelsColorMap = metadata.map_label_colors || {};
-  const customLabelColors = metadata.label_colors || {};
-  const freshColorMap = getLabelsColorMap().getColorMap();
-  const fullFreshColorMap = {
-    ...Object.fromEntries(freshColorMap),
-    ...customLabelColors,
-  };
-
-  const isSynced = Object.entries(fullFreshColorMap).every(
-    ([label, color]) =>
-      storedLabelsColorMap.hasOwnProperty(label) &&
-      storedLabelsColorMap[label] === color,
-  );
-
->>>>>>> origin/avenmaster
   return isSynced;
 };
 
@@ -317,11 +250,7 @@ export const applyColors = (
   if (fresh) {
     // requires a new map all together
     applicableColorMapEntries = {
-<<<<<<< HEAD
       ...getFreshLabelsColorMapEntries(customLabelsColor),
-=======
-      ...getLabelsColorMapEntries(customLabelsColor),
->>>>>>> origin/avenmaster
     };
   }
   if (merge) {
@@ -329,11 +258,7 @@ export const applyColors = (
     // without overriding existing ones
     applicableColorMapEntries = {
       ...fullLabelsColor,
-<<<<<<< HEAD
       ...getFreshLabelsColorMapEntries(customLabelsColor),
-=======
-      ...getLabelsColorMapEntries(customLabelsColor),
->>>>>>> origin/avenmaster
     };
   }
 

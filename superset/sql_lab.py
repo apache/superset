@@ -48,28 +48,14 @@ from superset.exceptions import (
     SupersetDMLNotAllowedException,
     SupersetErrorException,
     SupersetErrorsException,
-<<<<<<< HEAD
     SupersetInvalidCTASException,
     SupersetInvalidCVASException,
     SupersetResultsBackendNotConfigureException,
-=======
-    SupersetParseError,
->>>>>>> origin/avenmaster
 )
 from superset.extensions import celery_app, event_logger
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
-<<<<<<< HEAD
 from superset.sql.parse import BaseSQLStatement, CTASMethod, SQLScript, Table
-=======
-from superset.sql.parse import SQLStatement, Table
-from superset.sql_parse import (
-    CtasMethod,
-    insert_rls_as_subquery,
-    insert_rls_in_predicate,
-    ParsedQuery,
-)
->>>>>>> origin/avenmaster
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.utils import write_ipc_buffer
 from superset.utils import json
@@ -211,7 +197,6 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                 return handle_query_error(ex, query)
 
 
-<<<<<<< HEAD
 S = TypeVar("S", bound=BaseSQLStatement[Any])
 
 
@@ -260,10 +245,6 @@ def apply_limit(query: Query, parsed_statement: BaseSQLStatement[Any]) -> None:
 
 
 def execute_query(  # pylint: disable=too-many-statements, too-many-locals  # noqa: C901
-=======
-def execute_sql_statement(  # pylint: disable=too-many-statements, too-many-locals
-    sql_statement: str,
->>>>>>> origin/avenmaster
     query: Query,
     cursor: Any,
     log_params: Optional[dict[str, Any]] = None,
@@ -272,84 +253,6 @@ def execute_sql_statement(  # pylint: disable=too-many-statements, too-many-loca
     database: Database = query.database
     db_engine_spec = database.db_engine_spec
 
-<<<<<<< HEAD
-=======
-    parsed_query = ParsedQuery(sql_statement, engine=db_engine_spec.engine)
-    if is_feature_enabled("RLS_IN_SQLLAB"):
-        # There are two ways to insert RLS: either replacing the table with a subquery
-        # that has the RLS, or appending the RLS to the ``WHERE`` clause. The former is
-        # safer, but not supported in all databases.
-        insert_rls = (
-            insert_rls_as_subquery
-            if database.db_engine_spec.allows_subqueries
-            and database.db_engine_spec.allows_alias_in_select
-            else insert_rls_in_predicate
-        )
-
-        # Insert any applicable RLS predicates
-        parsed_query = ParsedQuery(
-            str(
-                insert_rls(
-                    parsed_query._parsed[0],  # pylint: disable=protected-access
-                    database.id,
-                    query.schema,
-                )
-            ),
-            engine=db_engine_spec.engine,
-        )
-
-    sql = parsed_query.stripped()
-
-    # This is a test to see if the query is being
-    # limited by either the dropdown or the sql.
-    # We are testing to see if more rows exist than the limit.
-    increased_limit = None if query.limit is None else query.limit + 1
-
-    if not database.allow_dml:
-        try:
-            parsed_statement = SQLStatement(sql_statement, engine=db_engine_spec.engine)
-            disallowed = parsed_statement.is_mutating()
-        except SupersetParseError:
-            # if we fail to parse teh query, disallow by default
-            disallowed = True
-
-        if disallowed:
-            raise SupersetErrorException(
-                SupersetError(
-                    message=__(
-                        "This database does not allow for DDL/DML, and the query "
-                        "could not be parsed to confirm it is a read-only query. Please "
-                        "contact your administrator for more assistance."
-                    ),
-                    error_type=SupersetErrorType.DML_NOT_ALLOWED_ERROR,
-                    level=ErrorLevel.ERROR,
-                )
-            )
-
-    if apply_ctas:
-        if not query.tmp_table_name:
-            start_dttm = datetime.fromtimestamp(query.start_time)
-            query.tmp_table_name = (
-                f'tmp_{query.user_id}_table_{start_dttm.strftime("%Y_%m_%d_%H_%M_%S")}'
-            )
-        sql = parsed_query.as_create_table(
-            query.tmp_table_name,
-            schema_name=query.tmp_schema_name,
-            method=query.ctas_method,
-        )
-        query.select_as_cta_used = True
-
-    # Do not apply limit to the CTA queries when SQLLAB_CTAS_NO_LIMIT is set to true
-    if db_engine_spec.is_select_query(parsed_query) and not (
-        query.select_as_cta_used and SQLLAB_CTAS_NO_LIMIT
-    ):
-        if SQL_MAX_ROW and (not query.limit or query.limit > SQL_MAX_ROW):
-            query.limit = SQL_MAX_ROW
-        sql = apply_limit_if_exists(database, increased_limit, query, sql)
-
-    # Hook to allow environment-specific mutation (usually comments) to the SQL
-    sql = database.mutate_sql_based_on_config(sql)
->>>>>>> origin/avenmaster
     try:
         log_query = app.config["QUERY_LOGGER"]
         if log_query:

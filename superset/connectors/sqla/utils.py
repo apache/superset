@@ -40,12 +40,7 @@ from superset.exceptions import (
 )
 from superset.models.core import Database
 from superset.result_set import SupersetResultSet
-<<<<<<< HEAD
 from superset.sql.parse import SQLScript, Table
-=======
-from superset.sql.parse import SQLScript
-from superset.sql_parse import Table
->>>>>>> origin/avenmaster
 from superset.superset_typing import ResultSetColumnType
 
 if TYPE_CHECKING:
@@ -109,7 +104,6 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
         )
 
     db_engine_spec = dataset.database.db_engine_spec
-<<<<<<< HEAD
     try:
         sql = dataset.get_template_processor().process_template(
             dataset.sql, **dataset.template_params_dict
@@ -124,12 +118,6 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
         raise SupersetGenericDBErrorException(
             message=_("Invalid SQL: %(error)s", error=ex.error.message),
         ) from ex
-=======
-    sql = dataset.get_template_processor().process_template(
-        dataset.sql, **dataset.template_params_dict
-    )
-    parsed_script = SQLScript(sql, engine=db_engine_spec.engine)
->>>>>>> origin/avenmaster
     if parsed_script.has_mutation():
         raise SupersetSecurityException(
             SupersetError(
@@ -166,20 +154,12 @@ def get_columns_description(
     try:
         with database.get_raw_connection(catalog=catalog, schema=schema) as conn:
             cursor = conn.cursor()
-<<<<<<< HEAD
             limit = database.get_column_description_limit_size()
             query = database.apply_limit_to_sql(query, limit=limit)
             mutated_query = database.mutate_sql_based_on_config(query)
             cursor.execute(mutated_query)
             db_engine_spec.execute(cursor, mutated_query, database)
             result = db_engine_spec.fetch_data(cursor, limit=limit)
-=======
-            query = database.apply_limit_to_sql(query, limit=1)
-            mutated_query = database.mutate_sql_based_on_config(query)
-            cursor.execute(mutated_query)
-            db_engine_spec.execute(cursor, mutated_query, database)
-            result = db_engine_spec.fetch_data(cursor, limit=1)
->>>>>>> origin/avenmaster
             result_set = SupersetResultSet(result, cursor.description, db_engine_spec)
             return result_set.columns
     except Exception as ex:

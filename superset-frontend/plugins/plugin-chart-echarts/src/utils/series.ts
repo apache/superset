@@ -33,11 +33,7 @@ import {
   TimeFormatter,
   ValueFormatter,
 } from '@superset-ui/core';
-<<<<<<< HEAD
 import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
-=======
-import { SortSeriesType } from '@superset-ui/chart-controls';
->>>>>>> origin/avenmaster
 import { format } from 'echarts/core';
 import type { LegendComponentOption } from 'echarts/components';
 import type { SeriesOption } from 'echarts';
@@ -709,7 +705,6 @@ export function extractTooltipKeys(
   }
   return [forecastValue[0][TOOLTIP_SERIES_KEY]];
 }
-<<<<<<< HEAD
 
 export function groupData(data: DataRecord[], by?: string | null) {
   const seriesMap: Map<DataRecordValue | undefined, DataRecord[]> = new Map();
@@ -727,5 +722,3 @@ export function groupData(data: DataRecord[], by?: string | null) {
   }
   return seriesMap;
 }
-=======
->>>>>>> origin/avenmaster

@@ -52,14 +52,9 @@ import {
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
-<<<<<<< HEAD
 import { useDashboardsMenuItems } from './DashboardsSubMenu';
 
 export const SEARCH_THRESHOLD = 10;
-=======
-import DashboardsSubMenu from './DashboardsSubMenu';
-import ExportSliceToGoogleSheet from '../../../dashboard/components/SliceHeaderControls/ExportSliceToGoogleSheet';
->>>>>>> origin/avenmaster
 
 const MENU_KEYS = {
   EDIT_PROPERTIES: 'edit_properties',
@@ -454,136 +449,10 @@ export const useExploreAdditionalActionsMenu = (
       },
     ];
 
-<<<<<<< HEAD
     if (isFeatureEnabled(FeatureFlag.EmbeddableCharts)) {
       shareChildren.push({
         key: MENU_KEYS.EMBED_CODE,
         label: (
-=======
-  const menu = useMemo(
-    () => (
-      <Menu onClick={handleMenuClick} selectable={false} {...rest}>
-        <>
-          {slice && (
-            <Menu.Item key={MENU_KEYS.EDIT_PROPERTIES}>
-              {t('Edit chart properties')}
-            </Menu.Item>
-          )}
-          <Menu.SubMenu
-            title={t('On dashboards')}
-            key={MENU_KEYS.DASHBOARDS_ADDED_TO}
-          >
-            <DashboardsSubMenu
-              chartId={slice?.slice_id}
-              dashboards={dashboards}
-            />
-          </Menu.SubMenu>
-          <Menu.Divider />
-        </>
-        <Menu.SubMenu title={t('Download')} key={MENU_KEYS.DOWNLOAD_SUBMENU}>
-          {VIZ_TYPES_PIVOTABLE.includes(latestQueryFormData.viz_type) ? (
-            <>
-              <Menu.Item
-                key={MENU_KEYS.EXPORT_TO_CSV}
-                icon={<Icons.FileOutlined css={iconReset} />}
-                disabled={!canDownloadCSV}
-              >
-                {t('Export to original .CSV')}
-              </Menu.Item>
-              <Menu.Item
-                key={MENU_KEYS.EXPORT_TO_CSV_PIVOTED}
-                icon={<Icons.FileOutlined css={iconReset} />}
-                disabled={!canDownloadCSV}
-              >
-                {t('Export to pivoted .CSV')}
-              </Menu.Item>
-            </>
-          ) : (
-            <Menu.Item
-              key={MENU_KEYS.EXPORT_TO_CSV}
-              icon={<Icons.FileOutlined css={iconReset} />}
-              disabled={!canDownloadCSV}
-            >
-              {t('Export to .CSV')}
-            </Menu.Item>
-          )}
-          <Menu.Item
-            key={MENU_KEYS.EXPORT_TO_JSON}
-            icon={<Icons.FileOutlined css={iconReset} />}
-            disabled={!canDownloadCSV}
-          >
-            {t('Export to .JSON')}
-          </Menu.Item>
-          <Menu.Item
-            key={MENU_KEYS.DOWNLOAD_AS_IMAGE}
-            icon={<Icons.FileImageOutlined css={iconReset} />}
-          >
-            {t('Download as image')}
-          </Menu.Item>
-          <Menu.Item
-            key={MENU_KEYS.EXPORT_TO_XLSX}
-            icon={<Icons.FileOutlined css={iconReset} />}
-            disabled={!canDownloadCSV}
-          >
-            {t('Export to Excel')}
-          </Menu.Item>
-          <ExportSliceToGoogleSheet sliceId={slice?.slice_id} />
-        </Menu.SubMenu>
-        <Menu.SubMenu title={t('Share')} key={MENU_KEYS.SHARE_SUBMENU}>
-          <Menu.Item key={MENU_KEYS.COPY_PERMALINK}>
-            {t('Copy permalink to clipboard')}
-          </Menu.Item>
-          <Menu.Item key={MENU_KEYS.SHARE_BY_EMAIL}>
-            {t('Share chart by email')}
-          </Menu.Item>
-          {isFeatureEnabled(FeatureFlag.EmbeddableCharts) ? (
-            <Menu.Item key={MENU_KEYS.EMBED_CODE}>
-              <ModalTrigger
-                triggerNode={
-                  <span data-test="embed-code-button">{t('Embed code')}</span>
-                }
-                modalTitle={t('Embed code')}
-                modalBody={
-                  <EmbedCodeContent
-                    formData={latestQueryFormData}
-                    addDangerToast={addDangerToast}
-                  />
-                }
-                maxWidth={`${theme.gridUnit * 100}px`}
-                destroyOnClose
-                responsive
-              />
-            </Menu.Item>
-          ) : null}
-        </Menu.SubMenu>
-        <Menu.Divider />
-        {showReportSubMenu ? (
-          <>
-            <Menu.SubMenu title={t('Manage email report')}>
-              <HeaderReportDropDown
-                chart={chart}
-                setShowReportSubMenu={setShowReportSubMenu}
-                showReportSubMenu={showReportSubMenu}
-                setIsDropdownVisible={setIsDropdownVisible}
-                isDropdownVisible={isDropdownVisible}
-                useTextMenu
-              />
-            </Menu.SubMenu>
-            <Menu.Divider />
-          </>
-        ) : (
-          <Menu>
-            <HeaderReportDropDown
-              chart={chart}
-              setShowReportSubMenu={setShowReportSubMenu}
-              setIsDropdownVisible={setIsDropdownVisible}
-              isDropdownVisible={isDropdownVisible}
-              useTextMenu
-            />
-          </Menu>
-        )}
-        <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
->>>>>>> origin/avenmaster
           <ModalTrigger
             triggerNode={
               <div data-test="embed-code-button">{t('Embed code')}</div>

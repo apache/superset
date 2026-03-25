@@ -13,11 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-<<<<<<< HEAD
 "POT-Creation-Date: 2025-04-29 12:34+0330\n"
-=======
-"POT-Creation-Date: 2024-07-30 17:32-0600\n"
->>>>>>> origin/avenmaster
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -41,12 +37,6 @@ msgid ""
 "                original data, it just changes the way the histogram is "
 "displayed."
 msgstr ""
-"\n"
-"                Deze filter werd geërfd van de context van het dashboard."
-"\n"
-"                Dit wordt niet opgeslagen bij het opslaan van de grafiek."
-"\n"
-"              "
 
 msgid ""
 "\n"
@@ -116,8 +106,20 @@ msgid " source code of Superset's sandboxed parser"
 msgstr " broncode van Superset's sandboxed parser"
 
 msgid ""
-"Select one or many metrics to display. You can use an aggregation "
-"function on a column or write custom SQL to create a metric."
+" standard to ensure that the lexicographical ordering\n"
+"                      coincides with the chronological ordering. If the\n"
+"                      timestamp format does not adhere to the ISO 8601 "
+"standard\n"
+"                      you will need to define an expression and type for\n"
+"                      transforming the string into a date or timestamp. "
+"Note\n"
+"                      currently time zones are not supported. If time is "
+"stored\n"
+"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
+" pattern\n"
+"                      is specified we fall back to using the optional "
+"defaults on a per\n"
+"                      database/column name level via the extra parameter."
 msgstr ""
 " standaard om ervoor te zorgen dat de lexicografische volgorde\n"
 "                      samenvalt met de chronologische volgorde. Als het "
@@ -7976,15 +7978,12 @@ msgstr ""
 "Eigenaren zijn een lijst met gebruikers die het dashboard kunnen "
 "veranderen. Doorzoekbaar op naam of gebruikersnaam."
 
-<<<<<<< HEAD
 #, fuzzy
 msgid "PDF download failed, please refresh and try again."
 msgstr ""
 "Afbeelding downloaden mislukt, gelieve te vernieuwen en probeer het "
 "opnieuw."
 
-=======
->>>>>>> origin/avenmaster
 msgid "Page length"
 msgstr "Pagina lengte"
 
@@ -11540,7 +11539,6 @@ msgstr "Het schema werd verwijderd of hernoemd in de database."
 msgid "The screenshot could not be downloaded. Please, try again later."
 msgstr ""
 
-<<<<<<< HEAD
 #, fuzzy
 msgid "The screenshot has been downloaded."
 msgstr "Het rapport is gemaakt"
@@ -11551,13 +11549,6 @@ msgstr ""
 #, fuzzy
 msgid "The service url of the layer"
 msgstr "Toon series waarden op de grafiek"
-=======
-msgid "The screenshot is being generated. Please, do not leave the page."
-msgstr ""
-
-msgid "The screenshot is now being downloaded."
-msgstr ""
->>>>>>> origin/avenmaster
 
 msgid "The size of each cell in meters"
 msgstr "Grootte van elke cel in meters"
@@ -11774,13 +11765,10 @@ msgstr "Er is een fout opgetreden bij het ophalen van de favoriete status: %s"
 #, fuzzy
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Er is een fout opgetreden bij het ophalen van de favoriete status: %s"
-<<<<<<< HEAD
 
 #, fuzzy
 msgid "There was an error generating the permalink."
 msgstr "Er is een fout opgetreden bij het laden van de schema's"
-=======
->>>>>>> origin/avenmaster
 
 #, fuzzy
 msgid "There was an error loading the catalogs"
@@ -14545,13 +14533,10 @@ msgstr "in modal"
 msgid "invalid email"
 msgstr "Ongeldige permalink sleutel"
 
-<<<<<<< HEAD
 #, fuzzy
 msgid "is"
 msgstr "in"
 
-=======
->>>>>>> origin/avenmaster
 msgid "is expected to be a Mapbox URL"
 msgstr "wordt verwacht een Mapbox URL te zijn"
 

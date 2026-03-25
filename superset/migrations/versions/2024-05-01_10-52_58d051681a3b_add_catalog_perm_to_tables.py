@@ -28,11 +28,7 @@ from superset.migrations.shared.catalogs import (
     downgrade_catalog_perms,
     upgrade_catalog_perms,
 )
-<<<<<<< HEAD
 from superset.migrations.shared.utils import add_columns, drop_columns
-=======
-from superset.migrations.shared.utils import add_column_if_not_exists
->>>>>>> origin/avenmaster
 
 # revision identifiers, used by Alembic.
 revision = "58d051681a3b"
@@ -40,31 +36,16 @@ down_revision = "4a33124c18ad"
 
 
 def upgrade():
-<<<<<<< HEAD
     add_columns(
         "tables", sa.Column("catalog_perm", sa.String(length=1000), nullable=True)
     )
     add_columns(
         "slices", sa.Column("catalog_perm", sa.String(length=1000), nullable=True)
-=======
-    add_column_if_not_exists(
-        "tables",
-        sa.Column("catalog_perm", sa.String(length=1000), nullable=True),
-    )
-    add_column_if_not_exists(
-        "slices",
-        sa.Column("catalog_perm", sa.String(length=1000), nullable=True),
->>>>>>> origin/avenmaster
     )
     upgrade_catalog_perms(engines={"postgresql"})
 
 
 def downgrade():
     downgrade_catalog_perms(engines={"postgresql"})
-<<<<<<< HEAD
     drop_columns("slices", "catalog_perm")
     drop_columns("tables", "catalog_perm")
-=======
-    op.drop_column("slices", "catalog_perm")
-    op.drop_column("tables", "catalog_perm")
->>>>>>> origin/avenmaster

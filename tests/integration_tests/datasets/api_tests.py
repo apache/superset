@@ -1601,12 +1601,7 @@ class TestDatasetApi(SupersetTestCase):
         uri = f"api/v1/dataset/{dataset.id}"
         rv = self.put_assert_metric(uri, table_data, "put")
         assert rv.status_code == 422
-<<<<<<< HEAD
         self.items_to_delete = [dataset]
-=======
-        db.session.delete(dataset)
-        db.session.commit()
->>>>>>> origin/avenmaster
 
     @patch("superset.daos.dataset.DatasetDAO.update")
     def test_update_dataset_sqlalchemy_error(self, mock_dao_update):

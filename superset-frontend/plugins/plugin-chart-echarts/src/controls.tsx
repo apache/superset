@@ -230,11 +230,7 @@ const tooltipTotalControl: ControlSetItem = {
     description: t('Whether to display the total value in the tooltip'),
     visibility: ({ controls, form_data }: ControlPanelsContainerProps) =>
       Boolean(controls?.rich_tooltip?.value) &&
-<<<<<<< HEAD
       form_data.viz_type !== VizType.MixedTimeseries,
-=======
-      form_data.viz_type !== 'mixed_timeseries',
->>>>>>> origin/avenmaster
   },
 };
 
@@ -244,20 +240,12 @@ const tooltipPercentageControl: ControlSetItem = {
     type: 'CheckboxControl',
     label: t('Show percentage'),
     renderTrigger: true,
-<<<<<<< HEAD
     default: false,
-=======
-    default: true,
->>>>>>> origin/avenmaster
     description: t('Whether to display the percentage value in the tooltip'),
     visibility: ({ controls, form_data }: ControlPanelsContainerProps) =>
       Boolean(controls?.rich_tooltip?.value) &&
       !controls?.contributionMode?.value &&
-<<<<<<< HEAD
       form_data.viz_type !== VizType.MixedTimeseries,
-=======
-      form_data.viz_type !== 'mixed_timeseries',
->>>>>>> origin/avenmaster
   },
 };
 

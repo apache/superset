@@ -44,11 +44,7 @@ from superset.utils.database import (  # noqa: F401
 )
 from tests.integration_tests.base_tests import db_insert_temp_object, SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
-<<<<<<< HEAD
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
-=======
-from tests.integration_tests.constants import ADMIN_USERNAME
->>>>>>> origin/avenmaster
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
@@ -160,19 +156,11 @@ class TestDatasource(SupersetTestCase):
         with create_and_cleanup_table(table):
             table.always_filter_main_dttm = False
             result = str(table.get_sqla_query(**query_obj).sqla_query.whereclause)
-<<<<<<< HEAD
             assert "default_dttm" not in result and "additional_dttm" in result  # noqa: PT018
 
             table.always_filter_main_dttm = True
             result = str(table.get_sqla_query(**query_obj).sqla_query.whereclause)
             assert "default_dttm" in result and "additional_dttm" in result  # noqa: PT018
-=======
-            assert "default_dttm" not in result and "additional_dttm" in result
-
-            table.always_filter_main_dttm = True
-            result = str(table.get_sqla_query(**query_obj).sqla_query.whereclause)
-            assert "default_dttm" in result and "additional_dttm" in result
->>>>>>> origin/avenmaster
 
     def test_external_metadata_for_virtual_table(self):
         self.login(ADMIN_USERNAME)
@@ -229,11 +217,7 @@ class TestDatasource(SupersetTestCase):
     def test_external_metadata_by_name_for_virtual_table_uses_mutator(self):
         self.login(ADMIN_USERNAME)
         with create_and_cleanup_table() as tbl:
-<<<<<<< HEAD
             current_app.config["SQL_QUERY_MUTATOR"] = (
-=======
-            app.config["SQL_QUERY_MUTATOR"] = (
->>>>>>> origin/avenmaster
                 lambda sql, **kwargs: "SELECT 456 as intcol, 'def' as mutated_strcol"
             )
 
@@ -250,11 +234,7 @@ class TestDatasource(SupersetTestCase):
             url = f"/datasource/external_metadata_by_name/?q={params}"
             resp = self.get_json_resp(url)
             assert {o.get("column_name") for o in resp} == {"intcol", "mutated_strcol"}
-<<<<<<< HEAD
             current_app.config["SQL_QUERY_MUTATOR"] = None
-=======
-            app.config["SQL_QUERY_MUTATOR"] = None
->>>>>>> origin/avenmaster
 
     def test_external_metadata_by_name_from_sqla_inspector(self):
         self.login(ADMIN_USERNAME)
@@ -803,7 +783,7 @@ def test_get_samples_with_multiple_filters(
     assert "2000-01-02" in rv.json["result"]["query"]
     assert "2000-01-04" in rv.json["result"]["query"]
     assert "col3 = 1.2" in rv.json["result"]["query"]
-    assert "col4 is null" in rv.json["result"]["query"]
+    assert "col4 IS NULL" in rv.json["result"]["query"]
     assert "col2 = 'c'" in rv.json["result"]["query"]
 
 

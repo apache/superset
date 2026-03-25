@@ -84,7 +84,6 @@ export interface Dataset {
   filter_select?: boolean;
   filter_select_enabled?: boolean;
   column_names?: string[];
-<<<<<<< HEAD
   catalog?: string;
   schema?: string;
   table_name?: string;
@@ -92,8 +91,6 @@ export interface Dataset {
   normalize_columns?: boolean;
   always_filter_main_dttm?: boolean;
   extra?: object | string;
-=======
->>>>>>> origin/avenmaster
 }
 
 export interface ControlPanelState {

@@ -91,11 +91,7 @@ const filterMock: Filter = {
   description: '',
 };
 
-<<<<<<< HEAD
 const createProps = (): ControlItemsProps => ({
-=======
-const createProps: () => ControlItemsProps = () => ({
->>>>>>> origin/avenmaster
   expanded: false,
   datasetId: 1,
   disabled: false,

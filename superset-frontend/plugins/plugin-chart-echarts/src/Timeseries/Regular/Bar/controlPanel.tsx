@@ -175,7 +175,6 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
             isXAxis ? isVertical(controls) : isHorizontal(controls),
           disableStash: true,
           resetOnHide: false,
-<<<<<<< HEAD
         },
       },
     ],
@@ -188,8 +187,6 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
             isXAxis ? isVertical(controls) : isHorizontal(controls),
           disableStash: true,
           resetOnHide: false,
-=======
->>>>>>> origin/avenmaster
         },
       },
     ],

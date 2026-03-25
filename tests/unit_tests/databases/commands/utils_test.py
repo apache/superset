@@ -47,7 +47,6 @@ def test_add_permissions(mocker: MockerFixture) -> None:
     )
 
 
-<<<<<<< HEAD
 def test_add_permissions_get_default_catalog(mocker: MockerFixture):
     """
     Test permissions only added to the default catalog if multi-catalog is not enabled.
@@ -79,8 +78,6 @@ def test_add_permissions_get_default_catalog(mocker: MockerFixture):
     assert add_permission_view_menu.call_count == 2
 
 
-=======
->>>>>>> origin/avenmaster
 def test_add_permissions_handle_failures(mocker: MockerFixture) -> None:
     """
     Test adding permissions to a database when it's created in case

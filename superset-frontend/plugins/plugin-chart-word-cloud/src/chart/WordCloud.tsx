@@ -225,13 +225,7 @@ class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
     const encoder = this.createEncoder(encoding);
     encoder.channels.color.setDomainFromDataset(words);
 
-<<<<<<< HEAD
     const colorFn = CategoricalColorNamespace.getScale(colorScheme);
-=======
-    const { getValueFromDatum } = encoder.channels.color;
-    const colorFn = CategoricalColorNamespace.getScale(colorScheme);
-
->>>>>>> origin/avenmaster
     const viewBoxWidth = width * scaleFactor;
     const viewBoxHeight = height * scaleFactor;
 
@@ -248,14 +242,10 @@ class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
               fontSize={`${w.size}px`}
               fontWeight={w.weight}
               fontFamily={w.font}
-<<<<<<< HEAD
               fill={colorFn(
                 encoder.channels.color.getValueFromDatum(w) as string,
                 sliceId,
               )}
-=======
-              fill={colorFn(getValueFromDatum(w) as string, sliceId)}
->>>>>>> origin/avenmaster
               textAnchor="middle"
               transform={`translate(${w.x}, ${w.y}) rotate(${w.rotate})`}
             >

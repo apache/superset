@@ -78,10 +78,7 @@ const coerceMetrics = (
       return {
         metric_name: metric,
         error_text: t('This metric might be incompatible with current dataset'),
-<<<<<<< HEAD
         uuid: nanoid(),
-=======
->>>>>>> origin/avenmaster
       };
     }
     if (!isDictionaryForAdhocMetric(metric)) {

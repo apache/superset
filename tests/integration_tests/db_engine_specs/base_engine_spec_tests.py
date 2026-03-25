@@ -193,11 +193,7 @@ class SupersetTestCases(SupersetTestCase):
         }
         sql = table.get_query_str(query_obj)
         assert (
-<<<<<<< HEAD
             "ORDER BY \n            case\n              when gender='boy' then 'male'\n              else 'female'\n            end\n             ASC"  # noqa: E501
-=======
-            "ORDER BY \n            case\n              when gender='boy' then 'male'\n              else 'female'\n            end\n             ASC"
->>>>>>> origin/avenmaster
             in sql
         )
 

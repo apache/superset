@@ -25,19 +25,13 @@ import sqlalchemy as sa
 
 from superset.migrations.shared.utils import add_columns, drop_columns
 
-from superset.migrations.shared.utils import add_column_if_not_exists
-
 # revision identifiers, used by Alembic.
 revision = "c22cb5c2e546"
 down_revision = "678eefb4ab44"
 
 
 def upgrade():
-<<<<<<< HEAD
     add_columns(
-=======
-    add_column_if_not_exists(
->>>>>>> origin/avenmaster
         "user_attribute",
         sa.Column("avatar_url", sa.String(length=100), nullable=True),
     )

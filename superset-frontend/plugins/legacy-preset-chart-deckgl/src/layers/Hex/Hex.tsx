@@ -59,12 +59,6 @@ export const getLayer: GetLayerType<HexagonLayer> = function ({
   const fd = formData;
   const appliedScheme = fd.color_scheme;
   const colorScale = CategoricalColorNamespace.getScale(appliedScheme);
-<<<<<<< HEAD
-=======
-  const colorRange = colorScale
-    .range()
-    .map(color => hexToRGB(color)) as Color[];
->>>>>>> origin/avenmaster
   let data = payload.data.features;
 
   if (fd.js_data_mutator) {

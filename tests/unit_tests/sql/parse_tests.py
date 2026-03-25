@@ -18,7 +18,6 @@
 
 
 import pytest
-<<<<<<< HEAD
 from pytest_mock import MockerFixture
 from sqlglot import Dialects, exp, parse_one
 
@@ -35,26 +34,14 @@ from superset.sql.parse import (
     remove_quotes,
     RLSMethod,
     sanitize_clause,
-=======
-from sqlglot import Dialects
-
-from superset.exceptions import SupersetParseError
-from superset.sql.parse import (
-    extract_tables_from_statement,
-    KustoKQLStatement,
->>>>>>> origin/avenmaster
     split_kql,
     SQLGLOT_DIALECTS,
     SQLScript,
     SQLStatement,
     Table,
-<<<<<<< HEAD
     tokenize_kql,
 )
 from tests.integration_tests.conftest import with_feature_flags
-=======
-)
->>>>>>> origin/avenmaster
 
 
 def test_table() -> None:
@@ -62,11 +49,7 @@ def test_table() -> None:
     Test the `Table` class and its string conversion.
 
     Special characters in the table, schema, or catalog name should be escaped correctly.
-<<<<<<< HEAD
     """  # noqa: E501
-=======
-    """
->>>>>>> origin/avenmaster
     assert str(Table("tbname")) == "tbname"
     assert str(Table("tbname", "schemaname")) == "schemaname.tbname"
     assert (
@@ -79,7 +62,6 @@ def test_table() -> None:
     )
 
 
-<<<<<<< HEAD
 def test_table_qualify() -> None:
     """
     Test the `Table.qualify` method.
@@ -155,8 +137,6 @@ def test_table_qualify() -> None:
     assert qualified.catalog == table.catalog
 
 
-=======
->>>>>>> origin/avenmaster
 def extract_tables_from_sql(sql: str, engine: str = "postgresql") -> set[Table]:
     """
     Helper function to extract tables from SQL.
@@ -394,11 +374,6 @@ def test_extract_tables_show_tables_from() -> None:
 def test_format_show_tables() -> None:
     """
     Test format when `ast.sql()` raises an exception.
-<<<<<<< HEAD
-=======
-
-    In that case sqlparse should be used instead.
->>>>>>> origin/avenmaster
     """
     assert (
         SQLScript("SHOW TABLES FROM s1 like '%order%'", "mysql").format()
@@ -411,7 +386,6 @@ def test_format_no_dialect() -> None:
     Test format with an engine that has no corresponding dialect.
     """
     assert (
-<<<<<<< HEAD
         SQLScript("SELECT col FROM t WHERE col NOT IN (1, 2)", "dremio").format()
         == """
 SELECT
@@ -420,10 +394,6 @@ FROM t
 WHERE
   NOT col IN (1, 2)
         """.strip()
-=======
-        SQLScript("SELECT col FROM t WHERE col NOT IN (1, 2)", "firebolt").format()
-        == "SELECT col\nFROM t\nWHERE col NOT IN (1,\n                  2)"
->>>>>>> origin/avenmaster
     )
 
 
@@ -432,19 +402,11 @@ def test_split_no_dialect() -> None:
     Test the statement split when the engine has no corresponding dialect.
     """
     sql = "SELECT col FROM t WHERE col NOT IN (1, 2); SELECT * FROM t; SELECT foo"
-<<<<<<< HEAD
     statements = SQLScript(sql, "dremio").statements
     assert len(statements) == 3
     assert statements[0].format() == "SELECT\n  col\nFROM t\nWHERE\n  NOT col IN (1, 2)"
     assert statements[1].format() == "SELECT\n  *\nFROM t"
     assert statements[2].format() == "SELECT\n  foo"
-=======
-    statements = SQLScript(sql, "firebolt").statements
-    assert len(statements) == 3
-    assert statements[0]._sql == "SELECT col FROM t WHERE col NOT IN (1, 2)"
-    assert statements[1]._sql == "SELECT * FROM t"
-    assert statements[2]._sql == "SELECT foo"
->>>>>>> origin/avenmaster
 
 
 def test_extract_tables_show_columns_from() -> None:
@@ -772,10 +734,6 @@ FROM (
     UNION ALL SELECT lets_go_deeper
     FROM f
     WHERE 1=1
-<<<<<<< HEAD
-=======
-    WHERE 2=2
->>>>>>> origin/avenmaster
     GROUP BY last_col
     LIMIT 50000
 )
@@ -874,7 +832,6 @@ Events | take 100""",
     assert query.get_settings() == {"querytrace": True}
 
 
-<<<<<<< HEAD
 @pytest.mark.parametrize(
     "sql, engine, expected",
     [
@@ -922,8 +879,6 @@ def test_sqlscript_split(sql: str, engine: str, expected: list[str]) -> None:
     assert [statement.format() for statement in script.statements] == expected
 
 
-=======
->>>>>>> origin/avenmaster
 def test_sqlstatement() -> None:
     """
     Test the `SQLStatement` class.
@@ -933,35 +888,25 @@ def test_sqlstatement() -> None:
         "sqlite",
     )
 
-<<<<<<< HEAD
     assert (
         statement.format()
         == "SELECT\n  *\nFROM table1\nUNION ALL\nSELECT\n  *\nFROM table2"
     )
     assert str(statement) == statement.format()
 
-=======
->>>>>>> origin/avenmaster
     assert statement.tables == {
         Table(table="table1", schema=None, catalog=None),
         Table(table="table2", schema=None, catalog=None),
     }
-<<<<<<< HEAD
 
     assert statement.parse_predicate("a > 1") == exp.GT(
         this=exp.Column(this=exp.Identifier(this="a", quoted=False)),
         expression=exp.Literal(this="1", is_string=False),
-=======
-    assert (
-        statement.format()
-        == "SELECT\n  *\nFROM table1\nUNION ALL\nSELECT\n  *\nFROM table2"
->>>>>>> origin/avenmaster
     )
 
     statement = SQLStatement("SET a=1", "sqlite")
     assert statement.get_settings() == {"a": "1"}
 
-<<<<<<< HEAD
     with pytest.raises(
         ValueError,
         match="Either statement or ast must be provided",
@@ -996,8 +941,6 @@ def test_kustokqlstatement() -> None:
     ):
         KustoKQLStatement("foo | take 1; bar | take 2", "kustokql")
 
-=======
->>>>>>> origin/avenmaster
 
 def test_kustokqlstatement_split_script() -> None:
     """
@@ -1078,7 +1021,6 @@ def test_kustokql_statement_split_special(kql: str, statements: int) -> None:
     assert len(KustoKQLStatement.split_script(kql, "kustokql")) == statements
 
 
-<<<<<<< HEAD
 @pytest.mark.parametrize(
     "kql, expected",
     [
@@ -1086,13 +1028,6 @@ def test_kustokql_statement_split_special(kql: str, statements: int) -> None:
         (";Table | take 5;", ["Table | take 5"]),
         (
             """
-=======
-def test_split_kql() -> None:
-    """
-    Test the `split_kql` function.
-    """
-    kql = """
->>>>>>> origin/avenmaster
 let totalPagesPerDay = PageViews
 | summarize by Page, Day = startofday(Timestamp)
 | summarize count() by Day;
@@ -1113,7 +1048,6 @@ on Page
     totalPagesPerDay
 on $left.Day1 == $right.Day
 | project Day1, Day2, Percentage = count_*100.0/count_1
-<<<<<<< HEAD
             """,
             [
                 """
@@ -1126,20 +1060,6 @@ let materializedScope = PageViews
                 """
 let cachedResult = materialize(materializedScope)""",
                 """
-=======
-    """
-    assert split_kql(kql) == [
-        """
-let totalPagesPerDay = PageViews
-| summarize by Page, Day = startofday(Timestamp)
-| summarize count() by Day""",
-        """
-let materializedScope = PageViews
-| summarize by Page, Day = startofday(Timestamp)""",
-        """
-let cachedResult = materialize(materializedScope)""",
-        """
->>>>>>> origin/avenmaster
 cachedResult
 | project Page, Day1 = Day
 | join kind = inner
@@ -1154,7 +1074,6 @@ on Page
     totalPagesPerDay
 on $left.Day1 == $right.Day
 | project Day1, Day2, Percentage = count_*100.0/count_1
-<<<<<<< HEAD
             """,
             ],
         ),
@@ -1165,19 +1084,11 @@ def test_split_kql(kql: str, expected: list[str]) -> None:
     Test the `split_kql` function.
     """
     assert split_kql(kql) == expected
-=======
-    """,
-    ]
->>>>>>> origin/avenmaster
 
 
 @pytest.mark.parametrize(
     ("engine", "sql", "expected"),
     [
-<<<<<<< HEAD
-=======
-        # SQLite tests
->>>>>>> origin/avenmaster
         ("sqlite", "SELECT 1", False),
         ("sqlite", "INSERT INTO foo VALUES (1)", True),
         ("sqlite", "UPDATE foo SET bar = 2 WHERE id = 1", True),
@@ -1222,7 +1133,6 @@ def test_split_kql(kql: str, expected: list[str]) -> None:
         ("kustokql", "set querytrace; Events | take 100", False),
         ("kustokql", ".drop table foo", True),
         ("kustokql", ".set-or-append table foo <| bar", True),
-<<<<<<< HEAD
         ("base", "SHOW LOCKS test EXTENDED", False),
         ("base", "SET hivevar:desc='Legislators'", False),
         ("base", "UPDATE t1 SET col1 = NULL", True),
@@ -1245,8 +1155,6 @@ def test_split_kql(kql: str, expected: list[str]) -> None:
         ("presto", "EXPLAIN SELECT 1", False),
         ("presto", "SELECT 1", False),
         ("presto", "WITH bla AS (SELECT 1) SELECT * FROM bla", False),
-=======
->>>>>>> origin/avenmaster
     ],
 )
 def test_has_mutation(engine: str, sql: str, expected: bool) -> None:
@@ -1280,7 +1188,6 @@ def test_custom_dialect(app: None) -> None:
     Test that custom dialects are loaded correctly.
     """
     assert SQLGLOT_DIALECTS.get("custom") == Dialects.MYSQL
-<<<<<<< HEAD
 
 
 @pytest.mark.parametrize(
@@ -3177,5 +3084,3 @@ def test_backtick_invalid_sql_still_fails() -> None:
     sql = "SELECT * FROM `table` WHERE"
     with pytest.raises(SupersetParseError):
         SQLScript(sql, "base")
-=======
->>>>>>> origin/avenmaster

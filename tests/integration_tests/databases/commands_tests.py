@@ -422,12 +422,8 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert database.expose_in_sqllab
         assert database.extra == "{}"
-<<<<<<< HEAD
         assert database.sqlalchemy_uri == "postgresql://user:XXXXXXXXXX@host1"
         assert database.password == "pass"  # noqa: S105
-=======
-        assert database.sqlalchemy_uri == "postgresql://user:pass@host1"
->>>>>>> origin/avenmaster
 
         db.session.delete(database)
         db.session.commit()
@@ -467,12 +463,8 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert database.expose_in_sqllab
         assert database.extra == '{"schemas_allowed_for_file_upload": ["upload"]}'
-<<<<<<< HEAD
         assert database.sqlalchemy_uri == "postgresql://user:XXXXXXXXXX@host1"
         assert database.password == "pass"  # noqa: S105
-=======
-        assert database.sqlalchemy_uri == "postgresql://user:pass@host1"
->>>>>>> origin/avenmaster
 
         db.session.delete(database)
         db.session.commit()
@@ -743,12 +735,8 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert database.expose_in_sqllab
         assert database.extra == "{}"
-<<<<<<< HEAD
         assert database.sqlalchemy_uri == "postgresql://user:XXXXXXXXXX@host1"
         assert database.password == "pass"  # noqa: S105
-=======
-        assert database.sqlalchemy_uri == "postgresql://user:pass@host1"
->>>>>>> origin/avenmaster
 
         model_ssh_tunnel = (
             db.session.query(SSHTunnel)
@@ -795,12 +783,8 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert database.expose_in_sqllab
         assert database.extra == "{}"
-<<<<<<< HEAD
         assert database.sqlalchemy_uri == "postgresql://user:XXXXXXXXXX@host1"
         assert database.password == "pass"  # noqa: S105
-=======
-        assert database.sqlalchemy_uri == "postgresql://user:pass@host1"
->>>>>>> origin/avenmaster
 
         model_ssh_tunnel = (
             db.session.query(SSHTunnel)

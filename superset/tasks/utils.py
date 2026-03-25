@@ -23,17 +23,10 @@ from typing import Optional, TYPE_CHECKING
 from urllib import request
 
 from celery.utils.log import get_task_logger
-<<<<<<< HEAD
 from flask import g
 
 from superset.tasks.exceptions import ExecutorNotFoundError, InvalidExecutorError
 from superset.tasks.types import ChosenExecutor, Executor, ExecutorType, FixedExecutor
-=======
-from flask import current_app, g
-
-from superset.tasks.exceptions import ExecutorNotFoundError
-from superset.tasks.types import ExecutorType
->>>>>>> origin/avenmaster
 from superset.utils import json
 from superset.utils.urls import get_url_path
 
@@ -126,15 +119,9 @@ def fetch_csrf_token(
     """
     url = get_url_path("SecurityRestApi.csrf_token")
     logger.info("Fetching %s", url)
-<<<<<<< HEAD
     req = request.Request(url, headers=headers, method="GET")  # noqa: S310
     response: HTTPResponse
     with request.urlopen(req, timeout=600) as response:  # noqa: S310
-=======
-    req = request.Request(url, headers=headers, method="GET")
-    response: HTTPResponse
-    with request.urlopen(req, timeout=600) as response:
->>>>>>> origin/avenmaster
         body = response.read().decode("utf-8")
         session_cookie: Optional[str] = None
         cookie_headers = response.headers.get_all("set-cookie")

@@ -106,13 +106,8 @@ export function ColumnSelect({
         .then(
           ({ json: { result } }) => {
             const lookupValue = Array.isArray(value) ? value : [value];
-<<<<<<< HEAD
             const valueExists = result.columns.some((column: Column) =>
               lookupValue?.includes(column.column_name),
-=======
-            const valueExists = result.columns.some(
-              (column: Column) => lookupValue?.includes(column.column_name),
->>>>>>> origin/avenmaster
             );
             if (!valueExists) {
               resetColumnField();

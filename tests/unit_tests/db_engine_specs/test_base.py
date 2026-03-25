@@ -19,11 +19,7 @@
 
 from __future__ import annotations
 
-<<<<<<< HEAD
 import json  # noqa: TID251
-=======
-import json
->>>>>>> origin/avenmaster
 from textwrap import dedent
 from typing import Any
 
@@ -218,23 +214,7 @@ def test_select_star(mocker: MockerFixture) -> None:
         latest_partition=False,
         cols=cols,
     )
-<<<<<<< HEAD
     assert sql == "SELECT\n  a\nFROM my_schema.my_table\nLIMIT ?\nOFFSET ?"
-=======
-    assert sql == "SELECT a\nFROM my_table\nLIMIT ?\nOFFSET ?"
-
-    sql = NoLimitDBEngineSpec.select_star(
-        database=database,
-        table=Table("my_table"),
-        engine=engine,
-        limit=100,
-        show_cols=True,
-        indent=True,
-        latest_partition=False,
-        cols=cols,
-    )
-    assert sql == "SELECT a\nFROM my_table"
->>>>>>> origin/avenmaster
 
 
 def test_extra_table_metadata(mocker: MockerFixture) -> None:
@@ -361,7 +341,6 @@ def test_unmask_encrypted_extra() -> None:
             },
         }
     )
-<<<<<<< HEAD
 
 
 def test_impersonate_user_backwards_compatible(mocker: MockerFixture) -> None:
@@ -560,5 +539,3 @@ def test_use_equality_for_boolean_filters_property() -> None:
 
     # Default should be False (use IS operators)
     assert BaseEngineSpec.use_equality_for_boolean_filters is False
-=======
->>>>>>> origin/avenmaster

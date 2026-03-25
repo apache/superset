@@ -47,14 +47,10 @@ import {
   isDerivedSeries,
 } from '@superset-ui/chart-controls';
 import type { EChartsCoreOption } from 'echarts/core';
-<<<<<<< HEAD
 import type {
   LineStyleOption,
   CallbackDataParams,
 } from 'echarts/types/src/util/types';
-=======
-import type { LineStyleOption } from 'echarts/types/src/util/types';
->>>>>>> origin/avenmaster
 import type { SeriesOption } from 'echarts';
 import {
   EchartsTimeseriesChartProps,
@@ -640,20 +636,15 @@ export default function transformProps(
         const xValue: number = richTooltip
           ? params[0].value[xIndex]
           : params.value[xIndex];
-<<<<<<< HEAD
         const forecastValue: CallbackDataParams[] = richTooltip
           ? params
           : [params];
-=======
-        const forecastValue: any[] = richTooltip ? params : [params];
->>>>>>> origin/avenmaster
         const sortedKeys = extractTooltipKeys(
           forecastValue,
           yIndex,
           richTooltip,
           tooltipSortByMetric,
         );
-<<<<<<< HEAD
         const filteredForecastValue = forecastValue.filter(
           (item: CallbackDataParams) =>
             !annotationLayers.some(
@@ -661,8 +652,6 @@ export default function transformProps(
                 item.seriesName === annotation.name,
             ),
         );
-=======
->>>>>>> origin/avenmaster
         const forecastValues: Record<string, ForecastValue> =
           extractForecastValuesFromTooltipParams(forecastValue, isHorizontal);
 
@@ -704,7 +693,6 @@ export default function transformProps(
               seriesName: key,
               formatter,
             });
-<<<<<<< HEAD
 
             const annotationRow = annotationLayers.some(
               item => item.name === key,
@@ -715,9 +703,6 @@ export default function transformProps(
               value.observation !== undefined &&
               !annotationRow
             ) {
-=======
-            if (showPercentage && value.observation !== undefined) {
->>>>>>> origin/avenmaster
               row.push(
                 percentFormatter.format(value.observation / (total || 1)),
               );

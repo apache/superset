@@ -45,11 +45,7 @@ if "sqlite" in DATABASE_URI:
 # Escape % chars in the database URI to avoid interpolation errors in ConfigParser
 escaped_uri = DATABASE_URI.replace("%", "%%")
 config.set_main_option("sqlalchemy.url", escaped_uri)
-<<<<<<< HEAD
 target_metadata = Model.metadata  # pylint: disable=no-member
-=======
-target_metadata = Base.metadata  # pylint: disable=no-member
->>>>>>> origin/avenmaster
 
 
 # other values from the config, defined by the needs of env.py,

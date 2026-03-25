@@ -29,13 +29,9 @@ import {
 } from 'src/utils/localStorageHelpers';
 import { RootState } from 'src/dashboard/types';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
-<<<<<<< HEAD
 import { getAllActiveFilters } from 'src/dashboard/util/activeAllDashboardFilters';
 import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
 import { Divider, Filter } from '@superset-ui/core';
-=======
-import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
->>>>>>> origin/avenmaster
 
 type Props = { dashboardPageId: string };
 
@@ -108,34 +104,7 @@ const SyncDashboardState: FC<Props> = ({ dashboardPageId }) => {
   const dashboardContextForExplore = useSelector<
     RootState,
     DashboardContextForExplore
-<<<<<<< HEAD
   >(selectDashboardContextForExplore);
-=======
-  >(
-    ({ dashboardInfo, dashboardState, nativeFilters, dataMask }) => ({
-      labelsColor: dashboardInfo.metadata?.label_colors || EMPTY_OBJECT,
-      labelsColorMap: dashboardInfo.metadata?.map_label_colors || EMPTY_OBJECT,
-      sharedLabelsColors: enforceSharedLabelsColorsArray(
-        dashboardInfo.metadata?.shared_label_colors,
-      ),
-      colorScheme: dashboardState?.colorScheme,
-      chartConfiguration:
-        dashboardInfo.metadata?.chart_configuration || EMPTY_OBJECT,
-      nativeFilters: Object.entries(nativeFilters.filters).reduce(
-        (acc, [key, filterValue]) => ({
-          ...acc,
-          [key]: pick(filterValue, ['chartsInScope']),
-        }),
-        {},
-      ),
-      dataMask,
-      dashboardId: dashboardInfo.id,
-      filterBoxFilters: getActiveFilters(),
-      dashboardPageId,
-    }),
-    shallowEqual,
-  );
->>>>>>> origin/avenmaster
 
   useEffect(() => {
     updateDashboardTabLocalStorage(dashboardPageId, dashboardContextForExplore);

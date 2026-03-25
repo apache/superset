@@ -17,12 +17,7 @@
  * under the License.
  */
 
-<<<<<<< HEAD
 import { render, screen } from 'spec/helpers/testing-library';
-=======
-import { render } from 'spec/helpers/testing-library';
-import { screen } from '@testing-library/react';
->>>>>>> origin/avenmaster
 import * as useQueryParamsModule from 'use-query-params';
 import AllEntitiesTable from './AllEntitiesTable';
 
@@ -96,23 +91,15 @@ describe('AllEntitiesTable', () => {
     jest.restoreAllMocks();
   });
 
-<<<<<<< HEAD
   it('renders when empty with button to tag if user has perm', () => {
-=======
-  it('renders when empty', () => {
->>>>>>> origin/avenmaster
     render(
       <AllEntitiesTable
         search=""
         setShowTagModal={mockSetShowTagModal}
         objects={mockObjects}
-<<<<<<< HEAD
         canEditTag
       />,
       { useRouter: true },
-=======
-      />,
->>>>>>> origin/avenmaster
     );
 
     expect(
@@ -122,7 +109,6 @@ describe('AllEntitiesTable', () => {
     expect(screen.getByText('Add tag to entities')).toBeInTheDocument();
   });
 
-<<<<<<< HEAD
   it('renders when empty without button to tag if user does not have perm', () => {
     render(
       <AllEntitiesTable
@@ -142,15 +128,11 @@ describe('AllEntitiesTable', () => {
   });
 
   it('renders the correct tags for each object type', () => {
-=======
-  it('renders the correct tags for each object type, excluding the current tag', () => {
->>>>>>> origin/avenmaster
     render(
       <AllEntitiesTable
         search=""
         setShowTagModal={mockSetShowTagModal}
         objects={mockObjectsWithTags}
-<<<<<<< HEAD
         canEditTag
       />,
       { useRouter: true },
@@ -190,20 +172,5 @@ describe('AllEntitiesTable', () => {
     expect(screen.getByText('Charts')).toBeInTheDocument();
     expect(screen.getByText('Monthly Revenue')).toBeInTheDocument();
     expect(screen.queryByText('Queries')).not.toBeInTheDocument();
-=======
-      />,
-    );
-
-    expect(screen.getByText('Sales Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Sales')).toBeInTheDocument();
-
-    expect(screen.getByText('Monthly Revenue')).toBeInTheDocument();
-    expect(screen.getByText('Revenue')).toBeInTheDocument();
-
-    expect(screen.getByText('User Engagement')).toBeInTheDocument();
-    expect(screen.getByText('Engagement')).toBeInTheDocument();
-
-    expect(screen.queryByText('Current Tag')).not.toBeInTheDocument();
->>>>>>> origin/avenmaster
   });
 });

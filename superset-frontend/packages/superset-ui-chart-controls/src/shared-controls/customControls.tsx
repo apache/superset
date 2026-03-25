@@ -40,7 +40,6 @@ import {
 } from '../constants';
 import { checkColumnType } from '../utils/checkColumnType';
 import { isSortable } from '../utils/isSortable';
-<<<<<<< HEAD
 
 // Aggregation choices with computation methods for plugins and controls
 export const aggregationChoices = {
@@ -88,8 +87,6 @@ export const aggregationChoices = {
     },
   },
 } as const;
-=======
->>>>>>> origin/avenmaster
 
 export const contributionModeControl = {
   name: 'contributionMode',

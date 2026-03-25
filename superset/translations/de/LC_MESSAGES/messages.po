@@ -18,11 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-<<<<<<< HEAD
 "POT-Creation-Date: 2025-04-29 12:34+0330\n"
-=======
-"POT-Creation-Date: 2024-07-30 17:32-0600\n"
->>>>>>> origin/avenmaster
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -209,22 +205,9 @@ msgstr ""
 "%(dialect)s kann aus Sicherheitsgründen nicht als Datenquelle verwendet "
 "werden."
 
-<<<<<<< HEAD
 #, fuzzy, python-format
 msgid "%(label)s file"
 msgstr "%(type)s Datei"
-=======
-#, python-format
-msgid ""
-"The number of results displayed is limited to %(rows)d by the "
-"configuration DISPLAY_MAX_ROW. Please add additional limits/filters or "
-"download to csv to see more rows up to the %(limit)d limit."
-msgstr ""
-"Die Anzahl der angezeigten Ergebnisse ist durch die Konfiguration "
-"DISPLAY_MAX_ROW auf %(rows)d begrenzt. Bitte fügen Sie zusätzliche "
-"Limits/Filter hinzu oder laden Sie sie als CSDV-Datei herunter, um "
-"weitere Zeilen bis zum %(limit)d-Limit anzuzeigen."
->>>>>>> origin/avenmaster
 
 #, python-format
 msgid "%(name)s.csv"
@@ -379,21 +362,6 @@ msgstr "(keine Beschreibung, klicken Sie hier, um Fehlermeldung zu sehen)"
 
 msgid "), and they become available in your SQL (example:"
 msgstr "), und sie werden in Ihrem SQL verfügbar (Beispiel:"
-
-#, fuzzy, python-format
-msgid ""
-"*%(name)s*\n"
-"\n"
-"    %(description)s\n"
-"\n"
-"    Error: %(text)s\n"
-"    "
-msgstr ""
-"*%(name)s*\n"
-"\n"
-"%(description)s\n"
-"\n"
-"Fehler: %(text)s\n"
 
 #, python-format
 msgid ""
@@ -877,21 +845,11 @@ msgstr "Hinzufügen"
 msgid "Add Alert"
 msgstr "Alarm hinzufügen"
 
-<<<<<<< HEAD
 msgid "Add BCC Recipients"
 msgstr "BCC-Empfänger hinzufügen"
 
 msgid "Add CC Recipients"
 msgstr "CC-Empfänger hinzufügen"
-=======
-#, fuzzy
-msgid "Add BCC Recipients"
-msgstr "Kürzlich"
-
-#, fuzzy
-msgid "Add CC Recipients"
-msgstr "Kürzlich"
->>>>>>> origin/avenmaster
 
 msgid "Add CSS template"
 msgstr "CSS Vorlagen"
@@ -1973,14 +1931,8 @@ msgstr "Achse aufsteigend"
 msgid "Axis descending"
 msgstr "Achse absteigend"
 
-<<<<<<< HEAD
 msgid "BCC recipients"
 msgstr "BCC-Empfänger"
-=======
-#, fuzzy
-msgid "BCC recipients"
-msgstr "Kürzlich"
->>>>>>> origin/avenmaster
 
 msgid "BOOLEAN"
 msgstr "WAHRHEITSWERT"
@@ -2255,14 +2207,8 @@ msgstr "Nach Wert: Metrikwerte als Sortierschlüssel verwenden"
 msgid "CANCEL"
 msgstr "ABBRECHEN"
 
-<<<<<<< HEAD
 msgid "CC recipients"
 msgstr "CC-Empfänger"
-=======
-#, fuzzy
-msgid "CC recipients"
-msgstr "Kürzlich"
->>>>>>> origin/avenmaster
 
 msgid "CREATE DATASET"
 msgstr "DATASET ERSTELLEN"
@@ -2756,19 +2702,9 @@ msgstr ""
 "Wählen Sie einen der verfügbaren Datensätze aus dem Bereich auf der "
 "linken Seite."
 
-<<<<<<< HEAD
 msgid "Choose one of the available databases on the left panel."
 msgstr "Wählen Sie eine der verfügbaren Datenbanken auf der linken Seite."
 
-=======
-#, fuzzy
-msgid "Choose one of the available databases on the left panel."
-msgstr ""
-"Wählen Sie einen der verfügbaren Datensätze aus dem Bereich auf der "
-"linken Seite."
-
-#, fuzzy
->>>>>>> origin/avenmaster
 msgid "Choose sheet name"
 msgstr "Blattname wählen"
 
@@ -4170,6 +4106,8 @@ msgid ""
 "Defines the grouping of entities. Each series is shown as a specific "
 "color on the chart and has a legend toggle"
 msgstr ""
+"Definiert die Gruppierung von Entitäten. Jede Serie wird als bestimmte "
+"Farbe im Diagramm angezeigt und verfügt über einen Legenden-Umschalter"
 
 msgid ""
 "Defines the size of the rolling window function, relative to the time "
@@ -5464,13 +5402,7 @@ msgid "Featured"
 msgstr "Vorgestellt"
 
 msgid "Featured color palettes"
-<<<<<<< HEAD
 msgstr "Ausgewählte Farbpaletten"
-=======
-msgstr ""
-"Dies kann entweder eine IP-Adresse (z.B. 127.0.0.1) oder ein Domainname "
-"(z.B. mydatabase.com) sein."
->>>>>>> origin/avenmaster
 
 msgid "February"
 msgstr "Februar"
@@ -5600,13 +5532,24 @@ msgid "Filters out of scope (%d)"
 msgstr "Filter außerhalb des Gültigkeitsbereichs (%d)"
 
 msgid ""
-"This color scheme is being overridden by custom label colors.\n"
-"    Check the JSON metadata in the Advanced settings"
+"Filters with the same group key will be ORed together within the group, "
+"while different filter groups will be ANDed together. Undefined group "
+"keys are treated as unique groups, i.e. are not grouped together. For "
+"example, if a table has three filters, of which two are for departments "
+"Finance and Marketing (group key = 'department'), and one refers to the "
+"region Europe (group key = 'region'), the filter clause would apply the "
+"filter (department = 'Finance' OR department = 'Marketing') AND (region ="
+" 'Europe')."
 msgstr ""
-"Dieses Farbschema wird durch benutzerdefinierte Beschriftungsfarben "
-"überschrieben.\n"
-"              Überprüfen Sie die JSON-Metadaten in den erweiterten "
-"Einstellungen"
+"Filter mit demselben Gruppenschlüssel werden innerhalb der Gruppe ODER-"
+"verknüpft, während verschiedene Filtergruppen zusammen UND-verknüpft "
+"werden. Undefinierte Gruppenschlüssel werden als eindeutige Gruppen "
+"behandelt, d.h. nicht gruppiert. Wenn eine Tabelle beispielsweise drei "
+"Filter hat, von denen zwei für die Abteilungen Finanzen und Marketing "
+"(Gruppenschlüssel = 'Abteilung') sind und einer sich auf die Region "
+"Europa bezieht (Gruppenschlüssel = 'Region'), würde die Filterklausel den"
+" Filter anwenden (Abteilung = 'Finanzen' ODER Abteilung = 'Marketing') "
+"UND (Region = 'Europa')."
 
 msgid "Find"
 msgstr "Finden"
@@ -8111,6 +8054,10 @@ msgstr ""
 "Besitzende ist eine Liste von Benutzer*innen, die das Dashboard ändern "
 "können. Durchsuchbar nach Name oder Benutzer*innenname."
 
+#, fuzzy
+msgid "PDF download failed, please refresh and try again."
+msgstr "Bilddownload fehlgeschlagen, bitte aktualisieren und erneut versuchen."
+
 msgid "Page length"
 msgstr "Seitenlänge"
 
@@ -8595,11 +8542,7 @@ msgid "Primary y-axis format"
 msgstr "Primäres y-Achsenformat"
 
 msgid "Private Channels (Bot in channel)"
-<<<<<<< HEAD
 msgstr "Privatkanäle (Bot im Kanal)"
-=======
-msgstr ""
->>>>>>> origin/avenmaster
 
 msgid "Private Key"
 msgstr "Privater Schlüssel"
@@ -9756,14 +9699,6 @@ msgstr "Katalog oder Typ auswählen, um Kataloge zu durchsuchen"
 msgid "Select channels"
 msgstr "Kanäle auswählen"
 
-<<<<<<< HEAD
-=======
-#, fuzzy
-msgid "Select channels"
-msgstr "Diagramme auswählen"
-
-#, fuzzy
->>>>>>> origin/avenmaster
 msgid "Select chart"
 msgstr "Diagramme auswählen"
 
@@ -10068,14 +10003,8 @@ msgstr "Blattname"
 msgid "Shift + Click to sort by multiple columns"
 msgstr "UMSCHALT+Klicken um nach mehreren Spalten zu sortieren"
 
-<<<<<<< HEAD
 msgid "Shift start date"
 msgstr "Datum des Schichtbeginns"
-=======
-#, fuzzy
-msgid "Shift start date"
-msgstr "Startdatum"
->>>>>>> origin/avenmaster
 
 msgid "Short description must be unique for this layer"
 msgstr "Kurzbeschreibung muss für diese Ebene eindeutig sein"
@@ -10389,11 +10318,8 @@ msgid ""
 "Something went wrong with embedded authentication. Check the dev console "
 "for details."
 msgstr ""
-<<<<<<< HEAD
 "Bei der eingebetteten Authentifizierung ist ein Fehler aufgetreten. "
 "Prüfen Sie die Dev-Konsole für Details."
-=======
->>>>>>> origin/avenmaster
 
 msgid "Something went wrong."
 msgstr "Etwas ist schief gelaufen."
@@ -11200,16 +11126,10 @@ msgstr ""
 msgid "The database returned an unexpected error."
 msgstr "Die Datenbank hat einen unerwarteten Fehler zurückgegeben."
 
-<<<<<<< HEAD
 msgid "The database that was used to generate this query could not be found"
 msgstr ""
 "Die Datenbank, die zur Erstellung dieser Abfrage verwendet wurde, konnte "
 "nicht gefunden werden"
-=======
-#, fuzzy
-msgid "The database that was used to generate this query could not be found"
-msgstr "Datenbank nicht gefunden."
->>>>>>> origin/avenmaster
 
 msgid "The database was deleted."
 msgstr "Die Datenbank wurde gelöscht."
@@ -11756,17 +11676,8 @@ msgstr "Das Schema wurde in der Datenbank gelöscht oder umbenannt."
 
 msgid "The screenshot could not be downloaded. Please, try again later."
 msgstr ""
-<<<<<<< HEAD
 "Das Bildschirmfoto konnte nicht heruntergeladen werden. Bitte versuchen "
 "Sie es später noch einmal."
-=======
-
-msgid "The screenshot is being generated. Please, do not leave the page."
-msgstr ""
-
-msgid "The screenshot is now being downloaded."
-msgstr ""
->>>>>>> origin/avenmaster
 
 #, fuzzy
 msgid "The screenshot has been downloaded."
@@ -11991,16 +11902,10 @@ msgstr "Fehler beim Abrufen der zugehörigen Objekte des Datensatzes"
 msgid "There was an error fetching the favorite status: %s"
 msgstr "Beim Abrufen des Favoritenstatus ist ein Problem aufgetreten: %s"
 
-<<<<<<< HEAD
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr ""
 "Beim Abrufen der gefilterten Diagramme und Dashboards ist ein Fehler "
 "aufgetreten:"
-=======
-#, fuzzy
-msgid "There was an error fetching the filtered charts and dashboards:"
-msgstr "Beim Abrufen des Favoritenstatus ist ein Problem aufgetreten: %s"
->>>>>>> origin/avenmaster
 
 #, fuzzy
 msgid "There was an error generating the permalink."
@@ -12394,11 +12299,6 @@ msgid ""
 msgstr ""
 "Diese Seite sollte in einen iframe eingebettet werden, aber es sieht so "
 "aus, als wäre das nicht der Fall."
-
-msgid ""
-"This page is intended to be embedded in an iframe, but it looks like that"
-" is not the case."
-msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -12974,15 +12874,9 @@ msgstr "Unbekannter Doris-Server-Host \"%(hostname)s\"."
 msgid "Unknown MySQL server host \"%(hostname)s\"."
 msgstr "Unbekannter MySQL-Server-Host \"%(hostname)s\"."
 
-<<<<<<< HEAD
 #, python-format
 msgid "Unknown OceanBase server host \"%(hostname)s\"."
 msgstr "Unbekannter OceanBase-Server-Host \"%(hostname)s\"."
-=======
-#, fuzzy, python-format
-msgid "Unknown OceanBase server host \"%(hostname)s\"."
-msgstr "Unbekannter MySQL-Server-Host \"%(hostname)s\"."
->>>>>>> origin/avenmaster
 
 msgid "Unknown Presto Error"
 msgstr "Unbekannter Presto-Fehler"
@@ -14097,62 +13991,8 @@ msgid "Yes, overwrite changes"
 msgstr "Ja, Änderungen überschreiben"
 
 #, python-format
-<<<<<<< HEAD
 msgid "You are adding tags to %s %ss"
 msgstr "Sie fügen Tags zu %s %ss hinzu."
-=======
-msgid "Total (%(aggfunc)s)"
-msgstr "Insgesamt (%(aggfunc)s)"
-
-#: superset-frontend/plugins/plugin-chart-pivot-table/src/react-pivottable/TableRenderers.jsx:496
-#: superset-frontend/plugins/plugin-chart-pivot-table/src/react-pivottable/TableRenderers.jsx:561
-#: superset-frontend/plugins/plugin-chart-pivot-table/src/react-pivottable/TableRenderers.jsx:782
-#, python-format
-msgid "Total (%(aggregatorName)s)"
-msgstr "Insgesamt (%(aggregatorName)s)"
-
-#: superset-frontend/packages/superset-ui-chart-controls/src/constants.ts:71
-msgid "Total value"
-msgstr "Gesamtwert"
-
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/transformProps.ts:339
-#: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/transformProps.ts:388
-#, python-format
-msgid "Total: %s"
-msgstr "Gesamt: %s"
-
-#: superset-frontend/plugins/plugin-chart-table/src/TableChart.tsx:641
-msgid "Totals"
-msgstr "Summen"
-
-#: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:457
-msgid "Track job"
-msgstr "Auftrag verfolgen"
-
-#: superset-frontend/plugins/legacy-plugin-chart-map-box/src/index.js:40
-#: superset-frontend/plugins/plugin-chart-echarts/src/Graph/index.ts:49
-#: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/index.ts:78
-#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/index.ts:72
-#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/index.ts:81
-#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Scatter/index.ts:75
-#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/SmoothLine/index.ts:76
-#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/index.ts:66
-#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/index.ts:65
-msgid "Transformable"
-msgstr "Transportierbar"
-
-#: superset-frontend/src/dashboard/util/backgroundStyleOptions.ts:25
-msgid "Transparent"
-msgstr "Transparent"
-
-#: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:257
-msgid "Transpose pivot"
-msgstr "Pivot transponieren"
-
-#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:168
-msgid "Treat values as categorical."
-msgstr ""
->>>>>>> origin/avenmaster
 
 msgid ""
 "You are importing one or more charts that already exist. Overwriting "
@@ -14874,16 +14714,9 @@ msgid "invalid email"
 msgstr "ungültige E-Mail"
 
 #, fuzzy
-<<<<<<< HEAD
 msgid "is"
 msgstr "Klassen"
 
-=======
-msgid "invalid email"
-msgstr "Ungültiger Permalink-Schlüssel"
-
-#, fuzzy
->>>>>>> origin/avenmaster
 msgid "is expected to be a Mapbox URL"
 msgstr "soll eine Mapbox-URL sein"
 

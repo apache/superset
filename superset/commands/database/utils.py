@@ -17,7 +17,6 @@
 from __future__ import annotations
 
 import logging
-<<<<<<< HEAD
 import sqlite3
 from contextlib import closing
 
@@ -29,23 +28,17 @@ from flask_appbuilder.security.sqla.models import (
 )
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
-=======
->>>>>>> origin/avenmaster
 
 from superset import security_manager
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.db_engine_specs.base import GenericDBException
 from superset.models.core import Database
-<<<<<<< HEAD
 from superset.security.manager import SupersetSecurityManager
 from superset.utils.core import timeout
-=======
->>>>>>> origin/avenmaster
 
 logger = logging.getLogger(__name__)
 
 
-<<<<<<< HEAD
 def ping(engine: Engine) -> bool:
     try:
         time_delta = app.config["TEST_DATABASE_CONNECTION_TIMEOUT"]
@@ -58,13 +51,10 @@ def ping(engine: Engine) -> bool:
         return engine.dialect.do_ping(engine)
 
 
-=======
->>>>>>> origin/avenmaster
 def add_permissions(database: Database, ssh_tunnel: SSHTunnel | None) -> None:
     """
     Add DAR for catalogs and schemas.
     """
-<<<<<<< HEAD
     # TODO: Migrate this to use the non-commiting add_pvm helper instead
     if database.db_engine_spec.supports_catalog:
         # Adding permissions to all catalogs (and all their schemas) can take a long
@@ -82,13 +72,6 @@ def add_permissions(database: Database, ssh_tunnel: SSHTunnel | None) -> None:
             )
         else:
             catalogs = {database.get_default_catalog()}
-=======
-    if database.db_engine_spec.supports_catalog:
-        catalogs = database.get_all_catalog_names(
-            cache=False,
-            ssh_tunnel=ssh_tunnel,
-        )
->>>>>>> origin/avenmaster
 
         for catalog in catalogs:
             security_manager.add_permission_view_menu(
@@ -119,7 +102,6 @@ def add_permissions(database: Database, ssh_tunnel: SSHTunnel | None) -> None:
         except GenericDBException:  # pylint: disable=broad-except
             logger.warning("Error processing catalog '%s'", catalog)
             continue
-<<<<<<< HEAD
 
 
 def add_vm(
@@ -186,5 +168,3 @@ def add_pvm(
     session.add(pv)
 
     return pv
-=======
->>>>>>> origin/avenmaster

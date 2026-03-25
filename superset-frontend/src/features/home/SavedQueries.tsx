@@ -306,13 +306,9 @@ export const SavedQueries = ({
                 imgURL=""
                 url={ensureAppRoot(`/sqllab?savedQueryId=${q.id}`)}
                 title={q.label}
-<<<<<<< HEAD
                 imgFallbackURL={assetUrl(
                   '/static/assets/images/empty-query.svg',
                 )}
-=======
-                imgFallbackURL="/static/assets/images/empty-query.svg"
->>>>>>> origin/avenmaster
                 description={t('Modified %s', q.changed_on_delta_humanized)}
                 cover={
                   q?.sql?.length && showThumbnails && featureFlag ? (

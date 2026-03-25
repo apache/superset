@@ -48,14 +48,11 @@ def histogram(
     if groupby is None:
         groupby = []
 
-<<<<<<< HEAD
     # drop empty values from the target column
     df = df.dropna(subset=[column])
     if df.empty:
         return df
 
-=======
->>>>>>> origin/avenmaster
     # convert to numeric, coercing errors to NaN
     df[column] = to_numeric(df[column], errors="coerce")
 

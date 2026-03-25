@@ -17,11 +17,7 @@
 
 # pylint: disable=invalid-name, unused-argument, redefined-outer-name
 
-<<<<<<< HEAD
 import json  # noqa: TID251
-=======
-import json
->>>>>>> origin/avenmaster
 
 import pytest
 from flask_appbuilder.security.sqla.models import Role, User

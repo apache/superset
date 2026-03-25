@@ -91,45 +91,12 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         if not self._model:
             raise DatasetNotFoundError()
 
-<<<<<<< HEAD
         # Check permission to update the dataset
-=======
-        # Check ownership
->>>>>>> origin/avenmaster
         try:
             security_manager.raise_for_ownership(self._model)
         except SupersetSecurityException as ex:
             raise DatasetForbiddenError() from ex
 
-<<<<<<< HEAD
-=======
-        database_id = self._properties.get("database")
-
-        catalog = self._properties.get("catalog")
-        if not catalog:
-            catalog = self._properties["catalog"] = (
-                self._model.database.get_default_catalog()
-            )
-
-        table = Table(
-            self._properties.get("table_name"),  # type: ignore
-            self._properties.get("schema"),
-            catalog,
-        )
-
-        # Validate uniqueness
-        if not DatasetDAO.validate_update_uniqueness(
-            self._model.database,
-            table,
-            self._model_id,
-        ):
-            exceptions.append(DatasetExistsValidationError(table))
-
-        # Validate/Populate database not allowed to change
-        if database_id and database_id != self._model:
-            exceptions.append(DatabaseChangeValidationError())
-
->>>>>>> origin/avenmaster
         # Validate/Populate owner
         try:
             owners = self.compute_owners(
@@ -139,13 +106,6 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             self._properties["owners"] = owners
         except ValidationError as ex:
             exceptions.append(ex)
-<<<<<<< HEAD
-=======
-
-        # Validate columns
-        if columns := self._properties.get("columns"):
-            self._validate_columns(columns, exceptions)
->>>>>>> origin/avenmaster
 
         self._validate_dataset_source(exceptions)
         self._validate_semantics(exceptions)

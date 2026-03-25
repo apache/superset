@@ -399,11 +399,7 @@ function DashboardList(props: DashboardListProps) {
         Header: t('Owners'),
         accessor: 'owners',
         disableSortBy: true,
-<<<<<<< HEAD
         id: 'owners',
-=======
-        size: 'xl',
->>>>>>> origin/avenmaster
       },
       {
         Cell: ({

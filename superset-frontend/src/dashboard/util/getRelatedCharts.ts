@@ -92,11 +92,7 @@ export function getRelatedCharts(
 
   const chartsInScope = Array.isArray(filter.scope)
     ? filter.scope
-<<<<<<< HEAD
     : ((filter as Filter).chartsInScope ?? []);
-=======
-    : (filter as Filter).chartsInScope ?? [];
->>>>>>> origin/avenmaster
 
   if (isCrossFilter) {
     related = getRelatedChartsForCrossFilter(filterKey, slices, chartsInScope);

@@ -24,15 +24,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-<<<<<<< HEAD
 "POT-Creation-Date: 2025-04-29 12:34+0330\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
-=======
-"POT-Creation-Date: 2024-07-30 17:32-0600\n"
-"PO-Revision-Date: 2024-04-18 20:58+0300\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
->>>>>>> origin/avenmaster
 "Language: ar\n"
 "Language-Team: ar <LL@li.org>\n"
 "Plural-Forms: nplurals=6; plural=(n==0) ? 0 : (n==1) ? 1 : (n==2) ? 2 : "
@@ -361,18 +355,6 @@ msgstr ""
 msgid ""
 "*%(name)s*\n"
 "\n"
-"    %(description)s\n"
-"\n"
-"    Error: %(text)s\n"
-"    "
-msgstr ""
-
-#, python-format
-<<<<<<< HEAD
-=======
-msgid ""
-"*%(name)s*\n"
-"\n"
 "%(description)s\n"
 "\n"
 "<%(url)s|Explore in Superset>\n"
@@ -381,7 +363,6 @@ msgid ""
 msgstr ""
 
 #, python-format
->>>>>>> origin/avenmaster
 msgid "+ %s more"
 msgstr "+ %s  أكثر"
 
@@ -821,12 +802,6 @@ msgstr "جمع"
 
 msgid "Add Alert"
 msgstr "إضافة تنبيه"
-
-msgid "Add BCC Recipients"
-msgstr ""
-
-msgid "Add CC Recipients"
-msgstr ""
 
 msgid "Add BCC Recipients"
 msgstr ""
@@ -1876,9 +1851,6 @@ msgstr "محور تنازلي"
 msgid "BCC recipients"
 msgstr ""
 
-msgid "BCC recipients"
-msgstr ""
-
 msgid "BOOLEAN"
 msgstr "منطقيه"
 
@@ -2138,9 +2110,6 @@ msgstr "حسب القيمة: استخدام قيم المقاييس كمفتاح
 
 msgid "CANCEL"
 msgstr "إلغاء الأمر"
-
-msgid "CC recipients"
-msgstr ""
 
 msgid "CC recipients"
 msgstr ""
@@ -2638,14 +2607,9 @@ msgid "Choose one of the available databases from the panel on the left."
 msgstr "اختر إحدى قواعد البيانات المتاحة من اللوحة الموجودة على اليسار."
 
 msgid "Choose one of the available databases on the left panel."
-<<<<<<< HEAD
 msgstr "اختر إحدى قواعد البيانات المتاحة من اللوحة الموجودة على اليسار."
 
 #, fuzzy
-=======
-msgstr ""
-
->>>>>>> origin/avenmaster
 msgid "Choose sheet name"
 msgstr "وضع تحديد العقدة"
 
@@ -7945,13 +7909,10 @@ msgstr ""
 "المالكون عبارة عن قائمة بالمستخدمين الذين يمكنهم تغيير لوحة المعلومات. "
 "يمكن البحث عن طريق الاسم أو اسم المستخدم."
 
-<<<<<<< HEAD
 #, fuzzy
 msgid "PDF download failed, please refresh and try again."
 msgstr "فشل تنزيل الصورة، يرجى التحديث والمحاولة مرة أخرى."
 
-=======
->>>>>>> origin/avenmaster
 msgid "Page length"
 msgstr "طول الصفحة"
 
@@ -8412,9 +8373,6 @@ msgstr "حدود المحور الصادي الأساسي"
 
 msgid "Primary y-axis format"
 msgstr "تنسيق المحور الصادي الأساسي"
-
-msgid "Private Channels (Bot in channel)"
-msgstr ""
 
 msgid "Private Channels (Bot in channel)"
 msgstr ""
@@ -9564,12 +9522,6 @@ msgstr ""
 #, fuzzy
 msgid "Select channels"
 msgstr "قواعد البيانات المدعومة"
-<<<<<<< HEAD
-=======
-
-msgid "Select chart"
-msgstr ""
->>>>>>> origin/avenmaster
 
 msgid "Select chart"
 msgstr "حدد الرسم البياني"
@@ -9878,9 +9830,6 @@ msgstr "Shift + انقر للفرز حسب أعمدة متعددة"
 msgid "Shift start date"
 msgstr "تاريخ البداية"
 
-msgid "Shift start date"
-msgstr ""
-
 msgid "Short description must be unique for this layer"
 msgstr "يجب أن يكون الوصف المختصر فريدًا لهذه الطبقة"
 
@@ -10182,11 +10131,7 @@ msgstr ""
 msgid ""
 "Something went wrong with embedded authentication. Check the dev console "
 "for details."
-<<<<<<< HEAD
 msgstr "بعض الأدوار غير موجودة"
-=======
-msgstr ""
->>>>>>> origin/avenmaster
 
 msgid "Something went wrong."
 msgstr "حدث خطأ ما."
@@ -10969,9 +10914,6 @@ msgstr "قامت قاعدة البيانات بإرجاع خطأ غير متوق
 msgid "The database that was used to generate this query could not be found"
 msgstr ""
 
-msgid "The database that was used to generate this query could not be found"
-msgstr ""
-
 msgid "The database was deleted."
 msgstr "تم حذف قاعدة البيانات."
 
@@ -11456,26 +11398,16 @@ msgstr "تم حذف المخطط أو إعادة تسميته في قاعدة ا
 msgid "The screenshot could not be downloaded. Please, try again later."
 msgstr ""
 
-<<<<<<< HEAD
 #, fuzzy
 msgid "The screenshot has been downloaded."
 msgstr "تم إنشاء التقرير"
-=======
-msgid "The screenshot could not be downloaded. Please, try again later."
-msgstr ""
->>>>>>> origin/avenmaster
 
 msgid "The screenshot is being generated. Please, do not leave the page."
 msgstr ""
 
-<<<<<<< HEAD
 #, fuzzy
 msgid "The service url of the layer"
 msgstr "عرض قيم السلسلة على الرسم البياني"
-=======
-msgid "The screenshot is now being downloaded."
-msgstr ""
->>>>>>> origin/avenmaster
 
 msgid "The size of each cell in meters"
 msgstr "حجم كل خلية بالأمتار"
@@ -11675,11 +11607,7 @@ msgid "There was an error fetching the favorite status: %s"
 msgstr "حدث خطأ أثناء جلب الحالة المفضلة: %s"
 
 msgid "There was an error fetching the filtered charts and dashboards:"
-<<<<<<< HEAD
 msgstr "حدث خطأ أثناء جلب نشاطك الأخير:"
-=======
-msgstr ""
->>>>>>> origin/avenmaster
 
 #, fuzzy
 msgid "There was an error generating the permalink."
@@ -12027,11 +11955,6 @@ msgid "This metric might be incompatible with current dataset"
 msgstr "قد يكون هذا المقياس غير متوافق مع مجموعة البيانات الحالية"
 
 msgid "This option has been disabled by the administrator."
-msgstr ""
-
-msgid ""
-"This page is intended to be embedded in an iframe, but it looks like that"
-" is not the case."
 msgstr ""
 
 msgid ""
@@ -12596,10 +12519,6 @@ msgstr "مضيف خادم Doris غير معروف \"%(hostname)s\"."
 #, python-format
 msgid "Unknown MySQL server host \"%(hostname)s\"."
 msgstr "مضيف خادم MySQL غير معروف \"%(hostname)s\"."
-
-#, python-format
-msgid "Unknown OceanBase server host \"%(hostname)s\"."
-msgstr ""
 
 #, python-format
 msgid "Unknown OceanBase server host \"%(hostname)s\"."
@@ -14356,12 +14275,6 @@ msgid "in modal"
 msgstr ""
 
 msgid "invalid email"
-<<<<<<< HEAD
-=======
-msgstr ""
-
-msgid "is expected to be a Mapbox URL"
->>>>>>> origin/avenmaster
 msgstr ""
 
 #, fuzzy

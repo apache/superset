@@ -69,13 +69,10 @@ export default function transformProps(
     name,
     itemStyle: {
       color: colorFn(name, sliceId),
-<<<<<<< HEAD
     },
     label: {
       color: theme.colorText,
       textShadow: theme.colorBgBase,
-=======
->>>>>>> origin/avenmaster
     },
   }));
 

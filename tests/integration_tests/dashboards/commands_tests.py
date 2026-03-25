@@ -261,11 +261,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
         expected_paths = {
             "metadata.yaml",
             f"dashboards/COVID_Vaccine_Dashboard_{example_dashboard.id}.yaml",
-<<<<<<< HEAD
             "datasets/examples/covid_vaccines.yaml",  # referenced dataset needs to be exported  # noqa: E501
-=======
-            "datasets/examples/covid_vaccines.yaml",  # referenced dataset needs to be exported
->>>>>>> origin/avenmaster
             "databases/examples.yaml",
         }
         for chart in example_dashboard.slices:
@@ -768,22 +764,14 @@ class TestCopyDashboardCommand(SupersetTestCase):
 
             assert copied_dashboard.dashboard_title == "Copied Dashboard"
             assert copied_dashboard.slug != example_dashboard.slug
-<<<<<<< HEAD
             assert set(copied_dashboard.slices) == set(example_dashboard.slices)
-=======
-            assert copied_dashboard.slices == example_dashboard.slices
->>>>>>> origin/avenmaster
 
             db.session.delete(copied_dashboard)
             db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_copy_dashboard_command_no_access(self):
-<<<<<<< HEAD
         """Test that a non-owner user cannot copy a dashboard if DASHBOARD_RBAC is enabled"""  # noqa: E501
-=======
-        """Test that a non-owner user cannot copy a dashboard if DASHBOARD_RBAC is enabled"""
->>>>>>> origin/avenmaster
         with self.client.application.test_request_context():
             example_dashboard = (
                 db.session.query(Dashboard).filter_by(slug="world_health").one()
@@ -796,11 +784,7 @@ class TestCopyDashboardCommand(SupersetTestCase):
                     return_value=True,
                 ):
                     command = CopyDashboardCommand(example_dashboard, copy_data)
-<<<<<<< HEAD
                     with self.assertRaises(DashboardForbiddenError):  # noqa: PT027
-=======
-                    with self.assertRaises(DashboardForbiddenError):
->>>>>>> origin/avenmaster
                         command.run()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
@@ -814,11 +798,7 @@ class TestCopyDashboardCommand(SupersetTestCase):
 
         with override_user(security_manager.find_user("admin")):
             command = CopyDashboardCommand(example_dashboard, invalid_copy_data)
-<<<<<<< HEAD
             with self.assertRaises(DashboardInvalidError):  # noqa: PT027
-=======
-            with self.assertRaises(DashboardInvalidError):
->>>>>>> origin/avenmaster
                 command.run()
 
 
@@ -893,27 +873,16 @@ class TestFavoriteDashboardCommand(SupersetTestCase):
             example_dashboard_id = 1234
 
             with override_user(security_manager.find_user("admin")):
-<<<<<<< HEAD
                 with self.assertRaises(DashboardNotFoundError):  # noqa: PT027
                     AddFavoriteDashboardCommand(example_dashboard_id).run()
 
                 with self.assertRaises(DashboardNotFoundError):  # noqa: PT027
-=======
-                with self.assertRaises(DashboardNotFoundError):
-                    AddFavoriteDashboardCommand(example_dashboard_id).run()
-
-                with self.assertRaises(DashboardNotFoundError):
->>>>>>> origin/avenmaster
                     DelFavoriteDashboardCommand(example_dashboard_id).run()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.models.dashboard.Dashboard.get")
     def test_fave_unfave_dashboard_command_forbidden(self, mock_get):
-<<<<<<< HEAD
         """Test that faving / unfaving raises an exception for a dashboard the user doesn't own"""  # noqa: E501
-=======
-        """Test that faving / unfaving raises an exception for a dashboard the user doesn't own"""
->>>>>>> origin/avenmaster
         with self.client.application.test_request_context():
             example_dashboard = (
                 db.session.query(Dashboard).filter_by(slug="world_health").one()
@@ -925,15 +894,8 @@ class TestFavoriteDashboardCommand(SupersetTestCase):
             assert example_dashboard is not None
 
             with override_user(security_manager.find_user("gamma")):
-<<<<<<< HEAD
                 with self.assertRaises(DashboardAccessDeniedError):  # noqa: PT027
                     AddFavoriteDashboardCommand(example_dashboard.uuid).run()
 
                 with self.assertRaises(DashboardAccessDeniedError):  # noqa: PT027
-=======
-                with self.assertRaises(DashboardAccessDeniedError):
-                    AddFavoriteDashboardCommand(example_dashboard.uuid).run()
-
-                with self.assertRaises(DashboardAccessDeniedError):
->>>>>>> origin/avenmaster
                     DelFavoriteDashboardCommand(example_dashboard.uuid).run()

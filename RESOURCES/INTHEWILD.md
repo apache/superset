@@ -37,11 +37,7 @@ Join our growing community!
 
 ### Financial Services
 
-<<<<<<< HEAD
 - [Aktia Bank plc](https://www.aktia.com)
-=======
-- [Aktia Bank plc](https://www.aktia.com) [@villebro]
->>>>>>> origin/avenmaster
 - [American Express](https://www.americanexpress.com) [@TheLastSultan]
 - [bumper](https://www.bumper.co/) [@vasu-ram, @JamiePercival]
 - [Cape Crypto](https://capecrypto.com)
@@ -67,12 +63,8 @@ Join our growing community!
 - [Dragonpass](https://www.dragonpass.com.cn/) [@zhxjdwh]
 - [Dropit Shopping](https://www.dropit.shop/) [@dropit-dev]
 - [Fanatics](https://www.fanatics.com/) [@coderfender]
-<<<<<<< HEAD
 - [Fordeal](https://www.fordeal.com) [@Renkai]
 - [Fynd](https://www.fynd.com/) [@darpanjain07]
-=======
-- [Fordeal](http://www.fordeal.com) [@Renkai]
->>>>>>> origin/avenmaster
 - [GFG - Global Fashion Group](https://global-fashion-group.com) [@ksaagariconic]
 - [GoTo/Gojek](https://www.gojek.io/) [@gwthm-in]
 - [HuiShouBao](https://www.huishoubao.com/) [@Yukinoshita-Yukino]
@@ -81,14 +73,9 @@ Join our growing community!
 - [Rakuten Viki](https://www.viki.com)
 - [Shopee](https://shopee.sg) [@xiaohanyu]
 - [Shopkick](https://www.shopkick.com) [@LAlbertalli]
-<<<<<<< HEAD
 - [ShopUp](https://www.shopup.org/) [@gwthm-in]
 - [Tails.com](https://tails.com/gb/) [@alanmcruickshank]
 - [THE ICONIC](https://theiconic.com.au/) [@ksaagariconic]
-=======
-- [Tails.com](https://tails.com/gb/) [@alanmcruickshank]
-- [THE ICONIC](http://theiconic.com.au/) [@ksaagariconic]
->>>>>>> origin/avenmaster
 - [Utair](https://www.utair.ru) [@utair-digital]
 - [VkusVill](https://vkusvill.ru/) [@ETselikov]
 - [Zalando](https://www.zalando.com) [@dmigo]
@@ -106,10 +93,6 @@ Join our growing community!
 - [Canonical](https://canonical.com)
 - [Careem](https://www.careem.com/) [@samraHanif0340]
 - [Cloudsmith](https://cloudsmith.io) [@alancarson]
-<<<<<<< HEAD
-=======
-- [CnOvit](https://www.cnovit.com/) [@xieshaohu]
->>>>>>> origin/avenmaster
 - [Cyberhaven](https://www.cyberhaven.com/) [@toliver-ch]
 - [Deepomatic](https://deepomatic.com/) [@Zanoellia]
 - [Dial Once](https://www.dial-once.com/)
@@ -122,10 +105,7 @@ Join our growing community!
 - [Formbricks](https://formbricks.com)
 - [Gavagai](https://gavagai.io) [@gavagai-corp]
 - [GfK Data Lab](https://www.gfk.com/home) [@mherr]
-<<<<<<< HEAD
 - [HPE](https://www.hpe.com/in/en/home.html) [@anmol-hpe]
-=======
->>>>>>> origin/avenmaster
 - [Hydrolix](https://www.hydrolix.io/)
 - [Intercom](https://www.intercom.com/) [@kate-gallo]
 - [jampp](https://jampp.com/)
@@ -147,19 +127,12 @@ Join our growing community!
 - [Reward Gateway](https://www.rewardgateway.com)
 - [RIADVICE](https://riadvice.tn) [@riadvice]
 - [ScopeAI](https://www.getscopeai.com) [@iloveluce]
-<<<<<<< HEAD
 - [shipmnts](https://shipmnts.com)
 - [Showmax](https://showmax.com) [@bobek]
 - [SingleStore](https://www.singlestore.com/)
 - [TechAudit](https://www.techaudit.info) [@ETselikov]
 - [Tenable](https://www.tenable.com) [@dflionis]
 - [Tentacle](https://www.linkedin.com/company/tentacle-cmi/) [@jdclarke5]
-=======
-- [Showmax](https://showmax.com) [@bobek]
-- [TechAudit](https://www.techaudit.info) [@ETselikov]
-- [Tenable](https://www.tenable.com) [@dflionis]
-- [Tentacle](https://tentaclecmi.com) [@jdclarke5]
->>>>>>> origin/avenmaster
 - [timbr.ai](https://timbr.ai/) [@semantiDan]
 - [Tobii](https://www.tobii.com/) [@dwa]
 - [Tooploox](https://www.tooploox.com/) [@jakubczaplicki]

@@ -23,7 +23,6 @@ from flask import g  # noqa: F401
 from superset import db, security_manager
 from superset.commands.chart.create import CreateChartCommand
 from superset.commands.chart.exceptions import (
-    ChartForbiddenError,
     ChartNotFoundError,
     WarmUpCacheChartNotFoundError,
 )
@@ -587,17 +586,11 @@ class TestChartWarmUpCacheCommand(SupersetTestCase):
 
         # can just pass in chart as well
         result = ChartWarmUpCacheCommand(slc, None, None).run()
-<<<<<<< HEAD
         assert result == {
             "chart_id": slc.id,
             "viz_error": None,
             "viz_status": "success",
         }
-=======
-        self.assertEqual(
-            result, {"chart_id": slc.id, "viz_error": None, "viz_status": "success"}
-        )
->>>>>>> origin/avenmaster
 
 
 class TestFavoriteChartCommand(SupersetTestCase):
@@ -630,28 +623,16 @@ class TestFavoriteChartCommand(SupersetTestCase):
             example_chart_id = 1234
 
             with override_user(security_manager.find_user("admin")):
-<<<<<<< HEAD
                 with self.assertRaises(ChartNotFoundError):  # noqa: PT027
                     AddFavoriteChartCommand(example_chart_id).run()
 
                 with self.assertRaises(ChartNotFoundError):  # noqa: PT027
-=======
-                with self.assertRaises(ChartNotFoundError):
-                    AddFavoriteChartCommand(example_chart_id).run()
-
-                with self.assertRaises(ChartNotFoundError):
->>>>>>> origin/avenmaster
                     DelFavoriteChartCommand(example_chart_id).run()
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     @patch("superset.daos.base.BaseDAO.find_by_id")
-<<<<<<< HEAD
     def test_fave_unfave_chart_command_non_owner(self, mock_find_by_id):
         """Test that faving / unfaving a chart the user doesn't own works properly"""  # noqa: E501
-=======
-    def test_fave_unfave_chart_command_forbidden(self, mock_find_by_id):
-        """Test that faving / unfaving raises an exception for a chart the user doesn't own"""
->>>>>>> origin/avenmaster
         with self.client.application.test_request_context():
             example_chart = db.session.query(Slice).all()[0]
             mock_find_by_id.return_value = example_chart
@@ -660,7 +641,6 @@ class TestFavoriteChartCommand(SupersetTestCase):
             assert example_chart is not None
 
             with override_user(security_manager.find_user("gamma")):
-<<<<<<< HEAD
                 AddFavoriteChartCommand(example_chart.id).run()
                 ids = ChartDAO.favorited_ids([example_chart])
 
@@ -670,10 +650,3 @@ class TestFavoriteChartCommand(SupersetTestCase):
                 ids = ChartDAO.favorited_ids([example_chart])
 
                 assert example_chart.id not in ids
-=======
-                with self.assertRaises(ChartForbiddenError):
-                    AddFavoriteChartCommand(example_chart.id).run()
-
-                with self.assertRaises(ChartForbiddenError):
-                    DelFavoriteChartCommand(example_chart.id).run()
->>>>>>> origin/avenmaster

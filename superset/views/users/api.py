@@ -17,7 +17,6 @@
 from datetime import datetime
 from typing import Any, Dict
 
-<<<<<<< HEAD
 from flask import current_app as app, g, redirect, request, Response
 from flask_appbuilder.api import expose, permission_name, safe
 from flask_appbuilder.security.decorators import protect
@@ -27,9 +26,6 @@ from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.security import generate_password_hash
 
 from superset import is_feature_enabled
-=======
-from superset import app, is_feature_enabled
->>>>>>> origin/avenmaster
 from superset.daos.user import UserDAO
 from superset.extensions import db, event_logger
 from superset.utils.slack import get_user_avatar, SlackClientError
@@ -212,10 +208,7 @@ class UserRestApi(BaseSupersetApi):
         # fetch from the one-to-one relationship
         if len(user.extra_attributes) > 0:
             avatar_url = user.extra_attributes[0].avatar_url
-<<<<<<< HEAD
 
-=======
->>>>>>> origin/avenmaster
         slack_token = app.config.get("SLACK_API_TOKEN")
         if (
             not avatar_url

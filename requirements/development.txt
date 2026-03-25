@@ -4,7 +4,6 @@
     # via -r requirements/development.in
 alembic==1.15.2
     # via
-<<<<<<< HEAD
     #   -c requirements/base.txt
     #   flask-migrate
 amqp==5.3.1
@@ -22,17 +21,6 @@ apsw==3.50.1.0
 astroid==3.3.10
     # via pylint
 attrs==25.3.0
-=======
-    #   -r requirements/base.in
-    #   -r requirements/development.in
-astroid==3.1.0
-    # via pylint
-boto3==1.34.112
-    # via
-    #   apache-superset
-    #   dataflows-tabulator
-botocore==1.34.112
->>>>>>> origin/avenmaster
     # via
     #   -c requirements/base.txt
     #   cattrs
@@ -601,7 +589,6 @@ psutil==6.1.0
     # via apache-superset
 psycopg2-binary==2.9.6
     # via apache-superset
-<<<<<<< HEAD
 pyarrow==16.1.0
     # via
     #   -c requirements/base.txt
@@ -624,11 +611,6 @@ pycparser==2.22
     #   -c requirements/base.txt
     #   cffi
 pydata-google-auth==1.9.0
-=======
-pure-sasl==0.6.2
-    # via thrift-sasl
-pydata-google-auth==1.7.0
->>>>>>> origin/avenmaster
     # via pandas-gbq
 pydruid==0.6.9
     # via apache-superset
@@ -840,24 +822,13 @@ tabulate==0.9.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
-<<<<<<< HEAD
 tomlkit==0.13.3
-=======
-    #   thrift-sasl
-thrift-sasl==0.4.3
-    # via apache-superset
-tomlkit==0.12.5
->>>>>>> origin/avenmaster
     # via pylint
 tqdm==4.67.1
     # via
     #   cmdstanpy
     #   prophet
-<<<<<<< HEAD
 trino==0.330.0
-=======
-trino==0.328.0
->>>>>>> origin/avenmaster
     # via apache-superset
 trio==0.30.0
     # via

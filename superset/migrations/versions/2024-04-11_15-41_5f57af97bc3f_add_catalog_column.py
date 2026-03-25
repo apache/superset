@@ -26,8 +26,6 @@ import sqlalchemy as sa
 
 from superset.migrations.shared.utils import add_columns, drop_columns
 
-from superset.migrations.shared.utils import add_column_if_not_exists
-
 # revision identifiers, used by Alembic.
 revision = "5f57af97bc3f"
 down_revision = "d60591c5515f"
@@ -37,20 +35,9 @@ tables = ["tables", "query", "saved_query", "tab_state", "table_schema"]
 
 def upgrade():
     for table in tables:
-<<<<<<< HEAD
         add_columns(table, sa.Column("catalog", sa.String(length=256), nullable=True))
-=======
-        add_column_if_not_exists(
-            table,
-            sa.Column("catalog", sa.String(length=256), nullable=True),
-        )
->>>>>>> origin/avenmaster
 
 
 def downgrade():
     for table in reversed(tables):
-<<<<<<< HEAD
         drop_columns(table, "catalog")
-=======
-        op.drop_column(table, "catalog")
->>>>>>> origin/avenmaster

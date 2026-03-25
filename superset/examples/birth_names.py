@@ -23,11 +23,7 @@ from flask import current_app
 from sqlalchemy import DateTime, inspect, String
 from sqlalchemy.sql import column
 
-<<<<<<< HEAD
 from superset import db, security_manager
-=======
-from superset import app, db, security_manager
->>>>>>> origin/avenmaster
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -429,15 +425,10 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
         Slice(
             **slice_kwargs,
             slice_name="Num Births Trend",
-<<<<<<< HEAD
             viz_type="echarts_timeseries_line",
             params=get_slice_json(
                 defaults, viz_type="echarts_timeseries_line", metrics=metrics
             ),
-=======
-            viz_type="line",
-            params=get_slice_json(defaults, viz_type="line", metrics=metrics),
->>>>>>> origin/avenmaster
             owners=[],
         ),
         Slice(

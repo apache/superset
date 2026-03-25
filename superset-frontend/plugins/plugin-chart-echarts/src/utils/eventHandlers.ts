@@ -26,7 +26,6 @@ import {
   getNumberFormatter,
   getTimeFormatter,
 } from '@superset-ui/core';
-import { noop } from 'lodash';
 
 import {
   BaseTransformedProps,
@@ -171,11 +170,7 @@ export const allEventHandlers = (
             setDataMask,
             emitCrossFilters,
           )
-<<<<<<< HEAD
         : () => {},
-=======
-        : noop,
->>>>>>> origin/avenmaster
     contextmenu: contextMenuEventHandler(
       groupby,
       onContextMenu,

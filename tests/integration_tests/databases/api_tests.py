@@ -1739,11 +1739,7 @@ class TestDatabaseApi(SupersetTestCase):
         example_db = get_example_database()
         uri = f"api/v1/database/{example_db.id}/select_star/birth_names/"
         rv = self.client.get(uri)
-<<<<<<< HEAD
         assert rv.status_code == 404
-=======
-        self.assertEqual(rv.status_code, 404)
->>>>>>> origin/avenmaster
 
     def test_get_select_star_not_found_database(self):
         """
@@ -2919,10 +2915,7 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-<<<<<<< HEAD
     @with_feature_flags(SSH_TUNNELING=False)
-=======
->>>>>>> origin/avenmaster
     @mock.patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_database_masked_ssh_tunnel_feature_flag_disabled(
         self,

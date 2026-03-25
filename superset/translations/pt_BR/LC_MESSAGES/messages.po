@@ -17,11 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-<<<<<<< HEAD
 "POT-Creation-Date: 2025-04-29 12:34+0330\n"
-=======
-"POT-Creation-Date: 2024-07-30 17:32-0600\n"
->>>>>>> origin/avenmaster
 "PO-Revision-Date: 2023-05-22 08:04-0400\n"
 "Last-Translator: \n"
 "Language: pt_BR\n"
@@ -118,13 +114,31 @@ msgstr " código-fonte do analisador em área restrita do Superset"
 
 #, fuzzy
 msgid ""
-"Select databases require additional fields to be completed in the "
-"Advanced tab to successfully connect the database. Learn what "
-"requirements your databases has "
+" standard to ensure that the lexicographical ordering\n"
+"                      coincides with the chronological ordering. If the\n"
+"                      timestamp format does not adhere to the ISO 8601 "
+"standard\n"
+"                      you will need to define an expression and type for\n"
+"                      transforming the string into a date or timestamp. "
+"Note\n"
+"                      currently time zones are not supported. If time is "
+"stored\n"
+"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
+" pattern\n"
+"                      is specified we fall back to using the optional "
+"defaults on a per\n"
+"                      database/column name level via the extra parameter."
 msgstr ""
-"Alguns bancos de dados exigem o preenchimento de campos adicionais na "
-"guia Avançado para que a conexão com o banco de dados seja bem-sucedida. "
-"Saiba quais são os requisitos de seus bancos de dados"
+"para garantir que a ordem lexicográfica coincida com a ordem cronológica."
+" Se o\n"
+" formato do timestamp não for aderente ao padrão ISO 8601\n"
+" você precisará definir uma expressão e tipo para\n"
+" transformar o texto em data ou timestamp. Nota:\n"
+" naturalmente fusos horários não são suportados. Se o tempo é armazenado "
+"no formato epoch coloque ` epoch_s ` ou ` epoch_ms `. Se nenhum padrão "
+"for especificado\n"
+"emos utilizar os padrões de acordo com cada nível do banco de dados/nome "
+"de coluna via parâmetro extra."
 
 #, fuzzy
 msgid " to add calculated columns"
@@ -173,19 +187,9 @@ msgstr ""
 "%(dialect)s não pode ser usado como uma fonte de dados por motivos de "
 "segurança."
 
-<<<<<<< HEAD
 #, fuzzy, python-format
 msgid "%(label)s file"
 msgstr "%(type)s do Arquivo"
-=======
-#, python-format
-msgid ""
-"The description can be displayed as widget headers in the dashboard view."
-" Supports markdown."
-msgstr ""
-"A descrição pode ser apresentada como cabeçalhos de widgets na visão do "
-"painel. Suporta markdown."
->>>>>>> origin/avenmaster
 
 #, python-format
 msgid "%(name)s.csv"
@@ -214,17 +218,6 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d linhas retornadas"
 
-<<<<<<< HEAD
-=======
-#, python-format
-msgid ""
-"The metadata_params in Extra field is not configured correctly. The key "
-"%(key)s is invalid."
-msgstr ""
-"O metadata_params no campo Extra não está configurado corretamente. A "
-"chave %(key)s é inválida."
-
->>>>>>> origin/avenmaster
 #, fuzzy, python-format
 msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
 msgid_plural ""
@@ -248,34 +241,20 @@ msgid "%s Error"
 msgstr "%s Erro"
 
 #, python-format
-msgid ""
-"The number of results displayed is limited to %(rows)d by the "
-"configuration DISPLAY_MAX_ROW. Please add additional limits/filters or "
-"download to csv to see more rows up to the %(limit)d limit."
-msgstr ""
-"O número de resultados apresentados é limitado a %(rows)d pela "
-"configuração DISPLAY_MAX_ROW. Adicione limites/filtros adicionais ou "
-"descarregue para csv para ver mais linhas até ao limite de %(limit)d."
+msgid "%s PASSWORD"
+msgstr "%s SENHA"
 
 #, python-format
-msgid ""
-"The number of results displayed is limited to %(rows)d. Please add "
-"additional limits/filters, download to csv, or contact an admin to see "
-"more rows up to the %(limit)d limit."
-msgstr ""
-"O número de resultados apresentados está limitado a %(rows)d. Adicione "
-"limites/filtros adicionais, transfira para csv ou contate um "
-"administrador para ver mais linhas até ao limite de %(limit)d."
+msgid "%s SSH TUNNEL PASSWORD"
+msgstr "%s SENHA DO TÚNEL SSH"
 
 #, python-format
-msgid "The number of rows displayed is limited to %(rows)d by the dropdown."
-msgstr "O número de linhas apresentadas é limitado a %(rows)d pelo menu suspenso."
+msgid "%s SSH TUNNEL PRIVATE KEY"
+msgstr "%s CHAVE PRIVADA DO TÚNEL SSH"
 
 #, python-format
-msgid "The number of rows displayed is limited to %(rows)d by the limit dropdown."
-msgstr ""
-"O número de linhas exibidas é limitado a %(rows)d pelo menu suspenso de "
-"limite."
+msgid "%s SSH TUNNEL PRIVATE KEY PASSWORD"
+msgstr "%s SENHA DA CHAVE PRIVADA DO TÚNEL SSH"
 
 #, python-format
 msgid "%s Selected"
@@ -777,9 +756,6 @@ msgid ""
 "          These intermediate values can either be time based or category "
 "based."
 msgstr ""
-"A tabela foi criada. Como parte desse processo de configuração em duas "
-"fases, agora você deve clicar no botão de edição da nova tabela para "
-"configurá-la."
 
 msgid "APPLY"
 msgstr "APLICAR"
@@ -847,11 +823,7 @@ msgstr "Adicionar alerta"
 
 #, fuzzy
 msgid "Add BCC Recipients"
-<<<<<<< HEAD
 msgstr "Adicionar Recipientes BCC"
-=======
-msgstr "recentes"
->>>>>>> origin/avenmaster
 
 #, fuzzy
 msgid "Add CC Recipients"
@@ -4150,6 +4122,8 @@ msgid ""
 "Defines the grouping of entities. Each series is shown as a specific "
 "color on the chart and has a legend toggle"
 msgstr ""
+"Define o agrupamento de entidades. Cada série é mostrado como uma cor "
+"específica no gráfico e tem uma legenda alternar"
 
 msgid ""
 "Defines the size of the rolling window function, relative to the time "
@@ -5456,8 +5430,6 @@ msgstr "Criado"
 
 msgid "Featured color palettes"
 msgstr ""
-"Pode ser um endereço IP (por exemplo, 127.0.0.1) ou um nome de domínio "
-"(por exemplo, mydatabase.com)."
 
 msgid "February"
 msgstr "Fevereiro"
@@ -5585,12 +5557,23 @@ msgid "Filters out of scope (%d)"
 msgstr "Filtros fora do escopo (%d)"
 
 msgid ""
-"This color scheme is being overridden by custom label colors.\n"
-"    Check the JSON metadata in the Advanced settings"
+"Filters with the same group key will be ORed together within the group, "
+"while different filter groups will be ANDed together. Undefined group "
+"keys are treated as unique groups, i.e. are not grouped together. For "
+"example, if a table has three filters, of which two are for departments "
+"Finance and Marketing (group key = 'department'), and one refers to the "
+"region Europe (group key = 'region'), the filter clause would apply the "
+"filter (department = 'Finance' OR department = 'Marketing') AND (region ="
+" 'Europe')."
 msgstr ""
-"Esse esquema de cores está sendo substituído por cores de rótulos "
-"personalizados.\n"
-" Verifique os metadados JSON nas configurações avançadas"
+"Os filtros com a mesma chave de grupo serão agrupados dentro do grupo, "
+"enquanto os grupos de filtros diferentes serão agrupados. As chaves de "
+"grupo indefinidas são tratadas como grupos únicos, ou seja, não são "
+"agrupadas. Por exemplo, se uma tabela tiver três filtros, dos quais dois "
+"são para os departamentos Finanças e Marketing (chave de grupo = "
+"'departamento') e um se refere à região Europa (chave de grupo = "
+"'região'), a cláusula de filtro aplicaria o filtro (departamento = "
+"'Finanças' OU departamento = 'Marketing') AND (região = 'Europa')."
 
 #, fuzzy
 msgid "Find"
@@ -5661,8 +5644,6 @@ msgid ""
 "For Trino, describe full schemas of nested ROW types, expanding them with"
 " dotted paths"
 msgstr ""
-"O delta de tempo é ambíguo. Especifique [%(human_readable)s ago] ou "
-"[%(human_readable)s later]."
 
 msgid "For further instructions, consult the"
 msgstr "Para mais instruções , consultar o"
@@ -6002,8 +5983,6 @@ msgid ""
 "between the main time series and each time shift; as the percentage "
 "change; or as the ratio between series and time shifts."
 msgstr ""
-"A cadeia de tempo é ambígua. Especifique [%(human_readable)s ago] ou "
-"[%(human_readable)s later]."
 
 msgid "Huge"
 msgstr "Enorme"
@@ -8107,6 +8086,10 @@ msgstr ""
 "Os proprietários são uma lista de usuários que podem alterar o painel. "
 "Pesquisável por nome ou nome de usuário."
 
+#, fuzzy
+msgid "PDF download failed, please refresh and try again."
+msgstr "Falha no download da imagem, por favor atualizar e tentar novamente."
+
 msgid "Page length"
 msgstr "Comprimento da página"
 
@@ -8431,6 +8414,8 @@ msgstr ""
 
 msgid "Please select both a Dataset and a Chart type to proceed"
 msgstr ""
+"Por favor selecionar um conjunto de dados e um tipo de gráfico para "
+"prosseguir"
 
 #, python-format
 msgid ""
@@ -11508,6 +11493,11 @@ msgid ""
 " export files, and should be added manually after the import if they are "
 "needed."
 msgstr ""
+"As senhas dos bancos de dados abaixo são necessárias para importá-los "
+"junto com os gráficos. Observe que as seções \"Secure Extra\" e "
+"\"Certificate\" da configuração do banco de dados não estão presentes nos"
+" arquivos de exportação e devem ser adicionadas manualmente após a "
+"importação, caso sejam necessárias."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
@@ -11720,7 +11710,6 @@ msgstr "O esquema foi excluído ou renomeado no banco de dados."
 
 msgid "The screenshot could not be downloaded. Please, try again later."
 msgstr ""
-<<<<<<< HEAD
 "A captura de tela não pôde ser baixada. Por favor, tente novamente mais "
 "tarde."
 
@@ -11734,14 +11723,6 @@ msgstr "A captura de tela está sendo gerada. Por favor, não saia da página."
 #, fuzzy
 msgid "The service url of the layer"
 msgstr "Mostrar valores de série sobre o gráfico"
-=======
-
-msgid "The screenshot is being generated. Please, do not leave the page."
-msgstr ""
-
-msgid "The screenshot is now being downloaded."
-msgstr ""
->>>>>>> origin/avenmaster
 
 #, fuzzy
 msgid "The size of each cell in meters"
@@ -11954,13 +11935,10 @@ msgstr "Houve um erro ao buscar o status de favorito: %s"
 #, fuzzy
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Houve um erro ao buscar o status de favorito: %s"
-<<<<<<< HEAD
 
 #, fuzzy
 msgid "There was an error generating the permalink."
 msgstr "Ocorreu um erro ao carregar os esquemas"
-=======
->>>>>>> origin/avenmaster
 
 #, fuzzy
 msgid "There was an error loading the catalogs"
@@ -12322,11 +12300,6 @@ msgid ""
 msgstr ""
 "Esta página foi projetada para ser incorporada em um iframe, mas é assim "
 "não é o caso."
-
-msgid ""
-"This page is intended to be embedded in an iframe, but it looks like that"
-" is not the case."
-msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -14746,13 +14719,10 @@ msgid "invalid email"
 msgstr "Chave de permalink inválida"
 
 #, fuzzy
-<<<<<<< HEAD
 msgid "is"
 msgstr "em"
 
 #, fuzzy
-=======
->>>>>>> origin/avenmaster
 msgid "is expected to be a Mapbox URL"
 msgstr "espera-se que seja um número"
 

@@ -29,15 +29,10 @@ import {
 } from 'react';
 import { merge } from 'lodash';
 
-<<<<<<< HEAD
 import { useSelector } from 'react-redux';
 
 import { styled, useTheme } from '@superset-ui/core';
 import { use, init, EChartsType, registerLocale } from 'echarts/core';
-=======
-import { styled } from '@superset-ui/core';
-import { use, init, EChartsType } from 'echarts/core';
->>>>>>> origin/avenmaster
 import {
   SankeyChart,
   PieChart,
@@ -53,18 +48,12 @@ import {
   TreemapChart,
   HeatmapChart,
   SunburstChart,
-<<<<<<< HEAD
   CustomChart,
-=======
->>>>>>> origin/avenmaster
 } from 'echarts/charts';
 import { CanvasRenderer } from 'echarts/renderers';
 import {
   TooltipComponent,
-<<<<<<< HEAD
   TitleComponent,
-=======
->>>>>>> origin/avenmaster
   GridComponent,
   VisualMapComponent,
   LegendComponent,
@@ -96,10 +85,7 @@ use([
   CanvasRenderer,
   BarChart,
   BoxplotChart,
-<<<<<<< HEAD
   CustomChart,
-=======
->>>>>>> origin/avenmaster
   FunnelChart,
   GaugeChart,
   GraphChart,
@@ -121,15 +107,11 @@ use([
   LegendComponent,
   ToolboxComponent,
   TooltipComponent,
-<<<<<<< HEAD
   TitleComponent,
-=======
->>>>>>> origin/avenmaster
   VisualMapComponent,
   LabelLayout,
 ]);
 
-<<<<<<< HEAD
 const loadLocale = async (locale: string) => {
   let lang;
   try {
@@ -140,8 +122,6 @@ const loadLocale = async (locale: string) => {
   return lang?.default;
 };
 
-=======
->>>>>>> origin/avenmaster
 function Echart(
   {
     width,
@@ -161,10 +141,7 @@ function Echart(
     // eslint-disable-next-line no-param-reassign
     refs.divRef = divRef;
   }
-<<<<<<< HEAD
   const [didMount, setDidMount] = useState(false);
-=======
->>>>>>> origin/avenmaster
   const chartRef = useRef<EChartsType>();
   const currentSelection = useMemo(
     () => Object.keys(selectedValues) || [],

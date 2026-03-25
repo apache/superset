@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,19 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { type ComponentProps } from 'react';
 
-<<<<<<<< HEAD:superset-frontend/packages/superset-ui-core/src/components/DropdownButton/types.ts
-import { Dropdown } from 'antd';
-import type { TooltipPlacement } from '../Tooltip/types';
-
-export type DropdownButtonProps = ComponentProps<typeof Dropdown.Button> & {
-  tooltip?: string;
-  tooltipPlacement?: TooltipPlacement;
-};
-========
 declare module '*.png' {
   const value: any;
   export default value;
 }
->>>>>>>> origin/avenmaster:superset-frontend/plugins/plugin-aven-ab-chart/types/external.d.ts

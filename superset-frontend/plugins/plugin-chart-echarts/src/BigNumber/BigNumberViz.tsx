@@ -258,7 +258,6 @@ function BigNumberVis({
     if (text) {
       const container = createTemporaryContainer();
       document.body.append(container);
-<<<<<<< HEAD
       try {
         fontSize = computeMaxFontSize({
           text,
@@ -270,16 +269,6 @@ function BigNumberVis({
       } finally {
         container.remove();
       }
-=======
-      fontSize = computeMaxFontSize({
-        text,
-        maxWidth: width * 0.9, // max width reduced
-        maxHeight,
-        className: 'subheader-line',
-        container,
-      });
-      container.remove();
->>>>>>> origin/avenmaster
 
       return (
         <div
@@ -546,11 +535,7 @@ const StyledBigNumberVis = styled(BigNumberVis)`
       position: relative;
       line-height: 1em;
       white-space: nowrap;
-<<<<<<< HEAD
       margin-bottom:${theme.sizeUnit * 2}px;
-=======
-      margin-bottom:${theme.gridUnit * 2}px;
->>>>>>> origin/avenmaster
       span {
         position: absolute;
         bottom: 0;

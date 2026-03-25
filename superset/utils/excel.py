@@ -21,7 +21,6 @@ import pandas as pd
 
 from superset.utils.core import GenericDataType
 
-<<<<<<< HEAD
 
 def quote_formulas(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -40,18 +39,13 @@ def quote_formulas(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
-=======
->>>>>>> origin/avenmaster
 
 def df_to_excel(df: pd.DataFrame, **kwargs: Any) -> Any:
     output = io.BytesIO()
 
-<<<<<<< HEAD
     # make sure formulas are quoted, to prevent malicious injections
     df = quote_formulas(df)
 
-=======
->>>>>>> origin/avenmaster
     # pylint: disable=abstract-class-instantiated
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
         df.to_excel(writer, **kwargs)
@@ -62,7 +56,6 @@ def df_to_excel(df: pd.DataFrame, **kwargs: Any) -> Any:
 def apply_column_types(
     df: pd.DataFrame, column_types: list[GenericDataType]
 ) -> pd.DataFrame:
-<<<<<<< HEAD
     """
     Applies the column types to the dataframe to prepare for an excel export
 
@@ -81,12 +74,6 @@ def apply_column_types(
                     if isinstance(x, (int, float)) and abs(x) > 10**15
                     else x
                 )
-=======
-    for column, column_type in zip(df.columns, column_types):
-        if column_type == GenericDataType.NUMERIC:
-            try:
-                df[column] = pd.to_numeric(df[column])
->>>>>>> origin/avenmaster
             except ValueError:
                 df[column] = df[column].astype(str)
         elif pd.api.types.is_datetime64tz_dtype(df[column]):

@@ -267,11 +267,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         # establish that the filters are grouped together correctly with
         # ANDs, ORs and parens in the correct place
         assert (
-<<<<<<< HEAD
             "WHERE ((name like 'A%' or name like 'B%') OR (name like 'Q%')) AND (gender = 'boy');"  # noqa: E501
-=======
-            "WHERE ((name like 'A%' or name like 'B%') OR (name like 'Q%')) AND (gender = 'boy');"
->>>>>>> origin/avenmaster
             in sql
         )
 

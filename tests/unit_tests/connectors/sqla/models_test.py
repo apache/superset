@@ -288,7 +288,6 @@ def test_normalize_prequery_result_type_custom_sql() -> None:
         sqla_table._normalize_prequery_result_type(row, dimension, columns_by_name)
         == "Car"
     )
-<<<<<<< HEAD
 
 
 def test_fetch_metadata_with_comment_field_new_columns(mocker: MockerFixture) -> None:
@@ -883,5 +882,3 @@ def test_data_for_slices_handles_missing_datasource(mocker: MockerFixture) -> No
     assert "columns" in result
     assert "metrics" in result
     assert "verbose_map" in result
-=======
->>>>>>> origin/avenmaster

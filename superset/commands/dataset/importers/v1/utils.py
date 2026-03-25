@@ -102,12 +102,7 @@ def validate_data_uri(data_uri: str) -> None:
     raise DatasetForbiddenDataURI()
 
 
-<<<<<<< HEAD
 def import_dataset(  # noqa: C901
-=======
-# pylint: disable=too-many-branches
-def import_dataset(
->>>>>>> origin/avenmaster
     config: dict[str, Any],
     overwrite: bool = False,
     force_data: bool = False,

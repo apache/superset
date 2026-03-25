@@ -116,11 +116,7 @@ test('has 4 IconTooltip elements', async () => {
     initialState,
   });
   await waitFor(() =>
-<<<<<<< HEAD
     expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(6),
-=======
-    expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(5),
->>>>>>> origin/avenmaster
   );
 });
 
@@ -140,11 +136,7 @@ test('fades table', async () => {
     initialState,
   });
   await waitFor(() =>
-<<<<<<< HEAD
     expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(6),
-=======
-    expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(5),
->>>>>>> origin/avenmaster
   );
   const style = window.getComputedStyle(getAllByTestId('fade')[0]);
   expect(style.opacity).toBe('0');
@@ -165,11 +157,7 @@ test('sorts columns', async () => {
     },
   );
   await waitFor(() =>
-<<<<<<< HEAD
     expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(6),
-=======
-    expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(5),
->>>>>>> origin/avenmaster
   );
   expect(
     getAllByTestId('mock-column-element').map(el => el.textContent),
@@ -196,11 +184,7 @@ test('removes the table', async () => {
     },
   );
   await waitFor(() =>
-<<<<<<< HEAD
     expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(6),
-=======
-    expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(5),
->>>>>>> origin/avenmaster
   );
   expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(0);
   fireEvent.click(getByText('Remove table preview'));
@@ -233,11 +217,7 @@ test('refreshes table metadata when triggered', async () => {
     },
   );
   await waitFor(() =>
-<<<<<<< HEAD
     expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(6),
-=======
-    expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(5),
->>>>>>> origin/avenmaster
   );
   expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(0);
   expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(1);
@@ -250,7 +230,6 @@ test('refreshes table metadata when triggered', async () => {
     expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(1),
   );
 });
-<<<<<<< HEAD
 
 test('calls syncTable with valid backend ID when query editor has tabViewId', async () => {
   const syncTableSpy = setupSyncTableTest();
@@ -460,5 +439,3 @@ test('passes numeric queryEditorId validation', async () => {
 
   syncTableSpy.mockRestore();
 });
-=======
->>>>>>> origin/avenmaster

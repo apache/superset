@@ -156,8 +156,6 @@ def test_import_existing_dashboard_without_access_permission(
     )
 
     with override_user(admin):
-<<<<<<< HEAD
-=======
         with pytest.raises(ImportFailedError) as excinfo:
             import_dashboard(dashboard_config, overwrite=True)
         assert (
@@ -199,7 +197,6 @@ def test_import_existing_dashboard_without_owner_permission(
     )
 
     with override_user(user):
->>>>>>> origin/avenmaster
         with pytest.raises(ImportFailedError) as excinfo:
             import_dashboard(dashboard_config, overwrite=True)
         assert (
@@ -210,50 +207,6 @@ def test_import_existing_dashboard_without_owner_permission(
     # Assert that the can write to dashboard was checked
     mock_can_access.assert_called_once_with("can_write", "Dashboard")
     mock_can_access_dashboard.assert_called_once_with(dashboard)
-<<<<<<< HEAD
-
-
-def test_import_existing_dashboard_without_owner_permission(
-    mocker: MockerFixture,
-    session_with_data: Session,
-) -> None:
-    """
-    Test importing a dashboard when a user doesn't have ownership and is not an Admin.
-    """
-    mock_can_access = mocker.patch.object(
-        security_manager, "can_access", return_value=True
-    )
-    mock_can_access_dashboard = mocker.patch.object(
-        security_manager, "can_access_dashboard", return_value=True
-    )
-
-    dashboard = (
-        session_with_data.query(Dashboard)
-        .filter(Dashboard.uuid == dashboard_config["uuid"])
-        .one_or_none()
-    )
-
-    user = User(
-        first_name="Alice",
-        last_name="Doe",
-        email="adoe@example.org",
-        username="admin",
-        roles=[Role(name="Gamma")],
-    )
-
-    with override_user(user):
-        with pytest.raises(ImportFailedError) as excinfo:
-            import_dashboard(dashboard_config, overwrite=True)
-        assert (
-            str(excinfo.value)
-            == "A dashboard already exists and user doesn't have permissions to overwrite it"  # noqa: E501
-        )
-
-    # Assert that the can write to dashboard was checked
-    mock_can_access.assert_called_once_with("can_write", "Dashboard")
-    mock_can_access_dashboard.assert_called_once_with(dashboard)
-=======
->>>>>>> origin/avenmaster
 
 
 def test_import_existing_dashboard_with_permission(
@@ -262,11 +215,7 @@ def test_import_existing_dashboard_with_permission(
 ) -> None:
     """
     Test importing a dashboard that exists when a user has access permission to that dashboard.
-<<<<<<< HEAD
     """  # noqa: E501
-=======
-    """
->>>>>>> origin/avenmaster
     mock_can_access = mocker.patch.object(
         security_manager, "can_access", return_value=True
     )
@@ -294,7 +243,6 @@ def test_import_existing_dashboard_with_permission(
     # Assert that the can write to dashboard was checked
     mock_can_access.assert_called_once_with("can_write", "Dashboard")
     mock_can_access_dashboard.assert_called_once_with(dashboard)
-<<<<<<< HEAD
 
 
 def test_import_tag_logic_for_dashboards(session_with_schema: Session):
@@ -335,5 +283,3 @@ def test_import_tag_logic_for_dashboards(session_with_schema: Session):
             .all()
         )
         assert len(associated_tags) == 0
-=======
->>>>>>> origin/avenmaster

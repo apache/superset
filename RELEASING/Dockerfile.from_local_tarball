@@ -35,15 +35,9 @@ RUN apt-get install -y build-essential libssl-dev \
 # Install nodejs for custom build
 # https://nodejs.org/en/download/package-manager/
 RUN set -eux; \
-<<<<<<< HEAD
   curl -sL https://deb.nodesource.com/setup_20.x | bash -; \
   apt-get install -y nodejs; \
   node --version;
-=======
-    curl -sL https://deb.nodesource.com/setup_18.x | bash -; \
-    apt-get install -y nodejs; \
-    node --version;
->>>>>>> origin/avenmaster
 RUN if ! which npm; then apt-get install -y npm; fi
 
 RUN mkdir -p /home/superset

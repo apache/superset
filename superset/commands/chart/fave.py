@@ -17,26 +17,12 @@
 import logging
 from functools import partial
 
-<<<<<<< HEAD
 from superset.commands.base import BaseCommand
 from superset.commands.chart.exceptions import (
     ChartFaveError,
     ChartNotFoundError,
 )
 from superset.daos.chart import ChartDAO
-=======
-from requests_cache import Optional
-
-from superset import security_manager
-from superset.commands.base import BaseCommand
-from superset.commands.chart.exceptions import (
-    ChartFaveError,
-    ChartForbiddenError,
-    ChartNotFoundError,
-)
-from superset.daos.chart import ChartDAO
-from superset.exceptions import SupersetSecurityException
->>>>>>> origin/avenmaster
 from superset.models.slice import Slice
 from superset.utils.decorators import on_error, transaction
 
@@ -46,33 +32,17 @@ logger = logging.getLogger(__name__)
 class AddFavoriteChartCommand(BaseCommand):
     def __init__(self, chart_id: int) -> None:
         self._chart_id = chart_id
-<<<<<<< HEAD
         self._chart: Slice | None = None
-=======
-        self._chart: Optional[Slice] = None
->>>>>>> origin/avenmaster
 
     @transaction(on_error=partial(on_error, reraise=ChartFaveError))
     def run(self) -> None:
         self.validate()
-<<<<<<< HEAD
         if self._chart:
             return ChartDAO.add_favorite(self._chart)
-=======
-        return ChartDAO.add_favorite(self._chart)
->>>>>>> origin/avenmaster
 
     def validate(self) -> None:
         chart = ChartDAO.find_by_id(self._chart_id)
         if not chart:
             raise ChartNotFoundError()
 
-<<<<<<< HEAD
-=======
-        try:
-            security_manager.raise_for_ownership(chart)
-        except SupersetSecurityException as ex:
-            raise ChartForbiddenError() from ex
-
->>>>>>> origin/avenmaster
         self._chart = chart

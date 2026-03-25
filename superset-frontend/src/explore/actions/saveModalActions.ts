@@ -132,10 +132,7 @@ export const getSlicePayload = async (
             adhocFilters[filtersKey].push({
               ...filter,
               comparator: 'No filter',
-<<<<<<< HEAD
               isExtra: false,
-=======
->>>>>>> origin/avenmaster
             });
           }
         },

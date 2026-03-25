@@ -16,13 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-<<<<<<< HEAD:superset-frontend/packages/superset-ui-core/src/components/Slider/index.tsx
 import { SliderSingleProps, SliderRangeProps } from 'antd/es/slider';
 import { Slider as AntdSlider } from 'antd';
-=======
-import { SliderSingleProps, SliderRangeProps } from 'antd-v5/lib/slider';
-import { Slider as AntdSlider } from 'antd-v5';
->>>>>>> origin/avenmaster:superset-frontend/src/components/Slider/index.tsx
 
 export type { SliderSingleProps, SliderRangeProps };
 

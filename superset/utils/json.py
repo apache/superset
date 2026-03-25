@@ -223,22 +223,8 @@ def dumps(  # pylint: disable=too-many-arguments
     try:
         results_string = simplejson.dumps(obj, **dumps_kwargs)
     except UnicodeDecodeError:
-<<<<<<< HEAD
         dumps_kwargs["encoding"] = None
         results_string = simplejson.dumps(obj, **dumps_kwargs)
-=======
-        results_string = simplejson.dumps(
-            obj,
-            default=default,
-            allow_nan=allow_nan,
-            ignore_nan=ignore_nan,
-            sort_keys=sort_keys,
-            indent=indent,
-            separators=separators,
-            cls=cls,
-            encoding=None,
-        )
->>>>>>> origin/avenmaster
     return results_string
 
 

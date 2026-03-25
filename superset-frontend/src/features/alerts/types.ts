@@ -117,11 +117,10 @@ export type AlertObject = {
   description?: string;
   email_subject?: string;
   csv_filename?: string;
-  extra?: {
+  extra?: Extra & {
     email_from?: string;
   };
   error?: string;
-  extra?: Extra;
   force_screenshot: boolean;
   grace_period?: number;
   id: number;

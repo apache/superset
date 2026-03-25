@@ -161,7 +161,6 @@ class ExportDashboardsCommand(ExportModelsCommand):
         if orphan_charts:
             payload["position"] = append_charts(payload["position"], orphan_charts)
 
-<<<<<<< HEAD
         # Add theme UUID for proper cross-system imports
         payload["theme_uuid"] = str(model.theme.uuid) if model.theme else None
 
@@ -172,18 +171,11 @@ class ExportDashboardsCommand(ExportModelsCommand):
             tags = model.tags if hasattr(model, "tags") else []
             payload["tags"] = [tag.name for tag in tags if tag.type == TagType.custom]
 
-=======
-        payload["version"] = EXPORT_VERSION
-
->>>>>>> origin/avenmaster
         file_content = yaml.safe_dump(payload, sort_keys=False)
         return file_content
 
     @staticmethod
-<<<<<<< HEAD
     # ruff: noqa: C901
-=======
->>>>>>> origin/avenmaster
     def _export(
         model: Dashboard, export_related: bool = True
     ) -> Iterator[tuple[str, Callable[[], str]]]:
@@ -194,7 +186,6 @@ class ExportDashboardsCommand(ExportModelsCommand):
 
         if export_related:
             chart_ids = [chart.id for chart in model.slices]
-<<<<<<< HEAD
             dashboard_ids = model.id
             command = ExportChartsCommand(chart_ids)
             command.disable_tag_export()
@@ -210,9 +201,6 @@ class ExportDashboardsCommand(ExportModelsCommand):
                 from superset.commands.theme.export import ExportThemesCommand
 
                 yield from ExportThemesCommand([model.theme.id]).run()
-=======
-            yield from ExportChartsCommand(chart_ids).run()
->>>>>>> origin/avenmaster
 
         payload = model.export_to_dict(
             recursive=False,

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AntdThemeProvider } from 'src/components/AntdThemeProvider';
 import ProgressBar, { ProgressBarProps } from '.';
 
 export default {
@@ -25,7 +24,6 @@ export default {
 };
 
 export const InteractiveProgressBar = (args: ProgressBarProps) => (
-<<<<<<< HEAD:superset-frontend/packages/superset-ui-core/src/components/ProgressBar/ProgressBar.stories.tsx
   <ProgressBar {...args} type="line" />
 );
 
@@ -35,23 +33,6 @@ export const InteractiveProgressCircle = (args: ProgressBarProps) => (
 
 export const InteractiveProgressDashboard = (args: ProgressBarProps) => (
   <ProgressBar {...args} type="dashboard" />
-=======
-  <AntdThemeProvider>
-    <ProgressBar {...args} type="line" />
-  </AntdThemeProvider>
-);
-
-export const InteractiveProgressCircle = (args: ProgressBarProps) => (
-  <AntdThemeProvider>
-    <ProgressBar {...args} type="circle" />
-  </AntdThemeProvider>
-);
-
-export const InteractiveProgressDashboard = (args: ProgressBarProps) => (
-  <AntdThemeProvider>
-    <ProgressBar {...args} type="dashboard" />
-  </AntdThemeProvider>
->>>>>>> origin/avenmaster:superset-frontend/src/components/ProgressBar/ProgressBar.stories.tsx
 );
 
 const commonArgs = {

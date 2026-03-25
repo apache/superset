@@ -34,7 +34,6 @@ def test_timezone_conversion() -> None:
     assert pd.read_excel(contents)["dt"][0] == "2023-01-01 00:00:00+00:00"
 
 
-<<<<<<< HEAD
 def test_quote_formulas() -> None:
     """
     Test that formulas are quoted in Excel.
@@ -48,8 +47,6 @@ def test_quote_formulas() -> None:
     ]
 
 
-=======
->>>>>>> origin/avenmaster
 def test_column_data_types_with_one_numeric_column():
     df = pd.DataFrame(
         {
@@ -108,7 +105,6 @@ def test_column_data_types_with_failing_conversion():
     assert not is_numeric_dtype(df["col1"])
     assert not is_numeric_dtype(df["col2"])
     assert not is_numeric_dtype(df["col3"])
-<<<<<<< HEAD
 
 
 def test_column_data_types_with_large_numeric_values():
@@ -133,5 +129,3 @@ def test_column_data_types_with_large_numeric_values():
         "1100108628127863",
         "18014398509481984",
     ]
-=======
->>>>>>> origin/avenmaster

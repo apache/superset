@@ -19,10 +19,7 @@
 import { normalizeTimestamp, QueryState, t } from '@superset-ui/core';
 import { isEqual, omit } from 'lodash';
 import { shallowEqual } from 'react-redux';
-<<<<<<< HEAD
 import { now } from '@superset-ui/core/utils/dates';
-=======
->>>>>>> origin/avenmaster
 import * as actions from '../actions/sqlLab';
 import {
   addToObject,

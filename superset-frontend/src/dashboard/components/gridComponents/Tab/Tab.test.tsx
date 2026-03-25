@@ -440,7 +440,6 @@ test('Render tab content with no children, editMode: true, canEdit: true', () =>
   ).toHaveAttribute('href', '/chart/add?dashboard_id=23');
 });
 
-<<<<<<< HEAD:superset-frontend/src/dashboard/components/gridComponents/Tab/Tab.test.tsx
 test('Drag to empty state, editMode: true, canEdit: true', async () => {
   const props = createProps();
   props.editMode = true;
@@ -484,8 +483,6 @@ test('Drag to empty state, editMode: true, canEdit: true', async () => {
   );
 });
 
-=======
->>>>>>> origin/avenmaster:superset-frontend/src/dashboard/components/gridComponents/Tab.test.tsx
 test('AnchorLink renders in view mode', () => {
   const props = createProps();
   props.renderType = 'RENDER_TAB';
@@ -523,7 +520,6 @@ test('AnchorLink does not render in embedded mode', () => {
 
   expect(screen.queryByTestId('anchor-link')).not.toBeInTheDocument();
 });
-<<<<<<< HEAD:superset-frontend/src/dashboard/components/gridComponents/Tab/Tab.test.tsx
 
 test('Should refresh charts when tab becomes active after dashboard refresh', async () => {
   jest.clearAllMocks();
@@ -713,5 +709,3 @@ test('Should use isLazyLoad flag for tab refreshes', async () => {
     true, // isLazyLoad should be true to prevent infinite loops
   );
 });
-=======
->>>>>>> origin/avenmaster:superset-frontend/src/dashboard/components/gridComponents/Tab.test.tsx

@@ -36,10 +36,7 @@ def mock_header_data() -> HeaderDataType:
         "chart_id": None,
         "dashboard_id": None,
         "slack_channels": ["some_channel"],
-<<<<<<< HEAD
         "execution_id": "test-execution-id",
-=======
->>>>>>> origin/avenmaster
     }
 
 

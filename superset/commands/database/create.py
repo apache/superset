@@ -42,11 +42,7 @@ from superset.commands.database.test_connection import TestConnectionDatabaseCom
 from superset.commands.database.utils import add_permissions
 from superset.daos.database import DatabaseDAO
 from superset.databases.ssh_tunnel.models import SSHTunnel
-<<<<<<< HEAD
 from superset.exceptions import OAuth2RedirectError, SupersetErrorsException
-=======
-from superset.exceptions import SupersetErrorsException
->>>>>>> origin/avenmaster
 from superset.extensions import event_logger
 from superset.models.core import Database
 from superset.utils.decorators import on_error, transaction

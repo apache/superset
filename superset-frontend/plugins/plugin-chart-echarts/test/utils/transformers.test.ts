@@ -31,11 +31,7 @@ import {
   TimeseriesAnnotationLayer,
   TimeseriesDataRecord,
 } from '@superset-ui/core';
-<<<<<<< HEAD
 import { OrientationType } from '../../src';
-=======
-import { OrientationType } from '@superset-ui/plugin-chart-echarts';
->>>>>>> origin/avenmaster
 import {
   transformEventAnnotation,
   transformFormulaAnnotation,
@@ -286,7 +282,6 @@ const mockTimeseriesAnnotationLayer: TimeseriesAnnotationLayer = {
 };
 
 const mockTimeseriesAnnotationData: AnnotationData = {
-<<<<<<< HEAD
   'Timeseries annotation layer': {
     records: [
       { x: 10, y: 12 },
@@ -294,32 +289,6 @@ const mockTimeseriesAnnotationData: AnnotationData = {
       { x: 15, y: 20 },
     ],
   },
-=======
-  'Timeseries annotation layer': [
-    {
-      key: 'Key 1',
-      values: [
-        {
-          x: 10,
-          y: 12,
-        },
-      ],
-    },
-    {
-      key: 'Key 2',
-      values: [
-        {
-          x: 12,
-          y: 15,
-        },
-        {
-          x: 15,
-          y: 20,
-        },
-      ],
-    },
-  ],
->>>>>>> origin/avenmaster
 };
 
 describe('transformTimeseriesAnnotation', () => {
@@ -333,13 +302,8 @@ describe('transformTimeseriesAnnotation', () => {
         CategoricalColorNamespace.getScale(''),
       ).map(annotation => annotation.data),
     ).toEqual([
-<<<<<<< HEAD
       [
         [10, 12],
-=======
-      [[10, 12]],
-      [
->>>>>>> origin/avenmaster
         [12, 15],
         [15, 20],
       ],
@@ -358,13 +322,8 @@ describe('transformTimeseriesAnnotation', () => {
         OrientationType.Horizontal,
       ).map(annotation => annotation.data),
     ).toEqual([
-<<<<<<< HEAD
       [
         [12, 10],
-=======
-      [[12, 10]],
-      [
->>>>>>> origin/avenmaster
         [15, 12],
         [20, 15],
       ],

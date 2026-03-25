@@ -255,7 +255,6 @@ def test_get_prequeries(mocker: MockerFixture) -> None:
     """
     from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
 
-<<<<<<< HEAD
     database = mocker.MagicMock()
 
     assert DatabricksNativeEngineSpec.get_prequeries(database) == []
@@ -268,37 +267,19 @@ def test_get_prequeries(mocker: MockerFixture) -> None:
     assert DatabricksNativeEngineSpec.get_prequeries(
         database, catalog="foo", schema="bar"
     ) == [
-=======
-    assert DatabricksNativeEngineSpec.get_prequeries() == []
-    assert DatabricksNativeEngineSpec.get_prequeries(schema="test") == [
-        "USE SCHEMA `test`",
-    ]
-    assert DatabricksNativeEngineSpec.get_prequeries(catalog="test") == [
-        "USE CATALOG `test`",
-    ]
-    assert DatabricksNativeEngineSpec.get_prequeries(catalog="foo", schema="bar") == [
->>>>>>> origin/avenmaster
         "USE CATALOG `foo`",
         "USE SCHEMA `bar`",
     ]
 
     assert DatabricksNativeEngineSpec.get_prequeries(
-<<<<<<< HEAD
         database, catalog="with-hyphen", schema="hyphen-again"
-=======
-        catalog="with-hyphen", schema="hyphen-again"
->>>>>>> origin/avenmaster
     ) == [
         "USE CATALOG `with-hyphen`",
         "USE SCHEMA `hyphen-again`",
     ]
 
     assert DatabricksNativeEngineSpec.get_prequeries(
-<<<<<<< HEAD
         database, catalog="`escaped-hyphen`", schema="`hyphen-escaped`"
-=======
-        catalog="`escaped-hyphen`", schema="`hyphen-escaped`"
->>>>>>> origin/avenmaster
     ) == [
         "USE CATALOG `escaped-hyphen`",
         "USE SCHEMA `hyphen-escaped`",

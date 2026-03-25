@@ -134,11 +134,7 @@ class TestDatabaseModel(SupersetTestCase):
 
         for str_type, db_col_type in test_cases.items():  # noqa: B007
             col = TableColumn(column_name="foo", type=str_type, table=tbl, is_dttm=True)
-<<<<<<< HEAD
             assert col.is_temporal
-=======
-            self.assertTrue(col.is_temporal)
->>>>>>> origin/avenmaster
 
     @patch("superset.jinja_context.get_username", return_value="abc")
     def test_jinja_metrics_and_calc_columns(self, mock_username):
@@ -802,16 +798,10 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
             SELECT
             '{{ current_user_id() }}' as id,
             '{{ current_username() }}' as username,
-<<<<<<< HEAD
             '{{ current_user_email() }}' as email,
             '{{ current_user_roles()|tojson }}' as roles
             """,
             {1, "abc", "abc@test.com", '["role1", "role2"]'},
-=======
-            '{{ current_user_email() }}' as email
-            """,
-            {1, "abc", "abc@test.com"},
->>>>>>> origin/avenmaster
             True,
         ),
         (
@@ -821,16 +811,10 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
             SELECT
             '{{ current_user_id() }}' as id,
             '{{ current_username() }}' as username,
-<<<<<<< HEAD
             '{{ user_email }}' as email,
             '{{ current_user_roles()|tojson }}' as roles
             """,
             {1, "abc", "abc@test.com", '["role1", "role2"]'},
-=======
-            '{{ user_email }}' as email
-            """,
-            {1, "abc", "abc@test.com"},
->>>>>>> origin/avenmaster
             True,
         ),
         (
@@ -849,12 +833,8 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
             SELECT
             '{{ current_user_id(False) }}' as id,
             '{{ current_username(False) }}' as username,
-<<<<<<< HEAD
             '{{ current_user_email(False) }}' as email,
             '{{ current_user_roles(False)|tojson }}' as roles
-=======
-            '{{ current_user_email(False) }}' as email
->>>>>>> origin/avenmaster
             """,
             [],
             True,
@@ -865,16 +845,12 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
 @patch("superset.jinja_context.get_user_id", return_value=1)
 @patch("superset.jinja_context.get_username", return_value="abc")
 @patch("superset.jinja_context.get_user_email", return_value="abc@test.com")
-<<<<<<< HEAD
 @patch(
     "superset.jinja_context.security_manager.get_user_roles",
     return_value=[Role(name="role1"), Role(name="role2")],
 )
 def test_extra_cache_keys(
     mock_get_user_roles,
-=======
-def test_extra_cache_keys(
->>>>>>> origin/avenmaster
     mock_user_email,
     mock_username,
     mock_user_id,
@@ -916,16 +892,12 @@ def test_extra_cache_keys(
 @patch("superset.jinja_context.get_user_id", return_value=1)
 @patch("superset.jinja_context.get_username", return_value="abc")
 @patch("superset.jinja_context.get_user_email", return_value="abc@test.com")
-<<<<<<< HEAD
 @patch(
     "superset.jinja_context.security_manager.get_user_roles",
     return_value=[Role(name="role1"), Role(name="role2")],
 )
 def test_extra_cache_keys_in_sql_expression(
     mock_get_user_roles,
-=======
-def test_extra_cache_keys_in_sql_expression(
->>>>>>> origin/avenmaster
     mock_user_email,
     mock_username,
     mock_user_id,

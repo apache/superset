@@ -52,11 +52,7 @@ from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy_utils import UUIDType
 
-<<<<<<< HEAD
 from superset import db, is_feature_enabled
-=======
-from superset import app, db, is_feature_enabled
->>>>>>> origin/avenmaster
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
@@ -73,17 +69,7 @@ from superset.exceptions import (
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
-<<<<<<< HEAD
 from superset.sql.parse import sanitize_clause, SQLScript, SQLStatement
-=======
-from superset.sql.parse import SQLScript
-from superset.sql_parse import (
-    has_table_query,
-    insert_rls_in_predicate,
-    ParsedQuery,
-    sanitize_clause,
-)
->>>>>>> origin/avenmaster
 from superset.superset_typing import (
     AdhocMetric,
     Column as ColumnTyping,
@@ -119,13 +105,8 @@ SERIES_LIMIT_SUBQ_ALIAS = "series_limit"
 
 def validate_adhoc_subquery(
     sql: str,
-<<<<<<< HEAD
     database: Database,
     catalog: str | None,
-=======
-    database_id: int,
-    engine: str,
->>>>>>> origin/avenmaster
     default_schema: str,
     engine: str,
 ) -> str:
@@ -139,7 +120,6 @@ def validate_adhoc_subquery(
     :raise SupersetSecurityException if sql contains sub-queries or
     nested sub-queries with table
     """
-<<<<<<< HEAD
     parsed_statement = SQLStatement(sql, engine)
     if parsed_statement.has_subquery():
         if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
@@ -150,28 +130,6 @@ def validate_adhoc_subquery(
                     level=ErrorLevel.ERROR,
                 )
             )
-=======
-    statements = []
-    for statement in sqlparse.parse(sql):
-        try:
-            has_table = has_table_query(str(statement), engine)
-        except SupersetParseError:
-            has_table = True
-
-        if has_table:
-            if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
-                raise SupersetSecurityException(
-                    SupersetError(
-                        error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
-                        message=_("Custom SQL fields cannot contain sub-queries."),
-                        level=ErrorLevel.ERROR,
-                    )
-                )
-            # TODO (betodealmeida): reimplement with sqlglot
-            statement = insert_rls_in_predicate(statement, database_id, default_schema)
-
-        statements.append(statement)
->>>>>>> origin/avenmaster
 
         # enforce RLS rules in any relevant tables
         apply_rls(database, catalog, default_schema, parsed_statement)
@@ -884,13 +842,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if expression:
             expression = validate_adhoc_subquery(
                 expression,
-<<<<<<< HEAD
                 self.database,
                 self.catalog,
-=======
-                database_id,
-                engine,
->>>>>>> origin/avenmaster
                 schema,
                 engine,
             )
@@ -1011,11 +964,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             is_virtual=bool(self.sql),
         )
         sql = self._apply_cte(sql, sqlaq.cte)
-<<<<<<< HEAD
-=======
-
-        sql = f"-- SUPERSET CHART {query_obj.get('chart_id')} \n" + sql
->>>>>>> origin/avenmaster
 
         if mutate:
             sql = self.database.mutate_sql_based_on_config(sql)
@@ -1283,7 +1231,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             sqla_column = sa.column(column_name)
             sqla_metric = self.sqla_aggregations[metric["aggregate"]](sqla_column)
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
-<<<<<<< HEAD
             expression = metric.get("sqlExpression")
 
             if not processed:
@@ -1295,15 +1242,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     template_processor=template_processor,
                 )
 
-=======
-            expression = self._process_sql_expression(
-                expression=metric["sqlExpression"],
-                database_id=self.database_id,
-                engine=self.database.backend,
-                schema=self.schema,
-                template_processor=template_processor,
-            )
->>>>>>> origin/avenmaster
             sqla_metric = literal_column(expression)
         else:
             raise QueryObjectValidationError("Adhoc metric expressionType is invalid")
@@ -1659,22 +1597,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if engine.dialect.identifier_preparer._double_percents:
                 sql = sql.replace("%%", "%")
 
-<<<<<<< HEAD
             with engine.connect() as con:
                 df = pd.read_sql_query(sql=self.text(sql), con=con)
                 # replace NaN with None to ensure it can be serialized to JSON
                 df = df.replace({np.nan: None})
                 return df["column_values"].to_list()
-=======
-            # pylint: disable=protected-access
-            if engine.dialect.identifier_preparer._double_percents:
-                sql = sql.replace("%%", "%")
-
-            df = pd.read_sql_query(sql=sql, con=engine)
-            # replace NaN with None to ensure it can be serialized to JSON
-            df = df.replace({np.nan: None})
-            return df["column_values"].to_list()
->>>>>>> origin/avenmaster
 
     def get_timestamp_expression(
         self,
@@ -1751,7 +1678,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         timeseries_limit: Optional[int] = None,
         timeseries_limit_metric: Optional[Metric] = None,
         time_shift: Optional[str] = None,
-        chart_id: Optional[int] = None,  # pylint: disable=unused-argument
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface"""
         if granularity not in self.dttm_cols and granularity is not None:
@@ -1950,20 +1876,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             template_processor=template_processor,
                         )
                     else:
-<<<<<<< HEAD
                         selected = self._process_select_expression(
                             expression=selected,
                             database_id=self.database_id,
                             engine=self.database.backend,
                             schema=self.schema,
                             template_processor=template_processor,
-=======
-                        selected = validate_adhoc_subquery(
-                            selected,
-                            self.database_id,
-                            self.database.backend,
-                            self.schema,
->>>>>>> origin/avenmaster
                         )
                         outer = literal_column(f"({selected})")
                         outer = self.make_sqla_column_compatible(outer, selected)
@@ -1987,20 +1905,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     _sql = quote(selected)
                     _column_label = selected
 
-<<<<<<< HEAD
                 selected = self._process_select_expression(
                     expression=_sql,
                     database_id=self.database_id,
                     engine=self.database.backend,
                     schema=self.schema,
                     template_processor=template_processor,
-=======
-                selected = validate_adhoc_subquery(
-                    _sql,
-                    self.database_id,
-                    self.database.backend,
-                    self.schema,
->>>>>>> origin/avenmaster
                 )
 
                 select_exprs.append(

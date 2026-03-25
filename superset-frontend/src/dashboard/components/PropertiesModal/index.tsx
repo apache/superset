@@ -51,19 +51,11 @@ import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeContr
 import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
-<<<<<<< HEAD
 import { loadTags } from 'src/components/Tag/utils';
 import {
   applyColors,
   getColorNamespace,
   getFreshLabelsColorMapEntries,
-=======
-import { loadTags } from 'src/components/Tags/utils';
-import {
-  applyColors,
-  getColorNamespace,
-  getLabelsColorMapEntries,
->>>>>>> origin/avenmaster
 } from 'src/utils/colorScheme';
 import getOwnerName from 'src/utils/getOwnerName';
 import Owner from 'src/types/Owner';
@@ -73,14 +65,7 @@ import {
   setDashboardMetadata,
 } from 'src/dashboard/actions/dashboardState';
 import { areObjectsEqual } from 'src/reduxUtils';
-<<<<<<< HEAD
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
-=======
-
-const StyledFormItem = styled(FormItem)`
-  margin-bottom: 0;
-`;
->>>>>>> origin/avenmaster
 
 const StyledJsonEditor = styled(JsonEditor)`
   /* Border is already applied by AceEditor itself */
@@ -129,11 +114,7 @@ const PropertiesModal = ({
   show = false,
 }: PropertiesModalProps) => {
   const dispatch = useDispatch();
-<<<<<<< HEAD
   const [form] = Form.useForm();
-=======
-  const [form] = AntdForm.useForm();
->>>>>>> origin/avenmaster
   const [isLoading, setIsLoading] = useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [colorScheme, setCurrentColorScheme] = useState(currentColorScheme);
@@ -398,11 +379,7 @@ const PropertiesModal = ({
     dispatch(
       setDashboardMetadata({
         ...updatedDashboardMetadata,
-<<<<<<< HEAD
         map_label_colors: getFreshLabelsColorMapEntries(customLabelColors),
-=======
-        map_label_colors: getLabelsColorMapEntries(customLabelColors),
->>>>>>> origin/avenmaster
       }),
     );
 
@@ -412,17 +389,11 @@ const PropertiesModal = ({
 
     currentJsonMetadata = jsonStringify(metadata);
 
-<<<<<<< HEAD
     const moreOnSubmitProps: { roles?: Roles; tags?: TagType[] } = {};
     const morePutProps: {
       roles?: number[];
       tags?: (string | number | undefined)[];
     } = {};
-=======
-    const moreOnSubmitProps: { roles?: Roles } = {};
-    const morePutProps: { roles?: number[]; tags?: (number | undefined)[] } =
-      {};
->>>>>>> origin/avenmaster
     if (isFeatureEnabled(FeatureFlag.DashboardRbac)) {
       moreOnSubmitProps.roles = roles;
       morePutProps.roles = (roles || []).map(r => r.id);
@@ -644,22 +615,15 @@ const PropertiesModal = ({
     <Modal
       show={show}
       onHide={handleOnCancel}
-<<<<<<< HEAD
       title={
         <ModalTitleWithIcon isEditMode title={t('Dashboard properties')} />
       }
-=======
-      title={t('Dashboard properties')}
->>>>>>> origin/avenmaster
       footer={
         <>
           <Button
             htmlType="button"
             buttonSize="small"
-<<<<<<< HEAD
             buttonStyle="secondary"
-=======
->>>>>>> origin/avenmaster
             onClick={handleOnCancel}
             data-test="properties-modal-cancel-button"
             cta

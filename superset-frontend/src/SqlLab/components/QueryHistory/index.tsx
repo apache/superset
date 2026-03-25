@@ -81,11 +81,7 @@ const QueryHistory = ({
     isLoading,
     isFetching,
   } = useEditorQueriesQuery(
-<<<<<<< HEAD
     { editorId, pageIndex },
-=======
-    { editorId: `${queryEditorId}`, pageIndex },
->>>>>>> origin/avenmaster
     {
       skip: !isFeatureEnabled(FeatureFlag.SqllabBackendPersistence),
     },

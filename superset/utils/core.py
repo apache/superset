@@ -205,10 +205,7 @@ class HeaderDataType(TypedDict):
     chart_id: int | None
     dashboard_id: int | None
     slack_channels: list[str] | None
-<<<<<<< HEAD
     execution_id: str | None
-=======
->>>>>>> origin/avenmaster
 
 
 class DatasourceDict(TypedDict):
@@ -741,13 +738,8 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     send_email_smtp(
         'test@example.com', 'foo', '<b>Foo</b> bar',['/dev/null'], dryrun=True)
     """
-<<<<<<< HEAD
-    smtp_mail_from = config["SMTP_MAIL_FROM"]
-    smtp_mail_to = recipients_string_to_list(to)
-=======
     smtp_mail_from = from_address or config["SMTP_MAIL_FROM"]
-    smtp_mail_to = get_email_address_list(to)
->>>>>>> origin/avenmaster
+    smtp_mail_to = recipients_string_to_list(to)
 
     msg = MIMEMultipart(mime_subtype)
     msg["Subject"] = subject
@@ -758,11 +750,7 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
 
     recipients = smtp_mail_to
     if cc:
-<<<<<<< HEAD
         smtp_mail_cc = recipients_string_to_list(cc)
-=======
-        smtp_mail_cc = get_email_address_list(cc)
->>>>>>> origin/avenmaster
         msg["Cc"] = ", ".join(smtp_mail_cc)
         recipients = recipients + smtp_mail_cc
 
@@ -857,7 +845,7 @@ def send_mime_email(
         smtp.starttls(context=ssl_context)
     if smtp_user and smtp_password:
         smtp.login(smtp_user, smtp_password)
-    logger.info("Sent an email to %s from %s", str(e_to), e_from)
+    logger.debug("Sent an email to %s", str(e_to))
     smtp.sendmail(e_from, e_to, mime_msg.as_string())
     smtp.quit()
 
