@@ -119,4 +119,3 @@ export const dashboardTooltipStyles = (theme: SupersetTheme) => css`
     font-size: ${theme.fontSizeSM}px;
   }
 `;
-
