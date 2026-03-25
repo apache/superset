@@ -17,10 +17,18 @@
  * under the License.
  */
 
-import d3 from 'd3';
 import { getNumberFormatter, ValueFormatter } from '@superset-ui/core';
 import WorldMap from '../src/WorldMap';
 import { ColorBy } from '../src/utils';
+
+// Mock d3.event
+jest.mock('d3', () => ({
+  event: {
+    preventDefault: jest.fn(),
+    clientX: 100,
+    clientY: 200,
+  },
+}));
 
 interface WorldMapDataEntry {
   country: string;
@@ -56,15 +64,6 @@ interface WorldMapProps {
   filterState: { selectedValues?: string[] };
   emitCrossFilters: boolean;
   formatter: ValueFormatter;
-}
-
-type MouseEventHandler = (this: HTMLElement) => void;
-
-interface MockD3Selection {
-  attr: jest.Mock;
-  style: jest.Mock;
-  classed: jest.Mock;
-  selectAll: jest.Mock;
 }
 
 // Mock Datamap
@@ -149,6 +148,11 @@ const baseProps: WorldMapProps = {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockSvg.selectAll.mockReturnThis();
+  mockSvg.on.mockReturnThis();
+  mockSvg.attr.mockReturnThis();
+  mockSvg.style.mockReturnThis();
+  lastDatamapConfig = null;
   container = document.createElement('div');
   document.body.appendChild(container);
 });
@@ -170,7 +174,9 @@ test('sets up only contextmenu and click handlers on countries', () => {
   expect(hasClick).toBe(true);
 
   // Ensure removed handlers are NOT present
-  const hasMouseover = onCalls.some(call => call[0] === 'mouseover.fillPreserve');
+  const hasMouseover = onCalls.some(
+    call => call[0] === 'mouseover.fillPreserve',
+  );
   const hasMouseout = onCalls.some(call => call[0] === 'mouseout.fillPreserve');
 
   expect(hasMouseover).toBe(false);
@@ -204,13 +210,6 @@ test('calls onContextMenu when provided and right-click occurs', () => {
     }
     return mockSvg;
   });
-
-  // Mock d3.event
-  (d3 as any).event = {
-    preventDefault: jest.fn(),
-    clientX: 100,
-    clientY: 200,
-  };
 
   WorldMap(container, propsWithContextMenu);
 
