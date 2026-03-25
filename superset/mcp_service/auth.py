@@ -37,6 +37,7 @@ from flask_appbuilder.security.sqla.models import Group, User
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
+    from superset.mcp_service.chart.chart_utils import DatasetValidationResult
 
 # Type variable for decorated functions
 F = TypeVar("F", bound=Callable[..., Any])
@@ -259,6 +260,24 @@ def has_dataset_access(dataset: "SqlaTable") -> bool:
     except Exception as e:
         logger.warning("Error checking dataset access: %s", e)
         return False  # Deny access on error
+
+
+def check_chart_data_access(chart: Any) -> "DatasetValidationResult":
+    """Validate that the current user can access a chart's underlying dataset.
+
+    This extends the RBAC system: ``mcp_auth_hook`` enforces class-level
+    permissions before tool execution; this function enforces data-level
+    permissions inside tools after retrieving specific objects.
+
+    Args:
+        chart: A Slice ORM object with datasource_id attribute
+
+    Returns:
+        DatasetValidationResult with is_valid, error, etc.
+    """
+    from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+
+    return validate_chart_dataset(chart, check_access=True)
 
 
 def _setup_user_context() -> User | None:

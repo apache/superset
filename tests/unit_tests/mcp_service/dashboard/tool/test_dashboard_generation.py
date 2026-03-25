@@ -26,6 +26,7 @@ import pytest
 from fastmcp import Client
 
 from superset.mcp_service.app import mcp
+from superset.mcp_service.chart.chart_utils import DatasetValidationResult
 from superset.mcp_service.dashboard.constants import generate_id
 from superset.mcp_service.dashboard.tool.add_chart_to_existing_dashboard import (
     _add_chart_to_layout,
@@ -56,6 +57,22 @@ def mock_auth():
         mock_user.username = "admin"
         mock_get_user.return_value = mock_user
         yield mock_get_user
+
+
+@pytest.fixture(autouse=True)
+def mock_chart_access():
+    """Mock chart dataset validation so tests don't hit real security manager."""
+    with patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        return_value=DatasetValidationResult(
+            is_valid=True,
+            dataset_id=1,
+            dataset_name="test_dataset",
+            warnings=[],
+            error=None,
+        ),
+    ):
+        yield
 
 
 def _mock_chart(id: int = 1, slice_name: str = "Test Chart") -> Mock:
@@ -201,6 +218,67 @@ class TestGenerateDashboard:
             assert "Charts not found: [2]" in result.structured_content["error"]
             assert result.structured_content["dashboard"] is None
             assert result.structured_content["dashboard_url"] is None
+
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_inaccessible_charts(
+        self, mock_db_session, mock_chart_access, mcp_server
+    ):
+        """Test error when user lacks access to some charts."""
+        charts = [
+            _mock_chart(id=1, slice_name="Accessible"),
+            _mock_chart(id=2, slice_name="Restricted"),
+            _mock_chart(id=3, slice_name="Also Restricted"),
+        ]
+
+        mock_query = Mock()
+        mock_filter = Mock()
+        mock_query.filter.return_value = mock_filter
+        mock_filter.order_by.return_value = mock_filter
+        mock_filter.all.return_value = charts
+        mock_db_session.query.return_value = mock_query
+
+        # Override the autouse fixture: chart 2 has inaccessible dataset
+        def mock_validate(chart, check_access=False):
+            if chart.id == 2:
+                return DatasetValidationResult(
+                    is_valid=False,
+                    dataset_id=10,
+                    dataset_name="restricted_dataset",
+                    warnings=[],
+                    error=(
+                        "Access denied to dataset 'restricted_dataset' "
+                        "(ID: 10). You do not have permission to view "
+                        "this dataset."
+                    ),
+                )
+            return DatasetValidationResult(
+                is_valid=True,
+                dataset_id=chart.id,
+                dataset_name=f"dataset_{chart.id}",
+                warnings=[],
+                error=None,
+            )
+
+        with patch(
+            "superset.mcp_service.auth.check_chart_data_access",
+            side_effect=mock_validate,
+        ):
+            request = {
+                "chart_ids": [1, 2, 3],
+                "dashboard_title": "Test Dashboard",
+            }
+
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "generate_dashboard", {"request": request}
+                )
+
+                assert result.structured_content["error"] is not None
+                assert "not accessible" in result.structured_content["error"]
+                assert "2" in result.structured_content["error"]
+                assert result.structured_content["dashboard"] is None
+                assert result.structured_content["dashboard_url"] is None
 
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -550,6 +628,43 @@ class TestAddChartToExistingDashboard:
             )
             assert result.structured_content["error"] is not None
             assert "Chart with ID 999 not found" in result.structured_content["error"]
+
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_add_chart_dataset_not_accessible(
+        self, mock_db_session, mock_find_dashboard, mcp_server
+    ):
+        """Test error when chart's dataset is not accessible."""
+        mock_find_dashboard.return_value = _mock_dashboard()
+        mock_chart = _mock_chart(id=7)
+        mock_db_session.get.return_value = mock_chart
+
+        # Override autouse fixture: chart 7 has inaccessible dataset
+        with patch(
+            "superset.mcp_service.auth.check_chart_data_access",
+            return_value=DatasetValidationResult(
+                is_valid=False,
+                dataset_id=10,
+                dataset_name="restricted_dataset",
+                warnings=[],
+                error=(
+                    "Access denied to dataset 'restricted_dataset' "
+                    "(ID: 10). You do not have permission to view "
+                    "this dataset."
+                ),
+            ),
+        ):
+            request = {"dashboard_id": 1, "chart_id": 7}
+
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "add_chart_to_existing_dashboard", {"request": request}
+                )
+                assert result.structured_content["error"] is not None
+                assert "not accessible" in result.structured_content["error"]
+                assert "7" in result.structured_content["error"]
+                assert result.structured_content["dashboard"] is None
 
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
