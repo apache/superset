@@ -32,6 +32,7 @@ import { t } from '@apache-superset/core/translation';
 import { styled, css } from '@apache-superset/core/theme';
 import type { SchemaOption, CatalogOption } from 'src/hooks/apiResources';
 import { DatabaseSelector, type DatabaseObject } from 'src/components';
+import { TMP_QUERY_ID } from 'src/SqlLab/hooks/useQueryEditor';
 
 import useDatabaseSelector from '../SqlEditorTopBar/useDatabaseSelector';
 import TableExploreTree from '../TableExploreTree';
@@ -63,7 +64,8 @@ const StyledDivider = styled.div`
 `;
 
 const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
-  const dbSelectorProps = useDatabaseSelector(queryEditorId);
+  const activeQEId = queryEditorId || TMP_QUERY_ID;
+  const dbSelectorProps = useDatabaseSelector(activeQEId);
   const { db, catalog, schema, onDbChange, onCatalogChange, onSchemaChange } =
     dbSelectorProps;
 
@@ -198,7 +200,7 @@ const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
         />
       </Popover>
       <StyledDivider />
-      <TableExploreTree queryEditorId={queryEditorId} />
+      <TableExploreTree queryEditorId={activeQEId} />
       {shouldShowReset && (
         <Button
           buttonSize="small"

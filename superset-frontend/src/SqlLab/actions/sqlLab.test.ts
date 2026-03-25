@@ -33,6 +33,7 @@ import {
 } from 'src/SqlLab/fixtures';
 import { SupersetClient, isFeatureEnabled } from '@superset-ui/core';
 import { ADD_TOAST } from 'src/components/MessageToasts/actions';
+import { TMP_QUERY_ID } from 'src/SqlLab/hooks/useQueryEditor';
 import { ToastType } from '../../components/MessageToasts/types';
 
 const isFeatureEnabledMock = isFeatureEnabled as unknown as jest.Mock;
@@ -874,6 +875,44 @@ describe('async actions', () => {
                 (defaultQueryEditor as any).queryLimit ||
                 initialState.common.conf.DEFAULT_SQLLAB_LIMIT,
               inLocalStorage: true,
+              loaded: true,
+            },
+          },
+        ];
+        const request = actions.addNewQueryEditor();
+        request(store.dispatch, store.getState, undefined);
+        expect(store.getActions()).toEqual(expectedActions);
+      });
+
+      test('creates a new query editor from the saved state in the empty tab', () => {
+        const unsavedEmptyTabState = {
+          id: TMP_QUERY_ID,
+          dbId: 2,
+          catalog: 'test_catalog',
+          schema: 'test_schema',
+        };
+        const store = mockStore({
+          ...initialState,
+          sqlLab: {
+            ...initialState.sqlLab,
+            tabHistory: [TMP_QUERY_ID],
+            unsavedQueryEditor: unsavedEmptyTabState,
+          },
+        });
+        const expectedActions = [
+          {
+            type: actions.ADD_QUERY_EDITOR,
+            queryEditor: {
+              id: 'abcd',
+              immutableId: 'abcd',
+              sql: expect.stringContaining('SELECT ...'),
+              name: 'Untitled Query 4',
+              dbId: unsavedEmptyTabState.dbId,
+              catalog: unsavedEmptyTabState.catalog,
+              schema: unsavedEmptyTabState.schema,
+              inLocalStorage: true,
+              autorun: false,
+              queryLimit: initialState.common.conf.DEFAULT_SQLLAB_LIMIT,
               loaded: true,
             },
           },

@@ -21,6 +21,8 @@ import { useMemo } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
 import { SqlLabRootState, QueryEditor } from 'src/SqlLab/types';
 
+export const TMP_QUERY_ID = 'tmp_qe_id';
+
 export default function useQueryEditor<T extends keyof QueryEditor>(
   sqlEditorId: string,
   attributes: ReadonlyArray<T>,
@@ -43,6 +45,7 @@ export default function useQueryEditor<T extends keyof QueryEditor>(
         {
           ...queryEditors[queryEditorsById[sqlEditorId]],
           ...(sqlEditorId === unsavedQueryEditor?.id && unsavedQueryEditor),
+          ...(sqlEditorId === TMP_QUERY_ID && { id: sqlEditorId }),
         },
         ['id'].concat(attributes),
       ) as Pick<QueryEditor, T | 'id'>,
