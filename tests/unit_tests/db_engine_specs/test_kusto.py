@@ -196,6 +196,22 @@ def test_handle_null_filter() -> None:
             'database("superset").["FreeCodeCamp"] | project ["age"] | take 100',
             'database("superset").["FreeCodeCamp"] | project ["age"] | take 100',
         ),
+        (
+            'database("superset").["VideoGameSales"]'
+            ' | where ["rank"]<= 25'
+            ' | summarize ["SUM(Global_Sales)"] = sum(["global_sales"])'
+            '  by ["publisher"]'
+            ' | project ["publisher"], ["SUM(Global_Sales)"]'
+            ' | order by ["SUM(Global_Sales)"] desc'
+            " | take 50000",
+            'database("superset").["VideoGameSales"]'
+            ' | where ["rank"]<= 25'
+            ' | summarize ["SUM(Global_Sales)"] = sum(["global_sales"])'
+            '  by ["publisher"]'
+            ' | project ["publisher"], ["SUM(Global_Sales)"]'
+            ' | order by ["SUM(Global_Sales)"] desc'
+            " | take 50000",
+        ),
     ],
 )
 def test_kql_execute_array_processing(raw_query: str, expected_query: str) -> None:
