@@ -7032,9 +7032,6 @@ msgstr ""
 msgid "List Groups"
 msgstr ""
 
-msgid "List Groups"
-msgstr ""
-
 msgid "List Roles"
 msgstr ""
 
