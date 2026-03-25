@@ -533,30 +533,33 @@ const DashboardBuilder = () => {
             />
           )}
         {dropIndicatorProps && <div {...dropIndicatorProps} />}
-        {!isReport && topLevelTabs && !uiConfig.hideNav && (
-          <WithPopoverMenu
-            shouldFocus={shouldFocusTabs}
-            menuItems={[
-              <IconButton
-                icon={<Icons.FallOutlined iconSize="xl" />}
-                label={t('Collapse tab content')}
-                onClick={handleDeleteTopLevelTabs}
-              />,
-            ]}
-            editMode={editMode}
-          >
-            {/* @ts-ignore */}
-            <DashboardComponent
-              id={topLevelTabs?.id}
-              parentId={DASHBOARD_ROOT_ID}
-              depth={DASHBOARD_ROOT_DEPTH + 1}
-              index={0}
-              renderTabContent={false}
-              renderHoverMenu={false}
-              onChangeTab={handleChangeTab}
-            />
-          </WithPopoverMenu>
-        )}
+        {!isReport &&
+          topLevelTabs &&
+          !uiConfig.hideTab &&
+          !uiConfig.hideNav && (
+            <WithPopoverMenu
+              shouldFocus={shouldFocusTabs}
+              menuItems={[
+                <IconButton
+                  icon={<Icons.FallOutlined iconSize="xl" />}
+                  label={t('Collapse tab content')}
+                  onClick={handleDeleteTopLevelTabs}
+                />,
+              ]}
+              editMode={editMode}
+            >
+              {/* @ts-ignore */}
+              <DashboardComponent
+                id={topLevelTabs?.id}
+                parentId={DASHBOARD_ROOT_ID}
+                depth={DASHBOARD_ROOT_DEPTH + 1}
+                index={0}
+                renderTabContent={false}
+                renderHoverMenu={false}
+                onChangeTab={handleChangeTab}
+              />
+            </WithPopoverMenu>
+          )}
       </div>
     ),
     [
@@ -568,6 +571,7 @@ const DashboardBuilder = () => {
       hideDashboardHeader,
       isReport,
       topLevelTabs,
+      uiConfig.hideTab,
       uiConfig.hideNav,
     ],
   );
