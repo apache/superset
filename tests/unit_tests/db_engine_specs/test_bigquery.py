@@ -528,3 +528,79 @@ def test_get_view_names_excludes_materialized_views() -> None:
     assert "table_type = 'VIEW'" in executed_query
     # Ensure it's not querying for materialized views
     assert "MATERIALIZED VIEW" not in executed_query
+
+
+def test_string_literal_with_apostrophe() -> None:
+    """
+    Test that string literals containing apostrophes are properly escaped
+    for BigQuery.
+
+    BigQuery uses standard SQL quoting where single quotes delimit string
+    literals and embedded single quotes are escaped by doubling them.
+    The upstream sqlalchemy-bigquery dialect uses ``repr()`` which switches
+    to double-quote delimiters when the value contains an apostrophe.
+    Double-quoted tokens are identifiers in BigQuery, causing syntax errors.
+    """
+    from sqlalchemy import column as sa_column
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec  # noqa: F811
+
+    # Ensure the monkey-patch was applied
+    assert BigQueryEngineSpec  # trigger module load / patch
+
+    dialect = BigQueryDialect()
+
+    stmt = select(sa_column("name")).where(sa_column("name") == "Fernando's")
+    compiled_sql = str(
+        stmt.compile(dialect=dialect, compile_kwargs={"literal_binds": True})
+    )
+
+    # The compiled SQL must use single-quoted literal with doubled apostrophes.
+    # It must NOT contain backslash-escaped or double-quoted forms.
+    assert "= 'Fernando''s'" in compiled_sql
+    assert '\\"' not in compiled_sql
+    assert "\\'" not in compiled_sql
+
+
+def test_string_literal_without_apostrophe() -> None:
+    """
+    Test that normal string literals (without apostrophes) still compile
+    correctly after the monkey-patch.
+    """
+    from sqlalchemy import column as sa_column
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec  # noqa: F811
+
+    assert BigQueryEngineSpec
+
+    dialect = BigQueryDialect()
+
+    stmt = select(sa_column("name")).where(sa_column("name") == "Fernando")
+    compiled_sql = str(
+        stmt.compile(dialect=dialect, compile_kwargs={"literal_binds": True})
+    )
+
+    assert "= 'Fernando'" in compiled_sql
+
+
+def test_string_literal_in_filter_with_apostrophe() -> None:
+    """
+    Test that IN filters with apostrophes in values compile correctly.
+    """
+    from sqlalchemy import column as sa_column
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec  # noqa: F811
+
+    assert BigQueryEngineSpec
+
+    dialect = BigQueryDialect()
+
+    stmt = select(sa_column("name")).where(
+        sa_column("name").in_(["Fernando's", "O'Brien"])
+    )
+    compiled_sql = str(
+        stmt.compile(dialect=dialect, compile_kwargs={"literal_binds": True})
+    )
+
+    assert "'Fernando''s'" in compiled_sql
+    assert "'O''Brien'" in compiled_sql
