@@ -859,10 +859,16 @@ test('should handle product categories with subcategories', () => {
     ['Clothing', 'Pants', 'Jeans'],
   ];
   const data = {
+    Electronics: 2100,
+    'Electronics|Phones': 900,
     'Electronics|Phones|iPhone': 500,
     'Electronics|Phones|Samsung': 400,
+    'Electronics|Laptops': 1200,
     'Electronics|Laptops|MacBook': 1200,
+    Clothing: 2550,
+    'Clothing|Shirts': 1400,
     'Clothing|Shirts|T-Shirt': 1400,
+    'Clothing|Pants': 1150,
     'Clothing|Pants|Jeans': 1150,
   };
 

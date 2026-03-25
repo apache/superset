@@ -202,9 +202,9 @@ function buildGroupAggregates(
   const terminalKeys = keys.filter(
     key =>
       !keys.some(
-        other =>
-          other.length > key.length &&
-          key.every((segment, idx) => other[idx] === segment),
+        ancestorKey =>
+          ancestorKey.length > key.length &&
+          key.every((segment, idx) => ancestorKey[idx] === segment),
       ),
   );
   for (const key of terminalKeys) {
@@ -235,47 +235,57 @@ function createHierarchicalComparator(
   asc: boolean,
   dataFunc: DataFunction,
 ): (a: string[], b: string[]) => number {
-  const topBasis = top ? 1 : -1;
-  const orderBasis = asc ? 1 : -1;
+  const hierarchyMultiplier = top ? 1 : -1;
+  const valueMultiplier = asc ? 1 : -1;
 
-  return (a: string[], b: string[]): number => {
-    let current: GroupNode = groups;
-    const maxDepth = Math.max(a.length, b.length) - 1;
+  return (a: string[], b: string[]) => {
+    const minLen = Math.min(a.length, b.length);
+    let currentGroup: GroupNode = groups;
+    let diffIndex = -1;
 
-    for (let depth = 0; depth < maxDepth; depth += 1) {
-      const aSeg = a[depth];
-      const bSeg = b[depth];
-
-      if (aSeg !== bSeg) {
-        const nodeA = current[aSeg] as GroupNode | undefined;
-        const nodeB = current[bSeg] as GroupNode | undefined;
-        const sumA = nodeA?.auto_agg_sum ?? 0;
-        const sumB = nodeB?.auto_agg_sum ?? 0;
-
-        if (sumA === sumB) {
-          return aSeg.localeCompare(bSeg);
-        }
-        return (sumA > sumB ? 1 : -1) * orderBasis;
+    for (let i = 0; i < minLen; i++) {
+      if (a[i] !== b[i]) {
+        diffIndex = i;
+        break;
       }
-      if (depth + 1 <= maxDepth && depth + 1 >= b.length) {
-        return topBasis;
-      }
-      if (depth + 1 <= maxDepth && depth + 1 >= a.length) {
-        return -topBasis;
-      }
-
-      current = current[aSeg] as GroupNode;
+      currentGroup = currentGroup[a[i]] as GroupNode;
     }
 
-    const valA = dataFunc(a, []) as string | number | null;
-    const valB = dataFunc(b, []) as string | number | null;
-    const valueOrder = naturalSort(valA, valB) * orderBasis;
-
-    if (valueOrder === 0) {
-      return (a[a.length - 1] ?? '').localeCompare(b[b.length - 1] ?? '');
+    if (diffIndex === -1 && a.length !== b.length) {
+      return (a.length < b.length ? -1 : 1) * hierarchyMultiplier;
     }
 
-    return valueOrder;
+    const isLastLevelComparison =
+      diffIndex === -1 ||
+      (diffIndex === a.length - 1 && diffIndex === b.length - 1);
+
+    if (isLastLevelComparison) {
+      const valA = dataFunc(a, []) as string | number | null;
+      const valB = dataFunc(b, []) as string | number | null;
+
+      let result = naturalSort(valA, valB) * valueMultiplier;
+
+      if (result === 0) {
+        const lastA = a[a.length - 1] ?? '';
+        const lastB = b[b.length - 1] ?? '';
+        return lastA.localeCompare(lastB);
+      }
+      return result;
+    }
+
+    const segmentA = a[diffIndex];
+    const segmentB = b[diffIndex];
+
+    const nodeA = currentGroup[segmentA] as GroupNode | undefined;
+    const nodeB = currentGroup[segmentB] as GroupNode | undefined;
+
+    const sumA = nodeA?.auto_agg_sum ?? 0;
+    const sumB = nodeB?.auto_agg_sum ?? 0;
+
+    if (sumA === sumB) {
+      return segmentA.localeCompare(segmentB);
+    }
+    return (sumA > sumB ? 1 : -1) * valueMultiplier;
   };
 }
 
