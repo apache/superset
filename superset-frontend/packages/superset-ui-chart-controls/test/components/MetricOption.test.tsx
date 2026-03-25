@@ -17,6 +17,7 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
+<<<<<<< HEAD
 import { render } from '@superset-ui/core/spec';
 import {
   MetricOption,
@@ -61,15 +62,65 @@ const defaultProps = {
 
 const setup = (props: Partial<MetricOptionProps> = {}) =>
   render(<MetricOption {...defaultProps} {...props} />);
+=======
+import { render } from '@testing-library/react';
+import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+import { MetricOption, MetricOptionProps } from '../../src';
+
+jest.mock('../../src/components/InfoTooltipWithTrigger', () => () => (
+  <div data-test="mock-info-tooltip-with-trigger" />
+));
+jest.mock('../../src/components/ColumnTypeLabel/ColumnTypeLabel', () => ({
+  ColumnTypeLabel: () => <div data-test="mock-column-type-label" />,
+}));
+jest.mock(
+  '../../src/components/Tooltip',
+  () =>
+    ({ children }: { children: React.ReactNode }) => (
+      <div data-test="mock-tooltip">{children}</div>
+    ),
+);
+jest.mock('../../src/components/SQLPopover', () => ({
+  SQLPopover: () => <div data-test="mock-sql-popover" />,
+}));
+
+const defaultProps = {
+  metric: {
+    metric_name: 'foo',
+    verbose_name: 'Foo',
+    expression: 'SUM(foo)',
+    label: 'test',
+    description: 'Foo is the greatest metric of all',
+    warning_text: 'Be careful when using foo',
+  },
+  openInNewWindow: false,
+  showFormula: true,
+  showType: true,
+  url: '',
+};
+
+const setup = (props: Partial<MetricOptionProps> = {}) =>
+  render(
+    <ThemeProvider theme={supersetTheme}>
+      <MetricOption {...defaultProps} {...props} />
+    </ThemeProvider>,
+  );
+>>>>>>> origin/avenmaster
 test('shows a label with verbose_name', () => {
   const { container } = setup();
   const lbl = container.getElementsByClassName('option-label');
   expect(lbl).toHaveLength(1);
   expect(`${lbl[0].textContent}`).toEqual(defaultProps.metric.verbose_name);
 });
+<<<<<<< HEAD
 test('shows a InfoTooltip', () => {
   const { getByTestId } = setup();
   expect(getByTestId('mock-tooltip')).toBeInTheDocument();
+=======
+test('shows a InfoTooltipWithTrigger', () => {
+  const { getByTestId } = setup();
+  expect(getByTestId('mock-info-tooltip-with-trigger')).toBeInTheDocument();
+>>>>>>> origin/avenmaster
 });
 test('shows SQL Popover trigger', () => {
   const { getByTestId } = setup();
@@ -84,14 +135,22 @@ test('shows a label with metric_name when no verbose_name', () => {
   });
   expect(getByText(defaultProps.metric.metric_name)).toBeInTheDocument();
 });
+<<<<<<< HEAD
 test('doesnt show InfoTooltip when no warning', () => {
+=======
+test('doesnt show InfoTooltipWithTrigger when no warning', () => {
+>>>>>>> origin/avenmaster
   const { queryByText } = setup({
     metric: {
       ...defaultProps.metric,
       warning_text: '',
     },
   });
+<<<<<<< HEAD
   expect(queryByText('mock-tooltip')).not.toBeInTheDocument();
+=======
+  expect(queryByText('mock-info-tooltip-with-trigger')).not.toBeInTheDocument();
+>>>>>>> origin/avenmaster
 });
 test('sets target="_blank" when openInNewWindow is true', () => {
   const { getByRole } = setup({

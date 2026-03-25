@@ -218,8 +218,12 @@ export default function EchartsTimeseries({
 
   const eventHandlers: EventHandlers = {
     click: props => {
+<<<<<<< HEAD
       // Allow cross-filter by dimensions OR by categorical X-axis (issue #25334)
       if (!hasDimensions && !canCrossFilterByXAxis) {
+=======
+      if (!hasDimensions) {
+>>>>>>> origin/avenmaster
         return;
       }
       if (clickTimer.current) {
@@ -322,7 +326,13 @@ export default function EchartsTimeseries({
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillToDetailFilters,
           drillBy: { filters: drillByFilters, groupbyFieldName: 'groupby' },
+<<<<<<< HEAD
           crossFilter,
+=======
+          crossFilter: hasDimensions
+            ? getCrossFilterDataMask(seriesName)
+            : undefined,
+>>>>>>> origin/avenmaster
         });
       }
     },

@@ -998,7 +998,10 @@ const SqlEditor: FC<Props> = ({
               startQuery={startQuery}
             />
           )}
+<<<<<<< HEAD
           {queryEditor.isDataset && renderDatasetWarning()}
+=======
+>>>>>>> origin/avenmaster
           {isActive && (
             <AceEditorWrapper
               autocomplete={autocompleteEnabled}

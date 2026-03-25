@@ -82,7 +82,11 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         "slug": "slug1_changed",
         "position_json": '{"b": "B"}',
         "css": "css_changed",
+<<<<<<< HEAD
         "json_metadata": '{"refresh_frequency": 30, "timed_refresh_immune_slices": [], "expanded_slices": {}, "color_scheme": "", "label_colors": {}, "shared_label_colors": [], "map_label_colors": {}, "color_scheme_domain": [], "cross_filters_enabled": false}',  # noqa: E501
+=======
+        "json_metadata": '{"refresh_frequency": 30, "timed_refresh_immune_slices": [], "expanded_slices": {}, "color_scheme": "", "label_colors": {}, "shared_label_colors": [], "map_label_colors": {}, "color_scheme_domain": [], "cross_filters_enabled": false}',
+>>>>>>> origin/avenmaster
         "published": False,
     }
 
@@ -3006,7 +3010,9 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
-    def test_cache_dashboard_screenshot_success(self):
+    @patch("superset.dashboards.api.is_feature_enabled")
+    def test_cache_dashboard_screenshot_success(self, is_feature_enabled):
+        is_feature_enabled.return_value = True
         self.login(ADMIN_USERNAME)
         dashboard = (
             db.session.query(Dashboard)
@@ -3030,7 +3036,9 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
-    def test_cache_dashboard_screenshot_dashboard_validation(self):
+    @patch("superset.dashboards.api.is_feature_enabled")
+    def test_cache_dashboard_screenshot_dashboard_validation(self, is_feature_enabled):
+        is_feature_enabled.return_value = True
         self.login(ADMIN_USERNAME)
         dashboard = (
             db.session.query(Dashboard)
@@ -3046,8 +3054,14 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         response = self._cache_screenshot(dashboard.id, invalid_payload)
         assert response.status_code == 400
 
+<<<<<<< HEAD
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     def test_cache_dashboard_screenshot_dashboard_not_found(self):
+=======
+    @patch("superset.dashboards.api.is_feature_enabled")
+    def test_cache_dashboard_screenshot_dashboard_not_found(self, is_feature_enabled):
+        is_feature_enabled.return_value = True
+>>>>>>> origin/avenmaster
         self.login(ADMIN_USERNAME)
         non_existent_id = 999
         response = self._cache_screenshot(non_existent_id)
@@ -3057,10 +3071,18 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+<<<<<<< HEAD
     def test_screenshot_success_png(self, mock_get_from_cache_key, mock_cache_task):
+=======
+    @patch("superset.dashboards.api.is_feature_enabled")
+    def test_screenshot_success_png(
+        self, is_feature_enabled, mock_get_cache, mock_cache_task
+    ):
+>>>>>>> origin/avenmaster
         """
         Validate screenshot returns png
         """
+        is_feature_enabled.return_value = True
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
         mock_get_from_cache_key.return_value = ScreenshotCachePayload(
@@ -3090,15 +3112,21 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
     @patch("superset.dashboards.api.build_pdf_from_screenshots")
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    @patch("superset.dashboards.api.is_feature_enabled")
     def test_screenshot_success_pdf(
+<<<<<<< HEAD
         self,
         mock_get_from_cache_key,
         mock_build_pdf,
         mock_cache_task,
+=======
+        self, is_feature_enabled, mock_get_from_cache, mock_build_pdf, mock_cache_task
+>>>>>>> origin/avenmaster
     ):
         """
         Validate screenshot can return pdf.
         """
+        is_feature_enabled.return_value = True
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
         mock_get_from_cache_key.return_value = ScreenshotCachePayload(
@@ -3128,7 +3156,11 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
-    def test_screenshot_not_in_cache(self, mock_get_cache, mock_cache_task):
+    @patch("superset.dashboards.api.is_feature_enabled")
+    def test_screenshot_not_in_cache(
+        self, is_feature_enabled, mock_get_cache, mock_cache_task
+    ):
+        is_feature_enabled.return_value = True
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
         mock_get_cache.return_value = None
@@ -3145,8 +3177,14 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         response = self._get_screenshot(dashboard.id, cache_key, "pdf")
         assert response.status_code == 404
 
+<<<<<<< HEAD
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     def test_screenshot_dashboard_not_found(self):
+=======
+    @patch("superset.dashboards.api.is_feature_enabled")
+    def test_screenshot_dashboard_not_found(self, is_feature_enabled):
+        is_feature_enabled.return_value = True
+>>>>>>> origin/avenmaster
         self.login(ADMIN_USERNAME)
         non_existent_id = 999
         response = self._get_screenshot(non_existent_id, "some_cache_key", "png")
@@ -3156,9 +3194,17 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+<<<<<<< HEAD
     def test_screenshot_invalid_download_format(
         self, mock_get_from_cache_key, mock_cache_task
     ):
+=======
+    @patch("superset.dashboards.api.is_feature_enabled")
+    def test_screenshot_invalid_download_format(
+        self, is_feature_enabled, mock_get_cache, mock_cache_task
+    ):
+        is_feature_enabled.return_value = True
+>>>>>>> origin/avenmaster
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
         mock_get_from_cache_key.return_value = ScreenshotCachePayload(b"fake png data")
@@ -3180,9 +3226,16 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         response = self._get_screenshot(dashboard.id, cache_key, "invalid")
         assert response.status_code == 404
 
+<<<<<<< HEAD
     @with_feature_flags(THUMBNAILS=False, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     def test_cache_dashboard_screenshot_feature_thumbnails_ff_disabled(self):
+=======
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.is_feature_enabled")
+    def test_cache_dashboard_screenshot_feature_disabled(self, is_feature_enabled):
+        is_feature_enabled.return_value = False
+>>>>>>> origin/avenmaster
         self.login(ADMIN_USERNAME)
 
         dashboard = (
@@ -3195,6 +3248,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         response = self._cache_screenshot(dashboard.id)
         assert response.status_code == 404
+<<<<<<< HEAD
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=False)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
@@ -3338,3 +3392,5 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             # Cleanup
             db.session.delete(dashboard)
             db.session.commit()
+=======
+>>>>>>> origin/avenmaster

@@ -17,7 +17,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
+<<<<<<< HEAD
 "POT-Creation-Date: 2025-04-29 12:34+0330\n"
+=======
+"POT-Creation-Date: 2024-07-30 17:32-0600\n"
+>>>>>>> origin/avenmaster
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -7928,10 +7932,13 @@ msgid ""
 " or username."
 msgstr "所有者是一個用戶列表，這些用戶有權限修改仪表板。可按名稱或用戶名搜索。"
 
+<<<<<<< HEAD
 #, fuzzy
 msgid "PDF download failed, please refresh and try again."
 msgstr "圖片發送失敗，請刷新或重試"
 
+=======
+>>>>>>> origin/avenmaster
 msgid "Page length"
 msgstr "頁長"
 
@@ -11412,6 +11419,7 @@ msgstr "該模式已在資料庫中删除或重命名。"
 msgid "The screenshot could not be downloaded. Please, try again later."
 msgstr ""
 
+<<<<<<< HEAD
 #, fuzzy
 msgid "The screenshot has been downloaded."
 msgstr "報告已創建"
@@ -11422,6 +11430,13 @@ msgstr ""
 #, fuzzy
 msgid "The service url of the layer"
 msgstr "在圖表上顯示系列值"
+=======
+msgid "The screenshot is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "The screenshot is now being downloaded."
+msgstr ""
+>>>>>>> origin/avenmaster
 
 #, fuzzy
 msgid "The size of each cell in meters"
@@ -11608,10 +11623,13 @@ msgstr "獲取此看板的收藏夹狀態時出現問題：%s。"
 #, fuzzy
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "獲取此看板的收藏夹狀態時出現問題：%s。"
+<<<<<<< HEAD
 
 #, fuzzy
 msgid "There was an error generating the permalink."
 msgstr "抱歉，這個看板在獲取圖表時發生錯誤："
+=======
+>>>>>>> origin/avenmaster
 
 #, fuzzy
 msgid "There was an error loading the catalogs"
@@ -14233,10 +14251,13 @@ msgid "invalid email"
 msgstr "無效狀態。"
 
 #, fuzzy
+<<<<<<< HEAD
 msgid "is"
 msgstr "處於"
 
 #, fuzzy
+=======
+>>>>>>> origin/avenmaster
 msgid "is expected to be a Mapbox URL"
 msgstr "應該為 MapBox 的 URL"
 

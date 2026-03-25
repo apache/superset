@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+<<<<<<< HEAD
 import json  # noqa: TID251
 from datetime import datetime
 from unittest.mock import patch
@@ -37,6 +38,17 @@ from superset.reports.models import (
 from superset.utils.core import HeaderDataType
 from superset.utils.screenshots import ChartScreenshot
 from tests.integration_tests.conftest import with_feature_flags
+=======
+from pytest_mock import MockerFixture
+
+from superset.commands.report.execute import BaseReportState
+from superset.reports.models import (
+    ReportRecipientType,
+    ReportSchedule,
+    ReportSourceFormat,
+)
+from superset.utils.core import HeaderDataType
+>>>>>>> origin/avenmaster
 
 
 def test_log_data_with_chart(mocker: MockerFixture) -> None:
@@ -64,7 +76,10 @@ def test_log_data_with_chart(mocker: MockerFixture) -> None:
         "dashboard_id": None,
         "owners": [1, 2],
         "slack_channels": None,
+<<<<<<< HEAD
         "execution_id": "execution_id_example",
+=======
+>>>>>>> origin/avenmaster
     }
 
     assert result == expected_result
@@ -95,7 +110,10 @@ def test_log_data_with_dashboard(mocker: MockerFixture) -> None:
         "dashboard_id": 123,
         "owners": [1, 2],
         "slack_channels": None,
+<<<<<<< HEAD
         "execution_id": "execution_id_example",
+=======
+>>>>>>> origin/avenmaster
     }
 
     assert result == expected_result
@@ -130,7 +148,10 @@ def test_log_data_with_email_recipients(mocker: MockerFixture) -> None:
         "dashboard_id": 123,
         "owners": [1, 2],
         "slack_channels": [],
+<<<<<<< HEAD
         "execution_id": "execution_id_example",
+=======
+>>>>>>> origin/avenmaster
     }
 
     assert result == expected_result
@@ -165,7 +186,10 @@ def test_log_data_with_slack_recipients(mocker: MockerFixture) -> None:
         "dashboard_id": 123,
         "owners": [1, 2],
         "slack_channels": ["channel_1", "channel_2"],
+<<<<<<< HEAD
         "execution_id": "execution_id_example",
+=======
+>>>>>>> origin/avenmaster
     }
 
     assert result == expected_result
@@ -199,7 +223,10 @@ def test_log_data_no_owners(mocker: MockerFixture) -> None:
         "dashboard_id": 123,
         "owners": [],
         "slack_channels": ["channel_1", "channel_2"],
+<<<<<<< HEAD
         "execution_id": "execution_id_example",
+=======
+>>>>>>> origin/avenmaster
     }
 
     assert result == expected_result
@@ -235,6 +262,7 @@ def test_log_data_with_missing_values(mocker: MockerFixture) -> None:
         "dashboard_id": None,
         "owners": [1, 2],
         "slack_channels": ["channel_1", "channel_2"],
+<<<<<<< HEAD
         "execution_id": "execution_id_example",
     }
 
@@ -582,3 +610,8 @@ def test_update_recipient_to_slack_v2_missing_channels(mocker: MockerFixture):
     )
     with pytest.raises(UpdateFailedError):
         mock_cmmd.update_report_schedule_slack_v2()
+=======
+    }
+
+    assert result == expected_result
+>>>>>>> origin/avenmaster

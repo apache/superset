@@ -27,6 +27,11 @@ export { default as columnChoices, columnsByType } from './columnChoices';
 export * from './defineSavedMetrics';
 export * from './getStandardizedControls';
 export * from './getTemporalColumns';
+<<<<<<< HEAD
 export * from './displayTimeRelatedControls';
 export * from './colorControls';
 export * from './metricColumnFilter';
+=======
+export { default as displayTimeRelatedControls } from './displayTimeRelatedControls';
+export * from './colorControls';
+>>>>>>> origin/avenmaster

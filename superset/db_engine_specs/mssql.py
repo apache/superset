@@ -54,6 +54,10 @@ class MssqlEngineSpec(BaseEngineSpec):
     engine_name = "Microsoft SQL Server"
     max_column_name_length = 128
     allows_cte_in_subquery = False
+<<<<<<< HEAD
+=======
+    allow_limit_clause = False
+>>>>>>> origin/avenmaster
     supports_multivalues_insert = True
 
     _time_grain_expressions = {

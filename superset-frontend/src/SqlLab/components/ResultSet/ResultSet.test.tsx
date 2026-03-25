@@ -361,6 +361,18 @@ describe('ResultSet', () => {
     ).toBeInTheDocument();
   });
 
+  test('should render a timeout error with a retrial button', async () => {
+    await waitFor(() => {
+      setup(
+        { ...mockedProps, queryId: failedQueryWithFrontendTimeoutErrors.id },
+        mockStore(failedQueryWithTimeoutState),
+      );
+    });
+    expect(
+      screen.getByRole('button', { name: /Retry fetching results/i }),
+    ).toBeInTheDocument();
+  });
+
   test('renders if there is no limit in query.results but has queryLimit', async () => {
     const query = {
       ...queries[0],

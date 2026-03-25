@@ -62,7 +62,45 @@ import { usePermissions } from 'src/hooks/usePermissions';
 import { useDatasetDrillInfo } from 'src/hooks/apiResources/datasets';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
+<<<<<<< HEAD
 import { ViewResultsModalTrigger } from './ViewResultsModalTrigger';
+=======
+import ExportSliceToGoogleSheet from './ExportSliceToGoogleSheet';
+
+const ACTION_KEYS = {
+  enter: 'Enter',
+  spacebar: 'Spacebar',
+  space: ' ',
+};
+
+const NAV_KEYS = {
+  tab: 'Tab',
+  escape: 'Escape',
+  up: 'ArrowUp',
+  down: 'ArrowDown',
+};
+
+// TODO: replace 3 dots with an icon
+const VerticalDotsContainer = styled.div`
+  padding: ${({ theme }) => theme.gridUnit / 4}px
+    ${({ theme }) => theme.gridUnit * 1.5}px;
+
+  .dot {
+    display: block;
+
+    height: ${({ theme }) => theme.gridUnit}px;
+    width: ${({ theme }) => theme.gridUnit}px;
+    border-radius: 50%;
+    margin: ${({ theme }) => theme.gridUnit / 2}px 0;
+
+    background-color: ${({ theme }) => theme.colors.text.label};
+  }
+
+  &:hover {
+    cursor: pointer;
+  }
+`;
+>>>>>>> origin/avenmaster
 
 const RefreshTooltip = styled.div`
   ${({ theme }) => css`
@@ -479,6 +517,7 @@ const SliceHeaderControls = (
     newMenuItems.push(...drillDetailMenuItems);
   }
 
+<<<<<<< HEAD
   if (slice.description || canExplore) {
     newMenuItems.push({ type: 'divider' });
   }
@@ -541,6 +580,19 @@ const SliceHeaderControls = (
       ],
     });
   }
+=======
+          <Menu.Item
+            key={MenuKeys.DownloadAsImage}
+            icon={<Icons.FileImageOutlined css={dropdownIconsStyles} />}
+          >
+            {t('Download as Image')}
+          </Menu.Item>
+          <ExportSliceToGoogleSheet sliceId={props.slice.slice_id} />
+        </Menu.SubMenu>
+      )}
+    </Menu>
+  );
+>>>>>>> origin/avenmaster
 
   return (
     <>

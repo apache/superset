@@ -50,6 +50,11 @@ export enum FeatureFlag {
   EstimateQueryCost = 'ESTIMATE_QUERY_COST',
   FilterBarClosedByDefault = 'FILTERBAR_CLOSED_BY_DEFAULT',
   GlobalAsyncQueries = 'GLOBAL_ASYNC_QUERIES',
+<<<<<<< HEAD
+=======
+  GoogleSheetsExport = 'GOOGLE_SHEETS_EXPORT',
+  HorizontalFilterBar = 'HORIZONTAL_FILTER_BAR',
+>>>>>>> origin/avenmaster
   ListviewsDefaultCardView = 'LISTVIEWS_DEFAULT_CARD_VIEW',
   ScheduledQueries = 'SCHEDULED_QUERIES',
   SqllabBackendPersistence = 'SQLLAB_BACKEND_PERSISTENCE',
@@ -62,8 +67,11 @@ export enum FeatureFlag {
   SlackEnableAvatars = 'SLACK_ENABLE_AVATARS',
   EnableDashboardScreenshotEndpoints = 'ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS',
   EnableDashboardDownloadWebDriverScreenshot = 'ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT',
+<<<<<<< HEAD
   TableV2TimeComparisonEnabled = 'TABLE_V2_TIME_COMPARISON_ENABLED',
   AgGridTableEnabled = 'AG_GRID_TABLE_ENABLED',
+=======
+>>>>>>> origin/avenmaster
 }
 
 export type ScheduleQueriesProps = {

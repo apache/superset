@@ -147,6 +147,7 @@ export interface SQLResultTableExtensionProps {
   filterText?: string;
   expandedColumns?: string[];
   allowHTML?: boolean;
+<<<<<<< HEAD
 }
 
 export interface SQLTablePreviewExtensionProps {
@@ -154,6 +155,8 @@ export interface SQLTablePreviewExtensionProps {
   catalog?: string;
   schema: string;
   tableName: string;
+=======
+>>>>>>> origin/avenmaster
 }
 
 /**

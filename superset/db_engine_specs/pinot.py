@@ -26,8 +26,11 @@ class PinotEngineSpec(BaseEngineSpec):
     engine = "pinot"
     engine_name = "Apache Pinot"
 
+<<<<<<< HEAD
     allows_subqueries = False
     allows_joins = False
+=======
+>>>>>>> origin/avenmaster
     allows_alias_in_select = False
     allows_alias_in_orderby = False
 

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+<<<<<<< HEAD:superset-frontend/packages/superset-ui-core/src/components/CachedLabel/CachedLabel.test.tsx
 
 import { isValidElement } from 'react';
 import { render, screen } from '@superset-ui/core/spec';
@@ -40,4 +41,31 @@ describe('CachedLabel', () => {
     const label = screen.getByText(/cached/i);
     expect(label).toBeVisible();
   });
+=======
+import { render } from 'spec/helpers/testing-library';
+import { IconTooltip } from 'src/components/IconTooltip';
+
+jest.mock('src/components/Tooltip', () => ({
+  Tooltip: () => <div data-test="mock-tooltip" />,
+}));
+
+const mockedProps = {
+  tooltip: 'This is a tooltip',
+};
+test('renders', () => {
+  const { container } = render(<IconTooltip>TEST</IconTooltip>);
+  expect(container).toBeInTheDocument();
+});
+test('renders with props', () => {
+  const { container } = render(
+    <IconTooltip {...mockedProps}>TEST</IconTooltip>,
+  );
+  expect(container).toBeInTheDocument();
+});
+test('renders a tooltip', () => {
+  const { getByTestId } = render(
+    <IconTooltip {...mockedProps}>TEST</IconTooltip>,
+  );
+  expect(getByTestId('mock-tooltip')).toBeInTheDocument();
+>>>>>>> origin/avenmaster:superset-frontend/src/components/IconTooltip/IconTooltip.test.jsx
 });

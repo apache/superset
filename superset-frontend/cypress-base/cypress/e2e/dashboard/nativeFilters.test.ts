@@ -17,12 +17,30 @@
  * under the License.
  */
 import {
+<<<<<<< HEAD
   nativeFilters,
   exploreView,
+=======
+  dashboardView,
+>>>>>>> origin/avenmaster
   dataTestChartName,
+  exploreView,
+  nativeFilters,
 } from 'cypress/support/directories';
+<<<<<<< HEAD
 
 import {
+=======
+import qs from 'querystring';
+
+import {
+  prepareDashboardFilters,
+  SAMPLE_CHART,
+  visitDashboard,
+} from './shared_dashboard_functions';
+import {
+  addCountryNameFilter,
+>>>>>>> origin/avenmaster
   addParentFilterWithValue,
   applyNativeFilterValueWithIndex,
   cancelNativeFilterSettings,
@@ -33,11 +51,16 @@ import {
   expandFilterOnLeftPanel,
   getNativeFilterPlaceholderWithIndex,
   inputNativeFilterDefaultValue,
-  saveNativeFilterSettings,
   nativeFilterTooltips,
+<<<<<<< HEAD
+=======
+  saveNativeFilterSettings,
+  testItems,
+  undoDeleteNativeFilter,
+>>>>>>> origin/avenmaster
   validateFilterContentOnDashboard,
-  valueNativeFilterOptions,
   validateFilterNameOnDashboard,
+<<<<<<< HEAD
   testItems,
 } from './utils';
 import {
@@ -45,6 +68,11 @@ import {
   SAMPLE_CHART,
   visitDashboard,
 } from './shared_dashboard_functions';
+=======
+  valueNativeFilterOptions,
+  WORLD_HEALTH_CHARTS,
+} from './utils';
+>>>>>>> origin/avenmaster
 
 function selectFilter(index: number) {
   cy.get("[data-test='filter-title-container'] [draggable='true']")

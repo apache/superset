@@ -299,10 +299,16 @@ const RightMenu = ({
     "Enable 'Allow file uploads to database' in any database's settings",
   );
 
+<<<<<<< HEAD
   const buildMenuItem = (item: MenuObjectChildProps): MenuItem => ({
     key: item.name || item.label,
     label: item.disable ? (
       <StyledMenuItem disabled>
+=======
+  const buildMenuItem = (item: MenuObjectChildProps) =>
+    item.disable ? (
+      <Menu.Item key={item.name} css={styledDisabled} disabled>
+>>>>>>> origin/avenmaster
         <Tooltip placement="top" title={tooltipText}>
           {item.label}
         </Tooltip>

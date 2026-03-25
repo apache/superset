@@ -39,7 +39,11 @@ class QueryPruneCommand(BaseCommand):
     Attributes:
         retention_period_days (int): The number of days for which records should be retained.
                                      Records older than this period will be deleted.
+<<<<<<< HEAD
     """  # noqa: E501
+=======
+    """
+>>>>>>> origin/avenmaster
 
     def __init__(self, retention_period_days: int):
         """
@@ -69,7 +73,11 @@ class QueryPruneCommand(BaseCommand):
 
         total_rows = len(ids_to_delete)
 
+<<<<<<< HEAD
         logger.info("Total rows to be deleted: %s", f"{total_rows:,}")
+=======
+        logger.info("Total rows to be deleted: %s", total_rows)
+>>>>>>> origin/avenmaster
 
         next_logging_threshold = 1
 
@@ -83,7 +91,11 @@ class QueryPruneCommand(BaseCommand):
             # Update the total number of deleted records
             total_deleted += result.rowcount
 
+<<<<<<< HEAD
             # Explicitly commit the transaction given that if an error occurs, we want to ensure that the  # noqa: E501
+=======
+            # Explicitly commit the transaction given that if an error occurs, we want to ensure that the
+>>>>>>> origin/avenmaster
             # records that have been deleted so far are committed
             db.session.commit()
 
@@ -91,8 +103,13 @@ class QueryPruneCommand(BaseCommand):
             percentage_complete = (total_deleted / total_rows) * 100
             if percentage_complete >= next_logging_threshold:
                 logger.info(
+<<<<<<< HEAD
                     "Deleted %s rows from the query table older than %s days (%d%% complete)",  # noqa: E501
                     f"{total_deleted:,}",
+=======
+                    "Deleted %s rows from the query table older than %s days (%d%% complete)",
+                    total_deleted,
+>>>>>>> origin/avenmaster
                     self.retention_period_days,
                     percentage_complete,
                 )
@@ -102,9 +119,13 @@ class QueryPruneCommand(BaseCommand):
         minutes, seconds = divmod(elapsed_time, 60)
         formatted_time = f"{int(minutes):02}:{int(seconds):02}"
         logger.info(
+<<<<<<< HEAD
             "Pruning complete: %s rows deleted in %s",
             f"{total_deleted:,}",
             formatted_time,
+=======
+            "Pruning complete: %s rows deleted in %s", total_deleted, formatted_time
+>>>>>>> origin/avenmaster
         )
 
     def validate(self) -> None:

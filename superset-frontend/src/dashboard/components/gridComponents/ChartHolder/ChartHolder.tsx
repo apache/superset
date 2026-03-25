@@ -70,7 +70,11 @@ interface ChartHolderProps {
   isInView: boolean;
 }
 
+<<<<<<< HEAD:superset-frontend/src/dashboard/components/gridComponents/ChartHolder/ChartHolder.tsx
 const ChartHolder = ({
+=======
+const ChartHolder: React.FC<ChartHolderProps> = ({
+>>>>>>> origin/avenmaster:superset-frontend/src/dashboard/components/gridComponents/ChartHolder.tsx
   id,
   parentId,
   component,
@@ -92,6 +96,7 @@ const ChartHolder = ({
   handleComponentDrop,
   setFullSizeChartId,
   isInView,
+<<<<<<< HEAD:superset-frontend/src/dashboard/components/gridComponents/ChartHolder/ChartHolder.tsx
 }: ChartHolderProps) => {
   const theme = useTheme();
   const fullSizeStyle = css`
@@ -101,6 +106,17 @@ const ChartHolder = ({
       left: 0;
       top: 0;
       padding: ${theme.sizeUnit * 2}px;
+=======
+}) => {
+  const theme = useTheme();
+  const fullSizeStyle = css`
+    && {
+      position: fixed;
+      z-index: 3000;
+      left: 0;
+      top: 0;
+      padding: ${theme.gridUnit * 2}px;
+>>>>>>> origin/avenmaster:superset-frontend/src/dashboard/components/gridComponents/ChartHolder.tsx
     }
   `;
   const { chartId } = component.meta;

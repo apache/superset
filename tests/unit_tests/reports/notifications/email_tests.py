@@ -47,12 +47,19 @@ def test_render_description_with_html() -> None:
             "chart_id": None,
             "dashboard_id": None,
             "slack_channels": None,
+<<<<<<< HEAD
             "execution_id": "test-execution-id",
+=======
+>>>>>>> origin/avenmaster
         },
     )
     email_body = (
         EmailNotification(
-            recipient=ReportRecipients(type=ReportRecipientType.EMAIL), content=content
+            recipient=ReportRecipients(
+                type=ReportRecipientType.EMAIL,
+                recipient_config_json='{"target": "test@example.com"}',
+            ),
+            content=content,
         )
         ._get_content()
         .body
@@ -64,14 +71,19 @@ def test_render_description_with_html() -> None:
     assert '<td>&lt;a href="http://www.example.com"&gt;333&lt;/a&gt;</td>' in email_body
 
 
+<<<<<<< HEAD
 @with_feature_flags(DATE_FORMAT_IN_EMAIL_SUBJECT=True)
 def test_email_subject_with_datetime() -> None:
+=======
+def test_dont_include_cta_for_external_email() -> None:
+>>>>>>> origin/avenmaster
     # `superset.models.helpers`, a dependency of following imports,
     # requires app context
     from superset.reports.models import ReportRecipients, ReportRecipientType
     from superset.reports.notifications.base import NotificationContent
     from superset.reports.notifications.email import EmailNotification
 
+<<<<<<< HEAD
     now = datetime.now(timezone("UTC"))
 
     datetime_pattern = "%Y-%m-%d"
@@ -81,6 +93,15 @@ def test_email_subject_with_datetime() -> None:
         embedded_data=pd.DataFrame(
             {
                 "A": [1, 2, 3],
+=======
+    content = NotificationContent(
+        name="test alert",
+        embedded_data=pd.DataFrame(
+            {
+                "A": [1, 2, 3],
+                "B": [4, 5, 6],
+                "C": ["111", "222", '<a href="http://www.example.com">333</a>'],
+>>>>>>> origin/avenmaster
             }
         ),
         description='<p>This is <a href="#">a test</a> alert</p><br />',
@@ -92,6 +113,7 @@ def test_email_subject_with_datetime() -> None:
             "chart_id": None,
             "dashboard_id": None,
             "slack_channels": None,
+<<<<<<< HEAD
             "execution_id": "test-execution-id",
         },
     )
@@ -100,3 +122,70 @@ def test_email_subject_with_datetime() -> None:
     )._get_subject()
     assert datetime_pattern not in subject
     assert now.strftime(datetime_pattern) in subject
+=======
+        },
+    )
+    email_body = (
+        EmailNotification(
+            recipient=ReportRecipients(
+                type=ReportRecipientType.EMAIL,
+                recipient_config_json='{"target": "test@example.com, test@aven.com, test@gmail.com"}',
+            ),
+            content=content,
+        )
+        ._get_content()
+        .body
+    )
+    assert (
+        '<p>This is <a href="#" rel="noopener noreferrer">a test</a> alert</p><br>'
+        in email_body
+    )
+    assert '<td>&lt;a href="http://www.example.com"&gt;333&lt;/a&gt;</td>' in email_body
+    assert "Explore in Superset" not in email_body
+
+
+def test_include_cta_for_internal_email() -> None:
+    # `superset.models.helpers`, a dependency of following imports,
+    # requires app context
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    content = NotificationContent(
+        name="test alert",
+        embedded_data=pd.DataFrame(
+            {
+                "A": [1, 2, 3],
+                "B": [4, 5, 6],
+                "C": ["111", "222", '<a href="http://www.example.com">333</a>'],
+            }
+        ),
+        description='<p>This is <a href="#">a test</a> alert</p><br />',
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "owners": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": None,
+        },
+    )
+    email_body = (
+        EmailNotification(
+            recipient=ReportRecipients(
+                type=ReportRecipientType.EMAIL,
+                recipient_config_json='{"target": "test@aven.com, test2@aven.com"}',
+            ),
+            content=content,
+        )
+        ._get_content()
+        .body
+    )
+    assert (
+        '<p>This is <a href="#" rel="noopener noreferrer">a test</a> alert</p><br>'
+        in email_body
+    )
+    assert '<td>&lt;a href="http://www.example.com"&gt;333&lt;/a&gt;</td>' in email_body
+    assert "Explore in Superset" in email_body
+>>>>>>> origin/avenmaster

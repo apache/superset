@@ -29,7 +29,10 @@ import {
   tooltipHtml,
 } from '@superset-ui/core';
 import { EChartsCoreOption, graphic } from 'echarts/core';
+<<<<<<< HEAD
 import { aggregationChoices } from '@superset-ui/chart-controls';
+=======
+>>>>>>> origin/avenmaster
 import {
   BigNumberVizProps,
   BigNumberDatum,

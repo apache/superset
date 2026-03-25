@@ -17,9 +17,15 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+<<<<<<< HEAD
 "POT-Creation-Date: 2025-06-26 15:18+0200\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
+=======
+"POT-Creation-Date: 2024-07-30 17:32-0600\n"
+"PO-Revision-Date: 2021-11-16 17:33+0100\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+>>>>>>> origin/avenmaster
 "Language: fr\n"
 "Language-Team: fr <LL@li.org>\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
@@ -358,6 +364,16 @@ msgstr ""
 "    Erreur : %(text)s\n"
 "    "
 
+#, fuzzy, python-format
+msgid ""
+"*%(name)s*\n"
+"\n"
+"    %(description)s\n"
+"\n"
+"    Error: %(text)s\n"
+"    "
+msgstr "*%(name)s*%(description)sErreur : %(text)s"
+
 #, python-format
 msgid ""
 "*%(name)s*\n"
@@ -367,6 +383,7 @@ msgid ""
 "<%(url)s|Explore in Superset>\n"
 "\n"
 "%(table)s\n"
+<<<<<<< HEAD
 msgstr ""
 "*%(name)s*\n"
 "\n"
@@ -375,6 +392,9 @@ msgstr ""
 "<%(url)s|Explorer dans Superset>\n"
 "\n"
 "%(table)s\n"
+=======
+msgstr "*%(name)s*%(description)s<%(url)s|Explore in Superset>%(table)s"
+>>>>>>> origin/avenmaster
 
 #, python-format
 msgid "+ %s more"
@@ -841,11 +861,21 @@ msgstr "Ajouter"
 msgid "Add Alert"
 msgstr "Ajouter une alerte"
 
+<<<<<<< HEAD
 msgid "Add BCC Recipients"
 msgstr "Ajouter un destinataire de la copie cachée (Cci)"
 
 msgid "Add CC Recipients"
 msgstr "Ajouter un destinataire de la copie (Cc)"
+=======
+#, fuzzy
+msgid "Add BCC Recipients"
+msgstr "récents"
+
+#, fuzzy
+msgid "Add CC Recipients"
+msgstr "récents"
+>>>>>>> origin/avenmaster
 
 msgid "Add CSS template"
 msgstr "Ajouter un modèle CSS"
@@ -1758,8 +1788,160 @@ msgstr ""
 "des URI SQL Alchemy peuvent être ajoutées. "
 
 msgid ""
-"Any databases that allow connections via SQL Alchemy URIs can be added. "
-"Learn about how to connect a database driver "
+"Swiss army knife for visualizing data. Choose between step, line, "
+"scatter, and bar charts. This viz type has many customization options as "
+"well."
+msgstr "Couteau suisse pour la visualisation des données. Vous avez le choix entre des diagrammes en escalier, des diagrammes linéaires, des diagrammes de dispersion et des diagrammes à barres. Ce type d'affichage dispose également de nombreuses options de personnalisation."
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:208
+#, fuzzy
+msgid "Symbol"
+msgstr "Symbôle"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:125
+msgid "Symbol of two ends of edge line"
+msgstr "Symbôle des deux extrémités de la ligne de bord"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:253
+#, fuzzy
+msgid "Symbol size"
+msgstr "Taille du symbôle"
+
+#: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1450
+msgid "Sync columns from source"
+msgstr "Synchroniser les colonnes de la source"
+
+#: superset-frontend/src/explore/components/controls/DateFilterControl/components/DateFunctionTooltip.tsx:30
+#: superset-frontend/src/explore/components/controls/DateFilterControl/components/DateFunctionTooltip.tsx:44
+#: superset-frontend/src/explore/components/controls/DateFilterControl/components/DateFunctionTooltip.tsx:62
+#: superset-frontend/src/explore/components/controls/DateFilterControl/components/DateFunctionTooltip.tsx:76
+#: superset-frontend/src/explore/components/controls/DateFilterControl/components/DateFunctionTooltip.tsx:89
+msgid "Syntax"
+msgstr "Syntaxe :"
+
+#: superset/db_engine_specs/ocient.py:279
+#, python-format
+msgid "Syntax Error: %(qualifier)s input \"%(input)s\" expecting \"%(expected)s"
+msgstr "Erreur de syntaxe : %(qualifier)s entrée « %(input)s » en attente « %(expected)s"
+
+#: superset-frontend/src/pages/QueryHistoryList/index.tsx:284
+#: superset-frontend/src/pages/SavedQueryList/index.tsx:330
+msgid "TABLES"
+msgstr "TABLEAUX"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:283
+#, fuzzy
+msgid "TEMPORAL X-AXIS"
+msgstr "AXE DES ABSISSES TEMPOREL"
+
+#: superset-frontend/src/explore/constants.ts:89
+#, fuzzy
+msgid "TEMPORAL_RANGE"
+msgstr "TEMPORAL_RANGE"
+
+#: superset-frontend/src/components/CronPicker/CronPicker.tsx:85
+msgid "THU"
+msgstr "JEU"
+
+#: superset-frontend/src/components/CronPicker/CronPicker.tsx:83
+msgid "TUE"
+msgstr "MAR"
+
+#: superset-frontend/src/features/queries/QueryPreviewModal.tsx:147
+#: superset-frontend/src/pages/QueryHistoryList/index.tsx:252
+msgid "Tab name"
+msgstr "Nom de l'onglet"
+
+#: superset-frontend/src/dashboard/util/newComponentFactory.js:58
+#: superset-frontend/src/dashboard/util/newComponentFactory.js:59
+msgid "Tab title"
+msgstr "Titre de l’onglet"
+
+#: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/index.ts:55
+#: superset-frontend/plugins/plugin-chart-table/src/index.ts:39
+#: superset-frontend/plugins/plugin-chart-table/src/index.ts:45
+#: superset-frontend/src/components/Chart/DrillBy/useDisplayModeToggle.tsx:57
+#: superset-frontend/src/components/TableSelector/index.tsx:285
+#: superset-frontend/src/visualizations/TimeTable/index.ts:26
+#: superset/connectors/sqla/views.py:158 superset/connectors/sqla/views.py:254
+#: superset/connectors/sqla/views.py:396 superset/views/chart/mixin.py:86
+msgid "Table"
+msgstr "Tableau"
+
+#: superset/views/core.py:739
+#, python-format
+msgid "Table %(table)s wasn't found in the database %(db)s"
+msgstr "Le tableau %(table)s n’a pas été trouvé dans la base de données %(db)s"
+
+#: superset/views/database/forms.py:328 superset/views/database/forms.py:455
+msgid "Table Exists"
+msgstr "La tableau existe"
+
+#: superset/connectors/sqla/views.py:406 superset/views/database/forms.py:129
+#: superset/views/database/forms.py:280 superset/views/database/forms.py:412
+msgid "Table Name"
+msgstr "Nom du tableau"
+
+#: superset/commands/dataset/exceptions.py:130
+#, python-format
+msgid ""
+"Table [%(table_name)s] could not be found, please double check your "
+"database connection, schema, and table name"
+msgstr "La tableau [%(table_name)s] n'a pu être trouvé, vérifiez à nouveau votre connexion à votre base de données, le schéma et le nom du tableau"
+
+#: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:294
+msgid "Table cache timeout"
+msgstr "Délai d'attente du cache du tableau dépassé"
+
+#: superset-frontend/src/features/datasets/AddDataset/DatasetPanel/DatasetPanel.tsx:176
+#, fuzzy
+msgid "Table columns"
+msgstr "Colonnex du tableau"
+
+#: superset/views/database/forms.py:133 superset/views/database/forms.py:284
+#: superset/views/database/forms.py:416
+msgid "Table name cannot contain a schema"
+msgstr "Le nom du tableau ne peut pas contenir de schéma"
+
+#: superset/databases/decorators.py:47
+msgid "Table name undefined"
+msgstr "Nom du tableau non défini"
+
+#: superset/db_engine_specs/ocient.py:284
+#, fuzzy, python-format
+msgid "Table or View \"%(table)s\" does not exist."
+msgstr "Le tableau ou la vue « %(table)s » n'existe pas."
+
+#: superset-frontend/plugins/legacy-plugin-chart-paired-t-test/src/index.js:26
+msgid ""
+"Table that visualizes paired t-tests, which are used to understand "
+"statistical differences between groups."
+msgstr "Tableau qui visualise les tests T appariés, qui sont utilisés pour comprendre les différences statistiques entre les groupes."
+
+#: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:410
+#: superset-frontend/src/pages/QueryHistoryList/index.tsx:303
+#: superset-frontend/src/pages/SavedQueryList/index.tsx:349
+#: superset/connectors/sqla/views.py:291
+msgid "Tables"
+msgstr "Tableaux"
+
+#: superset-frontend/src/dashboard/components/gridComponents/new/NewTabs.jsx:31
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterCard/ScopeRow.tsx:63
+msgid "Tabs"
+msgstr "Onglets"
+
+#: superset-frontend/plugins/legacy-plugin-chart-paired-t-test/src/index.js:30
+#: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/index.ts:61
+#: superset-frontend/plugins/plugin-chart-table/src/index.ts:53
+#: superset-frontend/src/visualizations/TimeTable/index.ts:37
+msgid "Tabular"
+msgstr "Tabulaire"
+
+#: superset-frontend/src/pages/ChartList/index.tsx:624
+#: superset-frontend/src/pages/DashboardList/index.tsx:517
+#: superset-frontend/src/pages/SavedQueryList/index.tsx:494
+#: superset-frontend/src/pages/Tags/index.tsx:324
+msgid "Tag"
 msgstr ""
 "Toutes les bases de données qui permettent des connexions par le biais "
 "des URI SQL Alchemy peuvent être ajoutées. Découvrez comment connecter un"
@@ -2290,8 +2472,13 @@ msgid "CC recipients"
 msgstr "récents"
 
 #, fuzzy
+<<<<<<< HEAD
 msgid "COPY QUERY"
 msgstr "Arrêter la requête"
+=======
+msgid "CREATE DATASET"
+msgstr "CREATE DATASET"
+>>>>>>> origin/avenmaster
 
 msgid "CREATE TABLE AS"
 msgstr "CREATE TABLE AS"
@@ -2942,12 +3129,9 @@ msgid "Click the lock to prevent further changes."
 msgstr "Cliquez sur le cadenas pour empêcher toute modification ultérieure."
 
 msgid ""
-"Click this link to switch to an alternate form that allows you to input "
-"the SQLAlchemy URL for this database manually."
-msgstr ""
-"Cliquez sur ce lien pour basculer sur un autre formulaire qui vous "
-"permettra d'entrer manuellement l'URL SQLAlchemy pour cette base de "
-"données."
+"The maximum number of subdivisions of each group; lower values are pruned"
+" first"
+msgstr "Le nombre maximal de subdivisions de chaque groupe; les valeurs inférieures sont d’abord élaguées"
 
 msgid ""
 "Click this link to switch to an alternate form that exposes only the "
@@ -3446,10 +3630,8 @@ msgid "Copy the current data"
 msgstr ""
 
 #, fuzzy
-msgid "Copy the identifier of the account you are trying to connect to."
-msgstr ""
-"Copier le nom de la base de données à laquelle vous essayez de vous "
-"connecter."
+msgid "The name of the rule must be unique"
+msgstr "Le nom doit être unique"
 
 msgid "Copy the name of the HTTP Path of your cluster."
 msgstr "Copiez le nom du chemin HTTP de votre grappe."
@@ -7812,8 +7994,8 @@ msgid "Name of the target nodes"
 msgstr "Nom des nœuds cibles"
 
 #, fuzzy
-msgid "Name of your tag"
-msgstr "Donner un nom à la base de données"
+msgid "Tukey"
+msgstr "Turquie"
 
 msgid "Name your database"
 msgstr "Nom de votre base de données"
@@ -8626,10 +8808,13 @@ msgstr ""
 " tableau de bord. Il est possible d'effectuer une recherche par nom ou "
 "par nom d'utilisateur."
 
+<<<<<<< HEAD
 #, fuzzy
 msgid "PDF download failed, please refresh and try again."
 msgstr "Échec du téléchargement de l’image, veuillez actualiser et réessayer."
 
+=======
+>>>>>>> origin/avenmaster
 msgid "Page length"
 msgstr "Longueur de la page"
 
@@ -11140,6 +11325,11 @@ msgstr "Solide"
 msgid "Some roles do not exist"
 msgstr "Des profils n'existent pas"
 
+msgid ""
+"Something went wrong with embedded authentication. Check the dev console "
+"for details."
+msgstr ""
+
 #, fuzzy
 msgid "Something went wrong while saving the user info"
 msgstr "Une erreur s'est produite. Réessayez plus tard."
@@ -12562,6 +12752,7 @@ msgstr "Le schéma a été supprimé ou renommé dans la base de données."
 msgid "The screenshot could not be downloaded. Please, try again later."
 msgstr ""
 
+<<<<<<< HEAD
 #, fuzzy
 msgid "The screenshot has been downloaded."
 msgstr "Le rapport a été créé"
@@ -12572,6 +12763,13 @@ msgstr ""
 #, fuzzy
 msgid "The service url of the layer"
 msgstr "Afficher les valeurs de série sur le graphique"
+=======
+msgid "The screenshot is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "The screenshot is now being downloaded."
+msgstr ""
+>>>>>>> origin/avenmaster
 
 msgid "The size of each cell in meters"
 msgstr ""
@@ -12823,10 +13021,13 @@ msgstr "Erreur à la récupération du statut favori de ce tableau de bord : %s
 #, fuzzy
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Erreur à la récupération du statut favori de ce tableau de bord : %s"
+<<<<<<< HEAD
 
 #, fuzzy
 msgid "There was an error generating the permalink."
 msgstr "Une erreur s'est produite lors de la récupération des schémas"
+=======
+>>>>>>> origin/avenmaster
 
 #, fuzzy
 msgid "There was an error loading the catalogs"
@@ -13261,6 +13462,11 @@ msgstr ""
 
 msgid "This option has been disabled by the administrator."
 msgstr "Cette option a été désactivée par les administrateurs."
+
+msgid ""
+"This page is intended to be embedded in an iframe, but it looks like that"
+" is not the case."
+msgstr ""
 
 msgid ""
 "This page is intended to be embedded in an iframe, but it looks like that"
@@ -13887,6 +14093,10 @@ msgstr "Hôte MySQL \"%(hostname)s\" inconnu."
 #, python-format
 msgid "Unknown MySQL server host \"%(hostname)s\"."
 msgstr "Hôte inconnu du serveur MySQL \"%(hostname)s\"."
+
+#, fuzzy, python-format
+msgid "Unknown OceanBase server host \"%(hostname)s\"."
+msgstr "Hôte MySQL \"%(hostname)s\" inconnu."
 
 #, fuzzy, python-format
 msgid "Unknown OceanBase server host \"%(hostname)s\"."
@@ -15820,12 +16030,18 @@ msgstr "dans"
 msgid "in modal"
 msgstr "dans modal"
 
+<<<<<<< HEAD
 msgid "invalid email"
 msgstr "email invalide"
 
 #, fuzzy
 msgid "is"
 msgstr "dans"
+=======
+#, fuzzy
+msgid "invalid email"
+msgstr "Clé de liaison permanente non valide"
+>>>>>>> origin/avenmaster
 
 msgid "is expected to be a Mapbox URL"
 msgstr "est attendu d'être une URL de Mapbox"

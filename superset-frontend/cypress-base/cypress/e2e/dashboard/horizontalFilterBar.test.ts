@@ -88,9 +88,12 @@ describe('Horizontal FilterBar', () => {
     cy.getBySel('horizontal-filterbar-empty')
       .contains('No filters are currently added to this dashboard.')
       .should('exist');
+<<<<<<< HEAD
     cy.get(nativeFilters.filtersPanel.filterGear).click({
       force: true,
     });
+=======
+>>>>>>> origin/avenmaster
     cy.getBySel('filter-bar__create-filter').should('exist');
     cy.getBySel('filterbar-action-buttons').should('exist');
   });
@@ -123,7 +126,11 @@ describe('Horizontal FilterBar', () => {
 
     cy.getBySel('form-item-value').should('have.length', 3);
     cy.viewport(768, 1024);
+<<<<<<< HEAD
     cy.getBySel('form-item-value').should('have.length', 1);
+=======
+    cy.getBySel('form-item-value').should('have.length', 0);
+>>>>>>> origin/avenmaster
     openMoreFilters(false);
     cy.getBySel('form-item-value').should('have.length', 3);
 
@@ -138,7 +145,11 @@ describe('Horizontal FilterBar', () => {
     cy.getBySel('dropdown-container-btn').should('not.exist');
   });
 
+<<<<<<< HEAD
   it.only('should show "more filters" and scroll', () => {
+=======
+  it('should show "more filters" and scroll', () => {
+>>>>>>> origin/avenmaster
     prepareDashboardFilters([
       { name: 'test_1', column: 'country_name', datasetId: 2 },
       { name: 'test_2', column: 'country_code', datasetId: 2 },
@@ -154,6 +165,7 @@ describe('Horizontal FilterBar', () => {
       { name: 'test_12', column: 'year', datasetId: 2 },
     ]);
     setFilterBarOrientation('horizontal');
+<<<<<<< HEAD
 
     cy.get('.filter-item-wrapper').should('have.length', 4);
     openMoreFilters();
@@ -163,6 +175,16 @@ describe('Horizontal FilterBar', () => {
       .contains('test_12')
       .should('not.be.visible');
     cy.getBySel('filter-control-name').contains('test_12').scrollIntoView();
+=======
+    cy.get('.filter-item-wrapper').should('have.length', 3);
+    openMoreFilters();
+    cy.getBySel('form-item-value').should('have.length', 12);
+    cy.getBySel('filter-control-name').contains('test_10').should('be.visible');
+    cy.getBySel('filter-control-name')
+      .contains('test_12')
+      .should('not.be.visible');
+    cy.get('.ant-popover-inner-content').scrollTo('bottom');
+>>>>>>> origin/avenmaster
     cy.getBySel('filter-control-name').contains('test_12').should('be.visible');
   });
 
@@ -177,8 +199,13 @@ describe('Horizontal FilterBar', () => {
     validateFilterNameOnDashboard(testItems.topTenChart.filterColumn);
   });
 
+<<<<<<< HEAD
   it.skip('should spot changes in "more filters" and apply their values', () => {
     cy.intercept(`**/api/v1/chart/data?form_data=**`).as('chart');
+=======
+  it('should spot changes in "more filters" and apply their values', () => {
+    cy.intercept(`/api/v1/chart/data?form_data=**`).as('chart');
+>>>>>>> origin/avenmaster
     prepareDashboardFilters([
       { name: 'test_1', column: 'country_name', datasetId: 2 },
       { name: 'test_2', column: 'country_code', datasetId: 2 },
@@ -198,14 +225,22 @@ describe('Horizontal FilterBar', () => {
     applyNativeFilterValueWithIndex(8, testItems.filterDefaultValue);
     cy.get(nativeFilters.applyFilter).click({ force: true });
     cy.wait('@chart');
+<<<<<<< HEAD
     cy.get('.ant-scroll-number.ant-badge-count').should(
+=======
+    cy.get('.antd5-scroll-number.antd5-badge-count').should(
+>>>>>>> origin/avenmaster
       'have.attr',
       'title',
       '1',
     );
   });
 
+<<<<<<< HEAD
   it.skip('should focus filter and open "more filters" programmatically', () => {
+=======
+  it('should focus filter and open "more filters" programmatically', () => {
+>>>>>>> origin/avenmaster
     prepareDashboardFilters([
       { name: 'test_1', column: 'country_name', datasetId: 2 },
       { name: 'test_2', column: 'country_code', datasetId: 2 },
@@ -227,12 +262,20 @@ describe('Horizontal FilterBar', () => {
     cy.getBySel('slice-header').within(() => {
       cy.get('.filter-counts').trigger('mouseover');
     });
+<<<<<<< HEAD
     cy.getBySel('filter-status-popover').contains('test_9').click();
+=======
+    cy.get('.filterStatusPopover').contains('test_9').click();
+>>>>>>> origin/avenmaster
     cy.getBySel('dropdown-content').should('be.visible');
     cy.get('.ant-select-focused').should('be.visible');
   });
 
+<<<<<<< HEAD
   it.skip('should show tag count and one plain tag on focus and only count on blur in select ', () => {
+=======
+  it('should show tag count and one plain tag on focus and only count on blur in select ', () => {
+>>>>>>> origin/avenmaster
     prepareDashboardFilters([
       { name: 'test_1', column: 'country_name', datasetId: 2 },
     ]);

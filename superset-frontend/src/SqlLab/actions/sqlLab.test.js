@@ -29,7 +29,11 @@ import {
   initialState,
   queryId,
 } from 'src/SqlLab/fixtures';
+<<<<<<< HEAD
 import { SupersetClient, isFeatureEnabled } from '@superset-ui/core';
+=======
+import { SupersetClient } from '@superset-ui/core';
+>>>>>>> origin/avenmaster
 import { ADD_TOAST } from 'src/components/MessageToasts/actions';
 import { ToastType } from '../../components/MessageToasts/types';
 

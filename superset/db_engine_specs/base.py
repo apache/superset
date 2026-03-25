@@ -62,6 +62,7 @@ from superset import db
 from superset.constants import QUERY_CANCEL_KEY, TimeGrain as TimeGrainConstants
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+<<<<<<< HEAD
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.sql.parse import (
     BaseSQLStatement,
@@ -71,6 +72,11 @@ from superset.sql.parse import (
     SQLStatement,
     Table,
 )
+=======
+from superset.exceptions import DisallowedSQLFunction, OAuth2Error, OAuth2RedirectError
+from superset.sql.parse import SQLScript, Table
+from superset.sql_parse import ParsedQuery
+>>>>>>> origin/avenmaster
 from superset.superset_typing import (
     OAuth2ClientConfig,
     OAuth2State,

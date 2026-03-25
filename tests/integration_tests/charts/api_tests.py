@@ -19,7 +19,11 @@ import uuid
 from io import BytesIO
 from unittest import mock
 from unittest.mock import patch
+<<<<<<< HEAD
 from zipfile import is_zipfile
+=======
+from zipfile import is_zipfile, ZipFile
+>>>>>>> origin/avenmaster
 
 import prison
 import pytest

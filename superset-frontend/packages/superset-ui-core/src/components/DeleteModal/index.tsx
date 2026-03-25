@@ -77,7 +77,11 @@ export function DeleteModal({
       onHide={hide}
       onHandledPrimaryAction={confirm}
       primaryButtonName={t('Delete')}
+<<<<<<< HEAD:superset-frontend/packages/superset-ui-core/src/components/DeleteModal/index.tsx
       primaryButtonStyle="danger"
+=======
+      primaryButtonType="danger"
+>>>>>>> origin/avenmaster:superset-frontend/src/components/DeleteModal/index.tsx
       show={open}
       name={name}
       title={title}

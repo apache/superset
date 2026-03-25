@@ -17,7 +17,11 @@
  * under the License.
  */
 import { DataRecord, DTTM_ALIAS, ValueFormatter } from '@superset-ui/core';
+<<<<<<< HEAD
 import type { OptionName, SeriesOption } from 'echarts/types/src/util/types';
+=======
+import type { OptionName } from 'echarts/types/src/util/types';
+>>>>>>> origin/avenmaster
 import type { TooltipMarker } from 'echarts/types/src/util/format';
 import {
   ForecastSeriesContext,

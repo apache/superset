@@ -31,7 +31,12 @@ export const crossFiltersSelector = (props: {
   chartLayoutItems: LayoutItem[];
   verboseMaps: { [key: string]: Record<string, string> };
 }): CrossFilterIndicator[] => {
+<<<<<<< HEAD
   const { dataMask, chartIds, chartLayoutItems, verboseMaps } = props;
+=======
+  const { dataMask, chartConfiguration, dashboardLayout, verboseMaps } = props;
+  const chartsIds = Object.keys(chartConfiguration || {});
+>>>>>>> origin/avenmaster
 
   return chartIds
     .map(chartId => {

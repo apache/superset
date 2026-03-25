@@ -188,6 +188,7 @@ describe('customTimeRangeDecode', () => {
       customRange: {
         sinceDatetime: SEVEN_DAYS_AGO.setDate(
           SEVEN_DAYS_AGO.getDate() - 7,
+<<<<<<< HEAD
         ).toString(),
         sinceMode: 'relative',
         sinceGrain: 'day',
@@ -266,6 +267,8 @@ describe('customTimeRangeDecode', () => {
       customRange: {
         sinceDatetime: SEVEN_DAYS_AGO.setDate(
           SEVEN_DAYS_AGO.getDate() - 7,
+=======
+>>>>>>> origin/avenmaster
         ).toString(),
         sinceMode: 'relative',
         sinceGrain: 'day',

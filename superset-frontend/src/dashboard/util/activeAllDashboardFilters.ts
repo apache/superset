@@ -118,6 +118,7 @@ export const getAllActiveFilters = ({
       allSliceIds ??
       [];
     const filterType = nativeFilters?.[filterId]?.filterType;
+<<<<<<< HEAD
     const targets = nativeFilters?.[filterId]?.targets;
 
     let selectedLayers = (nativeFilters?.[filterId]?.scope as any)
@@ -163,6 +164,14 @@ export const getAllActiveFilters = ({
     activeFilters[filterId] = {
       scope,
       targets: targets || [],
+=======
+    const targets = nativeFilters?.[filterId]?.targets ?? scope;
+    // Iterate over all roots to find all affected charts
+    activeFilters[filterId] = {
+      scope,
+      filterType,
+      targets,
+>>>>>>> origin/avenmaster
       values: extraFormData,
       filterType,
       ...(layerScope && { layerScope }),

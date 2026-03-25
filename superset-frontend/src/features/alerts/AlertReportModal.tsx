@@ -383,6 +383,10 @@ export const TRANSLATIONS = {
   WORKING_TIMEOUT_ERROR_TEXT: t('working timeout'),
   RECIPIENTS_ERROR_TEXT: t('recipients'),
   EMAIL_SUBJECT_ERROR_TEXT: t('email subject'),
+<<<<<<< HEAD
+=======
+  EMAIL_FROM_ERROR_TEXT: t('email from (must be aven.com)'),
+>>>>>>> origin/avenmaster
   EMAIL_VALIDATION_ERROR_TEXT: t('invalid email'),
   ERROR_TOOLTIP_MESSAGE: t(
     'Not all required fields are complete. Please provide the following:',
@@ -515,6 +519,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   >([]);
   const [emailSubject, setEmailSubject] = useState<string>('');
   const [emailError, setEmailError] = useState(false);
+  const [emailFromError, setEmailFromError] = useState(false);
+  const [csvFilename, setCsvFilename] = useState<string>('');
+  const [csvFilenameError, setCsvFilenameError] = useState(false);
 
   const onNotificationAdd = () => {
     setNotificationSettings([
@@ -570,6 +577,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     recipients: [],
     sql: '',
     email_subject: '',
+    csv_filename: '',
     validator_config_json: {},
     validator_type: '',
     force_screenshot: false,
@@ -686,12 +694,23 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       ),
       recipients,
       report_format: reportFormat || DEFAULT_NOTIFICATION_FORMAT,
+<<<<<<< HEAD
       extra: contentType === ContentType.Dashboard ? currentAlert?.extra : {},
+=======
+      csv_filename: currentAlert?.csv_filename || '',
+      extra: {
+        ...currentAlert?.extra,
+        email_from: currentAlert?.extra?.email_from || null,
+      },
+>>>>>>> origin/avenmaster
     };
 
     if (data.recipients && !data.recipients.length) {
       delete data.recipients;
     }
+
+    // Remove email_from from top level - it should only be in extra
+    delete data.email_from;
 
     data.context_markdown = 'string';
     if (isEditMode) {
@@ -1008,10 +1027,22 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     } = event;
     const parsedValue = type === 'number' ? parseInt(value, 10) || null : value;
 
-    updateAlertState(name, parsedValue);
+    // Handle email_from specially - it goes in extra.email_from
+    if (name === 'email_from') {
+      setCurrentAlert(currentAlertData => ({
+        ...currentAlertData,
+        extra: {
+          ...currentAlertData?.extra,
+          email_from: value || undefined,
+        },
+      }));
+    } else {
+      updateAlertState(name, parsedValue);
+    }
 
     if (name === 'name') {
       updateEmailSubject();
+      updateCsvFilename();
     }
   };
 
@@ -1230,6 +1261,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       errors.push(TRANSLATIONS.EMAIL_SUBJECT_ERROR_TEXT);
     }
 
+<<<<<<< HEAD
+=======
+    if (emailFromError) {
+      errors.push(TRANSLATIONS.EMAIL_FROM_ERROR_TEXT);
+    }
+
+    if (csvFilenameError) {
+      errors.push('csv filename');
+    }
+
+>>>>>>> origin/avenmaster
     // Update validation status with combined errors
     updateValidationStatus(Sections.Notification, errors);
   };
@@ -1337,6 +1379,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       }
       setForceScreenshot(resource.force_screenshot);
 
+      // Set CSV filename from existing resource
+      if (resource.csv_filename) {
+        setCsvFilename(resource.csv_filename);
+      } else {
+        // If no existing CSV filename, generate a default one
+        setCsvFilename('');
+      }
+
       setCurrentAlert({
         ...resource,
         chart: resource.chart
@@ -1371,6 +1421,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               }
             : validatorConfig,
       });
+
+      // Update CSV filename after setting current alert
+      updateCsvFilename();
     }
   }, [resource]);
 
@@ -1379,6 +1432,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   useEffect(() => {
     validateAll();
     updateEmailSubject();
+    updateCsvFilename();
   }, [
     currentAlertSafe.name,
     currentAlertSafe.owners,
@@ -1393,6 +1447,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     notificationSettings,
     conditionNotNull,
     emailError,
+    emailFromError,
+    csvFilenameError,
   ]);
   useEffect(() => {
     enforceValidation();
@@ -1438,8 +1494,55 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     return titleText;
   };
 
+<<<<<<< HEAD
+=======
+  const updateEmailSubject = () => {
+    if (contentType === 'chart') {
+      if (currentAlert?.name || currentAlert?.chart?.label) {
+        setEmailSubject(
+          `${currentAlert?.name}: ${currentAlert?.chart?.label || ''}`,
+        );
+      } else {
+        setEmailSubject('');
+      }
+    } else if (contentType === 'dashboard') {
+      if (currentAlert?.name || currentAlert?.dashboard?.label) {
+        setEmailSubject(
+          `${currentAlert?.name}: ${currentAlert?.dashboard?.label || ''}`,
+        );
+      } else {
+        setEmailSubject('');
+      }
+    } else {
+      setEmailSubject('');
+    }
+  };
+
+  const updateCsvFilename = () => {
+    if (contentType === 'chart') {
+      const alertName = currentAlert?.name || 'report';
+      const chartLabel = currentAlert?.chart?.label || 'chart';
+      setCsvFilename(`${alertName}_${chartLabel}.csv`);
+    } else if (contentType === 'dashboard') {
+      const alertName = currentAlert?.name || 'report';
+      const dashboardLabel = currentAlert?.dashboard?.label || 'dashboard';
+      setCsvFilename(`${alertName}_${dashboardLabel}.csv`);
+    } else {
+      setCsvFilename('');
+    }
+  };
+
+>>>>>>> origin/avenmaster
   const handleErrorUpdate = (hasError: boolean) => {
     setEmailError(hasError);
+  };
+
+  const handleEmailFromErrorUpdate = (hasError: boolean) => {
+    setEmailFromError(hasError);
+  };
+
+  const handleCsvFilenameErrorUpdate = (hasError: boolean) => {
+    setCsvFilenameError(hasError);
   };
 
   return (
@@ -1551,6 +1654,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   </div>
                 </StyledSwitchContainer>
               </div>
+<<<<<<< HEAD
             ),
           },
           ...(!isReport
@@ -1671,6 +1775,136 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 },
               ]
             : []),
+=======
+            </StyledInputContainer>
+          )}
+          {(isReport || contentType === 'dashboard') && (
+            <div className="inline-container">
+              <StyledCheckbox
+                data-test="bypass-cache"
+                className="checkbox"
+                checked={forceScreenshot}
+                onChange={onForceScreenshotChange}
+              >
+                {t('Ignore cache when generating report')}
+              </StyledCheckbox>
+            </div>
+          )}
+        </StyledPanel>
+        <StyledPanel
+          header={
+            <ValidatedPanelHeader
+              title={TRANSLATIONS.SCHEDULE_TITLE}
+              subtitle={t(
+                'Define delivery schedule, timezone, and frequency settings.',
+              )}
+              validateCheckStatus={
+                !validationStatus[Sections.Schedule].hasErrors
+              }
+              testId="schedule-panel"
+            />
+          }
+          key="schedule"
+        >
+          <AlertReportCronScheduler
+            value={currentAlert?.crontab || ''}
+            onChange={newVal => updateAlertState('crontab', newVal)}
+          />
+          <StyledInputContainer>
+            <div className="control-label">
+              {t('Timezone')} <span className="required">*</span>
+            </div>
+            <TimezoneSelector
+              onTimezoneChange={onTimezoneChange}
+              timezone={currentAlert?.timezone}
+              minWidth="100%"
+            />
+          </StyledInputContainer>
+          <StyledInputContainer>
+            <div className="control-label">
+              {t('Log retention')}
+              <span className="required">*</span>
+            </div>
+            <div className="input-container">
+              <Select
+                ariaLabel={t('Log retention')}
+                placeholder={t('Log retention')}
+                onChange={onLogRetentionChange}
+                value={currentAlert?.log_retention}
+                options={RETENTION_OPTIONS}
+                sortComparator={propertyComparator('value')}
+              />
+            </div>
+          </StyledInputContainer>
+          <StyledInputContainer css={noMarginBottom}>
+            {isReport ? (
+              <>
+                <div className="control-label">
+                  {t('Working timeout')}
+                  <span className="required">*</span>
+                </div>
+                <div className="input-container">
+                  <NumberInput
+                    min={1}
+                    name="working_timeout"
+                    value={currentAlert?.working_timeout || ''}
+                    placeholder={t('Time in seconds')}
+                    onChange={onTimeoutVerifyChange}
+                    timeUnit={t('seconds')}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="control-label">{t('Grace period')}</div>
+                <div className="input-container">
+                  <NumberInput
+                    min={1}
+                    name="grace_period"
+                    value={currentAlert?.grace_period || ''}
+                    placeholder={t('Time in seconds')}
+                    onChange={onTimeoutVerifyChange}
+                    timeUnit={t('seconds')}
+                  />
+                </div>
+              </>
+            )}
+          </StyledInputContainer>
+        </StyledPanel>
+        <StyledPanel
+          header={
+            <ValidatedPanelHeader
+              title={TRANSLATIONS.NOTIFICATION_TITLE}
+              subtitle={t('Choose notification method and recipients.')}
+              validateCheckStatus={
+                !validationStatus[Sections.Notification].hasErrors
+              }
+              testId="notification-method-panel"
+            />
+          }
+          key="notification"
+        >
+          {notificationSettings.map((notificationSetting, i) => (
+            <StyledNotificationMethodWrapper>
+              <NotificationMethod
+                setting={notificationSetting}
+                index={i}
+                key={`NotificationMethod-${i}`}
+                onUpdate={updateNotificationSetting}
+                onRemove={removeNotificationSetting}
+                onInputChange={onInputChange}
+                email_subject={currentAlert?.email_subject || ''}
+                defaultSubject={emailSubject || ''}
+                setErrorSubject={handleErrorUpdate}
+                email_from={currentAlert?.extra?.email_from || ''}
+                setErrorEmailFrom={handleEmailFromErrorUpdate}
+                csv_filename={currentAlert?.csv_filename || ''}
+                defaultCsvFilename={csvFilename || ''}
+                setErrorCsvFilename={handleCsvFilenameErrorUpdate}
+              />
+            </StyledNotificationMethodWrapper>
+          ))}
+>>>>>>> origin/avenmaster
           {
             key: 'contents',
             label: (

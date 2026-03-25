@@ -55,7 +55,10 @@ export function prepareDashboardFilters(
         controlValues: {
           enableEmptyFilter: false,
           defaultToFirstItem: false,
+<<<<<<< HEAD
           creatable: true,
+=======
+>>>>>>> origin/avenmaster
           multiSelect: true,
           searchAllOptions: false,
           inverseSelection: false,

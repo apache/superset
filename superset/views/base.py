@@ -117,8 +117,11 @@ FRONTEND_CONF_KEYS = (
     "PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET",
     "JWT_ACCESS_CSRF_COOKIE_NAME",
     "SQLLAB_QUERY_RESULT_TIMEOUT",
+<<<<<<< HEAD
     "SYNC_DB_PERMISSIONS_IN_ASYNC_MODE",
     "TABLE_VIZ_MAX_ROW_SERVER",
+=======
+>>>>>>> origin/avenmaster
 )
 
 logger = logging.getLogger(__name__)

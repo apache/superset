@@ -17,8 +17,13 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
+<<<<<<< HEAD:superset-frontend/packages/superset-ui-core/src/components/ProgressBar/index.tsx
 import { Progress as AntdProgress } from 'antd';
 import { ProgressProps } from 'antd/es/progress/progress';
+=======
+import { Progress as AntdProgress } from 'antd-v5';
+import { ProgressProps } from 'antd-v5/lib/progress/progress';
+>>>>>>> origin/avenmaster:superset-frontend/src/components/ProgressBar/index.tsx
 
 export interface ProgressBarProps extends ProgressProps {
   striped?: boolean;
@@ -29,10 +34,14 @@ const ProgressBar = styled(({ striped, ...props }: ProgressBarProps) => (
   <AntdProgress data-test="progress-bar" {...props} />
 ))`
   position: static;
-  .ant-progress-inner {
+  .antd5-progress-inner {
     position: static;
   }
+<<<<<<< HEAD:superset-frontend/packages/superset-ui-core/src/components/ProgressBar/index.tsx
   .ant-progress-bg {
+=======
+  .antd5-progress-bg {
+>>>>>>> origin/avenmaster:superset-frontend/src/components/ProgressBar/index.tsx
     position: static;
     ${({ striped }) =>
       striped &&

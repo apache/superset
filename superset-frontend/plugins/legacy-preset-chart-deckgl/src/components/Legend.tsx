@@ -42,12 +42,21 @@ const StyledLegend = styled.div`
 
       & li a {
         display: flex;
+<<<<<<< HEAD
         color: ${theme.colorText};
         text-decoration: none;
         padding: ${theme.sizeUnit}px 0;
 
         & span {
           margin-right: ${theme.sizeUnit}px;
+=======
+        color: ${theme.colors.grayscale.base};
+        text-decoration: none;
+        padding: ${theme.gridUnit}px 0;
+
+        & span {
+          margin-right: ${theme.gridUnit}px;
+>>>>>>> origin/avenmaster
         }
       }
     }

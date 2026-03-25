@@ -1477,7 +1477,11 @@ def test_time_filter_with_grain(test_client, login_as_admin, physical_query_cont
     backend = get_example_database().backend
     if backend == "sqlite":
         assert (
+<<<<<<< HEAD
             "DATETIME(col5, 'start of day',             -strftime('%w', col5) || ' days') >="  # noqa: E501
+=======
+            "DATETIME(col5, 'start of day',             -strftime('%w', col5) || ' days') >="
+>>>>>>> origin/avenmaster
             in query
         )
     elif backend == "mysql":

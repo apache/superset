@@ -45,7 +45,11 @@ from superset.exceptions import (
     SupersetTemplateException,
 )
 from superset.extensions import feature_flag_manager
+<<<<<<< HEAD
 from superset.sql.parse import Table
+=======
+from superset.sql_parse import Table
+>>>>>>> origin/avenmaster
 from superset.utils import json
 from superset.utils.core import (
     AdhocFilterClause,
@@ -124,8 +128,11 @@ class ExtraCache:
         r"current_user_id\([^()]*\)|"
         r"current_username\([^()]*\)|"
         r"current_user_email\([^()]*\)|"
+<<<<<<< HEAD
         r"current_user_rls_rules\([^()]*\)|"
         r"current_user_roles\([^()]*\)|"
+=======
+>>>>>>> origin/avenmaster
         r"cache_key_wrapper\([^()]*\)|"
         r"url_param\([^()]*\)"
         r")"

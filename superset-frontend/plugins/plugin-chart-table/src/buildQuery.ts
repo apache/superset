@@ -93,6 +93,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       (shift: string) => shift === 'custom' || shift === 'inherit',
     );
 
+<<<<<<< HEAD
     let timeOffsets: string[] = [];
 
     // Shifts for non-custom or non inherit time comparison
@@ -123,6 +124,8 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       timeOffsets = [extra_form_data.time_compare];
     }
 
+=======
+>>>>>>> origin/avenmaster
     let temporalColumnAdded = false;
     let temporalColumn = null;
 
@@ -243,14 +246,23 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       sortByFromOwnState = [[sortByItem?.key, !sortByItem?.desc]];
     }
 
+    if (!temporalColumn) {
+      // This query is not using temporal column, so it doesn't need time grain
+      extras.time_grain_sqla = undefined;
+    }
+
     let queryObject = {
       ...baseQueryObject,
       columns,
       extras,
+<<<<<<< HEAD
       orderby:
         formData.server_pagination && sortByFromOwnState
           ? sortByFromOwnState
           : orderby,
+=======
+      orderby,
+>>>>>>> origin/avenmaster
       metrics,
       post_processing: postProcessing,
       time_offsets: timeOffsets,
@@ -308,8 +320,13 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         row_limit: 0,
         row_offset: 0,
         post_processing: [],
+<<<<<<< HEAD
         order_desc: undefined,
         orderby: undefined,
+=======
+        order_desc: undefined, // we don't need orderby stuff here,
+        orderby: undefined, // because this query will be used for get total aggregation.
+>>>>>>> origin/avenmaster
       });
     }
 

@@ -1,0 +1,48 @@
+---
+title: Google Sheets Export
+hide_title: true
+sidebar_position: 6
+version: 1
+---
+
+## Google Sheets Export
+
+Allow one-click exporting of query result data directly to Google Sheets.
+
+### Service Account Setup
+
+You will need a Google Cloud service account that will be used to create and upload data to Google Sheets.
+
+1. In Google Cloud, enable the API for [Google Sheets](https://console.cloud.google.com/apis/api/sheets.googleapis.com/) and [Google Drive](https://console.cloud.google.com/apis/api/drive.googleapis.com/).
+2. [Add a Google Cloud Service Account](https://console.cloud.google.com/apis/credentials).
+3. Create a JSON key for your service account.
+4. Make the JSON key available to your Superset server.
+
+### Configuration
+
+1. Enable the `GOOGLE_SHEETS_EXPORT` feature flag in your `superset_config.py`:
+   ```python
+    FEATURE_FLAGS = {..., "GOOGLE_SHEETS_EXPORT": True, ...}
+   ```
+2. Add and configure the following settings in your `superset_config.py`:
+
+   ```python
+   GOOGLE_SHEETS_EXPORT_SERVICE_ACCOUNT_JSON = ... # JSON as specified here https://docs.gspread.org/en/master/oauth2.html#for-bots-using-service-account
+   GOOGLE_SHEETS_EXPORT_SHARE_PERMISSIONS = {
+       'email_address': 'your-domain.com',
+       'perm_type': 'domain',
+       'role': 'writer',
+   }
+   ```
+
+   See the gspread documentation for [more info on permissions](https://docs.gspread.org/en/master/api/models/spreadsheet.html#gspread.spreadsheet.Spreadsheet.share).
+
+   To share with anyone use:
+
+   ```python
+   GOOGLE_SHEETS_EXPORT_SHARE_PERMISSIONS = {
+       'email_address': None,
+       'perm_type': 'anyone',
+       'role': 'writer',
+   }
+   ```

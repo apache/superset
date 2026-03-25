@@ -129,7 +129,11 @@ export const valueNativeFilterOptions = [
 ];
 
 export function interceptGet() {
+<<<<<<< HEAD
   cy.intercept('GET', '**/api/v1/dashboard/*').as('get');
+=======
+  cy.intercept('GET', '/api/v1/dashboard/*').as('get');
+>>>>>>> origin/avenmaster
 }
 
 export function interceptFiltering() {
@@ -150,6 +154,10 @@ export function interceptUpdate() {
 
 export function interceptExploreUpdate() {
   cy.intercept('PUT', `**/api/v1/chart/*`).as('chartUpdate');
+}
+
+export function interceptExploreUpdate() {
+  cy.intercept('PUT', `/api/v1/chart/*`).as('chartUpdate');
 }
 
 export function interceptPost() {

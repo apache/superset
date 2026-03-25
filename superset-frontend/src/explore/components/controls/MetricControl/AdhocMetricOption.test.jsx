@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+<<<<<<< HEAD
 import {
   fireEvent,
   render,
@@ -25,6 +26,13 @@ import {
 import { AGGREGATES } from 'src/explore/constants';
 import AdhocMetricOption from 'src/explore/components/controls/MetricControl/AdhocMetricOption';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
+=======
+import { render, screen, fireEvent } from 'spec/helpers/testing-library';
+import { AGGREGATES } from 'src/explore/constants';
+import AdhocMetricOption from 'src/explore/components/controls/MetricControl/AdhocMetricOption';
+import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
+import userEvent from '@testing-library/user-event';
+>>>>>>> origin/avenmaster
 
 const columns = [
   { type: 'VARCHAR(255)', column_name: 'source' },

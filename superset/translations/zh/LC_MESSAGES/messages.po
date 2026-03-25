@@ -18,7 +18,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
+<<<<<<< HEAD
 "POT-Creation-Date: 2025-04-29 12:34+0330\n"
+=======
+"POT-Creation-Date: 2024-07-30 17:32-0600\n"
+>>>>>>> origin/avenmaster
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen \n"
 "Language: zh\n"
@@ -107,24 +111,11 @@ msgid " source code of Superset's sandboxed parser"
 msgstr ""
 
 msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
+"Select the charts to which you want to apply cross-filters when "
+"interacting with this chart. You can select \"All charts\" to apply "
+"filters to all charts that use the same dataset or contain the same "
+"column name in the dashboard."
 msgstr ""
-"来确保字符的表达顺序与时间顺序一致的标准。如果时间戳格式不符合 ISO 8601 "
-"标准，则需要定义表达式和类型，以便将字符串转换为日期或时间戳。注意：当前不支持时区。如果时间以epoch格式存储，请输入 `epoch_s` or"
-" `epoch_ms` 。如果没有指定任何模式，我们可以通过额外的参数在每个数据库/列名级别上使用可选的默认值。"
 
 #, fuzzy
 msgid " to add calculated columns"
@@ -197,6 +188,16 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "返回了 %(rows)d 行"
 
+<<<<<<< HEAD
+=======
+#, python-format
+msgid ""
+"%(subtitle)s\n"
+"This may be triggered by:\n"
+" %(issue)s"
+msgstr ""
+
+>>>>>>> origin/avenmaster
 #, fuzzy, python-format
 msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
 msgid_plural ""
@@ -3932,8 +3933,8 @@ msgid "Default value must be set when \"Filter has default value\" is checked"
 msgstr "选中筛选器具有默认值时，必须设置默认值"
 
 #, fuzzy
-msgid "Default value must be set when \"Filter value is required\" is checked"
-msgstr "当\"必填项\"被选中时默认值必须被设置"
+msgid "Square kilometers"
+msgstr "父级过滤"
 
 #, fuzzy
 msgid ""
@@ -5403,10 +5404,6 @@ msgid ""
 "filter (department = 'Finance' OR department = 'Marketing') AND (region ="
 " 'Europe')."
 msgstr ""
-"具有相同组key的过滤将在组中一起进行\"OR\"运算，而不同的过滤组将一起进行\"AND\"运算。未定义的组的key被视为唯一组，即不分组在一起。例如，如果表有三个过滤，其中两个用于财务部门和市场营销"
-" (group key = 'department')，其中一个表示欧洲地区(group key = "
-"'region')，filter子句将应用过滤 (department = 'Finance' OR department = "
-"'Marketing') 和 (region = 'Europe')"
 
 #, fuzzy
 msgid "Find"
@@ -7919,10 +7916,13 @@ msgid ""
 " or username."
 msgstr "所有者是一个用户列表，这些用户有权限修改仪表板。可按名称或用户名搜索。"
 
+<<<<<<< HEAD
 #, fuzzy
 msgid "PDF download failed, please refresh and try again."
 msgstr "图片发送失败，请刷新或重试"
 
+=======
+>>>>>>> origin/avenmaster
 msgid "Page length"
 msgstr "页长"
 
@@ -11226,8 +11226,6 @@ msgid ""
 " export files, and should be added manually after the import if they are "
 "needed."
 msgstr ""
-"需要以下数据库的密码才能将其与图表一起导入。请注意，数据库配置的 \"Secure Extra\" 和 \"Certificate\" "
-"部分不在导出文件中，如果需要，应在导入后手动添加。"
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
@@ -11398,6 +11396,7 @@ msgstr "该模式已在数据库中删除或重命名。"
 msgid "The screenshot could not be downloaded. Please, try again later."
 msgstr ""
 
+<<<<<<< HEAD
 #, fuzzy
 msgid "The screenshot has been downloaded."
 msgstr "报告已创建"
@@ -11408,6 +11407,13 @@ msgstr ""
 #, fuzzy
 msgid "The service url of the layer"
 msgstr "在图表上显示系列值"
+=======
+msgid "The screenshot is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "The screenshot is now being downloaded."
+msgstr ""
+>>>>>>> origin/avenmaster
 
 #, fuzzy
 msgid "The size of each cell in meters"
@@ -11594,10 +11600,13 @@ msgstr "获取此看板的收藏夹状态时出现问题：%s。"
 #, fuzzy
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "获取此看板的收藏夹状态时出现问题：%s。"
+<<<<<<< HEAD
 
 #, fuzzy
 msgid "There was an error generating the permalink."
 msgstr "抱歉，这个看板在获取图表时发生错误："
+=======
+>>>>>>> origin/avenmaster
 
 #, fuzzy
 msgid "There was an error loading the catalogs"
@@ -14219,10 +14228,13 @@ msgid "invalid email"
 msgstr "无效状态。"
 
 #, fuzzy
+<<<<<<< HEAD
 msgid "is"
 msgstr "处于"
 
 #, fuzzy
+=======
+>>>>>>> origin/avenmaster
 msgid "is expected to be a Mapbox URL"
 msgstr "应该为MapBox的URL"
 

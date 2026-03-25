@@ -204,18 +204,27 @@ const config: Config = {
       {
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
+<<<<<<< HEAD:docs/docusaurus.config.ts
           editUrl: ({ versionDocsDirPath, docPath }) => {
             if (docPath === 'intro.md') {
               return 'https://github.com/apache/superset/edit/master/README.md';
             }
             return `https://github.com/apache/superset/edit/master/docs/${versionDocsDirPath}/${docPath}`;
           },
+=======
+          editUrl:
+          ({versionDocsDirPath, docPath}) => {
+            if (docPath === 'intro.md') {
+              return 'https://github.com/apache/superset/edit/master/README.md'
+            }
+            return `https://github.com/apache/superset/edit/master/docs/${versionDocsDirPath}/${docPath}`
+          }
+>>>>>>> origin/avenmaster:docs/docusaurus.config.js
         },
         blog: {
           showReadingTime: true,
           // Please change this to your repo.
-          editUrl:
-            'https://github.com/facebook/docusaurus/edit/main/website/blog/',
+          editUrl: 'https://github.com/facebook/docusaurus/edit/main/website/blog/',
         },
         theme: {
           customCss: require.resolve('./src/styles/custom.css'),

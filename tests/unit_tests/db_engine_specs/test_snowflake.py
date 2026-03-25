@@ -352,6 +352,7 @@ def test_mask_encrypted_extra_no_fields() -> None:
     )
 
 
+<<<<<<< HEAD
 def test_handle_boolean_filter() -> None:
     """
     Test that Snowflake uses equality operators for boolean filters instead of IS.
@@ -394,6 +395,8 @@ def test_use_equality_for_boolean_filters_property() -> None:
     assert SnowflakeEngineSpec.use_equality_for_boolean_filters is True
 
 
+=======
+>>>>>>> origin/avenmaster
 def test_unmask_encrypted_extra() -> None:
     """
     Test that the private keys can be reused from the previous `encrypted_extra`.

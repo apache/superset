@@ -15,6 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 import copy
+<<<<<<< HEAD
+=======
+import datetime
+>>>>>>> origin/avenmaster
 import math
 import uuid
 from datetime import date, datetime, time, timedelta
@@ -207,7 +211,11 @@ def test_sensitive_fields() -> None:
     }
 
     new_payload = copy.deepcopy(redacted_payload)
+<<<<<<< HEAD
     new_payload["credentials"]["user_token"] = "NEW_TOKEN"  # noqa: S105
+=======
+    new_payload["credentials"]["user_token"] = "NEW_TOKEN"
+>>>>>>> origin/avenmaster
 
     assert json.reveal_sensitive(payload, new_payload, sensitive_fields) == {
         "password": "SECRET",
@@ -216,6 +224,7 @@ def test_sensitive_fields() -> None:
             "user_token": "NEW_TOKEN",
         },
     }
+<<<<<<< HEAD
 
 
 def test_base_json_conv():
@@ -270,3 +279,5 @@ def test_format_timedelta():
         json.format_timedelta(timedelta(0) - timedelta(days=16, hours=4, minutes=3))
         == "-16 days, 4:03:00"
     )
+=======
+>>>>>>> origin/avenmaster

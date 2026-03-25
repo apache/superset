@@ -46,8 +46,13 @@ import { Datasource } from '../../../types';
 import { DndItemType } from '../../DndItemType';
 import DatasourcePanelDragOption from '../../DatasourcePanel/DatasourcePanelDragOption';
 
+<<<<<<< HEAD
 jest.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
   ...jest.requireActual('@superset-ui/core/components/AsyncAceEditor'),
+=======
+jest.mock('src/components/AsyncAceEditor', () => ({
+  ...jest.requireActual('src/components/AsyncAceEditor'),
+>>>>>>> origin/avenmaster
   SQLEditor: (props: AsyncAceEditorProps) => (
     <div data-test="react-ace">{props.value}</div>
   ),

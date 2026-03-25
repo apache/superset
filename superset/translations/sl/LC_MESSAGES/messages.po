@@ -17,8 +17,13 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
+<<<<<<< HEAD
 "POT-Creation-Date: 2025-04-29 12:34+0330\n"
 "PO-Revision-Date: 2024-10-05 23:46+0200\n"
+=======
+"POT-Creation-Date: 2024-07-30 17:32-0600\n"
+"PO-Revision-Date: 2024-01-01 23:56+0100\n"
+>>>>>>> origin/avenmaster
 "Last-Translator: dkrat7 <dkrat7 @github.com>\n"
 "Language: sl_SI\n"
 "Language-Team: \n"
@@ -363,6 +368,21 @@ msgstr "(ni opisa, kliknite za ogled zapisov)"
 
 msgid "), and they become available in your SQL (example:"
 msgstr "), s čimer bodo na razpolago v sklopu SQL-poizvedbe (primer:"
+
+#, fuzzy, python-format
+msgid ""
+"*%(name)s*\n"
+"\n"
+"    %(description)s\n"
+"\n"
+"    Error: %(text)s\n"
+"    "
+msgstr ""
+"*%(name)s*\n"
+"\n"
+"%(description)s\n"
+"\n"
+"napaka: %(text)s\n"
 
 #, python-format
 msgid ""
@@ -838,11 +858,21 @@ msgstr "Dodaj"
 msgid "Add Alert"
 msgstr "Dodaj opozorilo"
 
+<<<<<<< HEAD
 msgid "Add BCC Recipients"
 msgstr "Dodaj skrite (BCC) prejemnike"
 
 msgid "Add CC Recipients"
 msgstr "Dodaj prejemnike v vednost (CC)"
+=======
+#, fuzzy
+msgid "Add BCC Recipients"
+msgstr "nedavne"
+
+#, fuzzy
+msgid "Add CC Recipients"
+msgstr "nedavne"
+>>>>>>> origin/avenmaster
 
 msgid "Add CSS template"
 msgstr "Dodaj CSS predlogo"
@@ -948,23 +978,11 @@ msgid "Add filter"
 msgstr "Dodaj filter"
 
 msgid ""
-"Add filter clauses to control the filter's source query,\n"
-"                    though only in the context of the autocomplete i.e., "
-"these conditions\n"
-"                    do not impact how the filter is applied to the "
-"dashboard. This is useful\n"
-"                    when you want to improve the query's performance by "
-"only scanning a subset\n"
-"                    of the underlying data or limit the available values "
-"displayed in the filter."
+"Select values in highlighted field(s) in the control panel. Then run the "
+"query by clicking on the %s button."
 msgstr ""
-"Doda stavke za filtriranje izvorne poizvedbe filtra,\n"
-"                    vendar samo v kontekstu samodejnega izpolnjevanja.\n"
-"                    Ne vpliva na to kako bo filter deloval na nadzorno "
-"ploščo.\n"
-"                    Uporabno je, če želite izboljšati učinkovitost "
-"poizvedbe filtra\n"
-"                     ali pa omejiti nabor prikazanih vrednosti filtra."
+"Izberite vrednosti v osvetljenih poljih na levi strani kontrolnika in "
+"zaženite poizvedbo z gumbom %s."
 
 msgid "Add item"
 msgstr "Dodaj"
@@ -1899,8 +1917,14 @@ msgstr "Naraščajoča os"
 msgid "Axis descending"
 msgstr "Padajoča os"
 
+<<<<<<< HEAD
 msgid "BCC recipients"
 msgstr "Skriti (BCC) prejemniki"
+=======
+#, fuzzy
+msgid "BCC recipients"
+msgstr "nedavne"
+>>>>>>> origin/avenmaster
 
 msgid "BOOLEAN"
 msgstr "BOOLEAN"
@@ -2158,8 +2182,14 @@ msgstr "Po vrednosti: za razvrščanje uporabite vrednosti mere"
 msgid "CANCEL"
 msgstr "PREKINI"
 
+<<<<<<< HEAD
 msgid "CC recipients"
 msgstr "V vednost (CC)"
+=======
+#, fuzzy
+msgid "CC recipients"
+msgstr "nedavne"
+>>>>>>> origin/avenmaster
 
 msgid "CREATE DATASET"
 msgstr "USTVARI PODATKOVNI SET"
@@ -2644,9 +2674,17 @@ msgstr "Dodajte način obveščanja in prejemnike."
 msgid "Choose one of the available databases from the panel on the left."
 msgstr "Izberite eno od razpoložljivih podatkovnih baz v panelu na levi."
 
+<<<<<<< HEAD
 msgid "Choose one of the available databases on the left panel."
 msgstr "Izberite eno od razpoložljivih podatkovnih baz v panelu na levi."
 
+=======
+#, fuzzy
+msgid "Choose one of the available databases on the left panel."
+msgstr "Izberite eno od razpoložljivih podatkovnih baz v panelu na levi."
+
+#, fuzzy
+>>>>>>> origin/avenmaster
 msgid "Choose sheet name"
 msgstr "Izberite ime zvezka"
 
@@ -3939,11 +3977,11 @@ msgstr ""
 "obvezna\""
 
 msgid ""
-"Default value set automatically when \"Select first filter value by "
-"default\" is checked"
+"Smooth-line is a variation of the line chart. Without angles and hard "
+"edges, Smooth-line sometimes looks smarter and more professional."
 msgstr ""
-"Privzeta vrednost je samodejno izbrana, če je izbrano \"Prvi element je "
-"izbran kot privzet\""
+"Zglajeni črtni grafikon je izpeljanka črtnega grafikona, ki zgladi ostre "
+"robove krivulje."
 
 msgid ""
 "Define a function that receives the input and outputs the content for a "
@@ -5412,23 +5450,9 @@ msgid "Filters out of scope (%d)"
 msgstr "Filtri izven dosega (%d)"
 
 msgid ""
-"Filters with the same group key will be ORed together within the group, "
-"while different filter groups will be ANDed together. Undefined group "
-"keys are treated as unique groups, i.e. are not grouped together. For "
-"example, if a table has three filters, of which two are for departments "
-"Finance and Marketing (group key = 'department'), and one refers to the "
-"region Europe (group key = 'region'), the filter clause would apply the "
-"filter (department = 'Finance' OR department = 'Marketing') AND (region ="
-" 'Europe')."
-msgstr ""
-"Filtri z enakim skupinskim ključem bodo znotraj skupine združeni z OR "
-"funkcijo, medtem ko bodo različne skupine združene z AND funkcijo. "
-"Nedefinirani skupinski ključi so obravnavani kot unikatne skupine in niso"
-" združeni v svojo skupino. Npr., če ima tabela tri filtre, pri čemer sta "
-"dva za oddelka marketinga in financ (skupinski ključ = 'oddelek') tretji "
-"pa se nanaša na regijo Evropa (skupinski ključ = 'regija'), bo filtrski "
-"izraz (oddelek = 'Finance' OR oddelek = 'Marketing') AND (regija = "
-"'Evropa')."
+"This chart type is not supported when using an unsaved query as a chart "
+"source. "
+msgstr "Tip grafikona ne podpira uporabe neshranjene poizvedbe za podatkovni vir. "
 
 msgid "Find"
 msgstr "Najdi"
@@ -7882,10 +7906,13 @@ msgstr ""
 "\"Lastniki\" je seznam uporabnikov, ki lahko spreminjajo nadzorno ploščo."
 " Iskanje je možno po imenu ali uporabniškem imenu."
 
+<<<<<<< HEAD
 #, fuzzy
 msgid "PDF download failed, please refresh and try again."
 msgstr "Prenos slike ni uspel. Osvežite in poskusite ponovno."
 
+=======
+>>>>>>> origin/avenmaster
 msgid "Page length"
 msgstr "Dolžina strani"
 
@@ -8346,7 +8373,11 @@ msgid "Primary y-axis format"
 msgstr "Oblika primarne y-osi"
 
 msgid "Private Channels (Bot in channel)"
+<<<<<<< HEAD
 msgstr "Zasebni kanali (Bot na kanalu)"
+=======
+msgstr ""
+>>>>>>> origin/avenmaster
 
 msgid "Private Key"
 msgstr "Privatni ključ"
@@ -9481,6 +9512,10 @@ msgstr "Izberite katalog ali poiščite kataloge z vnosom"
 msgid "Select channels"
 msgstr "Izberitw kanale"
 
+#, fuzzy
+msgid "Select channels"
+msgstr "Izberi grafikone"
+
 msgid "Select chart"
 msgstr "Izberite grafikon"
 
@@ -9779,8 +9814,14 @@ msgstr "Ime zvezka"
 msgid "Shift + Click to sort by multiple columns"
 msgstr "Shift + klik za razvrščanje po več stolpcih"
 
+<<<<<<< HEAD
 msgid "Shift start date"
 msgstr "Zamaknite začetni datum"
+=======
+#, fuzzy
+msgid "Shift start date"
+msgstr "Začetni datum"
+>>>>>>> origin/avenmaster
 
 msgid "Short description must be unique for this layer"
 msgstr "Kratek opis mora biti za ta sloj unikaten"
@@ -10088,8 +10129,11 @@ msgid ""
 "Something went wrong with embedded authentication. Check the dev console "
 "for details."
 msgstr ""
+<<<<<<< HEAD
 "Nekaj je šlo narobe pri vdelani avtentikaciji. Preverite podrobnosti v "
 "razvojni konzoli."
+=======
+>>>>>>> origin/avenmaster
 
 msgid "Something went wrong."
 msgstr "Nekaj je šlo narobe."
@@ -10867,10 +10911,16 @@ msgstr ""
 msgid "The database returned an unexpected error."
 msgstr "Podatkovna baza je vrnila nepričakovano napako."
 
+<<<<<<< HEAD
 msgid "The database that was used to generate this query could not be found"
 msgstr ""
 "Podatkovna baza, ki je bila uporabljena za kreiranje te poizvedbe, ni "
 "bila najdena"
+=======
+#, fuzzy
+msgid "The database that was used to generate this query could not be found"
+msgstr "Podatkovna baza ni bila najdena"
+>>>>>>> origin/avenmaster
 
 msgid "The database was deleted."
 msgstr "Podatkovna baza je bila izbrisana."
@@ -11372,6 +11422,7 @@ msgid "The schema was deleted or renamed in the database."
 msgstr "Shema je bila izbrisana ali preimenovana v podatkovni bazi."
 
 msgid "The screenshot could not be downloaded. Please, try again later."
+<<<<<<< HEAD
 msgstr "Zaslonske slike ni mogoče prenesti. Poskusite ponovno kasneje."
 
 #, fuzzy
@@ -11384,6 +11435,15 @@ msgstr "Ustvarja se zaslonska slika. Ne zapuščajte strani."
 #, fuzzy
 msgid "The service url of the layer"
 msgstr "Na grafikonu prikaži vrednosti serij"
+=======
+msgstr ""
+
+msgid "The screenshot is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "The screenshot is now being downloaded."
+msgstr ""
+>>>>>>> origin/avenmaster
 
 msgid "The size of each cell in meters"
 msgstr "Velikost vsake celice v metrih"
@@ -11584,8 +11644,14 @@ msgstr "Pri pridobivanju elementov podatkovnega seta je prišlo do napake"
 msgid "There was an error fetching the favorite status: %s"
 msgstr "Napaka pri pridobivanju statusa \"Priljubljeno\": %s"
 
+<<<<<<< HEAD
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Napaka pri pridobivanju filtriranih grafikonov in nadzornih plošč:"
+=======
+#, fuzzy
+msgid "There was an error fetching the filtered charts and dashboards:"
+msgstr "Napaka pri pridobivanju statusa \"Priljubljeno\": %s"
+>>>>>>> origin/avenmaster
 
 #, fuzzy
 msgid "There was an error generating the permalink."
@@ -11947,6 +12013,11 @@ msgid ""
 "This page is intended to be embedded in an iframe, but it looks like that"
 " is not the case."
 msgstr "Ta stran naj bi bila vdelana kot iframe, vendar izgleda, da temu ni tako."
+
+msgid ""
+"This page is intended to be embedded in an iframe, but it looks like that"
+" is not the case."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -12505,9 +12576,15 @@ msgstr "Neznan Doris strežnik \"%(hostname)s\"."
 msgid "Unknown MySQL server host \"%(hostname)s\"."
 msgstr "Neznan MySQL strežnik \"%(hostname)s\"."
 
+<<<<<<< HEAD
 #, python-format
 msgid "Unknown OceanBase server host \"%(hostname)s\"."
 msgstr "Neznan OceanBase gostiteljski strežnik \"%(hostname)s\"."
+=======
+#, fuzzy, python-format
+msgid "Unknown OceanBase server host \"%(hostname)s\"."
+msgstr "Neznan Doris strežnik \"%(hostname)s\"."
+>>>>>>> origin/avenmaster
 
 msgid "Unknown Presto Error"
 msgstr "Neznana Presto napaka"
@@ -14279,12 +14356,18 @@ msgstr "v"
 msgid "in modal"
 msgstr "v modalnem oknu"
 
+<<<<<<< HEAD
 msgid "invalid email"
 msgstr "neveljaven email"
 
 #, fuzzy
 msgid "is"
 msgstr "Razdelki"
+=======
+#, fuzzy
+msgid "invalid email"
+msgstr "Neveljaven ključ povezave"
+>>>>>>> origin/avenmaster
 
 msgid "is expected to be a Mapbox URL"
 msgstr "mora biti URL za Mapbox"

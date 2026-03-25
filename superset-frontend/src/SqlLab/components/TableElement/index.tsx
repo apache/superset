@@ -257,6 +257,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
       );
     }
     return (
+<<<<<<< HEAD
       <Flex style={{ height: 22 }} align="center">
         {isMetadataFetching || isExtraMetadataLoading ? (
           <Loading position="inline" />
@@ -334,6 +335,51 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
               </Space>
             </ButtonGroup>
           </Fade>
+=======
+      <ButtonGroup
+        css={css`
+          display: flex;
+          column-gap: ${theme.gridUnit * 1.5}px;
+          margin-right: ${theme.gridUnit}px;
+          & span {
+            display: flex;
+            justify-content: center;
+            width: ${theme.gridUnit * 4}px;
+          }
+        `}
+      >
+        <IconTooltip
+          className="fa fa-refresh pull-left m-l-2 pointer"
+          onClick={refreshTableMetadata}
+          tooltip={t('Refresh table schema')}
+        />
+        {keyLink}
+        <IconTooltip
+          className={
+            `fa fa-sort-${sortColumns ? 'numeric' : 'alpha'}-asc ` +
+            'pull-left sort-cols m-l-2 pointer'
+          }
+          onClick={toggleSortColumns}
+          tooltip={
+            sortColumns
+              ? t('Original table column order')
+              : t('Sort columns alphabetically')
+          }
+        />
+        {tableData.selectStar && (
+          <CopyToClipboard
+            copyNode={
+              <IconTooltip
+                aria-label="Copy"
+                tooltip={t('Copy SELECT statement to the clipboard')}
+              >
+                <i aria-hidden className="fa fa-clipboard pull-left m-l-2" />
+              </IconTooltip>
+            }
+            text={tableData.selectStar}
+            shouldShowText={false}
+          />
+>>>>>>> origin/avenmaster
         )}
       </Flex>
     );
@@ -365,6 +411,23 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
             <strong>{name}</strong>
           </StyledSpan>
         </Tooltip>
+<<<<<<< HEAD
+=======
+
+        <div className="pull-right header-right-side">
+          {isMetadataFetching || isExtraMetadataLoading ? (
+            <Loading position="inline" />
+          ) : (
+            <Fade
+              data-test="fade"
+              hovered={hovered}
+              onClick={e => e.stopPropagation()}
+            >
+              {renderControls()}
+            </Fade>
+          )}
+        </div>
+>>>>>>> origin/avenmaster
       </div>
     );
   };

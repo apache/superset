@@ -152,6 +152,7 @@ def prune_log() -> None:
         logger.exception("An exception occurred while pruning report schedule logs")
 
 
+<<<<<<< HEAD
 @celery_app.task(name="prune_query", bind=True)
 def prune_query(
     self: Task, retention_period_days: int | None = None, **kwargs: Any
@@ -196,3 +197,16 @@ def prune_logs(
         LogPruneCommand(retention_period_days).run()
     except CommandException as ex:
         logger.exception("An error occurred while pruning logs: %s", ex)
+=======
+@celery_app.task(name="prune_query")
+def prune_query() -> None:
+    stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
+    stats_logger.incr("prune_query")
+
+    try:
+        QueryPruneCommand(
+            prune_query.request.properties.get("retention_period_days")
+        ).run()
+    except CommandException as ex:
+        logger.exception("An error occurred while pruning queries: %s", ex)
+>>>>>>> origin/avenmaster

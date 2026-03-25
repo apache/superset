@@ -124,6 +124,14 @@ export const getHighlightLayer: GetLayerType<GridLayer> = function ({
   filterState,
 }) {
   const fd = formData;
+<<<<<<< HEAD
+=======
+  const appliedScheme = fd.color_scheme;
+  const colorScale = CategoricalColorNamespace.getScale(appliedScheme);
+  const colorRange = colorScale
+    .range()
+    .map(color => hexToRGB(color)) as Color[];
+>>>>>>> origin/avenmaster
   let data = payload.data.features;
 
   if (fd.js_data_mutator) {

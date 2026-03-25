@@ -60,4 +60,12 @@ class DatasourceDAO(BaseDAO[Datasource]):
             )
             raise DatasourceNotFound()
 
+        if datasource.sql:
+            name = "UNKNOWN"
+            if hasattr(datasource, "table_name"):
+                name = datasource.table_name
+
+            if "-- SUPERSET QUERY" not in datasource.sql:
+                datasource.sql = f"-- SUPERSET QUERY datasource type: {datasource_type} id: {datasource_id} name: {name} \n{datasource.sql}"
+
         return datasource

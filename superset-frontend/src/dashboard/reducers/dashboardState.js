@@ -50,7 +50,10 @@ import {
   SET_DASHBOARD_LABELS_COLORMAP_SYNCED,
   SET_DASHBOARD_SHARED_LABELS_COLORS_SYNCABLE,
   SET_DASHBOARD_SHARED_LABELS_COLORS_SYNCED,
+<<<<<<< HEAD
   TOGGLE_NATIVE_FILTERS_BAR,
+=======
+>>>>>>> origin/avenmaster
 } from '../actions/dashboardState';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 

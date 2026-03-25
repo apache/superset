@@ -17,7 +17,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+<<<<<<< HEAD
 "POT-Creation-Date: 2025-06-30 15:30+0900\n"
+=======
+"POT-Creation-Date: 2024-07-30 17:32-0600\n"
+>>>>>>> origin/avenmaster
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -106,20 +110,8 @@ msgid " source code of Superset's sandboxed parser"
 msgstr "スーパーセットのサンドボックスパーサーのソースコード"
 
 msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
+"Select one or many metrics to display. You can use an aggregation "
+"function on a column or write custom SQL to create a metric."
 msgstr ""
 "辞書編集上の順序を保証するための標準\n"
 "                      時系列順と一致します。もし\n"
@@ -776,11 +768,21 @@ msgstr "追加"
 msgid "Add Alert"
 msgstr "アラートを追加"
 
+<<<<<<< HEAD
 msgid "Add BCC Recipients"
 msgstr "BCCの追加"
 
 msgid "Add CC Recipients"
 msgstr "CCの追加"
+=======
+#, fuzzy
+msgid "Add BCC Recipients"
+msgstr "最近の"
+
+#, fuzzy
+msgid "Add CC Recipients"
+msgstr "最近の"
+>>>>>>> origin/avenmaster
 
 msgid "Add CSS template"
 msgstr "CSSテンプレートを追加"
@@ -1764,8 +1766,14 @@ msgstr "軸上昇"
 msgid "Axis descending"
 msgstr "軸下降"
 
+<<<<<<< HEAD
 msgid "BCC recipients"
 msgstr "BCC"
+=======
+#, fuzzy
+msgid "BCC recipients"
+msgstr "最近の"
+>>>>>>> origin/avenmaster
 
 msgid "BOOLEAN"
 msgstr "ブール値"
@@ -2006,8 +2014,14 @@ msgstr "値による: メトリック値を並べ替えキーとして使用し�
 msgid "CANCEL"
 msgstr "キャンセル"
 
+<<<<<<< HEAD
 msgid "CC recipients"
 msgstr "CC"
+=======
+#, fuzzy
+msgid "CC recipients"
+msgstr "最近の"
+>>>>>>> origin/avenmaster
 
 msgid "CREATE DATASET"
 msgstr "データセットを作成"
@@ -2478,9 +2492,17 @@ msgstr "通知方法と受信者の選択"
 msgid "Choose one of the available databases from the panel on the left."
 msgstr "左側のパネルから利用可能なデータベースの 1 つを選択します。"
 
+<<<<<<< HEAD
 msgid "Choose one of the available databases on the left panel."
 msgstr "左側のパネルから利用可能なデータベースの 1 つを選択します。"
 
+=======
+#, fuzzy
+msgid "Choose one of the available databases on the left panel."
+msgstr "左側のパネルから利用可能なデータベースの 1 つを選択します。"
+
+#, fuzzy
+>>>>>>> origin/avenmaster
 msgid "Choose sheet name"
 msgstr "シート名を選択"
 
@@ -7423,9 +7445,12 @@ msgid ""
 " or username."
 msgstr "所有者は、ダッシュボードを変更できるユーザーのリストです。名前またはユーザー名で検索できます。"
 
+<<<<<<< HEAD
 msgid "PDF download failed, please refresh and try again."
 msgstr "PDFのダウンロードに失敗しました。更新して再試行してください。"
 
+=======
+>>>>>>> origin/avenmaster
 msgid "Page length"
 msgstr "ページの長さ"
 
@@ -8963,6 +8988,10 @@ msgstr "カタログまたはタイプを選択してカタログを検索して
 msgid "Select channels"
 msgstr "チャンネルを選択"
 
+#, fuzzy
+msgid "Select channels"
+msgstr "チャートを選択"
+
 msgid "Select chart"
 msgstr "チャートを選択"
 
@@ -9243,8 +9272,14 @@ msgstr "シート名"
 msgid "Shift + Click to sort by multiple columns"
 msgstr "Shift クリックして複数の列で並べ替えます"
 
+<<<<<<< HEAD
 msgid "Shift start date"
 msgstr "シフト開始日"
+=======
+#, fuzzy
+msgid "Shift start date"
+msgstr "開始日"
+>>>>>>> origin/avenmaster
 
 msgid "Short description must be unique for this layer"
 msgstr "短い説明はこのレイヤーに対して一意である必要があります。"
@@ -10271,8 +10306,14 @@ msgstr "このクエリで参照されているデータベースが見つかり
 msgid "The database returned an unexpected error."
 msgstr "データベースが予期しないエラーを返しました。"
 
+<<<<<<< HEAD
 msgid "The database that was used to generate this query could not be found"
 msgstr "このクエリの生成に使用されたデータベースが見つかりませんでした。"
+=======
+#, fuzzy
+msgid "The database that was used to generate this query could not be found"
+msgstr "データベースが見つかりませんでした。"
+>>>>>>> origin/avenmaster
 
 msgid "The database was deleted."
 msgstr "データベースが削除されました。"
@@ -10559,11 +10600,2551 @@ msgstr ""
 "ファイルには存在しないため、必要な場合はインポート後に手動で追加する必要があることに注意してください。"
 
 msgid ""
-"The passwords for the databases below are needed in order to import them "
-"together with the saved queries. Please note that the \"Secure Extra\" "
-"and \"Certificate\" sections of the database configuration are not "
-"present in export files, and should be added manually after the import if"
-" they are needed."
+"There's a loop in your Sankey, please provide a tree. Here's a faulty "
+"link: {}"
+msgstr ""
+
+#: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:403
+msgid "These are the datasets this filter will be applied to."
+msgstr ""
+
+#: superset/views/chart/mixin.py:63
+msgid ""
+"These parameters are generated dynamically when clicking the save or "
+"overwrite button in the explore view. This JSON object is exposed here "
+"for reference and for power users who may want to alter specific "
+"parameters."
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:785
+#: superset/views/dashboard/mixin.py:58
+msgid ""
+"This JSON object is generated dynamically when clicking the save or "
+"overwrite button in the dashboard view. It is exposed here for reference "
+"and for power users who may want to alter specific parameters."
+msgstr ""
+"この JSON オブジェクトは、ダッシュボード ビューの [保存] または [上書き] "
+"ボタンをクリックすると動的に生成されます。これは、参照用と特定のパラメータを変更する可能性のあるパワーユーザーのために公開されています。"
+
+#: superset-frontend/src/features/reports/ReportModal/HeaderReportDropdown/index.tsx:332
+#: superset-frontend/src/pages/AlertReportList/index.tsx:568
+#, python-format
+msgid "This action will permanently delete %s."
+msgstr ""
+
+#: superset-frontend/src/pages/AnnotationLayerList/index.tsx:300
+msgid "This action will permanently delete the layer."
+msgstr "このアクションにより、レイヤーが完全に削除されます。"
+
+#: superset-frontend/src/features/home/SavedQueries.tsx:228
+#: superset-frontend/src/pages/SavedQueryList/index.tsx:532
+msgid "This action will permanently delete the saved query."
+msgstr "この操作を実行すると、保存したクエリは完全に削除されます。"
+
+#: superset-frontend/src/pages/CssTemplateList/index.tsx:265
+msgid "This action will permanently delete the template."
+msgstr "このアクションにより、テンプレートが完全に削除されます。"
+
+#: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:41
+msgid ""
+"This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
+"mydatabase.com)."
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/SliceHeader/index.tsx:254
+msgid ""
+"This chart applies cross-filters to charts whose datasets contain columns"
+" with the same name."
+msgstr ""
+
+#: superset-frontend/src/dashboard/actions/dashboardLayout.js:260
+msgid "This chart has been moved to a different filter scope."
+msgstr "このチャートは別のフィルタスコープに移動されました。"
+
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:322
+msgid "This chart is managed externally, and can't be edited in Superset"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/utils.ts:60
+msgid "This chart might be incompatible with the filter (datasets don't match)"
+msgstr ""
+
+#: superset-frontend/src/explore/components/ExploreChartPanel/index.jsx:321
+msgid ""
+"This chart type is not supported when using an unsaved query as a chart "
+"source. "
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/ColorSchemeControl/index.tsx:50
+msgid ""
+"This color scheme is being overridden by custom label colors.\n"
+"    Check the JSON metadata in the Advanced settings"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/DndColumnSelectControl/DndColumnSelect.tsx:108
+msgid "This column might be incompatible with current dataset"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:544
+#: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:560
+msgid "This column must contain date/time information."
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:230
+msgid ""
+"This control filters the whole chart based on the selected time range. "
+"All relative times, e.g. \"Last month\", \"Last 7 days\", \"now\", etc. "
+"are evaluated on the server using the server's local time (sans "
+"timezone). All tooltips and placeholder times are expressed in UTC (sans "
+"timezone). The timestamps are then evaluated by the database using the "
+"engine's local timezone. Note one can explicitly set the timezone per the"
+" ISO 8601 format if specifying either the start and/or end time."
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:599
+msgid ""
+"This controls whether the \"time_range\" field from the current\n"
+"                  view should be passed down to the chart containing the "
+"annotation data."
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:617
+msgid ""
+"This controls whether the time grain field from the current\n"
+"                  view should be passed down to the chart containing the "
+"annotation data."
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/Header/index.jsx:320
+#, fuzzy, python-format
+msgid ""
+"This dashboard is currently auto refreshing; the next auto refresh will "
+"be in %s."
+msgstr "このダッシュボードは現在強制的に更新されています。次の強制更新は %s。"
+
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:658
+msgid "This dashboard is managed externally, and can't be edited in Superset"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/PublishedStatus/index.jsx:38
+msgid ""
+"This dashboard is not published which means it will not show up in the "
+"list of dashboards. Favorite it to see it there or access it by using the"
+" URL directly."
+msgstr "このダッシュボードは公開されていないため、ダッシュボードのリストには表示されません。お気に入りに追加して表示するか、URLを直接使用してアクセスします。"
+
+#: superset-frontend/src/dashboard/components/PublishedStatus/index.jsx:33
+msgid ""
+"This dashboard is not published, it will not show up in the list of "
+"dashboards. Click here to publish this dashboard."
+msgstr "このダッシュボードは公開されていないため、ダッシュボードのリストには表示されません。このダッシュボードを公開するには、ここをクリックしてください。"
+
+#: superset-frontend/src/dashboard/actions/dashboardState.js:148
+#, fuzzy
+msgid "This dashboard is now hidden"
+msgstr "このダッシュボードの変更は禁止されています"
+
+#: superset-frontend/src/dashboard/actions/dashboardState.js:147
+#, fuzzy
+msgid "This dashboard is now published"
+msgstr "このダッシュボードは現在 ${nowPublished}"
+
+#: superset-frontend/src/dashboard/components/PublishedStatus/index.jsx:43
+msgid "This dashboard is published. Click to make it a draft."
+msgstr "このダッシュボードは公開されています。クリックして下書きにします。"
+
+#: superset-frontend/src/dashboard/components/EmbeddedModal/index.tsx:169
+msgid ""
+"This dashboard is ready to embed. In your application, pass the following"
+" id to the SDK:"
+msgstr ""
+
+#: superset-frontend/src/dashboard/actions/dashboardState.js:309
+#: superset-frontend/src/dashboard/actions/dashboardState.js:348
+msgid "This dashboard was saved successfully."
+msgstr "このダッシュボードは正常に保存されました。"
+
+#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1182
+msgid "This database is managed externally, and can't be edited in Superset"
+msgstr ""
+
+#: superset-frontend/src/features/datasets/AddDataset/DatasetPanel/MessageContent.tsx:65
+msgid ""
+"This database table does not contain any data. Please select a different "
+"table."
+msgstr ""
+
+#: superset-frontend/src/components/Datasource/DatasourceModal.tsx:325
+msgid "This dataset is managed externally, and can't be edited in Superset"
+msgstr ""
+
+#: superset-frontend/src/features/datasets/AddDataset/EditDataset/UsageTab/index.tsx:254
+msgid "This dataset is not used to power any charts."
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:126
+#: superset-frontend/src/explore/controls.jsx:396
+msgid "This defines the element to be plotted on the chart"
+msgstr ""
+
+#: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1482
+msgid ""
+"This field is used as a unique identifier to attach the calculated "
+"dimension to charts. It is also used as the alias in the SQL query."
+msgstr ""
+
+#: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1242
+msgid ""
+"This field is used as a unique identifier to attach the metric to charts."
+" It is also used as the alias in the SQL query."
+msgstr ""
+
+#: superset/connectors/sqla/views.py:345
+msgid ""
+"This fields acts a Superset view, meaning that Superset will run a query "
+"against this string as a subquery."
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/DndColumnSelectControl/DndAdhocFilterOption.tsx:72
+msgid "This filter might be incompatible with current dataset"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:76
+msgid "This functionality is disabled in your environment for security reasons."
+msgstr ""
+
+#: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:473
+msgid ""
+"This is the condition that will be added to the WHERE clause. For "
+"example, to only return rows for a particular client, you might define a "
+"regular filter with the clause `client_id = 9`. To display no rows unless"
+" a user belongs to a RLS filter role, a base filter can be created with "
+"the clause `1 = 0` (always false)."
+msgstr ""
+
+#: superset/views/dashboard/mixin.py:46
+msgid ""
+"This json object describes the positioning of the widgets in the "
+"dashboard. It is dynamically generated when adjusting the widgets size "
+"and positions by using drag & drop in the dashboard view"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/gridComponents/Markdown.jsx:85
+msgid "This markdown component has an error."
+msgstr "このマークダウンコンポーネントにエラーがあります。"
+
+#: superset-frontend/src/dashboard/components/gridComponents/Markdown.jsx:203
+msgid "This markdown component has an error. Please revert your recent changes."
+msgstr "このマークダウンコンポーネントにエラーがあります。最近の変更を元に戻してください。"
+
+#: superset-frontend/src/components/ErrorMessage/DatabaseErrorMessage.tsx:47
+#: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:62
+msgid "This may be triggered by:"
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:194
+msgid ""
+"This metric is used to define row selection criteria (how the rows are "
+"sorted) if a series or row limit is present. If not defined, it reverts "
+"to the first metric (where appropriate)."
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/DndColumnSelectControl/DndMetricSelect.tsx:255
+msgid "This metric might be incompatible with current dataset"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:530
+msgid ""
+"This section allows you to configure how to use the slice\n"
+"              to generate annotations."
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:29
+#: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:236
+#: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:120
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:388
+#: superset-frontend/src/explore/controlPanels/sections.tsx:122
+msgid ""
+"This section contains options that allow for advanced analytical post "
+"processing of query results"
+msgstr ""
+
+#: superset-frontend/src/explore/components/ControlPanelsContainer.tsx:579
+msgid "This section contains validation errors"
+msgstr ""
+
+#: superset-frontend/src/embedded/index.tsx:112
+msgid ""
+"This session has encountered an interruption, and some controls may not "
+"work as intended. If you are the developer of this app, please check that"
+" the guest token is being generated correctly."
+msgstr ""
+
+#: superset-frontend/src/features/datasets/AddDataset/DatasetPanel/DatasetPanel.tsx:234
+#: superset-frontend/src/features/datasets/AddDataset/LeftPanel/index.tsx:164
+msgid "This table already has a dataset"
+msgstr ""
+
+#: superset-frontend/src/features/datasets/AddDataset/DatasetPanel/DatasetPanel.tsx:224
+msgid ""
+"This table already has a dataset associated with it. You can only "
+"associate one dataset with a table.\n"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:88
+msgid "This value should be greater than the left target value"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:83
+msgid "This value should be smaller than the right target value"
+msgstr ""
+
+#: superset-frontend/src/components/Chart/ChartContextMenu/ChartContextMenu.tsx:179
+#, fuzzy
+msgid "This visualization type does not support cross-filtering."
+msgstr "この可視化方式はサポートされていません。"
+
+#: superset-frontend/src/explore/components/controls/VizTypeControl/index.tsx:64
+msgid "This visualization type is not supported."
+msgstr "この可視化方式はサポートされていません。"
+
+#: superset-frontend/src/components/ErrorMessage/ParameterErrorMessage.tsx:61
+#, fuzzy
+msgid "This was triggered by:"
+msgid_plural "This may be triggered by:"
+msgstr[0] ""
+
+#: superset-frontend/src/dashboard/components/EmbeddedModal/index.tsx:99
+msgid "This will remove your current embed configuration."
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/ContourControl/ContourPopoverControl.tsx:232
+msgid "Threshold"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-plugin-chart-paired-t-test/src/controlPanel.ts:65
+msgid "Threshold alpha level for determining significance"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Contour/Contour.tsx:36
+#: superset-frontend/src/explore/components/controls/ContourControl/ContourOption.tsx:75
+msgid "Threshold: "
+msgstr ""
+
+#: superset-frontend/src/pages/Home/index.tsx:343
+msgid "Thumbnails"
+msgstr ""
+
+#: superset-frontend/src/components/CronPicker/CronPicker.tsx:60
+msgid "Thursday"
+msgstr "木曜日"
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/constants.ts:39
+#: superset-frontend/packages/superset-ui-chart-controls/src/sections/sections.tsx:26
+#: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:30
+#: superset-frontend/plugins/legacy-plugin-chart-rose/src/index.js:39
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:53
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/index.js:40
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/index.js:40
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:35
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/index.js:29
+#: superset-frontend/plugins/plugin-chart-echarts/src/Bubble/index.ts:51
+#: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/index.ts:77
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/index.ts:70
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/index.ts:80
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Scatter/index.ts:74
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/SmoothLine/index.ts:74
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/index.ts:65
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/index.ts:64
+#: superset-frontend/src/explore/controlPanels/sections.tsx:68
+#: superset-frontend/src/pages/QueryHistoryList/index.tsx:210
+msgid "Time"
+msgstr "時間"
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/constants.ts:33
+#, fuzzy
+msgid "Time Column"
+msgstr "列を削除する"
+
+#: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:301
+#: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:185
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:453
+msgid "Time Comparison"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:145
+#, fuzzy
+msgid "Time Format"
+msgstr "日時フォーマット"
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/constants.ts:34
+#, fuzzy
+msgid "Time Grain"
+msgstr "期間"
+
+#: superset/common/query_context_processor.py:383
+#, fuzzy
+msgid "Time Grain must be specified when using Time Shift."
+msgstr "時間比較を使用する場合は、期間 (開始と終了の両方) を指定する必要があります。"
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/constants.ts:35
+msgid "Time Granularity"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:258
+#, fuzzy
+msgid "Time Lag"
+msgstr "期間"
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/constants.ts:32
+#: superset-frontend/src/explore/components/controls/FilterControl/utils/useDatePickerInAdhocFilter.tsx:43
+#, fuzzy
+msgid "Time Range"
+msgstr "期間"
+
+#: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:269
+#, fuzzy
+msgid "Time Ratio"
+msgstr "期間"
+
+#: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:78
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/vendor/superset/AnnotationTypes.js:47
+#, fuzzy
+msgid "Time Series"
+msgstr "時系列 - 表"
+
+#: superset/viz.py:1136
+msgid "Time Series - Bar Chart"
+msgstr "時系列 - 棒グラフ"
+
+#: superset/viz.py:929
+msgid "Time Series - Line Chart"
+msgstr "時系列 - 折れ線グラフ"
+
+#: superset/viz.py:2474
+msgid "Time Series - Nightingale Rose Chart"
+msgstr ""
+
+#: superset/viz.py:2402
+msgid "Time Series - Paired t-test"
+msgstr ""
+
+#: superset/viz.py:1193
+msgid "Time Series - Percent Change"
+msgstr "時系列 - 変化率"
+
+#: superset/viz.py:1145
+msgid "Time Series - Period Pivot"
+msgstr "時系列 - 期間ピボット"
+
+#: superset/viz.py:1201
+msgid "Time Series - Stacked"
+msgstr "時系列 - 積み上げ"
+
+#: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:59
+msgid "Time Series Options"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:311
+#: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:195
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:463
+#: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:639
+#, fuzzy
+msgid "Time Shift"
+msgstr "見積コスト"
+
+#: superset/viz.py:706
+msgid "Time Table View"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:326
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:766
+#: superset-frontend/src/explore/constants.ts:132
+#: superset-frontend/src/filters/components/TimeColumn/index.ts:28
+#, fuzzy
+msgid "Time column"
+msgstr "列を削除する"
+
+#: superset/models/helpers.py:1682
+#, python-format
+msgid "Time column \"%(col)s\" does not exist in dataset"
+msgstr ""
+
+#: superset-frontend/src/filters/components/TimeColumn/index.ts:29
+msgid "Time column filter plugin"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:771
+msgid "Time column to apply dependent temporal filter to"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:772
+msgid "Time column to apply time range to"
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:104
+#: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:71
+#: superset-frontend/src/explore/controlPanels/sections.tsx:183
+msgid "Time comparison"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:640
+msgid ""
+"Time delta in natural language\n"
+"                  (example:  24 hours, 7 days, 56 weeks, 365 days)"
+msgstr ""
+
+#: superset/commands/chart/exceptions.py:66
+#, python-format
+msgid ""
+"Time delta is ambiguous. Please specify [%(human_readable)s ago] or "
+"[%(human_readable)s later]."
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:325
+#: superset-frontend/src/filters/components/Time/index.ts:27
+#, fuzzy
+msgid "Time filter"
+msgstr "新しいフィルタ"
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:337
+#, fuzzy
+msgid "Time format"
+msgstr "日時フォーマット"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:327
+#: superset-frontend/src/explore/constants.ts:133
+#: superset-frontend/src/filters/components/TimeGrain/index.ts:28
+#, fuzzy
+msgid "Time grain"
+msgstr "期間"
+
+#: superset-frontend/src/filters/components/TimeGrain/index.ts:29
+msgid "Time grain filter plugin"
+msgstr ""
+
+#: superset/utils/pandas_postprocessing/prophet.py:118
+msgid "Time grain missing"
+msgstr ""
+
+#: superset-frontend/src/explore/constants.ts:134
+msgid "Time granularity"
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:416
+msgid "Time in seconds"
+msgstr "秒単位の時間"
+
+#: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:250
+#, fuzzy
+msgid "Time lag"
+msgstr "期間"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:325
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:1020
+#: superset-frontend/src/explore/constants.ts:131
+#: superset-frontend/src/pages/QueryHistoryList/index.tsx:419
+msgid "Time range"
+msgstr "期間"
+
+#: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:263
+#, fuzzy
+msgid "Time ratio"
+msgstr "期間"
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/sections/sections.tsx:28
+#: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:32
+#: superset-frontend/src/explore/controlPanels/sections.tsx:69
+msgid "Time related form attributes"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationTypes.js:46
+#, fuzzy
+msgid "Time series"
+msgstr "時系列 - 表"
+
+#: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:48
+#: superset-frontend/src/visualizations/TimeTable/controlPanel.js:38
+msgid "Time series columns"
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:112
+#: superset-frontend/src/explore/controlPanels/sections.tsx:193
+msgid "Time shift"
+msgstr ""
+
+#: superset/commands/chart/exceptions.py:38
+#, python-format
+msgid ""
+"Time string is ambiguous. Please specify [%(human_readable)s ago] or "
+"[%(human_readable)s later]."
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/index.js:36
+#, fuzzy
+msgid "Time-series Bar Chart (legacy)"
+msgstr "時系列 - 棒グラフ"
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:32
+#, fuzzy
+msgid "Time-series Percent Change"
+msgstr "時系列 - 変化率"
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/index.js:28
+#, fuzzy
+msgid "Time-series Period Pivot"
+msgstr "時系列 - 期間ピボット"
+
+#: superset-frontend/src/visualizations/TimeTable/index.ts:27
+msgid "Time-series Table"
+msgstr "時系列 - 表"
+
+#: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:98
+msgid "Timeout error"
+msgstr "タイムアウトエラー"
+
+#: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:364
+#, fuzzy
+msgid "Timestamp format"
+msgstr "無効な日付/タイムスタンプのフォーマット"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:412
+#: superset-frontend/src/features/reports/ReportModal/index.tsx:355
+msgid "Timezone"
+msgstr ""
+
+#: superset/connectors/sqla/views.py:336
+msgid "Timezone offset (in hours) for this datasource"
+msgstr ""
+
+#: superset-frontend/src/components/TimezoneSelector/index.tsx:129
+msgid "Timezone selector"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/sharedControls.ts:35
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/sharedControls.ts:69
+#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/controlPanel.ts:127
+#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/controlPanel.ts:161
+#, fuzzy
+msgid "Tiny"
+msgstr "アクション"
+
+#: superset-frontend/src/components/DynamicEditableTitle/index.tsx:183
+#: superset-frontend/src/components/DynamicEditableTitle/index.tsx:204
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/DividerConfigForm.tsx:41
+#: superset/views/dashboard/mixin.py:78 superset/views/dashboard/views.py:186
+msgid "Title"
+msgstr "タイトル"
+
+#: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:573
+#, fuzzy
+msgid "Title Column"
+msgstr "タイトルまたはスラッグ"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/DividerConfigForm.tsx:44
+#, fuzzy
+msgid "Title is required"
+msgstr "タイプが必要です"
+
+#: superset/dashboards/filters.py:39
+msgid "Title or Slug"
+msgstr "タイトルまたはスラッグ"
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent/index.tsx:344
+msgid "To filter on a metric, use Custom SQL tab."
+msgstr ""
+
+#: superset/views/dashboard/mixin.py:57
+msgid "To get a readable URL for your dashboard"
+msgstr "ダッシュボードの読み取り可能なURLを取得するには"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:215
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/CrossFilters/ScopingModal/ScopingTreePanel.tsx:118
+#: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:205
+#: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:211
+msgid "Tooltip"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:142
+msgid "Tooltip Contents"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:203
+#, fuzzy
+msgid "Tooltip sort by metric"
+msgstr "色の指標"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:193
+#, fuzzy
+msgid "Tooltip time format"
+msgstr "日時フォーマット"
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/sections/chartTitle.tsx:31
+#: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:87
+#: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:374
+#, fuzzy
+msgid "Top"
+msgstr "中止"
+
+#: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:184
+#, fuzzy
+msgid "Top left"
+msgstr "アラート"
+
+#: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:185
+#, fuzzy
+msgid "Top right"
+msgstr "高さ"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:137
+msgid "Top to Bottom"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Waterfall/constants.ts:22
+#: superset-frontend/plugins/plugin-chart-echarts/src/Waterfall/constants.ts:27
+#: superset-frontend/plugins/plugin-chart-echarts/src/Waterfall/controlPanel.tsx:89
+msgid "Total"
+msgstr ""
+
+#: superset/charts/post_processing.py:72
+#, python-format
+msgid "Total (%(aggfunc)s)"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-pivot-table/src/react-pivottable/TableRenderers.jsx:496
+#: superset-frontend/plugins/plugin-chart-pivot-table/src/react-pivottable/TableRenderers.jsx:561
+#: superset-frontend/plugins/plugin-chart-pivot-table/src/react-pivottable/TableRenderers.jsx:782
+#, python-format
+msgid "Total (%(aggregatorName)s)"
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/constants.ts:71
+#, fuzzy
+msgid "Total value"
+msgstr "デフォルト値"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/transformProps.ts:339
+#: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/transformProps.ts:388
+#, python-format
+msgid "Total: %s"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-table/src/TableChart.tsx:641
+msgid "Totals"
+msgstr ""
+
+#: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:457
+msgid "Track job"
+msgstr "ジョブ履歴"
+
+#: superset-frontend/plugins/legacy-plugin-chart-map-box/src/index.js:40
+#: superset-frontend/plugins/plugin-chart-echarts/src/Graph/index.ts:49
+#: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/index.ts:78
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/index.ts:72
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/index.ts:81
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Scatter/index.ts:75
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/SmoothLine/index.ts:76
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/index.ts:66
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/index.ts:65
+msgid "Transformable"
+msgstr ""
+
+#: superset-frontend/src/dashboard/util/backgroundStyleOptions.ts:25
+msgid "Transparent"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:257
+msgid "Transpose pivot"
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:168
+msgid "Treat values as categorical."
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Tree/index.ts:40
+#, fuzzy
+msgid "Tree Chart"
+msgstr "新しいチャート"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:115
+msgid "Tree layout"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:132
+#, fuzzy
+msgid "Tree orientation"
+msgstr "注釈を削除する"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/index.ts:61
+msgid "Treemap"
+msgstr "ツリーマップ"
+
+#: superset-frontend/plugins/legacy-plugin-chart-calendar/src/index.js:39
+#: superset-frontend/plugins/legacy-plugin-chart-rose/src/index.js:40
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:54
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/index.js:41
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/index.js:41
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:42
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/index.ts:45
+#: superset-frontend/plugins/plugin-chart-echarts/src/Bubble/index.ts:52
+#: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/index.ts:66
+#: superset-frontend/src/visualizations/TimeTable/index.ts:39
+#, fuzzy
+msgid "Trend"
+msgstr "変更"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:224
+msgid "Triangle"
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:407
+msgid "Trigger Alert If..."
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:224
+msgid "Truncate Axis"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/ColumnConfigControl/constants.tsx:142
+msgid "Truncate Cells"
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:361
+#, fuzzy
+msgid "Truncate Metric"
+msgstr "保存した指標"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:275
+#, fuzzy
+msgid "Truncate X Axis"
+msgstr "保存した指標"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:278
+msgid ""
+"Truncate X Axis. Can be overridden by specifying a min or max bound. Only"
+" applicable for numercal X axis."
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Bubble/controlPanel.tsx:242
+#: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:344
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/controlPanel.tsx:234
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Line/controlPanel.tsx:222
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Scatter/controlPanel.tsx:166
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/SmoothLine/controlPanel.tsx:166
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/controlPanel.tsx:216
+msgid "Truncate Y Axis"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Bubble/controlPanel.tsx:245
+#: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:347
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/controlPanel.tsx:237
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Line/controlPanel.tsx:225
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Scatter/controlPanel.tsx:169
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/SmoothLine/controlPanel.tsx:169
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/controlPanel.tsx:219
+msgid "Truncate Y Axis. Can be overridden by specifying a min or max bound."
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/ColumnConfigControl/constants.tsx:143
+msgid "Truncate long cells to the \"min width\" set above"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/DateFilterControl/components/DateFunctionTooltip.tsx:58
+msgid "Truncates the specified date to the accuracy specified by the date unit."
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberViz.tsx:194
+msgid "Try applying different filters or ensuring your datasource has data"
+msgstr ""
+
+#: superset-frontend/src/components/ListView/ListView.tsx:447
+msgid "Try different criteria to display results."
+msgstr ""
+
+#: superset-frontend/src/components/CronPicker/CronPicker.tsx:58
+msgid "Tuesday"
+msgstr "火曜日"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:94
+#, fuzzy
+msgid "Tukey"
+msgstr "クエリ"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:67
+#: superset-frontend/src/components/Datasource/ChangeDatasourceModal.tsx:218
+#: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:215
+#: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:219
+#: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:274
+#: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:278
+#: superset-frontend/src/pages/ChartList/index.tsx:370
+#: superset-frontend/src/pages/ChartList/index.tsx:586
+#: superset-frontend/src/pages/DatasetList/index.tsx:365
+#: superset-frontend/src/pages/DatasetList/index.tsx:526
+#: superset/connectors/sqla/views.py:162 superset/connectors/sqla/views.py:252
+msgid "Type"
+msgstr "タイプ"
+
+#: superset-frontend/src/components/DeleteModal/index.tsx:92
+#: superset-frontend/src/components/ImportModal/index.tsx:397
+#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1468
+#, python-format
+msgid "Type \"%s\" to confirm"
+msgstr ""
+
+#: superset-frontend/src/components/ListView/Filters/Search.tsx:75
+msgid "Type a value"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent/index.tsx:375
+msgid "Type a value here"
+msgstr ""
+
+#: superset/commands/report/exceptions.py:73
+msgid "Type is required"
+msgstr "タイプが必要です"
+
+#: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:72
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:216
+#: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:275
+msgid "Type of comparison, value difference or percentage"
+msgstr ""
+
+#: superset-frontend/src/filters/components/Range/controlPanel.ts:45
+#: superset-frontend/src/filters/components/Select/controlPanel.ts:54
+#: superset-frontend/src/filters/components/Time/controlPanel.ts:45
+#: superset-frontend/src/filters/components/TimeColumn/controlPanel.ts:25
+#: superset-frontend/src/filters/components/TimeGrain/controlPanel.ts:25
+#, fuzzy
+msgid "UI Configuration"
+msgstr "フィルタ構成"
+
+#: superset-frontend/src/visualizations/TimeTable/controlPanel.js:51
+msgid "URL"
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/sections/sections.tsx:70
+#, fuzzy
+msgid "URL Parameters"
+msgstr "URLパラメータ"
+
+#: superset-frontend/src/explore/controlPanels/sections.tsx:53
+msgid "URL parameters"
+msgstr "URLパラメータ"
+
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:693
+msgid "URL slug"
+msgstr "URLスラッグ"
+
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:538
+msgid "Unable to add a new tab to the backend. Please contact your administrator."
+msgstr ""
+
+#: superset/db_engine_specs/presto.py:703
+#, python-format
+msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
+msgstr ""
+
+#: superset/db_engine_specs/doris.py:226 superset/db_engine_specs/mysql.py:172
+#: superset/db_engine_specs/postgres.py:153
+#: superset/db_engine_specs/starrocks.py:159
+#, python-format
+msgid "Unable to connect to database \"%(database)s\"."
+msgstr "“%(database)s” に接続できません。"
+
+#: superset/db_engine_specs/bigquery.py:179
+msgid ""
+"Unable to connect. Verify that the following roles are set on the service"
+" account: \"BigQuery Data Viewer\", \"BigQuery Metadata Viewer\", "
+"\"BigQuery Job User\" and the following permissions are set "
+"\"bigquery.readsessions.create\", \"bigquery.readsessions.getData\""
+msgstr ""
+
+#: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:242
+msgid "Unable to create chart without a query id."
+msgstr ""
+
+#: superset/key_value/exceptions.py:66
+msgid "Unable to decode value"
+msgstr ""
+
+#: superset/key_value/exceptions.py:62
+msgid "Unable to encode value"
+msgstr ""
+
+#: superset/utils/date_parser.py:393
+#, python-format
+msgid "Unable to find such a holiday: [%(holiday)s]"
+msgstr ""
+
+#: superset-frontend/src/features/datasets/AddDataset/DatasetPanel/MessageContent.tsx:69
+msgid ""
+"Unable to load columns for the selected table. Please select a different "
+"table."
+msgstr ""
+
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:504
+msgid ""
+"Unable to migrate query editor state to backend. Superset will retry "
+"later. Please contact your administrator if this problem persists."
+msgstr ""
+
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:457
+msgid ""
+"Unable to migrate query state to backend. Superset will retry later. "
+"Please contact your administrator if this problem persists."
+msgstr ""
+
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:439
+msgid ""
+"Unable to migrate table schema state to backend. Superset will retry "
+"later. Please contact your administrator if this problem persists."
+msgstr ""
+
+#: superset-frontend/src/explore/components/ExploreChartHeader/index.jsx:127
+msgid "Unable to retrieve dashboard colors"
+msgstr ""
+
+#: superset/views/database/views.py:277
+#, python-format
+msgid ""
+"Unable to upload CSV file \"%(filename)s\" to table \"%(table_name)s\" in"
+" database \"%(db_name)s\". Error message: %(error_msg)s"
+msgstr ""
+
+#: superset/views/database/views.py:554
+#, python-format
+msgid ""
+"Unable to upload Columnar file \"%(filename)s\" to table "
+"\"%(table_name)s\" in database \"%(db_name)s\". Error message: "
+"%(error_msg)s"
+msgstr ""
+
+#: superset/views/database/views.py:412
+#, python-format
+msgid ""
+"Unable to upload Excel file \"%(filename)s\" to table \"%(table_name)s\" "
+"in database \"%(db_name)s\". Error message: %(error_msg)s"
+msgstr ""
+
+#: superset-frontend/src/SqlLab/components/SaveQuery/index.tsx:93
+#: superset-frontend/src/SqlLab/components/ScheduleQueryButton/index.tsx:134
+msgid "Undefined"
+msgstr ""
+
+#: superset/utils/pandas_postprocessing/rolling.py:67
+msgid "Undefined window for rolling operation"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/Header/index.jsx:551
+#, fuzzy
+msgid "Undo the action"
+msgstr "注釈"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FilterTitleContainer.tsx:138
+msgid "Undo?"
+msgstr "元に戻しますか？"
+
+#: superset-frontend/src/components/ErrorBoundary/index.jsx:51
+#: superset-frontend/src/components/ErrorMessage/ErrorMessageWithStackTrace.tsx:25
+msgid "Unexpected error"
+msgstr ""
+
+#: superset/commands/database/exceptions.py:137
+#: superset/commands/database/exceptions.py:142
+msgid "Unexpected error occurred, please check your logs for details"
+msgstr ""
+
+#: superset-frontend/src/utils/getClientErrorObject.ts:75
+#, fuzzy
+msgid "Unexpected error: "
+msgstr "レポートスケジュールの予期せぬエラー"
+
+#: superset/views/api.py:108
+#, fuzzy, python-format
+msgid "Unexpected time range: %(error)s"
+msgstr "レポートスケジュールの予期せぬエラー"
+
+#: superset-frontend/src/features/home/ActivityTable.tsx:86
+msgid "Unknown"
+msgstr "不明"
+
+#: superset/db_engine_specs/doris.py:216
+#, python-format
+msgid "Unknown Doris server host \"%(hostname)s\"."
+msgstr ""
+
+#: superset/db_engine_specs/mysql.py:162
+#, python-format
+msgid "Unknown MySQL server host \"%(hostname)s\"."
+msgstr ""
+
+#: superset/db_engine_specs/presto.py:1355
+msgid "Unknown Presto Error"
+msgstr ""
+
+#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:177
+msgid "Unknown Status"
+msgstr ""
+
+#: superset/models/helpers.py:1605
+#, python-format
+msgid "Unknown column used in orderby: %(col)s"
+msgstr ""
+
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:359
+#: superset-frontend/src/SqlLab/components/AceEditorWrapper/useAnnotations.ts:56
+msgid "Unknown error"
+msgstr "不明なエラー"
+
+#: superset-frontend/plugins/plugin-chart-pivot-table/src/react-pivottable/utilities.js:842
+msgid "Unknown input format"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:193
+#, fuzzy
+msgid "Unknown type"
+msgstr "不明なエラー"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/utils.ts:253
+#, fuzzy
+msgid "Unknown value"
+msgstr "不明なエラー"
+
+#: superset/jinja_context.py:344
+#, python-format
+msgid "Unsafe return type for function %(func)s: %(value_type)s"
+msgstr "関数 %(func)s の安全でない戻り値の型: %(value_type)s"
+
+#: superset/jinja_context.py:371
+#, python-format
+msgid "Unsafe template value for key %(key)s: %(value_type)s"
+msgstr "キー %(key)s の安全でないテンプレート値: %(value_type)s"
+
+#: superset/utils/core.py:993
+#, python-format
+msgid "Unsupported clause type: %(clause)s"
+msgstr ""
+
+#: superset/common/query_object.py:439
+#, python-format
+msgid "Unsupported post processing operation: %(operation)s"
+msgstr ""
+
+#: superset/jinja_context.py:355
+#, python-format
+msgid "Unsupported return value for method %(name)s"
+msgstr "メソッド %(name)s のサポートされていない戻り値"
+
+#: superset/jinja_context.py:382
+#, python-format
+msgid "Unsupported template value for key %(key)s"
+msgstr ""
+
+#: superset/utils/pandas_postprocessing/prophet.py:121
+#, python-format
+msgid "Unsupported time grain: %(time_grain)s"
+msgstr ""
+
+#: superset-frontend/src/SqlLab/components/SaveDatasetModal/index.tsx:147
+#, fuzzy
+msgid "Untitled Dataset"
+msgstr "データセットを編集"
+
+#: superset/views/sql_lab/views.py:93
+#, fuzzy
+msgid "Untitled Query"
+msgstr "実行したクエリ"
+
+#: superset-frontend/src/SqlLab/reducers/getInitialState.ts:60
+msgid "Untitled query"
+msgstr ""
+
+#: superset-frontend/src/SqlLab/components/SaveQuery/index.tsx:227
+msgid "Update"
+msgstr "更新"
+
+#: superset-frontend/src/explore/components/RunQueryButton/index.tsx:54
+#: superset-frontend/src/utils/getChartRequiredFieldsMissingMessage.ts:23
+#, fuzzy
+msgid "Update chart"
+msgstr "チャートを保存"
+
+#: superset-frontend/src/components/Chart/chartReducer.ts:84
+msgid "Updating chart was stopped"
+msgstr ""
+
+#: superset/templates/superset/import_dashboards.html:63
+msgid "Upload"
+msgstr "アップロード"
+
+#: superset-frontend/src/pages/DatabaseList/index.tsx:234
+#, fuzzy
+msgid "Upload CSV"
+msgstr "画像としてダウンロード"
+
+#: superset-frontend/src/features/home/RightMenu.tsx:190
+#, fuzzy
+msgid "Upload CSV to database"
+msgstr "データベースのインポート"
+
+#: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:135
+#, fuzzy
+msgid "Upload Credentials"
+msgstr "Excelをアップロード"
+
+#: superset/databases/filters.py:79
+#, fuzzy
+msgid "Upload Enabled"
+msgstr "Excelをアップロード"
+
+#: superset-frontend/src/pages/DatabaseList/index.tsx:248
+#, fuzzy
+msgid "Upload Excel file"
+msgstr "Excelをアップロード"
+
+#: superset-frontend/src/features/home/RightMenu.tsx:204
+msgid "Upload Excel file to database"
+msgstr ""
+
+#: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:101
+msgid "Upload JSON file"
+msgstr ""
+
+#: superset-frontend/src/pages/DatabaseList/index.tsx:241
+msgid "Upload columnar file"
+msgstr ""
+
+#: superset-frontend/src/features/home/RightMenu.tsx:197
+#, fuzzy
+msgid "Upload columnar file to database"
+msgstr "データベースにアップロードする CSV ファイルを選択します。"
+
+#: superset-frontend/src/pages/DatabaseList/index.tsx:231
+#, fuzzy
+msgid "Upload file to database"
+msgstr "データベースを編集"
+
+#: superset-frontend/src/explore/components/controls/ContourControl/ContourPopoverControl.tsx:300
+msgid "Upper Threshold"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/ContourControl/ContourPopoverControl.tsx:92
+msgid "Upper threshold must be greater than lower threshold"
+msgstr ""
+
+#: superset-frontend/src/features/datasets/AddDataset/EditDataset/index.tsx:52
+#, fuzzy
+msgid "Usage"
+msgstr "管理"
+
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:798
+#, python-format
+msgid "Use \"%(menuName)s\" menu instead."
+msgstr ""
+
+#: superset-frontend/src/dashboard/util/getSliceHeaderTooltip.tsx:31
+#, fuzzy, python-format
+msgid "Use %s to open in a new tab."
+msgstr "新しいタブでクエリを実行"
+
+#: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:105
+#: superset-frontend/src/explore/controlUtils/controlUtils.test.tsx:114
+#: superset-frontend/src/explore/fixtures.tsx:43
+#, fuzzy
+msgid "Use Area Proportions"
+msgstr "ダッシュボードのプロパティ"
+
+#: superset/views/database/forms.py:469
+#, fuzzy
+msgid "Use Columns"
+msgstr "列を削除する"
+
+#: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:199
+msgid "Use a log scale"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/controlPanel.ts:106
+msgid "Use a log scale for the X-axis"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:251
+msgid "Use a log scale for the Y-axis"
+msgstr ""
+
+#: superset/db_engine_specs/base.py:2000
+#: superset/db_engine_specs/clickhouse.py:215
+#: superset/db_engine_specs/databend.py:203
+#: superset/db_engine_specs/databricks.py:59
+msgid "Use an encrypted connection to the database"
+msgstr ""
+
+#: superset/db_engine_specs/base.py:2004
+msgid "Use an ssh tunnel connection to the database"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:454
+#, python-format
+msgid ""
+"Use another existing chart as a source for annotations and overlays.\n"
+"          Your chart must be one of these visualization types: [%s]"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/controlPanel.ts:86
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:160
+msgid "Use date formatting even when metric value is not a timestamp"
+msgstr ""
+
+#: superset-frontend/src/components/Datasource/DatasourceModal.tsx:302
+msgid "Use legacy datasource editor"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:117
+msgid "Use metrics as a top level group for columns or for rows"
+msgstr ""
+
+#: superset-frontend/src/filters/components/Range/controlPanel.ts:68
+msgid "Use only a single value."
+msgstr ""
+
+#: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:116
+msgid "Use the Advanced Analytics options below"
+msgstr ""
+
+#: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:137
+msgid ""
+"Use the JSON file you automatically downloaded when creating your service"
+" account."
+msgstr ""
+
+#: superset/templates/superset/fab_overrides/list_with_checkboxes.html:82
+#, fuzzy
+msgid "Use the edit button to change this field"
+msgstr "このフィールドを変更するには、編集ボタンを使用します"
+
+#: superset-frontend/src/explore/components/ControlPanelsContainer.test.tsx:40
+#: superset-frontend/src/explore/components/ControlPanelsContainer.test.tsx:120
+msgid "Use this section if you want a query that aggregates"
+msgstr ""
+
+#: superset-frontend/src/explore/components/ControlPanelsContainer.test.tsx:54
+msgid "Use this section if you want to query atomic rows"
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:128
+#: superset-frontend/src/explore/controls.jsx:206
+msgid "Use this to define a static color for all circles"
+msgstr "これを使用して、すべての円の静的な色を定義します"
+
+#: superset/views/dynamic_plugins.py:48
+msgid ""
+"Used internally to identify the plugin. Should be set to the package name"
+" from the pluginʼs package.json"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/index.ts:56
+msgid ""
+"Used to summarize a set of data by grouping together multiple statistics "
+"along two axes. Examples: Sales numbers by region and month, tasks by "
+"status and assignee, active users by age and location. Not the most "
+"visually stunning visualization, but highly informative and versatile."
+msgstr ""
+
+#: superset-frontend/src/features/home/RightMenu.tsx:475
+#: superset-frontend/src/pages/QueryHistoryList/index.tsx:309
+#: superset-frontend/src/pages/QueryHistoryList/index.tsx:401
+#: superset/views/log/__init__.py:30
+msgid "User"
+msgstr "ユーザー"
+
+#: superset/errors.py:121
+#, fuzzy
+msgid "User doesn't have the proper permissions."
+msgstr "Issue 1017 - ユーザーに適切なアクセス許可がありません。"
+
+#: superset-frontend/src/filters/components/Range/controlPanel.ts:56
+#: superset-frontend/src/filters/components/Select/controlPanel.ts:90
+#: superset-frontend/src/filters/components/Time/controlPanel.ts:56
+#: superset-frontend/src/filters/components/TimeColumn/controlPanel.ts:36
+#: superset-frontend/src/filters/components/TimeGrain/controlPanel.ts:36
+msgid "User must select a value before applying the filter"
+msgstr ""
+
+#: superset-frontend/src/features/queries/QueryPreviewModal.tsx:156
+msgid "User query"
+msgstr "ユーザークエリ"
+
+#: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:135
+#: superset-frontend/src/features/databases/DatabaseModal/SSHTunnelForm.tsx:102
+#: superset/db_engine_specs/base.py:1979
+#: superset/db_engine_specs/clickhouse.py:200
+#: superset/db_engine_specs/databend.py:193
+msgid "Username"
+msgstr "ユーザー名"
+
+#: superset/db_engine_specs/postgres.py:289
+msgid "Users are not allowed to set a search path for security reasons."
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Contour/index.ts:28
+#: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Heatmap/index.ts:28
+msgid ""
+"Uses Gaussian Kernel Density Estimation to visualize spatial distribution"
+" of data"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/index.ts:46
+msgid ""
+"Uses a gauge to showcase progress of a metric towards a target. The "
+"position of the dial represents the progress and the terminal value in "
+"the gauge represents the target value."
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/index.ts:42
+msgid ""
+"Uses circles to visualize the flow of data through different stages of a "
+"system. Hover over individual paths in the visualization to understand "
+"the stages a value took. Useful for multi-stage, multi-group visualizing "
+"funnels and pipelines."
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:54
+#: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:117
+#: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:147
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:103
+#: superset-frontend/plugins/plugin-chart-echarts/src/Radar/controlPanel.tsx:109
+#: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:116
+#: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:99
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:323
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:409
+#: superset-frontend/src/pages/ExecutionLogList/index.tsx:147
+msgid "Value"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-plugin-chart-horizon/src/controlPanel.ts:81
+msgid "Value Domain"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:332
+#, fuzzy
+msgid "Value Format"
+msgstr "メールフォーマット"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:130
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:108
+#, fuzzy
+msgid "Value and Percentage"
+msgstr "レポート送信"
+
+#: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:227
+msgid "Value bounds"
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-core/src/validator/validateMaxValue.ts:23
+#, python-format
+msgid "Value cannot exceed %s"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:161
+#: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:290
+#, fuzzy
+msgid "Value format"
+msgstr "メールフォーマット"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DefaultValue.tsx:84
+#, fuzzy
+msgid "Value is required"
+msgstr "名前が必要です"
+
+#: superset/reports/schemas.py:192 superset/reports/schemas.py:197
+#: superset/reports/schemas.py:202 superset/reports/schemas.py:323
+#: superset/reports/schemas.py:328 superset/reports/schemas.py:334
+msgid "Value must be greater than 0"
+msgstr "値は 0 より大きくする必要があります"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DependencyList.tsx:204
+msgid "Values are dependent on other filters"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DependencyList.tsx:211
+#, fuzzy
+msgid "Values dependent on"
+msgstr "レポート送信"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DependencyList.tsx:207
+msgid ""
+"Values selected in other filters will affect the filter options to only "
+"show relevant values"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:39
+msgid "Vehicle Types"
+msgstr ""
+
+#: superset/connectors/sqla/views.py:154 superset/connectors/sqla/views.py:251
+msgid "Verbose Name"
+msgstr ""
+
+#: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:556
+#: superset-frontend/src/features/home/RightMenu.tsx:497
+msgid "Version"
+msgstr ""
+
+#: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:562
+msgid "Version number"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/index.js:43
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/index.js:50
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:275
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/index.ts:83
+#, fuzzy
+msgid "Vertical"
+msgstr "ABC順"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterBarSettings/index.tsx:188
+#, fuzzy
+msgid "Vertical (Left)"
+msgstr "ABC順"
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:38
+msgid "Video game consoles"
+msgstr ""
+
+#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:245
+#: superset-frontend/src/pages/AlertReportList/index.tsx:378
+#, fuzzy
+msgid "View"
+msgstr "プレビュー"
+
+#: superset-frontend/src/features/home/ChartTable.tsx:200
+#: superset-frontend/src/features/home/DashboardTable.tsx:203
+#: superset-frontend/src/features/home/SavedQueries.tsx:264
+msgid "View All »"
+msgstr ""
+
+#: superset-frontend/src/features/datasets/AddDataset/DatasetPanel/DatasetPanel.tsx:227
+#, fuzzy
+msgid "View Dataset"
+msgstr "データセットを編集"
+
+#: superset-frontend/src/explore/components/controls/VizTypeControl/index.tsx:124
+#, fuzzy
+msgid "View all charts"
+msgstr "すべてのチャート"
+
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:476
+#, fuzzy
+msgid "View as table"
+msgstr "サンプルを表示"
+
+#: superset-frontend/src/explore/components/controls/DatasourceControl/index.jsx:334
+#: superset-frontend/src/explore/components/controls/DatasourceControl/index.jsx:374
+msgid "View in SQL Lab"
+msgstr "SQL Labで表示"
+
+#: superset-frontend/src/SqlLab/components/TableElement/index.tsx:250
+#, python-format
+msgid "View keys & indexes (%s)"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:459
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:461
+#: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:425
+#: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:427
+msgid "View query"
+msgstr "クエリを見る"
+
+#: superset-frontend/src/features/home/ActivityTable.tsx:170
+msgid "Viewed"
+msgstr "表示した項目"
+
+#: superset-frontend/src/features/home/ActivityTable.tsx:115
+#, fuzzy, python-format
+msgid "Viewed %s"
+msgstr "表示した項目"
+
+#: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:265
+#: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:294
+#: superset-frontend/src/explore/components/controls/ViewportControl.jsx:111
+#, fuzzy
+msgid "Viewport"
+msgstr "レポート"
+
+#: superset-frontend/src/pages/DatasetList/index.tsx:364
+#: superset-frontend/src/pages/DatasetList/index.tsx:533
+msgid "Virtual"
+msgstr ""
+
+#: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:155
+msgid "Virtual (SQL)"
+msgstr ""
+
+#: superset-frontend/src/pages/DatasetList/index.tsx:296
+msgid "Virtual dataset"
+msgstr ""
+
+#: superset/connectors/sqla/models.py:1498
+#: superset/connectors/sqla/utils.py:107 superset/models/helpers.py:1076
+msgid "Virtual dataset query cannot be empty"
+msgstr ""
+
+#: superset/connectors/sqla/models.py:1501 superset/models/helpers.py:1079
+msgid "Virtual dataset query cannot consist of multiple statements"
+msgstr ""
+
+#: superset/connectors/sqla/models.py:1466 superset/models/helpers.py:1102
+msgid "Virtual dataset query must be read-only"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:191
+msgid "Visual Tweaks"
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:120
+#: superset/views/chart/mixin.py:87
+msgid "Visualization Type"
+msgstr "可視化方式"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Radar/index.ts:57
+msgid ""
+"Visualize a parallel set of metrics across multiple groups. Each group is"
+" visualized using its own line of points and each metric is represented "
+"as an edge in the chart."
+msgstr ""
+
+#: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/index.js:30
+msgid ""
+"Visualize a related metric across pairs of groups. Heatmaps excel at "
+"showcasing the correlation or strength between two groups. Color is used "
+"to emphasize the strength of the link between each pair of groups."
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Grid/index.ts:28
+msgid ""
+"Visualize geospatial data like 3D buildings, landscapes, or objects in "
+"grid view."
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/index.js:31
+msgid ""
+"Visualize how a metric changes over time using bars. Add a group by "
+"column to visualize group level metrics and how they change over time."
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Tree/index.ts:36
+msgid ""
+"Visualize multiple levels of hierarchy using a familiar tree-like "
+"structure."
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/index.ts:58
+msgid ""
+"Visualize two different series using the same x-axis. Note that both "
+"series can be visualized with a different chart type (e.g. 1 using bars "
+"and 1 using a line)."
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/index.js:28
+#: superset-frontend/plugins/plugin-chart-echarts/src/Bubble/index.ts:41
+msgid ""
+"Visualizes a metric across three dimensions of data in a single chart (X "
+"axis, Y axis, and bubble size). Bubbles from the same group can be "
+"showcased using bubble color."
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Path/index.ts:28
+msgid "Visualizes connected points, which form a path, on a map."
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Polygon/index.ts:28
+msgid ""
+"Visualizes geographic areas from your data as polygons on a Mapbox "
+"rendered map. Polygons can be colored using a metric."
+msgstr ""
+
+#: superset-frontend/plugins/legacy-plugin-chart-calendar/src/index.js:28
+msgid ""
+"Visualizes how a metric has changed over a time using a color scale and a"
+" calendar view. Gray values are used to indicate missing values and the "
+"linear color scheme is used to encode the magnitude of each day's value."
+msgstr ""
+
+#: superset-frontend/plugins/legacy-plugin-chart-country-map/src/index.js:29
+msgid ""
+"Visualizes how a single metric varies across a country's principal "
+"subdivisions (states, provinces, etc) on a choropleth map. Each "
+"subdivision's value is elevated when you hover over the corresponding "
+"geographic boundary."
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:28
+msgid ""
+"Visualizes many different time-series objects in a single chart. This "
+"chart is being deprecated and we recommend using the Time-series Chart "
+"instead."
+msgstr ""
+
+#: superset-frontend/plugins/legacy-plugin-chart-sankey/src/index.js:29
+msgid ""
+"Visualizes the flow of different group's values through different stages "
+"of a system. New stages in the pipeline are visualized as nodes or "
+"layers. The thickness of the bars or edges represent the metric being "
+"visualized."
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-word-cloud/src/plugin/index.ts:35
+msgid ""
+"Visualizes the words in a column that appear the most often. Bigger font "
+"corresponds to higher frequency."
+msgstr ""
+
+#: superset/viz.py:127
+msgid "Viz is missing a datasource"
+msgstr "Viz はデータソースがありません"
+
+#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:279
+msgid "Viz type"
+msgstr "可視化タイプ"
+
+#: superset-frontend/src/components/CronPicker/CronPicker.tsx:84
+msgid "WED"
+msgstr "水"
+
+#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1011
+msgid "Want to add a new database?"
+msgstr ""
+
+#: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1307
+#: superset-frontend/src/explore/components/controls/DndColumnSelectControl/DndFilterSelect.tsx:211
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterControl/index.jsx:197
+msgid "Warning"
+msgstr "警告"
+
+#: superset/connectors/sqla/views.py:257
+msgid "Warning Message"
+msgstr "警告メッセージ"
+
+#: superset-frontend/src/components/Datasource/ChangeDatasourceModal.tsx:288
+msgid "Warning!"
+msgstr "警告!"
+
+#: superset-frontend/src/components/Datasource/ChangeDatasourceModal.tsx:47
+msgid ""
+"Warning! Changing the dataset may break the chart if the metadata does "
+"not exist."
+msgstr ""
+
+#: superset/commands/database/exceptions.py:157
+#: superset/commands/database/exceptions.py:167
+msgid "Was unable to check your query"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Waterfall/index.ts:63
+#, fuzzy
+msgid "Waterfall Chart"
+msgstr "すべてのチャート"
+
+#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1531
+msgid ""
+"We are unable to connect to your database. Click \"See more\" for "
+"database-provided information that may help troubleshoot the issue."
+msgstr ""
+
+#: superset/db_engine_specs/bigquery.py:199
+#, python-format
+msgid "We can't seem to resolve column \"%(column)s\" at line %(location)s."
+msgstr ""
+
+#: superset/db_engine_specs/duckdb.py:58 superset/db_engine_specs/sqlite.py:108
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\""
+msgstr ""
+
+#: superset/db_engine_specs/postgres.py:158
+#: superset/db_engine_specs/presto.py:656
+#, python-format
+msgid ""
+"We can't seem to resolve the column \"%(column_name)s\" at line "
+"%(location)s."
+msgstr ""
+
+#: superset-frontend/src/visualizations/dashboardComponents/ExampleComponent/ExampleComponent.tsx:29
+#, python-format
+msgid "We have the following keys: %s"
+msgstr ""
+
+#: superset-frontend/src/features/reports/ReportModal/actions.js:136
+msgid "We were unable to active or deactivate this report."
+msgstr ""
+
+#: superset-frontend/src/explore/components/ControlPanelsContainer.tsx:677
+msgid ""
+"We were unable to carry over any controls when switching to this new "
+"dataset."
+msgstr ""
+
+#: superset/db_engine_specs/redshift.py:97
+#, python-format
+msgid ""
+"We were unable to connect to your database named \"%(database)s\". Please"
+" verify your database name and try again."
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Arc/index.ts:35
+#: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Path/index.ts:33
+#: superset-frontend/plugins/plugin-chart-echarts/src/Radar/index.ts:68
+msgid "Web"
+msgstr ""
+
+#: superset-frontend/src/components/CronPicker/CronPicker.tsx:59
+msgid "Wednesday"
+msgstr "水曜日"
+
+#: superset/db_engine_specs/base.py:109
+msgid "Week"
+msgstr "週"
+
+#: superset/db_engine_specs/base.py:115
+msgid "Week ending Saturday"
+msgstr ""
+
+#: superset/db_engine_specs/base.py:116
+msgid "Week ending Sunday"
+msgstr ""
+
+#: superset/db_engine_specs/base.py:114
+msgid "Week starting Monday"
+msgstr ""
+
+#: superset/db_engine_specs/base.py:113
+msgid "Week starting Sunday"
+msgstr ""
+
+#: superset-frontend/src/features/reports/ReportModal/index.tsx:131
+#, fuzzy
+msgid "Weekly Report"
+msgstr "レポート"
+
+#: superset-frontend/src/features/reports/ReportModal/index.tsx:130
+#, python-format
+msgid "Weekly Report for %s"
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/sections/forecastInterval.tsx:104
+msgid "Weekly seasonality"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:66
+#, fuzzy, python-format
+msgid "Weeks %s"
+msgstr "週"
+
+#: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Contour/controlPanel.ts:120
+#: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Heatmap/controlPanel.ts:137
+#: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Screengrid/Screengrid.tsx:52
+#: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Screengrid/controlPanel.ts:72
+#, fuzzy
+msgid "Weight"
+msgstr "高さ"
+
+#: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:52
+#, fuzzy, python-format
+msgid ""
+"We’re having trouble loading these results. Queries are set to timeout "
+"after %s second."
+msgid_plural ""
+"We’re having trouble loading these results. Queries are set to timeout "
+"after %s seconds."
+msgstr[0] ""
+
+#: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:46
+#, fuzzy, python-format
+msgid ""
+"We’re having trouble loading this visualization. Queries are set to "
+"timeout after %s second."
+msgid_plural ""
+"We’re having trouble loading this visualization. Queries are set to "
+"timeout after %s seconds."
+msgstr[0] ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:133
+msgid "What should be shown as the label"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:159
+msgid "What should be shown as the tooltip label"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:60
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:110
+#: superset-frontend/plugins/plugin-chart-echarts/src/Radar/controlPanel.tsx:112
+#: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:119
+#: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:102
+msgid "What should be shown on the label?"
+msgstr ""
+
+#: superset/views/database/forms.py:176
+msgid "What should happen if the table already exists"
+msgstr ""
+
+#: superset-frontend/src/explore/controls.jsx:434
+msgid ""
+"When `Calculation type` is set to \"Percentage change\", the Y Axis "
+"Format is forced to `.1%`"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:182
+msgid "When a secondary metric is provided, a linear color scale is used."
+msgstr ""
+
+#: superset/views/database/mixins.py:119
+msgid ""
+"When allowing CREATE TABLE AS option in SQL Lab, this option forces the "
+"table to be created in this schema"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:101
+msgid "When checked, the map will zoom to your data after each query"
+msgstr ""
+
+#: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:199
+msgid "When enabled, users are able to visualize SQL Lab results in Explore."
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:172
+msgid "When only a primary metric is provided, a categorical color scale is used."
+msgstr ""
+
+#: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1129
+msgid ""
+"When specifying SQL, the datasource acts as a view. Superset will use "
+"this statement as a subquery while grouping and filtering on the "
+"generated parent queries."
+msgstr ""
+
+#: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1006
+msgid ""
+"When the secondary temporal columns are filtered, apply the same filter "
+"to the main datetime column."
+msgstr ""
+
+#: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:912
+msgid ""
+"When using \"Autocomplete filters\", this can be used to improve "
+"performance of the query fetching the values. Use this option to apply a "
+"predicate (WHERE clause) to the query selecting the distinct values from "
+"the table. Typically the intent would be to limit the scan by applying a "
+"relative time filter on a partitioned or indexed time-related field."
+msgstr ""
+
+#: superset/viz.py:719
+msgid "When using 'Group By' you are limited to use a single metric"
+msgstr "‘Group By’ を使用する場合、指標は1つに制限されます。"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/constants.ts:77
+msgid "When using other than adaptive formatting, labels may overlap"
+msgstr ""
+
+#: superset-frontend/src/filters/components/Select/controlPanel.ts:107
+msgid "When using this option, default value can’t be set"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:254
+msgid "Whether the progress bar overlaps when there are multiple groups of data"
+msgstr ""
+
+#: superset/connectors/sqla/views.py:364
+msgid "Whether the table was generated by the 'Visualize' flow in SQL Lab"
+msgstr ""
+
+#: superset/connectors/sqla/views.py:109
+msgid ""
+"Whether this column is exposed in the `Filters` section of the explore "
+"view."
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:422
+msgid ""
+"Whether to align background charts with both positive and negative values"
+" at 0"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/ColumnConfigControl/constants.tsx:123
+msgid "Whether to align positive and negative values in cell bar chart at 0"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:805
+msgid "Whether to always show the annotation label"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:188
+msgid "Whether to animate the progress and the value or just display them"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:320
+msgid "Whether to apply a normal distribution based on rank on the color scale"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Polygon/controlPanel.ts:174
+msgid "Whether to apply filter when items are clicked"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/ColumnConfigControl/constants.tsx:133
+msgid "Whether to colorize numeric values by if they are positive or negative"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:434
+msgid ""
+"Whether to colorize numeric values by whether they are positive or "
+"negative"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:408
+#: superset-frontend/src/explore/components/controls/ColumnConfigControl/constants.tsx:115
+msgid "Whether to display a bar chart background in table columns"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Waterfall/controlPanel.tsx:58
+#: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:44
+msgid "Whether to display a legend for the chart"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:83
+msgid "Whether to display bubbles on top of countries"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:194
+#: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:102
+msgid "Whether to display the aggregate count"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-plugin-chart-parallel-coordinates/src/controlPanel.ts:49
+msgid "Whether to display the interactive data table"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:186
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:152
+#: superset-frontend/plugins/plugin-chart-echarts/src/Radar/controlPanel.tsx:96
+#: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:75
+#: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:73
+msgid "Whether to display the labels."
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:97
+msgid ""
+"Whether to display the labels. Note that the label only displays when the"
+" 5% threshold."
+msgstr ""
+
+#: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:161
+#: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:281
+#: superset-frontend/plugins/legacy-plugin-chart-histogram/src/controlPanel.ts:116
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:160
+msgid "Whether to display the legend (toggles)"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:185
+msgid "Whether to display the metric name as a title"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:294
+msgid "Whether to display the min and max values of the X-axis"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:102
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:113
+msgid "Whether to display the min and max values of the Y-axis"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:171
+#: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:307
+#: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:194
+msgid "Whether to display the numerical values within the cells"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:262
+msgid "Whether to display the stroke"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:149
+msgid "Whether to display the time range interactive selector"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:79
+msgid "Whether to display the timestamp"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:198
+#, fuzzy
+msgid "Whether to display the tooltip labels."
+msgstr "表示する指標を選択"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:91
+msgid "Whether to display the trend line"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:170
+#: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:277
+msgid "Whether to enable changing graph position and scaling."
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:144
+msgid "Whether to enable node dragging in force layout mode."
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:251
+msgid "Whether to fill the objects"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:90
+msgid "Whether to ignore locations that are null"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:398
+msgid "Whether to include a client-side search box"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:292
+msgid "Whether to include the percentage in the tooltip"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/includeTime.ts:28
+msgid "Whether to include the time granularity as defined in the time section"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:274
+msgid "Whether to make the grid 3D"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-plugin-chart-histogram/src/controlPanel.ts:139
+msgid "Whether to make the histogram cumulative"
+msgstr ""
+
+#: superset/connectors/sqla/views.py:104
+msgid ""
+"Whether to make this column available as a [Time Granularity] option, "
+"column has to be DATETIME or DATETIME-like"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-plugin-chart-histogram/src/controlPanel.ts:127
+msgid "Whether to normalize the histogram"
+msgstr ""
+
+#: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:905
+msgid "Whether to populate autocomplete filters options"
+msgstr ""
+
+#: superset/connectors/sqla/views.py:359
+msgid ""
+"Whether to populate the filter's dropdown in the explore view's filter "
+"section with a list of distinct values fetched from the backend on the "
+"fly"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:171
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/controlPanel.tsx:132
+msgid ""
+"Whether to show extra controls or not. Extra controls include things like"
+" making mulitBar charts stacked or side by side."
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:203
+msgid "Whether to show minor ticks on the axis"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:176
+msgid "Whether to show the pointer"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:242
+msgid "Whether to show the progress of gauge chart"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:215
+msgid "Whether to show the split lines on the axis"
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:155
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:208
+#, fuzzy
+msgid "Whether to sort ascending or descending on the base Axis."
+msgstr "降順または昇順でソートするかどうか"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:107
+#: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/orderBy.tsx:48
+#: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:155
+msgid "Whether to sort descending or ascending"
+msgstr "降順または昇順でソートするかどうか"
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/controlPanel.ts:75
+#, fuzzy
+msgid "Whether to sort descending or ascending if a series limit is present"
+msgstr "降順または昇順でソートするかどうか"
+
+#: superset-frontend/plugins/legacy-plugin-chart-chord/src/controlPanel.ts:42
+#: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:74
+#: superset-frontend/plugins/legacy-plugin-chart-sankey/src/controlPanel.ts:58
+#: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:63
+#: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:69
+#: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:63
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:62
+#: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:52
+#: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:50
+#: superset-frontend/plugins/plugin-chart-word-cloud/src/plugin/controlPanel.ts:41
+msgid "Whether to sort results by the selected metric in descending order."
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:206
+msgid "Whether to sort tooltip by the selected metric in descending order."
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:363
+msgid "Whether to truncate metrics"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-plugin-chart-country-map/src/controlPanel.ts:42
+msgid "Which country to plot the map for?"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:195
+msgid "Which relatives to highlight on hover"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:88
+msgid "Whisker/outlier options"
+msgstr ""
+
+#: superset-frontend/src/dashboard/util/backgroundStyleOptions.ts:30
+#, fuzzy
+msgid "White"
+msgstr "タイトル"
+
+#: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:228
+#: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:234
+msgid "Width"
+msgstr "幅"
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/sections/forecastInterval.tsx:73
+msgid "Width of the confidence interval. Should be between 0 and 1"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:229
+msgid "Width of the sparkline"
+msgstr ""
+
+#: superset/utils/pandas_postprocessing/rolling.py:69
+msgid "Window must be > 0"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/index.ts:36
+msgid "With a subheader"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-word-cloud/src/legacyPlugin/index.ts:29
+#: superset-frontend/plugins/plugin-chart-word-cloud/src/plugin/index.ts:39
+msgid "Word Cloud"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-word-cloud/src/plugin/controlPanel.ts:82
+#, fuzzy
+msgid "Word Rotation"
+msgstr "注釈を追加"
+
+#: superset-frontend/src/pages/AlertReportList/index.tsx:65
+msgid "Working"
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:415
+msgid "Working timeout"
+msgstr "作業タイムアウト"
+
+#: superset-frontend/plugins/legacy-plugin-chart-world-map/src/index.js:33
+#: superset/viz.py:1512
+msgid "World Map"
+msgstr "世界地図"
+
+#: superset-frontend/src/SqlLab/components/ScheduleQueryButton/index.tsx:186
+msgid "Write a description for your query"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/index.ts:40
+msgid "Write a handlebars template to render the data"
+msgstr ""
+
+#: superset/views/database/forms.py:230
+msgid "Write dataframe index as a column"
+msgstr ""
+
+#: superset/views/database/forms.py:387 superset/views/database/forms.py:478
+msgid "Write dataframe index as a column."
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/sections/chartTitle.tsx:58
+msgid "X AXIS TITLE BOTTOM MARGIN"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Bubble/controlPanel.tsx:143
+msgid "X AXIS TITLE MARGIN"
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/sections/chartTitle.tsx:38
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:215
+#: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:52
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/controlPanel.ts:69
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/controlPanel.ts:100
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/controlPanel.ts:82
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/controlPanel.ts:49
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/controlPanel.ts:96
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/controlPanel.ts:73
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:91
+#: superset-frontend/plugins/plugin-chart-echarts/src/Bubble/controlPanel.tsx:121
+#: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:319
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/controlPanel.tsx:186
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:289
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:316
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Line/controlPanel.tsx:174
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Scatter/controlPanel.tsx:116
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/SmoothLine/controlPanel.tsx:116
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/controlPanel.tsx:168
+#: superset-frontend/plugins/plugin-chart-echarts/src/Waterfall/controlPanel.tsx:96
+#: superset-frontend/src/explore/controls.jsx:401
+msgid "X Axis"
+msgstr "X軸"
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:288
+msgid "X Axis Bounds"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:236
+#: superset-frontend/plugins/plugin-chart-echarts/src/Bubble/controlPanel.tsx:155
+#, fuzzy
+msgid "X Axis Format"
+msgstr "日時フォーマット"
+
+#: superset-frontend/plugins/legacy-plugin-chart-histogram/src/controlPanel.ts:91
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:183
+#: superset-frontend/plugins/plugin-chart-echarts/src/Waterfall/controlPanel.tsx:102
+msgid "X Axis Label"
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/sections/chartTitle.tsx:44
+#: superset-frontend/plugins/plugin-chart-echarts/src/Bubble/controlPanel.tsx:129
+msgid "X Axis Title"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/controlPanel.ts:103
+msgid "X Log Scale"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:217
+#: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:115
+#: superset-frontend/plugins/plugin-chart-echarts/src/Waterfall/controlPanel.tsx:123
+msgid "X Tick Layout"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:291
+msgid "X bounds"
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:153
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:206
+#, fuzzy
+msgid "X-Axis Sort Ascending"
+msgstr "レポート送信"
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:100
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:190
+msgid "X-Axis Sort By"
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/mixins.tsx:34
+#, fuzzy
+msgid "X-axis"
+msgstr "Y軸"
+
+#: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:93
+#, fuzzy
+msgid "XScale Interval"
+msgstr "更新間隔"
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:110
+msgid "Y 2 bounds"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Bubble/controlPanel.tsx:215
+msgid "Y AXIS TITLE MARGIN"
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/sections/chartTitle.tsx:66
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:224
+#: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:61
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/controlPanel.ts:79
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/controlPanel.ts:112
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/controlPanel.ts:114
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/controlPanel.ts:58
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/controlPanel.ts:84
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:110
+#: superset-frontend/plugins/plugin-chart-echarts/src/Bubble/controlPanel.tsx:174
+#: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:250
+#: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:324
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/controlPanel.tsx:200
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:291
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:319
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Line/controlPanel.tsx:188
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Scatter/controlPanel.tsx:132
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/SmoothLine/controlPanel.tsx:131
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/controlPanel.tsx:182
+#: superset-frontend/plugins/plugin-chart-echarts/src/Waterfall/controlPanel.tsx:138
+#: superset-frontend/src/explore/controls.jsx:408
+msgid "Y Axis"
+msgstr "Y軸"
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:275
+msgid "Y Axis 2 Bounds"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:259
+#: superset-frontend/plugins/plugin-chart-echarts/src/Bubble/controlPanel.tsx:256
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/controlPanel.tsx:248
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Line/controlPanel.tsx:236
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Scatter/controlPanel.tsx:180
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/SmoothLine/controlPanel.tsx:180
+#: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/controlPanel.tsx:230
+msgid "Y Axis Bounds"
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:306
+#: superset-frontend/src/explore/controls.jsx:422
+msgid "Y Axis Format"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-plugin-chart-histogram/src/controlPanel.ts:102
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:354
+#: superset-frontend/plugins/plugin-chart-echarts/src/Waterfall/controlPanel.tsx:144
+msgid "Y Axis Label"
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/sections/chartTitle.tsx:72
+#: superset-frontend/plugins/plugin-chart-echarts/src/Bubble/controlPanel.tsx:182
+msgid "Y Axis Title"
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/sections/chartTitle.tsx:86
+msgid "Y Axis Title Margin"
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/sections/chartTitle.tsx:101
+#, fuzzy
+msgid "Y Axis Title Position"
+msgstr "アラート状態"
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:248
+msgid "Y Log Scale"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:99
+msgid "Y bounds"
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:152
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:205
+#, fuzzy
+msgid "Y-Axis Sort Ascending"
+msgstr "レポート送信"
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:99
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:189
+msgid "Y-Axis Sort By"
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/mixins.tsx:33
+#, fuzzy
+msgid "Y-axis"
+msgstr "Y軸"
+
+#: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:298
+msgid "Y-axis bounds"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:109
+#, fuzzy
+msgid "YScale Interval"
+msgstr "更新間隔"
+
+#: superset/db_engine_specs/base.py:112
+msgid "Year"
+msgstr "年"
+
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:59
+msgid "Year (freq=AS)"
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/sections/forecastInterval.tsx:85
+msgid "Yearly seasonality"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:69
+#, fuzzy, python-format
+msgid "Years %s"
+msgstr "年"
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/sections/forecastInterval.tsx:88
+#: superset-frontend/packages/superset-ui-chart-controls/src/sections/forecastInterval.tsx:107
+#: superset-frontend/packages/superset-ui-chart-controls/src/sections/forecastInterval.tsx:126
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:145
+#: superset-frontend/src/pages/ChartList/index.tsx:569
+#: superset-frontend/src/pages/ChartList/index.tsx:676
+#: superset-frontend/src/pages/DashboardList/index.tsx:486
+#: superset-frontend/src/pages/DashboardList/index.tsx:559
+#: superset-frontend/src/pages/DatabaseList/index.tsx:501
+#: superset-frontend/src/pages/DatabaseList/index.tsx:521
+#: superset-frontend/src/pages/DatasetList/index.tsx:598
+msgid "Yes"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/Footer/CancelConfirmationAlert.tsx:65
+msgid "Yes, cancel"
+msgstr "はい、キャンセルします"
+
+#: superset-frontend/src/dashboard/components/OverwriteConfirm/OverwriteConfirmModal.tsx:154
+#: superset-frontend/src/dashboard/components/OverwriteConfirm/OverwriteConfirmModal.tsx:199
+msgid "Yes, overwrite changes"
+msgstr ""
+
+#: superset-frontend/src/features/tags/BulkTagModal.tsx:121
+#, python-format
+msgid "You are adding tags to %s %ss"
+msgstr ""
+
+#: superset-frontend/src/pages/ChartList/index.tsx:102
+msgid ""
+"You are importing one or more charts that already exist. Overwriting "
+"might cause you to lose some of your work. Are you sure you want to "
+"overwrite?"
+msgstr ""
+
+#: superset-frontend/src/pages/DashboardList/index.tsx:80
+msgid ""
+"You are importing one or more dashboards that already exist. Overwriting "
+"might cause you to lose some of your work. Are you sure you want to "
+"overwrite?"
+msgstr ""
+
+#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1457
+msgid ""
+"You are importing one or more databases that already exist. Overwriting "
+"might cause you to lose some of your work. Are you sure you want to "
+"overwrite?"
+msgstr ""
+
+#: superset-frontend/src/features/datasets/constants.ts:30
+msgid ""
+"You are importing one or more datasets that already exist. Overwriting "
+"might cause you to lose some of your work. Are you sure you want to "
+"overwrite?"
 msgstr ""
 "以下のデータベースのパスワードは、保存されたクエリと一緒にデータベースをインポートするために必要です。データベース構成の「Secure "
 "Extra」セクションと「Certificate」セクションはエクスポート "
@@ -10714,6 +13295,7 @@ msgstr "データベース内のスキーマが削除されたか、名前が変
 msgid "The screenshot could not be downloaded. Please, try again later."
 msgstr ""
 
+<<<<<<< HEAD
 msgid "The screenshot has been downloaded."
 msgstr "スクリーンショットがダウンロードされました。"
 
@@ -10722,6 +13304,13 @@ msgstr ""
 
 msgid "The service url of the layer"
 msgstr "レイヤーのサービスURL"
+=======
+msgid "The screenshot is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "The screenshot is now being downloaded."
+msgstr ""
+>>>>>>> origin/avenmaster
 
 msgid "The size of each cell in meters"
 msgstr "各セルのサイズ (メートル単位)"
@@ -10899,11 +13488,17 @@ msgstr "データセットの関連オブジェクトの取得中にエラーが
 msgid "There was an error fetching the favorite status: %s"
 msgstr "お気に入りステータスの取得中にエラーが発生しました: %s"
 
+<<<<<<< HEAD
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "フィルタされたグラフとダッシュボードの取得中にエラーが発生しました:"
 
 msgid "There was an error generating the permalink."
 msgstr "パーマリンクの生成中にエラーが発生しました。"
+=======
+#, fuzzy
+msgid "There was an error fetching the filtered charts and dashboards:"
+msgstr "お気に入りステータスの取得中にエラーが発生しました: %s"
+>>>>>>> origin/avenmaster
 
 msgid "There was an error loading the catalogs"
 msgstr "カタログのロード中にエラーが発生しました"
@@ -13409,12 +16004,18 @@ msgstr "In"
 msgid "in modal"
 msgstr "モーダルで"
 
+<<<<<<< HEAD
 msgid "invalid email"
 msgstr "無効な電子メール"
 
 #, fuzzy
 msgid "is"
 msgstr "In"
+=======
+#, fuzzy
+msgid "invalid email"
+msgstr "パーマリンクキーが無効です。"
+>>>>>>> origin/avenmaster
 
 msgid "is expected to be a Mapbox URL"
 msgstr "Mapbox URL であることが期待されます"

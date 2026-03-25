@@ -25,9 +25,14 @@ from typing import cast, TYPE_CHECKING, TypedDict
 
 from flask import current_app as app
 
+<<<<<<< HEAD
 from superset import feature_flag_manager, thumbnail_cache
 from superset.exceptions import ScreenshotImageNotAvailableException
 from superset.extensions import event_logger
+=======
+from superset import feature_flag_manager
+from superset.dashboards.permalink.types import DashboardPermalinkState
+>>>>>>> origin/avenmaster
 from superset.utils.hashing import md5_sha_from_dict
 from superset.utils.urls import modify_url_query
 from superset.utils.webdriver import (
@@ -238,8 +243,15 @@ class BaseScreenshot:
         user: User = None,
         window_size: WindowSize | None = None,
         thumb_size: WindowSize | None = None,
+<<<<<<< HEAD
         cache_key: str | None = None,
     ) -> None:
+=======
+        cache: Cache = None,
+        force: bool = True,
+        cache_key: str | None = None,
+    ) -> bytes | None:
+>>>>>>> origin/avenmaster
         """
         Computes the thumbnail and caches the result
 
@@ -250,6 +262,7 @@ class BaseScreenshot:
         :param force: Will force the computation even if it's already cached
         :return: Image payload
         """
+<<<<<<< HEAD
         cache_key = cache_key or self.get_cache_key(window_size, thumb_size)
         cache_payload = self.get_from_cache_key(cache_key) or ScreenshotCachePayload()
         if not cache_payload.should_trigger_task(force=force):
@@ -258,6 +271,9 @@ class BaseScreenshot:
             )
             return
 
+=======
+        cache_key = cache_key or self.cache_key(window_size, thumb_size)
+>>>>>>> origin/avenmaster
         window_size = window_size or self.window_size
         thumb_size = thumb_size or self.thumb_size
         logger.info("Processing url for thumbnail: %s", cache_key)
@@ -357,11 +373,19 @@ class DashboardScreenshot(BaseScreenshot):
         self.window_size = window_size or DEFAULT_DASHBOARD_WINDOW_SIZE
         self.thumb_size = thumb_size or DEFAULT_DASHBOARD_THUMBNAIL_SIZE
 
+<<<<<<< HEAD
     def get_cache_key(
         self,
         window_size: bool | WindowSize | None = None,
         thumb_size: bool | WindowSize | None = None,
         permalink_key: str | None = None,
+=======
+    def cache_key(
+        self,
+        window_size: bool | WindowSize | None = None,
+        thumb_size: bool | WindowSize | None = None,
+        dashboard_state: DashboardPermalinkState | None = None,
+>>>>>>> origin/avenmaster
     ) -> str:
         window_size = window_size or self.window_size
         thumb_size = thumb_size or self.thumb_size
@@ -371,6 +395,10 @@ class DashboardScreenshot(BaseScreenshot):
             "type": "thumb",
             "window_size": window_size,
             "thumb_size": thumb_size,
+<<<<<<< HEAD
             "permalink_key": permalink_key,
+=======
+            "dashboard_state": dashboard_state,
+>>>>>>> origin/avenmaster
         }
         return md5_sha_from_dict(args)

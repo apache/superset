@@ -70,6 +70,7 @@ const DashboardComponent = props => {
   const filters = getActiveFilters();
   const embeddedMode = !dashboardInfo.userId;
 
+<<<<<<< HEAD
   const boundActionCreators = useMemo(
     () =>
       bindActionCreators(
@@ -88,6 +89,26 @@ const DashboardComponent = props => {
       ),
     [dispatch],
   );
+=======
+function mapStateToProps(
+  { dashboardLayout: undoableLayout, dashboardState, dashboardInfo },
+  ownProps,
+) {
+  const dashboardLayout = undoableLayout.present;
+  const { id, parentId } = ownProps;
+  const component = dashboardLayout[id];
+  const props = {
+    component,
+    getComponentById: id => dashboardLayout[id],
+    parentComponent: dashboardLayout[parentId],
+    editMode: dashboardState.editMode,
+    filters: getActiveFilters(),
+    dashboardId: dashboardInfo.id,
+    dashboardInfo,
+    fullSizeChartId: dashboardState.fullSizeChartId,
+    embeddedMode: !dashboardInfo?.userId,
+  };
+>>>>>>> origin/avenmaster
 
   // rows and columns need more data about their child dimensions
   // doing this allows us to not pass the entire component lookup to all Components

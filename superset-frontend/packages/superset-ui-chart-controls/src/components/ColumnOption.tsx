@@ -17,12 +17,17 @@
  * under the License.
  */
 import { useState, ReactNode, useLayoutEffect, RefObject } from 'react';
+<<<<<<< HEAD
 import { css, styled, SupersetTheme } from '@superset-ui/core';
 import {
   SafeMarkdown,
   Tooltip,
   InfoTooltip,
 } from '@superset-ui/core/components';
+=======
+import { css, SafeMarkdown, styled, SupersetTheme } from '@superset-ui/core';
+import { Tooltip } from './Tooltip';
+>>>>>>> origin/avenmaster
 import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
 import { ColumnMeta } from '../types';
@@ -32,6 +37,7 @@ import {
   getColumnTypeTooltipNode,
 } from './labelUtils';
 import { SQLPopover } from './SQLPopover';
+import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 
 export type ColumnOptionProps = {
   column: ColumnMeta;
@@ -101,6 +107,7 @@ export function ColumnOption({
         />
       )}
       {warningMarkdown && (
+<<<<<<< HEAD
         <InfoTooltip
           type="warning"
           tooltip={<SafeMarkdown source={warningMarkdown} />}
@@ -108,6 +115,17 @@ export function ColumnOption({
           iconStyle={{ marginLeft: 0 }}
           {...(column.error_text && {
             type: 'error',
+=======
+        <InfoTooltipWithTrigger
+          className="text-warning"
+          icon="warning"
+          tooltip={<SafeMarkdown source={warningMarkdown} />}
+          label={`warn-${column.column_name}`}
+          iconsStyle={{ marginLeft: 0 }}
+          {...(column.error_text && {
+            className: 'text-danger',
+            icon: 'exclamation-circle',
+>>>>>>> origin/avenmaster
           })}
         />
       )}

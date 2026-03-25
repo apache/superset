@@ -41,7 +41,10 @@ from superset.commands.importers.v1.utils import (
 )
 from superset.commands.query.importers.v1.utils import import_saved_query
 from superset.commands.utils import update_chart_config_dataset
+<<<<<<< HEAD
 from superset.connectors.sqla.models import SqlaTable
+=======
+>>>>>>> origin/avenmaster
 from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema

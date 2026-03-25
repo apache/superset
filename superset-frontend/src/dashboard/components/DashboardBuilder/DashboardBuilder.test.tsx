@@ -49,6 +49,8 @@ fetchMock.put('glob:*/api/v1/dashboard/*', {});
 // Add mock for logging endpoint
 fetchMock.post('glob:*/superset/log/?*', {});
 
+fetchMock.put('glob:*/api/v1/dashboard/*', {});
+
 jest.mock('src/dashboard/actions/dashboardState', () => ({
   ...jest.requireActual('src/dashboard/actions/dashboardState'),
   fetchFaveStar: jest.fn(),

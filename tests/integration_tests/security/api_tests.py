@@ -27,7 +27,11 @@ from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.models.dashboard import Dashboard
 from superset.utils.urls import get_url_host
 from superset.utils import json
+<<<<<<< HEAD
 from tests.conftest import with_config
+=======
+from tests.integration_tests.conftest import with_config
+>>>>>>> origin/avenmaster
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -290,7 +294,10 @@ class TestSecurityGuestTokenApiTokenValidator(SupersetTestCase):
 
 class TestSecurityRolesApi(SupersetTestCase):
     uri = "api/v1/security/roles/"  # noqa: F541
+<<<<<<< HEAD
     show_uri = "api/v1/security/roles/search/"
+=======
+>>>>>>> origin/avenmaster
 
     @with_config({"FAB_ADD_SECURITY_API": True})
     def test_get_security_roles_admin(self):
@@ -348,6 +355,7 @@ class TestSecurityRolesApi(SupersetTestCase):
             content_type="application/json",
         )
         self.assert403(response)
+<<<<<<< HEAD
 
     def test_show_roles_admin(self):
         """
@@ -402,3 +410,5 @@ class TestSecurityRolesApi(SupersetTestCase):
         assert sorted(role2_api["user_ids"]) == role2_expected["user_ids"]
         assert sorted(role2_api["permission_ids"]) == role2_expected["permission_ids"]
         assert role2_api["group_ids"] == role2_expected["group_ids"]
+=======
+>>>>>>> origin/avenmaster

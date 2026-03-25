@@ -239,7 +239,11 @@ test('Recalculate charts in global filter scope when charts change', () => {
           form_data: {
             slice_id: 3,
             datasource: '3__table',
+<<<<<<< HEAD
             viz_type: VizType.Line,
+=======
+            viz_type: 'echarts_timeseries_line',
+>>>>>>> origin/avenmaster
             color_scheme: 'supersetColors',
           },
           chartAlert: null,

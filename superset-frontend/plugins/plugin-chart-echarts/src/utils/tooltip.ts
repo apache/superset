@@ -18,12 +18,15 @@
  */
 
 import type { CallbackDataParams } from 'echarts/types/src/util/types';
+<<<<<<< HEAD
 import {
   QueryFormColumn,
   QueryFormMetric,
   getColumnLabel,
   getMetricLabel,
 } from '@superset-ui/core';
+=======
+>>>>>>> origin/avenmaster
 import { TOOLTIP_OVERFLOW_MARGIN, TOOLTIP_POINTER_MARGIN } from '../constants';
 import { Refs } from '../types';
 

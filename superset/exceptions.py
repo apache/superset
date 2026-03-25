@@ -323,7 +323,11 @@ class SupersetParseError(SupersetErrorException):
             if line:
                 parts.append(_(" at line %(line)d", line=line))
                 if column:
+<<<<<<< HEAD
                     parts.append(f":{column}")
+=======
+                    parts.append(_(":%(column)d", column=column))
+>>>>>>> origin/avenmaster
             message = "".join(parts)
 
         error = SupersetError(

@@ -17,7 +17,10 @@
  * under the License.
  */
 
+<<<<<<< HEAD
 import { VizType } from '@superset-ui/core';
+=======
+>>>>>>> origin/avenmaster
 import { WordCloudFormData } from '../src';
 import buildQuery from '../src/plugin/buildQuery';
 

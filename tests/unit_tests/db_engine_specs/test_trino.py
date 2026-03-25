@@ -484,6 +484,33 @@ def test_execute_with_cursor_app_context(app, mocker: MockerFixture):
                 )
 
 
+def test_execute_with_cursor_app_context(app, mocker: MockerFixture):
+    """Test that `execute_with_cursor` still contains the current app context"""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    mock_cursor = mocker.MagicMock()
+    mock_cursor.query_id = None
+
+    mock_query = mocker.MagicMock()
+    g.some_value = "some_value"
+
+    def _mock_execute(*args, **kwargs):
+        assert has_app_context()
+        assert g.some_value == "some_value"
+
+    with patch.object(TrinoEngineSpec, "execute", side_effect=_mock_execute):
+        with patch.dict(
+            "superset.config.DISALLOWED_SQL_FUNCTIONS",
+            {},
+            clear=True,
+        ):
+            TrinoEngineSpec.execute_with_cursor(
+                cursor=mock_cursor,
+                sql="SELECT 1 FROM foo",
+                query=mock_query,
+            )
+
+
 def test_get_columns(mocker: MockerFixture):
     """Test that ROW columns are not expanded without expand_rows"""
     from superset.db_engine_specs.trino import TrinoEngineSpec

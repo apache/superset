@@ -351,6 +351,7 @@ const color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   description: t('The color scheme for rendering chart'),
   schemes: () => categoricalSchemeRegistry.getMap(),
   mapStateToProps: state => getColorControlsProps(state),
+<<<<<<< HEAD
 };
 
 const time_shift_color: SharedControlConfig<'CheckboxControl'> = {
@@ -365,6 +366,8 @@ const time_shift_color: SharedControlConfig<'CheckboxControl'> = {
     Boolean(
       controls?.time_compare?.value && !isEmpty(controls?.time_compare?.value),
     ),
+=======
+>>>>>>> origin/avenmaster
 };
 
 const truncate_metric: SharedControlConfig<'CheckboxControl'> = {

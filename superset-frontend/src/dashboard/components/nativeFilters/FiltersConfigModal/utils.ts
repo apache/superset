@@ -16,19 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+<<<<<<< HEAD
 import type { FormInstance } from '@superset-ui/core/components';
 import { nanoid } from 'nanoid';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import {
   FilterConfiguration,
   NativeFilterType,
+=======
+import {
+  Divider,
+  Filter,
+  FilterConfiguration,
+>>>>>>> origin/avenmaster
   NativeFilterTarget,
+  NativeFilterType,
   logging,
   Filter,
   Divider,
 } from '@superset-ui/core';
+import { nanoid } from 'nanoid';
+import { FormInstance } from 'src/components';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
+<<<<<<< HEAD
 import { FilterChangesType, FilterRemoval, NativeFiltersForm } from './types';
+=======
+import { getInitialDataMask } from 'src/dataMask/reducer';
+import { FilterRemoval, NativeFiltersForm } from './types';
+>>>>>>> origin/avenmaster
 
 export const REMOVAL_DELAY_SECS = 5;
 

@@ -17,7 +17,10 @@
  * under the License.
  */
 import { fireEvent, render, screen } from 'spec/helpers/testing-library';
+<<<<<<< HEAD
 import { Input } from '@superset-ui/core/components';
+=======
+>>>>>>> origin/avenmaster
 
 import Field from './Field';
 
@@ -26,6 +29,7 @@ const defaultProps = {
   value: '',
   label: 'mock',
   description: 'description',
+<<<<<<< HEAD
   control: <Input data-test="mock-text-control" />,
   onChange: jest.fn(),
   compact: false,
@@ -33,17 +37,27 @@ const defaultProps = {
   additionalControl: (
     <input type="button" data-test="mock-text-aditional-control" />
   ),
+=======
+  control: <input type="text" data-test="mock-text-control" />,
+  onChange: jest.fn(),
+  compact: false,
+  inline: false,
+>>>>>>> origin/avenmaster
 };
 
 test('should render', () => {
   const { container } = render(<Field {...defaultProps} />);
   expect(container).toBeInTheDocument();
 });
+<<<<<<< HEAD
 test('should render with aditional control', () => {
   const { getByTestId } = render(<Field {...defaultProps} />);
   const additionalControl = getByTestId('mock-text-aditional-control');
   expect(additionalControl).toBeInTheDocument();
 });
+=======
+
+>>>>>>> origin/avenmaster
 test('should call onChange', () => {
   const { getByTestId } = render(<Field {...defaultProps} />);
   const textArea = getByTestId('mock-text-control');
@@ -54,10 +68,13 @@ test('should call onChange', () => {
 test('should render compact', () => {
   render(<Field {...defaultProps} compact />);
   expect(screen.queryByText(defaultProps.description)).not.toBeInTheDocument();
+<<<<<<< HEAD
 });
 test('shiuld render error message', () => {
   const { getByText } = render(
     <Field {...defaultProps} errorMessage="error message" />,
   );
   expect(getByText('error message')).toBeInTheDocument();
+=======
+>>>>>>> origin/avenmaster
 });

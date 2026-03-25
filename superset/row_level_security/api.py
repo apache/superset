@@ -55,7 +55,10 @@ from superset.views.filters import (
     BaseFilterRelatedRoles,
     BaseFilterRelatedUsers,
     FilterRelatedOwners,
+<<<<<<< HEAD
     FilterRelatedTables,
+=======
+>>>>>>> origin/avenmaster
 )
 
 logger = logging.getLogger(__name__)
@@ -136,7 +139,10 @@ class RLSRestApi(BaseSupersetModelRestApi):
 
     allowed_rel_fields = {"tables", "roles", "created_by", "changed_by"}
     related_field_filters = {
+<<<<<<< HEAD
         "tables": RelatedFieldFilter("table_name", FilterRelatedTables),
+=======
+>>>>>>> origin/avenmaster
         "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
     base_related_field_filters = {

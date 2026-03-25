@@ -28,7 +28,10 @@ from superset.commands.chart.importers.v1.utils import import_chart
 from superset.commands.database.importers.v1.utils import import_database
 from superset.commands.dataset.importers.v1.utils import import_dataset
 from superset.commands.importers.v1 import ImportModelsCommand
+<<<<<<< HEAD
 from superset.commands.importers.v1.utils import import_tag
+=======
+>>>>>>> origin/avenmaster
 from superset.commands.utils import update_chart_config_dataset
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.chart import ChartDAO
@@ -103,6 +106,7 @@ class ImportChartsCommand(ImportModelsCommand):
                     "datasource_name": dataset.table_name,
                 }
                 config = update_chart_config_dataset(config, dataset_dict)
+<<<<<<< HEAD
                 chart = import_chart(config, overwrite=overwrite)
 
                 # Handle tags using import_tag function
@@ -112,3 +116,6 @@ class ImportChartsCommand(ImportModelsCommand):
                         import_tag(
                             target_tag_names, contents, chart.id, "chart", db.session
                         )
+=======
+                import_chart(config, overwrite=overwrite)
+>>>>>>> origin/avenmaster

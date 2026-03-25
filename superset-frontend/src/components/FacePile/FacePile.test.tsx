@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+<<<<<<< HEAD
 import {
   act,
   fireEvent,
@@ -27,6 +28,13 @@ import {
 import { store } from 'src/views/store';
 import { isFeatureEnabled } from '@superset-ui/core';
 import { FacePile } from '.';
+=======
+import { Provider } from 'react-redux';
+import { styledMount as mount } from 'spec/helpers/theming';
+import { Avatar } from 'src/components';
+import { store } from 'src/views/store';
+import FacePile from '.';
+>>>>>>> origin/avenmaster
 import { getRandomColor } from './utils';
 
 // Mock the feature flag
@@ -58,8 +66,16 @@ afterEach(() => {
 });
 
 describe('FacePile', () => {
+<<<<<<< HEAD
   it('renders empty state with no users', () => {
     const { container } = render(<FacePile users={[]} />, { store });
+=======
+  const wrapper = mount(
+    <Provider store={store}>
+      <FacePile users={users} />
+    </Provider>,
+  );
+>>>>>>> origin/avenmaster
 
     expect(container.querySelector('.ant-avatar-group')).toBeInTheDocument();
     expect(container.querySelectorAll('.ant-avatar')).toHaveLength(0);

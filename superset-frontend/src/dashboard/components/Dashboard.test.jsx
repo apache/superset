@@ -153,7 +153,24 @@ describe('Dashboard', () => {
         </PluginContext.Provider>,
       );
 
+<<<<<<< HEAD
       expect(mockTriggerQuery).not.toHaveBeenCalled();
+=======
+    afterEach(() => {
+      refreshSpy.restore();
+      jest.clearAllMocks();
+    });
+
+    it('should not call refresh when is editMode', () => {
+      wrapper.setProps({
+        dashboardState: {
+          ...dashboardState,
+          editMode: true,
+        },
+      });
+      wrapper.instance().componentDidUpdate(prevProps);
+      expect(refreshSpy.callCount).toBe(0);
+>>>>>>> origin/avenmaster
     });
 
     it('should not call refresh when there is no change', () => {
@@ -172,6 +189,7 @@ describe('Dashboard', () => {
 
     it('should call refresh when native filters changed', () => {
       getRelatedCharts.mockReturnValue([230]);
+<<<<<<< HEAD
       const { rerender } = renderDashboard({ activeFilters: OVERRIDE_FILTERS });
 
       rerender(
@@ -193,12 +211,45 @@ describe('Dashboard', () => {
       );
 
       expect(mockTriggerQuery).toHaveBeenCalled();
+=======
+      wrapper.setProps({
+        activeFilters: {
+          ...OVERRIDE_FILTERS,
+          ...getAllActiveFilters({
+            dataMask: dataMaskWith1Filter,
+            nativeFilters: singleNativeFiltersState.filters,
+            allSliceIds: [227, 229, 230],
+          }),
+        },
+      });
+      wrapper.instance().componentDidUpdate(prevProps);
+      expect(refreshSpy.callCount).toBe(1);
+      expect(wrapper.instance().appliedFilters).toEqual({
+        ...OVERRIDE_FILTERS,
+        [NATIVE_FILTER_ID]: {
+          scope: [230],
+          values: extraFormData,
+          filterType: 'filter_select',
+          targets: [
+            {
+              datasetId: 13,
+              column: {
+                name: 'ethnic_minority',
+              },
+            },
+          ],
+        },
+      });
+>>>>>>> origin/avenmaster
     });
 
     it('should call refresh if a filter is added', () => {
       getRelatedCharts.mockReturnValue([1]);
+<<<<<<< HEAD
       const { rerender } = renderDashboard({ activeFilters: OVERRIDE_FILTERS });
 
+=======
+>>>>>>> origin/avenmaster
       const newFilter = {
         gender: { values: ['boy', 'girl'], scope: [1] },
       };
@@ -215,6 +266,7 @@ describe('Dashboard', () => {
     });
 
     it('should call refresh if a filter is removed', () => {
+<<<<<<< HEAD
       getRelatedCharts.mockReturnValue([1]); // Ensure we return some charts to refresh
       const { rerender } = renderDashboard({ activeFilters: OVERRIDE_FILTERS });
 
@@ -231,12 +283,23 @@ describe('Dashboard', () => {
       );
 
       expect(mockTriggerQuery).toHaveBeenCalledWith(true, 1);
+=======
+      getRelatedCharts.mockReturnValue([]);
+      wrapper.setProps({
+        activeFilters: {},
+      });
+      expect(refreshSpy.callCount).toBe(1);
+      expect(wrapper.instance().appliedFilters).toEqual({});
+>>>>>>> origin/avenmaster
     });
 
     it('should call refresh if a filter is changed', () => {
       getRelatedCharts.mockReturnValue([1]);
+<<<<<<< HEAD
       const { rerender } = renderDashboard({ activeFilters: OVERRIDE_FILTERS });
 
+=======
+>>>>>>> origin/avenmaster
       const newFilters = {
         ...OVERRIDE_FILTERS,
         '1_region': { values: ['Canada'], scope: [1] },
@@ -255,8 +318,11 @@ describe('Dashboard', () => {
 
     it('should call refresh with multiple chart ids', () => {
       getRelatedCharts.mockReturnValue([1, 2]);
+<<<<<<< HEAD
       const { rerender } = renderDashboard({ activeFilters: OVERRIDE_FILTERS });
 
+=======
+>>>>>>> origin/avenmaster
       const newFilters = {
         ...OVERRIDE_FILTERS,
         '2_country_name': { values: ['New Country'], scope: [1, 2] },
@@ -295,6 +361,7 @@ describe('Dashboard', () => {
 
     it('should call refresh with empty [] if a filter is changed but scope is not applicable', () => {
       getRelatedCharts.mockReturnValue([]);
+<<<<<<< HEAD
       const { rerender } = renderDashboard({
         activeFilters: OVERRIDE_FILTERS,
         dashboardState: {
@@ -303,6 +370,8 @@ describe('Dashboard', () => {
         },
       });
 
+=======
+>>>>>>> origin/avenmaster
       const newFilters = {
         ...OVERRIDE_FILTERS,
         '3_country_name': { values: ['CHINA'], scope: [] },

@@ -99,6 +99,12 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         "$.auth_params.privatekey_pass",
     }
 
+    # pylint: disable=invalid-name
+    encrypted_extra_sensitive_fields = {
+        "$.auth_params.privatekey_body",
+        "$.auth_params.privatekey_pass",
+    }
+
     _time_grain_expressions = {
         None: "{col}",
         TimeGrain.SECOND: "DATE_TRUNC('SECOND', {col})",

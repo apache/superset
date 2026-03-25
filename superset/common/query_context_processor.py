@@ -972,6 +972,7 @@ class QueryContextProcessor:
 
         return str(value)
 
+<<<<<<< HEAD
     @staticmethod
     def is_valid_date_range_static(date_range: str) -> bool:
         """Static version of is_valid_date_range for use in static methods"""
@@ -987,6 +988,8 @@ class QueryContextProcessor:
             # YYYY-MM-DD:YYYY-MM-DD
             return False
 
+=======
+>>>>>>> origin/avenmaster
     def get_data(
         self, df: pd.DataFrame, coltypes: list[GenericDataType]
     ) -> str | list[dict[str, Any]]:
@@ -1004,9 +1007,13 @@ class QueryContextProcessor:
                 )
             elif self._query_context.result_format == ChartDataResultFormat.XLSX:
                 excel.apply_column_types(df, coltypes)
+<<<<<<< HEAD
                 result = excel.df_to_excel(
                     df, index=include_index, **current_app.config["EXCEL_EXPORT"]
                 )
+=======
+                result = excel.df_to_excel(df, **config["EXCEL_EXPORT"])
+>>>>>>> origin/avenmaster
             return result or ""
 
         return df.to_dict(orient="records")

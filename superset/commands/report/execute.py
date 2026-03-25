@@ -138,6 +138,7 @@ class BaseReportState:
                 if recipient.type == ReportRecipientType.SLACK:
                     recipient.type = ReportRecipientType.SLACKV2
                     slack_recipients = json.loads(recipient.recipient_config_json)
+<<<<<<< HEAD
                     # V1 method allowed to use leading `#` in the channel name
                     channel_names = (slack_recipients["target"] or "").replace("#", "")
                     # we need to ensure that existing reports can also fetch
@@ -161,6 +162,10 @@ class BaseReportState:
                         )
                         raise UpdateFailedError(msg)
                     channel_ids = ",".join(channel["id"] for channel in channels)
+=======
+                    # we need to ensure that existing reports can also fetch
+                    # ids from private channels
+>>>>>>> origin/avenmaster
                     recipient.recipient_config_json = json.dumps(
                         {
                             "target": channel_ids,
@@ -558,7 +563,10 @@ class BaseReportState:
             "dashboard_id": dashboard_id,
             "owners": self._report_schedule.owners,
             "slack_channels": slack_channels,
+<<<<<<< HEAD
             "execution_id": str(self._execution_id),
+=======
+>>>>>>> origin/avenmaster
         }
         return log_data
 
@@ -600,6 +608,12 @@ class BaseReportState:
                     text=error_text,
                     header_data=header_data,
                     url=url,
+<<<<<<< HEAD
+=======
+                    email_from=self._report_schedule.extra.get("email_from")
+                    if self._report_schedule.extra
+                    else None,
+>>>>>>> origin/avenmaster
                 )
 
         if (
@@ -631,6 +645,11 @@ class BaseReportState:
             csv=csv_data,
             embedded_data=embedded_data,
             header_data=header_data,
+            csv_filename=self._report_schedule.csv_filename,
+            email_subject=self._report_schedule.email_subject,
+            email_from=self._report_schedule.extra.get("email_from")
+            if self._report_schedule.extra
+            else None,
         )
 
     def _send(
@@ -667,12 +686,21 @@ class BaseReportState:
                     recipient.type = ReportRecipientType.SLACKV2
                     notification = create_notification(recipient, notification_content)
                     notification.send()
+<<<<<<< HEAD
             except (
                 UpdateFailedError,
                 NotificationParamException,
                 NotificationError,
                 SupersetException,
             ) as ex:
+=======
+                except (UpdateFailedError, NotificationParamException) as err:
+                    # log the error but keep processing the report with SlackV1
+                    logger.warning(
+                        "Failed to update slack recipients to v2: %s", str(err)
+                    )
+            except (NotificationError, SupersetException) as ex:
+>>>>>>> origin/avenmaster
                 # collect errors but keep processing them
                 notification_errors.append(
                     SupersetError(
@@ -716,7 +744,17 @@ class BaseReportState:
             self._execution_id,
         )
         notification_content = NotificationContent(
+<<<<<<< HEAD
             name=name, text=message, header_data=header_data, url=url
+=======
+            name=name,
+            text=message,
+            header_data=header_data,
+            url=url,
+            email_from=self._report_schedule.extra.get("email_from")
+            if self._report_schedule.extra
+            else None,
+>>>>>>> origin/avenmaster
         )
 
         # filter recipients to recipients who are also owners

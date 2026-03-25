@@ -46,7 +46,11 @@ import { StyledInputContainer } from '../AlertReportModal';
 
 const StyledNotificationMethod = styled.div`
   ${({ theme }) => `
+<<<<<<< HEAD
     margin-bottom: ${theme.sizeUnit * 3}px;
+=======
+    margin-bottom: ${theme.gridUnit * 3}px;
+>>>>>>> origin/avenmaster
 
     .input-container {
       textarea {
@@ -55,34 +59,54 @@ const StyledNotificationMethod = styled.div`
 
       &.error {
         input {
+<<<<<<< HEAD
           border-color: ${theme.colorError};
+=======
+          border-color: ${theme.colors.error.base};
+>>>>>>> origin/avenmaster
         }
       }
 
       .helper {
+<<<<<<< HEAD
         margin-top: ${theme.sizeUnit * 2}px;
         font-size: ${theme.fontSizeSM}px;
         color: ${theme.colorTextSecondary};
+=======
+        margin-top: ${theme.gridUnit * 2}px;
+        font-size: ${theme.typography.sizes.s}px;
+        color: ${theme.colors.grayscale.base};
+>>>>>>> origin/avenmaster
       }
     }
 
     .inline-container {
+<<<<<<< HEAD
       margin-bottom: ${theme.sizeUnit * 2}px;
+=======
+      margin-bottom: ${theme.gridUnit * 2}px;
+>>>>>>> origin/avenmaster
 
       > div {
         margin: 0px;
       }
 
       .delete-button {
+<<<<<<< HEAD
         margin-left: ${theme.sizeUnit * 2}px;
         padding-top: ${theme.sizeUnit}px;
       }
       .anticon {
         margin-left: ${theme.sizeUnit}px;
+=======
+        margin-left: ${theme.gridUnit * 2}px;
+        padding-top: ${theme.gridUnit}px;
+>>>>>>> origin/avenmaster
       }
     }
 
     .ghost-button {
+<<<<<<< HEAD
       color: ${theme.colorPrimaryText};
       display: inline-flex;
       align-items: center;
@@ -94,11 +118,29 @@ const StyledNotificationMethod = styled.div`
         height: ${theme.sizeUnit * 3}px;
         font-size: ${theme.fontSizeSM}px;
         margin-right: ${theme.sizeUnit}px;
+=======
+      color: ${theme.colors.primary.dark1};
+      display: inline-flex;
+      align-items: center;
+      font-size: ${theme.typography.sizes.s}px;
+      cursor: pointer;
+      margin-top: ${theme.gridUnit}px;
+
+      .icon {
+        width: ${theme.gridUnit * 3}px;
+        height: ${theme.gridUnit * 3}px;
+        font-size: ${theme.typography.sizes.s}px;
+        margin-right: ${theme.gridUnit}px;
+>>>>>>> origin/avenmaster
       }
     }
 
     .ghost-button + .ghost-button {
+<<<<<<< HEAD
       margin-left: ${theme.sizeUnit * 4}px;
+=======
+      margin-left: ${theme.gridUnit * 4}px;
+>>>>>>> origin/avenmaster
     }
 
     .ghost-button:first-child[style*='none'] + .ghost-button {
@@ -114,6 +156,20 @@ const TRANSLATIONS = {
   EMAIL_SUBJECT_ERROR_TEXT: t(
     'Please enter valid text. Spaces alone are not permitted.',
   ),
+<<<<<<< HEAD
+=======
+  EMAIL_FROM_NAME: t('Send email from (optional)'),
+  EMAIL_FROM_HELPER_TEXT: t(
+    'If specified, must be an aven.com email address. Leave empty to use default.',
+  ),
+  EMAIL_FROM_ERROR_TEXT: t(
+    'Must be an aven.com email address (e.g. name@aven.com)',
+  ),
+  CSV_FILENAME_NAME: t('CSV filename (optional)'),
+  CSV_FILENAME_ERROR_TEXT: t(
+    'Please enter valid text. Spaces alone are not permitted.',
+  ),
+>>>>>>> origin/avenmaster
 };
 
 interface NotificationMethodProps {
@@ -127,6 +183,11 @@ interface NotificationMethodProps {
   email_subject: string;
   defaultSubject: string;
   setErrorSubject: (hasError: boolean) => void;
+  email_from: string;
+  setErrorEmailFrom: (hasError: boolean) => void;
+  csv_filename: string;
+  defaultCsvFilename: string;
+  setErrorCsvFilename: (hasError: boolean) => void;
 }
 
 export const mapSlackValues = ({
@@ -191,6 +252,8 @@ type SlackOptionsType = {
   options: { label: string; value: string }[];
 }[];
 
+const AVEN_EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@aven\.com$/;
+
 export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   setting = null,
   index,
@@ -200,6 +263,11 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   email_subject,
   defaultSubject,
   setErrorSubject,
+  email_from,
+  setErrorEmailFrom,
+  csv_filename,
+  defaultCsvFilename,
+  setErrorCsvFilename,
 }) => {
   const { method, recipients, cc, bcc, options } = setting || {};
   const [recipientValue, setRecipientValue] = useState<string>(
@@ -209,6 +277,10 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     { label: string; value: string }[]
   >([]);
   const [error, setError] = useState(false);
+<<<<<<< HEAD
+=======
+  const [emailFromError, setEmailFromError] = useState(false);
+>>>>>>> origin/avenmaster
   const [ccVisible, setCcVisible] = useState<boolean>(!!cc);
   const [bccVisible, setBccVisible] = useState<boolean>(!!bcc);
   const [ccValue, setCcValue] = useState<string>(cc || '');
@@ -270,6 +342,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     return SupersetClient.get({ endpoint });
   };
 
+<<<<<<< HEAD
   const updateSlackOptions = async ({
     force,
   }: {
@@ -325,6 +398,53 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     );
     if (slackEnabled && !slackOptions[0]?.options.length) {
       updateSlackOptions();
+=======
+  useEffect(() => {
+    const slackEnabled = options?.some(
+      option =>
+        option === NotificationMethodOption.Slack ||
+        option === NotificationMethodOption.SlackV2,
+    );
+    if (slackEnabled && !slackOptions[0]?.options.length) {
+      fetchSlackChannels({ types: ['public_channel', 'private_channel'] })
+        .then(({ json }) => {
+          const { result } = json;
+          const options: SlackOptionsType = mapChannelsToOptions(result);
+
+          setSlackOptions(options);
+
+          if (isFeatureEnabled(FeatureFlag.AlertReportSlackV2)) {
+            // for edit mode, map existing ids to names for display if slack v2
+            // or names to ids if slack v1
+            const [publicOptions, privateOptions] = options;
+            if (
+              method &&
+              [
+                NotificationMethodOption.SlackV2,
+                NotificationMethodOption.Slack,
+              ].includes(method)
+            ) {
+              setSlackRecipients(
+                mapSlackValues({
+                  method,
+                  recipientValue,
+                  slackOptions: [
+                    ...publicOptions.options,
+                    ...privateOptions.options,
+                  ],
+                }),
+              );
+            }
+          }
+        })
+        .catch(e => {
+          // Fallback to slack v1 if slack v2 is not compatible
+          setUseSlackV1(true);
+        })
+        .finally(() => {
+          setMethodOptionsLoading(false);
+        });
+>>>>>>> origin/avenmaster
     }
   }, []);
 
@@ -401,6 +521,41 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     }
   };
 
+<<<<<<< HEAD
+=======
+  const onCsvFilenameChange = (
+    event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
+  ) => {
+    const { value } = event.target;
+
+    if (onInputChange) {
+      onInputChange(event);
+    }
+
+    const hasError = value.length > 0 && value.trim().length === 0;
+    if (setErrorCsvFilename) {
+      setErrorCsvFilename(hasError);
+    }
+  };
+
+  const onEmailFromChange = (
+    event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
+  ) => {
+    const { value } = event.target;
+
+    if (onInputChange) {
+      onInputChange(event);
+    }
+
+    // Validate: if value is not empty, it must be an aven.com email
+    const hasError = value.length > 0 && !AVEN_EMAIL_REGEX.test(value.trim());
+    setEmailFromError(hasError);
+    if (setErrorEmailFrom) {
+      setErrorEmailFrom(hasError);
+    }
+  };
+
+>>>>>>> origin/avenmaster
   const onCcChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     const { target } = event;
 
@@ -509,6 +664,65 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
           </div>
           <div className="inline-container">
             <StyledInputContainer>
+              {method === NotificationMethodOption.Email ? (
+                <>
+                  <div className="control-label">
+                    {TRANSLATIONS.EMAIL_FROM_NAME}
+                  </div>
+                  <div
+                    className={`input-container ${
+                      emailFromError ? 'error' : ''
+                    }`}
+                  >
+                    <input
+                      type="text"
+                      name="email_from"
+                      value={email_from}
+                      placeholder={t('Leave empty to use default')}
+                      onChange={onEmailFromChange}
+                    />
+                  </div>
+                  <div className="input-container">
+                    <div className="helper">
+                      {TRANSLATIONS.EMAIL_FROM_HELPER_TEXT}
+                    </div>
+                  </div>
+                  {emailFromError && (
+                    <div
+                      style={{
+                        color: theme.colors.error.base,
+                        fontSize: theme.gridUnit * 3,
+                      }}
+                    >
+                      {TRANSLATIONS.EMAIL_FROM_ERROR_TEXT}
+                    </div>
+                  )}
+                </>
+              ) : null}
+            </StyledInputContainer>
+          </div>
+          <div className="inline-container">
+            <StyledInputContainer>
+              {method === NotificationMethodOption.Email ? (
+                <>
+                  <div className="control-label">
+                    {TRANSLATIONS.CSV_FILENAME_NAME}
+                  </div>
+                  <div className="input-container">
+                    <input
+                      type="text"
+                      name="csv_filename"
+                      value={csv_filename}
+                      placeholder={defaultCsvFilename}
+                      onChange={onCsvFilenameChange}
+                    />
+                  </div>
+                </>
+              ) : null}
+            </StyledInputContainer>
+          </div>
+          <div className="inline-container">
+            <StyledInputContainer>
               <div className="control-label">
                 {t(
                   '%s recipients',
@@ -525,7 +739,11 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                 ].includes(method) ? (
                   <>
                     <div className="input-container">
+<<<<<<< HEAD
                       <Input.TextArea
+=======
+                      <textarea
+>>>>>>> origin/avenmaster
                         name="To"
                         data-test="recipients"
                         value={recipientValue}
@@ -573,7 +791,11 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                     {TRANSLATIONS.EMAIL_CC_NAME}
                   </div>
                   <div className="input-container">
+<<<<<<< HEAD
                     <Input.TextArea
+=======
+                    <textarea
+>>>>>>> origin/avenmaster
                       name="CC"
                       data-test="cc"
                       value={ccValue}
@@ -594,7 +816,11 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                     {TRANSLATIONS.EMAIL_BCC_NAME}
                   </div>
                   <div className="input-container">
+<<<<<<< HEAD
                     <Input.TextArea
+=======
+                    <textarea
+>>>>>>> origin/avenmaster
                       name="BCC"
                       data-test="bcc"
                       value={bccValue}
@@ -617,7 +843,11 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                   onClick={() => setCcVisible(true)}
                   style={{ display: ccVisible ? 'none' : 'inline-flex' }}
                 >
+<<<<<<< HEAD
                   <Icons.MailOutlined iconSize="xs" className="icon" />
+=======
+                  <Icons.Email className="icon" />
+>>>>>>> origin/avenmaster
                   {t('Add CC Recipients')}
                 </span>
                 <span
@@ -627,7 +857,11 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                   onClick={() => setBccVisible(true)}
                   style={{ display: bccVisible ? 'none' : 'inline-flex' }}
                 >
+<<<<<<< HEAD
                   <Icons.MailOutlined iconSize="xs" className="icon" />
+=======
+                  <Icons.Email className="icon" />
+>>>>>>> origin/avenmaster
                   {t('Add BCC Recipients')}
                 </span>
               </div>

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+<<<<<<< HEAD
 import { SyntheticEvent } from 'react';
 import { FeatureFlag, isFeatureEnabled, logging, t } from '@superset-ui/core';
 import { MenuItem } from '@superset-ui/core/components/Menu';
@@ -28,7 +29,16 @@ import {
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
 } from 'src/logger/LogUtils';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+=======
+import { Menu } from 'src/components/Menu';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import DownloadScreenshot from './DownloadScreenshot';
+>>>>>>> origin/avenmaster
 import { DownloadScreenshotFormat } from './types';
+import DownloadAsPdf from './DownloadAsPdf';
+import ExportToGoogleSheet from './ExportToGoogleSheet';
+import DownloadAsImage from './DownloadAsImage';
+import { addDangerToast } from '../../../../components/MessageToasts/actions';
 
 export interface UseDownloadMenuItemsProps {
   pdfMenuItemTitle: string;
@@ -49,12 +59,66 @@ export const useDownloadMenuItems = (
     logEvent,
     dashboardId,
     dashboardTitle,
+<<<<<<< HEAD
     disabled,
     title,
+=======
+    ...rest
+>>>>>>> origin/avenmaster
   } = props;
+  const isWebDriverScreenshotEnabled =
+    isFeatureEnabled(FeatureFlag.EnableDashboardScreenshotEndpoints) &&
+    isFeatureEnabled(FeatureFlag.EnableDashboardDownloadWebDriverScreenshot);
 
+<<<<<<< HEAD
   const { addDangerToast } = useToasts();
   const SCREENSHOT_NODE_SELECTOR = '.dashboard';
+=======
+  return (
+    <Menu selectable={false}>
+      <ExportToGoogleSheet
+        addDangerToast={addDangerToast}
+        dashboardId={dashboardId}
+        logEvent={logEvent}
+        {...rest}
+      />
+      {isWebDriverScreenshotEnabled ? (
+        <>
+          <DownloadScreenshot
+            text={pdfMenuItemTitle}
+            dashboardId={dashboardId}
+            logEvent={logEvent}
+            format={DownloadScreenshotFormat.PDF}
+            {...rest}
+          />
+          <DownloadScreenshot
+            text={imageMenuItemTitle}
+            dashboardId={dashboardId}
+            logEvent={logEvent}
+            format={DownloadScreenshotFormat.PNG}
+            {...rest}
+          />
+        </>
+      ) : (
+        <>
+          <DownloadAsPdf
+            text={pdfMenuItemTitle}
+            dashboardTitle={dashboardTitle}
+            logEvent={logEvent}
+            {...rest}
+          />
+          <DownloadAsImage
+            text={imageMenuItemTitle}
+            dashboardTitle={dashboardTitle}
+            logEvent={logEvent}
+            {...rest}
+          />
+        </>
+      )}
+    </Menu>
+  );
+};
+>>>>>>> origin/avenmaster
 
   const isWebDriverScreenshotEnabled =
     isFeatureEnabled(FeatureFlag.EnableDashboardScreenshotEndpoints) &&

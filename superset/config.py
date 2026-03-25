@@ -68,7 +68,11 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla import models
+<<<<<<< HEAD
     from sqlglot import Dialect, Dialects  # pylint: disable=disallowed-sql-import
+=======
+    from sqlglot import Dialect, Dialects
+>>>>>>> origin/avenmaster
 
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
@@ -269,7 +273,11 @@ SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
 )
 
 # Extends the default SQLGlot dialects with additional dialects
+<<<<<<< HEAD
 SQLGLOT_DIALECTS_EXTENSIONS: DialectExtensions | Callable[[], DialectExtensions] = {}
+=======
+SQLGLOT_DIALECTS_EXTENSIONS: dict[str, Dialects | type[Dialect]] = {}
+>>>>>>> origin/avenmaster
 
 # The limit of queries fetched for query search
 QUERY_SEARCH_LIMIT = 1000
@@ -281,9 +289,12 @@ WTF_CSRF_ENABLED = True
 WTF_CSRF_EXEMPT_LIST = [
     "superset.charts.data.api.data",
     "superset.dashboards.api.cache_dashboard_screenshot",
+<<<<<<< HEAD
     "superset.views.core.explore_json",
     "superset.views.core.log",
     "superset.views.datasource.views.samples",
+=======
+>>>>>>> origin/avenmaster
 ]
 
 # Whether to run the web server in debug mode or not
@@ -513,7 +524,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "PRESTO_EXPAND_DATA": False,
     # Exposes API endpoint to compute thumbnails
     "THUMBNAILS": False,
+<<<<<<< HEAD
     # Enables the endpoints to cache and retrieve dashboard screenshots via webdriver.
+=======
+    # Enable the endpoints to cache and retrieve dashboard screenshots via webdriver.
+>>>>>>> origin/avenmaster
     # Requires configuring Celery and a cache using THUMBNAIL_CACHE_CONFIG.
     "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS": False,
     # Generate screenshots (PDF or JPG) of dashboards using the web driver.
@@ -521,6 +536,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # This feature flag is used by the download feature in the dashboard view.
     # It is dependent on ENABLE_DASHBOARD_SCREENSHOT_ENDPOINT being enabled.
     "ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT": False,
+<<<<<<< HEAD
+=======
+    "SHARE_QUERIES_VIA_KV_STORE": False,
+>>>>>>> origin/avenmaster
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": True,
     "LISTVIEWS_DEFAULT_CARD_VIEW": False,
@@ -594,8 +613,16 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": False,
     # Set to True to enable experimental chart plugins
     "CHART_PLUGINS_EXPERIMENTAL": False,
+<<<<<<< HEAD
     # Regardless of database configuration settings, force SQLLAB to run async
     # using Celery
+=======
+    # Set to True to enable Google Sheets exports.
+    # - `GOOGLE_SHEETS_EXPORT_SERVICE_ACCOUNT_JSON`
+    # - `GOOGLE_SHEETS_EXPORT_SHARE_PERMISSIONS`
+    "GOOGLE_SHEETS_EXPORT": False,
+    # Regardless of database configuration settings, force SQLLAB to run async using Celery
+>>>>>>> origin/avenmaster
     "SQLLAB_FORCE_RUN_ASYNC": False,
     # Set to True to to enable factory resent CLI command
     "ENABLE_FACTORY_RESET_COMMAND": False,
@@ -603,6 +630,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # If on, you'll want to add "https://avatars.slack-edge.com" to the list of allowed
     # domains in your TALISMAN_CONFIG
     "SLACK_ENABLE_AVATARS": False,
+<<<<<<< HEAD
     # Adds a theme editor as a modal dialog in the navbar. Allows people to type in JSON
     # Enables CSS Templates functionality in Settings menu and dashboard forms.
     # When disabled, users can still add custom CSS to dashboards but cannot use
@@ -621,6 +649,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable support for date range timeshifts (e.g., "2015-01-03 : 2015-01-04")
     # in addition to relative timeshifts (e.g., "1 day ago")
     "DATE_RANGE_TIMESHIFTS_ENABLED": False,
+=======
+>>>>>>> origin/avenmaster
 }
 
 # ------------------------------
@@ -1136,7 +1166,10 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "superset.tasks.scheduler",
         "superset.tasks.thumbnails",
         "superset.tasks.cache",
+<<<<<<< HEAD
         "superset.tasks.slack",
+=======
+>>>>>>> origin/avenmaster
     )
     result_backend = "db+sqlite:///celery_results.sqlite"
     worker_prefetch_multiplier = 1
@@ -1160,6 +1193,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         # "prune_query": {
         #     "task": "prune_query",
         #     "schedule": crontab(minute=0, hour=0, day_of_month=1),
+<<<<<<< HEAD
         #     "kwargs": {"retention_period_days": 180},
         # },
         # Uncomment to enable pruning of the logs table
@@ -1172,6 +1206,9 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         # "slack.cache_channels": {
         #     "task": "slack.cache_channels",
         #     "schedule": crontab(minute="0", hour="*"),
+=======
+        #     "options": {"retention_period_days": 180},
+>>>>>>> origin/avenmaster
         # },
     }
 
@@ -1568,6 +1605,11 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "getMacro",
         "getSetting",
     },
+<<<<<<< HEAD
+=======
+    "clickhouse": {"url", "version", "currentDatabase", "hostName"},
+    "mysql": {"version"},
+>>>>>>> origin/avenmaster
 }
 
 
@@ -1697,11 +1739,14 @@ SLACK_API_TOKEN: Callable[[], str] | str | None = None
 SLACK_PROXY = None
 SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 
+<<<<<<< HEAD
 # Maximum number of retries when Slack API returns rate limit errors
 # Default: 2
 # For workspaces with 10k+ channels, consider increasing to 10
 SLACK_API_RATE_LIMIT_RETRY_COUNT = 2
 
+=======
+>>>>>>> origin/avenmaster
 # The webdriver to use for generating reports. Use one of the following
 # firefox
 #   Requires: geckodriver and firefox installations
@@ -2150,6 +2195,7 @@ EXTRA_DYNAMIC_QUERY_FILTERS: ExtraDynamicQueryFilters = {}
 # connection via the UI (without downtime).
 CATALOGS_SIMPLIFIED_MIGRATION: bool = False
 
+<<<<<<< HEAD
 # Configure JWT subsystem to not enforce that the sub claim is a string
 # Set this variable to avoid breaking `/api/security` endpoints
 # TODO: remove this variable once pyjwt resolved the issue.
@@ -2165,6 +2211,8 @@ JWT_VERIFY_SUB: bool = False
 # keeping a web API call open for this long.
 SYNC_DB_PERMISSIONS_IN_ASYNC_MODE: bool = False
 
+=======
+>>>>>>> origin/avenmaster
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *

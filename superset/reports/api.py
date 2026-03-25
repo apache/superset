@@ -124,6 +124,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "validator_type",
         "working_timeout",
         "email_subject",
+        "csv_filename",
     ]
     show_select_columns = show_columns + [
         "chart.datasource_id",

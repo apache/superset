@@ -18,9 +18,13 @@
 import logging
 from typing import Any
 
+<<<<<<< HEAD
 from flask import current_app as app
 
 from superset import db, security_manager
+=======
+from superset import app, db, security_manager
+>>>>>>> origin/avenmaster
 from superset.commands.database.utils import add_permissions
 from superset.commands.exceptions import ImportFailedError
 from superset.databases.ssh_tunnel.models import SSHTunnel
@@ -70,12 +74,17 @@ def import_database(
 
     # Before it gets removed in import_from_dict
     ssh_tunnel_config = config.pop("ssh_tunnel", None)
+<<<<<<< HEAD
 
     # set SQLAlchemy URI via `set_sqlalchemy_uri` so that the password gets masked
     sqlalchemy_uri = config.pop("sqlalchemy_uri")
     database: Database = Database.import_from_dict(config, recursive=False)
     database.set_sqlalchemy_uri(sqlalchemy_uri)
 
+=======
+
+    database: Database = Database.import_from_dict(config, recursive=False)
+>>>>>>> origin/avenmaster
     if database.id is None:
         db.session.flush()
 

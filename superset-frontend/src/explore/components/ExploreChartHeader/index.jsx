@@ -96,11 +96,15 @@ export const ExploreChartHeader = ({
   const dispatch = useDispatch();
   const { latestQueryFormData, sliceFormData } = chart;
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false);
+<<<<<<< HEAD
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [currentReportDeleting, setCurrentReportDeleting] = useState(null);
   const [shouldForceCloseModal, setShouldForceCloseModal] = useState(false);
 
   const updateCategoricalNamespace = useCallback(async () => {
+=======
+  const updateCategoricalNamespace = async () => {
+>>>>>>> origin/avenmaster
     const { dashboards } = metadata || {};
     const dashboard =
       dashboardId && dashboards && dashboards.find(d => d.id === dashboardId);

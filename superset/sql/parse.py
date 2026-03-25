@@ -17,13 +17,17 @@
 
 from __future__ import annotations
 
+<<<<<<< HEAD
 import copy
+=======
+>>>>>>> origin/avenmaster
 import enum
 import logging
 import re
 import urllib.parse
 from collections.abc import Iterable
 from dataclasses import dataclass
+<<<<<<< HEAD
 from typing import Any, Generic, Optional, TYPE_CHECKING, TypeVar
 
 import sqlglot
@@ -50,6 +54,19 @@ from superset.sql.dialects import Dremio, Firebolt, Pinot
 if TYPE_CHECKING:
     from superset.models.core import Database
 
+=======
+from typing import Any, Generic, TypeVar
+
+import sqlglot
+import sqlparse
+from deprecation import deprecated
+from sqlglot import exp
+from sqlglot.dialects.dialect import Dialect, Dialects
+from sqlglot.errors import ParseError
+from sqlglot.optimizer.scope import Scope, ScopeType, traverse_scope
+
+from superset.exceptions import SupersetParseError
+>>>>>>> origin/avenmaster
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +75,11 @@ logger = logging.getLogger(__name__)
 SQLGLOT_DIALECTS = {
     "base": Dialects.DIALECT,
     "ascend": Dialects.HIVE,
+<<<<<<< HEAD
     "awsathena": Dialects.ATHENA,
+=======
+    "awsathena": Dialects.PRESTO,
+>>>>>>> origin/avenmaster
     "bigquery": Dialects.BIGQUERY,
     "clickhouse": Dialects.CLICKHOUSE,
     "clickhousedb": Dialects.CLICKHOUSE,
@@ -68,20 +89,31 @@ SQLGLOT_DIALECTS = {
     # "databend": ???
     "databricks": Dialects.DATABRICKS,
     # "db2": ???
+<<<<<<< HEAD
     # "denodo": ???
     "dremio": Dremio,
     "drill": Dialects.DRILL,
     "druid": Dialects.DRUID,
+=======
+    # "dremio": ???
+    "drill": Dialects.DRILL,
+    # "druid": ???
+>>>>>>> origin/avenmaster
     "duckdb": Dialects.DUCKDB,
     # "dynamodb": ???
     # "elasticsearch": ???
     # "exa": ???
     # "firebird": ???
+<<<<<<< HEAD
     "firebolt": Firebolt,
+=======
+    # "firebolt": ???
+>>>>>>> origin/avenmaster
     "gsheets": Dialects.SQLITE,
     "hana": Dialects.POSTGRES,
     "hive": Dialects.HIVE,
     # "ibmi": ???
+<<<<<<< HEAD
     "impala": Dialects.HIVE,
     # "kustosql": ???
     # "kylin": ???
@@ -96,20 +128,41 @@ SQLGLOT_DIALECTS = {
     "oracle": Dialects.ORACLE,
     "parseable": Dialects.POSTGRES,
     "pinot": Pinot,
+=======
+    # "impala": ???
+    # "kustokql": ???
+    # "kylin": ???
+    "mssql": Dialects.TSQL,
+    "mysql": Dialects.MYSQL,
+    "netezza": Dialects.POSTGRES,
+    # "ocient": ???
+    # "odelasticsearch": ???
+    "oracle": Dialects.ORACLE,
+    # "pinot": ???
+>>>>>>> origin/avenmaster
     "postgresql": Dialects.POSTGRES,
     "presto": Dialects.PRESTO,
     "pydoris": Dialects.DORIS,
     "redshift": Dialects.REDSHIFT,
+<<<<<<< HEAD
     "risingwave": Dialects.RISINGWAVE,
     "shillelagh": Dialects.SQLITE,
     "singlestoredb": SingleStore,
+=======
+    # "risingwave": ???
+    # "rockset": ???
+    "shillelagh": Dialects.SQLITE,
+>>>>>>> origin/avenmaster
     "snowflake": Dialects.SNOWFLAKE,
     # "solr": ???
     "spark": Dialects.SPARK,
     "sqlite": Dialects.SQLITE,
     "starrocks": Dialects.STARROCKS,
     "superset": Dialects.SQLITE,
+<<<<<<< HEAD
     # "taosws": ???
+=======
+>>>>>>> origin/avenmaster
     "teradatasql": Dialects.TERADATA,
     "trino": Dialects.TRINO,
     "vertica": Dialects.POSTGRES,
@@ -117,6 +170,7 @@ SQLGLOT_DIALECTS = {
 }
 
 
+<<<<<<< HEAD
 class LimitMethod(enum.Enum):
     """
     Limit methods.
@@ -279,6 +333,8 @@ class RLSAsSubqueryTransformer(RLSTransformer):
         return node
 
 
+=======
+>>>>>>> origin/avenmaster
 @dataclass(eq=True, frozen=True)
 class Table:
     """
@@ -305,6 +361,7 @@ class Table:
     def __eq__(self, other: Any) -> bool:
         return str(self) == str(other)
 
+<<<<<<< HEAD
     def qualify(
         self,
         *,
@@ -320,6 +377,8 @@ class Table:
             catalog=self.catalog or catalog,
         )
 
+=======
+>>>>>>> origin/avenmaster
 
 # To avoid unnecessary parsing/formatting of queries, the statement has the concept of
 # an "internal representation", which is the AST of the SQL statement. For most of the
@@ -350,6 +409,7 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
 
     def __init__(
         self,
+<<<<<<< HEAD
         statement: str | None = None,
         engine: str = "base",
         ast: InternalRepresentation | None = None,
@@ -361,6 +421,14 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         else:
             raise ValueError("Either statement or ast must be provided")
 
+=======
+        statement: str,
+        engine: str,
+        ast: InternalRepresentation | None = None,
+    ):
+        self._sql = statement
+        self._parsed = ast or self._parse_statement(statement, engine)
+>>>>>>> origin/avenmaster
         self.engine = engine
         self.tables = self._extract_tables_from_statement(self._parsed, self.engine)
 
@@ -423,12 +491,15 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+<<<<<<< HEAD
     def is_select(self) -> bool:
         """
         Check if the statement is a `SELECT` statement.
         """
         raise NotImplementedError()
 
+=======
+>>>>>>> origin/avenmaster
     def is_mutating(self) -> bool:
         """
         Check if the statement mutates data (DDL/DML).
@@ -437,6 +508,7 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+<<<<<<< HEAD
     def optimize(self) -> BaseSQLStatement[InternalRepresentation]:
         """
         Return optimized statement.
@@ -532,6 +604,8 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+=======
+>>>>>>> origin/avenmaster
     def __str__(self) -> str:
         return self.format()
 
@@ -545,8 +619,13 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
     def __init__(
         self,
+<<<<<<< HEAD
         statement: str | None = None,
         engine: str = "base",
+=======
+        statement: str,
+        engine: str,
+>>>>>>> origin/avenmaster
         ast: exp.Expression | None = None,
     ):
         self._dialect = SQLGLOT_DIALECTS.get(engine)
@@ -556,6 +635,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
     def _parse(cls, script: str, engine: str) -> list[exp.Expression]:
         """
         Parse helper.
+<<<<<<< HEAD
 
         When the base dialect (engine="base" or unknown engines) fails to parse SQL
         containing backtick-quoted identifiers, we fall back to MySQL dialect which
@@ -588,6 +668,21 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 else {}
             )
             raise SupersetParseError(script, engine, **kwargs) from ex
+=======
+        """
+        dialect = SQLGLOT_DIALECTS.get(engine)
+        try:
+            return sqlglot.parse(script, dialect=dialect)
+        except sqlglot.errors.ParseError as ex:
+            error = ex.errors[0]
+            raise SupersetParseError(
+                script,
+                engine,
+                highlight=error["highlight"],
+                line=error["line"],
+                column=error["col"],
+            ) from ex
+>>>>>>> origin/avenmaster
         except sqlglot.errors.SqlglotError as ex:
             raise SupersetParseError(
                 script,
@@ -595,6 +690,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 message="Unable to parse script",
             ) from ex
 
+<<<<<<< HEAD
         # `sqlglot` will parse comments after the last semicolon as a separate
         # statement; move them back to the last token in the last real statement
         if len(statements) > 1 and isinstance(statements[-1], exp.Semicolon):
@@ -609,15 +705,61 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         return statements
 
+=======
+>>>>>>> origin/avenmaster
     @classmethod
     def split_script(
         cls,
         script: str,
         engine: str,
     ) -> list[SQLStatement]:
+<<<<<<< HEAD
         return [
             cls(ast=ast, engine=engine) for ast in cls._parse(script, engine) if ast
         ]
+=======
+        if dialect := SQLGLOT_DIALECTS.get(engine):
+            try:
+                return [
+                    cls(ast.sql(), engine, ast)
+                    for ast in cls._parse(script, engine)
+                    if ast
+                ]
+            except ValueError:
+                # `ast.sql()` might raise an error on some cases (eg, `SHOW TABLES
+                # FROM`). In this case, we rely on the tokenizer to generate the
+                # statements.
+                pass
+
+        # When we don't have a sqlglot dialect we can't rely on `ast.sql()` to correctly
+        # generate the SQL of each statement, so we tokenize the script and split it
+        # based on the location of semi-colons.
+        statements = []
+        start = 0
+        remainder = script
+
+        try:
+            tokens = sqlglot.tokenize(script, dialect)
+        except sqlglot.errors.TokenError as ex:
+            raise SupersetParseError(
+                script,
+                engine,
+                message="Unable to tokenize script",
+            ) from ex
+
+        for token in tokens:
+            if token.token_type == sqlglot.TokenType.SEMICOLON:
+                statement, start = script[start : token.start], token.end + 1
+                ast = cls._parse(statement, engine)[0]
+                statements.append(cls(statement.strip(), engine, ast))
+                remainder = script[start:]
+
+        if remainder.strip():
+            ast = cls._parse(remainder, engine)[0]
+            statements.append(cls(remainder.strip(), engine, ast))
+
+        return statements
+>>>>>>> origin/avenmaster
 
     @classmethod
     def _parse_statement(
@@ -630,11 +772,15 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         statements = cls.split_script(statement, engine)
         if len(statements) != 1:
+<<<<<<< HEAD
             raise SupersetParseError(
                 statement,
                 engine,
                 message="SQLStatement should have exactly one statement",
             )
+=======
+            raise SupersetParseError("SQLStatement should have exactly one statement")
+>>>>>>> origin/avenmaster
 
         return statements[0]._parsed  # pylint: disable=protected-access
 
@@ -650,18 +796,22 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         dialect = SQLGLOT_DIALECTS.get(engine)
         return extract_tables_from_statement(parsed, dialect)
 
+<<<<<<< HEAD
     def is_select(self) -> bool:
         """
         Check if the statement is a `SELECT` statement.
         """
         return isinstance(self._parsed, exp.Select)
 
+=======
+>>>>>>> origin/avenmaster
     def is_mutating(self) -> bool:
         """
         Check if the statement mutates data (DDL/DML).
 
         :return: True if the statement mutates data.
         """
+<<<<<<< HEAD
         mutating_nodes = (
             exp.Insert,
             exp.Update,
@@ -691,6 +841,25 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             # is PL/pgSQL), so parsing them it out of scope of this class; we just
             # assume the anonymous block is mutating
             return True
+=======
+        for node in self._parsed.walk():
+            if isinstance(
+                node,
+                (
+                    exp.Insert,
+                    exp.Update,
+                    exp.Delete,
+                    exp.Merge,
+                    exp.Create,
+                    exp.Drop,
+                    exp.TruncateTable,
+                ),
+            ):
+                return True
+
+            if isinstance(node, exp.Command) and node.name == "ALTER":
+                return True
+>>>>>>> origin/avenmaster
 
         # Postgres runs DMLs prefixed by `EXPLAIN ANALYZE`, see
         # https://www.postgresql.org/docs/current/sql-explain.html
@@ -701,10 +870,14 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             and self._parsed.expression.name.upper().startswith("ANALYZE ")
         ):
             analyzed_sql = self._parsed.expression.name[len("ANALYZE ") :]
+<<<<<<< HEAD
             return SQLStatement(
                 statement=analyzed_sql,
                 engine=self.engine,
             ).is_mutating()
+=======
+            return SQLStatement(analyzed_sql, self.engine).is_mutating()
+>>>>>>> origin/avenmaster
 
         return False
 
@@ -712,12 +885,43 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         Pretty-format the SQL statement.
         """
+<<<<<<< HEAD
         return Dialect.get_or_raise(self._dialect).generate(
             self._parsed,
             copy=True,
             comments=comments,
             pretty=True,
         )
+=======
+        if self._dialect:
+            try:
+                write = Dialect.get_or_raise(self._dialect)
+                return write.generate(
+                    self._parsed,
+                    copy=False,
+                    comments=comments,
+                    pretty=True,
+                )
+            except ValueError:
+                pass
+
+        return self._fallback_formatting()
+
+    @deprecated(deprecated_in="4.0", removed_in="5.0")
+    def _fallback_formatting(self) -> str:
+        """
+        Format SQL without a specific dialect.
+
+        Reformatting SQL using the generic sqlglot dialect is known to break queries.
+        For example, it will change `foo NOT IN (1, 2)` to `NOT foo IN (1,2)`, which
+        breaks the query for Firebolt. To avoid this, we use sqlparse for formatting
+        when the dialect is not known.
+
+        In 5.0 we should remove `sqlparse`, and the method should return the query
+        unmodified.
+        """
+        return sqlparse.format(self._sql, reindent=True, keyword_case="upper")
+>>>>>>> origin/avenmaster
 
     def get_settings(self) -> dict[str, str | bool]:
         """
@@ -729,14 +933,19 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         """
         return {
+<<<<<<< HEAD
             eq.this.sql(
                 dialect=self._dialect,
                 comments=False,
             ): eq.expression.sql(comments=False)
+=======
+            eq.this.sql(comments=False): eq.expression.sql(comments=False)
+>>>>>>> origin/avenmaster
             for set_item in self._parsed.find_all(exp.SetItem)
             for eq in set_item.find_all(exp.EQ)
         }
 
+<<<<<<< HEAD
     def optimize(self) -> SQLStatement:
         """
         Return optimized statement.
@@ -904,6 +1113,8 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         transformer = transformers[method](catalog, schema, predicates)
         self._parsed = self._parsed.transform(transformer)
 
+=======
+>>>>>>> origin/avenmaster
 
 class KQLSplitState(enum.Enum):
     """
@@ -919,6 +1130,7 @@ class KQLSplitState(enum.Enum):
     INSIDE_MULTILINE_STRING = enum.auto()
 
 
+<<<<<<< HEAD
 class KQLTokenType(enum.Enum):
     """
     Token types for KQL.
@@ -1031,6 +1243,50 @@ def split_kql(kql: str) -> list[str]:
         stmts_tokens.append(current)
 
     return ["".join(val for _, val in stmt) for stmt in stmts_tokens]
+=======
+def split_kql(kql: str) -> list[str]:
+    """
+    Custom function for splitting KQL statements.
+    """
+    statements = []
+    state = KQLSplitState.OUTSIDE_STRING
+    statement_start = 0
+    script = kql if kql.endswith(";") else kql + ";"
+    for i, character in enumerate(script):
+        if state == KQLSplitState.OUTSIDE_STRING:
+            if character == ";":
+                statements.append(script[statement_start:i])
+                statement_start = i + 1
+            elif character == "'":
+                state = KQLSplitState.INSIDE_SINGLE_QUOTED_STRING
+            elif character == '"':
+                state = KQLSplitState.INSIDE_DOUBLE_QUOTED_STRING
+            elif character == "`" and script[i - 2 : i] == "``":
+                state = KQLSplitState.INSIDE_MULTILINE_STRING
+
+        elif (
+            state == KQLSplitState.INSIDE_SINGLE_QUOTED_STRING
+            and character == "'"
+            and script[i - 1] != "\\"
+        ):
+            state = KQLSplitState.OUTSIDE_STRING
+
+        elif (
+            state == KQLSplitState.INSIDE_DOUBLE_QUOTED_STRING
+            and character == '"'
+            and script[i - 1] != "\\"
+        ):
+            state = KQLSplitState.OUTSIDE_STRING
+
+        elif (
+            state == KQLSplitState.INSIDE_MULTILINE_STRING
+            and character == "`"
+            and script[i - 2 : i] == "``"
+        ):
+            state = KQLSplitState.OUTSIDE_STRING
+
+    return statements
+>>>>>>> origin/avenmaster
 
 
 class KustoKQLStatement(BaseSQLStatement[str]):
@@ -1050,6 +1306,7 @@ class KustoKQLStatement(BaseSQLStatement[str]):
     details about it.
     """
 
+<<<<<<< HEAD
     def __init__(
         self,
         statement: str | None = None,
@@ -1058,6 +1315,8 @@ class KustoKQLStatement(BaseSQLStatement[str]):
     ):
         super().__init__(statement, engine, ast)
 
+=======
+>>>>>>> origin/avenmaster
     @classmethod
     def split_script(
         cls,
@@ -1082,6 +1341,7 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         engine: str,
     ) -> str:
         if engine != "kustokql":
+<<<<<<< HEAD
             raise SupersetParseError(
                 statement,
                 engine,
@@ -1095,6 +1355,13 @@ class KustoKQLStatement(BaseSQLStatement[str]):
                 engine,
                 message="KustoKQLStatement should have exactly one statement",
             )
+=======
+            raise SupersetParseError(f"Invalid engine: {engine}")
+
+        statements = split_kql(statement)
+        if len(statements) != 1:
+            raise SupersetParseError("SQLStatement should have exactly one statement")
+>>>>>>> origin/avenmaster
 
         return statements[0].strip()
 
@@ -1112,7 +1379,11 @@ class KustoKQLStatement(BaseSQLStatement[str]):
             | join (PopulationData) on State
             | project State, Population, TotalInjuries = InjuriesDirect + InjuriesIndirect
 
+<<<<<<< HEAD
         """  # noqa: E501
+=======
+        """
+>>>>>>> origin/avenmaster
         logger.warning(
             "Kusto KQL doesn't support table extraction. This means that data access "
             "roles will not be enforced by Superset in the database."
@@ -1123,7 +1394,11 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         """
         Pretty-format the SQL statement.
         """
+<<<<<<< HEAD
         return self._parsed.strip()
+=======
+        return self._sql.strip()
+>>>>>>> origin/avenmaster
 
     def get_settings(self) -> dict[str, str | bool]:
         """
@@ -1140,12 +1415,15 @@ class KustoKQLStatement(BaseSQLStatement[str]):
 
         return {}
 
+<<<<<<< HEAD
     def is_select(self) -> bool:
         """
         Check if the statement is a `SELECT` statement.
         """
         return not self._parsed.startswith(".")
 
+=======
+>>>>>>> origin/avenmaster
     def is_mutating(self) -> bool:
         """
         Check if the statement mutates data (DDL/DML).
@@ -1154,6 +1432,7 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         """
         return self._parsed.startswith(".") and not self._parsed.startswith(".show")
 
+<<<<<<< HEAD
     def optimize(self) -> KustoKQLStatement:
         """
         Return optimized statement.
@@ -1236,6 +1515,8 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         """
         return predicate
 
+=======
+>>>>>>> origin/avenmaster
 
 class SQLScript:
     """
@@ -1290,6 +1571,7 @@ class SQLScript:
         """
         return any(statement.is_mutating() for statement in self.statements)
 
+<<<<<<< HEAD
     def optimize(self) -> SQLScript:
         """
         Return optimized script.
@@ -1331,6 +1613,8 @@ class SQLScript:
         """
         return len(self.statements) == 1 and self.statements[0].is_select()
 
+=======
+>>>>>>> origin/avenmaster
 
 def extract_tables_from_statement(
     statement: exp.Expression,
@@ -1339,7 +1623,11 @@ def extract_tables_from_statement(
     """
     Extract all table references in a single statement.
 
+<<<<<<< HEAD
     Please note that this is not trivial; consider the following queries:
+=======
+    Please not that this is not trivial; consider the following queries:
+>>>>>>> origin/avenmaster
 
         DESCRIBE some_table;
         SHOW PARTITIONS FROM some_table;
@@ -1403,6 +1691,7 @@ def is_cte(source: exp.Table, scope: Scope) -> bool:
     }
 
     return source.name in ctes_in_scope
+<<<<<<< HEAD
 
 
 T = TypeVar("T", str, None)
@@ -1520,3 +1809,5 @@ def sanitize_clause(clause: str, engine: str) -> str:
         )
     except SupersetParseError as ex:
         raise QueryClauseValidationException(f"Invalid SQL clause: {clause}") from ex
+=======
+>>>>>>> origin/avenmaster

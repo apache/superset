@@ -21,11 +21,19 @@ import logging
 from abc import ABC, abstractmethod
 from enum import Enum
 from time import sleep
+<<<<<<< HEAD
 from typing import TYPE_CHECKING
 
 from flask import current_app as app
 from packaging import version
 from selenium import __version__ as selenium_version
+=======
+from typing import Any, Dict, TYPE_CHECKING
+from urllib.parse import urlparse
+
+from flask import current_app, Response, session
+from flask_login import login_user
+>>>>>>> origin/avenmaster
 from selenium.common.exceptions import (
     StaleElementReferenceException,
     TimeoutException,
@@ -37,10 +45,15 @@ from selenium.webdriver.common.service import Service
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC  # noqa: N812
 from selenium.webdriver.support.ui import WebDriverWait
+from werkzeug.http import parse_cookie
 
 from superset.extensions import machine_auth_provider_factory
 from superset.utils.retries import retry_call
+<<<<<<< HEAD
 from superset.utils.screenshot_utils import take_tiled_screenshot
+=======
+from superset.utils.urls import headless_url
+>>>>>>> origin/avenmaster
 
 WindowSize = tuple[int, int]
 logger = logging.getLogger(__name__)
@@ -53,8 +66,8 @@ if TYPE_CHECKING:
 try:
     from playwright.sync_api import (
         BrowserContext,
+        ElementHandle,
         Error as PlaywrightError,
-        Locator,
         Page,
         sync_playwright,
         TimeoutError as PlaywrightTimeout,
@@ -98,11 +111,54 @@ class WebDriverProxy(ABC):
 
 
 class WebDriverPlaywright(WebDriverProxy):
-    @staticmethod
-    def auth(user: User, context: BrowserContext) -> BrowserContext:
-        return machine_auth_provider_factory.instance.authenticate_browser_context(
-            context, user
+    def auth(self, user: User, browser_context: BrowserContext) -> BrowserContext:
+        url = urlparse(current_app.config["WEBDRIVER_BASEURL"])
+
+        # Setting cookies requires doing a request first
+        page = browser_context.new_page()
+        page.goto(headless_url("/login/"))
+
+        cookies = self.get_auth_cookies(user)
+
+        browser_context.clear_cookies()
+        browser_context.add_cookies(
+            [
+                {
+                    "name": cookie_name,
+                    "value": cookie_val,
+                    "domain": url.netloc,
+                    "path": "/",
+                    "sameSite": "Lax",
+                    "httpOnly": True,
+                }
+                for cookie_name, cookie_val in cookies.items()
+            ]
         )
+        return browser_context
+
+    @staticmethod
+    def get_auth_cookies(user: User) -> Dict[str, str]:
+        # Login with the user specified to get the reports
+        with current_app.test_request_context("/login"):
+            login_user(user)
+            # A mock response object to get the cookie information from
+            response = Response()
+            current_app.session_interface.save_session(current_app, session, response)
+
+        cookies = {}
+
+        # Grab any "set-cookie" headers from the login response
+        for name, value in response.headers:
+            if name.lower() == "set-cookie":
+                # This yields a MultiDict, which is ordered -- something like
+                # MultiDict([('session', 'value-we-want), ('HttpOnly', ''), etc...
+                # Therefore, we just need to grab the first tuple and add it to our
+                # final dict
+                cookie = parse_cookie(value)
+                cookie_tuple = list(cookie.items())[0]
+                cookies[cookie_tuple[0]] = cookie_tuple[1]
+
+        return cookies
 
     @staticmethod
     def find_unexpected_errors(page: Page) -> list[str]:
@@ -120,7 +176,14 @@ class WebDriverPlaywright(WebDriverProxy):
                 alert_div.get_by_role("button").click()
 
                 # wait for modal to show up
-                page.locator(".ant-modal-content").wait_for(state="visible")
+                page.wait_for_selector(
+                    ".ant-modal-content",
+                    timeout=current_app.config[
+                        "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE"
+                    ]
+                    * 1000,
+                    state="visible",
+                )
                 err_msg_div = page.locator(".ant-modal-content .ant-modal-body")
                 #
                 # # collect error message
@@ -133,7 +196,14 @@ class WebDriverPlaywright(WebDriverProxy):
                 page.locator(".ant-modal-content .ant-modal-close").click()
                 #
                 # # wait until the modal becomes invisible
-                page.locator(".ant-modal-content").wait_for(state="detached")
+                page.wait_for_selector(
+                    ".ant-modal-content",
+                    timeout=current_app.config[
+                        "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE"
+                    ]
+                    * 1000,
+                    state="detached",
+                )
                 try:
                     # Even if some errors can't be updated in the screenshot,
                     # keep all the errors in the server log and do not fail the loop
@@ -143,11 +213,14 @@ class WebDriverPlaywright(WebDriverProxy):
                     )
                 except PlaywrightError:
                     logger.exception("Failed to update error messages using alert_div")
+        except PlaywrightTimeout:
+            logger.exception("Failed to capture unexpected errors")
         except PlaywrightError:
             logger.exception("Failed to capture unexpected errors")
 
         return error_messages
 
+<<<<<<< HEAD
     @staticmethod
     def _get_screenshot(page: Page, element: Locator, element_name: str) -> bytes:
         if element_name == "standalone":
@@ -164,6 +237,14 @@ class WebDriverPlaywright(WebDriverProxy):
             pixel_density = app.config["WEBDRIVER_WINDOW"].get("pixel_density", 1)
             viewport_height = self._window[1]
             viewport_width = self._window[0]
+=======
+    def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch()
+            pixel_density = current_app.config["WEBDRIVER_WINDOW"].get(
+                "pixel_density", 1
+            )
+>>>>>>> origin/avenmaster
             context = browser.new_context(
                 bypass_csp=True,
                 viewport={
@@ -172,6 +253,7 @@ class WebDriverPlaywright(WebDriverProxy):
                 },
                 device_scale_factor=pixel_density,
             )
+<<<<<<< HEAD
             context.set_default_timeout(
                 app.config["SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT"]
             )
@@ -189,29 +271,48 @@ class WebDriverPlaywright(WebDriverProxy):
                     url,
                 )
 
+=======
+            context = self.auth(user, context)
+            page = context.new_page()
+            page.goto(url, wait_until="load")
+>>>>>>> origin/avenmaster
             img: bytes | None = None
             selenium_headstart = app.config["SCREENSHOT_SELENIUM_HEADSTART"]
             logger.debug("Sleeping for %i seconds", selenium_headstart)
             page.wait_for_timeout(selenium_headstart * 1000)
-            element: Locator
+            element: ElementHandle
             try:
                 try:
-                    # page didn't load
                     logger.debug(
                         "Wait for the presence of %s at url: %s", element_name, url
                     )
-                    element = page.locator(f".{element_name}")
-                    element.wait_for()
+                    # override the dashboard selector, otherwise use the element name as a class selecto
+                    if element_name == "standalone":
+                        element = page.wait_for_selector(
+                            "#GRID_ID", timeout=self._screenshot_locate_wait * 1000
+                        )
+                    else:
+                        element = page.wait_for_selector(
+                            f".{element_name}",
+                            timeout=self._screenshot_locate_wait * 1000,
+                        )
                 except PlaywrightTimeout:
+                    # page didn't load
                     logger.exception("Timed out requesting url %s", url)
                     raise
 
                 try:
                     # chart containers didn't render
                     logger.debug("Wait for chart containers to draw at url: %s", url)
+<<<<<<< HEAD
                     slice_container_locator = page.locator(".chart-container")
                     for slice_container_elem in slice_container_locator.all():
                         slice_container_elem.wait_for()
+=======
+                    page.wait_for_selector(
+                        ".slice_container", timeout=self._screenshot_locate_wait * 1000
+                    )
+>>>>>>> origin/avenmaster
                 except PlaywrightTimeout:
                     logger.exception(
                         "Timed out waiting for chart containers to draw at url %s",
@@ -223,13 +324,17 @@ class WebDriverPlaywright(WebDriverProxy):
                     logger.debug(
                         "Wait for loading element of charts to be gone at url: %s", url
                     )
-                    for loading_element in page.locator(".loading").all():
-                        loading_element.wait_for(state="detached")
+                    page.wait_for_selector(
+                        ".loading",
+                        timeout=self._screenshot_load_wait * 1000,
+                        state="detached",
+                    )
                 except PlaywrightTimeout:
                     logger.exception(
                         "Timed out waiting for charts to load at url %s", url
                     )
-                    raise
+                    # Raise if you want the dashboards to fail if a chart takes too long to load
+                    # raise ex
 
                 selenium_animation_wait = app.config[
                     "SCREENSHOT_SELENIUM_ANIMATION_WAIT"

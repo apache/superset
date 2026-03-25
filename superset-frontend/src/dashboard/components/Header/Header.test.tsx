@@ -555,6 +555,7 @@ test('should render an extension component if one is supplied', () => {
 });
 
 test('should NOT render MetadataBar when in edit mode', () => {
+<<<<<<< HEAD
   const state = {
     ...editableState,
     dashboardInfo: {
@@ -565,10 +566,24 @@ test('should NOT render MetadataBar when in edit mode', () => {
   setup(state);
   expect(
     screen.queryByText(state.dashboardInfo.changed_on_delta_humanized),
+=======
+  const mockedProps = {
+    ...createProps(),
+    editMode: true,
+    dashboardInfo: {
+      ...createProps().dashboardInfo,
+      userId: '123',
+    },
+  };
+  setup(mockedProps);
+  expect(
+    screen.queryByText(mockedProps.dashboardInfo.changed_on_delta_humanized),
+>>>>>>> origin/avenmaster
   ).not.toBeInTheDocument();
 });
 
 test('should NOT render MetadataBar when embedded', () => {
+<<<<<<< HEAD
   const state = {
     dashboardInfo: {
       ...initialState.dashboardInfo,
@@ -842,3 +857,33 @@ test('should sync theme ref when navigating between dashboards', async () => {
     expect(setUnsavedChanges).toHaveBeenCalledTimes(0);
   });
 });
+=======
+  const mockedProps = {
+    ...createProps(),
+    editMode: false,
+    dashboardInfo: {
+      ...createProps().dashboardInfo,
+      userId: undefined,
+    },
+  };
+  setup(mockedProps);
+  expect(
+    screen.queryByText(mockedProps.dashboardInfo.changed_on_delta_humanized),
+  ).not.toBeInTheDocument();
+});
+
+test('should render MetadataBar when not in edit mode and not embedded', () => {
+  const mockedProps = {
+    ...createProps(),
+    editMode: false,
+    dashboardInfo: {
+      ...createProps().dashboardInfo,
+      userId: '123',
+    },
+  };
+  setup(mockedProps);
+  expect(
+    screen.getByText(mockedProps.dashboardInfo.changed_on_delta_humanized),
+  ).toBeInTheDocument();
+});
+>>>>>>> origin/avenmaster

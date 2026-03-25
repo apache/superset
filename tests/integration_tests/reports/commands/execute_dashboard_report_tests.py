@@ -114,6 +114,7 @@ def test_report_with_header_data(
         assert header_data.get("notification_format") == report_schedule.report_format
         assert header_data.get("notification_source") == ReportSourceFormat.DASHBOARD
         assert header_data.get("notification_type") == report_schedule.type
+<<<<<<< HEAD
         assert len(send_email_smtp_mock.call_args.kwargs["header_data"]) == 8
 
 
@@ -152,3 +153,6 @@ def test_report_schedule_stale_data_error_preserves_cause(
             assert exc_info.value.__cause__ is not None
             assert isinstance(exc_info.value.__cause__, StaleDataError)
             assert str(exc_info.value.__cause__) == "test stale data"
+=======
+        assert len(send_email_smtp_mock.call_args.kwargs["header_data"]) == 7
+>>>>>>> origin/avenmaster

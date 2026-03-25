@@ -635,6 +635,29 @@
         },
         "type": "object"
       },
+      "AppleHealthResponseSchema": {
+        "properties": {
+          "cache_message": {
+            "description": "Human readable status message for the cache connection",
+            "type": "string"
+          },
+          "cache_status": {
+            "description": "The status of the cache",
+            "enum": ["NA", "HEALTHY", "ERROR"],
+            "type": "string"
+          },
+          "metastore_message": {
+            "description": "Human readable status message for the metastore connection",
+            "type": "string"
+          },
+          "metastore_status": {
+            "description": "The status of the metastore",
+            "enum": ["NA", "HEALTHY", "ERROR"],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "AvailableDomainsSchema": {
         "properties": {
           "domains": {
@@ -644,6 +667,123 @@
             "type": "array"
           }
         },
+        "type": "object"
+      },
+      "CSVMetadataUploadFilePostSchema": {
+        "properties": {
+          "delimiter": {
+            "description": "The delimiter of the CSV file",
+            "type": "string"
+          },
+          "file": {
+            "description": "The file to upload",
+            "format": "binary",
+            "type": "string"
+          },
+          "header_row": {
+            "description": "Row containing the headers to use as column names(0 is first line of data). Leave empty if there is no header row.",
+            "type": "integer"
+          }
+        },
+        "required": ["file"],
+        "type": "object"
+      },
+      "CSVUploadPostSchema": {
+        "properties": {
+          "already_exists": {
+            "default": "fail",
+            "description": "What to do if the table already exists accepts: fail, replace, append",
+            "enum": ["fail", "replace", "append"],
+            "type": "string"
+          },
+          "column_data_types": {
+            "description": "A dictionary with column names and their data types if you need to change the defaults. Example: {'user_id':'int'}. Check Python Pandas library for supported data types",
+            "type": "string"
+          },
+          "column_dates": {
+            "description": "A list of column names that should be parsed as dates. Example: date,timestamp",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "columns_read": {
+            "description": "A List of the column names that should be read",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "dataframe_index": {
+            "description": "Write dataframe index as a column.",
+            "type": "boolean"
+          },
+          "day_first": {
+            "description": "DD/MM format dates, international and European format",
+            "type": "boolean"
+          },
+          "decimal_character": {
+            "description": "Character to recognize as decimal point. Default is '.'",
+            "type": "string"
+          },
+          "delimiter": {
+            "description": "The delimiter of the CSV file",
+            "type": "string"
+          },
+          "file": {
+            "description": "The CSV file to upload",
+            "format": "text/csv",
+            "type": "string"
+          },
+          "header_row": {
+            "description": "Row containing the headers to use as column names(0 is first line of data). Leave empty if there is no header row.",
+            "type": "integer"
+          },
+          "index_column": {
+            "description": "Column to use as the row labels of the dataframe. Leave empty if no index column",
+            "type": "string"
+          },
+          "index_label": {
+            "description": "Index label for index column.",
+            "type": "string"
+          },
+          "null_values": {
+            "description": "A list of strings that should be treated as null. Examples: '' for empty strings, 'None', 'N/A',Warning: Hive database supports only a single value",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "rows_to_read": {
+            "description": "Number of rows to read from the file. If None, reads all rows.",
+            "minimum": 1,
+            "nullable": true,
+            "type": "integer"
+          },
+          "schema": {
+            "description": "The schema to upload the data file to.",
+            "type": "string"
+          },
+          "skip_blank_lines": {
+            "description": "Skip blank lines in the CSV file.",
+            "type": "boolean"
+          },
+          "skip_initial_space": {
+            "description": "Skip spaces after delimiter.",
+            "type": "boolean"
+          },
+          "skip_rows": {
+            "description": "Number of rows to skip at start of file.",
+            "type": "integer"
+          },
+          "table_name": {
+            "description": "The name of the table to be created/appended",
+            "maxLength": 10000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": ["file", "table_name"],
         "type": "object"
       },
       "CacheInvalidationRequestSchema": {
@@ -967,6 +1107,7 @@
           },
           "type": {
             "description": "Datasource type",
+<<<<<<< HEAD
             "enum": [
               "table",
               "dataset",
@@ -974,6 +1115,9 @@
               "saved_query",
               "view"
             ],
+=======
+            "enum": ["table", "dataset", "query", "saved_query", "view"],
+>>>>>>> origin/avenmaster
             "type": "string"
           }
         },
@@ -1749,7 +1893,7 @@
             "type": "boolean"
           },
           "owners": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get.User"
+            "$ref": "#/components/schemas/ChartDataRestApi.get.AppleUser"
           },
           "params": {
             "nullable": true,
@@ -1779,6 +1923,23 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "ChartDataRestApi.get.AppleUser": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": ["first_name", "last_name"],
         "type": "object"
       },
       "ChartDataRestApi.get.Dashboard": {
@@ -1819,6 +1980,7 @@
         },
         "type": "object"
       },
+<<<<<<< HEAD
       "ChartDataRestApi.get.User": {
         "properties": {
           "first_name": {
@@ -1839,6 +2001,8 @@
         ],
         "type": "object"
       },
+=======
+>>>>>>> origin/avenmaster
       "ChartDataRestApi.get_list": {
         "properties": {
           "cache_timeout": {
@@ -1920,10 +2084,14 @@
             "type": "string"
           },
           "last_saved_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User2"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.AppleUser"
           },
           "owners": {
+<<<<<<< HEAD
             "$ref": "#/components/schemas/ChartDataRestApi.get_list.User3"
+=======
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.AppleUser1"
+>>>>>>> origin/avenmaster
           },
           "params": {
             "nullable": true,
@@ -1960,6 +2128,40 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "ChartDataRestApi.get_list.AppleUser": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": ["first_name", "last_name"],
+        "type": "object"
+      },
+      "ChartDataRestApi.get_list.AppleUser1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": ["first_name", "last_name"],
         "type": "object"
       },
       "ChartDataRestApi.get_list.Dashboard": {
@@ -2052,6 +2254,7 @@
         ],
         "type": "object"
       },
+<<<<<<< HEAD
       "ChartDataRestApi.get_list.User2": {
         "properties": {
           "first_name": {
@@ -2092,6 +2295,8 @@
         ],
         "type": "object"
       },
+=======
+>>>>>>> origin/avenmaster
       "ChartDataRestApi.post": {
         "properties": {
           "cache_timeout": {
@@ -2127,6 +2332,7 @@
           },
           "datasource_type": {
             "description": "The type of dataset/datasource identified on `datasource_id`.",
+<<<<<<< HEAD
             "enum": [
               "table",
               "dataset",
@@ -2134,6 +2340,9 @@
               "saved_query",
               "view"
             ],
+=======
+            "enum": ["table", "dataset", "query", "saved_query", "view"],
+>>>>>>> origin/avenmaster
             "type": "string"
           },
           "description": {
@@ -2227,6 +2436,7 @@
           },
           "datasource_type": {
             "description": "The type of dataset/datasource identified on `datasource_id`.",
+<<<<<<< HEAD
             "enum": [
               "table",
               "dataset",
@@ -2234,6 +2444,9 @@
               "saved_query",
               "view"
             ],
+=======
+            "enum": ["table", "dataset", "query", "saved_query", "view"],
+>>>>>>> origin/avenmaster
             "nullable": true,
             "type": "string"
           },
@@ -2574,7 +2787,7 @@
             "type": "boolean"
           },
           "owners": {
-            "$ref": "#/components/schemas/ChartRestApi.get.User"
+            "$ref": "#/components/schemas/ChartRestApi.get.AppleUser"
           },
           "params": {
             "nullable": true,
@@ -2604,6 +2817,23 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "ChartRestApi.get.AppleUser": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": ["first_name", "last_name"],
         "type": "object"
       },
       "ChartRestApi.get.Dashboard": {
@@ -2644,6 +2874,7 @@
         },
         "type": "object"
       },
+<<<<<<< HEAD
       "ChartRestApi.get.User": {
         "properties": {
           "first_name": {
@@ -2664,6 +2895,8 @@
         ],
         "type": "object"
       },
+=======
+>>>>>>> origin/avenmaster
       "ChartRestApi.get_list": {
         "properties": {
           "cache_timeout": {
@@ -2745,10 +2978,14 @@
             "type": "string"
           },
           "last_saved_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.AppleUser"
           },
           "owners": {
+<<<<<<< HEAD
             "$ref": "#/components/schemas/ChartRestApi.get_list.User3"
+=======
+            "$ref": "#/components/schemas/ChartRestApi.get_list.AppleUser1"
+>>>>>>> origin/avenmaster
           },
           "params": {
             "nullable": true,
@@ -2785,6 +3022,40 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "ChartRestApi.get_list.AppleUser": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": ["first_name", "last_name"],
+        "type": "object"
+      },
+      "ChartRestApi.get_list.AppleUser1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": ["first_name", "last_name"],
         "type": "object"
       },
       "ChartRestApi.get_list.Dashboard": {
@@ -2877,6 +3148,7 @@
         ],
         "type": "object"
       },
+<<<<<<< HEAD
       "ChartRestApi.get_list.User2": {
         "properties": {
           "first_name": {
@@ -2917,6 +3189,8 @@
         ],
         "type": "object"
       },
+=======
+>>>>>>> origin/avenmaster
       "ChartRestApi.post": {
         "properties": {
           "cache_timeout": {
@@ -2952,6 +3226,7 @@
           },
           "datasource_type": {
             "description": "The type of dataset/datasource identified on `datasource_id`.",
+<<<<<<< HEAD
             "enum": [
               "table",
               "dataset",
@@ -2959,6 +3234,9 @@
               "saved_query",
               "view"
             ],
+=======
+            "enum": ["table", "dataset", "query", "saved_query", "view"],
+>>>>>>> origin/avenmaster
             "type": "string"
           },
           "description": {
@@ -3052,6 +3330,7 @@
           },
           "datasource_type": {
             "description": "The type of dataset/datasource identified on `datasource_id`.",
+<<<<<<< HEAD
             "enum": [
               "table",
               "dataset",
@@ -3059,6 +3338,9 @@
               "saved_query",
               "view"
             ],
+=======
+            "enum": ["table", "dataset", "query", "saved_query", "view"],
+>>>>>>> origin/avenmaster
             "nullable": true,
             "type": "string"
           },
@@ -3126,6 +3408,59 @@
         },
         "type": "object"
       },
+      "ColumnarMetadataUploadFilePostSchema": {
+        "properties": {
+          "file": {
+            "description": "The file to upload",
+            "format": "binary",
+            "type": "string"
+          }
+        },
+        "required": ["file"],
+        "type": "object"
+      },
+      "ColumnarUploadPostSchema": {
+        "properties": {
+          "already_exists": {
+            "default": "fail",
+            "description": "What to do if the table already exists accepts: fail, replace, append",
+            "enum": ["fail", "replace", "append"],
+            "type": "string"
+          },
+          "columns_read": {
+            "description": "A List of the column names that should be read",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "dataframe_index": {
+            "description": "Write dataframe index as a column.",
+            "type": "boolean"
+          },
+          "file": {
+            "description": "The Columnar file to upload",
+            "format": "binary",
+            "type": "string"
+          },
+          "index_label": {
+            "description": "Index label for index column.",
+            "type": "string"
+          },
+          "schema": {
+            "description": "The schema to upload the data file to.",
+            "type": "string"
+          },
+          "table_name": {
+            "description": "The name of the table to be created/appended",
+            "maxLength": 10000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": ["file", "table_name"],
+        "type": "object"
+      },
       "CssTemplateRestApi.get": {
         "properties": {
           "changed_by": {
@@ -3190,6 +3525,23 @@
           "first_name",
           "last_name"
         ],
+        "type": "object"
+      },
+      "CssTemplateRestApi.get.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": ["first_name", "last_name"],
         "type": "object"
       },
       "CssTemplateRestApi.get_list": {
@@ -3304,6 +3656,7 @@
           "image_url": {
             "description": "The url to fetch the screenshot",
             "type": "string"
+<<<<<<< HEAD
           },
           "task_status": {
             "description": "The status of the async screenshot",
@@ -3312,6 +3665,8 @@
           "task_updated_at": {
             "description": "The timestamp of the last change in status",
             "type": "string"
+=======
+>>>>>>> origin/avenmaster
           }
         },
         "type": "object"
@@ -3662,7 +4017,15 @@
             "type": "boolean"
           },
           "owners": {
+<<<<<<< HEAD
             "$ref": "#/components/schemas/DashboardRestApi.get_list.User2"
+=======
+            "$ref": "#/components/schemas/DashboardRestApi.get_list.AppleUser"
+          },
+          "position_json": {
+            "nullable": true,
+            "type": "string"
+>>>>>>> origin/avenmaster
           },
           "published": {
             "nullable": true,
@@ -3694,6 +4057,23 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "DashboardRestApi.get_list.AppleUser": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": ["first_name", "last_name"],
         "type": "object"
       },
       "DashboardRestApi.get_list.Role": {
@@ -3772,6 +4152,7 @@
         ],
         "type": "object"
       },
+<<<<<<< HEAD
       "DashboardRestApi.get_list.User2": {
         "properties": {
           "first_name": {
@@ -3792,6 +4173,8 @@
         ],
         "type": "object"
       },
+=======
+>>>>>>> origin/avenmaster
       "DashboardRestApi.post": {
         "properties": {
           "certification_details": {
@@ -4386,6 +4769,20 @@
           "first_name",
           "last_name"
         ],
+        "type": "object"
+      },
+      "DatabaseRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": ["first_name", "last_name"],
         "type": "object"
       },
       "DatabaseRestApi.post": {
@@ -5326,7 +5723,7 @@
             "type": "string"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/DatasetRestApi.get.User2"
+            "$ref": "#/components/schemas/DatasetRestApi.get.User1"
           },
           "changed_on": {
             "format": "date-time",
@@ -5424,7 +5821,11 @@
             "readOnly": true
           },
           "owners": {
+<<<<<<< HEAD
             "$ref": "#/components/schemas/DatasetRestApi.get.User"
+=======
+            "$ref": "#/components/schemas/DatasetRestApi.get.AppleUser"
+>>>>>>> origin/avenmaster
           },
           "schema": {
             "maxLength": 255,
@@ -5465,6 +5866,23 @@
           "metrics",
           "table_name"
         ],
+        "type": "object"
+      },
+      "DatasetRestApi.get.AppleUser": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": ["first_name", "last_name"],
         "type": "object"
       },
       "DatasetRestApi.get.Database": {
@@ -5638,18 +6056,25 @@
             "maxLength": 64,
             "type": "string"
           },
+<<<<<<< HEAD
           "id": {
             "type": "integer"
           },
+=======
+>>>>>>> origin/avenmaster
           "last_name": {
             "maxLength": 64,
             "type": "string"
           }
         },
+<<<<<<< HEAD
         "required": [
           "first_name",
           "last_name"
         ],
+=======
+        "required": ["first_name", "last_name"],
+>>>>>>> origin/avenmaster
         "type": "object"
       },
       "DatasetRestApi.get.User1": {
@@ -5658,6 +6083,7 @@
             "maxLength": 64,
             "type": "string"
           },
+<<<<<<< HEAD
           "last_name": {
             "maxLength": 64,
             "type": "string"
@@ -5675,6 +6101,8 @@
             "maxLength": 64,
             "type": "string"
           },
+=======
+>>>>>>> origin/avenmaster
           "last_name": {
             "maxLength": 64,
             "type": "string"
@@ -5733,7 +6161,11 @@
             "readOnly": true
           },
           "owners": {
+<<<<<<< HEAD
             "$ref": "#/components/schemas/DatasetRestApi.get_list.User1"
+=======
+            "$ref": "#/components/schemas/DatasetRestApi.get_list.AppleUser"
+>>>>>>> origin/avenmaster
           },
           "schema": {
             "maxLength": 255,
@@ -5758,6 +6190,23 @@
           "database",
           "table_name"
         ],
+        "type": "object"
+      },
+      "DatasetRestApi.get_list.AppleUser": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": ["first_name", "last_name"],
         "type": "object"
       },
       "DatasetRestApi.get_list.Database": {
@@ -5795,6 +6244,7 @@
         ],
         "type": "object"
       },
+<<<<<<< HEAD
       "DatasetRestApi.get_list.User1": {
         "properties": {
           "first_name": {
@@ -5815,6 +6265,8 @@
         ],
         "type": "object"
       },
+=======
+>>>>>>> origin/avenmaster
       "DatasetRestApi.post": {
         "properties": {
           "always_filter_main_dttm": {
@@ -5999,6 +6451,7 @@
           },
           "datasource_type": {
             "description": "The type of dataset/datasource identified on `datasource_id`.",
+<<<<<<< HEAD
             "enum": [
               "table",
               "dataset",
@@ -6006,6 +6459,9 @@
               "saved_query",
               "view"
             ],
+=======
+            "enum": ["table", "dataset", "query", "saved_query", "view"],
+>>>>>>> origin/avenmaster
             "type": "string"
           },
           "schema": {
@@ -6168,6 +6624,103 @@
         ],
         "type": "object"
       },
+      "ExcelMetadataUploadFilePostSchema": {
+        "properties": {
+          "file": {
+            "description": "The file to upload",
+            "format": "binary",
+            "type": "string"
+          },
+          "header_row": {
+            "description": "Row containing the headers to use as column names(0 is first line of data). Leave empty if there is no header row.",
+            "type": "integer"
+          }
+        },
+        "required": ["file"],
+        "type": "object"
+      },
+      "ExcelUploadPostSchema": {
+        "properties": {
+          "already_exists": {
+            "default": "fail",
+            "description": "What to do if the table already exists accepts: fail, replace, append",
+            "enum": ["fail", "replace", "append"],
+            "type": "string"
+          },
+          "column_dates": {
+            "description": "A list of column names that should be parsed as dates. Example: date,timestamp",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "columns_read": {
+            "description": "A List of the column names that should be read",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "dataframe_index": {
+            "description": "Write dataframe index as a column.",
+            "type": "boolean"
+          },
+          "decimal_character": {
+            "description": "Character to recognize as decimal point. Default is '.'",
+            "type": "string"
+          },
+          "file": {
+            "description": "The Excel file to upload",
+            "format": "binary",
+            "type": "string"
+          },
+          "header_row": {
+            "description": "Row containing the headers to use as column names(0 is first line of data). Leave empty if there is no header row.",
+            "type": "integer"
+          },
+          "index_column": {
+            "description": "Column to use as the row labels of the dataframe. Leave empty if no index column",
+            "type": "string"
+          },
+          "index_label": {
+            "description": "Index label for index column.",
+            "type": "string"
+          },
+          "null_values": {
+            "description": "A list of strings that should be treated as null. Examples: '' for empty strings, 'None', 'N/A',Warning: Hive database supports only a single value",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "rows_to_read": {
+            "description": "Number of rows to read from the file. If None, reads all rows.",
+            "minimum": 1,
+            "nullable": true,
+            "type": "integer"
+          },
+          "schema": {
+            "description": "The schema to upload the data file to.",
+            "type": "string"
+          },
+          "sheet_name": {
+            "description": "Strings used for sheet names (default is the first sheet).",
+            "type": "string"
+          },
+          "skip_rows": {
+            "description": "Number of rows to skip at start of file.",
+            "type": "integer"
+          },
+          "table_name": {
+            "description": "The name of the table to be created/appended",
+            "maxLength": 10000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": ["file", "table_name"],
+        "type": "object"
+      },
       "ExecutePayloadSchema": {
         "properties": {
           "catalog": {
@@ -6325,6 +6878,7 @@
           },
           "datasource_type": {
             "description": "The datasource type",
+<<<<<<< HEAD
             "enum": [
               "table",
               "dataset",
@@ -6332,6 +6886,9 @@
               "saved_query",
               "view"
             ],
+=======
+            "enum": ["table", "dataset", "query", "saved_query", "view"],
+>>>>>>> origin/avenmaster
             "type": "string"
           },
           "form_data": {
@@ -6358,6 +6915,7 @@
           },
           "datasource_type": {
             "description": "The datasource type",
+<<<<<<< HEAD
             "enum": [
               "table",
               "dataset",
@@ -6365,6 +6923,9 @@
               "saved_query",
               "view"
             ],
+=======
+            "enum": ["table", "dataset", "query", "saved_query", "view"],
+>>>>>>> origin/avenmaster
             "type": "string"
           },
           "form_data": {
@@ -6585,6 +7146,524 @@
         },
         "type": "object"
       },
+      "IASLoginTokenRequestSchema": {
+        "properties": {
+          "access_token": {
+            "description": "IAS Access token. Can be requested by adding `token` to the `responseTypes`.",
+            "nullable": true,
+            "type": "string"
+          },
+          "client_id": {
+            "description": "IAS client id. Only needed if `refresh_token` is provided.",
+            "nullable": true,
+            "type": "string"
+          },
+          "client_secret": {
+            "description": "IAS client secret. Only needed if `refresh_token` and `client_id` is provided.",
+            "nullable": true,
+            "type": "string"
+          },
+          "id_token": {
+            "description": "IAS ID token. Can be requested by adding `id_token` to the `responseTypes`. The following scopes should be added:`iam:ds:groups`, `corpds:ds:username`, `corpds:ds:firstName`, `corpds:ds:lastName`, `corpds:ds:email`, `corpds:ds:uidNumber`, `iam:ds:explicitgroups`.",
+            "type": "string"
+          },
+          "refresh_token": {
+            "description": "IAS refresh token. This can be requested by adding `offline` to `scopes`. To be able to refresh the token, the IAS `client_id` and `client_secret` need to be added, as the same client needs to be used for refreshing as logging in.",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": ["id_token"],
+        "type": "object"
+      },
+      "IASLoginTokenResponseSchema": {
+        "properties": {
+          "access_token": {
+            "description": "Access that can be used access the Superset API",
+            "type": "string"
+          },
+          "refresh_token": {
+            "description": "Refresh token that can be used to refresh the `access_token`",
+            "type": "string"
+          }
+        },
+        "required": ["access_token"],
+        "type": "object"
+      },
+      "IASProfileResponse": {
+        "properties": {
+          "client_id": {
+            "description": "The client id",
+            "type": "string"
+          },
+          "profile": {
+            "description": "The IAS profile",
+            "type": "string"
+          },
+          "scope": {
+            "description": "The scope of the client",
+            "type": "string"
+          }
+        },
+        "required": ["client_id", "profile"],
+        "type": "object"
+      },
+      "IASProfilesResponseSchema": {
+        "properties": {
+          "result": {
+            "description": "A list of all available IAS profiles",
+            "items": {
+              "$ref": "#/components/schemas/IASProfileResponse"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "IASTokenResponse": {
+        "properties": {
+          "access_token": {
+            "description": "The access token",
+            "type": "string"
+          },
+          "has_client_credentials": {
+            "description": "Are the original client credentials available or not",
+            "type": "boolean"
+          },
+          "has_refresh_token": {
+            "description": "Is there a refresh token available or not",
+            "type": "boolean"
+          },
+          "ias_profile": {
+            "description": "The IAS profile",
+            "type": "string"
+          },
+          "id_token": {
+            "description": "The id token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "has_client_credentials",
+          "has_refresh_token",
+          "ias_profile",
+          "id_token"
+        ],
+        "type": "object"
+      },
+      "IASTokensResponseSchema": {
+        "properties": {
+          "result": {
+            "description": "A list of all requested tokens",
+            "items": {
+              "$ref": "#/components/schemas/IASTokenResponse"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ImportV1Database": {
+        "properties": {
+          "allow_csv_upload": {
+            "type": "boolean"
+          },
+          "allow_ctas": {
+            "type": "boolean"
+          },
+          "allow_cvas": {
+            "type": "boolean"
+          },
+          "allow_dml": {
+            "type": "boolean"
+          },
+          "allow_run_async": {
+            "type": "boolean"
+          },
+          "cache_timeout": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "database_name": {
+            "type": "string"
+          },
+          "expose_in_sqllab": {
+            "type": "boolean"
+          },
+          "external_url": {
+            "nullable": true,
+            "type": "string"
+          },
+          "extra": {
+            "$ref": "#/components/schemas/ImportV1DatabaseExtra"
+          },
+          "impersonate_user": {
+            "type": "boolean"
+          },
+          "is_managed_externally": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "password": {
+            "nullable": true,
+            "type": "string"
+          },
+          "sqlalchemy_uri": {
+            "type": "string"
+          },
+          "ssh_tunnel": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DatabaseSSHTunnel"
+              }
+            ],
+            "nullable": true
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": ["database_name", "sqlalchemy_uri", "uuid", "version"],
+        "type": "object"
+      },
+      "ImportV1DatabaseExtra": {
+        "properties": {
+          "allow_multi_catalog": {
+            "type": "boolean"
+          },
+          "allows_virtual_table_explore": {
+            "type": "boolean"
+          },
+          "cancel_query_on_windows_unload": {
+            "type": "boolean"
+          },
+          "cost_estimate_enabled": {
+            "type": "boolean"
+          },
+          "disable_data_preview": {
+            "type": "boolean"
+          },
+          "disable_drill_to_detail": {
+            "type": "boolean"
+          },
+          "engine_params": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "metadata_cache_timeout": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "metadata_params": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "schemas_allowed_for_csv_upload": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "version": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "LakehouseCatalog": {
+        "properties": {
+          "database_id": {
+            "description": "The numerical id of the database",
+            "type": "integer"
+          },
+          "database_name": {
+            "description": "The name of the database",
+            "type": "string"
+          },
+          "id": {
+            "description": "The numerical id of the catalog",
+            "type": "integer"
+          },
+          "name": {
+            "description": "The name of the catalog",
+            "type": "string"
+          },
+          "sqlalchemy_uri": {
+            "description": "The SQLAlchemy URI",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "LakehouseConnectRequestSchema": {
+        "properties": {
+          "catalogs": {
+            "description": "A list of catalogs to connect to. If empty or undefined, connect all available catalogs.",
+            "example": ["my_catalog"],
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "database_names": {
+            "description": "Custom catalog-database name mappings. If undefined, the default naming convention will be used",
+            "example": {
+              "my_catalog": "my_database"
+            },
+            "nullable": true,
+            "type": "object"
+          },
+          "dry_run": {
+            "description": "Should the task be executed in dry run mode. Useful for testing.",
+            "example": false,
+            "type": "boolean"
+          },
+          "engine_type": {
+            "description": "The type of the engine (only trino is currently supported)",
+            "enum": ["trino"],
+            "example": "trino",
+            "type": "string"
+          },
+          "engine_url": {
+            "description": "The URL to the engine",
+            "example": "https://myengine.corp.apple.com",
+            "type": "string"
+          },
+          "environment": {
+            "description": "Prod or Int",
+            "enum": ["int", "prod"],
+            "example": "int",
+            "type": "string"
+          },
+          "name": {
+            "description": "The name of the Lakehouse (subject to change over time). If left undefined, use lakehouse id",
+            "example": "My Lakehouse",
+            "nullable": true,
+            "type": "string"
+          },
+          "superset_url": {
+            "description": "The URL of the Superset instance connecting to",
+            "example": "http://localhost:8088",
+            "type": "string"
+          }
+        },
+        "required": [
+          "engine_type",
+          "engine_url",
+          "environment",
+          "superset_url"
+        ],
+        "type": "object"
+      },
+      "LakehouseConnectResponseSchema": {
+        "properties": {
+          "task_id": {
+            "description": "The id of the connection task",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "LakehouseConnectResultResponseSchema": {
+        "properties": {
+          "existing_catalogs": {
+            "description": "A list of connected catalogs before the connect operation",
+            "items": {
+              "description": "Catalogs",
+              "items": {
+                "$ref": "#/components/schemas/LakehouseCatalog"
+              },
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "lakehouse": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LakehouseGetResponseSchema"
+              }
+            ],
+            "description": "The connected Lakehouse",
+            "nullable": true
+          },
+          "message": {
+            "description": "A message to provide additional context on what has happened",
+            "type": "string"
+          },
+          "new_catalogs": {
+            "description": "A list of newly connected catalogs after the connect operation",
+            "items": {
+              "description": "Catalogs",
+              "items": {
+                "$ref": "#/components/schemas/LakehouseCatalog"
+              },
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "status": {
+            "description": "The status of the task",
+            "enum": [
+              "scheduled",
+              "running",
+              "completed",
+              "failed",
+              "reconnect_failed",
+              "cancelled"
+            ],
+            "type": "string"
+          }
+        },
+        "required": ["lakehouse"],
+        "type": "object"
+      },
+      "LakehouseConnectStatusResponseSchema": {
+        "properties": {
+          "message": {
+            "description": "A message to provide additional context on what has happened",
+            "type": "string"
+          },
+          "status": {
+            "description": "The status of the task",
+            "enum": [
+              "scheduled",
+              "running",
+              "completed",
+              "failed",
+              "reconnect_failed",
+              "cancelled"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "LakehouseDatasetListResponseSchema": {
+        "properties": {
+          "name": {
+            "description": "The name of the dataset",
+            "type": "string"
+          },
+          "schema": {
+            "description": "The schema",
+            "nullable": true,
+            "type": "string"
+          },
+          "sql": {
+            "description": "The virtual dataset query",
+            "type": "string"
+          }
+        },
+        "required": ["name", "sql"],
+        "type": "object"
+      },
+      "LakehouseDatasetRequestSchema": {
+        "properties": {
+          "catalog": {
+            "description": "The catalog. If left empty, uses an arbitrary connected catalog.",
+            "nullable": true,
+            "type": "string"
+          },
+          "lakehouse_id": {
+            "description": "Deprecated, not used for anything",
+            "type": "string"
+          },
+          "name": {
+            "description": "The name of the dataset to be created",
+            "type": "string"
+          },
+          "overwrite": {
+            "default": false,
+            "description": "Should the virtual dataset be overwritten if it already exists",
+            "type": "boolean"
+          },
+          "schema": {
+            "description": "The schema",
+            "nullable": true,
+            "type": "string"
+          },
+          "sql": {
+            "description": "The virtual dataset query",
+            "type": "string"
+          }
+        },
+        "required": ["name", "sql"],
+        "type": "object"
+      },
+      "LakehouseDatasetResponseSchema": {
+        "properties": {
+          "url": {
+            "description": "The url for exploring the virtual dataset",
+            "type": "string"
+          }
+        },
+        "required": ["url"],
+        "type": "object"
+      },
+      "LakehouseDisconnectResponseSchema": {
+        "properties": {
+          "lakehouse": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LakehouseGetResponseSchema"
+              }
+            ],
+            "description": "A list of disconnected lakehouses"
+          }
+        },
+        "type": "object"
+      },
+      "LakehouseGetListResponseSchema": {
+        "properties": {
+          "lakehouses": {
+            "description": "A list of connected lakehouses",
+            "items": {
+              "$ref": "#/components/schemas/LakehouseGetResponseSchema"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "LakehouseGetResponseSchema": {
+        "properties": {
+          "catalogs": {
+            "description": "A list of connected catalogs",
+            "items": {
+              "description": "Catalogs",
+              "items": {
+                "$ref": "#/components/schemas/LakehouseCatalog"
+              },
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "engine_url": {
+            "description": "The URL uf the engine",
+            "type": "string"
+          },
+          "id": {
+            "description": "The unique id of the Lakehouse",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "superset_url": {
+            "description": "The URL uf the Superset instance",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "LogRestApi.get": {
         "properties": {
           "action": {
@@ -6619,7 +7698,7 @@
             "type": "integer"
           },
           "user": {
-            "$ref": "#/components/schemas/LogRestApi.get.User"
+            "$ref": "#/components/schemas/LogRestApi.get.AppleUser"
           },
           "user_id": {
             "nullable": true,
@@ -6628,7 +7707,7 @@
         },
         "type": "object"
       },
-      "LogRestApi.get.User": {
+      "LogRestApi.get.AppleUser": {
         "properties": {
           "username": {
             "maxLength": 64,
@@ -6674,7 +7753,7 @@
             "type": "integer"
           },
           "user": {
-            "$ref": "#/components/schemas/LogRestApi.get_list.User"
+            "$ref": "#/components/schemas/LogRestApi.get_list.AppleUser"
           },
           "user_id": {
             "nullable": true,
@@ -6683,7 +7762,7 @@
         },
         "type": "object"
       },
-      "LogRestApi.get_list.User": {
+      "LogRestApi.get_list.AppleUser": {
         "properties": {
           "username": {
             "maxLength": 64,
@@ -7616,11 +8695,15 @@
           },
           "type": {
             "description": "The recipient type, check spec for valid options",
+<<<<<<< HEAD
             "enum": [
               "Email",
               "Slack",
               "SlackV2"
             ],
+=======
+            "enum": ["Email", "Slack", "SlackV2"],
+>>>>>>> origin/avenmaster
             "type": "string"
           }
         },
@@ -7725,7 +8808,7 @@
             "type": "string"
           },
           "owners": {
-            "$ref": "#/components/schemas/ReportScheduleRestApi.get.User"
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get.AppleUser"
           },
           "recipients": {
             "$ref": "#/components/schemas/ReportScheduleRestApi.get.ReportRecipients"
@@ -7767,6 +8850,23 @@
           "recipients",
           "type"
         ],
+        "type": "object"
+      },
+      "ReportScheduleRestApi.get.AppleUser": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": ["first_name", "last_name"],
         "type": "object"
       },
       "ReportScheduleRestApi.get.Dashboard": {
@@ -7834,6 +8934,7 @@
         },
         "type": "object"
       },
+<<<<<<< HEAD
       "ReportScheduleRestApi.get.User": {
         "properties": {
           "first_name": {
@@ -7854,6 +8955,8 @@
         ],
         "type": "object"
       },
+=======
+>>>>>>> origin/avenmaster
       "ReportScheduleRestApi.get_list": {
         "properties": {
           "active": {
@@ -7924,7 +9027,11 @@
             "type": "string"
           },
           "owners": {
+<<<<<<< HEAD
             "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User2"
+=======
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.AppleUser"
+>>>>>>> origin/avenmaster
           },
           "recipients": {
             "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.ReportRecipients"
@@ -7944,6 +9051,23 @@
           "recipients",
           "type"
         ],
+        "type": "object"
+      },
+      "ReportScheduleRestApi.get_list.AppleUser": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": ["first_name", "last_name"],
         "type": "object"
       },
       "ReportScheduleRestApi.get_list.ReportRecipients": {
@@ -7989,6 +9113,7 @@
             "type": "string"
           }
         },
+<<<<<<< HEAD
         "required": [
           "first_name",
           "last_name"
@@ -8013,6 +9138,9 @@
           "first_name",
           "last_name"
         ],
+=======
+        "required": ["first_name", "last_name"],
+>>>>>>> origin/avenmaster
         "type": "object"
       },
       "ReportScheduleRestApi.post": {
@@ -8108,12 +9236,16 @@
             "type": "array"
           },
           "report_format": {
+<<<<<<< HEAD
             "enum": [
               "PDF",
               "PNG",
               "CSV",
               "TEXT"
             ],
+=======
+            "enum": ["PDF", "PNG", "CSV", "TEXT"],
+>>>>>>> origin/avenmaster
             "type": "string"
           },
           "selected_tabs": {
@@ -8855,12 +9987,16 @@
             "type": "array"
           },
           "report_format": {
+<<<<<<< HEAD
             "enum": [
               "PDF",
               "PNG",
               "CSV",
               "TEXT"
             ],
+=======
+            "enum": ["PDF", "PNG", "CSV", "TEXT"],
+>>>>>>> origin/avenmaster
             "type": "string"
           },
           "sql": {
@@ -9621,6 +10757,7 @@
         },
         "type": "object"
       },
+<<<<<<< HEAD
       "RolesResponseSchema": {
         "properties": {
           "count": {
@@ -9641,6 +10778,8 @@
         },
         "type": "object"
       },
+=======
+>>>>>>> origin/avenmaster
       "SQLLabBootstrapSchema": {
         "properties": {
           "active_tab": {
@@ -9775,6 +10914,23 @@
           "first_name",
           "last_name"
         ],
+        "type": "object"
+      },
+      "SavedQueryRestApi.get.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": ["first_name", "last_name"],
         "type": "object"
       },
       "SavedQueryRestApi.get_list": {
@@ -9924,6 +11080,23 @@
           "first_name",
           "last_name"
         ],
+        "type": "object"
+      },
+      "SavedQueryRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": ["first_name", "last_name"],
         "type": "object"
       },
       "SavedQueryRestApi.post": {
@@ -10152,6 +11325,7 @@
         },
         "type": "object"
       },
+<<<<<<< HEAD
       "SupersetRoleApi.get": {
         "properties": {
           "id": {
@@ -10486,6 +11660,8 @@
         },
         "type": "object"
       },
+=======
+>>>>>>> origin/avenmaster
       "Tab": {
         "properties": {
           "children": {
@@ -10757,6 +11933,7 @@
         "type": "object"
       },
       "TabsPayloadSchema": {
+<<<<<<< HEAD
         "properties": {
           "all_tabs": {
             "additionalProperties": {
@@ -10774,20 +11951,46 @@
         "type": "object"
       },
       "Tag": {
+=======
+>>>>>>> origin/avenmaster
+        "properties": {
+          "all_tabs": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+<<<<<<< HEAD
+=======
+          "tab_tree": {
+            "items": {
+              "$ref": "#/components/schemas/Tab"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "Tag": {
         "properties": {
           "id": {
             "type": "integer"
           },
+>>>>>>> origin/avenmaster
           "name": {
             "type": "string"
           },
           "type": {
+<<<<<<< HEAD
             "enum": [
               1,
               2,
               3,
               4
             ]
+=======
+            "enum": [1, 2, 3, 4]
+>>>>>>> origin/avenmaster
           }
         },
         "type": "object"
@@ -10906,10 +12109,14 @@
             "type": "string"
           }
         },
+<<<<<<< HEAD
         "required": [
           "first_name",
           "last_name"
         ],
+=======
+        "required": ["first_name", "last_name"],
+>>>>>>> origin/avenmaster
         "type": "object"
       },
       "TagRestApi.get.User1": {
@@ -10966,12 +12173,16 @@
             "type": "string"
           }
         },
+<<<<<<< HEAD
         "required": [
           "email",
           "first_name",
           "last_name",
           "username"
         ],
+=======
+        "required": ["email", "first_name", "last_name", "username"],
+>>>>>>> origin/avenmaster
         "type": "object"
       },
       "TagRestApi.get_list": {
@@ -11319,6 +12530,33 @@
         ],
         "type": "object"
       },
+      "UploadFileMetadata": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/UploadFileMetadataItem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UploadFileMetadataItem": {
+        "properties": {
+          "column_names": {
+            "description": "A list of columns names in the sheet",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "sheet_name": {
+            "description": "The name of the sheet",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "User": {
         "properties": {
           "first_name": {
@@ -11523,6 +12761,14 @@
           "type",
           "values"
         ],
+        "type": "object"
+      },
+      "database_catalogs_query_schema": {
+        "properties": {
+          "force": {
+            "type": "boolean"
+          }
+        },
         "type": "object"
       },
       "database_catalogs_query_schema": {
@@ -11902,9 +13148,13 @@
           }
         ],
         "summary": "Return an AdvancedDataTypeResponse",
+<<<<<<< HEAD
         "tags": [
           "Advanced Data Type"
         ]
+=======
+        "tags": ["Advanced Data Type"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/advanced_data_type/types": {
@@ -11947,9 +13197,13 @@
           }
         ],
         "summary": "Return a list of available advanced data types",
+<<<<<<< HEAD
         "tags": [
           "Advanced Data Type"
         ]
+=======
+        "tags": ["Advanced Data Type"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/annotation_layer/": {
@@ -12002,9 +13256,13 @@
           }
         ],
         "summary": "Delete multiple annotation layers in a bulk operation",
+<<<<<<< HEAD
         "tags": [
           "Annotation Layers"
         ]
+=======
+        "tags": ["Annotation Layers"]
+>>>>>>> origin/avenmaster
       },
       "get": {
         "description": "Gets a list of annotation layers, use Rison or JSON query parameters for filtering, sorting, pagination and for selecting specific columns and metadata.",
@@ -12110,9 +13368,13 @@
           }
         ],
         "summary": "Get a list of annotation layers",
+<<<<<<< HEAD
         "tags": [
           "Annotation Layers"
         ]
+=======
+        "tags": ["Annotation Layers"]
+>>>>>>> origin/avenmaster
       },
       "post": {
         "requestBody": {
@@ -12164,9 +13426,13 @@
           }
         ],
         "summary": "Create an annotation layer",
+<<<<<<< HEAD
         "tags": [
           "Annotation Layers"
         ]
+=======
+        "tags": ["Annotation Layers"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/annotation_layer/_info": {
@@ -12251,9 +13517,13 @@
           }
         ],
         "summary": "Get metadata information about this API resource",
+<<<<<<< HEAD
         "tags": [
           "Annotation Layers"
         ]
+=======
+        "tags": ["Annotation Layers"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/annotation_layer/related/{column_name}": {
@@ -12309,9 +13579,13 @@
           }
         ],
         "summary": "Get related fields data",
+<<<<<<< HEAD
         "tags": [
           "Annotation Layers"
         ]
+=======
+        "tags": ["Annotation Layers"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/annotation_layer/{pk}": {
@@ -12359,9 +13633,13 @@
           }
         ],
         "summary": "Delete annotation layer",
+<<<<<<< HEAD
         "tags": [
           "Annotation Layers"
         ]
+=======
+        "tags": ["Annotation Layers"]
+>>>>>>> origin/avenmaster
       },
       "get": {
         "description": "Get an item model",
@@ -12460,9 +13738,13 @@
           }
         ],
         "summary": "Get an annotation layer",
+<<<<<<< HEAD
         "tags": [
           "Annotation Layers"
         ]
+=======
+        "tags": ["Annotation Layers"]
+>>>>>>> origin/avenmaster
       },
       "put": {
         "parameters": [
@@ -12525,9 +13807,13 @@
           }
         ],
         "summary": "Update an annotation layer",
+<<<<<<< HEAD
         "tags": [
           "Annotation Layers"
         ]
+=======
+        "tags": ["Annotation Layers"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/annotation_layer/{pk}/annotation/": {
@@ -12589,9 +13875,13 @@
           }
         ],
         "summary": "Bulk delete annotation layers",
+<<<<<<< HEAD
         "tags": [
           "Annotation Layers"
         ]
+=======
+        "tags": ["Annotation Layers"]
+>>>>>>> origin/avenmaster
       },
       "get": {
         "description": "Gets a list of annotation layers, use Rison or JSON query parameters for filtering, sorting, pagination and for selecting specific columns and metadata.",
@@ -12667,9 +13957,13 @@
           }
         ],
         "summary": "Get a list of annotation layers",
+<<<<<<< HEAD
         "tags": [
           "Annotation Layers"
         ]
+=======
+        "tags": ["Annotation Layers"]
+>>>>>>> origin/avenmaster
       },
       "post": {
         "parameters": [
@@ -12732,9 +14026,13 @@
           }
         ],
         "summary": "Create an annotation layer",
+<<<<<<< HEAD
         "tags": [
           "Annotation Layers"
         ]
+=======
+        "tags": ["Annotation Layers"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/annotation_layer/{pk}/annotation/{annotation_id}": {
@@ -12791,9 +14089,13 @@
           }
         ],
         "summary": "Delete annotation layer",
+<<<<<<< HEAD
         "tags": [
           "Annotation Layers"
         ]
+=======
+        "tags": ["Annotation Layers"]
+>>>>>>> origin/avenmaster
       },
       "get": {
         "parameters": [
@@ -12869,9 +14171,13 @@
           }
         ],
         "summary": "Get an annotation layer",
+<<<<<<< HEAD
         "tags": [
           "Annotation Layers"
         ]
+=======
+        "tags": ["Annotation Layers"]
+>>>>>>> origin/avenmaster
       },
       "put": {
         "parameters": [
@@ -12943,9 +14249,44 @@
           }
         ],
         "summary": "Update an annotation layer",
+<<<<<<< HEAD
         "tags": [
           "Annotation Layers"
         ]
+=======
+        "tags": ["Annotation Layers"]
+>>>>>>> origin/avenmaster
+      }
+    },
+    "/api/v1/apple/health": {
+      "get": {
+        "description": "Endpoint for checking the health status of the metastore and cache",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppleHealthResponseSchema"
+                }
+              }
+            },
+            "description": "The"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "summary": "Get the health status of the metastore and cache",
+        "tags": ["Apple"]
       }
     },
     "/api/v1/assets/export/": {
@@ -12979,9 +14320,13 @@
           }
         ],
         "summary": "Export all assets",
+<<<<<<< HEAD
         "tags": [
           "Import/export"
         ]
+=======
+        "tags": ["Import/export"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/assets/import/": {
@@ -13058,9 +14403,13 @@
           }
         ],
         "summary": "Import multiple assets",
+<<<<<<< HEAD
         "tags": [
           "Import/export"
         ]
+=======
+        "tags": ["Import/export"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/async_event/": {
@@ -13134,9 +14483,13 @@
           }
         ],
         "summary": "Read off of the Redis events stream",
+<<<<<<< HEAD
         "tags": [
           "AsyncEventsRestApi"
         ]
+=======
+        "tags": ["AsyncEventsRestApi"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/available_domains/": {
@@ -13170,9 +14523,13 @@
           }
         ],
         "summary": "Get all available domains",
+<<<<<<< HEAD
         "tags": [
           "Available Domains"
         ]
+=======
+        "tags": ["Available Domains"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/cachekey/invalidate": {
@@ -13206,9 +14563,13 @@
           }
         ],
         "summary": "Invalidate cache records and remove the database records",
+<<<<<<< HEAD
         "tags": [
           "CacheRestApi"
         ]
+=======
+        "tags": ["CacheRestApi"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/chart/": {
@@ -13264,9 +14625,13 @@
           }
         ],
         "summary": "Bulk delete charts",
+<<<<<<< HEAD
         "tags": [
           "Charts"
         ]
+=======
+        "tags": ["Charts"]
+>>>>>>> origin/avenmaster
       },
       "get": {
         "description": "Gets a list of charts, use Rison or JSON query parameters for filtering, sorting, pagination and  for selecting specific columns and metadata.",
@@ -13372,9 +14737,13 @@
           }
         ],
         "summary": "Get a list of charts",
+<<<<<<< HEAD
         "tags": [
           "Charts"
         ]
+=======
+        "tags": ["Charts"]
+>>>>>>> origin/avenmaster
       },
       "post": {
         "requestBody": {
@@ -13429,9 +14798,13 @@
           }
         ],
         "summary": "Create a new chart",
+<<<<<<< HEAD
         "tags": [
           "Charts"
         ]
+=======
+        "tags": ["Charts"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/chart/_info": {
@@ -13516,9 +14889,13 @@
           }
         ],
         "summary": "Get metadata information about this API resource",
+<<<<<<< HEAD
         "tags": [
           "Charts"
         ]
+=======
+        "tags": ["Charts"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/chart/data": {
@@ -13572,9 +14949,13 @@
           }
         ],
         "summary": "Return payload data response for the given query",
+<<<<<<< HEAD
         "tags": [
           "Charts"
         ]
+=======
+        "tags": ["Charts"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/chart/data/{cache_key}": {
@@ -13623,9 +15004,13 @@
           }
         ],
         "summary": "Return payload data response for the given query",
+<<<<<<< HEAD
         "tags": [
           "Charts"
         ]
+=======
+        "tags": ["Charts"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/chart/export/": {
@@ -13674,9 +15059,13 @@
           }
         ],
         "summary": "Download multiple charts as YAML files",
+<<<<<<< HEAD
         "tags": [
           "Charts"
         ]
+=======
+        "tags": ["Charts"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/chart/favorite_status/": {
@@ -13724,9 +15113,13 @@
           }
         ],
         "summary": "Check favorited charts for current user",
+<<<<<<< HEAD
         "tags": [
           "Charts"
         ]
+=======
+        "tags": ["Charts"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/chart/import/": {
@@ -13803,9 +15196,13 @@
           }
         ],
         "summary": "Import chart(s) with associated datasets and databases",
+<<<<<<< HEAD
         "tags": [
           "Charts"
         ]
+=======
+        "tags": ["Charts"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/chart/related/{column_name}": {
@@ -13862,9 +15259,13 @@
           }
         ],
         "summary": "Get related fields data",
+<<<<<<< HEAD
         "tags": [
           "Charts"
         ]
+=======
+        "tags": ["Charts"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/chart/warm_up_cache": {
@@ -13908,9 +15309,13 @@
           }
         ],
         "summary": "Warm up the cache for the chart",
+<<<<<<< HEAD
         "tags": [
           "Charts"
         ]
+=======
+        "tags": ["Charts"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/chart/{pk}": {
@@ -13963,9 +15368,13 @@
           }
         ],
         "summary": "Delete a chart",
+<<<<<<< HEAD
         "tags": [
           "Charts"
         ]
+=======
+        "tags": ["Charts"]
+>>>>>>> origin/avenmaster
       },
       "get": {
         "description": "Get an item model",
@@ -14064,9 +15473,13 @@
           }
         ],
         "summary": "Get a chart detail information",
+<<<<<<< HEAD
         "tags": [
           "Charts"
         ]
+=======
+        "tags": ["Charts"]
+>>>>>>> origin/avenmaster
       },
       "put": {
         "parameters": [
@@ -14134,9 +15547,13 @@
           }
         ],
         "summary": "Update a chart",
+<<<<<<< HEAD
         "tags": [
           "Charts"
         ]
+=======
+        "tags": ["Charts"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/chart/{pk}/cache_screenshot/": {
@@ -14202,9 +15619,13 @@
           }
         ],
         "summary": "Compute and cache a screenshot",
+<<<<<<< HEAD
         "tags": [
           "Charts"
         ]
+=======
+        "tags": ["Charts"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/chart/{pk}/data/": {
@@ -14282,9 +15703,13 @@
           }
         ],
         "summary": "Return payload data response for a chart",
+<<<<<<< HEAD
         "tags": [
           "Charts"
         ]
+=======
+        "tags": ["Charts"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/chart/{pk}/favorites/": {
@@ -14331,9 +15756,13 @@
           }
         ],
         "summary": "Remove the chart from the user favorite list",
+<<<<<<< HEAD
         "tags": [
           "Charts"
         ]
+=======
+        "tags": ["Charts"]
+>>>>>>> origin/avenmaster
       },
       "post": {
         "parameters": [
@@ -14378,9 +15807,13 @@
           }
         ],
         "summary": "Mark the chart as favorite for the current user",
+<<<<<<< HEAD
         "tags": [
           "Charts"
         ]
+=======
+        "tags": ["Charts"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/chart/{pk}/screenshot/{digest}/": {
@@ -14434,9 +15867,13 @@
           }
         ],
         "summary": "Get a computed screenshot from cache",
+<<<<<<< HEAD
         "tags": [
           "Charts"
         ]
+=======
+        "tags": ["Charts"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/chart/{pk}/thumbnail/{digest}/": {
@@ -14495,9 +15932,13 @@
           }
         ],
         "summary": "Get chart thumbnail",
+<<<<<<< HEAD
         "tags": [
           "Charts"
         ]
+=======
+        "tags": ["Charts"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/css_template/": {
@@ -14550,9 +15991,13 @@
           }
         ],
         "summary": "Bulk delete CSS templates",
+<<<<<<< HEAD
         "tags": [
           "CSS Templates"
         ]
+=======
+        "tags": ["CSS Templates"]
+>>>>>>> origin/avenmaster
       },
       "get": {
         "description": "Gets a list of CSS templates, use Rison or JSON query parameters for filtering, sorting, pagination and for selecting specific columns and metadata.",
@@ -14658,9 +16103,13 @@
           }
         ],
         "summary": "Get a list of CSS templates",
+<<<<<<< HEAD
         "tags": [
           "CSS Templates"
         ]
+=======
+        "tags": ["CSS Templates"]
+>>>>>>> origin/avenmaster
       },
       "post": {
         "requestBody": {
@@ -14712,9 +16161,13 @@
           }
         ],
         "summary": "Create a CSS template",
+<<<<<<< HEAD
         "tags": [
           "CSS Templates"
         ]
+=======
+        "tags": ["CSS Templates"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/css_template/_info": {
@@ -14799,9 +16252,13 @@
           }
         ],
         "summary": "Get metadata information about this API resource",
+<<<<<<< HEAD
         "tags": [
           "CSS Templates"
         ]
+=======
+        "tags": ["CSS Templates"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/css_template/related/{column_name}": {
@@ -14857,9 +16314,13 @@
           }
         ],
         "summary": "Get related fields data",
+<<<<<<< HEAD
         "tags": [
           "CSS Templates"
         ]
+=======
+        "tags": ["CSS Templates"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/css_template/{pk}": {
@@ -14906,9 +16367,13 @@
           }
         ],
         "summary": "Delete a CSS template",
+<<<<<<< HEAD
         "tags": [
           "CSS Templates"
         ]
+=======
+        "tags": ["CSS Templates"]
+>>>>>>> origin/avenmaster
       },
       "get": {
         "description": "Get an item model",
@@ -15007,9 +16472,13 @@
           }
         ],
         "summary": "Get a CSS template",
+<<<<<<< HEAD
         "tags": [
           "CSS Templates"
         ]
+=======
+        "tags": ["CSS Templates"]
+>>>>>>> origin/avenmaster
       },
       "put": {
         "parameters": [
@@ -15071,9 +16540,13 @@
           }
         ],
         "summary": "Update a CSS template",
+<<<<<<< HEAD
         "tags": [
           "CSS Templates"
         ]
+=======
+        "tags": ["CSS Templates"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dashboard/": {
@@ -15129,9 +16602,13 @@
           }
         ],
         "summary": "Bulk delete dashboards",
+<<<<<<< HEAD
         "tags": [
           "Dashboards"
         ]
+=======
+        "tags": ["Dashboards"]
+>>>>>>> origin/avenmaster
       },
       "get": {
         "description": "Gets a list of dashboards, use Rison or JSON query parameters for filtering, sorting, pagination and  for selecting specific columns and metadata.",
@@ -15237,9 +16714,13 @@
           }
         ],
         "summary": "Get a list of dashboards",
+<<<<<<< HEAD
         "tags": [
           "Dashboards"
         ]
+=======
+        "tags": ["Dashboards"]
+>>>>>>> origin/avenmaster
       },
       "post": {
         "requestBody": {
@@ -15291,9 +16772,13 @@
           }
         ],
         "summary": "Create a new dashboard",
+<<<<<<< HEAD
         "tags": [
           "Dashboards"
         ]
+=======
+        "tags": ["Dashboards"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dashboard/_info": {
@@ -15378,9 +16863,13 @@
           }
         ],
         "summary": "Get metadata information about this API resource",
+<<<<<<< HEAD
         "tags": [
           "Dashboards"
         ]
+=======
+        "tags": ["Dashboards"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dashboard/export/": {
@@ -15431,9 +16920,13 @@
           }
         ],
         "summary": "Download multiple dashboards as YAML files",
+<<<<<<< HEAD
         "tags": [
           "Dashboards"
         ]
+=======
+        "tags": ["Dashboards"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dashboard/favorite_status/": {
@@ -15481,9 +16974,13 @@
           }
         ],
         "summary": "Check favorited dashboards for current user",
+<<<<<<< HEAD
         "tags": [
           "Dashboards"
         ]
+=======
+        "tags": ["Dashboards"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dashboard/import/": {
@@ -15560,9 +17057,13 @@
           }
         ],
         "summary": "Import dashboard(s) with associated charts/datasets/databases",
+<<<<<<< HEAD
         "tags": [
           "Dashboards"
         ]
+=======
+        "tags": ["Dashboards"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dashboard/permalink/{key}": {
@@ -15616,9 +17117,13 @@
           }
         ],
         "summary": "Get dashboard's permanent link state",
+<<<<<<< HEAD
         "tags": [
           "Dashboard Permanent Link"
         ]
+=======
+        "tags": ["Dashboard Permanent Link"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dashboard/related/{column_name}": {
@@ -15675,9 +17180,13 @@
           }
         ],
         "summary": "Get related fields data",
+<<<<<<< HEAD
         "tags": [
           "Dashboards"
         ]
+=======
+        "tags": ["Dashboards"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dashboard/{id_or_slug}": {
@@ -15728,9 +17237,13 @@
           }
         ],
         "summary": "Get a dashboard detail information",
+<<<<<<< HEAD
         "tags": [
           "Dashboards"
         ]
+=======
+        "tags": ["Dashboards"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dashboard/{id_or_slug}/charts": {
@@ -15783,9 +17296,13 @@
           }
         ],
         "summary": "Get a dashboard's chart definitions.",
+<<<<<<< HEAD
         "tags": [
           "Dashboards"
         ]
+=======
+        "tags": ["Dashboards"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dashboard/{id_or_slug}/copy/": {
@@ -15852,9 +17369,13 @@
           }
         ],
         "summary": "Create a copy of an existing dashboard",
+<<<<<<< HEAD
         "tags": [
           "Dashboards"
         ]
+=======
+        "tags": ["Dashboards"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dashboard/{id_or_slug}/datasets": {
@@ -15909,9 +17430,13 @@
           }
         ],
         "summary": "Get dashboard's datasets",
+<<<<<<< HEAD
         "tags": [
           "Dashboards"
         ]
+=======
+        "tags": ["Dashboards"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dashboard/{id_or_slug}/embedded": {
@@ -15956,9 +17481,13 @@
           }
         ],
         "summary": "Delete a dashboard's embedded configuration",
+<<<<<<< HEAD
         "tags": [
           "Dashboards"
         ]
+=======
+        "tags": ["Dashboards"]
+>>>>>>> origin/avenmaster
       },
       "get": {
         "parameters": [
@@ -16001,9 +17530,13 @@
           }
         ],
         "summary": "Get the dashboard's embedded configuration",
+<<<<<<< HEAD
         "tags": [
           "Dashboards"
         ]
+=======
+        "tags": ["Dashboards"]
+>>>>>>> origin/avenmaster
       },
       "post": {
         "parameters": [
@@ -16057,9 +17590,13 @@
           }
         ],
         "summary": "Set a dashboard's embedded configuration",
+<<<<<<< HEAD
         "tags": [
           "Dashboards"
         ]
+=======
+        "tags": ["Dashboards"]
+>>>>>>> origin/avenmaster
       },
       "put": {
         "description": "Sets a dashboard's embedded configuration.",
@@ -16175,6 +17712,61 @@
         ]
       }
     },
+    "/api/v1/dashboard/{id_or_slug}/tabs": {
+      "get": {
+        "description": "Returns a list of a dashboard's tabs and dashboard's nested tree structure for associated tabs.",
+        "parameters": [
+          {
+            "description": "Either the id of the dashboard, or its slug",
+            "in": "path",
+            "name": "id_or_slug",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "items": {
+                        "$ref": "#/components/schemas/TabsPayloadSchema"
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Dashboard tabs"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Get dashboard's tabs",
+        "tags": ["Dashboards"]
+      }
+    },
     "/api/v1/dashboard/{pk}": {
       "delete": {
         "parameters": [
@@ -16225,9 +17817,13 @@
           }
         ],
         "summary": "Delete a dashboard",
+<<<<<<< HEAD
         "tags": [
           "Dashboards"
         ]
+=======
+        "tags": ["Dashboards"]
+>>>>>>> origin/avenmaster
       },
       "put": {
         "parameters": [
@@ -16298,9 +17894,13 @@
           }
         ],
         "summary": "Update a dashboard",
+<<<<<<< HEAD
         "tags": [
           "Dashboards"
         ]
+=======
+        "tags": ["Dashboards"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dashboard/{pk}/cache_dashboard_screenshot/": {
@@ -16354,6 +17954,7 @@
           }
         ],
         "summary": "Compute and cache a screenshot",
+<<<<<<< HEAD
         "tags": [
           "Dashboards"
         ]
@@ -16434,6 +18035,9 @@
         "tags": [
           "Dashboards"
         ]
+=======
+        "tags": ["Dashboards"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dashboard/{pk}/favorites/": {
@@ -16480,9 +18084,13 @@
           }
         ],
         "summary": "Remove the dashboard from the user favorite list",
+<<<<<<< HEAD
         "tags": [
           "Dashboards"
         ]
+=======
+        "tags": ["Dashboards"]
+>>>>>>> origin/avenmaster
       },
       "post": {
         "parameters": [
@@ -16527,9 +18135,13 @@
           }
         ],
         "summary": "Mark the dashboard as favorite for the current user",
+<<<<<<< HEAD
         "tags": [
           "Dashboards"
         ]
+=======
+        "tags": ["Dashboards"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dashboard/{pk}/filter_state": {
@@ -16698,9 +18310,13 @@
           }
         ],
         "summary": "Create a dashboard's filter state",
+<<<<<<< HEAD
         "tags": [
           "Dashboard Filter State"
         ]
+=======
+        "tags": ["Dashboard Filter State"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dashboard/{pk}/filter_state/{key}": {
@@ -16763,9 +18379,13 @@
           }
         ],
         "summary": "Delete a dashboard's filter state value",
+<<<<<<< HEAD
         "tags": [
           "Dashboard Filter State"
         ]
+=======
+        "tags": ["Dashboard Filter State"]
+>>>>>>> origin/avenmaster
       },
       "get": {
         "parameters": [
@@ -16825,9 +18445,13 @@
           }
         ],
         "summary": "Get a dashboard's filter state value",
+<<<<<<< HEAD
         "tags": [
           "Dashboard Filter State"
         ]
+=======
+        "tags": ["Dashboard Filter State"]
+>>>>>>> origin/avenmaster
       },
       "put": {
         "parameters": [
@@ -16904,6 +18528,7 @@
           }
         ],
         "summary": "Update a dashboard's filter state value",
+<<<<<<< HEAD
         "tags": [
           "Dashboard Filter State"
         ]
@@ -16976,6 +18601,76 @@
         "tags": [
           "Dashboards"
         ]
+=======
+        "tags": ["Dashboard Filter State"]
+>>>>>>> origin/avenmaster
+      }
+    },
+    "/api/v1/dashboard/{pk}/filters": {
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DashboardNativeFiltersConfigUpdateSchema"
+              }
+            }
+          },
+          "description": "Native filters configuration",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Dashboard native filters updated"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Update native filters configuration for a dashboard.",
+        "tags": ["Dashboards"]
       }
     },
     "/api/v1/dashboard/{pk}/permalink": {
@@ -17146,6 +18841,7 @@
           }
         ],
         "summary": "Create a new dashboard's permanent link",
+<<<<<<< HEAD
         "tags": [
           "Dashboard Permanent Link"
         ]
@@ -17216,6 +18912,63 @@
         "tags": [
           "Dashboards"
         ]
+=======
+        "tags": ["Dashboard Permanent Link"]
+>>>>>>> origin/avenmaster
+      }
+    },
+    "/api/v1/dashboard/{pk}/screenshot/{digest}/": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "digest",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Dashboard thumbnail image"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Get a computed screenshot from cache",
+        "tags": ["Dashboards"]
       }
     },
     "/api/v1/dashboard/{pk}/thumbnail/{digest}/": {
@@ -17289,9 +19042,13 @@
           }
         ],
         "summary": "Get dashboard's thumbnail",
+<<<<<<< HEAD
         "tags": [
           "Dashboards"
         ]
+=======
+        "tags": ["Dashboards"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/database/": {
@@ -17399,9 +19156,13 @@
           }
         ],
         "summary": "Get a list of databases",
+<<<<<<< HEAD
         "tags": [
           "Database"
         ]
+=======
+        "tags": ["Database"]
+>>>>>>> origin/avenmaster
       },
       "post": {
         "requestBody": {
@@ -17453,9 +19214,13 @@
           }
         ],
         "summary": "Create a new database",
+<<<<<<< HEAD
         "tags": [
           "Database"
         ]
+=======
+        "tags": ["Database"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/database/_info": {
@@ -17540,9 +19305,13 @@
           }
         ],
         "summary": "Get metadata information about this API resource",
+<<<<<<< HEAD
         "tags": [
           "Database"
         ]
+=======
+        "tags": ["Database"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/database/available/": {
@@ -17621,9 +19390,163 @@
           }
         ],
         "summary": "Get names of databases currently available",
+<<<<<<< HEAD
         "tags": [
           "Database"
         ]
+=======
+        "tags": ["Database"]
+      }
+    },
+    "/api/v1/database/columnar_metadata/": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ColumnarMetadataUploadFilePostSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/UploadFileMetadata"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Columnar upload response"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Upload a Columnar file and returns file metadata",
+        "tags": ["Database"]
+      }
+    },
+    "/api/v1/database/csv_metadata/": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CSVMetadataUploadFilePostSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/UploadFileMetadata"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Columnar upload response"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Upload an CSV file and returns file metadata",
+        "tags": ["Database"]
+      }
+    },
+    "/api/v1/database/excel_metadata/": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ExcelMetadataUploadFilePostSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/UploadFileMetadata"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Columnar upload response"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Upload an Excel file and returns file metadata",
+        "tags": ["Database"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/database/export/": {
@@ -17669,9 +19592,13 @@
           }
         ],
         "summary": "Download database(s) and associated dataset(s) as a zip file",
+<<<<<<< HEAD
         "tags": [
           "Database"
         ]
+=======
+        "tags": ["Database"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/database/import/": {
@@ -17748,9 +19675,13 @@
           }
         ],
         "summary": "Import database(s) with associated datasets",
+<<<<<<< HEAD
         "tags": [
           "Database"
         ]
+=======
+        "tags": ["Database"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/database/oauth2/": {
@@ -17813,9 +19744,13 @@
           }
         ],
         "summary": "Receive personal access tokens from OAuth2",
+<<<<<<< HEAD
         "tags": [
           "Database"
         ]
+=======
+        "tags": ["Database"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/database/related/{column_name}": {
@@ -17871,9 +19806,13 @@
           }
         ],
         "summary": "Get related fields data",
+<<<<<<< HEAD
         "tags": [
           "Database"
         ]
+=======
+        "tags": ["Database"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/database/test_connection/": {
@@ -17921,6 +19860,7 @@
           }
         ],
         "summary": "Test a database connection",
+<<<<<<< HEAD
         "tags": [
           "Database"
         ]
@@ -17976,6 +19916,9 @@
         "tags": [
           "Database"
         ]
+=======
+        "tags": ["Database"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/database/validate_parameters/": {
@@ -18023,9 +19966,13 @@
           }
         ],
         "summary": "Validate database connection parameters",
+<<<<<<< HEAD
         "tags": [
           "Database"
         ]
+=======
+        "tags": ["Database"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/database/{pk}": {
@@ -18078,9 +20025,13 @@
           }
         ],
         "summary": "Delete a database",
+<<<<<<< HEAD
         "tags": [
           "Database"
         ]
+=======
+        "tags": ["Database"]
+>>>>>>> origin/avenmaster
       },
       "get": {
         "parameters": [
@@ -18124,9 +20075,13 @@
           }
         ],
         "summary": "Get a database",
+<<<<<<< HEAD
         "tags": [
           "Database"
         ]
+=======
+        "tags": ["Database"]
+>>>>>>> origin/avenmaster
       },
       "put": {
         "parameters": [
@@ -18194,9 +20149,13 @@
           }
         ],
         "summary": "Change a database",
+<<<<<<< HEAD
         "tags": [
           "Database"
         ]
+=======
+        "tags": ["Database"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/database/{pk}/catalogs/": {
@@ -18253,9 +20212,76 @@
           }
         ],
         "summary": "Get all catalogs from a database",
+<<<<<<< HEAD
         "tags": [
           "Database"
         ]
+=======
+        "tags": ["Database"]
+      }
+    },
+    "/api/v1/database/{pk}/columnar_upload/": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ColumnarUploadPostSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Columnar upload response"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Upload a Columnar file to a database table",
+        "tags": ["Database"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/database/{pk}/connection": {
@@ -18306,6 +20332,132 @@
         ]
       }
     },
+    "/api/v1/database/{pk}/csv_upload/": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CSVUploadPostSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "CSV upload response"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Upload a CSV file to a database table",
+        "tags": ["Database"]
+      }
+    },
+    "/api/v1/database/{pk}/excel_upload/": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ExcelUploadPostSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Excel upload response"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Upload an Excel file to a database table",
+        "tags": ["Database"]
+      }
+    },
     "/api/v1/database/{pk}/function_names/": {
       "get": {
         "parameters": [
@@ -18345,9 +20497,13 @@
           }
         ],
         "summary": "Get function names supported by a database",
+<<<<<<< HEAD
         "tags": [
           "Database"
         ]
+=======
+        "tags": ["Database"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/database/{pk}/related_objects/": {
@@ -18389,9 +20545,13 @@
           }
         ],
         "summary": "Get charts and dashboards count associated to a database",
+<<<<<<< HEAD
         "tags": [
           "Database"
         ]
+=======
+        "tags": ["Database"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/database/{pk}/schemas/": {
@@ -18448,9 +20608,13 @@
           }
         ],
         "summary": "Get all schemas from a database",
+<<<<<<< HEAD
         "tags": [
           "Database"
         ]
+=======
+        "tags": ["Database"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/database/{pk}/schemas_access_for_file_upload/": {
@@ -18561,9 +20725,13 @@
           }
         ],
         "summary": "Get database select star for table",
+<<<<<<< HEAD
         "tags": [
           "Database"
         ]
+=======
+        "tags": ["Database"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/database/{pk}/select_star/{table_name}/{schema_name}/": {
@@ -18630,9 +20798,13 @@
           }
         ],
         "summary": "Get database select star for table",
+<<<<<<< HEAD
         "tags": [
           "Database"
         ]
+=======
+        "tags": ["Database"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/database/{pk}/ssh_tunnel/": {
@@ -18685,6 +20857,7 @@
           }
         ],
         "summary": "Delete a SSH tunnel",
+<<<<<<< HEAD
         "tags": [
           "Database"
         ]
@@ -18741,6 +20914,9 @@
         "tags": [
           "Database"
         ]
+=======
+        "tags": ["Database"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/database/{pk}/table/{table_name}/{schema_name}/": {
@@ -18807,9 +20983,13 @@
           }
         ],
         "summary": "Get database table metadata",
+<<<<<<< HEAD
         "tags": [
           "Database"
         ]
+=======
+        "tags": ["Database"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/database/{pk}/table_extra/{table_name}/{schema_name}/": {
@@ -19024,6 +21204,144 @@
         ]
       }
     },
+    "/api/v1/database/{pk}/table_metadata/": {
+      "get": {
+        "description": "Metadata associated with the table (columns, indexes, etc.)",
+        "parameters": [
+          {
+            "description": "The database id",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Table name",
+            "in": "query",
+            "name": "table",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional table schema, if not passed default schema will be used",
+            "in": "query",
+            "name": "schema",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional table catalog, if not passed default catalog will be used",
+            "in": "query",
+            "name": "catalog",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableExtraMetadataResponseSchema"
+                }
+              }
+            },
+            "description": "Table metadata information"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Get table metadata",
+        "tags": ["Database"]
+      }
+    },
+    "/api/v1/database/{pk}/table_metadata/extra/": {
+      "get": {
+        "description": "Extra metadata associated with the table (partitions, description, etc.)",
+        "parameters": [
+          {
+            "description": "The database id",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Table name",
+            "in": "query",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional table schema, if not passed the schema configured in the database will be used",
+            "in": "query",
+            "name": "schema",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional table catalog, if not passed the catalog configured in the database will be used",
+            "in": "query",
+            "name": "catalog",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableExtraMetadataResponseSchema"
+                }
+              }
+            },
+            "description": "Table extra metadata information"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Get table extra metadata",
+        "tags": ["Database"]
+      }
+    },
     "/api/v1/database/{pk}/tables/": {
       "get": {
         "parameters": [
@@ -19226,9 +21544,13 @@
           }
         ],
         "summary": "Validate arbitrary SQL",
+<<<<<<< HEAD
         "tags": [
           "Database"
         ]
+=======
+        "tags": ["Database"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dataset/": {
@@ -19287,9 +21609,13 @@
           }
         ],
         "summary": "Bulk delete datasets",
+<<<<<<< HEAD
         "tags": [
           "Datasets"
         ]
+=======
+        "tags": ["Datasets"]
+>>>>>>> origin/avenmaster
       },
       "get": {
         "description": "Gets a list of datasets, use Rison or JSON query parameters for filtering, sorting, pagination and  for selecting specific columns and metadata.",
@@ -19395,9 +21721,13 @@
           }
         ],
         "summary": "Get a list of datasets",
+<<<<<<< HEAD
         "tags": [
           "Datasets"
         ]
+=======
+        "tags": ["Datasets"]
+>>>>>>> origin/avenmaster
       },
       "post": {
         "requestBody": {
@@ -19449,9 +21779,13 @@
           }
         ],
         "summary": "Create a new dataset",
+<<<<<<< HEAD
         "tags": [
           "Datasets"
         ]
+=======
+        "tags": ["Datasets"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dataset/_info": {
@@ -19536,9 +21870,13 @@
           }
         ],
         "summary": "Get metadata information about this API resource",
+<<<<<<< HEAD
         "tags": [
           "Datasets"
         ]
+=======
+        "tags": ["Datasets"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dataset/distinct/{column_name}": {
@@ -19594,9 +21932,13 @@
           }
         ],
         "summary": "Get distinct values from field data",
+<<<<<<< HEAD
         "tags": [
           "Datasets"
         ]
+=======
+        "tags": ["Datasets"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dataset/duplicate": {
@@ -19656,9 +21998,13 @@
           }
         ],
         "summary": "Duplicate a dataset",
+<<<<<<< HEAD
         "tags": [
           "Datasets"
         ]
+=======
+        "tags": ["Datasets"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dataset/export/": {
@@ -19706,9 +22052,13 @@
           }
         ],
         "summary": "Download multiple datasets as YAML files",
+<<<<<<< HEAD
         "tags": [
           "Datasets"
         ]
+=======
+        "tags": ["Datasets"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dataset/get_or_create/": {
@@ -19850,9 +22200,13 @@
           }
         ],
         "summary": "Import dataset(s) with associated databases",
+<<<<<<< HEAD
         "tags": [
           "Datasets"
         ]
+=======
+        "tags": ["Datasets"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dataset/related/{column_name}": {
@@ -19908,9 +22262,13 @@
           }
         ],
         "summary": "Get related fields data",
+<<<<<<< HEAD
         "tags": [
           "Datasets"
         ]
+=======
+        "tags": ["Datasets"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dataset/warm_up_cache": {
@@ -19954,9 +22312,13 @@
           }
         ],
         "summary": "Warm up the cache for each chart powered by the given table",
+<<<<<<< HEAD
         "tags": [
           "Datasets"
         ]
+=======
+        "tags": ["Datasets"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dataset/{pk}": {
@@ -20009,9 +22371,13 @@
           }
         ],
         "summary": "Delete a dataset",
+<<<<<<< HEAD
         "tags": [
           "Datasets"
         ]
+=======
+        "tags": ["Datasets"]
+>>>>>>> origin/avenmaster
       },
       "get": {
         "description": "Get a dataset by ID",
@@ -20084,9 +22450,13 @@
           }
         ],
         "summary": "Get a dataset",
+<<<<<<< HEAD
         "tags": [
           "Datasets"
         ]
+=======
+        "tags": ["Datasets"]
+>>>>>>> origin/avenmaster
       },
       "put": {
         "parameters": [
@@ -20161,9 +22531,13 @@
           }
         ],
         "summary": "Update a dataset",
+<<<<<<< HEAD
         "tags": [
           "Datasets"
         ]
+=======
+        "tags": ["Datasets"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dataset/{pk}/column/{column_id}": {
@@ -20226,9 +22600,13 @@
           }
         ],
         "summary": "Delete a dataset column",
+<<<<<<< HEAD
         "tags": [
           "Datasets"
         ]
+=======
+        "tags": ["Datasets"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dataset/{pk}/metric/{metric_id}": {
@@ -20291,9 +22669,13 @@
           }
         ],
         "summary": "Delete a dataset metric",
+<<<<<<< HEAD
         "tags": [
           "Datasets"
         ]
+=======
+        "tags": ["Datasets"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dataset/{pk}/refresh": {
@@ -20346,9 +22728,13 @@
           }
         ],
         "summary": "Refresh and update columns of a dataset",
+<<<<<<< HEAD
         "tags": [
           "Datasets"
         ]
+=======
+        "tags": ["Datasets"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/dataset/{pk}/related_objects": {
@@ -20390,9 +22776,13 @@
           }
         ],
         "summary": "Get charts and dashboards count associated to a dataset",
+<<<<<<< HEAD
         "tags": [
           "Datasets"
         ]
+=======
+        "tags": ["Datasets"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/datasource/{datasource_type}/{datasource_id}/column/{column_name}/values/": {
@@ -20578,9 +22968,13 @@
           }
         ],
         "summary": "Get a report schedule log",
+<<<<<<< HEAD
         "tags": [
           "Embedded Dashboard"
         ]
+=======
+        "tags": ["Embedded Dashboard"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/explore/": {
@@ -20656,9 +23050,13 @@
           }
         ],
         "summary": "Assemble Explore related information in a single endpoint",
+<<<<<<< HEAD
         "tags": [
           "Explore"
         ]
+=======
+        "tags": ["Explore"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/explore/form_data": {
@@ -20718,9 +23116,13 @@
           }
         ],
         "summary": "Create a new form_data",
+<<<<<<< HEAD
         "tags": [
           "Explore Form Data"
         ]
+=======
+        "tags": ["Explore Form Data"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/explore/form_data/{key}": {
@@ -20775,9 +23177,13 @@
           }
         ],
         "summary": "Delete a form_data",
+<<<<<<< HEAD
         "tags": [
           "Explore Form Data"
         ]
+=======
+        "tags": ["Explore Form Data"]
+>>>>>>> origin/avenmaster
       },
       "get": {
         "parameters": [
@@ -20829,9 +23235,13 @@
           }
         ],
         "summary": "Get a form_data",
+<<<<<<< HEAD
         "tags": [
           "Explore Form Data"
         ]
+=======
+        "tags": ["Explore Form Data"]
+>>>>>>> origin/avenmaster
       },
       "put": {
         "parameters": [
@@ -20900,9 +23310,13 @@
           }
         ],
         "summary": "Update an existing form_data",
+<<<<<<< HEAD
         "tags": [
           "Explore Form Data"
         ]
+=======
+        "tags": ["Explore Form Data"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/explore/permalink": {
@@ -20957,9 +23371,13 @@
           }
         ],
         "summary": "Create a new permanent link",
+<<<<<<< HEAD
         "tags": [
           "Explore Permanent Link"
         ]
+=======
+        "tags": ["Explore Permanent Link"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/explore/permalink/{key}": {
@@ -21013,9 +23431,644 @@
           }
         ],
         "summary": "Get chart's permanent link state",
+<<<<<<< HEAD
         "tags": [
           "Explore Permanent Link"
         ]
+=======
+        "tags": ["Explore Permanent Link"]
+>>>>>>> origin/avenmaster
+      }
+    },
+    "/api/v1/ias/login_token": {
+      "post": {
+        "description": "Endpoint for exchanging IAS tokens for Superset API tokens. IAS Tokens should be requested from the `acssuperset` IAS application, typically using [client credential flow](https://docs.aci.apple.com/ias/tutorials/client_credentials/index.html). At a minimum, an `id_token` needs to be provided, but by providing a `refresh_token` Superset will be able to automatically refresh the token after the initial one expires. However, to be able to refresh the token, `client_id` and `client_secret` must be provided, as the token needs to be refreshed with the same client that was used for logging in. Unless `refresh_token`, `client_id` and `client_secret` are provided, a `refresh_token` will not be returned.\\nThe following scope should be requested in the token request: `offline openid iam:ds:groups corpds:ds:username corpds:ds:firstName corpds:ds:lastName corpds:ds:email iam:ds:explicitgroups`",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IASLoginTokenRequestSchema"
+              }
+            }
+          },
+          "description": "Payload containing IAS tokens.",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IASLoginTokenResponseSchema"
+                }
+              }
+            },
+            "description": "Query result"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "tags": ["IAS"]
+      }
+    },
+    "/api/v1/ias/profiles": {
+      "get": {
+        "description": "Endpoint for retrieving available IAS profiles.",
+        "parameters": [
+          {
+            "description": "The name of the IAS profile",
+            "in": "query",
+            "name": "profile",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IASProfilesResponseSchema"
+                }
+              }
+            },
+            "description": "IAS Tokens"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": ["IAS"]
+      }
+    },
+    "/api/v1/ias/tokens": {
+      "get": {
+        "description": "Endpoint for retrieving IAS tokens for the logged in user. If no token is provided, all tokens are returned.",
+        "parameters": [
+          {
+            "description": "The name of the IAS profile",
+            "in": "query",
+            "name": "profile",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IASTokensResponseSchema"
+                }
+              }
+            },
+            "description": "IAS Tokens"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": ["IAS"]
+      }
+    },
+    "/api/v1/ias/tokens/{pk}": {
+      "get": {
+        "description": "Endpoint for retrieving IAS tokens for a specific user. If no token is provided, all tokens are returned. Only Admin users are able to view other users' tokens.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The name of the IAS profile",
+            "in": "query",
+            "name": "profile",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IASTokensResponseSchema"
+                }
+              }
+            },
+            "description": "IAS Tokens"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": ["IAS"]
+      }
+    },
+    "/api/v1/lakehouse": {
+      "get": {
+        "description": "Disconnect a Lakehouse.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LakehouseGetListResponseSchema"
+                }
+              }
+            },
+            "description": "Lakehouse has been deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Get a list of all connected Lakehouses",
+        "tags": ["Lakehouse"]
+      }
+    },
+    "/api/v1/lakehouse/{lakehouse_id}": {
+      "delete": {
+        "description": "Disconnect a Lakehouse.",
+        "parameters": [
+          {
+            "description": "The unique id of the lakehouse",
+            "in": "path",
+            "name": "lakehouse_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LakehouseDisconnectResponseSchema"
+                }
+              }
+            },
+            "description": "Lakehouse has been deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Disconnect a Lakehouse and all catalogs",
+        "tags": ["Lakehouse"]
+      },
+      "get": {
+        "description": "Get information regarding a connected Lakehouse",
+        "parameters": [
+          {
+            "description": "The unique id of the lakehouse",
+            "in": "path",
+            "name": "lakehouse_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LakehouseGetResponseSchema"
+                }
+              }
+            },
+            "description": "Lakehouses"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Get information about a specific Lakehouse",
+        "tags": ["Lakehouse"]
+      },
+      "post": {
+        "description": "Endpoint for connecting a Lakehouse and associated catalogs to the ACS Superset instance.",
+        "parameters": [
+          {
+            "description": "The unique id of the lakehouse",
+            "in": "path",
+            "name": "lakehouse_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LakehouseConnectRequestSchema"
+              }
+            }
+          },
+          "description": "Payload containing connection parameters.",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LakehouseConnectResponseSchema"
+                }
+              }
+            },
+            "description": "The connection task has been scheduled."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Schedule a task to connect a Lakehouse and catalogs",
+        "tags": ["Lakehouse"]
+      }
+    },
+    "/api/v1/lakehouse/{lakehouse_id}/dataset": {
+      "get": {
+        "description": "Endpoint for listing all virtual datasets on a Lakehouse",
+        "parameters": [
+          {
+            "description": "The unique id of the lakehouse",
+            "in": "path",
+            "name": "lakehouse_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The catalog. Leave empty for all catalogs",
+            "in": "query",
+            "name": "catalog",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The schema. Leave empty for all schemas",
+            "in": "query",
+            "name": "schema",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LakehouseDatasetListResponseSchema"
+                }
+              }
+            },
+            "description": "All virtual datasets satisfying the query params."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Get a list of virtual datasets",
+        "tags": ["Lakehouse"]
+      },
+      "post": {
+        "description": "Endpoint for creating a virtual dataset from a query",
+        "parameters": [
+          {
+            "description": "The unique id of the lakehouse",
+            "in": "path",
+            "name": "lakehouse_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LakehouseDatasetRequestSchema"
+              }
+            }
+          },
+          "description": "Payload containing virtual dataset parameters.",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LakehouseDatasetResponseSchema"
+                }
+              }
+            },
+            "description": "The virtual dataset has been created."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Create a virtual dataset out of a query",
+        "tags": ["Lakehouse"]
+      }
+    },
+    "/api/v1/lakehouse/{lakehouse_id}/task/{task_id}/cancel": {
+      "post": {
+        "description": "Endpoint for cancelling a scheduled connection request.",
+        "parameters": [
+          {
+            "description": "The unique id of the lakehouse",
+            "in": "path",
+            "name": "lakehouse_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The id of the connection task",
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LakehouseConnectStatusResponseSchema"
+                }
+              }
+            },
+            "description": "The status of the task."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Cancel a running task",
+        "tags": ["Lakehouse"]
+      }
+    },
+    "/api/v1/lakehouse/{lakehouse_id}/task/{task_id}/result": {
+      "get": {
+        "description": "Endpoint for retrieving the payload of a scheduled connection request.",
+        "parameters": [
+          {
+            "description": "The unique id of the lakehouse",
+            "in": "path",
+            "name": "lakehouse_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The id of the connection task",
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LakehouseConnectResultResponseSchema"
+                }
+              }
+            },
+            "description": "The status of the task."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Get the payload of a completed connection task",
+        "tags": ["Lakehouse"]
+      }
+    },
+    "/api/v1/lakehouse/{lakehouse_id}/task/{task_id}/status": {
+      "get": {
+        "description": "Endpoint for checking what the status of a scheduled connection request is.",
+        "parameters": [
+          {
+            "description": "The unique id of the lakehouse",
+            "in": "path",
+            "name": "lakehouse_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The id of the connection task",
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LakehouseConnectStatusResponseSchema"
+                }
+              }
+            },
+            "description": "The status of the task."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Check the status of a connection task",
+        "tags": ["Lakehouse"]
       }
     },
     "/api/v1/log/": {
@@ -21123,9 +24176,13 @@
           }
         ],
         "summary": "Get a list of logs",
+<<<<<<< HEAD
         "tags": [
           "LogRestApi"
         ]
+=======
+        "tags": ["LogRestApi"]
+>>>>>>> origin/avenmaster
       },
       "post": {
         "requestBody": {
@@ -21338,9 +24395,13 @@
           }
         ],
         "summary": "Get a log detail information",
+<<<<<<< HEAD
         "tags": [
           "LogRestApi"
         ]
+=======
+        "tags": ["LogRestApi"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/me/": {
@@ -21367,9 +24428,13 @@
           }
         },
         "summary": "Get the user object",
+<<<<<<< HEAD
         "tags": [
           "Current User"
         ]
+=======
+        "tags": ["Current User"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/me/roles/": {
@@ -21396,9 +24461,13 @@
           }
         },
         "summary": "Get the user roles",
+<<<<<<< HEAD
         "tags": [
           "Current User"
         ]
+=======
+        "tags": ["Current User"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/menu/": {
@@ -21567,9 +24636,13 @@
           }
         ],
         "summary": "Get a list of queries",
+<<<<<<< HEAD
         "tags": [
           "Queries"
         ]
+=======
+        "tags": ["Queries"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/query/distinct/{column_name}": {
@@ -21625,9 +24698,13 @@
           }
         ],
         "summary": "Get distinct values from field data",
+<<<<<<< HEAD
         "tags": [
           "Queries"
         ]
+=======
+        "tags": ["Queries"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/query/related/{column_name}": {
@@ -21683,9 +24760,13 @@
           }
         ],
         "summary": "Get related fields data",
+<<<<<<< HEAD
         "tags": [
           "Queries"
         ]
+=======
+        "tags": ["Queries"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/query/stop": {
@@ -21898,9 +24979,13 @@
           }
         ],
         "summary": "Get query detail information",
+<<<<<<< HEAD
         "tags": [
           "Queries"
         ]
+=======
+        "tags": ["Queries"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/report/": {
@@ -21956,9 +25041,13 @@
           }
         ],
         "summary": "Bulk delete report schedules",
+<<<<<<< HEAD
         "tags": [
           "Report Schedules"
         ]
+=======
+        "tags": ["Report Schedules"]
+>>>>>>> origin/avenmaster
       },
       "get": {
         "description": "Gets a list of report schedules, use Rison or JSON query parameters for filtering, sorting, pagination and for selecting specific columns and metadata.",
@@ -22064,9 +25153,13 @@
           }
         ],
         "summary": "Get a list of report schedules",
+<<<<<<< HEAD
         "tags": [
           "Report Schedules"
         ]
+=======
+        "tags": ["Report Schedules"]
+>>>>>>> origin/avenmaster
       },
       "post": {
         "requestBody": {
@@ -22121,9 +25214,13 @@
           }
         ],
         "summary": "Create a report schedule",
+<<<<<<< HEAD
         "tags": [
           "Report Schedules"
         ]
+=======
+        "tags": ["Report Schedules"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/report/_info": {
@@ -22208,9 +25305,13 @@
           }
         ],
         "summary": "Get metadata information about this API resource",
+<<<<<<< HEAD
         "tags": [
           "Report Schedules"
         ]
+=======
+        "tags": ["Report Schedules"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/report/related/{column_name}": {
@@ -22266,9 +25367,13 @@
           }
         ],
         "summary": "Get related fields data",
+<<<<<<< HEAD
         "tags": [
           "Report Schedules"
         ]
+=======
+        "tags": ["Report Schedules"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/report/slack_channels/": {
@@ -22336,9 +25441,13 @@
           }
         ],
         "summary": "Get slack channels",
+<<<<<<< HEAD
         "tags": [
           "Report Schedules"
         ]
+=======
+        "tags": ["Report Schedules"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/report/{pk}": {
@@ -22389,9 +25498,13 @@
           }
         ],
         "summary": "Delete a report schedule",
+<<<<<<< HEAD
         "tags": [
           "Report Schedules"
         ]
+=======
+        "tags": ["Report Schedules"]
+>>>>>>> origin/avenmaster
       },
       "get": {
         "description": "Get an item model",
@@ -22490,9 +25603,13 @@
           }
         ],
         "summary": "Get a report schedule",
+<<<<<<< HEAD
         "tags": [
           "Report Schedules"
         ]
+=======
+        "tags": ["Report Schedules"]
+>>>>>>> origin/avenmaster
       },
       "put": {
         "parameters": [
@@ -22561,9 +25678,13 @@
           }
         ],
         "summary": "Update a report schedule",
+<<<<<<< HEAD
         "tags": [
           "Report Schedules"
         ]
+=======
+        "tags": ["Report Schedules"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/report/{pk}/log/": {
@@ -22641,9 +25762,13 @@
           }
         ],
         "summary": "Get a list of report schedule logs",
+<<<<<<< HEAD
         "tags": [
           "Report Schedules"
         ]
+=======
+        "tags": ["Report Schedules"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/report/{pk}/log/{log_id}": {
@@ -22721,9 +25846,13 @@
           }
         ],
         "summary": "Get a report schedule log",
+<<<<<<< HEAD
         "tags": [
           "Report Schedules"
         ]
+=======
+        "tags": ["Report Schedules"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/rowlevelsecurity/": {
@@ -22779,9 +25908,13 @@
           }
         ],
         "summary": "Bulk delete RLS rules",
+<<<<<<< HEAD
         "tags": [
           "Row Level Security"
         ]
+=======
+        "tags": ["Row Level Security"]
+>>>>>>> origin/avenmaster
       },
       "get": {
         "description": "Gets a list of RLS, use Rison or JSON query parameters for filtering, sorting, pagination and for selecting specific columns and metadata.",
@@ -22887,9 +26020,13 @@
           }
         ],
         "summary": "Get a list of RLS",
+<<<<<<< HEAD
         "tags": [
           "Row Level Security"
         ]
+=======
+        "tags": ["Row Level Security"]
+>>>>>>> origin/avenmaster
       },
       "post": {
         "requestBody": {
@@ -22944,9 +26081,13 @@
           }
         ],
         "summary": "Create a new RLS rule",
+<<<<<<< HEAD
         "tags": [
           "Row Level Security"
         ]
+=======
+        "tags": ["Row Level Security"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/rowlevelsecurity/_info": {
@@ -23031,9 +26172,13 @@
           }
         ],
         "summary": "Get metadata information about this API resource",
+<<<<<<< HEAD
         "tags": [
           "Row Level Security"
         ]
+=======
+        "tags": ["Row Level Security"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/rowlevelsecurity/related/{column_name}": {
@@ -23089,9 +26234,13 @@
           }
         ],
         "summary": "Get related fields data",
+<<<<<<< HEAD
         "tags": [
           "Row Level Security"
         ]
+=======
+        "tags": ["Row Level Security"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/rowlevelsecurity/{pk}": {
@@ -23138,9 +26287,13 @@
           }
         ],
         "summary": "Delete an RLS",
+<<<<<<< HEAD
         "tags": [
           "Row Level Security"
         ]
+=======
+        "tags": ["Row Level Security"]
+>>>>>>> origin/avenmaster
       },
       "get": {
         "description": "Get an item model",
@@ -23239,9 +26392,13 @@
           }
         ],
         "summary": "Get an RLS",
+<<<<<<< HEAD
         "tags": [
           "Row Level Security"
         ]
+=======
+        "tags": ["Row Level Security"]
+>>>>>>> origin/avenmaster
       },
       "put": {
         "parameters": [
@@ -23310,9 +26467,13 @@
           }
         ],
         "summary": "Update an RLS rule",
+<<<<<<< HEAD
         "tags": [
           "Row Level Security"
         ]
+=======
+        "tags": ["Row Level Security"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/saved_query/": {
@@ -23365,9 +26526,13 @@
           }
         ],
         "summary": "Bulk delete saved queries",
+<<<<<<< HEAD
         "tags": [
           "Queries"
         ]
+=======
+        "tags": ["Queries"]
+>>>>>>> origin/avenmaster
       },
       "get": {
         "description": "Gets a list of saved queries, use Rison or JSON query parameters for filtering, sorting, pagination and for selecting specific columns and metadata.",
@@ -23473,9 +26638,13 @@
           }
         ],
         "summary": "Get a list of saved queries",
+<<<<<<< HEAD
         "tags": [
           "Queries"
         ]
+=======
+        "tags": ["Queries"]
+>>>>>>> origin/avenmaster
       },
       "post": {
         "requestBody": {
@@ -23527,9 +26696,13 @@
           }
         ],
         "summary": "Create a saved query",
+<<<<<<< HEAD
         "tags": [
           "Queries"
         ]
+=======
+        "tags": ["Queries"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/saved_query/_info": {
@@ -23614,9 +26787,13 @@
           }
         ],
         "summary": "Get metadata information about this API resource",
+<<<<<<< HEAD
         "tags": [
           "Queries"
         ]
+=======
+        "tags": ["Queries"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/saved_query/distinct/{column_name}": {
@@ -23672,9 +26849,13 @@
           }
         ],
         "summary": "Get distinct values from field data",
+<<<<<<< HEAD
         "tags": [
           "Queries"
         ]
+=======
+        "tags": ["Queries"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/saved_query/export/": {
@@ -23723,9 +26904,13 @@
           }
         ],
         "summary": "Download multiple saved queries as YAML files",
+<<<<<<< HEAD
         "tags": [
           "Queries"
         ]
+=======
+        "tags": ["Queries"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/saved_query/import/": {
@@ -23802,9 +26987,13 @@
           }
         ],
         "summary": "Import saved queries with associated databases",
+<<<<<<< HEAD
         "tags": [
           "Queries"
         ]
+=======
+        "tags": ["Queries"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/saved_query/related/{column_name}": {
@@ -23860,9 +27049,13 @@
           }
         ],
         "summary": "Get related fields data",
+<<<<<<< HEAD
         "tags": [
           "Queries"
         ]
+=======
+        "tags": ["Queries"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/saved_query/{pk}": {
@@ -23909,9 +27102,13 @@
           }
         ],
         "summary": "Delete a saved query",
+<<<<<<< HEAD
         "tags": [
           "Queries"
         ]
+=======
+        "tags": ["Queries"]
+>>>>>>> origin/avenmaster
       },
       "get": {
         "description": "Get an item model",
@@ -24010,9 +27207,13 @@
           }
         ],
         "summary": "Get a saved query",
+<<<<<<< HEAD
         "tags": [
           "Queries"
         ]
+=======
+        "tags": ["Queries"]
+>>>>>>> origin/avenmaster
       },
       "put": {
         "parameters": [
@@ -24074,9 +27275,13 @@
           }
         ],
         "summary": "Update a saved query",
+<<<<<<< HEAD
         "tags": [
           "Queries"
         ]
+=======
+        "tags": ["Queries"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/security/csrf_token/": {
@@ -24110,9 +27315,13 @@
           }
         ],
         "summary": "Get the CSRF token",
+<<<<<<< HEAD
         "tags": [
           "Security"
         ]
+=======
+        "tags": ["Security"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/security/guest_token/": {
@@ -24160,9 +27369,13 @@
           }
         ],
         "summary": "Get a guest token",
+<<<<<<< HEAD
         "tags": [
           "Security"
         ]
+=======
+        "tags": ["Security"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/security/login": {
@@ -26740,6 +29953,42 @@
         ]
       }
     },
+    "/api/v1/sqllab/": {
+      "get": {
+        "description": "Assembles SQLLab bootstrap data (active_tab, databases, queries, tab_state_ids) in a single endpoint. The data can be assembled from the current user's id.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SQLLabBootstrapSchema"
+                }
+              }
+            },
+            "description": "Returns the initial bootstrap data for SqlLab"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Get the bootstrap data for SqlLab page",
+        "tags": ["SQL Lab"]
+      }
+    },
     "/api/v1/sqllab/estimate/": {
       "post": {
         "requestBody": {
@@ -26788,9 +30037,13 @@
           }
         ],
         "summary": "Estimate the SQL query execution cost",
+<<<<<<< HEAD
         "tags": [
           "SQL Lab"
         ]
+=======
+        "tags": ["SQL Lab"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/sqllab/execute/": {
@@ -26849,9 +30102,13 @@
           }
         ],
         "summary": "Execute a SQL query",
+<<<<<<< HEAD
         "tags": [
           "SQL Lab"
         ]
+=======
+        "tags": ["SQL Lab"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/sqllab/export/{client_id}/": {
@@ -26900,9 +30157,13 @@
           }
         ],
         "summary": "Export the SQL query results to a CSV",
+<<<<<<< HEAD
         "tags": [
           "SQL Lab"
         ]
+=======
+        "tags": ["SQL Lab"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/sqllab/format_sql/": {
@@ -26953,6 +30214,7 @@
           }
         ],
         "summary": "Format SQL code",
+<<<<<<< HEAD
         "tags": [
           "SQL Lab"
         ]
@@ -27069,6 +30331,9 @@
         "tags": [
           "SQL Lab Permanent Link"
         ]
+=======
+        "tags": ["SQL Lab"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/sqllab/results/": {
@@ -27122,9 +30387,13 @@
           }
         ],
         "summary": "Get the result of a SQL query execution",
+<<<<<<< HEAD
         "tags": [
           "SQL Lab"
         ]
+=======
+        "tags": ["SQL Lab"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/tag/": {
@@ -27181,9 +30450,13 @@
           }
         ],
         "summary": "Bulk delete tags",
+<<<<<<< HEAD
         "tags": [
           "Tags"
         ]
+=======
+        "tags": ["Tags"]
+>>>>>>> origin/avenmaster
       },
       "get": {
         "description": "Get a list of tags, use Rison or JSON query parameters for filtering, sorting, pagination and  for selecting specific columns and metadata.",
@@ -27289,9 +30562,13 @@
           }
         ],
         "summary": "Get a list of tags",
+<<<<<<< HEAD
         "tags": [
           "Tags"
         ]
+=======
+        "tags": ["Tags"]
+>>>>>>> origin/avenmaster
       },
       "post": {
         "description": "Create a new Tag",
@@ -27344,9 +30621,13 @@
           }
         ],
         "summary": "Create a tag",
+<<<<<<< HEAD
         "tags": [
           "Tags"
         ]
+=======
+        "tags": ["Tags"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/tag/_info": {
@@ -27431,9 +30712,13 @@
           }
         ],
         "summary": "Get metadata information about tag API endpoints",
+<<<<<<< HEAD
         "tags": [
           "Tags"
         ]
+=======
+        "tags": ["Tags"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/tag/bulk_create": {
@@ -27482,9 +30767,13 @@
           }
         ],
         "summary": "Bulk create tags and tagged objects",
+<<<<<<< HEAD
         "tags": [
           "Tags"
         ]
+=======
+        "tags": ["Tags"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/tag/favorite_status/": {
@@ -27590,9 +30879,13 @@
           }
         ],
         "summary": "Get all objects associated with a tag",
+<<<<<<< HEAD
         "tags": [
           "Tags"
         ]
+=======
+        "tags": ["Tags"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/tag/related/{column_name}": {
@@ -27648,9 +30941,13 @@
           }
         ],
         "summary": "Get related fields data",
+<<<<<<< HEAD
         "tags": [
           "Tags"
         ]
+=======
+        "tags": ["Tags"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/tag/{object_type}/{object_id}/": {
@@ -27720,9 +31017,13 @@
           }
         ],
         "summary": "Add tags to an object",
+<<<<<<< HEAD
         "tags": [
           "Tags"
         ]
+=======
+        "tags": ["Tags"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/tag/{object_type}/{object_id}/{tag}/": {
@@ -27791,9 +31092,13 @@
           }
         ],
         "summary": "Delete a tagged object",
+<<<<<<< HEAD
         "tags": [
           "Tags"
         ]
+=======
+        "tags": ["Tags"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/tag/{pk}": {
@@ -27840,9 +31145,13 @@
           }
         ],
         "summary": "Delete a tag",
+<<<<<<< HEAD
         "tags": [
           "Tags"
         ]
+=======
+        "tags": ["Tags"]
+>>>>>>> origin/avenmaster
       },
       "get": {
         "description": "Get an item model",
@@ -27941,9 +31250,13 @@
           }
         ],
         "summary": "Get a tag detail information",
+<<<<<<< HEAD
         "tags": [
           "Tags"
         ]
+=======
+        "tags": ["Tags"]
+>>>>>>> origin/avenmaster
       },
       "put": {
         "description": "Changes a Tag.",
@@ -28012,9 +31325,13 @@
           }
         ],
         "summary": "Update a tag",
+<<<<<<< HEAD
         "tags": [
           "Tags"
         ]
+=======
+        "tags": ["Tags"]
+>>>>>>> origin/avenmaster
       }
     },
     "/api/v1/tag/{pk}/favorites/": {
@@ -28148,6 +31465,35 @@
         "tags": [
           "User"
         ]
+      }
+    },
+    "/api/v1/user/{user_id}/avatar.png": {
+      "get": {
+        "description": "Gets the avatar URL for the user with the given ID, or returns a 401 error if the user is unauthenticated.",
+        "parameters": [
+          {
+            "description": "The ID of the user",
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "301": {
+            "description": "A redirect to the user's avatar URL"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          }
+        },
+        "summary": "Get the user avatar",
+        "tags": ["User"]
       }
     },
     "/api/{version}/_openapi": {

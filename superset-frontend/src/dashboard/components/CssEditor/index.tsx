@@ -79,9 +79,13 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
     super(props);
     this.state = {
       css: props.initialCss,
+<<<<<<< HEAD
       selectedThemeId: props.currentThemeId,
       pendingCss: props.initialCss,
       pendingThemeId: props.currentThemeId,
+=======
+      templates: [],
+>>>>>>> origin/avenmaster
     };
     this.changeCss = this.changeCss.bind(this);
     this.changeCssTemplate = this.changeCssTemplate.bind(this);

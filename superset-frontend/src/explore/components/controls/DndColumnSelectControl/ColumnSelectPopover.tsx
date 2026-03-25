@@ -46,7 +46,14 @@ import {
   EmptyState,
 } from '@superset-ui/core/components';
 
+<<<<<<< HEAD
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
+=======
+import { Form, FormItem } from 'src/components/Form';
+import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
+import { SQLEditor } from 'src/components/AsyncAceEditor';
+import { EmptyStateSmall } from 'src/components/EmptyState';
+>>>>>>> origin/avenmaster
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 import {
@@ -484,6 +491,35 @@ const ColumnSelectPopover = ({
         ]}
       />
 
+<<<<<<< HEAD
+=======
+        <Tabs.TabPane
+          key="sqlExpression"
+          tab={t('Custom SQL')}
+          disabled={disabledTabs.has('sqlExpression')}
+        >
+          <SQLEditor
+            value={
+              adhocColumn?.sqlExpression ||
+              selectedSimpleColumn?.column_name ||
+              selectedCalculatedColumn?.expression
+            }
+            onFocus={onSqlEditorFocus}
+            showLoadingForImport
+            onChange={onSqlExpressionChange}
+            width="100%"
+            height={`${height - 80}px`}
+            showGutter={false}
+            editorProps={{ $blockScrolling: true }}
+            enableLiveAutocompletion
+            className="filter-sql-editor"
+            wrapEnabled
+            ref={sqlEditorRef}
+            keywords={keywords}
+          />
+        </Tabs.TabPane>
+      </Tabs>
+>>>>>>> origin/avenmaster
       <div>
         <Button
           buttonSize="small"

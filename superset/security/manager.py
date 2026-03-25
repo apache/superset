@@ -260,8 +260,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "User Registrations",
         "User's Statistics",
         # Guarding all AB_ADD_SECURITY_API = True REST APIs
+<<<<<<< HEAD
         "RoleRestAPI",
         "Group",
+=======
+>>>>>>> origin/avenmaster
         "Role",
         "Permission",
         "PermissionViewMenu",
@@ -2317,6 +2320,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # If the DB engine spec doesn't implement the logic the schema is read
                 # from the SQLAlchemy URI if possible; if not, we use the SQLAlchemy
                 # inspector to read it.
+<<<<<<< HEAD
                 default_schema = database.get_default_schema_for_query(
                     query, template_params
                 )
@@ -2324,6 +2328,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     table_.qualify(
                         catalog=query.catalog or default_catalog,
                         schema=default_schema,
+=======
+                default_schema = database.get_default_schema_for_query(query)
+                tables = {
+                    Table(
+                        table_.table,
+                        table_.schema or default_schema,
+                        table_.catalog or query.catalog or default_catalog,
+>>>>>>> origin/avenmaster
                     )
                     for table_ in process_jinja_sql(
                         query.sql, database, template_params
@@ -2331,7 +2343,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 }
             elif table:
                 # Make sure table has the default catalog, if not specified.
+<<<<<<< HEAD
                 tables = {table.qualify(catalog=default_catalog)}
+=======
+                tables = {
+                    Table(table.table, table.schema, table.catalog or default_catalog)
+                }
+>>>>>>> origin/avenmaster
 
             denied = set()
 

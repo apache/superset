@@ -21,7 +21,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
+<<<<<<< HEAD
 "POT-Creation-Date: 2025-04-29 12:34+0330\n"
+=======
+"POT-Creation-Date: 2024-07-30 17:32-0600\n"
+>>>>>>> origin/avenmaster
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -7427,9 +7431,6 @@ msgid ""
 " or username."
 msgstr ""
 
-msgid "PDF download failed, please refresh and try again."
-msgstr ""
-
 msgid "Page length"
 msgstr ""
 
@@ -10673,6 +10674,7 @@ msgstr ""
 msgid "The screenshot could not be downloaded. Please, try again later."
 msgstr ""
 
+<<<<<<< HEAD
 msgid "The screenshot has been downloaded."
 msgstr ""
 
@@ -10680,6 +10682,12 @@ msgid "The screenshot is being generated. Please, do not leave the page."
 msgstr ""
 
 msgid "The service url of the layer"
+=======
+msgid "The screenshot is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "The screenshot is now being downloaded."
+>>>>>>> origin/avenmaster
 msgstr ""
 
 msgid "The size of each cell in meters"
@@ -10853,10 +10861,13 @@ msgstr ""
 #, fuzzy
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Grafiği yüklerken hata oluştu"
+<<<<<<< HEAD
 
 #, fuzzy
 msgid "There was an error generating the permalink."
 msgstr "Şemaları yüklerken hata oluştu"
+=======
+>>>>>>> origin/avenmaster
 
 #, fuzzy
 msgid "There was an error loading the catalogs"
@@ -13330,10 +13341,13 @@ msgstr ""
 msgid "invalid email"
 msgstr ""
 
+<<<<<<< HEAD
 #, fuzzy
 msgid "is"
 msgstr "Bitiş"
 
+=======
+>>>>>>> origin/avenmaster
 msgid "is expected to be a Mapbox URL"
 msgstr ""
 

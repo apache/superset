@@ -79,6 +79,7 @@ function useActiveDashboardTabs() {
 
 function useSelectChartTabParents() {
   const dashboardLayout = useDashboardLayout();
+<<<<<<< HEAD
   const layoutChartItems = useMemo(
     () =>
       Object.values(dashboardLayout).filter(item => item.type === CHART_TYPE),
@@ -95,6 +96,16 @@ function useSelectChartTabParents() {
     },
     [dashboardLayout, layoutChartItems],
   );
+=======
+  return (chartId: number) => {
+    const chartLayoutItem = Object.values(dashboardLayout).find(
+      layoutItem => layoutItem.meta?.chartId === chartId,
+    );
+    return chartLayoutItem?.parents?.filter(
+      (parent: string) => dashboardLayout[parent]?.type === TAB_TYPE,
+    );
+  };
+>>>>>>> origin/avenmaster
 }
 
 export function useIsFilterInScope() {

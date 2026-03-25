@@ -362,6 +362,7 @@ const ExtraOptions = ({
                   )}
                 </div>
               </StyledInputContainer>
+<<<<<<< HEAD
               <StyledInputContainer>
                 <div className="control-label">{t('Schema cache timeout')}</div>
                 <div className="input-container">
@@ -381,6 +382,21 @@ const ExtraOptions = ({
                   {t(
                     'Duration (in seconds) of the metadata caching timeout for schemas of ' +
                       'this database. If left unset, the cache never expires.',
+=======
+            </StyledInputContainer>
+            <StyledInputContainer css={no_margin_bottom}>
+              <div className="input-container">
+                <IndeterminateCheckbox
+                  id="allow_dml"
+                  indeterminate={false}
+                  checked={!!db?.allow_dml}
+                  onChange={onInputChange}
+                  labelText={t('Allow DDL and DML')}
+                />
+                <InfoTooltip
+                  tooltip={t(
+                    'Allow the execution of DDL (Data Definition Language: CREATE, DROP, TRUNCATE, etc.) and DML (Data Modification Language: INSERT, UPDATE, DELETE, etc)',
+>>>>>>> origin/avenmaster
                   )}
                 </div>
               </StyledInputContainer>

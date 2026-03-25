@@ -82,6 +82,7 @@ import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
 import { FilterPlugins } from 'src/constants';
 import AgGridTableChartPlugin from '@superset-ui/plugin-chart-ag-grid-table';
 import TimeTableChartPlugin from '../TimeTable';
+import { AvenABChartPlugin } from '../../../plugins/plugin-aven-ab-chart/src';
 
 export default class MainPreset extends Preset {
   constructor() {
@@ -192,7 +193,12 @@ export default class MainPreset extends Preset {
           ],
         }).configure({ key: VizType.Cartodiagram }),
         ...experimentalPlugins,
+<<<<<<< HEAD
         ...agGridTablePlugin,
+=======
+
+        new AvenABChartPlugin().configure({ key: 'aven_ab' }),
+>>>>>>> origin/avenmaster
       ],
     });
   }

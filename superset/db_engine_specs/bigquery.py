@@ -17,7 +17,10 @@
 
 from __future__ import annotations
 
+<<<<<<< HEAD
 import logging
+=======
+>>>>>>> origin/avenmaster
 import re
 import urllib
 from datetime import datetime
@@ -37,6 +40,10 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.sql import column as sql_column, select, sqltypes
 from sqlalchemy.sql.expression import table as sql_table
 
+<<<<<<< HEAD
+=======
+from superset import sql_parse
+>>>>>>> origin/avenmaster
 from superset.constants import TimeGrain
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.databases.utils import make_url_safe
@@ -136,6 +143,10 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     allows_hidden_cc_in_orderby = True
 
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
+
+    # when editing the database, mask this field in `encrypted_extra`
+    # pylint: disable=invalid-name
+    encrypted_extra_sensitive_fields = {"$.credentials_info.private_key"}
 
     # when editing the database, mask this field in `encrypted_extra`
     # pylint: disable=invalid-name

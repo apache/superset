@@ -22,7 +22,11 @@ from io import BytesIO
 from typing import Any, Callable, cast
 from zipfile import is_zipfile, ZipFile
 
+<<<<<<< HEAD
 from flask import current_app, g, redirect, request, Response, send_file, url_for
+=======
+from flask import g, redirect, request, Response, send_file, url_for
+>>>>>>> origin/avenmaster
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -41,7 +45,10 @@ from superset.commands.dashboard.delete import (
 )
 from superset.commands.dashboard.exceptions import (
     DashboardAccessDeniedError,
+<<<<<<< HEAD
     DashboardColorsConfigUpdateFailedError,
+=======
+>>>>>>> origin/avenmaster
     DashboardCopyError,
     DashboardCreateFailedError,
     DashboardDeleteFailedError,
@@ -56,12 +63,16 @@ from superset.commands.dashboard.fave import AddFavoriteDashboardCommand
 from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCommand
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
 from superset.commands.dashboard.unfave import DelFavoriteDashboardCommand
+<<<<<<< HEAD
 from superset.commands.dashboard.update import (
     UpdateDashboardColorsConfigCommand,
     UpdateDashboardCommand,
     UpdateDashboardNativeFiltersCommand,
 )
 from superset.commands.database.exceptions import DatasetValidationError
+=======
+from superset.commands.dashboard.update import UpdateDashboardCommand
+>>>>>>> origin/avenmaster
 from superset.commands.exceptions import TagForbiddenError
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
@@ -163,6 +174,21 @@ def with_dashboard(
 class DashboardRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Dashboard)
 
+<<<<<<< HEAD
+=======
+    @before_request(only=["thumbnail", "cache_dashboard_screenshot", "screenshot"])
+    def ensure_thumbnails_enabled(self) -> Optional[Response]:
+        if not is_feature_enabled("THUMBNAILS"):
+            return self.response_404()
+        return None
+
+    @before_request(only=["cache_dashboard_screenshot", "screenshot"])
+    def ensure_screenshots_enabled(self) -> Optional[Response]:
+        if not is_feature_enabled("ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS"):
+            return self.response_404()
+        return None
+
+>>>>>>> origin/avenmaster
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
         RouteMethod.IMPORT,
@@ -1106,7 +1132,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
         dashboard_url = get_url_path("Superset.dashboard_permalink", key=permalink_key)
         screenshot_obj = DashboardScreenshot(dashboard_url, dashboard.digest)
+<<<<<<< HEAD
         cache_key = screenshot_obj.get_cache_key(window_size, thumb_size, permalink_key)
+=======
+        cache_key = screenshot_obj.cache_key(window_size, thumb_size, dashboard_state)
+>>>>>>> origin/avenmaster
         image_url = get_url_path(
             "DashboardRestApi.screenshot", pk=dashboard.id, digest=cache_key
         )
@@ -1114,7 +1144,26 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             screenshot_obj.get_from_cache_key(cache_key) or ScreenshotCachePayload()
         )
 
+<<<<<<< HEAD
         def build_response(status_code: int) -> WerkzeugResponse:
+=======
+        def trigger_celery() -> WerkzeugResponse:
+            logger.info("Triggering screenshot ASYNC")
+            cache_dashboard_screenshot.delay(
+                username=get_current_user(),
+                guest_token=(
+                    g.user.guest_token
+                    if get_current_user() and isinstance(g.user, GuestUser)
+                    else None
+                ),
+                dashboard_id=dashboard.id,
+                dashboard_url=dashboard_url,
+                force=False,
+                thumb_size=thumb_size,
+                window_size=window_size,
+                cache_key=cache_key,
+            )
+>>>>>>> origin/avenmaster
             return self.response(
                 status_code,
                 cache_key=cache_key,

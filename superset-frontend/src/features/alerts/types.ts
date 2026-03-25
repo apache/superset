@@ -116,6 +116,10 @@ export type AlertObject = {
   database?: MetaObject;
   description?: string;
   email_subject?: string;
+  csv_filename?: string;
+  extra?: {
+    email_from?: string;
+  };
   error?: string;
   extra?: Extra;
   force_screenshot: boolean;

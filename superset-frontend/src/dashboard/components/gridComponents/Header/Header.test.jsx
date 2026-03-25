@@ -120,6 +120,7 @@ describe('Header', () => {
   });
 
   it('should render the AnchorLink in view mode', () => {
+<<<<<<< HEAD:superset-frontend/src/dashboard/components/gridComponents/Header/Header.test.jsx
     setup();
     expect(screen.getByTestId('anchor-link')).toBeInTheDocument();
   });
@@ -132,5 +133,19 @@ describe('Header', () => {
   it('should not render the AnchorLink in embedded mode', () => {
     setup({ embeddedMode: true });
     expect(screen.queryByTestId('anchor-link')).not.toBeInTheDocument();
+=======
+    const wrapper = setup();
+    expect(wrapper.find('AnchorLink')).toExist();
+  });
+
+  it('should not render the AnchorLink in edit mode', () => {
+    const wrapper = setup({ editMode: true });
+    expect(wrapper.find('AnchorLink')).not.toExist();
+  });
+
+  it('should not render the AnchorLink in embedded mode', () => {
+    const wrapper = setup({ embeddedMode: true });
+    expect(wrapper.find('AnchorLink')).not.toExist();
+>>>>>>> origin/avenmaster:superset-frontend/src/dashboard/components/gridComponents/Header.test.jsx
   });
 });

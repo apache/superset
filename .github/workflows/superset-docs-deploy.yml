@@ -7,6 +7,7 @@ on:
       - "README.md"
     branches:
       - "master"
+      - "[0-9].[0-9]"
 
   workflow_dispatch: {}
 

@@ -18,6 +18,7 @@
  */
 // ParentSize uses resize observer so the dashboard will update size
 // when its container size changes, due to e.g., builder side panel opening
+<<<<<<< HEAD
 import {
   FC,
   memo,
@@ -27,6 +28,9 @@ import {
   useRef,
   useState,
 } from 'react';
+=======
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+>>>>>>> origin/avenmaster
 import { useDispatch, useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import {
@@ -52,7 +56,10 @@ import {
 import { getChartIdsInFilterScope } from 'src/dashboard/util/getChartIdsInFilterScope';
 import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
 import { setInScopeStatusOfFilters } from 'src/dashboard/actions/nativeFilters';
+<<<<<<< HEAD
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
+=======
+>>>>>>> origin/avenmaster
 import {
   applyDashboardLabelsColorOnLoad,
   updateDashboardLabelsColor,
@@ -60,7 +67,10 @@ import {
   ensureSyncedSharedLabelsColors,
   ensureSyncedLabelsColorMap,
 } from 'src/dashboard/actions/dashboardState';
+<<<<<<< HEAD
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
+=======
+>>>>>>> origin/avenmaster
 import { getColorNamespace, resetColors } from 'src/utils/colorScheme';
 import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
 import { findTabsWithChartsInScope } from '../nativeFilters/utils';
@@ -117,6 +127,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
   );
+<<<<<<< HEAD
   const chartIds = useChartIds();
 
   const renderedChartIds = useRenderedChartIds();
@@ -125,6 +136,20 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     useState(false);
   const prevRenderedChartIds = useRef<number[]>([]);
   const prevTabIndexRef = useRef<number>();
+=======
+  const chartIds = useSelector<RootState, number[]>(state =>
+    Object.values(state.charts).map(chart => chart.id),
+  );
+  const renderedChartIds = useSelector<RootState, number[]>(state =>
+    Object.values(state.charts)
+      .filter(chart => chart.chartStatus === 'rendered')
+      .map(chart => chart.id),
+  );
+  const [dashboardLabelsColorInitiated, setDashboardLabelsColorInitiated] =
+    useState(false);
+  const prevRenderedChartIds = useRef<number[]>([]);
+  const prevTabIndexRef = useRef();
+>>>>>>> origin/avenmaster
   const tabIndex = useMemo(() => {
     const nextTabIndex = findTabIndexByComponentId({
       currentComponent: getRootLevelTabsComponent(dashboardLayout),
@@ -266,6 +291,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       window.removeEventListener('beforeunload', onBeforeUnload);
     };
   }, [onBeforeUnload]);
+<<<<<<< HEAD
 
   const renderTabBar = useCallback(() => <></>, []);
   const handleFocus = useCallback(e => {
@@ -312,6 +338,8 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     },
     [activeKey, childIds, dashboardLayout, handleFocus, renderTabBar, tabIndex],
   );
+=======
+>>>>>>> origin/avenmaster
 
   return (
     <div className="grid-container" data-test="grid-container">

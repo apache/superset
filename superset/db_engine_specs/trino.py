@@ -23,8 +23,12 @@ import threading
 import time
 from typing import Any, TYPE_CHECKING
 
+<<<<<<< HEAD
 import requests
 from flask import copy_current_request_context, ctx, current_app as app, Flask, g
+=======
+from flask import ctx, current_app, Flask, g
+>>>>>>> origin/avenmaster
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
@@ -191,6 +195,18 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             query.tracking_url = tracking_url
 
         db.session.commit()  # pylint: disable=consider-using-transaction
+<<<<<<< HEAD
+=======
+
+        # if query cancelation was requested prior to the handle_cursor call, but
+        # the query was still executed, trigger the actual query cancelation now
+        if query.extra.get(QUERY_EARLY_CANCEL_KEY):
+            cls.cancel_query(
+                cursor=cursor,
+                query=query,
+                cancel_query_id=cancel_query_id,
+            )
+>>>>>>> origin/avenmaster
 
         super().handle_cursor(cursor=cursor, query=query)
 
@@ -288,7 +304,11 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             args=(
                 execute_result,
                 execute_event,
+<<<<<<< HEAD
                 app._get_current_object(),  # pylint: disable=protected-access
+=======
+                current_app._get_current_object(),  # pylint: disable=protected-access
+>>>>>>> origin/avenmaster
                 g._get_current_object(),  # pylint: disable=protected-access
             ),
         )

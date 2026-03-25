@@ -17,11 +17,15 @@
  * under the License.
  */
 import { render } from 'spec/helpers/testing-library';
+<<<<<<< HEAD
 import {
   ChartMetadata,
   getChartMetadataRegistry,
   VizType,
 } from '@superset-ui/core';
+=======
+
+>>>>>>> origin/avenmaster
 import ChartRenderer from 'src/components/Chart/ChartRenderer';
 import { ChartSource } from 'src/types/ChartSource';
 
@@ -31,6 +35,18 @@ jest.mock('@superset-ui/core', () => ({
     <div data-test="mock-super-chart">
       {JSON.stringify(postTransformProps(props).formData)}
     </div>
+  ),
+}));
+
+jest.mock(
+  'src/components/Chart/ChartContextMenu/ChartContextMenu',
+  () => () => <div data-test="mock-chart-context-menu" />,
+);
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  SuperChart: ({ formData }) => (
+    <div data-test="mock-super-chart">{JSON.stringify(formData)}</div>
   ),
 }));
 
@@ -50,6 +66,7 @@ const requiredProps = {
   source: ChartSource.Dashboard,
 };
 
+<<<<<<< HEAD
 beforeAll(() => {
   window.featureFlags = { DRILL_TO_DETAIL: true };
 });
@@ -57,6 +74,8 @@ afterAll(() => {
   window.featureFlags = {};
 });
 
+=======
+>>>>>>> origin/avenmaster
 test('should render SuperChart', () => {
   const { getByTestId } = render(
     <ChartRenderer {...requiredProps} chartIsStale={false} />,
@@ -71,6 +90,7 @@ test('should use latestQueryFormData instead of formData when chartIsStale is tr
   expect(getByTestId('mock-super-chart')).toHaveTextContent(
     JSON.stringify({ testControl: 'bar' }),
   );
+<<<<<<< HEAD
 });
 
 test('should render chart context menu', () => {
@@ -109,4 +129,6 @@ test('should detect changes in postTransformProps', () => {
   expect(postTransformProps).toHaveBeenCalledTimes(0);
   rerender(<ChartRenderer {...updatedProps} />);
   expect(postTransformProps).toHaveBeenCalledTimes(1);
+=======
+>>>>>>> origin/avenmaster
 });

@@ -20,6 +20,10 @@
 import { render, fireEvent } from 'spec/helpers/testing-library';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
+<<<<<<< HEAD
+=======
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+>>>>>>> origin/avenmaster
 import ColumnSelectPopover, {
   ColumnSelectPopoverProps,
 } from 'src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover';
@@ -36,6 +40,7 @@ const renderPopover = (
   const store = mockStore({ explore: { datasource: { type: 'table' } } });
 
   return render(
+<<<<<<< HEAD
     <ColumnSelectPopover
       hasCustomLabel
       isTemporal
@@ -46,6 +51,21 @@ const renderPopover = (
       {...props}
     />,
     { store },
+=======
+    <Provider store={store}>
+      <ThemeProvider theme={supersetTheme}>
+        <ColumnSelectPopover
+          hasCustomLabel
+          isTemporal
+          label="Custom Label"
+          onClose={jest.fn()}
+          setDatasetModal={jest.fn()}
+          setLabel={jest.fn()}
+          {...props}
+        />
+      </ThemeProvider>
+    </Provider>,
+>>>>>>> origin/avenmaster
   );
 };
 

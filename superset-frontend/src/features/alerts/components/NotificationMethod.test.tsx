@@ -21,9 +21,15 @@ import {
   fireEvent,
   render,
   screen,
+<<<<<<< HEAD
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
+=======
+  waitFor,
+} from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
+>>>>>>> origin/avenmaster
 
 import {
   FeatureFlag,
@@ -38,6 +44,8 @@ const mockOnUpdate = jest.fn();
 const mockOnRemove = jest.fn();
 const mockOnInputChange = jest.fn();
 const mockSetErrorSubject = jest.fn();
+const mockSetErrorCsvFilename = jest.fn();
+const mockSetErrorEmailFrom = jest.fn();
 
 const mockSetting: NotificationSetting = {
   method: NotificationMethodOption.Email,
@@ -51,6 +59,8 @@ const mockSetting: NotificationSetting = {
 
 const mockEmailSubject = 'Test Subject';
 const mockDefaultSubject = 'Default Subject';
+const mockCsvFilename = 'test.csv';
+const mockDefaultCsvFilename = 'default.csv';
 
 const mockSettingSlackV2: NotificationSetting = {
   method: NotificationMethodOption.SlackV2,
@@ -79,6 +89,11 @@ describe('NotificationMethod', () => {
         email_subject={mockEmailSubject}
         defaultSubject={mockDefaultSubject}
         setErrorSubject={mockSetErrorSubject}
+        csv_filename={mockCsvFilename}
+        defaultCsvFilename={mockDefaultCsvFilename}
+        setErrorCsvFilename={mockSetErrorCsvFilename}
+        email_from=""
+        setErrorEmailFrom={mockSetErrorEmailFrom}
       />,
     );
 
@@ -100,6 +115,11 @@ describe('NotificationMethod', () => {
         email_subject={mockEmailSubject}
         defaultSubject={mockDefaultSubject}
         setErrorSubject={mockSetErrorSubject}
+        csv_filename={mockCsvFilename}
+        defaultCsvFilename={mockDefaultCsvFilename}
+        setErrorCsvFilename={mockSetErrorCsvFilename}
+        email_from=""
+        setErrorEmailFrom={mockSetErrorEmailFrom}
       />,
     );
 
@@ -120,6 +140,11 @@ describe('NotificationMethod', () => {
         email_subject={mockEmailSubject}
         defaultSubject={mockDefaultSubject}
         setErrorSubject={mockSetErrorSubject}
+        csv_filename={mockCsvFilename}
+        defaultCsvFilename={mockDefaultCsvFilename}
+        setErrorCsvFilename={mockSetErrorCsvFilename}
+        email_from=""
+        setErrorEmailFrom={mockSetErrorEmailFrom}
       />,
     );
 
@@ -145,6 +170,11 @@ describe('NotificationMethod', () => {
         email_subject={mockEmailSubject}
         defaultSubject={mockDefaultSubject}
         setErrorSubject={mockSetErrorSubject}
+        csv_filename={mockCsvFilename}
+        defaultCsvFilename={mockDefaultCsvFilename}
+        setErrorCsvFilename={mockSetErrorCsvFilename}
+        email_from=""
+        setErrorEmailFrom={mockSetErrorEmailFrom}
       />,
     );
 
@@ -222,6 +252,14 @@ describe('NotificationMethod', () => {
       email_subject: 'Test Subject',
       defaultSubject: 'Default Subject',
       setErrorSubject: jest.fn(),
+<<<<<<< HEAD
+=======
+      csv_filename: 'test.csv',
+      defaultCsvFilename: 'default.csv',
+      setErrorCsvFilename: jest.fn(),
+      email_from: '',
+      setErrorEmailFrom: jest.fn(),
+>>>>>>> origin/avenmaster
     };
 
     const { getByTestId } = render(<NotificationMethod {...defaultProps} />);
@@ -249,6 +287,14 @@ describe('NotificationMethod', () => {
       email_subject: 'Test Subject',
       defaultSubject: 'Default Subject',
       setErrorSubject: jest.fn(),
+<<<<<<< HEAD
+=======
+      csv_filename: 'test.csv',
+      defaultCsvFilename: 'default.csv',
+      setErrorCsvFilename: jest.fn(),
+      email_from: '',
+      setErrorEmailFrom: jest.fn(),
+>>>>>>> origin/avenmaster
     };
 
     const { getByTestId } = render(<NotificationMethod {...defaultProps} />);
@@ -276,6 +322,14 @@ describe('NotificationMethod', () => {
       email_subject: 'Test Subject',
       defaultSubject: 'Default Subject',
       setErrorSubject: jest.fn(),
+<<<<<<< HEAD
+=======
+      csv_filename: 'test.csv',
+      defaultCsvFilename: 'default.csv',
+      setErrorCsvFilename: jest.fn(),
+      email_from: '',
+      setErrorEmailFrom: jest.fn(),
+>>>>>>> origin/avenmaster
     };
 
     const { queryByTestId } = render(<NotificationMethod {...defaultProps} />);
@@ -304,6 +358,14 @@ describe('NotificationMethod', () => {
       email_subject: 'Test Subject',
       defaultSubject: 'Default Subject',
       setErrorSubject: jest.fn(),
+<<<<<<< HEAD
+=======
+      csv_filename: 'test.csv',
+      defaultCsvFilename: 'default.csv',
+      setErrorCsvFilename: jest.fn(),
+      email_from: '',
+      setErrorEmailFrom: jest.fn(),
+>>>>>>> origin/avenmaster
     };
 
     const { queryByTestId } = render(<NotificationMethod {...defaultProps} />);
@@ -337,6 +399,14 @@ describe('NotificationMethod', () => {
         email_subject={mockEmailSubject}
         defaultSubject={mockDefaultSubject}
         setErrorSubject={mockSetErrorSubject}
+<<<<<<< HEAD
+=======
+        csv_filename={mockCsvFilename}
+        defaultCsvFilename={mockDefaultCsvFilename}
+        setErrorCsvFilename={mockSetErrorCsvFilename}
+        email_from=""
+        setErrorEmailFrom={mockSetErrorEmailFrom}
+>>>>>>> origin/avenmaster
       />,
     );
 
@@ -373,6 +443,14 @@ describe('NotificationMethod', () => {
         email_subject={mockEmailSubject}
         defaultSubject={mockDefaultSubject}
         setErrorSubject={mockSetErrorSubject}
+<<<<<<< HEAD
+=======
+        csv_filename={mockCsvFilename}
+        defaultCsvFilename={mockDefaultCsvFilename}
+        setErrorCsvFilename={mockSetErrorCsvFilename}
+        email_from=""
+        setErrorEmailFrom={mockSetErrorEmailFrom}
+>>>>>>> origin/avenmaster
       />,
     );
 
@@ -414,6 +492,14 @@ describe('NotificationMethod', () => {
         email_subject={mockEmailSubject}
         defaultSubject={mockDefaultSubject}
         setErrorSubject={mockSetErrorSubject}
+<<<<<<< HEAD
+=======
+        csv_filename={mockCsvFilename}
+        defaultCsvFilename={mockDefaultCsvFilename}
+        setErrorCsvFilename={mockSetErrorCsvFilename}
+        email_from=""
+        setErrorEmailFrom={mockSetErrorEmailFrom}
+>>>>>>> origin/avenmaster
       />,
     );
 
@@ -448,6 +534,14 @@ describe('NotificationMethod', () => {
         email_subject={mockEmailSubject}
         defaultSubject={mockDefaultSubject}
         setErrorSubject={mockSetErrorSubject}
+<<<<<<< HEAD
+=======
+        csv_filename={mockCsvFilename}
+        defaultCsvFilename={mockDefaultCsvFilename}
+        setErrorCsvFilename={mockSetErrorCsvFilename}
+        email_from=""
+        setErrorEmailFrom={mockSetErrorEmailFrom}
+>>>>>>> origin/avenmaster
       />,
     );
 
@@ -482,6 +576,14 @@ describe('NotificationMethod', () => {
         email_subject={mockEmailSubject}
         defaultSubject={mockDefaultSubject}
         setErrorSubject={mockSetErrorSubject}
+<<<<<<< HEAD
+=======
+        csv_filename={mockCsvFilename}
+        defaultCsvFilename={mockDefaultCsvFilename}
+        setErrorCsvFilename={mockSetErrorCsvFilename}
+        email_from=""
+        setErrorEmailFrom={mockSetErrorEmailFrom}
+>>>>>>> origin/avenmaster
       />,
     );
 
@@ -490,6 +592,7 @@ describe('NotificationMethod', () => {
       screen.getByText('Recipients are separated by "," or ";"'),
     ).toBeInTheDocument();
   });
+<<<<<<< HEAD
 
   it('shows the textarea when ff is true, slackChannels fail and slack is selected', async () => {
     window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: true };
@@ -555,4 +658,6 @@ describe('NotificationMethod', () => {
       });
     });
   });
+=======
+>>>>>>> origin/avenmaster
 });

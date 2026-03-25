@@ -125,7 +125,11 @@ def test_histogram_with_non_numeric_column():
     try:
         histogram(data, "group", None, bins)
     except ValueError as e:
+<<<<<<< HEAD
         assert str(e) == "Column 'group' contains non-numeric values"  # noqa: PT017
+=======
+        assert str(e) == "Column 'group' contains non-numeric values"
+>>>>>>> origin/avenmaster
 
 
 def test_histogram_with_some_non_numeric_values():
@@ -139,6 +143,7 @@ def test_histogram_with_some_non_numeric_values():
     try:
         histogram(data_with_non_numeric, "a", ["group"], bins)
     except ValueError as e:
+<<<<<<< HEAD
         assert str(e) == "Column 'group' contains non-numeric values"  # noqa: PT017
 
 
@@ -207,3 +212,6 @@ def test_histogram_with_no_groupby_and_all_null_values():
 
     result = histogram(data_with_no_groupby_and_all_nulls, "a", [], bins)
     assert result.empty
+=======
+        assert str(e) == "Column 'group' contains non-numeric values"
+>>>>>>> origin/avenmaster

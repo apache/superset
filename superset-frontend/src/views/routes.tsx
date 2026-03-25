@@ -134,6 +134,7 @@ const RowLevelSecurityList = lazy(
     ),
 );
 
+<<<<<<< HEAD
 const RolesList = lazy(
   () => import(/* webpackChunkName: "RolesList" */ 'src/pages/RolesList'),
 );
@@ -164,6 +165,19 @@ const UserRegistrations = lazy(
   () =>
     import(
       /* webpackChunkName: "UserRegistrations" */ 'src/pages/UserRegistrations'
+=======
+const ExportGoogleSheets = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "ExportGoogleSheets" */ 'src/pages/ExportGoogleSheets'
+    ),
+);
+
+const ExportSliceToGoogleSheets = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "ExportSliceToGoogleSheets" */ 'src/pages/ExportSliceToGoogleSheets'
+>>>>>>> origin/avenmaster
     ),
 );
 
@@ -311,6 +325,7 @@ if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
   });
 }
 
+<<<<<<< HEAD
 const user = getBootstrapData()?.user;
 const authRegistrationEnabled =
   getBootstrapData()?.common.conf.AUTH_USER_REGISTRATION;
@@ -341,6 +356,23 @@ if (authRegistrationEnabled) {
 }
 
 const frontEndRoutes: Record<string, boolean> = routes
+=======
+if (isFeatureEnabled(FeatureFlag.GoogleSheetsExport)) {
+  routes.push({
+    path: '/export/dashboard/:dashboardId/google-sheets/',
+    Component: ExportGoogleSheets,
+  });
+}
+
+if (isFeatureEnabled(FeatureFlag.GoogleSheetsExport)) {
+  routes.push({
+    path: '/export/chart/:sliceId/google-sheets/',
+    Component: ExportSliceToGoogleSheets,
+  });
+}
+
+const frontEndRoutes = routes
+>>>>>>> origin/avenmaster
   .map(r => r.path)
   .reduce(
     (acc, curr) => ({

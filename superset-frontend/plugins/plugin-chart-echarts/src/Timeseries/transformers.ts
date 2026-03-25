@@ -603,6 +603,7 @@ export function transformTimeseriesAnnotation(
   const { hideLine, name, opacity, showMarkers, style, width, color } = layer;
   const result = annotationData[name];
   const isHorizontal = orientation === OrientationType.Horizontal;
+<<<<<<< HEAD
   const { records } = result;
   if (records) {
     const data = records.map(record => {
@@ -627,6 +628,28 @@ export function transformTimeseriesAnnotation(
       symbolSize: showMarkers ? markerSize : 0,
       itemStyle: computedStyle,
       lineStyle: computedStyle,
+=======
+  if (isTimeseriesAnnotationResult(result)) {
+    result.forEach(annotation => {
+      const { key, values } = annotation;
+      series.push({
+        type: 'line',
+        id: key,
+        name: key,
+        data: values.map(({ x, y }) =>
+          isHorizontal
+            ? ([y, x] as [number, OptionName])
+            : ([x, y] as [OptionName, number]),
+        ),
+        symbolSize: showMarkers ? markerSize : 0,
+        lineStyle: {
+          opacity: parseAnnotationOpacity(opacity),
+          type: style as ZRLineType,
+          width: hideLine ? 0 : width,
+          color: color || colorScale(name, sliceId),
+        },
+      });
+>>>>>>> origin/avenmaster
     });
   }
   return series;

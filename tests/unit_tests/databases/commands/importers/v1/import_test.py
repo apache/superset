@@ -46,8 +46,12 @@ def test_import_database(mocker: MockerFixture, session: Session) -> None:
     config = copy.deepcopy(database_config)
     database = import_database(config)
     assert database.database_name == "imported_database"
+<<<<<<< HEAD
     assert database.sqlalchemy_uri == "postgresql://user:XXXXXXXXXX@host1"
     assert database.password == "pass"  # noqa: S105
+=======
+    assert database.sqlalchemy_uri == "postgresql://user:pass@host1"
+>>>>>>> origin/avenmaster
     assert database.cache_timeout is None
     assert database.expose_in_sqllab is True
     assert database.allow_run_async is False

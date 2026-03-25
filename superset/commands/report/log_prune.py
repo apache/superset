@@ -49,6 +49,7 @@ class AsyncPruneReportScheduleLogCommand(BaseCommand):
                         report_schedule,
                         from_date,
                     )
+                    db.session.commit()  # pylint: disable=consider-using-transaction
                     logger.info(
                         "Deleted %s logs for report schedule id: %s",
                         str(row_count),

@@ -35,7 +35,11 @@ from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.sql_lab import Query
+<<<<<<< HEAD
 from superset.sql.parse import process_jinja_sql
+=======
+from superset.sql.parse import SQLScript
+>>>>>>> origin/avenmaster
 from superset.utils import core as utils, json
 from superset.utils.core import GenericDataType, QuerySource
 

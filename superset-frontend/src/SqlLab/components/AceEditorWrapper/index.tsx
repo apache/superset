@@ -19,7 +19,11 @@
 import { useState, useEffect, useRef } from 'react';
 import type { IAceEditor } from 'react-ace/lib/types';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+<<<<<<< HEAD
 import { css, usePrevious, useTheme } from '@superset-ui/core';
+=======
+import { css, styled, usePrevious, useTheme } from '@superset-ui/core';
+>>>>>>> origin/avenmaster
 import { Global } from '@emotion/react';
 
 import { SQL_EDITOR_LEFTBAR_WIDTH } from 'src/SqlLab/constants';
@@ -65,7 +69,10 @@ const AceEditorWrapper = ({
     'catalog',
     'schema',
     'templateParams',
+<<<<<<< HEAD
     'tabViewId',
+=======
+>>>>>>> origin/avenmaster
   ]);
   // Prevent a maximum update depth exceeded error
   // by skipping access the unsaved query editor state

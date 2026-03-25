@@ -163,7 +163,11 @@ const LoadingDiv = styled.div`
 const MessageSpan = styled.span`
   display: block;
   text-align: center;
+<<<<<<< HEAD:superset-frontend/src/components/Chart/Chart.tsx
   margin: ${({ theme }) => theme.sizeUnit * 4}px auto;
+=======
+  margin: ${({ theme }) => theme.gridUnit * 4}px auto;
+>>>>>>> origin/avenmaster:superset-frontend/src/components/Chart/Chart.jsx
   width: fit-content;
   color: ${({ theme }) => theme.colorText};
 `;

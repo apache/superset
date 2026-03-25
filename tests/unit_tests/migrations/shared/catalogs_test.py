@@ -22,6 +22,7 @@ from flask import current_app
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
+from superset import app
 from superset.migrations.shared.catalogs import (
     downgrade_catalog_perms,
     upgrade_catalog_perms,
@@ -31,6 +32,7 @@ from superset.migrations.shared.security_converge import (
     PermissionView,
     ViewMenu,
 )
+<<<<<<< HEAD
 from superset.superset_typing import OAuth2ClientConfig
 
 
@@ -54,6 +56,8 @@ def oauth2_config() -> OAuth2ClientConfig:
         "token_request_uri": "https://oauth2.googleapis.com/token",
         "request_content_type": "json",
     }
+=======
+>>>>>>> origin/avenmaster
 
 
 def test_upgrade_catalog_perms(mocker: MockerFixture, session: Session) -> None:
@@ -361,7 +365,10 @@ def test_upgrade_catalog_perms_graceful(
 def test_upgrade_catalog_perms_oauth_connection(
     mocker: MockerFixture,
     session: Session,
+<<<<<<< HEAD
     oauth2_config: OAuth2ClientConfig,
+=======
+>>>>>>> origin/avenmaster
 ) -> None:
     """
     Test the `upgrade_catalog_perms` function when the DB is set up using OAuth.
@@ -389,7 +396,11 @@ def test_upgrade_catalog_perms_oauth_connection(
     database = Database(
         database_name="my_db",
         sqlalchemy_uri="bigquery://my-test-project",
+<<<<<<< HEAD
         encrypted_extra=json.dumps({"oauth2_client_info": oauth2_config}),
+=======
+        encrypted_extra='{"oauth2_client_info": "fake_mock_oauth_conn"}',
+>>>>>>> origin/avenmaster
     )
     dataset = SqlaTable(
         table_name="my_table",
@@ -568,8 +579,13 @@ def test_upgrade_catalog_perms_simplified_migration(
         ("[my_db].[public]",),
     ]
 
+<<<<<<< HEAD
     with current_app.test_request_context():
         current_app.config["CATALOGS_SIMPLIFIED_MIGRATION"] = True
+=======
+    with app.test_request_context():
+        app.config["CATALOGS_SIMPLIFIED_MIGRATION"] = True
+>>>>>>> origin/avenmaster
         upgrade_catalog_perms()
         session.commit()
 

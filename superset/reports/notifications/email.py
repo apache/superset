@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import re
 import textwrap
 from dataclasses import dataclass
 from datetime import datetime
@@ -32,10 +33,73 @@ from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils import json
-from superset.utils.core import HeaderDataType, send_email_smtp
+from superset.utils.core import get_email_address_list, HeaderDataType, send_email_smtp
 from superset.utils.decorators import statsd_gauge
 
 logger = logging.getLogger(__name__)
+
+
+def replace_date_placeholders(text: str) -> str:
+    """
+    Replace date placeholders in text with current date.
+    Supports user-friendly date format patterns within curly braces.
+
+    Examples:
+    - {yyyyMMdd} -> 20240912
+    - {yyyy-MM-dd} -> 2024-09-12
+    - {yyMMdd} -> 240912
+    - {yyyyMMdd_HHmmss} -> 20240912_143045
+    - {yyyy/MM/dd} -> 2024/09/12
+    """
+    if not text:
+        return text
+
+    now = datetime.now()
+
+    # Convert user-friendly format to Python strftime format
+    def convert_format(user_format: str) -> str:
+        # Replace common user-friendly patterns with Python strftime codes
+        # Use a more robust approach to avoid double replacements
+        replacements = [
+            ("yyyy", "%Y"),  # 4-digit year
+            ("yy", "%y"),  # 2-digit year
+            ("MM", "%m"),  # 2-digit month
+            ("dd", "%d"),  # 2-digit day
+            ("HH", "%H"),  # 24-hour format
+            ("hh", "%I"),  # 12-hour format
+            ("mm", "%M"),  # minutes
+            ("ss", "%S"),  # seconds
+        ]
+
+        python_format = user_format
+        for user_code, python_code in replacements:
+            python_format = python_format.replace(user_code, python_code)
+
+        # Handle single character patterns after double character patterns
+        python_format = re.sub(
+            r"(?<!%)(?<![a-zA-Z])M(?!%)(?![a-zA-Z])", "%m", python_format
+        )
+        python_format = re.sub(
+            r"(?<!%)(?<![a-zA-Z])d(?!%)(?![a-zA-Z])", "%d", python_format
+        )
+
+        return python_format
+
+    # Find all date format patterns like {yyyyMMdd}, {yyyy-MM-dd}, etc.
+    def replace_date_format(match: re.Match[str]) -> str:
+        user_format = match.group(1)  # Extract the format string inside braces
+        try:
+            python_format = convert_format(user_format)
+            return now.strftime(python_format)
+        except ValueError:
+            # If the format is invalid, return the original placeholder
+            return match.group(0)
+
+    # Replace patterns like {yyyyMMdd}, {yyyy-MM-dd}, etc.
+    text = re.sub(r"\{([^}]+)\}", replace_date_format, text)
+
+    return text
+
 
 TABLE_TAGS = {"table", "th", "tr", "td", "thead", "tbody", "tfoot"}
 TABLE_ATTRIBUTES = {"colspan", "rowspan", "halign", "border", "class"}
@@ -65,6 +129,8 @@ ALLOWED_ATTRIBUTES = {
     "acronym": {"title"},
     **ALLOWED_TABLE_ATTRIBUTES,
 }
+
+INTERNAL_EMAIL_DOMAIN = "aven.com"
 
 
 @dataclass
@@ -104,7 +170,11 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             <p>Your report/alert was unable to be generated because of the following error: %(text)s</p>
             <p>Please check your dashboard/chart for errors.</p>
             <p><b><a href="%(url)s">%(call_to_action)s</a></b></p>
+<<<<<<< HEAD
             """,  # noqa: E501
+=======
+            """,
+>>>>>>> origin/avenmaster
             text=text,
             url=self._content.url,
             call_to_action=call_to_action,
@@ -186,7 +256,17 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         )
         csv_data = None
         if self._content.csv:
+<<<<<<< HEAD
             csv_data = {__("%(name)s.csv", name=self._name): self._content.csv}
+=======
+            # Use custom CSV filename if provided, otherwise use the default name
+            csv_name = self._content.csv_filename or __(
+                "%(name)s.csv", name=self._content.name
+            )
+            # Replace date placeholders in CSV filename
+            csv_name = replace_date_placeholders(csv_name)
+            csv_data = {csv_name: self._content.csv}
+>>>>>>> origin/avenmaster
 
         pdf_data = None
         if self._content.pdf:
@@ -201,12 +281,21 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         )
 
     def _get_subject(self) -> str:
+        if self._content.email_subject:
+            # Use custom email subject with date placeholder replacement
+            subject = replace_date_placeholders(self._content.email_subject)
+            return __(
+                "%(prefix)s %(title)s",
+                prefix=app.config["EMAIL_REPORTS_SUBJECT_PREFIX"],
+                title=subject,
+            )
         return __(
             "%(prefix)s %(title)s",
             prefix=current_app.config["EMAIL_REPORTS_SUBJECT_PREFIX"],
             title=self._name,
         )
 
+<<<<<<< HEAD
     def _parse_name(self, name: str) -> str:
         """If user add a date format to the subject, parse it to the real date
         This feature is hidden behind a feature flag `DATE_FORMAT_IN_EMAIL_SUBJECT`
@@ -216,6 +305,14 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
 
     def _get_call_to_action(self) -> str:
         return __(current_app.config["EMAIL_REPORTS_CTA"])
+=======
+    def _get_call_to_action(self) -> str:
+        email_address_list = get_email_address_list(self._get_to())
+        for email_address in email_address_list:
+            if INTERNAL_EMAIL_DOMAIN not in email_address:
+                return ""
+        return __(app.config["EMAIL_REPORTS_CTA"])
+>>>>>>> origin/avenmaster
 
     def _get_to(self) -> str:
         return json.loads(self._recipient.recipient_config_json)["target"]
@@ -235,6 +332,16 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         to = self._get_to()
         cc = self._get_cc()
         bcc = self._get_bcc()
+<<<<<<< HEAD
+=======
+        from_address = self._content.email_from
+
+        logger.info(
+            "Sending email with from_address=%s (default would be %s)",
+            from_address,
+            app.config["SMTP_MAIL_FROM"],
+        )
+>>>>>>> origin/avenmaster
 
         try:
             send_email_smtp(
@@ -251,6 +358,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 cc=cc,
                 bcc=bcc,
                 header_data=content.header_data,
+                from_address=from_address,
             )
             logger.info(
                 "Report sent to email, task_id: %s, notification content is %s",

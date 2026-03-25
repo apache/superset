@@ -26,6 +26,11 @@ fi
 if [ "$BUILD_SUPERSET_FRONTEND_IN_DOCKER" = "true" ]; then
     echo "Building Superset frontend in dev mode inside docker container"
     cd /app/superset-frontend
+<<<<<<< HEAD
+=======
+    npm install -f --no-optional --global webpack webpack-cli
+    npm install -f
+>>>>>>> origin/avenmaster
 
     if [ "$NPM_RUN_PRUNE" = "true" ]; then
         echo "Running `npm run prune`"

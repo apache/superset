@@ -45,8 +45,13 @@ These features are **finished** but currently being tested. They are usable, but
 - ALLOW_FULL_CSV_EXPORT
 - CACHE_IMPERSONATION
 - CONFIRM_DASHBOARD_DIFF
+<<<<<<< HEAD
 - DYNAMIC_PLUGINS
 - DATE_FORMAT_IN_EMAIL_SUBJECT: [(docs)](https://superset.apache.org/docs/configuration/alerts-reports#commons)
+=======
+- DRILL_TO_DETAIL
+- DYNAMIC_PLUGINS
+>>>>>>> origin/avenmaster
 - ENABLE_SUPERSET_META_DB: [(docs)](https://superset.apache.org/docs/configuration/databases/#querying-across-databases)
 - ESTIMATE_QUERY_COST
 - GLOBAL_ASYNC_QUERIES [(docs)](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries)

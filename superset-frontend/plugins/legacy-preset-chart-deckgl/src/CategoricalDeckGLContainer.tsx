@@ -58,6 +58,7 @@ function getCategories(fd: QueryFormData, data: JsonObject[]) {
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
   const appliedScheme = fd.color_scheme;
   const colorFn = getScale(appliedScheme);
+<<<<<<< HEAD
   let categories: Record<any, { color: any; enabled: boolean }> = {};
 
   const colorSchemeType = fd.color_scheme_type;
@@ -73,6 +74,16 @@ function getCategories(fd: QueryFormData, data: JsonObject[]) {
           color = fixedColor;
         }
         categories[d.cat_color] = { color, enabled: true };
+=======
+  const categories = {};
+  data.forEach(d => {
+    if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
+      let color;
+      if (fd.dimension) {
+        color = hexToRGB(colorFn(d.cat_color, fd.sliceId), c.a * 255);
+      } else {
+        color = fixedColor;
+>>>>>>> origin/avenmaster
       }
     });
   }
@@ -143,6 +154,7 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
     }
   }, []);
 
+<<<<<<< HEAD
   const addColor = useCallback(
     (
       data: JsonObject[],
@@ -157,6 +169,17 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
         case COLOR_SCHEME_TYPES.fixed_color: {
           color = fd.color_picker || { r: 0, g: 0, b: 0, a: 100 };
           const colorArray = [color.r, color.g, color.b, color.a * 255];
+=======
+  const addColor = useCallback((data: JsonObject[], fd: QueryFormData) => {
+    const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
+    const appliedScheme = fd.color_scheme;
+    const colorFn = getScale(appliedScheme);
+
+    return data.map(d => {
+      let color;
+      if (fd.dimension) {
+        color = hexToRGB(colorFn(d.cat_color, fd.sliceId), c.a * 255);
+>>>>>>> origin/avenmaster
 
           return data.map(d => ({ ...d, color: colorArray }));
         }

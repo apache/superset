@@ -90,6 +90,7 @@ test('Calling "onConfirm" only after typing "delete" in the input', async () => 
   expect(props.onConfirm).toHaveBeenCalledTimes(0);
 
   // do not execute "onConfirm" if you have not typed "delete"
+<<<<<<< HEAD:superset-frontend/packages/superset-ui-core/src/components/DeleteModal/DeleteModal.test.tsx
   await userEvent.click(screen.getByText('Delete'));
   expect(props.onConfirm).toHaveBeenCalledTimes(0);
 
@@ -97,6 +98,15 @@ test('Calling "onConfirm" only after typing "delete" in the input', async () => 
   await userEvent.type(screen.getByTestId('delete-modal-input'), 'delete');
   await userEvent.click(screen.getByText('Delete'));
   expect(props.onConfirm).toHaveBeenCalledTimes(1);
+=======
+  userEvent.click(screen.getByText('Delete'));
+  expect(props.onConfirm).toBeCalledTimes(0);
+
+  // execute "onConfirm" if you have typed "delete"
+  userEvent.type(screen.getByTestId('delete-modal-input'), 'delete');
+  userEvent.click(screen.getByText('Delete'));
+  expect(props.onConfirm).toBeCalledTimes(1);
+>>>>>>> origin/avenmaster:superset-frontend/src/components/DeleteModal/DeleteModal.test.tsx
 
   // confirm input has been cleared
   expect(screen.getByTestId('delete-modal-input')).toHaveValue('');

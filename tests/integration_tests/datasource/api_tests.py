@@ -187,9 +187,15 @@ class TestDatasourceApi(SupersetTestCase):
             rv = self.client.get(
                 f"api/v1/datasource/table/{table.id}/column/col2/values/"
             )
+<<<<<<< HEAD
             assert rv.status_code == 200
             response = json.loads(rv.data.decode("utf-8"))
             assert response["result"] == ["b"]
+=======
+            self.assertEqual(rv.status_code, 200)
+            response = json.loads(rv.data.decode("utf-8"))
+            self.assertEqual(response["result"], ["b"])
+>>>>>>> origin/avenmaster
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     def test_get_column_values_with_rls_no_values(self):
@@ -201,6 +207,12 @@ class TestDatasourceApi(SupersetTestCase):
             rv = self.client.get(
                 f"api/v1/datasource/table/{table.id}/column/col2/values/"
             )
+<<<<<<< HEAD
             assert rv.status_code == 200
             response = json.loads(rv.data.decode("utf-8"))
             assert response["result"] == []
+=======
+            self.assertEqual(rv.status_code, 200)
+            response = json.loads(rv.data.decode("utf-8"))
+            self.assertEqual(response["result"], [])
+>>>>>>> origin/avenmaster

@@ -37,7 +37,11 @@ def generate_build_id() -> str:
 
 
 def run_cypress_for_test_file(
+<<<<<<< HEAD
     test_file: str, retries: int, use_dashboard: bool, group: str, dry_run: bool, i: int
+=======
+    test_file: str, retries: int, use_dashboard: bool, group: str, dry_run: bool
+>>>>>>> origin/avenmaster
 ) -> int:
     """Runs Cypress for a single test file and retries upon failure."""
     cypress_cmd = "./node_modules/.bin/cypress run"
@@ -47,6 +51,7 @@ def run_cypress_for_test_file(
     browser = os.getenv("CYPRESS_BROWSER", "chrome")
     chrome_flags = "--disable-dev-shm-usage"
 
+<<<<<<< HEAD
     for attempt in range(retries):
         # Create Cypress command for a single test file
         cmd: str = ""
@@ -85,6 +90,40 @@ def run_cypress_for_test_file(
             stderr=subprocess.STDOUT,
             universal_newlines=True,
         )
+=======
+    # Create Cypress command for a single test file
+    if use_dashboard:
+        cmd = (
+            f"{XVFB_PRE_CMD} "
+            f'{cypress_cmd} --spec "{test_file}" --browser {browser} '
+            f"--record --group {group} --tag {REPO},{GITHUB_EVENT_NAME} "
+            f"--parallel --ci-build-id {build_id} "
+            f"-- {chrome_flags}"
+        )
+    else:
+        os.environ.pop("CYPRESS_RECORD_KEY", None)
+        cmd = (
+            f"{XVFB_PRE_CMD} "
+            f"{cypress_cmd} --browser {browser} "
+            f'--spec "{test_file}" '
+            f"-- {chrome_flags}"
+        )
+
+    if dry_run:
+        # Print the command instead of executing it
+        print(f"DRY RUN: {cmd}")
+        return 0
+
+    for attempt in range(retries):
+        print(f"RUN: {cmd} (Attempt {attempt + 1}/{retries})")
+        process = subprocess.Popen(
+            cmd,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            universal_newlines=True,
+        )
+>>>>>>> origin/avenmaster
 
         # Stream stdout in real-time
         if process.stdout:
@@ -165,9 +204,15 @@ def main() -> None:
 
     # Run each test file independently with retry logic or dry-run
     processed_file_count: int = 0
+<<<<<<< HEAD
     for i, test_file in enumerate(spec_list):
         result = run_cypress_for_test_file(
             test_file, args.retries, args.use_dashboard, args.group, args.dry_run, i
+=======
+    for test_file in spec_list:
+        result = run_cypress_for_test_file(
+            test_file, args.retries, args.use_dashboard, args.group, args.dry_run
+>>>>>>> origin/avenmaster
         )
         if result != 0:
             print(f"Exiting due to failure in {test_file}")

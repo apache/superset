@@ -11,6 +11,7 @@
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
+<<<<<<< HEAD:superset-frontend/packages/superset-ui-core/src/components/AsyncAceEditor/Tooltip.test.tsx
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
  * OF ANY KIND, either express or implied.  See the License for
  * the specific language governing permissions and limitations
@@ -30,4 +31,39 @@ test('getTooltipHTML returns the expected HTML (string inputs)', () => {
   expect(html).toContain('tooltip title');
   expect(html).toContain('body text');
   expect(html).toContain('footer note');
+=======
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+import { render, screen } from 'spec/helpers/testing-library';
+import Tooltip, { getTooltipHTML } from './Tooltip';
+
+test('should render a tooltip', () => {
+  const expected = {
+    title: 'tooltip title',
+    icon: <div>icon</div>,
+    body: <div>body</div>,
+    meta: 'meta',
+    footer: <div>footer</div>,
+  };
+  render(<Tooltip {...expected} />);
+  expect(screen.getByText(expected.title)).toBeInTheDocument();
+  expect(screen.getByText(expected.meta)).toBeInTheDocument();
+  expect(screen.getByText('icon')).toBeInTheDocument();
+  expect(screen.getByText('body')).toBeInTheDocument();
+});
+
+test('returns the tooltip HTML', () => {
+  const html = getTooltipHTML({
+    title: 'tooltip title',
+    icon: <div>icon</div>,
+    body: <div>body</div>,
+    meta: 'meta',
+    footer: <div>footer</div>,
+  });
+  expect(html).toContain('tooltip title');
+>>>>>>> origin/avenmaster:superset-frontend/src/components/AsyncAceEditor/Tooltip.test.tsx
 });
