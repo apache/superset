@@ -19,7 +19,7 @@
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
 
 class ExecuteSqlRequest(BaseModel):
@@ -30,7 +30,11 @@ class ExecuteSqlRequest(BaseModel):
     database_id: int = Field(
         ..., description="Database connection ID to execute query against"
     )
-    sql: str = Field(..., description="SQL query to execute")
+    sql: str = Field(
+        ...,
+        description="SQL query to execute (supports Jinja2 {{ var }} template syntax)",
+        validation_alias=AliasChoices("sql", "query"),
+    )
     schema_name: str | None = Field(
         None, description="Schema to use for query execution", alias="schema"
     )

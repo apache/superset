@@ -119,7 +119,7 @@ class TestHandlebarsChartConfig:
             )
 
     def test_extra_fields_forbidden(self) -> None:
-        with pytest.raises(ValueError, match="Extra inputs"):
+        with pytest.raises(ValueError, match="Unknown field 'unknown_field'"):
             HandlebarsChartConfig(
                 chart_type="handlebars",
                 handlebars_template="<p>test</p>",

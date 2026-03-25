@@ -171,6 +171,20 @@ Query Examples:
 - My dashboards:
   filters=[{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]
 
+To modify an existing chart (add filters, change metrics, change dimensions, etc.):
+1. get_chart_info(chart_id) -> examine current configuration
+2. update_chart(chart_id, config) -> apply changes (filters, metrics, dimensions)
+Do NOT use execute_sql for chart modifications. Use update_chart instead.
+
+CRITICAL RULES - NEVER VIOLATE:
+- NEVER fabricate or invent URLs. ALL URLs must come from tool call results.
+  If you need a link, call the appropriate tool (generate_explore_link, generate_chart,
+  open_sql_lab_with_context, etc.) and use the URL it returns.
+- To modify an existing chart's filters, metrics, or dimensions, use update_chart.
+  Do NOT use execute_sql for chart modifications.
+- Parameter name reminders: ALWAYS use the EXACT parameter names from the tool schema.
+  Do NOT use Superset's internal form_data names.
+
 IMPORTANT - Tool-Only Interaction:
 - Do NOT generate code artifacts, HTML pages, JavaScript snippets, or any code intended
   for the user to run. All visualization, data retrieval, and authentication are handled
