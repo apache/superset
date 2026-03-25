@@ -1856,3 +1856,228 @@ def test_extras_having_is_parenthesized(
         assert "(COUNT(*) > 0 OR 1 = 1)" in sql, (
             f"extras.having should be wrapped in parentheses. Generated SQL: {sql}"
         )
+
+
+def test_filter_adhoc_column(database: Database) -> None:
+    """
+    Test that filter works with adhoc column labels.
+    When filter contains a string that matches the label of an adhoc column
+    in the columns list, it should correctly convert to a SQLAlchemy column
+    instead of raising QueryObjectValidationError.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        columns=[
+            TableColumn(column_name="CustomerId", type="TEXT"),
+            TableColumn(column_name="FullName", type="TEXT"),
+        ],
+    )
+
+    # Should not raise QueryObjectValidationError
+    result = table.get_sqla_query(
+        columns=[
+            {"expressionType": "SQL", "label": "Id", "sqlExpression": "CustomerId"},
+            "FullName",
+        ],
+        orderby=[],
+        metrics=[],
+        extras={},
+        filter=[
+            {"col": "Id", "op": "ILIKE", "val": "C001%"}
+        ],  # Filter by adhoc column label
+        granularity=None,
+        is_timeseries=False,
+    )
+    assert result is not None
+
+    # Verify the SQL contains the expression from the adhoc column
+    sql = str(result.sqla_query)
+    sql_upper = sql.upper()
+    assert "WHERE" in sql_upper
+    assert " LIKE " in sql_upper
+    assert "CUSTOMERID" in sql_upper
+
+
+def test_find_adhoc_column_and_convert_to_sqla_found(database: Database) -> None:
+    """
+    Test find_adhoc_column_and_convert_to_sqla when adhoc column is found.
+
+    The method should find an adhoc column by label and return a SQLAlchemy column.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="CustomerId"),
+            TableColumn(column_name="CustomerName"),
+        ],
+    )
+
+    # List of columns including an adhoc column
+    columns = [
+        {"expressionType": "SQL", "label": "Id", "sqlExpression": "CustomerId"},
+        "CustomerName",
+    ]
+
+    # Find the adhoc column by label
+    result = table.find_adhoc_column_and_convert_to_sqla(
+        columns=columns,
+        label="Id",
+        template_processor=None,
+    )
+
+    # Should return a SQLAlchemy column element
+    assert result is not None
+    from sqlalchemy.sql.elements import ColumnElement
+
+    assert isinstance(result, ColumnElement)
+
+
+def test_find_adhoc_column_and_convert_to_sqla_not_found(database: Database) -> None:
+    """
+    Test find_adhoc_column_and_convert_to_sqla when adhoc column is not found.
+
+    The method should return None when no matching adhoc column exists.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="CustomerId"),
+            TableColumn(column_name="CustomerName"),
+        ],
+    )
+
+    # List of columns without the target adhoc column
+    columns = [
+        {"expressionType": "SQL", "label": "salary", "sqlExpression": "Salary"},
+        "CustomerName",
+    ]
+
+    # Try to find a non-existent adhoc column
+    result = table.find_adhoc_column_and_convert_to_sqla(
+        columns=columns,
+        label="nonexistent_col",
+        template_processor=None,
+    )
+
+    # Should return None
+    assert result is None
+
+
+def test_find_adhoc_column_and_convert_to_sqla_empty_columns(
+    database: Database,
+) -> None:
+    """
+    Test find_adhoc_column_and_convert_to_sqla with empty columns list.
+
+    The method should return None when the columns list is empty.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="CustomerId"),
+        ],
+    )
+
+    # Empty columns list
+    columns: list[AdhocColumn | str] = []
+
+    # Try to find an adhoc column in empty list
+    result = table.find_adhoc_column_and_convert_to_sqla(
+        columns=columns,
+        label="any_label",
+        template_processor=None,
+    )
+
+    # Should return None
+    assert result is None
+
+
+def test_find_adhoc_column_and_convert_to_sqla_regular_columns_only(
+    database: Database,
+) -> None:
+    """
+    Test find_adhoc_column_and_convert_to_sqla with only regular columns.
+
+    The method should return None when the columns list contains only
+    regular (non-adhoc) columns.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="CustomerId"),
+            TableColumn(column_name="CustomerName"),
+        ],
+    )
+
+    # List with only regular string columns, no adhoc columns
+    columns = ["CustomerId", "CustomerName"]
+
+    # Try to find an adhoc column when none exist
+    result = table.find_adhoc_column_and_convert_to_sqla(
+        columns=columns,
+        label="a",
+        template_processor=None,
+    )
+
+    # Should return None because "a" is not an adhoc column
+    assert result is None
+
+
+def test_find_adhoc_column_and_convert_to_sqla_multiple_adhoc_columns(
+    database: Database,
+) -> None:
+    """
+    Test find_adhoc_column_and_convert_to_sqla with multiple adhoc columns.
+
+    The method should correctly find the right adhoc column by label when
+    multiple adhoc columns are present.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="CustomerId"),
+            TableColumn(column_name="CustomerName"),
+        ],
+    )
+
+    # List with multiple adhoc columns
+    columns = [
+        {"expressionType": "SQL", "label": "Id", "sqlExpression": "CustomerId"},
+        {"expressionType": "SQL", "label": "Name", "sqlExpression": "CustomerName"},
+    ]
+
+    # Find the second adhoc column
+    result = table.find_adhoc_column_and_convert_to_sqla(
+        columns=columns,
+        label="Name",
+        template_processor=None,
+    )
+
+    # Should return a SQLAlchemy column element for Name
+    assert result is not None
+    from sqlalchemy.sql.elements import ColumnElement
+
+    assert isinstance(result, ColumnElement)
