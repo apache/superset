@@ -185,12 +185,10 @@ const config: ControlPanelConfig = {
               default: 'smart_date',
               description: `${D3_TIME_FORMAT_DOCS}. ${TIME_SERIES_DESCRIPTION_TEXT}`,
               visibility: ({ controls }: ControlPanelsContainerProps) =>
-                !checkColumnType(
-                  getColumnLabel(
-                    controls?.x_axis?.value as QueryFormColumn,
-                  ),
+                checkColumnType(
+                  getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
                   controls?.datasource?.datasource,
-                  [GenericDataType.Numeric],
+                  [GenericDataType.Temporal],
                 ),
             },
           },
@@ -204,9 +202,7 @@ const config: ControlPanelConfig = {
               mapStateToProps: undefined,
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 checkColumnType(
-                  getColumnLabel(
-                    controls?.x_axis?.value as QueryFormColumn,
-                  ),
+                  getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
                   controls?.datasource?.datasource,
                   [GenericDataType.Numeric],
                 ),
