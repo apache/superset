@@ -235,17 +235,16 @@ class TestXYChartConfig:
         )
         assert config.kind == "area"
 
-    def test_unknown_fields_ignored(self) -> None:
-        """Test that unknown fields are silently ignored (extra='ignore')."""
-        config = XYChartConfig(
-            chart_type="xy",
-            x=ColumnRef(name="territory"),
-            y=[ColumnRef(name="sales", aggregate="SUM")],
-            kind="bar",
-            unknown_field="bad",
-        )
-        assert config.kind == "bar"
-        assert not hasattr(config, "unknown_field")
+    def test_unknown_fields_raise_error(self) -> None:
+        """Test that unknown fields raise ValueError with suggestions."""
+        with pytest.raises(ValidationError, match="Unknown field"):
+            XYChartConfig(
+                chart_type="xy",
+                x=ColumnRef(name="territory"),
+                y=[ColumnRef(name="sales", aggregate="SUM")],
+                kind="bar",
+                unknown_field="bad",
+            )
 
     def test_series_alias_accepted(self) -> None:
         """Test that 'series' is accepted as alias for 'group_by'."""
@@ -485,12 +484,144 @@ class TestRowLimit:
 class TestTableChartConfigExtraFields:
     """Test TableChartConfig rejects unknown fields."""
 
-    def test_unknown_fields_ignored(self) -> None:
-        """Test that unknown fields are silently ignored (extra='ignore')."""
-        config = TableChartConfig(
-            chart_type="table",
-            columns=[ColumnRef(name="product")],
-            foo="bar",
+    def test_unknown_fields_raise_error(self) -> None:
+        """Test that unknown fields raise ValueError with valid field list."""
+        with pytest.raises(ValidationError, match="Unknown field 'foo'"):
+            TableChartConfig(
+                chart_type="table",
+                columns=[ColumnRef(name="product")],
+                foo="bar",
+            )
+
+
+class TestAliasChoices:
+    """Test that common Superset form_data aliases are accepted."""
+
+    def test_xy_stack_alias_for_stacked(self) -> None:
+        """Test that 'stack' is accepted as alias for 'stacked'."""
+        config = XYChartConfig.model_validate(
+            {
+                "chart_type": "xy",
+                "x": {"name": "category"},
+                "y": [{"name": "sales", "aggregate": "SUM"}],
+                "stack": True,
+            }
         )
-        assert len(config.columns) == 1
-        assert not hasattr(config, "foo")
+        assert config.stacked is True
+
+    def test_xy_stacked_still_works(self) -> None:
+        """Test that 'stacked' still works as primary field name."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            stacked=True,
+        )
+        assert config.stacked is True
+
+    def test_xy_time_grain_sqla_alias(self) -> None:
+        """Test that 'time_grain_sqla' is accepted as alias for 'time_grain'."""
+        config = XYChartConfig.model_validate(
+            {
+                "chart_type": "xy",
+                "x": {"name": "order_date"},
+                "y": [{"name": "sales", "aggregate": "SUM"}],
+                "time_grain_sqla": "P1D",
+            }
+        )
+        assert config.time_grain is not None
+
+    def test_table_order_by_alias_for_sort_by(self) -> None:
+        """Test that 'order_by' is accepted as alias for 'sort_by'."""
+        config = TableChartConfig.model_validate(
+            {
+                "chart_type": "table",
+                "columns": [{"name": "product"}],
+                "order_by": ["product"],
+            }
+        )
+        assert config.sort_by == ["product"]
+
+    def test_mixed_timeseries_time_grain_sqla_alias(self) -> None:
+        """Test that 'time_grain_sqla' works for MixedTimeseriesChartConfig."""
+        from superset.mcp_service.chart.schemas import MixedTimeseriesChartConfig
+
+        config = MixedTimeseriesChartConfig.model_validate(
+            {
+                "chart_type": "mixed_timeseries",
+                "x": {"name": "order_date"},
+                "y": [{"name": "sales", "aggregate": "SUM"}],
+                "y_secondary": [{"name": "profit", "aggregate": "SUM"}],
+                "time_grain_sqla": "P1M",
+            }
+        )
+        assert config.time_grain is not None
+
+
+class TestUnknownFieldDetection:
+    """Test that unknown fields produce helpful error messages."""
+
+    def test_near_miss_suggests_correct_field(self) -> None:
+        """Test that a near-miss field name produces 'did you mean?' suggestion."""
+        with pytest.raises(ValidationError, match="did you mean"):
+            XYChartConfig.model_validate(
+                {
+                    "chart_type": "xy",
+                    "x": {"name": "category"},
+                    "y": [{"name": "sales", "aggregate": "SUM"}],
+                    "stacks": True,
+                }
+            )
+
+    def test_completely_unknown_field_lists_valid_fields(self) -> None:
+        """Test that a completely unknown field lists valid fields."""
+        with pytest.raises(ValidationError, match="Valid fields:"):
+            XYChartConfig.model_validate(
+                {
+                    "chart_type": "xy",
+                    "x": {"name": "category"},
+                    "y": [{"name": "sales", "aggregate": "SUM"}],
+                    "zzz_nonexistent": True,
+                }
+            )
+
+    def test_pie_chart_unknown_field(self) -> None:
+        """Test unknown field detection on PieChartConfig."""
+        from superset.mcp_service.chart.schemas import PieChartConfig
+
+        with pytest.raises(ValidationError, match="Unknown field"):
+            PieChartConfig.model_validate(
+                {
+                    "chart_type": "pie",
+                    "dimension": {"name": "category"},
+                    "metric": {"name": "sales", "aggregate": "SUM"},
+                    "bad_field": True,
+                }
+            )
+
+    def test_table_chart_unknown_field(self) -> None:
+        """Test unknown field detection on TableChartConfig."""
+        with pytest.raises(ValidationError, match="Unknown field"):
+            TableChartConfig.model_validate(
+                {
+                    "chart_type": "table",
+                    "columns": [{"name": "product"}],
+                    "invalid_param": "test",
+                }
+            )
+
+    def test_known_aliases_not_flagged_as_unknown(self) -> None:
+        """Test that known aliases pass validation without errors."""
+        config = XYChartConfig.model_validate(
+            {
+                "chart_type": "xy",
+                "x_axis": {"name": "category"},
+                "metrics": [{"name": "sales", "aggregate": "SUM"}],
+                "groupby": [{"name": "region"}],
+                "stack": True,
+                "time_grain_sqla": "P1D",
+            }
+        )
+        assert config.stacked is True
+        assert config.row_limit == 10000
+        assert config.group_by is not None
