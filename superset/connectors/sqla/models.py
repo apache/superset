@@ -299,6 +299,7 @@ class BaseDatasource(
                 "last_name": o.last_name,
                 "username": o.username,
                 "id": o.id,
+                "email": o.email,
             }
             for o in self.owners
         ]
