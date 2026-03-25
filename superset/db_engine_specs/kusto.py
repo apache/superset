@@ -56,12 +56,15 @@ def strip_array_brackets(kql: str) -> str:
     tokens = tokenize_kql(kql)
 
     to_remove: set[int] = set()
+    depth = 0
     for i in range(len(tokens)):
         if tokens[i : i + 3] == _OPENING_BRACKET:
             to_remove.add(i)
             to_remove.add(i + 1)
-        elif tokens[i : i + 2] == _CLOSING_BRACKET:
+            depth += 1
+        elif depth > 0 and tokens[i : i + 2] == _CLOSING_BRACKET:
             to_remove.add(i + 1)
+            depth -= 1
 
     tokens = [token for i, token in enumerate(tokens) if i not in to_remove]
     return "".join(val for _, val in tokens)
