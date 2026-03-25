@@ -90,7 +90,7 @@ test('scatter chart control panel should have visibility function for x_axis_tim
 
 const isTimeVisible = (
   xAxisColumn: string | null,
-  xAxisType: string | null,
+  xAxisType: GenericDataType | null,
 ): boolean => {
   const props = mockControls(xAxisColumn, xAxisType);
   const visibilityFn = timeFormatControl?.config?.visibility;
@@ -131,7 +131,7 @@ test('scatter chart control panel should have visibility function for x_axis_num
 
 const isNumberVisible = (
   xAxisColumn: string | null,
-  xAxisType: string | null,
+  xAxisType: GenericDataType | null,
 ): boolean => {
   const props = mockControls(xAxisColumn, xAxisType);
   const visibilityFn = numberFormatControl?.config?.visibility;
