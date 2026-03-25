@@ -82,6 +82,9 @@ describe('ValueCell', () => {
     );
 
     const span = container.querySelector('span[data-value="300"] span');
-    expect(span).toHaveAttribute('style', expect.stringMatching(/color: rgb\([0-9]{1,3}, [0-9]{1,3}, [0-9]{1,3}\)/));
+    expect(span).toHaveAttribute(
+      'style',
+      expect.stringMatching(/color: rgb\([0-9]{1,3}, [0-9]{1,3}, [0-9]{1,3}\)/),
+    );
   });
 });
