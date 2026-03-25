@@ -27,6 +27,7 @@ from typing import Annotated, Any, Dict, List, Literal, Protocol
 
 from pydantic import (
     AliasChoices,
+    AliasPath,
     BaseModel,
     ConfigDict,
     Field,
@@ -396,18 +397,30 @@ def _normalize_group_by_input(v: Any) -> Any:
     return v
 
 
+def _top_level_key(alias: str | AliasPath) -> str | None:
+    """Extract the top-level dict key from a str or AliasPath."""
+    if isinstance(alias, str):
+        return alias
+    if isinstance(alias, AliasPath) and alias.path and isinstance(alias.path[0], str):
+        return alias.path[0]
+    return None
+
+
 def _get_known_fields(model_class: type[BaseModel]) -> set[str]:
     """Collect all valid field names including validation aliases."""
     known: set[str] = set()
     for field_name, field_info in model_class.model_fields.items():
         known.add(field_name)
         alias = field_info.validation_alias
-        if isinstance(alias, str):
-            known.add(alias)
+        if isinstance(alias, (str, AliasPath)):
+            key = _top_level_key(alias)
+            if key:
+                known.add(key)
         elif isinstance(alias, AliasChoices):
             for choice in alias.choices:
-                if isinstance(choice, str):
-                    known.add(choice)
+                key = _top_level_key(choice)
+                if key:
+                    known.add(key)
     return known
 
 
@@ -434,6 +447,15 @@ def _check_unknown_fields(data: Any, model_class: type[BaseModel]) -> Any:
                 f"Unknown field '{field}'. Valid fields: {', '.join(sorted(known))}"
             )
     raise ValueError(" | ".join(messages))
+
+
+class UnknownFieldCheckMixin(BaseModel):
+    """Mixin that rejects unknown fields with 'did you mean?' suggestions."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def check_unknown_fields(cls, data: Any) -> Any:
+        return _check_unknown_fields(data, cls)
 
 
 class ColumnRef(BaseModel):
@@ -560,7 +582,7 @@ class FilterConfig(BaseModel):
 
 
 # Actual chart types
-class PieChartConfig(BaseModel):
+class PieChartConfig(UnknownFieldCheckMixin):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["pie"] = "pie"
@@ -599,13 +621,8 @@ class PieChartConfig(BaseModel):
         30, description="Donut inner radius % (1-100)", ge=1, le=100
     )
 
-    @model_validator(mode="before")
-    @classmethod
-    def check_unknown_fields(cls, data: Any) -> Any:
-        return _check_unknown_fields(data, cls)
 
-
-class PivotTableChartConfig(BaseModel):
+class PivotTableChartConfig(UnknownFieldCheckMixin):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["pivot_table"] = "pivot_table"
@@ -648,13 +665,8 @@ class PivotTableChartConfig(BaseModel):
     row_limit: int = Field(10000, description="Max cells", ge=1, le=50000)
     value_format: str = Field("SMART_NUMBER", max_length=50)
 
-    @model_validator(mode="before")
-    @classmethod
-    def check_unknown_fields(cls, data: Any) -> Any:
-        return _check_unknown_fields(data, cls)
 
-
-class MixedTimeseriesChartConfig(BaseModel):
+class MixedTimeseriesChartConfig(UnknownFieldCheckMixin):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["mixed_timeseries"] = "mixed_timeseries"
@@ -708,18 +720,13 @@ class MixedTimeseriesChartConfig(BaseModel):
     )
     row_limit: int = Field(10000, description="Max data points", ge=1, le=50000)
 
-    @model_validator(mode="before")
-    @classmethod
-    def check_unknown_fields(cls, data: Any) -> Any:
-        return _check_unknown_fields(data, cls)
-
     @field_validator("group_by", "group_by_secondary", mode="before")
     @classmethod
     def wrap_single_group_by(cls, v: Any) -> Any:
         return _normalize_group_by_input(v)
 
 
-class HandlebarsChartConfig(BaseModel):
+class HandlebarsChartConfig(UnknownFieldCheckMixin):
     model_config = ConfigDict(extra="ignore")
 
     chart_type: Literal["handlebars"] = Field(
@@ -786,11 +793,6 @@ class HandlebarsChartConfig(BaseModel):
         max_length=10000,
     )
 
-    @model_validator(mode="before")
-    @classmethod
-    def check_unknown_fields(cls, data: Any) -> Any:
-        return _check_unknown_fields(data, cls)
-
     @model_validator(mode="after")
     def validate_query_fields(self) -> "HandlebarsChartConfig":
         """Validate that the right fields are provided for the query mode."""
@@ -827,7 +829,7 @@ class HandlebarsChartConfig(BaseModel):
         return self
 
 
-class TableChartConfig(BaseModel):
+class TableChartConfig(UnknownFieldCheckMixin):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["table"] = "table"
@@ -850,11 +852,6 @@ class TableChartConfig(BaseModel):
         validation_alias=AliasChoices("sort_by", "order_by_cols", "order_by"),
     )
     row_limit: int = Field(1000, description="Max rows returned", ge=1, le=50000)
-
-    @model_validator(mode="before")
-    @classmethod
-    def check_unknown_fields(cls, data: Any) -> Any:
-        return _check_unknown_fields(data, cls)
 
     @model_validator(mode="after")
     def validate_unique_column_labels(self) -> "TableChartConfig":
@@ -884,7 +881,7 @@ class TableChartConfig(BaseModel):
         return self
 
 
-class XYChartConfig(BaseModel):
+class XYChartConfig(UnknownFieldCheckMixin):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["xy"] = "xy"
@@ -928,11 +925,6 @@ class XYChartConfig(BaseModel):
         "Do NOT use adhoc_filters or raw SQL expressions.",
     )
     row_limit: int = Field(10000, description="Max data points", ge=1, le=50000)
-
-    @model_validator(mode="before")
-    @classmethod
-    def check_unknown_fields(cls, data: Any) -> Any:
-        return _check_unknown_fields(data, cls)
 
     @field_validator("group_by", mode="before")
     @classmethod
