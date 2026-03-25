@@ -243,7 +243,7 @@ function createHierarchicalComparator(
     let currentGroup: GroupNode = groups;
     let diffIndex = -1;
 
-    for (let i = 0; i < minLen; i++) {
+    for (let i = 0; i < minLen; i += 1) {
       if (a[i] !== b[i]) {
         diffIndex = i;
         break;
