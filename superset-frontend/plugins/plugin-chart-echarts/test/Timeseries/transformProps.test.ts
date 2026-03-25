@@ -679,6 +679,57 @@ describe('Does transformProps transform series correctly', () => {
     });
   });
 
+  test('should apply labelPosition and overflow correctly', () => {
+    const chartProps = createTestChartProps({
+      formData: { ...formData, labelPosition: 'inside' },
+      queriesData,
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as any[];
+
+    transformedSeries.forEach(series => {
+      expect(series.label.position).toBe('inside');
+      expect(series.label.overflow).toBe('truncate');
+    });
+  });
+
+  test('should default to auto (orientation aware) when labelPosition is auto', () => {
+    const chartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        orientation: OrientationType.Horizontal,
+        labelPosition: 'auto',
+      },
+      queriesData,
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as any[];
+
+    transformedSeries.forEach(series => {
+      expect(series.label.position).toBe('inside');
+    });
+  });
+
+  test('should override orientation default with manual labelPosition', () => {
+    const chartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        orientation: OrientationType.Horizontal,
+        labelPosition: 'top',
+      },
+      queriesData,
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as any[];
+
+    transformedSeries.forEach(series => {
+      expect(series.label.position).toBe('top');
+    });
+  });
+
   test('should not show labels when showValue is false', () => {
     const chartProps = createTestChartProps({
       formData: { ...formData, showValue: false },
@@ -1059,9 +1110,9 @@ test('should not apply dashed line style for non-Values comparison types', () =>
 
   const comparisonSeries = series.find(s => s.name === '1 week ago') as
     | (SeriesOption & {
-        lineStyle?: { type?: number[] | string };
-        connectNulls?: boolean;
-      })
+      lineStyle?: { type?: number[] | string };
+      connectNulls?: boolean;
+    })
     | undefined;
 
   expect(comparisonSeries).toBeDefined();

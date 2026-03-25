@@ -203,6 +203,30 @@ function createCustomizeSection(
     ],
     [
       {
+        name: `label_position${controlSuffix}`,
+        config: {
+          type: 'SelectControl',
+          freeForm: false,
+          label: t('Label Position'),
+          choices: [
+            ['top', t('Top')],
+            ['inside', t('Inside')],
+            ['bottom', t('Bottom')],
+            ['left', t('Left')],
+            ['right', t('Right')],
+          ],
+          default: 'top',
+          renderTrigger: true,
+          description: t(
+            'Position of the data label relative to the bar segment',
+          ),
+          visibility: ({ controls }: ControlPanelsContainerProps) =>
+            Boolean(controls?.[`show_value${controlSuffix}`]?.value),
+        },
+      },
+    ],
+    [
+      {
         name: `only_total${controlSuffix}`,
         config: {
           type: 'CheckboxControl',

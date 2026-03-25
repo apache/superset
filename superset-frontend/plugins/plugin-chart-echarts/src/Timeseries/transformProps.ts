@@ -177,6 +177,7 @@ export default function transformProps(
     seriesType,
     showLegend,
     showValue,
+    labelPosition,
     colorByPrimaryAxis,
     sliceId,
     sortSeriesType,
@@ -297,9 +298,9 @@ export default function transformProps(
 
   const defaultFormatter = resolvedCurrency?.symbol
     ? new CurrencyFormatter({
-        d3Format: yAxisFormat,
-        currency: resolvedCurrency,
-      })
+      d3Format: yAxisFormat,
+      currency: resolvedCurrency,
+    })
     : getNumberFormatter(yAxisFormat);
   const customFormatters = buildCustomFormatters(
     metrics,
@@ -422,11 +423,12 @@ export default function transformProps(
         formatter: forcePercentFormatter
           ? percentFormatter
           : (getCustomFormatter(
-              customFormatters,
-              metrics,
-              labelMap?.[seriesName]?.[0],
-            ) ?? defaultFormatter),
+            customFormatters,
+            metrics,
+            labelMap?.[seriesName]?.[0],
+          ) ?? defaultFormatter),
         showValue,
+        labelPosition,
         onlyTotal,
         totalStackedValues: sortedTotalValues,
         showValueIndexes,
@@ -640,8 +642,8 @@ export default function transformProps(
         : String;
 
   const {
-    setDataMask = () => {},
-    setControlValue = () => {},
+    setDataMask = () => { },
+    setControlValue = () => { },
     onContextMenu,
     onLegendStateChanged,
     onLegendScroll,
@@ -667,40 +669,40 @@ export default function transformProps(
   const legendData =
     colorByPrimaryAxis && groupBy.length === 0 && series.length > 0
       ? // When colorByPrimaryAxis is enabled, show only primary axis values (deduped + filtered)
-        (() => {
-          const firstSeries = series[0];
-          // For horizontal charts the category is at index 1, for vertical at index 0
-          const primaryAxisIndex = isHorizontal ? 1 : 0;
-          if (firstSeries && Array.isArray(firstSeries.data)) {
-            const names = (firstSeries.data as any[])
-              .map(point => {
-                if (point && typeof point === 'object' && 'value' in point) {
-                  const val = point.value;
-                  return String(
-                    Array.isArray(val) ? val[primaryAxisIndex] : val,
-                  );
-                }
-                if (Array.isArray(point)) {
-                  return String(point[primaryAxisIndex]);
-                }
-                return String(point);
-              })
-              .filter(
-                name => name !== '' && name !== 'undefined' && name !== 'null',
-              );
-            return Array.from(new Set(names));
-          }
-          return [];
-        })()
+      (() => {
+        const firstSeries = series[0];
+        // For horizontal charts the category is at index 1, for vertical at index 0
+        const primaryAxisIndex = isHorizontal ? 1 : 0;
+        if (firstSeries && Array.isArray(firstSeries.data)) {
+          const names = (firstSeries.data as any[])
+            .map(point => {
+              if (point && typeof point === 'object' && 'value' in point) {
+                const val = point.value;
+                return String(
+                  Array.isArray(val) ? val[primaryAxisIndex] : val,
+                );
+              }
+              if (Array.isArray(point)) {
+                return String(point[primaryAxisIndex]);
+              }
+              return String(point);
+            })
+            .filter(
+              name => name !== '' && name !== 'undefined' && name !== 'null',
+            );
+          return Array.from(new Set(names));
+        }
+        return [];
+      })()
       : // Otherwise show original series names
-        rawSeries
-          .filter(
-            entry =>
-              extractForecastSeriesContext(entry.name || '').type ===
-              ForecastSeriesEnum.Observation,
-          )
-          .map(entry => entry.name || '')
-          .concat(extractAnnotationLabels(annotationLayers));
+      rawSeries
+        .filter(
+          entry =>
+            extractForecastSeriesContext(entry.name || '').type ===
+            ForecastSeriesEnum.Observation,
+        )
+        .map(entry => entry.name || '')
+        .concat(extractAnnotationLabels(annotationLayers));
 
   let xAxis: any = {
     type: xAxisType,
@@ -723,22 +725,22 @@ export default function transformProps(
       // avoid phantom labels at the axis boundary.
       ...(xAxisType === AxisType.Time &&
         xAxisLabelRotation === 0 && {
-          showMaxLabel: true,
-          alignMaxLabel: 'right',
-        }),
+        showMaxLabel: true,
+        alignMaxLabel: 'right',
+      }),
     },
     minorTick: { show: minorTicks },
     minInterval:
       xAxisType === AxisType.Time && timeGrainSqla && !forceMaxInterval
         ? TIMEGRAIN_TO_TIMESTAMP[
-            timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
-          ]
+        timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+        ]
         : 0,
     maxInterval:
       xAxisType === AxisType.Time && timeGrainSqla && forceMaxInterval
         ? TIMEGRAIN_TO_TIMESTAMP[
-            timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
-          ]
+        timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+        ]
         : undefined,
     ...getMinAndMaxFromBounds(
       xAxisType,
@@ -781,9 +783,9 @@ export default function transformProps(
     padding.right = Math.max(
       padding.right || 0,
       TIMESERIES_CONSTANTS.gridOffsetRight +
-        Math.ceil(
-          Math.abs(Math.sin((xAxisLabelRotation * Math.PI) / 180)) * 80,
-        ),
+      Math.ceil(
+        Math.abs(Math.sin((xAxisLabelRotation * Math.PI) / 180)) * 80,
+      ),
     );
   }
 
@@ -922,23 +924,23 @@ export default function transformProps(
       data:
         colorByPrimaryAxis && groupBy.length === 0
           ? // When colorByPrimaryAxis, configure legend items with roundRect icons
-            legendData.map(name => ({
-              name,
-              icon: 'roundRect',
-            }))
+          legendData.map(name => ({
+            name,
+            icon: 'roundRect',
+          }))
           : // Otherwise use normal legend data
-            legendData.sort((a: string, b: string) => {
-              if (!legendSort) return 0;
-              return legendSort === 'asc'
-                ? a.localeCompare(b)
-                : b.localeCompare(a);
-            }),
+          legendData.sort((a: string, b: string) => {
+            if (!legendSort) return 0;
+            return legendSort === 'asc'
+              ? a.localeCompare(b)
+              : b.localeCompare(a);
+          }),
       // Disable legend selection and buttons when colorByPrimaryAxis is enabled
       ...(colorByPrimaryAxis && groupBy.length === 0
         ? {
-            selectedMode: false, // Disable clicking legend items
-            selector: false, // Hide All/Invert buttons
-          }
+          selectedMode: false, // Disable clicking legend items
+          selector: false, // Hide All/Invert buttons
+        }
         : {}),
     },
     series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
@@ -958,26 +960,26 @@ export default function transformProps(
     },
     dataZoom: zoomable
       ? [
-          {
-            type: 'slider',
-            start: TIMESERIES_CONSTANTS.dataZoomStart,
-            end: TIMESERIES_CONSTANTS.dataZoomEnd,
-            bottom: TIMESERIES_CONSTANTS.zoomBottom,
-            yAxisIndex: isHorizontal ? 0 : undefined,
-          },
-          {
-            type: 'inside',
-            yAxisIndex: 0,
-            zoomOnMouseWheel: false,
-            moveOnMouseWheel: true,
-          },
-          {
-            type: 'inside',
-            xAxisIndex: 0,
-            zoomOnMouseWheel: false,
-            moveOnMouseWheel: true,
-          },
-        ]
+        {
+          type: 'slider',
+          start: TIMESERIES_CONSTANTS.dataZoomStart,
+          end: TIMESERIES_CONSTANTS.dataZoomEnd,
+          bottom: TIMESERIES_CONSTANTS.zoomBottom,
+          yAxisIndex: isHorizontal ? 0 : undefined,
+        },
+        {
+          type: 'inside',
+          yAxisIndex: 0,
+          zoomOnMouseWheel: false,
+          moveOnMouseWheel: true,
+        },
+        {
+          type: 'inside',
+          xAxisIndex: 0,
+          zoomOnMouseWheel: false,
+          moveOnMouseWheel: true,
+        },
+      ]
       : [],
   };
 

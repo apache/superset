@@ -94,6 +94,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   xAxisLabelRotation: number;
   xAxisLabelInterval: number | string;
   showValue: boolean;
+  labelPosition?: 'auto' | 'top' | 'bottom' | 'left' | 'right' | 'inside' | 'insideTop' | 'insideBottom' | 'insideLeft' | 'insideRight';
   onlyTotal: boolean;
   showExtraControls: boolean;
   percentageThreshold: number;
@@ -108,14 +109,14 @@ export interface EchartsTimeseriesChartProps extends BaseChartProps<EchartsTimes
 
 export type TimeseriesChartTransformedProps =
   BaseTransformedProps<EchartsTimeseriesFormData> &
-    ContextMenuTransformedProps &
-    CrossFilterTransformedProps & {
-      legendData?: OptionName[];
-      isRefreshing?: boolean;
-      xValueFormatter: TimeFormatter | StringConstructor;
-      xAxis: {
-        label: string;
-        type: AxisType;
-      };
-      onFocusedSeries: (series: string | null) => void;
+  ContextMenuTransformedProps &
+  CrossFilterTransformedProps & {
+    legendData?: OptionName[];
+    isRefreshing?: boolean;
+    xValueFormatter: TimeFormatter | StringConstructor;
+    xAxis: {
+      label: string;
+      type: AxisType;
     };
+    onFocusedSeries: (series: string | null) => void;
+  };
