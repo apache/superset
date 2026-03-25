@@ -402,7 +402,9 @@ def _get_known_fields(model_class: type[BaseModel]) -> set[str]:
     for field_name, field_info in model_class.model_fields.items():
         known.add(field_name)
         alias = field_info.validation_alias
-        if isinstance(alias, AliasChoices):
+        if isinstance(alias, str):
+            known.add(alias)
+        elif isinstance(alias, AliasChoices):
             for choice in alias.choices:
                 if isinstance(choice, str):
                     known.add(choice)

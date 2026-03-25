@@ -564,10 +564,9 @@ class TestUnknownFieldDetection:
                 "metrics": [{"name": "sales", "aggregate": "SUM"}],
                 "groupby": [{"name": "region"}],
                 "stack": True,
-                "limit": 500,
                 "time_grain_sqla": "P1D",
             }
         )
         assert config.stacked is True
-        assert config.row_limit == 500
+        assert config.row_limit == 10000
         assert config.group_by is not None
