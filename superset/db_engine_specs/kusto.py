@@ -33,10 +33,38 @@ from superset.db_engine_specs.exceptions import (
 if TYPE_CHECKING:
     from superset.models.core import Database
 
-from superset.sql.parse import LimitMethod
+from superset.sql.parse import KQLTokenType, LimitMethod, tokenize_kql
 from superset.utils.core import FilterOperator, GenericDataType
 
 logger = logging.getLogger(__name__)
+
+_OPENING_BRACKET = [
+    (KQLTokenType.WORD, "ARRAY"),
+    (KQLTokenType.OTHER, "("),
+    (KQLTokenType.OTHER, "["),
+]
+_CLOSING_BRACKET = [(KQLTokenType.OTHER, "]"), (KQLTokenType.OTHER, ")")]
+
+
+def strip_array_brackets(kql: str) -> str:
+    """
+    Replace ``ARRAY([...])`` wrappers with ``[...]`` using the KQL tokenizer.
+
+    SQLAlchemy sometimes wraps bracket-quoted KQL identifiers in ARRAY(),
+    which is invalid KQL. This strips the wrapper while preserving the contents.
+    """
+    tokens = tokenize_kql(kql)
+
+    to_remove: set[int] = set()
+    for i in range(len(tokens)):
+        if tokens[i : i + 3] == _OPENING_BRACKET:
+            to_remove.add(i)
+            to_remove.add(i + 1)
+        elif tokens[i : i + 2] == _CLOSING_BRACKET:
+            to_remove.add(i + 1)
+
+    tokens = [token for i, token in enumerate(tokens) if i not in to_remove]
+    return "".join(val for _, val in tokens)
 
 
 class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
@@ -283,16 +311,5 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             ARRAY(["age"]) -> ["age"]
             ARRAY(["user_name"]) -> ["user_name"]
         """
-        # Replace ARRAY(["identifier"]) with ["identifier"]
-        processed_query, num_replacements = re.subn(
-            r'ARRAY\(\[("(?:[^"\\]|\\.)*")\]\)',
-            r"[\1]",
-            query,
-        )
-
-        if num_replacements:
-            logger.debug(
-                "execute: rewrote %d ARRAY wrapper(s) in query", num_replacements
-            )
-
+        processed_query = strip_array_brackets(query)
         super().execute(cursor, processed_query, database, **kwargs)
