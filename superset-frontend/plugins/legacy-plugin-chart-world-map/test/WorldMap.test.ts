@@ -212,13 +212,11 @@ test('calls onContextMenu when provided and right-click occurs', () => {
 
   let contextMenuHandler: ((source: any) => void) | undefined;
 
-  const originalOn = mockSvg.on;
-
-  mockSvg.on = jest.fn(function (event: string, handler: any) {
+  mockSvg.on.mockImplementation(function (event: string, handler: any) {
     if (event === 'contextmenu' && !contextMenuHandler) {
       contextMenuHandler = handler;
     }
-    return originalOn.call(this, event, handler);
+    return this;
   });
 
   WorldMap(container, propsWithContextMenu);
