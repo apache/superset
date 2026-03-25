@@ -1,0 +1,8 @@
+# Local overrides to avoid port conflicts with existing services
+services:
+  redis:
+    ports: !override
+      - "127.0.0.1:16379:6379"
+  db:
+    ports: !override
+      - "127.0.0.1:15432:5432"
