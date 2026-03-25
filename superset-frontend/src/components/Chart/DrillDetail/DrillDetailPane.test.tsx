@@ -219,11 +219,7 @@ test('should render the error', async () => {
 
 test('should render pagination when results exceed page size', async () => {
   fetchWithPaginatedData();
-  setup();
-  // Wait for the table to render with data (async fetch)
-  await waitFor(() => {
-    expect(screen.getByRole('table')).toBeInTheDocument();
-  });
+  await waitForRender();
   // With total_count=100 and page size=50, pagination should render
   await waitFor(() => {
     const pagination = document.querySelector('.ant-pagination');
