@@ -523,7 +523,7 @@ const DashboardBuilder = () => {
     ({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) => (
       <div>
         {dropIndicatorProps && <div {...dropIndicatorProps} />}
-        {!isReport && topLevelTabs && !uiConfig.hideNav && (
+        {!isReport && topLevelTabs && !uiConfig.hideTab && !uiConfig.hideNav && (
           <WithPopoverMenu
             shouldFocus={shouldFocusTabs}
             menuItems={[
@@ -555,6 +555,7 @@ const DashboardBuilder = () => {
       handleDeleteTopLevelTabs,
       isReport,
       topLevelTabs,
+      uiConfig.hideTab,
       uiConfig.hideNav,
     ],
   );
