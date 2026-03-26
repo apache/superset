@@ -137,9 +137,22 @@ test('getMatrixifyConfig should return null when no matrixify configuration exis
   expect(getMatrixifyConfig(formData)).toBeNull();
 });
 
+test('getMatrixifyConfig should return null when matrixify_enable is false', () => {
+  const formData = {
+    viz_type: 'table',
+    matrixify_enable: false,
+    matrixify_mode_rows: 'metrics',
+    matrixify_mode_columns: 'metrics',
+    matrixify_rows: [createMetric('Revenue')],
+    matrixify_columns: [createMetric('Q1')],
+  } as MatrixifyFormData;
+  expect(getMatrixifyConfig(formData)).toBeNull();
+});
+
 test('getMatrixifyConfig should return valid config for metrics mode', () => {
   const formData = {
     viz_type: 'table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'metrics',
     matrixify_mode_columns: 'metrics',
     matrixify_rows: [createMetric('Revenue')],
@@ -157,6 +170,7 @@ test('getMatrixifyConfig should return valid config for metrics mode', () => {
 test('getMatrixifyConfig should return valid config for dimensions mode', () => {
   const formData = {
     viz_type: 'table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'dimensions',
     matrixify_mode_columns: 'dimensions',
     matrixify_dimension_rows: { dimension: 'country', values: ['USA'] },
@@ -180,6 +194,7 @@ test('getMatrixifyConfig should return valid config for dimensions mode', () => 
 test('getMatrixifyConfig should handle topn selection mode', () => {
   const formData = {
     viz_type: 'table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'dimensions',
     matrixify_mode_columns: 'dimensions',
     matrixify_dimension_rows: {
@@ -207,9 +222,31 @@ test('getMatrixifyValidationErrors should return empty array when matrixify is n
   expect(getMatrixifyValidationErrors(formData)).toEqual([]);
 });
 
+test('getMatrixifyValidationErrors should return empty array when matrixify_enable is false even with stale mode values', () => {
+  const formData = {
+    viz_type: 'table',
+    matrixify_enable: false,
+    matrixify_mode_rows: 'metrics',
+    matrixify_mode_columns: 'dimensions',
+  } as MatrixifyFormData;
+
+  expect(getMatrixifyValidationErrors(formData)).toEqual([]);
+});
+
+test('getMatrixifyValidationErrors should return empty array when matrixify_enable is undefined with stale defaults', () => {
+  const formData = {
+    viz_type: 'bar',
+    matrixify_mode_rows: 'metrics',
+    matrixify_rows: [],
+  } as MatrixifyFormData;
+
+  expect(getMatrixifyValidationErrors(formData)).toEqual([]);
+});
+
 test('getMatrixifyValidationErrors should return empty array when properly configured', () => {
   const formData = {
     viz_type: 'table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'metrics',
     matrixify_mode_columns: 'metrics',
     matrixify_rows: [createMetric('Revenue')],
@@ -222,6 +259,7 @@ test('getMatrixifyValidationErrors should return empty array when properly confi
 test('getMatrixifyValidationErrors should return error when enabled but no configuration exists', () => {
   const formData = {
     viz_type: 'table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'metrics',
   } as MatrixifyFormData;
 
@@ -232,6 +270,7 @@ test('getMatrixifyValidationErrors should return error when enabled but no confi
 test('getMatrixifyValidationErrors should return error when metrics mode has no metrics', () => {
   const formData = {
     viz_type: 'table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'metrics',
     matrixify_rows: [],
     matrixify_columns: [],
@@ -276,6 +315,7 @@ test('isMatrixifyEnabled should return false when switch is off even with valid 
 test('getMatrixifyValidationErrors should return dimension error for rows when dimension has no data', () => {
   const formData = {
     viz_type: 'table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'dimensions',
     // No matrixify_dimension_rows set
     matrixify_mode_columns: 'metrics',
@@ -289,6 +329,7 @@ test('getMatrixifyValidationErrors should return dimension error for rows when d
 test('getMatrixifyValidationErrors should return metric error for columns when metrics array is empty', () => {
   const formData = {
     viz_type: 'table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'metrics',
     matrixify_rows: [createMetric('Revenue')],
     matrixify_mode_columns: 'metrics',
@@ -302,6 +343,7 @@ test('getMatrixifyValidationErrors should return metric error for columns when m
 test('getMatrixifyValidationErrors should return dimension error for columns when no dimension data', () => {
   const formData = {
     viz_type: 'table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'metrics',
     matrixify_rows: [createMetric('Revenue')],
     matrixify_mode_columns: 'dimensions',
@@ -315,6 +357,7 @@ test('getMatrixifyValidationErrors should return dimension error for columns whe
 test('getMatrixifyValidationErrors skips row check when matrixify_mode_rows is not set', () => {
   const formData = {
     viz_type: 'table',
+    matrixify_enable: true,
     // No matrixify_mode_rows — hasRowMode = false
     matrixify_mode_columns: 'metrics',
     matrixify_columns: [createMetric('Q1')],
@@ -327,6 +370,7 @@ test('getMatrixifyValidationErrors skips row check when matrixify_mode_rows is n
 test('getMatrixifyValidationErrors evaluates full && expression when dimension is set but values are empty', () => {
   const formData = {
     viz_type: 'table',
+    matrixify_enable: true,
     matrixify_mode_rows: 'dimensions',
     matrixify_dimension_rows: { dimension: 'country', values: [] },
     matrixify_mode_columns: 'dimensions',
