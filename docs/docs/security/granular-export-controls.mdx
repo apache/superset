@@ -71,5 +71,5 @@ The following API endpoints enforce granular export permissions when the feature
 | `GET /api/v1/chart/{id}/data/` (CSV/Excel format) | `can_export_data` |
 | `GET /api/v1/chart/{id}/cache_screenshot/` | `can_export_image` |
 | `GET /api/v1/dashboard/{id}/cache_screenshot/` | `can_export_image` |
-| `POST /api/v1/sqllab/export/` | `can_export_data` |
+| `GET /api/v1/sqllab/export/{client_id}/` | `can_export_data` |
 | `POST /api/v1/sqllab/export_streaming/` | `can_export_data` |
