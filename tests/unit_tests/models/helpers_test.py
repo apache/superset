@@ -1858,18 +1858,16 @@ def test_extras_having_is_parenthesized(
         )
 
 
-def test_adhoc_column_type_probe_uses_where_false(database: Database) -> None:
+def _run_probe(
+    database: Database,
+    type_probe_needs_row: bool = False,
+) -> str:
     """
-    Test that the adhoc column type probe query uses WHERE false instead of LIMIT 1.
+    Run adhoc_column_to_sqla with a mocked get_columns_description and
+    return the SQL that was passed to it.
 
-    When a chart uses a SQL expression as a BASE_AXIS column with a timeGrain set,
-    Superset probes its return type to decide whether to apply timestamp bucketing.
-    Previously this probe ran `SELECT <expr> FROM table LIMIT 1` with no WHERE clause,
-    causing a full table scan on databases that enforce row-read limits (e.g.
-    ClickHouse's max_rows_to_read) even for LIMIT 1 queries on very large tables.
-
-    The fix uses WHERE false so the database returns zero rows but still populates
-    cursor.description with column type metadata, which is all we need.
+    ``type_probe_needs_row`` is patched onto the database's real engine spec
+    class so every other method keeps working normally.
     """
     from unittest.mock import patch
 
@@ -1879,31 +1877,24 @@ def test_adhoc_column_type_probe_uses_where_false(database: Database) -> None:
         database=database,
         schema=None,
         table_name="t",
-        columns=[
-            TableColumn(column_name="a", type="INTEGER"),
-        ],
+        columns=[TableColumn(column_name="a", type="INTEGER")],
     )
 
-    # A numeric SQL expression used as BASE_AXIS with a timeGrain
     adhoc_col: AdhocColumn = {
         "sqlExpression": "round(a / 50) * 50 / 1000",
         "label": "Duration",
         "columnType": "BASE_AXIS",
         "timeGrain": "P1D",
     }
+    captured: list[str] = []
 
-    captured_queries: list[str] = []
-
-    # Mock get_columns_description so we can inspect the SQL it receives
-    # without needing a real database connection, and return a non-temporal type
-    # so the column is left as-is (no timestamp bucketing applied).
     def fake_get_columns_description(
         db: object,
         catalog: object,
         schema: object,
         sql: str,
     ) -> list[dict[str, object]]:
-        captured_queries.append(sql)
+        captured.append(sql)
         return [
             {
                 "column_name": "Duration",
@@ -1913,23 +1904,64 @@ def test_adhoc_column_type_probe_uses_where_false(database: Database) -> None:
             }
         ]
 
-    with patch(
-        "superset.connectors.sqla.models.get_columns_description",
-        side_effect=fake_get_columns_description,
+    spec_cls = database.db_engine_spec
+    with (
+        patch(
+            "superset.connectors.sqla.models.get_columns_description",
+            side_effect=fake_get_columns_description,
+        ),
+        patch.object(spec_cls, "type_probe_needs_row", type_probe_needs_row),
     ):
         result = table.adhoc_column_to_sqla(adhoc_col)
 
     assert result is not None
-    assert len(captured_queries) == 1, "Expected exactly one type-probe query"
+    assert len(captured) == 1, "Expected exactly one type-probe query"
+    return captured[0]
 
-    probe_sql = captured_queries[0].lower()
 
-    # The probe must contain a WHERE clause that is always false — zero rows are read
-    # from the table. SQLAlchemy renders sa.false() differently per dialect:
-    # - Most databases:  WHERE false
-    # - SQLite:          WHERE 0 = 1
+def test_adhoc_column_type_probe_uses_where_false(database: Database) -> None:
+    """
+    Most engines populate cursor.description from query-plan metadata, so the
+    probe uses WHERE FALSE — zero rows read, no table scan.
+
+    SQLAlchemy renders sa.false() differently per dialect:
+      - Most databases:  WHERE false
+      - SQLite:          WHERE 0 = 1
+    """
+    probe_sql = _run_probe(database, type_probe_needs_row=False).lower()
+
     always_false_patterns = ("where false", "where 0 = 1")
     assert any(p in probe_sql for p in always_false_patterns), (
-        f"Probe query should use a WHERE false condition to avoid scanning the table, "
-        f"but got: {captured_queries[0]}"
+        f"Probe query should use a WHERE false condition to avoid scanning the "
+        f"table, but got: {probe_sql}"
+    )
+    assert "limit" not in probe_sql, (
+        f"WHERE false probe must not contain LIMIT, but got: {probe_sql}"
+    )
+
+
+def test_adhoc_column_type_probe_uses_limit_1_for_row_dependent_engines(
+    database: Database,
+) -> None:
+    """
+    Druid and Pinot build cursor.description by inspecting the first returned
+    row. WHERE FALSE yields no rows, so description stays None. These engines
+    must fall back to LIMIT 1.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+    from superset.db_engine_specs.pinot import PinotEngineSpec
+
+    for spec_cls in (DruidEngineSpec, PinotEngineSpec):
+        assert spec_cls.type_probe_needs_row is True, (
+            f"{spec_cls.__name__} must declare type_probe_needs_row = True"
+        )
+
+    probe_sql = _run_probe(database, type_probe_needs_row=True).lower()
+
+    assert "limit 1" in probe_sql, (
+        f"Row-dependent engines: probe should use LIMIT 1, got: {probe_sql}"
+    )
+    always_false_patterns = ("where false", "where 0 = 1")
+    assert not any(p in probe_sql for p in always_false_patterns), (
+        f"Row-dependent engines: probe must NOT use WHERE false, got: {probe_sql}"
     )
