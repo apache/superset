@@ -949,13 +949,7 @@ def test_data_for_slices_handles_missing_datasource(mocker: MockerFixture) -> No
 
 
 def test_owners_data_includes_email(mocker: MockerFixture) -> None:
-    """
-    Test that the owners_data property includes the email field.
-
-    PR #37906 added email display to owner selectors in the frontend, but the
-    owners_data property used by the Chart Explore path was not updated, causing
-    owners to not display when editing a dataset from Chart Explore.
-    """
+    """Test that the owners_data property includes the email field."""
     database = mocker.MagicMock()
 
     table = SqlaTable(
