@@ -25,6 +25,7 @@ import logging
 from typing import Any, Dict, List
 
 from fastmcp import Context
+from flask import g
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
@@ -200,10 +201,12 @@ def generate_dashboard(
     Returns:
     - Dashboard ID and URL
     """
+    from pydantic import ValidationError
+    from sqlalchemy.exc import SQLAlchemyError
+
     try:
         # Get chart objects from IDs (required for SQLAlchemy relationships)
         from superset import db
-        from superset.commands.dashboard.create import CreateDashboardCommand
         from superset.models.slice import Slice
 
         with event_logger.log_context(action="mcp.generate_dashboard.chart_validation"):
@@ -224,6 +227,23 @@ def generate_dashboard(
                     error=f"Charts not found: {list(missing_chart_ids)}",
                 )
 
+            # Validate dataset access for each chart.
+            # check_chart_data_access is the centralized data-level
+            # permission check that complements the class-level RBAC
+            # enforced by mcp_auth_hook.
+            from superset.mcp_service.auth import check_chart_data_access
+
+            for chart in chart_objects:
+                validation = check_chart_data_access(chart)
+                if not validation.is_valid:
+                    return GenerateDashboardResponse(
+                        dashboard=None,
+                        dashboard_url=None,
+                        error=(
+                            f"Chart {chart.id} is not accessible: {validation.error}"
+                        ),
+                    )
+
         # Create dashboard layout with chart objects
         with event_logger.log_context(action="mcp.generate_dashboard.layout"):
             layout = _create_dashboard_layout(chart_objects)
@@ -235,65 +255,92 @@ def generate_dashboard(
             else _generate_title_from_charts(chart_objects)
         )
 
-        # Prepare dashboard data and create dashboard
+        # Create the dashboard directly with db.session instead of using
+        # CreateDashboardCommand.  The command's @transaction decorator
+        # may operate in a different SQLAlchemy scoped-session than the
+        # one g.user and chart ORM objects are bound to in the MCP
+        # context, causing "Object is already attached to session X
+        # (this is Y)" errors.  By re-querying all ORM objects in the
+        # tool's own db.session we keep everything in a single session.
+        from sqlalchemy.orm import subqueryload
+
+        from superset.models.dashboard import Dashboard
+
         with event_logger.log_context(action="mcp.generate_dashboard.db_write"):
-            dashboard_data: Dict[str, Any] = {
-                "dashboard_title": dashboard_title,
-                "json_metadata": json.dumps(
-                    {
-                        "filter_scopes": {},
-                        "expanded_slices": {},
-                        "refresh_frequency": 0,
-                        "timed_refresh_immune_slices": [],
-                        "color_scheme": None,
-                        "label_colors": {},
-                        "shared_label_colors": {},
-                        "color_scheme_domain": [],
-                        "cross_filters_enabled": False,
-                        "native_filter_configuration": [],
-                        "global_chart_configuration": {
-                            "scope": {
-                                "rootPath": ["ROOT_ID"],
-                                "excluded": [],
-                            }
-                        },
-                        "chart_configuration": {},
-                    }
-                ),
-                "position_json": json.dumps(layout),
-                "published": request.published,
-                "slices": chart_objects,  # Pass ORM objects, not IDs
-            }
+            json_metadata = json.dumps(
+                {
+                    "filter_scopes": {},
+                    "expanded_slices": {},
+                    "refresh_frequency": 0,
+                    "timed_refresh_immune_slices": [],
+                    "color_scheme": None,
+                    "label_colors": {},
+                    "shared_label_colors": {},
+                    "color_scheme_domain": [],
+                    "cross_filters_enabled": False,
+                    "native_filter_configuration": [],
+                    "global_chart_configuration": {
+                        "scope": {
+                            "rootPath": ["ROOT_ID"],
+                            "excluded": [],
+                        }
+                    },
+                    "chart_configuration": {},
+                }
+            )
 
-            if request.description:
-                dashboard_data["description"] = request.description
-
-            # Create the dashboard using Superset's command pattern
             try:
-                command = CreateDashboardCommand(dashboard_data)
-                dashboard = command.run()
-            except Exception as cmd_err:
-                # Surface the root cause from @transaction's error wrapping
-                root_cause = cmd_err.__cause__ or cmd_err
+                dashboard = Dashboard()
+                dashboard.dashboard_title = dashboard_title
+                dashboard.json_metadata = json_metadata
+                dashboard.position_json = json.dumps(layout)
+                dashboard.published = request.published
+
+                if request.description:
+                    dashboard.description = request.description
+
+                # Re-query the current user and charts directly in the
+                # current db.session.  g.user was loaded in a Flask
+                # app_context that has since been torn down (the
+                # middleware's ``with flask_app.app_context()`` exits
+                # before the tool function runs), so the User object
+                # is bound to a dead/different scoped session.
+                # Querying fresh avoids all cross-session errors.
+                from superset.extensions import security_manager
+
+                current_user = (
+                    db.session.query(security_manager.user_model)
+                    .filter_by(id=g.user.id)
+                    .first()
+                )
+                if current_user:
+                    dashboard.owners = [current_user]
+
+                fresh_charts = (
+                    db.session.query(Slice)
+                    .filter(Slice.id.in_(request.chart_ids))
+                    .order_by(Slice.id)
+                    .all()
+                )
+                dashboard.slices = fresh_charts
+
+                db.session.add(dashboard)
+                db.session.commit()
+            except SQLAlchemyError as db_err:
+                db.session.rollback()
                 logger.error(
-                    "CreateDashboardCommand failed: %s (cause: %s)",
-                    cmd_err,
-                    root_cause,
+                    "Dashboard creation failed: %s",
+                    db_err,
                     exc_info=True,
                 )
                 return GenerateDashboardResponse(
                     dashboard=None,
                     dashboard_url=None,
-                    error=f"Failed to create dashboard: {root_cause}",
+                    error="Failed to create dashboard due to a database error.",
                 )
 
-        # Re-fetch the dashboard with eager-loaded relationships to avoid
-        # "Instance is not bound to a Session" errors when serializing
-        # chart .tags and .owners.
-        from sqlalchemy.orm import subqueryload
-
+        # Re-fetch with eager-loaded relationships for serialization
         from superset.daos.dashboard import DashboardDAO
-        from superset.models.dashboard import Dashboard
 
         dashboard = (
             DashboardDAO.find_by_id(
@@ -355,8 +402,8 @@ def generate_dashboard(
             dashboard=dashboard_info, dashboard_url=dashboard_url, error=None
         )
 
-    except Exception as e:
-        logger.error("Error creating dashboard: %s", e)
+    except (SQLAlchemyError, ValueError, AttributeError, ValidationError) as e:
+        logger.error("Error creating dashboard: %s", e, exc_info=True)
         return GenerateDashboardResponse(
             dashboard=None,
             dashboard_url=None,
