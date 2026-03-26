@@ -24,6 +24,7 @@ import {
   getClientErrorObject,
   ChartCustomization,
   ChartCustomizationDivider,
+  ChartCustomizationType,
   ColumnOption,
   Filter,
   Filters,
@@ -34,6 +35,10 @@ import {
   removeDataMask,
   setDataMaskForFilterChangesComplete,
 } from 'src/dataMask/actions';
+import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
+import { calculateScopes } from 'src/dashboard/util/calculateScopes';
+import { isDynamicTitleCustomization } from 'src/dashboard/util/dynamicTitle';
+import { isChartCustomizationId } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
 import { dashboardInfoChanged } from './dashboardInfo';
 import {
   SET_NATIVE_FILTERS_CONFIG_COMPLETE,
@@ -132,17 +137,60 @@ export function saveChartCustomization(
           };
         },
       );
+      const dashboardLayout = getState().dashboardLayout.present;
+      const chartLayoutItems = Object.values(dashboardLayout).filter(
+        item => item?.type === CHART_TYPE,
+      );
+      const chartIds = chartLayoutItems
+        .map(item => item.meta?.chartId)
+        .filter((chartId): chartId is number => typeof chartId === 'number');
+      const scopeMap = new Map(
+        calculateScopes(
+          mergedResult,
+          chartIds,
+          chartLayoutItems,
+          item => item.type === ChartCustomizationType.Divider,
+        ).map(scope => [
+          scope.id,
+          {
+            chartsInScope: scope.chartsInScope,
+            tabsInScope: scope.tabsInScope,
+          },
+        ]),
+      );
+      const mergedResultWithScopes = mergedResult.map(item => {
+        const scope = scopeMap.get(item.id);
+
+        if (!scope || 'title' in item) {
+          return item;
+        }
+
+        return {
+          ...item,
+          chartsInScope: scope.chartsInScope,
+          tabsInScope: scope.tabsInScope,
+        };
+      });
 
       dispatch({
         type: SET_NATIVE_FILTERS_CONFIG_COMPLETE,
-        filterChanges: mergedResult,
+        filterChanges: [
+          ...Object.values(getState().nativeFilters.filters).filter(
+            item => !isChartCustomizationId(item.id),
+          ),
+          ...mergedResultWithScopes.filter(item =>
+            'title' in item
+              ? true
+              : !isDynamicTitleCustomization(item as ChartCustomization),
+          ),
+        ],
       });
 
       dispatch(
         dashboardInfoChanged({
           metadata: {
             ...currentMetadata,
-            chart_customization_config: mergedResult,
+            chart_customization_config: mergedResultWithScopes,
           },
         }),
       );

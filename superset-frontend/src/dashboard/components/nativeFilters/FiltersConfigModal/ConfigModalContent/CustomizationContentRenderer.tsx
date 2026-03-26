@@ -97,6 +97,7 @@ function CustomizationContentRenderer({
                     ? (chartCustomizationConfigMap[id] as ChartCustomization)
                     : undefined
                 }
+                chartCustomizationConfigMap={chartCustomizationConfigMap}
                 expanded={expanded}
                 getAvailableFilters={() => []}
                 handleActiveFilterPanelChange={handleActiveFilterPanelChange}

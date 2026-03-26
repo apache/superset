@@ -25,6 +25,7 @@ import {
   Divider,
   NativeFilterType,
 } from '@superset-ui/core';
+import { ChartCustomizationPlugins } from 'src/constants';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import {
   ChartCustomizationsFormItem,
@@ -114,7 +115,10 @@ function transformFormInput(
     name: formInputs.name,
     filterType: formInputs.filterType,
     description: (formInputs.description || '').trim(),
-    targets: [buildCustomizationTarget(formInputs)],
+    targets:
+      formInputs.filterType === ChartCustomizationPlugins.DynamicTitle
+        ? []
+        : [buildCustomizationTarget(formInputs)],
     scope: formInputs.scope || defaultScope,
     controlValues: formInputs.controlValues ?? {},
     defaultDataMask: formInputs.defaultDataMask ?? {},

@@ -45,6 +45,7 @@ import {
   migrateChartCustomizationArray,
   isLegacyChartCustomizationFormat,
 } from 'src/dashboard/util/migrateChartCustomization';
+import { isDynamicTitleCustomization } from 'src/dashboard/util/dynamicTitle';
 import { isEqual } from 'lodash';
 import {
   AnyDataMaskAction,
@@ -245,35 +246,39 @@ const dataMaskReducer = produce(
           if (!isChartCustomizationItem(item)) {
             return;
           }
+          if (isDynamicTitleCustomization(item)) {
+            return;
+          }
+          const customizationItem = item as ChartCustomization;
 
-          const customizationFilterId = item.id;
+          const customizationFilterId = customizationItem.id;
           const dataMask = loadedDataMask || {};
 
           cleanState[customizationFilterId] = {
             ...getInitialDataMask(customizationFilterId),
-            ...item.defaultDataMask,
+            ...customizationItem.defaultDataMask,
             ...dataMask[customizationFilterId],
           };
 
           if (
             draft[customizationFilterId] &&
-            item.defaultDataMask &&
+            customizationItem.defaultDataMask &&
             !areObjectsEqual(
-              item.defaultDataMask,
+              customizationItem.defaultDataMask,
               draft[customizationFilterId],
               { ignoreUndefined: true },
             )
           ) {
             cleanState[customizationFilterId] = {
               ...cleanState[customizationFilterId],
-              ...item.defaultDataMask,
+              ...customizationItem.defaultDataMask,
             };
           }
 
-          if (item.controlValues?.column) {
+          if (customizationItem.controlValues?.column) {
             cleanState[customizationFilterId].ownState = {
               ...cleanState[customizationFilterId].ownState,
-              column: item.controlValues.column,
+              column: customizationItem.controlValues.column,
             };
           }
         });

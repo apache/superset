@@ -195,6 +195,7 @@ export enum ChartCustomizationPlugins {
   TimeGrain = 'chart_customization_timegrain',
   TimeColumn = 'chart_customization_timecolumn',
   DeckglLayerVisibility = 'chart_customization_deckgl_layer_visibility',
+  DynamicTitle = 'chart_customization_dynamic_title',
 }
 
 export enum Actions {

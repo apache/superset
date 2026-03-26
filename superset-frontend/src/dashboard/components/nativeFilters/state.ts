@@ -36,6 +36,7 @@ import {
   migrateChartCustomizationArray,
   isLegacyChartCustomizationFormat,
 } from '../../util/migrateChartCustomization';
+import { isDynamicTitleCustomization } from '../../util/dynamicTitle';
 
 const EMPTY_ARRAY: ChartCustomizationConfiguration = [];
 const defaultFilterConfiguration: (Filter | Divider)[] = [];
@@ -126,6 +127,34 @@ const selectChartCustomizationConfiguration = createSelector(
 
 export function useChartCustomizationConfiguration() {
   return useSelector(selectChartCustomizationConfiguration);
+}
+
+export const selectInteractiveChartCustomizationConfiguration = createSelector(
+  selectChartCustomizationConfiguration,
+  customizations =>
+    customizations.filter(
+      customization =>
+        'title' in customization || !isDynamicTitleCustomization(customization),
+    ) as ChartCustomizationConfiguration,
+);
+
+export function useInteractiveChartCustomizationConfiguration() {
+  return useSelector(selectInteractiveChartCustomizationConfiguration);
+}
+
+export const selectDynamicTitleCustomizations = createSelector(
+  (state: RootState) =>
+    state.dashboardInfo?.metadata?.chart_customization_config || EMPTY_ARRAY,
+  customizations =>
+    customizations.filter(
+      customization =>
+        !('title' in customization) &&
+        isDynamicTitleCustomization(customization),
+    ) as ChartCustomization[],
+);
+
+export function useDynamicTitleCustomizations() {
+  return useSelector(selectDynamicTitleCustomizations);
 }
 
 export function useFilterConfigMap() {

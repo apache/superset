@@ -61,6 +61,7 @@ import type { DashboardChartStates } from 'src/dashboard/types/chartState';
 import extractUrlParams from '../util/extractUrlParams';
 import updateComponentParentsList from '../util/updateComponentParentsList';
 import { AUTO_REFRESH_STATE_DEFAULTS } from '../types/autoRefresh';
+import { isDynamicTitleCustomization } from '../util/dynamicTitle';
 import { migrateChartCustomizationArray } from '../util/migrateChartCustomization';
 import {
   DashboardLayout,
@@ -299,10 +300,13 @@ export const hydrateDashboard =
     const chartCustomizations = migrateChartCustomizationArray(
       rawChartCustomizations,
     );
+    const interactiveChartCustomizations = chartCustomizations.filter(
+      customization => !isDynamicTitleCustomization(customization),
+    );
 
     const filters =
       (metadata?.native_filter_configuration as JsonObject[]) || [];
-    const combinedFilters = [...filters, ...chartCustomizations];
+    const combinedFilters = [...filters, ...interactiveChartCustomizations];
 
     const nativeFilters = getInitialNativeFilterState({
       filterConfig: combinedFilters as Parameters<
