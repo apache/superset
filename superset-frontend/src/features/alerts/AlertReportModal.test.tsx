@@ -983,197 +983,187 @@ test('dashboard with no tabs and no filters hides filter add link', async () => 
   ).not.toBeInTheDocument();
 });
 
-test(
-  'dashboard switching resets tab and filter selections',
-  async () => {
-    // Return dashboard options so user can switch
-    const dashboardOptions = {
-      result: [
-        { text: 'Test Dashboard', value: 1 },
-        { text: 'Other Dashboard', value: 99 },
+test('dashboard switching resets tab and filter selections', async () => {
+  // Return dashboard options so user can switch
+  const dashboardOptions = {
+    result: [
+      { text: 'Test Dashboard', value: 1 },
+      { text: 'Other Dashboard', value: 99 },
+    ],
+    count: 2,
+  };
+  fetchMock.removeRoute(dashboardEndpoint);
+  fetchMock.get(dashboardEndpoint, dashboardOptions);
+  fetchMock.removeRoute(reportDashboardEndpoint);
+  fetchMock.get(reportDashboardEndpoint, dashboardOptions);
+
+  // Dashboard 1 has tabs and filters
+  fetchMock.removeRoute(tabsEndpoint);
+  fetchMock.get(tabsEndpoint, tabsWithFilters, { name: tabsEndpoint });
+
+  // Dashboard 99 has no tabs
+  const tabs99 = 'glob:*/api/v1/dashboard/99/tabs';
+  fetchMock.get(tabs99, noTabsResponse, { name: tabs99 });
+
+  render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+    useRedux: true,
+  });
+
+  userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test dashboard/i);
+
+  // Wait for tabs endpoint call to complete (proves filter data is loaded)
+  await waitFor(
+    () => {
+      expect(fetchMock.callHistory.calls(tabsEndpoint).length).toBeGreaterThan(
+        0,
+      );
+    },
+    { timeout: 5000 },
+  );
+
+  // Wait for tabs to load from dashboard 1
+  await waitFor(() => {
+    expect(screen.getAllByText(/select tab/i)).toHaveLength(1);
+  });
+
+  // Verify filters are available — this proves dashboard 1 has filter options
+  const filterCombobox = await waitFor(() =>
+    screen.getByRole('combobox', { name: /select filter/i }),
+  );
+
+  // Confirm the filter dropdown has options by opening it
+  fireEvent.mouseDown(filterCombobox);
+  await screen.findByText('Country Filter', {}, { timeout: 5000 });
+  // Close the dropdown by pressing Escape
+  fireEvent.keyDown(filterCombobox, { key: 'Escape' });
+
+  // Switch to "Other Dashboard"
+  const dashboardSelect = screen.getByRole('combobox', {
+    name: /dashboard/i,
+  });
+  userEvent.clear(dashboardSelect);
+  userEvent.type(dashboardSelect, 'Other Dashboard{enter}');
+
+  // Tab selector should reset: "Other Dashboard" has no tabs, so disabled with placeholder
+  await waitFor(
+    () => {
+      expect(screen.getByText(/select a tab/i)).toBeInTheDocument();
+    },
+    { timeout: 10000 },
+  );
+
+  // Filter row should reset to empty (no filter selected)
+  await waitFor(() => {
+    const filterSelects = screen.getAllByRole('combobox', {
+      name: /select filter/i,
+    });
+    // Filter select should have no selected value (placeholder state)
+    filterSelects.forEach(select => {
+      const container = select.closest('.ant-select');
+      expect(
+        container?.querySelector('.ant-select-selection-item'),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  // Restore dashboard endpoints
+  fetchMock.removeRoute(dashboardEndpoint);
+  fetchMock.get(dashboardEndpoint, { result: [] });
+  fetchMock.removeRoute(reportDashboardEndpoint);
+  fetchMock.get(reportDashboardEndpoint, { result: [] });
+  fetchMock.removeRoute(tabs99);
+}, 45000);
+
+test('different dashboard populates its own tabs and filters', async () => {
+  // Set up a report (id:99) that uses dashboard 99 instead of dashboard 1.
+  // This tests that the component correctly loads tabs and filters for a
+  // different dashboard (the "dashboard B has its own data" case).
+  const FETCH_REPORT_DASH99_ENDPOINT = 'glob:*/api/v1/report/99';
+  fetchMock.get(FETCH_REPORT_DASH99_ENDPOINT, {
+    result: {
+      ...generateMockPayload(true),
+      id: 99,
+      type: 'Report',
+      dashboard: { id: 99, dashboard_title: 'Other Dashboard' },
+    },
+  });
+
+  // Dashboard 99 has its own tabs (Tab Alpha, Tab Beta) and a Region Filter
+  const tabs99Endpoint = 'glob:*/api/v1/dashboard/99/tabs';
+  const dash99Tabs = {
+    result: {
+      all_tabs: { TAB_A: 'Tab Alpha', TAB_B: 'Tab Beta' },
+      tab_tree: [
+        { title: 'Tab Alpha', value: 'TAB_A' },
+        { title: 'Tab Beta', value: 'TAB_B' },
       ],
-      count: 2,
-    };
-    fetchMock.removeRoute(dashboardEndpoint);
-    fetchMock.get(dashboardEndpoint, dashboardOptions);
-    fetchMock.removeRoute(reportDashboardEndpoint);
-    fetchMock.get(reportDashboardEndpoint, dashboardOptions);
-
-    // Dashboard 1 has tabs and filters
-    fetchMock.removeRoute(tabsEndpoint);
-    fetchMock.get(tabsEndpoint, tabsWithFilters, { name: tabsEndpoint });
-
-    // Dashboard 99 has no tabs
-    const tabs99 = 'glob:*/api/v1/dashboard/99/tabs';
-    fetchMock.get(tabs99, noTabsResponse, { name: tabs99 });
-
-    render(<AlertReportModal {...generateMockedProps(true, true)} />, {
-      useRedux: true,
-    });
-
-    userEvent.click(screen.getByTestId('contents-panel'));
-    await screen.findByText(/test dashboard/i);
-
-    // Wait for tabs endpoint call to complete (proves filter data is loaded)
-    await waitFor(
-      () => {
-        expect(
-          fetchMock.callHistory.calls(tabsEndpoint).length,
-        ).toBeGreaterThan(0);
-      },
-      { timeout: 5000 },
-    );
-
-    // Wait for tabs to load from dashboard 1
-    await waitFor(() => {
-      expect(screen.getAllByText(/select tab/i)).toHaveLength(1);
-    });
-
-    // Verify filters are available — this proves dashboard 1 has filter options
-    const filterCombobox = await waitFor(() =>
-      screen.getByRole('combobox', { name: /select filter/i }),
-    );
-
-    // Confirm the filter dropdown has options by opening it
-    fireEvent.mouseDown(filterCombobox);
-    await screen.findByText('Country Filter', {}, { timeout: 5000 });
-    // Close the dropdown by pressing Escape
-    fireEvent.keyDown(filterCombobox, { key: 'Escape' });
-
-    // Switch to "Other Dashboard"
-    const dashboardSelect = screen.getByRole('combobox', {
-      name: /dashboard/i,
-    });
-    userEvent.clear(dashboardSelect);
-    userEvent.type(dashboardSelect, 'Other Dashboard{enter}');
-
-    // Tab selector should reset: "Other Dashboard" has no tabs, so disabled with placeholder
-    await waitFor(
-      () => {
-        expect(screen.getByText(/select a tab/i)).toBeInTheDocument();
-      },
-      { timeout: 10000 },
-    );
-
-    // Filter row should reset to empty (no filter selected)
-    await waitFor(() => {
-      const filterSelects = screen.getAllByRole('combobox', {
-        name: /select filter/i,
-      });
-      // Filter select should have no selected value (placeholder state)
-      filterSelects.forEach(select => {
-        const container = select.closest('.ant-select');
-        expect(
-          container?.querySelector('.ant-select-selection-item'),
-        ).not.toBeInTheDocument();
-      });
-    });
-
-    // Restore dashboard endpoints
-    fetchMock.removeRoute(dashboardEndpoint);
-    fetchMock.get(dashboardEndpoint, { result: [] });
-    fetchMock.removeRoute(reportDashboardEndpoint);
-    fetchMock.get(reportDashboardEndpoint, { result: [] });
-    fetchMock.removeRoute(tabs99);
-  },
-  45000,
-);
-
-test(
-  'different dashboard populates its own tabs and filters',
-  async () => {
-    // Set up a report (id:99) that uses dashboard 99 instead of dashboard 1.
-    // This tests that the component correctly loads tabs and filters for a
-    // different dashboard (the "dashboard B has its own data" case).
-    const FETCH_REPORT_DASH99_ENDPOINT = 'glob:*/api/v1/report/99';
-    fetchMock.get(FETCH_REPORT_DASH99_ENDPOINT, {
-      result: {
-        ...generateMockPayload(true),
-        id: 99,
-        type: 'Report',
-        dashboard: { id: 99, dashboard_title: 'Other Dashboard' },
-      },
-    });
-
-    // Dashboard 99 has its own tabs (Tab Alpha, Tab Beta) and a Region Filter
-    const tabs99Endpoint = 'glob:*/api/v1/dashboard/99/tabs';
-    const dash99Tabs = {
-      result: {
-        all_tabs: { TAB_A: 'Tab Alpha', TAB_B: 'Tab Beta' },
-        tab_tree: [
-          { title: 'Tab Alpha', value: 'TAB_A' },
-          { title: 'Tab Beta', value: 'TAB_B' },
+      native_filters: {
+        all: [
+          {
+            id: 'NATIVE_FILTER-R1',
+            name: 'Region Filter',
+            filterType: 'filter_select',
+            targets: [{ column: { name: 'region' }, datasetId: 3 }],
+            adhoc_filters: [],
+          },
         ],
-        native_filters: {
-          all: [
-            {
-              id: 'NATIVE_FILTER-R1',
-              name: 'Region Filter',
-              filterType: 'filter_select',
-              targets: [{ column: { name: 'region' }, datasetId: 3 }],
-              adhoc_filters: [],
-            },
-          ],
-          TAB_A: [
-            {
-              id: 'NATIVE_FILTER-R1',
-              name: 'Region Filter',
-              filterType: 'filter_select',
-              targets: [{ column: { name: 'region' }, datasetId: 3 }],
-              adhoc_filters: [],
-            },
-          ],
-          TAB_B: [],
-        },
+        TAB_A: [
+          {
+            id: 'NATIVE_FILTER-R1',
+            name: 'Region Filter',
+            filterType: 'filter_select',
+            targets: [{ column: { name: 'region' }, datasetId: 3 }],
+            adhoc_filters: [],
+          },
+        ],
+        TAB_B: [],
       },
-    };
-    fetchMock.get(tabs99Endpoint, dash99Tabs, { name: 'tabs-99' });
+    },
+  };
+  fetchMock.get(tabs99Endpoint, dash99Tabs, { name: 'tabs-99' });
 
-    const props = generateMockedProps(true, true);
-    const dash99Props = { ...props, alert: { ...validAlert, id: 99 } };
+  const props = generateMockedProps(true, true);
+  const dash99Props = { ...props, alert: { ...validAlert, id: 99 } };
 
-    render(<AlertReportModal {...dash99Props} />, { useRedux: true });
+  render(<AlertReportModal {...dash99Props} />, { useRedux: true });
 
-    userEvent.click(screen.getByTestId('contents-panel'));
-    await screen.findByText(/other dashboard/i);
+  userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/other dashboard/i);
 
-    // Wait for dashboard 99 tabs to load — increase timeout because the
-    // component must first fetch /api/v1/report/99, then extract dashboard_id,
-    // then fetch /api/v1/dashboard/99/tabs. This three-step async chain needs
-    // more time in CI.
-    await waitFor(
-      () => {
-        expect(
-          fetchMock.callHistory.calls('tabs-99').length,
-        ).toBeGreaterThan(0);
-      },
-      { timeout: 10000 },
-    );
+  // Wait for dashboard 99 tabs to load — increase timeout because the
+  // component must first fetch /api/v1/report/99, then extract dashboard_id,
+  // then fetch /api/v1/dashboard/99/tabs. This three-step async chain needs
+  // more time in CI.
+  await waitFor(
+    () => {
+      expect(fetchMock.callHistory.calls('tabs-99').length).toBeGreaterThan(0);
+    },
+    { timeout: 10000 },
+  );
 
-    // Tab selector should be enabled (dashboard 99 has tabs)
-    await waitFor(() => {
-      const treeSelect = document.querySelector('.ant-tree-select');
-      expect(treeSelect).toBeInTheDocument();
-      expect(treeSelect).not.toHaveClass('ant-select-disabled');
-    });
+  // Tab selector should be enabled (dashboard 99 has tabs)
+  await waitFor(() => {
+    const treeSelect = document.querySelector('.ant-tree-select');
+    expect(treeSelect).toBeInTheDocument();
+    expect(treeSelect).not.toHaveClass('ant-select-disabled');
+  });
 
-    // Filter dropdown should show dashboard 99's "Region Filter"
-    const filterSelect = await waitFor(() =>
-      screen.getByRole('combobox', { name: /select filter/i }),
-    );
-    fireEvent.mouseDown(filterSelect);
+  // Filter dropdown should show dashboard 99's "Region Filter"
+  const filterSelect = await waitFor(() =>
+    screen.getByRole('combobox', { name: /select filter/i }),
+  );
+  fireEvent.mouseDown(filterSelect);
 
-    await screen.findByText('Region Filter', {}, { timeout: 5000 });
+  await screen.findByText('Region Filter', {}, { timeout: 5000 });
 
-    // Dashboard 1's filters (Country/City) should NOT appear
-    expect(screen.queryByText('Country Filter')).not.toBeInTheDocument();
+  // Dashboard 1's filters (Country/City) should NOT appear
+  expect(screen.queryByText('Country Filter')).not.toBeInTheDocument();
 
-    // Cleanup
-    fetchMock.removeRoute(FETCH_REPORT_DASH99_ENDPOINT);
-    fetchMock.removeRoute('tabs-99');
-  },
-  45000,
-);
+  // Cleanup
+  fetchMock.removeRoute(FETCH_REPORT_DASH99_ENDPOINT);
+  fetchMock.removeRoute('tabs-99');
+}, 45000);
 
 test('dashboard tabs fetch failure shows error toast', async () => {
   fetchMock.removeRoute(tabsEndpoint);
@@ -1307,67 +1297,63 @@ test('alert shows condition section, report does not', () => {
   expect(screen.queryByTestId('alert-condition-panel')).not.toBeInTheDocument();
 });
 
-test(
-  'submit includes conditionNotNull without threshold in alert payload',
-  async () => {
-    // Mock payload returns id:1, so updateResource PUTs to /api/v1/report/1
-    fetchMock.put(
-      'glob:*/api/v1/report/1',
-      { id: 1, result: {} },
-      { name: 'put-condition' },
-    );
+test('submit includes conditionNotNull without threshold in alert payload', async () => {
+  // Mock payload returns id:1, so updateResource PUTs to /api/v1/report/1
+  fetchMock.put(
+    'glob:*/api/v1/report/1',
+    { id: 1, result: {} },
+    { name: 'put-condition' },
+  );
 
-    render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
-      useRedux: true,
-    });
+  render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
+    useRedux: true,
+  });
 
-    // Wait for resource to load and all validation to pass
-    await waitFor(
-      () => {
-        expect(
-          screen.queryAllByRole('img', { name: /check-circle/i }),
-        ).toHaveLength(5);
-      },
-      { timeout: 10000 },
-    );
+  // Wait for resource to load and all validation to pass
+  await waitFor(
+    () => {
+      expect(
+        screen.queryAllByRole('img', { name: /check-circle/i }),
+      ).toHaveLength(5);
+    },
+    { timeout: 10000 },
+  );
 
-    // Open condition panel and select "not null"
-    userEvent.click(screen.getByTestId('alert-condition-panel'));
-    await screen.findByText(/smaller than/i);
-    const condition = screen.getByRole('combobox', { name: /condition/i });
-    await comboboxSelect(
-      condition,
-      'not null',
-      () => screen.getAllByText(/not null/i)[0],
-    );
+  // Open condition panel and select "not null"
+  userEvent.click(screen.getByTestId('alert-condition-panel'));
+  await screen.findByText(/smaller than/i);
+  const condition = screen.getByRole('combobox', { name: /condition/i });
+  await comboboxSelect(
+    condition,
+    'not null',
+    () => screen.getAllByText(/not null/i)[0],
+  );
 
-    // Wait for the threshold input to become disabled after "not null" selection —
-    // in CI the state update from comboboxSelect can lag behind the DOM assertion.
-    await waitFor(() => {
-      expect(screen.getByRole('spinbutton')).toBeDisabled();
-    });
+  // Wait for the threshold input to become disabled after "not null" selection —
+  // in CI the state update from comboboxSelect can lag behind the DOM assertion.
+  await waitFor(() => {
+    expect(screen.getByRole('spinbutton')).toBeDisabled();
+  });
 
-    // Wait for Save to be enabled and click
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /save/i })).toBeEnabled();
-    });
-    userEvent.click(screen.getByRole('button', { name: /save/i }));
+  // Wait for Save to be enabled and click
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: /save/i })).toBeEnabled();
+  });
+  userEvent.click(screen.getByRole('button', { name: /save/i }));
 
-    // Verify the PUT payload
-    await waitFor(() => {
-      const calls = fetchMock.callHistory.calls('put-condition');
-      expect(calls.length).toBeGreaterThan(0);
-    });
-
+  // Verify the PUT payload
+  await waitFor(() => {
     const calls = fetchMock.callHistory.calls('put-condition');
-    const body = JSON.parse(calls[calls.length - 1].options.body as string);
-    expect(body.validator_type).toBe('not null');
-    expect(body.validator_config_json).toEqual({});
+    expect(calls.length).toBeGreaterThan(0);
+  });
 
-    fetchMock.removeRoute('put-condition');
-  },
-  45000,
-);
+  const calls = fetchMock.callHistory.calls('put-condition');
+  const body = JSON.parse(calls[calls.length - 1].options.body as string);
+  expect(body.validator_type).toBe('not null');
+  expect(body.validator_config_json).toEqual({});
+
+  fetchMock.removeRoute('put-condition');
+}, 45000);
 
 test('edit mode submit uses PUT and excludes read-only fields', async () => {
   // Mock payload returns id:1, so updateResource PUTs to /api/v1/report/1
@@ -1561,7 +1547,7 @@ test('create mode submits POST and calls onAdd with response', async () => {
   });
 
   fetchMock.removeRoute('create-post');
-});
+}, 45000);
 
 test('create mode defaults to dashboard content type with chart null', async () => {
   // Coverage strategy: the create-mode POST pathway is tested via the chart
@@ -1731,18 +1717,19 @@ test('filter reappears in dropdown after clearing with X icon', async () => {
   const valueSelect = screen.getByRole('combobox', { name: /select value/i });
   expect(valueSelect.closest('.ant-select')).toHaveClass('ant-select-disabled');
 
-  // Use fireEvent.mouseDown — ant design Select opens on mouseDown, not click.
-  // userEvent.click is unreliable in CI because the dropdown opening races with
-  // the click event propagation.
-  fireEvent.mouseDown(filterDropdown);
-
-  const filterOption = await screen.findByText(
-    'Test Filter 1',
-    {},
-    { timeout: 5000 },
+  // Open dropdown and find filter option. Use waitFor to retry mouseDown
+  // because Ant Design Select may not open on the first attempt in CI.
+  let filterOption: HTMLElement;
+  await waitFor(
+    () => {
+      fireEvent.mouseDown(filterDropdown);
+      filterOption = screen.getByText('Test Filter 1');
+      expect(filterOption).toBeInTheDocument();
+    },
+    { timeout: 10000 },
   );
 
-  userEvent.click(filterOption);
+  userEvent.click(filterOption!);
 
   await waitFor(() => {
     const selectionItem = document.querySelector(
@@ -2438,99 +2425,93 @@ test('selecting filter triggers chart data request with correct params', async (
   mockGetChartDataRequest.mockReset();
 });
 
-test(
-  'selected filter excluded from other row dropdowns',
-  async () => {
-    mockGetChartDataRequest.mockReset();
-    fetchMock.removeRoute(tabsEndpoint);
-    fetchMock.get(tabsEndpoint, tabsWithFilters, { name: tabsEndpoint });
+test('selected filter excluded from other row dropdowns', async () => {
+  mockGetChartDataRequest.mockReset();
+  fetchMock.removeRoute(tabsEndpoint);
+  fetchMock.get(tabsEndpoint, tabsWithFilters, { name: tabsEndpoint });
 
-    mockGetChartDataRequest.mockResolvedValue({
-      json: { result: [{ data: [{ country: 'US' }] }] },
-    });
+  mockGetChartDataRequest.mockResolvedValue({
+    json: { result: [{ data: [{ country: 'US' }] }] },
+  });
 
-    render(<AlertReportModal {...generateMockedProps(true, true)} />, {
-      useRedux: true,
-    });
+  render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+    useRedux: true,
+  });
 
-    userEvent.click(screen.getByTestId('contents-panel'));
-    await screen.findByText(/test dashboard/i);
+  userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test dashboard/i);
 
-    // Wait for tabs endpoint to complete so filter options are populated
-    await waitFor(
-      () => {
-        expect(
-          fetchMock.callHistory.calls(tabsEndpoint).length,
-        ).toBeGreaterThan(0);
-      },
-      { timeout: 5000 },
-    );
+  // Wait for tabs endpoint to complete so filter options are populated
+  await waitFor(
+    () => {
+      expect(fetchMock.callHistory.calls(tabsEndpoint).length).toBeGreaterThan(
+        0,
+      );
+    },
+    { timeout: 5000 },
+  );
 
-    // Wait for filter dropdown
-    const filterDropdown = await waitFor(() =>
-      screen.getByRole('combobox', { name: /select filter/i }),
-    );
+  // Wait for filter dropdown
+  const filterDropdown = await waitFor(() =>
+    screen.getByRole('combobox', { name: /select filter/i }),
+  );
 
-    // Select Country Filter in row 1
-    await comboboxSelect(filterDropdown, 'Country Filter', () =>
-      document.querySelector(
-        '.ant-select-selection-item[title="Country Filter"]',
-      ),
-    );
+  // Select Country Filter in row 1
+  await comboboxSelect(filterDropdown, 'Country Filter', () =>
+    document.querySelector(
+      '.ant-select-selection-item[title="Country Filter"]',
+    ),
+  );
 
-    // Wait for getChartDataRequest to complete AND state update to propagate.
-    // The value dropdown becomes non-disabled once optionFilterValues is populated.
-    await waitFor(() => {
-      expect(mockGetChartDataRequest).toHaveBeenCalled();
-    });
-    await waitFor(
-      () => {
-        const valueSelects = screen.queryAllByRole('combobox', {
-          name: /select value/i,
-        });
-        expect(valueSelects.length).toBeGreaterThan(0);
-      },
-      { timeout: 5000 },
-    );
+  // Wait for getChartDataRequest to complete AND state update to propagate.
+  // The value dropdown becomes non-disabled once optionFilterValues is populated.
+  await waitFor(() => {
+    expect(mockGetChartDataRequest).toHaveBeenCalled();
+  });
+  await waitFor(
+    () => {
+      const valueSelects = screen.queryAllByRole('combobox', {
+        name: /select value/i,
+      });
+      expect(valueSelects.length).toBeGreaterThan(0);
+    },
+    { timeout: 5000 },
+  );
 
-    // Add second filter row
-    const addFilterButton = screen.getByText(
-      /apply another dashboard filter/i,
-    );
-    userEvent.click(addFilterButton);
+  // Add second filter row
+  const addFilterButton = screen.getByText(/apply another dashboard filter/i);
+  userEvent.click(addFilterButton);
 
-    // Wait for second row
-    await waitFor(() => {
+  // Wait for second row
+  await waitFor(() => {
+    expect(
+      screen.getAllByRole('combobox', { name: /select filter/i }),
+    ).toHaveLength(2);
+  });
+
+  // Open filter dropdown in row 2 — use fireEvent.mouseDown because
+  // Ant Design Select opens on mouseDown, not click.
+  const filterDropdowns = screen.getAllByRole('combobox', {
+    name: /select filter/i,
+  });
+  fireEvent.mouseDown(filterDropdowns[1]);
+
+  // Country Filter should be excluded (dedup), City Filter should remain.
+  // Scope to the last dropdown popup to avoid matching selected items in row 1.
+  await waitFor(
+    () => {
+      const dropdowns = document.querySelectorAll('.ant-select-dropdown');
+      const lastDropdown = dropdowns[dropdowns.length - 1];
       expect(
-        screen.getAllByRole('combobox', { name: /select filter/i }),
-      ).toHaveLength(2);
-    });
-
-    // Open filter dropdown in row 2 — use fireEvent.mouseDown because
-    // Ant Design Select opens on mouseDown, not click.
-    const filterDropdowns = screen.getAllByRole('combobox', {
-      name: /select filter/i,
-    });
-    fireEvent.mouseDown(filterDropdowns[1]);
-
-    // Country Filter should be excluded (dedup), City Filter should remain.
-    // Scope to the last dropdown popup to avoid matching selected items in row 1.
-    await waitFor(
-      () => {
-        const dropdowns = document.querySelectorAll('.ant-select-dropdown');
-        const lastDropdown = dropdowns[dropdowns.length - 1];
-        expect(
-          within(lastDropdown as HTMLElement).queryByText('Country Filter'),
-        ).not.toBeInTheDocument();
-        expect(
-          within(lastDropdown as HTMLElement).getByText('City Filter'),
-        ).toBeInTheDocument();
-      },
-      { timeout: 10000 },
-    );
-  },
-  60000,
-);
+        within(lastDropdown as HTMLElement).queryByText('Country Filter'),
+      ).not.toBeInTheDocument();
+      expect(
+        within(lastDropdown as HTMLElement).getByText('City Filter'),
+      ).toBeInTheDocument();
+    },
+    { timeout: 10000 },
+  );
+}, 60000);
 
 test('invalid CC email blocks submit', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
