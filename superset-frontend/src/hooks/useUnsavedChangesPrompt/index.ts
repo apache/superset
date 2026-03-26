@@ -95,7 +95,11 @@ export const useUnsavedChangesPrompt = ({
 
       confirmNavigationRef.current = () => {
         unblockRef.current?.();
-        history.push({ pathname, search }, state);
+        if (action === 'POP') {
+          history.go(-1);
+        } else {
+          history.push({ pathname, search }, state);
+        }
       };
 
       setShowModal(true);

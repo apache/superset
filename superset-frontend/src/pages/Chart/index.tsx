@@ -19,6 +19,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useHistory } from 'react-router-dom';
+import type { Location, Action } from 'history';
 import { t } from '@apache-superset/core/translation';
 import {
   getLabelsColorMap,
@@ -267,7 +268,7 @@ export default function ExplorePage() {
 
   // Re-fetch on real navigation (PUSH/POP), ignore REPLACE (URL sync from updateHistory)
   useEffect(() => {
-    const unlisten = history.listen((loc, action) => {
+    const unlisten = history.listen((loc: Location, action: Action) => {
       if (action === 'PUSH' || action === 'POP') {
         setIsLoaded(false);
         loadExploreData(loc);
