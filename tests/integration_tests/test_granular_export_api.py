@@ -232,7 +232,14 @@ class TestGranularExportSqlLabAPI(SupersetTestCase):
         assert rv.status_code == 403
 
     @with_feature_flags(GRANULAR_EXPORT_CONTROLS=False)
-    def test_export_csv_allowed_when_flag_disabled(self) -> None:
+    @patch.object(
+        SupersetSecurityManager,
+        "can_access",
+        side_effect=_deny_can_export_data,
+    )
+    def test_export_csv_allowed_when_flag_disabled(
+        self, mock_can_access
+    ) -> None:
         """When GRANULAR_EXPORT_CONTROLS is OFF, no granular permission check
         is enforced. The request may fail for other reasons (no query found),
         but must not return 403."""
