@@ -1856,3 +1856,80 @@ def test_extras_having_is_parenthesized(
         assert "(COUNT(*) > 0 OR 1 = 1)" in sql, (
             f"extras.having should be wrapped in parentheses. Generated SQL: {sql}"
         )
+
+
+def test_adhoc_column_type_probe_uses_where_false(database: Database) -> None:
+    """
+    Test that the adhoc column type probe query uses WHERE false instead of LIMIT 1.
+
+    When a chart uses a SQL expression as a BASE_AXIS column with a timeGrain set,
+    Superset probes its return type to decide whether to apply timestamp bucketing.
+    Previously this probe ran `SELECT <expr> FROM table LIMIT 1` with no WHERE clause,
+    causing a full table scan on databases that enforce row-read limits (e.g.
+    ClickHouse's max_rows_to_read) even for LIMIT 1 queries on very large tables.
+
+    The fix uses WHERE false so the database returns zero rows but still populates
+    cursor.description with column type metadata, which is all we need.
+    """
+    from unittest.mock import patch
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+        ],
+    )
+
+    # A numeric SQL expression used as BASE_AXIS with a timeGrain
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "round(a / 50) * 50 / 1000",
+        "label": "Duration",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1D",
+    }
+
+    captured_queries: list[str] = []
+
+    # Mock get_columns_description so we can inspect the SQL it receives
+    # without needing a real database connection, and return a non-temporal type
+    # so the column is left as-is (no timestamp bucketing applied).
+    def fake_get_columns_description(
+        db: object,
+        catalog: object,
+        schema: object,
+        sql: str,
+    ) -> list[dict[str, object]]:
+        captured_queries.append(sql)
+        return [
+            {
+                "column_name": "Duration",
+                "name": "Duration",
+                "type": "FLOAT",
+                "is_dttm": False,
+            }
+        ]
+
+    with patch(
+        "superset.connectors.sqla.models.get_columns_description",
+        side_effect=fake_get_columns_description,
+    ):
+        result = table.adhoc_column_to_sqla(adhoc_col)
+
+    assert result is not None
+    assert len(captured_queries) == 1, "Expected exactly one type-probe query"
+
+    probe_sql = captured_queries[0].lower()
+
+    # The probe must contain a WHERE clause that is always false — zero rows are read
+    # from the table. SQLAlchemy renders sa.false() differently per dialect:
+    # - Most databases:  WHERE false
+    # - SQLite:          WHERE 0 = 1
+    always_false_patterns = ("where false", "where 0 = 1")
+    assert any(p in probe_sql for p in always_false_patterns), (
+        f"Probe query should use a WHERE false condition to avoid scanning the table, "
+        f"but got: {captured_queries[0]}"
+    )

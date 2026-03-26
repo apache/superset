@@ -1652,8 +1652,13 @@ class SqlaTable(
             if has_timegrain or force_type_check:
                 try:
                     # probe adhoc column type
+                    # Use WHERE false so the database returns no rows but still
+                    # populates cursor.description with column type metadata.
+                    # This avoids scanning the table, which can be very expensive
+                    # on databases that enforce row-read limits (e.g. ClickHouse's
+                    # max_rows_to_read) even for LIMIT 1 queries on large tables.
                     tbl, _ = self.get_from_clause(template_processor)
-                    qry = sa.select([sqla_column]).limit(1).select_from(tbl)
+                    qry = sa.select([sqla_column]).where(sa.false()).select_from(tbl)
                     sql = self.database.compile_sqla_query(
                         qry,
                         catalog=self.catalog,
