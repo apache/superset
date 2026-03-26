@@ -1310,7 +1310,11 @@ test('submit includes conditionNotNull without threshold in alert payload', asyn
     () => screen.getAllByText(/not null/i)[0],
   );
 
-  expect(screen.getByRole('spinbutton')).toBeDisabled();
+  // Wait for the threshold input to become disabled after "not null" selection —
+  // in CI the state update from comboboxSelect can lag behind the DOM assertion.
+  await waitFor(() => {
+    expect(screen.getByRole('spinbutton')).toBeDisabled();
+  });
 
   // Wait for Save to be enabled and click
   await waitFor(() => {
@@ -1694,7 +1698,10 @@ test('filter reappears in dropdown after clearing with X icon', async () => {
   const valueSelect = screen.getByRole('combobox', { name: /select value/i });
   expect(valueSelect.closest('.ant-select')).toHaveClass('ant-select-disabled');
 
-  userEvent.click(filterDropdown);
+  // Use fireEvent.mouseDown — ant design Select opens on mouseDown, not click.
+  // userEvent.click is unreliable in CI because the dropdown opening races with
+  // the click event propagation.
+  fireEvent.mouseDown(filterDropdown);
 
   const filterOption = await screen.findByText(
     'Test Filter 1',
@@ -1740,7 +1747,7 @@ test('filter reappears in dropdown after clearing with X icon', async () => {
     );
   });
 
-  userEvent.click(filterDropdown);
+  fireEvent.mouseDown(filterDropdown);
   await screen.findByText('Test Filter 1', {}, { timeout: 5000 });
 });
 
