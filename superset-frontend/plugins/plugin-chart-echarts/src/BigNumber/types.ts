@@ -41,7 +41,7 @@ export type BigNumberTotalFormData = QueryFormData & {
 };
 
 export type BigNumberWithTrendlineFormData = BigNumberTotalFormData & {
-  colorPicker: {
+  colorPicker?: {
     r: number;
     g: number;
     b: number;

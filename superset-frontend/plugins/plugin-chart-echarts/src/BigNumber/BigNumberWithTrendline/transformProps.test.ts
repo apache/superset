@@ -169,6 +169,35 @@ describe('BigNumberWithTrendline transformProps', () => {
     expect(result.subheader).toBe('10.0% WoW');
   });
 
+  test('should fallback to a default color when colorPicker is missing', () => {
+    const formData = { ...baseFormData };
+    delete (formData as { colorPicker?: { r: number; g: number; b: number } })
+      .colorPicker;
+
+    const chartProps = {
+      width: 500,
+      height: 400,
+      queriesData: [
+        {
+          data: [{ __timestamp: 2, value: 110 }] as unknown as BigNumberDatum[],
+          colnames: ['__timestamp', 'value'],
+          coltypes: ['TEMPORAL', 'NUMERIC'],
+        },
+      ],
+      formData,
+      rawFormData: baseRawFormData,
+      hooks: baseHooks,
+      datasource: baseDatasource,
+      theme: { colors: { grayscale: { light5: '#eee' } } },
+    };
+
+    const result = transformProps(
+      chartProps as unknown as BigNumberWithTrendlineChartProps,
+    );
+
+    expect(result.mainColor).toBe('rgb(0, 0, 0)');
+  });
+
   test('should compute bigNumber from parseMetricValue', () => {
     const chartProps = {
       width: 600,
