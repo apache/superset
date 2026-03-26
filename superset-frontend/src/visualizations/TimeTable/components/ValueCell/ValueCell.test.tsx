@@ -18,6 +18,7 @@
  */
 import { render, screen } from '@superset-ui/core/spec';
 import ValueCell from './ValueCell';
+import { Constants } from '@superset-ui/core/components';
 
 const mockColumn = {
   key: 'test-column',
@@ -57,7 +58,7 @@ describe('ValueCell', () => {
   test('should render null value', () => {
     render(<ValueCell value={null} column={mockColumn} />);
 
-    expect(screen.getByText('null')).toBeInTheDocument();
+    expect(screen.getByText(Constants.NULL_DISPLAY)).toBeInTheDocument();
   });
 
   test('should render number without format', () => {

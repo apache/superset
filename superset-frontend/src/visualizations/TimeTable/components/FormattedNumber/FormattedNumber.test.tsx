@@ -18,6 +18,7 @@
  */
 import { render, screen } from '@superset-ui/core/spec';
 import FormattedNumber from './FormattedNumber';
+import { Constants } from '@superset-ui/core/components';
 
 test('should render number without format', () => {
   render(<FormattedNumber num={12345} />);
@@ -41,7 +42,7 @@ test('should render with thousands separator', () => {
 
 test('should render null when num is undefined', () => {
   render(<FormattedNumber format=".2f" />);
-  expect(screen.getByText('null')).toBeInTheDocument();
+  expect(screen.getByText(Constants.NULL_DISPLAY)).toBeInTheDocument();
 });
 
 test('should have title attribute with original number when formatted', () => {
@@ -82,14 +83,10 @@ test('should handle very large numbers', () => {
 
 test('should handle invalid string numbers', () => {
   render(<FormattedNumber num="invalid" format=".2f" />);
-
-  const span = screen.getByText('null');
-
-  expect(span).toBeInTheDocument();
-  expect(span).toHaveAttribute('title', 'invalid');
+  expect(screen.getByText(Constants.NULL_DISPLAY)).toBeInTheDocument();
 });
 
 test('should handle null values', () => {
   render(<FormattedNumber num={null} />);
-  expect(screen.getByText('null')).toBeInTheDocument();
+  expect(screen.getByText(Constants.NULL_DISPLAY)).toBeInTheDocument();
 });

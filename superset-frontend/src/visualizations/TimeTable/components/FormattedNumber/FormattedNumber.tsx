@@ -18,6 +18,7 @@
  */
 import { formatNumber } from '@superset-ui/core';
 import { parseToNumber } from '../../utils';
+import { Constants } from '@superset-ui/core/components';
 
 interface FormattedNumberProps {
   num?: string | number | null;
@@ -25,10 +26,13 @@ interface FormattedNumberProps {
 }
 
 const FormattedNumber = ({ num = null, format }: FormattedNumberProps) => {
-  const displayNum = num ?? 'null';
+  const displayNum = num;
   const numericValue = parseToNumber(num);
 
-  if (num !== null && format)
+  if (numericValue == null)
+    // num is null, undefined or NaN
+    return <span>{Constants.NULL_DISPLAY}</span>;
+  else if (format)
     return (
       <span title={`${displayNum}`}>{formatNumber(format, numericValue)}</span>
     );
