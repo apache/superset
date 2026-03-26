@@ -1652,8 +1652,20 @@ class SqlaTable(
             if has_timegrain or force_type_check:
                 try:
                     # probe adhoc column type
+                    # Most databases populate cursor.description from query-plan
+                    # metadata, so WHERE FALSE (zero rows, no table scan) is
+                    # preferred — it avoids hitting row-read limits enforced by
+                    # engines like ClickHouse (max_rows_to_read).
+                    # A small number of drivers (Druid, Pinot) instead build
+                    # cursor.description by inspecting the first returned row;
+                    # for those we fall back to LIMIT 1.
                     tbl, _ = self.get_from_clause(template_processor)
-                    qry = sa.select([sqla_column]).limit(1).select_from(tbl)
+                    if self.db_engine_spec.type_probe_needs_row:
+                        qry = sa.select([sqla_column]).limit(1).select_from(tbl)
+                    else:
+                        qry = (
+                            sa.select([sqla_column]).where(sa.false()).select_from(tbl)
+                        )
                     sql = self.database.compile_sqla_query(
                         qry,
                         catalog=self.catalog,

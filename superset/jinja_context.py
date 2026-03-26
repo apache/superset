@@ -371,11 +371,11 @@ class ExtraCache:
                 {%- for filter in get_filters('full_name', remove_filter=True) -%}
                 {%- if filter.get('op') == 'IN' -%}
                     AND
-                    full_name IN ( {{ "'" + "', '".join(filter.get('val')) + "'" }} )
+                    full_name IN {{ filter.get('val')|where_in }}
                 {%- endif -%}
                 {%- if filter.get('op') == 'LIKE' -%}
                     AND
-                    full_name LIKE {{ "'" + filter.get('val') + "'" }}
+                    full_name LIKE '{{ filter.get('val') | replace("'", "''") }}'
                 {%- endif -%}
                 {%- endfor -%}
                 UNION ALL
