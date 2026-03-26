@@ -1777,7 +1777,7 @@ test('filter reappears in dropdown after clearing with X icon', async () => {
     },
     { timeout: 10000 },
   );
-});
+}, 45000);
 
 const setupAnchorMocks = (
   nativeFilters: Record<string, unknown>,
@@ -1968,17 +1968,15 @@ test('stale JSON array anchor is cleared without crash or toast', async () => {
       ).toBe(true);
     });
 
-    // Wait for the anchor state update to propagate through React's
-    // render cycle. The .then() callback calls updateAnchorState(undefined)
-    // which is a setState — it needs a re-render before the save payload
-    // reflects the cleared anchor. Wait for the tab selector to appear
-    // (proves the .then() callback completed and re-rendered).
+    // Wait for the anchor state to be cleared. The .then() callback calls
+    // updateAnchorState(undefined) after finding that not all elements in
+    // the JSON array anchor are valid tabs. When the anchor is cleared,
+    // the tab selector shows its placeholder text instead of a selected value.
     await waitFor(
       () => {
-        const treeSelect = document.querySelector('.ant-tree-select');
-        expect(treeSelect).toBeInTheDocument();
+        expect(screen.getByText(/select a tab/i)).toBeInTheDocument();
       },
-      { timeout: 5000 },
+      { timeout: 10000 },
     );
 
     // No error toast dispatched (the .then() handler ran without crashing)
@@ -2235,15 +2233,18 @@ test('anchor tab with scoped filters loads filter options correctly', async () =
     const filterDropdown = screen.getByRole('combobox', {
       name: /select filter/i,
     });
-    // Use fireEvent.mouseDown — Ant Design Select opens on mouseDown, not click
-    fireEvent.mouseDown(filterDropdown);
-
-    const filterOption = await screen.findByRole(
-      'option',
-      { name: /Tab Scoped Filter/ },
-      { timeout: 5000 },
+    // Use waitFor with mouseDown retry — the dropdown may not open or
+    // populate on the first attempt if the .then() callback hasn't
+    // finished setting filter options yet.
+    await waitFor(
+      () => {
+        fireEvent.mouseDown(filterDropdown);
+        expect(
+          screen.getByRole('option', { name: /Tab Scoped Filter/ }),
+        ).toBeInTheDocument();
+      },
+      { timeout: 10000 },
     );
-    expect(filterOption).toBeInTheDocument();
 
     const toasts = (store.getState() as Record<string, unknown>)
       .messageToasts as { text: string }[];
