@@ -31,6 +31,10 @@ class PinotEngineSpec(BaseEngineSpec):
     allows_alias_in_select = False
     allows_alias_in_orderby = False
 
+    # pinotdb only sets cursor.description when the response contains
+    # columnDataTypes, which Pinot omits for zero-row results.
+    type_probe_needs_row = True
+
     # https://docs.pinot.apache.org/users/user-guide-query/supported-transformations#datetime-functions
     _time_grain_expressions = {
         None: "{col}",
