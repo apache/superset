@@ -16,6 +16,8 @@ concurrency:
 jobs:
   test-mysql:
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -71,8 +73,9 @@ jobs:
         uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5
         with:
           flags: python,mysql
-          token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
+          use_oidc: true
+          slug: apache/superset
       - name: Generate database diagnostics for docs
         if: steps.check.outputs.python
         env:
@@ -105,6 +108,8 @@ jobs:
           retention-days: 7
   test-postgres:
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     strategy:
       matrix:
         python-version: ["current", "previous", "next"]
@@ -162,11 +167,14 @@ jobs:
         uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5
         with:
           flags: python,postgres
-          token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
+          use_oidc: true
+          slug: apache/superset
 
   test-sqlite:
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -214,5 +222,6 @@ jobs:
         uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5
         with:
           flags: python,sqlite
-          token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
+          use_oidc: true
+          slug: apache/superset

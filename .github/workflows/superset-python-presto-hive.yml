@@ -17,6 +17,8 @@ concurrency:
 jobs:
   test-postgres-presto:
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -80,11 +82,14 @@ jobs:
         uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5
         with:
           flags: python,presto
-          token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
+          use_oidc: true
+          slug: apache/superset
 
   test-postgres-hive:
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -148,5 +153,6 @@ jobs:
         uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5
         with:
           flags: python,hive
-          token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
+          use_oidc: true
+          slug: apache/superset
