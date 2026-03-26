@@ -26,6 +26,7 @@ from urllib.parse import parse_qs, urlparse
 
 from fastmcp import Context
 from mcp.types import ToolAnnotations
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.exceptions import CommandException
 from superset.extensions import event_logger
@@ -705,36 +706,55 @@ async def generate_chart(  # noqa: C901
 
         # Build chart info using serialize_chart_object for saved charts
         chart_info = None
+        chart_data = None
         if request.save_chart and chart:
             from sqlalchemy.orm import joinedload
 
+            from superset import db
             from superset.daos.chart import ChartDAO
             from superset.mcp_service.chart.schemas import serialize_chart_object
             from superset.models.slice import Slice
 
             # Re-fetch with eager-loaded relationships to avoid detached
             # instance errors when serialize_chart_object accesses .tags
-            # and .owners.  Use joinedload (single JOIN query) since we
-            # are fetching a single chart.
-            chart = (
-                ChartDAO.find_by_id(
-                    chart.id,
-                    query_options=[
-                        joinedload(Slice.owners),
-                        joinedload(Slice.tags),
-                    ],
+            # and .owners.  The preceding commit may invalidate the session
+            # in multi-tenant environments; on failure, build a minimal
+            # chart_data dict from scalar attributes that are already loaded
+            # — relationship fields (owners, tags) would trigger
+            # lazy-loading on the same dead session.
+            try:
+                chart = (
+                    ChartDAO.find_by_id(
+                        chart.id,
+                        query_options=[
+                            joinedload(Slice.owners),
+                            joinedload(Slice.tags),
+                        ],
+                    )
+                    or chart
                 )
-                or chart
-            )
+            except SQLAlchemyError:
+                logger.warning(
+                    "Re-fetch of chart %s failed; returning minimal response",
+                    chart.id,
+                    exc_info=True,
+                )
+                db.session.rollback()
+                chart_data = {
+                    "id": chart.id,
+                    "slice_name": chart.slice_name,
+                    "viz_type": chart.viz_type,
+                    "url": explore_url,
+                    "uuid": str(chart.uuid) if chart.uuid else None,
+                }
 
-            chart_info = serialize_chart_object(chart)
-            if chart_info:
-                # Override the URL with explore_url
-                chart_info.url = explore_url
+            if chart_data is None:
+                chart_info = serialize_chart_object(chart)
+                if chart_info:
+                    chart_info.url = explore_url
 
         # Safely serialize chart_info - handle both Pydantic models and dicts
-        chart_data = None
-        if chart_info:
+        if chart_data is None and chart_info is not None:
             if hasattr(chart_info, "model_dump"):
                 chart_data = chart_info.model_dump()
             elif isinstance(chart_info, dict):
@@ -781,7 +801,7 @@ async def generate_chart(  # noqa: C901
         )
         return GenerateChartResponse.model_validate(result)
 
-    except Exception as e:
+    except (CommandException, SQLAlchemyError, KeyError, ValueError) as e:
         await ctx.error(
             "Chart generation failed: error=%s, execution_time_ms=%s"
             % (

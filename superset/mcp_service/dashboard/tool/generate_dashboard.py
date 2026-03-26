@@ -341,21 +341,49 @@ def generate_dashboard(
                     error="Failed to create dashboard due to a database error.",
                 )
 
-        # Re-fetch with eager-loaded relationships for serialization
+        # Re-fetch with eager-loaded relationships for serialization.
+        # The preceding commit may invalidate the session in multi-tenant
+        # environments, causing "Can't reconnect until invalid transaction
+        # is rolled back".  Wrap the DAO re-fetch in try/except; on failure,
+        # return a minimal response using only scalar attributes that are
+        # already loaded — relationship fields (owners, tags, slices) would
+        # trigger lazy-loading on the same dead session.
         from superset.daos.dashboard import DashboardDAO
 
-        dashboard = (
-            DashboardDAO.find_by_id(
-                dashboard.id,
-                query_options=[
-                    subqueryload(Dashboard.slices).subqueryload(Slice.owners),
-                    subqueryload(Dashboard.slices).subqueryload(Slice.tags),
-                    subqueryload(Dashboard.owners),
-                    subqueryload(Dashboard.tags),
-                ],
+        try:
+            dashboard = (
+                DashboardDAO.find_by_id(
+                    dashboard.id,
+                    query_options=[
+                        subqueryload(Dashboard.slices).subqueryload(Slice.owners),
+                        subqueryload(Dashboard.slices).subqueryload(Slice.tags),
+                        subqueryload(Dashboard.owners),
+                        subqueryload(Dashboard.tags),
+                    ],
+                )
+                or dashboard
             )
-            or dashboard
-        )
+        except SQLAlchemyError:
+            logger.warning(
+                "Re-fetch of dashboard %s failed; returning minimal response",
+                dashboard.id,
+                exc_info=True,
+            )
+            db.session.rollback()
+            dashboard_url = (
+                f"{get_superset_base_url()}/superset/dashboard/{dashboard.id}/"
+            )
+            return GenerateDashboardResponse(
+                dashboard=DashboardInfo(
+                    id=dashboard.id,
+                    dashboard_title=dashboard.dashboard_title,
+                    url=dashboard_url,
+                    chart_count=len(request.chart_ids),
+                    published=dashboard.published,
+                ),
+                dashboard_url=dashboard_url,
+                error=None,
+            )
 
         # Convert to our response format
         from superset.mcp_service.dashboard.schemas import (
