@@ -306,7 +306,8 @@ const ExploreChartPanel = ({
         css={css`
           min-height: 0;
           flex: 1;
-          overflow: hidden;
+          overflow: auto;
+          height:100%;
         `}
         ref={chartPanelRef}
       >

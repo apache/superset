@@ -173,7 +173,7 @@ const Styles = styled.div`
   }
 
   .ant-tabs-content-holder {
-    overflow: visible;
+    overflow: hidden !important;
     height: auto;
   }
 
@@ -188,7 +188,7 @@ const Styles = styled.div`
   }
 
   .ant-collapse-content-box {
-    overflow: hidden;
+    overflow: visible;
   }
 
   .Select__menu {
