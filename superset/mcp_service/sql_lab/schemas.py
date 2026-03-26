@@ -33,6 +33,7 @@ class ExecuteSqlRequest(BaseModel):
     sql: str = Field(
         ...,
         description="SQL query to execute (supports Jinja2 {{ var }} template syntax)",
+        validation_alias=AliasChoices("sql", "query"),
     )
     schema_name: str | None = Field(
         None, description="Schema to use for query execution", alias="schema"

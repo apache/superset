@@ -350,6 +350,24 @@ def add_chart_to_existing_dashboard(
                     error=f"Chart with ID {request.chart_id} not found",
                 )
 
+            # Validate dataset access for the chart.
+            # check_chart_data_access is the centralized data-level
+            # permission check that complements the class-level RBAC
+            # enforced by mcp_auth_hook.
+            from superset.mcp_service.auth import check_chart_data_access
+
+            validation = check_chart_data_access(new_chart)
+            if not validation.is_valid:
+                return AddChartToDashboardResponse(
+                    dashboard=None,
+                    dashboard_url=None,
+                    position=None,
+                    error=(
+                        f"Chart {request.chart_id} is not accessible: "
+                        f"{validation.error}"
+                    ),
+                )
+
             # Check if chart is already in dashboard
             current_chart_ids = [slice.id for slice in dashboard.slices]
             if request.chart_id in current_chart_ids:
