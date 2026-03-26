@@ -3481,10 +3481,12 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         security_manager.add_permission_role(gamma_role, write_tags_perm)
         security_manager.add_permission_role(gamma_role, tag_dashboards_perm)
 
-    def _cache_screenshot(self, dashboard_id, payload=None):
+    def _cache_screenshot(self, dashboard_id, payload=None, force=None):
         if payload is None:
             payload = {"dataMask": {}, "activeTabs": [], "anchor": "", "urlParams": []}
         uri = f"/api/v1/dashboard/{dashboard_id}/cache_dashboard_screenshot/"
+        if force is not None:
+            uri += f"?force={str(force).lower()}"
         return self.client.post(uri, json=payload)
 
     def _get_screenshot(self, dashboard_id, cache_key, download_format):
@@ -3584,7 +3586,8 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
         )
-        cache_resp = self._cache_screenshot(dashboard.id)
+        # Use force=False to test returning cached image (status 200)
+        cache_resp = self._cache_screenshot(dashboard.id, force=False)
         assert cache_resp.status_code == 200
         cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
 
@@ -3594,7 +3597,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert response.data == b"fake image data"
 
         mock_get_from_cache_key.return_value = ScreenshotCachePayload()
-        cache_resp = self._cache_screenshot(dashboard.id)
+        cache_resp = self._cache_screenshot(dashboard.id, force=False)
         assert cache_resp.status_code == 202
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
@@ -3623,7 +3626,8 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
         )
-        cache_resp = self._cache_screenshot(dashboard.id)
+        # Use force=False to test returning cached image (status 200)
+        cache_resp = self._cache_screenshot(dashboard.id, force=False)
         assert cache_resp.status_code == 200
         cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
 
@@ -3633,7 +3637,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert response.data == b"fake pdf data"
 
         mock_get_from_cache_key.return_value = ScreenshotCachePayload()
-        cache_resp = self._cache_screenshot(dashboard.id)
+        cache_resp = self._cache_screenshot(dashboard.id, force=False)
         assert cache_resp.status_code == 202
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
@@ -3681,12 +3685,13 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             .first()
         )
 
-        cache_resp = self._cache_screenshot(dashboard.id)
+        # Use force=False to test returning cached image (status 200)
+        cache_resp = self._cache_screenshot(dashboard.id, force=False)
         assert cache_resp.status_code == 200
         cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
 
         mock_get_from_cache_key.return_value = ScreenshotCachePayload()
-        cache_resp = self._cache_screenshot(dashboard.id)
+        cache_resp = self._cache_screenshot(dashboard.id, force=False)
         assert cache_resp.status_code == 202
 
         response = self._get_screenshot(dashboard.id, cache_key, "invalid")
@@ -3716,7 +3721,8 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             .first()
         )
 
-        cache_resp = self._cache_screenshot(dashboard.id)
+        # Use force=False to test returning cached image (status 200)
+        cache_resp = self._cache_screenshot(dashboard.id, force=False)
         assert cache_resp.status_code == 200
         cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
 
@@ -3752,7 +3758,8 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         db.session.add(dashboard)
         db.session.commit()
 
-        cache_resp = self._cache_screenshot(dashboard.id)
+        # Use force=False to test returning cached image (status 200)
+        cache_resp = self._cache_screenshot(dashboard.id, force=False)
         assert cache_resp.status_code == 200
         cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
 
