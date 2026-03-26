@@ -227,6 +227,23 @@ def generate_dashboard(
                     error=f"Charts not found: {list(missing_chart_ids)}",
                 )
 
+            # Validate dataset access for each chart.
+            # check_chart_data_access is the centralized data-level
+            # permission check that complements the class-level RBAC
+            # enforced by mcp_auth_hook.
+            from superset.mcp_service.auth import check_chart_data_access
+
+            for chart in chart_objects:
+                validation = check_chart_data_access(chart)
+                if not validation.is_valid:
+                    return GenerateDashboardResponse(
+                        dashboard=None,
+                        dashboard_url=None,
+                        error=(
+                            f"Chart {chart.id} is not accessible: {validation.error}"
+                        ),
+                    )
+
         # Create dashboard layout with chart objects
         with event_logger.log_context(action="mcp.generate_dashboard.layout"):
             layout = _create_dashboard_layout(chart_objects)
