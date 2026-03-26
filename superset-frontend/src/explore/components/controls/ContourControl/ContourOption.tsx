@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { t } from '@apache-superset/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { ContourOptionProps } from './types';
 import ContourPopoverTrigger from './ContourPopoverTrigger';
 import OptionWrapper from '../DndColumnSelectControl/OptionWrapper';

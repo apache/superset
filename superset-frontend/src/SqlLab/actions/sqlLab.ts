@@ -28,7 +28,7 @@ import {
   COMMON_ERR_MESSAGES,
   getClientErrorObject,
 } from '@superset-ui/core';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { invert, mapKeys } from 'lodash';
 
 import { now } from '@superset-ui/core/utils/dates';

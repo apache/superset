@@ -70,7 +70,8 @@ Chart Management:
 
 SQL Lab Integration:
 - execute_sql: Execute SQL queries and get results (requires database_id)
-- open_sql_lab_with_context: Generate SQL Lab URL with pre-filled query
+- save_sql_query: Save a SQL query to Saved Queries list
+- open_sql_lab_with_context: Generate SQL Lab URL with pre-filled sql
 
 Schema Discovery:
 - get_schema: Get schema metadata for chart/dataset/dashboard (columns, filters)
@@ -103,9 +104,10 @@ To find your own charts/dashboards:
    "opr": "eq", "value": current_user.id}}])
 
 To explore data with SQL:
-1. get_instance_info -> find database_id
+1. list_datasets -> find a dataset and note its database_id
 2. execute_sql(database_id, sql) -> run query
-3. open_sql_lab_with_context(database_id) -> open SQL Lab UI
+3. save_sql_query(database_id, label, sql) -> save query for later reuse
+4. open_sql_lab_with_context(database_id) -> open SQL Lab UI
 
 generate_explore_link vs generate_chart:
 - Use generate_explore_link for exploration (no permanent chart created)
@@ -118,6 +120,13 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
 - chart_type="xy", kind="scatter": Scatter plot for correlation analysis
 - chart_type="table": Data table for detailed views
 - chart_type="table", viz_type="ag-grid-table": Interactive AG Grid table
+- chart_type="pie": Pie chart for proportional data (set donut=True for donut)
+- chart_type="pivot_table": Interactive pivot table for cross-tabulation
+- chart_type="mixed_timeseries": Dual-series chart combining two chart types
+- chart_type="handlebars": Custom HTML template chart (KPI cards, leaderboards, reports)
+  Requires handlebars_template with Handlebars HTML template string.
+  Supports query_mode="aggregate" (with metrics/groupby) or "raw" (with columns).
+  Data available as {{{{data}}}} array; helpers: dateFormat, formatNumber, stringify.
 
 Time grain for temporal x-axis (time_grain parameter):
 - PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P1Y (yearly)
@@ -139,6 +148,33 @@ Query Examples:
 - My dashboards:
   filters=[{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]
 
+To modify an existing chart (add filters, change metrics, change dimensions, etc.):
+1. get_chart_info(chart_id) -> examine current configuration
+2. update_chart(chart_id, config) -> apply changes (filters, metrics, dimensions)
+Do NOT use execute_sql for chart modifications. Use update_chart instead.
+
+CRITICAL RULES - NEVER VIOLATE:
+- NEVER fabricate or invent URLs. ALL URLs must come from tool call results.
+  If you need a link, call the appropriate tool (generate_explore_link, generate_chart,
+  open_sql_lab_with_context, etc.) and use the URL it returns.
+- To modify an existing chart's filters, metrics, or dimensions, use update_chart.
+  Do NOT use execute_sql for chart modifications.
+- Parameter name reminders: ALWAYS use the EXACT parameter names from the tool schema.
+  Do NOT use Superset's internal form_data names.
+
+IMPORTANT - Tool-Only Interaction:
+- Do NOT generate code artifacts, HTML pages, JavaScript snippets, or any code intended
+  for the user to run. All visualization, data retrieval, and authentication are handled
+  by the provided MCP tools.
+- Always call the appropriate tool directly instead of writing code. For example, use
+  generate_chart to create visualizations rather than generating plotting code.
+- When a tool returns a URL (chart URL, dashboard URL, explore link, SQL Lab link),
+  return that URL to the user. Do NOT attempt to recreate the visualization in code.
+- Do NOT generate HTML dashboards, embed scripts, or custom frontend code. Use
+  generate_dashboard and add_chart_to_existing_dashboard for dashboard operations.
+- If a user asks for something the tools cannot do, explain the limitation and suggest
+  the closest available tool rather than generating code as a workaround.
+
 General usage tips:
 - All listing tools use 1-based pagination (first page is 1)
 - Use get_schema to discover filterable columns, sortable columns, and default columns
@@ -155,6 +191,23 @@ Input format:
 Feature Availability:
 - Call get_instance_info to discover accessible menus for the current user.
 - Do NOT assume features exist; always check get_instance_info first.
+
+Permission Awareness:
+- get_instance_info returns current_user.roles (e.g., ["Admin"], ["Alpha"], ["Viewer"]).
+- ALWAYS check the user's roles BEFORE suggesting write operations (creating datasets,
+  charts, dashboards, or running SQL).
+- Common roles and their typical capabilities:
+  - Admin: Full access to all features
+  - Alpha: Can create and modify charts, dashboards, datasets, and run SQL
+  - Gamma: Can view charts and dashboards they have been granted access to
+  - Viewer: Read-only access to shared dashboards and charts
+- If a user has a read-only role (Viewer, Gamma) and a listing tool returns 0 results,
+  do NOT suggest they create resources. Instead:
+  1. Explain that they may not have access to the requested resources
+  2. Suggest they ask a workspace admin to grant them access or share content with them
+  3. Offer to help with what they CAN do (e.g., viewing dashboards they have access to)
+- If you are unsure about a user's capabilities, check their accessible_menus in
+  feature_availability from get_instance_info.
 
 If you are unsure which tool to use, start with get_instance_info
 or use the quickstart prompt for an interactive guide.
@@ -306,13 +359,31 @@ def create_mcp_app(
 mcp = create_mcp_app()
 
 # Initialize MCP dependency injection BEFORE importing tools/prompts
-# This replaces the abstract @tool and @prompt decorators in superset_core.mcp
+# This replaces the abstract @tool and @prompt decorators in superset_core.api.mcp
 # with concrete implementations that can register with the mcp instance
 from superset.core.mcp.core_mcp_injection import (  # noqa: E402
     initialize_core_mcp_dependencies,
 )
 
 initialize_core_mcp_dependencies()
+
+# Suppress known third-party deprecation warnings that leak to MCP clients.
+# The MCP SDK captures Python warnings and forwards them to clients via
+# server log entries, wasting LLM tokens and causing clients to act on
+# irrelevant internal warnings. These warnings come from transitive imports
+# triggered by tool/schema registration below.
+import warnings  # noqa: E402
+
+warnings.filterwarnings(
+    "ignore",
+    category=DeprecationWarning,
+    module=r"marshmallow\..*",
+)
+warnings.filterwarnings(
+    "ignore",
+    category=FutureWarning,
+    module=r"google\..*",
+)
 
 # Import all MCP tools to register them with the mcp instance
 # NOTE: Always add new tool imports here when creating new MCP tools.
@@ -350,6 +421,7 @@ from superset.mcp_service.explore.tool import (  # noqa: F401, E402
 from superset.mcp_service.sql_lab.tool import (  # noqa: F401, E402
     execute_sql,
     open_sql_lab_with_context,
+    save_sql_query,
 )
 from superset.mcp_service.system import (  # noqa: F401, E402
     prompts as system_prompts,

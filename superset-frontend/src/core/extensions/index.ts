@@ -17,13 +17,13 @@
  * under the License.
  */
 import { extensions as extensionsApi } from '@apache-superset/core';
-import ExtensionsManager from 'src/extensions/ExtensionsManager';
+import ExtensionsLoader from 'src/extensions/ExtensionsLoader';
 
 const getExtension: typeof extensionsApi.getExtension = id =>
-  ExtensionsManager.getInstance().getExtension(id);
+  ExtensionsLoader.getInstance().getExtension(id);
 
 const getAllExtensions: typeof extensionsApi.getAllExtensions = () =>
-  ExtensionsManager.getInstance().getExtensions();
+  ExtensionsLoader.getInstance().getExtensions();
 
 export const extensions: typeof extensionsApi = {
   getExtension,

@@ -19,18 +19,20 @@
 
 import { Component, ReactNode, MouseEvent } from 'react';
 import { safeHtmlSpan } from '@superset-ui/core';
-import { t } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { supersetTheme } from '@apache-superset/core/theme';
 import PropTypes from 'prop-types';
 import { FaSort } from 'react-icons/fa';
 import { FaSortDown as FaSortDesc } from 'react-icons/fa';
 import { FaSortUp as FaSortAsc } from 'react-icons/fa';
+import {
+  ColorFormatters,
+  getTextColorForBackground,
+  ObjectFormattingEnum,
+  ResolvedColorFormatterResult,
+} from '@superset-ui/chart-controls';
 import { PivotData, flatKey } from './utilities';
 import { Styles } from './Styles';
-
-interface CellColorFormatter {
-  column: string;
-  getColorFromValue(value: unknown): string | undefined;
-}
 
 type ClickCallback = (
   e: MouseEvent,
@@ -59,8 +61,11 @@ interface TableOptions {
   highlightHeaderCellsOnHover?: boolean;
   omittedHighlightHeaderGroups?: string[];
   highlightedHeaderCells?: Record<string, unknown[]>;
-  cellColorFormatters?: Record<string, CellColorFormatter[]>;
+  cellColorFormatters?: Record<string, ColorFormatters>;
   dateFormatters?: Record<string, ((val: unknown) => string) | undefined>;
+  cellBackgroundColor?: string;
+  cellTextColor?: string;
+  activeHeaderBackgroundColor?: string;
 }
 
 interface SubtotalDisplay {
@@ -174,14 +179,19 @@ function displayHeaderCell(
   );
 }
 
-function getCellColor(
+export function getCellColor(
   keys: string[],
   aggValue: string | number | null,
-  cellColorFormatters: Record<string, CellColorFormatter[]> | undefined,
-): { backgroundColor: string | undefined } {
+  cellColorFormatters: Record<string, ColorFormatters> | undefined,
+  cellBackgroundColor = supersetTheme.colorBgBase,
+): ResolvedColorFormatterResult {
   if (!cellColorFormatters) return { backgroundColor: undefined };
 
   let backgroundColor: string | undefined;
+  let color: string | undefined;
+  const isTextColorFormatter = (formatter: ColorFormatters[number]) =>
+    formatter.objectFormatting === ObjectFormattingEnum.TEXT_COLOR ||
+    formatter.toTextColor;
 
   for (const cellColorFormatter of Object.values(cellColorFormatters)) {
     if (!Array.isArray(cellColorFormatter)) continue;
@@ -191,14 +201,26 @@ function getCellColor(
         if (formatter.column === key) {
           const result = formatter.getColorFromValue(aggValue);
           if (result) {
-            backgroundColor = result;
+            if (isTextColorFormatter(formatter)) {
+              color = result;
+            } else if (
+              formatter.objectFormatting !== ObjectFormattingEnum.CELL_BAR
+            ) {
+              backgroundColor = result;
+            }
           }
         }
       }
     }
   }
 
-  return { backgroundColor };
+  return {
+    backgroundColor,
+    color: getTextColorForBackground(
+      { backgroundColor, color },
+      cellBackgroundColor,
+    ),
+  };
 }
 
 interface HierarchicalNode {
@@ -746,6 +768,8 @@ export class TableRenderer extends Component<
       highlightedHeaderCells,
       cellColorFormatters,
       dateFormatters,
+      cellBackgroundColor = supersetTheme.colorBgBase,
+      activeHeaderBackgroundColor = supersetTheme.colorPrimaryBg,
     } = this.props.tableOptions;
 
     if (!visibleColKeys || !colAttrSpans) {
@@ -812,6 +836,7 @@ export class TableRenderer extends Component<
         ) {
           colLabelClass += ' active';
         }
+        const isActiveHeader = colLabelClass.includes('active');
         const maxRowIndex = pivotSettings.maxRowVisible!;
         const mColVisible = pivotSettings.maxColVisible!;
         const visibleSortIcon = mColVisible - 1 === attrIdx;
@@ -844,12 +869,16 @@ export class TableRenderer extends Component<
         };
         const headerCellFormattedValue =
           dateFormatters?.[attrName]?.(colKey[attrIdx]) ?? colKey[attrIdx];
-        const { backgroundColor } = getCellColor(
+        const { backgroundColor, color } = getCellColor(
           [attrName],
           headerCellFormattedValue,
           cellColorFormatters,
+          isActiveHeader ? activeHeaderBackgroundColor : cellBackgroundColor,
         );
-        const style = { backgroundColor };
+        const style = {
+          backgroundColor,
+          ...(color ? { color } : {}),
+        };
         attrValueCells.push(
           <th
             className={colLabelClass}
@@ -1044,6 +1073,9 @@ export class TableRenderer extends Component<
       highlightedHeaderCells,
       cellColorFormatters,
       dateFormatters,
+      cellBackgroundColor = supersetTheme.colorBgBase,
+      cellTextColor = supersetTheme.colorPrimaryText,
+      activeHeaderBackgroundColor = supersetTheme.colorPrimaryBg,
     } = this.props.tableOptions;
     const flatRowKey = flatKey(rowKey);
 
@@ -1067,6 +1099,7 @@ export class TableRenderer extends Component<
       ) {
         valueCellClassName += ' active';
       }
+      const isActiveHeader = valueCellClassName.includes('active');
       const rowSpan = rowAttrSpans![rowIdx][i];
       if (rowSpan > 0) {
         const flatRowKey = flatKey(rowKey.slice(0, i + 1));
@@ -1080,12 +1113,16 @@ export class TableRenderer extends Component<
         const headerCellFormattedValue =
           dateFormatters?.[rowAttrs[i]]?.(r) ?? r;
 
-        const { backgroundColor } = getCellColor(
+        const { backgroundColor, color } = getCellColor(
           [rowAttrs[i]],
           headerCellFormattedValue,
           cellColorFormatters,
+          isActiveHeader ? activeHeaderBackgroundColor : cellBackgroundColor,
         );
-        const style = { backgroundColor };
+        const style = {
+          backgroundColor,
+          ...(color ? { color } : {}),
+        };
         return (
           <th
             key={`rowKeyLabel-${i}`}
@@ -1152,15 +1189,20 @@ export class TableRenderer extends Component<
 
       const keys = [...rowKey, ...colKey];
 
-      const { backgroundColor } = getCellColor(
+      const { backgroundColor, color } = getCellColor(
         keys,
         aggValue,
         cellColorFormatters,
+        cellBackgroundColor,
       );
 
       const style = agg.isSubtotal
-        ? { fontWeight: 'bold' }
-        : { backgroundColor };
+        ? {
+            backgroundColor,
+            fontWeight: 'bold',
+            color: color ?? cellTextColor,
+          }
+        : { backgroundColor, color: color ?? cellTextColor };
 
       return (
         <td

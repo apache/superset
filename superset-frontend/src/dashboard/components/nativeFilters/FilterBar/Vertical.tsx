@@ -31,8 +31,8 @@ import {
 } from 'react';
 import { useSelector } from 'react-redux';
 import cx from 'classnames';
-import { t } from '@apache-superset/core';
-import { styled, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { RootState } from 'src/dashboard/types';
 import { DataMaskStateWithId } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -119,6 +119,7 @@ const FilterControlsWrapper = styled.div`
     flex-direction: column;
     gap: ${theme.sizeUnit * 2}px;
     padding: ${theme.sizeUnit * 4}px;
+    padding-top: 0; /* Works with other changes in PR https://github.com/apache/superset/pull/38646 to reduces space between filter header and 1st filter */
     // 108px padding to make room for buttons with position: absolute
     padding-bottom: ${theme.sizeUnit * 27}px;
   `}

@@ -19,7 +19,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 import type { JsonValidationAnnotation } from '@superset-ui/core/components/AsyncAceEditor';
-import type { AnyThemeConfig } from '@apache-superset/core/ui';
+import { type AnyThemeConfig } from '@apache-superset/core/theme';
 import { validateTheme } from '../utils/themeStructureValidation';
 
 /**

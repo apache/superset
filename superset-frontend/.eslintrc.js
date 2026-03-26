@@ -83,9 +83,6 @@ module.exports = {
   extends: [
     'eslint:recommended',
     'plugin:import/recommended',
-    'plugin:react/recommended',
-    'plugin:jsx-a11y/recommended',
-    'plugin:react-hooks/recommended',
     'plugin:react-prefer-function-component/recommended',
     'plugin:storybook/recommended',
     'prettier',
@@ -130,9 +127,6 @@ module.exports = {
   },
   plugins: [
     'import',
-    'react',
-    'jsx-a11y',
-    'react-hooks',
     'file-progress',
     'lodash',
     'theme-colors',
@@ -141,7 +135,6 @@ module.exports = {
     'react-prefer-function-component',
     'react-you-might-not-need-an-effect',
     'prettier',
-    'react-you-might-not-need-an-effect',
   ],
   rules: {
     // === Essential Superset customizations ===
@@ -206,40 +199,7 @@ module.exports = {
     ],
 
     // React plugin overrides
-    'react/prop-types': 0,
-    'react/require-default-props': 0,
-    'react/forbid-prop-types': 0,
-    'react/forbid-component-props': 1,
-    'react/jsx-filename-extension': [1, { extensions: ['.jsx', '.tsx'] }],
-    'react/jsx-fragments': 1,
-    'react/jsx-no-bind': 0,
-    'react/jsx-props-no-spreading': 0,
-    'react/no-array-index-key': 0,
-    'react/no-string-refs': 0,
-    'react/no-unescaped-entities': 0,
-    'react/no-unused-prop-types': 0,
-    'react/destructuring-assignment': 0,
-    'react/sort-comp': 0,
-    'react/static-property-placement': 0,
     'react-prefer-function-component/react-prefer-function-component': 1,
-    'react/react-in-jsx-scope': 0,
-    'react/no-unknown-property': 0,
-    'react/no-void-elements': 0,
-    'react/function-component-definition': [
-      0,
-      {
-        namedComponents: 'arrow-function',
-      },
-    ],
-    'react/no-unstable-nested-components': 0,
-    'react/jsx-no-useless-fragment': 0,
-    'react/no-unused-class-component-methods': 0,
-
-    // JSX-a11y overrides
-    'jsx-a11y/anchor-is-valid': 1,
-    'jsx-a11y/click-events-have-key-events': 0,
-    'jsx-a11y/mouse-events-have-key-events': 0,
-    'jsx-a11y/no-static-element-interactions': 0,
 
     // React effect best practices
     'react-you-might-not-need-an-effect/no-empty-effect': 'error',
@@ -534,7 +494,6 @@ module.exports = {
         'icons/no-fa-icons-usage': 0,
         'i18n-strings/no-template-vars': 0,
         'no-restricted-imports': 0,
-        'react/no-void-elements': 0,
       },
     },
     {

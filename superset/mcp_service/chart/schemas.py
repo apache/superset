@@ -21,10 +21,13 @@ Pydantic schemas for chart-related responses
 
 from __future__ import annotations
 
+import difflib
 from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List, Literal, Protocol
 
 from pydantic import (
+    AliasChoices,
+    AliasPath,
     BaseModel,
     ConfigDict,
     Field,
@@ -45,6 +48,7 @@ from superset.mcp_service.common.cache_schemas import (
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
+    serialize_user_object,
     TagInfo,
     UserInfo,
 )
@@ -111,6 +115,14 @@ class ChartInfo(BaseModel):
     owners: List[UserInfo] = Field(default_factory=list, description="Chart owners")
 
     # Fields for unsaved state support
+    form_data: Dict[str, Any] | None = Field(
+        None,
+        description=(
+            "The chart's form_data configuration. When form_data_key is provided, "
+            "this contains the unsaved (cached) configuration rather than the "
+            "saved version."
+        ),
+    )
     form_data_key: str | None = Field(
         None,
         description=(
@@ -218,26 +230,44 @@ class VersionedResponse(BaseModel):
 
 
 class GetChartInfoRequest(BaseModel):
-    """Request schema for get_chart_info with support for ID or UUID.
+    """Request schema for get_chart_info with support for ID, UUID, or form_data_key.
 
     When form_data_key is provided, the tool will retrieve the unsaved chart state
     from cache, allowing you to explain what the user actually sees (not the saved
     version). This is useful when a user edits a chart in Explore but hasn't saved yet.
+
+    For unsaved charts (no chart ID), provide only form_data_key to retrieve the
+    current chart configuration from cache.
     """
 
     identifier: Annotated[
-        int | str,
-        Field(description="Chart identifier - can be numeric ID or UUID string"),
+        int | str | None,
+        Field(
+            default=None,
+            description=(
+                "Chart identifier - can be numeric ID or UUID string. "
+                "Optional when form_data_key is provided (for unsaved charts)."
+            ),
+        ),
     ]
     form_data_key: str | None = Field(
         default=None,
         description=(
-            "Optional cache key for retrieving unsaved chart state. When a user "
+            "Cache key for retrieving unsaved chart state. When a user "
             "edits a chart in Explore but hasn't saved, the current state is stored "
             "with this key. If provided, the tool returns the current unsaved "
-            "configuration instead of the saved version."
+            "configuration instead of the saved version. "
+            "Can be used alone (without identifier) for unsaved charts."
         ),
     )
+
+    @model_validator(mode="after")
+    def validate_identifier_or_form_data_key(self) -> "GetChartInfoRequest":
+        if not self.identifier and not self.form_data_key:
+            raise ValueError(
+                "At least one of 'identifier' or 'form_data_key' must be provided."
+            )
+        return self
 
 
 def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
@@ -278,8 +308,9 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         if getattr(chart, "tags", None)
         else [],
         owners=[
-            UserInfo.model_validate(owner, from_attributes=True)
+            info
             for owner in getattr(chart, "owners", [])
+            if (info := serialize_user_object(owner)) is not None
         ]
         if getattr(chart, "owners", None)
         else [],
@@ -353,18 +384,92 @@ class ChartList(BaseModel):
 
 
 # Common pieces
+
+
+def _normalize_group_by_input(v: Any) -> Any:
+    """Accept a single ColumnRef/dict/str and normalize to list of dicts."""
+    if isinstance(v, str):
+        return [{"name": v}]
+    if isinstance(v, (dict, ColumnRef)):
+        return [v]
+    if isinstance(v, list):
+        return [{"name": item} if isinstance(item, str) else item for item in v]
+    return v
+
+
+def _top_level_key(alias: str | AliasPath) -> str | None:
+    """Extract the top-level dict key from a str or AliasPath."""
+    if isinstance(alias, str):
+        return alias
+    if isinstance(alias, AliasPath) and alias.path and isinstance(alias.path[0], str):
+        return alias.path[0]
+    return None
+
+
+def _get_known_fields(model_class: type[BaseModel]) -> set[str]:
+    """Collect all valid field names including validation aliases."""
+    known: set[str] = set()
+    for field_name, field_info in model_class.model_fields.items():
+        known.add(field_name)
+        alias = field_info.validation_alias
+        if isinstance(alias, AliasChoices):
+            for choice in alias.choices:
+                key = _top_level_key(choice)
+                if key:
+                    known.add(key)
+        elif alias is not None:
+            key = _top_level_key(alias)
+            if key:
+                known.add(key)
+    return known
+
+
+def _check_unknown_fields(data: Any, model_class: type[BaseModel]) -> Any:
+    """Raise ValueError for unrecognized fields with 'did you mean?' suggestions.
+
+    Catches fields that would be silently dropped by extra='ignore' and provides
+    actionable error messages to help LLMs self-correct parameter names.
+    """
+    if not isinstance(data, dict):
+        return data
+    known = _get_known_fields(model_class)
+    unknown = set(data.keys()) - known
+    if not unknown:
+        return data
+
+    messages = []
+    for field in sorted(unknown):
+        matches = difflib.get_close_matches(field, sorted(known), n=1, cutoff=0.6)
+        if matches:
+            messages.append(f"Unknown field '{field}' — did you mean '{matches[0]}'?")
+        else:
+            messages.append(
+                f"Unknown field '{field}'. Valid fields: {', '.join(sorted(known))}"
+            )
+    raise ValueError(" | ".join(messages))
+
+
+class UnknownFieldCheckMixin(BaseModel):
+    """Mixin that rejects unknown fields with 'did you mean?' suggestions."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def check_unknown_fields(cls, data: Any) -> Any:
+        return _check_unknown_fields(data, cls)
+
+
 class ColumnRef(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     name: str = Field(
         ...,
-        description="Column name",
         min_length=1,
         max_length=255,
         pattern=r"^[a-zA-Z0-9_][a-zA-Z0-9_\s\-\.]*$",
+        validation_alias=AliasChoices("name", "column_name"),
     )
-    label: str | None = Field(
-        None, description="Display label for the column", max_length=500
-    )
-    dtype: str | None = Field(None, description="Data type hint")
+    label: str | None = Field(None, max_length=500)
+    dtype: str | None = None
     aggregate: (
         Literal[
             "SUM",
@@ -379,11 +484,7 @@ class ColumnRef(BaseModel):
             "PERCENTILE",
         ]
         | None
-    ) = Field(
-        None,
-        description="SQL aggregation function. Only these validated functions are "
-        "supported to prevent SQL errors.",
-    )
+    ) = Field(None, description="SQL aggregate function")
 
     @field_validator("name")
     @classmethod
@@ -403,25 +504,25 @@ class ColumnRef(BaseModel):
 
 
 class AxisConfig(BaseModel):
-    title: str | None = Field(None, description="Axis title", max_length=200)
-    scale: Literal["linear", "log"] | None = Field(
-        "linear", description="Axis scale type"
-    )
-    format: str | None = Field(
-        None, description="Format string (e.g. '$,.2f')", max_length=50
-    )
+    title: str | None = Field(None, max_length=200)
+    scale: Literal["linear", "log"] | None = "linear"
+    format: str | None = Field(None, description="e.g. '$,.2f'", max_length=50)
 
 
 class LegendConfig(BaseModel):
-    show: bool = Field(True, description="Whether to show legend")
-    position: Literal["top", "bottom", "left", "right"] | None = Field(
-        "right", description="Legend position"
-    )
+    show: bool = True
+    position: Literal["top", "bottom", "left", "right"] | None = "right"
 
 
 class FilterConfig(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     column: str = Field(
-        ..., description="Column to filter on", min_length=1, max_length=255
+        ...,
+        min_length=1,
+        max_length=255,
+        pattern=r"^[a-zA-Z0-9_][a-zA-Z0-9_\s\-\.]*$",
+        validation_alias=AliasChoices("column", "col"),
     )
     op: Literal[
         "=",
@@ -437,17 +538,13 @@ class FilterConfig(BaseModel):
         "NOT IN",
     ] = Field(
         ...,
-        description=(
-            "Filter operator. Use LIKE/ILIKE for pattern matching with % wildcards "
-            "(e.g., '%mario%'). Use IN/NOT IN with a list of values."
-        ),
+        description="LIKE/ILIKE use % wildcards. IN/NOT IN take a list.",
+        validation_alias=AliasChoices("op", "operator", "opr"),
     )
     value: str | int | float | bool | list[str | int | float | bool] = Field(
         ...,
-        description=(
-            "Filter value. For IN/NOT IN operators, provide a list of values. "
-            "For LIKE/ILIKE, use % as wildcard (e.g., '%mario%')."
-        ),
+        description="For IN/NOT IN, provide a list.",
+        validation_alias=AliasChoices("value", "val"),
     )
 
     @field_validator("column")
@@ -485,32 +582,276 @@ class FilterConfig(BaseModel):
 
 
 # Actual chart types
-class TableChartConfig(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+class PieChartConfig(UnknownFieldCheckMixin):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    chart_type: Literal["table"] = Field(
-        ..., description="Chart type (REQUIRED: must be 'table')"
+    chart_type: Literal["pie"] = "pie"
+    dimension: ColumnRef = Field(
+        ...,
+        description="Category column for slices",
+        validation_alias=AliasChoices("dimension", "groupby"),
     )
-    viz_type: Literal["table", "ag-grid-table"] = Field(
-        "table",
-        description=(
-            "Visualization type: 'table' for standard table, 'ag-grid-table' for "
-            "AG Grid Interactive Table with advanced features like column resizing, "
-            "sorting, filtering, and server-side pagination"
+    metric: ColumnRef = Field(
+        ..., description="Value metric (needs aggregate e.g. SUM, COUNT)"
+    )
+    donut: bool = False
+    show_labels: bool = True
+    label_type: Literal[
+        "key",
+        "value",
+        "percent",
+        "key_value",
+        "key_percent",
+        "key_value_percent",
+        "value_percent",
+    ] = "key_value_percent"
+    sort_by_metric: bool = True
+    show_legend: bool = True
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    row_limit: int = Field(100, description="Max slices", ge=1, le=10000)
+    number_format: str = Field("SMART_NUMBER", max_length=50)
+    show_total: bool = Field(False, description="Show total in center")
+    labels_outside: bool = True
+    outer_radius: int = Field(70, description="Outer radius % (1-100)", ge=1, le=100)
+    inner_radius: int = Field(
+        30, description="Donut inner radius % (1-100)", ge=1, le=100
+    )
+
+
+class PivotTableChartConfig(UnknownFieldCheckMixin):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["pivot_table"] = "pivot_table"
+    rows: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description="Row grouping columns",
+        validation_alias=AliasChoices("rows", "groupby", "dimension"),
+    )
+    columns: List[ColumnRef] | None = Field(
+        None, description="Column groups for cross-tabulation"
+    )
+    metrics: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description="Metrics (need aggregate e.g. SUM, COUNT, AVG)",
+    )
+    aggregate_function: Literal[
+        "Sum",
+        "Average",
+        "Median",
+        "Sample Variance",
+        "Sample Standard Deviation",
+        "Minimum",
+        "Maximum",
+        "Count",
+        "Count Unique Values",
+        "First",
+        "Last",
+    ] = "Sum"
+    show_row_totals: bool = True
+    show_column_totals: bool = True
+    transpose: bool = False
+    combine_metric: bool = Field(False, description="Metrics side by side in columns")
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    row_limit: int = Field(10000, description="Max cells", ge=1, le=50000)
+    value_format: str = Field("SMART_NUMBER", max_length=50)
+
+
+class MixedTimeseriesChartConfig(UnknownFieldCheckMixin):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["mixed_timeseries"] = "mixed_timeseries"
+    x: ColumnRef = Field(
+        ...,
+        description="Shared temporal X-axis column",
+        validation_alias=AliasChoices("x", "x_axis"),
+    )
+    time_grain: TimeGrain | None = Field(
+        None,
+        description="PT1H, P1D, P1W, P1M, P1Y",
+        validation_alias=AliasChoices("time_grain", "time_grain_sqla"),
+    )
+    # Primary series (Query A)
+    y: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description="Primary Y-axis metrics",
+        validation_alias=AliasChoices("y", "metrics"),
+    )
+    primary_kind: Literal["line", "bar", "area", "scatter"] = "line"
+    group_by: List[ColumnRef] | None = Field(
+        None,
+        description="Primary series group by",
+        validation_alias=AliasChoices("group_by", "groupby", "series", "dimension"),
+    )
+    # Secondary series (Query B)
+    y_secondary: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description="Secondary Y-axis metrics",
+        validation_alias=AliasChoices("y_secondary", "metrics_b"),
+    )
+    secondary_kind: Literal["line", "bar", "area", "scatter"] = "bar"
+    group_by_secondary: List[ColumnRef] | None = Field(
+        None,
+        description="Secondary series group by",
+        validation_alias=AliasChoices(
+            "group_by_secondary", "groupby_b", "groupby_secondary"
         ),
+    )
+    # Display options
+    show_legend: bool = True
+    x_axis: AxisConfig | None = None
+    y_axis: AxisConfig | None = None
+    y_axis_secondary: AxisConfig | None = None
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    row_limit: int = Field(10000, description="Max data points", ge=1, le=50000)
+
+    @field_validator("group_by", "group_by_secondary", mode="before")
+    @classmethod
+    def wrap_single_group_by(cls, v: Any) -> Any:
+        return _normalize_group_by_input(v)
+
+
+class HandlebarsChartConfig(UnknownFieldCheckMixin):
+    model_config = ConfigDict(extra="ignore")
+
+    chart_type: Literal["handlebars"] = Field(
+        ...,
+        description=(
+            "Chart type discriminator - MUST be 'handlebars' for custom HTML "
+            "template charts. Handlebars charts render query results using "
+            "Handlebars templates, enabling fully custom layouts like KPI cards, "
+            "leaderboards, and formatted reports."
+        ),
+    )
+    handlebars_template: str = Field(
+        ...,
+        description=(
+            "Handlebars HTML template string. Data is available as {{data}} array. "
+            "Built-in helpers: {{dateFormat val format='YYYY-MM-DD'}}, "
+            "{{formatNumber val}}, {{stringify obj}}. "
+            "Example: '<ul>{{#each data}}<li>{{this.name}}: {{this.value}}</li>"
+            "{{/each}}</ul>'"
+        ),
+        min_length=1,
+        max_length=50000,
+    )
+    query_mode: Literal["aggregate", "raw"] = Field(
+        "aggregate",
+        description=(
+            "Query mode: 'aggregate' groups data with metrics, "
+            "'raw' returns individual rows"
+        ),
+    )
+    columns: list[ColumnRef] | None = Field(
+        None,
+        description=(
+            "Columns to display in raw mode (query_mode='raw'). "
+            "Each column specifies a column name to include in the query results."
+        ),
+    )
+    groupby: list[ColumnRef] | None = Field(
+        None,
+        description=(
+            "Columns to group by in aggregate mode (query_mode='aggregate'). "
+            "These become the dimensions for aggregation."
+        ),
+        validation_alias=AliasChoices("groupby", "group_by"),
+    )
+    metrics: list[ColumnRef] | None = Field(
+        None,
+        description=(
+            "Metrics to aggregate in aggregate mode. "
+            "Each must have an aggregate function (e.g., SUM, COUNT)."
+        ),
+    )
+    filters: list[FilterConfig] | None = Field(None, description="Filters to apply")
+    row_limit: int = Field(
+        1000,
+        description="Maximum number of rows",
+        ge=1,
+        le=50000,
+    )
+    order_desc: bool = Field(True, description="Sort in descending order")
+    style_template: str | None = Field(
+        None,
+        description="Optional CSS styles to apply to the rendered template",
+        max_length=10000,
+    )
+
+    @model_validator(mode="after")
+    def validate_query_fields(self) -> "HandlebarsChartConfig":
+        """Validate that the right fields are provided for the query mode."""
+        if self.query_mode == "raw":
+            if not self.columns:
+                raise ValueError(
+                    "Handlebars chart in 'raw' query mode requires 'columns' field. "
+                    "Specify which columns to include in the query results."
+                )
+            if self.metrics:
+                raise ValueError(
+                    "Handlebars chart in 'raw' query mode does not use 'metrics'. "
+                    "Remove 'metrics' or switch to 'aggregate' query mode."
+                )
+            if self.groupby:
+                raise ValueError(
+                    "Handlebars chart in 'raw' query mode does not use 'groupby'. "
+                    "Remove 'groupby' or switch to 'aggregate' query mode."
+                )
+        if self.query_mode == "aggregate":
+            if not self.metrics:
+                raise ValueError(
+                    "Handlebars chart in 'aggregate' query mode requires 'metrics' "
+                    "field. Specify at least one metric with an aggregate function."
+                )
+            missing_agg = [m.name for m in self.metrics if not m.aggregate]
+            if missing_agg:
+                raise ValueError(
+                    f"Handlebars chart in 'aggregate' query mode requires an "
+                    f"aggregate function on every metric. Missing aggregate for: "
+                    f"{', '.join(missing_agg)}. "
+                    f"Use one of: SUM, COUNT, AVG, MIN, MAX, COUNT_DISTINCT, etc."
+                )
+        return self
+
+
+class TableChartConfig(UnknownFieldCheckMixin):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["table"] = "table"
+    viz_type: Literal["table", "ag-grid-table"] = Field(
+        "table", description="'ag-grid-table' for interactive features"
     )
     columns: List[ColumnRef] = Field(
         ...,
         min_length=1,
-        description=(
-            "Columns to display. Must have at least one column. Each column must have "
-            "a unique label "
-            "(either explicitly set via 'label' field or auto-generated "
-            "from name/aggregate)"
-        ),
+        description="Columns with unique labels",
+        validation_alias=AliasChoices("columns", "all_columns", "groupby"),
     )
-    filters: List[FilterConfig] | None = Field(None, description="Filters to apply")
-    sort_by: List[str] | None = Field(None, description="Columns to sort by")
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    sort_by: List[str] | None = Field(
+        None,
+        validation_alias=AliasChoices("sort_by", "order_by_cols", "order_by"),
+    )
+    row_limit: int = Field(1000, description="Max rows returned", ge=1, le=50000)
 
     @model_validator(mode="after")
     def validate_unique_column_labels(self) -> "TableChartConfig":
@@ -540,51 +881,55 @@ class TableChartConfig(BaseModel):
         return self
 
 
-class XYChartConfig(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+class XYChartConfig(UnknownFieldCheckMixin):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    chart_type: Literal["xy"] = Field(
+    chart_type: Literal["xy"] = "xy"
+    x: ColumnRef = Field(
         ...,
-        description=(
-            "Chart type discriminator - MUST be 'xy' for XY charts "
-            "(line, bar, area, scatter). "
-            "This field is REQUIRED and tells Superset which chart "
-            "configuration schema to use."
-        ),
+        description="X-axis column",
+        validation_alias=AliasChoices("x", "x_axis", "x_column"),
     )
-    x: ColumnRef = Field(..., description="X-axis column")
     y: List[ColumnRef] = Field(
         ...,
         min_length=1,
-        description="Y-axis columns (metrics). Must have at least one Y-axis column. "
-        "Each column must have a unique label "
-        "that doesn't conflict with x-axis or group_by labels",
+        description="Y-axis metrics (unique labels)",
+        validation_alias=AliasChoices("y", "metrics"),
     )
-    kind: Literal["line", "bar", "area", "scatter"] = Field(
-        "line", description="Chart visualization type"
-    )
+    kind: Literal["line", "bar", "area", "scatter"] = "line"
     time_grain: TimeGrain | None = Field(
         None,
-        description=(
-            "Time granularity for the x-axis when it's a temporal column. "
-            "Common values: PT1S (second), PT1M (minute), PT1H (hour), "
-            "P1D (day), P1W (week), P1M (month), P3M (quarter), P1Y (year). "
-            "If not specified, Superset will use its default behavior."
-        ),
+        description="PT1S, PT1M, PT1H, P1D, P1W, P1M, P3M, P1Y",
+        validation_alias=AliasChoices("time_grain", "time_grain_sqla"),
+    )
+    orientation: Literal["vertical", "horizontal"] | None = Field(
+        None, description="Bar orientation (only for kind='bar')"
     )
     stacked: bool = Field(
         False,
-        description="Stack bars/areas on top of each other instead of side-by-side",
+        validation_alias=AliasChoices("stacked", "stack"),
     )
-    group_by: ColumnRef | None = Field(
+    group_by: List[ColumnRef] | None = Field(
         None,
-        description="Column to group by (creates series/breakdown). "
-        "Use this field for series grouping — do NOT use 'series'.",
+        description="Series breakdown columns",
+        validation_alias=AliasChoices(
+            "group_by", "groupby", "series", "breakdown", "dimension"
+        ),
     )
-    x_axis: AxisConfig | None = Field(None, description="X-axis configuration")
-    y_axis: AxisConfig | None = Field(None, description="Y-axis configuration")
-    legend: LegendConfig | None = Field(None, description="Legend configuration")
-    filters: List[FilterConfig] | None = Field(None, description="Filters to apply")
+    x_axis: AxisConfig | None = None
+    y_axis: AxisConfig | None = None
+    legend: LegendConfig | None = None
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    row_limit: int = Field(10000, description="Max data points", ge=1, le=50000)
+
+    @field_validator("group_by", mode="before")
+    @classmethod
+    def wrap_single_group_by(cls, v: Any) -> Any:
+        return _normalize_group_by_input(v)
 
     @model_validator(mode="after")
     def validate_unique_column_labels(self) -> "XYChartConfig":
@@ -610,14 +955,22 @@ class XYChartConfig(BaseModel):
             else:
                 labels_seen[label] = f"y[{i}]"
 
-        # Check group_by label if present
+        # Check group_by labels if present
         if self.group_by:
-            group_label = self.group_by.label or self.group_by.name
-            if group_label in labels_seen:
-                duplicates.append(
-                    f"group_by: '{group_label}' "
-                    f"(conflicts with {labels_seen[group_label]})"
-                )
+            for i, col in enumerate(self.group_by):
+                if col.name == self.x.name:
+                    # map_xy_config() strips group_by entries that match x
+                    # to prevent Superset "duplicate label" errors, so
+                    # we allow them through validation.
+                    continue
+                group_label = col.label or col.name
+                if group_label in labels_seen:
+                    duplicates.append(
+                        f"group_by[{i}]: '{group_label}' "
+                        f"(conflicts with {labels_seen[group_label]})"
+                    )
+                else:
+                    labels_seen[group_label] = f"group_by[{i}]"
 
         if duplicates:
             raise ValueError(
@@ -631,10 +984,18 @@ class XYChartConfig(BaseModel):
 
 # Discriminated union entry point with custom error handling
 ChartConfig = Annotated[
-    XYChartConfig | TableChartConfig,
+    XYChartConfig
+    | TableChartConfig
+    | PieChartConfig
+    | PivotTableChartConfig
+    | MixedTimeseriesChartConfig
+    | HandlebarsChartConfig,
     Field(
         discriminator="chart_type",
-        description="Chart configuration - specify chart_type as 'xy' or 'table'",
+        description=(
+            "Chart configuration - specify chart_type as 'xy', 'table', "
+            "'pie', 'pivot_table', 'mixed_timeseries', or 'handlebars'"
+        ),
     ),
 ]
 
@@ -729,21 +1090,12 @@ class GenerateChartRequest(QueryCacheControl):
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
     config: ChartConfig = Field(..., description="Chart configuration")
     chart_name: str | None = Field(
-        None,
-        description="Custom chart name (optional, auto-generates if not provided)",
-        max_length=255,
+        None, description="Auto-generates if omitted", max_length=255
     )
-    save_chart: bool = Field(
-        default=False,
-        description="Whether to permanently save the chart in Superset",
-    )
-    generate_preview: bool = Field(
-        default=True,
-        description="Whether to generate a preview image",
-    )
+    save_chart: bool = Field(default=False, description="Save permanently in Superset")
+    generate_preview: bool = True
     preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
         default_factory=lambda: ["url"],
-        description="List of preview formats to generate",
     )
 
     @field_validator("chart_name")
@@ -782,20 +1134,14 @@ class GenerateExploreLinkRequest(FormDataCacheControl):
 
 
 class UpdateChartRequest(QueryCacheControl):
-    identifier: int | str = Field(..., description="Chart identifier (ID, UUID)")
-    config: ChartConfig = Field(..., description="New chart configuration")
+    identifier: int | str = Field(..., description="Chart ID or UUID")
+    config: ChartConfig
     chart_name: str | None = Field(
-        None,
-        description="New chart name (optional, will auto-generate if not provided)",
-        max_length=255,
+        None, description="Auto-generates if omitted", max_length=255
     )
-    generate_preview: bool = Field(
-        default=True,
-        description="Whether to generate a preview after updating",
-    )
+    generate_preview: bool = True
     preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
         default_factory=lambda: ["url"],
-        description="List of preview formats to generate",
     )
 
     @field_validator("chart_name")
@@ -807,15 +1153,11 @@ class UpdateChartRequest(QueryCacheControl):
 
 class UpdateChartPreviewRequest(FormDataCacheControl):
     form_data_key: str = Field(..., description="Existing form_data_key to update")
-    dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
-    config: ChartConfig = Field(..., description="New chart configuration")
-    generate_preview: bool = Field(
-        default=True,
-        description="Whether to generate a preview after updating",
-    )
+    dataset_id: int | str = Field(..., description="Dataset ID or UUID")
+    config: ChartConfig
+    generate_preview: bool = True
     preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
         default_factory=lambda: ["url"],
-        description="List of preview formats to generate",
     )
 
 
@@ -826,23 +1168,50 @@ class GetChartDataRequest(QueryCacheControl):
     from cache to query data, allowing you to get data for what the user actually sees
     (not the saved version). This is useful when a user edits a chart in Explore but
     hasn't saved yet.
+
+    For unsaved charts (no chart ID), provide only form_data_key to query data using
+    the current chart configuration from cache.
     """
 
-    identifier: int | str = Field(description="Chart identifier (ID, UUID)")
+    identifier: int | str | None = Field(
+        default=None,
+        description=(
+            "Chart identifier (ID, UUID). "
+            "Optional when form_data_key is provided (for unsaved charts)."
+        ),
+    )
     form_data_key: str | None = Field(
         default=None,
         description=(
-            "Optional cache key for retrieving unsaved chart state. When a user "
+            "Cache key for retrieving unsaved chart state. When a user "
             "edits a chart in Explore but hasn't saved, the current state is stored "
             "with this key. If provided, the tool uses this configuration to query "
-            "data instead of the saved chart configuration."
+            "data instead of the saved chart configuration. "
+            "Can be used alone (without identifier) for unsaved charts."
         ),
     )
+
+    @model_validator(mode="after")
+    def validate_identifier_or_form_data_key(self) -> "GetChartDataRequest":
+        if not self.identifier and not self.form_data_key:
+            raise ValueError(
+                "At least one of 'identifier' or 'form_data_key' must be provided."
+            )
+        return self
+
     limit: int | None = Field(
         default=None,
         description=(
             "Maximum number of data rows to return. If not specified, uses the "
             "chart's configured row limit."
+        ),
+    )
+    extra_form_data: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Extra form data to merge into the chart query, typically from "
+            "dashboard native filters. Format: "
+            '{"filters": [{"col": "country", "op": "IN", "val": ["US"]}]}'
         ),
     )
     format: Literal["json", "csv", "excel"] = Field(
@@ -919,22 +1288,42 @@ class GetChartPreviewRequest(QueryCacheControl):
     chart configuration from cache, allowing you to preview what the user actually sees
     (not the saved version). This is useful when a user edits a chart in Explore but
     hasn't saved yet.
+
+    For unsaved charts (no chart ID), provide only form_data_key to render a preview
+    using the current chart configuration from cache.
     """
 
-    identifier: int | str = Field(description="Chart identifier (ID, UUID)")
+    identifier: int | str | None = Field(
+        default=None,
+        description=(
+            "Chart identifier (ID, UUID). "
+            "Optional when form_data_key is provided (for unsaved charts)."
+        ),
+    )
     form_data_key: str | None = Field(
         default=None,
         description=(
-            "Optional cache key for retrieving unsaved chart state. When a user "
+            "Cache key for retrieving unsaved chart state. When a user "
             "edits a chart in Explore but hasn't saved, the current state is stored "
             "with this key. If provided, the tool renders a preview using this "
-            "configuration instead of the saved chart configuration."
+            "configuration instead of the saved chart configuration. "
+            "Can be used alone (without identifier) for unsaved charts."
         ),
     )
+
+    @model_validator(mode="after")
+    def validate_identifier_or_form_data_key(self) -> "GetChartPreviewRequest":
+        if not self.identifier and not self.form_data_key:
+            raise ValueError(
+                "At least one of 'identifier' or 'form_data_key' must be provided."
+            )
+        return self
+
     format: Literal["url", "ascii", "table", "vega_lite"] = Field(
         default="url",
         description=(
-            "Preview format: 'url' for image URL, 'ascii' for text art, "
+            "Preview format: 'url' for explore link (default), "
+            "'ascii' for text art, "
             "'table' for data table, "
             "'vega_lite' for interactive JSON specification"
         ),

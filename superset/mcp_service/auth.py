@@ -16,31 +16,133 @@
 # under the License.
 
 """
-Minimal authentication hooks for MCP tools.
-This is a placeholder implementation that provides basic user context.
+Authentication and authorization hooks for MCP tools.
 
-Future enhancements (to be added in separate PRs):
-- JWT token authentication and validation
-- User impersonation support
-- Permission checking with scopes
-- Comprehensive audit logging
-- Field-level permissions
+This module provides:
+- User authentication from JWT, API key, or configured dev user
+- RBAC permission checking aligned with Superset's REST API permissions
+- Dataset access validation
+- Session lifecycle management
+
+The RBAC enforcement mirrors Flask-AppBuilder's @protect() decorator,
+ensuring MCP tools respect the same permission model as the REST API.
+
+Supports multiple authentication methods:
+1. API Key authentication via FAB SecurityManager (configurable prefix)
+2. JWT token authentication (via FastMCP BearerAuthProvider)
+3. Development mode (MCP_DEV_USERNAME configuration)
+
+API Key Authentication:
+- Users create API keys via FAB's /api/v1/security/api_keys/ endpoints
+- Keys use configurable prefixes (FAB_API_KEY_PREFIXES, default: ["sst_"])
+- Keys are validated by FAB's SecurityManager.validate_api_key()
+- Keys inherit the user's roles and permissions via FAB's RBAC
+
+Configuration:
+- FAB_API_KEY_ENABLED: Flask config key to enable API key auth (default: False)
+- FAB_API_KEY_PREFIXES: Key prefixes (default: ["sst_"])
+- MCP_DEV_USERNAME: Fallback username for development
 """
 
 import logging
 from contextlib import AbstractContextManager
 from typing import Any, Callable, TYPE_CHECKING, TypeVar
 
-from flask import g
+from flask import g, has_request_context
 from flask_appbuilder.security.sqla.models import Group, User
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
+    from superset.mcp_service.chart.chart_utils import DatasetValidationResult
 
 # Type variable for decorated functions
 F = TypeVar("F", bound=Callable[..., Any])
 
 logger = logging.getLogger(__name__)
+
+# Constants for RBAC permission attributes (mirrors FAB conventions)
+PERMISSION_PREFIX = "can_"
+CLASS_PERMISSION_ATTR = "_class_permission_name"
+METHOD_PERMISSION_ATTR = "_method_permission_name"
+
+
+class MCPPermissionDeniedError(Exception):
+    """Raised when user lacks required RBAC permission for an MCP tool."""
+
+    def __init__(
+        self,
+        permission_name: str,
+        view_name: str,
+        user: str | None = None,
+        tool_name: str | None = None,
+    ):
+        self.permission_name = permission_name
+        self.view_name = view_name
+        self.user = user
+        self.tool_name = tool_name
+        message = (
+            f"Permission denied: {permission_name} on {view_name}"
+            + (f" for user {user}" if user else "")
+            + (f" (tool: {tool_name})" if tool_name else "")
+        )
+        super().__init__(message)
+
+
+def check_tool_permission(func: Callable[..., Any]) -> bool:
+    """Check if the current user has RBAC permission for an MCP tool.
+
+    Reads permission metadata stored on the function by the @tool decorator
+    and uses Superset's security_manager to verify access.
+
+    Controlled by the ``MCP_RBAC_ENABLED`` config flag (default True).
+    Set to False in superset_config.py to disable RBAC checking.
+
+    Args:
+        func: The tool function with optional permission attributes.
+
+    Returns:
+        True if user has permission or no permission is required.
+    """
+    try:
+        from flask import current_app
+
+        if not current_app.config.get("MCP_RBAC_ENABLED", True):
+            return True
+
+        from superset import security_manager
+
+        if not hasattr(g, "user") or not g.user:
+            logger.warning(
+                "No user context for permission check on tool: %s", func.__name__
+            )
+            return False
+
+        class_permission_name = getattr(func, CLASS_PERMISSION_ATTR, None)
+        if not class_permission_name:
+            # No RBAC configured for this tool; allow by default.
+            return True
+
+        method_permission_name = getattr(func, METHOD_PERMISSION_ATTR, "read")
+        permission_str = f"{PERMISSION_PREFIX}{method_permission_name}"
+
+        has_permission = security_manager.can_access(
+            permission_str, class_permission_name
+        )
+
+        if not has_permission:
+            logger.warning(
+                "Permission denied for user %s: %s on %s (tool: %s)",
+                g.user.username,
+                permission_str,
+                class_permission_name,
+                func.__name__,
+            )
+
+        return has_permission
+
+    except (AttributeError, ValueError, RuntimeError) as e:
+        logger.warning("Error checking tool permission: %s", e)
+        return False
 
 
 def load_user_with_relationships(
@@ -92,8 +194,9 @@ def get_user_from_request() -> User:
     Get the current user for the MCP tool request.
 
     Priority order:
-    1. g.user if already set (by Preset workspace middleware)
-    2. MCP_DEV_USERNAME from configuration (for development/testing)
+    1. g.user if already set (by Preset workspace middleware or FastMCP auth)
+    2. API key from Authorization header (via FAB SecurityManager)
+    3. MCP_DEV_USERNAME from configuration (for development/testing)
 
     Returns:
         User object with roles and groups eagerly loaded
@@ -106,6 +209,55 @@ def get_user_from_request() -> User:
     # First check if user is already set by Preset workspace middleware
     if hasattr(g, "user") and g.user:
         return g.user
+
+    # Try API key authentication via FAB SecurityManager
+    # Only attempt when in a request context (not for MCP internal operations
+    # like tool discovery that run with only an application context)
+    # Use the Flask config key FAB_API_KEY_ENABLED (not the feature flag),
+    # because the config key controls whether FAB registers the API key
+    # endpoints and validation logic. The feature flag with the same name
+    # in DEFAULT_FEATURE_FLAGS only controls the frontend UI visibility.
+    if current_app.config.get("FAB_API_KEY_ENABLED", False) and has_request_context():
+        sm = current_app.appbuilder.sm
+        # _extract_api_key_from_request is FAB's internal method for reading
+        # the Bearer token from the Authorization header and matching prefixes.
+        # Not all FAB versions include this method, so guard with hasattr.
+        if not hasattr(sm, "_extract_api_key_from_request"):
+            logger.debug(
+                "FAB SecurityManager does not have _extract_api_key_from_request; "
+                "API key authentication is not available in this FAB version"
+            )
+        else:
+            api_key_string = sm._extract_api_key_from_request()
+            if api_key_string is not None:
+                if not hasattr(sm, "validate_api_key"):
+                    logger.warning(
+                        "FAB SecurityManager does not have validate_api_key; "
+                        "cannot validate API key"
+                    )
+                    raise PermissionError(
+                        "API key validation is not available in this FAB version."
+                    )
+                user = sm.validate_api_key(api_key_string)
+                if user:
+                    # Reload user with all relationships eagerly loaded to avoid
+                    # detached-instance errors during later permission checks.
+                    user_with_rels = load_user_with_relationships(
+                        username=user.username,
+                    )
+                    if user_with_rels is None:
+                        logger.warning(
+                            "Failed to reload API key user %s with relationships; "
+                            "using original user object which may have lazy-loaded "
+                            "relationships",
+                            user.username,
+                        )
+                        return user
+                    return user_with_rels
+                raise PermissionError(
+                    "Invalid or expired API key. "
+                    "Create a new key at /api/v1/security/api_keys/."
+                )
 
     # Fall back to configured username for development/single-user deployments
     username = current_app.config.get("MCP_DEV_USERNAME")
@@ -124,11 +276,13 @@ def get_user_from_request() -> User:
             f"JWT keys configured={jwt_configured})"
         )
         details.append("MCP_DEV_USERNAME is not configured")
+        configured_prefixes = current_app.config.get("FAB_API_KEY_PREFIXES", ["sst_"])
+        prefix_example = configured_prefixes[0] if configured_prefixes else "sst_"
         raise ValueError(
             "No authenticated user found. Tried:\n"
             + "\n".join(f"  - {d}" for d in details)
-            + "\n\nEither pass a valid JWT bearer token or configure "
-            "MCP_DEV_USERNAME for development."
+            + f"\n\nEither pass a valid API key (Bearer {prefix_example}...), "
+            "JWT token, or configure MCP_DEV_USERNAME for development."
         )
 
     # Use helper function to load user with all required relationships
@@ -176,6 +330,24 @@ def has_dataset_access(dataset: "SqlaTable") -> bool:
         return False  # Deny access on error
 
 
+def check_chart_data_access(chart: Any) -> "DatasetValidationResult":
+    """Validate that the current user can access a chart's underlying dataset.
+
+    This extends the RBAC system: ``mcp_auth_hook`` enforces class-level
+    permissions before tool execution; this function enforces data-level
+    permissions inside tools after retrieving specific objects.
+
+    Args:
+        chart: A Slice ORM object with datasource_id attribute
+
+    Returns:
+        DatasetValidationResult with is_valid, error, etc.
+    """
+    from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+
+    return validate_chart_dataset(chart, check_access=True)
+
+
 def _setup_user_context() -> User | None:
     """
     Set up user context for MCP tool execution.
@@ -192,6 +364,23 @@ def _setup_user_context() -> User | None:
             logger.debug("No Flask app context available for user setup")
             return None
         raise
+    except ValueError as e:
+        # JWT user resolution failed (e.g. SAML subject not in DB).
+        # If middleware already set g.user (request context exists),
+        # use that instead of failing closed.
+        from flask import has_request_context
+
+        if has_request_context() and hasattr(g, "user") and g.user:
+            logger.warning(
+                "JWT user resolution failed (%s), using middleware-provided g.user=%s",
+                e,
+                g.user.username,
+            )
+            # Assign to local so relationship validation below runs
+            # (same as the normal path) to prevent detached instance errors.
+            user = g.user
+        else:
+            raise
 
     # Validate user has necessary relationships loaded
     # (Force access to ensure they're loaded if lazy)
@@ -219,14 +408,15 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
     """
     Authentication and authorization decorator for MCP tools.
 
-    This decorator pushes Flask application context and sets up g.user
-    for MCP tool execution.
+    This decorator pushes Flask application context, sets up g.user,
+    and enforces RBAC permission checks for MCP tool execution.
+
+    Permission metadata (class_permission_name, method_permission_name) is
+    stored on tool_func by the @tool decorator in core_mcp_injection.py.
+    If present, check_tool_permission() verifies the user has the required
+    FAB permission before the tool function runs.
 
     Supports both sync and async tool functions.
-
-    TODO (future PR): Add permission checking
-    TODO (future PR): Add JWT scope validation
-    TODO (future PR): Add comprehensive audit logging
     """
     import contextlib
     import functools
@@ -264,6 +454,16 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
                     )
                     return await tool_func(*args, **kwargs)
 
+                # RBAC permission check
+                if not check_tool_permission(tool_func):
+                    method_name = getattr(tool_func, METHOD_PERMISSION_ATTR, "read")
+                    raise MCPPermissionDeniedError(
+                        permission_name=f"{PERMISSION_PREFIX}{method_name}",
+                        view_name=getattr(tool_func, CLASS_PERMISSION_ATTR, "unknown"),
+                        user=user.username,
+                        tool_name=tool_func.__name__,
+                    )
+
                 try:
                     logger.debug(
                         "MCP tool call: user=%s, tool=%s",
@@ -293,6 +493,16 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
                         tool_func.__name__,
                     )
                     return tool_func(*args, **kwargs)
+
+                # RBAC permission check
+                if not check_tool_permission(tool_func):
+                    method_name = getattr(tool_func, METHOD_PERMISSION_ATTR, "read")
+                    raise MCPPermissionDeniedError(
+                        permission_name=f"{PERMISSION_PREFIX}{method_name}",
+                        view_name=getattr(tool_func, CLASS_PERMISSION_ATTR, "unknown"),
+                        user=user.username,
+                        tool_name=tool_func.__name__,
+                    )
 
                 try:
                     logger.debug(

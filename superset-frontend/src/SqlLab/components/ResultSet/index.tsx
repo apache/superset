@@ -44,7 +44,7 @@ import {
   ErrorMessageWithStackTrace,
 } from 'src/components';
 import { nanoid } from 'nanoid';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   QueryState,
   usePrevious,
@@ -52,8 +52,9 @@ import {
   getExtensionsRegistry,
   ErrorTypeEnum,
 } from '@superset-ui/core';
-import { tn } from '@apache-superset/core';
-import { styled, useTheme, css, Alert } from '@apache-superset/core/ui';
+import { tn } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
+import { styled, useTheme, css } from '@apache-superset/core/theme';
 import {
   ISaveableDatasource,
   ISimpleColumn,
@@ -117,7 +118,7 @@ export interface ResultSetProps {
 const ResultContainer = styled.div`
   display: flex;
   flex-direction: column;
-  row-gap: ${({ theme }) => theme.sizeUnit * 2}px;
+  row-gap: ${({ theme }) => theme.sizeUnit * 3}px;
   height: 100%;
 `;
 
@@ -748,6 +749,7 @@ const ResultSet = ({
               <div
                 css={css`
                   flex: 1 1 auto;
+                  padding-bottom: ${theme.sizeUnit * 3}px;
                 `}
               >
                 <AutoSizer disableWidth>

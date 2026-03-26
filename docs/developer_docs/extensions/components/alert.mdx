@@ -23,7 +23,7 @@ sidebar_label: Alert
 -->
 
 import { StoryWithControls } from '../../../src/components/StorybookWrapper';
-import { Alert } from '@apache-superset/core/ui';
+import { Alert } from '@apache-superset/core/components';
 
 # Alert
 
@@ -105,10 +105,10 @@ function Demo() {
 
 ## Usage in Extensions
 
-This component is available in the `@apache-superset/core/ui` package, which is automatically available to Superset extensions.
+This component is available in the `@apache-superset/core/components` package, which is automatically available to Superset extensions.
 
 ```tsx
-import { Alert } from '@apache-superset/core/ui';
+import { Alert } from '@apache-superset/core/components';
 
 function MyExtension() {
   return (

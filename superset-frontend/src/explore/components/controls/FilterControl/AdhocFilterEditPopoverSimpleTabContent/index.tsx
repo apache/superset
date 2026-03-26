@@ -25,14 +25,14 @@ import {
   Tooltip,
   type SelectValue,
 } from '@superset-ui/core/components';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   isFeatureEnabled,
   FeatureFlag,
   isDefined,
   SupersetClient,
 } from '@superset-ui/core';
-import { styled, useTheme, css } from '@apache-superset/core/ui';
+import { styled, useTheme, css } from '@apache-superset/core/theme';
 import {
   Operators,
   OPERATORS_OPTIONS,

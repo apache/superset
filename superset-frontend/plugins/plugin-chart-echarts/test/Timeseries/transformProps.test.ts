@@ -37,7 +37,8 @@ import {
   OrientationType,
   EchartsTimeseriesFormData,
 } from '../../src/Timeseries/types';
-import { StackControlsValue } from '../../src/constants';
+import { StackControlsValue, TIMESERIES_CONSTANTS } from '../../src/constants';
+import { LegendOrientation, LegendType } from '../../src/types';
 import { DEFAULT_FORM_DATA } from '../../src/Timeseries/constants';
 import { createEchartsTimeseriesTestChartProps } from '../helpers';
 import { BASE_TIMESTAMP, createTestData } from './helpers';
@@ -306,8 +307,8 @@ describe('EchartsTimeseries transformProps', () => {
     expect(formulaSeries).toBeDefined();
     expect(formulaSeries?.data).toBeDefined();
     expect(Array.isArray(formulaSeries?.data)).toBe(true);
-    expect((formulaSeries?.data as unknown[])?.length).toBeGreaterThan(0);
-    const firstDataPoint = (formulaSeries?.data as [number, number][])?.[0];
+    expect((formulaSeries!.data as unknown[]).length).toBeGreaterThan(0);
+    const firstDataPoint = (formulaSeries!.data as [number, number][])[0];
     expect(firstDataPoint).toBeDefined();
     expect(firstDataPoint[1]).toBe(firstDataPoint[0] * 2);
   });
@@ -386,7 +387,7 @@ describe('EchartsTimeseries transformProps', () => {
       result.echartOptions.series as SeriesOption[] | undefined
     )?.find((s: SeriesOption) => s.name === 'My Formula');
     expect(formulaSeries).toBeDefined();
-    const firstDataPoint = (formulaSeries?.data as [number, number][])?.[0];
+    const firstDataPoint = (formulaSeries!.data as [number, number][])[0];
     expect(firstDataPoint).toBeDefined();
     expect(firstDataPoint[0]).toBe(firstDataPoint[1] * 2);
   });
@@ -898,6 +899,40 @@ describe('legend sorting', () => {
       'Boston',
     ]);
   });
+
+  test('falls back to scroll for zoomable top legends when toolbox space reduces available width', () => {
+    const narrowLegendData = [
+      createTestQueryData(
+        createTestData(
+          [
+            {
+              Alpha: 1,
+              Beta: 2,
+              Gamma: 3,
+            },
+          ],
+          { intervalMs: 300000000 },
+        ),
+      ),
+    ];
+    const chartProps = createTestChartProps({
+      width: 190 + TIMESERIES_CONSTANTS.legendTopRightOffset,
+      formData: {
+        ...formData,
+        legendType: LegendType.Plain,
+        legendOrientation: LegendOrientation.Top,
+        showLegend: true,
+        zoomable: true,
+      },
+      queriesData: narrowLegendData,
+    });
+
+    const transformed = transformProps(chartProps);
+
+    expect((transformed.echartOptions.legend as any).type).toBe(
+      LegendType.Scroll,
+    );
+  });
 });
 
 const timeCompareFormData: SqlaFormData = {
@@ -920,6 +955,7 @@ test('should apply dashed line style to time comparison series with single metri
     formData: {
       ...timeCompareFormData,
       time_compare: ['1 week ago'],
+      timeShiftColor: true,
       comparison_type: ComparisonType.Values,
     },
     queriesData: queriesDataWithTimeCompare,
@@ -939,18 +975,9 @@ test('should apply dashed line style to time comparison series with single metri
   expect(comparisonSeries).toBeDefined();
   // Main series should not have a dash pattern array
   expect(Array.isArray(mainSeries?.lineStyle?.type)).toBe(false);
-  // Comparison series should have a visible dash pattern array [dash, gap]
-  expect(Array.isArray(comparisonSeries?.lineStyle?.type)).toBe(true);
-  expect(
-    Array.isArray(comparisonSeries?.lineStyle?.type)
-      ? comparisonSeries.lineStyle.type[0]
-      : undefined,
-  ).toBeGreaterThanOrEqual(4);
-  expect(
-    Array.isArray(comparisonSeries?.lineStyle?.type)
-      ? comparisonSeries.lineStyle.type[1]
-      : undefined,
-  ).toBeGreaterThanOrEqual(3);
+  expect(mainSeries?.lineStyle?.type).not.toBe('dotted');
+  // Comparison series should have a visible dash pattern
+  expect(comparisonSeries?.lineStyle?.type).toBe('dotted');
 });
 
 test('should apply dashed line style to time comparison series with metric__offset pattern', () => {
@@ -973,6 +1000,7 @@ test('should apply dashed line style to time comparison series with metric__offs
     formData: {
       ...timeCompareFormData,
       time_compare: ['1 week ago'],
+      timeShiftColor: true,
       comparison_type: ComparisonType.Values,
     },
     queriesData: queriesDataWithTimeCompare,
@@ -994,18 +1022,8 @@ test('should apply dashed line style to time comparison series with metric__offs
   expect(comparisonSeries).toBeDefined();
   // Main series should not have a dash pattern array
   expect(Array.isArray(mainSeries?.lineStyle?.type)).toBe(false);
-  // Comparison series should have a visible dash pattern array [dash, gap]
-  expect(Array.isArray(comparisonSeries?.lineStyle?.type)).toBe(true);
-  expect(
-    Array.isArray(comparisonSeries?.lineStyle?.type)
-      ? comparisonSeries.lineStyle.type[0]
-      : undefined,
-  ).toBeGreaterThanOrEqual(4);
-  expect(
-    Array.isArray(comparisonSeries?.lineStyle?.type)
-      ? comparisonSeries.lineStyle.type[1]
-      : undefined,
-  ).toBeGreaterThanOrEqual(3);
+  // Comparison series should have a visible dash pattern
+  expect(comparisonSeries?.lineStyle?.type).toBe('dotted');
 });
 
 test('should apply connectNulls to time comparison series', () => {
@@ -1316,4 +1334,53 @@ test('should not apply axis bounds calculation when seriesType is not Bar for ho
   const xAxisRaw = transformedProps.echartOptions.xAxis as any;
   // Should not have explicit max set when seriesType is not Bar
   expect(xAxisRaw.max).toBeUndefined();
+});
+
+test('should assign distinct dash patterns for multiple time offsets consistently', () => {
+  const queriesDataWithMultipleOffsets = [
+    createTestQueryData([
+      {
+        sum__num: 100,
+        '1 year ago': 80,
+        '2 years ago': 60,
+        __timestamp: 599616000000,
+      },
+      {
+        sum__num: 150,
+        '1 year ago': 120,
+        '2 years ago': 90,
+        __timestamp: 599916000000,
+      },
+    ]),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...timeCompareFormData,
+      time_compare: ['1 year ago', '2 years ago'],
+      comparison_type: ComparisonType.Values,
+      timeShiftColor: true,
+    },
+    queriesData: queriesDataWithMultipleOffsets,
+  });
+
+  const transformed = transformProps(chartProps);
+  const series = (transformed.echartOptions.series as SeriesOption[]) || [];
+
+  const series1 = series.find(s => s.name === '1 year ago') as any;
+  const series2 = series.find(s => s.name === '2 years ago') as any;
+
+  expect(series1).toBeDefined();
+  expect(series2).toBeDefined();
+
+  const pattern1 = series1.lineStyle?.type;
+  const symbol1 = series1.symbol;
+  const pattern2 = series2.lineStyle?.type;
+  const symbol2 = series2.symbol;
+
+  // must be different patterns
+  expect(pattern1).not.toEqual(pattern2);
+
+  // must be different patterns
+  expect(symbol1).not.toEqual(symbol2);
 });

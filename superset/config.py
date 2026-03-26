@@ -311,6 +311,7 @@ WTF_CSRF_EXEMPT_LIST = [
     "superset.views.core.explore_json",
     "superset.views.core.log",
     "superset.views.datasource.views.samples",
+    "flask_appbuilder.security.views.acs",
 ]
 
 # Whether to run the web server in debug mode or not
@@ -562,6 +563,14 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # in addition to relative timeshifts (e.g., "1 day ago")
     # @lifecycle: development
     "DATE_RANGE_TIMESHIFTS_ENABLED": False,
+    # Enable API key authentication via FAB SecurityManager
+    # When enabled, users can create/manage API keys in the User Info page
+    # @lifecycle: development
+    "FAB_API_KEY_ENABLED": False,
+    # Enable granular export controls (can_export_data, can_export_image,
+    # can_copy_clipboard) instead of the single can_csv permission
+    # @lifecycle: development
+    "GRANULAR_EXPORT_CONTROLS": False,
     # Enables advanced data type support
     # @lifecycle: development
     "ENABLE_ADVANCED_DATA_TYPES": False,
@@ -1633,6 +1642,13 @@ FAB_ADD_SECURITY_PERMISSION_VIEW = False
 FAB_ADD_SECURITY_VIEW_MENU_VIEW = False
 FAB_ADD_SECURITY_PERMISSION_VIEWS_VIEW = False
 
+# API Key Authentication via FAB SecurityManager
+# FAB reads this config directly to register the ApiKeyApi blueprint.
+# The FAB_API_KEY_ENABLED feature flag (in DEFAULT_FEATURE_FLAGS) controls
+# the frontend UI visibility independently.
+FAB_API_KEY_ENABLED = False
+FAB_API_KEY_PREFIXES = ["sst_"]
+
 # The link to a page containing common errors and their resolutions
 # It will be appended at the bottom of sql_lab errors.
 TROUBLESHOOTING_LINK = ""
@@ -1964,6 +1980,8 @@ ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 1
 # Custom width for screenshots
 ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH = 600
 ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH = 2400
+# Rewrite external links in alert/report emails to go through a warning page
+ALERT_REPORTS_ENABLE_LINK_REDIRECT = True
 # Set a minimum interval threshold between executions (for each Alert/Report)
 # Value should be an integer i.e. int(timedelta(minutes=5).total_seconds())
 # You can also assign a function to the config that returns the expected integer
@@ -2485,28 +2503,30 @@ TASK_ABORT_POLLING_DEFAULT_INTERVAL = 10
 TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 
 # ---------------------------------------------------
-# Signal Cache Configuration
+# Distributed Coordination Configuration
 # ---------------------------------------------------
-# Shared Redis/Valkey configuration for signaling features that require
-# Redis-specific primitives (pub/sub messaging, distributed locks).
+# Shared Redis/Valkey backend for distributed coordination primitives.
 #
 # Uses Flask-Caching style configuration for consistency with other cache backends.
 # Set CACHE_TYPE to 'RedisCache' for standard Redis or 'RedisSentinelCache' for
 # Sentinel.
 #
-# These features cannot use generic cache backends because they rely on:
+# These features require Redis primitives unavailable in generic cache backends:
 # - Pub/Sub: Real-time message broadcasting between workers
 # - SET NX EX: Atomic lock acquisition with automatic expiration
+# - Streams: Persistent ordered event logs (future)
 #
 # When configured, enables:
 # - Real-time abort/completion notifications for GTF tasks (vs database polling)
 # - Redis-based distributed locking (vs KeyValueDAO-backed DistributedLock)
 #
-# Future: This cache will also be used by Global Async Queries, consolidating
-# GLOBAL_ASYNC_QUERIES_CACHE_BACKEND into this unified configuration.
+# Future: This backend will power a higher-level coordination service exposing
+# standardized interfaces for distributed locks, pub/sub, and streams — consolidating
+# all advanced Redis primitives under a single connection. Global Async Queries
+# (GLOBAL_ASYNC_QUERIES_CACHE_BACKEND) will also be migrated to this configuration.
 #
 # Example with standard Redis:
-# SIGNAL_CACHE_CONFIG: CacheConfig = {
+# DISTRIBUTED_COORDINATION_CONFIG: CacheConfig = {
 #     "CACHE_TYPE": "RedisCache",
 #     "CACHE_REDIS_HOST": "localhost",
 #     "CACHE_REDIS_PORT": 6379,
@@ -2515,7 +2535,7 @@ TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 # }
 #
 # Example with Redis Sentinel:
-# SIGNAL_CACHE_CONFIG: CacheConfig = {
+# DISTRIBUTED_COORDINATION_CONFIG: CacheConfig = {
 #     "CACHE_TYPE": "RedisSentinelCache",
 #     "CACHE_REDIS_SENTINELS": [("sentinel1", 26379), ("sentinel2", 26379)],
 #     "CACHE_REDIS_SENTINEL_MASTER": "mymaster",
@@ -2523,7 +2543,7 @@ TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 #     "CACHE_REDIS_DB": 0,
 #     "CACHE_REDIS_PASSWORD": "",
 # }
-SIGNAL_CACHE_CONFIG: CacheConfig | None = None
+DISTRIBUTED_COORDINATION_CONFIG: CacheConfig | None = None
 
 # Default lock TTL (time-to-live) in seconds for distributed locks.
 # Can be overridden per-call via the `ttl_seconds` parameter.
