@@ -296,7 +296,7 @@ jobs:
           --tags key=pr,value=$PR_NUMBER key=github_user,value=${{ github.actor }}
       - name: Deploy Amazon ECS task definition
         id: deploy-task
-        uses: aws-actions/amazon-ecs-deploy-task-definition@cbf54ec46642b86ff78c2f5793da6746954cf8ff # v2
+        uses: aws-actions/amazon-ecs-deploy-task-definition@fc8fc60f3a60ffd500fcb13b209c59d221ac8c8c # v2
         with:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
           service: pr-${{ github.event.inputs.issue_number || github.event.pull_request.number }}-service
