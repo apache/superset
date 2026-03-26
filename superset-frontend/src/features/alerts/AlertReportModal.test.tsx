@@ -2653,7 +2653,7 @@ test('modal reopen resets local state', async () => {
 
   // Type a name to dirty the form
   const nameInput = screen.getByPlaceholderText(/enter report name/i);
-  userEvent.type(nameInput, 'Temporary Report');
+  await userEvent.type(nameInput, 'Temporary Report');
   expect(nameInput).toHaveValue('Temporary Report');
 
   // Click Cancel
