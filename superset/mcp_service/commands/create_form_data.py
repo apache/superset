@@ -19,15 +19,59 @@
 MCP-specific form data command that extends the base CreateFormDataCommand
 """
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from superset.commands.explore.form_data.create import CreateFormDataCommand
-from superset.utils.core import get_user_id
+from superset.commands.explore.form_data.state import TemporaryExploreState
+from superset.commands.explore.form_data.utils import check_access
+from superset.commands.temporary_cache.exceptions import TemporaryCacheCreateFailedError
+from superset.extensions import cache_manager
+from superset.key_value.utils import random_key
+from superset.temporary_cache.utils import cache_key
+from superset.utils.core import DatasourceType, get_user_id
 
 
 class MCPCreateFormDataCommand(CreateFormDataCommand):
     """
-    MCP-specific CreateFormDataCommand that uses user_id instead of session._id
+    MCP-specific CreateFormDataCommand that avoids Flask request context.
+
+    The base class calls flask.session.get("_id") inside run(), which requires
+    an active HTTP request context. MCP tools execute outside of any HTTP
+    request, so calling the base run() raises "Working outside of request
+    context". This override replaces the session ID with get_user_id(), which
+    is available via Flask g and does not require a request context.
     """
 
-    def _get_session_id(self) -> str:
-        """Override to use user_id instead of Flask session for MCP context."""
-        return str(get_user_id())
+    def run(self) -> str:
+        self.validate()
+        try:
+            datasource_id = self._cmd_params.datasource_id
+            datasource_type = self._cmd_params.datasource_type
+            chart_id = self._cmd_params.chart_id
+            tab_id = self._cmd_params.tab_id
+            form_data = self._cmd_params.form_data
+            check_access(datasource_id, chart_id, datasource_type)
+            # Use user_id in place of flask.session.get("_id"). The session ID
+            # is only used as part of a cache key for contextual form data
+            # deduplication; substituting the user ID preserves that behaviour
+            # without requiring an HTTP request context.
+            session_id = str(get_user_id())
+            contextual_key = cache_key(
+                session_id, tab_id, datasource_id, chart_id, datasource_type
+            )
+            key = cache_manager.explore_form_data_cache.get(contextual_key)
+            if not key or not tab_id:
+                key = random_key()
+            if form_data:
+                state: TemporaryExploreState = {
+                    "owner": get_user_id(),
+                    "datasource_id": datasource_id,
+                    "datasource_type": DatasourceType(datasource_type),
+                    "chart_id": chart_id,
+                    "form_data": form_data,
+                }
+                cache_manager.explore_form_data_cache.set(key, state)
+                cache_manager.explore_form_data_cache.set(contextual_key, key)
+            return key
+        except SQLAlchemyError as ex:
+            raise TemporaryCacheCreateFailedError() from ex
