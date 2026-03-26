@@ -299,7 +299,11 @@ class BaseReportState:
                 )
             ]
 
-        native_filter_params = self._report_schedule.get_native_filters_params()
+        native_filter_params, filter_warnings = (
+            self._report_schedule.get_native_filters_params()
+        )
+        if filter_warnings:
+            self._filter_warnings.extend(filter_warnings)
         if native_filter_params and native_filter_params != "()":
             return [
                 self._get_tab_url(

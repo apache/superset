@@ -441,6 +441,10 @@ def test_get_dashboard_urls_native_filters_without_tabs(
         }
     }
     mock_report_schedule.extra = extra  # type: ignore[assignment]
+    mock_report_schedule.get_native_filters_params.return_value = (  # type: ignore
+        "(NATIVE_FILTER-abc:!(val1))",
+        [],
+    )
 
     mock_dashboard = mocker.MagicMock()
     mock_dashboard.uuid = UUID("12345678-1234-1234-1234-123456789abc")
