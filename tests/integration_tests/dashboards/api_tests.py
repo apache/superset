@@ -3505,6 +3505,31 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    def test_cache_dashboard_screenshot_force_true_by_default(self, mock_cache_task):
+        """
+        Verify that force=True is passed by default when caching dashboard screenshots.
+        Downloads should always generate fresh screenshots to reflect current data.
+        """
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        response = self._cache_screenshot(dashboard.id)
+        assert response.status_code == 202
+
+        # Verify force=True was passed to the Celery task
+        mock_cache_task.delay.assert_called_once()
+        call_kwargs = mock_cache_task.delay.call_args.kwargs
+        assert call_kwargs.get("force") is True, (
+            "force should be True by default to ensure downloads always generate "
+            "fresh screenshots"
+        )
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
     def test_cache_dashboard_screenshot_success_permalink_payload(self):
         self.login(ADMIN_USERNAME)
         dashboard = (
