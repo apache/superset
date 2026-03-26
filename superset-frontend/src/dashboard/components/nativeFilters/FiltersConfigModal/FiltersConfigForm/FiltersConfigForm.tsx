@@ -133,11 +133,16 @@ import {
 import DependencyList from './DependencyList';
 import { extractLabel } from '../../selectors';
 import {
+  canApplyDynamicTitleToScope,
   createDynamicTitleAlias,
+  DYNAMIC_TITLE_CHART_TITLE_ALIAS,
   extractDynamicTitleAliases,
   findDynamicTitleScopeConflict,
   getDynamicTitleControlValues,
+  hasSingleChartScope,
+  isBuiltInDynamicTitleAlias,
   renderDynamicTitleTemplate,
+  usesChartTitleToken,
   type DynamicTitleScopeCandidate,
   type DynamicTitleTokenMappings,
 } from '../../../../util/dynamicTitle';
@@ -174,7 +179,25 @@ const DynamicTitlePreview = styled.div`
   `}
 `;
 
+const DynamicTitleHint = styled.div`
+  ${({ theme }) => `
+    margin-top: ${theme.sizeUnit * 2}px;
+    color: ${theme.colorTextSecondary};
+    font-size: ${theme.fontSizeSM}px;
+  `}
+`;
+
 type ControlKey = keyof PluginFilterSelectCustomizeProps;
+type DynamicTitleTokenOption = {
+  value: string;
+  label: string;
+  alias: string;
+  kind: 'built_in' | 'filter';
+  filterId?: string;
+};
+
+const BUILT_IN_CHART_TITLE_TOKEN_VALUE =
+  '__dynamic_title_builtin_chart_title__';
 
 const controlsOrder: ControlKey[] = [
   'enableEmptyFilter',
@@ -779,6 +802,20 @@ const FiltersConfigForm = (
     () => getAvailableFilters(filterId),
     [getAvailableFilters, filterId, filters],
   );
+  const chartTitleById = useMemo(
+    () =>
+      chartLayoutItems.reduce<Record<number, string>>((acc, item) => {
+        const chartId = item.meta?.chartId;
+        if (typeof chartId === 'number') {
+          acc[chartId] =
+            item.meta?.sliceNameOverride ||
+            item.meta?.sliceName ||
+            t('Chart %s', chartId);
+        }
+        return acc;
+      }, {}),
+    [chartLayoutItems],
+  );
   const availableDynamicTitleFilters = useMemo(
     () =>
       Object.values(nativeFiltersState)
@@ -793,6 +830,24 @@ const FiltersConfigForm = (
         .sort((a, b) => a.name.localeCompare(b.name)),
     [nativeFiltersState],
   );
+  const dynamicTitleTokenOptions = useMemo<DynamicTitleTokenOption[]>(
+    () => [
+      {
+        value: BUILT_IN_CHART_TITLE_TOKEN_VALUE,
+        label: t('Current chart title'),
+        alias: DYNAMIC_TITLE_CHART_TITLE_ALIAS,
+        kind: 'built_in',
+      },
+      ...availableDynamicTitleFilters.map(filter => ({
+        value: filter.id,
+        label: filter.name,
+        alias: filter.name,
+        kind: 'filter' as const,
+        filterId: filter.id,
+      })),
+    ],
+    [availableDynamicTitleFilters],
+  );
   const dynamicTitleControlValues = getDynamicTitleControlValues(
     isDynamicTitleCustomization ? customizationToEdit : undefined,
   );
@@ -800,12 +855,22 @@ const FiltersConfigForm = (
     formFilter?.controlValues?.template ??
     dynamicTitleControlValues.template ??
     '';
-  const dynamicTitleTokenMappings = (formFilter?.controlValues?.tokenMappings ??
-    dynamicTitleControlValues.tokenMappings ??
-    {}) as DynamicTitleTokenMappings;
-  const dynamicTitleFilterIds = new Set(
-    availableDynamicTitleFilters.map(filter => filter.id),
+  const dynamicTitleTokenMappings = useMemo(
+    () =>
+      (formFilter?.controlValues?.tokenMappings ??
+        dynamicTitleControlValues.tokenMappings ??
+        {}) as DynamicTitleTokenMappings,
+    [
+      formFilter?.controlValues?.tokenMappings,
+      dynamicTitleControlValues.tokenMappings,
+    ],
   );
+  const dynamicTitleFilterIds = useMemo(
+    () => new Set(availableDynamicTitleFilters.map(filter => filter.id)),
+    [availableDynamicTitleFilters],
+  );
+  const dynamicTitleUsesChartTitleToken =
+    usesChartTitleToken(dynamicTitleTemplate);
   const hasAvailableFilters = availableFilters.length > 0;
   const hasTimeDependency = availableFilters
     .filter(filter => filter.type === 'filter_time')
@@ -818,38 +883,6 @@ const FiltersConfigForm = (
   );
 
   const DateFilterComponent = DateFilterControlExtension ?? DateFilterControl;
-
-  const dynamicTitlePreview = useMemo(() => {
-    if (!dynamicTitleTemplate) {
-      return '';
-    }
-
-    const aliasValues = Object.entries(dynamicTitleTokenMappings).reduce<
-      Record<string, string | undefined>
-    >((acc, [alias, mappedFilterId]) => {
-      const filter = nativeFiltersState[mappedFilterId];
-      if (!filter || filter.type !== NativeFilterType.NativeFilter) {
-        acc[alias] = undefined;
-        return acc;
-      }
-
-      const label = extractLabel(dataMask[mappedFilterId]?.filterState);
-      acc[alias] =
-        label ||
-        getFilterValueForDisplay(
-          dataMask[mappedFilterId]?.filterState?.value,
-        ) ||
-        undefined;
-      return acc;
-    }, {});
-
-    return renderDynamicTitleTemplate(dynamicTitleTemplate, aliasValues);
-  }, [
-    dataMask,
-    dynamicTitleTemplate,
-    dynamicTitleTokenMappings,
-    nativeFiltersState,
-  ]);
 
   const getDynamicTitleScopeCandidate = useCallback(
     (customizationId: string): DynamicTitleScopeCandidate | undefined => {
@@ -887,10 +920,19 @@ const FiltersConfigForm = (
               Array.isArray(savedCustomization.chartsInScope)
             ? savedCustomization.chartsInScope
             : [];
+      const template =
+        formCustomization &&
+        'controlValues' in formCustomization &&
+        formCustomization.controlValues?.template
+          ? String(formCustomization.controlValues.template)
+          : savedCustomization && !('title' in savedCustomization)
+            ? getDynamicTitleControlValues(savedCustomization).template
+            : undefined;
 
       return {
         id: customizationId,
         chartsInScope,
+        template,
       };
     },
     [
@@ -902,11 +944,84 @@ const FiltersConfigForm = (
     ],
   );
 
+  const currentDynamicTitleScopeCandidate = useMemo(
+    () => getDynamicTitleScopeCandidate(filterId),
+    [filterId, getDynamicTitleScopeCandidate],
+  );
+  const currentDynamicTitleScopeLabel = useMemo(() => {
+    const chartsInScope =
+      currentDynamicTitleScopeCandidate?.chartsInScope || [];
+    if (chartsInScope.length === 0) {
+      return t('No charts selected');
+    }
+    if (chartsInScope.length === 1) {
+      return chartTitleById[chartsInScope[0]] || t('1 chart selected');
+    }
+    return t('%s charts selected', chartsInScope.length);
+  }, [chartTitleById, currentDynamicTitleScopeCandidate?.chartsInScope]);
+  const previewChartTitle = useMemo(() => {
+    const scopedChartIds =
+      currentDynamicTitleScopeCandidate?.chartsInScope || [];
+    if (scopedChartIds.length === 1) {
+      return chartTitleById[scopedChartIds[0]] || t('Chart title');
+    }
+    return t('Chart title');
+  }, [chartTitleById, currentDynamicTitleScopeCandidate?.chartsInScope]);
+
+  const dynamicTitlePreview = useMemo(() => {
+    if (!dynamicTitleTemplate) {
+      return '';
+    }
+
+    const aliasValues = {
+      ...Object.entries(dynamicTitleTokenMappings).reduce<
+        Record<string, string | undefined>
+      >((acc, [alias, mappedFilterId]) => {
+        const filter = nativeFiltersState[mappedFilterId];
+        if (!filter || filter.type !== NativeFilterType.NativeFilter) {
+          acc[alias] = undefined;
+          return acc;
+        }
+
+        const label = extractLabel(dataMask[mappedFilterId]?.filterState);
+        acc[alias] =
+          label ||
+          getFilterValueForDisplay(
+            dataMask[mappedFilterId]?.filterState?.value,
+          ) ||
+          undefined;
+        return acc;
+      }, {}),
+      [DYNAMIC_TITLE_CHART_TITLE_ALIAS]: previewChartTitle,
+    };
+
+    return renderDynamicTitleTemplate(dynamicTitleTemplate, aliasValues);
+  }, [
+    dataMask,
+    dynamicTitleTemplate,
+    dynamicTitleTokenMappings,
+    nativeFiltersState,
+    previewChartTitle,
+  ]);
+
   const validateDynamicTitleScopeOverlap = useCallback(async () => {
     const currentCustomization = getDynamicTitleScopeCandidate(filterId);
 
     if (!currentCustomization) {
       return;
+    }
+
+    if (
+      !canApplyDynamicTitleToScope(
+        currentCustomization.template,
+        currentCustomization.chartsInScope,
+      )
+    ) {
+      throw new Error(
+        t(
+          'Target exactly one chart, or include {{chart_title}} to keep each chart title.',
+        ),
+      );
     }
 
     const formCustomizationIds = Object.keys(
@@ -938,8 +1053,9 @@ const FiltersConfigForm = (
 
   const updateDynamicTitleControlValues = useCallback(
     (nextValues: Record<string, unknown>) => {
-      const previousControlValues = form.getFieldValue('filters')?.[filterId]
-        ?.controlValues || { ...customizationToEdit?.controlValues };
+      const previousControlValues =
+        form.getFieldValue('filters')?.[filterId]?.controlValues ||
+        dynamicTitleControlValues;
       setNativeFilterFieldValues(form, filterId, {
         controlValues: {
           ...previousControlValues,
@@ -949,25 +1065,32 @@ const FiltersConfigForm = (
       forceUpdate();
       formChanged();
     },
-    [
-      customizationToEdit?.controlValues,
-      filterId,
-      forceUpdate,
-      form,
-      formChanged,
-    ],
+    [dynamicTitleControlValues, filterId, forceUpdate, form, formChanged],
   );
 
   const insertDynamicTitleFilterToken = useCallback(
-    (selectedFilterId?: string) => {
-      if (!selectedFilterId) {
+    (selectedTokenValue?: string) => {
+      if (!selectedTokenValue) {
         return;
       }
 
-      const selectedFilter = availableDynamicTitleFilters.find(
-        filter => filter.id === selectedFilterId,
+      const selectedToken = dynamicTitleTokenOptions.find(
+        tokenOption => tokenOption.value === selectedTokenValue,
       );
-      if (!selectedFilter) {
+      if (!selectedToken) {
+        return;
+      }
+
+      const template = (
+        form.getFieldValue('filters')?.[filterId]?.controlValues?.template ||
+        dynamicTitleTemplate
+      ).trim();
+      const token = `{{${selectedToken.alias}}}`;
+
+      if (selectedToken.kind === 'built_in') {
+        updateDynamicTitleControlValues({
+          template: template ? `${template} ${token}` : token,
+        });
         return;
       }
 
@@ -976,32 +1099,27 @@ const FiltersConfigForm = (
           ?.tokenMappings as DynamicTitleTokenMappings | undefined) ||
         dynamicTitleTokenMappings;
       const existingAlias = Object.entries(existingMappings).find(
-        ([, mappedFilterId]) => mappedFilterId === selectedFilterId,
+        ([, mappedFilterId]) => mappedFilterId === selectedToken.filterId,
       )?.[0];
       const alias =
         existingAlias ||
         createDynamicTitleAlias(
-          selectedFilter.name,
+          selectedToken.label,
           Object.keys(existingMappings),
         );
-      const template = (
-        form.getFieldValue('filters')?.[filterId]?.controlValues?.template ||
-        dynamicTitleTemplate
-      ).trim();
-      const token = `{{${alias}}}`;
 
       updateDynamicTitleControlValues({
-        template: template ? `${template} ${token}` : token,
+        template: template ? `${template} {{${alias}}}` : `{{${alias}}}`,
         tokenMappings: {
           ...existingMappings,
-          [alias]: selectedFilterId,
+          [alias]: selectedToken.filterId,
         },
       });
     },
     [
-      availableDynamicTitleFilters,
       dynamicTitleTemplate,
       dynamicTitleTokenMappings,
+      dynamicTitleTokenOptions,
       filterId,
       form,
       updateDynamicTitleControlValues,
@@ -1177,7 +1295,7 @@ const FiltersConfigForm = (
                     label={
                       <StyledLabel>
                         {isChartCustomization
-                          ? t('Display control name')
+                          ? t('Internal name')
                           : t('Filter name')}
                       </StyledLabel>
                     }
@@ -1227,7 +1345,7 @@ const FiltersConfigForm = (
                           }),
                           {
                             value: ChartCustomizationPlugins.DynamicTitle,
-                            label: t('Dynamic title'),
+                            label: t('Chart title template'),
                           },
                         ]}
                         onChange={value => {
@@ -1410,20 +1528,18 @@ const FiltersConfigForm = (
                                         expanded={expanded}
                                         label={
                                           <StyledLabel>
-                                            {t('Insert filter token')}
+                                            {t('Insert token')}
                                           </StyledLabel>
                                         }
                                       >
                                         <Select
                                           allowClear
-                                          ariaLabel={t('Insert filter token')}
-                                          placeholder={t(
-                                            'Select a dashboard filter',
-                                          )}
-                                          options={availableDynamicTitleFilters.map(
-                                            filter => ({
-                                              value: filter.id,
-                                              label: filter.name,
+                                          ariaLabel={t('Insert token')}
+                                          placeholder={t('Select a token')}
+                                          options={dynamicTitleTokenOptions.map(
+                                            tokenOption => ({
+                                              value: tokenOption.value,
+                                              label: tokenOption.label,
                                             }),
                                           )}
                                           onChange={value => {
@@ -1451,7 +1567,7 @@ const FiltersConfigForm = (
                                             <InfoTooltip
                                               placement="top"
                                               tooltip={t(
-                                                'Use tokens like {{country}}. Insert tokens from the selector to bind them to dashboard filters.',
+                                                'Use {{chart_title}} to keep each chart title, and filter tokens like {{country}} to append dashboard context.',
                                               )}
                                             />
                                           </>
@@ -1470,6 +1586,9 @@ const FiltersConfigForm = (
                                               const missingAliases =
                                                 aliases.filter(
                                                   alias =>
+                                                    !isBuiltInDynamicTitleAlias(
+                                                      alias,
+                                                    ) &&
                                                     !dynamicTitleTokenMappings[
                                                       alias
                                                     ],
@@ -1477,7 +1596,7 @@ const FiltersConfigForm = (
                                               if (missingAliases.length > 0) {
                                                 throw new Error(
                                                   t(
-                                                    'Insert filter tokens for: %s',
+                                                    'Insert tokens for: %s',
                                                     missingAliases.join(', '),
                                                   ),
                                                 );
@@ -1512,8 +1631,9 @@ const FiltersConfigForm = (
                                       >
                                         <Input.TextArea
                                           rows={4}
+                                          value={dynamicTitleTemplate}
                                           placeholder={t(
-                                            'Example: Sales in {{country}}',
+                                            'Example: {{chart_title}} - {{country}}',
                                           )}
                                           onChange={event => {
                                             updateDynamicTitleControlValues({
@@ -1521,6 +1641,22 @@ const FiltersConfigForm = (
                                             });
                                           }}
                                         />
+                                        <DynamicTitleHint>
+                                          {t(
+                                            'Applied to: %s. Use {{chart_title}} when the scope includes multiple charts.',
+                                            currentDynamicTitleScopeLabel,
+                                          )}
+                                        </DynamicTitleHint>
+                                        {!dynamicTitleUsesChartTitleToken &&
+                                          !hasSingleChartScope(
+                                            currentDynamicTitleScopeCandidate?.chartsInScope,
+                                          ) && (
+                                            <DynamicTitleHint>
+                                              {t(
+                                                'Multi-chart scope needs {{chart_title}} so each chart keeps its own base title.',
+                                              )}
+                                            </DynamicTitleHint>
+                                          )}
                                       </StyledFormItem>
                                     </StyledRowContainer>
                                     <StyledRowContainer justify="space-between">
@@ -1538,6 +1674,12 @@ const FiltersConfigForm = (
                                               'Preview updates when referenced dashboard filters have values.',
                                             )}
                                         </DynamicTitlePreview>
+                                        <DynamicTitleHint>
+                                          {t(
+                                            'Preview uses %s as the current chart title.',
+                                            previewChartTitle,
+                                          )}
+                                        </DynamicTitleHint>
                                       </StyledFormItem>
                                     </StyledRowContainer>
                                   </>
@@ -2301,18 +2443,29 @@ const FiltersConfigForm = (
           label: FilterTabs.scoping.name,
           forceRender: true,
           children: (
-            <FilterScope
-              updateFormValues={updateFormValues}
-              pathToFormValue={['filters', filterId]}
-              forceUpdate={forceUpdate}
-              filterScope={
-                isChartCustomization
-                  ? customizationToEdit?.scope
-                  : filterToEdit?.scope
-              }
-              formFilterScope={formFilter?.scope}
-              initiallyExcludedCharts={initiallyExcludedCharts}
-            />
+            <>
+              {isDynamicTitleCustomization && (
+                <StyledRowContainer>
+                  <DynamicTitleHint>
+                    {t(
+                      'Chart title templates can target one chart, or multiple charts when the template includes {{chart_title}}.',
+                    )}
+                  </DynamicTitleHint>
+                </StyledRowContainer>
+              )}
+              <FilterScope
+                updateFormValues={updateFormValues}
+                pathToFormValue={['filters', filterId]}
+                forceUpdate={forceUpdate}
+                filterScope={
+                  isChartCustomization
+                    ? customizationToEdit?.scope
+                    : filterToEdit?.scope
+                }
+                formFilterScope={formFilter?.scope}
+                initiallyExcludedCharts={initiallyExcludedCharts}
+              />
+            </>
           ),
         },
       ]}

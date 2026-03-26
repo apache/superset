@@ -273,6 +273,192 @@ test('should not apply a dynamic title globally when chartsInScope is missing', 
   expect(screen.queryByText('Sales in Brazil')).not.toBeInTheDocument();
 });
 
+test('should not apply a dynamic title scoped to multiple charts', () => {
+  setup(
+    { sliceName: 'Static chart title' },
+    {
+      dashboardInfo: {
+        ...defaultState.dashboardInfo,
+        metadata: {
+          chart_customization_config: [
+            {
+              id: 'CHART_CUSTOMIZATION-dynamic-title',
+              type: 'CHART_CUSTOMIZATION',
+              name: 'Dynamic title',
+              filterType: ChartCustomizationPlugins.DynamicTitle,
+              targets: [],
+              scope: { rootPath: ['ROOT_ID'], excluded: [] },
+              chartsInScope: [queryId, queryId + 1],
+              controlValues: {
+                template: 'Sales in {{country}}',
+                tokenMappings: {
+                  country: 'NATIVE_FILTER-country',
+                },
+              },
+              defaultDataMask: {},
+            },
+          ],
+        },
+      },
+      nativeFilters: {
+        filters: {
+          'NATIVE_FILTER-country': {
+            id: 'NATIVE_FILTER-country',
+            type: 'NATIVE_FILTER',
+            name: 'Country',
+            filterType: 'filter_select',
+            targets: [{ datasetId: 1, column: { name: 'country' } }],
+            scope: { rootPath: ['ROOT_ID'], excluded: [] },
+            chartsInScope: [queryId, queryId + 1],
+            controlValues: {},
+            defaultDataMask: {},
+            cascadeParentIds: [],
+            description: '',
+          },
+        },
+      },
+      dataMask: {
+        'NATIVE_FILTER-country': {
+          id: 'NATIVE_FILTER-country',
+          extraFormData: {},
+          filterState: {
+            label: 'Brazil',
+            value: ['Brazil'],
+          },
+          ownState: {},
+        },
+      },
+    },
+  );
+
+  expect(screen.getByText('Static chart title')).toBeInTheDocument();
+  expect(screen.queryByText('Sales in Brazil')).not.toBeInTheDocument();
+});
+
+test('should apply a multi-chart dynamic title when using chart_title token', () => {
+  setup(
+    { sliceName: 'Static chart title' },
+    {
+      dashboardInfo: {
+        ...defaultState.dashboardInfo,
+        metadata: {
+          chart_customization_config: [
+            {
+              id: 'CHART_CUSTOMIZATION-dynamic-title',
+              type: 'CHART_CUSTOMIZATION',
+              name: 'Dynamic title',
+              filterType: ChartCustomizationPlugins.DynamicTitle,
+              targets: [],
+              scope: { rootPath: ['ROOT_ID'], excluded: [] },
+              chartsInScope: [queryId, queryId + 1],
+              controlValues: {
+                template: '{{chart_title}} - {{country}}',
+                tokenMappings: {
+                  country: 'NATIVE_FILTER-country',
+                },
+              },
+              defaultDataMask: {},
+            },
+          ],
+        },
+      },
+      nativeFilters: {
+        filters: {
+          'NATIVE_FILTER-country': {
+            id: 'NATIVE_FILTER-country',
+            type: 'NATIVE_FILTER',
+            name: 'Country',
+            filterType: 'filter_select',
+            targets: [{ datasetId: 1, column: { name: 'country' } }],
+            scope: { rootPath: ['ROOT_ID'], excluded: [] },
+            chartsInScope: [queryId, queryId + 1],
+            controlValues: {},
+            defaultDataMask: {},
+            cascadeParentIds: [],
+            description: '',
+          },
+        },
+      },
+      dataMask: {
+        'NATIVE_FILTER-country': {
+          id: 'NATIVE_FILTER-country',
+          extraFormData: {},
+          filterState: {
+            label: 'Brazil',
+            value: ['Brazil'],
+          },
+          ownState: {},
+        },
+      },
+    },
+  );
+
+  expect(screen.getByText('Static chart title - Brazil')).toBeInTheDocument();
+});
+
+test('should preserve the built-in chart_title token when token mappings collide', () => {
+  setup(
+    { sliceName: 'Static chart title' },
+    {
+      dashboardInfo: {
+        ...defaultState.dashboardInfo,
+        metadata: {
+          chart_customization_config: [
+            {
+              id: 'CHART_CUSTOMIZATION-dynamic-title',
+              type: 'CHART_CUSTOMIZATION',
+              name: 'Dynamic title',
+              filterType: ChartCustomizationPlugins.DynamicTitle,
+              targets: [],
+              scope: { rootPath: ['ROOT_ID'], excluded: [] },
+              chartsInScope: [queryId, queryId + 1],
+              controlValues: {
+                template: '{{chart_title}} - {{country}}',
+                tokenMappings: {
+                  chart_title: 'NATIVE_FILTER-country',
+                  country: 'NATIVE_FILTER-country',
+                },
+              },
+              defaultDataMask: {},
+            },
+          ],
+        },
+      },
+      nativeFilters: {
+        filters: {
+          'NATIVE_FILTER-country': {
+            id: 'NATIVE_FILTER-country',
+            type: 'NATIVE_FILTER',
+            name: 'Country',
+            filterType: 'filter_select',
+            targets: [{ datasetId: 1, column: { name: 'country' } }],
+            scope: { rootPath: ['ROOT_ID'], excluded: [] },
+            chartsInScope: [queryId, queryId + 1],
+            controlValues: {},
+            defaultDataMask: {},
+            cascadeParentIds: [],
+            description: '',
+          },
+        },
+      },
+      dataMask: {
+        'NATIVE_FILTER-country': {
+          id: 'NATIVE_FILTER-country',
+          extraFormData: {},
+          filterState: {
+            label: 'Brazil',
+            value: ['Brazil'],
+          },
+          ownState: {},
+        },
+      },
+    },
+  );
+
+  expect(screen.getByText('Static chart title - Brazil')).toBeInTheDocument();
+  expect(screen.queryByText('Brazil - Brazil')).not.toBeInTheDocument();
+});
+
 test('should keep the static title in edit mode when a dynamic title exists', () => {
   setup(
     { sliceName: 'Static chart title' },

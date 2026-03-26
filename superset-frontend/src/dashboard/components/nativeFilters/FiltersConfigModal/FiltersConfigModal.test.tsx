@@ -37,6 +37,7 @@ import {
   TimeFilterPlugin,
   TimeGrainFilterPlugin,
 } from 'src/filters/components';
+import { ChartCustomizationPlugins } from 'src/constants';
 import FiltersConfigModal, {
   FiltersConfigModalProps,
 } from './FiltersConfigModal';
@@ -767,4 +768,123 @@ test('renders a filter with a chart containing BigInt values', async () => {
   });
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
+});
+
+test('persists a dynamic title template and token mappings when reopened', async () => {
+  const nativeFilterConfig = [
+    buildNativeFilter('NATIVE_FILTER-country', 'Country', []),
+  ];
+  const existingCustomization = {
+    id: 'CHART_CUSTOMIZATION-dynamic-title',
+    type: 'CHART_CUSTOMIZATION',
+    name: 'Sales context',
+    filterType: ChartCustomizationPlugins.DynamicTitle,
+    targets: [],
+    scope: {
+      rootPath: ['ROOT_ID'],
+      excluded: [],
+    },
+    controlValues: {
+      template: '{{chart_title}} - {{country}}',
+      tokenMappings: {
+        country: 'NATIVE_FILTER-country',
+      },
+    },
+    defaultDataMask: {},
+  };
+  const nativeFiltersMap = {
+    'NATIVE_FILTER-country': {
+      ...nativeFilterConfig[0],
+      description: '',
+      chartsInScope: [18],
+    },
+  };
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+        chart_customization_config: [existingCustomization],
+      },
+    },
+    dashboardLayout,
+    nativeFilters: {
+      filters: nativeFiltersMap,
+    },
+    dataMask: {
+      'NATIVE_FILTER-country': {
+        id: 'NATIVE_FILTER-country',
+        extraFormData: {},
+        filterState: {
+          label: 'Austria',
+          value: ['Austria'],
+        },
+        ownState: {},
+      },
+    },
+  };
+  const onSave = jest.fn().mockResolvedValue(undefined);
+
+  const { unmount } = defaultRender(state, {
+    ...props,
+    createNewOnOpen: false,
+    initialFilterId: existingCustomization.id,
+    onSave,
+  });
+
+  expect(screen.getByRole('textbox', { name: /internal name/i })).toHaveValue(
+    'Sales context',
+  );
+  expect(screen.getByRole('textbox', { name: /template/i })).toHaveValue(
+    '{{chart_title}} - {{country}}',
+  );
+
+  fireEvent.change(screen.getByRole('textbox', { name: /template/i }), {
+    target: { value: '{{chart_title}} - {{country}} (updated)' },
+  });
+
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+
+  await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+
+  const [[saveChanges]] = onSave.mock.calls;
+  const [savedCustomization] = saveChanges.customizationChanges.modified;
+
+  expect(savedCustomization).toEqual(
+    expect.objectContaining({
+      name: 'Sales context',
+      filterType: ChartCustomizationPlugins.DynamicTitle,
+      controlValues: {
+        template: '{{chart_title}} - {{country}} (updated)',
+        tokenMappings: {
+          country: 'NATIVE_FILTER-country',
+        },
+      },
+    }),
+  );
+
+  unmount();
+
+  const reopenedState = {
+    ...state,
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+        chart_customization_config: [savedCustomization],
+      },
+    },
+  };
+
+  defaultRender(reopenedState as ReturnType<typeof defaultState>, {
+    ...props,
+    createNewOnOpen: false,
+    initialFilterId: savedCustomization.id,
+  });
+
+  expect(screen.getByRole('textbox', { name: /internal name/i })).toHaveValue(
+    'Sales context',
+  );
+  expect(screen.getByRole('textbox', { name: /template/i })).toHaveValue(
+    '{{chart_title}} - {{country}} (updated)',
+  );
 });

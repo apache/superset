@@ -31,9 +31,14 @@ export interface DynamicTitleControlValues {
 export interface DynamicTitleScopeCandidate {
   id: string;
   chartsInScope: number[];
+  template?: string;
 }
 
 const PLACEHOLDER_REGEX = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g;
+export const DYNAMIC_TITLE_CHART_TITLE_ALIAS = 'chart_title';
+const RESERVED_DYNAMIC_TITLE_ALIASES = new Set([
+  DYNAMIC_TITLE_CHART_TITLE_ALIAS,
+]);
 
 export const isDynamicTitleCustomization = (
   customization?: Partial<ChartCustomization> | null,
@@ -42,8 +47,20 @@ export const isDynamicTitleCustomization = (
 
 export const getDynamicTitleControlValues = (
   customization?: Partial<ChartCustomization> | null,
-): DynamicTitleControlValues =>
-  (customization?.controlValues as DynamicTitleControlValues | undefined) || {};
+): DynamicTitleControlValues => {
+  const controlValues =
+    (customization?.controlValues as DynamicTitleControlValues | undefined) ||
+    {};
+
+  return {
+    ...controlValues,
+    tokenMappings: Object.fromEntries(
+      Object.entries(controlValues.tokenMappings || {}).filter(
+        ([alias]) => !RESERVED_DYNAMIC_TITLE_ALIASES.has(alias),
+      ),
+    ),
+  };
+};
 
 export const extractDynamicTitleAliases = (template?: string): string[] => {
   if (!template) {
@@ -69,11 +86,36 @@ export const renderDynamicTitleTemplate = (
     .replace(/\s+/g, ' ')
     .trim();
 
+export const hasSingleChartScope = (chartsInScope?: number[]): boolean =>
+  Array.isArray(chartsInScope) && chartsInScope.length === 1;
+
+export const isBuiltInDynamicTitleAlias = (alias: string): boolean =>
+  alias === DYNAMIC_TITLE_CHART_TITLE_ALIAS;
+
+export const usesChartTitleToken = (template?: string): boolean =>
+  extractDynamicTitleAliases(template).includes(
+    DYNAMIC_TITLE_CHART_TITLE_ALIAS,
+  );
+
+export const canApplyDynamicTitleToScope = (
+  template?: string,
+  chartsInScope?: number[],
+): boolean => {
+  if (!Array.isArray(chartsInScope) || chartsInScope.length === 0) {
+    return false;
+  }
+
+  return hasSingleChartScope(chartsInScope) || usesChartTitleToken(template);
+};
+
 export const createDynamicTitleAlias = (
   label: string,
   existingAliases: Iterable<string>,
 ): string => {
-  const usedAliases = new Set(existingAliases);
+  const usedAliases = new Set([
+    ...RESERVED_DYNAMIC_TITLE_ALIASES,
+    ...existingAliases,
+  ]);
   const baseAlias = snakeCase(label).replace(/^_+|_+$/g, '') || 'filter';
 
   let alias = baseAlias;

@@ -82,6 +82,8 @@ import { extractLabel } from '../../nativeFilters/selectors';
 import { getFilterValueForDisplay } from '../../nativeFilters/utils';
 import { PLACEHOLDER_DATASOURCE } from '../../../constants';
 import {
+  canApplyDynamicTitleToScope,
+  DYNAMIC_TITLE_CHART_TITLE_ALIAS,
   getDynamicTitleControlValues,
   renderDynamicTitleTemplate,
 } from '../../../util/dynamicTitle';
@@ -502,31 +504,40 @@ const Chart = (props: ChartProps) => {
       matchingCustomization,
     );
 
-    if (!template) {
+    if (
+      !template ||
+      !canApplyDynamicTitleToScope(
+        template,
+        matchingCustomization.chartsInScope,
+      )
+    ) {
       return props.sliceName;
     }
 
-    const aliasValues = Object.entries(tokenMappings).reduce<
-      Record<string, string | undefined>
-    >((acc, [alias, filterId]) => {
-      const filter = nativeFilters?.[filterId];
+    const aliasValues = {
+      ...Object.entries(tokenMappings).reduce<
+        Record<string, string | undefined>
+      >((acc, [alias, filterId]) => {
+        const filter = nativeFilters?.[filterId];
 
-      if (
-        !filter ||
-        filter.type !== NativeFilterType.NativeFilter ||
-        (filter.chartsInScope != null &&
-          !filter.chartsInScope.includes(props.id))
-      ) {
-        acc[alias] = undefined;
+        if (
+          !filter ||
+          filter.type !== NativeFilterType.NativeFilter ||
+          (filter.chartsInScope != null &&
+            !filter.chartsInScope.includes(props.id))
+        ) {
+          acc[alias] = undefined;
+          return acc;
+        }
+
+        const filterState = dataMask[filterId]?.filterState;
+        const label = extractLabel(filterState);
+        const value = label ?? getFilterValueForDisplay(filterState?.value);
+        acc[alias] = value || undefined;
         return acc;
-      }
-
-      const filterState = dataMask[filterId]?.filterState;
-      const label = extractLabel(filterState);
-      const value = label ?? getFilterValueForDisplay(filterState?.value);
-      acc[alias] = value || undefined;
-      return acc;
-    }, {});
+      }, {}),
+      [DYNAMIC_TITLE_CHART_TITLE_ALIAS]: props.sliceName,
+    };
 
     return renderDynamicTitleTemplate(template, aliasValues) || props.sliceName;
   }, [
