@@ -98,7 +98,7 @@ export const getCrossFiltersConfiguration = (
           },
         };
       }
-      const scope = chartConfiguration[chartId].crossFilters.scope;
+      const {scope} = chartConfiguration[chartId].crossFilters;
 
       const effectiveScope: NativeFilterScope = isCrossFilterScopeGlobal(scope)
         ? globalChartConfiguration.scope
