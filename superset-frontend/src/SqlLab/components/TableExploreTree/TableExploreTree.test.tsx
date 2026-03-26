@@ -22,6 +22,11 @@ import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 
+import { ViewLocations } from 'src/SqlLab/contributions';
+import {
+  registerToolbarAction,
+  cleanupExtensions,
+} from 'spec/helpers/extensionTestHelpers';
 import TableExploreTree from '.';
 
 jest.mock(
@@ -74,6 +79,7 @@ beforeEach(() => {
 afterEach(() => {
   jest.clearAllMocks();
   fetchMock.clearHistory();
+  cleanupExtensions();
 });
 
 const getInitialState = (overrides = {}) => ({
@@ -238,4 +244,23 @@ test('renders refresh button for schema list', async () => {
 
   const refreshButton = screen.getByRole('button', { name: /reload/i });
   expect(refreshButton).toBeInTheDocument();
+});
+
+test('renders contributed toolbar action in leftSidebar slot', async () => {
+  registerToolbarAction(
+    ViewLocations.sqllab.leftSidebar,
+    'test-left-action',
+    'Left Sidebar Action',
+    jest.fn(),
+  );
+
+  renderComponent();
+
+  await waitFor(() => {
+    expect(screen.getByText('public')).toBeInTheDocument();
+  });
+
+  expect(
+    screen.getByRole('button', { name: 'Left Sidebar Action' }),
+  ).toBeInTheDocument();
 });
