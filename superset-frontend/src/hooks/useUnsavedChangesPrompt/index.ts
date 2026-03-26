@@ -71,13 +71,23 @@ export const useUnsavedChangesPrompt = ({
   }, [onSave]);
 
   const blockCallback = useCallback(
-    ({
-      pathname,
-      state,
-    }: {
-      pathname: Location['pathname'];
-      state: Location['state'];
-    }) => {
+    (
+      {
+        pathname,
+        search,
+        state,
+      }: {
+        pathname: Location['pathname'];
+        search: Location['search'];
+        state: Location['state'];
+      },
+      action: string,
+    ) => {
+      // REPLACE actions are URL sync (e.g. updating form_data_key), not navigation
+      if (action === 'REPLACE') {
+        return undefined;
+      }
+
       if (manualSaveRef.current) {
         manualSaveRef.current = false;
         return undefined;
@@ -85,7 +95,7 @@ export const useUnsavedChangesPrompt = ({
 
       confirmNavigationRef.current = () => {
         unblockRef.current?.();
-        history.push(pathname, state);
+        history.push({ pathname, search }, state);
       };
 
       setShowModal(true);
