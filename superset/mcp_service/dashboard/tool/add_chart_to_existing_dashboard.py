@@ -461,8 +461,7 @@ def add_chart_to_existing_dashboard(
             )
             db.session.rollback()
             dashboard_url = (
-                f"{get_superset_base_url()}/superset/dashboard/"
-                f"{updated_dashboard.id}/"
+                f"{get_superset_base_url()}/superset/dashboard/{updated_dashboard.id}/"
             )
             position_info = {
                 "row": row_key,
