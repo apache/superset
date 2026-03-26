@@ -48,14 +48,54 @@ def test_validate_python_date_format_raises(payload) -> None:
         validate_python_date_format(payload)
 
 
-def test_dataset_put_schema_includes_currency_code_column() -> None:
-    """Test that DatasetPutSchema properly handles currency_code_column field."""
-    from superset.datasets.schemas import DatasetPutSchema
+def test_dataset_post_schema_has_all_put_scalar_fields() -> None:
+    """
+    Every scalar model field accepted by DatasetPutSchema should also be accepted
+    by DatasetPostSchema, unless it is intentionally excluded (fields that only
+    make sense after a dataset already exists).
 
-    schema = DatasetPutSchema()
+    This prevents the class of bug where a new column is added to the update
+    schema but forgotten in the create schema.
+    """
+    from superset.datasets.schemas import DatasetPostSchema, DatasetPutSchema
 
-    # Dataset with currency code column
+    # Fields that are intentionally only on Put: they require an existing dataset
+    # or are populated server-side during creation.
+    put_only_fields = {
+        "columns",
+        "metrics",
+        "folders",
+        "database_id",  # Post uses "database" (integer id) instead
+        "description",
+        "main_dttm_col",
+        "filter_select_enabled",
+        "fetch_values_predicate",
+        "offset",
+        "default_endpoint",
+        "cache_timeout",
+        "is_sqllab_view",
+        "extra",
+    }
+
+    put_fields = set(DatasetPutSchema().fields.keys())
+    post_fields = set(DatasetPostSchema().fields.keys())
+
+    missing = put_fields - post_fields - put_only_fields
+    assert missing == set(), (
+        f"Fields {missing} are in DatasetPutSchema but missing from "
+        f"DatasetPostSchema. Either add them to DatasetPostSchema or to "
+        f"the put_only_fields exclusion list in this test."
+    )
+
+
+def test_dataset_post_schema_includes_currency_code_column() -> None:
+    """Test that DatasetPostSchema accepts currency_code_column."""
+    from superset.datasets.schemas import DatasetPostSchema
+
+    schema = DatasetPostSchema()
     data = {
+        "database": 1,
+        "table_name": "virtual_dataset",
         "currency_code_column": "currency",
     }
     result = schema.load(data)
@@ -75,3 +115,17 @@ def test_dataset_put_schema_currency_code_column_optional() -> None:
         "currency_code_column" not in result
         or result.get("currency_code_column") is None
     )
+
+
+def test_import_v1_metric_schema_parses_currency_string() -> None:
+    """Test that ImportV1MetricSchema parses string currency payloads."""
+    from superset.datasets.schemas import ImportV1MetricSchema
+
+    schema = ImportV1MetricSchema()
+    data = {
+        "metric_name": "sum_amount",
+        "expression": "SUM(amount)",
+        "currency": '{"symbol": "CAD", "symbolPosition": "suffix"}',
+    }
+    result = schema.load(data)
+    assert result["currency"] == {"symbol": "CAD", "symbolPosition": "suffix"}

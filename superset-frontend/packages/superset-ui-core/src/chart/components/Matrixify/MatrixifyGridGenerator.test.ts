@@ -196,6 +196,25 @@ test('should handle string metrics', () => {
   expect(grid!.colHeaders).toEqual(['avg', 'max']);
 });
 
+test('should skip missing column metrics when generating cell form data', () => {
+  const missingColumnMetricFormData: TestFormData = {
+    viz_type: 'table',
+    datasource: '1__table',
+    matrixify_enable: true,
+    matrixify_mode_rows: 'metrics',
+    matrixify_mode_columns: 'metrics',
+    matrixify_rows: [createAdhocMetric('Revenue')],
+    matrixify_columns: [null],
+  };
+
+  const grid = generateMatrixifyGrid(missingColumnMetricFormData);
+
+  expect(grid).not.toBeNull();
+  expect(grid!.cells[0][0]!.formData.metrics).toEqual([
+    createAdhocMetric('Revenue'),
+  ]);
+});
+
 test('should not escape HTML entities in cell titles', () => {
   const formDataWithSpecialChars: TestFormData = {
     viz_type: 'table',
