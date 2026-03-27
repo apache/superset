@@ -272,14 +272,14 @@ export default function ExplorePage() {
   // Other REPLACE: ignored (URL sync from updateHistory).
   useEffect(() => {
     const unlisten = history.listen((loc: Location, action: Action) => {
+      const saveAction = (loc.state as Record<string, unknown>)?.saveAction as
+        | SaveActionType
+        | undefined;
       if (action === 'PUSH' || action === 'POP') {
         setIsLoaded(false);
-        loadExploreData(loc);
-      } else if ((loc.state as Record<string, unknown>)?.saveAction) {
-        loadExploreData(
-          loc,
-          (loc.state as Record<string, unknown>).saveAction as SaveActionType,
-        );
+        loadExploreData(loc, saveAction);
+      } else if (saveAction) {
+        loadExploreData(loc, saveAction);
       }
     });
     return unlisten;
