@@ -100,7 +100,7 @@ test('x_axis_time_format should be visible for numeric columns', () => {
 
 test('should include x_axis_number_format control', () => {
   expect(numberFormatControl).toBeDefined();
-  expect(numberFormatControl.config.default).toBe('d');
+  expect(numberFormatControl.config.default).toBe('~g');
 });
 
 test('x_axis_number_format should be visible for numeric columns', () => {

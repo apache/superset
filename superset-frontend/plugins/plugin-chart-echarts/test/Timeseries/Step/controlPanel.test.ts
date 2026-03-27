@@ -76,7 +76,7 @@ test('should include x_axis_time_format control', () => {
 
 test('should include x_axis_number_format control', () => {
   expect(numberFormatControl).toBeDefined();
-  expect(numberFormatControl.config.default).toBe('d');
+  expect(numberFormatControl.config.default).toBe('~g');
 });
 
 test('x_axis_time_format should be visible for temporal columns', () => {

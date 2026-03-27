@@ -117,7 +117,7 @@ test('scatter chart control panel should include x_axis_number_format control in
 test('scatter chart control panel should have correct default value for x_axis_number_format', () => {
   expect(numberFormatControl).toBeDefined();
   expect(numberFormatControl.config).toBeDefined();
-  expect(numberFormatControl.config.default).toBe('d');
+  expect(numberFormatControl.config.default).toBe('~g');
 });
 
 test('scatter chart control panel should have visibility function for x_axis_number_format', () => {

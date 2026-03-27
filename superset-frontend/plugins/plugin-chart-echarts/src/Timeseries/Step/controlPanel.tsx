@@ -180,7 +180,7 @@ const config: ControlPanelConfig = {
             name: 'x_axis_number_format',
             config: {
               ...sharedControls.x_axis_number_format,
-              default: 'd',
+              default: '~g',
               mapStateToProps: undefined,
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 checkColumnType(
