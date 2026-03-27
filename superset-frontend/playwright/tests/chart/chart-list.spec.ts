@@ -20,18 +20,18 @@
 import {
   test as testWithAssets,
   expect,
-} from '../../../helpers/fixtures/testAssets';
-import { ChartListPage } from '../../../pages/ChartListPage';
-import { ChartPropertiesModal } from '../../../components/modals/ChartPropertiesModal';
-import { DeleteConfirmationModal } from '../../../components/modals/DeleteConfirmationModal';
-import { Toast } from '../../../components/core/Toast';
-import { apiGetChart, ENDPOINTS } from '../../../helpers/api/chart';
+} from '../../helpers/fixtures/testAssets';
+import { ChartListPage } from '../../pages/ChartListPage';
+import { ChartPropertiesModal } from '../../components/modals/ChartPropertiesModal';
+import { DeleteConfirmationModal } from '../../components/modals/DeleteConfirmationModal';
+import { Toast } from '../../components/core/Toast';
+import { apiGetChart, ENDPOINTS } from '../../helpers/api/chart';
 import { createTestChart } from './chart-test-helpers';
-import { waitForGet, waitForPut } from '../../../helpers/api/intercepts';
+import { waitForGet, waitForPut } from '../../helpers/api/intercepts';
 import {
   expectStatusOneOf,
   expectValidExportZip,
-} from '../../../helpers/api/assertions';
+} from '../../helpers/api/assertions';
 
 /**
  * Extend testWithAssets with chartListPage navigation (beforeEach equivalent).

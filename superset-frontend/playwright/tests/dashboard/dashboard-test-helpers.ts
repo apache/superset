@@ -18,59 +18,45 @@
  */
 
 import type { Page, TestInfo } from '@playwright/test';
-import type { TestAssets } from '../../../helpers/fixtures/testAssets';
-import { apiPostChart } from '../../../helpers/api/chart';
-import { getDatasetByName } from '../../../helpers/api/dataset';
+import type { TestAssets } from '../../helpers/fixtures/testAssets';
+import { apiPostDashboard } from '../../helpers/api/dashboard';
 
-interface TestChartResult {
+interface TestDashboardResult {
   id: number;
   name: string;
 }
 
-interface CreateTestChartOptions {
-  /** Prefix for generated name (default: 'test_chart') */
+interface CreateTestDashboardOptions {
+  /** Prefix for generated name (default: 'test_dashboard') */
   prefix?: string;
 }
 
 /**
- * Creates a test chart via the API for E2E testing.
- * Uses the members_channels_2 dataset (loaded via --load-examples).
+ * Creates a test dashboard via the API for E2E testing.
  *
  * @example
- * const { id, name } = await createTestChart(page, testAssets, test.info());
+ * const { id, name } = await createTestDashboard(page, testAssets, test.info());
  *
  * @example
- * const { id, name } = await createTestChart(page, testAssets, test.info(), {
+ * const { id, name } = await createTestDashboard(page, testAssets, test.info(), {
  *   prefix: 'test_delete',
  * });
  */
-export async function createTestChart(
+export async function createTestDashboard(
   page: Page,
   testAssets: TestAssets,
   testInfo: TestInfo,
-  options?: CreateTestChartOptions,
-): Promise<TestChartResult> {
-  const prefix = options?.prefix ?? 'test_chart';
+  options?: CreateTestDashboardOptions,
+): Promise<TestDashboardResult> {
+  const prefix = options?.prefix ?? 'test_dashboard';
   const name = `${prefix}_${Date.now()}_${testInfo.parallelIndex}`;
 
-  // Look up the members_channels_2 dataset for chart creation
-  const dataset = await getDatasetByName(page, 'members_channels_2');
-  if (!dataset) {
-    throw new Error(
-      'members_channels_2 dataset not found — run Superset with --load-examples',
-    );
-  }
-
-  const response = await apiPostChart(page, {
-    slice_name: name,
-    datasource_id: dataset.id,
-    datasource_type: 'table',
-    viz_type: 'table',
-    params: '{}',
+  const response = await apiPostDashboard(page, {
+    dashboard_title: name,
   });
 
   if (!response.ok()) {
-    throw new Error(`Failed to create test chart: ${response.status()}`);
+    throw new Error(`Failed to create test dashboard: ${response.status()}`);
   }
 
   const body = await response.json();
@@ -78,11 +64,11 @@ export async function createTestChart(
   const id = body.result?.id ?? body.id;
   if (!id) {
     throw new Error(
-      `Chart creation returned no id. Response: ${JSON.stringify(body)}`,
+      `Dashboard creation returned no id. Response: ${JSON.stringify(body)}`,
     );
   }
 
-  testAssets.trackChart(id);
+  testAssets.trackDashboard(id);
 
   return { id, name };
 }

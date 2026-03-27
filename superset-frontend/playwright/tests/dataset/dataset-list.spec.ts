@@ -20,34 +20,34 @@
 import {
   test as testWithAssets,
   expect,
-} from '../../../helpers/fixtures/testAssets';
+} from '../../helpers/fixtures/testAssets';
 import path from 'path';
-import { DatasetListPage } from '../../../pages/DatasetListPage';
-import { ExplorePage } from '../../../pages/ExplorePage';
-import { ConfirmDialog } from '../../../components/modals/ConfirmDialog';
-import { DeleteConfirmationModal } from '../../../components/modals/DeleteConfirmationModal';
-import { ImportDatasetModal } from '../../../components/modals/ImportDatasetModal';
-import { DuplicateDatasetModal } from '../../../components/modals/DuplicateDatasetModal';
-import { EditDatasetModal } from '../../../components/modals/EditDatasetModal';
-import { Toast } from '../../../components/core/Toast';
+import { DatasetListPage } from '../../pages/DatasetListPage';
+import { ExplorePage } from '../../pages/ExplorePage';
+import { ConfirmDialog } from '../../components/modals/ConfirmDialog';
+import { DeleteConfirmationModal } from '../../components/modals/DeleteConfirmationModal';
+import { ImportDatasetModal } from '../../components/modals/ImportDatasetModal';
+import { DuplicateDatasetModal } from '../../components/modals/DuplicateDatasetModal';
+import { EditDatasetModal } from '../../components/modals/EditDatasetModal';
+import { Toast } from '../../components/core/Toast';
 import {
   apiDeleteDataset,
   apiGetDataset,
   apiPostVirtualDataset,
   getDatasetByName,
   ENDPOINTS,
-} from '../../../helpers/api/dataset';
+} from '../../helpers/api/dataset';
 import { createTestDataset } from './dataset-test-helpers';
 import {
   waitForGet,
   waitForPost,
   waitForPut,
-} from '../../../helpers/api/intercepts';
+} from '../../helpers/api/intercepts';
 import {
   expectStatusOneOf,
   expectValidExportZip,
-} from '../../../helpers/api/assertions';
-import { TIMEOUT } from '../../../utils/constants';
+} from '../../helpers/api/assertions';
+import { TIMEOUT } from '../../utils/constants';
 
 /**
  * Extend testWithAssets with datasetListPage navigation (beforeEach equivalent).
@@ -462,7 +462,7 @@ test.describe('import dataset', () => {
     const importedDatasetName = 'test_netflix_1768502050965';
     const fixturePath = path.resolve(
       __dirname,
-      '../../../fixtures/dataset_export.zip',
+      '../../fixtures/dataset_export.zip',
     );
 
     // Cleanup: Delete any existing dataset with the same name from previous runs

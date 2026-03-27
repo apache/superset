@@ -17,17 +17,17 @@
  * under the License.
  */
 
-import { test, expect } from '../../../helpers/fixtures/testAssets';
-import type { TestAssets } from '../../../helpers/fixtures/testAssets';
+import { test, expect } from '../../helpers/fixtures/testAssets';
+import type { TestAssets } from '../../helpers/fixtures/testAssets';
 import type { Page, TestInfo } from '@playwright/test';
-import { ExplorePage } from '../../../pages/ExplorePage';
-import { CreateDatasetPage } from '../../../pages/CreateDatasetPage';
-import { DatasetListPage } from '../../../pages/DatasetListPage';
-import { ChartCreationPage } from '../../../pages/ChartCreationPage';
-import { ENDPOINTS } from '../../../helpers/api/dataset';
-import { waitForPost } from '../../../helpers/api/intercepts';
-import { expectStatusOneOf } from '../../../helpers/api/assertions';
-import { apiPostDatabase } from '../../../helpers/api/database';
+import { ExplorePage } from '../../pages/ExplorePage';
+import { CreateDatasetPage } from '../../pages/CreateDatasetPage';
+import { DatasetListPage } from '../../pages/DatasetListPage';
+import { ChartCreationPage } from '../../pages/ChartCreationPage';
+import { ENDPOINTS } from '../../helpers/api/dataset';
+import { waitForPost } from '../../helpers/api/intercepts';
+import { expectStatusOneOf } from '../../helpers/api/assertions';
+import { apiPostDatabase } from '../../helpers/api/database';
 
 interface GsheetsSetupResult {
   sheetName: string;
