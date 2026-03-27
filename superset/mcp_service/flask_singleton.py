@@ -33,35 +33,20 @@ logger = logging.getLogger(__name__)
 logger.info("Creating Flask app instance for MCP service")
 
 try:
-    from superset.extensions import appbuilder
-
-    # Check if appbuilder is already initialized (main Superset app is running).
-    # If so, reuse that app to avoid corrupting the shared appbuilder singleton.
-    # Calling create_app() again would re-initialize appbuilder and break views.
-    #
-    # NOTE: appbuilder.app now returns a LocalProxy to current_app (Flask-AppBuilder
-    # deprecation), so we can't use `appbuilder.app is not None` as that always
-    # returns True (compares LocalProxy object, not the resolved value).
-    # Instead, check if init_app was called by looking at _session.
-    appbuilder_initialized = appbuilder._session is not None
-
-    if appbuilder_initialized and has_app_context():
-        # We're in an app context (e.g., during main Superset startup),
-        # so we can get the actual Flask app instance from current_app
+    # Flask CLI's FlaskGroup automatically calls create_app() and pushes a Flask
+    # app context before subcommands run (e.g., `superset mcp run`). Checking
+    # has_app_context() directly is the most reliable way to detect this — it
+    # avoids reading private FAB attributes like appbuilder._session, which is
+    # an implementation detail that may not exist in all FAB versions.
+    if has_app_context():
+        # We're already in an app context (e.g., FlaskGroup pushed one via CLI,
+        # or we're embedded in the main Superset server).
+        # Reuse that app to avoid calling create_app() a second time, which would
+        # re-initialize appbuilder with a different Flask instance and corrupt
+        # shared state (views, security manager, etc.).
         logger.info("Reusing existing Flask app from app context for MCP service")
         # Use _get_current_object() to get the actual Flask app, not the LocalProxy
         app = current_app._get_current_object()
-    elif appbuilder_initialized:
-        # appbuilder is initialized but we have no app context. Calling
-        # create_app() here would invoke appbuilder.init_app() a second
-        # time with a *different* Flask app, overwriting shared internal
-        # state (views, security manager, etc.).  Fail loudly instead of
-        # silently corrupting the singleton.
-        raise RuntimeError(
-            "appbuilder is already initialized but no Flask app context is "
-            "available.  Cannot call create_app() as it would re-initialize "
-            "appbuilder with a different Flask app instance."
-        )
     else:
         # Standalone MCP server — Superset models are deeply coupled to
         # appbuilder, security_manager, event_logger, encrypted_field_factory,
