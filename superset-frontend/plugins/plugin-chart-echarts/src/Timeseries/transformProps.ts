@@ -63,7 +63,13 @@ import {
   TimeseriesChartTransformedProps,
 } from './types';
 import { DEFAULT_FORM_DATA } from './constants';
-import { ForecastSeriesEnum, ForecastValue, Refs } from '../types';
+import {
+  ForecastSeriesEnum,
+  ForecastValue,
+  LegendOrientation,
+  LegendType,
+  Refs,
+} from '../types';
 import { parseAxisBound } from '../utils/controls';
 import {
   calculateLowerLogTick,
@@ -74,9 +80,11 @@ import {
   extractTooltipKeys,
   getAxisType,
   getColtypesMapping,
+  getHorizontalLegendAvailableWidth,
   getLegendProps,
   getMinAndMaxFromBounds,
 } from '../utils/series';
+import { resolveLegendLayout } from '../utils/legendLayout';
 import {
   extractAnnotationLabels,
   getAnnotationData,
@@ -115,6 +123,60 @@ import {
 } from '../utils/formatters';
 import { safeParseEChartOptions } from '../utils/safeEChartOptionsParser';
 import { mergeCustomEChartOptions } from '../utils/mergeCustomEChartOptions';
+
+const visibleDashPatterns: ([number, number] | 'dashed' | 'dotted')[] = [
+  'dashed',
+  'dotted',
+  [6, 15], // narrow dashed
+  [2, 10], // wide dotted
+  [20, 3], // wide dashed
+];
+const visibleSymbols = [
+  'rect',
+  'triangle',
+  'diamond',
+  'roundRect',
+  'pin',
+] as const;
+
+function getSymbolMarker(symbol: string, color: string) {
+  const size = 10;
+  switch (symbol) {
+    case 'circle':
+      return `<span style="
+        display:inline-block;width:${size}px;height:${size}px;
+        border-radius:50%;background:${color};margin-right:5px"></span>`;
+    case 'rect':
+      return `<span style="
+        display:inline-block;width:${size}px;height:${size}px;
+        background:${color};margin-right:5px"></span>`;
+    case 'roundRect':
+      return `<span style="
+        display:inline-block;width:${size}px;height:${size}px;border-radius:2px;
+        background:${color};margin-right:5px"></span>`;
+    case 'triangle':
+      return `<span style="
+        display:inline-block;width:0;height:0;
+        border-left:${size / 2}px solid transparent;
+        border-right:${size / 2}px solid transparent;
+        border-bottom:${size}px solid ${color};
+        margin-right:5px"></span>`;
+    case 'diamond':
+      return `<span style="
+        display:inline-block;width:${size - 2}px;height:${size - 2}px;
+        background:${color};transform: rotate(45deg) translateX(1px) translateY(-1px);
+        margin-right:5px"></span>`;
+    case 'pin':
+      return `<span style="
+        display:inline-block;width:${size - 2}px;height:${size - 2}px;
+        background:${color};transform: rotate(45deg) translateX(1px) translateY(-1px);
+        border-radius:50%;border-bottom-right-radius:0;margin-right:5px"></span>`;
+    default:
+      return `<span style="
+        display:inline-block;width:${size}px;height:${size}px;
+        border-radius:50%;background:${color};margin-right:5px"></span>`;
+  }
+}
 
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
@@ -338,7 +400,8 @@ export default function transformProps(
     );
 
     const lineStyle: LineStyleOption = {};
-    if (derivedSeries) {
+    let lineSymbol;
+    if (derivedSeries && timeShiftColor) {
       // Get the time offset for this series to assign different dash patterns
       const offset = getTimeOffset(entry, array) || seriesName;
       if (!offsetLineWidths[offset]) {
@@ -347,11 +410,11 @@ export default function transformProps(
       // Use visible dash patterns that vary by offset index
       // Pattern: [dash length, gap length] - scaled to be clearly visible
       const patternIndex = offsetLineWidths[offset];
-      lineStyle.type = [
-        (patternIndex % 5) + 4, // dash: 4-8px (visible)
-        (patternIndex % 3) + 3, // gap: 3-5px (visible)
-      ];
+      lineStyle.type =
+        visibleDashPatterns[patternIndex % visibleDashPatterns.length];
+
       lineStyle.opacity = OpacityEnum.DerivedSeries;
+      lineSymbol = visibleSymbols[patternIndex % visibleSymbols.length];
     }
 
     // Calculate min/max from data for horizontal bar charts
@@ -435,6 +498,7 @@ export default function transformProps(
         sliceId,
         isHorizontal,
         lineStyle,
+        lineSymbol,
         timeCompare: array,
         timeShiftColor,
         theme,
@@ -647,29 +711,10 @@ export default function transformProps(
     onLegendScroll,
   } = hooks;
 
-  const addYAxisLabelOffset =
-    !!yAxisTitle && convertInteger(yAxisTitleMargin) !== 0;
-  const addXAxisLabelOffset =
-    !!xAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
-  const padding = getPadding(
-    showLegend,
-    legendOrientation,
-    addYAxisLabelOffset,
-    zoomable,
-    legendMargin,
-    addXAxisLabelOffset,
-    yAxisTitlePosition,
-    convertInteger(yAxisTitleMargin),
-    convertInteger(xAxisTitleMargin),
-    isHorizontal,
-  );
-
   const legendData =
     colorByPrimaryAxis && groupBy.length === 0 && series.length > 0
-      ? // When colorByPrimaryAxis is enabled, show only primary axis values (deduped + filtered)
-        (() => {
+      ? (() => {
           const firstSeries = series[0];
-          // For horizontal charts the category is at index 1, for vertical at index 0
           const primaryAxisIndex = isHorizontal ? 1 : 0;
           if (firstSeries && Array.isArray(firstSeries.data)) {
             const names = (firstSeries.data as any[])
@@ -692,8 +737,7 @@ export default function transformProps(
           }
           return [];
         })()
-      : // Otherwise show original series names
-        rawSeries
+      : rawSeries
           .filter(
             entry =>
               extractForecastSeriesContext(entry.name || '').type ===
@@ -701,6 +745,84 @@ export default function transformProps(
           )
           .map(entry => entry.name || '')
           .concat(extractAnnotationLabels(annotationLayers));
+  const addYAxisLabelOffset =
+    !!yAxisTitle && convertInteger(yAxisTitleMargin) !== 0;
+  const addXAxisLabelOffset =
+    !!xAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
+
+  const sortedLegendData = [...legendData].sort((a: string, b: string) => {
+    if (!legendSort) return 0;
+    return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+  });
+  const colorByPrimaryAxisLegendData = legendData.map(name => ({
+    name,
+    icon: 'roundRect',
+  }));
+  const getLegendLayout = (candidateLegendMargin?: string | number | null) => {
+    const padding = getPadding(
+      showLegend,
+      legendOrientation,
+      addYAxisLabelOffset,
+      zoomable,
+      candidateLegendMargin,
+      addXAxisLabelOffset,
+      yAxisTitlePosition,
+      convertInteger(yAxisTitleMargin),
+      convertInteger(xAxisTitleMargin),
+      isHorizontal,
+    );
+
+    return resolveLegendLayout({
+      availableWidth:
+        legendOrientation === LegendOrientation.Top ||
+        legendOrientation === LegendOrientation.Bottom
+          ? getHorizontalLegendAvailableWidth({
+              chartWidth: width,
+              orientation: legendOrientation,
+              padding,
+              zoomable,
+            })
+          : undefined,
+      chartHeight: height,
+      chartWidth: width,
+      legendItems:
+        colorByPrimaryAxis && groupBy.length === 0
+          ? colorByPrimaryAxisLegendData
+          : sortedLegendData,
+      legendMargin: candidateLegendMargin,
+      orientation: legendOrientation,
+      show: showLegend,
+      showSelectors: !(colorByPrimaryAxis && groupBy.length === 0),
+      theme,
+      type: legendType,
+    });
+  };
+  const initialLegendLayout = getLegendLayout(legendMargin);
+  const legendLayout =
+    isHorizontal &&
+    legendOrientation === LegendOrientation.Bottom &&
+    initialLegendLayout.effectiveLegendType === LegendType.Plain
+      ? getLegendLayout(initialLegendLayout.effectiveLegendMargin)
+      : initialLegendLayout;
+  const { effectiveLegendType } = legendLayout;
+  const effectiveLegendMargin =
+    isHorizontal &&
+    legendOrientation === LegendOrientation.Bottom &&
+    legendLayout.effectiveLegendType === LegendType.Scroll
+      ? legendMargin
+      : legendLayout.effectiveLegendMargin;
+  const padding = getPadding(
+    showLegend,
+    legendOrientation,
+    addYAxisLabelOffset,
+    zoomable,
+    effectiveLegendMargin,
+    addXAxisLabelOffset,
+    yAxisTitlePosition,
+    convertInteger(yAxisTitleMargin),
+    convertInteger(xAxisTitleMargin),
+    isHorizontal,
+  );
 
   let xAxis: any = {
     type: xAxisType,
@@ -868,10 +990,16 @@ export default function transformProps(
             if (value.observation === 0 && stack) {
               return;
             }
+            const seriesForKey = series.find(s => s.name === key);
+            const symbolForSeries = (seriesForKey as any)?.symbol || 'circle';
+            const marker = value.color
+              ? getSymbolMarker(symbolForSeries, value.color)
+              : value.marker;
             const row = formatForecastTooltipSeries({
               ...value,
               seriesName: key,
               formatter,
+              marker,
             });
 
             const annotationRow = annotationLayers.some(
@@ -910,7 +1038,7 @@ export default function transformProps(
     },
     legend: {
       ...getLegendProps(
-        legendType,
+        effectiveLegendType,
         legendOrientation,
         showLegend,
         theme,
@@ -921,18 +1049,8 @@ export default function transformProps(
       scrollDataIndex: legendIndex || 0,
       data:
         colorByPrimaryAxis && groupBy.length === 0
-          ? // When colorByPrimaryAxis, configure legend items with roundRect icons
-            legendData.map(name => ({
-              name,
-              icon: 'roundRect',
-            }))
-          : // Otherwise use normal legend data
-            legendData.sort((a: string, b: string) => {
-              if (!legendSort) return 0;
-              return legendSort === 'asc'
-                ? a.localeCompare(b)
-                : b.localeCompare(a);
-            }),
+          ? colorByPrimaryAxisLegendData
+          : sortedLegendData,
       // Disable legend selection and buttons when colorByPrimaryAxis is enabled
       ...(colorByPrimaryAxis && groupBy.length === 0
         ? {

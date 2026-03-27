@@ -176,6 +176,7 @@ const StyledCol = styled(Col)`
   ${({ theme }) => css`
     display: flex;
     gap: ${theme.sizeUnit * 4}px;
+    flex-wrap: wrap;
   `}
 `;
 
@@ -279,8 +280,10 @@ export function Menu({
     return {
       key: label,
       label,
-      icon: <Icons.DownOutlined iconSize="xs" />,
-      popupOffset: NAVBAR_MENU_POPUP_OFFSET,
+      ...(screens.md && {
+        icon: <Icons.DownOutlined iconSize="xs" />,
+        popupOffset: NAVBAR_MENU_POPUP_OFFSET,
+      }),
       children: childItems,
     };
   };
@@ -348,7 +351,7 @@ export function Menu({
             </StyledBrandText>
           )}
           <StyledMainNav
-            mode="horizontal"
+            mode={screens.md ? 'horizontal' : 'inline'}
             data-test="navbar-top"
             className="main-nav"
             selectedKeys={activeTabs}
