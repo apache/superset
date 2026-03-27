@@ -227,10 +227,10 @@
   resolved "https://registry.npmjs.org/@ant-design/icons-svg/-/icons-svg-4.4.2.tgz"
   integrity sha512-vHbT+zJEVzllwP+CM+ul7reTEfBR0vgxFe7+lREAsAA7YGsYpboiq2sQNeQeRvh09GfQgs/GyFEvZpJ9cLXpXA==
 
-"@ant-design/icons@^6.1.0":
-  version "6.1.0"
-  resolved "https://registry.npmjs.org/@ant-design/icons/-/icons-6.1.0.tgz"
-  integrity sha512-KrWMu1fIg3w/1F2zfn+JlfNDU8dDqILfA5Tg85iqs1lf8ooyGlbkA+TkwfOKKgqpUmAiRY1PTFpuOU2DAIgSUg==
+"@ant-design/icons@^6.1.0", "@ant-design/icons@^6.1.1":
+  version "6.1.1"
+  resolved "https://registry.yarnpkg.com/@ant-design/icons/-/icons-6.1.1.tgz#068963d3de44ff7034dce32c9cec3ff7d343fe6b"
+  integrity sha512-AMT4N2y++TZETNHiM77fs4a0uPVCJGuL5MTonk13Pvv7UN7sID1cNEZOc1qNqx6zLKAOilTEFAdAoAFKa0U//Q==
   dependencies:
     "@ant-design/colors" "^8.0.0"
     "@ant-design/icons-svg" "^4.4.0"
@@ -5819,10 +5819,10 @@ base64-js@^1.3.1, base64-js@^1.5.1:
   resolved "https://registry.npmjs.org/base64-js/-/base64-js-1.5.1.tgz"
   integrity sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==
 
-baseline-browser-mapping@^2.10.10, baseline-browser-mapping@^2.9.0, baseline-browser-mapping@^2.9.19:
-  version "2.10.10"
-  resolved "https://registry.yarnpkg.com/baseline-browser-mapping/-/baseline-browser-mapping-2.10.10.tgz#e74bd066724c1d8d7d8ea75fc3be25389a7a5c56"
-  integrity sha512-sUoJ3IMxx4AyRqO4MLeHlnGDkyXRoUG0/AI9fjK+vS72ekpV0yWVY7O0BVjmBcRtkNcsAO2QDZ4tdKKGoI6YaQ==
+baseline-browser-mapping@^2.10.11, baseline-browser-mapping@^2.9.0, baseline-browser-mapping@^2.9.19:
+  version "2.10.11"
+  resolved "https://registry.yarnpkg.com/baseline-browser-mapping/-/baseline-browser-mapping-2.10.11.tgz#957bea71ccc2e9854287c2575a037d36b3a94b73"
+  integrity sha512-DAKrHphkJyiGuau/cFieRYhcTFeK/lBuD++C7cZ6KZHbMhBrisoi+EvhQ5RZrIfV5qwsW8kgQ07JIC+MDJRAhg==
 
 batch@0.6.1:
   version "0.6.1"
@@ -11341,9 +11341,9 @@ node-fetch@^2.6.1:
     whatwg-url "^5.0.0"
 
 node-forge@^1:
-  version "1.3.2"
-  resolved "https://registry.npmjs.org/node-forge/-/node-forge-1.3.2.tgz"
-  integrity sha512-6xKiQ+cph9KImrRh0VsjH2d8/GXA4FIMlgU4B757iI1ApvcyA9VlouP0yZJha01V+huImO+kKMU7ih+2+E14fw==
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/node-forge/-/node-forge-1.4.0.tgz#1c7b7d8bdc2d078739f58287d589d903a11b2fc2"
+  integrity sha512-LarFH0+6VfriEhqMMcLX2F7SwSXeWwnEAJEsYm5QKWchiVYVvJyV9v7UDvUv+w5HO23ZpQTXDv/GxdDdMyOuoQ==
 
 node-gyp-build@^4.8.0, node-gyp-build@^4.8.2, node-gyp-build@^4.8.4:
   version "4.8.4"
