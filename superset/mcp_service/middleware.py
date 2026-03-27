@@ -128,7 +128,17 @@ class LoggingMiddleware(Middleware):
     Tool calls are handled in on_call_tool() which wraps execution to capture
     duration_ms. Non-tool messages (resource reads, prompts, etc.) are handled
     in on_message().
+
+    When tool search is enabled (progressive discovery), the MCP client calls
+    ``call_tool`` / ``search_tools`` proxies instead of individual tools.  This
+    middleware resolves the underlying tool name from ``call_tool`` arguments so
+    that analytics queries can filter by the actual tool (stored as ``mcp_tool``
+    in the curated payload).
     """
+
+    #: Default proxy names used by FastMCP tool-search transforms.
+    _CALL_TOOL_PROXY = "call_tool"
+    _SEARCH_TOOLS_PROXY = "search_tools"
 
     def _extract_context_info(
         self, context: MiddlewareContext
@@ -156,6 +166,28 @@ class LoggingMiddleware(Middleware):
             dataset_id = params.get("dataset_id")
         return agent_id, user_id, dashboard_id, slice_id, dataset_id, params
 
+    @staticmethod
+    def _resolve_tool_name(tool_name: str | None, params: dict[str, Any]) -> str | None:
+        """Resolve the underlying tool name from call_tool proxy arguments.
+
+        When tool search is enabled, the MCP client uses the ``call_tool``
+        proxy and passes the real tool name as the ``name`` argument.  This
+        helper extracts that value so we can log which tool was actually
+        executed rather than just ``"call_tool"``.
+
+        Returns:
+            The resolved tool name if *tool_name* is the call_tool proxy and
+            ``params["name"]`` is a non-empty string, otherwise ``None``.
+        """
+        if (
+            tool_name == LoggingMiddleware._CALL_TOOL_PROXY
+            and isinstance(params, dict)
+            and isinstance(params.get("name"), str)
+            and params["name"]
+        ):
+            return params["name"]
+        return None
+
     async def on_call_tool(
         self,
         context: MiddlewareContext,
@@ -166,15 +198,34 @@ class LoggingMiddleware(Middleware):
             self._extract_context_info(context)
         )
         tool_name = getattr(context.message, "name", None)
+        mcp_tool = self._resolve_tool_name(tool_name, params)
 
         start_time = time.time()
         success = False
+        error_type: str | None = None
         try:
             result = await call_next(context)
             success = True
             return result
+        except Exception as exc:
+            error_type = type(exc).__name__
+            raise
         finally:
             duration_ms = int((time.time() - start_time) * 1000)
+            payload: dict[str, Any] = {
+                "tool": tool_name,
+                "agent_id": agent_id,
+                "params": _sanitize_params(params),
+                "method": context.method,
+                "dashboard_id": dashboard_id,
+                "slice_id": slice_id,
+                "dataset_id": dataset_id,
+                "success": success,
+            }
+            if mcp_tool is not None:
+                payload["mcp_tool"] = mcp_tool
+            if error_type is not None:
+                payload["error_type"] = error_type
             if has_app_context():
                 event_logger.log(
                     user_id=user_id,
@@ -183,22 +234,14 @@ class LoggingMiddleware(Middleware):
                     duration_ms=duration_ms,
                     slice_id=slice_id,
                     referrer=None,
-                    curated_payload={
-                        "tool": tool_name,
-                        "agent_id": agent_id,
-                        "params": _sanitize_params(params),
-                        "method": context.method,
-                        "dashboard_id": dashboard_id,
-                        "slice_id": slice_id,
-                        "dataset_id": dataset_id,
-                        "success": success,
-                    },
+                    curated_payload=payload,
                 )
             logger.info(
-                "MCP tool call: tool=%s, agent_id=%s, user_id=%s, method=%s, "
-                "dashboard_id=%s, slice_id=%s, dataset_id=%s, duration_ms=%s, "
-                "success=%s",
+                "MCP tool call: tool=%s, mcp_tool=%s, agent_id=%s, user_id=%s, "
+                "method=%s, dashboard_id=%s, slice_id=%s, dataset_id=%s, "
+                "duration_ms=%s, success=%s, error_type=%s",
                 tool_name,
+                mcp_tool,
                 agent_id,
                 user_id,
                 context.method,
@@ -207,6 +250,7 @@ class LoggingMiddleware(Middleware):
                 dataset_id,
                 duration_ms,
                 success,
+                error_type,
             )
 
     async def on_message(
