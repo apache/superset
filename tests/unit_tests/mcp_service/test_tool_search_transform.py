@@ -338,6 +338,39 @@ def test_simplify_resolves_ref_in_anyof():
     assert "page" in req["properties"]
 
 
+def test_simplify_preserves_description_on_anyof_collapse():
+    """Sibling keys (description, default) survive anyOf collapse."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "request": {
+                "anyOf": [
+                    {"type": "string"},
+                    {"$ref": "#/$defs/Req"},
+                ],
+                "description": "The request parameters",
+                "default": "{}",
+            }
+        },
+        "$defs": {
+            "Req": {
+                "type": "object",
+                "properties": {
+                    "page": {"type": "integer"},
+                },
+            }
+        },
+    }
+
+    result = _simplify_input_schema(schema)
+
+    req = result["properties"]["request"]
+    assert req["type"] == "object"
+    assert req["description"] == "The request parameters"
+    assert req["default"] == "{}"
+    assert "page" in req["properties"]
+
+
 def test_simplify_resolves_nested_ref_in_items():
     """$ref inside array items is inlined recursively."""
     schema = {
@@ -379,8 +412,8 @@ def test_simplify_resolves_nested_ref_in_items():
     assert "col" in items_schema["properties"]
 
 
-def test_simplify_unwraps_optional():
-    """anyOf[T, null] (Optional) is unwrapped to just T."""
+def test_simplify_keeps_optional_anyof():
+    """anyOf[T, null] (Optional) is kept so the LLM knows the field is nullable."""
     schema = {
         "type": "object",
         "properties": {"name": {"anyOf": [{"type": "string"}, {"type": "null"}]}},
@@ -388,7 +421,9 @@ def test_simplify_unwraps_optional():
 
     result = _simplify_input_schema(schema)
 
-    assert result["properties"]["name"] == {"type": "string"}
+    assert result["properties"]["name"] == {
+        "anyOf": [{"type": "string"}, {"type": "null"}]
+    }
 
 
 def test_simplify_preserves_oneof():

@@ -176,27 +176,41 @@ def _strip_titles(obj: Any, in_properties_map: bool = False) -> Any:
 
 
 def _collapse_anyof(
-    variants: list[dict[str, Any]], defs: dict[str, Any]
+    variants: list[dict[str, Any]],
+    defs: dict[str, Any],
+    siblings: dict[str, Any],
 ) -> dict[str, Any] | None:
     """Collapse an ``anyOf`` list into a single preferred variant.
 
-    Returns the collapsed schema, or ``None`` if the variants should be
+    Only collapses the ``@parse_request`` pattern (one string + one object).
+    All other unions are kept as-is so no type information is lost.
+
+    When collapsing, field-level *siblings* (``description``, ``default``,
+    etc.) are merged on top of the resolved object so field metadata takes
+    precedence over model metadata.
+
+    Returns the merged schema, or ``None`` if the variants should be
     kept as-is (caller stores them under the ``anyOf`` key).
     """
     resolved = [_resolve_refs(v, defs) for v in variants]
-    non_null = [v for v in resolved if v.get("type") != "null"]
-    if len(non_null) == 1:
-        # Optional[T] – unwrap to T
-        return non_null[0]
-    # Prefer the structured object variant over a bare string
+    has_string = any(
+        isinstance(v, dict) and v.get("type") == "string" for v in resolved
+    )
+    if not has_string:
+        return None
     obj_variants = [
         v
-        for v in non_null
+        for v in resolved
         if isinstance(v, dict) and (v.get("type") == "object" or "properties" in v)
     ]
-    if obj_variants:
-        return obj_variants[0]
-    return None
+    if len(obj_variants) != 1:
+        return None
+    # Merge: start from collapsed object (type, properties, …),
+    # then overlay field-level siblings (description, default, …)
+    # so field metadata takes precedence over model metadata.
+    merged = dict(obj_variants[0])
+    merged.update(siblings)
+    return merged
 
 
 def _try_resolve_ref(
@@ -227,7 +241,14 @@ def _resolve_refs(schema: dict[str, Any], defs: dict[str, Any]) -> Any:
     * Inlines every ``$ref`` so no ``$defs`` lookup is needed.
     * Collapses ``anyOf[string, Object]`` to the structured object
       variant so the LLM clearly sees the required properties.
-    * Recursively processes nested ``properties`` and ``items``.
+    * Recursively processes nested ``properties``, ``items``, and
+      ``oneOf``/``anyOf`` variants.
+
+    Limitations:
+    * ``$ref`` inside ``allOf`` or ``additionalProperties`` is not
+      resolved (not used by ``@parse_request`` tool schemas).
+    * Circular ``$ref`` would recurse infinitely.  MCP tool request
+      schemas are flat, so this does not arise in practice.
     """
     if not isinstance(schema, dict):
         return schema
@@ -240,7 +261,8 @@ def _resolve_refs(schema: dict[str, Any], defs: dict[str, Any]) -> Any:
         if key == "$defs":
             continue  # drop $defs – refs are inlined
         if key == "anyOf":
-            collapsed = _collapse_anyof(value, defs)
+            siblings = {k: v for k, v in schema.items() if k not in ("anyOf", "$defs")}
+            collapsed = _collapse_anyof(value, defs, siblings)
             if collapsed is not None:
                 return collapsed
             result[key] = [_resolve_refs(v, defs) for v in value]
