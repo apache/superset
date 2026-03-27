@@ -86,16 +86,12 @@ test('x_axis_time_format should be visible for temporal columns', () => {
   }
 });
 
-test('x_axis_time_format should be visible for numeric columns', () => {
+test('x_axis_time_format should be hidden for numeric columns', () => {
   const visibilityFn = timeFormatControl?.config?.visibility;
-  if (visibilityFn) {
-    expect(visibilityFn(mockControls('year', GenericDataType.Numeric))).toBe(
-      true,
-    );
-  } else {
-    // no visibility function means always visible
-    expect(true).toBe(true);
-  }
+  expect(visibilityFn).toBeDefined();
+  expect(visibilityFn(mockControls('year', GenericDataType.Numeric))).toBe(
+    false,
+  );
 });
 
 test('should include x_axis_number_format control', () => {
