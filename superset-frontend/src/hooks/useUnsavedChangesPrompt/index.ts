@@ -21,7 +21,7 @@ import { getClientErrorObject } from '@superset-ui/core';
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useBeforeUnload } from 'src/hooks/useBeforeUnload';
-import type { Location } from 'history';
+import type { Location, Action } from 'history';
 
 type UseUnsavedChangesPromptProps = {
   hasUnsavedChanges: boolean;
@@ -81,7 +81,7 @@ export const useUnsavedChangesPrompt = ({
         search: Location['search'];
         state: Location['state'];
       },
-      action: string,
+      action: Action,
     ) => {
       // REPLACE actions are URL sync (e.g. updating form_data_key), not navigation
       if (action === 'REPLACE') {
