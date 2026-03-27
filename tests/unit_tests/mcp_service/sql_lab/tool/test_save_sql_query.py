@@ -248,6 +248,9 @@ class TestSaveSqlQueryToolLogic:
             mock_sq.id = 42
             mock_sq.label = "Revenue Query"
             mock_sq.sql = "SELECT SUM(revenue) FROM sales"
+            mock_sq.db_id = 1
+            mock_sq.schema = ""
+            mock_sq.description = ""
             mock_sq.catalog = None
 
             request = SaveSqlQueryRequest(
@@ -412,6 +415,9 @@ class TestSaveSqlQueryToolLogic:
             mock_sq.id = 10
             mock_sq.label = "Test"
             mock_sq.sql = "SELECT 1"
+            mock_sq.db_id = 1
+            mock_sq.schema = "public"
+            mock_sq.description = ""
             mock_sq.catalog = None
 
             request = SaveSqlQueryRequest(
