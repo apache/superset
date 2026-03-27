@@ -23,6 +23,7 @@ import {
   themeQuartz,
   colorSchemeDark,
   colorSchemeLight,
+  type GridApi,
   type GridReadyEvent,
   type FirstDataRenderedEvent,
 } from 'ag-grid-community';
@@ -30,6 +31,12 @@ import { useTheme, useThemeMode } from '@apache-superset/core/theme';
 
 // Note: With ag-grid v34's new theming API, CSS files are injected automatically
 // Do NOT import 'ag-grid-community/styles/ag-grid.css' or theme CSS files
+
+// Extends HTMLDivElement with ag-grid state attached to the container for downloadAsImage.
+export interface AgGridContainerElement extends HTMLDivElement {
+  _agGridApi?: GridApi;
+  _agGridFirstDataRendered?: boolean;
+}
 
 export interface ThemedAgGridReactProps extends AgGridReactProps {
   /**
@@ -79,7 +86,7 @@ export const ThemedAgGridReact = forwardRef<
 ) {
   const theme = useTheme();
   const isDarkMode = useThemeMode();
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<AgGridContainerElement>(null);
 
   // Get the appropriate ag-grid theme based on dark/light mode
   const agGridTheme = useMemo(() => {
@@ -150,8 +157,8 @@ export const ThemedAgGridReact = forwardRef<
   const handleGridReady = useCallback(
     (event: GridReadyEvent) => {
       if (containerRef.current) {
-        (containerRef.current as any)._agGridFirstDataRendered = false;
-        (containerRef.current as any)._agGridApi = event.api;
+        containerRef.current._agGridFirstDataRendered = false;
+        containerRef.current._agGridApi = event.api;
       }
       onGridReady?.(event);
     },
@@ -162,7 +169,7 @@ export const ThemedAgGridReact = forwardRef<
   const handleFirstDataRendered = useCallback(
     (event: FirstDataRenderedEvent) => {
       if (containerRef.current) {
-        (containerRef.current as any)._agGridFirstDataRendered = true;
+        containerRef.current._agGridFirstDataRendered = true;
       }
       onFirstDataRendered?.(event);
     },

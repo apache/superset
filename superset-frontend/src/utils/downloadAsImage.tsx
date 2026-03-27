@@ -19,22 +19,14 @@
 import { SyntheticEvent } from 'react';
 import domToImage from 'dom-to-image-more';
 import { kebabCase } from 'lodash';
-// eslint-disable-next-line no-restricted-imports
 import { t } from '@apache-superset/core/translation';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
+import type { AgGridContainerElement } from '@superset-ui/core/components';
 
 const IMAGE_DOWNLOAD_QUALITY = 0.95;
 const TRANSPARENT_RGBA = 'transparent';
 const POLL_INTERVAL_MS = 100;
-
-// ag-grid column state subset used for width capture and restoration
-type ColumnState = {
-  colId: string;
-  width?: number;
-  flex?: number | null;
-  hide?: boolean | null;
-};
 
 // Tracks original cell styles to restore after capture
 type CellFixup = { el: HTMLElement; minHeight: string; overflow: string };
@@ -349,17 +341,17 @@ export default function downloadAsImageOptimized(
       ? []
       : elementToPrint.querySelectorAll('[data-themed-ag-grid]');
     const agContainer =
-      agContainers.length === 1 ? (agContainers[0] as HTMLElement) : null;
+      agContainers.length === 1
+        ? (agContainers[0] as AgGridContainerElement)
+        : null;
     const agRootWrapper = agContainer
       ? (agContainer.querySelector('.ag-root-wrapper') as HTMLElement | null)
       : null;
 
     if (agContainer && agRootWrapper) {
-      const api = (agContainer as any)._agGridApi as
-        | { setGridOption: (key: string, value: unknown) => void }
-        | undefined;
+      const api = agContainer._agGridApi;
       const isFirstDataRendered =
-        (agContainer as any)._agGridFirstDataRendered === true;
+        agContainer._agGridFirstDataRendered === true;
 
       if (!isFirstDataRendered) {
         addWarningToast(
@@ -372,9 +364,7 @@ export default function downloadAsImageOptimized(
       // sizeColumnsToFit() sets flex (not pixel widths), so after print layout expands the
       // container it recalculates column widths wider. We restore with flex: null to force
       // pixel widths when calling applyColumnState after the layout switch.
-      const savedColumnState = (api as any)?.getColumnState?.() as
-        | ColumnState[]
-        | undefined;
+      const savedColumnState = api?.getColumnState?.();
       const visibleColumnState =
         savedColumnState?.filter(col => !col.hide) ?? [];
       const originalWidth =
@@ -398,7 +388,7 @@ export default function downloadAsImageOptimized(
           );
 
           if (visibleColumnState.length > 0) {
-            (api as any).applyColumnState?.({
+            api.applyColumnState?.({
               state: visibleColumnState.map(col => ({
                 colId: col.colId,
                 width: col.width,
@@ -409,7 +399,7 @@ export default function downloadAsImageOptimized(
           }
 
           // Rows never scrolled into view have stale cached heights; remeasure all.
-          (api as any).resetRowHeights?.();
+          api.resetRowHeights?.();
 
           // 5 polls × POLL_INTERVAL_MS = 500 ms; autoHeight rows batch-measure slowly.
           await waitForStableScrollHeight(agRootWrapper, 5000, 5);
@@ -458,7 +448,7 @@ export default function downloadAsImageOptimized(
         if (api) {
           api.setGridOption('domLayout', 'normal');
           if (savedColumnState) {
-            (api as any).applyColumnState?.({
+            api.applyColumnState?.({
               state: savedColumnState,
               applyOrder: false,
             });
