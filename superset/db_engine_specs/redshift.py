@@ -129,11 +129,16 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                 },
             },
             {
-                "name": "IAM Credentials (Serverless)",
-                "description": "Use IAM-based credentials for Redshift Serverless",
+                "name": "IAM Role (Serverless)",
+                "description": (
+                    "Authenticate using the IAM role attached to the environment "
+                    "(EC2 instance profile, ECS task role, etc.). "
+                    "No credentials needed."
+                ),
                 "requirements": (
-                    "IAM role must have redshift-serverless:GetCredentials "
-                    "and redshift-serverless:GetWorkgroup permissions"
+                    "The attached IAM role must have "
+                    "redshift-serverless:GetCredentials and "
+                    "redshift-serverless:GetWorkgroup permissions."
                 ),
                 "connection_string": "redshift+redshift_connector://",
                 "engine_parameters": {
@@ -144,6 +149,34 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                         "serverless_work_group": "<redshift work group>",
                         "database": "<database>",
                         "user": "IAMR:<superset iam role name>",
+                    }
+                },
+            },
+            {
+                "name": "IAM Access Key (Serverless)",
+                "description": (
+                    "Authenticate using explicit AWS access key and secret. "
+                    "Suitable for local development or CI environments without "
+                    "an attached IAM role."
+                ),
+                "requirements": (
+                    "The IAM user must have "
+                    "redshift-serverless:GetCredentials and "
+                    "redshift-serverless:GetWorkgroup permissions."
+                ),
+                "connection_string": "redshift+redshift_connector://",
+                "engine_parameters": {
+                    "connect_args": {
+                        "iam": True,
+                        "is_serverless": True,
+                        "serverless_acct_id": "<aws account number>",
+                        "serverless_work_group": "<redshift work group>",
+                        "database": "<database>",
+                        "host": "<endpoint>",
+                        "port": 5439,
+                        "region": "<aws region>",
+                        "access_key_id": "<aws access key id>",
+                        "secret_access_key": "<aws secret access key>",
                     }
                 },
             },

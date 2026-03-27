@@ -75,6 +75,7 @@ import {
 import { isEmpty, debounce, isEqual } from 'lodash';
 import {
   ColorFormatters,
+  getTextColorForBackground,
   ObjectFormattingEnum,
   ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
@@ -944,9 +945,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               if (!formatterResult) return;
 
               if (
-                formatter.objectFormatting === ObjectFormattingEnum.TEXT_COLOR
+                formatter.objectFormatting ===
+                  ObjectFormattingEnum.TEXT_COLOR ||
+                formatter.toTextColor
               ) {
-                color = formatterResult.slice(0, -2);
+                color = formatterResult;
               } else if (
                 formatter.objectFormatting === ObjectFormattingEnum.CELL_BAR
               ) {
@@ -997,8 +1000,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 ? basicColorColumnFormatters[row.index][column.key]?.mainArrow
                 : '';
           }
+          const rowSurfaceColor =
+            row.index % 2 === 0 ? theme.colorBgLayout : theme.colorBgBase;
+          const resolvedTextColor = getTextColorForBackground(
+            { backgroundColor, color },
+            rowSurfaceColor,
+          );
           const StyledCell = styled.td`
-            color: ${color ? `${color}FF` : theme.colorText};
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
@@ -1097,6 +1105,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 : '',
               isActiveFilterValue(key, value) ? ' dt-is-active-filter' : '',
             ].join(' '),
+            style: resolvedTextColor
+              ? ({ color: resolvedTextColor } as CSSProperties)
+              : undefined,
             tabIndex: 0,
           };
           if (html) {
