@@ -128,7 +128,7 @@ jobs:
         run: npx nyc merge coverage/ merged-output/coverage-summary.json
 
       - name: Upload Code Coverage
-        uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v5
         with:
           flags: javascript
           use_oidc: true
