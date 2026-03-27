@@ -383,7 +383,7 @@ class QueryContextProcessor:
         return return_value
 
     def get_cache_timeout(self) -> int:
-        if cache_timeout_rv := self._query_context.get_cache_timeout():
+        if (cache_timeout_rv := self._query_context.get_cache_timeout()) is not None:
             return cache_timeout_rv
         form_data = self._query_context.form_data or {}
         is_native_filter_query = (
