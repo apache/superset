@@ -768,3 +768,58 @@ test('renders a filter with a chart containing BigInt values', async () => {
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
 });
+
+test('displays empty state when modal opens with no filters and createNewOnOpen is false', () => {
+  defaultRender(defaultState(), { ...props, createNewOnOpen: false });
+
+  // Check left panel empty state
+  expect(
+    screen.getByText('No filters or customizations created yet'),
+  ).toBeInTheDocument();
+
+  // Check right panel empty state
+  expect(
+    screen.getByText(
+      /Manage filters and customizations to set scoping, descriptions, and limitations/,
+    ),
+  ).toBeInTheDocument();
+
+  // Verify no filter form is rendered (no "Untitled" filter created)
+  expect(screen.queryByText(FILTER_TYPE_REGEX)).not.toBeInTheDocument();
+});
+
+test('does not auto-create a filter when createNewOnOpen is false', () => {
+  defaultRender(defaultState(), { ...props, createNewOnOpen: false });
+
+  // The filter configuration form should not be visible
+  expect(screen.queryByText(FILTER_NAME_REGEX)).not.toBeInTheDocument();
+  expect(screen.queryByText(DATASET_REGEX)).not.toBeInTheDocument();
+});
+
+test('empty state disappears when a filter is added via dropdown', async () => {
+  defaultRender(defaultState(), {
+    ...props,
+    createNewOnOpen: false,
+  });
+
+  // Verify empty state is shown initially
+  expect(
+    screen.getByText('No filters or customizations created yet'),
+  ).toBeInTheDocument();
+
+  // Add a filter via the dropdown
+  const dropdownButton = screen.getByTestId('new-item-dropdown-button');
+  fireEvent.mouseEnter(dropdownButton);
+  const addFilterMenuItem = await screen.findByRole('menuitem', {
+    name: /add filter/i,
+  });
+  fireEvent.click(addFilterMenuItem);
+
+  // Verify empty state is gone and filter form is shown
+  await waitFor(() => {
+    expect(
+      screen.queryByText('No filters or customizations created yet'),
+    ).not.toBeInTheDocument();
+  });
+  expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
+});
