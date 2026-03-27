@@ -72,6 +72,9 @@ _instance_info_core = InstanceInfoCore(
 )
 
 
+_DEFAULT_INSTANCE_INFO_REQUEST = GetSupersetInstanceInfoRequest()
+
+
 @tool(
     tags=["core"],
     annotations=ToolAnnotations(
@@ -81,7 +84,7 @@ _instance_info_core = InstanceInfoCore(
     ),
 )
 def get_instance_info(
-    request: GetSupersetInstanceInfoRequest = GetSupersetInstanceInfoRequest(),
+    request: GetSupersetInstanceInfoRequest = _DEFAULT_INSTANCE_INFO_REQUEST,
     ctx: Context = None,
 ) -> InstanceInfo:
     """Get instance statistics.
