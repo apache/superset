@@ -134,13 +134,13 @@ export default function ExplorePage() {
   const history = useHistory();
 
   const loadExploreData = useCallback(
-    (loc: { search: string; pathname: string }) => {
+    (
+      loc: { search: string; pathname: string },
+      saveAction?: SaveActionType | null,
+    ) => {
       fetchGeneration.current += 1;
       const generation = fetchGeneration.current;
       const exploreUrlParams = getParsedExploreURLParams(loc);
-      const saveAction = new URLSearchParams(loc.search).get(
-        URL_PARAMS.saveAction.name,
-      ) as SaveActionType | null;
       const dashboardContextFormData = getDashboardContextFormData();
 
       const isStale = () => generation !== fetchGeneration.current;
@@ -266,12 +266,20 @@ export default function ExplorePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Re-fetch on real navigation (PUSH/POP), ignore REPLACE (URL sync from updateHistory)
+  // Re-fetch on navigation or post-save.
+  // PUSH/POP: full reload (unmount + re-fetch).
+  // REPLACE with saveAction state: re-fetch without unmount (keeps chart visible).
+  // Other REPLACE: ignored (URL sync from updateHistory).
   useEffect(() => {
     const unlisten = history.listen((loc: Location, action: Action) => {
       if (action === 'PUSH' || action === 'POP') {
         setIsLoaded(false);
         loadExploreData(loc);
+      } else if ((loc.state as Record<string, unknown>)?.saveAction) {
+        loadExploreData(
+          loc,
+          (loc.state as Record<string, unknown>).saveAction as SaveActionType,
+        );
       }
     });
     return unlisten;
