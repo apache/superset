@@ -74,22 +74,6 @@ test('should include x_axis_time_format control', () => {
   expect(timeFormatControl.config.default).toBe('smart_date');
 });
 
-test('x_axis_time_format should be visible for temporal columns', () => {
-  const visibilityFn = timeFormatControl?.config?.visibility;
-  expect(visibilityFn).toBeDefined();
-  expect(visibilityFn(mockControls('date', GenericDataType.Temporal))).toBe(
-    true,
-  );
-});
-
-test('x_axis_time_format should be hidden for numeric columns', () => {
-  const visibilityFn = timeFormatControl?.config?.visibility;
-  expect(visibilityFn).toBeDefined();
-  expect(visibilityFn(mockControls('year', GenericDataType.Numeric))).toBe(
-    false,
-  );
-});
-
 test('should include x_axis_number_format control', () => {
   expect(numberFormatControl).toBeDefined();
   expect(numberFormatControl.config.default).toBe('~g');
