@@ -22,6 +22,7 @@ import re
 import urllib
 from datetime import datetime
 from re import Pattern
+from collections.abc import Callable
 from typing import Any, TYPE_CHECKING, TypedDict
 
 import pandas as pd
@@ -32,6 +33,7 @@ from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
 from sqlalchemy import column, func, types
 from sqlalchemy.engine.base import Engine
+from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -118,6 +120,53 @@ class BigQueryParametersSchema(Schema):
 class BigQueryParametersType(TypedDict):
     credentials_info: dict[str, Any]
     query: dict[str, Any]
+
+
+class BigQueryStringType(types.TypeDecorator):
+    """Custom string type for BigQuery that uses backslash escaping for apostrophes.
+
+    BigQuery does not support double-apostrophe escaping ('O''Hara'). Instead,
+    it requires backslash escaping ('O\\'Hara'). SQLAlchemy's default literal
+    processor uses double-apostrophe escaping, which causes syntax errors when
+    filter values contain apostrophes.
+
+    See: https://github.com/apache/superset/issues/35857
+    """
+
+    impl = types.String
+    cache_ok = True
+
+    def literal_processor(
+        self, dialect: DefaultDialect
+    ) -> Callable[[Any], str]:
+        def process(value: Any) -> str:
+            raw = str(value)
+            escaped = raw.replace("\\", "\\\\").replace("'", "\\'")
+            return f"'{escaped}'"
+
+        return process
+
+
+def _monkeypatch_bigquery_dialect() -> None:
+    """Monkeypatch the BigQuery dialect to escape apostrophes with backslash.
+
+    The sqlalchemy-bigquery dialect incorrectly escapes single quotes by
+    doubling them ('O''Hara') instead of using backslash escaping ('O\\'Hara').
+    This causes BigQuery to throw a syntax error when filter values contain
+    apostrophes.
+
+    This follows the same pattern used for the Databricks dialect fix in
+    superset/db_engine_specs/databricks.py.
+    """
+    try:
+        from sqlalchemy_bigquery import BigQueryDialect
+
+        BigQueryDialect.colspecs[types.String] = BigQueryStringType  # type: ignore
+    except ImportError:
+        pass
+
+
+_monkeypatch_bigquery_dialect()
 
 
 class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-methods

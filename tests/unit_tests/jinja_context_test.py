@@ -507,6 +507,27 @@ def test_where_in() -> None:
     assert where_in(["O'Malley's"]) == "('O''Malley''s')"
 
 
+def test_where_in_bigquery_apostrophe() -> None:
+    """
+    Test that BigQuery dialect uses backslash escaping for apostrophes
+    instead of double-apostrophe escaping, which causes syntax errors.
+
+    See: https://github.com/apache/superset/issues/35857
+    """
+    try:
+        from sqlalchemy_bigquery import BigQueryDialect
+
+        where_in = WhereInMacro(BigQueryDialect())
+        result = where_in(["Armando's"])
+        # BigQuery requires backslash escaping, not double-apostrophe
+        assert "''" not in result, (
+            f"BigQuery should use backslash escaping, got double-apostrophe: {result}"
+        )
+        assert "\\'" in result or "Armando" in result
+    except ImportError:
+        pytest.skip("sqlalchemy-bigquery not installed")
+
+
 def test_where_in_empty_list() -> None:
     """
     Test the ``where_in`` Jinja2 filter when it receives an
