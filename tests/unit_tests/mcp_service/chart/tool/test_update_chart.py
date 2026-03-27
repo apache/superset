@@ -19,8 +19,13 @@
 Unit tests for update_chart MCP tool
 """
 
-import pytest
+from unittest.mock import Mock, patch
 
+import pytest
+from fastmcp import Client
+
+from superset.mcp_service.app import mcp
+from superset.mcp_service.chart.chart_utils import DatasetValidationResult
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
     ColumnRef,
@@ -383,3 +388,106 @@ class TestUpdateChart:
         assert request2.use_cache is False
         assert request2.force_refresh is True
         assert request2.cache_timeout == 300
+
+
+@pytest.fixture
+def mcp_server():
+    return mcp
+
+
+@pytest.fixture(autouse=True)
+def mock_auth():
+    """Mock authentication for all tests."""
+    with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
+        mock_user = Mock()
+        mock_user.id = 1
+        mock_user.username = "admin"
+        mock_get_user.return_value = mock_user
+        yield mock_get_user
+
+
+class TestUpdateChartDatasetAccess:
+    """Tests for dataset access validation in update_chart."""
+
+    @patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        new_callable=Mock,
+    )
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_update_chart_dataset_access_denied(
+        self, mock_db_session, mock_find_by_id, mock_validate, mcp_server
+    ):
+        """Test that update_chart returns error when dataset is inaccessible."""
+        mock_chart = Mock()
+        mock_chart.id = 1
+        mock_chart.datasource_id = 10
+        mock_find_by_id.return_value = mock_chart
+
+        mock_validate.return_value = DatasetValidationResult(
+            is_valid=False,
+            dataset_id=10,
+            dataset_name="restricted_dataset",
+            warnings=[],
+            error="Access denied to dataset 'restricted_dataset' (ID: 10). "
+            "You do not have permission to view this dataset.",
+        )
+
+        request = {
+            "identifier": 1,
+            "config": {
+                "chart_type": "table",
+                "columns": [{"name": "col1"}],
+            },
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("update_chart", {"request": request})
+
+            assert result.structured_content["success"] is False
+            assert result.structured_content["chart"] is None
+            error = result.structured_content["error"]
+            assert error["error_type"] == "DatasetNotAccessible"
+            assert "Access denied" in error["message"]
+
+    @patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        new_callable=Mock,
+    )
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_update_chart_dataset_not_found(
+        self, mock_db_session, mock_find_by_id, mock_validate, mcp_server
+    ):
+        """Test that update_chart returns error when dataset is deleted."""
+        mock_chart = Mock()
+        mock_chart.id = 1
+        mock_chart.datasource_id = 99
+        mock_find_by_id.return_value = mock_chart
+
+        mock_validate.return_value = DatasetValidationResult(
+            is_valid=False,
+            dataset_id=99,
+            dataset_name=None,
+            warnings=[],
+            error="Dataset (ID: 99) has been deleted or does not exist.",
+        )
+
+        request = {
+            "identifier": 1,
+            "config": {
+                "chart_type": "table",
+                "columns": [{"name": "col1"}],
+            },
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("update_chart", {"request": request})
+
+            assert result.structured_content["success"] is False
+            assert result.structured_content["chart"] is None
+            error = result.structured_content["error"]
+            assert error["error_type"] == "DatasetNotAccessible"
+            assert "deleted" in error["message"]

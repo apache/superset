@@ -93,9 +93,10 @@ def test_report_generate_native_filter_no_values():
     filter_type = "filter_select"
     values = None
 
-    assert report_schedule._generate_native_filter(
+    result, warning = report_schedule._generate_native_filter(
         native_filter_id, filter_type, column_name, values
-    ) == {
+    )
+    assert result == {
         "filter_id": {
             "id": "filter_id",
             "extraFormData": {
@@ -109,6 +110,7 @@ def test_report_generate_native_filter_no_values():
             "ownState": {},
         }
     }
+    assert warning is None
 
 
 def test_get_native_filters_params_missing_filter_values():
@@ -215,9 +217,10 @@ def test_report_generate_native_filter():
     column_name = "column_name"
     values = ["value1", "value2"]
 
-    assert report_schedule._generate_native_filter(
+    result, warning = report_schedule._generate_native_filter(
         native_filter_id, filter_type, column_name, values
-    ) == {
+    )
+    assert result == {
         "filter_id": {
             "extraFormData": {
                 "filters": [
@@ -233,6 +236,7 @@ def test_report_generate_native_filter():
             "ownState": {},
         }
     }
+    assert warning is None
 
 
 def test_get_native_filters_params_empty():
@@ -269,9 +273,10 @@ def test_report_generate_native_filter_empty_values():
     column_name = "column_name"
     values = []
 
-    assert report_schedule._generate_native_filter(
+    result, warning = report_schedule._generate_native_filter(
         native_filter_id, filter_type, column_name, values
-    ) == {
+    )
+    assert result == {
         "filter_id": {
             "extraFormData": {
                 "filters": [{"col": "column_name", "op": "IN", "val": []}]
@@ -285,6 +290,7 @@ def test_report_generate_native_filter_empty_values():
             "ownState": {},
         }
     }
+    assert warning is None
 
 
 def test_report_generate_native_filter_no_column_name():
@@ -297,9 +303,10 @@ def test_report_generate_native_filter_no_column_name():
     column_name = ""
     values = ["value1", "value2"]
 
-    assert report_schedule._generate_native_filter(
+    result, warning = report_schedule._generate_native_filter(
         native_filter_id, filter_type, column_name, values
-    ) == {
+    )
+    assert result == {
         "filter_id": {
             "extraFormData": {
                 "filters": [{"col": "", "op": "IN", "val": ["value1", "value2"]}]
@@ -313,3 +320,61 @@ def test_report_generate_native_filter_no_column_name():
             "ownState": {},
         }
     }
+    assert warning is None
+
+
+def test_report_generate_native_filter_unknown_filter_type():
+    """
+    Test the ``_generate_native_filter`` method with an unknown filter type.
+    Should return empty dict and a warning message.
+    """
+    report_schedule = ReportSchedule()
+    native_filter_id = "filter_id"
+    filter_type = "filter_unknown"
+    column_name = "column_name"
+    values = ["value1", "value2"]
+
+    result, warning = report_schedule._generate_native_filter(
+        native_filter_id, filter_type, column_name, values
+    )
+    assert result == {}
+    assert warning is not None
+    assert "unrecognized filter type" in warning
+    assert "filter_unknown" in warning
+    assert "filter_id" in warning
+
+
+def test_get_native_filters_params_unknown_filter_type():
+    """
+    Test the ``get_native_filters_params`` method with an unknown filter type.
+    Should skip the filter and include a warning.
+    """
+    report_schedule = ReportSchedule()
+    report_schedule.extra = {
+        "dashboard": {
+            "nativeFilters": [
+                {
+                    "nativeFilterId": "filter_1",
+                    "filterType": "filter_unknown_type",
+                    "columnName": "column_name",
+                    "filterValues": ["value1"],
+                },
+                {
+                    "nativeFilterId": "filter_2",
+                    "filterType": "filter_select",
+                    "columnName": "column_name",
+                    "filterValues": ["value2"],
+                },
+            ]
+        }
+    }
+
+    result, warnings = report_schedule.get_native_filters_params()
+    # The unknown filter should be skipped, valid filter should be present
+    assert "filter_2" in result
+    assert "filter_1" not in result
+    assert "value2" in result
+    # Should have one warning for the unknown filter type
+    assert len(warnings) == 1
+    assert "unrecognized filter type" in warnings[0]
+    assert "filter_unknown_type" in warnings[0]

@@ -172,8 +172,6 @@ test('should remove tab', async () => {
   const totalTabs = mockState.sqlLab.tables.length + 2;
   expect(tabs).toHaveLength(totalTabs);
 
-  console.log(tabs[2].parentElement?.innerHTML); // debug
-
   const removeButton = tabs[2].parentElement?.querySelector(
     'button[aria-label="remove"]',
   );
@@ -226,9 +224,7 @@ test('renders slot-wide toolbar actions via PanelToolbar', () => {
     initialState: mockState,
   });
 
-  expect(
-    screen.getByRole('button', { name: 'Panels Action' }),
-  ).toBeInTheDocument();
+  expect(screen.getByLabelText('Panels Action')).toBeInTheDocument();
 });
 
 test('renders per-view toolbar actions for contributed tab', () => {
@@ -251,8 +247,5 @@ test('renders per-view toolbar actions for contributed tab', () => {
   });
 
   // Content is rendered via forceRender: true even when tab is not active.
-  // Use { hidden: true } to find button in non-active tab pane.
-  expect(
-    screen.getByRole('button', { name: 'Per-View Action', hidden: true }),
-  ).toBeInTheDocument();
+  expect(screen.getByLabelText('Per-View Action')).toBeInTheDocument();
 });
