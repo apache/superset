@@ -51,8 +51,6 @@ import {
   getNumberFormatter,
   getExtensionsRegistry,
   ErrorTypeEnum,
-  isFeatureEnabled,
-  FeatureFlag,
 } from '@superset-ui/core';
 import { tn } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
@@ -84,7 +82,7 @@ import {
   LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV,
 } from 'src/logger/LogUtils';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { findPermission } from 'src/utils/findPermission';
+import { usePermissions } from 'src/hooks/usePermissions';
 import { StreamingExportModal } from 'src/components/StreamingExportModal';
 import { useStreamingExport } from 'src/components/StreamingExportModal/useStreamingExport';
 import { useConfirmModal } from 'src/hooks/useConfirmModal';
@@ -174,7 +172,6 @@ const ResultSet = ({
   defaultQueryLimit,
   useFixedHeight = false,
 }: ResultSetProps) => {
-  const user = useSelector(({ user }: SqlLabRootState) => user, shallowEqual);
   const streamingThreshold = useSelector(
     (state: SqlLabRootState) =>
       state.common?.conf?.CSV_STREAMING_ROW_THRESHOLD || 1000,
@@ -229,6 +226,10 @@ const ResultSet = ({
     [query.results?.expanded_columns],
   );
 
+  const {
+    canExportDataSqlLab: canExportData,
+    canCopyClipboardSqlLab: canCopyClipboard,
+  } = usePermissions();
   const history = useHistory();
   const dispatch = useDispatch();
   const logAction = useLogAction({ queryId, sqlEditorId: query.sqlEditorId });
@@ -362,21 +363,6 @@ const ResultSet = ({
         templateParams: query?.templateParams,
         schema: query?.schema,
       };
-
-      const canExportDataLegacy = findPermission(
-        'can_export_csv',
-        'SQLLab',
-        user?.roles,
-      );
-      const granularExport = isFeatureEnabled(
-        FeatureFlag.GranularExportControls,
-      );
-      const canExportData = granularExport
-        ? findPermission('can_export_data', 'Superset', user?.roles)
-        : canExportDataLegacy;
-      const canCopyClipboard = granularExport
-        ? findPermission('can_copy_clipboard', 'Superset', user?.roles)
-        : canExportDataLegacy;
 
       const handleDownloadCsv = (event: React.MouseEvent<HTMLElement>) => {
         logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {});

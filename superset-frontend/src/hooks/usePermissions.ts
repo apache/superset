@@ -34,6 +34,9 @@ export const usePermissions = () => {
   const canCsvLegacy = useSelector((state: RootState) =>
     findPermission('can_csv', 'Superset', state.user?.roles),
   );
+  const canExportCsvSqlLab = useSelector((state: RootState) =>
+    findPermission('can_export_csv', 'SQLLab', state.user?.roles),
+  );
   const canExportDataRaw = useSelector((state: RootState) =>
     findPermission('can_export_data', 'Superset', state.user?.roles),
   );
@@ -48,6 +51,13 @@ export const usePermissions = () => {
   const canExportImage = granularExport ? canExportImageRaw : canCsvLegacy;
   const canCopyClipboard = granularExport ? canCopyClipboardRaw : canCsvLegacy;
   const canDownload = canExportData;
+  // SQL Lab uses a separate legacy permission (can_export_csv on SQLLab)
+  const canExportDataSqlLab = granularExport
+    ? canExportDataRaw
+    : canExportCsvSqlLab;
+  const canCopyClipboardSqlLab = granularExport
+    ? canCopyClipboardRaw
+    : canExportCsvSqlLab;
   const canDrill = useSelector((state: RootState) =>
     findPermission('can_drill', 'Dashboard', state.user?.roles),
   );
@@ -71,8 +81,10 @@ export const usePermissions = () => {
     canDatasourceSamples,
     canDownload,
     canExportData,
+    canExportDataSqlLab,
     canExportImage,
     canCopyClipboard,
+    canCopyClipboardSqlLab,
     canDrill,
     canDrillBy,
     canDrillToDetail,

@@ -234,7 +234,7 @@ export const useExploreAdditionalActionsMenu = (
     },
   );
   const canExportImage = useSelector<ExploreState, boolean>(
-    state => state.explore?.can_export_image ?? true,
+    state => state.explore?.can_export_image ?? false,
   );
 
   const dataExportDisabled = !canDownloadCSV;

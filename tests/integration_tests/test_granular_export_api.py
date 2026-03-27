@@ -185,10 +185,21 @@ class TestGranularExportDashboardAPI(SupersetTestCase):
         assert rv.status_code == 403
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @with_feature_flags(GRANULAR_EXPORT_CONTROLS=False)
-    def test_dashboard_screenshot_allowed_when_flag_disabled(self) -> None:
-        """When GRANULAR_EXPORT_CONTROLS is OFF, no granular permission check
-        is enforced on the screenshot endpoint."""
+    @with_feature_flags(
+        GRANULAR_EXPORT_CONTROLS=False,
+        THUMBNAILS=True,
+        ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True,
+    )
+    @patch.object(
+        SupersetSecurityManager,
+        "can_access",
+        side_effect=_deny_can_export_image,
+    )
+    def test_dashboard_screenshot_allowed_when_flag_disabled(
+        self, mock_can_access
+    ) -> None:
+        """When GRANULAR_EXPORT_CONTROLS is OFF, the granular permission check
+        is skipped even if the user lacks can_export_image."""
         self.login(ADMIN_USERNAME)
         dashboard = self.get_dash_by_slug("births") or self.get_dash_by_slug(
             "birth_names"
@@ -237,9 +248,7 @@ class TestGranularExportSqlLabAPI(SupersetTestCase):
         "can_access",
         side_effect=_deny_can_export_data,
     )
-    def test_export_csv_allowed_when_flag_disabled(
-        self, mock_can_access
-    ) -> None:
+    def test_export_csv_allowed_when_flag_disabled(self, mock_can_access) -> None:
         """When GRANULAR_EXPORT_CONTROLS is OFF, no granular permission check
         is enforced. The request may fail for other reasons (no query found),
         but must not return 403."""
@@ -249,9 +258,16 @@ class TestGranularExportSqlLabAPI(SupersetTestCase):
         assert rv.status_code != 403
 
     @with_feature_flags(GRANULAR_EXPORT_CONTROLS=False)
-    def test_export_streaming_csv_allowed_when_flag_disabled(self) -> None:
-        """When GRANULAR_EXPORT_CONTROLS is OFF, no granular permission check
-        is enforced on the streaming export endpoint."""
+    @patch.object(
+        SupersetSecurityManager,
+        "can_access",
+        side_effect=_deny_can_export_data,
+    )
+    def test_export_streaming_csv_allowed_when_flag_disabled(
+        self, mock_can_access
+    ) -> None:
+        """When GRANULAR_EXPORT_CONTROLS is OFF, the granular permission check
+        is skipped even if the user lacks can_export_data."""
         self.login(ADMIN_USERNAME)
         uri = "api/v1/sqllab/export_streaming/"
         rv = self.client.post(uri, data={"client_id": "fake_client_id"})

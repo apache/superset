@@ -84,38 +84,23 @@ export const TableControls = ({
         `}
       >
         <RowCountLabel rowcount={rowcount} loading={isLoading} />
-        <Tooltip
-          title={
-            !copyEnabled
-              ? t("You don't have permission to copy to clipboard")
-              : undefined
-          }
-        >
-          <div
-            css={
-              !copyEnabled
-                ? css`
-                    opacity: 0.3;
-                  `
-                : undefined
-            }
-          >
-            <div
-              css={
-                !copyEnabled
-                  ? css`
-                      pointer-events: none;
-                    `
-                  : undefined
-              }
+        {copyEnabled ? (
+          <CopyToClipboardButton data={formattedData} columns={columnNames} />
+        ) : (
+          <Tooltip title={t("You don't have permission to copy to clipboard")}>
+            <span
+              css={css`
+                opacity: 0.3;
+                cursor: not-allowed;
+              `}
             >
               <CopyToClipboardButton
                 data={formattedData}
                 columns={columnNames}
               />
-            </div>
-          </div>
-        </Tooltip>
+            </span>
+          </Tooltip>
+        )}
       </div>
     </TableControlsWrapper>
   );

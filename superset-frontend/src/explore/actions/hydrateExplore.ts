@@ -161,10 +161,10 @@ export const hydrateExplore =
         : findPermission('can_csv', 'Superset', user?.roles),
       can_export_image: granularExport
         ? findPermission('can_export_image', 'Superset', user?.roles)
-        : true,
+        : findPermission('can_csv', 'Superset', user?.roles),
       can_copy_clipboard: granularExport
         ? findPermission('can_copy_clipboard', 'Superset', user?.roles)
-        : true,
+        : findPermission('can_csv', 'Superset', user?.roles),
       can_overwrite: ensureIsArray(slice?.owners).includes(
         user?.userId as number,
       ),
