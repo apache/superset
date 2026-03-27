@@ -654,6 +654,38 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             logger.error("Refusing to start due to insecure SECRET_KEY")
             sys.exit(1)
 
+    def check_guest_token_secret(self) -> None:
+        """Refuse to start with default guest JWT secret when embedding is enabled."""
+        default_secret = "test-guest-secret-change-me"  # noqa: S105
+        feature_flags = {
+            **self.config.get("DEFAULT_FEATURE_FLAGS", {}),
+            **self.config.get("FEATURE_FLAGS", {}),
+        }
+        if not feature_flags.get("EMBEDDED_SUPERSET"):
+            return
+        if self.config.get("GUEST_TOKEN_JWT_SECRET") != default_secret:
+            return
+        top_banner = 80 * "-" + "\n" + 36 * " " + "WARNING\n" + 80 * "-"
+        bottom_banner = 80 * "-" + "\n" + 80 * "-"
+        logger.warning(top_banner)
+        logger.warning(
+            "EMBEDDED_SUPERSET is enabled but GUEST_TOKEN_JWT_SECRET has not "
+            "been changed from its default value.\n"
+            "The default value is publicly known and must be replaced before "
+            "running in production.\n"
+            "Set a strong random value in superset_config.py:\n"
+            "  GUEST_TOKEN_JWT_SECRET = "
+            "'<output of: openssl rand -base64 42>'"
+        )
+        logger.warning(bottom_banner)
+        if self.superset_app.debug or self.superset_app.config["TESTING"] or is_test():
+            return
+        logger.error(
+            "Refusing to start: insecure GUEST_TOKEN_JWT_SECRET "
+            "with EMBEDDED_SUPERSET enabled"
+        )
+        sys.exit(1)
+
     def configure_session(self) -> None:
         if self.config["SESSION_SERVER_SIDE"]:
             Session(self.superset_app)
@@ -738,6 +770,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Configuration of feature_flags must be done first to allow init features
         # conditionally
         self.configure_feature_flags()
+        self.check_guest_token_secret()
         self.configure_db_encrypt()
         self.setup_db()
 

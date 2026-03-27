@@ -3096,13 +3096,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             r for r in user.resources if r["type"] == GuestTokenResourceType.DASHBOARD
         ]
 
+        if not dashboard.embedded:
+            return False
+
         # TODO (embedded): remove this check once uuids are rolled out
         for resource in dashboards:
             if str(resource["id"]) == str(dashboard.id):
                 return True
-
-        if not dashboard.embedded:
-            return False
 
         for resource in dashboards:
             if str(resource["id"]) == str(dashboard.embedded[0].uuid):
