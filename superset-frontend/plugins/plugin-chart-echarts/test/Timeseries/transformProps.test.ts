@@ -28,6 +28,8 @@ import {
   SqlaFormData,
   TimeseriesAnnotationLayer,
   ChartDataResponseResult,
+  GenericDataType,
+  TimeGranularity,
 } from '@superset-ui/core';
 import type { SeriesOption } from 'echarts';
 import { EchartsTimeseriesChartProps } from '../../src/types';
@@ -1314,4 +1316,87 @@ test('should not apply axis bounds calculation when seriesType is not Bar for ho
   const xAxisRaw = transformedProps.echartOptions.xAxis as any;
   // Should not have explicit max set when seriesType is not Bar
   expect(xAxisRaw.max).toBeUndefined();
+});
+
+test('x-axis formatter deduplicates consecutive identical labels for coarse time grains', () => {
+  const yearData = [
+    { __timestamp: Date.UTC(2003, 0, 1), sales: 100 },
+    { __timestamp: Date.UTC(2004, 0, 1), sales: 200 },
+    { __timestamp: Date.UTC(2005, 0, 1), sales: 300 },
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      granularity_sqla: 'ds',
+      time_grain_sqla: TimeGranularity.YEAR,
+      xAxisTimeFormat: '%Y',
+    },
+    queriesData: [
+      createTestQueryData(yearData, {
+        colnames: ['__timestamp', 'sales'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      }),
+    ],
+  });
+
+  const transformedProps = transformProps(chartProps);
+  const xAxisResult = transformedProps.echartOptions.xAxis as any;
+  const { formatter } = xAxisResult.axisLabel;
+
+  expect(typeof formatter).toBe('function');
+  expect(xAxisResult.axisLabel.showMaxLabel).toBe(true);
+
+  const label1 = formatter(Date.UTC(2003, 0, 1));
+  const label2 = formatter(Date.UTC(2004, 0, 1));
+  const label3 = formatter(Date.UTC(2005, 0, 1));
+  const label4 = formatter(Date.UTC(2005, 6, 1));
+
+  expect(label1).toBe('2003');
+  expect(label2).toBe('2004');
+  expect(label3).toBe('2005');
+  expect(label4).toBe('');
+});
+
+test('should assign distinct dash patterns for multiple time offsets consistently', () => {
+  const queriesDataWithMultipleOffsets = [
+    createTestQueryData([
+      {
+        sum__num: 100,
+        '1 year ago': 80,
+        '2 years ago': 60,
+        __timestamp: 599616000000,
+      },
+      {
+        sum__num: 150,
+        '1 year ago': 120,
+        '2 years ago': 90,
+        __timestamp: 599916000000,
+      },
+    ]),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...timeCompareFormData,
+      time_compare: ['1 year ago', '2 years ago'],
+      comparison_type: ComparisonType.Values,
+      timeShiftColor: true,
+    },
+    queriesData: queriesDataWithMultipleOffsets,
+  });
+
+  const transformed = transformProps(chartProps);
+  const series = (transformed.echartOptions.series as SeriesOption[]) || [];
+
+  const series1 = series.find(s => s.name === '1 year ago') as any;
+  const series2 = series.find(s => s.name === '2 years ago') as any;
+
+  expect(series1).toBeDefined();
+  expect(series2).toBeDefined();
+
+  const pattern1 = series1.lineStyle?.type;
+  const pattern2 = series2.lineStyle?.type;
+
+  // must be different dash patterns
+  expect(pattern1).not.toEqual(pattern2);
 });
