@@ -1677,6 +1677,91 @@ def test_data_cache_default_timeout(
     assert rv.json["result"][0]["cache_timeout"] == 3456
 
 
+@mock.patch(
+    "flask.current_app.config",
+    {
+        **app.config,
+        "CACHE_DEFAULT_TIMEOUT": 100000,
+        "DATA_CACHE_CONFIG": {
+            **app.config["DATA_CACHE_CONFIG"],
+            "CACHE_DEFAULT_TIMEOUT": 3456,
+        },
+        "FILTER_STATE_CACHE_CONFIG": {
+            **app.config["FILTER_STATE_CACHE_CONFIG"],
+            "CACHE_DEFAULT_TIMEOUT": 7890,
+        },
+    },
+)
+def test_native_filter_uses_filter_state_cache_timeout(
+    test_client,
+    login_as_admin,
+    physical_query_context,
+):
+    physical_query_context["form_data"] = {
+        "native_filter_id": "NATIVE_FILTER-TEST",
+        "viz_type": "filter_select",
+    }
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 7890
+
+
+@mock.patch(
+    "flask.current_app.config",
+    {
+        **app.config,
+        "CACHE_DEFAULT_TIMEOUT": 100000,
+        "DATA_CACHE_CONFIG": {
+            **app.config["DATA_CACHE_CONFIG"],
+            "CACHE_DEFAULT_TIMEOUT": 3456,
+        },
+        "FILTER_STATE_CACHE_CONFIG": {
+            **app.config["FILTER_STATE_CACHE_CONFIG"],
+            "CACHE_DEFAULT_TIMEOUT": 7890,
+        },
+    },
+)
+def test_non_filter_viz_type_with_native_filter_id_uses_data_cache_timeout(
+    test_client,
+    login_as_admin,
+    physical_query_context,
+):
+    physical_query_context["form_data"] = {
+        "native_filter_id": "NATIVE_FILTER-TEST",
+        "viz_type": "table",
+    }
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 3456
+
+
+@mock.patch(
+    "flask.current_app.config",
+    {
+        **app.config,
+        "CACHE_DEFAULT_TIMEOUT": 100000,
+        "DATA_CACHE_CONFIG": {
+            **app.config["DATA_CACHE_CONFIG"],
+            "CACHE_DEFAULT_TIMEOUT": 3456,
+        },
+        "FILTER_STATE_CACHE_CONFIG": {
+            key: value
+            for key, value in app.config["FILTER_STATE_CACHE_CONFIG"].items()
+            if key != "CACHE_DEFAULT_TIMEOUT"
+        },
+    },
+)
+def test_native_filter_without_filter_state_timeout_falls_back_to_data_cache(
+    test_client,
+    login_as_admin,
+    physical_query_context,
+):
+    physical_query_context["form_data"] = {
+        "native_filter_id": "NATIVE_FILTER-TEST",
+        "viz_type": "filter_select",
+    }
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 3456
+
+
 def test_chart_cache_timeout(
     load_energy_table_with_slice: list[Slice],  # noqa: F811
     test_client,

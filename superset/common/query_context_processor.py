@@ -385,6 +385,27 @@ class QueryContextProcessor:
     def get_cache_timeout(self) -> int:
         if cache_timeout_rv := self._query_context.get_cache_timeout():
             return cache_timeout_rv
+        form_data = self._query_context.form_data or {}
+        is_native_filter_query = (
+            bool(form_data.get("native_filter_id"))
+            and str(form_data.get("viz_type", "")).startswith("filter_")
+            and not form_data.get("metrics")
+        )
+        filter_state_cache_config = (
+            current_app.config.get("FILTER_STATE_CACHE_CONFIG") or {}
+        )
+        filter_state_cache_timeout = filter_state_cache_config.get(
+            "CACHE_DEFAULT_TIMEOUT"
+        )
+        if (
+            # NOTE: Native filter option queries are routed through /api/v1/chart/data
+            # but are semantically distinct from regular chart queries
+            # (no metrics, high volatility, RLS-sensitive). Detect them via
+            # native_filter_id + filter_* viz_type and align timeout with
+            # FILTER_STATE_CACHE_CONFIG.
+            is_native_filter_query and filter_state_cache_timeout is not None
+        ):
+            return filter_state_cache_timeout
         if (
             data_cache_timeout := current_app.config["DATA_CACHE_CONFIG"].get(
                 "CACHE_DEFAULT_TIMEOUT"
