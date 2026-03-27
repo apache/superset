@@ -352,8 +352,8 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
                   // click as a close action, so fall back to manuallyOpenedNodes instead.
                   const wasOpen = searchTerm
                     ? (treeRef.current?.get(id)?.isOpen ??
-                        manuallyOpenedNodes[id] ??
-                        false)
+                      manuallyOpenedNodes[id] ??
+                      false)
                     : (manuallyOpenedNodes[id] ?? false);
                   const isNowOpen = !wasOpen;
 
