@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { useLocation } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
+import type { Location, Action } from 'history';
 import {
   getLabelsColorMap,
   isDefined,
@@ -132,27 +133,34 @@ const getDashboardContextFormData = () => {
 
 export default function ExplorePage() {
   const [isLoaded, setIsLoaded] = useState(false);
-  const isExploreInitialized = useRef(false);
+  const fetchGeneration = useRef(0);
   const abortControllerRef = useRef<AbortController | null>(null);
   const dispatch = useDispatch();
-  const location = useLocation();
+  const history = useHistory();
 
-  useEffect(() => {
-    const exploreUrlParams = getParsedExploreURLParams(location);
-    const saveAction = getUrlParam(
-      URL_PARAMS.saveAction,
-    ) as SaveActionType | null;
-    const dashboardContextFormData = getDashboardContextFormData();
-
-    if (!isExploreInitialized.current || !!saveAction) {
+  const loadExploreData = useCallback(
+    (
+      loc: { search: string; pathname: string },
+      saveAction?: SaveActionType | null,
+    ) => {
       // Abort any in-flight request before starting a new one
       abortControllerRef.current?.abort();
       const controller = new AbortController();
       abortControllerRef.current = controller;
 
+      fetchGeneration.current += 1;
+      const generation = fetchGeneration.current;
+      const exploreUrlParams = getParsedExploreURLParams(loc);
+      const dashboardContextFormData = getDashboardContextFormData();
+
+      const isStale = () => generation !== fetchGeneration.current;
+
       fetchExploreData(exploreUrlParams, controller.signal)
         .then(({ result }) => {
-          if (controller.signal.aborted) return;
+          if (isStale()) {
+            return;
+          }
+
           const formData = dashboardContextFormData
             ? getFormDataWithDashboardContext(
                 result.form_data,
@@ -183,7 +191,10 @@ export default function ExplorePage() {
           return Promise.all([getClientErrorObject(err), err]);
         })
         .then(resolved => {
-          if (controller.signal.aborted) return Promise.resolve();
+          if (isStale()) {
+            return undefined;
+          }
+
           const [clientError, err] = resolved || [];
           if (!err) {
             return Promise.resolve();
@@ -217,6 +228,9 @@ export default function ExplorePage() {
             )
               .then(
                 ({ result: { id, url, owners, form_data: _, ...data } }) => {
+                  if (isStale()) {
+                    return;
+                  }
                   const slice = {
                     ...data,
                     datasource: err.extra?.datasource_name,
@@ -233,6 +247,9 @@ export default function ExplorePage() {
                 },
               )
               .catch(() => {
+                if (isStale()) {
+                  return;
+                }
                 dispatch(hydrateExplore(exploreData));
               });
           }
@@ -240,19 +257,47 @@ export default function ExplorePage() {
           return Promise.resolve();
         })
         .finally(() => {
-          if (!controller.signal.aborted) {
+          if (!isStale() && !controller.signal.aborted) {
             setIsLoaded(true);
-            isExploreInitialized.current = true;
           }
         });
-    }
-    getLabelsColorMap().source = LabelsColorMapSource.Explore;
+    },
+    [dispatch],
+  );
 
-    // Cleanup: abort in-flight requests on unmount
-    return () => {
+  // Cleanup: abort in-flight requests on unmount
+  useEffect(
+    () => () => {
       abortControllerRef.current?.abort();
-    };
-  }, [dispatch, location]);
+    },
+    [],
+  );
+
+  // Initial fetch on mount
+  useEffect(() => {
+    loadExploreData(history.location);
+    getLabelsColorMap().source = LabelsColorMapSource.Explore;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Re-fetch on navigation or post-save.
+  // PUSH/POP: full reload (unmount + re-fetch).
+  // REPLACE with saveAction state: re-fetch without unmount (keeps chart visible).
+  // Other REPLACE: ignored (URL sync from updateHistory).
+  useEffect(() => {
+    const unlisten = history.listen((loc: Location, action: Action) => {
+      const saveAction = (loc.state as Record<string, unknown>)?.saveAction as
+        | SaveActionType
+        | undefined;
+      if (action === 'PUSH' || action === 'POP') {
+        setIsLoaded(false);
+        loadExploreData(loc, saveAction);
+      } else if (saveAction) {
+        loadExploreData(loc, saveAction);
+      }
+    });
+    return unlisten;
+  }, [history, loadExploreData]);
 
   if (!isLoaded) {
     return <Loading />;

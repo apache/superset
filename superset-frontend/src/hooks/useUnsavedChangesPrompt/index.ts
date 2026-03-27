@@ -20,6 +20,7 @@ import { getClientErrorObject, t } from '@superset-ui/core';
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useBeforeUnload } from 'src/hooks/useBeforeUnload';
+import type { Location, Action } from 'history';
 
 type UseUnsavedChangesPromptProps = {
   hasUnsavedChanges: boolean;
@@ -69,7 +70,23 @@ export const useUnsavedChangesPrompt = ({
   }, [onSave]);
 
   const blockCallback = useCallback(
-    ({ pathname, state }: { pathname: string; state?: any }) => {
+    (
+      {
+        pathname,
+        search,
+        state,
+      }: {
+        pathname: Location['pathname'];
+        search: Location['search'];
+        state: Location['state'];
+      },
+      action: Action,
+    ) => {
+      // REPLACE actions are URL sync (e.g. updating form_data_key), not navigation
+      if (action === 'REPLACE') {
+        return undefined;
+      }
+
       if (manualSaveRef.current) {
         manualSaveRef.current = false;
         return undefined;
@@ -77,7 +94,11 @@ export const useUnsavedChangesPrompt = ({
 
       confirmNavigationRef.current = () => {
         unblockRef.current?.();
-        history.push(pathname, state);
+        if (action === 'POP') {
+          history.go(-1);
+        } else {
+          history.push({ pathname, search }, state);
+        }
       };
 
       setShowModal(true);

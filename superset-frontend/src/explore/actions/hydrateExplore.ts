@@ -193,7 +193,7 @@ export const hydrateExplore =
       sliceFormData,
       queryController: null,
       queriesResponse: null,
-      triggerQuery: false,
+      triggerQuery: !!saveAction,
       lastRendered: 0,
     };
 
