@@ -839,13 +839,22 @@ class SQLExecutor:
             or app.config.get("CACHE_DEFAULT_TIMEOUT", 300)
         )
 
-        # Serialize statement results for caching
+        # Serialize statement results for caching.
+        # Convert DataFrames to list-of-dicts so the cache backend
+        # does not need to pickle pandas objects (which can fail to
+        # deserialize correctly with some backends or pandas versions).
+        import pandas as pd
+
         cached_data = {
             "statements": [
                 {
                     "original_sql": stmt.original_sql,
                     "executed_sql": stmt.executed_sql,
-                    "data": stmt.data,
+                    "data": (
+                        stmt.data.to_dict(orient="records")
+                        if isinstance(stmt.data, pd.DataFrame)
+                        else stmt.data
+                    ),
                     "row_count": stmt.row_count,
                     "execution_time_ms": stmt.execution_time_ms,
                 }

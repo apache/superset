@@ -259,6 +259,12 @@ def test_log_data_with_missing_values(mocker: MockerFixture) -> None:
             ["url1"],
             ["superset/dashboard/p/url1/"],
         ),
+        # Test JSON scalar string anchor falls back to single tab
+        (
+            json.dumps("mock_tab_anchor_1"),
+            ["url1"],
+            ["superset/dashboard/p/url1/"],
+        ),
     ],
 )
 @patch(
@@ -284,6 +290,10 @@ def test_get_dashboard_urls_with_multiple_tabs(
             "urlParams": None,
         }
     }
+    mock_report_schedule.get_native_filters_params.return_value = (  # type: ignore
+        "()",
+        [],
+    )
 
     class_instance: BaseReportState = BaseReportState(
         mock_report_schedule, "January 1, 2021", "execution_id_example"
@@ -327,6 +337,10 @@ def test_get_dashboard_urls_with_exporting_dashboard_only(
             "urlParams": None,
         }
     }
+    mock_report_schedule.get_native_filters_params.return_value = (  # type: ignore
+        "()",
+        [],
+    )
     mock_run.return_value = "url1"
 
     class_instance: BaseReportState = BaseReportState(
