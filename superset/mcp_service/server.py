@@ -175,6 +175,99 @@ def _strip_titles(obj: Any, in_properties_map: bool = False) -> Any:
     return obj
 
 
+def _collapse_anyof(
+    variants: list[dict[str, Any]], defs: dict[str, Any]
+) -> dict[str, Any] | None:
+    """Collapse an ``anyOf`` list into a single preferred variant.
+
+    Returns the collapsed schema, or ``None`` if the variants should be
+    kept as-is (caller stores them under the ``anyOf`` key).
+    """
+    resolved = [_resolve_refs(v, defs) for v in variants]
+    non_null = [v for v in resolved if v.get("type") != "null"]
+    if len(non_null) == 1:
+        # Optional[T] – unwrap to T
+        return non_null[0]
+    # Prefer the structured object variant over a bare string
+    obj_variants = [
+        v
+        for v in non_null
+        if isinstance(v, dict) and (v.get("type") == "object" or "properties" in v)
+    ]
+    if obj_variants:
+        return obj_variants[0]
+    return None
+
+
+def _try_resolve_ref(
+    schema: dict[str, Any], defs: dict[str, Any]
+) -> dict[str, Any] | None:
+    """If *schema* is a ``$ref`` pointer, resolve and return it; else ``None``."""
+    ref = schema.get("$ref")
+    if ref is None:
+        return None
+    if ref.startswith("#/$defs/"):
+        def_name = ref.split("/")[-1]
+        if def_name in defs:
+            return _resolve_refs(defs[def_name], defs)
+    return schema  # unresolvable ref – keep as-is
+
+
+def _resolve_refs(schema: dict[str, Any], defs: dict[str, Any]) -> Any:
+    """Recursively resolve ``$ref`` pointers and simplify ``anyOf`` unions.
+
+    The raw JSON-Schema produced by Pydantic / FastMCP contains ``$ref``
+    pointers and ``anyOf[string, Object]`` unions (from the
+    ``@parse_request`` decorator's ``str | Model`` annotation).  LLMs
+    reading these schemas inside ``search_tools`` results struggle with
+    indirect references and mixed-type unions, often omitting the
+    ``request`` wrapper.
+
+    This function:
+    * Inlines every ``$ref`` so no ``$defs`` lookup is needed.
+    * Collapses ``anyOf[string, Object]`` to the structured object
+      variant so the LLM clearly sees the required properties.
+    * Recursively processes nested ``properties`` and ``items``.
+    """
+    if not isinstance(schema, dict):
+        return schema
+
+    if (resolved_ref := _try_resolve_ref(schema, defs)) is not None:
+        return resolved_ref
+
+    result: dict[str, Any] = {}
+    for key, value in schema.items():
+        if key == "$defs":
+            continue  # drop $defs – refs are inlined
+        if key == "anyOf":
+            collapsed = _collapse_anyof(value, defs)
+            if collapsed is not None:
+                return collapsed
+            result[key] = [_resolve_refs(v, defs) for v in value]
+            continue
+        if key == "properties" and isinstance(value, dict):
+            result[key] = {k: _resolve_refs(v, defs) for k, v in value.items()}
+            continue
+        if key == "items" and isinstance(value, dict):
+            result[key] = _resolve_refs(value, defs)
+            continue
+        if key == "oneOf" and isinstance(value, list):
+            result[key] = [_resolve_refs(v, defs) for v in value]
+            continue
+        result[key] = value
+    return result
+
+
+def _simplify_input_schema(schema: dict[str, Any]) -> dict[str, Any]:
+    """Resolve ``$ref`` and simplify unions in a tool's ``inputSchema``.
+
+    Produces a self-contained schema (no ``$defs``) that is easy for an
+    LLM to read and reproduce when constructing ``call_tool`` arguments.
+    """
+    defs = schema.get("$defs", {})
+    return _resolve_refs(schema, defs)
+
+
 def _serialize_tools_without_output_schema(
     tools: Sequence[Any],
 ) -> list[dict[str, Any]]:
@@ -183,13 +276,19 @@ def _serialize_tools_without_output_schema(
     LLMs only need inputSchema to call tools. outputSchema accounts for
     50-80% of the per-tool schema size, and auto-generated 'title' fields
     add ~12% bloat. Stripping both cuts search result tokens significantly.
+
+    Additionally, ``$ref`` pointers are resolved and ``anyOf`` unions
+    simplified so the LLM sees a flat, self-contained schema — avoiding
+    the common failure where the LLM omits the ``request`` wrapper.
     """
     results = []
     for tool in tools:
         data = tool.to_mcp_tool().model_dump(mode="json", exclude_none=True)
         data.pop("outputSchema", None)
         if input_schema := data.get("inputSchema"):
-            data["inputSchema"] = _strip_titles(input_schema)
+            input_schema = _simplify_input_schema(input_schema)
+            input_schema = _strip_titles(input_schema)
+            data["inputSchema"] = input_schema
         results.append(data)
     return results
 

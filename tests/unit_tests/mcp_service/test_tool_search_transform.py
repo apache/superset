@@ -28,6 +28,7 @@ from superset.mcp_service.server import (
     _fix_call_tool_arguments,
     _normalize_call_tool_arguments,
     _serialize_tools_without_output_schema,
+    _simplify_input_schema,
 )
 from superset.utils import json
 
@@ -300,3 +301,186 @@ def test_normalize_ignores_keys_not_in_schema():
     result = _normalize_call_tool_arguments(arguments, schema)
 
     assert isinstance(result["unknown_key"], dict)
+
+
+# -- _resolve_refs / _simplify_input_schema tests --
+
+
+def test_simplify_resolves_ref_in_anyof():
+    """anyOf[string, $ref] is resolved to the inlined object."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "request": {
+                "anyOf": [
+                    {"type": "string"},
+                    {"$ref": "#/$defs/ListChartsRequest"},
+                ]
+            }
+        },
+        "required": ["request"],
+        "$defs": {
+            "ListChartsRequest": {
+                "type": "object",
+                "properties": {
+                    "page": {"type": "integer", "default": 1},
+                },
+            }
+        },
+    }
+
+    result = _simplify_input_schema(schema)
+
+    assert "$defs" not in result
+    req = result["properties"]["request"]
+    assert "anyOf" not in req
+    assert req["type"] == "object"
+    assert "page" in req["properties"]
+
+
+def test_simplify_resolves_nested_ref_in_items():
+    """$ref inside array items is inlined recursively."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "request": {
+                "anyOf": [
+                    {"type": "string"},
+                    {"$ref": "#/$defs/Outer"},
+                ]
+            }
+        },
+        "$defs": {
+            "Outer": {
+                "type": "object",
+                "properties": {
+                    "filters": {
+                        "type": "array",
+                        "items": {"$ref": "#/$defs/Filter"},
+                    }
+                },
+            },
+            "Filter": {
+                "type": "object",
+                "properties": {
+                    "col": {"type": "string"},
+                    "opr": {"type": "string"},
+                },
+                "required": ["col", "opr"],
+            },
+        },
+    }
+
+    result = _simplify_input_schema(schema)
+
+    assert "$ref" not in json.dumps(result)
+    items_schema = result["properties"]["request"]["properties"]["filters"]["items"]
+    assert items_schema["type"] == "object"
+    assert "col" in items_schema["properties"]
+
+
+def test_simplify_unwraps_optional():
+    """anyOf[T, null] (Optional) is unwrapped to just T."""
+    schema = {
+        "type": "object",
+        "properties": {"name": {"anyOf": [{"type": "string"}, {"type": "null"}]}},
+    }
+
+    result = _simplify_input_schema(schema)
+
+    assert result["properties"]["name"] == {"type": "string"}
+
+
+def test_simplify_preserves_oneof():
+    """oneOf variants are resolved but kept as oneOf (not collapsed)."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "config": {
+                "oneOf": [
+                    {"$ref": "#/$defs/XY"},
+                    {"$ref": "#/$defs/Pie"},
+                ]
+            }
+        },
+        "$defs": {
+            "XY": {
+                "type": "object",
+                "properties": {"x": {"type": "string"}},
+            },
+            "Pie": {
+                "type": "object",
+                "properties": {"dim": {"type": "string"}},
+            },
+        },
+    }
+
+    result = _simplify_input_schema(schema)
+
+    assert "$defs" not in result
+    assert "$ref" not in json.dumps(result)
+    variants = result["properties"]["config"]["oneOf"]
+    assert len(variants) == 2
+    assert "x" in variants[0]["properties"]
+    assert "dim" in variants[1]["properties"]
+
+
+def test_simplify_no_defs_passthrough():
+    """Schema without $defs passes through unchanged."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "page": {"type": "integer"},
+        },
+    }
+
+    result = _simplify_input_schema(schema)
+
+    assert result == schema
+
+
+def test_simplify_full_parse_request_pattern():
+    """End-to-end: realistic @parse_request schema is fully resolved."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "request": {
+                "anyOf": [
+                    {"type": "string"},
+                    {"$ref": "#/$defs/ExecuteSqlRequest"},
+                ]
+            }
+        },
+        "required": ["request"],
+        "$defs": {
+            "ExecuteSqlRequest": {
+                "type": "object",
+                "properties": {
+                    "database_id": {
+                        "type": "integer",
+                        "description": "The database ID",
+                    },
+                    "sql": {
+                        "type": "string",
+                        "description": "SQL query to execute",
+                    },
+                    "limit": {"type": "integer", "default": 100},
+                },
+                "required": ["database_id", "sql"],
+            }
+        },
+    }
+
+    result = _simplify_input_schema(schema)
+
+    # Top level: no $defs, request is required
+    assert "$defs" not in result
+    assert result["required"] == ["request"]
+
+    # request: inlined object with all fields visible
+    req = result["properties"]["request"]
+    assert req["type"] == "object"
+    assert req["required"] == ["database_id", "sql"]
+    assert req["properties"]["database_id"]["type"] == "integer"
+    assert req["properties"]["sql"]["type"] == "string"
+    assert req["properties"]["limit"]["default"] == 100
