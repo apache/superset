@@ -1521,6 +1521,177 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert updated_model.chart_id == report_schedule_data["chart"]
         assert updated_model.database_id == report_schedule_data["database"]
 
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_update_report_schedule_clear_recipients(self):
+        """
+        ReportSchedule API: clear recipients on empty list
+        """
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name2")
+            .one_or_none()
+        )
+        assert len(report_schedule.recipients) == 2
+
+        self.login(ADMIN_USERNAME)
+        report_schedule_data = {
+            "recipients": [],
+        }
+
+        uri = f"api/v1/report/{report_schedule.id}"
+        rv = self.put_assert_metric(uri, report_schedule_data, "put")
+        assert rv.status_code == 200
+        db.session.expire(report_schedule)
+        assert report_schedule.recipients == []
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_update_report_schedule_empty_email_target(self):
+        """
+        ReportSchedule API: Test update with empty email target returns 400
+        """
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name2")
+            .one_or_none()
+        )
+        self.login(ADMIN_USERNAME)
+        report_schedule_data = {
+            "recipients": [
+                {
+                    "type": ReportRecipientType.EMAIL,
+                    "recipient_config_json": {"target": ""},
+                }
+            ],
+        }
+        uri = f"api/v1/report/{report_schedule.id}"
+        rv = self.put_assert_metric(uri, report_schedule_data, "put")
+        assert rv.status_code == 400
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_update_report_schedule_invalid_email(self):
+        """
+        ReportSchedule API: Test update with invalid email returns 400
+        """
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name2")
+            .one_or_none()
+        )
+        self.login(ADMIN_USERNAME)
+        report_schedule_data = {
+            "recipients": [
+                {
+                    "type": ReportRecipientType.EMAIL,
+                    "recipient_config_json": {"target": "notanemail"},
+                }
+            ],
+        }
+        uri = f"api/v1/report/{report_schedule.id}"
+        rv = self.put_assert_metric(uri, report_schedule_data, "put")
+        assert rv.status_code == 400
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_update_report_schedule_invalid_cc_email(self):
+        """
+        ReportSchedule API: Test update with invalid ccTarget
+        """
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name2")
+            .one_or_none()
+        )
+        self.login(ADMIN_USERNAME)
+        report_schedule_data = {
+            "recipients": [
+                {
+                    "type": ReportRecipientType.EMAIL,
+                    "recipient_config_json": {
+                        "target": "valid@example.com",
+                        "ccTarget": "bademail",
+                    },
+                }
+            ],
+        }
+        uri = f"api/v1/report/{report_schedule.id}"
+        rv = self.put_assert_metric(uri, report_schedule_data, "put")
+        assert rv.status_code == 400
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_update_report_schedule_invalid_bcc_email(self):
+        """
+        ReportSchedule API: Test update with invalid bccTarget
+        """
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name2")
+            .one_or_none()
+        )
+        self.login(ADMIN_USERNAME)
+        report_schedule_data = {
+            "recipients": [
+                {
+                    "type": ReportRecipientType.EMAIL,
+                    "recipient_config_json": {
+                        "target": "valid@example.com",
+                        "bccTarget": "bademail",
+                    },
+                }
+            ],
+        }
+        uri = f"api/v1/report/{report_schedule.id}"
+        rv = self.put_assert_metric(uri, report_schedule_data, "put")
+        assert rv.status_code == 400
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_update_report_schedule_slack_empty_target_allowed(self):
+        """
+        ReportSchedule API: Test that Slack recipients skip email validation
+        """
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name2")
+            .one_or_none()
+        )
+        self.login(ADMIN_USERNAME)
+        report_schedule_data = {
+            "recipients": [
+                {
+                    "type": ReportRecipientType.SLACK,
+                    "recipient_config_json": {"target": ""},
+                }
+            ],
+        }
+        uri = f"api/v1/report/{report_schedule.id}"
+        rv = self.put_assert_metric(uri, report_schedule_data, "put")
+        assert rv.status_code == 200
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_update_report_schedule_valid_email_with_cc_bcc(self):
+        """
+        ReportSchedule API: Test update with valid email fields
+        """
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name2")
+            .one_or_none()
+        )
+        self.login(ADMIN_USERNAME)
+        report_schedule_data = {
+            "recipients": [
+                {
+                    "type": ReportRecipientType.EMAIL,
+                    "recipient_config_json": {
+                        "target": "valid@example.com",
+                        "ccTarget": "cc@example.com",
+                        "bccTarget": "bcc@example.com",
+                    },
+                }
+            ],
+        }
+        uri = f"api/v1/report/{report_schedule.id}"
+        rv = self.put_assert_metric(uri, report_schedule_data, "put")
+        assert rv.status_code == 200
+
     @pytest.mark.usefixtures("create_working_shared_report_schedule")
     def test_update_report_schedule_state_working(self):
         """
