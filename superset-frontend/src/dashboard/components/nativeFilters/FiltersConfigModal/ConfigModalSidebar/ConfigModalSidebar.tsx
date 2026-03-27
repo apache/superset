@@ -45,10 +45,6 @@ const StyledSidebarFlex = styled(Flex)`
 const StyledHeaderFlex = styled(Flex)`
   padding: ${({ theme }) => theme.sizeUnit * 3}px;
 
-  & > * {
-    width: 100%;
-  }
-
   & button {
     width: 100%;
   }
