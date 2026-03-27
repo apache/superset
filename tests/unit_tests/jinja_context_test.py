@@ -523,7 +523,9 @@ def test_where_in_bigquery_apostrophe() -> None:
         assert "''" not in result, (
             f"BigQuery should use backslash escaping, got double-apostrophe: {result}"
         )
-        assert "\\'" in result or "Armando" in result
+        assert "\\'" in result, (
+            f"BigQuery should escape apostrophes with backslash: {result}"
+        )
     except ImportError:
         pytest.skip("sqlalchemy-bigquery not installed")
 
