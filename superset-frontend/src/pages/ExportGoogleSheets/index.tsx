@@ -20,7 +20,7 @@ import { logging, t } from '@superset-ui/core';
 import { useCallback, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { useParams } from 'react-router-dom';
-import Loading from 'src/components/Loading';
+import { Loading } from '@superset-ui/core/components';
 import {
   addDangerToast,
   addInfoToast,

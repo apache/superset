@@ -77,6 +77,20 @@ const Dashboard = lazy(
   () => import(/* webpackChunkName: "Dashboard" */ 'src/pages/Dashboard'),
 );
 
+const ExportGoogleSheets = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "ExportGoogleSheets" */ 'src/pages/ExportGoogleSheets'
+    ),
+);
+
+const ExportSliceToGoogleSheets = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "ExportSliceToGoogleSheets" */ 'src/pages/ExportSliceToGoogleSheets'
+    ),
+);
+
 const DatabaseList = lazy(
   () => import(/* webpackChunkName: "DatabaseList" */ 'src/pages/DatabaseList'),
 );
@@ -299,6 +313,17 @@ export const routes: Routes = [
     Component: UserRegistrations,
   },
 ];
+
+if (isFeatureEnabled(FeatureFlag.GoogleSheetsExport)) {
+  routes.push({
+    path: '/export/dashboard/:dashboardId/google-sheets/',
+    Component: ExportGoogleSheets,
+  });
+  routes.push({
+    path: '/export/chart/:sliceId/google-sheets/',
+    Component: ExportSliceToGoogleSheets,
+  });
+}
 
 if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
   routes.push({

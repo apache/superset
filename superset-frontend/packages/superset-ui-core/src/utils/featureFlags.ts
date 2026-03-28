@@ -50,6 +50,7 @@ export enum FeatureFlag {
   EstimateQueryCost = 'ESTIMATE_QUERY_COST',
   FilterBarClosedByDefault = 'FILTERBAR_CLOSED_BY_DEFAULT',
   GlobalAsyncQueries = 'GLOBAL_ASYNC_QUERIES',
+  GoogleSheetsExport = 'GOOGLE_SHEETS_EXPORT',
   ListviewsDefaultCardView = 'LISTVIEWS_DEFAULT_CARD_VIEW',
   ScheduledQueries = 'SCHEDULED_QUERIES',
   SqllabBackendPersistence = 'SQLLAB_BACKEND_PERSISTENCE',
