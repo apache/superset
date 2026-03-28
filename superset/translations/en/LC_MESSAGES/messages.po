@@ -11095,8 +11095,15 @@ msgstr ""
 msgid "Subtitle"
 msgstr ""
 
-msgid "Subvalue"
+msgid "Subtitle Font Size"
 msgstr ""
+
+msgid "Subvalue (%(aggfunc)s)"
+msgstr ""
+
+msgid "Subvalue (%(aggregatorName)s)"
+msgstr ""
+
 
 msgid "Success"
 msgstr ""

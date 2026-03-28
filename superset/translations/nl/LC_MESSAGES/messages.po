@@ -12300,8 +12300,16 @@ msgstr "Bevestigen"
 msgid "Subtitle"
 msgstr "Titel tabblad"
 
-msgid "Subvalue"
-msgstr "Subtotaal"
+#, fuzzy
+msgid "Subtitle Font Size"
+msgstr "Bubbelgrootte"
+
+msgid "Subvalue (%(aggfunc)s)"
+msgstr "Subtotaal (%(aggfunc)s)"
+
+msgid "Subvalue (%(aggregatorName)s)"
+msgstr "Subtotaal (%(aggregatorName)s)"
+
 
 msgid "Success"
 msgstr "Succes"

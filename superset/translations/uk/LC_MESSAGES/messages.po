@@ -12317,8 +12317,16 @@ msgstr "Подавати"
 msgid "Subtitle"
 msgstr "Назва вкладки"
 
-msgid "Subvalue"
-msgstr "Суттєвий"
+#, fuzzy
+msgid "Subtitle Font Size"
+msgstr "Розмір міхура"
+
+msgid "Subvalue (%(aggfunc)s)"
+msgstr "Суттєвий (%(aggfunc)s)"
+
+msgid "Subvalue (%(aggregatorName)s)"
+msgstr "Суттєвий (%(aggregatorName)s)"
+
 
 msgid "Success"
 msgstr "Успіх"

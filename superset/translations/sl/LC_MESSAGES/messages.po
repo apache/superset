@@ -12154,8 +12154,16 @@ msgstr "Pošlji"
 msgid "Subtitle"
 msgstr "Naslov zavihka"
 
-msgid "Subvalue"
-msgstr "Delna vsota"
+#, fuzzy
+msgid "Subtitle Font Size"
+msgstr "Velikost mehurčka"
+
+msgid "Subvalue (%(aggfunc)s)"
+msgstr "Delna vsota (%(aggfunc)s)"
+
+msgid "Subvalue (%(aggregatorName)s)"
+msgstr "Delna vsota (%(aggregatorName)s)"
+
 
 msgid "Success"
 msgstr "Uspelo"

@@ -11602,8 +11602,15 @@ msgstr "提出する"
 msgid "Subtitle"
 msgstr "サブタイトル"
 
-msgid "Subvalue"
-msgstr "小計"
+msgid "Subtitle Font Size"
+msgstr "サブタイトル フォントサイズ"
+
+msgid "Subvalue (%(aggfunc)s)"
+msgstr "小計 (%(aggfunc)s)"
+
+msgid "Subvalue (%(aggregatorName)s)"
+msgstr "小計 (%(aggregatorName)s)"
+
 
 msgid "Success"
 msgstr "成功"

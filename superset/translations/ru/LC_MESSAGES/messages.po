@@ -11887,8 +11887,12 @@ msgstr "Отправить"
 msgid "Subtitle"
 msgstr "Подзаголовок"
 
-msgid "Subvalue"
-msgstr "Подытог"
+msgid "Subvalue (%(aggfunc)s)"
+msgstr "Подытог (%(aggfunc)s)"
+
+msgid "Subvalue (%(aggregatorName)s)"
+msgstr "Подытог (%(aggregatorName)s)"
+
 
 msgid "Success"
 msgstr "Успешно"

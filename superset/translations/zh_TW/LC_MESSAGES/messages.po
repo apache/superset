@@ -12246,8 +12246,16 @@ msgstr "提交"
 msgid "Subtitle"
 msgstr "選項卡標題"
 
-msgid "Subvalue"
+#, fuzzy
+msgid "Subtitle Font Size"
+msgstr "氣泡尺寸"
+
+msgid "Subvalue (%(aggfunc)s)"
 msgstr ""
+
+msgid "Subvalue (%(aggregatorName)s)"
+msgstr ""
+
 
 msgid "Success"
 msgstr "成功"

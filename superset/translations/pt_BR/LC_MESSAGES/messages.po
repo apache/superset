@@ -12448,8 +12448,16 @@ msgstr "Enviar"
 msgid "Subtitle"
 msgstr "Título da aba"
 
-msgid "Subvalue"
-msgstr "Subtotal"
+#, fuzzy
+msgid "Subtitle Font Size"
+msgstr "Tamanho da bolha"
+
+msgid "Subvalue (%(aggfunc)s)"
+msgstr "Subtotal (%(aggfunc)s)"
+
+msgid "Subvalue (%(aggregatorName)s)"
+msgstr "Subtotal (%(aggregatorName)s)"
+
 
 msgid "Success"
 msgstr "Sucesso"

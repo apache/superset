@@ -12287,8 +12287,16 @@ msgstr ""
 msgid "Subtitle"
 msgstr "%s - sem título"
 
-msgid "Subvalue"
+#, fuzzy
+msgid "Subtitle Font Size"
+msgstr "Tamanho da bolha"
+
+msgid "Subvalue (%(aggfunc)s)"
 msgstr ""
+
+msgid "Subvalue (%(aggregatorName)s)"
+msgstr ""
+
 
 msgid "Success"
 msgstr ""
