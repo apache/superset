@@ -12201,8 +12201,16 @@ msgstr "إرسال"
 msgid "Subtitle"
 msgstr "عنوان علامة التبويب"
 
-msgid "Subvalue"
-msgstr "المجموع الفرعي"
+#, fuzzy
+msgid "Subtitle Font Size"
+msgstr "حجم الفقاعة"
+
+msgid "Subvalue (%(aggfunc)s)"
+msgstr "المجموع الفرعي (%(aggfunc)s)"
+
+msgid "Subvalue (%(aggregatorName)s)"
+msgstr "المجموع الفرعي (%(aggregatorName)s)"
+
 
 msgid "Success"
 msgstr "نجاح"

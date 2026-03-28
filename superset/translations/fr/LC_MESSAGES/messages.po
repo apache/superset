@@ -12443,8 +12443,12 @@ msgstr "Soumettre"
 msgid "Subtitle"
 msgstr "Sous titre"
 
-msgid "Subvalue"
-msgstr "Sous-total"
+msgid "Subvalue (%(aggfunc)s)"
+msgstr "Sous-total (%(aggfunc)s)"
+
+msgid "Subvalue (%(aggregatorName)s)"
+msgstr "Sous-total (%(aggregatorName)s)"
+
 
 msgid "Success"
 msgstr "Réussite"
