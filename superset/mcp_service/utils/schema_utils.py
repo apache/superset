@@ -25,11 +25,12 @@ for input parameters, making MCP tools more flexible for different clients.
 from __future__ import annotations
 
 import asyncio
+import inspect
 import logging
 from functools import wraps
-from typing import Any, Callable, List, Type, TypeVar
+from typing import Annotated, Any, Callable, List, Type, TypeVar
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -411,9 +412,12 @@ def parse_request(
     the tool function. Also modifies the function's type annotations to accept
     str | RequestModel to pass FastMCP validation.
 
-    Can be disabled by setting MCP_PARSE_REQUEST_ENABLED = False in config.
-    When disabled, string-to-model parsing is skipped but ctx injection and
-    signature stripping still apply.
+    Behavior depends on MCP_PARSE_REQUEST_ENABLED config (checked at decoration time):
+
+    - **When True (default):** Single `request: str | Model` param with string parsing
+      at runtime. Preserves the Claude Code double-serialization workaround.
+    - **When False (production):** Flattened wrapper exposing all Pydantic model fields
+      as individual function parameters. FastMCP generates proper per-field schemas.
 
     See: https://github.com/anthropics/claude-code/issues/5504
 
@@ -444,73 +448,253 @@ def parse_request(
     """
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-        import types
-
-        def _maybe_parse(request: Any) -> Any:
-            if _is_parse_request_enabled():
-                return parse_json_or_model(request, request_class, "request")
-            return request
-
-        if asyncio.iscoroutinefunction(func):
-
-            @wraps(func)
-            async def async_wrapper(request: Any, *args: Any, **kwargs: Any) -> Any:
-                from fastmcp.server.dependencies import get_context
-
-                ctx = get_context()
-                return await func(_maybe_parse(request), ctx, *args, **kwargs)
-
-            wrapper = async_wrapper
-        else:
-
-            @wraps(func)
-            def sync_wrapper(request: Any, *args: Any, **kwargs: Any) -> Any:
-                from fastmcp.server.dependencies import get_context
-
-                ctx = get_context()
-                return func(_maybe_parse(request), ctx, *args, **kwargs)
-
-            wrapper = sync_wrapper
-
-        # Merge original function's __globals__ into wrapper's __globals__
-        # This allows get_type_hints() to resolve type annotations from the
-        # original module (e.g., Context from fastmcp)
-        # FastMCP 2.13.2+ uses get_type_hints() which needs access to these types
-        merged_globals = {**wrapper.__globals__, **func.__globals__}  # type: ignore[attr-defined]
-        new_wrapper = types.FunctionType(
-            wrapper.__code__,  # type: ignore[attr-defined]
-            merged_globals,
-            wrapper.__name__,
-            wrapper.__defaults__,  # type: ignore[attr-defined]
-            wrapper.__closure__,  # type: ignore[attr-defined]
-        )
-        # Copy __dict__ but exclude __wrapped__
-        # NOTE: We intentionally do NOT preserve __wrapped__ here.
-        # Setting __wrapped__ causes inspect.signature() to follow the chain
-        # and find 'ctx' in the original function's signature, even after
-        # FastMCP's create_function_without_params removes it from annotations.
-        # This breaks Pydantic's TypeAdapter which expects signature params
-        # to match type_hints.
-        new_wrapper.__dict__.update(
-            {k: v for k, v in wrapper.__dict__.items() if k != "__wrapped__"}
-        )
-        new_wrapper.__module__ = wrapper.__module__
-        new_wrapper.__qualname__ = wrapper.__qualname__
-        # Copy docstring from original function (not wrapper, which has no docstring)
-        new_wrapper.__doc__ = func.__doc__
-
-        request_annotation = str | request_class
-        _apply_signature_for_fastmcp(new_wrapper, func, request_annotation)
-
-        return new_wrapper
+        if _is_parse_request_enabled():
+            return _create_string_parsing_wrapper(func, request_class)
+        return _create_flattened_wrapper(func, request_class)
 
     return decorator
+
+
+def _create_string_parsing_wrapper(
+    func: Callable[..., Any],
+    request_class: Type[BaseModel],
+) -> Callable[..., Any]:
+    """Create a wrapper that accepts a single `request: str | Model` parameter.
+
+    This is the original parse_request behavior: at runtime, if the request
+    is a JSON string it gets parsed into the Pydantic model. Used when
+    MCP_PARSE_REQUEST_ENABLED is True.
+    """
+    import types
+
+    # Detect empty request models (no required fields) so
+    # FastMCP doesn't reject calls without arguments
+    # (e.g. get_instance_info via call_tool proxy).
+    _model_has_no_required_fields = not any(
+        f.is_required() for f in request_class.model_fields.values()
+    )
+
+    def _maybe_parse(request: Any) -> Any:
+        # Auto-instantiate empty request models when no arguments provided
+        if (request is None or request == "{}") and _model_has_no_required_fields:
+            return request_class()
+
+        if _is_parse_request_enabled():
+            try:
+                return parse_json_or_model(request, request_class, "request")
+            except ValidationError as e:
+                from fastmcp.exceptions import ToolError
+
+                details = []
+                for err in e.errors():
+                    field = " -> ".join(str(loc) for loc in err["loc"])
+                    details.append(f"{field}: {err['msg']}")
+                required_fields = [
+                    f.alias or name
+                    for name, f in request_class.model_fields.items()
+                    if f.is_required()
+                ]
+                raise ToolError(
+                    f"Invalid request parameters: {'; '.join(details)}. "
+                    f"Required fields for {request_class.__name__}: "
+                    f"{', '.join(required_fields)}"
+                ) from None
+        return request
+
+    if asyncio.iscoroutinefunction(func):
+
+        @wraps(func)
+        async def async_wrapper(request: Any, *args: Any, **kwargs: Any) -> Any:
+            from fastmcp.server.dependencies import get_context
+
+            ctx = get_context()
+            return await func(_maybe_parse(request), ctx, *args, **kwargs)
+
+        wrapper = async_wrapper
+    else:
+
+        @wraps(func)
+        def sync_wrapper(request: Any, *args: Any, **kwargs: Any) -> Any:
+            from fastmcp.server.dependencies import get_context
+
+            ctx = get_context()
+            return func(_maybe_parse(request), ctx, *args, **kwargs)
+
+        wrapper = sync_wrapper
+
+    # Merge original function's __globals__ into wrapper's __globals__
+    # This allows get_type_hints() to resolve type annotations from the
+    # original module (e.g., Context from fastmcp)
+    # FastMCP 2.13.2+ uses get_type_hints() which needs access to these types
+    merged_globals = {**wrapper.__globals__, **func.__globals__}  # type: ignore[attr-defined]
+    new_wrapper = types.FunctionType(
+        wrapper.__code__,  # type: ignore[attr-defined]
+        merged_globals,
+        wrapper.__name__,
+        wrapper.__defaults__,  # type: ignore[attr-defined]
+        wrapper.__closure__,  # type: ignore[attr-defined]
+    )
+    # Copy __dict__ but exclude __wrapped__
+    # NOTE: We intentionally do NOT preserve __wrapped__ here.
+    # Setting __wrapped__ causes inspect.signature() to follow the chain
+    # and find 'ctx' in the original function's signature, even after
+    # FastMCP's create_function_without_params removes it from annotations.
+    # This breaks Pydantic's TypeAdapter which expects signature params
+    # to match type_hints.
+    new_wrapper.__dict__.update(
+        {k: v for k, v in wrapper.__dict__.items() if k != "__wrapped__"}
+    )
+    new_wrapper.__module__ = wrapper.__module__
+    new_wrapper.__qualname__ = wrapper.__qualname__
+    # Copy docstring from original function (not wrapper, which has no docstring)
+    new_wrapper.__doc__ = func.__doc__
+
+    request_annotation = str | request_class
+    _apply_signature_for_fastmcp(
+        new_wrapper,
+        func,
+        request_annotation,
+        request_default="{}" if _model_has_no_required_fields else None,
+    )
+
+    return new_wrapper
+
+
+def _create_flattened_wrapper(
+    func: Callable[..., Any],
+    request_class: Type[BaseModel],
+) -> Callable[..., Any]:
+    """Create a wrapper that exposes individual Pydantic model fields as parameters.
+
+    Used when MCP_PARSE_REQUEST_ENABLED is False. Instead of a single opaque
+    ``request`` parameter, the wrapper accepts each field from ``request_class``
+    as a keyword argument. FastMCP then generates a proper JSON schema with
+    individual properties for each field.
+    """
+    import types
+
+    if asyncio.iscoroutinefunction(func):
+
+        @wraps(func)
+        async def async_wrapper(**kwargs: Any) -> Any:
+            from fastmcp.server.dependencies import get_context
+
+            ctx = get_context()
+            model = request_class.model_validate(kwargs)
+            return await func(model, ctx)
+
+        wrapper = async_wrapper
+    else:
+
+        @wraps(func)
+        def sync_wrapper(**kwargs: Any) -> Any:
+            from fastmcp.server.dependencies import get_context
+
+            ctx = get_context()
+            model = request_class.model_validate(kwargs)
+            return func(model, ctx)
+
+        wrapper = sync_wrapper
+
+    # Merge globals so get_type_hints() can resolve annotations from
+    # the original function's module.
+    merged_globals = {**wrapper.__globals__, **func.__globals__}  # type: ignore[attr-defined]
+    new_wrapper = types.FunctionType(
+        wrapper.__code__,  # type: ignore[attr-defined]
+        merged_globals,
+        wrapper.__name__,
+        wrapper.__defaults__,  # type: ignore[attr-defined]
+        wrapper.__closure__,  # type: ignore[attr-defined]
+    )
+    new_wrapper.__dict__.update(
+        {k: v for k, v in wrapper.__dict__.items() if k != "__wrapped__"}
+    )
+    new_wrapper.__module__ = wrapper.__module__
+    new_wrapper.__qualname__ = wrapper.__qualname__
+    new_wrapper.__doc__ = func.__doc__
+
+    _apply_flattened_signature(new_wrapper, func, request_class)
+
+    return new_wrapper
+
+
+def _apply_flattened_signature(
+    wrapper: Any,
+    original_func: Callable[..., Any],
+    request_class: Type[BaseModel],
+) -> None:
+    """Build a signature from the Pydantic model's fields and apply it to *wrapper*.
+
+    Each field in ``request_class.model_fields`` becomes a keyword-only parameter.
+    Field descriptions and constraints (ge, le, min_length, max_length, pattern,
+    etc.) are preserved via ``Annotated[type, Field(description=...), ...]``
+    so that FastMCP propagates them into the generated JSON schema.
+    """
+    params: list[inspect.Parameter] = []
+    annotations: dict[str, Any] = {}
+
+    for name, field_info in request_class.model_fields.items():
+        # Use alias as param name when set, otherwise field name.
+        # This ensures model_validate() always works: aliases are always
+        # accepted, while field names require populate_by_name=True.
+        param_name = field_info.alias if isinstance(field_info.alias, str) else name
+
+        # Determine the default value for this parameter.
+        # Check default_factory before default because Pydantic sets
+        # default to PydanticUndefined when default_factory is used.
+        if field_info.is_required():
+            default = inspect.Parameter.empty
+        elif field_info.default_factory is not None:
+            default = field_info.default_factory()
+        else:
+            default = field_info.default  # covers None and explicit defaults
+
+        # Build Annotated type with description and all constraint metadata
+        # (ge, le, min_length, max_length, pattern, etc.) so FastMCP
+        # propagates them into the generated JSON schema.
+        base_annotation = field_info.annotation
+        metadata_markers: list[Any] = []
+        if field_info.description:
+            metadata_markers.append(Field(description=field_info.description))
+        # Forward constraint metadata from the original Pydantic field.
+        # Pydantic v2 stores constraints (Ge, Le, MinLen, MaxLen, etc.)
+        # as annotation objects in field_info.metadata.
+        if field_info.metadata:
+            metadata_markers.extend(field_info.metadata)
+        if metadata_markers:
+            # Dynamically construct Annotated[base_type, meta1, meta2, ...]
+            annotation: Any = Annotated.__class_getitem__(  # type: ignore[attr-defined]
+                (base_annotation, *metadata_markers)
+            )
+        else:
+            annotation = base_annotation
+
+        params.append(
+            inspect.Parameter(
+                param_name,
+                kind=inspect.Parameter.KEYWORD_ONLY,
+                default=default,
+                annotation=annotation,
+            )
+        )
+        annotations[param_name] = annotation
+
+    # Preserve return annotation from the original function if present
+    orig_sig = inspect.signature(original_func)
+    wrapper.__signature__ = orig_sig.replace(
+        parameters=params,
+        return_annotation=orig_sig.return_annotation,
+    )
+    wrapper.__annotations__ = annotations
+    if orig_sig.return_annotation is not inspect.Parameter.empty:
+        wrapper.__annotations__["return"] = orig_sig.return_annotation
 
 
 def _apply_signature_for_fastmcp(
     wrapper: Any,
     original_func: Callable[..., Any],
     request_annotation: Any,
+    request_default: Any = None,
 ) -> None:
     """Apply annotations and signature to wrapper, stripping ctx for FastMCP.
 
@@ -538,7 +722,10 @@ def _apply_signature_for_fastmcp(
         if _is_context_param(param, name, FMContext):
             continue
         if name == "request":
-            new_params.append(param.replace(annotation=request_annotation))
+            replacement = {"annotation": request_annotation}
+            if request_default is not None:
+                replacement["default"] = request_default
+            new_params.append(param.replace(**replacement))
         else:
             new_params.append(param)
     wrapper.__signature__ = orig_sig.replace(parameters=new_params)

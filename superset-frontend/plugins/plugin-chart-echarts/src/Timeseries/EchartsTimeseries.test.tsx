@@ -158,7 +158,7 @@ const defaultFormData: EchartsTimeseriesFormData & {
   xAxisTitle: '',
   xAxisTitleMargin: 0,
   yAxisTitle: '',
-  yAxisTitleMargin: 0,
+  yAxisTitleMargin: 15,
   yAxisTitlePosition: '',
   time_range: 'No filter',
   granularity: undefined,

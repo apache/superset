@@ -18,6 +18,7 @@
  */
 import {
   useCallback,
+  useEffect,
   useState,
   useRef,
   type ChangeEvent,
@@ -164,6 +165,21 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
   const [manuallyOpenedNodes, setManuallyOpenedNodes] = useState<
     Record<string, boolean>
   >({});
+
+  // Keep a ref so the treeData effect below always reads the latest value
+  // without needing it as a dependency (we only want to re-open on data change).
+  const manuallyOpenedNodesRef = useRef(manuallyOpenedNodes);
+  manuallyOpenedNodesRef.current = manuallyOpenedNodes;
+
+  // When treeData changes (e.g., children arrive after an async fetch),
+  // react-arborist may reset the open state of nodes that just received children.
+  // Explicitly re-open every node the user has manually opened so children
+  // become visible immediately without requiring a second toggle.
+  useEffect(() => {
+    Object.entries(manuallyOpenedNodesRef.current)
+      .filter(([, isOpen]) => isOpen)
+      .forEach(([id]) => treeRef.current?.open(id));
+  }, [treeData]);
 
   // Custom search match function for react-arborist
   const searchMatch = useCallback(
@@ -320,18 +336,37 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
                     return;
                   }
 
+                  // Determine the previous open state to compute the new state.
+                  //
+                  // When searchTerm is active, react-arborist auto-expands nodes whose
+                  // descendants match the query. Those nodes have isOpen=true in the tree
+                  // but are absent from manuallyOpenedNodes, so the original check
+                  // (`manuallyOpenedNodes[id] ?? false`) misidentifies them as closed and
+                  // inverts the toggle direction. Reading from treeRef (which holds the
+                  // actual pre-toggle state because onToggle fires before the state change)
+                  // fixes this.
+                  //
+                  // When searchTerm is empty, searchMatch returns true for every node and
+                  // react-arborist marks all schemas as open (isOpen=true) even before any
+                  // user interaction. Using treeRef in that case would treat every first
+                  // click as a close action, so fall back to manuallyOpenedNodes instead.
+                  const wasOpen = searchTerm
+                    ? (treeRef.current?.get(id)?.isOpen ??
+                      manuallyOpenedNodes[id] ??
+                      false)
+                    : (manuallyOpenedNodes[id] ?? false);
+                  const isNowOpen = !wasOpen;
+
+                  // Trigger data fetch when opening
+                  if (isNowOpen) {
+                    handleToggle(id, true);
+                  }
+
                   // Track manually opened/closed state
-                  setManuallyOpenedNodes(prev => {
-                    const wasOpen = prev[id] ?? false;
-                    const isNowOpen = !wasOpen;
-
-                    // Trigger data fetch when opening
-                    if (isNowOpen) {
-                      handleToggle(id, true);
-                    }
-
-                    return { ...prev, [id]: isNowOpen };
-                  });
+                  setManuallyOpenedNodes(prev => ({
+                    ...prev,
+                    [id]: isNowOpen,
+                  }));
                 }}
               >
                 {renderNode}

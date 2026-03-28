@@ -23,8 +23,9 @@ import logging
 import time
 
 from fastmcp import Context
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.commands.exceptions import CommandException
 from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
@@ -45,7 +46,15 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
-@tool(tags=["mutate"])
+@tool(
+    tags=["mutate"],
+    class_permission_name="Chart",
+    annotations=ToolAnnotations(
+        title="Update chart",
+        readOnlyHint=False,
+        destructiveHint=True,
+    ),
+)
 @parse_request(UpdateChartRequest)
 async def update_chart(
     request: UpdateChartRequest, ctx: Context
@@ -126,10 +135,34 @@ async def update_chart(
                 }
             )
 
+        # Validate dataset access before allowing update.
+        # check_chart_data_access is the centralized data-level
+        # permission check that complements the class-level RBAC
+        # enforced by mcp_auth_hook.
+        from superset.mcp_service.auth import check_chart_data_access
+
+        validation_result = check_chart_data_access(chart)
+        if not validation_result.is_valid:
+            error_msg = validation_result.error or "Chart's dataset is not accessible"
+            return GenerateChartResponse.model_validate(
+                {
+                    "chart": None,
+                    "error": {
+                        "error_type": "DatasetNotAccessible",
+                        "message": error_msg,
+                        "details": error_msg,
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
+            )
+
         # Map the new config to form_data format
         # Get dataset_id from existing chart for column type checking
         dataset_id = chart.datasource_id if chart.datasource_id else None
         new_form_data = map_config_to_form_data(request.config, dataset_id=dataset_id)
+        new_form_data.pop("_mcp_warnings", None)
 
         # Update chart using Superset's command
         from superset.commands.chart.update import UpdateChartCommand
@@ -237,7 +270,7 @@ async def update_chart(
         }
         return GenerateChartResponse.model_validate(result)
 
-    except Exception as e:
+    except (CommandException, ValueError, KeyError, AttributeError) as e:
         execution_time = int((time.time() - start_time) * 1000)
         return GenerateChartResponse.model_validate(
             {

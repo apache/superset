@@ -70,7 +70,8 @@ Chart Management:
 
 SQL Lab Integration:
 - execute_sql: Execute SQL queries and get results (requires database_id)
-- open_sql_lab_with_context: Generate SQL Lab URL with pre-filled query
+- save_sql_query: Save a SQL query to Saved Queries list
+- open_sql_lab_with_context: Generate SQL Lab URL with pre-filled sql
 
 Schema Discovery:
 - get_schema: Get schema metadata for chart/dataset/dashboard (columns, filters)
@@ -103,9 +104,10 @@ To find your own charts/dashboards:
    "opr": "eq", "value": current_user.id}}])
 
 To explore data with SQL:
-1. get_instance_info -> find database_id
+1. list_datasets -> find a dataset and note its database_id
 2. execute_sql(database_id, sql) -> run query
-3. open_sql_lab_with_context(database_id) -> open SQL Lab UI
+3. save_sql_query(database_id, label, sql) -> save query for later reuse
+4. open_sql_lab_with_context(database_id) -> open SQL Lab UI
 
 generate_explore_link vs generate_chart:
 - Use generate_explore_link for exploration (no permanent chart created)
@@ -121,6 +123,10 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
 - chart_type="pie": Pie chart for proportional data (set donut=True for donut)
 - chart_type="pivot_table": Interactive pivot table for cross-tabulation
 - chart_type="mixed_timeseries": Dual-series chart combining two chart types
+- chart_type="handlebars": Custom HTML template chart (KPI cards, leaderboards, reports)
+  Requires handlebars_template with Handlebars HTML template string.
+  Supports query_mode="aggregate" (with metrics/groupby) or "raw" (with columns).
+  Data available as {{{{data}}}} array; helpers: dateFormat, formatNumber, stringify.
 
 Time grain for temporal x-axis (time_grain parameter):
 - PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P1Y (yearly)
@@ -153,8 +159,8 @@ CRITICAL RULES - NEVER VIOLATE:
   open_sql_lab_with_context, etc.) and use the URL it returns.
 - To modify an existing chart's filters, metrics, or dimensions, use update_chart.
   Do NOT use execute_sql for chart modifications.
-- Parameter name reminders: open_sql_lab_with_context uses "sql" (not "query"),
-  execute_sql uses "sql" (not "query").
+- Parameter name reminders: ALWAYS use the EXACT parameter names from the tool schema.
+  Do NOT use Superset's internal form_data names.
 
 IMPORTANT - Tool-Only Interaction:
 - Do NOT generate code artifacts, HTML pages, JavaScript snippets, or any code intended
@@ -415,6 +421,7 @@ from superset.mcp_service.explore.tool import (  # noqa: F401, E402
 from superset.mcp_service.sql_lab.tool import (  # noqa: F401, E402
     execute_sql,
     open_sql_lab_with_context,
+    save_sql_query,
 )
 from superset.mcp_service.system import (  # noqa: F401, E402
     prompts as system_prompts,
