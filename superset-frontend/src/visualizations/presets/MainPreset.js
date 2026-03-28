@@ -41,6 +41,7 @@ import {
   TimePivotChartPlugin,
 } from '@superset-ui/legacy-preset-chart-nvd3';
 import { DeckGLChartPreset } from '@superset-ui/legacy-preset-chart-deckgl';
+import { AvenABChartPlugin } from '../../../plugins/plugin-aven-ab-chart/src';
 import { CartodiagramPlugin } from '@superset-ui/plugin-chart-cartodiagram';
 import {
   BigNumberChartPlugin,
@@ -178,6 +179,7 @@ export default class MainPreset extends Preset {
         new EchartsSunburstChartPlugin().configure({ key: VizType.Sunburst }),
         new HandlebarsChartPlugin().configure({ key: VizType.Handlebars }),
         new EchartsBubbleChartPlugin().configure({ key: VizType.Bubble }),
+        new AvenABChartPlugin().configure({ key: 'aven_ab' }),
         new CartodiagramPlugin({
           defaultLayers: [
             {

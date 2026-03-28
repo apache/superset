@@ -29,10 +29,10 @@ import { createRef, useMemo } from 'react';
 import { formatNumber, styled, t } from '@superset-ui/core';
 import cdf from '@stdlib/stats-base-dists-normal-cdf';
 import { AvenABChartProps, AvenABChartStylesProps } from './types';
-import TableView from '../../../src/components/TableView/TableView';
+import { TableView } from '@superset-ui/core/components';
 import sortNumericValues from '../../../src/utils/sortNumericValues';
 import SparklineCell from '../../../src/visualizations/TimeTable/SparklineCell';
-import FormattedNumber from '../../../src/visualizations/TimeTable/FormattedNumber';
+import FormattedNumber from '../../../src/visualizations/TimeTable/components/FormattedNumber';
 
 // The following Styles component is a <div> element, which has been styled using Emotion
 // For docs, visit https://emotion.sh/docs/styled
