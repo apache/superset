@@ -97,7 +97,7 @@ def test_report_recipient_schema_email_invalid_target() -> None:
                 "recipient_config_json": {"target": "not-an-email"},
             }
         )
-    assert "recipient_config_json" in str(excinfo.value.messages)
+    assert "target" in excinfo.value.messages
 
 
 def test_report_recipient_schema_email_invalid_cc() -> None:
@@ -112,7 +112,36 @@ def test_report_recipient_schema_email_invalid_cc() -> None:
                 },
             }
         )
-    assert "recipient_config_json" in str(excinfo.value.messages)
+    assert "ccTarget" in excinfo.value.messages
+
+
+def test_report_recipient_schema_email_invalid_bcc() -> None:
+    schema = ReportRecipientSchema()
+    with pytest.raises(ValidationError) as excinfo:
+        schema.load(
+            {
+                "type": "Email",
+                "recipient_config_json": {
+                    "target": "user@example.com",
+                    "bccTarget": "not-valid",
+                },
+            }
+        )
+    assert "bccTarget" in excinfo.value.messages
+
+
+def test_report_recipient_schema_email_empty_bcc_allowed() -> None:
+    schema = ReportRecipientSchema()
+    result = schema.load(
+        {
+            "type": "Email",
+            "recipient_config_json": {
+                "target": "user@example.com",
+                "bccTarget": "",
+            },
+        }
+    )
+    assert result["recipient_config_json"]["target"] == "user@example.com"
 
 
 def test_report_recipient_schema_email_empty_cc_allowed() -> None:

@@ -19,10 +19,12 @@ jobs:
         id: check
         shell: bash
         run: |
-          if [ -n "${{ (secrets.GSHEET_KEY != '' ) || '' }}" ]; then
+          if [ -n "${GSHEET_KEY}" ]; then
             echo "has-secrets=1" >> "$GITHUB_OUTPUT"
           fi
 
+        env:
+          GSHEET_KEY: ${{ (secrets.GSHEET_KEY != '' ) || '' }}
   process-and-upload:
     needs: config
     if: needs.config.outputs.has-secrets
