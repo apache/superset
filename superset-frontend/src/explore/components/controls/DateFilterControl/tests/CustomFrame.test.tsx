@@ -32,8 +32,6 @@ jest.useFakeTimers();
 jest.setSystemTime(new Date(TODAY).getTime());
 
 const emptyValue = '';
-const nowValue = 'now : now';
-const todayValue = 'today : today';
 const todayNowValue = 'today : now';
 const specificValue = '2021-03-16T00:00:00 : 2021-03-17T00:00:00';
 const relativeNowValue = `DATEADD(DATETIME("now"), -7, day) : DATEADD(DATETIME("now"), 7, day)`;
@@ -45,7 +43,6 @@ const store = mockStore({
 });
 
 const emptyStore = mockStore({});
-const invalidStore = mockStore({ common: { locale: 'invalid_locale' } });
 
 const waitForLoading = async () => {
   if (screen.queryByLabelText('Loading')) {
@@ -116,7 +113,7 @@ describe('CustomFrame', () => {
     const relativeOption = await screen.findByTitle('Relative Date/Time');
     await userEvent.click(relativeOption);
     await waitFor(() => {
-    expect(relativeOption).toBeInTheDocument();
+      expect(relativeOption).toBeInTheDocument();
     });
 
     // Switch back via Specific Date/Time to trigger change
