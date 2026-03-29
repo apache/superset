@@ -264,3 +264,85 @@ test('renders contributed toolbar action in leftSidebar slot', async () => {
     screen.getByRole('button', { name: 'Left Sidebar Action' }),
   ).toBeInTheDocument();
 });
+
+test('shows columns immediately on first toggle when searchTerm is active', async () => {
+  // Regression: treeData change after async fetch was resetting react-arborist's
+  // internal open state, so children only appeared after toggling twice.
+  // The useEffect([treeData]) fix ensures manually-opened nodes stay open.
+  renderComponent();
+
+  await waitFor(() => {
+    expect(screen.getByText('public')).toBeInTheDocument();
+  });
+
+  // Expand schema to load tables
+  await userEvent.click(screen.getByText('public'));
+  await waitFor(() => {
+    expect(screen.getByText('users')).toBeInTheDocument();
+  });
+
+  // Activate search while schema is already expanded
+  const searchInput = screen.getByPlaceholderText(
+    'Enter a part of the object name',
+  );
+  await userEvent.type(searchInput, 'pub');
+
+  // Tables remain visible under the search-matched schema
+  expect(screen.getByText('users')).toBeInTheDocument();
+
+  // Toggle the table with searchTerm active — columns must appear on the FIRST click
+  await userEvent.click(screen.getByText('users'));
+
+  await waitFor(() => {
+    expect(screen.getByText('id')).toBeInTheDocument();
+  });
+  expect(screen.getByText('name')).toBeInTheDocument();
+  expect(screen.getByText('created_at')).toBeInTheDocument();
+});
+
+test('closes a schema while searchTerm is active and keeps it closed', async () => {
+  // Regression: manuallyOpenedNodes must record the schema as closed when the
+  // user collapses it with a searchTerm active. If it remains true, the treeData
+  // effect would immediately re-open the schema on the next data change.
+  //
+  // Note: searchTerm 'users' is intentional. A term that matches the schema name
+  // (e.g. 'pub') would cause highlightText to split 'public' across two DOM nodes,
+  // making screen.getByText('public') unreliable. 'users' matches a table name so
+  // the schema label is left as a plain text node and remains queryable.
+  renderComponent();
+
+  await waitFor(() => {
+    expect(screen.getByText('public')).toBeInTheDocument();
+  });
+
+  // Expand schema to load tables
+  await userEvent.click(screen.getByText('public'));
+  await waitFor(() => {
+    expect(screen.getByText('users')).toBeInTheDocument();
+  });
+
+  // Activate search with a term that matches a table name; 'public' schema is
+  // visible as an ancestor and its text is not highlighted (safe to query by text)
+  const searchInput = screen.getByPlaceholderText(
+    'Enter a part of the object name',
+  );
+  await userEvent.type(searchInput, 'users');
+  expect(screen.getByText('public')).toBeInTheDocument();
+
+  // Load columns to trigger a treeData change that could accidentally reopen the schema
+  await userEvent.click(screen.getByText('users'));
+  await waitFor(() => {
+    expect(screen.getByText('id')).toBeInTheDocument();
+  });
+
+  // Close the schema while searchTerm is active
+  await userEvent.click(screen.getByText('public'));
+
+  // Tables and columns must disappear and stay gone — the treeData effect must not
+  // reopen the schema because manuallyOpenedNodes was updated to false on close
+  await waitFor(() => {
+    expect(screen.queryByText('id')).not.toBeInTheDocument();
+  });
+  // The schema node itself remains visible as a matching ancestor (just collapsed)
+  expect(screen.getByText('public')).toBeInTheDocument();
+});
