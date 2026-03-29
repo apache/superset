@@ -40,7 +40,6 @@ from superset.mcp_service.dashboard.schemas import (
     AddChartToDashboardResponse,
     DashboardInfo,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
@@ -314,7 +313,6 @@ def _ensure_layout_structure(
         destructiveHint=False,
     ),
 )
-@parse_request(AddChartToDashboardRequest)
 def add_chart_to_existing_dashboard(
     request: AddChartToDashboardRequest, ctx: Context
 ) -> AddChartToDashboardResponse:
