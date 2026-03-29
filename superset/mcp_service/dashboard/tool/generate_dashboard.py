@@ -323,9 +323,9 @@ def generate_dashboard(
                 dashboard.slices = fresh_charts
 
                 db.session.add(dashboard)
-                db.session.commit()
+                db.session.commit()  # pylint: disable=consider-using-transaction
             except SQLAlchemyError as db_err:
-                db.session.rollback()
+                db.session.rollback()  # pylint: disable=consider-using-transaction
                 logger.error(
                     "Dashboard creation failed: %s",
                     db_err,
@@ -365,7 +365,7 @@ def generate_dashboard(
                 dashboard.id,
                 exc_info=True,
             )
-            db.session.rollback()
+            db.session.rollback()  # pylint: disable=consider-using-transaction
             dashboard_url = (
                 f"{get_superset_base_url()}/superset/dashboard/{dashboard.id}/"
             )
@@ -429,6 +429,14 @@ def generate_dashboard(
         )
 
     except (SQLAlchemyError, ValueError, AttributeError, ValidationError) as e:
+        from superset import db
+
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError:
+            logger.warning(
+                "Database rollback failed during error handling", exc_info=True
+            )
         logger.error("Error creating dashboard: %s", e, exc_info=True)
         return GenerateDashboardResponse(
             dashboard=None,
