@@ -42,7 +42,6 @@ from superset.mcp_service.dashboard.schemas import (
     GenerateDashboardRequest,
     GenerateDashboardResponse,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
@@ -190,7 +189,6 @@ def _generate_title_from_charts(chart_objects: List[Any]) -> str:
     ),
 )
 @mcp_auth_hook(class_permission_name="Dashboard", method_permission_name="write")
-@parse_request(GenerateDashboardRequest)
 def generate_dashboard(
     request: GenerateDashboardRequest, ctx: Context
 ) -> GenerateDashboardResponse:

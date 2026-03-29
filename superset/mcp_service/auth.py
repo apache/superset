@@ -558,6 +558,28 @@ def mcp_auth_hook(  # noqa: C901
 
         is_async = inspect.iscoroutinefunction(func)
 
+        # Detect if the original function expects a ctx: Context parameter.
+        # If so, we inject it via get_context() at call time so tool functions
+        # don't need @parse_request to handle Context injection.
+        from fastmcp import Context as FMContext
+
+        _tool_sig = inspect.signature(func)
+        _needs_ctx = any(
+            p.annotation is FMContext
+            or (
+                hasattr(p.annotation, "__name__") and p.annotation.__name__ == "Context"
+            )
+            for p in _tool_sig.parameters.values()
+        )
+
+        def _inject_ctx(kwargs: dict[str, Any]) -> dict[str, Any]:
+            """Inject FastMCP Context into kwargs if the tool function expects it."""
+            if _needs_ctx and "ctx" not in kwargs:
+                from fastmcp.server.dependencies import get_context
+
+                kwargs["ctx"] = get_context()
+            return kwargs
+
         if is_async:
 
             @functools.wraps(func)
@@ -572,7 +594,7 @@ def mcp_auth_hook(  # noqa: C901
                             "MCP internal call without Flask context: tool=%s",
                             func.__name__,
                         )
-                        return await func(*args, **kwargs)
+                        return await func(*args, **_inject_ctx(kwargs))
 
                     # RBAC permission check
                     if not check_tool_permission(func):
@@ -590,7 +612,7 @@ def mcp_auth_hook(  # noqa: C901
                             user.username,
                             func.__name__,
                         )
-                        result = await func(*args, **kwargs)
+                        result = await func(*args, **_inject_ctx(kwargs))
                         return result
                     except Exception:
                         _cleanup_session_on_error()
@@ -612,7 +634,7 @@ def mcp_auth_hook(  # noqa: C901
                             "MCP internal call without Flask context: tool=%s",
                             func.__name__,
                         )
-                        return func(*args, **kwargs)
+                        return func(*args, **_inject_ctx(kwargs))
 
                     # RBAC permission check
                     if not check_tool_permission(func):
@@ -630,7 +652,7 @@ def mcp_auth_hook(  # noqa: C901
                             user.username,
                             func.__name__,
                         )
-                        result = func(*args, **kwargs)
+                        result = func(*args, **_inject_ctx(kwargs))
                         return result
                     except Exception:
                         _cleanup_session_on_error()
@@ -669,18 +691,15 @@ def mcp_auth_hook(  # noqa: C901
         # Set __signature__ from the original function, but:
         # 1. Remove ctx parameter - FastMCP tools don't expose it to clients
         # 2. Skip if original has *args (parse_request output has its own handling)
-        from fastmcp import Context as FMContext
-
-        tool_sig = inspect.signature(func)
         has_var_positional = any(
             p.kind == inspect.Parameter.VAR_POSITIONAL
-            for p in tool_sig.parameters.values()
+            for p in _tool_sig.parameters.values()
         )
 
         if not has_var_positional:
             # For functions without *args, preserve signature but remove ctx
             new_params = []
-            for _name, param in tool_sig.parameters.items():
+            for _name, param in _tool_sig.parameters.items():
                 # Skip ctx parameter - FastMCP tools don't expose it to clients
                 if param.annotation is FMContext or (
                     hasattr(param.annotation, "__name__")
@@ -688,7 +707,7 @@ def mcp_auth_hook(  # noqa: C901
                 ):
                     continue
                 new_params.append(param)
-            new_wrapper.__signature__ = tool_sig.replace(  # type: ignore[attr-defined]
+            new_wrapper.__signature__ = _tool_sig.replace(  # type: ignore[attr-defined]
                 parameters=new_params
             )
 

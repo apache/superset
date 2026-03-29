@@ -40,7 +40,6 @@ from superset.mcp_service.chart.schemas import (
     serialize_chart_object,
 )
 from superset.mcp_service.mcp_core import ModelListCore
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +72,6 @@ SORTABLE_CHART_COLUMNS = [
     ),
 )
 @mcp_auth_hook(class_permission_name="Chart")
-@parse_request(ListChartsRequest)
 async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
     """List charts with filtering and search.
 

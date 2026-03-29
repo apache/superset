@@ -38,7 +38,6 @@ from superset.mcp_service.chart.chart_utils import (
 from superset.mcp_service.chart.schemas import (
     GenerateExploreLinkRequest,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
 
 
 @mcp.tool(
@@ -50,7 +49,6 @@ from superset.mcp_service.utils.schema_utils import parse_request
     ),
 )
 @mcp_auth_hook(class_permission_name="Explore")
-@parse_request(GenerateExploreLinkRequest)
 async def generate_explore_link(
     request: GenerateExploreLinkRequest, ctx: Context
 ) -> Dict[str, Any]:

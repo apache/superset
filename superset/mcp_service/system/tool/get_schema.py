@@ -49,7 +49,6 @@ from superset.mcp_service.common.schema_discovery import (
     ModelSchemaInfo,
 )
 from superset.mcp_service.mcp_core import ModelGetSchemaCore
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -130,7 +129,6 @@ _SCHEMA_CORE_FACTORIES: dict[
         destructiveHint=False,
     ),
 )
-@parse_request(GetSchemaRequest)
 async def get_schema(request: GetSchemaRequest, ctx: Context) -> GetSchemaResponse:
     """
     Get comprehensive schema metadata for a model type.

@@ -42,7 +42,6 @@ from superset.mcp_service.dataset.schemas import (
     serialize_dataset_object,
 )
 from superset.mcp_service.mcp_core import ModelListCore
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +71,6 @@ SORTABLE_DATASET_COLUMNS = [
     ),
 )
 @mcp_auth_hook(class_permission_name="Dataset")
-@parse_request(ListDatasetsRequest)
 async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetList:
     """List datasets with filtering and search.
 

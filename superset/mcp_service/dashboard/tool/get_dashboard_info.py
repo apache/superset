@@ -41,7 +41,6 @@ from superset.mcp_service.dashboard.schemas import (
     GetDashboardInfoRequest,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +69,6 @@ def _get_permalink_state(permalink_key: str) -> DashboardPermalinkValue | None:
     ),
 )
 @mcp_auth_hook(class_permission_name="Dashboard")
-@parse_request(GetDashboardInfoRequest)
 async def get_dashboard_info(
     request: GetDashboardInfoRequest, ctx: Context
 ) -> DashboardInfo | DashboardError:

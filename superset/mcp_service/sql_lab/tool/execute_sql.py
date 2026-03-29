@@ -35,7 +35,6 @@ from superset.mcp_service.sql_lab.schemas import (
     ExecuteSqlRequest,
     ExecuteSqlResponse,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +50,6 @@ logger = logging.getLogger(__name__)
 @mcp_auth_hook(
     class_permission_name="SQLLab", method_permission_name="execute_sql_query"
 )
-@parse_request(ExecuteSqlRequest)
 async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlResponse:
     """Execute SQL query against database.
 

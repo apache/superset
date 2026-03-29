@@ -42,7 +42,6 @@ from superset.mcp_service.dashboard.schemas import (
     serialize_dashboard_object,
 )
 from superset.mcp_service.mcp_core import ModelListCore
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +73,6 @@ SORTABLE_DASHBOARD_COLUMNS = [
     ),
 )
 @mcp_auth_hook(class_permission_name="Dashboard")
-@parse_request(ListDashboardsRequest)
 async def list_dashboards(
     request: ListDashboardsRequest, ctx: Context
 ) -> DashboardList:

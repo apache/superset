@@ -38,7 +38,6 @@ from superset.mcp_service.chart.schemas import (
     serialize_chart_object,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +66,6 @@ def _get_cached_form_data(form_data_key: str) -> str | None:
     ),
 )
 @mcp_auth_hook(class_permission_name="Chart")
-@parse_request(GetChartInfoRequest)
 async def get_chart_info(
     request: GetChartInfoRequest, ctx: Context
 ) -> ChartInfo | ChartError:
