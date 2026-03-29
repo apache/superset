@@ -19,7 +19,11 @@ import pytest
 from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 
-from superset.reports.schemas import ReportRecipientSchema, ReportSchedulePostSchema
+from superset.reports.schemas import (
+    ReportRecipientSchema,
+    ReportSchedulePostSchema,
+    ReportScheduleSubscribeSchema,
+)
 
 
 def test_report_post_schema_custom_width_validation(mocker: MockerFixture) -> None:
@@ -167,3 +171,31 @@ def test_report_recipient_schema_slack_skips_email_validation() -> None:
         }
     )
     assert result["recipient_config_json"]["target"] == "#general"
+
+
+def test_subscribe_schema_ignores_excluded_fields(mocker: MockerFixture) -> None:
+    """Excluded fields sent by the client are silently dropped, not rejected."""
+    mocker.patch(
+        "flask.current_app.config",
+        {
+            "ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH": 100,
+            "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": 2000,
+        },
+    )
+    schema = ReportScheduleSubscribeSchema()
+    result = schema.load(
+        {
+            "type": "Report",
+            "name": "My subscription",
+            "crontab": "0 9 * * *",
+            "timezone": "UTC",
+            "chart": 1,
+            # These are excluded server-side — should be silently dropped
+            "recipients": [
+                {"type": "Email", "recipient_config_json": {"target": "x@y.com"}}
+            ],
+            "creation_method": "alerts_reports",
+        }
+    )
+    assert "recipients" not in result
+    assert "creation_method" not in result

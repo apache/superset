@@ -316,6 +316,7 @@ class ReportScheduleSubscribeSchema(ReportSchedulePostSchema):
 
     class Meta:
         exclude = ("recipients", "creation_method")
+        unknown = EXCLUDE
 
 
 class ReportSchedulePutSchema(Schema):
