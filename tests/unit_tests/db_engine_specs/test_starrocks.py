@@ -329,3 +329,26 @@ def test_get_prequeries_with_email_prefix_dotted_local_part(
     assert StarRocksEngineSpec.get_prequeries(database) == [
         'EXECUTE AS "alice.doe" WITH NO REVERT;'
     ]
+
+@with_feature_flags(IMPERSONATE_WITH_EMAIL_PREFIX=True)
+def test_get_prequeries_with_email_prefix_from_user_email_when_effective_user_differs(
+    mocker: MockerFixture,
+) -> None:
+    """Use looked-up user.email local part when effective username is different."""
+    from superset.db_engine_specs.starrocks import StarRocksEngineSpec
+
+    user = mocker.MagicMock()
+    user.email = "alice.doe@example.org"
+    mocker.patch(
+        "superset.db_engine_specs.starrocks.security_manager.find_user",
+        return_value=user,
+    )
+
+    database = mocker.MagicMock()
+    database.impersonate_user = True
+    database.url_object = make_url("starrocks://localhost:9030/")
+    database.get_effective_user.return_value = "alice"
+
+    assert StarRocksEngineSpec.get_prequeries(database) == [
+        'EXECUTE AS "alice.doe" WITH NO REVERT;'
+    ]
