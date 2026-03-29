@@ -132,7 +132,7 @@ class DorisEngineSpec(MySQLEngineSpec):
             DatabaseCategory.ANALYTICAL_DATABASES,
             DatabaseCategory.OPEN_SOURCE,
         ],
-        "pypi_packages": ["pydoris"],
+        "pypi_packages": ["mysqlclient", "pydoris"],
         "connection_string": (
             "doris://{username}:{password}@{host}:{port}/{catalog}.{database}"
         ),
@@ -145,6 +145,53 @@ class DorisEngineSpec(MySQLEngineSpec):
             "catalog": "Catalog name",
             "database": "Database name",
         },
+        "compatible_databases": [
+            {
+                "name": "VeloDB",
+                "description": (
+                    "VeloDB is a fully-managed cloud service and enterprise "
+                    "distribution built on Apache Doris. It provides real-time "
+                    "analytics and search with enterprise security and support. "
+                    "It provides SaaS and BYOC offers on AWS, GCP, and Azure."
+                ),
+                "logo": "velodb.svg",
+                "homepage_url": "https://velodb.io/",
+                "categories": [
+                    DatabaseCategory.ANALYTICAL_DATABASES,
+                    DatabaseCategory.TIME_SERIES,
+                    DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+                "pypi_packages": ["mysqlclient", "pydoris"],
+                "connection_string": (
+                    "doris://{username}:{password}@{host}:{port}/{catalog}.{database}"
+                ),
+                "docs_url": "https://docs.velodb.io/",
+            },
+            {
+                "name": "SelectDB",
+                "description": (
+                    "SelectDB is a fully-managed cloud service and enterprise "
+                    "distribution built on Apache Doris. It provides real-time "
+                    "analytics and search with enterprise security and support. "
+                    "It provides SaaS and BYOC offers on Aliyun, Tencent Cloud, "
+                    "and Huawei Cloud."
+                ),
+                "logo": "selectdb.svg",
+                "homepage_url": "https://selectdb.com/",
+                "categories": [
+                    DatabaseCategory.ANALYTICAL_DATABASES,
+                    DatabaseCategory.TIME_SERIES,
+                    DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+                "pypi_packages": ["mysqlclient", "pydoris"],
+                "connection_string": (
+                    "doris://{username}:{password}@{host}:{port}/{catalog}.{database}"
+                ),
+                "docs_url": "https://docs.selectdb.com/",
+            },
+        ],
     }
 
     column_type_mappings = (  # type: ignore
