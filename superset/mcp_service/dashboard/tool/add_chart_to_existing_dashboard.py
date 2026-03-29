@@ -26,8 +26,10 @@ import re
 from typing import Any, Dict
 
 from fastmcp import Context
+from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.commands.exceptions import CommandException
 from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import serialize_chart_object
 from superset.mcp_service.dashboard.constants import (
@@ -486,8 +488,9 @@ def add_chart_to_existing_dashboard(
             ],
             roles=[],
             charts=[
-                serialize_chart_object(chart)
+                obj
                 for chart in getattr(updated_dashboard, "slices", [])
+                if (obj := serialize_chart_object(chart)) is not None
             ],
         )
 
@@ -509,7 +512,7 @@ def add_chart_to_existing_dashboard(
             error=None,
         )
 
-    except Exception as e:
+    except (CommandException, SQLAlchemyError, KeyError, ValueError) as e:
         logger.error("Error adding chart to dashboard: %s", e)
         return AddChartToDashboardResponse(
             dashboard=None,
