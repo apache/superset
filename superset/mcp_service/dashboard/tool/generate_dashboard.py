@@ -187,7 +187,7 @@ def _generate_title_from_charts(chart_objects: List[Any]) -> str:
         destructiveHint=False,
     ),
 )
-def generate_dashboard(
+def generate_dashboard(  # noqa: C901
     request: GenerateDashboardRequest, ctx: Context
 ) -> GenerateDashboardResponse:
     """Create dashboard from chart IDs.
@@ -325,7 +325,13 @@ def generate_dashboard(
                 db.session.add(dashboard)
                 db.session.commit()  # pylint: disable=consider-using-transaction
             except SQLAlchemyError as db_err:
-                db.session.rollback()  # pylint: disable=consider-using-transaction
+                try:
+                    db.session.rollback()  # pylint: disable=consider-using-transaction
+                except SQLAlchemyError:
+                    logger.warning(
+                        "Database rollback failed during error handling",
+                        exc_info=True,
+                    )
                 logger.error(
                     "Dashboard creation failed: %s",
                     db_err,
@@ -365,7 +371,13 @@ def generate_dashboard(
                 dashboard.id,
                 exc_info=True,
             )
-            db.session.rollback()  # pylint: disable=consider-using-transaction
+            try:
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+            except SQLAlchemyError:
+                logger.warning(
+                    "Database rollback failed during dashboard re-fetch error handling",
+                    exc_info=True,
+                )
             dashboard_url = (
                 f"{get_superset_base_url()}/superset/dashboard/{dashboard.id}/"
             )

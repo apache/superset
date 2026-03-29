@@ -742,7 +742,13 @@ async def generate_chart(  # noqa: C901
                     chart.id,
                     exc_info=True,
                 )
-                db.session.rollback()  # pylint: disable=consider-using-transaction
+                try:
+                    db.session.rollback()  # pylint: disable=consider-using-transaction
+                except SQLAlchemyError:
+                    logger.warning(
+                        "Database rollback failed during chart re-fetch error handling",
+                        exc_info=True,
+                    )
                 chart_data = {
                     "id": chart.id,
                     "slice_name": chart.slice_name,
