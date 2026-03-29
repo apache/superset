@@ -306,3 +306,26 @@ def test_get_prequeries_with_email_prefix(mocker: MockerFixture) -> None:
     assert StarRocksEngineSpec.get_prequeries(database) == [
         'EXECUTE AS "alice" WITH NO REVERT;'
     ]
+
+@with_feature_flags(IMPERSONATE_WITH_EMAIL_PREFIX=True)
+def test_get_prequeries_with_email_prefix_dotted_local_part(
+    mocker: MockerFixture,
+) -> None:
+    """Test that get_prequeries uses email prefix when IMPERSONATE_WITH_EMAIL_PREFIX"""
+    from superset.db_engine_specs.starrocks import StarRocksEngineSpec
+
+    user = mocker.MagicMock()
+    user.email = "alice.doe@example.org"
+    mocker.patch(
+        "superset.db_engine_specs.starrocks.security_manager.find_user",
+        return_value=user,
+    )
+
+    database = mocker.MagicMock()
+    database.impersonate_user = True
+    database.url_object = make_url("starrocks://localhost:9030/")
+    database.get_effective_user.return_value = "alice.doe@example.org"
+
+    assert StarRocksEngineSpec.get_prequeries(database) == [
+        'EXECUTE AS "alice.doe" WITH NO REVERT;'
+    ]
