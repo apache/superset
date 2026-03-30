@@ -1862,6 +1862,10 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
                     overwrite:
                       description: overwrite existing dashboards?
                       type: boolean
+                    overwrite_all:
+                      description: >-
+                        overwrite all existing assets within the dasboard?
+                      type: boolean
                     ssh_tunnel_passwords:
                       description: >-
                         JSON map of passwords for each ssh_tunnel associated to a
