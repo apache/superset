@@ -291,8 +291,17 @@ def _ensure_layout_structure(
     if "ROOT_ID" in layout:
         if "children" not in layout["ROOT_ID"]:
             layout["ROOT_ID"]["children"] = []
-        if "GRID_ID" not in layout["ROOT_ID"]["children"]:
-            layout["ROOT_ID"]["children"].append("GRID_ID")
+        # Only add GRID_ID to ROOT_ID when TABS are not already a direct
+        # child of ROOT_ID.  Real Superset dashboards with tabs place a
+        # TABS container directly under ROOT_ID (ROOT_ID → TABS → TABs).
+        # Adding GRID_ID as a sibling of TABS confuses the frontend layout
+        # engine and makes charts invisible.
+        root_children = layout["ROOT_ID"]["children"]
+        has_tabs_under_root = any(
+            layout.get(c, {}).get("type") == "TABS" for c in root_children
+        )
+        if not has_tabs_under_root and "GRID_ID" not in root_children:
+            root_children.append("GRID_ID")
     else:
         # Create ROOT_ID if it doesn't exist
         layout["ROOT_ID"] = {

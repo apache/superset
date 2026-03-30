@@ -404,22 +404,6 @@ def _cleanup_session_on_error() -> None:
         logger.warning("Error cleaning up session after exception: %s", e)
 
 
-def _ensure_session_cleanup() -> None:
-    """Ensure database session is clean after every tool call.
-
-    Called in the ``finally`` block of ``mcp_auth_hook`` so that a
-    poisoned session (e.g. from an SSL disconnect caught and returned
-    as an error response) never leaks into subsequent tool calls.
-    """
-    from superset.extensions import db
-
-    try:
-        db.session.rollback()  # pylint: disable=consider-using-transaction
-        db.session.remove()
-    except Exception as e:
-        logger.warning("Error in session cleanup (finally): %s", e)
-
-
 def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
     """
     Authentication and authorization decorator for MCP tools.
@@ -511,8 +495,6 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
                 except Exception:
                     _cleanup_session_on_error()
                     raise
-                finally:
-                    _ensure_session_cleanup()
 
         wrapper = async_wrapper
 
@@ -553,8 +535,6 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
                 except Exception:
                     _cleanup_session_on_error()
                     raise
-                finally:
-                    _ensure_session_cleanup()
 
         wrapper = sync_wrapper
 
