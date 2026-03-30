@@ -31,12 +31,12 @@ from superset.mcp_service.chart.schemas import (
 from superset.mcp_service.constants import MAX_PAGE_SIZE
 
 
-@pytest.fixture()
+@pytest.fixture
 def mcp_server():
     return mcp
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_chart():
     """Create a mock chart object."""
     chart = Mock()
