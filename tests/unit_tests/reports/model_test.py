@@ -15,8 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import pytest
-
 from superset.reports.models import ReportSchedule
 
 
@@ -559,11 +557,6 @@ def test_generate_native_filter_empty_filter_id():
     assert warning is None
 
 
-@pytest.mark.xfail(
-    reason="BUG: models.py uses truthiness (`if min_val and max_val`) "
-    "instead of `is not None`, so zero is treated as missing",
-    strict=True,
-)
 def test_generate_native_filter_range_zero_min():
     """Zero min_val should produce a two-sided label, not a max-only label."""
     report_schedule = ReportSchedule()
@@ -579,11 +572,6 @@ def test_generate_native_filter_range_zero_min():
     assert result["F5"]["filterState"]["label"] == "0 ≤ x ≤ 100"
 
 
-@pytest.mark.xfail(
-    reason="BUG: models.py uses truthiness (`if min_val and max_val`) "
-    "instead of `is not None`, so zero is treated as missing",
-    strict=True,
-)
 def test_generate_native_filter_range_zero_max():
     """Zero max_val should produce a two-sided label, not a min-only label."""
     report_schedule = ReportSchedule()
@@ -597,11 +585,6 @@ def test_generate_native_filter_range_zero_max():
     assert result["F5"]["filterState"]["label"] == "10 ≤ x ≤ 0"
 
 
-@pytest.mark.xfail(
-    reason="BUG: models.py uses truthiness (`if min_val and max_val`) "
-    "instead of `is not None`, so zero is treated as missing",
-    strict=True,
-)
 def test_generate_native_filter_range_both_zero():
     """Both values zero should produce a two-sided label, not an empty string."""
     report_schedule = ReportSchedule()

@@ -437,11 +437,6 @@ def test_get_dashboard_urls_with_filters_and_tabs(
     assert mock_permalink_cls.call_args_list[1].kwargs["state"]["anchor"] == "TAB-2"
 
 
-@pytest.mark.xfail(
-    reason="BUG: {urlParams: [...], **dashboard_state} overwrites native_filters. "
-    "Will pass when execute.py:281-291 is fixed.",
-    strict=True,
-)
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
 @with_feature_flags(ALERT_REPORT_TABS=True)
 def test_get_dashboard_urls_with_filters_no_tabs(
@@ -499,11 +494,6 @@ def test_get_dashboard_urls_with_filters_no_tabs(
     assert state["urlParams"] == [["native_filters", native_filter_rison]]
 
 
-@pytest.mark.xfail(
-    reason="BUG: {urlParams: [...], **dashboard_state} overwrites native_filters "
-    "and drops existing urlParams. Will pass when execute.py:281-291 is fixed.",
-    strict=True,
-)
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
 @with_feature_flags(ALERT_REPORT_TABS=True)
 def test_get_dashboard_urls_preserves_existing_url_params(
@@ -558,11 +548,6 @@ def test_get_dashboard_urls_preserves_existing_url_params(
     ]
 
 
-@pytest.mark.xfail(
-    reason="BUG: {urlParams: [...], **dashboard_state} overwrites native_filters "
-    "and drops existing urlParams. Will pass when execute.py:281-291 is fixed.",
-    strict=True,
-)
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
 @with_feature_flags(ALERT_REPORT_TABS=True)
 def test_get_dashboard_urls_deduplicates_stale_native_filters(
