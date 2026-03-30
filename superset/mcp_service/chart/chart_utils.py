@@ -1023,6 +1023,8 @@ def _handlebars_chart_what(config: HandlebarsChartConfig) -> str:
         metrics = ", ".join(col.name for col in config.metrics[:3])
         return f"Handlebars ({metrics})"
     return "Handlebars Chart"
+
+
 def _big_number_chart_what(config: BigNumberChartConfig) -> str:
     """Build the 'what' portion for a big number chart name.
 
