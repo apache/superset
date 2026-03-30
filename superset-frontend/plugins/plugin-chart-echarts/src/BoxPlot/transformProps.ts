@@ -23,8 +23,9 @@ import {
   getNumberFormatter,
   getTimeFormatter,
 } from '@superset-ui/core';
-import { EChartsCoreOption, BoxplotSeriesOption } from 'echarts';
-import { CallbackDataParams } from 'echarts/types/src/util/types';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { BoxplotSeriesOption } from 'echarts/charts';
+import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import {
   BoxPlotChartTransformedProps,
   BoxPlotQueryFormData,
@@ -53,6 +54,7 @@ export default function transformProps(
     filterState,
     queriesData,
     inContextMenu,
+    emitCrossFilters,
   } = chartProps;
   const { data = [] } = queriesData[0];
   const { setDataMask = () => {}, onContextMenu } = hooks;
@@ -64,7 +66,6 @@ export default function transformProps(
     numberFormat,
     dateFormat,
     xTicksLayout,
-    emitFilter,
     legendOrientation = 'top',
     xAxisTitle,
     yAxisTitle,
@@ -72,6 +73,7 @@ export default function transformProps(
     yAxisTitleMargin,
     yAxisTitlePosition,
     sliceId,
+    zoomable,
   } = formData as BoxPlotQueryFormData;
   const refs: Refs = {};
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
@@ -200,7 +202,7 @@ export default function transformProps(
       tooltip: {
         ...getDefaultTooltip(refs),
         formatter: (param: CallbackDataParams) => {
-          // @ts-ignore
+          // @ts-expect-error
           const {
             value,
             name,
@@ -228,20 +230,22 @@ export default function transformProps(
             `Median: ${numberFormatter(value[3])}`,
             `1st Quartile: ${numberFormatter(value[2])}`,
             `Min: ${numberFormatter(value[1])}`,
-            `# Observations: ${numberFormatter(value[7])}`,
+            `# Observations: ${value[7]}`,
           ];
           if (value[8].length > 0) {
-            stats.push(`# Outliers: ${numberFormatter(value[8].length)}`);
+            stats.push(`# Outliers: ${value[8].length}`);
           }
           return headline + stats.join('<br/>');
         },
       },
     },
-    // @ts-ignore
+    // @ts-expect-error
     ...outlierData,
   ];
-  const addYAxisTitleOffset = !!yAxisTitle;
-  const addXAxisTitleOffset = !!xAxisTitle;
+  const addYAxisTitleOffset =
+    !!yAxisTitle && convertInteger(yAxisTitleMargin) !== 0;
+  const addXAxisTitleOffset =
+    !!xAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
   const chartPadding = getPadding(
     true,
     legendOrientation,
@@ -283,6 +287,26 @@ export default function transformProps(
       },
     },
     series,
+    toolbox: {
+      show: zoomable,
+      feature: {
+        dataZoom: {
+          title: {
+            zoom: 'zoom area',
+            back: 'restore zoom',
+          },
+        },
+      },
+    },
+    dataZoom: zoomable
+      ? [
+          {
+            type: 'inside',
+            zoomOnMouseWheel: false,
+            moveOnMouseWheel: true,
+          },
+        ]
+      : [],
   };
 
   return {
@@ -291,11 +315,12 @@ export default function transformProps(
     height,
     echartOptions,
     setDataMask,
-    emitFilter,
+    emitCrossFilters,
     labelMap,
     groupby,
     selectedValues,
     onContextMenu,
     refs,
+    coltypeMapping,
   };
 }

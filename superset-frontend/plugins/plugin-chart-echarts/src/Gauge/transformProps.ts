@@ -21,14 +21,16 @@ import {
   CategoricalColorNamespace,
   CategoricalColorScale,
   DataRecord,
-  getNumberFormatter,
   getMetricLabel,
   getColumnLabel,
+  getValueFormatter,
+  tooltipHtml,
 } from '@superset-ui/core';
-import { EChartsCoreOption, GaugeSeriesOption } from 'echarts';
-import { GaugeDataItemOption } from 'echarts/types/src/chart/gauge/GaugeSeries';
-import { CallbackDataParams } from 'echarts/types/src/util/types';
-import range from 'lodash/range';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { GaugeSeriesOption } from 'echarts/charts';
+import type { GaugeDataItemOption } from 'echarts/types/src/chart/gauge/GaugeSeries';
+import type { CallbackDataParams } from 'echarts/types/src/util/types';
+import { range } from 'lodash';
 import { parseNumbersList } from '../utils/controls';
 import {
   DEFAULT_FORM_DATA as DEFAULT_GAUGE_FORM_DATA,
@@ -46,12 +48,14 @@ import {
 import { OpacityEnum } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
+import { getColtypesMapping } from '../utils/series';
 
-const setIntervalBoundsAndColors = (
+export const getIntervalBoundsAndColors = (
   intervals: string,
   intervalColorIndices: string,
   colorFn: CategoricalColorScale,
-  normalizer: number,
+  min: number,
+  max: number,
 ): Array<[number, string]> => {
   let intervalBoundsNonNormalized;
   let intervalColorIndicesArray;
@@ -64,7 +68,7 @@ const setIntervalBoundsAndColors = (
   }
 
   const intervalBounds = intervalBoundsNonNormalized.map(
-    bound => bound / normalizer,
+    bound => (bound - min) / (max - min),
   );
   const intervalColors = intervalColorIndicesArray.map(
     ind => colorFn.colors[(ind - 1) % colorFn.colors.length],
@@ -91,11 +95,25 @@ const calculateMax = (data: GaugeDataItemOption[]) =>
 export default function transformProps(
   chartProps: EchartsGaugeChartProps,
 ): GaugeChartTransformedProps {
-  const { width, height, formData, queriesData, hooks, filterState, theme } =
-    chartProps;
+  const {
+    width,
+    height,
+    formData,
+    queriesData,
+    hooks,
+    filterState,
+    theme,
+    emitCrossFilters,
+    datasource,
+  } = chartProps;
 
   const gaugeSeriesOptions = defaultGaugeSeriesOption(theme);
-
+  const {
+    verboseMap = {},
+    currencyFormats = {},
+    columnFormats = {},
+    currencyCodeColumn,
+  } = datasource;
   const {
     groupby,
     metric,
@@ -104,6 +122,7 @@ export default function transformProps(
     colorScheme,
     fontSize,
     numberFormat,
+    currencyFormat,
     animation,
     showProgress,
     overlap,
@@ -117,12 +136,23 @@ export default function transformProps(
     intervals,
     intervalColorIndices,
     valueFormatter,
-    emitFilter,
     sliceId,
   }: EchartsGaugeFormData = { ...DEFAULT_GAUGE_FORM_DATA, ...formData };
   const refs: Refs = {};
   const data = (queriesData[0]?.data || []) as DataRecord[];
-  const numberFormatter = getNumberFormatter(numberFormat);
+  const detectedCurrency = queriesData[0]?.detected_currency;
+  const coltypeMapping = getColtypesMapping(queriesData[0]);
+  const numberFormatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    numberFormat,
+    currencyFormat,
+    undefined,
+    data,
+    currencyCodeColumn,
+    detectedCurrency,
+  );
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const axisLineWidth = calculateAxisLineWidth(data, fontSize, overlap);
   const groupbyLabels = groupby.map(getColumnLabel);
@@ -135,21 +165,23 @@ export default function transformProps(
   const detailOffsetFromTitle =
     FONT_SIZE_MULTIPLIERS.detailOffsetFromTitle * fontSize;
   const columnsLabelMap = new Map<string, string[]>();
+  const metricLabel = getMetricLabel(metric as QueryFormMetric);
 
   const transformedData: GaugeDataItemOption[] = data.map(
     (data_point, index) => {
       const name = groupbyLabels
-        .map(column => `${column}: ${data_point[column]}`)
+        .map(column => `${verboseMap[column] || column}: ${data_point[column]}`)
         .join(', ');
+      const colorLabel = groupbyLabels.map(col => data_point[col] as string);
       columnsLabelMap.set(
         name,
         groupbyLabels.map(col => data_point[col] as string),
       );
       let item: GaugeDataItemOption = {
-        value: data_point[getMetricLabel(metric as QueryFormMetric)] as number,
+        value: data_point[metricLabel] as number,
         name,
         itemStyle: {
-          color: colorFn(index, sliceId),
+          color: colorFn(colorLabel, sliceId),
         },
         title: {
           offsetCenter: [
@@ -157,6 +189,7 @@ export default function transformProps(
             `${index * titleOffsetFromTitle + OFFSETS.titleFromCenter}%`,
           ],
           fontSize,
+          color: theme.colorTextSecondary,
         },
         detail: {
           offsetCenter: [
@@ -168,6 +201,7 @@ export default function transformProps(
             }%`,
           ],
           fontSize: FONT_SIZE_MULTIPLIERS.detailFontSize * fontSize,
+          color: theme.colorText,
         },
       };
       if (
@@ -194,18 +228,30 @@ export default function transformProps(
 
   const { setDataMask = () => {}, onContextMenu } = hooks;
 
-  const min = minVal ?? calculateMin(transformedData);
-  const max = maxVal ?? calculateMax(transformedData);
+  const isValidNumber = (
+    val: number | null | undefined | string,
+  ): val is number => {
+    if (val == null || val === '') return false;
+    const num = typeof val === 'string' ? Number(val) : val;
+    return !Number.isNaN(num) && Number.isFinite(num);
+  };
+
+  const min = isValidNumber(minVal)
+    ? Number(minVal)
+    : calculateMin(transformedData);
+  const max = isValidNumber(maxVal)
+    ? Number(maxVal)
+    : calculateMax(transformedData);
   const axisLabels = range(min, max, (max - min) / splitNumber);
   const axisLabelLength = Math.max(
     ...axisLabels.map(label => numberFormatter(label).length).concat([1]),
   );
-  const normalizer = max;
-  const intervalBoundsAndColors = setIntervalBoundsAndColors(
+  const intervalBoundsAndColors = getIntervalBoundsAndColors(
     intervals,
     intervalColorIndices,
     colorFn,
-    normalizer,
+    min,
+    max,
   );
   const splitLineDistance =
     axisLineWidth + splitLineLength + OFFSETS.ticksFromLine;
@@ -264,7 +310,7 @@ export default function transformProps(
     ...getDefaultTooltip(refs),
     formatter: (params: CallbackDataParams) => {
       const { name, value } = params;
-      return `${name} : ${formatValue(value as number)}`;
+      return tooltipHtml([[metricLabel, formatValue(value as number)]], name);
     },
   };
 
@@ -304,7 +350,6 @@ export default function transformProps(
       axisTick,
       pointer,
       detail,
-      // @ts-ignore
       tooltip,
       radius:
         Math.min(width, height) / 2 - axisLabelDistance - axisTickDistance,
@@ -327,11 +372,12 @@ export default function transformProps(
     height,
     echartOptions,
     setDataMask,
-    emitFilter,
+    emitCrossFilters,
     labelMap: Object.fromEntries(columnsLabelMap),
     groupby,
     selectedValues: filterState.selectedValues || [],
     onContextMenu,
     refs,
+    coltypeMapping,
   };
 }

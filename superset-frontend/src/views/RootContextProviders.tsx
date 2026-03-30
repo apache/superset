@@ -17,22 +17,21 @@
  * under the License.
  */
 
-import React from 'react';
-import { Route } from 'react-router-dom';
-import { getExtensionsRegistry, ThemeProvider } from '@superset-ui/core';
+import { getExtensionsRegistry } from '@superset-ui/core';
 import { Provider as ReduxProvider } from 'react-redux';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-
+import { DynamicPluginProvider } from 'src/components';
+import { EmbeddedUiConfigProvider } from 'src/components/UiConfigContext';
+import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
+import { ThemeController } from 'src/theme/ThemeController';
 import { store } from './store';
-import FlashProvider from '../components/FlashProvider';
-import { bootstrapData, theme } from '../preamble';
-import { EmbeddedUiConfigProvider } from '../components/UiConfigContext';
-import { DynamicPluginProvider } from '../components/DynamicPlugins';
+import '../preamble';
+import querystring from 'query-string';
 
-const common = { ...bootstrapData.common };
-
+const themeController = new ThemeController();
 const extensionsRegistry = getExtensionsRegistry();
 
 export const RootContextProviders: React.FC = ({ children }) => {
@@ -41,29 +40,31 @@ export const RootContextProviders: React.FC = ({ children }) => {
   );
 
   return (
-    <ThemeProvider theme={theme}>
+    <SupersetThemeProvider themeController={themeController}>
       <ReduxProvider store={store}>
         <DndProvider backend={HTML5Backend}>
-          <FlashProvider messages={common.flash_messages}>
-            <EmbeddedUiConfigProvider>
-              <DynamicPluginProvider>
-                <QueryParamProvider
-                  ReactRouterRoute={Route}
-                  stringifyOptions={{ encode: false }}
-                >
-                  {RootContextProviderExtension ? (
-                    <RootContextProviderExtension>
-                      {children}
-                    </RootContextProviderExtension>
-                  ) : (
-                    children
-                  )}
-                </QueryParamProvider>
-              </DynamicPluginProvider>
-            </EmbeddedUiConfigProvider>
-          </FlashProvider>
+          <EmbeddedUiConfigProvider>
+            <DynamicPluginProvider>
+              <QueryParamProvider
+                adapter={ReactRouter5Adapter}
+                options={{
+                  searchStringToObject: querystring.parse,
+                  objectToSearchString: (object: Record<string, any>) =>
+                    querystring.stringify(object, { encode: false }),
+                }}
+              >
+                {RootContextProviderExtension ? (
+                  <RootContextProviderExtension>
+                    {children}
+                  </RootContextProviderExtension>
+                ) : (
+                  children
+                )}
+              </QueryParamProvider>
+            </DynamicPluginProvider>
+          </EmbeddedUiConfigProvider>
         </DndProvider>
       </ReduxProvider>
-    </ThemeProvider>
+    </SupersetThemeProvider>
   );
 };

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SqlaFormData } from '@superset-ui/core';
+import { SqlaFormData, VizType } from '@superset-ui/core';
 import buildQuery from '../../src/Timeseries/buildQuery';
 
 describe('Timeseries buildQuery', () => {
@@ -27,13 +27,13 @@ describe('Timeseries buildQuery', () => {
     viz_type: 'my_chart',
   };
 
-  it('should build groupby with series in form data', () => {
+  test('should build groupby with series in form data', () => {
     const queryContext = buildQuery(formData);
     const [query] = queryContext.queries;
     expect(query.metrics).toEqual(['bar', 'baz']);
   });
 
-  it('should order by timeseries limit if orderby unspecified', () => {
+  test('should order by timeseries limit if orderby unspecified', () => {
     const queryContext = buildQuery({
       ...formData,
       timeseries_limit_metric: 'bar',
@@ -46,7 +46,7 @@ describe('Timeseries buildQuery', () => {
     expect(query.orderby).toEqual([['bar', false]]);
   });
 
-  it('should not order by timeseries limit if orderby provided', () => {
+  test('should not order by timeseries limit if orderby provided', () => {
     const queryContext = buildQuery({
       ...formData,
       timeseries_limit_metric: 'bar',
@@ -61,25 +61,10 @@ describe('Timeseries buildQuery', () => {
   });
 });
 
-describe('GENERIC_CHART_AXES is enabled', () => {
-  let windowSpy: any;
-
-  beforeAll(() => {
-    // @ts-ignore
-    windowSpy = jest.spyOn(window, 'window', 'get').mockImplementation(() => ({
-      featureFlags: {
-        GENERIC_CHART_AXES: true,
-      },
-    }));
-  });
-
-  afterAll(() => {
-    windowSpy.mockRestore();
-  });
-
+describe('queryObject conversion', () => {
   const formData: SqlaFormData = {
     datasource: '5__table',
-    viz_type: 'table',
+    viz_type: VizType.Table,
     granularity_sqla: 'time_column',
     time_grain_sqla: 'P1Y',
     time_range: '1 year ago : 2013',
@@ -87,7 +72,7 @@ describe('GENERIC_CHART_AXES is enabled', () => {
     metrics: ['count(*)'],
   };
 
-  it("shouldn't convert queryObject", () => {
+  test("shouldn't convert queryObject", () => {
     const { queries } = buildQuery(formData);
     expect(queries[0]).toEqual(
       expect.objectContaining({
@@ -114,127 +99,37 @@ describe('GENERIC_CHART_AXES is enabled', () => {
     );
   });
 
-  it('should convert queryObject', () => {
+  test('should convert queryObject', () => {
     const { queries } = buildQuery({ ...formData, x_axis: 'time_column' });
-    expect(queries[0]).toEqual(
-      expect.objectContaining({
-        granularity: 'time_column',
-        time_range: '1 year ago : 2013',
-        extras: { having: '', where: '' },
-        columns: [
-          {
-            columnType: 'BASE_AXIS',
-            expressionType: 'SQL',
-            label: 'time_column',
-            sqlExpression: 'time_column',
-            timeGrain: 'P1Y',
+    expect(queries[0]).toMatchObject({
+      granularity: 'time_column',
+      time_range: '1 year ago : 2013',
+      extras: { having: '', where: '', time_grain_sqla: 'P1Y' },
+      columns: [
+        {
+          columnType: 'BASE_AXIS',
+          expressionType: 'SQL',
+          label: 'time_column',
+          sqlExpression: 'time_column',
+          timeGrain: 'P1Y',
+          isColumnReference: true,
+        },
+        'col1',
+      ],
+      series_columns: ['col1'],
+      metrics: ['count(*)'],
+      post_processing: [
+        {
+          operation: 'pivot',
+          options: {
+            aggregates: { 'count(*)': { operator: 'mean' } },
+            columns: ['col1'],
+            drop_missing_columns: true,
+            index: ['time_column'],
           },
-          'col1',
-        ],
-        series_columns: ['col1'],
-        metrics: ['count(*)'],
-        post_processing: [
-          {
-            operation: 'pivot',
-            options: {
-              aggregates: { 'count(*)': { operator: 'mean' } },
-              columns: ['col1'],
-              drop_missing_columns: true,
-              index: ['time_column'],
-            },
-          },
-          { operation: 'flatten' },
-        ],
-      }),
-    );
-  });
-});
-
-describe('GENERIC_CHART_AXES is disabled', () => {
-  let windowSpy: any;
-
-  beforeAll(() => {
-    // @ts-ignore
-    windowSpy = jest.spyOn(window, 'window', 'get').mockImplementation(() => ({
-      featureFlags: {
-        GENERIC_CHART_AXES: false,
-      },
-    }));
-  });
-
-  afterAll(() => {
-    windowSpy.mockRestore();
-  });
-
-  const formData: SqlaFormData = {
-    datasource: '5__table',
-    viz_type: 'table',
-    granularity_sqla: 'time_column',
-    time_grain_sqla: 'P1Y',
-    time_range: '1 year ago : 2013',
-    groupby: ['col1'],
-    metrics: ['count(*)'],
-  };
-
-  it("shouldn't convert queryObject", () => {
-    const { queries } = buildQuery(formData);
-    expect(queries[0]).toEqual(
-      expect.objectContaining({
-        granularity: 'time_column',
-        time_range: '1 year ago : 2013',
-        extras: { time_grain_sqla: 'P1Y', having: '', where: '' },
-        columns: ['col1'],
-        series_columns: ['col1'],
-        metrics: ['count(*)'],
-        is_timeseries: true,
-        post_processing: [
-          {
-            operation: 'pivot',
-            options: {
-              aggregates: { 'count(*)': { operator: 'mean' } },
-              columns: ['col1'],
-              drop_missing_columns: true,
-              index: ['__timestamp'],
-            },
-          },
-          { operation: 'flatten' },
-        ],
-      }),
-    );
-  });
-
-  it('should convert queryObject', () => {
-    const { queries } = buildQuery({ ...formData, x_axis: 'time_column' });
-    expect(queries[0]).toEqual(
-      expect.objectContaining({
-        granularity: 'time_column',
-        time_range: '1 year ago : 2013',
-        extras: { having: '', where: '' },
-        columns: [
-          {
-            columnType: 'BASE_AXIS',
-            expressionType: 'SQL',
-            label: 'time_column',
-            sqlExpression: 'time_column',
-            timeGrain: 'P1Y',
-          },
-          'col1',
-        ],
-        series_columns: ['col1'],
-        metrics: ['count(*)'],
-        post_processing: [
-          {
-            operation: 'pivot',
-            options: {
-              aggregates: { 'count(*)': { operator: 'mean' } },
-              columns: ['col1'],
-              drop_missing_columns: true,
-              index: ['time_column'],
-            },
-          },
-          { operation: 'flatten' },
-        ],
-      }),
-    );
+        },
+        { operation: 'flatten' },
+      ],
+    });
   });
 });

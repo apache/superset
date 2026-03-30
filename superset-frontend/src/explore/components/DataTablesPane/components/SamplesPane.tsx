@@ -16,11 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useMemo } from 'react';
-import { ensureIsArray, GenericDataType, styled, t } from '@superset-ui/core';
-import Loading from 'src/components/Loading';
-import { EmptyStateMedium } from 'src/components/EmptyState';
-import TableView, { EmptyWrapperType } from 'src/components/TableView';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { ensureIsArray } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
+import {
+  TableView,
+  TableSize,
+  EmptyState,
+  Loading,
+  EmptyWrapperType,
+} from '@superset-ui/core/components';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   useFilteredTableData,
   useTableColumns,
@@ -30,7 +37,7 @@ import { TableControls } from './DataTableControls';
 import { SamplesPaneProps } from '../types';
 
 const Error = styled.pre`
-  margin-top: ${({ theme }) => `${theme.gridUnit * 4}px`};
+  margin-top: ${({ theme }) => `${theme.sizeUnit * 4}px`};
 `;
 
 const cache = new WeakSet();
@@ -39,15 +46,17 @@ export const SamplesPane = ({
   isRequest,
   datasource,
   queryForce,
-  actions,
+  setForceQuery,
   dataSize = 50,
   isVisible,
+  canDownload,
 }: SamplesPaneProps) => {
   const [filterText, setFilterText] = useState('');
   const [data, setData] = useState<Record<string, any>[][]>([]);
   const [colnames, setColnames] = useState<string[]>([]);
   const [coltypes, setColtypes] = useState<GenericDataType[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [rowcount, setRowCount] = useState<number>(0);
   const [responseError, setResponseError] = useState<string>('');
   const datasourceId = useMemo(
     () => `${datasource.id}__${datasource.type}`,
@@ -61,15 +70,16 @@ export const SamplesPane = ({
 
     if (isRequest && !cache.has(datasource)) {
       setIsLoading(true);
-      getDatasourceSamples(datasource.type, datasource.id, queryForce)
+      getDatasourceSamples(datasource.type, datasource.id, queryForce, {})
         .then(response => {
           setData(ensureIsArray(response.data));
           setColnames(ensureIsArray(response.colnames));
           setColtypes(ensureIsArray(response.coltypes));
+          setRowCount(response.rowcount);
           setResponseError('');
           cache.add(datasource);
-          if (queryForce && actions) {
-            actions.setForceQuery(false);
+          if (queryForce) {
+            setForceQuery?.(false);
           }
         })
         .catch(error => {
@@ -92,8 +102,15 @@ export const SamplesPane = ({
     data,
     datasourceId,
     isVisible,
+    {}, // moreConfig
+    true, // allowHTML
   );
   const filteredData = useFilteredTableData(filterText, data);
+
+  const handleInputChange = useCallback(
+    (input: string) => setFilterText(input),
+    [],
+  );
 
   if (isLoading) {
     return <Loading />;
@@ -106,9 +123,11 @@ export const SamplesPane = ({
           data={filteredData}
           columnNames={colnames}
           columnTypes={coltypes}
+          rowcount={rowcount}
           datasourceId={datasourceId}
-          onInputChange={input => setFilterText(input)}
+          onInputChange={handleInputChange}
           isLoading={isLoading}
+          canDownload={canDownload}
         />
         <Error>{responseError}</Error>
       </>
@@ -117,7 +136,7 @@ export const SamplesPane = ({
 
   if (data.length === 0) {
     const title = t('No samples were returned for this dataset');
-    return <EmptyStateMedium image="document.svg" title={title} />;
+    return <EmptyState image="document.svg" title={title} />;
   }
 
   return (
@@ -126,9 +145,11 @@ export const SamplesPane = ({
         data={filteredData}
         columnNames={colnames}
         columnTypes={coltypes}
+        rowcount={rowcount}
         datasourceId={datasourceId}
-        onInputChange={input => setFilterText(input)}
+        onInputChange={handleInputChange}
         isLoading={isLoading}
+        canDownload={canDownload}
       />
       <TableView
         columns={columns}
@@ -139,6 +160,7 @@ export const SamplesPane = ({
         className="table-condensed"
         isPaginationSticky
         showRowCount={false}
+        size={TableSize.Small}
         small
       />
     </>

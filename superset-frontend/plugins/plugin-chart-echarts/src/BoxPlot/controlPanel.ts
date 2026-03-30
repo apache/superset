@@ -16,20 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   isAdhocColumn,
   isPhysicalColumn,
-  t,
   validateNonEmpty,
 } from '@superset-ui/core';
 import {
   D3_FORMAT_DOCS,
+  D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
-  formatSelectOptions,
   sections,
-  emitFilterControl,
   ControlPanelConfig,
   getStandardizedControls,
   ControlState,
@@ -40,7 +39,6 @@ import {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -78,9 +76,9 @@ const config: ControlPanelConfig = {
         ['groupby'],
         ['metrics'],
         ['adhoc_filters'],
-        emitFilterControl,
         ['series_limit'],
         ['series_limit_metric'],
+        ['row_limit'],
         [
           {
             name: 'whiskerOptions',
@@ -93,12 +91,14 @@ const config: ControlPanelConfig = {
               description: t(
                 'Determines how whiskers and outliers are calculated.',
               ),
-              choices: formatSelectOptions([
-                'Tukey',
-                'Min/max (no outliers)',
-                '2/98 percentiles',
-                '9/91 percentiles',
-              ]),
+              choices: [
+                ['Tukey', t('Tukey')],
+                ['Min/max (no outliers)', t('Min/max (no outliers)')],
+                ['2/98 percentiles', t('2/98 percentiles')],
+                ['5/95 percentiles', t('5/95 percentiles')],
+                ['9/91 percentiles', t('9/91 percentiles')],
+                ['10/90 percentiles', t('10/90 percentiles')],
+              ],
             },
           },
         ],
@@ -116,13 +116,13 @@ const config: ControlPanelConfig = {
             config: {
               type: 'SelectControl',
               label: t('X Tick Layout'),
-              choices: formatSelectOptions([
-                'auto',
-                'flat',
-                '45°',
-                '90°',
-                'staggered',
-              ]),
+              choices: [
+                ['auto', t('auto')],
+                ['flat', t('flat')],
+                ['45°', '45°'],
+                ['90°', '90°'],
+                ['staggered', t('staggered')],
+              ],
               default: 'auto',
               clearable: false,
               renderTrigger: true,
@@ -140,9 +140,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: 'SMART_NUMBER',
               choices: D3_FORMAT_OPTIONS,
-              description: `${t(
-                'D3 format syntax: https://github.com/d3/d3-format',
-              )} ${t('Only applies when "Label Type" is set to show values.')}`,
+              description: `${D3_FORMAT_DOCS} ${D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT}`,
             },
           },
         ],
@@ -160,6 +158,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['zoomable'],
       ],
     },
   ],

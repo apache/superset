@@ -16,24 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { logging } from '@apache-superset/core/utils';
+import { t } from '@apache-superset/core/translation';
 import {
-  FeatureFlag,
-  hasGenericChartAxes,
-  isFeatureEnabled,
-  logging,
   Metric,
   QueryFormData,
   QueryFormMetric,
   SupersetClient,
-  t,
 } from '@superset-ui/core';
 import {
   ColumnMeta,
   isColumnMeta,
   isTemporalColumn,
-  withDndFallback,
 } from '@superset-ui/chart-controls';
+import { Modal } from '@superset-ui/core/components';
 import {
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
   Operators,
@@ -42,10 +39,7 @@ import { Datasource, OptionSortType } from 'src/explore/types';
 import { OptionValueType } from 'src/explore/components/controls/DndColumnSelectControl/types';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
-import AdhocFilter, {
-  CLAUSES,
-  EXPRESSION_TYPES,
-} from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import {
   DatasourcePanelDndItem,
@@ -54,9 +48,12 @@ import {
 } from 'src/explore/components/DatasourcePanel/types';
 import { DndItemType } from 'src/explore/components/DndItemType';
 import { ControlComponentProps } from 'src/explore/components/Control';
-import AdhocFilterControl from '../FilterControl/AdhocFilterControl';
+import { toQueryString } from 'src/utils/urlUtils';
 import DndAdhocFilterOption from './DndAdhocFilterOption';
 import { useDefaultTimeFilter } from '../DateFilterControl/utils';
+import { Clauses, ExpressionTypes } from '../FilterControl/types';
+
+const { warning } = Modal;
 
 const EMPTY_OBJECT = {};
 const DND_ACCEPTED_TYPES = [
@@ -69,16 +66,39 @@ const DND_ACCEPTED_TYPES = [
 const isDictionaryForAdhocFilter = (value: OptionValueType) =>
   !(value instanceof AdhocFilter) && value?.expressionType;
 
-export interface DndFilterSelectProps
-  extends ControlComponentProps<OptionValueType[]> {
+export interface DndFilterSelectProps extends ControlComponentProps<
+  OptionValueType[]
+> {
   columns: ColumnMeta[];
   savedMetrics: Metric[];
   selectedMetrics: QueryFormMetric[];
   datasource: Datasource;
+  canDelete?: (
+    valueToBeDeleted: OptionValueType,
+    values: OptionValueType[],
+  ) => true | string;
 }
 
 const DndFilterSelect = (props: DndFilterSelectProps) => {
-  const { datasource, onChange = () => {}, name: controlName } = props;
+  const {
+    datasource,
+    onChange = () => {},
+    name: controlName,
+    canDelete,
+  } = props;
+
+  const extra = useMemo<{ disallow_adhoc_metrics?: boolean }>(() => {
+    let extra = {};
+    if (datasource?.extra) {
+      try {
+        extra =
+          typeof datasource.extra === 'string'
+            ? JSON.parse(datasource.extra)
+            : datasource.extra;
+      } catch {} // eslint-disable-line no-empty
+    }
+    return extra;
+  }, [datasource?.extra]);
 
   const propsValues = Array.from(props.value ?? []);
   const [values, setValues] = useState(
@@ -144,18 +164,36 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     optionsForSelect(props.columns, props.formData),
   );
 
+  const availableColumnSet = useMemo(
+    () =>
+      new Set(
+        options.map(
+          ({ column_name, filterOptionName }) =>
+            column_name ?? filterOptionName,
+        ),
+      ),
+    [options],
+  );
+
   useEffect(() => {
     if (datasource && datasource.type === 'table') {
       const dbId = datasource.database?.id;
       const {
         datasource_name: name,
+        catalog,
         schema,
         is_sqllab_view: isSqllabView,
       } = datasource;
 
       if (!isSqllabView && dbId && name && schema) {
         SupersetClient.get({
-          endpoint: `/api/v1/database/${dbId}/table_extra/${name}/${schema}/`,
+          endpoint: `/api/v1/database/${dbId}/table_metadata/extra/${toQueryString(
+            {
+              name,
+              catalog,
+              schema,
+            },
+          )}`,
         })
           .then(({ json }: { json: Record<string, any> }) => {
             if (json?.partitions) {
@@ -189,7 +227,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     );
   }, [props.value]);
 
-  const onClickClose = useCallback(
+  const removeValue = useCallback(
     (index: number) => {
       const valuesCopy = [...values];
       valuesCopy.splice(index, 1);
@@ -197,6 +235,20 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
       onChange(valuesCopy);
     },
     [onChange, values],
+  );
+
+  const onClickClose = useCallback(
+    (index: number) => {
+      const result = canDelete?.(values[index], values);
+      if (typeof result === 'string') {
+        warning({ title: t('Warning'), content: result });
+        return;
+      }
+      if (result === true) {
+        removeValue(index);
+      }
+    },
+    [canDelete, removeValue, values],
   );
 
   const onShiftOptions = useCallback(
@@ -229,36 +281,36 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
       // via datasource saved metric
       if (filterOptions.saved_metric_name) {
         return new AdhocFilter({
-          expressionType: EXPRESSION_TYPES.SQL,
+          expressionType: ExpressionTypes.Sql,
           subject: getMetricExpression(filterOptions.saved_metric_name),
           operator:
-            OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
-          operatorId: Operators.GREATER_THAN,
+            OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GreaterThan].operation,
+          operatorId: Operators.GreaterThan,
           comparator: 0,
-          clause: CLAUSES.HAVING,
+          clause: Clauses.Having,
         });
       }
       // has a custom label, meaning it's custom column
       if (filterOptions.label) {
         return new AdhocFilter({
-          expressionType: EXPRESSION_TYPES.SQL,
+          expressionType: ExpressionTypes.Sql,
           subject: new AdhocMetric(option).translateToSql(),
           operator:
-            OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
-          operatorId: Operators.GREATER_THAN,
+            OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GreaterThan].operation,
+          operatorId: Operators.GreaterThan,
           comparator: 0,
-          clause: CLAUSES.HAVING,
+          clause: Clauses.Having,
         });
       }
       // add a new filter item
       if (filterOptions.column_name) {
         return new AdhocFilter({
-          expressionType: EXPRESSION_TYPES.SIMPLE,
+          expressionType: ExpressionTypes.Simple,
           subject: filterOptions.column_name,
-          operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.EQUALS].operation,
-          operatorId: Operators.EQUALS,
+          operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.Equals].operation,
+          operatorId: Operators.Equals,
           comparator: '',
-          clause: CLAUSES.WHERE,
+          clause: Clauses.Where,
           isNew: true,
         });
       }
@@ -335,38 +387,55 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
   const adhocFilter = useMemo(() => {
     if (isSavedMetric(droppedItem)) {
       return new AdhocFilter({
-        expressionType: EXPRESSION_TYPES.SQL,
-        clause: CLAUSES.HAVING,
+        expressionType: ExpressionTypes.Sql,
+        clause: Clauses.Having,
         sqlExpression: droppedItem?.expression,
       });
     }
     if (droppedItem instanceof AdhocMetric) {
       return new AdhocFilter({
-        expressionType: EXPRESSION_TYPES.SQL,
-        clause: CLAUSES.HAVING,
+        expressionType: ExpressionTypes.Sql,
+        clause: Clauses.Having,
         sqlExpression: (droppedItem as AdhocMetric)?.translateToSql(),
       });
     }
     const config: Partial<AdhocFilter> = {
       subject: (droppedItem as ColumnMeta)?.column_name,
     };
-    if (config.subject && isFeatureEnabled(FeatureFlag.UX_BETA)) {
-      config.operator = OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.IN].operation;
-      config.operatorId = Operators.IN;
+    if (config.subject) {
+      config.operator = OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.In].operation;
+      config.operatorId = Operators.In;
     }
     if (
-      hasGenericChartAxes &&
       isColumnMeta(droppedItem) &&
       isTemporalColumn(droppedItem?.column_name, props.datasource)
     ) {
-      config.operator = Operators.TEMPORAL_RANGE;
-      config.operatorId = Operators.TEMPORAL_RANGE;
+      config.operator = Operators.TemporalRange;
+      config.operatorId = Operators.TemporalRange;
       config.comparator = defaultTimeFilter;
     }
     return new AdhocFilter(config);
   }, [droppedItem]);
 
-  const canDrop = useCallback(() => true, []);
+  const canDrop = useCallback(
+    (item: DatasourcePanelDndItem) => {
+      if (
+        extra.disallow_adhoc_metrics &&
+        (item.type !== DndItemType.Column ||
+          !availableColumnSet.has((item.value as ColumnMeta).column_name))
+      ) {
+        return false;
+      }
+
+      if (item.type === DndItemType.Column) {
+        const columnName = (item.value as ColumnMeta).column_name;
+        return availableColumnSet.has(columnName);
+      }
+      return true;
+    },
+    [availableColumnSet, extra],
+  );
+
   const handleDrop = useCallback(
     (item: DatasourcePanelDndItem) => {
       setDroppedItem(item.value);
@@ -375,10 +444,6 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     [controlName, togglePopover],
   );
 
-  const ghostButtonText = isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
-    ? t('Drop columns/metrics here or click')
-    : t('Drop columns or metrics here');
-
   return (
     <>
       <DndSelectLabel
@@ -386,12 +451,8 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
         canDrop={canDrop}
         valuesRenderer={valuesRenderer}
         accept={DND_ACCEPTED_TYPES}
-        ghostButtonText={ghostButtonText}
-        onClickGhostButton={
-          isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
-            ? handleClickGhostButton
-            : undefined
-        }
+        ghostButtonText={t('Drop columns/metrics here or click')}
+        onClickGhostButton={handleClickGhostButton}
         {...props}
       />
       <AdhocFilterPopoverTrigger
@@ -404,14 +465,10 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
         visible={newFilterPopoverVisible}
         togglePopover={togglePopover}
         closePopover={closePopover}
+        requireSave={!!droppedItem}
       />
     </>
   );
 };
 
-const DndFilterSelectWithFallback = withDndFallback(
-  DndFilterSelect,
-  AdhocFilterControl,
-);
-
-export { DndFilterSelectWithFallback as DndFilterSelect };
+export { DndFilterSelect };

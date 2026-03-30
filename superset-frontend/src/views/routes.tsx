@@ -16,112 +16,212 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { lazy } from 'react';
+
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import {
+  lazy,
+  ComponentType,
+  ComponentProps,
+  LazyExoticComponent,
+} from 'react';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 // not lazy loaded since this is the home page.
-import Welcome from 'src/views/CRUD/welcome/Welcome';
+import Home from 'src/pages/Home';
 
-const AddSliceContainer = lazy(
+const ChartCreation = lazy(
+  () =>
+    import(/* webpackChunkName: "ChartCreation" */ 'src/pages/ChartCreation'),
+);
+
+const AnnotationLayerList = lazy(
   () =>
     import(
-      /* webpackChunkName: "AddSliceContainer" */ 'src/addSlice/AddSliceContainer'
+      /* webpackChunkName: "AnnotationLayerList" */ 'src/pages/AnnotationLayerList'
     ),
 );
-const AnnotationLayersList = lazy(
+
+const AlertReportList = lazy(
   () =>
     import(
-      /* webpackChunkName: "AnnotationLayersList" */ 'src/views/CRUD/annotationlayers/AnnotationLayersList'
+      /* webpackChunkName: "AlertReportList" */ 'src/pages/AlertReportList'
     ),
 );
-const AlertList = lazy(
-  () =>
-    import(
-      /* webpackChunkName: "AlertList" */ 'src/views/CRUD/alert/AlertList'
-    ),
-);
+
 const AnnotationList = lazy(
   () =>
-    import(
-      /* webpackChunkName: "AnnotationList" */ 'src/views/CRUD/annotation/AnnotationList'
-    ),
+    import(/* webpackChunkName: "AnnotationList" */ 'src/pages/AnnotationList'),
 );
+
 const ChartList = lazy(
+  () => import(/* webpackChunkName: "ChartList" */ 'src/pages/ChartList'),
+);
+
+const CssTemplateList = lazy(
   () =>
     import(
-      /* webpackChunkName: "ChartList" */ 'src/views/CRUD/chart/ChartList'
+      /* webpackChunkName: "CssTemplateList" */ 'src/pages/CssTemplateList'
     ),
 );
-const CssTemplatesList = lazy(
-  () =>
-    import(
-      /* webpackChunkName: "CssTemplatesList" */ 'src/views/CRUD/csstemplates/CssTemplatesList'
-    ),
+
+const ThemeList = lazy(
+  () => import(/* webpackChunkName: "ThemeList" */ 'src/pages/ThemeList'),
 );
+
 const DashboardList = lazy(
   () =>
-    import(
-      /* webpackChunkName: "DashboardList" */ 'src/views/CRUD/dashboard/DashboardList'
-    ),
+    import(/* webpackChunkName: "DashboardList" */ 'src/pages/DashboardList'),
 );
-const DashboardRoute = lazy(
-  () =>
-    import(
-      /* webpackChunkName: "DashboardRoute" */ 'src/dashboard/containers/DashboardRoute'
-    ),
+
+const Dashboard = lazy(
+  () => import(/* webpackChunkName: "Dashboard" */ 'src/pages/Dashboard'),
 );
+
 const DatabaseList = lazy(
-  () =>
-    import(
-      /* webpackChunkName: "DatabaseList" */ 'src/views/CRUD/data/database/DatabaseList'
-    ),
+  () => import(/* webpackChunkName: "DatabaseList" */ 'src/pages/DatabaseList'),
 );
+
 const DatasetList = lazy(
+  () => import(/* webpackChunkName: "DatasetList" */ 'src/pages/DatasetList'),
+);
+
+const DatasetCreation = lazy(
   () =>
     import(
-      /* webpackChunkName: "DatasetList" */ 'src/views/CRUD/data/dataset/DatasetList'
+      /* webpackChunkName: "DatasetCreation" */ 'src/pages/DatasetCreation'
     ),
 );
 
-const AddDataset = lazy(
+const ExecutionLogList = lazy(
   () =>
     import(
-      /* webpackChunkName: "DatasetEditor" */ 'src/views/CRUD/data/dataset/AddDataset/index'
+      /* webpackChunkName: "ExecutionLogList" */ 'src/pages/ExecutionLogList'
     ),
 );
 
-const ExecutionLog = lazy(
+const Chart = lazy(
+  () => import(/* webpackChunkName: "Chart" */ 'src/pages/Chart'),
+);
+
+const QueryHistoryList = lazy(
   () =>
     import(
-      /* webpackChunkName: "ExecutionLog" */ 'src/views/CRUD/alert/ExecutionLog'
+      /* webpackChunkName: "QueryHistoryList" */ 'src/pages/QueryHistoryList'
     ),
 );
-const ExplorePage = lazy(
-  () => import(/* webpackChunkName: "ExplorePage" */ 'src/explore/ExplorePage'),
-);
-const QueryList = lazy(
-  () =>
-    import(
-      /* webpackChunkName: "QueryList" */ 'src/views/CRUD/data/query/QueryList'
-    ),
-);
+
 const SavedQueryList = lazy(
   () =>
+    import(/* webpackChunkName: "SavedQueryList" */ 'src/pages/SavedQueryList'),
+);
+
+const SqlLab = lazy(
+  () => import(/* webpackChunkName: "SqlLab" */ 'src/pages/SqlLab'),
+);
+
+const AllEntities = lazy(
+  () => import(/* webpackChunkName: "AllEntities" */ 'src/pages/AllEntities'),
+);
+
+const Tags = lazy(
+  () => import(/* webpackChunkName: "Tags" */ 'src/pages/Tags'),
+);
+
+const Extensions = lazy(
+  () => import(/* webpackChunkName: "Tags" */ 'src/extensions/ExtensionsList'),
+);
+
+const RowLevelSecurityList = lazy(
+  () =>
     import(
-      /* webpackChunkName: "SavedQueryList" */ 'src/views/CRUD/data/savedquery/SavedQueryList'
+      /* webpackChunkName: "RowLevelSecurityList" */ 'src/pages/RowLevelSecurityList'
+    ),
+);
+
+const TaskList = lazy(
+  () => import(/* webpackChunkName: "TaskList" */ 'src/pages/TaskList'),
+);
+
+const RolesList = lazy(
+  () => import(/* webpackChunkName: "RolesList" */ 'src/pages/RolesList'),
+);
+
+const UsersList: LazyExoticComponent<any> = lazy(
+  () => import(/* webpackChunkName: "UsersList" */ 'src/pages/UsersList'),
+);
+
+const UserInfo = lazy(
+  () => import(/* webpackChunkName: "UserInfo" */ 'src/pages/UserInfo'),
+);
+const ActionLogList: LazyExoticComponent<any> = lazy(
+  () => import(/* webpackChunkName: "ActionLogList" */ 'src/pages/ActionLog'),
+);
+
+const Login = lazy(
+  () => import(/* webpackChunkName: "Login" */ 'src/pages/Login'),
+);
+
+const Register = lazy(
+  () => import(/* webpackChunkName: "Register" */ 'src/pages/Register'),
+);
+
+const GroupsList: LazyExoticComponent<any> = lazy(
+  () => import(/* webpackChunkName: "GroupsList" */ 'src/pages/GroupsList'),
+);
+const UserRegistrations = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "UserRegistrations" */ 'src/pages/UserRegistrations'
+    ),
+);
+
+const FileHandler = lazy(
+  () => import(/* webpackChunkName: "FileHandler" */ 'src/pages/FileHandler'),
+);
+
+const RedirectWarning = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "RedirectWarning" */ 'src/pages/RedirectWarning'
     ),
 );
 
 type Routes = {
   path: string;
-  Component: React.ComponentType;
-  Fallback?: React.ComponentType;
-  props?: React.ComponentProps<any>;
+  Component: ComponentType;
+  Fallback?: ComponentType;
+  props?: ComponentProps<any>;
 }[];
 
 export const routes: Routes = [
   {
+    path: '/redirect/',
+    Component: RedirectWarning,
+  },
+  {
+    path: '/login/',
+    Component: Login,
+  },
+  {
+    path: '/register/activation/:activationHash',
+    Component: Register,
+  },
+  {
+    path: '/register/',
+    Component: Register,
+  },
+  {
+    path: '/logout/',
+    Component: Login,
+  },
+  {
     path: '/superset/welcome/',
-    Component: Welcome,
+    Component: Home,
+  },
+  {
+    path: '/superset/file-handler',
+    Component: FileHandler,
   },
   {
     path: '/dashboard/list/',
@@ -129,11 +229,11 @@ export const routes: Routes = [
   },
   {
     path: '/superset/dashboard/:idOrSlug/',
-    Component: DashboardRoute,
+    Component: Dashboard,
   },
   {
     path: '/chart/add',
-    Component: AddSliceContainer,
+    Component: ChartCreation,
   },
   {
     path: '/chart/list/',
@@ -153,61 +253,133 @@ export const routes: Routes = [
   },
   {
     path: '/csstemplatemodelview/list/',
-    Component: CssTemplatesList,
+    Component: CssTemplateList,
+  },
+  {
+    path: '/theme/list/',
+    Component: ThemeList,
   },
   {
     path: '/annotationlayer/list/',
-    Component: AnnotationLayersList,
+    Component: AnnotationLayerList,
   },
   {
     path: '/annotationlayer/:annotationLayerId/annotation/',
     Component: AnnotationList,
   },
   {
-    path: '/superset/sqllab/history/',
-    Component: QueryList,
+    path: '/sqllab/history/',
+    Component: QueryHistoryList,
   },
   {
     path: '/alert/list/',
-    Component: AlertList,
+    Component: AlertReportList,
   },
   {
     path: '/report/list/',
-    Component: AlertList,
+    Component: AlertReportList,
     props: {
       isReportEnabled: true,
     },
   },
   {
     path: '/alert/:alertId/log/',
-    Component: ExecutionLog,
+    Component: ExecutionLogList,
   },
   {
     path: '/report/:alertId/log/',
-    Component: ExecutionLog,
+    Component: ExecutionLogList,
     props: {
       isReportEnabled: true,
     },
   },
   {
     path: '/explore/',
-    Component: ExplorePage,
+    Component: Chart,
   },
   {
     path: '/superset/explore/p',
-    Component: ExplorePage,
+    Component: Chart,
   },
   {
     path: '/dataset/add/',
-    Component: AddDataset,
+    Component: DatasetCreation,
   },
   {
     path: '/dataset/:datasetId',
-    Component: AddDataset,
+    Component: DatasetCreation,
+  },
+  {
+    path: '/rowlevelsecurity/list',
+    Component: RowLevelSecurityList,
+  },
+  {
+    path: '/tasks/list/',
+    Component: TaskList,
+  },
+  {
+    path: '/sqllab/',
+    Component: SqlLab,
+  },
+  { path: '/user_info/', Component: UserInfo },
+  {
+    path: '/actionlog/list',
+    Component: ActionLogList,
+  },
+  {
+    path: '/registrations/',
+    Component: UserRegistrations,
   },
 ];
 
-const frontEndRoutes = routes
+if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
+  routes.push({
+    path: '/superset/all_entities/',
+    Component: AllEntities,
+  });
+  routes.push({
+    path: '/superset/tags/',
+    Component: Tags,
+  });
+}
+
+const user = getBootstrapData()?.user;
+const authRegistrationEnabled =
+  getBootstrapData()?.common.conf.AUTH_USER_REGISTRATION;
+const isAdmin = isUserAdmin(user);
+
+if (isAdmin) {
+  routes.push(
+    {
+      path: '/roles/',
+      Component: RolesList,
+    },
+    {
+      path: '/users/',
+      Component: UsersList,
+    },
+    {
+      path: '/list_groups/',
+      Component: GroupsList,
+    },
+  );
+
+  if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
+    routes.push({
+      path: '/extensions/list/',
+      Component: Extensions,
+    });
+  }
+}
+
+if (authRegistrationEnabled) {
+  routes.push({
+    path: '/registrations/',
+    Component: UserRegistrations,
+  });
+}
+
+const frontEndRoutes: Record<string, boolean> = routes
   .map(r => r.path)
   .reduce(
     (acc, curr) => ({
@@ -217,10 +389,10 @@ const frontEndRoutes = routes
     {},
   );
 
-export function isFrontendRoute(path?: string) {
+export const isFrontendRoute = (path?: string): boolean => {
   if (path) {
     const basePath = path.split(/[?#]/)[0]; // strip out query params and link bookmarks
     return !!frontEndRoutes[basePath];
   }
   return false;
-}
+};

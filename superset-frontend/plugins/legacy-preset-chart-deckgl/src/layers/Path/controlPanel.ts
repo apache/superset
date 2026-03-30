@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { ControlPanelConfig } from '@superset-ui/chart-controls';
+import { t } from '@apache-superset/core/translation';
 import {
   filterNulls,
   autozoom,
@@ -25,35 +25,31 @@ import {
   jsDataMutator,
   jsTooltip,
   jsOnclickHref,
-  lineColumn,
   viewport,
   lineWidth,
   lineType,
   reverseLongLat,
   mapboxStyle,
+  tooltipContents,
+  tooltipTemplate,
 } from '../../utilities/Shared_DeckGL';
 import { dndLineColumn } from '../../utilities/sharedDndControls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        [
-          isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
-            ? dndLineColumn
-            : lineColumn,
-        ],
+        [dndLineColumn],
         [
           {
             ...lineType,
             config: {
               ...lineType.config,
               choices: [
-                ['polyline', 'Polyline'],
-                ['json', 'JSON'],
+                ['polyline', t('Polyline')],
+                ['json', t('JSON')],
               ],
             },
           },
@@ -61,15 +57,35 @@ const config: ControlPanelConfig = {
         ['row_limit'],
         [filterNulls],
         ['adhoc_filters'],
+        [tooltipContents],
+        [tooltipTemplate],
       ],
     },
     {
       label: t('Map'),
       expanded: true,
       controlSetRows: [
-        [mapboxStyle, viewport],
-        ['color_picker', lineWidth],
-        [reverseLongLat, autozoom],
+        [mapboxStyle],
+        [viewport],
+        ['color_picker'],
+        [lineWidth],
+        [
+          {
+            name: 'line_width_unit',
+            config: {
+              type: 'SelectControl',
+              label: t('Line width unit'),
+              default: 'meters',
+              choices: [
+                ['meters', t('meters')],
+                ['pixels', t('pixels')],
+              ],
+              renderTrigger: true,
+            },
+          },
+        ],
+        [reverseLongLat],
+        [autozoom],
       ],
     },
     {

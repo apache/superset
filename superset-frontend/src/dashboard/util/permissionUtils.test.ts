@@ -16,13 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import {
   UndefinedUser,
   UserWithPermissionsAndRoles,
 } from 'src/types/bootstrapTypes';
 import { Dashboard } from 'src/types/Dashboard';
 import Owner from 'src/types/Owner';
-import { canUserEditDashboard, isUserAdmin } from './permissionUtils';
+import {
+  userHasPermission,
+  canUserEditDashboard,
+  canUserSaveAsDashboard,
+  isUserAdmin,
+} from './permissionUtils';
 
 const ownerUser: UserWithPermissionsAndRoles = {
   createdOn: '2021-05-12T16:56:22.116839',
@@ -40,7 +46,7 @@ const ownerUser: UserWithPermissionsAndRoles = {
 const adminUser: UserWithPermissionsAndRoles = {
   ...ownerUser,
   roles: {
-    ...(ownerUser?.roles || {}),
+    ...ownerUser?.roles,
     Admin: [['can_write', 'Dashboard']],
   },
   userId: 2,
@@ -57,45 +63,67 @@ const owner: Owner = {
   first_name: 'Test',
   id: ownerUser.userId!,
   last_name: 'User',
-  username: ownerUser.username,
+};
+
+const sqlLabMenuAccessPermission: [string, string] = ['menu_access', 'SQL Lab'];
+
+const arbitraryPermissions: [string, string][] = [
+  ['can_write', 'AnArbitraryView'],
+  sqlLabMenuAccessPermission,
+];
+
+const sqlLabUser: UserWithPermissionsAndRoles = {
+  ...ownerUser,
+  roles: {
+    ...ownerUser.roles,
+    sql_lab: [sqlLabMenuAccessPermission],
+  },
 };
 
 const undefinedUser: UndefinedUser = {};
 
-describe('canUserEditDashboard', () => {
-  const dashboard: Dashboard = {
-    id: 1,
-    dashboard_title: 'Test Dash',
-    url: 'https://dashboard.example.com/1',
-    thumbnail_url: 'https://dashboard.example.com/1/thumbnail.png',
-    published: true,
-    css: null,
-    changed_by_name: 'Test User',
-    changed_by: owner,
-    changed_on: '2021-05-12T16:56:22.116839',
-    charts: [],
-    owners: [owner],
-    roles: [],
-  };
+const dashboard: Dashboard = {
+  id: 1,
+  dashboard_title: 'Test Dash',
+  url: 'https://dashboard.example.com/1',
+  thumbnail_url: 'https://dashboard.example.com/1/thumbnail.png',
+  published: true,
+  css: null,
+  changed_by_name: 'Test User',
+  changed_by: owner,
+  changed_on: '2021-05-12T16:56:22.116839',
+  charts: [],
+  owners: [owner],
+  roles: [],
+};
 
-  it('allows owners to edit', () => {
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('canUserEditDashboard', () => {
+  test('allows owners to edit', () => {
     expect(canUserEditDashboard(dashboard, ownerUser)).toEqual(true);
   });
-  it('allows admin users to edit regardless of ownership', () => {
+  test('allows admin users to edit regardless of ownership', () => {
     expect(canUserEditDashboard(dashboard, adminUser)).toEqual(true);
   });
-  it('rejects non-owners', () => {
+  test('rejects non-owners', () => {
     expect(canUserEditDashboard(dashboard, outsiderUser)).toEqual(false);
   });
-  it('rejects nonexistent users', () => {
+  test('rejects nonexistent users', () => {
     expect(canUserEditDashboard(dashboard, null)).toEqual(false);
   });
-  it('rejects missing roles', () => {
+  test('rejects missing roles', () => {
     // in redux, when there is no user, the user is actually set to an empty object,
     // so we need to handle missing roles as well as a missing user.s
     expect(canUserEditDashboard(dashboard, {})).toEqual(false);
   });
-  it('rejects "admins" if the admin role does not have edit rights for some reason', () => {
+  test('rejects "admins" if the admin role does not have edit rights for some reason', () => {
     expect(
       canUserEditDashboard(dashboard, {
         ...adminUser,
@@ -109,10 +137,100 @@ test('isUserAdmin returns true for admin user', () => {
   expect(isUserAdmin(adminUser)).toEqual(true);
 });
 
+test('isUserAdmin returns false for undefined', () => {
+  expect(isUserAdmin(undefined)).toEqual(false);
+});
+
 test('isUserAdmin returns false for undefined user', () => {
   expect(isUserAdmin(undefinedUser)).toEqual(false);
 });
 
 test('isUserAdmin returns false for non-admin user', () => {
   expect(isUserAdmin(ownerUser)).toEqual(false);
+});
+
+test('userHasPermission always returns true for admin user', () => {
+  arbitraryPermissions.forEach(permissionView => {
+    expect(
+      userHasPermission(adminUser, permissionView[1], permissionView[0]),
+    ).toEqual(true);
+  });
+});
+
+test('userHasPermission always returns false for undefined user', () => {
+  arbitraryPermissions.forEach(permissionView => {
+    expect(
+      userHasPermission(undefinedUser, permissionView[1], permissionView[0]),
+    ).toEqual(false);
+  });
+});
+
+test('userHasPermission returns false if user does not have permission', () => {
+  expect(
+    userHasPermission(
+      ownerUser,
+      sqlLabMenuAccessPermission[1],
+      sqlLabMenuAccessPermission[0],
+    ),
+  ).toEqual(false);
+});
+
+test('userHasPermission returns true if user has permission', () => {
+  expect(
+    userHasPermission(
+      sqlLabUser,
+      sqlLabMenuAccessPermission[1],
+      sqlLabMenuAccessPermission[0],
+    ),
+  ).toEqual(true);
+});
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('canUserSaveAsDashboard with RBAC feature flag disabled', () => {
+  beforeAll(() => {
+    mockedIsFeatureEnabled.mockImplementation(
+      (featureFlag: FeatureFlag) => featureFlag !== FeatureFlag.DashboardRbac,
+    );
+  });
+
+  afterAll(() => {
+    mockedIsFeatureEnabled.mockRestore();
+  });
+
+  test('allows owners', () => {
+    expect(canUserSaveAsDashboard(dashboard, ownerUser)).toEqual(true);
+  });
+
+  test('allows admin users', () => {
+    expect(canUserSaveAsDashboard(dashboard, adminUser)).toEqual(true);
+  });
+
+  test('allows non-owners', () => {
+    expect(canUserSaveAsDashboard(dashboard, outsiderUser)).toEqual(true);
+  });
+});
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('canUserSaveAsDashboard with RBAC feature flag enabled', () => {
+  beforeAll(() => {
+    mockedIsFeatureEnabled.mockImplementation(
+      (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.DashboardRbac,
+    );
+  });
+
+  afterAll(() => {
+    mockedIsFeatureEnabled.mockRestore();
+  });
+
+  test('allows owners', () => {
+    expect(canUserSaveAsDashboard(dashboard, ownerUser)).toEqual(true);
+  });
+
+  test('allows admin users', () => {
+    expect(canUserSaveAsDashboard(dashboard, adminUser)).toEqual(true);
+  });
+
+  test('reject non-owners', () => {
+    expect(canUserSaveAsDashboard(dashboard, outsiderUser)).toEqual(false);
+  });
 });

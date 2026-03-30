@@ -16,23 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import {
   AdhocFilter,
   Behavior,
+  ChartCustomization,
   DataMaskStateWithId,
   EXTRA_FORM_DATA_APPEND_KEYS,
   EXTRA_FORM_DATA_OVERRIDE_KEYS,
   ExtraFormData,
-  FeatureFlag,
   Filter,
   getChartMetadataRegistry,
   QueryFormData,
+  ExtraFormDataOverride,
+  ExtraFormDataAppend,
 } from '@superset-ui/core';
-import { DashboardLayout } from 'src/dashboard/types';
+import { LayoutItem } from 'src/dashboard/types';
 import extractUrlParams from 'src/dashboard/util/extractUrlParams';
-import { isFeatureEnabled } from 'src/featureFlags';
-import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
-import { DASHBOARD_GRID_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
+import { isIterable } from 'src/utils/types';
+import { TAB_TYPE } from '../../util/componentTypes';
+import getBootstrapData from '../../../utils/getBootstrapData';
+
+const getDefaultRowLimit = (): number => {
+  const bootstrapData = getBootstrapData();
+  const nativeFilterDefaultRowLimit =
+    bootstrapData?.common?.conf?.NATIVE_FILTER_DEFAULT_ROW_LIMIT;
+  return nativeFilterDefaultRowLimit || 1000;
+};
 
 export const getFormData = ({
   datasetId,
@@ -46,12 +56,17 @@ export const getFormData = ({
   time_range,
   granularity_sqla,
   type,
-}: Partial<Filter> & {
+  dashboardId,
+  id,
+}: (Partial<Filter> | Partial<ChartCustomization>) & {
+  dashboardId: number;
   datasetId?: number;
   dependencies?: object;
   groupby?: string;
   adhoc_filters?: AdhocFilter[];
   time_range?: string;
+  sortMetric?: string | null;
+  granularity_sqla?: string;
 }): Partial<QueryFormData> => {
   const otherProps: {
     datasource?: string;
@@ -67,6 +82,9 @@ export const getFormData = ({
   if (sortMetric) {
     otherProps.sortMetric = sortMetric;
   }
+
+  const vizType = filterType;
+
   return {
     ...controlValues,
     ...otherProps,
@@ -75,14 +93,16 @@ export const getFormData = ({
     extra_form_data: dependencies,
     granularity_sqla,
     metrics: ['count'],
-    row_limit: 1000,
+    row_limit: getDefaultRowLimit(),
     showSearch: true,
     defaultValue: defaultDataMask?.filterState?.value,
     time_range,
     url_params: extractUrlParams('regular'),
     inView: true,
-    viz_type: filterType,
+    viz_type: vizType,
     type,
+    dashboardId,
+    native_filter_id: id,
   };
 };
 
@@ -90,17 +110,19 @@ export function mergeExtraFormData(
   originalExtra: ExtraFormData = {},
   newExtra: ExtraFormData = {},
 ): ExtraFormData {
-  const mergedExtra: ExtraFormData = {};
+  const mergedExtra: Record<string, unknown> = {};
   EXTRA_FORM_DATA_APPEND_KEYS.forEach((key: string) => {
+    const originalExtraData = originalExtra[key as keyof ExtraFormDataAppend];
+    const newExtraData = newExtra[key as keyof ExtraFormDataAppend];
     const mergedValues = [
-      ...(originalExtra[key] || []),
-      ...(newExtra[key] || []),
+      ...(isIterable(originalExtraData) ? originalExtraData : []),
+      ...(isIterable(newExtraData) ? newExtraData : []),
     ];
     if (mergedValues.length) {
       mergedExtra[key] = mergedValues;
     }
   });
-  EXTRA_FORM_DATA_OVERRIDE_KEYS.forEach((key: string) => {
+  EXTRA_FORM_DATA_OVERRIDE_KEYS.forEach((key: keyof ExtraFormDataOverride) => {
     const originalValue = originalExtra[key];
     if (originalValue !== undefined) {
       mergedExtra[key] = originalValue;
@@ -110,13 +132,13 @@ export function mergeExtraFormData(
       mergedExtra[key] = newValue;
     }
   });
-  return mergedExtra;
+  return mergedExtra as ExtraFormData;
 }
 
 export function isCrossFilter(vizType: string) {
-  // @ts-ignore need export from superset-ui `ItemWithValue`
+  // @ts-expect-error need export from superset-ui `ItemWithValue`
   return getChartMetadataRegistry().items[vizType]?.value.behaviors?.includes(
-    Behavior.INTERACTIVE_CHART,
+    Behavior.InteractiveChart,
   );
 }
 
@@ -136,79 +158,203 @@ export function getExtraFormData(
 
 export function nativeFilterGate(behaviors: Behavior[]): boolean {
   return (
-    !behaviors.includes(Behavior.NATIVE_FILTER) ||
-    (isFeatureEnabled(FeatureFlag.DASHBOARD_FILTERS_EXPERIMENTAL) &&
-      isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
-      behaviors.includes(Behavior.INTERACTIVE_CHART))
+    !behaviors.includes(Behavior.NativeFilter) ||
+    behaviors.includes(Behavior.InteractiveChart)
   );
 }
 
-const isComponentATab = (
-  dashboardLayout: DashboardLayout,
-  componentId: string,
-) => dashboardLayout?.[componentId]?.type === TAB_TYPE;
-
-const findTabsWithChartsInScopeHelper = (
-  dashboardLayout: DashboardLayout,
-  chartsInScope: number[],
-  componentId: string,
-  tabIds: string[],
-  tabsToHighlight: Set<string>,
-) => {
-  if (
-    dashboardLayout?.[componentId]?.type === CHART_TYPE &&
-    chartsInScope.includes(dashboardLayout[componentId]?.meta?.chartId)
-  ) {
-    tabIds.forEach(tabsToHighlight.add, tabsToHighlight);
-  }
-  if (
-    dashboardLayout?.[componentId]?.children?.length === 0 ||
-    (isComponentATab(dashboardLayout, componentId) &&
-      tabsToHighlight.has(componentId))
-  ) {
-    return;
-  }
-  dashboardLayout[componentId]?.children.forEach(childId =>
-    findTabsWithChartsInScopeHelper(
-      dashboardLayout,
-      chartsInScope,
-      childId,
-      isComponentATab(dashboardLayout, childId) ? [...tabIds, childId] : tabIds,
-      tabsToHighlight,
-    ),
-  );
-};
-
 export const findTabsWithChartsInScope = (
-  dashboardLayout: DashboardLayout,
+  chartLayoutItems: LayoutItem[],
   chartsInScope: number[],
-) => {
-  const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
-  const rootChildId = dashboardRoot.children[0];
-  const hasTopLevelTabs = rootChildId !== DASHBOARD_GRID_ID;
-  const tabsInScope = new Set<string>();
-  if (hasTopLevelTabs) {
-    dashboardLayout[rootChildId]?.children?.forEach(tabId =>
-      findTabsWithChartsInScopeHelper(
-        dashboardLayout,
-        chartsInScope,
-        tabId,
-        [tabId],
-        tabsInScope,
-      ),
-    );
-  } else {
-    Object.values(dashboardLayout)
-      .filter(element => element?.type === TAB_TYPE)
-      .forEach(element =>
-        findTabsWithChartsInScopeHelper(
-          dashboardLayout,
-          chartsInScope,
-          element.id,
-          [element.id],
-          tabsInScope,
-        ),
-      );
+) =>
+  new Set<string>(
+    chartsInScope
+      .map(chartId =>
+        chartLayoutItems
+          .find(item => item?.meta?.chartId === chartId)
+          ?.parents?.filter(parent => parent.startsWith(`${TAB_TYPE}-`)),
+      )
+      .filter(id => id !== undefined)
+      .flat() as string[],
+  );
+
+export const getFilterValueForDisplay = (
+  value?: string[] | null | string | number | object,
+): string => {
+  if (value === null || value === undefined) {
+    return '';
   }
-  return tabsInScope;
+  if (typeof value === 'string' || typeof value === 'number') {
+    return `${value}`;
+  }
+  if (Array.isArray(value)) {
+    return value.join(', ');
+  }
+  if (typeof value === 'object') {
+    return JSON.stringify(value);
+  }
+  return t('Unknown value');
 };
+
+export interface FilterTarget {
+  type: 'CHART' | 'LAYER';
+  chartId: string;
+  layerId?: string;
+}
+
+export interface FilterScope {
+  filterId: string;
+  targets: FilterTarget[];
+}
+
+// Matches layer keys in format: 'chart-123-layer-456' where 123 is chartId and 456 is layerId
+const LAYER_KEY_REGEX = /^chart-(\d+)-layer-(\d+)$/;
+// Matches chart keys in format: 'chart-123' where 123 is chartId
+const CHART_KEY_REGEX = /^chart-(\d+)$/;
+
+export function parseFilterTarget(scopeKey: string): FilterTarget | null {
+  const layerMatch = scopeKey.match(LAYER_KEY_REGEX);
+  if (layerMatch) {
+    return {
+      type: 'LAYER',
+      chartId: layerMatch[1],
+      layerId: layerMatch[2],
+    };
+  }
+
+  const chartMatch = scopeKey.match(CHART_KEY_REGEX);
+  if (chartMatch) {
+    return {
+      type: 'CHART',
+      chartId: chartMatch[1],
+    };
+  }
+
+  return null;
+}
+
+export function getFilterScope(
+  filterId: string,
+  filterScopes: Record<string, string[]>,
+): FilterScope {
+  const scopeKeys = filterScopes[filterId] || [];
+  const targets: FilterTarget[] = [];
+
+  scopeKeys.forEach(scopeKey => {
+    const target = parseFilterTarget(scopeKey);
+    if (target) {
+      targets.push(target);
+    } else {
+      console.warn(`Invalid filter scope key format: ${scopeKey}`);
+    }
+  });
+
+  return {
+    filterId,
+    targets,
+  };
+}
+
+export function aggregateFiltersForTarget(
+  dataMask: DataMaskStateWithId,
+  filterIds: string[],
+): ExtraFormData {
+  let aggregatedFormData: ExtraFormData = {};
+
+  filterIds.forEach(filterId => {
+    const filterData = dataMask[filterId];
+    if (filterData?.extraFormData) {
+      aggregatedFormData = mergeExtraFormData(
+        aggregatedFormData,
+        filterData.extraFormData,
+      );
+    }
+  });
+
+  return aggregatedFormData;
+}
+
+function createTargetKey(target: FilterTarget): string {
+  if (target.type === 'LAYER') {
+    return `${target.chartId}-${target.layerId}`;
+  }
+  return target.chartId;
+}
+
+export function groupFiltersByTarget(
+  dataMask: DataMaskStateWithId,
+  filterScopes: Record<string, string[]>,
+): {
+  chartFilters: Map<string, ExtraFormData>;
+  layerFilters: Map<string, ExtraFormData>;
+} {
+  const chartFilters = new Map<string, ExtraFormData>();
+  const layerFilters = new Map<string, ExtraFormData>();
+
+  Object.keys(dataMask).forEach(filterId => {
+    const scope = getFilterScope(filterId, filterScopes);
+
+    scope.targets.forEach(target => {
+      const filterData = dataMask[filterId]?.extraFormData || {};
+      const targetKey = createTargetKey(target);
+
+      if (target.type === 'CHART') {
+        const existing = chartFilters.get(targetKey) || {};
+        chartFilters.set(targetKey, mergeExtraFormData(existing, filterData));
+      } else if (target.type === 'LAYER') {
+        const existing = layerFilters.get(targetKey) || {};
+        layerFilters.set(targetKey, mergeExtraFormData(existing, filterData));
+      }
+    });
+  });
+
+  return { chartFilters, layerFilters };
+}
+
+export function buildFilterScopesFromFilters(
+  filters: any,
+): Record<string, string[]> {
+  const filterScopes: Record<string, string[]> = {};
+
+  Object.values(filters).forEach((filter: Filter) => {
+    if (filter.chartsInScope) {
+      filterScopes[filter.id] = filter.chartsInScope.map(
+        (chartId: number) => `chart-${chartId}`,
+      );
+    }
+  });
+
+  return filterScopes;
+}
+
+export function getLayerSpecificExtraFormData(
+  dataMask: DataMaskStateWithId,
+  filterIds: string[],
+  chartId: number,
+  layerId?: string,
+): ExtraFormData {
+  let extraFormData: ExtraFormData = {};
+
+  filterIds.forEach(filterId => {
+    const filterData = dataMask[filterId];
+    if (filterData?.extraFormData) {
+      extraFormData = mergeExtraFormData(
+        extraFormData,
+        filterData.extraFormData,
+      );
+    }
+  });
+
+  if (layerId) {
+    const layerKey = `${chartId}-${layerId}`;
+    const layerFilterData = dataMask[layerKey];
+    if (layerFilterData?.extraFormData) {
+      extraFormData = mergeExtraFormData(
+        extraFormData,
+        layerFilterData.extraFormData,
+      );
+    }
+  }
+
+  return extraFormData;
+}

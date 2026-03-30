@@ -34,6 +34,13 @@ import {
   SequentialCommon,
   SequentialD3,
   ColorSchemeRegistry,
+  ColorSchemeGroup,
+  CategoricalPresetSuperset,
+  CategoricalModernSunset,
+  CategoricalColorsOfRainbow,
+  CategoricalBlueToGreen,
+  CategoricalRedToYellow,
+  CategoricalWavesOfBlue,
 } from '@superset-ui/core';
 
 function registerColorSchemes<T extends ColorScheme>(
@@ -55,13 +62,13 @@ export default function setupColors(
   extraSequentialColorSchemeConfigs: SequentialSchemeConfig[] = [],
 ) {
   const extraCategoricalColorSchemes = extraCategoricalColorSchemeConfigs.map(
-    config => new CategoricalScheme(config),
+    config =>
+      new CategoricalScheme({ ...config, group: ColorSchemeGroup.Custom }),
   );
   const extraSequentialColorSchemes = extraSequentialColorSchemeConfigs.map(
     config => new SequentialScheme(config),
   );
   registerColorSchemes(
-    // @ts-ignore
     getCategoricalSchemeRegistry(),
     [
       ...CategoricalAirbnb,
@@ -71,12 +78,17 @@ export default function setupColors(
       ...CategoricalLyft,
       ...CategoricalPreset,
       ...CategoricalSuperset,
+      ...CategoricalPresetSuperset,
+      ...CategoricalModernSunset,
+      ...CategoricalColorsOfRainbow,
+      ...CategoricalBlueToGreen,
+      ...CategoricalRedToYellow,
+      ...CategoricalWavesOfBlue,
       ...extraCategoricalColorSchemes,
     ],
     'supersetColors',
   );
   registerColorSchemes(
-    // @ts-ignore
     getSequentialSchemeRegistry(),
     [...SequentialCommon, ...SequentialD3, ...extraSequentialColorSchemes],
     'superset_seq_1',

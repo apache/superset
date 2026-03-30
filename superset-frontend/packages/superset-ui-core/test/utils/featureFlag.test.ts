@@ -16,41 +16,76 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import mockConsole from 'jest-mock-console';
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  initFeatureFlags,
+  isFeatureEnabled,
+} from '@superset-ui/core';
+import * as uiCore from '@apache-superset/core';
 
-it('returns false and raises console error if feature flags have not been initialized', () => {
-  mockConsole();
+test('initializes feature flags', () => {
   Object.defineProperty(window, 'featureFlags', {
     value: undefined,
   });
-
-  expect(isFeatureEnabled(FeatureFlag.ALLOW_DASHBOARD_DOMAIN_SHARDING)).toEqual(
-    false,
-  );
-  expect(console.error).toHaveBeenCalled();
-  // @ts-expect-error
-  expect(console.error.mock.calls[0][0]).toEqual(
-    'Failed to query feature flag ALLOW_DASHBOARD_DOMAIN_SHARDING',
-  );
+  initFeatureFlags();
+  expect(window.featureFlags).toEqual({});
 });
 
-it('returns false for unset feature flag', () => {
+test('initializes feature flags with predefined values', () => {
+  Object.defineProperty(window, 'featureFlags', {
+    value: undefined,
+  });
+  const featureFlags = {
+    DRILL_BY: false,
+  };
+  initFeatureFlags(featureFlags);
+  expect(window.featureFlags).toEqual(featureFlags);
+});
+
+test('does nothing if feature flags are already initialized', () => {
+  const featureFlags = { DRILL_BY: false };
+  Object.defineProperty(window, 'featureFlags', {
+    value: featureFlags,
+  });
+  initFeatureFlags({ DRILL_BY: true });
+  expect(window.featureFlags).toEqual(featureFlags);
+});
+
+test('returns false and raises console error if feature flags have not been initialized', () => {
+  const logging = jest.spyOn(uiCore.utils.logging, 'error');
+  Object.defineProperty(window, 'featureFlags', {
+    value: undefined,
+  });
+  expect(isFeatureEnabled(FeatureFlag.DrillBy)).toEqual(false);
+  expect(uiCore.utils.logging.error).toHaveBeenCalled();
+  expect(logging).toHaveBeenCalledWith('Failed to query feature flag DRILL_BY');
+});
+
+test('returns false for unset feature flag', () => {
   Object.defineProperty(window, 'featureFlags', {
     value: {},
   });
-
-  expect(isFeatureEnabled(FeatureFlag.ALLOW_DASHBOARD_DOMAIN_SHARDING)).toEqual(
-    false,
-  );
+  expect(isFeatureEnabled(FeatureFlag.DrillBy)).toEqual(false);
 });
 
-it('returns true for set feature flag', () => {
+test('returns true for set feature flag', () => {
   Object.defineProperty(window, 'featureFlags', {
     value: {
-      CLIENT_CACHE: true,
+      DRILL_BY: true,
     },
   });
+  expect(isFeatureEnabled(FeatureFlag.DrillBy)).toEqual(true);
+});
 
-  expect(isFeatureEnabled(FeatureFlag.CLIENT_CACHE)).toEqual(true);
+test('GranularExportControls feature flag has expected string value', () => {
+  expect(FeatureFlag.GranularExportControls).toBe('GRANULAR_EXPORT_CONTROLS');
+});
+
+test('returns true for set GranularExportControls feature flag', () => {
+  Object.defineProperty(window, 'featureFlags', {
+    value: {
+      GRANULAR_EXPORT_CONTROLS: true,
+    },
+  });
+  expect(isFeatureEnabled(FeatureFlag.GranularExportControls)).toEqual(true);
 });

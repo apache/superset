@@ -16,40 +16,45 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { Behavior } from '@superset-ui/core';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import buildQuery from './buildQuery';
 import example1 from './images/BigNumber.jpg';
+import example1Dark from './images/BigNumber-dark.jpg';
 import example2 from './images/BigNumber2.jpg';
+import example2Dark from './images/BigNumber2-dark.jpg';
 import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 import { BigNumberTotalChartProps, BigNumberTotalFormData } from '../types';
+import { EchartsChartPlugin } from '../../types';
 
-const metadata = new ChartMetadata({
+const metadata = {
   category: t('KPI'),
   description: t(
     'Showcases a single metric front-and-center. Big number is best used to call attention to a KPI or the one thing you want your audience to focus on.',
   ),
   exampleGallery: [
-    { url: example1, caption: t('A Big Number') },
-    { url: example2, caption: t('With a subheader') },
+    { url: example1, urlDark: example1Dark, caption: t('A Big Number') },
+    { url: example2, urlDark: example2Dark, caption: t('With a subheader') },
   ],
   name: t('Big Number'),
   tags: [
     t('Additive'),
     t('Business'),
-    t('Formattable'),
+    t('ECharts'),
     t('Legacy'),
     t('Percentages'),
-    t('Popular'),
+    t('Featured'),
     t('Report'),
-    t('Description'),
   ],
   thumbnail,
-  behaviors: [Behavior.DRILL_TO_DETAIL],
-});
+  thumbnailDark,
+  behaviors: [Behavior.DrillToDetail],
+};
 
-export default class BigNumberTotalChartPlugin extends ChartPlugin<
+export default class BigNumberTotalChartPlugin extends EchartsChartPlugin<
   BigNumberTotalFormData,
   BigNumberTotalChartProps
 > {

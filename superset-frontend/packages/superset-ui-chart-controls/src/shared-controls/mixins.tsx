@@ -16,15 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
-  hasGenericChartAxes,
   NO_TIME_RANGE,
   QueryFormData,
-  t,
   validateNonEmpty,
 } from '@superset-ui/core';
-import { BaseControlConfig, ControlPanelState, ControlState } from '../types';
+import {
+  BaseControlConfig,
+  ControlPanelState,
+  ControlState,
+  ExtraControlProps,
+} from '../types';
 import { getTemporalColumns } from '../utils';
 
 const getAxisLabel = (
@@ -42,7 +46,6 @@ export const xAxisMixin = {
   validators: [validateNonEmpty],
   initialValue: (control: ControlState, state: ControlPanelState | null) => {
     if (
-      hasGenericChartAxes &&
       state?.form_data?.granularity_sqla &&
       !state.form_data?.x_axis &&
       !control?.value
@@ -54,14 +57,15 @@ export const xAxisMixin = {
   default: undefined,
 };
 
-export const temporalColumnMixin: Pick<BaseControlConfig, 'mapStateToProps'> = {
+export const temporalColumnMixin: Pick<BaseControlConfig, 'mapStateToProps'> &
+  Partial<ExtraControlProps> = {
+  isTemporal: true,
   mapStateToProps: ({ datasource }) => {
     const payload = getTemporalColumns(datasource);
 
     return {
       options: payload.temporalColumns,
       default: payload.defaultTemporalColumn,
-      isTemporal: true,
     };
   },
 };
@@ -72,13 +76,13 @@ export const datePickerInAdhocFilterMixin: Pick<
 > = {
   initialValue: (control: ControlState, state: ControlPanelState | null) => {
     // skip initialValue if
-    // 1) GENERIC_CHART_AXES is disabled
+    // 1) the time_range control is present (this is the case for legacy charts)
     // 2) there was a time filter in adhoc filters
     if (
-      !hasGenericChartAxes ||
-      ensureIsArray(control.value).findIndex(
+      state?.controls?.time_range?.value ||
+      ensureIsArray(control.value).some(
         (flt: any) => flt?.operator === 'TEMPORAL_RANGE',
-      ) > -1
+      )
     ) {
       return undefined;
     }
@@ -103,7 +107,7 @@ export const datePickerInAdhocFilterMixin: Pick<
     const temporalColumn =
       state?.datasource &&
       getTemporalColumns(state.datasource).defaultTemporalColumn;
-    if (hasGenericChartAxes && temporalColumn) {
+    if (temporalColumn) {
       return [
         ...ensureIsArray(control.value),
         {

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Registry, makeSingleton, OverwritePolicy } from '@superset-ui/core';
-import { ErrorMessageComponent } from './types';
+import type { ErrorMessageComponent } from './types';
 
 class ErrorMessageComponentRegistry extends Registry<
   ErrorMessageComponent,
@@ -26,13 +26,11 @@ class ErrorMessageComponentRegistry extends Registry<
   constructor() {
     super({
       name: 'ErrorMessageComponent',
-      overwritePolicy: OverwritePolicy.ALLOW,
+      overwritePolicy: OverwritePolicy.Allow,
     });
   }
 }
 
-const getErrorMessageComponentRegistry = makeSingleton(
+export const getErrorMessageComponentRegistry = makeSingleton(
   ErrorMessageComponentRegistry,
 );
-
-export default getErrorMessageComponentRegistry;

@@ -16,13 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { HandlerFunction, JsonValue, styled } from '@superset-ui/core';
-import {
-  RadioButtonOption,
-  sharedControlComponents,
-} from '@superset-ui/chart-controls';
-import { AreaChartExtraControlsOptions } from '../constants';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { HandlerFunction, JsonValue } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
+import { sharedControlComponents } from '@superset-ui/chart-controls';
+import { AreaChartStackControlOptions } from '../constants';
 
 const { RadioButtonControl } = sharedControlComponents;
 
@@ -53,13 +51,13 @@ export function useExtraControl<
 
   const extraControlsOptions = useMemo(() => {
     if (area) {
-      return AreaChartExtraControlsOptions;
+      return AreaChartStackControlOptions;
     }
     return [];
   }, [area]);
 
   const extraControlsHandler = useCallback(
-    (value: RadioButtonOption[0]) => {
+    (value: JsonValue) => {
       if (area) {
         if (setControlValue) {
           setControlValue('stack', value);

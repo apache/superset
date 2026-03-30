@@ -18,38 +18,72 @@
  */
 import {
   DataRecordValue,
-  GenericDataType,
   NumberFormatter,
   QueryObjectFilterClause,
   TimeFormatter,
   ExtraFormData,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { FALSE_STRING, NULL_STRING, TRUE_STRING } from 'src/utils/common';
+import {
+  Clauses,
+  ExpressionTypes,
+} from '../explore/components/controls/FilterControl/types';
+import { SelectFilterOperatorType } from './components/Select/types';
+
+function applyWildcard(
+  value: string,
+  operatorType: SelectFilterOperatorType,
+): string {
+  switch (operatorType) {
+    case SelectFilterOperatorType.Contains:
+      return `%${value}%`;
+    case SelectFilterOperatorType.StartsWith:
+      return `${value}%`;
+    case SelectFilterOperatorType.EndsWith:
+      return `%${value}`;
+    default:
+      return value;
+  }
+}
 
 export const getSelectExtraFormData = (
   col: string,
   value?: null | (string | number | boolean | null)[],
   emptyFilter = false,
-  inverseSelection = false,
+  shouldExcludeFilter = false,
+  operatorType: SelectFilterOperatorType = SelectFilterOperatorType.Exact,
 ): ExtraFormData => {
   const extra: ExtraFormData = {};
   if (emptyFilter) {
     extra.adhoc_filters = [
       {
-        expressionType: 'SQL',
-        clause: 'WHERE',
+        expressionType: ExpressionTypes.Sql,
+        clause: Clauses.Where,
         sqlExpression: '1 = 0',
       },
     ];
   } else if (value !== undefined && value !== null && value.length !== 0) {
-    extra.filters = [
-      {
-        col,
-        op: inverseSelection ? ('NOT IN' as const) : ('IN' as const),
-        // @ts-ignore
-        val: value,
-      },
-    ];
+    const isLikeOperator = operatorType !== SelectFilterOperatorType.Exact;
+
+    if (isLikeOperator && typeof value[0] === 'string') {
+      const wildcardVal = applyWildcard(value[0] as string, operatorType);
+      extra.filters = [
+        {
+          col,
+          op: shouldExcludeFilter ? ('NOT ILIKE' as const) : ('ILIKE' as const),
+          val: wildcardVal,
+        },
+      ];
+    } else {
+      extra.filters = [
+        {
+          col,
+          op: shouldExcludeFilter ? ('NOT IN' as const) : ('IN' as const),
+          val: value,
+        },
+      ];
+    }
   }
   return extra;
 };
@@ -101,7 +135,7 @@ export function getDataRecordFormatter({
     if (typeof value === 'boolean') {
       return value ? TRUE_STRING : FALSE_STRING;
     }
-    if (dtype === GenericDataType.BOOLEAN) {
+    if (dtype === GenericDataType.Boolean) {
       try {
         return JSON.parse(String(value).toLowerCase())
           ? TRUE_STRING
@@ -113,13 +147,16 @@ export function getDataRecordFormatter({
     if (typeof value === 'string') {
       return value;
     }
-    if (timeFormatter && dtype === GenericDataType.TEMPORAL) {
+    if (typeof value === 'bigint') {
+      return String(value);
+    }
+    if (timeFormatter && dtype === GenericDataType.Temporal) {
       return timeFormatter(value);
     }
     if (
       numberFormatter &&
       typeof value === 'number' &&
-      dtype === GenericDataType.NUMERIC
+      dtype === GenericDataType.Numeric
     ) {
       return numberFormatter(value);
     }

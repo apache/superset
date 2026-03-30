@@ -23,6 +23,7 @@ Revises: 5afbb1a5849b
 Create Date: 2021-11-11 16:41:53.266965
 
 """
+
 # revision identifiers, used by Alembic.
 revision = "b8d3a24d9131"
 down_revision = "5afbb1a5849b"

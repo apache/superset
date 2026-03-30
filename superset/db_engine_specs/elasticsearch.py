@@ -16,43 +16,128 @@
 # under the License.
 import logging
 from datetime import datetime
-from distutils.version import StrictVersion
-from typing import Any, Dict, Optional, Type
+from typing import Any, Optional
 
-from superset.db_engine_specs.base import BaseEngineSpec
+from packaging.version import Version
+from sqlalchemy import types
+
+from superset.constants import TimeGrain
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.db_engine_specs.exceptions import (
     SupersetDBAPIDatabaseError,
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
-from superset.utils import core as utils
 
 logger = logging.getLogger()
 
 
 class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     engine = "elasticsearch"
-    engine_name = "ElasticSearch (SQL API)"
+    engine_name = "Elasticsearch"
     time_groupby_inline = True
-    time_secondary_columns = True
     allows_joins = False
     allows_subqueries = True
     allows_sql_comments = False
 
-    _time_grain_expressions = {
-        None: "{col}",
-        "PT1S": "HISTOGRAM({col}, INTERVAL 1 SECOND)",
-        "PT1M": "HISTOGRAM({col}, INTERVAL 1 MINUTE)",
-        "PT1H": "HISTOGRAM({col}, INTERVAL 1 HOUR)",
-        "P1D": "HISTOGRAM({col}, INTERVAL 1 DAY)",
-        "P1M": "HISTOGRAM({col}, INTERVAL 1 MONTH)",
-        "P1Y": "HISTOGRAM({col}, INTERVAL 1 YEAR)",
+    metadata = {
+        "description": (
+            "Elasticsearch is a distributed search and analytics engine. "
+            "Query data using Elasticsearch SQL or OpenSearch SQL syntax."
+        ),
+        "logo": "elasticsearch.png",
+        "homepage_url": "https://www.elastic.co/elasticsearch/",
+        "categories": [DatabaseCategory.SEARCH_NOSQL, DatabaseCategory.OPEN_SOURCE],
+        "pypi_packages": ["elasticsearch-dbapi"],
+        "connection_string": "elasticsearch+https://{user}:{password}@{host}:9243/",
+        "default_port": 9243,
+        "parameters": {
+            "user": "Elasticsearch username",
+            "password": "Elasticsearch password",
+            "host": "Elasticsearch host",
+        },
+        "drivers": [
+            {
+                "name": "Elasticsearch SQL API (Recommended)",
+                "pypi_package": "elasticsearch-dbapi",
+                "connection_string": "elasticsearch+https://{user}:{password}@{host}:9243/",
+                "is_recommended": True,
+                "notes": (
+                    "For Elastic Cloud and self-hosted Elasticsearch with SQL enabled."
+                ),
+            },
+            {
+                "name": "OpenDistro / OpenSearch SQL",
+                "pypi_package": "elasticsearch-dbapi",
+                "connection_string": "odelasticsearch+https://{user}:{password}@{host}:9200/",
+                "is_recommended": False,
+                "notes": "For OpenDistro Elasticsearch or Amazon OpenSearch Service.",
+            },
+        ],
+        "compatible_databases": [
+            {
+                "name": "Elastic Cloud",
+                "description": (
+                    "Elastic Cloud is the official managed Elasticsearch service "
+                    "from Elastic. It includes Elasticsearch, Kibana, and "
+                    "enterprise features with automatic scaling."
+                ),
+                "logo": "elasticsearch.png",
+                "homepage_url": "https://www.elastic.co/cloud/",
+                "categories": [
+                    DatabaseCategory.SEARCH_NOSQL,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+                "pypi_packages": ["elasticsearch-dbapi"],
+                "connection_string": (
+                    "elasticsearch+https://{user}:{password}@{deployment}.{region}"
+                    ".cloud.es.io:9243/"
+                ),
+                "docs_url": "https://www.elastic.co/guide/en/cloud/current/",
+            },
+            {
+                "name": "Amazon OpenSearch Service",
+                "description": (
+                    "Amazon OpenSearch Service (successor to Amazon Elasticsearch "
+                    "Service) is a managed search and analytics service on AWS."
+                ),
+                "logo": "elasticsearch.png",
+                "homepage_url": "https://aws.amazon.com/opensearch-service/",
+                "categories": [
+                    DatabaseCategory.SEARCH_NOSQL,
+                    DatabaseCategory.CLOUD_AWS,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+                "pypi_packages": ["elasticsearch-dbapi"],
+                "connection_string": (
+                    "odelasticsearch+https://{user}:{password}@{host}:443/"
+                ),
+                "docs_url": (
+                    "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/"
+                ),
+            },
+        ],
     }
 
-    type_code_map: Dict[int, str] = {}  # loaded from get_datatype only if needed
+    _date_trunc_functions = {
+        "DATETIME": "DATE_TRUNC",
+    }
+
+    _time_grain_expressions = {
+        None: "{col}",
+        TimeGrain.SECOND: "{func}('second', {col})",
+        TimeGrain.MINUTE: "{func}('minute', {col})",
+        TimeGrain.HOUR: "{func}('hour', {col})",
+        TimeGrain.DAY: "{func}('day', {col})",
+        TimeGrain.WEEK: "{func}('week', {col})",
+        TimeGrain.MONTH: "{func}('month', {col})",
+        TimeGrain.YEAR: "{func}('year', {col})",
+    }
+
+    type_code_map: dict[int, str] = {}  # loaded from get_datatype only if needed
 
     @classmethod
-    def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
+    def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
         # pylint: disable=import-error,import-outside-toplevel
         import es.exceptions as es_exceptions
 
@@ -64,11 +149,13 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
-
         db_extra = db_extra or {}
-        if target_type.upper() == utils.TemporalType.DATETIME:
+
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.DateTime):
             es_version = db_extra.get("version")
             # The elasticsearch CAST function does not take effect for the time zone
             # setting. In elasticsearch7.8 and above, we can use the DATETIME_PARSE
@@ -76,9 +163,7 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
             supports_dttm_parse = False
             try:
                 if es_version:
-                    supports_dttm_parse = StrictVersion(es_version) >= StrictVersion(
-                        "7.8"
-                    )
+                    supports_dttm_parse = Version(es_version) >= Version("7.8")
             except Exception as ex:  # pylint: disable=broad-except
                 logger.error("Unexpected error while convert es_version", exc_info=True)
                 logger.exception(ex)
@@ -95,31 +180,37 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
 
 
 class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
+    """OpenDistro/OpenSearch SQL engine spec.
+
+    Note: Documentation is consolidated in ElasticSearchEngineSpec.
+    This spec exists for runtime support of the odelasticsearch driver.
+    """
 
     time_groupby_inline = True
-    time_secondary_columns = True
     allows_joins = False
     allows_subqueries = True
     allows_sql_comments = False
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "date_format({col}, 'yyyy-MM-dd HH:mm:ss.000')",
-        "PT1M": "date_format({col}, 'yyyy-MM-dd HH:mm:00.000')",
-        "PT1H": "date_format({col}, 'yyyy-MM-dd HH:00:00.000')",
-        "P1D": "date_format({col}, 'yyyy-MM-dd 00:00:00.000')",
-        "P1M": "date_format({col}, 'yyyy-MM-01 00:00:00.000')",
-        "P1Y": "date_format({col}, 'yyyy-01-01 00:00:00.000')",
+        TimeGrain.SECOND: "date_format({col}, 'yyyy-MM-dd HH:mm:ss.000')",
+        TimeGrain.MINUTE: "date_format({col}, 'yyyy-MM-dd HH:mm:00.000')",
+        TimeGrain.HOUR: "date_format({col}, 'yyyy-MM-dd HH:00:00.000')",
+        TimeGrain.DAY: "date_format({col}, 'yyyy-MM-dd 00:00:00.000')",
+        TimeGrain.MONTH: "date_format({col}, 'yyyy-MM-01 00:00:00.000')",
+        TimeGrain.YEAR: "date_format({col}, 'yyyy-01-01 00:00:00.000')",
     }
 
     engine = "odelasticsearch"
-    engine_name = "ElasticSearch (OpenDistro SQL)"
+    engine_name = "OpenSearch (OpenDistro)"
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
-        if target_type.upper() == utils.TemporalType.DATETIME:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.DateTime):
             return f"""'{dttm.isoformat(timespec="seconds")}'"""
         return None
 

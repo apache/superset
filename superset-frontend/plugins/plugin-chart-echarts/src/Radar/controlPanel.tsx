@@ -16,27 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { t } from '@apache-superset/core/translation';
 import {
   ChartDataResponseResult,
-  GenericDataType,
   QueryFormMetric,
-  t,
   validateNumber,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   ControlPanelConfig,
+  ControlSubSectionHeader,
   D3_FORMAT_DOCS,
+  D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
-  sections,
   sharedControls,
-  emitFilterControl,
   ControlFormItemSpec,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
-import { LABEL_POSITION } from '../constants';
+import { LabelPositionEnum } from '../types';
 import { legendSection } from '../controls';
 
 const { labelType, labelPosition, numberFormat, showLabels, isCircle } =
@@ -51,15 +50,46 @@ const radarMetricMaxValue: { name: string; config: ControlFormItemSpec } = {
       'The maximum value of metrics. It is an optional configuration',
     ),
     width: 120,
-    placeholder: 'auto',
+    placeholder: t('auto'),
     debounceDelay: 400,
     validators: [validateNumber],
   },
 };
 
+const radarMetricMinValue: { name: string; config: ControlFormItemSpec } = {
+  name: 'radarMetricMinValue',
+  config: {
+    controlType: 'InputNumber',
+    label: t('Min'),
+    description: t(
+      'The minimum value of metrics. It is an optional configuration. If not set, it will be the minimum value of the data',
+    ),
+    defaultValue: '0',
+    width: 120,
+    placeholder: t('auto'),
+    debounceDelay: 400,
+    validators: [validateNumber],
+  },
+};
+
+const getLabelPositionOptions = (): [LabelPositionEnum, string][] => [
+  [LabelPositionEnum.Top, t('Top')],
+  [LabelPositionEnum.Left, t('Left')],
+  [LabelPositionEnum.Right, t('Right')],
+  [LabelPositionEnum.Bottom, t('Bottom')],
+  [LabelPositionEnum.Inside, t('Inside')],
+  [LabelPositionEnum.InsideLeft, t('Inside left')],
+  [LabelPositionEnum.InsideRight, t('Inside right')],
+  [LabelPositionEnum.InsideTop, t('Inside top')],
+  [LabelPositionEnum.InsideBottom, t('Inside bottom')],
+  [LabelPositionEnum.InsideTopLeft, t('Inside top left')],
+  [LabelPositionEnum.InsideBottomLeft, t('Inside bottom left')],
+  [LabelPositionEnum.InsideTopRight, t('Inside top right')],
+  [LabelPositionEnum.InsideBottomRight, t('Inside bottom right')],
+];
+
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -68,7 +98,6 @@ const config: ControlPanelConfig = {
         ['metrics'],
         ['timeseries_limit_metric'],
         ['adhoc_filters'],
-        emitFilterControl,
         [
           {
             name: 'row_limit',
@@ -86,7 +115,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         ['color_scheme'],
         ...legendSection,
-        [<div className="section-header">{t('Labels')}</div>],
+        [<ControlSubSectionHeader>{t('Labels')}</ControlSubSectionHeader>],
         [
           {
             name: 'show_labels',
@@ -108,8 +137,8 @@ const config: ControlPanelConfig = {
               default: labelType,
               renderTrigger: true,
               choices: [
-                ['value', 'Value'],
-                ['key_value', 'Category and Value'],
+                ['value', t('Value')],
+                ['key_value', t('Category and Value')],
               ],
               description: t('What should be shown on the label?'),
             },
@@ -123,7 +152,7 @@ const config: ControlPanelConfig = {
               freeForm: false,
               label: t('Label position'),
               renderTrigger: true,
-              choices: LABEL_POSITION,
+              choices: getLabelPositionOptions(),
               default: labelPosition,
               description: D3_FORMAT_DOCS,
             },
@@ -139,9 +168,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: numberFormat,
               choices: D3_FORMAT_OPTIONS,
-              description: `${t(
-                'D3 format syntax: https://github.com/d3/d3-format. ',
-              )} ${t('Only applies when "Label Type" is set to show values.')}`,
+              description: `${D3_FORMAT_DOCS} ${D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT}`,
             },
           },
         ],
@@ -159,7 +186,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<div className="section-header">{t('Radar')}</div>],
+        [<ControlSubSectionHeader>{t('Radar')}</ControlSubSectionHeader>],
         [
           {
             name: 'column_config',
@@ -169,7 +196,9 @@ const config: ControlPanelConfig = {
               description: t('Further customize how to display each metric'),
               renderTrigger: true,
               configFormLayout: {
-                [GenericDataType.NUMERIC]: [[radarMetricMaxValue]],
+                [GenericDataType.Numeric]: [
+                  [radarMetricMinValue, radarMetricMaxValue],
+                ],
               },
               shouldMapStateToProps() {
                 return true;
@@ -184,11 +213,17 @@ const config: ControlPanelConfig = {
                   }
                   return value.label;
                 });
+                const { colnames: _colnames, coltypes: _coltypes } =
+                  chart?.queriesResponse?.[0] ?? {};
+                const colnames: string[] = _colnames || [];
+                const coltypes: GenericDataType[] = _coltypes || [];
+
                 return {
                   queryResponse: chart?.queriesResponse?.[0] as
                     | ChartDataResponseResult
                     | undefined,
                   appliedColumnNames: metricColumn,
+                  columnsPropsObject: { colnames, coltypes },
                 };
               },
             },

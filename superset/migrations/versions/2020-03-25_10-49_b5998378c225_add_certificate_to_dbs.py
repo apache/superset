@@ -26,15 +26,14 @@ Create Date: 2020-03-25 10:49:10.883065
 revision = "b5998378c225"
 down_revision = "72428d1ea401"
 
-from typing import Dict
 
-import sqlalchemy as sa
-from alembic import op
+import sqlalchemy as sa  # noqa: E402
+from alembic import op  # noqa: E402
 
 
 def upgrade():
-    kwargs: Dict[str, str] = {}
-    bind = op.get_bind()
+    kwargs: dict[str, str] = {}
+    bind = op.get_bind()  # noqa: F841
     op.add_column(
         "dbs",
         sa.Column("server_cert", sa.LargeBinary(), nullable=True, **kwargs),

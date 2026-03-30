@@ -16,86 +16,120 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { setConfig as setHotLoaderConfig } from 'react-hot-loader';
-import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
-import moment from 'moment';
-// eslint-disable-next-line no-restricted-imports
-import { configure, makeApi, supersetTheme } from '@superset-ui/core';
-import { merge } from 'lodash';
+import { configure, LanguagePack } from '@apache-superset/core/translation';
+import { logging } from '@apache-superset/core/utils';
+import { makeApi, initFeatureFlags } from '@superset-ui/core';
+import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';
-import setupDashboardComponents from './setup/setupDasboardComponents';
-import { BootstrapData, User } from './types/bootstrapTypes';
-import { initFeatureFlags } from './featureFlags';
-import { DEFAULT_COMMON_BOOTSTRAP_DATA } from './constants';
+import setupDashboardComponents from './setup/setupDashboardComponents';
+import { User } from './types/bootstrapTypes';
+import getBootstrapData, { applicationRoot } from './utils/getBootstrapData';
+import { makeUrl } from './utils/pathUtils';
+import './hooks/useLocale';
 
-if (process.env.WEBPACK_MODE === 'development') {
-  setHotLoaderConfig({ logLevel: 'debug', trackTailUpdates: false });
-}
+// Import dayjs plugin types for global TypeScript support
+import 'dayjs/plugin/utc';
+import 'dayjs/plugin/timezone';
+import 'dayjs/plugin/calendar';
+import 'dayjs/plugin/relativeTime';
+import 'dayjs/plugin/customParseFormat';
+import 'dayjs/plugin/duration';
+import 'dayjs/plugin/updateLocale';
+import 'dayjs/plugin/localizedFormat';
 
-// eslint-disable-next-line import/no-mutable-exports
-export let bootstrapData: BootstrapData = {
-  common: {
-    ...DEFAULT_COMMON_BOOTSTRAP_DATA,
-  },
-};
+let initPromise: Promise<void> | null = null;
 
-// Configure translation
-if (typeof window !== 'undefined') {
-  const root = document.getElementById('app');
-  bootstrapData = root
-    ? JSON.parse(root.getAttribute('data-bootstrap') || '{}')
-    : {};
-  if (bootstrapData?.common?.language_pack) {
-    const languagePack = bootstrapData.common.language_pack;
-    configure({ languagePack });
-    moment.locale(bootstrapData.common.locale);
-  } else {
-    configure();
+const LANGUAGE_PACK_REQUEST_TIMEOUT_MS = 5000;
+
+export default function initPreamble(): Promise<void> {
+  if (initPromise) {
+    return initPromise;
   }
-} else {
-  configure();
-}
 
-// Configure feature flags
-initFeatureFlags(bootstrapData?.common?.feature_flags);
+  initPromise = (async () => {
+    configure();
 
-// Setup SupersetClient
-setupClient();
+    // Grab initial bootstrap data
+    const bootstrapData = getBootstrapData();
 
-setupColors(
-  bootstrapData?.common?.extra_categorical_color_schemes,
-  bootstrapData?.common?.extra_sequential_color_schemes,
-);
+    setupFormatters(
+      bootstrapData.common.d3_format,
+      bootstrapData.common.d3_time_format,
+    );
 
-// Setup number formatters
-setupFormatters();
+    // Setup SupersetClient early so we can fetch language pack
+    setupClient({ appRoot: applicationRoot() });
 
-setupDashboardComponents();
+    // Load language pack before rendering
+    // Use native fetch to avoid race condition with SupersetClient initialization
+    const lang = bootstrapData.common.locale || 'en';
+    if (lang !== 'en') {
+      const abortController = new AbortController();
+      const timeoutId = window.setTimeout(() => {
+        abortController.abort();
+      }, LANGUAGE_PACK_REQUEST_TIMEOUT_MS);
 
-export const theme = merge(
-  supersetTheme,
-  bootstrapData?.common?.theme_overrides ?? {},
-);
+      try {
+        const languagePackUrl = makeUrl(`/superset/language_pack/${lang}/`);
+        const resp = await fetch(languagePackUrl, {
+          signal: abortController.signal,
+        });
+        if (!resp.ok) {
+          throw new Error(`Failed to fetch language pack: ${resp.status}`);
+        }
+        const json = await resp.json();
+        configure({ languagePack: json as LanguagePack });
+        dayjs.locale(lang);
+      } catch (err) {
+        logging.warn(
+          'Failed to fetch language pack, falling back to default.',
+          err,
+        );
+        configure();
+        dayjs.locale('en');
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+    }
 
-const getMe = makeApi<void, User>({
-  method: 'GET',
-  endpoint: '/api/v1/me/',
-});
+    // Continue with rest of setup
+    initFeatureFlags(bootstrapData.common.feature_flags);
 
-/**
- * When you re-open the window, we check if you are still logged in.
- * If your session expired or you signed out, we'll redirect to login.
- * If you aren't logged in in the first place (!isActive), then we shouldn't do this.
- */
-if (bootstrapData.user?.isActive) {
-  document.addEventListener('visibilitychange', () => {
-    // we only care about the tab becoming visible, not vice versa
-    if (document.visibilityState !== 'visible') return;
+    setupColors(
+      bootstrapData.common.extra_categorical_color_schemes,
+      bootstrapData.common.extra_sequential_color_schemes,
+    );
 
-    getMe().catch(() => {
-      // ignore error, SupersetClient will redirect to login on a 401
+    setupDashboardComponents();
+
+    const getMe = makeApi<void, User>({
+      method: 'GET',
+      endpoint: '/api/v1/me/',
     });
+
+    if (bootstrapData.user?.isActive) {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          getMe().catch(() => {
+            // SupersetClient will redirect to login on 401
+          });
+        }
+      });
+    }
+  })().catch(err => {
+    // Allow retry by clearing the cached promise on failure
+    initPromise = null;
+    throw err;
   });
+
+  return initPromise;
 }
+
+// This module is prepended to multiple webpack entrypoints (see `webpack.config.js`).
+// Kick off initialization eagerly, while still allowing entrypoints to `await` it
+// before rendering when needed (e.g. the login page).
+initPreamble().catch(err => {
+  logging.warn('Preamble initialization failed.', err);
+});

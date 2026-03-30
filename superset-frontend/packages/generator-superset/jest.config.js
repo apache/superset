@@ -17,8 +17,9 @@
  * under the License.
  */
 
-module.exports = {
+export default {
   displayName: 'generator-superset',
   testRegex: 'test\\/.*\\.test\\.[jt]sx?$',
   testEnvironment: 'node',
+  transform: {},
 };

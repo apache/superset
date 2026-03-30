@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { DatasourceType } from '@superset-ui/core';
-import { exploreActions } from 'src/explore/actions/exploreActions';
+import { ReactElement } from 'react';
+import { DatasourceType, VizType } from '@superset-ui/core';
 import { ChartStatus } from 'src/explore/types';
 import {
   DataTablesPaneProps,
@@ -27,7 +26,7 @@ import {
 } from '../types';
 
 const queryFormData = {
-  viz_type: 'heatmap',
+  viz_type: VizType.Heatmap,
   datasource: '34__table',
   slice_id: 456,
   url_params: {},
@@ -58,8 +57,11 @@ const datasource = {
   type: DatasourceType.Table,
   columns: [],
   metrics: [],
-  columnFormats: {},
-  verboseMap: {},
+  main_dttm_col: 'ds',
+  column_formats: {},
+  verbose_map: {},
+  datasource_name: null,
+  description: null,
 };
 
 export const createDataTablesPaneProps = (sliceId: number) =>
@@ -72,8 +74,9 @@ export const createDataTablesPaneProps = (sliceId: number) =>
     queryForce: false,
     chartStatus: 'rendered' as ChartStatus,
     onCollapseChange: jest.fn(),
-    actions: exploreActions,
-  } as DataTablesPaneProps);
+    setForceQuery: jest.fn(),
+    canDownload: true,
+  }) as DataTablesPaneProps;
 
 export const createSamplesPaneProps = ({
   datasourceId,
@@ -89,19 +92,20 @@ export const createSamplesPaneProps = ({
     datasource: { ...datasource, id: datasourceId },
     queryForce,
     isVisible: true,
-    actions: exploreActions,
-  } as SamplesPaneProps);
+    setForceQuery: jest.fn(),
+    canDownload: true,
+  }) as SamplesPaneProps;
 
 export const createResultsPaneOnDashboardProps = ({
   sliceId,
   errorMessage,
-  vizType = 'table',
+  vizType = VizType.Table,
   queryForce = false,
   isRequest = true,
 }: {
   sliceId: number;
   vizType?: string;
-  errorMessage?: React.ReactElement;
+  errorMessage?: ReactElement;
   queryForce?: boolean;
   isRequest?: boolean;
 }) =>
@@ -114,6 +118,7 @@ export const createResultsPaneOnDashboardProps = ({
     },
     queryForce,
     isVisible: true,
-    actions: exploreActions,
+    setForceQuery: jest.fn(),
     errorMessage,
-  } as ResultsPaneProps);
+    canDownload: true,
+  }) as ResultsPaneProps;

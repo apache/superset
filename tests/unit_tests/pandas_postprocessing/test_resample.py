@@ -21,7 +21,11 @@ from pandas import to_datetime
 
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils import pandas_postprocessing as pp
-from tests.unit_tests.fixtures.dataframes import categories_df, timeseries_df
+from tests.unit_tests.fixtures.dataframes import (
+    categories_df,
+    timeseries_df,
+    timeseries_with_gap_df,
+)
 
 
 def test_resample_should_not_side_effect():
@@ -63,6 +67,29 @@ def test_resample():
     )
 
 
+def test_resample_ffill_with_gaps():
+    post_df = pp.resample(df=timeseries_with_gap_df, rule="1D", method="ffill")
+    assert post_df.equals(
+        pd.DataFrame(
+            index=pd.to_datetime(
+                [
+                    "2019-01-01",
+                    "2019-01-02",
+                    "2019-01-03",
+                    "2019-01-04",
+                    "2019-01-05",
+                    "2019-01-06",
+                    "2019-01-07",
+                ]
+            ),
+            data={
+                "label": ["x", "y", "y", "y", "z", "z", "q"],
+                "y": [1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 4.0],
+            },
+        )
+    )
+
+
 def test_resample_zero_fill():
     post_df = pp.resample(df=timeseries_df, rule="1D", method="asfreq", fill_value=0)
     assert post_df.equals(
@@ -81,6 +108,31 @@ def test_resample_zero_fill():
             data={
                 "label": ["x", "y", 0, 0, "z", 0, "q"],
                 "y": [1.0, 2.0, 0, 0, 3.0, 0, 4.0],
+            },
+        )
+    )
+
+
+def test_resample_zero_fill_with_gaps():
+    post_df = pp.resample(
+        df=timeseries_with_gap_df, rule="1D", method="asfreq", fill_value=0
+    )
+    assert post_df.equals(
+        pd.DataFrame(
+            index=pd.to_datetime(
+                [
+                    "2019-01-01",
+                    "2019-01-02",
+                    "2019-01-03",
+                    "2019-01-04",
+                    "2019-01-05",
+                    "2019-01-06",
+                    "2019-01-07",
+                ]
+            ),
+            data={
+                "label": ["x", "y", 0, 0, "z", 0, "q"],
+                "y": [1.0, 2.0, 0, 0, 0, 0, 4.0],
             },
         )
     )

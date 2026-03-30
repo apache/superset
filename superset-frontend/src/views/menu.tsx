@@ -16,38 +16,50 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import 'src/public-path';
 
 // Menu App. Used in views that do not already include the Menu component in the layout.
 // eg, backend rendered views
-import React from 'react';
-import ReactDOM from 'react-dom';
-import { CacheProvider } from '@emotion/react';
-import createCache from '@emotion/cache';
-import { ThemeProvider } from '@superset-ui/core';
-import Menu from 'src/views/components/Menu';
-import { theme } from 'src/preamble';
-
 import { Provider } from 'react-redux';
+import ReactDOM from 'react-dom';
+import { BrowserRouter } from 'react-router-dom';
+import { CacheProvider } from '@emotion/react';
+import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
+import createCache from '@emotion/cache';
+import { ThemeProvider } from '@apache-superset/core/theme';
+import { theme } from '@apache-superset/core/theme';
+import Menu from 'src/features/home/Menu';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { setupStore } from './store';
+import querystring from 'query-string';
 
 // Disable connecting to redux debugger so that the React app injected
 // Below the menu like SqlLab or Explore can connect its redux store to the debugger
-const store = setupStore(true);
-const container = document.getElementById('app');
-const bootstrapJson = container?.getAttribute('data-bootstrap') ?? '{}';
-const bootstrap = JSON.parse(bootstrapJson);
-const menu = { ...bootstrap.common.menu_data };
+const store = setupStore({ disableDebugger: true });
+const bootstrapData = getBootstrapData();
+const menu = { ...bootstrapData.common.menu_data };
 
 const emotionCache = createCache({
   key: 'menu',
 });
 
 const app = (
-  // @ts-ignore: emotion types defs are incompatible between core and cache
   <CacheProvider value={emotionCache}>
     <ThemeProvider theme={theme}>
       <Provider store={store}>
-        <Menu data={menu} />
+        <BrowserRouter>
+          <QueryParamProvider
+            adapter={ReactRouter5Adapter}
+            options={{
+              searchStringToObject: querystring.parse,
+              objectToSearchString: (object: Record<string, any>) =>
+                querystring.stringify(object, { encode: false }),
+            }}
+          >
+            <Menu data={menu} />
+          </QueryParamProvider>
+        </BrowserRouter>
       </Provider>
     </ThemeProvider>
   </CacheProvider>

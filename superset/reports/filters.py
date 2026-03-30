@@ -52,6 +52,6 @@ class ReportScheduleAllTextFilter(BaseFilter):  # pylint: disable=too-few-public
             or_(
                 ReportSchedule.name.ilike(ilike_value),
                 ReportSchedule.description.ilike(ilike_value),
-                ReportSchedule.sql.ilike((ilike_value)),
+                ReportSchedule.sql.ilike(ilike_value),
             )
         )

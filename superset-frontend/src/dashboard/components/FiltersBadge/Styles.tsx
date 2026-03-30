@@ -16,18 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/theme';
 
 export const Pill = styled.div`
   ${({ theme }) => css`
-    display: inline-block;
-    color: ${theme.colors.grayscale.light5};
-    background: ${theme.colors.grayscale.base};
+    display: flex;
+    color: ${theme.colorBgBase};
+    background: ${theme.colorText};
     border-radius: 1em;
     vertical-align: text-top;
-    padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px;
-    font-size: ${theme.typography.sizes.m}px;
-    font-weight: ${theme.typography.weights.bold};
+    padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
+    font-size: ${theme.fontSize}px;
+    font-weight: ${theme.fontWeightStrong};
     min-width: 1em;
     min-height: 1em;
     line-height: 1em;
@@ -36,8 +36,7 @@ export const Pill = styled.div`
 
     svg {
       position: relative;
-      top: -2px;
-      color: ${theme.colors.grayscale.light5};
+      color: ${theme.colorBgBase};
       width: 1em;
       height: 1em;
       display: inline-block;
@@ -46,122 +45,93 @@ export const Pill = styled.div`
 
     &:hover {
       cursor: pointer;
-      background: ${theme.colors.grayscale.dark1};
+      background: ${theme.colorText};
     }
 
     &.has-cross-filters {
-      background: ${theme.colors.primary.base};
+      background: ${theme.colorPrimary};
       &:hover {
-        background: ${theme.colors.primary.dark1};
-      }
-    }
-
-    &.has-incompatible-filters {
-      color: ${theme.colors.grayscale.dark2};
-      background: ${theme.colors.alert.base};
-      &:hover {
-        background: ${theme.colors.alert.dark1};
-      }
-      svg {
-        color: ${theme.colors.grayscale.dark2};
-      }
-    }
-
-    &.filters-inactive {
-      color: ${theme.colors.grayscale.light5};
-      background: ${theme.colors.grayscale.light1};
-      padding: ${theme.gridUnit}px;
-      text-align: center;
-      height: 22px;
-      width: 22px;
-
-      &:hover {
-        background: ${theme.colors.grayscale.base};
+        background: ${theme.colorPrimaryText};
       }
     }
   `}
 `;
 
-export interface TitleProps {
-  bold?: boolean;
-  color?: string;
-}
-
-export const Title = styled.span<TitleProps>`
-  position: relative;
-  margin-right: ${({ theme }) => theme.gridUnit}px;
-  font-weight: ${({ bold, theme }) => {
-    if (bold) return theme.typography.weights.bold;
-    return 'auto';
-  }};
-  color: ${({ color, theme }) => color || theme.colors.grayscale.light5};
-  display: flex;
-  align-items: center;
-  & > * {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
-  }
+export const SectionName = styled.span`
+  ${({ theme }) => css`
+    font-weight: ${theme.fontWeightStrong};
+  `}
+`;
+export const FilterName = styled.span`
+  ${({ theme }) => css`
+    padding-right: ${theme.sizeUnit}px;
+    font-style: italic;
+    & > * {
+      margin-right: ${theme.sizeUnit}px;
+    }
+  `}
 `;
 
-export const ItemIcon = styled.i`
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  left: -${({ theme }) => theme.gridUnit * 5}px;
-`;
-
-export const Item = styled.button`
-  cursor: pointer;
-  display: flex;
-  flex-wrap: wrap;
-  text-align: left;
-  padding: 0;
-  border: none;
-  background: none;
-  outline: none;
-  width: 100%;
-
-  &::-moz-focus-inner {
-    border: 0;
-  }
-
-  & i svg {
-    color: transparent;
-    margin-right: ${({ theme }) => theme.gridUnit}px;
-  }
-
-  &:hover i svg {
+export const FilterItem = styled.button`
+  ${({ theme }) => css`
+    cursor: pointer;
+    display: flex;
+    text-align: left;
+    padding: 0;
+    border: none;
+    background: none;
+    outline: none;
+    width: 100%;
     color: inherit;
-  }
+
+    &::-moz-focus-inner {
+      border: 0;
+    }
+
+    & i svg {
+      opacity: 35%;
+      margin-right: ${theme.sizeUnit}px;
+      transition: opacity ease-in-out ${theme.motionDurationMid};
+    }
+
+    &:hover i svg,
+    &:focus-visible i svg {
+      opacity: 1;
+    }
+  `}
 `;
 
-export const Reset = styled.div`
-  margin: 0 -${({ theme }) => theme.gridUnit * 4}px;
+export const FiltersContainer = styled.div`
+  ${({ theme }) => css`
+    max-height: 60vh;
+    margin-top: ${theme.sizeUnit}px;
+    &:not(:last-child) {
+      padding-bottom: ${theme.sizeUnit * 3}px;
+    }
+  `}
 `;
 
-export const Indent = styled.div`
-  padding-left: ${({ theme }) => theme.gridUnit * 6}px;
-  margin: -${({ theme }) => theme.gridUnit * 3}px 0;
+export const FiltersDetailsContainer = styled.div`
+  ${({ theme }) => css`
+    min-width: 200px;
+    max-width: 300px;
+    overflow-x: hidden;
+
+    color: ${theme.colorText};
+  `}
 `;
 
-export const Panel = styled.div`
-  min-width: 200px;
-  max-width: 300px;
-  overflow-x: hidden;
-`;
-
-export const FilterValue = styled.div`
+export const FilterValue = styled.span`
   max-width: 100%;
   flex-grow: 1;
   overflow: auto;
-  color: ${({ theme }) => theme.colors.grayscale.light5};
 `;
 
-export const FilterIndicatorText = styled.div`
-  ${({ theme }) => `
-  padding-top: ${theme.gridUnit * 3}px;
-  max-width: 100%;
-  flex-grow: 1;
-  overflow: auto;
-  color: ${theme.colors.grayscale.light5};
+export const Separator = styled.div`
+  ${({ theme }) => css`
+    width: 100%;
+    height: 1px;
+    background-color: ${theme.colorBorderSecondary};
+    margin: ${theme.sizeUnit * 4}px 0;
   `}
 `;

@@ -14,8 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import uuid
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 from flask import g
 from flask_appbuilder.security.sqla.models import Role
@@ -24,12 +23,15 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm.query import Query
 
 from superset import db, is_feature_enabled, security_manager
-from superset.models.core import FavStar
-from superset.models.dashboard import Dashboard
+from superset.connectors.sqla.models import SqlaTable
+from superset.models.core import Database
+from superset.models.dashboard import Dashboard, is_uuid
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
 from superset.security.guest_token import GuestTokenResourceType, GuestUser
+from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
 from superset.utils.core import get_user_id
+from superset.utils.filters import get_dataset_access_filters
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
 
@@ -77,20 +79,34 @@ class DashboardFavoriteFilter(  # pylint: disable=too-few-public-methods
     model = Dashboard
 
 
-def is_uuid(value: Union[str, int]) -> bool:
-    try:
-        uuid.UUID(str(value))
-        return True
-    except ValueError:
-        return False
+class DashboardTagNameFilter(BaseTagNameFilter):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters all dashboards associated with
+    a certain tag (by its name).
+    """
+
+    arg_name = "dashboard_tags"
+    class_name = "Dashboard"
+    model = Dashboard
+
+
+class DashboardTagIdFilter(BaseTagIdFilter):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters all dashboards associated with
+    a certain tag (by its ID).
+    """
+
+    arg_name = "dashboard_tag_id"
+    class_name = "Dashboard"
+    model = Dashboard
 
 
 class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     """
     List dashboards with the following criteria:
         1. Those which the user owns
-        2. Those which the user has favorited
-        3. Those which have been published (if they have access to at least one slice)
+        2. Those which have been published (if they have access to at least one slice)
+        3. Those that they have access to via a role (if `DASHBOARD_RBAC` is enabled)
 
     If the user is an admin then show all dashboards.
     This means they do not get curation but can still sort by "published"
@@ -101,9 +117,6 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
         if security_manager.is_admin():
             return query
 
-        datasource_perms = security_manager.user_view_menu_names("datasource_access")
-        schema_perms = security_manager.user_view_menu_names("schema_access")
-
         is_rbac_disabled_filter = []
         dashboard_has_roles = Dashboard.roles.any()
         if is_feature_enabled("DASHBOARD_RBAC"):
@@ -112,25 +125,20 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
         datasource_perm_query = (
             db.session.query(Dashboard.id)
             .join(Dashboard.slices, isouter=True)
+            .join(SqlaTable, Slice.datasource_id == SqlaTable.id)
+            .join(Database, SqlaTable.database_id == Database.id)
             .filter(
                 and_(
                     Dashboard.published.is_(True),
                     *is_rbac_disabled_filter,
-                    or_(
-                        Slice.perm.in_(datasource_perms),
-                        Slice.schema_perm.in_(schema_perms),
+                    get_dataset_access_filters(
+                        Slice,
                         security_manager.can_access_all_datasources(),
                     ),
                 )
             )
         )
 
-        users_favorite_dash_query = db.session.query(FavStar.obj_id).filter(
-            and_(
-                FavStar.user_id == get_user_id(),
-                FavStar.class_name == "Dashboard",
-            )
-        )
         owner_ids_query = (
             db.session.query(Dashboard.id)
             .join(Dashboard.owners)
@@ -178,7 +186,6 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
             or_(
                 Dashboard.id.in_(owner_ids_query),
                 Dashboard.id.in_(datasource_perm_query),
-                Dashboard.id.in_(users_favorite_dash_query),
                 *feature_flagged_filters,
             )
         )

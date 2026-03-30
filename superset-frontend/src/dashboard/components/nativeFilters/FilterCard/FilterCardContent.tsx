@@ -17,15 +17,14 @@
  * under the License.
  */
 
-import React from 'react';
-import { Filter } from '@superset-ui/core';
 import { ScopeRow } from './ScopeRow';
 import { DependenciesRow } from './DependenciesRow';
 import { NameRow } from './NameRow';
 import { TypeRow } from './TypeRow';
+import { FilterElement } from '../FilterBar/FilterControls/types';
 
 interface FilterCardContentProps {
-  filter: Filter;
+  filter: FilterElement;
   hidePopover: () => void;
 }
 

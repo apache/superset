@@ -16,12 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ControlPanelConfig,
+  ControlSubSectionHeader,
   getStandardizedControls,
-  sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './constants';
@@ -38,7 +37,6 @@ const optionalEntity = {
 
 const controlPanel: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -91,11 +89,9 @@ const controlPanel: ControlPanelConfig = {
           {
             name: 'metric',
             config: {
-              ...optionalEntity,
-              type: isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
-                ? 'DndMetricSelect'
-                : 'MetricsControl',
-              label: t('Metric'),
+              ...sharedControls.metric,
+              clearable: true,
+              validators: [],
               description: t('Metric for node values'),
             },
           },
@@ -108,7 +104,7 @@ const controlPanel: ControlPanelConfig = {
       label: t('Chart options'),
       expanded: true,
       controlSetRows: [
-        [<div className="section-header">{t('Layout')}</div>],
+        [<ControlSubSectionHeader>{t('Layout')}</ControlSubSectionHeader>],
         [
           {
             name: 'layout',
@@ -161,7 +157,7 @@ const controlPanel: ControlPanelConfig = {
                 ['right', t('right')],
                 ['bottom', t('bottom')],
               ],
-              description: t('Position of intermidiate node label on tree'),
+              description: t('Position of intermediate node label on tree'),
             },
           },
         ],
@@ -279,6 +275,23 @@ const controlPanel: ControlPanelConfig = {
               ],
               description: t(
                 'Whether to enable changing graph position and scaling.',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'initialTreeDepth',
+            config: {
+              type: 'NumberControl',
+              label: t('Initial tree depth'),
+              min: -1,
+              step: 1,
+              max: 10,
+              default: DEFAULT_FORM_DATA.initialTreeDepth,
+              renderTrigger: true,
+              description: t(
+                'The initial level (depth) of the tree. If set as -1 all nodes are expanded.',
               ),
             },
           },

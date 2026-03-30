@@ -38,7 +38,7 @@ cd cypress-base
 time npm ci
 export CYPRESS_BASE_URL="http://localhost:${PORT}"
 if [ -n "$1" ]; then
-    CYPRESS_PATH='cypress/integration/'${1}'/*'
+    CYPRESS_PATH='cypress/e2e/'${1}'/*'
     time npm run cypress-run-chrome -- --spec "$CYPRESS_PATH" --record false --config video=false || true
 else
     time npm run cypress-run-chrome -- --record false --config video=false || true

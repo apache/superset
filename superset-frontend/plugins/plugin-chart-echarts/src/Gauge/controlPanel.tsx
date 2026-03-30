@@ -16,21 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import {
   sharedControls,
   ControlPanelConfig,
+  ControlSubSectionHeader,
   D3_FORMAT_OPTIONS,
-  sections,
-  emitFilterControl,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -46,7 +43,6 @@ const config: ControlPanelConfig = {
         ],
         ['metric'],
         ['adhoc_filters'],
-        emitFilterControl,
         [
           {
             name: 'row_limit',
@@ -57,25 +53,14 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [
-          {
-            name: 'sort_by_metric',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Sort by metric'),
-              description: t(
-                'Whether to sort results by the selected metric in descending order.',
-              ),
-            },
-          },
-        ],
+        ['sort_by_metric'],
       ],
     },
     {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        [<div className="section-header">{t('General')}</div>],
+        [<ControlSubSectionHeader>{t('General')}</ControlSubSectionHeader>],
         [
           {
             name: 'min_val',
@@ -155,6 +140,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['currency_format'],
         [
           {
             name: 'value_formatter',
@@ -195,7 +181,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<div className="section-header">{t('Axis')}</div>],
+        [<ControlSubSectionHeader>{t('Axis')}</ControlSubSectionHeader>],
         [
           {
             name: 'show_axis_tick',
@@ -234,7 +220,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<div className="section-header">{t('Progress')}</div>],
+        [<ControlSubSectionHeader>{t('Progress')}</ControlSubSectionHeader>],
         [
           {
             name: 'show_progress',
@@ -275,7 +261,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<div className="section-header">{t('Intervals')}</div>],
+        [<ControlSubSectionHeader>{t('Intervals')}</ControlSubSectionHeader>],
         [
           {
             name: 'intervals',

@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import BoundsControl, { BoundsControlProps } from './BoundsControl';
 
 export default {
-  title: 'BoundsControl',
+  title: 'Components/BoundsControl',
   component: BoundsControl,
 };
 
@@ -43,12 +42,4 @@ InteractiveBoundsControl.args = {
 
 InteractiveBoundsControl.argTypes = {
   onChange: { action: 'onChange' },
-};
-
-InteractiveBoundsControl.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
 };

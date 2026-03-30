@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryObject, SqlaFormData } from '@superset-ui/core';
+import { QueryObject, SqlaFormData, VizType } from '@superset-ui/core';
 import { sortOperator } from '@superset-ui/chart-controls';
-import * as supersetCoreModule from '@superset-ui/core';
 
 const formData: SqlaFormData = {
   metrics: [
@@ -28,7 +27,7 @@ const formData: SqlaFormData = {
   time_range: '2015 : 2016',
   granularity: 'month',
   datasource: 'foo',
-  viz_type: 'table',
+  viz_type: VizType.Table,
 };
 const queryObject: QueryObject = {
   metrics: [
@@ -54,43 +53,28 @@ const queryObject: QueryObject = {
 };
 
 test('should ignore the sortOperator', () => {
-  // FF is disabled
-  Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
-    value: false,
-  });
-  expect(sortOperator(formData, queryObject)).toEqual(undefined);
-
-  // FF is enabled
-  Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
-    value: true,
-  });
   expect(
     sortOperator(
       {
         ...formData,
-        ...{
-          x_axis_sort: undefined,
-          x_axis_sort_asc: true,
-        },
+
+        x_axis_sort: undefined,
+        x_axis_sort_asc: true,
       },
       queryObject,
     ),
   ).toEqual(undefined);
 
   // sortOperator doesn't support multiple series
-  Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
-    value: true,
-  });
   expect(
     sortOperator(
       {
         ...formData,
-        ...{
-          x_axis_sort: 'metric label',
-          x_axis_sort_asc: true,
-          groupby: ['col1'],
-          x_axis: 'axis column',
-        },
+
+        x_axis_sort: 'metric label',
+        x_axis_sort_asc: true,
+        groupby: ['col1'],
+        x_axis: 'axis column',
       },
       queryObject,
     ),
@@ -98,18 +82,14 @@ test('should ignore the sortOperator', () => {
 });
 
 test('should sort by metric', () => {
-  Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
-    value: true,
-  });
   expect(
     sortOperator(
       {
         ...formData,
-        ...{
-          metrics: ['a metric label'],
-          x_axis_sort: 'a metric label',
-          x_axis_sort_asc: true,
-        },
+
+        metrics: ['a metric label'],
+        x_axis_sort: 'a metric label',
+        x_axis_sort_asc: true,
       },
       queryObject,
     ),
@@ -123,18 +103,14 @@ test('should sort by metric', () => {
 });
 
 test('should sort by axis', () => {
-  Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
-    value: true,
-  });
   expect(
     sortOperator(
       {
         ...formData,
-        ...{
-          x_axis_sort: 'Categorical Column',
-          x_axis_sort_asc: true,
-          x_axis: 'Categorical Column',
-        },
+
+        x_axis_sort: 'Categorical Column',
+        x_axis_sort_asc: true,
+        x_axis: 'Categorical Column',
       },
       queryObject,
     ),
@@ -142,6 +118,28 @@ test('should sort by axis', () => {
     operation: 'sort',
     options: {
       is_sort_index: true,
+      ascending: true,
+    },
+  });
+});
+
+test('should sort by extra metric', () => {
+  expect(
+    sortOperator(
+      {
+        ...formData,
+        x_axis_sort: 'my_limit_metric',
+        x_axis_sort_asc: true,
+        x_axis: 'Categorical Column',
+        groupby: [],
+        timeseries_limit_metric: 'my_limit_metric',
+      },
+      queryObject,
+    ),
+  ).toEqual({
+    operation: 'sort',
+    options: {
+      by: 'my_limit_metric',
       ascending: true,
     },
   });

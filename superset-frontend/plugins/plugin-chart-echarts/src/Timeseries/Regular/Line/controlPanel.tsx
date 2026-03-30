@@ -16,23 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
+  ControlSubSectionHeader,
   D3_TIME_FORMAT_DOCS,
   getStandardizedControls,
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
 
-import { EchartsTimeseriesSeriesType } from '../../types';
-import { DEFAULT_FORM_DATA } from '../../constants';
+import {
+  DEFAULT_FORM_DATA,
+  TIME_SERIES_DESCRIPTION_TEXT,
+} from '../../constants';
 import {
   legendSection,
+  minorTicks,
   richTooltipSection,
+  seriesOrderSection,
   showValueSection,
+  truncateXAxis,
+  xAxisBounds,
+  xAxisLabelRotation,
+  xAxisLabelInterval,
+  forceMaxInterval,
 } from '../../../controls';
 
 const {
@@ -43,16 +52,12 @@ const {
   minorSplitLine,
   opacity,
   rowLimit,
-  seriesType,
   truncateYAxis,
   yAxisBounds,
-  zoomable,
-  xAxisLabelRotation,
 } = DEFAULT_FORM_DATA;
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.genericTime,
-    sections.echartsTimeSeriesQuery,
+    sections.echartsTimeSeriesQueryWithXAxisSort,
     sections.advancedAnalyticsControls,
     sections.annotationsAndLayersControls,
     sections.forecastIntervalControls,
@@ -61,28 +66,9 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
+        ...seriesOrderSection,
         ['color_scheme'],
-        [
-          {
-            name: 'seriesType',
-            config: {
-              type: 'SelectControl',
-              label: t('Series Style'),
-              renderTrigger: true,
-              default: seriesType,
-              choices: [
-                [EchartsTimeseriesSeriesType.Line, 'Line'],
-                [EchartsTimeseriesSeriesType.Scatter, 'Scatter'],
-                [EchartsTimeseriesSeriesType.Smooth, 'Smooth Line'],
-                [EchartsTimeseriesSeriesType.Bar, 'Bar'],
-                [EchartsTimeseriesSeriesType.Start, 'Step - start'],
-                [EchartsTimeseriesSeriesType.Middle, 'Step - middle'],
-                [EchartsTimeseriesSeriesType.End, 'Step - end'],
-              ],
-              description: t('Series chart type (line, bar etc)'),
-            },
-          },
-        ],
+        ['time_shift_color'],
         ...showValueSection,
         [
           {
@@ -149,56 +135,28 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [
-          {
-            name: 'zoomable',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Data Zoom'),
-              default: zoomable,
-              renderTrigger: true,
-              description: t('Enable data zooming controls'),
-            },
-          },
-        ],
+        ['zoomable'],
+        [minorTicks],
         ...legendSection,
-        [<div className="section-header">{t('X Axis')}</div>],
+        [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         [
           {
             name: 'x_axis_time_format',
             config: {
               ...sharedControls.x_axis_time_format,
               default: 'smart_date',
-              description: `${D3_TIME_FORMAT_DOCS}. ${t(
-                'When using other than adaptive formatting, labels may overlap.',
-              )}`,
+              description: `${D3_TIME_FORMAT_DOCS}. ${TIME_SERIES_DESCRIPTION_TEXT}`,
             },
           },
         ],
-        [
-          {
-            name: 'xAxisLabelRotation',
-            config: {
-              type: 'SelectControl',
-              freeForm: true,
-              clearable: false,
-              label: t('Rotate x axis label'),
-              choices: [
-                [0, '0°'],
-                [45, '45°'],
-              ],
-              default: xAxisLabelRotation,
-              renderTrigger: true,
-              description: t(
-                'Input field supports custom rotation. e.g. 30 for 30°',
-              ),
-            },
-          },
-        ],
+        [xAxisLabelRotation],
+        [xAxisLabelInterval],
+        [forceMaxInterval],
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
-        [<div className="section-header">{t('Y Axis')}</div>],
+        [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
         ['y_axis_format'],
+        ['currency_format'],
         [
           {
             name: 'logAxis',
@@ -223,6 +181,8 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [truncateXAxis],
+        [xAxisBounds],
         [
           {
             name: 'truncateYAxis',
@@ -256,6 +216,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['echart_options'],
       ],
     },
   ],

@@ -16,14 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  AnnotationType,
-  Behavior,
-  ChartMetadata,
-  ChartPlugin,
-  hasGenericChartAxes,
-  t,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { AnnotationType, Behavior } from '@superset-ui/core';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
@@ -33,8 +27,12 @@ import buildQuery from '../../buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from '../../transformProps';
 import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 import example1 from './images/Line1.png';
+import example1Dark from './images/Line1-dark.png';
 import example2 from './images/Line2.png';
+import example2Dark from './images/Line2-dark.png';
+import { EchartsChartPlugin } from '../../../types';
 
 const lineTransformProps = (chartProps: EchartsTimeseriesChartProps) =>
   transformProps({
@@ -45,7 +43,7 @@ const lineTransformProps = (chartProps: EchartsTimeseriesChartProps) =>
     },
   });
 
-export default class EchartsTimeseriesLineChartPlugin extends ChartPlugin<
+export default class EchartsTimeseriesLineChartPlugin extends EchartsChartPlugin<
   EchartsTimeseriesFormData,
   EchartsTimeseriesChartProps
 > {
@@ -54,37 +52,39 @@ export default class EchartsTimeseriesLineChartPlugin extends ChartPlugin<
       buildQuery,
       controlPanel,
       loadChart: () => import('../../EchartsTimeseries'),
-      metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART, Behavior.DRILL_TO_DETAIL],
+      metadata: {
+        behaviors: [
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
+        ],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: hasGenericChartAxes
-          ? t(
-              'Line chart is used to visualize measurements taken over a given category. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.',
-            )
-          : t(
-              'Time-series line chart is used to visualize repeated measurements taken over regular time intervals. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.',
-            ),
-        exampleGallery: [{ url: example1 }, { url: example2 }],
+        description: t(
+          'Line chart is used to visualize measurements taken over a given category. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.',
+        ),
+        exampleGallery: [
+          { url: example1, urlDark: example1Dark },
+          { url: example2, urlDark: example2Dark },
+        ],
+        canBeAnnotationTypes: [AnnotationType.Timeseries],
         supportedAnnotationTypes: [
           AnnotationType.Event,
           AnnotationType.Formula,
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: hasGenericChartAxes
-          ? t('Line Chart')
-          : t('Time-series Line Chart'),
+        name: t('Line Chart'),
         tags: [
           t('ECharts'),
           t('Predictive'),
           t('Advanced-Analytics'),
-          t('Aesthetic'),
           t('Line'),
-          t('Popular'),
+          t('Featured'),
         ],
         thumbnail,
-      }),
+        thumbnailDark,
+      },
       transformProps: lineTransformProps,
     });
   }

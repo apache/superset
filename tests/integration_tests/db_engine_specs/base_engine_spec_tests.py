@@ -25,28 +25,27 @@ from superset.db_engine_specs.base import (
     BaseEngineSpec,
     BasicParametersMixin,
     builtin_time_grains,
-    LimitMethod,
 )
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.sql_parse import ParsedQuery
+from superset.sql.parse import Table
 from superset.utils.database import get_example_database
-from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
+from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.test_app import app
 
-from ..fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+from ..fixtures.birth_names_dashboard import (  # noqa: TID252
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
-from ..fixtures.energy_dashboard import (
-    load_energy_table_data,
-    load_energy_table_with_slice,
+from ..fixtures.energy_dashboard import (  # noqa: TID252
+    load_energy_table_data,  # noqa: F401
+    load_energy_table_with_slice,  # noqa: F401
 )
-from ..fixtures.pyodbcRow import Row
+from ..fixtures.pyodbcRow import Row  # noqa: TID252
 
 
-class TestDbEngineSpecs(TestDbEngineSpec):
+class SupersetTestCases(SupersetTestCase):
     def test_extract_limit_from_query(self, engine_spec_class=BaseEngineSpec):
         q0 = "select * from table"
         q1 = "select * from mytable limit 10"
@@ -61,136 +60,21 @@ class TestDbEngineSpecs(TestDbEngineSpec):
         q10 = "select * from mytable limit 20, x"
         q11 = "select * from mytable limit x offset 20"
 
-        self.assertEqual(engine_spec_class.get_limit_from_sql(q0), None)
-        self.assertEqual(engine_spec_class.get_limit_from_sql(q1), 10)
-        self.assertEqual(engine_spec_class.get_limit_from_sql(q2), 20)
-        self.assertEqual(engine_spec_class.get_limit_from_sql(q3), None)
-        self.assertEqual(engine_spec_class.get_limit_from_sql(q4), 20)
-        self.assertEqual(engine_spec_class.get_limit_from_sql(q5), 10)
-        self.assertEqual(engine_spec_class.get_limit_from_sql(q6), 10)
-        self.assertEqual(engine_spec_class.get_limit_from_sql(q7), None)
-        self.assertEqual(engine_spec_class.get_limit_from_sql(q8), None)
-        self.assertEqual(engine_spec_class.get_limit_from_sql(q9), None)
-        self.assertEqual(engine_spec_class.get_limit_from_sql(q10), None)
-        self.assertEqual(engine_spec_class.get_limit_from_sql(q11), None)
-
-    def test_wrapped_semi_tabs(self):
-        self.sql_limit_regex(
-            "SELECT * FROM a  \t \n   ; \t  \n  ", "SELECT * FROM a\nLIMIT 1000"
-        )
-
-    def test_simple_limit_query(self):
-        self.sql_limit_regex("SELECT * FROM a", "SELECT * FROM a\nLIMIT 1000")
-
-    def test_modify_limit_query(self):
-        self.sql_limit_regex("SELECT * FROM a LIMIT 9999", "SELECT * FROM a LIMIT 1000")
-
-    def test_limit_query_with_limit_subquery(self):  # pylint: disable=invalid-name
-        self.sql_limit_regex(
-            "SELECT * FROM (SELECT * FROM a LIMIT 10) LIMIT 9999",
-            "SELECT * FROM (SELECT * FROM a LIMIT 10) LIMIT 1000",
-        )
-
-    def test_limit_query_without_force(self):
-        self.sql_limit_regex(
-            "SELECT * FROM a LIMIT 10",
-            "SELECT * FROM a LIMIT 10",
-            limit=11,
-        )
-
-    def test_limit_query_with_force(self):
-        self.sql_limit_regex(
-            "SELECT * FROM a LIMIT 10",
-            "SELECT * FROM a LIMIT 11",
-            limit=11,
-            force=True,
-        )
-
-    def test_limit_with_expr(self):
-        self.sql_limit_regex(
-            """
-            SELECT
-                'LIMIT 777' AS a
-                , b
-            FROM
-            table
-            LIMIT 99990""",
-            """SELECT
-                'LIMIT 777' AS a
-                , b
-            FROM
-            table
-            LIMIT 1000""",
-        )
-
-    def test_limit_expr_and_semicolon(self):
-        self.sql_limit_regex(
-            """
-                SELECT
-                    'LIMIT 777' AS a
-                    , b
-                FROM
-                table
-                LIMIT         99990            ;""",
-            """SELECT
-                    'LIMIT 777' AS a
-                    , b
-                FROM
-                table
-                LIMIT         1000""",
-        )
+        assert engine_spec_class.get_limit_from_sql(q0) is None
+        assert engine_spec_class.get_limit_from_sql(q1) == 10
+        assert engine_spec_class.get_limit_from_sql(q2) == 20
+        assert engine_spec_class.get_limit_from_sql(q3) is None
+        assert engine_spec_class.get_limit_from_sql(q4) == 20
+        assert engine_spec_class.get_limit_from_sql(q5) == 10
+        assert engine_spec_class.get_limit_from_sql(q6) == 10
+        assert engine_spec_class.get_limit_from_sql(q7) is None
+        assert engine_spec_class.get_limit_from_sql(q8) is None
+        assert engine_spec_class.get_limit_from_sql(q9) is None
+        assert engine_spec_class.get_limit_from_sql(q10) is None
+        assert engine_spec_class.get_limit_from_sql(q11) is None
 
     def test_get_datatype(self):
-        self.assertEqual("VARCHAR", BaseEngineSpec.get_datatype("VARCHAR"))
-
-    def test_limit_with_implicit_offset(self):
-        self.sql_limit_regex(
-            """
-                SELECT
-                    'LIMIT 777' AS a
-                    , b
-                FROM
-                table
-                LIMIT 99990, 999999""",
-            """SELECT
-                    'LIMIT 777' AS a
-                    , b
-                FROM
-                table
-                LIMIT 99990, 1000""",
-        )
-
-    def test_limit_with_explicit_offset(self):
-        self.sql_limit_regex(
-            """
-                SELECT
-                    'LIMIT 777' AS a
-                    , b
-                FROM
-                table
-                LIMIT 99990
-                OFFSET 999999""",
-            """SELECT
-                    'LIMIT 777' AS a
-                    , b
-                FROM
-                table
-                LIMIT 1000
-                OFFSET 999999""",
-        )
-
-    def test_limit_with_non_token_limit(self):
-        self.sql_limit_regex(
-            """SELECT 'LIMIT 777'""", """SELECT 'LIMIT 777'\nLIMIT 1000"""
-        )
-
-    def test_limit_with_fetch_many(self):
-        class DummyEngineSpec(BaseEngineSpec):
-            limit_method = LimitMethod.FETCH_MANY
-
-        self.sql_limit_regex(
-            "SELECT * FROM table", "SELECT * FROM table", DummyEngineSpec
-        )
+        assert "VARCHAR" == BaseEngineSpec.get_datatype("VARCHAR")
 
     def test_engine_time_grain_validity(self):
         time_grains = set(builtin_time_grains.keys())
@@ -198,29 +82,26 @@ class TestDbEngineSpecs(TestDbEngineSpec):
         for engine in load_engine_specs():
             if engine is not BaseEngineSpec:
                 # make sure time grain functions have been defined
-                self.assertGreater(len(engine.get_time_grain_expressions()), 0)
+                assert len(engine.get_time_grain_expressions()) > 0
                 # make sure all defined time grains are supported
                 defined_grains = {grain.duration for grain in engine.get_time_grains()}
                 intersection = time_grains.intersection(defined_grains)
-                self.assertSetEqual(defined_grains, intersection, engine)
+                self.assertSetEqual(defined_grains, intersection, engine)  # noqa: PT009
 
     def test_get_time_grain_expressions(self):
         time_grains = MySQLEngineSpec.get_time_grain_expressions()
-        self.assertEqual(
-            list(time_grains.keys()),
-            [
-                None,
-                "PT1S",
-                "PT1M",
-                "PT1H",
-                "P1D",
-                "P1W",
-                "P1M",
-                "P3M",
-                "P1Y",
-                "1969-12-29T00:00:00Z/P1W",
-            ],
-        )
+        assert list(time_grains.keys()) == [
+            None,
+            "PT1S",
+            "PT1M",
+            "PT1H",
+            "P1D",
+            "P1W",
+            "P1M",
+            "P3M",
+            "P1Y",
+            "1969-12-29T00:00:00Z/P1W",
+        ]
 
     def test_get_table_names(self):
         inspector = mock.Mock()
@@ -235,10 +116,14 @@ class TestDbEngineSpecs(TestDbEngineSpec):
         )
         assert base_result_expected == base_result
 
+    def test_get_column_description_limit_size(self):
+        base_result = BaseEngineSpec.get_column_description_limit_size()
+        assert base_result == 1
+
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_column_datatype_to_string(self):
         example_db = get_example_database()
-        sqla_table = example_db.get_table("energy_usage")
+        sqla_table = example_db.get_table(Table("energy_usage"))
         dialect = example_db.get_dialect()
 
         # TODO: fix column type conversion for presto.
@@ -255,11 +140,11 @@ class TestDbEngineSpecs(TestDbEngineSpec):
             expected = ["STRING", "STRING", "FLOAT"]
         else:
             expected = ["VARCHAR(255)", "VARCHAR(255)", "FLOAT"]
-        self.assertEqual(col_names, expected)
+        assert col_names == expected
 
     def test_convert_dttm(self):
         dttm = self.get_dttm()
-        self.assertIsNone(BaseEngineSpec.convert_dttm("", dttm, db_extra=None))
+        assert BaseEngineSpec.convert_dttm("", dttm, db_extra=None) is None
 
     def test_pyodbc_rows_to_tuples(self):
         # Test for case when pyodbc.Row is returned (odbc driver)
@@ -272,7 +157,7 @@ class TestDbEngineSpecs(TestDbEngineSpec):
             (2, 2, datetime.datetime(2018, 10, 19, 23, 39, 16, 660000)),
         ]
         result = BaseEngineSpec.pyodbc_rows_to_tuples(data)
-        self.assertListEqual(result, expected)
+        self.assertListEqual(result, expected)  # noqa: PT009
 
     def test_pyodbc_rows_to_tuples_passthrough(self):
         # Test for case when tuples are returned
@@ -281,7 +166,7 @@ class TestDbEngineSpecs(TestDbEngineSpec):
             (2, 2, datetime.datetime(2018, 10, 19, 23, 39, 16, 660000)),
         ]
         result = BaseEngineSpec.pyodbc_rows_to_tuples(data)
-        self.assertListEqual(result, data)
+        self.assertListEqual(result, data)  # noqa: PT009
 
     @mock.patch("superset.models.core.Database.db_engine_spec", BaseEngineSpec)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -308,35 +193,19 @@ class TestDbEngineSpecs(TestDbEngineSpec):
         }
         sql = table.get_query_str(query_obj)
         assert (
-            """ORDER BY case
-             when gender='boy' then 'male'
-             else 'female'
-         end ASC;"""
+            "ORDER BY \n            case\n              when gender='boy' then 'male'\n              else 'female'\n            end\n             ASC"  # noqa: E501
             in sql
         )
 
 
-def test_is_readonly():
-    def is_readonly(sql: str) -> bool:
-        return BaseEngineSpec.is_readonly_query(ParsedQuery(sql))
-
-    assert is_readonly("SHOW LOCKS test EXTENDED")
-    assert not is_readonly("SET hivevar:desc='Legislators'")
-    assert not is_readonly("UPDATE t1 SET col1 = NULL")
-    assert is_readonly("EXPLAIN SELECT 1")
-    assert is_readonly("SELECT 1")
-    assert is_readonly("WITH (SELECT 1) bla SELECT * from bla")
-    assert is_readonly("SHOW CATALOGS")
-    assert is_readonly("SHOW TABLES")
-
-
 def test_time_grain_denylist():
     config = app.config.copy()
-    app.config["TIME_GRAIN_DENYLIST"] = ["PT1M"]
+    app.config["TIME_GRAIN_DENYLIST"] = ["PT1M", "SQLITE_NONEXISTENT_GRAIN"]
 
     with app.app_context():
         time_grain_functions = SqliteEngineSpec.get_time_grain_expressions()
-        assert not "PT1M" in time_grain_functions
+        assert "PT1M" not in time_grain_functions  # noqa: E713
+        assert "SQLITE_NONEXISTENT_GRAIN" not in time_grain_functions  # noqa: E713
 
     app.config = config
 
@@ -395,7 +264,7 @@ def test_get_time_grain_with_config():
     app.config = config
 
 
-def test_get_time_grain_with_unkown_values():
+def test_get_time_grain_with_unknown_values():
     """Should concatenate from configs and then sort in the proper order
     putting unknown patterns at the end"""
     config = app.config.copy()
@@ -446,17 +315,18 @@ def test_validate_parameters_missing():
             "query": {},
         }
     }
-    errors = BasicParametersMixin.validate_parameters(properties)
-    assert errors == [
-        SupersetError(
-            message=(
-                "One or more parameters are missing: " "database, host, port, username"
+    with app.app_context():
+        errors = BasicParametersMixin.validate_parameters(properties)
+        assert errors == [
+            SupersetError(
+                message=(
+                    "One or more parameters are missing: database, host, port, username"
+                ),
+                error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+                level=ErrorLevel.WARNING,
+                extra={"missing": ["database", "host", "port", "username"]},
             ),
-            error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
-            level=ErrorLevel.WARNING,
-            extra={"missing": ["database", "host", "port", "username"]},
-        ),
-    ]
+        ]
 
 
 @mock.patch("superset.db_engine_specs.base.is_hostname_valid")
@@ -473,21 +343,22 @@ def test_validate_parameters_invalid_host(is_hostname_valid):
             "query": {"sslmode": "verify-full"},
         }
     }
-    errors = BasicParametersMixin.validate_parameters(properties)
-    assert errors == [
-        SupersetError(
-            message="One or more parameters are missing: port",
-            error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
-            level=ErrorLevel.WARNING,
-            extra={"missing": ["port"]},
-        ),
-        SupersetError(
-            message="The hostname provided can't be resolved.",
-            error_type=SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
-            level=ErrorLevel.ERROR,
-            extra={"invalid": ["host"]},
-        ),
-    ]
+    with app.app_context():
+        errors = BasicParametersMixin.validate_parameters(properties)
+        assert errors == [
+            SupersetError(
+                message="One or more parameters are missing: port",
+                error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+                level=ErrorLevel.WARNING,
+                extra={"missing": ["port"]},
+            ),
+            SupersetError(
+                message="The hostname provided can't be resolved.",
+                error_type=SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={"invalid": ["host"]},
+            ),
+        ]
 
 
 @mock.patch("superset.db_engine_specs.base.is_hostname_valid")
@@ -506,17 +377,40 @@ def test_validate_parameters_port_closed(is_port_open, is_hostname_valid):
             "query": {"sslmode": "verify-full"},
         }
     }
-    errors = BasicParametersMixin.validate_parameters(properties)
-    assert errors == [
-        SupersetError(
-            message="The port is closed.",
-            error_type=SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
-            level=ErrorLevel.ERROR,
-            extra={
-                "invalid": ["port"],
-                "issue_codes": [
-                    {"code": 1008, "message": "Issue 1008 - The port is closed."}
-                ],
-            },
-        )
+    with app.app_context():
+        errors = BasicParametersMixin.validate_parameters(properties)
+        assert errors == [
+            SupersetError(
+                message="The port is closed.",
+                error_type=SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "invalid": ["port"],
+                    "issue_codes": [
+                        {"code": 1008, "message": "Issue 1008 - The port is closed."}
+                    ],
+                },
+            )
+        ]
+
+
+def test_get_indexes():
+    indexes = [
+        {
+            "name": "partition",
+            "column_names": ["a", "b"],
+            "unique": False,
+        },
     ]
+
+    inspector = mock.Mock()
+    inspector.get_indexes = mock.Mock(return_value=indexes)
+
+    assert (
+        BaseEngineSpec.get_indexes(
+            database=mock.Mock(),
+            inspector=inspector,
+            table=Table("bar", "foo"),
+        )
+        == indexes
+    )

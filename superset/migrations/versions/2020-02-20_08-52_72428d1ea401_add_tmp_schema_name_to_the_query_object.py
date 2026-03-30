@@ -26,8 +26,8 @@ Create Date: 2020-02-20 08:52:22.877902
 revision = "72428d1ea401"
 down_revision = "0a6f12f60c73"
 
-import sqlalchemy as sa
-from alembic import op
+import sqlalchemy as sa  # noqa: E402
+from alembic import op  # noqa: E402
 
 
 def upgrade():
@@ -40,5 +40,5 @@ def downgrade():
     try:
         # sqlite doesn't like dropping the columns
         op.drop_column("query", "tmp_schema_name")
-    except Exception:
+    except Exception:  # noqa: S110
         pass

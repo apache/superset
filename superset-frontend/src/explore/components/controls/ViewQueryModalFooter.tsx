@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { FC } from 'react';
 import { isObject } from 'lodash';
-import { t, SupersetClient } from '@superset-ui/core';
-import Button from 'src/components/Button';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
+import { Button } from '@superset-ui/core/components';
+import { useHistory } from 'react-router-dom';
 
 interface SimpleDataSource {
   id: string;
@@ -37,29 +39,45 @@ const CLOSE = t('Close');
 const SAVE_AS_DATASET = t('Save as Dataset');
 const OPEN_IN_SQL_LAB = t('Open in SQL Lab');
 
-const ViewQueryModalFooter: React.FC<ViewQueryModalFooterProps> = (props: {
+const ViewQueryModalFooter: FC<ViewQueryModalFooterProps> = (props: {
   closeModal: () => void;
   changeDatasource: () => void;
   datasource: SimpleDataSource;
 }) => {
-  const viewInSQLLab = (id: string, type: string, sql: string) => {
+  const history = useHistory();
+  const viewInSQLLab = (
+    openInNewWindow: boolean,
+    id: string,
+    type: string,
+    sql: string,
+  ) => {
     const payload = {
       datasourceKey: `${id}__${type}`,
       sql,
     };
-    SupersetClient.postForm('/superset/sqllab/', payload);
+    if (openInNewWindow) {
+      SupersetClient.postForm('/sqllab/', payload);
+    } else {
+      history.push({
+        pathname: '/sqllab',
+        state: {
+          requestedQuery: payload,
+        },
+      });
+    }
   };
 
-  const openSQL = () => {
+  const openSQL = (openInNewWindow: boolean) => {
     const { datasource } = props;
     if (isObject(datasource)) {
       const { id, type, sql } = datasource;
-      viewInSQLLab(id, type, sql);
+      viewInSQLLab(openInNewWindow, id, type, sql);
     }
   };
   return (
     <div>
       <Button
+        buttonStyle="secondary"
         onClick={() => {
           props?.closeModal?.();
           props?.changeDatasource?.();
@@ -67,9 +85,13 @@ const ViewQueryModalFooter: React.FC<ViewQueryModalFooterProps> = (props: {
       >
         {SAVE_AS_DATASET}
       </Button>
-      <Button onClick={() => openSQL()}>{OPEN_IN_SQL_LAB}</Button>
       <Button
-        buttonStyle="primary"
+        buttonStyle="secondary"
+        onClick={({ metaKey }) => openSQL(Boolean(metaKey))}
+      >
+        {OPEN_IN_SQL_LAB}
+      </Button>
+      <Button
         onClick={() => {
           props?.closeModal?.();
         }}

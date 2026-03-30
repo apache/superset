@@ -16,19 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import Label from 'src/components/Label';
-import { STATE_TYPE_MAP } from 'src/SqlLab/constants';
+import { Label } from '@superset-ui/core/components';
+import { STATE_TYPE_MAP, STATE_TYPE_MAP_LOCALIZED } from 'src/SqlLab/constants';
 import { Query } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 
 interface QueryStateLabelProps {
-  query: Query;
+  query: Pick<Query, 'state'>;
 }
+
+const StyledLabel = styled(Label)`
+  margin-right: ${({ theme }) => theme.sizeUnit}px;
+`;
 
 export default function QueryStateLabel({ query }: QueryStateLabelProps) {
   return (
-    <Label className="m-r-3" type={STATE_TYPE_MAP[query.state]}>
-      {query.state}
-    </Label>
+    <StyledLabel type={STATE_TYPE_MAP[query.state]}>
+      {STATE_TYPE_MAP_LOCALIZED[query.state]}
+    </StyledLabel>
   );
 }

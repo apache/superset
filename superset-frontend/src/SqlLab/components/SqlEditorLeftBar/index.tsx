@@ -16,267 +16,201 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  useEffect,
-  useCallback,
-  useMemo,
-  useState,
-  Dispatch,
-  SetStateAction,
-} from 'react';
+import { useCallback, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import querystring from 'query-string';
 
+import { resetState } from 'src/SqlLab/actions/sqlLab';
 import {
-  queryEditorSetDb,
-  queryEditorSetFunctionNames,
-  addTable,
-  removeTables,
-  collapseTable,
-  expandTable,
-  queryEditorSetSchema,
-  queryEditorSetTableOptions,
-  queryEditorSetSchemaOptions,
-  setDatabases,
-  addDangerToast,
-  resetState,
-} from 'src/SqlLab/actions/sqlLab';
-import Button from 'src/components/Button';
-import { t, styled, css, SupersetTheme } from '@superset-ui/core';
-import Collapse from 'src/components/Collapse';
-import Icons from 'src/components/Icons';
-import { TableSelectorMultiple } from 'src/components/TableSelector';
-import { IconTooltip } from 'src/components/IconTooltip';
-import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
-import { DatabaseObject } from 'src/components/DatabaseSelector';
-import { emptyStateComponent } from 'src/components/EmptyState';
-import {
-  getItem,
-  LocalStorageKeys,
-  setItem,
-} from 'src/utils/localStorageHelpers';
-import TableElement, { Table } from '../TableElement';
+  Button,
+  EmptyState,
+  Flex,
+  Icons,
+  Popover,
+  Typography,
+} from '@superset-ui/core/components';
+import { t } from '@apache-superset/core/translation';
+import { styled, css } from '@apache-superset/core/theme';
+import type { SchemaOption, CatalogOption } from 'src/hooks/apiResources';
+import { DatabaseSelector, type DatabaseObject } from 'src/components';
+import { EMPTY_STATE_QE_ID } from 'src/SqlLab/hooks/useQueryEditor';
 
-interface ExtendedTable extends Table {
-  expanded: boolean;
-}
+import useDatabaseSelector from '../SqlEditorTopBar/useDatabaseSelector';
+import TableExploreTree from '../TableExploreTree';
 
-interface SqlEditorLeftBarProps {
+export interface SqlEditorLeftBarProps {
   queryEditorId: string;
-  height?: number;
-  tables?: ExtendedTable[];
-  database: DatabaseObject;
-  setEmptyState: Dispatch<SetStateAction<boolean>>;
 }
 
-const StyledScrollbarContainer = styled.div`
-  flex: 1 1 auto;
-  overflow: auto;
-`;
+const LeftBarStyles = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.sizeUnit * 2}px;
 
-const collapseStyles = (theme: SupersetTheme) => css`
-  .ant-collapse-item {
-    margin-bottom: ${theme.gridUnit * 3}px;
-  }
-  .ant-collapse-header {
-    padding: 0px !important;
+  ${({ theme }) => css`
+    height: 100%;
     display: flex;
-    align-items: center;
-  }
-  .ant-collapse-content-box {
-    padding: 0px ${theme.gridUnit * 4}px 0px 0px !important;
-  }
-  .ant-collapse-arrow {
-    top: ${theme.gridUnit * 2}px !important;
-    color: ${theme.colors.primary.dark1} !important;
-    &: hover {
-      color: ${theme.colors.primary.dark2} !important;
+    flex-direction: column;
+
+    .divider {
+      border-bottom: 1px solid ${theme.colorSplit};
+      margin: ${theme.sizeUnit * 1}px 0;
     }
-  }
+  `}
 `;
 
-const SqlEditorLeftBar = ({
-  database,
-  queryEditorId,
-  tables = [],
-  height = 500,
-  setEmptyState,
-}: SqlEditorLeftBarProps) => {
+const StyledDivider = styled.div`
+  border-bottom: 1px solid ${({ theme }) => theme.colorSplit};
+  margin: 0 -${({ theme }) => theme.sizeUnit * 2.5}px 0;
+`;
+
+const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
+  const activeQEId = queryEditorId || EMPTY_STATE_QE_ID;
+  const dbSelectorProps = useDatabaseSelector(activeQEId);
+  const { db, catalog, schema, onDbChange, onCatalogChange, onSchemaChange } =
+    dbSelectorProps;
+
   const dispatch = useDispatch();
-  const queryEditor = useQueryEditor(queryEditorId, ['dbId', 'schema']);
-
-  const [emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
-  const [userSelectedDb, setUserSelected] = useState<DatabaseObject | null>(
-    null,
-  );
-  const { schema } = queryEditor;
-
-  useEffect(() => {
-    const bool = querystring.parse(window.location.search).db;
-    const userSelected = getItem(
-      LocalStorageKeys.db,
-      null,
-    ) as DatabaseObject | null;
-
-    if (bool && userSelected) {
-      setUserSelected(userSelected);
-      setItem(LocalStorageKeys.db, null);
-    } else setUserSelected(database);
-  }, [database]);
-
-  const onEmptyResults = (searchText?: string) => {
-    setEmptyResultsWithSearch(!!searchText);
-  };
-
-  const onDbChange = ({ id: dbId }: { id: number }) => {
-    setEmptyState(false);
-    dispatch(queryEditorSetDb(queryEditor, dbId));
-    dispatch(queryEditorSetFunctionNames(queryEditor, dbId));
-  };
-
-  const selectedTableNames = useMemo(
-    () => tables?.map(table => table.name) || [],
-    [tables],
-  );
-
-  const onTablesChange = (tableNames: string[], schemaName: string) => {
-    if (!schemaName) {
-      return;
-    }
-
-    const currentTables = [...tables];
-    const tablesToAdd = tableNames.filter(name => {
-      const index = currentTables.findIndex(table => table.name === name);
-      if (index >= 0) {
-        currentTables.splice(index, 1);
-        return false;
-      }
-
-      return true;
-    });
-
-    tablesToAdd.forEach(tableName =>
-      dispatch(addTable(queryEditor, database, tableName, schemaName)),
-    );
-
-    dispatch(removeTables(currentTables));
-  };
-
-  const onToggleTable = (updatedTables: string[]) => {
-    tables.forEach((table: ExtendedTable) => {
-      if (!updatedTables.includes(table.id.toString()) && table.expanded) {
-        dispatch(collapseTable(table));
-      } else if (
-        updatedTables.includes(table.id.toString()) &&
-        !table.expanded
-      ) {
-        dispatch(expandTable(table));
-      }
-    });
-  };
-
-  const renderExpandIconWithTooltip = ({ isActive }: { isActive: boolean }) => (
-    <IconTooltip
-      css={css`
-        transform: rotate(90deg);
-      `}
-      aria-label="Collapse"
-      tooltip={
-        isActive ? t('Collapse table preview') : t('Expand table preview')
-      }
-    >
-      <Icons.RightOutlined
-        iconSize="s"
-        css={css`
-          transform: ${isActive ? 'rotateY(180deg)' : ''};
-        `}
-      />
-    </IconTooltip>
-  );
-
   const shouldShowReset = window.location.search === '?reset=1';
-  const tableMetaDataHeight = height - 130; // 130 is the height of the selects above
 
-  const handleSchemaChange = useCallback((schema: string) => {
-    if (queryEditor) {
-      dispatch(queryEditorSetSchema(queryEditor, schema));
+  // Modal state for Database/Catalog/Schema selector
+  const [selectorModalOpen, setSelectorModalOpen] = useState(false);
+  const [modalDb, setModalDb] = useState<DatabaseObject | undefined>(undefined);
+  const [modalCatalog, setModalCatalog] = useState<
+    CatalogOption | null | undefined
+  >(undefined);
+  const [modalSchema, setModalSchema] = useState<SchemaOption | undefined>(
+    undefined,
+  );
+
+  const openSelectorModal = useCallback(() => {
+    setModalDb(db ?? undefined);
+    setModalCatalog(
+      catalog ? { label: catalog, value: catalog, title: catalog } : undefined,
+    );
+    setModalSchema(
+      schema ? { label: schema, value: schema, title: schema } : undefined,
+    );
+    setSelectorModalOpen(true);
+  }, [db, catalog, schema]);
+
+  const closeSelectorModal = useCallback(() => {
+    setSelectorModalOpen(false);
+  }, []);
+
+  const handleModalOk = useCallback(() => {
+    if (modalDb && modalDb.id !== db?.id) {
+      onDbChange?.(modalDb);
     }
-  }, []);
-
-  const handleTablesLoad = useCallback((options: Array<any>) => {
-    if (queryEditor) {
-      dispatch(queryEditorSetTableOptions(queryEditor, options));
+    if (modalCatalog?.value !== catalog) {
+      onCatalogChange?.(modalCatalog?.value);
     }
-  }, []);
-
-  const handleSchemasLoad = useCallback((options: Array<any>) => {
-    if (queryEditor) {
-      dispatch(queryEditorSetSchemaOptions(queryEditor, options));
+    if (modalSchema?.value !== schema) {
+      onSchemaChange?.(modalSchema?.value ?? '');
     }
-  }, []);
-
-  const handleDbList = useCallback((result: DatabaseObject) => {
-    dispatch(setDatabases(result));
-  }, []);
-
-  const handleError = useCallback((message: string) => {
-    dispatch(addDangerToast(message));
-  }, []);
+    setSelectorModalOpen(false);
+  }, [
+    modalDb,
+    modalCatalog,
+    modalSchema,
+    db,
+    catalog,
+    schema,
+    onDbChange,
+    onCatalogChange,
+    onSchemaChange,
+  ]);
 
   const handleResetState = useCallback(() => {
     dispatch(resetState());
-  }, []);
+  }, [dispatch]);
+
+  const popoverContent = (
+    <Flex
+      vertical
+      gap="middle"
+      data-test="DatabaseSelector"
+      css={css`
+        min-width: 500px;
+      `}
+    >
+      <Typography.Title level={5} style={{ margin: 0 }}>
+        {t('Select Database and Schema')}
+      </Typography.Title>
+      <DatabaseSelector
+        key={modalDb ? modalDb.id : 'no-db'}
+        db={modalDb}
+        emptyState={<EmptyState />}
+        getDbList={dbSelectorProps.getDbList}
+        handleError={dbSelectorProps.handleError}
+        onDbChange={setModalDb}
+        onCatalogChange={cat =>
+          setModalCatalog(
+            cat ? { label: cat, value: cat, title: cat } : undefined,
+          )
+        }
+        catalog={modalCatalog?.value}
+        onSchemaChange={sch =>
+          setModalSchema(
+            sch ? { label: sch, value: sch, title: sch } : undefined,
+          )
+        }
+        schema={modalSchema?.value}
+        sqlLabMode={false}
+      />
+      <Flex justify="flex-end" gap="small">
+        <Button
+          buttonStyle="tertiary"
+          onClick={e => {
+            e?.stopPropagation();
+            closeSelectorModal();
+          }}
+        >
+          {t('Cancel')}
+        </Button>
+        <Button
+          type="primary"
+          onClick={e => {
+            e?.stopPropagation();
+            handleModalOk();
+          }}
+        >
+          {t('Select')}
+        </Button>
+      </Flex>
+    </Flex>
+  );
 
   return (
-    <div data-test="sql-editor-left-bar" className="SqlEditorLeftBar">
-      <TableSelectorMultiple
-        onEmptyResults={onEmptyResults}
-        emptyState={emptyStateComponent(emptyResultsWithSearch)}
-        database={userSelectedDb}
-        getDbList={handleDbList}
-        handleError={handleError}
-        onDbChange={onDbChange}
-        onSchemaChange={handleSchemaChange}
-        onSchemasLoad={handleSchemasLoad}
-        onTableSelectChange={onTablesChange}
-        onTablesLoad={handleTablesLoad}
-        schema={schema}
-        tableValue={selectedTableNames}
-        sqlLabMode
-      />
-      <div className="divider" />
-      <StyledScrollbarContainer>
-        <div
-          css={css`
-            height: ${tableMetaDataHeight}px;
-          `}
-        >
-          <Collapse
-            activeKey={tables
-              .filter(({ expanded }) => expanded)
-              .map(({ id }) => id)}
-            css={collapseStyles}
-            expandIconPosition="right"
-            ghost
-            onChange={onToggleTable}
-            expandIcon={renderExpandIconWithTooltip}
-          >
-            {tables.map(table => (
-              <TableElement table={table} key={table.id} />
-            ))}
-          </Collapse>
-        </div>
-      </StyledScrollbarContainer>
+    <LeftBarStyles data-test="sql-editor-left-bar">
+      <Popover
+        content={popoverContent}
+        open={selectorModalOpen}
+        onOpenChange={open => !open && closeSelectorModal()}
+        placement="bottomLeft"
+        trigger="click"
+      >
+        <DatabaseSelector
+          key={`db-selector-${db ? db.id : 'no-db'}:${catalog ?? 'no-catalog'}:${
+            schema ?? 'no-schema'
+          }`}
+          {...dbSelectorProps}
+          emptyState={<EmptyState />}
+          sqlLabMode
+          onOpenModal={openSelectorModal}
+        />
+      </Popover>
+      <StyledDivider />
+      <TableExploreTree queryEditorId={activeQEId} />
       {shouldShowReset && (
         <Button
           buttonSize="small"
           buttonStyle="danger"
           onClick={handleResetState}
         >
-          <i className="fa fa-bomb" /> {t('Reset state')}
+          <Icons.ClearOutlined /> {t('Reset state')}
         </Button>
       )}
-    </div>
+    </LeftBarStyles>
   );
 };
 

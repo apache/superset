@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
-import { t, validateNonEmpty } from '@superset-ui/core';
+import { ControlPanelConfig } from '@superset-ui/chart-controls';
+import { t } from '@apache-superset/core/translation';
+import { validateNonEmpty } from '@superset-ui/core';
 import timeGrainSqlaAnimationOverrides from '../../utilities/controls';
 import {
   filterNulls,
   autozoom,
-  dimension,
   jsColumns,
   jsDataMutator,
   jsTooltip,
@@ -34,6 +34,9 @@ import {
   pointRadiusFixed,
   multiplier,
   mapboxStyle,
+  generateDeckGLColorSchemeControls,
+  tooltipContents,
+  tooltipTemplate,
 } from '../../utilities/Shared_DeckGL';
 
 const config: ControlPanelConfig = {
@@ -49,7 +52,6 @@ const config: ControlPanelConfig = {
     },
   }),
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -57,15 +59,14 @@ const config: ControlPanelConfig = {
         [spatial, null],
         ['row_limit', filterNulls],
         ['adhoc_filters'],
+        [tooltipContents],
+        [tooltipTemplate],
       ],
     },
     {
       label: t('Map'),
       expanded: true,
-      controlSetRows: [
-        [mapboxStyle, viewport],
-        [autozoom, null],
-      ],
+      controlSetRows: [[mapboxStyle], [autozoom, viewport]],
     },
     {
       label: t('Point Size'),
@@ -80,12 +81,12 @@ const config: ControlPanelConfig = {
               default: 'square_m',
               clearable: false,
               choices: [
-                ['square_m', 'Square meters'],
-                ['square_km', 'Square kilometers'],
-                ['square_miles', 'Square miles'],
-                ['radius_m', 'Radius in meters'],
-                ['radius_km', 'Radius in kilometers'],
-                ['radius_miles', 'Radius in miles'],
+                ['square_m', t('Square meters')],
+                ['square_km', t('Square kilometers')],
+                ['square_miles', t('Square miles')],
+                ['radius_m', t('Radius in meters')],
+                ['radius_km', t('Radius in kilometers')],
+                ['radius_miles', t('Radius in miles')],
               ],
               description: t(
                 'The unit of measure for the specified point radius',
@@ -119,7 +120,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: 250,
               description: t(
-                'Maxium radius size of the circle, in pixels. As the zoom level changes, this ' +
+                'Maximum radius size of the circle, in pixels. As the zoom level changes, this ' +
                   'insures that the circle respects this maximum radius.',
               ),
             },
@@ -131,22 +132,9 @@ const config: ControlPanelConfig = {
     {
       label: t('Point Color'),
       controlSetRows: [
-        ['color_picker'],
         [legendPosition],
         [legendFormat],
-        [
-          {
-            name: dimension.name,
-            config: {
-              ...dimension.config,
-              label: t('Categorical Color'),
-              description: t(
-                'Pick a dimension from which categorical colors are defined',
-              ),
-            },
-          },
-        ],
-        ['color_scheme'],
+        ...generateDeckGLColorSchemeControls({}),
       ],
     },
     {

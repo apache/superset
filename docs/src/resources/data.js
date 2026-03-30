@@ -19,34 +19,39 @@
 
 export const Databases = [
   {
-    title: 'Amazon Redshift',
-    href: 'https://aws.amazon.com/redshift/',
-    imgName: 'aws-redshift.png',
-  },
-  {
-    title: 'Apache Druid',
-    href: 'http://druid.io/',
-    imgName: 'druid.png',
-  },
-  {
-    title: 'Apache Kylin',
-    href: 'http://kylin.apache.org/',
-    imgName: 'apache-kylin.png',
+    title: 'PostgreSQL',
+    href: 'https://www.postgresql.org/',
+    imgName: 'postgresql.svg',
   },
   {
     title: 'BigQuery',
     href: 'https://cloud.google.com/bigquery/',
-    imgName: 'googleBQ.png',
+    imgName: 'google-big-query.svg',
   },
   {
-    title: 'ClickHouse',
-    href: 'https://clickhouse.tech/',
-    imgName: 'clickhouse.png',
+    title: 'Snowflake',
+    href: 'https://www.snowflake.com/',
+    imgName: 'snowflake.svg',
   },
   {
-    title: 'Dremio',
-    href: 'https://dremio.com/',
-    imgName: 'dremio.png',
+    title: 'MySQL',
+    href: 'https://www.mysql.com/',
+    imgName: 'mysql.jpg',
+  },
+  {
+    title: 'Amazon Redshift',
+    href: 'https://aws.amazon.com/redshift/',
+    imgName: 'amazon-redshift.jpg',
+  },
+  {
+    title: 'Amazon Athena',
+    href: 'https://aws.amazon.com/pt/athena/',
+    imgName: 'amazon-athena.jpg',
+  },
+  {
+    title: 'Apache Druid',
+    href: 'https://druid.apache.org/',
+    imgName: 'druid.png',
   },
   {
     title: 'Databricks',
@@ -54,64 +59,23 @@ export const Databases = [
     imgName: 'databricks.png',
   },
   {
-    title: 'Exasol',
-    href: 'https://www.exasol.com/en/',
-    imgName: 'exasol.png',
+    title: 'Google Sheets',
+    href: 'https://www.google.com/sheets/about/',
+    imgName: 'google-sheets.svg',
   },
   {
-    title: 'FireBirdSql',
-    href: 'https://firebirdsql.org/',
-    imgName: 'firebird.png',
+    title: 'CSV',
+    imgName: 'csv.svg',
   },
   {
-    title: 'Green Plum',
-    href: 'https://greenplum.org/',
-    imgName: 'greenplum.png',
+    title: 'ClickHouse',
+    href: 'https://clickhouse.com/',
+    imgName: 'clickhouse.png',
   },
   {
-    title: 'IBM Db2',
-    href: 'https://www.ibm.com/analytics/db2',
-    imgName: 'ibmdb2.png',
-  },
-  {
-    title: 'MySQL',
-    href: 'https://www.mysql.com/',
-    imgName: 'mysql.png',
-  },
-  {
-    title: 'Microsoft SqlServer',
-    href: 'https://www.microsoft.com/en-us/sql-server',
-    imgName: 'msql.png',
-  },
-  {
-    title: 'MonetDB',
-    href: 'https://www.monetdb.org/',
-    imgName: 'monet.png',
-  },
-  {
-    title: 'Oracle',
-    href: 'https://www.oracle.com/database/',
-    imgName: 'oraclelogo.png',
-  },
-  {
-    title: 'PostgresSQL',
-    href: 'https://www.postgresql.org/',
-    imgName: 'postsql.png',
-  },
-  {
-    title: 'Presto',
-    href: 'https://prestodb.io/',
-    imgName: 'presto-og.png',
-  },
-  {
-    title: 'Snowflake',
-    href: 'https://www.snowflake.com/',
-    imgName: 'snowflake.png',
-  },
-  {
-    title: 'SQLite',
-    href: 'https://www.sqlite.org/index.html',
-    imgName: 'sqlite.png',
+    title: 'Dremio',
+    href: 'https://www.dremio.com/',
+    imgName: 'dremio.png',
   },
   {
     title: 'Trino',
@@ -119,38 +83,58 @@ export const Databases = [
     imgName: 'trino2.jpg',
   },
   {
-    title: 'Rockset',
-    href: 'https://rockset.com/',
-    imgName: 'rockset.png',
+    title: 'Oracle',
+    href: 'https://www.oracle.com/database/',
+    imgName: 'oraclelogo.png',
   },
   {
-    title: 'Vertica',
-    href: 'https://www.vertica.com/',
-    imgName: 'vertica.png',
+    title: 'Apache Pinot',
+    href: 'https://pinot.apache.org/',
+    imgName: 'apache-pinot.svg',
   },
   {
-    title: 'Hologres',
-    href: 'https://www.alibabacloud.com/product/hologres',
-    imgName: 'hologres.png',
+    title: 'Presto',
+    href: 'https://prestodb.io/',
+    imgName: 'presto-og.png',
   },
   {
-    title: 'IBM Netezza Performance Server',
-    href: 'https://www.ibm.com/products/netezza',
-    imgName: 'netezza.png',
+    title: 'IBM Db2',
+    href: 'https://www.ibm.com/products/db2',
+    imgName: 'ibmdb2.png',
   },
   {
-    title: 'Teradata',
-    href: "www.teradata.com",
-    imgName: 'teradata.png'
+    title: 'SAP Hana',
+    href: 'https://www.sap.com/products/data-cloud/hana.html',
+    imgName: 'sap-hana.jpg',
   },
   {
-    title: 'TimescaleDB',
-    href: "www.timescale.com",
-    imgName: 'timescale.png'
+    title: 'Microsoft SqlServer',
+    href: 'https://www.microsoft.com/en-us/sql-server',
+    imgName: 'msql.png',
   },
   {
-    title: 'YugabyteDB',
-    href: "www.yugabyte.com",
-    imgName: 'yugabyte.png'
-  }
+    title: 'Apache Doris',
+    href: 'https://doris.apache.org/',
+    imgName: 'doris.png',
+  },
+  {
+    title: 'OceanBase',
+    href: 'https://www.oceanbase.com/',
+    imgName: 'oceanbase.svg',
+  },
+  {
+    title: 'Couchbase',
+    href: 'https://www.couchbase.com/',
+    imgName: 'couchbase.svg',
+  },
+  {
+    title: 'Denodo',
+    href: 'https://www.denodo.com/',
+    imgName: 'denodo.png',
+  },
+  {
+    title: 'TDengine',
+    href: 'https://tdengine.com/',
+    imgName: 'tdengine.png',
+  },
 ];

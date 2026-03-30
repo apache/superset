@@ -16,30 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { GenericDataType } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 
 export type ResultsPage = {
   total: number;
   data: Record<string, any>[];
   colNames: string[];
   colTypes: GenericDataType[];
-};
-
-export type Dataset = {
-  changed_by?: {
-    first_name: string;
-    last_name: string;
-  };
-  created_by?: {
-    first_name: string;
-    last_name: string;
-  };
-  changed_on_humanized: string;
-  created_on_humanized: string;
-  description: string;
-  table_name: string;
-  owners: {
-    first_name: string;
-    last_name: string;
-  }[];
 };

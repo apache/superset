@@ -16,25 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import { ReactNode } from 'react';
 import {
   DataMask,
   DataMaskStateWithId,
   Divider,
   Filter,
+  ChartCustomization,
+  ChartCustomizationDivider,
 } from '@superset-ui/core';
 import { FilterBarOrientation } from 'src/dashboard/types';
 
 interface CommonFiltersBarProps {
-  actions: React.ReactNode;
+  actions: ReactNode;
   canEdit: boolean;
   dataMaskSelected: DataMaskStateWithId;
-  focusedFilterId?: string;
   filterValues: (Filter | Divider)[];
+  chartCustomizationValues: (ChartCustomization | ChartCustomizationDivider)[];
   isInitialized: boolean;
   onSelectionChange: (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
     dataMask: Partial<DataMask>,
   ) => void;
+  onPendingCustomizationDataMaskChange: (
+    customizationId: string,
+    dataMask: DataMask,
+  ) => void;
+  clearAllTriggers?: Record<string, boolean>;
+  onClearAllComplete?: (filterId: string) => void;
 }
 
 interface VerticalBarConfig {
@@ -45,8 +55,8 @@ interface VerticalBarConfig {
   width: number;
 }
 
-export interface FiltersBarProps
-  extends Pick<CommonFiltersBarProps, 'focusedFilterId'> {
+export interface FiltersBarProps {
+  hidden?: boolean;
   orientation: FilterBarOrientation;
   verticalConfig?: VerticalBarConfig;
 }
@@ -57,11 +67,4 @@ export type HorizontalBarProps = CommonFiltersBarProps & {
 
 export type VerticalBarProps = Omit<FiltersBarProps, 'orientation'> &
   CommonFiltersBarProps &
-  VerticalBarConfig & {
-    isDisabled: boolean;
-  };
-
-export enum TabIds {
-  AllFilters = 'allFilters',
-  FilterSets = 'filterSets',
-}
+  VerticalBarConfig;

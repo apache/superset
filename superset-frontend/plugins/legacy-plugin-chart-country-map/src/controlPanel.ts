@@ -16,19 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, validateNonEmpty } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   D3_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
-  sections,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { countryOptions } from './countries';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,

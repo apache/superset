@@ -26,14 +26,15 @@ Create Date: 2021-04-29 15:32:21.939018
 revision = "f1410ed7ec95"
 down_revision = "d416d0d715cc"
 
-import json
-from typing import Any, Dict, Iterable, Tuple
+from collections.abc import Iterable  # noqa: E402
+from typing import Any  # noqa: E402
 
-from alembic import op
-from sqlalchemy import Column, Integer, Text
-from sqlalchemy.ext.declarative import declarative_base
+from alembic import op  # noqa: E402
+from sqlalchemy import Column, Integer, Text  # noqa: E402
+from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 
-from superset import db
+from superset import db  # noqa: E402
+from superset.utils import json  # noqa: E402
 
 Base = declarative_base()
 
@@ -46,7 +47,7 @@ class Dashboard(Base):
     json_metadata = Column(Text)
 
 
-def upgrade_filters(native_filters: Iterable[Dict[str, Any]]) -> int:
+def upgrade_filters(native_filters: Iterable[dict[str, Any]]) -> int:
     """
     Move `defaultValue` into `defaultDataMask.filterState`
     """
@@ -61,7 +62,7 @@ def upgrade_filters(native_filters: Iterable[Dict[str, Any]]) -> int:
     return changed_filters
 
 
-def downgrade_filters(native_filters: Iterable[Dict[str, Any]]) -> int:
+def downgrade_filters(native_filters: Iterable[dict[str, Any]]) -> int:
     """
     Move `defaultDataMask.filterState` into `defaultValue`
     """
@@ -76,12 +77,11 @@ def downgrade_filters(native_filters: Iterable[Dict[str, Any]]) -> int:
     return changed_filters
 
 
-def upgrade_dashboard(dashboard: Dict[str, Any]) -> Tuple[int, int]:
+def upgrade_dashboard(dashboard: dict[str, Any]) -> tuple[int, int]:
     changed_filters, changed_filter_sets = 0, 0
     # upgrade native select filter metadata
     # upgrade native select filter metadata
-    native_filters = dashboard.get("native_filter_configuration")
-    if native_filters:
+    if native_filters := dashboard.get("native_filter_configuration"):
         changed_filters += upgrade_filters(native_filters)
 
     # upgrade filter sets
@@ -111,20 +111,19 @@ def upgrade():
             changed_filters += upgrades[0]
             changed_filter_sets += upgrades[1]
             dashboard.json_metadata = json.dumps(json_metadata, sort_keys=True)
-        except Exception as e:
+        except Exception:
             print(f"Parsing json_metadata for dashboard {dashboard.id} failed.")
-            raise e
+            raise
 
     session.commit()
     session.close()
     print(f"Upgraded {changed_filters} filters and {changed_filter_sets} filter sets.")
 
 
-def downgrade_dashboard(dashboard: Dict[str, Any]) -> Tuple[int, int]:
+def downgrade_dashboard(dashboard: dict[str, Any]) -> tuple[int, int]:
     changed_filters, changed_filter_sets = 0, 0
     # upgrade native select filter metadata
-    native_filters = dashboard.get("native_filter_configuration")
-    if native_filters:
+    if native_filters := dashboard.get("native_filter_configuration"):
         changed_filters += downgrade_filters(native_filters)
 
     # upgrade filter sets
@@ -152,9 +151,9 @@ def downgrade():
             changed_filters += downgrades[0]
             changed_filter_sets += downgrades[1]
             dashboard.json_metadata = json.dumps(json_metadata, sort_keys=True)
-        except Exception as e:
+        except Exception:
             print(f"Parsing json_metadata for dashboard {dashboard.id} failed.")
-            raise e
+            raise
 
     session.commit()
     session.close()

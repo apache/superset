@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ControlPanelConfig,
   D3_FORMAT_OPTIONS,
@@ -56,12 +56,12 @@ const config: ControlPanelConfig = {
               freeForm: true,
               clearable: false,
               choices: [
-                ['AS', 'Year (freq=AS)'],
-                ['52W-MON', '52 weeks starting Monday (freq=52W-MON)'],
-                ['W-SUN', '1 week starting Sunday (freq=W-SUN)'],
-                ['W-MON', '1 week starting Monday (freq=W-MON)'],
-                ['D', 'Day (freq=D)'],
-                ['4W-MON', '4 weeks (freq=4W-MON)'],
+                ['AS', t('Year (freq=AS)')],
+                ['52W-MON', t('52 weeks starting Monday (freq=52W-MON)')],
+                ['W-SUN', t('1 week starting Sunday (freq=W-SUN)')],
+                ['W-MON', t('1 week starting Monday (freq=W-MON)')],
+                ['D', t('Day (freq=D)')],
+                ['4W-MON', t('4 weeks (freq=4W-MON)')],
               ],
               description: t(
                 `The periodicity over which to pivot time. Users can provide

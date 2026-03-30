@@ -47,7 +47,7 @@ class ImportMixin:
     uuid = sa.Column(UUIDType(binary=True), primary_key=False, default=uuid4)
 
 
-class SavedQuery(Base, ImportMixin):
+class SavedQuery(ImportMixin, Base):
     __tablename__ = "saved_query"
 
 
@@ -86,7 +86,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind)  # noqa: F841
 
     # Remove uuid column
     with op.batch_alter_table("saved_query") as batch_op:

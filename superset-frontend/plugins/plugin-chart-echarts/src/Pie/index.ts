@@ -16,18 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Behavior, ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { Behavior } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 import example1 from './images/Pie1.jpg';
+import example1Dark from './images/Pie1-dark.jpg';
 import example2 from './images/Pie2.jpg';
+import example2Dark from './images/Pie2-dark.jpg';
 import example3 from './images/Pie3.jpg';
+import example3Dark from './images/Pie3-dark.jpg';
 import example4 from './images/Pie4.jpg';
+import example4Dark from './images/Pie4-dark.jpg';
 import { EchartsPieChartProps, EchartsPieFormData } from './types';
+import { EchartsChartPlugin } from '../types';
 
-export default class EchartsPieChartPlugin extends ChartPlugin<
+export default class EchartsPieChartPlugin extends EchartsChartPlugin<
   EchartsPieFormData,
   EchartsPieChartProps
 > {
@@ -46,8 +53,12 @@ export default class EchartsPieChartPlugin extends ChartPlugin<
       buildQuery,
       controlPanel,
       loadChart: () => import('./EchartsPie'),
-      metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART, Behavior.DRILL_TO_DETAIL],
+      metadata: {
+        behaviors: [
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
+        ],
         category: t('Part of a Whole'),
         credits: ['https://echarts.apache.org'],
         description:
@@ -55,24 +66,25 @@ export default class EchartsPieChartPlugin extends ChartPlugin<
 
         Pie charts can be difficult to interpret precisely. If clarity of relative proportion is important, consider using a bar or other chart type instead.`),
         exampleGallery: [
-          { url: example1 },
-          { url: example2 },
-          { url: example3 },
-          { url: example4 },
+          { url: example1, urlDark: example1Dark },
+          { url: example2, urlDark: example2Dark },
+          { url: example3, urlDark: example3Dark },
+          { url: example4, urlDark: example4Dark },
         ],
         name: t('Pie Chart'),
         tags: [
-          t('Aesthetic'),
           t('Categorical'),
           t('Circular'),
           t('Comparison'),
           t('Percentages'),
-          t('Popular'),
+          t('Featured'),
           t('Proportional'),
           t('ECharts'),
+          t('Nightingale'),
         ],
         thumbnail,
-      }),
+        thumbnailDark,
+      },
       transformProps,
     });
   }

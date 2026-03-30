@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Callable, Dict
+from typing import Any, Callable
 
 import pytest
 
@@ -23,7 +23,7 @@ from superset.utils.public_interfaces import compute_hash, get_warning_message
 # These are public interfaces exposed by Superset. Make sure
 # to only change the interfaces and update the hashes in new
 # major versions of Superset.
-hashes: Dict[Callable[..., Any], str] = {}
+hashes: dict[Callable[..., Any], str] = {}
 
 
 @pytest.mark.parametrize("interface,expected_hash", list(hashes.items()))

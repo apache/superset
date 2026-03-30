@@ -37,7 +37,7 @@ import { isDefined } from '../utils';
 
 /**
  * Build the common segments of all query objects (e.g. the granularity field derived from
- * either sql alchemy or druid). The segments specific to each viz type is constructed in the
+ * SQLAlchemy). The segments specific to each viz type is constructed in the
  * buildQuery method for each viz type (see `wordcloud/buildQuery.ts` for an example).
  * Note the type of the formData argument passed in here is the type of the formData for a
  * specific viz, which is a subtype of the generic formData shared among all viz types.
@@ -63,6 +63,7 @@ export default function buildQueryObject<T extends QueryFormData>(
     series_columns,
     series_limit,
     series_limit_metric,
+    group_others_when_limit_reached,
     ...residualFormData
   } = formData;
   const {
@@ -103,7 +104,7 @@ export default function buildQueryObject<T extends QueryFormData>(
 
   let queryObject: QueryObject = {
     // fallback `null` to `undefined` so they won't be sent to the backend
-    // (JSON.strinify will ignore `undefined`.)
+    // (JSON.stringify will ignore `undefined`.)
     time_range: time_range || undefined,
     since: since || undefined,
     until: until || undefined,
@@ -128,6 +129,7 @@ export default function buildQueryObject<T extends QueryFormData>(
       normalizeSeriesLimitMetric(series_limit_metric) ??
       timeseries_limit_metric ??
       undefined,
+    group_others_when_limit_reached: group_others_when_limit_reached ?? false,
     order_desc: typeof order_desc === 'undefined' ? true : order_desc,
     url_params: url_params || undefined,
     custom_params,

@@ -19,11 +19,10 @@
 import {
   ControlPanelConfig,
   getStandardizedControls,
-  sections,
 } from '@superset-ui/chart-controls';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import timeGrainSqlaAnimationOverrides from '../../utilities/controls';
-import { formatSelectOptions } from '../../utilities/utils';
+import { COLOR_SCHEME_TYPES, formatSelectOptions } from '../../utilities/utils';
 import {
   filterNulls,
   autozoom,
@@ -33,7 +32,6 @@ import {
   jsOnclickHref,
   legendFormat,
   legendPosition,
-  lineColumn,
   fillColorPicker,
   strokeColorPicker,
   filled,
@@ -46,25 +44,26 @@ import {
   lineType,
   reverseLongLat,
   mapboxStyle,
+  deckGLCategoricalColorSchemeTypeSelect,
+  deckGLLinearColorSchemeSelect,
+  deckGLColorBreakpointsSelect,
+  breakpointsDefaultColor,
+  tooltipContents,
+  tooltipTemplate,
 } from '../../utilities/Shared_DeckGL';
 import { dndLineColumn } from '../../utilities/sharedDndControls';
 
-const lines = isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
-  ? dndLineColumn
-  : lineColumn;
-
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
         [
           {
-            ...lines,
+            ...dndLineColumn,
             config: {
-              ...lines.config,
+              ...dndLineColumn.config,
               label: t('Polygon Column'),
             },
           },
@@ -92,26 +91,58 @@ const config: ControlPanelConfig = {
         ['row_limit'],
         [reverseLongLat],
         [filterNulls],
+        [tooltipContents],
+        [tooltipTemplate],
       ],
     },
     {
       label: t('Map'),
       expanded: true,
-      controlSetRows: [
-        [mapboxStyle, viewport],
-        [autozoom, null],
-      ],
+      controlSetRows: [[mapboxStyle], [viewport], [autozoom]],
     },
     {
       label: t('Polygon Settings'),
       expanded: true,
       controlSetRows: [
-        [fillColorPicker, strokeColorPicker],
-        [filled, stroked],
-        [extruded, multiplier],
-        [lineWidth, null],
         [
-          'linear_color_scheme',
+          {
+            ...deckGLCategoricalColorSchemeTypeSelect,
+            config: {
+              ...deckGLCategoricalColorSchemeTypeSelect.config,
+              choices: [
+                [COLOR_SCHEME_TYPES.fixed_color, t('Fixed color')],
+                [COLOR_SCHEME_TYPES.linear_palette, t('Linear palette')],
+                [COLOR_SCHEME_TYPES.color_breakpoints, t('Color breakpoints')],
+              ],
+              default: COLOR_SCHEME_TYPES.linear_palette,
+            },
+          },
+          fillColorPicker,
+          deckGLLinearColorSchemeSelect,
+          breakpointsDefaultColor,
+          deckGLColorBreakpointsSelect,
+          strokeColorPicker,
+        ],
+        [filled, stroked],
+        [extruded],
+        [multiplier],
+        [lineWidth],
+        [
+          {
+            name: 'line_width_unit',
+            config: {
+              type: 'SelectControl',
+              label: t('Line width unit'),
+              default: 'pixels',
+              choices: [
+                ['meters', t('meters')],
+                ['pixels', t('pixels')],
+              ],
+              renderTrigger: true,
+            },
+          },
+        ],
+        [
           {
             name: 'opacity',
             config: {
@@ -140,6 +171,8 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
             },
           },
+        ],
+        [
           {
             name: 'break_points',
             config: {
@@ -155,31 +188,8 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [
-          {
-            name: 'table_filter',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Emit Filter Events'),
-              renderTrigger: true,
-              default: false,
-              description: t('Whether to apply filter when items are clicked'),
-            },
-          },
-          {
-            name: 'toggle_polygons',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Multiple filtering'),
-              renderTrigger: true,
-              default: true,
-              description: t(
-                'Allow sending multiple polygons as a filter event',
-              ),
-            },
-          },
-        ],
-        [legendPosition, legendFormat],
+        [legendPosition],
+        [legendFormat],
       ],
     },
     {

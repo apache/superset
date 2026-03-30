@@ -14,23 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from textwrap import dedent
 from unittest import mock
 
-from sqlalchemy import column, literal_column
-
-from superset.constants import USER_AGENT
 from superset.db_engine_specs import get_engine_spec
 from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
-from tests.integration_tests.db_engine_specs.base_tests import (
-    assert_generic_types,
-    TestDbEngineSpec,
-)
+from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.certificates import ssl_certificate
 from tests.integration_tests.fixtures.database import default_db_extra
 
 
-class TestDatabricksDbEngineSpec(TestDbEngineSpec):
+class TestDatabricksDbEngineSpec(SupersetTestCase):
     def test_get_engine_spec(self):
         """
         DB Eng Specs (databricks): Test "databricks" in engine spec
@@ -40,10 +33,10 @@ class TestDatabricksDbEngineSpec(TestDbEngineSpec):
         assert get_engine_spec("databricks", "pyhive").engine == "databricks"
 
     def test_extras_without_ssl(self):
-        db = mock.Mock()
-        db.extra = default_db_extra
-        db.server_cert = None
-        extras = DatabricksNativeEngineSpec.get_extra_params(db)
+        database = mock.Mock()
+        database.extra = default_db_extra
+        database.server_cert = None
+        extras = DatabricksNativeEngineSpec.get_extra_params(database)
         assert extras == {
             "engine_params": {
                 "connect_args": {
@@ -57,12 +50,12 @@ class TestDatabricksDbEngineSpec(TestDbEngineSpec):
         }
 
     def test_extras_with_ssl_custom(self):
-        db = mock.Mock()
-        db.extra = default_db_extra.replace(
+        database = mock.Mock()
+        database.extra = default_db_extra.replace(
             '"engine_params": {}',
             '"engine_params": {"connect_args": {"ssl": "1"}}',
         )
-        db.server_cert = ssl_certificate
-        extras = DatabricksNativeEngineSpec.get_extra_params(db)
+        database.server_cert = ssl_certificate
+        extras = DatabricksNativeEngineSpec.get_extra_params(database)
         connect_args = extras["engine_params"]["connect_args"]
         assert connect_args["ssl"] == "1"

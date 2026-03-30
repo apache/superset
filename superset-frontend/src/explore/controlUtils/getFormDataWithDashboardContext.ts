@@ -16,43 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import isEqual from 'lodash/isEqual';
+import { isEqual } from 'lodash';
 import {
-  EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
-  EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
-  isDefined,
-  JsonObject,
-  ensureIsArray,
-  QueryObjectFilterClause,
-  SimpleAdhocFilter,
-  QueryFormData,
   AdhocFilter,
+  ensureIsArray,
+  EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
+  EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
+  isDefined,
   isFreeFormAdhocFilter,
   isSimpleAdhocFilter,
+  JsonObject,
   NO_TIME_RANGE,
+  QueryFormData,
+  QueryObjectFilterClause,
+  SimpleAdhocFilter,
 } from '@superset-ui/core';
+import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
 
-const simpleFilterToAdhoc = (
-  filterClause: QueryObjectFilterClause,
-  clause = 'where',
-) => {
-  const result = {
-    clause: clause.toUpperCase(),
-    expressionType: 'SIMPLE',
-    operator: filterClause.op,
-    subject: filterClause.col,
-    comparator: 'val' in filterClause ? filterClause.val : undefined,
-  } as SimpleAdhocFilter;
-  if (filterClause.isExtra) {
-    Object.assign(result, {
-      isExtra: true,
-      filterOptionName: `filter_${Math.random()
-        .toString(36)
-        .substring(2, 15)}_${Math.random().toString(36).substring(2, 15)}`,
-    });
-  }
-  return result;
-};
+const removeExtraFieldForNewCharts = (
+  filters: AdhocFilter[],
+  isNewChart: boolean,
+) =>
+  filters.map(filter => {
+    if (filter.isExtra) {
+      return { ...filter, isExtra: !isNewChart };
+    }
+    return filter;
+  });
 
 const removeAdhocFilterDuplicates = (filters: AdhocFilter[]) => {
   const isDuplicate = (
@@ -94,13 +84,14 @@ const mergeFilterBoxToFormData = (
     __time_grain: 'time_grain_sqla',
     __granularity: 'granularity',
   };
-  const appliedTimeExtras = {};
+  const appliedTimeExtras: Record<string, any> = {};
 
   const filterBoxData: JsonObject = {};
   ensureIsArray(dashboardFormData.extra_filters).forEach(filter => {
-    if (dateColumns[filter.col]) {
+    if (dateColumns[filter.col as keyof typeof dateColumns]) {
       if (filter.val !== NO_TIME_RANGE) {
-        filterBoxData[dateColumns[filter.col]] = filter.val;
+        filterBoxData[dateColumns[filter.col as keyof typeof dateColumns]] =
+          filter.val;
         appliedTimeExtras[filter.col] = filter.val;
       }
     } else {
@@ -124,7 +115,8 @@ const mergeNativeFiltersToFormData = (
 ) => {
   const nativeFiltersData: JsonObject = {};
   const extraFormData = dashboardFormData.extra_form_data || {};
-
+  const layerFilterScope = dashboardFormData?.layer_filter_scope;
+  const filterDataMapping = dashboardFormData?.filter_data_mapping;
   Object.entries(EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS).forEach(
     ([srcKey, targetKey]) => {
       const val = extraFormData[srcKey];
@@ -160,7 +152,12 @@ const mergeNativeFiltersToFormData = (
   }));
 
   const appendFilters = ensureIsArray(extraFormData.filters).map(extraFilter =>
-    simpleFilterToAdhoc({ ...extraFilter, isExtra: true }),
+    simpleFilterToAdhoc({
+      ...extraFilter,
+      isExtra: true,
+      filterDataMapping,
+      layerFilterScope,
+    }),
   );
   Object.keys(exploreFormData).forEach(key => {
     if (key.match(/adhoc_filter.*/)) {
@@ -170,21 +167,50 @@ const mergeNativeFiltersToFormData = (
       ];
     }
   });
+
   return nativeFiltersData;
+};
+
+const applyTimeRangeFilters = (
+  dashboardFormData: JsonObject,
+  adhocFilters: AdhocFilter[],
+) => {
+  const extraFormData = dashboardFormData.extra_form_data || {};
+  if ('time_range' in extraFormData) {
+    return adhocFilters.map((filter: SimpleAdhocFilter) => {
+      if (filter.operator === 'TEMPORAL_RANGE') {
+        return {
+          ...filter,
+          comparator: extraFormData.time_range,
+          isExtra: true,
+        };
+      }
+      return filter;
+    });
+  }
+  return adhocFilters;
 };
 
 export const getFormDataWithDashboardContext = (
   exploreFormData: QueryFormData,
   dashboardContextFormData: JsonObject,
+  saveAction?: string | null,
 ) => {
   const filterBoxData = mergeFilterBoxToFormData(
     exploreFormData,
     dashboardContextFormData,
   );
+
   const nativeFiltersData = mergeNativeFiltersToFormData(
     exploreFormData,
     dashboardContextFormData,
   );
+  const isDeckGLChart =
+    exploreFormData.viz_type === 'deck_multi' ||
+    dashboardContextFormData.viz_type === 'deck_multi';
+
+  const deckSlices = exploreFormData?.deck_slices;
+
   const adhocFilters = [
     ...Object.keys(exploreFormData),
     ...Object.keys(filterBoxData),
@@ -194,19 +220,86 @@ export const getFormDataWithDashboardContext = (
     .reduce(
       (acc, key) => ({
         ...acc,
-        [key]: removeAdhocFilterDuplicates([
-          ...ensureIsArray(exploreFormData[key]),
-          ...ensureIsArray(filterBoxData[key]),
-          ...ensureIsArray(nativeFiltersData[key]),
-        ]),
+        [key]: (() => {
+          const beforeDuplicates = [
+            ...ensureIsArray(exploreFormData[key]),
+            ...ensureIsArray(filterBoxData[key]),
+            ...ensureIsArray(nativeFiltersData[key]),
+          ];
+
+          const afterDuplicates = removeAdhocFilterDuplicates(beforeDuplicates);
+
+          const final = removeExtraFieldForNewCharts(
+            applyTimeRangeFilters(dashboardContextFormData, afterDuplicates),
+            exploreFormData.slice_id === 0,
+          );
+
+          return final;
+        })(),
       }),
       {},
     );
+  const ownColorScheme = exploreFormData.color_scheme;
+  const dashboardColorScheme = dashboardContextFormData.color_scheme;
+  const appliedColorScheme = dashboardColorScheme || ownColorScheme;
+
+  const deckGLProperties: JsonObject = {};
+
+  if (
+    isDeckGLChart &&
+    isDefined(deckSlices) &&
+    'adhoc_filters' in adhocFilters &&
+    Array.isArray(adhocFilters?.adhoc_filters)
+  ) {
+    const adhocFiltersWithDeckSlices =
+      adhocFilters?.adhoc_filters?.map((filter: AdhocFilter) => ({
+        ...filter,
+        ...(Array.isArray(deckSlices) &&
+          deckSlices?.length > 0 &&
+          filter?.isExtra && {
+            deck_slices: deckSlices,
+          }),
+      })) || [];
+
+    adhocFilters.adhoc_filters = adhocFiltersWithDeckSlices;
+  }
+
+  if (isDeckGLChart) {
+    if (dashboardContextFormData.layer_filter_scope) {
+      deckGLProperties.layer_filter_scope =
+        dashboardContextFormData.layer_filter_scope;
+    }
+    if (dashboardContextFormData.filter_data_mapping) {
+      deckGLProperties.filter_data_mapping =
+        dashboardContextFormData.filter_data_mapping;
+    }
+  }
+
+  if (saveAction === 'overwrite') {
+    return {
+      ...dashboardContextFormData,
+      ...filterBoxData,
+      ...nativeFiltersData,
+      ...adhocFilters,
+      ...exploreFormData, // Explore form data comes last to override
+      own_color_scheme: ownColorScheme,
+      color_scheme: appliedColorScheme,
+      dashboard_color_scheme: dashboardColorScheme,
+      ...deckGLProperties,
+    };
+  }
+
+  // Default behavior: Dashboard context overrides explore data, but adhoc filters, color schemes
+  // and specific properties from filterBox and native filters take final precedence
   return {
     ...exploreFormData,
     ...dashboardContextFormData,
     ...filterBoxData,
     ...nativeFiltersData,
     ...adhocFilters,
+    own_color_scheme: ownColorScheme,
+    color_scheme: appliedColorScheme,
+    dashboard_color_scheme: dashboardColorScheme,
+    ...deckGLProperties,
   };
 };

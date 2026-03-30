@@ -1,0 +1,2323 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { t } from '@apache-superset/core/translation';
+import { getExtensionsRegistry } from '@superset-ui/core';
+import { Alert } from '@apache-superset/core/components';
+import { styled, SupersetTheme } from '@apache-superset/core/theme';
+
+import {
+  FunctionComponent,
+  useEffect,
+  useRef,
+  useState,
+  useReducer,
+  Reducer,
+  useCallback,
+  ChangeEvent,
+} from 'react';
+import { CheckboxChangeEvent } from '@superset-ui/core/components/Checkbox/types';
+
+import { useHistory } from 'react-router-dom';
+import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
+import { makeUrl } from 'src/utils/pathUtils';
+import Tabs from '@superset-ui/core/components/Tabs';
+import {
+  Button,
+  Icons,
+  LabeledErrorBoundInput as ValidatedInput,
+  Modal,
+  Select,
+  IconButton,
+  InfoTooltip,
+  Loading,
+  Upload,
+  type UploadChangeParam,
+  type UploadFile,
+  FormLabel,
+} from '@superset-ui/core/components';
+import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
+import withToasts from 'src/components/MessageToasts/withToasts';
+import {
+  testDatabaseConnection,
+  useSingleViewResource,
+  useAvailableDatabases,
+  useDatabaseValidation,
+  getDatabaseImages,
+  getConnectionAlert,
+  useImportResource,
+} from 'src/views/CRUD/hooks';
+import { FileEncryptedExtraFields } from 'src/views/CRUD/types';
+import { useCommonConf } from 'src/features/databases/state';
+import { isEmpty, pick } from 'lodash';
+import { OnlyKeyWithType } from 'src/utils/types';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
+import {
+  DatabaseObject,
+  DatabaseForm,
+  ConfigurationMethod,
+  CatalogObject,
+  Engines,
+  ExtraJson,
+  CustomTextType,
+  DatabaseParameters,
+} from '../types';
+import ExtraOptions from './ExtraOptions';
+import SqlAlchemyForm from './SqlAlchemyForm';
+import DatabaseConnectionForm from './DatabaseConnectionForm';
+import {
+  antDAlertStyles,
+  antdWarningAlertStyles,
+  StyledAlertMargin,
+  antDModalNoPaddingStyles,
+  antDModalStyles,
+  antDTabsStyles,
+  buttonLinkStyles,
+  importDbButtonLinkStyles,
+  alchemyButtonLinkStyles,
+  TabHeader,
+  formHelperStyles,
+  formStyles,
+  StyledAlignment,
+  SelectDatabaseStyles,
+  infoTooltip,
+  StyledFooterButton,
+  StyledStickyHeader,
+  formScrollableStyles,
+  StyledUploadWrapper,
+} from './styles';
+import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
+import SSHTunnelForm from './SSHTunnelForm';
+import SSHTunnelSwitch from './SSHTunnelSwitch';
+
+const extensionsRegistry = getExtensionsRegistry();
+
+const DEFAULT_EXTRA = JSON.stringify({ allows_virtual_table_explore: true });
+
+const TABS_KEYS = {
+  BASIC: 'basic',
+  ADVANCED: 'advanced',
+};
+
+const engineSpecificAlertMapping = {
+  [Engines.GSheet]: {
+    message: t('Why do I need to create a database?'),
+    description: t(
+      'To begin using your Google Sheets, you need to create a database first. ' +
+        'Databases are used as a way to identify ' +
+        'your data so that it can be queried and visualized. This ' +
+        'database will hold all of your individual Google Sheets ' +
+        'you choose to connect here.',
+    ),
+  },
+};
+
+const TabsStyled = styled(Tabs)`
+  .ant-tabs-content {
+    width: 100%;
+    overflow: inherit;
+
+    & > .ant-tabs-tabpane {
+      position: relative;
+    }
+  }
+`;
+
+const ErrorAlertContainer = styled.div`
+  ${({ theme }) => `
+    margin: ${theme.sizeUnit * 8}px ${theme.sizeUnit * 4}px;
+  `};
+`;
+
+const SSHTunnelContainer = styled.div`
+  ${({ theme }) => `
+    padding: 0px ${theme.sizeUnit * 4}px;
+  `};
+`;
+
+export interface DatabaseModalProps {
+  addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
+  onDatabaseAdd?: (database?: DatabaseObject) => void;
+  onHide: () => void;
+  show: boolean;
+  databaseId: number | undefined; // If included, will go into edit mode
+  dbEngine: string | undefined; // if included goto step 2 with engine already set
+}
+
+export enum ActionType {
+  AddTableCatalogSheet,
+  ConfigMethodChange,
+  DbSelected,
+  EditorChange,
+  ExtraEditorChange,
+  ExtraInputChange,
+  EncryptedExtraInputChange,
+  Fetched,
+  InputChange,
+  ParametersChange,
+  QueryChange,
+  RemoveTableCatalogSheet,
+  Reset,
+  TextChange,
+  ParametersSSHTunnelChange,
+  SetSSHTunnelLoginMethod,
+  RemoveSSHTunnelConfig,
+}
+
+export enum AuthType {
+  Password,
+  PrivateKey,
+}
+
+interface DBReducerPayloadType {
+  target?: string;
+  name: string;
+  json?: string;
+  type?: string;
+  checked?: boolean;
+  value?: string;
+}
+
+export type DBReducerActionType =
+  | {
+      type:
+        | ActionType.ExtraEditorChange
+        | ActionType.ExtraInputChange
+        | ActionType.EncryptedExtraInputChange
+        | ActionType.TextChange
+        | ActionType.QueryChange
+        | ActionType.InputChange
+        | ActionType.EditorChange
+        | ActionType.ParametersChange
+        | ActionType.ParametersSSHTunnelChange;
+      payload: DBReducerPayloadType;
+    }
+  | {
+      type: ActionType.Fetched;
+      payload: Partial<DatabaseObject>;
+    }
+  | {
+      type: ActionType.DbSelected;
+      payload: {
+        database_name?: string;
+        engine?: string;
+        configuration_method: ConfigurationMethod;
+        engine_information?: {};
+        driver?: string;
+        sqlalchemy_uri_placeholder?: string;
+      };
+    }
+  | {
+      type:
+        | ActionType.Reset
+        | ActionType.RemoveSSHTunnelConfig
+        | ActionType.AddTableCatalogSheet;
+    }
+  | {
+      type: ActionType.RemoveTableCatalogSheet;
+      payload: {
+        indexToDelete: number;
+      };
+    }
+  | {
+      type: ActionType.ConfigMethodChange;
+      payload: {
+        database_name?: string;
+        engine?: string;
+        configuration_method: ConfigurationMethod;
+      };
+    }
+  | {
+      type: ActionType.SetSSHTunnelLoginMethod;
+      payload: {
+        login_method: AuthType;
+      };
+    };
+
+const StyledBtns = styled.div`
+  display: flex;
+  justify-content: center;
+  padding: ${({ theme }) => theme.sizeUnit * 5}px;
+`;
+
+export function dbReducer(
+  state: Partial<DatabaseObject> | null,
+  action: DBReducerActionType,
+): Partial<DatabaseObject> | null {
+  const trimmedState = {
+    ...state,
+  };
+  let query = {};
+  // eslint-disable-next-line camelcase
+  let query_input = '';
+  let parametersCatalog;
+  let actionPayloadJson;
+  const extraJson: ExtraJson = JSON.parse(trimmedState.extra || '{}');
+
+  switch (action.type) {
+    case ActionType.ExtraEditorChange:
+      // "extra" payload in state is a string
+      try {
+        // we don't want to stringify encoded strings twice
+        actionPayloadJson = JSON.parse(action.payload.json || '{}');
+      } catch {
+        actionPayloadJson = action.payload.json;
+      }
+      return {
+        ...trimmedState,
+        extra: JSON.stringify({
+          ...extraJson,
+          [action.payload.name]: actionPayloadJson,
+        }),
+      };
+    case ActionType.EncryptedExtraInputChange:
+      return {
+        ...trimmedState,
+        masked_encrypted_extra: JSON.stringify({
+          ...JSON.parse(trimmedState.masked_encrypted_extra || '{}'),
+          [action.payload.name]: action.payload.value,
+        }),
+      };
+    case ActionType.ExtraInputChange:
+      if (
+        action.payload.name === 'schema_cache_timeout' ||
+        action.payload.name === 'table_cache_timeout'
+      ) {
+        return {
+          ...trimmedState,
+          extra: JSON.stringify({
+            ...extraJson,
+            metadata_cache_timeout: {
+              ...extraJson?.metadata_cache_timeout,
+              [action.payload.name]: Number(action.payload.value),
+            },
+          }),
+        };
+      }
+      if (action.payload.name === 'schemas_allowed_for_file_upload') {
+        const value = action.payload.value || '';
+        const filteredSchemas = value
+          .split(',')
+          .map(s => s.trim())
+          .filter(s => s.length > 0);
+
+        return {
+          ...trimmedState,
+          extra: JSON.stringify({
+            ...extraJson,
+            schemas_allowed_for_file_upload: filteredSchemas,
+          }),
+        };
+      }
+
+      if (action.payload.name === 'http_path') {
+        return {
+          ...trimmedState,
+          extra: JSON.stringify({
+            ...extraJson,
+            engine_params: {
+              connect_args: {
+                [action.payload.name]: action.payload.value?.trim(),
+              },
+            },
+          }),
+        };
+      }
+      if (action.payload.name === 'expand_rows') {
+        return {
+          ...trimmedState,
+          extra: JSON.stringify({
+            ...extraJson,
+            schema_options: {
+              ...extraJson?.schema_options,
+              [action.payload.name]:
+                'checked' in action.payload
+                  ? !!action.payload.checked
+                  : !!action.payload.value,
+            },
+          }),
+        };
+      }
+      return {
+        ...trimmedState,
+        extra: JSON.stringify({
+          ...extraJson,
+          [action.payload.name]:
+            action.payload.type === 'checkbox'
+              ? action.payload.checked
+              : action.payload.value,
+        }),
+      };
+    case ActionType.InputChange:
+      if (action.payload.type === 'checkbox') {
+        return {
+          ...trimmedState,
+          [action.payload.name]: action.payload.checked,
+        };
+      }
+      return {
+        ...trimmedState,
+        [action.payload.name]: action.payload.value,
+      };
+    case ActionType.ParametersChange:
+      // catalog params will always have a catalog state for
+      // dbs that use a catalog, i.e., gsheets, even if the
+      // fields are empty strings
+      if (
+        action.payload.type?.startsWith('catalog') &&
+        trimmedState.catalog !== undefined
+      ) {
+        // Formatting wrapping google sheets table catalog
+        const catalogCopy: CatalogObject[] = [...trimmedState.catalog];
+        const idx = action.payload.type?.split('-')[1];
+        const catalogToUpdate: CatalogObject =
+          catalogCopy[parseInt(idx, 10)] || {};
+        if (action.payload.value !== undefined) {
+          catalogToUpdate[action.payload.name as keyof CatalogObject] =
+            action.payload.value;
+        }
+
+        // insert updated catalog to existing state
+        catalogCopy.splice(parseInt(idx, 10), 1, catalogToUpdate);
+
+        // format catalog for state
+        // eslint-disable-next-line array-callback-return
+        parametersCatalog = catalogCopy.reduce<Record<string, string>>(
+          (obj, item: CatalogObject) => {
+            const catalog = { ...obj };
+            catalog[item.name as keyof CatalogObject] = item.value;
+            return catalog;
+          },
+          {},
+        );
+
+        return {
+          ...trimmedState,
+          catalog: catalogCopy,
+          parameters: {
+            ...trimmedState.parameters,
+            catalog: parametersCatalog,
+          },
+        };
+      }
+      return {
+        ...trimmedState,
+        parameters: {
+          ...trimmedState.parameters,
+          [action.payload.name]: action.payload.value,
+        },
+      };
+
+    case ActionType.ParametersSSHTunnelChange:
+      return {
+        ...trimmedState,
+        ssh_tunnel: {
+          ...trimmedState.ssh_tunnel,
+          [action.payload.name]: action.payload.value,
+        },
+      };
+    case ActionType.SetSSHTunnelLoginMethod: {
+      // eslint-disable-next-line camelcase
+      let ssh_tunnel = {};
+      if (trimmedState?.ssh_tunnel) {
+        // remove any attributes that are considered sensitive
+        // eslint-disable-next-line camelcase
+        ssh_tunnel = pick(trimmedState.ssh_tunnel, [
+          'id',
+          'server_address',
+          'server_port',
+          'username',
+        ]);
+      }
+      if (action.payload.login_method === AuthType.PrivateKey) {
+        return {
+          ...trimmedState,
+          // eslint-disable-next-line camelcase
+          ssh_tunnel: {
+            private_key: trimmedState?.ssh_tunnel?.private_key,
+            private_key_password:
+              trimmedState?.ssh_tunnel?.private_key_password,
+            // eslint-disable-next-line camelcase
+            ...ssh_tunnel,
+          },
+        };
+      }
+      if (action.payload.login_method === AuthType.Password) {
+        return {
+          ...trimmedState,
+          // eslint-disable-next-line camelcase
+          ssh_tunnel: {
+            password: trimmedState?.ssh_tunnel?.password,
+            // eslint-disable-next-line camelcase
+            ...ssh_tunnel,
+          },
+        };
+      }
+      return {
+        ...trimmedState,
+      };
+    }
+    case ActionType.RemoveSSHTunnelConfig:
+      return {
+        ...trimmedState,
+        ssh_tunnel: undefined,
+      };
+    case ActionType.AddTableCatalogSheet:
+      if (trimmedState.catalog !== undefined) {
+        return {
+          ...trimmedState,
+          catalog: [...trimmedState.catalog, { name: '', value: '' }],
+        };
+      }
+      return {
+        ...trimmedState,
+        catalog: [{ name: '', value: '' }],
+      };
+    case ActionType.RemoveTableCatalogSheet:
+      trimmedState.catalog?.splice(action.payload.indexToDelete, 1);
+      return {
+        ...trimmedState,
+      };
+    case ActionType.EditorChange:
+      return {
+        ...trimmedState,
+        [action.payload.name]: action.payload.json,
+      };
+    case ActionType.QueryChange:
+      return {
+        ...trimmedState,
+        parameters: {
+          ...trimmedState.parameters,
+          query: Object.fromEntries(new URLSearchParams(action.payload.value)),
+        },
+        // eslint-disable-next-line camelcase
+        query_input: action.payload.value,
+      };
+    case ActionType.TextChange:
+      return {
+        ...trimmedState,
+        [action.payload.name]: action.payload.value,
+      };
+    case ActionType.Fetched:
+      // convert query to a string and store in query_input
+      query = action.payload?.parameters?.query || {};
+      // eslint-disable-next-line camelcase
+      query_input = Object.entries(query)
+        .map(([key, value]) => `${key}=${value}`)
+        .join('&');
+
+      if (
+        action.payload.masked_encrypted_extra &&
+        action.payload.configuration_method === ConfigurationMethod.DynamicForm
+      ) {
+        // "extra" payload from the api is a string
+        const extraJsonPayload: ExtraJson = {
+          ...JSON.parse((action.payload.extra as string) || '{}'),
+        };
+
+        const payloadCatalog = extraJsonPayload.engine_params?.catalog;
+
+        const engineRootCatalog = Object.entries(payloadCatalog || {}).map(
+          ([name, value]: string[]) => ({ name, value }),
+        );
+
+        return {
+          ...action.payload,
+          engine: action.payload.backend || trimmedState.engine,
+          configuration_method: action.payload.configuration_method,
+          catalog: engineRootCatalog,
+          parameters: {
+            ...(action.payload.parameters || trimmedState.parameters),
+            catalog: payloadCatalog,
+          },
+          // eslint-disable-next-line camelcase
+          query_input,
+        };
+      }
+      return {
+        ...action.payload,
+        masked_encrypted_extra: action.payload.masked_encrypted_extra || '',
+        engine: action.payload.backend || trimmedState.engine,
+        configuration_method: action.payload.configuration_method,
+        parameters: action.payload.parameters || trimmedState.parameters,
+        ssh_tunnel: action.payload.ssh_tunnel || trimmedState.ssh_tunnel,
+        // eslint-disable-next-line camelcase
+        query_input,
+      };
+
+    case ActionType.DbSelected:
+      // set initial state for blank form
+      return {
+        ...action.payload,
+        extra: DEFAULT_EXTRA,
+        expose_in_sqllab: true,
+      };
+    case ActionType.ConfigMethodChange:
+      return {
+        ...action.payload,
+      };
+
+    case ActionType.Reset:
+    default:
+      return null;
+  }
+}
+
+const DEFAULT_TAB_KEY = TABS_KEYS.BASIC;
+
+const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
+  addDangerToast,
+  addSuccessToast,
+  onDatabaseAdd,
+  onHide,
+  show,
+  databaseId,
+  dbEngine,
+}) => {
+  const [db, setDB] = useReducer<
+    Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
+  >(dbReducer, null);
+  // Database fetch logic
+  const {
+    state: { loading: dbLoading, resource: dbFetched, error: dbErrors },
+    fetchResource,
+    createResource,
+    updateResource,
+    clearError,
+  } = useSingleViewResource<DatabaseObject>(
+    'database',
+    t('database'),
+    addDangerToast,
+    'connection',
+  );
+
+  const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
+  const [availableDbs, getAvailableDbs] = useAvailableDatabases();
+  const [
+    validationErrors,
+    getValidation,
+    setValidationErrors,
+    isValidating,
+    hasValidated,
+    setHasValidated,
+  ] = useDatabaseValidation();
+  const [hasConnectedDb, setHasConnectedDb] = useState<boolean>(false);
+  const [showCTAbtns, setShowCTAbtns] = useState(false);
+  const [dbName, setDbName] = useState('');
+  const [editNewDb, setEditNewDb] = useState<boolean>(false);
+  const [isLoading, setLoading] = useState<boolean>(false);
+  const [testInProgress, setTestInProgress] = useState<boolean>(false);
+  const [passwords, setPasswords] = useState<Record<string, string>>({});
+  const [sshTunnelPasswords, setSSHTunnelPasswords] = useState<
+    Record<string, string>
+  >({});
+  const [sshTunnelPrivateKeys, setSSHTunnelPrivateKeys] = useState<
+    Record<string, string>
+  >({});
+  const [sshTunnelPrivateKeyPasswords, setSSHTunnelPrivateKeyPasswords] =
+    useState<Record<string, string>>({});
+  const [confirmedOverwrite, setConfirmedOverwrite] = useState<boolean>(false);
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const [importingModal, setImportingModal] = useState<boolean>(false);
+  const [importingErrorMessage, setImportingErrorMessage] = useState<string>();
+  const [passwordFields, setPasswordFields] = useState<string[]>([]);
+  const [sshTunnelPasswordFields, setSSHTunnelPasswordFields] = useState<
+    string[]
+  >([]);
+  const [sshTunnelPrivateKeyFields, setSSHTunnelPrivateKeyFields] = useState<
+    string[]
+  >([]);
+  const [
+    sshTunnelPrivateKeyPasswordFields,
+    setSSHTunnelPrivateKeyPasswordFields,
+  ] = useState<string[]>([]);
+  const [encryptedExtraFields, setEncryptedExtraFields] = useState<
+    FileEncryptedExtraFields[]
+  >([]);
+  const [encryptedExtraSecrets, setEncryptedExtraSecrets] = useState<
+    Record<string, Record<string, string>>
+  >({});
+  const [extraExtensionComponentState, setExtraExtensionComponentState] =
+    useState<object>({});
+
+  const SSHTunnelSwitchComponent =
+    extensionsRegistry.get('ssh_tunnel.form.switch') ?? SSHTunnelSwitch;
+
+  const [useSSHTunneling, setUseSSHTunneling] = useState<boolean | undefined>(
+    undefined,
+  );
+
+  let dbConfigExtraExtension = extensionsRegistry.get(
+    'databaseconnection.extraOption',
+  );
+
+  if (dbConfigExtraExtension) {
+    // add method for db modal to store data
+    dbConfigExtraExtension = {
+      ...dbConfigExtraExtension,
+      onEdit: componentState => {
+        setExtraExtensionComponentState({
+          ...extraExtensionComponentState,
+          ...componentState,
+        });
+      },
+    };
+  }
+
+  const conf = useCommonConf();
+  const dbImages = getDatabaseImages();
+  const connectionAlert = getConnectionAlert();
+  const isEditMode = !!databaseId;
+  const hasAlert =
+    connectionAlert ||
+    !!(
+      db?.engine &&
+      engineSpecificAlertMapping[
+        db.engine as keyof typeof engineSpecificAlertMapping
+      ]
+    );
+  const useSqlAlchemyForm =
+    db?.configuration_method === ConfigurationMethod.SqlalchemyUri;
+  const useTabLayout = isEditMode || useSqlAlchemyForm;
+  const isDynamic = (engine: string | undefined) =>
+    availableDbs?.databases?.find(
+      (DB: DatabaseObject) => DB.backend === engine || DB.engine === engine,
+    )?.parameters !== undefined;
+  const showDBError = validationErrors || dbErrors;
+  const history = useHistory();
+
+  const dbModel: DatabaseForm =
+    // TODO: we need a centralized engine in one place
+
+    // first try to match both engine and driver
+    availableDbs?.databases?.find(
+      (available: {
+        engine: string | undefined;
+        default_driver: string | undefined;
+      }) =>
+        available.engine === (isEditMode ? db?.backend : db?.engine) &&
+        available.default_driver === db?.driver,
+    ) ||
+    // alternatively try to match only engine
+    availableDbs?.databases?.find(
+      (available: { engine: string | undefined }) =>
+        available.engine === (isEditMode ? db?.backend : db?.engine),
+    ) ||
+    {};
+
+  const handleClearValidationErrors = useCallback(() => {
+    setValidationErrors(null);
+    setHasValidated(false);
+    clearError();
+  }, [setValidationErrors, setHasValidated, clearError]);
+
+  // Test Connection logic
+  const testConnection = () => {
+    handleClearValidationErrors();
+    if (!db?.sqlalchemy_uri) {
+      addDangerToast(t('Please enter a SQLAlchemy URI to test'));
+      return;
+    }
+
+    const connection = {
+      sqlalchemy_uri: db?.sqlalchemy_uri || '',
+      database_name: db?.database_name?.trim() || undefined,
+      impersonate_user: db?.impersonate_user || undefined,
+      extra: db?.extra,
+      masked_encrypted_extra: db?.masked_encrypted_extra || '',
+      server_cert: db?.server_cert || undefined,
+      ssh_tunnel:
+        !isEmpty(db?.ssh_tunnel) && useSSHTunneling
+          ? {
+              ...db.ssh_tunnel,
+              server_port: Number(db.ssh_tunnel!.server_port),
+            }
+          : undefined,
+    };
+    setTestInProgress(true);
+    testDatabaseConnection(
+      connection,
+      (errorMsg: string) => {
+        setTestInProgress(false);
+        addDangerToast(errorMsg);
+        setHasValidated(false);
+      },
+      (errorMsg: string) => {
+        setTestInProgress(false);
+        addSuccessToast(errorMsg);
+        setHasValidated(true);
+      },
+    );
+  };
+
+  const getPlaceholder = (field: string) => {
+    if (field === 'database') {
+      return t('e.g. world_population');
+    }
+    return undefined;
+  };
+
+  const removeFile = (removedFile: UploadFile) => {
+    setFileList(fileList.filter(file => file.uid !== removedFile.uid));
+    return false;
+  };
+
+  const onChange = useCallback(
+    (
+      type: DBReducerActionType['type'],
+      payload: CustomTextType | DBReducerPayloadType,
+    ) => {
+      setDB({ type, payload } as DBReducerActionType);
+    },
+    [],
+  );
+
+  const handleParametersChange = useCallback(
+    ({ target }: { target: HTMLInputElement }) => {
+      onChange(ActionType.ParametersChange, {
+        type: target.type,
+        name: target.name,
+        checked: target.checked,
+        value: target.value,
+      });
+    },
+    [onChange],
+  );
+
+  const handleChangeWithValidation = useCallback(
+    (
+      actionType: ActionType,
+      payload: CustomTextType | DBReducerPayloadType,
+    ) => {
+      onChange(actionType, payload);
+      handleClearValidationErrors();
+    },
+    [onChange, handleClearValidationErrors],
+  );
+
+  const onClose = () => {
+    setDB({ type: ActionType.Reset });
+    setHasConnectedDb(false);
+    handleClearValidationErrors(); // reset validation errors on close
+    clearError();
+    setEditNewDb(false);
+    setFileList([]);
+    setImportingModal(false);
+    setImportingErrorMessage('');
+    setPasswordFields([]);
+    setSSHTunnelPasswordFields([]);
+    setSSHTunnelPrivateKeyFields([]);
+    setSSHTunnelPrivateKeyPasswordFields([]);
+    setPasswords({});
+    setSSHTunnelPasswords({});
+    setSSHTunnelPrivateKeys({});
+    setSSHTunnelPrivateKeyPasswords({});
+    setEncryptedExtraFields([]);
+    setEncryptedExtraSecrets({});
+    setConfirmedOverwrite(false);
+    setUseSSHTunneling(undefined);
+    onHide();
+  };
+
+  const redirectURL = (url: string) => {
+    history.push(url);
+  };
+
+  // Database import logic
+  const {
+    state: {
+      alreadyExists,
+      passwordsNeeded,
+      sshPasswordNeeded,
+      sshPrivateKeyNeeded,
+      sshPrivateKeyPasswordNeeded,
+      encryptedExtraFieldsNeeded,
+      loading: importLoading,
+      failed: importErrored,
+    },
+    importResource,
+  } = useImportResource('database', t('database'), msg => {
+    setImportingErrorMessage(msg);
+  });
+
+  const onSave = async () => {
+    let dbConfigExtraExtensionOnSaveError;
+    setLoading(true);
+    setHasValidated(false);
+    dbConfigExtraExtension
+      ?.onSave(extraExtensionComponentState, db)
+      .then(({ error }: { error: any }) => {
+        if (error) {
+          dbConfigExtraExtensionOnSaveError = error;
+          addDangerToast(error);
+        }
+      });
+
+    if (dbConfigExtraExtensionOnSaveError) {
+      setLoading(false);
+      return;
+    }
+    // Clone DB object
+    const dbToUpdate = { ...db };
+
+    if (dbToUpdate.configuration_method === ConfigurationMethod.DynamicForm) {
+      // Validate DB before saving
+      if (dbToUpdate?.parameters?.catalog) {
+        // need to stringify gsheets catalog to allow it to be serialized
+        dbToUpdate.extra = JSON.stringify({
+          ...JSON.parse(dbToUpdate.extra || '{}'),
+          engine_params: {
+            catalog: dbToUpdate.parameters.catalog,
+          },
+        });
+      }
+
+      const errors = await getValidation(dbToUpdate, true);
+      if (!isEmpty(validationErrors) || errors?.length) {
+        addDangerToast(
+          t('Connection failed, please check your connection settings.'),
+        );
+        setLoading(false);
+        return;
+      }
+
+      // eslint-disable-next-line camelcase
+      const parameters_schema = isEditMode
+        ? dbToUpdate.parameters_schema?.properties
+        : dbModel?.parameters.properties;
+      const additionalEncryptedExtra = JSON.parse(
+        dbToUpdate.masked_encrypted_extra || '{}',
+      );
+      // eslint-disable-next-line camelcase
+      const paramConfigArray = Object.keys(parameters_schema || {});
+
+      paramConfigArray.forEach(paramConfig => {
+        /*
+         * Parameters that are annotated with the `x-encrypted-extra` properties should be
+         * moved to `masked_encrypted_extra`, so that they are stored encrypted in the
+         * backend when the database is created or edited.
+         */
+        if (
+          // eslint-disable-next-line camelcase
+          parameters_schema[paramConfig]['x-encrypted-extra'] &&
+          dbToUpdate.parameters?.[paramConfig as keyof DatabaseParameters]
+        ) {
+          if (
+            typeof dbToUpdate.parameters?.[
+              paramConfig as keyof DatabaseParameters
+            ] === 'object'
+          ) {
+            // add new encrypted extra to masked_encrypted_extra object
+            additionalEncryptedExtra[paramConfig] =
+              dbToUpdate.parameters?.[paramConfig as keyof DatabaseParameters];
+            // The backend expects `masked_encrypted_extra` as a string for historical
+            // reasons.
+            dbToUpdate.parameters[
+              paramConfig as OnlyKeyWithType<DatabaseParameters, string>
+            ] = JSON.stringify(
+              dbToUpdate.parameters[paramConfig as keyof DatabaseParameters],
+            );
+          } else {
+            additionalEncryptedExtra[paramConfig] = JSON.parse(
+              dbToUpdate.parameters?.[
+                paramConfig as OnlyKeyWithType<DatabaseParameters, string>
+              ] || '{}',
+            );
+          }
+        }
+      });
+      // cast the new encrypted extra object into a string
+      dbToUpdate.masked_encrypted_extra = JSON.stringify(
+        additionalEncryptedExtra,
+      );
+      // this needs to be added by default to gsheets
+      if (dbToUpdate.engine === Engines.GSheet) {
+        dbToUpdate.impersonate_user = true;
+      }
+    }
+
+    if (dbToUpdate?.parameters?.catalog) {
+      // need to stringify gsheets catalog to allow it to be serialized
+      dbToUpdate.extra = JSON.stringify({
+        ...JSON.parse(dbToUpdate.extra || '{}'),
+        engine_params: {
+          catalog: dbToUpdate.parameters.catalog,
+        },
+      });
+    }
+
+    // strictly checking for false as an indication that the toggle got unchecked
+    if (useSSHTunneling === false) {
+      // remove ssh tunnel
+      dbToUpdate.ssh_tunnel = null;
+    }
+
+    if (db?.id) {
+      const result = await updateResource(
+        db.id as number,
+        dbToUpdate as DatabaseObject,
+        dbToUpdate.configuration_method === ConfigurationMethod.DynamicForm, // onShow toast on SQLA Forms
+      );
+      if (result) {
+        if (onDatabaseAdd) onDatabaseAdd();
+        dbConfigExtraExtension
+          ?.onSave(extraExtensionComponentState, db)
+          .then(({ error }: { error: any }) => {
+            if (error) {
+              dbConfigExtraExtensionOnSaveError = error;
+              addDangerToast(error);
+            }
+          });
+        if (dbConfigExtraExtensionOnSaveError) {
+          setLoading(false);
+          return;
+        }
+        if (!editNewDb) {
+          onClose();
+          addSuccessToast(t('Database settings updated'));
+        }
+      }
+    } else if (db) {
+      // Create
+      const dbId = await createResource(
+        dbToUpdate as DatabaseObject,
+        dbToUpdate.configuration_method === ConfigurationMethod.DynamicForm, // onShow toast on SQLA Forms
+      );
+      if (dbId) {
+        setHasConnectedDb(true);
+        if (onDatabaseAdd) onDatabaseAdd();
+        dbConfigExtraExtension
+          ?.onSave(extraExtensionComponentState, db)
+          .then(({ error }: { error: any }) => {
+            if (error) {
+              dbConfigExtraExtensionOnSaveError = error;
+              addDangerToast(error);
+            }
+          });
+        if (dbConfigExtraExtensionOnSaveError) {
+          setLoading(false);
+          return;
+        }
+
+        if (useTabLayout) {
+          // tab layout only has one step
+          // so it should close immediately on save
+          onClose();
+          addSuccessToast(t('Database connected'));
+        }
+      }
+    } else {
+      // Import - doesn't use db state
+      setImportingModal(true);
+
+      if (!(fileList[0].originFileObj instanceof File)) {
+        return;
+      }
+
+      const dbId = await importResource(
+        fileList[0].originFileObj,
+        passwords,
+        sshTunnelPasswords,
+        sshTunnelPrivateKeys,
+        sshTunnelPrivateKeyPasswords,
+        encryptedExtraSecrets,
+        confirmedOverwrite,
+      );
+      if (dbId) {
+        if (onDatabaseAdd) onDatabaseAdd();
+        onClose();
+        addSuccessToast(t('Database connected'));
+      }
+    }
+
+    setShowCTAbtns(true);
+    setEditNewDb(false);
+    setLoading(false);
+  };
+
+  // Initialize
+  const fetchDB = () => {
+    if (isEditMode && databaseId) {
+      if (!dbLoading) {
+        fetchResource(databaseId).catch(e =>
+          addDangerToast(
+            t(
+              'Sorry there was an error fetching database information: %s',
+              e.message,
+            ),
+          ),
+        );
+      }
+    }
+  };
+
+  // eslint-disable-next-line camelcase
+  const setDatabaseModel = (database_name: string) => {
+    // eslint-disable-next-line camelcase
+    if (database_name === 'Other') {
+      // Allow users to connect to DB via legacy SQLA form
+      setDB({
+        type: ActionType.DbSelected,
+        payload: {
+          // eslint-disable-next-line camelcase
+          database_name,
+          configuration_method: ConfigurationMethod.SqlalchemyUri,
+          engine: undefined,
+          // eslint-disable-next-line camelcase
+          engine_information: {
+            supports_file_upload: true,
+          },
+        },
+      });
+    } else {
+      const selectedDbModel = availableDbs?.databases.filter(
+        // eslint-disable-next-line camelcase
+        (db: DatabaseObject) => db.name === database_name,
+      )[0];
+      if (!selectedDbModel) return;
+      const {
+        engine,
+        parameters,
+        // eslint-disable-next-line camelcase
+        engine_information,
+        // eslint-disable-next-line camelcase
+        default_driver,
+        // eslint-disable-next-line camelcase
+        sqlalchemy_uri_placeholder,
+      } = selectedDbModel;
+      const isDynamic = parameters !== undefined;
+      setDB({
+        type: ActionType.DbSelected,
+        payload: {
+          // eslint-disable-next-line camelcase
+          database_name,
+          engine,
+          configuration_method: isDynamic
+            ? ConfigurationMethod.DynamicForm
+            : ConfigurationMethod.SqlalchemyUri,
+          // eslint-disable-next-line camelcase
+          engine_information,
+          // eslint-disable-next-line camelcase
+          driver: default_driver,
+          // eslint-disable-next-line camelcase
+          sqlalchemy_uri_placeholder,
+        },
+      });
+
+      if (engine === Engines.GSheet) {
+        // only create a catalog if the DB is Google Sheets
+        setDB({ type: ActionType.AddTableCatalogSheet });
+      }
+    }
+  };
+
+  const renderAvailableSelector = () => (
+    <div className="available">
+      <h4 className="available-label">
+        {t('Or choose from a list of other databases we support:')}
+      </h4>
+      <FormLabel className="control-label">
+        {t('Supported databases')}
+      </FormLabel>
+      <Select
+        className="available-select"
+        onChange={setDatabaseModel}
+        placeholder={t('Choose a database...')}
+        options={[
+          ...(availableDbs?.databases || []).map(
+            (database: DatabaseForm, index: number) => ({
+              value: database.name,
+              label: database.name,
+              key: `database-${index}`,
+            }),
+          ),
+          { value: 'Other', label: t('Other'), key: 'Other' },
+        ]}
+        showSearch
+        sortComparator={(a, b) => {
+          // Always put "Other" at the end
+          if (a.value === 'Other') return 1;
+          if (b.value === 'Other') return -1;
+          // For all other options, sort alphabetically
+          return String(a.label).localeCompare(String(b.label));
+        }}
+        getPopupContainer={triggerNode =>
+          triggerNode.parentElement || document.body
+        }
+        dropdownStyle={{ maxHeight: 400, overflow: 'auto' }}
+      />
+      <Alert
+        showIcon
+        closable={false}
+        css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+        type="info"
+        message={
+          connectionAlert?.ADD_DATABASE?.message ||
+          t('Want to add a new database?')
+        }
+        description={
+          connectionAlert?.ADD_DATABASE ? (
+            <>
+              {t(
+                'Any databases that allow connections via SQL Alchemy URIs can be added. ',
+              )}
+              <a
+                href={connectionAlert?.ADD_DATABASE.contact_link}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {connectionAlert?.ADD_DATABASE.contact_description_link}
+              </a>{' '}
+              {connectionAlert?.ADD_DATABASE.description}
+            </>
+          ) : (
+            <>
+              {t(
+                'Any databases that allow connections via SQL Alchemy URIs can be added. Learn about how to connect a database driver ',
+              )}
+              <a
+                href={DOCUMENTATION_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t('here')}
+              </a>
+              .
+            </>
+          )
+        }
+      />
+    </div>
+  );
+
+  const renderPreferredSelector = () => (
+    <div className="preferred">
+      {availableDbs?.databases
+        ?.filter((db: DatabaseForm) => db.preferred)
+        .map((database: DatabaseForm) => (
+          <IconButton
+            className="preferred-item"
+            onClick={() => setDatabaseModel(database.name)}
+            buttonText={database.name}
+            icon={dbImages?.[database.engine]}
+            key={`${database.name}`}
+          />
+        ))}
+    </div>
+  );
+
+  const handleBackButtonOnFinish = () => {
+    if (dbFetched) {
+      fetchResource(dbFetched.id as number);
+    }
+    setShowCTAbtns(false);
+    setEditNewDb(true);
+  };
+
+  const handleBackButtonOnConnect = () => {
+    handleClearValidationErrors();
+    if (editNewDb) setHasConnectedDb(false);
+    if (importingModal) setImportingModal(false);
+    if (importErrored) {
+      setImportingModal(false);
+      setImportingErrorMessage('');
+      setPasswordFields([]);
+      setSSHTunnelPasswordFields([]);
+      setSSHTunnelPrivateKeyFields([]);
+      setSSHTunnelPrivateKeyPasswordFields([]);
+      setEncryptedExtraFields([]);
+      setPasswords({});
+      setSSHTunnelPasswords({});
+      setSSHTunnelPrivateKeys({});
+      setSSHTunnelPrivateKeyPasswords({});
+      setEncryptedExtraSecrets({});
+    }
+    setDB({ type: ActionType.Reset });
+    setFileList([]);
+  };
+
+  const handleDisableOnImport = () => {
+    // Check if any encrypted extra field is missing a secret
+    const hasEmptyEncryptedExtraSecrets = encryptedExtraFields.some(
+      ({ fileName, fields }) =>
+        fields.some(field => !encryptedExtraSecrets[fileName]?.[field.path]),
+    );
+
+    if (
+      importLoading ||
+      (alreadyExists.length && !confirmedOverwrite) ||
+      (passwordsNeeded.length && JSON.stringify(passwords) === '{}') ||
+      (sshPasswordNeeded.length &&
+        JSON.stringify(sshTunnelPasswords) === '{}') ||
+      (sshPrivateKeyNeeded.length &&
+        JSON.stringify(sshTunnelPrivateKeys) === '{}') ||
+      (sshPrivateKeyPasswordNeeded.length &&
+        JSON.stringify(sshTunnelPrivateKeyPasswords) === '{}') ||
+      (encryptedExtraFields.length && hasEmptyEncryptedExtraSecrets)
+    )
+      return true;
+    return false;
+  };
+
+  const renderModalFooter = () => {
+    if (db) {
+      // if db show back + connect
+      if (!hasConnectedDb || editNewDb) {
+        return (
+          <>
+            <StyledFooterButton
+              key="back"
+              onClick={handleBackButtonOnConnect}
+              buttonStyle="secondary"
+            >
+              {t('Back')}
+            </StyledFooterButton>
+            <StyledFooterButton
+              data-test="btn-submit-connection"
+              key="submit"
+              buttonStyle="primary"
+              onClick={onSave}
+              loading={isLoading}
+              disabled={
+                !!(
+                  !hasValidated ||
+                  isValidating ||
+                  (validationErrors && Object.keys(validationErrors).length > 0)
+                )
+              }
+            >
+              {t('Connect')}
+            </StyledFooterButton>
+          </>
+        );
+      }
+
+      return (
+        <>
+          <StyledFooterButton key="back" onClick={handleBackButtonOnFinish}>
+            {t('Back')}
+          </StyledFooterButton>
+          <StyledFooterButton
+            key="submit"
+            buttonStyle="primary"
+            onClick={onSave}
+            data-test="modal-confirm-button"
+            loading={isLoading}
+          >
+            {t('Finish')}
+          </StyledFooterButton>
+        </>
+      );
+    }
+
+    // Import doesn't use db state, so footer will not render in the if statement above
+    if (importingModal) {
+      return (
+        <>
+          <StyledFooterButton key="back" onClick={handleBackButtonOnConnect}>
+            {t('Back')}
+          </StyledFooterButton>
+          <StyledFooterButton
+            key="submit"
+            buttonStyle="primary"
+            onClick={onSave}
+            disabled={handleDisableOnImport()}
+            loading={isLoading}
+          >
+            {t('Connect')}
+          </StyledFooterButton>
+        </>
+      );
+    }
+
+    return <></>;
+  };
+
+  const renderEditModalFooter = (db: Partial<DatabaseObject> | null) => (
+    <>
+      <StyledFooterButton key="close" onClick={onClose} buttonStyle="secondary">
+        {t('Close')}
+      </StyledFooterButton>
+      <StyledFooterButton
+        key="submit"
+        buttonStyle="primary"
+        onClick={onSave}
+        disabled={db?.is_managed_externally}
+        loading={isLoading}
+        tooltip={
+          db?.is_managed_externally
+            ? t(
+                "This database is managed externally, and can't be edited in Superset",
+              )
+            : ''
+        }
+      >
+        {t('Finish')}
+      </StyledFooterButton>
+    </>
+  );
+
+  const firstUpdate = useRef(true); // Captures first render
+  // Only runs when importing files don't need user input
+  useEffect(() => {
+    // Will not run on first render
+    if (firstUpdate.current) {
+      firstUpdate.current = false;
+      return;
+    }
+
+    if (
+      !importLoading &&
+      !alreadyExists.length &&
+      !passwordsNeeded.length &&
+      !sshPasswordNeeded.length &&
+      !sshPrivateKeyNeeded.length &&
+      !sshPrivateKeyPasswordNeeded.length &&
+      !encryptedExtraFieldsNeeded.length &&
+      !isLoading && // This prevents a double toast for non-related imports
+      !importErrored // This prevents a success toast on error
+    ) {
+      onClose();
+      addSuccessToast(t('Database connected'));
+    }
+  }, [
+    alreadyExists,
+    passwordsNeeded,
+    importLoading,
+    importErrored,
+    sshPasswordNeeded,
+    sshPrivateKeyNeeded,
+    sshPrivateKeyPasswordNeeded,
+    encryptedExtraFieldsNeeded,
+  ]);
+
+  useEffect(() => {
+    if (show) {
+      setTabKey(DEFAULT_TAB_KEY);
+      setLoading(true);
+      getAvailableDbs();
+    }
+    if (databaseId && show) {
+      fetchDB();
+    }
+  }, [show, databaseId]);
+
+  useEffect(() => {
+    if (dbFetched) {
+      setDB({
+        type: ActionType.Fetched,
+        payload: dbFetched,
+      });
+      // keep a copy of the name separate for display purposes
+      // because it shouldn't change when the form is updated
+      setDbName(dbFetched.database_name);
+    }
+  }, [dbFetched]);
+
+  useEffect(() => {
+    if (isLoading) {
+      setLoading(false);
+    }
+
+    if (availableDbs && dbEngine) {
+      // set model if passed into props
+      setDatabaseModel(dbEngine);
+    }
+  }, [availableDbs]);
+
+  // This forces the modal to scroll until the importing filename is in view
+  useEffect(() => {
+    if (importingModal) {
+      document
+        ?.getElementsByClassName('ant-upload-list-item-name')[0]
+        ?.scrollIntoView();
+    }
+  }, [importingModal]);
+
+  useEffect(() => {
+    setPasswordFields([...passwordsNeeded]);
+  }, [passwordsNeeded]);
+
+  useEffect(() => {
+    setSSHTunnelPasswordFields([...sshPasswordNeeded]);
+  }, [sshPasswordNeeded]);
+
+  useEffect(() => {
+    setSSHTunnelPrivateKeyFields([...sshPrivateKeyNeeded]);
+  }, [sshPrivateKeyNeeded]);
+
+  useEffect(() => {
+    setSSHTunnelPrivateKeyPasswordFields([...sshPrivateKeyPasswordNeeded]);
+  }, [sshPrivateKeyPasswordNeeded]);
+
+  useEffect(() => {
+    setEncryptedExtraFields([...encryptedExtraFieldsNeeded]);
+  }, [encryptedExtraFieldsNeeded]);
+
+  useEffect(() => {
+    if (db?.parameters?.ssh !== undefined) {
+      setUseSSHTunneling(db.parameters.ssh);
+    }
+  }, [db?.parameters?.ssh]);
+
+  const onDbImport = async (info: UploadChangeParam) => {
+    setImportingErrorMessage('');
+    setPasswordFields([]);
+    setSSHTunnelPasswordFields([]);
+    setSSHTunnelPrivateKeyFields([]);
+    setSSHTunnelPrivateKeyPasswordFields([]);
+    setEncryptedExtraFields([]);
+    setPasswords({});
+    setSSHTunnelPasswords({});
+    setSSHTunnelPrivateKeys({});
+    setSSHTunnelPrivateKeyPasswords({});
+    setEncryptedExtraSecrets({});
+    setImportingModal(true);
+    setFileList([
+      {
+        ...info.file,
+        status: 'done',
+      },
+    ]);
+
+    if (!(info.file.originFileObj instanceof File)) return;
+    const dbId = await importResource(
+      info.file.originFileObj,
+      passwords,
+      sshTunnelPasswords,
+      sshTunnelPrivateKeys,
+      sshTunnelPrivateKeyPasswords,
+      encryptedExtraSecrets,
+      confirmedOverwrite,
+    );
+    if (dbId) onDatabaseAdd?.();
+  };
+
+  const passwordNeededField = () => {
+    if (
+      !passwordFields.length &&
+      !sshTunnelPasswordFields.length &&
+      !sshTunnelPrivateKeyFields.length &&
+      !sshTunnelPrivateKeyPasswordFields.length
+    )
+      return null;
+
+    const files = [
+      ...new Set([
+        ...passwordFields,
+        ...sshTunnelPasswordFields,
+        ...sshTunnelPrivateKeyFields,
+        ...sshTunnelPrivateKeyPasswordFields,
+      ]),
+    ];
+
+    return files.map(database => (
+      <>
+        <StyledAlertMargin>
+          <Alert
+            closable={false}
+            css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+            type="info"
+            showIcon
+            message="Database passwords"
+            description={t(
+              `The passwords for the databases below are needed in order to import them.`,
+            )}
+          />
+        </StyledAlertMargin>
+        {passwordFields?.indexOf(database) >= 0 && (
+          <ValidatedInput
+            id="password_needed"
+            name="password_needed"
+            required
+            value={passwords[database]}
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
+              setPasswords({ ...passwords, [database]: event.target.value })
+            }
+            isValidating={isValidating}
+            validationMethods={{ onBlur: () => {} }}
+            errorMessage={validationErrors?.password_needed}
+            label={t('%s PASSWORD', database.slice(10))}
+            css={formScrollableStyles}
+          />
+        )}
+        {sshTunnelPasswordFields?.indexOf(database) >= 0 && (
+          <ValidatedInput
+            isValidating={isValidating}
+            id="ssh_tunnel_password_needed"
+            name="ssh_tunnel_password_needed"
+            required
+            value={sshTunnelPasswords[database]}
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
+              setSSHTunnelPasswords({
+                ...sshTunnelPasswords,
+                [database]: event.target.value,
+              })
+            }
+            validationMethods={{ onBlur: () => {} }}
+            errorMessage={validationErrors?.ssh_tunnel_password_needed}
+            label={t('%s SSH TUNNEL PASSWORD', database.slice(10))}
+            css={formScrollableStyles}
+          />
+        )}
+        {sshTunnelPrivateKeyFields?.indexOf(database) >= 0 && (
+          <ValidatedInput
+            id="ssh_tunnel_private_key_needed"
+            name="ssh_tunnel_private_key_needed"
+            isValidating={isValidating}
+            required
+            value={sshTunnelPrivateKeys[database]}
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
+              setSSHTunnelPrivateKeys({
+                ...sshTunnelPrivateKeys,
+                [database]: event.target.value,
+              })
+            }
+            validationMethods={{ onBlur: () => {} }}
+            errorMessage={validationErrors?.ssh_tunnel_private_key_needed}
+            label={t('%s SSH TUNNEL PRIVATE KEY', database.slice(10))}
+            css={formScrollableStyles}
+          />
+        )}
+        {sshTunnelPrivateKeyPasswordFields?.indexOf(database) >= 0 && (
+          <ValidatedInput
+            id="ssh_tunnel_private_key_password_needed"
+            name="ssh_tunnel_private_key_password_needed"
+            isValidating={isValidating}
+            required
+            value={sshTunnelPrivateKeyPasswords[database]}
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
+              setSSHTunnelPrivateKeyPasswords({
+                ...sshTunnelPrivateKeyPasswords,
+                [database]: event.target.value,
+              })
+            }
+            validationMethods={{ onBlur: () => {} }}
+            errorMessage={
+              validationErrors?.ssh_tunnel_private_key_password_needed
+            }
+            label={t('%s SSH TUNNEL PRIVATE KEY PASSWORD', database.slice(10))}
+            css={formScrollableStyles}
+          />
+        )}
+      </>
+    ));
+  };
+
+  const encryptedExtraNeededField = () => {
+    if (!encryptedExtraFields.length) return null;
+
+    return encryptedExtraFields.map(({ fileName, fields }) => (
+      <div key={fileName}>
+        <StyledAlertMargin>
+          <Alert
+            closable={false}
+            css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+            type="info"
+            showIcon
+            message={t('Encrypted extra fields')}
+            description={t(
+              `The following fields contain sensitive information that was masked during export. Please provide the values to import this database.`,
+            )}
+          />
+        </StyledAlertMargin>
+        {fields.map(field => (
+          <ValidatedInput
+            key={`${fileName}-${field.path}`}
+            id={`encrypted_extra_${field.path}`}
+            name={`encrypted_extra_${field.path}`}
+            required
+            visibilityToggle
+            value={encryptedExtraSecrets[fileName]?.[field.path] || ''}
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
+              setEncryptedExtraSecrets({
+                ...encryptedExtraSecrets,
+                [fileName]: {
+                  ...encryptedExtraSecrets[fileName],
+                  [field.path]: event.target.value,
+                },
+              })
+            }
+            isValidating={isValidating}
+            validationMethods={{ onBlur: () => {} }}
+            label={t('%s %s', fileName.slice(10), field.label)}
+            css={formScrollableStyles}
+          />
+        ))}
+      </div>
+    ));
+  };
+
+  const importingErrorAlert = () => {
+    if (!importingErrorMessage) return null;
+
+    return (
+      <StyledAlertMargin>
+        <ErrorAlert message={importingErrorMessage} />
+      </StyledAlertMargin>
+    );
+  };
+
+  const confirmOverwrite = (event: ChangeEvent<HTMLInputElement>) => {
+    const targetValue = (event.currentTarget?.value as string) ?? '';
+    setConfirmedOverwrite(targetValue.toUpperCase() === t('OVERWRITE'));
+  };
+
+  const confirmOverwriteField = () => {
+    if (!alreadyExists.length) return null;
+
+    return (
+      <>
+        <StyledAlertMargin>
+          <Alert
+            closable={false}
+            css={(theme: SupersetTheme) => antdWarningAlertStyles(theme)}
+            type="warning"
+            showIcon
+            message=""
+            description={t(
+              'You are importing one or more databases that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?',
+            )}
+          />
+        </StyledAlertMargin>
+        <ValidatedInput
+          id="confirm_overwrite"
+          name="confirm_overwrite"
+          isValidating={isValidating}
+          required
+          validationMethods={{ onBlur: () => {} }}
+          errorMessage={validationErrors?.confirm_overwrite}
+          label={t('Type "%s" to confirm', t('OVERWRITE'))}
+          onChange={confirmOverwrite}
+          css={formScrollableStyles}
+        />
+      </>
+    );
+  };
+
+  const tabChange = (key: string) => setTabKey(key);
+
+  const renderStepTwoAlert = () => {
+    const { hostname } = window.location;
+    let ipAlert = connectionAlert?.REGIONAL_IPS?.default || '';
+    const regionalIPs = connectionAlert?.REGIONAL_IPS || {};
+    Object.entries(regionalIPs).forEach(([ipRegion, ipRange]) => {
+      const regex = new RegExp(ipRegion);
+      if (hostname.match(regex)) ipAlert = ipRange;
+    });
+    return (
+      db?.engine && (
+        <StyledAlertMargin>
+          <Alert
+            closable={false}
+            css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+            type="info"
+            showIcon
+            message={
+              engineSpecificAlertMapping[
+                db.engine as keyof typeof engineSpecificAlertMapping
+              ]?.message || connectionAlert?.DEFAULT?.message
+            }
+            description={
+              engineSpecificAlertMapping[
+                db.engine as keyof typeof engineSpecificAlertMapping
+              ]?.description || connectionAlert?.DEFAULT?.description + ipAlert
+            }
+          />
+        </StyledAlertMargin>
+      )
+    );
+  };
+
+  // eslint-disable-next-line consistent-return
+  const errorAlert = () => {
+    let alertErrors: string[] = [];
+    if (!isEmpty(dbErrors)) {
+      alertErrors =
+        typeof dbErrors === 'object'
+          ? Object.values(dbErrors)
+          : typeof dbErrors === 'string'
+            ? [dbErrors]
+            : [];
+    } else if (
+      !isEmpty(validationErrors) &&
+      validationErrors?.error_type === 'GENERIC_DB_ENGINE_ERROR'
+    ) {
+      alertErrors = [
+        validationErrors?.description || validationErrors?.message,
+      ];
+    }
+    if (alertErrors.length) {
+      return (
+        <ErrorAlertContainer>
+          <ErrorMessageWithStackTrace
+            title={t('Database Creation Error')}
+            subtitle={t('We are unable to connect to your database.')}
+            descriptionDetails={
+              alertErrors?.[0] || validationErrors?.description
+            }
+            copyText={validationErrors?.description}
+          />
+        </ErrorAlertContainer>
+      );
+    }
+    return <></>;
+  };
+
+  const fetchAndSetDB = () => {
+    setLoading(true);
+    fetchResource(dbFetched?.id as number).then(r => {
+      setItem(LocalStorageKeys.Database, r);
+    });
+  };
+
+  const renderSSHTunnelForm = () => (
+    <SSHTunnelForm
+      db={db as DatabaseObject}
+      onSSHTunnelParametersChange={({ target }) => {
+        onChange(ActionType.ParametersSSHTunnelChange, {
+          type: target.type,
+          name: target.name,
+          value: target.value,
+        });
+        handleClearValidationErrors();
+      }}
+      setSSHTunnelLoginMethod={(method: AuthType) =>
+        setDB({
+          type: ActionType.SetSSHTunnelLoginMethod,
+          payload: { login_method: method },
+        })
+      }
+    />
+  );
+
+  const renderCTABtns = () => (
+    <StyledBtns>
+      <Button
+        buttonStyle="secondary"
+        onClick={() => {
+          setLoading(true);
+          fetchAndSetDB();
+          redirectURL('/dataset/add/');
+        }}
+      >
+        {t('Create dataset')}
+      </Button>
+      <Button
+        buttonStyle="secondary"
+        onClick={() => {
+          setLoading(true);
+          fetchAndSetDB();
+          redirectURL(makeUrl(`/sqllab?db=true`));
+        }}
+      >
+        {t('Query data in SQL Lab')}
+      </Button>
+    </StyledBtns>
+  );
+
+  const renderDatabaseConnectionForm = () => (
+    <>
+      <DatabaseConnectionForm
+        isValidating={isValidating}
+        isEditMode={isEditMode}
+        db={db as DatabaseObject}
+        sslForced={false}
+        dbModel={dbModel}
+        onAddTableCatalog={() => {
+          setDB({ type: ActionType.AddTableCatalogSheet });
+        }}
+        onQueryChange={({ target }: { target: HTMLInputElement }) =>
+          handleChangeWithValidation(ActionType.QueryChange, {
+            name: target.name,
+            value: target.value,
+          })
+        }
+        onExtraInputChange={({ target }: { target: HTMLInputElement }) =>
+          handleChangeWithValidation(ActionType.ExtraInputChange, {
+            name: target.name,
+            value: target.value,
+          })
+        }
+        onEncryptedExtraInputChange={({
+          target,
+        }: {
+          target: HTMLInputElement;
+        }) =>
+          handleChangeWithValidation(ActionType.EncryptedExtraInputChange, {
+            name: target.name,
+            value: target.value,
+          })
+        }
+        onRemoveTableCatalog={(idx: number) => {
+          setDB({
+            type: ActionType.RemoveTableCatalogSheet,
+            payload: { indexToDelete: idx },
+          });
+        }}
+        onParametersChange={handleParametersChange}
+        onChange={({ target }: { target: HTMLInputElement }) =>
+          handleChangeWithValidation(ActionType.TextChange, {
+            name: target.name,
+            value: target.value,
+          })
+        }
+        getValidation={() => getValidation(db)}
+        validationErrors={validationErrors}
+        getPlaceholder={getPlaceholder}
+        clearValidationErrors={handleClearValidationErrors}
+      />
+      {useSSHTunneling && (
+        <SSHTunnelContainer>{renderSSHTunnelForm()}</SSHTunnelContainer>
+      )}
+    </>
+  );
+
+  const renderFinishState = () => {
+    if (!editNewDb) {
+      return (
+        <ExtraOptions
+          extraExtension={dbConfigExtraExtension}
+          db={db as DatabaseObject}
+          onInputChange={(
+            e: CheckboxChangeEvent | React.ChangeEvent<HTMLInputElement>,
+          ) => {
+            const { target } = e;
+            handleChangeWithValidation(ActionType.InputChange, {
+              type: target.type,
+              name: target.name,
+              checked: 'checked' in target ? target.checked : false,
+              value: target.value,
+            });
+          }}
+          onTextChange={({ target }: { target: HTMLTextAreaElement }) =>
+            handleChangeWithValidation(ActionType.TextChange, {
+              name: target.name,
+              value: target.value,
+            })
+          }
+          onEditorChange={(payload: { name: string; json: any }) =>
+            handleChangeWithValidation(ActionType.EditorChange, payload)
+          }
+          onExtraInputChange={(
+            e: CheckboxChangeEvent | React.ChangeEvent<HTMLInputElement>,
+          ) => {
+            const { target } = e;
+            handleChangeWithValidation(ActionType.ExtraInputChange, {
+              type: target.type,
+              name: target.name,
+              checked: 'checked' in target ? target.checked : false,
+              value: target.value,
+            });
+          }}
+          onExtraEditorChange={(payload: { name: string; json: any }) =>
+            handleChangeWithValidation(ActionType.ExtraEditorChange, payload)
+          }
+        />
+      );
+    }
+    return renderDatabaseConnectionForm();
+  };
+
+  if (
+    fileList.length > 0 &&
+    (alreadyExists.length ||
+      passwordFields.length ||
+      sshTunnelPasswordFields.length ||
+      sshTunnelPrivateKeyFields.length ||
+      sshTunnelPrivateKeyPasswordFields.length ||
+      encryptedExtraFields.length)
+  ) {
+    return (
+      <Modal
+        centered
+        css={(theme: SupersetTheme) => [
+          antDModalNoPaddingStyles,
+          antDModalStyles(theme),
+          formHelperStyles(theme),
+          formStyles(theme),
+        ]}
+        footer={renderModalFooter()}
+        maskClosable={false}
+        name="database"
+        onHide={onClose}
+        onHandledPrimaryAction={onSave}
+        primaryButtonName={t('Connect')}
+        show={show}
+        title={
+          <ModalTitleWithIcon
+            title={t('Connect a database')}
+            icon={<Icons.InsertRowAboveOutlined />}
+          />
+        }
+        width="500px"
+      >
+        <ModalHeader
+          db={db}
+          dbName={dbName}
+          dbModel={dbModel}
+          fileList={fileList}
+          hasConnectedDb={hasConnectedDb}
+          isEditMode={isEditMode}
+          isLoading={isLoading}
+          useSqlAlchemyForm={useSqlAlchemyForm}
+        />
+        {confirmOverwriteField()}
+        {importingErrorAlert()}
+        {passwordNeededField()}
+        {encryptedExtraNeededField()}
+      </Modal>
+    );
+  }
+  const modalFooter = isEditMode
+    ? renderEditModalFooter(db)
+    : renderModalFooter();
+  return useTabLayout ? (
+    <Modal
+      css={(theme: SupersetTheme) => [
+        antDTabsStyles,
+        antDModalNoPaddingStyles,
+        antDModalStyles(theme),
+        formHelperStyles(theme),
+        formStyles(theme),
+      ]}
+      name="database"
+      data-test="database-modal"
+      onHandledPrimaryAction={onSave}
+      onHide={onClose}
+      primaryButtonName={isEditMode ? t('Save') : t('Connect')}
+      width="500px"
+      centered
+      show={show}
+      title={
+        <ModalTitleWithIcon
+          isEditMode={isEditMode}
+          title={isEditMode ? t('Edit database') : t('Connect a database')}
+          icon={
+            isEditMode ? (
+              <Icons.EditOutlined iconSize="l" />
+            ) : (
+              <Icons.InsertRowAboveOutlined iconSize="l" />
+            )
+          }
+        />
+      }
+      footer={modalFooter}
+      maskClosable={false}
+    >
+      <StyledStickyHeader>
+        <TabHeader>
+          <ModalHeader
+            isLoading={isLoading}
+            isEditMode={isEditMode}
+            useSqlAlchemyForm={useSqlAlchemyForm}
+            hasConnectedDb={hasConnectedDb}
+            db={db}
+            dbName={dbName}
+            dbModel={dbModel}
+          />
+        </TabHeader>
+      </StyledStickyHeader>
+      <TabsStyled
+        defaultActiveKey={DEFAULT_TAB_KEY}
+        activeKey={tabKey}
+        onTabClick={tabChange}
+        animated={{ inkBar: true, tabPane: true }}
+        items={[
+          {
+            key: TABS_KEYS.BASIC,
+            label: <span>{t('Basic')}</span>,
+            children: (
+              <>
+                {useSqlAlchemyForm ? (
+                  <StyledAlignment>
+                    <SqlAlchemyForm
+                      db={db as DatabaseObject}
+                      onInputChange={({
+                        target,
+                      }: {
+                        target: HTMLInputElement;
+                      }) => {
+                        setHasValidated(false);
+                        onChange(ActionType.InputChange, {
+                          type: target.type,
+                          name: target.name,
+                          checked: target.checked,
+                          value: target.value,
+                        });
+                      }}
+                      conf={conf}
+                      testConnection={testConnection}
+                      testInProgress={testInProgress}
+                    >
+                      <SSHTunnelSwitchComponent
+                        dbModel={dbModel}
+                        db={db as DatabaseObject}
+                        changeMethods={{
+                          onParametersChange: handleParametersChange,
+                        }}
+                        clearValidationErrors={handleClearValidationErrors}
+                      />
+                      {useSSHTunneling && renderSSHTunnelForm()}
+                    </SqlAlchemyForm>
+                    {isDynamic(db?.backend || db?.engine) && !isEditMode && (
+                      <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
+                        <Button
+                          buttonStyle="link"
+                          onClick={() =>
+                            setDB({
+                              type: ActionType.ConfigMethodChange,
+                              payload: {
+                                database_name: db?.database_name,
+                                configuration_method:
+                                  ConfigurationMethod.DynamicForm,
+                                engine: db?.engine,
+                              },
+                            })
+                          }
+                          css={theme => alchemyButtonLinkStyles(theme)}
+                        >
+                          {t(
+                            'Connect this database using the dynamic form instead',
+                          )}
+                        </Button>
+                        <InfoTooltip
+                          tooltip={t(
+                            'Click this link to switch to an alternate form that exposes only the required fields needed to connect this database.',
+                          )}
+                        />
+                      </div>
+                    )}
+                  </StyledAlignment>
+                ) : (
+                  renderDatabaseConnectionForm()
+                )}
+                {!isEditMode && (
+                  <StyledAlertMargin>
+                    <Alert
+                      closable={false}
+                      css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+                      message={t('Additional fields may be required')}
+                      showIcon
+                      description={
+                        <>
+                          {t(
+                            'Select databases require additional fields to be completed in the Advanced tab to successfully connect the database. Learn what requirements your databases has ',
+                          )}
+                          <a
+                            href={DOCUMENTATION_LINK}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="additional-fields-alert-description"
+                          >
+                            {t('here')}
+                          </a>
+                          .
+                        </>
+                      }
+                      type="info"
+                    />
+                  </StyledAlertMargin>
+                )}
+                {showDBError && errorAlert()}
+              </>
+            ),
+          },
+          {
+            key: TABS_KEYS.ADVANCED,
+            label: <span>{t('Advanced')}</span>,
+            children: (
+              <ExtraOptions
+                extraExtension={dbConfigExtraExtension}
+                db={db as DatabaseObject}
+                onInputChange={(e: CheckboxChangeEvent) => {
+                  const { target } = e;
+                  handleChangeWithValidation(ActionType.InputChange, {
+                    type: target.type,
+                    name: target.name,
+                    checked: target.checked,
+                    value: target.value,
+                  });
+                }}
+                onTextChange={({ target }: { target: HTMLTextAreaElement }) =>
+                  handleChangeWithValidation(ActionType.TextChange, {
+                    name: target.name,
+                    value: target.value,
+                  })
+                }
+                onEditorChange={(payload: { name: string; json: any }) =>
+                  handleChangeWithValidation(ActionType.EditorChange, payload)
+                }
+                onExtraInputChange={(
+                  e: React.ChangeEvent<HTMLInputElement> | CheckboxChangeEvent,
+                ) => {
+                  const { target } = e;
+                  handleChangeWithValidation(ActionType.ExtraInputChange, {
+                    type: target.type,
+                    name: target.name,
+                    checked: target.checked,
+                    value: target.value,
+                  });
+                }}
+                onExtraEditorChange={(payload: { name: string; json: any }) =>
+                  handleChangeWithValidation(
+                    ActionType.ExtraEditorChange,
+                    payload,
+                  )
+                }
+              />
+            ),
+          },
+        ]}
+      />
+    </Modal>
+  ) : (
+    <Modal
+      css={(theme: SupersetTheme) => [
+        antDModalNoPaddingStyles,
+        antDModalStyles(theme),
+        formHelperStyles(theme),
+        formStyles(theme),
+      ]}
+      name="database"
+      onHandledPrimaryAction={onSave}
+      onHide={onClose}
+      primaryButtonName={hasConnectedDb ? t('Finish') : t('Connect')}
+      width="500px"
+      centered
+      show={show}
+      title={
+        <ModalTitleWithIcon
+          title={t('Connect a database')}
+          icon={<Icons.InsertRowAboveOutlined />}
+        />
+      }
+      footer={renderModalFooter()}
+      maskClosable={false}
+    >
+      {!isLoading && hasConnectedDb ? (
+        <>
+          <ModalHeader
+            isLoading={isLoading}
+            isEditMode={isEditMode}
+            useSqlAlchemyForm={useSqlAlchemyForm}
+            hasConnectedDb={hasConnectedDb}
+            db={db}
+            dbName={dbName}
+            dbModel={dbModel}
+            editNewDb={editNewDb}
+          />
+          {showCTAbtns && renderCTABtns()}
+          {renderFinishState()}
+        </>
+      ) : (
+        <>
+          {/* Dynamic Form Step 1 */}
+          {!isLoading &&
+            (!db ? (
+              <SelectDatabaseStyles>
+                <ModalHeader
+                  isLoading={isLoading}
+                  isEditMode={isEditMode}
+                  useSqlAlchemyForm={useSqlAlchemyForm}
+                  hasConnectedDb={hasConnectedDb}
+                  db={db}
+                  dbName={dbName}
+                  dbModel={dbModel}
+                />
+                {renderPreferredSelector()}
+                {renderAvailableSelector()}
+                <StyledUploadWrapper>
+                  <Upload
+                    name="databaseFile"
+                    id="databaseFile"
+                    data-test="database-file-input"
+                    accept=".yaml,.json,.yml,.zip"
+                    customRequest={() => {}}
+                    onChange={onDbImport}
+                    onRemove={removeFile}
+                  >
+                    <Button
+                      data-test="import-database-btn"
+                      buttonStyle="link"
+                      css={importDbButtonLinkStyles}
+                    >
+                      {t('Import database from file')}
+                    </Button>
+                  </Upload>
+                </StyledUploadWrapper>
+                {importingErrorAlert()}
+              </SelectDatabaseStyles>
+            ) : (
+              <>
+                <ModalHeader
+                  isLoading={isLoading}
+                  isEditMode={isEditMode}
+                  useSqlAlchemyForm={useSqlAlchemyForm}
+                  hasConnectedDb={hasConnectedDb}
+                  db={db}
+                  dbName={dbName}
+                  dbModel={dbModel}
+                />
+                {hasAlert && renderStepTwoAlert()}
+                {renderDatabaseConnectionForm()}
+                <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
+                  {dbModel.engine !== Engines.GSheet && (
+                    <>
+                      <Button
+                        data-test="sqla-connect-btn"
+                        buttonStyle="link"
+                        onClick={() => {
+                          handleClearValidationErrors();
+                          setDB({
+                            type: ActionType.ConfigMethodChange,
+                            payload: {
+                              engine: db.engine,
+                              configuration_method:
+                                ConfigurationMethod.SqlalchemyUri,
+                              database_name: db.database_name,
+                            },
+                          });
+                        }}
+                        css={buttonLinkStyles}
+                      >
+                        {t(
+                          'Connect this database with a SQLAlchemy URI string instead',
+                        )}
+                      </Button>
+                      <InfoTooltip
+                        tooltip={t(
+                          'Click this link to switch to an alternate form that allows you to input the SQLAlchemy URL for this database manually.',
+                        )}
+                      />
+                    </>
+                  )}
+                </div>
+                {/* Step 2 */}
+                {showDBError && errorAlert()}
+              </>
+            ))}
+        </>
+      )}
+      {isLoading && <Loading />}
+    </Modal>
+  );
+};
+
+export default withToasts(DatabaseModal);

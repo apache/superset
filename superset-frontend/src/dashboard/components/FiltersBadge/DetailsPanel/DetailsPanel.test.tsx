@@ -16,13 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import { Indicator } from 'src/dashboard/components/FiltersBadge/selectors';
+import { RefObject } from 'react';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
+import { Indicator } from 'src/dashboard/components/nativeFilters/selectors';
 import DetailsPanel from '.';
 
+const mockPopoverContentRef = {
+  current: {
+    focus: jest.fn(),
+  },
+} as unknown as RefObject<HTMLDivElement>;
+
+const mockPopoverTriggerRef = {
+  current: {
+    focus: jest.fn(),
+  },
+} as unknown as RefObject<HTMLDivElement>;
+
 const createProps = () => ({
+  popoverVisible: true,
+  popoverContentRef: mockPopoverContentRef,
+  popoverTriggerRef: mockPopoverTriggerRef,
+  setPopoverVisible: jest.fn(),
   appliedCrossFilterIndicators: [
     {
       column: 'clinical_stage',
@@ -40,7 +60,7 @@ const createProps = () => ({
   ] as Indicator[],
   appliedIndicators: [
     {
-      column: 'country_name',
+      column: 'Country_name',
       name: 'Country',
       value: [],
       status: 'UNSET',
@@ -86,7 +106,7 @@ const createProps = () => ({
   onHighlightFilterSource: jest.fn(),
 });
 
-test('Should render "appliedCrossFilterIndicators"', () => {
+test('Should render "appliedCrossFilterIndicators"', async () => {
   const props = createProps();
   props.appliedIndicators = [];
   props.incompatibleIndicators = [];
@@ -99,18 +119,20 @@ test('Should render "appliedCrossFilterIndicators"', () => {
     { useRedux: true },
   );
 
-  userEvent.click(screen.getByTestId('details-panel-content'));
-  expect(screen.getByText('Applied Cross Filters (1)')).toBeInTheDocument();
+  userEvent.hover(screen.getByTestId('details-panel-content'));
+  expect(
+    await screen.findByText('Applied cross-filters (1)'),
+  ).toBeInTheDocument();
   expect(
     screen.getByRole('button', { name: 'search Clinical Stage' }),
   ).toBeInTheDocument();
 
-  expect(props.onHighlightFilterSource).toBeCalledTimes(0);
+  expect(props.onHighlightFilterSource).toHaveBeenCalledTimes(0);
   userEvent.click(
     screen.getByRole('button', { name: 'search Clinical Stage' }),
   );
-  expect(props.onHighlightFilterSource).toBeCalledTimes(1);
-  expect(props.onHighlightFilterSource).toBeCalledWith([
+  expect(props.onHighlightFilterSource).toHaveBeenCalledTimes(1);
+  expect(props.onHighlightFilterSource).toHaveBeenCalledWith([
     'ROOT_ID',
     'TABS-wUKya7eQ0Z',
     'TAB-BCIJF4NvgQ',
@@ -120,7 +142,7 @@ test('Should render "appliedCrossFilterIndicators"', () => {
   ]);
 });
 
-test('Should render "appliedIndicators"', () => {
+test('Should render "appliedIndicators"', async () => {
   const props = createProps();
   props.appliedCrossFilterIndicators = [];
   props.incompatibleIndicators = [];
@@ -133,90 +155,22 @@ test('Should render "appliedIndicators"', () => {
     { useRedux: true },
   );
 
-  userEvent.click(screen.getByTestId('details-panel-content'));
-  expect(screen.getByText('Applied Filters (1)')).toBeInTheDocument();
+  userEvent.hover(screen.getByTestId('details-panel-content'));
+  expect(await screen.findByText('Applied filters (1)')).toBeInTheDocument();
   expect(
     screen.getByRole('button', { name: 'search Country' }),
   ).toBeInTheDocument();
 
-  expect(props.onHighlightFilterSource).toBeCalledTimes(0);
+  expect(props.onHighlightFilterSource).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByRole('button', { name: 'search Country' }));
-  expect(props.onHighlightFilterSource).toBeCalledTimes(1);
-  expect(props.onHighlightFilterSource).toBeCalledWith([
+  expect(props.onHighlightFilterSource).toHaveBeenCalledTimes(1);
+  expect(props.onHighlightFilterSource).toHaveBeenCalledWith([
     'ROOT_ID',
     'TABS-wUKya7eQ0Z',
     'TAB-BCIJF4NvgQ',
     'ROW-xSeNAspgw',
     'CHART-eirDduqb1A',
-    'LABEL-country_name',
-  ]);
-});
-
-test('Should render "incompatibleIndicators"', () => {
-  const props = createProps();
-  props.appliedCrossFilterIndicators = [];
-  props.appliedIndicators = [];
-  props.unsetIndicators = [];
-
-  render(
-    <DetailsPanel {...props}>
-      <div data-test="details-panel-content">Content</div>
-    </DetailsPanel>,
-    { useRedux: true },
-  );
-
-  userEvent.click(screen.getByTestId('details-panel-content'));
-  expect(screen.getByText('Incompatible Filters (1)')).toBeInTheDocument();
-  expect(
-    screen.getByRole('button', { name: 'search Vaccine Approach Copy' }),
-  ).toBeInTheDocument();
-
-  expect(props.onHighlightFilterSource).toBeCalledTimes(0);
-  userEvent.click(
-    screen.getByRole('button', { name: 'search Vaccine Approach Copy' }),
-  );
-  expect(props.onHighlightFilterSource).toBeCalledTimes(1);
-  expect(props.onHighlightFilterSource).toBeCalledWith([
-    'ROOT_ID',
-    'TABS-wUKya7eQ0Zz',
-    'TAB-BCIJF4NvgQq',
-    'ROW-xSeNAspgww',
-    'CHART-eirDduqb1Aa',
-    'LABEL-product_category_copy',
-  ]);
-});
-
-test('Should render "unsetIndicators"', () => {
-  const props = createProps();
-  props.appliedCrossFilterIndicators = [];
-  props.appliedIndicators = [];
-  props.incompatibleIndicators = [];
-
-  render(
-    <DetailsPanel {...props}>
-      <div data-test="details-panel-content">Content</div>
-    </DetailsPanel>,
-    { useRedux: true },
-  );
-
-  userEvent.click(screen.getByTestId('details-panel-content'));
-  expect(screen.getByText('Unset Filters (1)')).toBeInTheDocument();
-  expect(
-    screen.getByRole('button', { name: 'search Vaccine Approach' }),
-  ).toBeInTheDocument();
-
-  expect(props.onHighlightFilterSource).toBeCalledTimes(0);
-  userEvent.click(
-    screen.getByRole('button', { name: 'search Vaccine Approach' }),
-  );
-  expect(props.onHighlightFilterSource).toBeCalledTimes(1);
-  expect(props.onHighlightFilterSource).toBeCalledWith([
-    'ROOT_ID',
-    'TABS-wUKya7eQ0Z',
-    'TAB-BCIJF4NvgQ',
-    'ROW-xSeNAspgw',
-    'CHART-eirDduqb1A',
-    'LABEL-product_category',
+    'LABEL-Country_name',
   ]);
 });
 
@@ -237,4 +191,80 @@ test('Should render empty', () => {
   expect(screen.getByTestId('details-panel-content')).toBeInTheDocument();
   userEvent.click(screen.getByTestId('details-panel-content'));
   expect(screen.queryByRole('button')).not.toBeInTheDocument();
+});
+
+test('Close popover with ESC or ENTER', async () => {
+  const props = createProps();
+  render(
+    <DetailsPanel {...props}>
+      <div>Content</div>
+    </DetailsPanel>,
+    { useRedux: true },
+  );
+
+  const activeElement = document.activeElement as Element;
+
+  // Close popover with Escape key
+  fireEvent.keyDown(activeElement, { key: 'Escape', code: 'Escape' });
+  expect(props.setPopoverVisible).toHaveBeenCalledWith(false);
+
+  // Open the popover for this test
+  props.popoverVisible = true;
+
+  // Close with Enter
+  fireEvent.keyDown(activeElement, { key: 'Enter', code: 'Enter' });
+  expect(props.setPopoverVisible).toHaveBeenCalledWith(false);
+});
+
+test('Arrow key navigation switches focus between indicators', () => {
+  // Prepare props with two indicators
+  const props = createProps();
+
+  props.appliedCrossFilterIndicators = [
+    {
+      column: 'clinical_stage',
+      name: 'Clinical Stage',
+      value: [],
+      path: ['PATH_TO_CLINICAL_STAGE'],
+    },
+    {
+      column: 'age_group',
+      name: 'Age Group',
+      value: [],
+      path: ['PATH_TO_AGE_GROUP'],
+    },
+  ];
+
+  render(
+    <DetailsPanel {...props}>
+      <div>Content</div>
+    </DetailsPanel>,
+    { useRedux: true },
+  );
+
+  // Query the indicators
+  const firstIndicator = screen.getByRole('button', {
+    name: 'search Clinical Stage',
+  });
+  const secondIndicator = screen.getByRole('button', {
+    name: 'search Age Group',
+  });
+
+  // Focus the first indicator
+  firstIndicator.focus();
+  expect(firstIndicator).toHaveFocus();
+
+  // Simulate ArrowDown key press
+  fireEvent.keyDown(document.activeElement as Element, {
+    key: 'ArrowDown',
+    code: 'ArrowDown',
+  });
+  expect(secondIndicator).toHaveFocus();
+
+  // Simulate ArrowUp key press
+  fireEvent.keyDown(document.activeElement as Element, {
+    key: 'ArrowUp',
+    code: 'ArrowUp',
+  });
+  expect(firstIndicator).toHaveFocus();
 });

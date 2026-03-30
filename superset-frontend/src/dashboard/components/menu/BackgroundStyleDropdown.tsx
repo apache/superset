@@ -16,14 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import cx from 'classnames';
+import { t } from '@apache-superset/core/translation';
+import { css, styled } from '@apache-superset/core/theme';
 
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import PopoverDropdown, {
   OptionProps,
   OnChangeHandler,
-} from 'src/components/PopoverDropdown';
+} from '@superset-ui/core/components/PopoverDropdown';
 
 interface BackgroundStyleDropdownProps {
   id: string;
@@ -31,23 +33,64 @@ interface BackgroundStyleDropdownProps {
   onChange: OnChangeHandler;
 }
 
+const BackgroundStyleOption = styled.div`
+  ${({ theme }) => css`
+    display: inline-block;
+    &:before {
+      content: '';
+      width: 1em;
+      height: 1em;
+      margin-right: ${theme.sizeUnit * 2}px;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    &.background-style-option.background--white {
+      padding-left: 0;
+      background: transparent;
+      &:before {
+        background: ${theme.colorBgContainer};
+        border: 1px solid ${theme.colorBorder};
+      }
+    }
+    /* Create the transparent rect icon */
+    &.background--transparent:before {
+      background-image:
+        linear-gradient(45deg, ${theme.colorTextLabel} 25%, transparent 25%),
+        linear-gradient(-45deg, ${theme.colorTextLabel} 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, ${theme.colorTextLabel} 75%),
+        linear-gradient(-45deg, transparent 75%, ${theme.colorTextLabel} 75%);
+      background-size: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 2}px;
+      background-position:
+        0 0,
+        0 ${theme.sizeUnit}px,
+        ${theme.sizeUnit}px ${-theme.sizeUnit}px,
+        ${-theme.sizeUnit}px 0px;
+    }
+  `}
+`;
+
 function renderButton(option: OptionProps) {
+  const BACKGROUND_TEXT = t('background');
   return (
-    <div className={cx('background-style-option', option.className)}>
-      {`${option.label} background`}
-    </div>
+    <BackgroundStyleOption
+      className={cx('background-style-option', option.className)}
+    >
+      {`${option.label} ${BACKGROUND_TEXT}`}
+    </BackgroundStyleOption>
   );
 }
 
 function renderOption(option: OptionProps) {
   return (
-    <div className={cx('background-style-option', option.className)}>
+    <BackgroundStyleOption
+      className={cx('background-style-option', option.className)}
+    >
       {option.label}
-    </div>
+    </BackgroundStyleOption>
   );
 }
 
-export default class BackgroundStyleDropdown extends React.PureComponent<BackgroundStyleDropdownProps> {
+export default class BackgroundStyleDropdown extends PureComponent<BackgroundStyleDropdownProps> {
   render() {
     const { id, value, onChange } = this.props;
     return (

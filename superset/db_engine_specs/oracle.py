@@ -15,44 +15,63 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
-from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
-from superset.utils import core as utils
+from sqlalchemy import types
+
+from superset.constants import TimeGrain
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 
 
 class OracleEngineSpec(BaseEngineSpec):
     engine = "oracle"
     engine_name = "Oracle"
-    limit_method = LimitMethod.WRAP_SQL
+
+    metadata = {
+        "description": "Oracle Database is a multi-model database management system.",
+        "logo": "oraclelogo.png",
+        "homepage_url": "https://www.oracle.com/database/",
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["oracledb"],
+        "connection_string": "oracle://{username}:{password}@{hostname}:{port}",
+        "default_port": 1521,
+        "notes": "Previously used cx_Oracle, now uses oracledb.",
+        "docs_url": "https://cx-oracle.readthedocs.io/en/latest/user_guide/installation.html",
+    }
     force_column_alias_quotes = True
-    max_column_name_length = 30
+    max_column_name_length = 128
+    supports_multivalues_insert = True
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "CAST({col} as DATE)",
-        "PT1M": "TRUNC(CAST({col} as DATE), 'MI')",
-        "PT1H": "TRUNC(CAST({col} as DATE), 'HH')",
-        "P1D": "TRUNC(CAST({col} as DATE), 'DDD')",
-        "P1W": "TRUNC(CAST({col} as DATE), 'WW')",
-        "P1M": "TRUNC(CAST({col} as DATE), 'MONTH')",
-        "P3M": "TRUNC(CAST({col} as DATE), 'Q')",
-        "P1Y": "TRUNC(CAST({col} as DATE), 'YEAR')",
+        TimeGrain.SECOND: "CAST({col} as DATE)",
+        TimeGrain.MINUTE: "TRUNC(CAST({col} as DATE), 'MI')",
+        TimeGrain.HOUR: "TRUNC(CAST({col} as DATE), 'HH')",
+        TimeGrain.DAY: "TRUNC(CAST({col} as DATE), 'DDD')",
+        TimeGrain.WEEK: "TRUNC(CAST({col} as DATE), 'WW')",
+        TimeGrain.MONTH: "TRUNC(CAST({col} as DATE), 'MONTH')",
+        TimeGrain.QUARTER: "TRUNC(CAST({col} as DATE), 'Q')",
+        TimeGrain.YEAR: "TRUNC(CAST({col} as DATE), 'YEAR')",
     }
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt == utils.TemporalType.DATE:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.Date):
             return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
-        if tt == utils.TemporalType.DATETIME:
+        if isinstance(sqla_type, types.TIMESTAMP):
+            return f"""TO_TIMESTAMP('{
+                dttm.isoformat(timespec="microseconds")
+            }', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
+        if isinstance(sqla_type, types.DateTime):
             datetime_formatted = dttm.isoformat(timespec="seconds")
             return f"""TO_DATE('{datetime_formatted}', 'YYYY-MM-DD"T"HH24:MI:SS')"""
-        if tt == utils.TemporalType.TIMESTAMP:
-            return f"""TO_TIMESTAMP('{dttm
-                .isoformat(timespec="microseconds")}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
         return None
 
     @classmethod
@@ -66,7 +85,7 @@ class OracleEngineSpec(BaseEngineSpec):
     @classmethod
     def fetch_data(
         cls, cursor: Any, limit: Optional[int] = None
-    ) -> List[Tuple[Any, ...]]:
+    ) -> list[tuple[Any, ...]]:
         """
         :param cursor: Cursor instance
         :param limit: Maximum number of rows to be returned by the cursor

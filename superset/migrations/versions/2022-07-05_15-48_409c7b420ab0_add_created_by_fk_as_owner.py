@@ -96,7 +96,7 @@ def upgrade():
                     DatasetUser.user_id == Dataset.created_by_fk,
                 ),
             )
-            .filter(DatasetUser.dataset_id == None, Dataset.created_by_fk != None),
+            .filter(DatasetUser.dataset_id == None, Dataset.created_by_fk != None),  # noqa: E711
         )
     )
 
@@ -111,7 +111,7 @@ def upgrade():
                     SliceUser.user_id == Slice.created_by_fk,
                 ),
             )
-            .filter(SliceUser.slice_id == None),
+            .filter(SliceUser.slice_id == None),  # noqa: E711
         )
     )
 
@@ -126,7 +126,7 @@ def upgrade():
                     SqlaTableUser.user_id == SqlaTable.created_by_fk,
                 ),
             )
-            .filter(SqlaTableUser.table_id == None),
+            .filter(SqlaTableUser.table_id == None),  # noqa: E711
         )
     )
 

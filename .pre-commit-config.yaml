@@ -15,42 +15,85 @@
 # limitations under the License.
 #
 repos:
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.9.3
+  - repo: https://github.com/MarcoGorelli/auto-walrus
+    rev: 0.3.4
     hooks:
-      - id: isort
+      - id: auto-walrus
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.941
+    rev: v1.15.0
     hooks:
       - id: mypy
-        additional_dependencies: [types-all]
-  - repo: https://github.com/peterdemin/pip-compile-multi
-    rev: v2.4.1
-    hooks:
-      - id: pip-compile-multi-verify
+        name: mypy (main)
+        args: [--check-untyped-defs]
+        exclude: ^superset-extensions-cli/
+        additional_dependencies: [
+            types-cachetools,
+            types-simplejson,
+            types-python-dateutil,
+            types-requests,
+            # types-redis 4.6.0.5 is failing mypy
+            # because of https://github.com/python/typeshed/pull/10531
+            types-redis==4.6.0.4,
+            types-pytz,
+            types-croniter,
+            types-PyYAML,
+            types-setuptools,
+            types-paramiko,
+            types-Markdown,
+          ]
+      - id: mypy
+        name: mypy (superset-extensions-cli)
+        args: [--check-untyped-defs]
+        files: ^superset-extensions-cli/
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.2.0
+    rev: v5.0.0
     hooks:
       - id: check-docstring-first
       - id: check-added-large-files
-        exclude: \.(geojson)$
+        exclude: ^.*\.(geojson)$|^docs/static/img/screenshots/.*|^superset-frontend/CHANGELOG\.md$|^superset/examples/.*/data\.parquet$
       - id: check-yaml
         exclude: ^helm/superset/templates/
       - id: debug-statements
       - id: end-of-file-fixer
+        exclude: .*/lerna\.json$|^docs/static/img/logos/
       - id: trailing-whitespace
+        exclude: ^.*\.(snap)
         args: ["--markdown-linebreak-ext=md"]
-  - repo: https://github.com/psf/black
-    rev: 22.3.0
+  - repo: local
     hooks:
-      - id: black
-        language_version: python3
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v2.4.1 # Use the sha or tag you want to point at
+      - id: prettier-frontend
+        name: prettier (frontend)
+        entry: bash -c 'cd superset-frontend && for file in "$@"; do npx prettier --write "${file#superset-frontend/}"; done'
+        language: system
+        pass_filenames: true
+        files: ^superset-frontend/.*\.(js|jsx|ts|tsx|css|scss|sass|json)$
+  - repo: local
     hooks:
-      - id: prettier
-        args: ["--ignore-path=./superset-frontend/.prettierignore"]
-        files: "superset-frontend"
+      - id: oxlint-frontend
+        name: oxlint (frontend)
+        entry: ./scripts/oxlint.sh
+        language: system
+        pass_filenames: true
+        files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
+      - id: custom-rules-frontend
+        name: custom rules (frontend)
+        entry: ./scripts/check-custom-rules.sh
+        language: system
+        pass_filenames: true
+        files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
+      - id: eslint-docs
+        name: eslint (docs)
+        entry: bash -c 'cd docs && FILES=$(printf "%s\n" "$@" | sed "s|^docs/||" | tr "\n" " ") && yarn eslint --fix --quiet $FILES'
+        language: system
+        pass_filenames: true
+        files: ^docs/.*\.(js|jsx|ts|tsx)$
+      - id: type-checking-frontend
+        name: Type-Checking (Frontend)
+        entry: ./scripts/check-type.js package=superset-frontend excludeDeclarationDir=cypress-base
+        language: system
+        files: ^superset-frontend\/.*\.(js|jsx|ts|tsx)$
+        exclude: ^superset-frontend/cypress-base\/
+        require_serial: true
   # blacklist unsafe functions like make_url (see #19526)
   - repo: https://github.com/skorokithakis/blacklist-pre-commit-hook
     rev: e2f070289d8eddcaec0b580d3bde29437e7c8221
@@ -58,7 +101,60 @@ repos:
       - id: blacklist
         args: ["--blacklisted-names=make_url", "--ignore=tests/"]
   - repo: https://github.com/norwoodj/helm-docs
-    rev: v1.11.0
+    rev: v1.14.2
     hooks:
       - id: helm-docs
         files: helm
+        verbose: false
+        args: ["--log-level", "error"]
+  # Using local hooks ensures ruff version matches requirements/development.txt
+  - repo: local
+    hooks:
+      - id: ruff-format
+        name: ruff-format
+        entry: ruff format
+        language: system
+        types: [python]
+      - id: ruff
+        name: ruff
+        entry: ruff check --fix --show-fixes
+        language: system
+        types: [python]
+  - repo: local
+    hooks:
+      - id: pylint
+        name: pylint with custom Superset plugins
+        entry: bash
+        language: system
+        types: [python]
+        exclude: ^(tests/|superset/migrations/|scripts/|RELEASING/|docker/)
+        args:
+          - -c
+          - |
+            TARGET_BRANCH=${GITHUB_BASE_REF:-master}
+            # Only fetch if we're not in CI (CI already has all refs)
+            if [ -z "$CI" ]; then
+              git fetch --no-recurse-submodules origin "$TARGET_BRANCH" 2>/dev/null || true
+            fi
+            BASE=$(git merge-base origin/"$TARGET_BRANCH" HEAD 2>/dev/null) || BASE="HEAD"
+            files=$(git diff --name-only --diff-filter=ACM "$BASE"..HEAD 2>/dev/null | grep '^superset/.*\.py$' || true)
+            if [ -n "$files" ]; then
+              pylint --rcfile=.pylintrc --load-plugins=superset.extensions.pylint --reports=no $files
+            else
+              echo "No Python files to lint."
+            fi
+      - id: db-engine-spec-metadata
+        name: database engine spec metadata validation
+        entry: python superset/db_engine_specs/lint_metadata.py --strict
+        language: system
+        files: ^superset/db_engine_specs/.*\.py$
+        exclude: ^superset/db_engine_specs/(base|lib|lint_metadata|__init__)\.py$
+        pass_filenames: false
+  - repo: local
+    hooks:
+      - id: feature-flags-sync
+        name: feature flags documentation sync
+        entry: bash -c 'python scripts/extract_feature_flags.py > docs/static/feature-flags.json.tmp && if ! diff -q docs/static/feature-flags.json docs/static/feature-flags.json.tmp > /dev/null 2>&1; then mv docs/static/feature-flags.json.tmp docs/static/feature-flags.json && echo "Updated docs/static/feature-flags.json" && exit 1; else rm docs/static/feature-flags.json.tmp; fi'
+        language: system
+        files: ^superset/config\.py$
+        pass_filenames: false

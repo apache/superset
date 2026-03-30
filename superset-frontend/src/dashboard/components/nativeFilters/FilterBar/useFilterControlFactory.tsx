@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   DataMask,
   DataMaskStateWithId,
@@ -32,11 +32,15 @@ import FilterDivider from './FilterControls/FilterDivider';
 
 export const useFilterControlFactory = (
   dataMaskSelected: DataMaskStateWithId,
-  focusedFilterId: string | undefined,
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void,
+  clearAllTriggers?: Record<string, boolean>,
+  onClearAllComplete?: (filterId: string) => void,
 ) => {
   const filters = useFilters();
-  const filterValues = useMemo(() => Object.values(filters), [filters]);
+  const filterValues = useMemo(
+    () => Object.values(filters) as (Filter | Divider)[],
+    [filters],
+  );
   const filtersWithValues: (Filter | Divider)[] = useMemo(
     () =>
       filterValues.map(filter => ({
@@ -67,19 +71,21 @@ export const useFilterControlFactory = (
         <FilterControl
           dataMaskSelected={dataMaskSelected}
           filter={filter}
-          focusedFilterId={focusedFilterId}
           onFilterSelectionChange={onFilterSelectionChange}
           inView={false}
           orientation={filterBarOrientation}
           overflow={overflow}
+          clearAllTrigger={clearAllTriggers?.[filter.id]}
+          onClearAllComplete={() => onClearAllComplete?.(filter.id)}
         />
       );
     },
     [
       filtersWithValues,
       dataMaskSelected,
-      focusedFilterId,
       onFilterSelectionChange,
+      clearAllTriggers,
+      onClearAllComplete,
     ],
   );
 

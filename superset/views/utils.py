@@ -14,25 +14,24 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import contextlib
 import logging
 from collections import defaultdict
 from functools import wraps
-from typing import Any, Callable, DefaultDict, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, DefaultDict, Optional, Union
 from urllib import parse
 
 import msgpack
 import pyarrow as pa
-import simplejson as json
-from flask import g, has_request_context, request
+from flask import current_app as app, g, has_request_context, redirect, request
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import _
-from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.exc import NoResultFound
 
-import superset.models.core as models
-from superset import app, dataframe, db, result_set, viz
+from superset import appbuilder, dataframe, db, result_set, viz
 from superset.common.db_query_status import QueryStatus
-from superset.datasource.dao import DatasourceDAO
+from superset.daos.datasource import DatasourceDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
@@ -46,7 +45,12 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
-from superset.superset_typing import FormData
+from superset.superset_typing import (
+    ExplorableData,
+    FlaskResponse,
+    FormData,
+)
+from superset.utils import json
 from superset.utils.core import DatasourceType
 from superset.utils.decorators import stats_timing
 from superset.viz import BaseViz
@@ -54,25 +58,56 @@ from superset.viz import BaseViz
 logger = logging.getLogger(__name__)
 stats_logger = app.config["STATS_LOGGER"]
 
-
-REJECTED_FORM_DATA_KEYS: List[str] = []
+REJECTED_FORM_DATA_KEYS: list[str] = []
 if not feature_flag_manager.is_feature_enabled("ENABLE_JAVASCRIPT_CONTROLS"):
     REJECTED_FORM_DATA_KEYS = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
 
 
-def sanitize_datasource_data(datasource_data: Dict[str, Any]) -> Dict[str, Any]:
+def redirect_to_login(next_target: str | None = None) -> FlaskResponse:
+    """Return a redirect response to the login view, preserving target URL.
+
+    When ``next_target`` is ``None`` the current request path (including query
+    string) is used, provided a request context is available. The resulting URL
+    always remains relative, mirroring Flask-AppBuilder expectations.
+    """
+
+    login_url = appbuilder.get_url_for_login
+    parsed = parse.urlparse(login_url)
+    query = parse.parse_qs(parsed.query, keep_blank_values=True)
+
+    target = next_target
+    if target is None and has_request_context():
+        if request.query_string:
+            target = request.script_root + request.full_path.rstrip("?")
+        else:
+            target = request.script_root + request.path
+
+    if target:
+        query["next"] = [target]
+
+    encoded_query = parse.urlencode(query, doseq=True)
+    redirect_url = parse.urlunparse(parsed._replace(query=encoded_query))
+    return redirect(redirect_url)
+
+
+def sanitize_datasource_data(
+    datasource_data: ExplorableData,
+) -> dict[str, Any]:
+    """
+    Sanitize datasource data by removing sensitive database parameters.
+    """
     if datasource_data:
         datasource_database = datasource_data.get("database")
         if datasource_database:
             datasource_database["parameters"] = {}
 
-    return datasource_data
+    return datasource_data  # type: ignore[return-value]
 
 
-def bootstrap_user_data(user: User, include_perms: bool = False) -> Dict[str, Any]:
+def bootstrap_user_data(user: User, include_perms: bool = False) -> dict[str, Any]:
     if user.is_anonymous:
         payload = {}
-        user.roles = (security_manager.find_role("Public"),)
+        user.roles = (security_manager.get_public_role(),)
     elif security_manager.is_guest_user(user):
         payload = {
             "username": user.username,
@@ -91,6 +126,7 @@ def bootstrap_user_data(user: User, include_perms: bool = False) -> Dict[str, An
             "isAnonymous": user.is_anonymous,
             "createdOn": user.created_on.isoformat(),
             "email": user.email,
+            "loginCount": user.login_count,
         }
 
     if include_perms:
@@ -101,15 +137,20 @@ def bootstrap_user_data(user: User, include_perms: bool = False) -> Dict[str, An
     return payload
 
 
+def get_config_value(key: str) -> Any:
+    value = app.config[key]
+    return value() if callable(value) else value
+
+
 def get_permissions(
     user: User,
-) -> Tuple[Dict[str, List[Tuple[str]]], DefaultDict[str, List[str]]]:
-    if not user.roles:
-        raise AttributeError("User object does not have roles")
+) -> tuple[dict[str, list[tuple[str]]], DefaultDict[str, list[str]]]:
+    if not user.roles and not user.groups:
+        raise AttributeError("User object does not have roles or groups")
 
     data_permissions = defaultdict(set)
     roles_permissions = security_manager.get_user_roles_permissions(user)
-    for _, permissions in roles_permissions.items():
+    for _, permissions in roles_permissions.items():  # noqa: F402
         for permission in permissions:
             if permission[0] in ("datasource_access", "database_access"):
                 data_permissions[permission[0]].add(permission[1])
@@ -128,7 +169,6 @@ def get_viz(
 ) -> BaseViz:
     viz_type = form_data.get("viz_type", "table")
     datasource = DatasourceDAO.get_datasource(
-        db.session,
         DatasourceType(datasource_type),
         datasource_id,
     )
@@ -138,25 +178,27 @@ def get_viz(
     return viz_obj
 
 
-def loads_request_json(request_json_data: str) -> Dict[Any, Any]:
+def loads_request_json(request_json_data: str) -> dict[Any, Any]:
     try:
         return json.loads(request_json_data)
     except (TypeError, json.JSONDecodeError):
         return {}
 
 
-def get_form_data(  # pylint: disable=too-many-locals
+def get_form_data(
     slice_id: Optional[int] = None,
     use_slice_data: bool = False,
-    initial_form_data: Optional[Dict[str, Any]] = None,
-) -> Tuple[Dict[str, Any], Optional[Slice]]:
-    form_data: Dict[str, Any] = initial_form_data or {}
+    initial_form_data: Optional[dict[str, Any]] = None,
+) -> tuple[dict[str, Any], Optional[Slice]]:
+    form_data: dict[str, Any] = initial_form_data or {}
 
-    if has_request_context():  # type: ignore
+    if has_request_context():
+        json_data = request.get_json(cache=True) if request.is_json else {}
+
         # chart data API requests are JSON
-        request_json_data = (
-            request.json["queries"][0]
-            if request.is_json and "queries" in request.json
+        first_query = (
+            json_data["queries"][0]
+            if "queries" in json_data and json_data["queries"]
             else None
         )
 
@@ -164,8 +206,8 @@ def get_form_data(  # pylint: disable=too-many-locals
 
         request_form_data = request.form.get("form_data")
         request_args_data = request.args.get("form_data")
-        if request_json_data:
-            form_data.update(request_json_data)
+        if first_query:
+            form_data.update(first_query)
         if request_form_data:
             parsed_form_data = loads_request_json(request_form_data)
             # some chart data api requests are form_data
@@ -180,23 +222,10 @@ def get_form_data(  # pylint: disable=too-many-locals
 
     # Fallback to using the Flask globals (used for cache warmup and async queries)
     if not form_data and hasattr(g, "form_data"):
-        form_data = getattr(g, "form_data")
+        form_data = g.form_data
         # chart data API requests are JSON
         json_data = form_data["queries"][0] if "queries" in form_data else {}
         form_data.update(json_data)
-
-    if has_request_context():  # type: ignore
-        url_id = request.args.get("r")
-        if url_id:
-            saved_url = db.session.query(models.Url).filter_by(id=url_id).first()
-            if saved_url:
-                url_str = parse.unquote_plus(
-                    saved_url.url.split("?")[1][10:], encoding="utf-8"
-                )
-                url_form_data = loads_request_json(url_str)
-                # allow form_date in request override saved url
-                url_form_data.update(form_data)
-                form_data = url_form_data
 
     form_data = {k: v for k, v in form_data.items() if k not in REJECTED_FORM_DATA_KEYS}
 
@@ -222,7 +251,7 @@ def get_form_data(  # pylint: disable=too-many-locals
     return form_data, slc
 
 
-def add_sqllab_custom_filters(form_data: Dict[Any, Any]) -> Any:
+def add_sqllab_custom_filters(form_data: dict[Any, Any]) -> Any:
     """
     SQLLab can include a "filters" attribute in the templateParams.
     The filters attribute is a list of filters to include in the
@@ -244,7 +273,7 @@ def add_sqllab_custom_filters(form_data: Dict[Any, Any]) -> Any:
 
 def get_datasource_info(
     datasource_id: Optional[int], datasource_type: Optional[str], form_data: FormData
-) -> Tuple[int, Optional[str]]:
+) -> tuple[int, Optional[str]]:
     """
     Compatibility layer for handling of datasource info
 
@@ -254,15 +283,13 @@ def get_datasource_info(
     This function allows supporting both without duplicating code
 
     :param datasource_id: The datasource ID
-    :param datasource_type: The datasource type, i.e., 'druid' or 'table'
+    :param datasource_type: The datasource type
     :param form_data: The URL form data
     :returns: The datasource ID and type
     :raises SupersetException: If the datasource no longer exists
     """
 
-    datasource = form_data.get("datasource", "")
-
-    if "__" in datasource:
+    if "__" in (datasource := form_data.get("datasource", "")):
         datasource_id, datasource_type = datasource.split("__")
         # The case where the datasource has been deleted
         if datasource_id == "None":
@@ -278,8 +305,8 @@ def get_datasource_info(
 
 
 def apply_display_max_row_limit(
-    sql_results: Dict[str, Any], rows: Optional[int] = None
-) -> Dict[str, Any]:
+    sql_results: dict[str, Any], rows: Optional[int] = None
+) -> dict[str, Any]:
     """
     Given a `sql_results` nested structure, applies a limit to the number of rows
 
@@ -312,9 +339,8 @@ CONTAINER_TYPES = ["COLUMN", "GRID", "TABS", "TAB", "ROW"]
 
 def get_dashboard_extra_filters(
     slice_id: int, dashboard_id: int
-) -> List[Dict[str, Any]]:
-    session = db.session()
-    dashboard = session.query(Dashboard).filter_by(id=dashboard_id).one_or_none()
+) -> list[dict[str, Any]]:
+    dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one_or_none()
 
     # is chart in this dashboard?
     if (
@@ -325,7 +351,7 @@ def get_dashboard_extra_filters(
     ):
         return []
 
-    try:
+    with contextlib.suppress(json.JSONDecodeError):
         # does this dashboard have default filters?
         json_metadata = json.loads(dashboard.json_metadata)
         default_filters = json.loads(json_metadata.get("default_filters", "null"))
@@ -342,18 +368,15 @@ def get_dashboard_extra_filters(
             and isinstance(default_filters, dict)
         ):
             return build_extra_filters(layout, filter_scopes, default_filters, slice_id)
-    except json.JSONDecodeError:
-        pass
-
     return []
 
 
-def build_extra_filters(  # pylint: disable=too-many-locals,too-many-nested-blocks
-    layout: Dict[str, Dict[str, Any]],
-    filter_scopes: Dict[str, Dict[str, Any]],
-    default_filters: Dict[str, Dict[str, List[Any]]],
+def build_extra_filters(  # pylint: disable=too-many-locals,too-many-nested-blocks  # noqa: C901
+    layout: dict[str, dict[str, Any]],
+    filter_scopes: dict[str, dict[str, Any]],
+    default_filters: dict[str, dict[str, list[Any]]],
     slice_id: int,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     extra_filters = []
 
     # do not apply filters if chart is not in filter's scope or chart is immune to the
@@ -361,7 +384,7 @@ def build_extra_filters(  # pylint: disable=too-many-locals,too-many-nested-bloc
     for filter_id, columns in default_filters.items():
         filter_slice = db.session.query(Slice).filter_by(id=filter_id).one_or_none()
 
-        filter_configs: List[Dict[str, Any]] = []
+        filter_configs: list[dict[str, Any]] = []
         if filter_slice:
             filter_configs = (
                 json.loads(filter_slice.params or "{}").get("filter_configs") or []
@@ -404,7 +427,7 @@ def build_extra_filters(  # pylint: disable=too-many-locals,too-many-nested-bloc
 
 
 def is_slice_in_container(
-    layout: Dict[str, Dict[str, Any]], container_id: str, slice_id: int
+    layout: dict[str, dict[str, Any]], container_id: str, slice_id: int
 ) -> bool:
     if container_id == "ROOT_ID":
         return True
@@ -461,7 +484,7 @@ def check_datasource_perms(
     _self: Any,
     datasource_type: Optional[str] = None,
     datasource_id: Optional[int] = None,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> None:
     """
     Check if user can access a cached response from explore_json.
@@ -469,7 +492,7 @@ def check_datasource_perms(
     This function takes `self` since it must have the same signature as the
     the decorated method.
 
-    :param datasource_type: The datasource type, i.e., 'druid' or 'table'
+    :param datasource_type: The datasource type
     :param datasource_id: The datasource ID
     :raises SupersetSecurityException: If the user cannot access the resource
     """
@@ -517,42 +540,9 @@ def check_datasource_perms(
     viz_obj.raise_for_access()
 
 
-def check_slice_perms(_self: Any, slice_id: int) -> None:
-    """
-    Check if user can access a cached response from slice_json.
-
-    This function takes `self` since it must have the same signature as the
-    the decorated method.
-
-    :param slice_id: The slice ID
-    :raises SupersetSecurityException: If the user cannot access the resource
-    """
-
-    form_data, slc = get_form_data(slice_id, use_slice_data=True)
-
-    if slc and slc.datasource:
-        try:
-            viz_obj = get_viz(
-                datasource_type=slc.datasource.type,
-                datasource_id=slc.datasource.id,
-                form_data=form_data,
-                force=False,
-            )
-        except NoResultFound as ex:
-            raise SupersetSecurityException(
-                SupersetError(
-                    error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
-                    level=ErrorLevel.ERROR,
-                    message="Could not find viz object",
-                )
-            ) from ex
-
-        viz_obj.raise_for_access()
-
-
 def _deserialize_results_payload(
     payload: Union[bytes, str], query: Query, use_msgpack: Optional[bool] = False
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     logger.debug("Deserializing from msgpack: %r", use_msgpack)
     if use_msgpack:
         with stats_timing(
@@ -562,12 +552,17 @@ def _deserialize_results_payload(
 
         with stats_timing("sqllab.query.results_backend_pa_deserialize", stats_logger):
             try:
-                pa_table = pa.deserialize(ds_payload["data"])
+                reader = pa.BufferReader(ds_payload["data"])
+                pa_table = pa.ipc.open_stream(reader).read_all()
             except pa.ArrowSerializationError as ex:
                 raise SerializationError("Unable to deserialize table") from ex
 
         df = result_set.SupersetResultSet.convert_table_to_df(pa_table)
         ds_payload["data"] = dataframe.df_to_records(df) or []
+
+        for column in ds_payload["selected_columns"]:
+            if "name" in column:
+                column["column_name"] = column.get("name")
 
         db_engine_spec = query.database.db_engine_spec
         all_columns, data, expanded_columns = db_engine_spec.expand_data(

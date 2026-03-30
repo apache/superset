@@ -20,7 +20,7 @@ To: {{ receiver_email }}
 
 Subject: [RESULT] [VOTE] Release Apache {{ project_name }} {{ version }} based on Superset {{ version_rc }}
 
-Thanks to everyone that participated. The vote to release
+Thanks to everyone who participated. The vote to release
 Apache {{ project_name }} version {{ version }} based on {{ version_rc }} is now closed.
 
 {% if vote_negatives|length > 0 -%}
@@ -28,7 +28,7 @@ The vote did NOT PASS with {{vote_bindings|length}} binding +1, {{ vote_nonbindi
 {% elif vote_bindings|length > 2 -%}
 The vote PASSED with {{vote_bindings|length}} binding +1, {{ vote_nonbindings|length}} non-binding +1, and {{vote_negatives|length}} -1 votes:
 {% else -%}
-The vote is non conclusive with {{vote_bindings|length}} binding +1, {{ vote_nonbindings|length}} non-binding -1, and {{vote_negatives|length}} -1 votes:
+The vote is non conclusive with {{vote_bindings|length}} binding +1, {{ vote_nonbindings|length}} non-binding +1, and {{vote_negatives|length}} -1 votes:
 {%- endif %}
 
 {% if vote_bindings|length > 0 -%}
@@ -52,7 +52,8 @@ Negative votes:
 {% endfor -%}
 {%- endif %}
 
-Link to vote thread: {{ vote_thread }}
+Link to vote thread:
+{{ vote_thread }}
 
 We will work to complete the release process.
 

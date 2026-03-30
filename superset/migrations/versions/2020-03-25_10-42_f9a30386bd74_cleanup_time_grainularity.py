@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""cleanup_time_grainularity
+"""cleanup_time_granularity
 
 Revision ID: f9a30386bd74
 Revises: b5998378c225
@@ -26,13 +26,12 @@ Create Date: 2020-03-25 10:42:11.047328
 revision = "f9a30386bd74"
 down_revision = "b5998378c225"
 
-import json
+from alembic import op  # noqa: E402
+from sqlalchemy import Column, Integer, String, Text  # noqa: E402
+from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 
-from alembic import op
-from sqlalchemy import Column, Integer, String, Text
-from sqlalchemy.ext.declarative import declarative_base
-
-from superset import db
+from superset import db  # noqa: E402
+from superset.utils import json  # noqa: E402
 
 Base = declarative_base()
 
@@ -47,7 +46,7 @@ class Slice(Base):
 
 def upgrade():
     """
-    Remove any erroneous time grainularity fields from slices foor those visualization
+    Remove any erroneous time granularity fields from slices foor those visualization
     types which do not support time granularity.
 
     :see: https://github.com/apache/superset/pull/8674
@@ -59,7 +58,7 @@ def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    # Visualization types which support time grainularity (hence negate).
+    # Visualization types which support time granularity (hence negate).
     viz_types = [
         "area",
         "bar",
@@ -73,9 +72,9 @@ def upgrade():
         "time_table",
     ]
 
-    # Erroneous time grainularity fields for either Druid NoSQL or SQL slices which do
-    # not support time grainularity.
-    erroneous = ["grainularity", "time_grain_sqla"]
+    # Erroneous time granularity fields for either Druid NoSQL or SQL slices which do
+    # not support time granularity.
+    erroneous = ["granularity", "time_grain_sqla"]
 
     for slc in session.query(Slice).filter(Slice.viz_type.notin_(viz_types)).all():
         try:
@@ -87,7 +86,7 @@ def upgrade():
                         del params[field]
 
                 slc.params = json.dumps(params, sort_keys=True)
-        except Exception:
+        except Exception:  # noqa: S110
             pass
 
     session.commit()

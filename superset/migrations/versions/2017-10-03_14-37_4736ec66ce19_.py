@@ -37,6 +37,8 @@ from superset.utils.core import (
 revision = "4736ec66ce19"
 down_revision = "f959a6652acd"
 
+logger = logging.getLogger("alembic.env")
+
 conv = {
     "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
     "uq": "uq_%(table_name)s_%(column_0_name)s",
@@ -65,12 +67,11 @@ def upgrade():
     # datasources.datasource_name column.
     for foreign in ["columns", "metrics"]:
         with op.batch_alter_table(foreign, naming_convention=conv) as batch_op:
-
             # Add the datasource_id column with the relevant constraints.
             batch_op.add_column(sa.Column("datasource_id", sa.Integer))
 
             batch_op.create_foreign_key(
-                "fk_{}_datasource_id_datasources".format(foreign),
+                f"fk_{foreign}_datasource_id_datasources",
                 "datasources",
                 ["datasource_id"],
                 ["id"],
@@ -94,17 +95,16 @@ def upgrade():
             )
 
         with op.batch_alter_table(foreign, naming_convention=conv) as batch_op:
-
             # Drop the datasource_name column and associated constraints. Note
             # due to prior revisions (1226819ee0e3, 3b626e2a6783) there may
-            # incorectly be multiple duplicate constraints.
+            # incorrectly be multiple duplicate constraints.
             names = generic_find_fk_constraint_names(
                 foreign, {"datasource_name"}, "datasources", insp
             )
 
             for name in names:
                 batch_op.drop_constraint(
-                    name or "fk_{}_datasource_name_datasources".format(foreign),
+                    name or f"fk_{foreign}_datasource_name_datasources",
                     type_="foreignkey",
                 )
 
@@ -121,13 +121,13 @@ def upgrade():
                 type_="unique",
             )
     except Exception as ex:
-        logging.warning(
+        logger.warning(
             "Constraint drop failed, you may want to do this "
             "manually on your database. For context, this is a known "
-            "issue around undeterministic contraint names on Postgres "
+            "issue around nondeterministic constraint names on Postgres "
             "and perhaps more databases through SQLAlchemy."
         )
-        logging.exception(ex)
+        logger.exception(ex)
 
 
 def downgrade():
@@ -146,12 +146,11 @@ def downgrade():
     # datasources.datasource_id column.
     for foreign in ["columns", "metrics"]:
         with op.batch_alter_table(foreign, naming_convention=conv) as batch_op:
-
             # Add the datasource_name column with the relevant constraints.
             batch_op.add_column(sa.Column("datasource_name", sa.String(255)))
 
             batch_op.create_foreign_key(
-                "fk_{}_datasource_name_datasources".format(foreign),
+                f"fk_{foreign}_datasource_name_datasources",
                 "datasources",
                 ["datasource_name"],
                 ["datasource_name"],
@@ -175,16 +174,14 @@ def downgrade():
             )
 
         with op.batch_alter_table(foreign, naming_convention=conv) as batch_op:
-
             # Drop the datasource_id column and associated constraint.
             batch_op.drop_constraint(
-                "fk_{}_datasource_id_datasources".format(foreign), type_="foreignkey"
+                f"fk_{foreign}_datasource_id_datasources", type_="foreignkey"
             )
 
             batch_op.drop_column("datasource_id")
 
     with op.batch_alter_table("datasources", naming_convention=conv) as batch_op:
-
         # Prior to dropping the uniqueness constraint, the foreign key
         # associated with the cluster_name column needs to be dropped.
         batch_op.drop_constraint(
@@ -206,7 +203,7 @@ def downgrade():
 
         # Re-create the foreign key associated with the cluster_name column.
         batch_op.create_foreign_key(
-            "fk_{}_datasource_id_datasources".format(foreign),
+            f"fk_{foreign}_datasource_id_datasources",
             "clusters",
             ["cluster_name"],
             ["cluster_name"],

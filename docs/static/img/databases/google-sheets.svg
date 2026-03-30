@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" width="512" height="270" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 270">
+  <defs>
+    <style>
+      .cls-1 {
+        mask: url(#mask);
+      }
+
+      .cls-2 {
+        mask: url(#mask-2-2);
+      }
+
+      .cls-3 {
+        mask: url(#mask-6-2);
+      }
+
+      .cls-4 {
+        mask: url(#mask-4-2);
+      }
+
+      .cls-5 {
+        fill: #f1f1f1;
+      }
+
+      .cls-6 {
+        fill: #0f9d58;
+      }
+
+      .cls-7 {
+        fill: #87ceac;
+      }
+
+      .cls-8 {
+        fill: rgba(38, 50, 56, .2);
+      }
+
+      .cls-9 {
+        fill: rgba(255, 255, 255, .2);
+      }
+
+      .cls-10 {
+        fill: url(#radial-gradient);
+      }
+
+      .cls-11 {
+        fill: url(#linear-gradient);
+      }
+
+      .cls-12 {
+        mask: url(#mask-3);
+      }
+
+      .cls-13 {
+        mask: url(#mask-5);
+      }
+
+      .cls-14 {
+        mask: url(#mask-1);
+      }
+
+      .cls-15 {
+        fill: #fff;
+        fill-rule: evenodd;
+      }
+
+      .cls-16 {
+        fill: rgba(38, 50, 56, .1);
+      }
+    </style>
+    <mask id="mask" x="195.13" y="60" width="112.45" height="154.62" maskUnits="userSpaceOnUse">
+      <g id="mask-2">
+        <path id="path-1" d="M265.41,60h-59.74c-5.8,0-10.54,4.74-10.54,10.54V204.07c0,5.8,4.74,10.54,10.54,10.54h91.36c5.8,0,10.54-4.74,10.54-10.54V102.17l-42.17-42.17Z" style="fill: #fff; fill-rule: evenodd;"/>
+      </g>
+    </mask>
+    <mask id="mask-1" x="195.13" y="60" width="112.45" height="154.62" maskUnits="userSpaceOnUse">
+      <g id="mask-4">
+        <path id="path-3" d="M265.41,60h-59.74c-5.8,0-10.54,4.74-10.54,10.54V204.07c0,5.8,4.74,10.54,10.54,10.54h91.36c5.8,0,10.54-4.74,10.54-10.54V102.17l-42.17-42.17Z" style="fill: #fff; fill-rule: evenodd;"/>
+      </g>
+    </mask>
+    <mask id="mask-2-2" data-name="mask-2" x="195.13" y="60" width="112.45" height="154.62" maskUnits="userSpaceOnUse">
+      <g id="mask-6">
+        <path id="path-5" d="M265.41,60h-59.74c-5.8,0-10.54,4.74-10.54,10.54V204.07c0,5.8,4.74,10.54,10.54,10.54h91.36c5.8,0,10.54-4.74,10.54-10.54V102.17l-42.17-42.17Z" style="fill: #fff; fill-rule: evenodd;"/>
+      </g>
+    </mask>
+    <linearGradient id="linear-gradient" x1="-2731.63" y1="265.89" x2="-2731.63" y2="263.72" gradientTransform="translate(45228.9 4475.91) scale(16.45 -16.45)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#263238" stop-opacity=".2"/>
+      <stop offset="1" stop-color="#263238" stop-opacity=".02"/>
+    </linearGradient>
+    <mask id="mask-3" x="195.13" y="60" width="112.45" height="154.62" maskUnits="userSpaceOnUse">
+      <g id="mask-9">
+        <path id="path-8" d="M265.41,60h-59.74c-5.8,0-10.54,4.74-10.54,10.54V204.07c0,5.8,4.74,10.54,10.54,10.54h91.36c5.8,0,10.54-4.74,10.54-10.54V102.17l-42.17-42.17Z" style="fill: #fff; fill-rule: evenodd;"/>
+      </g>
+    </mask>
+    <mask id="mask-4-2" data-name="mask-4" x="195.13" y="60" width="112.45" height="154.62" maskUnits="userSpaceOnUse">
+      <g id="mask-11">
+        <path id="path-10" d="M265.41,60h-59.74c-5.8,0-10.54,4.74-10.54,10.54V204.07c0,5.8,4.74,10.54,10.54,10.54h91.36c5.8,0,10.54-4.74,10.54-10.54V102.17l-42.17-42.17Z" style="fill: #fff; fill-rule: evenodd;"/>
+      </g>
+    </mask>
+    <mask id="mask-5" x="195.13" y="60" width="112.45" height="154.62" maskUnits="userSpaceOnUse">
+      <g id="mask-13">
+        <path id="path-12" d="M265.41,60h-59.74c-5.8,0-10.54,4.74-10.54,10.54V204.07c0,5.8,4.74,10.54,10.54,10.54h91.36c5.8,0,10.54-4.74,10.54-10.54V102.17l-42.17-42.17Z" style="fill: #fff; fill-rule: evenodd;"/>
+      </g>
+    </mask>
+    <mask id="mask-6-2" data-name="mask-6" x="195.13" y="60" width="112.45" height="154.62" maskUnits="userSpaceOnUse">
+      <g id="mask-15">
+        <path id="path-14" d="M265.41,60h-59.74c-5.8,0-10.54,4.74-10.54,10.54V204.07c0,5.8,4.74,10.54,10.54,10.54h91.36c5.8,0,10.54-4.74,10.54-10.54V102.17l-42.17-42.17Z" style="fill: #fff; fill-rule: evenodd;"/>
+      </g>
+    </mask>
+    <radialGradient id="radial-gradient" cx="-2859.02" cy="269.7" fx="-2859.02" fy="269.7" r="3.83" gradientTransform="translate(135525.83 12829.78) scale(47.33 -47.33)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff" stop-opacity=".1"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <g id="Page-1">
+    <g id="Consumer-Apps-Sheets-Large-VD-R8-" transform="translate(-451.000000, -451.000000)">
+      <g id="Hero" transform="translate(0.000000, 63.000000)">
+        <g id="Personal" transform="translate(277.000000, 299.000000)">
+          <g id="Sheets-icon" transform="translate(174.833333, 89.958333)">
+            <g id="Group">
+              <g id="Clipped">
+                <g style="mask: url(#mask);">
+                  <path id="Path" d="M265.41,60h-59.74c-5.8,0-10.54,4.74-10.54,10.54V204.07c0,5.8,4.74,10.54,10.54,10.54h91.36c5.8,0,10.54-4.74,10.54-10.54V102.17l-24.6-17.57-17.57-24.6Z" style="fill: #0f9d58;"/>
+                </g>
+              </g>
+              <g id="Clipped-2" data-name="Clipped">
+                <g style="mask: url(#mask-1);">
+                  <path id="Shape" d="M223.24,135.55v50.95h56.22v-50.95h-56.22Zm24.6,43.92h-17.57v-8.78h17.57v8.78Zm0-14.06h-17.57v-8.78h17.57v8.78Zm0-14.06h-17.57v-8.78h17.57v8.78Zm24.6,28.11h-17.57v-8.78h17.57v8.78Zm0-14.06h-17.57v-8.78h17.57v8.78Zm0-14.06h-17.57v-8.78h17.57v8.78Z" style="fill: #f1f1f1;"/>
+                </g>
+              </g>
+              <g id="Clipped-3" data-name="Clipped">
+                <g style="mask: url(#mask-2-2);">
+                  <polygon id="Path-2" data-name="Path" points="268.49 99.08 307.58 138.16 307.58 102.17 268.49 99.08" style="fill: url(#linear-gradient);"/>
+                </g>
+              </g>
+              <g id="Clipped-4" data-name="Clipped">
+                <g style="mask: url(#mask-3);">
+                  <g id="Group-2" data-name="Group">
+                    <g transform="translate(26.625000, -2.958333)">
+                      <path id="Path-3" data-name="Path" d="M265.41,60v31.63c0,5.82,4.72,10.54,10.54,10.54h31.63l-42.17-42.17Z" style="fill: #87ceac;"/>
+                    </g>
+                  </g>
+                </g>
+              </g>
+              <g id="Clipped-5" data-name="Clipped">
+                <g style="mask: url(#mask-4-2);">
+                  <path id="Path-4" data-name="Path" d="M205.67,60c-5.8,0-10.54,4.74-10.54,10.54v.88c0-5.8,4.74-10.54,10.54-10.54h59.74v-.88h-59.74Z" style="fill: rgba(255, 255, 255, .2);"/>
+                </g>
+              </g>
+              <g id="Clipped-6" data-name="Clipped">
+                <g style="mask: url(#mask-5);">
+                  <path id="Path-5" data-name="Path" d="M297.04,213.74h-91.36c-5.8,0-10.54-4.74-10.54-10.54v.88c0,5.8,4.74,10.54,10.54,10.54h91.36c5.8,0,10.54-4.74,10.54-10.54v-.88c0,5.8-4.74,10.54-10.54,10.54Z" style="fill: rgba(38, 50, 56, .2);"/>
+                </g>
+              </g>
+              <g id="Clipped-7" data-name="Clipped">
+                <g style="mask: url(#mask-6-2);">
+                  <path id="Path-6" data-name="Path" d="M275.95,102.17c-5.82,0-10.54-4.72-10.54-10.54v.88c0,5.82,4.72,10.54,10.54,10.54h31.63v-.88h-31.63Z" style="fill: rgba(38, 50, 56, .1);"/>
+                </g>
+              </g>
+            </g>
+            <path id="Path-7" data-name="Path" d="M265.41,60h-59.74c-5.8,0-10.54,4.74-10.54,10.54V204.07c0,5.8,4.74,10.54,10.54,10.54h91.36c5.8,0,10.54-4.74,10.54-10.54V102.17l-42.17-42.17Z" style="fill: url(#radial-gradient);"/>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

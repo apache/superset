@@ -16,8 +16,20 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 -->
-# INSTALL / BUILD instructions for Apache Superset
+# Installing Apache Superset
 
-At this time, the docker file at RELEASING/Dockerfile.from_local_tarball
-constitutes the recipe on how to get to a working release from a source
-release tarball.
+For comprehensive installation instructions, please see the Apache Superset documentation:
+
+**[📚 Installation Guide →](https://superset.apache.org/docs/installation/installation-methods)**
+
+The documentation covers:
+- [Docker Compose](https://superset.apache.org/docs/installation/docker-compose) (recommended for development)
+- [Kubernetes / Helm](https://superset.apache.org/docs/installation/kubernetes)
+- [PyPI](https://superset.apache.org/docs/installation/pypi)
+- [Docker Builds](https://superset.apache.org/docs/installation/docker-builds)
+- [Architecture Overview](https://superset.apache.org/docs/installation/architecture)
+
+## Building from Source
+
+For building from a source release tarball, see the Dockerfile at:
+`RELEASING/Dockerfile.from_local_tarball`

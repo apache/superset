@@ -16,16 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
+import { css, styled } from '@apache-superset/core/theme';
 
-import Alert from 'src/components/Alert';
-import TableView from 'src/components/TableView';
-import Button from 'src/components/Button';
-import Loading from 'src/components/Loading';
-import ModalTrigger from 'src/components/ModalTrigger';
-import { EmptyWrapperType } from 'src/components/TableView/TableView';
+import {
+  Button,
+  Loading,
+  ModalTrigger,
+  TableView,
+  EmptyWrapperType,
+  Icons,
+} from '@superset-ui/core/components';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { SqlLabRootState, QueryCostEstimate } from 'src/SqlLab/types';
 
@@ -35,6 +39,12 @@ export interface EstimateQueryCostButtonProps {
   tooltip?: string;
   disabled?: boolean;
 }
+
+const CostEstimateModalStyles = styled.div`
+  ${({ theme }) => css`
+    font-size: ${theme.fontSizeSM};
+  `}
+`;
 
 const EstimateQueryCostButton = ({
   getEstimate,
@@ -53,7 +63,11 @@ const EstimateQueryCostButton = ({
   const columns = useMemo(
     () =>
       Array.isArray(cost) && cost.length
-        ? Object.keys(cost[0]).map(key => ({ accessor: key, Header: key }))
+        ? Object.keys(cost[0]).map(key => ({
+            accessor: key,
+            Header: key,
+            id: key,
+          }))
         : [],
     [cost],
   );
@@ -76,13 +90,14 @@ const EstimateQueryCostButton = ({
     }
     if (queryCostEstimate?.completed) {
       return (
-        <TableView
-          columns={columns}
-          data={tableData}
-          withPagination={false}
-          emptyWrapperType={EmptyWrapperType.Small}
-          className="cost-estimate"
-        />
+        <CostEstimateModalStyles>
+          <TableView
+            columns={columns}
+            data={tableData}
+            withPagination={false}
+            emptyWrapperType={EmptyWrapperType.Small}
+          />
+        </CostEstimateModalStyles>
       );
     }
     return <Loading position="normal" />;
@@ -98,14 +113,16 @@ const EstimateQueryCostButton = ({
         modalBody={renderModalBody()}
         triggerNode={
           <Button
+            color="primary"
+            variant="text"
             style={{ height: 32, padding: '4px 15px' }}
             onClick={onClickHandler}
             key="query-estimate-btn"
             tooltip={tooltip}
             disabled={disabled}
-          >
-            {btnText}
-          </Button>
+            icon={<Icons.MonitorOutlined iconSize="m" />}
+            aria-label={btnText}
+          />
         }
       />
     </span>

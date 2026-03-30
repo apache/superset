@@ -17,8 +17,8 @@
  * under the License.
  */
 import { QueryFormData } from '@superset-ui/core';
-import { GraphNodeItemOption } from 'echarts/types/src/chart/graph/GraphSeries';
-import { SeriesTooltipOption } from 'echarts/types/src/util/types';
+import type { GraphNodeItemOption } from 'echarts/types/src/chart/graph/GraphSeries';
+import type { SeriesTooltipOption } from 'echarts/types/src/util/types';
 import {
   BaseChartProps,
   BaseTransformedProps,
@@ -55,10 +55,11 @@ export type EchartsGraphFormData = QueryFormData &
 
 export type EChartGraphNode = Omit<GraphNodeItemOption, 'value'> & {
   value: number;
+  col: string;
   tooltip?: Pick<SeriesTooltipOption, 'formatter'>;
 };
 
-// @ts-ignore
+// @ts-expect-error
 export const DEFAULT_FORM_DATA: EchartsGraphFormData = {
   ...DEFAULT_LEGEND_FORM_DATA,
   source: '',
@@ -83,8 +84,7 @@ export type tooltipFormatParams = {
   data: { [name: string]: string };
 };
 
-export interface EchartsGraphChartProps
-  extends BaseChartProps<EchartsGraphFormData> {
+export interface EchartsGraphChartProps extends BaseChartProps<EchartsGraphFormData> {
   formData: EchartsGraphFormData;
 }
 

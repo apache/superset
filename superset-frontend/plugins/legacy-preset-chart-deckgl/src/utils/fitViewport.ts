@@ -21,7 +21,7 @@ import computeBoundsFromPoints from './computeBoundsFromPoints';
 import { Point } from '../types';
 
 export type Viewport = {
-  longtitude: number;
+  longitude: number;
   latitude: number;
   zoom: number;
   bearing?: number;
@@ -49,7 +49,7 @@ export default function fitViewport(
     offset,
     padding = 20,
   }: FitViewportOptions,
-) {
+): Viewport {
   const { bearing, pitch } = originalViewPort;
   const bounds = computeBoundsFromPoints(points);
 

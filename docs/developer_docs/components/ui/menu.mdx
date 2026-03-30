@@ -1,0 +1,174 @@
+---
+title: Menu
+sidebar_label: Menu
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# Menu
+
+Navigation menu component supporting horizontal, vertical, and inline modes. Based on Ant Design Menu with Superset styling.
+
+## Live Example
+
+<StoryWithControls
+  component="Menu"
+  props={{
+  mode: "horizontal",
+  selectable: true,
+  items: [
+    {
+      label: "Dashboards",
+      key: "dashboards"
+    },
+    {
+      label: "Charts",
+      key: "charts"
+    },
+    {
+      label: "Datasets",
+      key: "datasets"
+    },
+    {
+      label: "SQL Lab",
+      key: "sqllab"
+    }
+  ]
+}}
+  controls={[
+  {
+    name: "mode",
+    label: "Mode",
+    type: "select",
+    options: [
+      "horizontal",
+      "vertical",
+      "inline"
+    ],
+    description: "Menu display mode: horizontal navbar, vertical sidebar, or inline collapsible."
+  },
+  {
+    name: "selectable",
+    label: "Selectable",
+    type: "boolean",
+    description: "Whether menu items can be selected."
+  },
+  {
+    name: "multiple",
+    label: "Multiple",
+    type: "boolean",
+    description: "Allow multiple items to be selected."
+  },
+  {
+    name: "inlineCollapsed",
+    label: "Inline Collapsed",
+    type: "boolean",
+    description: "Whether the inline menu is collapsed (only applies to inline mode)."
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <Menu
+      mode="horizontal"
+      selectable
+      items={[
+        { label: 'Dashboards', key: 'dashboards' },
+        { label: 'Charts', key: 'charts' },
+        { label: 'Datasets', key: 'datasets' },
+        { label: 'SQL Lab', key: 'sqllab' },
+      ]}
+    />
+  );
+}
+```
+
+## Vertical Menu
+
+```tsx live
+function VerticalMenu() {
+  return (
+    <Menu
+      mode="vertical"
+      style={{ width: 200 }}
+      items={[
+        { label: 'Dashboards', key: 'dashboards' },
+        { label: 'Charts', key: 'charts' },
+        { label: 'Datasets', key: 'datasets' },
+        {
+          label: 'Settings',
+          key: 'settings',
+          children: [
+            { label: 'Profile', key: 'profile' },
+            { label: 'Preferences', key: 'preferences' },
+          ],
+        },
+      ]}
+    />
+  );
+}
+```
+
+## Menu with Icons
+
+```tsx live
+function MenuWithIcons() {
+  return (
+    <Menu
+      mode="horizontal"
+      items={[
+        { label: <><Icons.DashboardOutlined /> Dashboards</>, key: 'dashboards' },
+        { label: <><Icons.LineChartOutlined /> Charts</>, key: 'charts' },
+        { label: <><Icons.DatabaseOutlined /> Datasets</>, key: 'datasets' },
+        { label: <><Icons.ConsoleSqlOutlined /> SQL Lab</>, key: 'sqllab' },
+      ]}
+    />
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `mode` | `string` | `"horizontal"` | Menu display mode: horizontal navbar, vertical sidebar, or inline collapsible. |
+| `selectable` | `boolean` | `true` | Whether menu items can be selected. |
+| `items` | `any` | `[{"label":"Dashboards","key":"dashboards"},{"label":"Charts","key":"charts"},{"label":"Datasets","key":"datasets"},{"label":"SQL Lab","key":"sqllab"}]` | - |
+
+## Import
+
+```tsx
+import { Menu } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/Menu/Menu.stories.tsx).
+:::

@@ -46,18 +46,18 @@ while (directories.length) {
   // Check for existence of js, jsx, ts, and tsx files. Show a filled box if only ts and tsx,
   // show an empty box if any js or jsx, and don't print the line if neither exist in the
   // directory.
-  const hasTypescriptFiles =
+  const hasTypeScriptFiles =
     getFilesByExtensions("./", [".ts", ".tsx"]).length > 0;
-  const hasJavascriptFiles =
+  const hasJavaScriptFiles =
     getFilesByExtensions("./", [".js", ".jsx"]).length > 0;
 
-  if (hasJavascriptFiles) {
+  if (hasJavaScriptFiles) {
     console.log(
       `${"  ".repeat(
         curDirectory.split("/").length - 1
       )}- [ ] \`${curDirectory}\``
     );
-  } else if (hasTypescriptFiles) {
+  } else if (hasTypeScriptFiles) {
     console.log(
       `${"  ".repeat(
         curDirectory.split("/").length - 1

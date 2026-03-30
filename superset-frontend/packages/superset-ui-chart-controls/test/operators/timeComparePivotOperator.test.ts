@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryObject, SqlaFormData } from '@superset-ui/core';
+import { QueryObject, SqlaFormData, VizType } from '@superset-ui/core';
 import {
   timeCompareOperator,
   timeComparePivotOperator,
@@ -30,7 +30,7 @@ const formData: SqlaFormData = {
   time_range: '2015 : 2016',
   granularity: 'month',
   datasource: 'foo',
-  viz_type: 'table',
+  viz_type: VizType.Table,
   show_empty_columns: true,
 };
 const queryObject: QueryObject = {
@@ -111,6 +111,45 @@ test('should pivot on x-axis', () => {
         x_axis: 'ds',
       },
       queryObject,
+    ),
+  ).toEqual({
+    operation: 'pivot',
+    options: {
+      aggregates: {
+        'count(*)': { operator: 'mean' },
+        'count(*)__1 year ago': { operator: 'mean' },
+        'count(*)__1 year later': { operator: 'mean' },
+        'sum(val)': {
+          operator: 'mean',
+        },
+        'sum(val)__1 year ago': {
+          operator: 'mean',
+        },
+        'sum(val)__1 year later': {
+          operator: 'mean',
+        },
+      },
+      drop_missing_columns: false,
+      columns: ['foo', 'bar'],
+      index: ['ds'],
+    },
+  });
+});
+
+test('should pivot on x-axis with series_columns', () => {
+  expect(
+    timeComparePivotOperator(
+      {
+        ...formData,
+        comparison_type: 'values',
+        time_compare: ['1 year ago', '1 year later'],
+        x_axis: 'ds',
+      },
+      {
+        ...queryObject,
+        columns: ['ds', 'foo', 'bar'],
+        series_columns: ['foo', 'bar'],
+      },
     ),
   ).toEqual({
     operation: 'pivot',

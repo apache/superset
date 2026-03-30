@@ -17,39 +17,71 @@
  * under the License.
  */
 import {
-  getNumberFormatter,
-  GenericDataType,
+  ColorFormatters,
+  getColorFormatters,
+  Metric,
+} from '@superset-ui/chart-controls';
+import {
   getMetricLabel,
   extractTimegrain,
   QueryFormData,
+  getValueFormatter,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { BigNumberTotalChartProps, BigNumberVizProps } from '../types';
-import { getDateFormatter, parseMetricValue } from '../utils';
+import { getDateFormatter, getOriginalLabel, parseMetricValue } from '../utils';
 import { Refs } from '../../types';
 
 export default function transformProps(
   chartProps: BigNumberTotalChartProps,
 ): BigNumberVizProps {
-  const { width, height, queriesData, formData, rawFormData, hooks } =
-    chartProps;
   const {
+    width,
+    height,
+    queriesData,
+    formData,
+    rawFormData,
+    hooks,
+    datasource: {
+      currencyFormats = {},
+      columnFormats = {},
+      currencyCodeColumn,
+    },
+    theme,
+  } = chartProps;
+  const {
+    metricNameFontSize,
     headerFontSize,
     metric = 'value',
-    subheader = '',
-    subheaderFontSize,
+    subtitle,
+    subtitleFontSize,
     forceTimestampFormatting,
     timeFormat,
     yAxisFormat,
+    conditionalFormatting,
+    currencyFormat,
+    subheader,
+    subheaderFontSize,
   } = formData;
   const refs: Refs = {};
-  const { data = [], coltypes = [] } = queriesData[0];
+  const {
+    data = [],
+    coltypes = [],
+    detected_currency: detectedCurrency,
+  } = queriesData[0] || {};
   const granularity = extractTimegrain(rawFormData as QueryFormData);
+  const metrics = chartProps.datasource?.metrics || [];
+  const originalLabel = getOriginalLabel(metric, metrics);
   const metricName = getMetricLabel(metric);
-  const formattedSubheader = subheader;
+  const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
+  const formattedSubtitle = subtitle?.trim() ? subtitle : subheader || '';
+  const formattedSubtitleFontSize = subtitle?.trim()
+    ? (subtitleFontSize ?? 1)
+    : (subheaderFontSize ?? 1);
   const bigNumber =
     data.length === 0 ? null : parseMetricValue(data[0][metricName]);
 
-  let metricEntry;
+  let metricEntry: Metric | undefined;
   if (chartProps.datasource?.metrics) {
     metricEntry = chartProps.datasource.metrics.find(
       metricItem => metricItem.metric_name === metric,
@@ -62,15 +94,32 @@ export default function transformProps(
     metricEntry?.d3format,
   );
 
+  const numberFormatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    metricEntry?.d3format || yAxisFormat,
+    currencyFormat,
+    undefined,
+    data,
+    currencyCodeColumn,
+    detectedCurrency,
+  );
+
   const headerFormatter =
-    coltypes[0] === GenericDataType.TEMPORAL ||
-    coltypes[0] === GenericDataType.STRING ||
+    coltypes[0] === GenericDataType.Temporal ||
+    coltypes[0] === GenericDataType.String ||
     forceTimestampFormatting
       ? formatTime
-      : getNumberFormatter(yAxisFormat ?? metricEntry?.d3format ?? undefined);
+      : numberFormatter;
 
   const { onContextMenu } = hooks;
 
+  const defaultColorFormatters = [] as ColorFormatters;
+
+  const colorThresholdFormatters =
+    getColorFormatters(conditionalFormatting, data, theme, false) ??
+    defaultColorFormatters;
   return {
     width,
     height,
@@ -78,8 +127,13 @@ export default function transformProps(
     headerFormatter,
     headerFontSize,
     subheaderFontSize,
-    subheader: formattedSubheader,
+    subtitleFontSize: formattedSubtitleFontSize,
+    subtitle: formattedSubtitle,
     onContextMenu,
     refs,
+    colorThresholdFormatters,
+    metricName: originalLabel,
+    showMetricName,
+    metricNameFontSize,
   };
 }

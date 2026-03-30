@@ -16,30 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook, cleanup } from '@testing-library/react-hooks';
 import { TestDataset } from '@superset-ui/chart-controls';
-import * as supersetCoreModule from '@superset-ui/core';
 import { useDatePickerInAdhocFilter } from './useDatePickerInAdhocFilter';
 
-test('should return undefined if Generic Axis is disabled', () => {
-  Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
-    value: false,
-  });
-  const { result } = renderHook(() =>
-    useDatePickerInAdhocFilter({
-      columnName: 'ds',
-      datasource: TestDataset,
-      onChange: jest.fn(),
-    }),
-  );
-  expect(result.current).toBeUndefined();
+// Add cleanup after each test
+afterEach(async () => {
+  cleanup();
+  // Wait for any pending effects to complete
+  await new Promise(resolve => setTimeout(resolve, 0));
 });
 
-test('should return undefined if column is not temporal', () => {
-  Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
-    value: true,
-  });
-  const { result } = renderHook(() =>
+test('should return undefined if column is not temporal', async () => {
+  const { result, unmount } = renderHook(() =>
     useDatePickerInAdhocFilter({
       columnName: 'gender',
       datasource: TestDataset,
@@ -47,13 +36,11 @@ test('should return undefined if column is not temporal', () => {
     }),
   );
   expect(result.current).toBeUndefined();
+  unmount();
 });
 
-test('should return JSX', () => {
-  Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
-    value: true,
-  });
-  const { result } = renderHook(() =>
+test('should return JSX', async () => {
+  const { result, unmount } = renderHook(() =>
     useDatePickerInAdhocFilter({
       columnName: 'ds',
       datasource: TestDataset,
@@ -61,4 +48,5 @@ test('should return JSX', () => {
     }),
   );
   expect(result.current).not.toBeUndefined();
+  unmount();
 });

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,11 +14,44 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict
+import os
+from dataclasses import dataclass
+from typing import Any, Optional
+from unittest.mock import MagicMock, patch
 
+import numpy as np
+import pandas as pd
 import pytest
+from flask import current_app
+from pandas.api.types import is_datetime64_dtype
+from pytest_mock import MockerFixture
 
-from superset.utils.core import QueryObjectFilterClause, remove_extra_adhoc_filters
+from superset.exceptions import SupersetException
+from superset.utils.core import (
+    cast_to_boolean,
+    check_is_safe_zip,
+    DateColumn,
+    FilterOperator,
+    generic_find_constraint_name,
+    generic_find_fk_constraint_name,
+    get_datasource_full_name,
+    get_query_source_from_request,
+    get_stacktrace,
+    get_user_agent,
+    is_test,
+    merge_extra_filters,
+    merge_extra_form_data,
+    merge_request_params,
+    normalize_dttm_col,
+    parse_boolean_string,
+    parse_js_uri_path_item,
+    QueryObjectFilterClause,
+    QuerySource,
+    remove_extra_adhoc_filters,
+    sanitize_svg_content,
+    sanitize_url,
+)
+from tests.conftest import with_config
 
 ADHOC_FILTER: QueryObjectFilterClause = {
     "col": "foo",
@@ -33,6 +65,12 @@ EXTRA_FILTER: QueryObjectFilterClause = {
     "val": "bar",
     "isExtra": True,
 }
+
+
+@dataclass
+class MockZipInfo:
+    file_size: int
+    compress_size: int
 
 
 @pytest.mark.parametrize(
@@ -80,7 +118,1573 @@ EXTRA_FILTER: QueryObjectFilterClause = {
     ],
 )
 def test_remove_extra_adhoc_filters(
-    original: Dict[str, Any], expected: Dict[str, Any]
+    original: dict[str, Any], expected: dict[str, Any]
 ) -> None:
     remove_extra_adhoc_filters(original)
     assert expected == original
+
+
+def test_is_test():
+    orig_value = os.getenv("SUPERSET_TESTENV")
+
+    os.environ["SUPERSET_TESTENV"] = "true"
+    assert is_test()
+    os.environ["SUPERSET_TESTENV"] = "false"
+    assert not is_test()
+    os.environ["SUPERSET_TESTENV"] = ""
+    assert not is_test()
+
+    if orig_value is not None:
+        os.environ["SUPERSET_TESTENV"] = orig_value
+
+
+@pytest.mark.parametrize(
+    "test_input,expected",
+    [
+        ("y", True),
+        ("Y", True),
+        ("yes", True),
+        ("True", True),
+        ("t", True),
+        ("true", True),
+        ("On", True),
+        ("on", True),
+        ("1", True),
+        ("n", False),
+        ("N", False),
+        ("no", False),
+        ("False", False),
+        ("f", False),
+        ("false", False),
+        ("Off", False),
+        ("off", False),
+        ("0", False),
+        ("foo", False),
+        (None, False),
+    ],
+)
+def test_parse_boolean_string(test_input: Optional[str], expected: bool):
+    assert parse_boolean_string(test_input) == expected
+
+
+def test_int_values():
+    assert cast_to_boolean(1) is True
+    assert cast_to_boolean(0) is False
+    assert cast_to_boolean(-1) is True
+    assert cast_to_boolean(42) is True
+    assert cast_to_boolean(0) is False
+
+
+def test_float_values():
+    assert cast_to_boolean(0.5) is True
+    assert cast_to_boolean(3.14) is True
+    assert cast_to_boolean(-2.71) is True
+    assert cast_to_boolean(0.0) is False
+
+
+def test_string_values():
+    assert cast_to_boolean("true") is True
+    assert cast_to_boolean("TruE") is True
+    assert cast_to_boolean("false") is False
+    assert cast_to_boolean("FaLsE") is False
+    assert cast_to_boolean("") is False
+
+
+def test_none_value():
+    assert cast_to_boolean(None) is None
+
+
+def test_boolean_values():
+    assert cast_to_boolean(True) is True
+    assert cast_to_boolean(False) is False
+
+
+def test_other_values():
+    assert cast_to_boolean([]) is False
+    assert cast_to_boolean({}) is False
+    assert cast_to_boolean(object()) is False
+
+
+def test_normalize_dttm_col() -> None:
+    """
+    Tests for the ``normalize_dttm_col`` function.
+
+    In particular, this covers a regression when Pandas was upgraded from 1.5.3 to
+    2.0.3 and the behavior of ``pd.to_datetime`` changed.
+    """
+    df = pd.DataFrame({"__time": ["2017-07-01T00:00:00.000Z"]})
+    assert (
+        df.to_markdown()
+        == """
+|    | __time                   |
+|---:|:-------------------------|
+|  0 | 2017-07-01T00:00:00.000Z |
+    """.strip()
+    )
+
+    # in 1.5.3 this would return a datetime64[ns] dtype, but in 2.0.3 we had to
+    # add ``exact=False`` since there is a leftover after parsing the format
+    dttm_cols = (DateColumn("__time", "%Y-%m-%d"),)
+
+    # the function modifies the dataframe in place
+    normalize_dttm_col(df, dttm_cols)
+
+    assert df["__time"].astype(str).tolist() == ["2017-07-01"]
+
+
+def test_normalize_dttm_col_epoch_seconds() -> None:
+    """Test conversion of epoch seconds."""
+    df = pd.DataFrame(
+        {
+            "epoch_col": [
+                1577836800,
+                1609459200,
+                1640995200,
+            ]  # 2020-01-01, 2021-01-01, 2022-01-01
+        }
+    )
+    dttm_cols = (DateColumn(col_label="epoch_col", timestamp_format="epoch_s"),)
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert is_datetime64_dtype(df["epoch_col"])
+    assert df["epoch_col"][0].strftime("%Y-%m-%d") == "2020-01-01"
+    assert df["epoch_col"][1].strftime("%Y-%m-%d") == "2021-01-01"
+    assert df["epoch_col"][2].strftime("%Y-%m-%d") == "2022-01-01"
+
+
+def test_normalize_dttm_col_epoch_milliseconds() -> None:
+    """Test conversion of epoch milliseconds."""
+    df = pd.DataFrame(
+        {
+            "epoch_ms_col": [
+                1577836800000,
+                1609459200000,
+                1640995200000,
+            ]  # 2020-01-01, 2021-01-01, 2022-01-01
+        }
+    )
+    dttm_cols = (DateColumn(col_label="epoch_ms_col", timestamp_format="epoch_ms"),)
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert is_datetime64_dtype(df["epoch_ms_col"])
+    assert df["epoch_ms_col"][0].strftime("%Y-%m-%d") == "2020-01-01"
+    assert df["epoch_ms_col"][1].strftime("%Y-%m-%d") == "2021-01-01"
+    assert df["epoch_ms_col"][2].strftime("%Y-%m-%d") == "2022-01-01"
+
+
+def test_normalize_dttm_col_formatted_date() -> None:
+    """Test conversion of formatted date strings."""
+    df = pd.DataFrame({"date_col": ["2020-01-01", "2021-01-01", "2022-01-01"]})
+    dttm_cols = (DateColumn(col_label="date_col", timestamp_format="%Y-%m-%d"),)
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert is_datetime64_dtype(df["date_col"])
+    assert df["date_col"][0].strftime("%Y-%m-%d") == "2020-01-01"
+    assert df["date_col"][1].strftime("%Y-%m-%d") == "2021-01-01"
+    assert df["date_col"][2].strftime("%Y-%m-%d") == "2022-01-01"
+
+
+def test_normalize_dttm_col_with_offset() -> None:
+    """Test with hour offset."""
+    df = pd.DataFrame({"date_col": ["2020-01-01", "2021-01-01", "2022-01-01"]})
+    dttm_cols = (
+        DateColumn(col_label="date_col", timestamp_format="%Y-%m-%d", offset=3),
+    )
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert is_datetime64_dtype(df["date_col"])
+    assert df["date_col"][0].strftime("%Y-%m-%d %H:%M:%S") == "2020-01-01 03:00:00"
+    assert df["date_col"][1].strftime("%Y-%m-%d %H:%M:%S") == "2021-01-01 03:00:00"
+    assert df["date_col"][2].strftime("%Y-%m-%d %H:%M:%S") == "2022-01-01 03:00:00"
+
+
+def test_normalize_dttm_col_with_time_shift() -> None:
+    """Test with time shift."""
+    df = pd.DataFrame({"date_col": ["2020-01-01", "2021-01-01", "2022-01-01"]})
+    dttm_cols = (
+        DateColumn(
+            col_label="date_col", timestamp_format="%Y-%m-%d", time_shift="1 day"
+        ),
+    )
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert is_datetime64_dtype(df["date_col"])
+    assert df["date_col"][0].strftime("%Y-%m-%d") == "2020-01-02"
+    assert df["date_col"][1].strftime("%Y-%m-%d") == "2021-01-02"
+    assert df["date_col"][2].strftime("%Y-%m-%d") == "2022-01-02"
+
+
+def test_normalize_dttm_col_with_offset_and_time_shift() -> None:
+    """Test with both offset and time shift."""
+    df = pd.DataFrame({"date_col": ["2020-01-01", "2021-01-01", "2022-01-01"]})
+    dttm_cols = (
+        DateColumn(
+            col_label="date_col",
+            timestamp_format="%Y-%m-%d",
+            offset=3,
+            time_shift="1 hour",
+        ),
+    )
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert is_datetime64_dtype(df["date_col"])
+    assert df["date_col"][0].strftime("%Y-%m-%d %H:%M:%S") == "2020-01-01 04:00:00"
+    assert df["date_col"][1].strftime("%Y-%m-%d %H:%M:%S") == "2021-01-01 04:00:00"
+    assert df["date_col"][2].strftime("%Y-%m-%d %H:%M:%S") == "2022-01-01 04:00:00"
+
+
+def test_normalize_dttm_col_invalid_date_coerced() -> None:
+    """Test that invalid dates are coerced to NaT."""
+    df = pd.DataFrame({"date_col": ["2020-01-01", "invalid_date", "2022-01-01"]})
+    dttm_cols = (DateColumn(col_label="date_col", timestamp_format="%Y-%m-%d"),)
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert is_datetime64_dtype(df["date_col"])
+    assert df["date_col"][0].strftime("%Y-%m-%d") == "2020-01-01"
+    assert pd.isna(df["date_col"][1])
+    assert df["date_col"][2].strftime("%Y-%m-%d") == "2022-01-01"
+
+
+def test_normalize_dttm_col_invalid_epoch_coerced() -> None:
+    """Test that invalid epoch values are coerced to NaT."""
+    df = pd.DataFrame(
+        {"epoch_col": [1577836800, np.nan, 1640995200]}  # 2020-01-01, NaN, 2022-01-01
+    )
+    dttm_cols = (DateColumn(col_label="epoch_col", timestamp_format="epoch_s"),)
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert is_datetime64_dtype(df["epoch_col"])
+    assert df["epoch_col"][0].strftime("%Y-%m-%d") == "2020-01-01"
+    assert pd.isna(df["epoch_col"][1])
+    assert df["epoch_col"][2].strftime("%Y-%m-%d") == "2022-01-01"
+
+
+def test_normalize_dttm_col_non_existing_column() -> None:
+    """Test handling of non-existing columns."""
+    df = pd.DataFrame({"existing_col": [1, 2, 3]})
+    dttm_cols = (DateColumn(col_label="non_existing_col", timestamp_format="%Y-%m-%d"),)
+
+    # Should not raise any exception
+    normalize_dttm_col(df, dttm_cols)
+
+    # DataFrame should remain unchanged
+    assert list(df.columns) == ["existing_col"]
+    assert df["existing_col"].tolist() == [1, 2, 3]
+
+
+def test_normalize_dttm_col_multiple_columns() -> None:
+    """Test normalizing multiple datetime columns."""
+    df = pd.DataFrame(
+        {
+            "date_col1": ["2020-01-01", "2021-01-01", "2022-01-01"],
+            "date_col2": ["01/01/2020", "01/01/2021", "01/01/2022"],
+        }
+    )
+    dttm_cols = (
+        DateColumn(col_label="date_col1", timestamp_format="%Y-%m-%d"),
+        DateColumn(col_label="date_col2", timestamp_format="%m/%d/%Y"),
+    )
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert is_datetime64_dtype(df["date_col1"])
+    assert is_datetime64_dtype(df["date_col2"])
+    assert df["date_col1"][0].strftime("%Y-%m-%d") == "2020-01-01"
+    assert df["date_col2"][0].strftime("%Y-%m-%d") == "2020-01-01"
+
+
+def test_normalize_dttm_col_already_datetime_series() -> None:
+    """Test handling of already datetime series with epoch format."""
+    # Create a DataFrame with timestamp strings
+    df = pd.DataFrame(
+        {
+            "ts_col": [
+                "2020-01-01 00:00:00",
+                "2021-01-01 00:00:00",
+                "2022-01-01 00:00:00",
+            ]
+        }
+    )
+    dttm_cols = (DateColumn(col_label="ts_col", timestamp_format="epoch_s"),)
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert is_datetime64_dtype(df["ts_col"])
+    assert df["ts_col"][0].strftime("%Y-%m-%d") == "2020-01-01"
+    assert df["ts_col"][1].strftime("%Y-%m-%d") == "2021-01-01"
+    assert df["ts_col"][2].strftime("%Y-%m-%d") == "2022-01-01"
+
+
+def test_check_if_safe_zip_success(app_context: None) -> None:
+    """
+    Test if ZIP files are safe
+    """
+    ZipFile = MagicMock()  # noqa: N806
+    ZipFile.infolist.return_value = [
+        MockZipInfo(file_size=1000, compress_size=10),
+        MockZipInfo(file_size=1000, compress_size=10),
+        MockZipInfo(file_size=1000, compress_size=10),
+        MockZipInfo(file_size=1000, compress_size=10),
+        MockZipInfo(file_size=1000, compress_size=10),
+    ]
+    check_is_safe_zip(ZipFile)
+
+
+def test_check_if_safe_zip_high_rate(app_context: None) -> None:
+    """
+    Test if ZIP files is not highly compressed
+    """
+    ZipFile = MagicMock()  # noqa: N806
+    ZipFile.infolist.return_value = [
+        MockZipInfo(file_size=1000, compress_size=1),
+        MockZipInfo(file_size=1000, compress_size=1),
+        MockZipInfo(file_size=1000, compress_size=1),
+        MockZipInfo(file_size=1000, compress_size=1),
+        MockZipInfo(file_size=1000, compress_size=1),
+    ]
+    with pytest.raises(SupersetException):
+        check_is_safe_zip(ZipFile)
+
+
+def test_check_if_safe_zip_hidden_bomb(app_context: None) -> None:
+    """
+    Test if ZIP file does not contain a big file highly compressed
+    """
+    ZipFile = MagicMock()  # noqa: N806
+    ZipFile.infolist.return_value = [
+        MockZipInfo(file_size=1000, compress_size=100),
+        MockZipInfo(file_size=1000, compress_size=100),
+        MockZipInfo(file_size=1000, compress_size=100),
+        MockZipInfo(file_size=1000, compress_size=100),
+        MockZipInfo(file_size=1000 * (1024 * 1024), compress_size=100),
+    ]
+    with pytest.raises(SupersetException):
+        check_is_safe_zip(ZipFile)
+
+
+def test_generic_constraint_name_exists():
+    # Create a mock SQLAlchemy database object
+    database_mock = MagicMock()
+
+    # Define the table name and constraint details
+    table_name = "my_table"
+    columns = {"column1", "column2"}
+    referenced_table_name = "other_table"
+    constraint_name = "my_constraint"
+
+    # Create a mock table object with the same structure
+    table_mock = MagicMock()
+    table_mock.name = table_name
+    table_mock.columns = [MagicMock(name=col) for col in columns]
+
+    # Create a mock for the referred_table with a name attribute
+    referred_table_mock = MagicMock()
+    referred_table_mock.name = referenced_table_name
+
+    # Create a mock for the foreign key constraint with a name attribute
+    foreign_key_constraint_mock = MagicMock()
+    foreign_key_constraint_mock.name = constraint_name
+    foreign_key_constraint_mock.referred_table = referred_table_mock
+    foreign_key_constraint_mock.column_keys = list(columns)
+
+    # Set the foreign key constraint mock as part of the table's constraints
+    table_mock.foreign_key_constraints = [foreign_key_constraint_mock]
+
+    # Configure the autoload behavior for the database mock
+    database_mock.metadata = MagicMock()
+    database_mock.metadata.tables = {table_name: table_mock}
+
+    # Mock the sa.Table creation with autoload
+    with patch("superset.utils.core.sa.Table") as table_creation_mock:
+        table_creation_mock.return_value = table_mock
+
+        result = generic_find_constraint_name(
+            table_name, columns, referenced_table_name, database_mock
+        )
+
+    assert result == constraint_name
+
+
+def test_generic_constraint_name_not_found():
+    # Create a mock SQLAlchemy database object
+    database_mock = MagicMock()
+
+    # Define the table name and constraint details
+    table_name = "my_table"
+    columns = {"column1", "column2"}
+    referenced_table_name = "other_table"
+
+    # Create a mock table object with the same structure but no matching constraint
+    table_mock = MagicMock()
+    table_mock.name = table_name
+    table_mock.columns = [MagicMock(name=col) for col in columns]
+    table_mock.foreign_key_constraints = []
+
+    # Configure the autoload behavior for the database mock
+    database_mock.metadata = MagicMock()
+    database_mock.metadata.tables = {table_name: table_mock}
+
+    result = generic_find_constraint_name(
+        table_name, columns, referenced_table_name, database_mock
+    )
+
+    assert result is None
+
+
+def test_generic_find_fk_constraint_exists():
+    insp_mock = MagicMock()
+    table_name = "my_table"
+    columns = {"column1", "column2"}
+    referenced_table_name = "other_table"
+    constraint_name = "my_constraint"
+
+    # Create a mock for the foreign key constraint as a dictionary
+    constraint_mock = {
+        "name": constraint_name,
+        "referred_table": referenced_table_name,
+        "referred_columns": list(columns),
+    }
+
+    # Configure the Inspector mock to return the list of foreign key constraints
+    insp_mock.get_foreign_keys.return_value = [constraint_mock]
+
+    result = generic_find_fk_constraint_name(
+        table_name, columns, referenced_table_name, insp_mock
+    )
+
+    assert result == constraint_name
+
+
+def test_generic_find_fk_constraint_none_exist():
+    insp_mock = MagicMock()
+    table_name = "my_table"
+    columns = {"column1", "column2"}
+    referenced_table_name = "other_table"
+
+    # Configure the Inspector mock to return the list of foreign key constraints
+    insp_mock.get_foreign_keys.return_value = []
+
+    result = generic_find_fk_constraint_name(
+        table_name, columns, referenced_table_name, insp_mock
+    )
+
+    assert result is None
+
+
+def test_get_datasource_full_name():
+    """
+    Test the `get_datasource_full_name` function.
+
+    This is used to build permissions, so it doesn't really return the datasource full
+    name. Instead, it returns a fully qualified table name that includes the database
+    name and schema, with each part wrapped in square brackets.
+    """
+    assert (
+        get_datasource_full_name("db", "table", "catalog", "schema")
+        == "[db].[catalog].[schema].[table]"
+    )
+
+    assert get_datasource_full_name("db", "table", None, None) == "[db].[table]"
+
+    assert (
+        get_datasource_full_name("db", "table", None, "schema")
+        == "[db].[schema].[table]"
+    )
+
+    assert (
+        get_datasource_full_name("db", "table", "catalog", None)
+        == "[db].[catalog].[table]"
+    )
+
+
+@pytest.mark.parametrize(
+    "referrer,expected",
+    [
+        (None, None),
+        ("https://mysuperset.com/abc", None),
+        ("https://mysuperset.com/superset/dashboard/", QuerySource.DASHBOARD),
+        ("https://mysuperset.com/explore/", QuerySource.CHART),
+        ("https://mysuperset.com/sqllab/", QuerySource.SQL_LAB),
+    ],
+)
+def test_get_query_source_from_request(
+    referrer: str | None,
+    expected: QuerySource | None,
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    if referrer:
+        # Use has_request_context to mock request when not in a request context
+        with mocker.patch("flask.has_request_context", return_value=True):
+            request_mock = mocker.MagicMock()
+            request_mock.referrer = referrer
+            mocker.patch("superset.utils.core.request", request_mock)
+            assert get_query_source_from_request() == expected
+    else:
+        # When no referrer, test without request context
+        with mocker.patch("flask.has_request_context", return_value=False):
+            assert get_query_source_from_request() == expected
+
+
+@with_config({"USER_AGENT_FUNC": None})
+def test_get_user_agent(mocker: MockerFixture, app_context: None) -> None:
+    database_mock = mocker.MagicMock()
+    database_mock.database_name = "mydb"
+
+    assert get_user_agent(database_mock, QuerySource.DASHBOARD) == "Apache Superset", (
+        "The default user agent should be returned"
+    )
+
+
+@with_config(
+    {
+        "USER_AGENT_FUNC": lambda database,
+        source: f"{database.database_name} {source.name}"
+    }
+)
+def test_get_user_agent_custom(mocker: MockerFixture, app_context: None) -> None:
+    database_mock = mocker.MagicMock()
+    database_mock.database_name = "mydb"
+
+    assert get_user_agent(database_mock, QuerySource.DASHBOARD) == "mydb DASHBOARD", (
+        "the custom user agent function result should have been returned"
+    )
+
+
+def test_merge_extra_filters():
+    # does nothing if no extra filters
+    form_data = {"A": 1, "B": 2, "c": "test"}
+    expected = {**form_data, "adhoc_filters": [], "applied_time_extras": {}}
+    merge_extra_filters(form_data)
+    assert form_data == expected
+    # empty extra_filters
+    form_data = {"A": 1, "B": 2, "c": "test", "extra_filters": []}
+    expected = {
+        "A": 1,
+        "B": 2,
+        "c": "test",
+        "adhoc_filters": [],
+        "applied_time_extras": {},
+    }
+    merge_extra_filters(form_data)
+    assert form_data == expected
+    # copy over extra filters into empty filters
+    form_data = {
+        "extra_filters": [
+            {"col": "a", "op": "in", "val": "someval"},
+            {"col": "B", "op": "==", "val": ["c1", "c2"]},
+        ]
+    }
+    expected = {
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "someval",
+                "expressionType": "SIMPLE",
+                "filterOptionName": (
+                    "eb77ff8188437d8722af8c932727da1e83ec37e88aaf800a3859ed352d87119f"
+                ),
+                "isExtra": True,
+                "operator": "in",
+                "subject": "a",
+            },
+            {
+                "clause": "WHERE",
+                "comparator": ["c1", "c2"],
+                "expressionType": "SIMPLE",
+                "filterOptionName": (
+                    "48dd60c7ecb8699b51e36ce956ba481aa5382548811aecec71af7e550c59762c"
+                ),
+                "isExtra": True,
+                "operator": "==",
+                "subject": "B",
+            },
+        ],
+        "applied_time_extras": {},
+    }
+    merge_extra_filters(form_data)
+    assert form_data == expected
+    # adds extra filters to existing filters
+    form_data = {
+        "extra_filters": [
+            {"col": "a", "op": "in", "val": "someval"},
+            {"col": "B", "op": "==", "val": ["c1", "c2"]},
+        ],
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": ["G1", "g2"],
+                "expressionType": "SIMPLE",
+                "operator": "!=",
+                "subject": "D",
+            }
+        ],
+    }
+    expected = {
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": ["G1", "g2"],
+                "expressionType": "SIMPLE",
+                "operator": "!=",
+                "subject": "D",
+            },
+            {
+                "clause": "WHERE",
+                "comparator": "someval",
+                "expressionType": "SIMPLE",
+                "filterOptionName": (
+                    "eb77ff8188437d8722af8c932727da1e83ec37e88aaf800a3859ed352d87119f"
+                ),
+                "isExtra": True,
+                "operator": "in",
+                "subject": "a",
+            },
+            {
+                "clause": "WHERE",
+                "comparator": ["c1", "c2"],
+                "expressionType": "SIMPLE",
+                "filterOptionName": (
+                    "48dd60c7ecb8699b51e36ce956ba481aa5382548811aecec71af7e550c59762c"
+                ),
+                "isExtra": True,
+                "operator": "==",
+                "subject": "B",
+            },
+        ],
+        "applied_time_extras": {},
+    }
+    merge_extra_filters(form_data)
+    assert form_data == expected
+    # adds extra filters to existing filters and sets time options
+    form_data = {
+        "extra_filters": [
+            {"col": "__time_range", "op": "in", "val": "1 year ago :"},
+            {"col": "__time_col", "op": "in", "val": "birth_year"},
+            {"col": "__time_grain", "op": "in", "val": "years"},
+            {"col": "A", "op": "like", "val": "hello"},
+        ]
+    }
+    expected = {
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "hello",
+                "expressionType": "SIMPLE",
+                "filterOptionName": (
+                    "2ca91524f5ab8e39d6aa5373d1f11301ad2c5b95f5aa77eb30d92f572f5b9157"
+                ),
+                "isExtra": True,
+                "operator": "like",
+                "subject": "A",
+            }
+        ],
+        "time_range": "1 year ago :",
+        "granularity_sqla": "birth_year",
+        "time_grain_sqla": "years",
+        "applied_time_extras": {
+            "__time_range": "1 year ago :",
+            "__time_col": "birth_year",
+            "__time_grain": "years",
+        },
+    }
+    merge_extra_filters(form_data)
+    assert form_data == expected
+
+
+def test_merge_extra_filters_ignores_empty_filters():
+    form_data = {
+        "extra_filters": [
+            {"col": "a", "op": "in", "val": ""},
+            {"col": "B", "op": "==", "val": []},
+        ]
+    }
+    expected = {"adhoc_filters": [], "applied_time_extras": {}}
+    merge_extra_filters(form_data)
+    assert form_data == expected
+
+
+def test_merge_extra_filters_ignores_nones():
+    form_data = {
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "",
+                "expressionType": "SIMPLE",
+                "operator": "in",
+                "subject": None,
+            }
+        ],
+        "extra_filters": [{"col": "B", "op": "==", "val": []}],
+    }
+    expected = {
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "",
+                "expressionType": "SIMPLE",
+                "operator": "in",
+                "subject": None,
+            }
+        ],
+        "applied_time_extras": {},
+    }
+    merge_extra_filters(form_data)
+    assert form_data == expected
+
+
+def test_merge_extra_filters_ignores_equal_filters():
+    form_data = {
+        "extra_filters": [
+            {"col": "a", "op": "in", "val": "someval"},
+            {"col": "B", "op": "==", "val": ["c1", "c2"]},
+            {"col": "c", "op": "in", "val": ["c1", 1, None]},
+        ],
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "someval",
+                "expressionType": "SIMPLE",
+                "operator": "in",
+                "subject": "a",
+            },
+            {
+                "clause": "WHERE",
+                "comparator": ["c1", "c2"],
+                "expressionType": "SIMPLE",
+                "operator": "==",
+                "subject": "B",
+            },
+            {
+                "clause": "WHERE",
+                "comparator": ["c1", 1, None],
+                "expressionType": "SIMPLE",
+                "operator": "in",
+                "subject": "c",
+            },
+        ],
+    }
+    expected = {
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "someval",
+                "expressionType": "SIMPLE",
+                "operator": "in",
+                "subject": "a",
+            },
+            {
+                "clause": "WHERE",
+                "comparator": ["c1", "c2"],
+                "expressionType": "SIMPLE",
+                "operator": "==",
+                "subject": "B",
+            },
+            {
+                "clause": "WHERE",
+                "comparator": ["c1", 1, None],
+                "expressionType": "SIMPLE",
+                "operator": "in",
+                "subject": "c",
+            },
+        ],
+        "applied_time_extras": {},
+    }
+    merge_extra_filters(form_data)
+    assert form_data == expected
+
+
+def test_merge_extra_filters_merges_different_val_types():
+    form_data = {
+        "extra_filters": [
+            {"col": "a", "op": "in", "val": ["g1", "g2"]},
+            {"col": "B", "op": "==", "val": ["c1", "c2"]},
+        ],
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "someval",
+                "expressionType": "SIMPLE",
+                "operator": "in",
+                "subject": "a",
+            },
+            {
+                "clause": "WHERE",
+                "comparator": ["c1", "c2"],
+                "expressionType": "SIMPLE",
+                "operator": "==",
+                "subject": "B",
+            },
+        ],
+    }
+    expected = {
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "someval",
+                "expressionType": "SIMPLE",
+                "operator": "in",
+                "subject": "a",
+            },
+            {
+                "clause": "WHERE",
+                "comparator": ["c1", "c2"],
+                "expressionType": "SIMPLE",
+                "operator": "==",
+                "subject": "B",
+            },
+            {
+                "clause": "WHERE",
+                "comparator": ["g1", "g2"],
+                "expressionType": "SIMPLE",
+                "filterOptionName": (
+                    "e2f7d6304169124258364916403b2d9208fce39dd7771797726111b7498bbd52"
+                ),
+                "isExtra": True,
+                "operator": "in",
+                "subject": "a",
+            },
+        ],
+        "applied_time_extras": {},
+    }
+    merge_extra_filters(form_data)
+    assert form_data == expected
+    form_data = {
+        "extra_filters": [
+            {"col": "a", "op": "in", "val": "someval"},
+            {"col": "B", "op": "==", "val": ["c1", "c2"]},
+        ],
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": ["g1", "g2"],
+                "expressionType": "SIMPLE",
+                "operator": "in",
+                "subject": "a",
+            },
+            {
+                "clause": "WHERE",
+                "comparator": ["c1", "c2"],
+                "expressionType": "SIMPLE",
+                "operator": "==",
+                "subject": "B",
+            },
+        ],
+    }
+    expected = {
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": ["g1", "g2"],
+                "expressionType": "SIMPLE",
+                "operator": "in",
+                "subject": "a",
+            },
+            {
+                "clause": "WHERE",
+                "comparator": ["c1", "c2"],
+                "expressionType": "SIMPLE",
+                "operator": "==",
+                "subject": "B",
+            },
+            {
+                "clause": "WHERE",
+                "comparator": "someval",
+                "expressionType": "SIMPLE",
+                "filterOptionName": (
+                    "eb77ff8188437d8722af8c932727da1e83ec37e88aaf800a3859ed352d87119f"
+                ),
+                "isExtra": True,
+                "operator": "in",
+                "subject": "a",
+            },
+        ],
+        "applied_time_extras": {},
+    }
+    merge_extra_filters(form_data)
+    assert form_data == expected
+
+
+def test_merge_extra_filters_adds_unequal_lists():
+    form_data = {
+        "extra_filters": [
+            {"col": "a", "op": "in", "val": ["g1", "g2", "g3"]},
+            {"col": "B", "op": "==", "val": ["c1", "c2", "c3"]},
+        ],
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": ["g1", "g2"],
+                "expressionType": "SIMPLE",
+                "operator": "in",
+                "subject": "a",
+            },
+            {
+                "clause": "WHERE",
+                "comparator": ["c1", "c2"],
+                "expressionType": "SIMPLE",
+                "operator": "==",
+                "subject": "B",
+            },
+        ],
+    }
+    expected = {
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": ["g1", "g2"],
+                "expressionType": "SIMPLE",
+                "operator": "in",
+                "subject": "a",
+            },
+            {
+                "clause": "WHERE",
+                "comparator": ["c1", "c2"],
+                "expressionType": "SIMPLE",
+                "operator": "==",
+                "subject": "B",
+            },
+            {
+                "clause": "WHERE",
+                "comparator": ["g1", "g2", "g3"],
+                "expressionType": "SIMPLE",
+                "filterOptionName": (
+                    "b3f17391546e130560efd1e841742bc5f154d09a7d534b8c0ec33fc1c8a146cd"
+                ),
+                "isExtra": True,
+                "operator": "in",
+                "subject": "a",
+            },
+            {
+                "clause": "WHERE",
+                "comparator": ["c1", "c2", "c3"],
+                "expressionType": "SIMPLE",
+                "filterOptionName": (
+                    "41ef70f6edada46006253189b27778088da2cf27ccc69f703634493d7396708a"
+                ),
+                "isExtra": True,
+                "operator": "==",
+                "subject": "B",
+            },
+        ],
+        "applied_time_extras": {},
+    }
+    merge_extra_filters(form_data)
+    assert form_data == expected
+
+
+def test_merge_extra_filters_when_applied_time_extras_predefined():
+    form_data = {"applied_time_extras": {"__time_range": "Last week"}}
+    merge_extra_filters(form_data)
+
+    assert form_data == {
+        "applied_time_extras": {"__time_range": "Last week"},
+        "adhoc_filters": [],
+    }
+
+
+def test_merge_extra_form_data_updates_temporal_range_subject():
+    """
+    Test that when extra_form_data contains granularity_sqla, it should update
+    the subject of any TEMPORAL_RANGE adhoc filter to use the new time column.
+    """
+    form_data = {
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "No filter",
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": "created_at",
+            }
+        ],
+        "extra_form_data": {
+            "granularity_sqla": "event_date",
+            "time_range": "Last week",
+        },
+    }
+    merge_extra_form_data(form_data)
+
+    assert form_data["adhoc_filters"][0]["subject"] == "event_date"
+    assert form_data["time_range"] == "Last week"
+    assert form_data["granularity"] == "event_date"
+    assert "extra_form_data" not in form_data
+
+
+def test_time_column_filter_with_multiple_temporal_range_filters():
+    """
+    Test that Time Column native filter updates ALL TEMPORAL_RANGE filters
+    in the adhoc_filters list, but leaves non-TEMPORAL_RANGE filters unchanged.
+    """
+    form_data = {
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "Last week",
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": "default_time_col",
+            },
+            {
+                "clause": "WHERE",
+                "comparator": "foo",
+                "expressionType": "SIMPLE",
+                "operator": "==",
+                "subject": "some_column",
+            },
+            {
+                "clause": "WHERE",
+                "comparator": "Last month",
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": "another_time_col",
+            },
+        ],
+        "extra_form_data": {
+            "granularity_sqla": "selected_time_col",
+        },
+    }
+    merge_extra_form_data(form_data)
+
+    assert form_data["adhoc_filters"][0]["subject"] == "selected_time_col"
+    assert form_data["adhoc_filters"][2]["subject"] == "selected_time_col"
+    assert form_data["adhoc_filters"][1]["subject"] == "some_column"
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_skips_sql_expression_filters():
+    """
+    Test that SQL expression type filters are not modified when granularity_sqla
+    is provided. Only SIMPLE expression type filters should have their subject updated.
+    """
+    form_data = {
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SQL",
+                "operator": "TEMPORAL_RANGE",
+                "sqlExpression": "created_at > '2020-01-01'",
+            },
+            {
+                "clause": "WHERE",
+                "comparator": "Last week",
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": "created_at",
+            },
+        ],
+        "extra_form_data": {
+            "granularity_sqla": "event_date",
+        },
+    }
+    merge_extra_form_data(form_data)
+
+    assert "subject" not in form_data["adhoc_filters"][0]
+    assert form_data["adhoc_filters"][1]["subject"] == "event_date"
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_time_range_without_granularity_sqla():
+    """
+    Test that when form_data has time_range but no granularity_sqla,
+    the TEMPORAL_RANGE filter comparator is updated to match time_range.
+    """
+    form_data = {
+        "time_range": "Last month",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "No filter",
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": "created_at",
+            }
+        ],
+        "extra_form_data": {},
+    }
+    merge_extra_form_data(form_data)
+
+    assert form_data["adhoc_filters"][0]["comparator"] == "Last month"
+    assert form_data["adhoc_filters"][0]["subject"] == "created_at"
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_no_subject_update_when_granularity_override_none():
+    """
+    Test that when granularity_sqla_override is None, the TEMPORAL_RANGE filter
+    subject should NOT be updated, even if expressionType is SIMPLE.
+    """
+    original_subject = "original_time_col"
+    form_data = {
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "Last week",
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": original_subject,
+            }
+        ],
+        "extra_form_data": {},
+    }
+    merge_extra_form_data(form_data)
+
+    assert form_data["adhoc_filters"][0]["subject"] == original_subject
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_does_not_update_comparator_when_time_range_is_falsy():
+    """
+    Test that when time_range is falsy (None, empty string, or False),
+    the TEMPORAL_RANGE filter comparator should NOT be updated.
+    """
+    original_comparator = "Original time range"
+    form_data = {
+        "time_range": None,
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": original_comparator,
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": "created_at",
+            }
+        ],
+        "extra_form_data": {},
+    }
+    merge_extra_form_data(form_data)
+
+    assert form_data["adhoc_filters"][0]["comparator"] == original_comparator
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_no_comparator_update_when_time_range_empty():
+    """
+    Test that when time_range is an empty string (falsy), the TEMPORAL_RANGE
+    filter comparator should NOT be updated.
+    """
+    original_comparator = "Original time range"
+    form_data = {
+        "time_range": "",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": original_comparator,
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": "created_at",
+            }
+        ],
+        "extra_form_data": {},
+    }
+    merge_extra_form_data(form_data)
+
+    assert form_data["adhoc_filters"][0]["comparator"] == original_comparator
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_does_not_update_comparator_when_has_granularity_sqla():
+    """
+    Test that when form_data has granularity_sqla (truthy), the TEMPORAL_RANGE
+    filter comparator should NOT be updated, even if time_range exists.
+
+    When granularity_sqla is present in form_data, it indicates a legacy chart
+    where granularity_sqla and time_range are separate form_data attributes.
+    """
+    original_comparator = "Original time range"
+    form_data = {
+        "time_range": "Last month",
+        "granularity_sqla": "event_date",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": original_comparator,
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": "created_at",
+            }
+        ],
+        "extra_form_data": {},
+    }
+    merge_extra_form_data(form_data)
+
+    assert form_data["adhoc_filters"][0]["comparator"] == original_comparator
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_removes_extra_form_data():
+    """
+    Test that merge_extra_form_data removes extra_form_data from form_data
+    after processing (it calls form_data.pop("extra_form_data", {})).
+    """
+    form_data = {
+        "adhoc_filters": [],
+        "extra_form_data": {
+            "granularity_sqla": "event_date",
+            "time_range": "Last week",
+        },
+    }
+    merge_extra_form_data(form_data)
+
+    assert "extra_form_data" not in form_data
+    assert form_data["granularity"] == "event_date"
+    assert form_data["time_range"] == "Last week"
+
+
+def test_merge_extra_form_data_creates_temporal_filter_when_none_exists():
+    """
+    Test that when granularity_sqla_override and time_range are provided
+    but no TEMPORAL_RANGE filter exists, a new temporal filter is created.
+    """
+    form_data = {
+        "time_range": "2022-01-22 : 2025-01-22",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "foo",
+                "expressionType": "SIMPLE",
+                "operator": "==",
+                "subject": "some_column",
+            }
+        ],
+        "extra_form_data": {
+            "granularity_sqla": "updated_at",
+        },
+    }
+    merge_extra_form_data(form_data)
+
+    temporal_filters = [
+        f
+        for f in form_data["adhoc_filters"]
+        if f.get("operator") == FilterOperator.TEMPORAL_RANGE
+    ]
+    assert len(temporal_filters) == 1
+    assert temporal_filters[0]["subject"] == "updated_at"
+    assert temporal_filters[0]["comparator"] == "2022-01-22 : 2025-01-22"
+    assert temporal_filters[0]["expressionType"] == "SIMPLE"
+    assert temporal_filters[0]["clause"] == "WHERE"
+    assert temporal_filters[0]["isExtra"] is True
+    assert "filterOptionName" in temporal_filters[0]
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_creates_temporal_filter_with_empty_adhoc_filters():
+    """
+    Test that a temporal filter is created when adhoc_filters is empty
+    and granularity_sqla_override and time_range are provided.
+    """
+    form_data = {
+        "time_range": "Last month",
+        "adhoc_filters": [],
+        "extra_form_data": {
+            "granularity_sqla": "created_at",
+        },
+    }
+    merge_extra_form_data(form_data)
+
+    assert len(form_data["adhoc_filters"]) == 1
+    assert form_data["adhoc_filters"][0]["operator"] == FilterOperator.TEMPORAL_RANGE
+    assert form_data["adhoc_filters"][0]["subject"] == "created_at"
+    assert form_data["adhoc_filters"][0]["comparator"] == "Last month"
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_creates_temporal_filter_with_missing_adhoc_filters():
+    """
+    Test that a temporal filter is created when adhoc_filters key doesn't exist
+    and granularity_sqla_override and time_range are provided.
+    """
+    form_data = {
+        "time_range": "2024-01-01 : 2024-03-01",
+        "extra_form_data": {
+            "granularity_sqla": "event_date",
+        },
+    }
+    merge_extra_form_data(form_data)
+
+    assert "adhoc_filters" in form_data
+    assert len(form_data["adhoc_filters"]) == 1
+    assert form_data["adhoc_filters"][0]["operator"] == FilterOperator.TEMPORAL_RANGE
+    assert form_data["adhoc_filters"][0]["subject"] == "event_date"
+    assert form_data["adhoc_filters"][0]["comparator"] == "2024-01-01 : 2024-03-01"
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_does_not_create_filter_when_granularity_missing():
+    """
+    Test that no temporal filter is created when granularity_sqla_override
+    is missing, even if time_range is provided.
+    """
+    form_data = {
+        "time_range": "Last week",
+        "adhoc_filters": [],
+        "extra_form_data": {},
+    }
+    original_filters_count = len(form_data["adhoc_filters"])
+    merge_extra_form_data(form_data)
+
+    assert len(form_data["adhoc_filters"]) == original_filters_count
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_does_not_create_filter_when_time_range_missing():
+    """
+    Test that no temporal filter is created when time_range is missing,
+    even if granularity_sqla_override is provided.
+    """
+    form_data = {
+        "adhoc_filters": [],
+        "extra_form_data": {
+            "granularity_sqla": "updated_at",
+        },
+    }
+    original_filters_count = len(form_data["adhoc_filters"])
+    merge_extra_form_data(form_data)
+
+    assert len(form_data["adhoc_filters"]) == original_filters_count
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_does_not_create_filter_when_time_range_none():
+    """
+    Test that no temporal filter is created when time_range is None,
+    even if granularity_sqla_override is provided.
+    """
+    form_data = {
+        "time_range": None,
+        "adhoc_filters": [],
+        "extra_form_data": {
+            "granularity_sqla": "created_at",
+        },
+    }
+    original_filters_count = len(form_data["adhoc_filters"])
+    merge_extra_form_data(form_data)
+
+    assert len(form_data["adhoc_filters"]) == original_filters_count
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_does_not_create_filter_when_granularity_none():
+    """
+    Test that no temporal filter is created when granularity_sqla_override
+    is None, even if time_range is provided.
+    """
+    form_data = {
+        "time_range": "Last month",
+        "adhoc_filters": [],
+        "extra_form_data": {
+            "granularity_sqla": None,
+        },
+    }
+    original_filters_count = len(form_data["adhoc_filters"])
+    merge_extra_form_data(form_data)
+
+    assert len(form_data["adhoc_filters"]) == original_filters_count
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_creates_filter_with_different_temporal_columns():
+    """
+    Test creating temporal filters for different temporal columns
+    (event_date, created_at, updated_at) to ensure the fix works
+    across multiple column types.
+    """
+    temporal_columns = ["event_date", "created_at", "updated_at"]
+    time_range = "2022-01-22 : 2025-01-22"
+
+    for column in temporal_columns:
+        form_data = {
+            "time_range": time_range,
+            "adhoc_filters": [],
+            "extra_form_data": {
+                "granularity_sqla": column,
+            },
+        }
+        merge_extra_form_data(form_data)
+
+        assert len(form_data["adhoc_filters"]) == 1
+        assert form_data["adhoc_filters"][0]["subject"] == column
+        assert form_data["adhoc_filters"][0]["comparator"] == time_range
+        assert (
+            form_data["adhoc_filters"][0]["operator"] == FilterOperator.TEMPORAL_RANGE
+        )
+
+
+def test_merge_extra_form_data_does_not_create_duplicate_when_filter_exists():
+    """
+    Test that when a TEMPORAL_RANGE filter already exists, a new one
+    is NOT created. Instead, the existing filter is updated.
+    """
+    form_data = {
+        "time_range": "Last week",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "No filter",
+                "expressionType": "SIMPLE",
+                "operator": FilterOperator.TEMPORAL_RANGE,
+                "subject": "original_column",
+            }
+        ],
+        "extra_form_data": {
+            "granularity_sqla": "new_column",
+        },
+    }
+    merge_extra_form_data(form_data)
+
+    temporal_filters = [
+        f
+        for f in form_data["adhoc_filters"]
+        if f.get("operator") == FilterOperator.TEMPORAL_RANGE
+    ]
+    assert len(temporal_filters) == 1
+    assert temporal_filters[0]["subject"] == "new_column"
+    assert temporal_filters[0]["comparator"] == "Last week"
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_date_format_with_timestamp_column():
+    """
+    Test that date format time_range (YYYY-MM-DD) works correctly
+    when applied to a timestamp column.
+    """
+    form_data = {
+        "time_range": "2022-01-22 : 2025-01-22",
+        "adhoc_filters": [],
+        "extra_form_data": {
+            "granularity_sqla": "created_at",
+        },
+    }
+    merge_extra_form_data(form_data)
+
+    assert len(form_data["adhoc_filters"]) == 1
+    temporal_filter = form_data["adhoc_filters"][0]
+    assert temporal_filter["operator"] == FilterOperator.TEMPORAL_RANGE
+    assert temporal_filter["subject"] == "created_at"
+    assert temporal_filter["comparator"] == "2022-01-22 : 2025-01-22"
+    assert temporal_filter["expressionType"] == "SIMPLE"
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_timestamp_format_with_date_column():
+    """
+    Test that timestamp format time_range (YYYY-MM-DDTHH:MM:SS) works correctly
+    when applied to a date column.
+    """
+    form_data = {
+        "time_range": "2022-01-22T00:00:00 : 2025-01-22T23:59:59",
+        "adhoc_filters": [],
+        "extra_form_data": {
+            "granularity_sqla": "event_date",
+        },
+    }
+    merge_extra_form_data(form_data)
+
+    assert len(form_data["adhoc_filters"]) == 1
+    temporal_filter = form_data["adhoc_filters"][0]
+    assert temporal_filter["operator"] == FilterOperator.TEMPORAL_RANGE
+    assert temporal_filter["subject"] == "event_date"
+    assert temporal_filter["comparator"] == "2022-01-22T00:00:00 : 2025-01-22T23:59:59"
+    assert temporal_filter["expressionType"] == "SIMPLE"
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_request_params_when_url_params_undefined():
+    form_data = {"since": "2000", "until": "now"}
+    url_params = {"form_data": form_data, "dashboard_ids": "(1,2,3,4,5)"}
+    merge_request_params(form_data, url_params)
+    assert "url_params" in form_data.keys()
+    assert "dashboard_ids" in form_data["url_params"]
+    assert "form_data" not in form_data.keys()
+
+
+def test_merge_request_params_when_url_params_predefined():
+    form_data = {
+        "since": "2000",
+        "until": "now",
+        "url_params": {"abc": "123", "dashboard_ids": "(1,2,3)"},
+    }
+    url_params = {"form_data": form_data, "dashboard_ids": "(1,2,3,4,5)"}
+    merge_request_params(form_data, url_params)
+    assert "url_params" in form_data.keys()
+    assert "abc" in form_data["url_params"]
+    assert url_params["dashboard_ids"] == form_data["url_params"]["dashboard_ids"]
+
+
+def test_parse_js_uri_path_items_eval_undefined():
+    assert parse_js_uri_path_item("undefined", eval_undefined=True) is None
+    assert parse_js_uri_path_item("null", eval_undefined=True) is None
+    assert "undefined" == parse_js_uri_path_item("undefined")
+    assert "null" == parse_js_uri_path_item("null")
+
+
+def test_parse_js_uri_path_items_unquote():
+    assert "slashed/name" == parse_js_uri_path_item("slashed%2fname")
+    assert "slashed%2fname" == parse_js_uri_path_item("slashed%2fname", unquote=False)
+
+
+def test_parse_js_uri_path_items_item_optional():
+    assert parse_js_uri_path_item(None) is None
+    assert parse_js_uri_path_item("item") is not None
+
+
+def test_get_stacktrace():
+    current_app.config["SHOW_STACKTRACE"] = True
+    try:
+        raise Exception("NONONO!")
+    except Exception:
+        stacktrace = get_stacktrace()
+        assert "NONONO" in stacktrace
+
+    current_app.config["SHOW_STACKTRACE"] = False
+    try:
+        raise Exception("NONONO!")
+    except Exception:
+        stacktrace = get_stacktrace()
+        assert stacktrace is None
+
+
+def test_sanitize_svg_content_safe():
+    """Test that safe SVG content is preserved."""
+    safe_svg = '<svg><rect width="10" height="10"/></svg>'
+    result = sanitize_svg_content(safe_svg)
+    assert "svg" in result
+    assert "rect" in result
+
+
+def test_sanitize_svg_content_removes_scripts():
+    """Test that nh3 removes dangerous script content."""
+    malicious_svg = '<svg><script>alert("xss")</script><rect/></svg>'
+    result = sanitize_svg_content(malicious_svg)
+    assert "script" not in result.lower()
+    assert "alert" not in result
+
+
+def test_sanitize_url_relative():
+    """Test that relative URLs are allowed."""
+    assert sanitize_url("/static/spinner.gif") == "/static/spinner.gif"
+
+
+def test_sanitize_url_safe_absolute():
+    """Test that safe absolute URLs are allowed."""
+    assert (
+        sanitize_url("https://example.com/spinner.gif")
+        == "https://example.com/spinner.gif"
+    )
+    assert (
+        sanitize_url("http://localhost/spinner.png") == "http://localhost/spinner.png"
+    )
+
+
+def test_sanitize_url_blocks_dangerous():
+    """Test that dangerous URL schemes are blocked."""
+    assert sanitize_url("javascript:alert('xss')") == ""
+    assert sanitize_url("data:text/html,<script>alert(1)</script>") == ""

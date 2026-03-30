@@ -15,16 +15,16 @@
 # limitations under the License.
 #
 
-# Python version installed; we need 3.8-3.11
-PYTHON=`command -v python3.11 || command -v python3.10 || command -v python3.9 || command -v python3.8`
+# Python version installed; we need 3.10-3.11
+PYTHON=`command -v python3.11 || command -v python3.10`
 
-.PHONY: install superset venv pre-commit
+.PHONY: install superset venv pre-commit up down logs ps nuke ports open
 
 install: superset pre-commit
 
 superset:
 	# Install external dependencies
-	pip install -r requirements/local.txt
+	pip install -r requirements/development.txt
 
 	# Install Superset in editable (development) mode
 	pip install -e .
@@ -53,7 +53,7 @@ update: update-py update-js
 
 update-py:
 	# Install external dependencies
-	pip install -r requirements/local.txt
+	pip install -r requirements/development.txt
 
 	# Install Superset in editable (development) mode
 	pip install -e .
@@ -70,7 +70,7 @@ update-js:
 
 venv:
 	# Create a virtual environment and activate it (recommended)
-	if ! [ -x "${PYTHON}" ]; then echo "You need Python 3.8, 3.9, 3.10 or 3.11 installed"; exit 1; fi
+	if ! [ -x "${PYTHON}" ]; then echo "You need Python 3.10 or 3.11 installed"; exit 1; fi
 	test -d venv || ${PYTHON} -m venv venv # setup a python3 virtualenv
 	. venv/bin/activate
 
@@ -79,7 +79,7 @@ activate:
 
 pre-commit:
 	# setup pre commit dependencies
-	pip3 install -r requirements/integration.txt
+	pip3 install -r requirements/development.txt
 	pre-commit install
 
 format: py-format js-format
@@ -87,14 +87,11 @@ format: py-format js-format
 py-format: pre-commit
 	pre-commit run black --all-files
 
-py-lint: pre-commit
-	pylint -j 0 superset
-
 js-format:
 	cd superset-frontend; npm run prettier
 
 flask-app:
-	flask run -p 8088 --with-threads --reload --debugger
+	flask run -p 8088 --reload --debugger
 
 node-app:
 	cd superset-frontend; npm run dev-server
@@ -115,3 +112,28 @@ report-celery-beat:
 
 admin-user:
 	superset fab create-admin
+
+# Docker Compose with auto-assigned ports (for running multiple instances)
+up:
+	./scripts/docker-compose-up.sh
+
+up-detached:
+	./scripts/docker-compose-up.sh -d
+
+down:
+	./scripts/docker-compose-up.sh down
+
+logs:
+	./scripts/docker-compose-up.sh logs -f
+
+ps:
+	./scripts/docker-compose-up.sh ps
+
+nuke:
+	./scripts/docker-compose-up.sh nuke
+
+ports:
+	./scripts/docker-compose-up.sh ports
+
+open:
+	./scripts/docker-compose-up.sh open

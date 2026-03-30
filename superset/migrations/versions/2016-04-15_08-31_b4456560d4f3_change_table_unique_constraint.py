@@ -21,6 +21,7 @@ Revises: bb51420eaf83
 Create Date: 2016-04-15 08:31:26.249591
 
 """
+
 from alembic import op
 
 # revision identifiers, used by Alembic.
@@ -35,7 +36,7 @@ def upgrade():
         op.create_unique_constraint(
             "_customer_location_uc", "tables", ["database_id", "schema", "table_name"]
         )
-    except Exception:
+    except Exception:  # noqa: S110
         pass
 
 
@@ -43,5 +44,5 @@ def downgrade():
     try:
         # Trying since sqlite doesn't like constraints
         op.drop_constraint("_customer_location_uc", "tables", type_="unique")
-    except Exception:
+    except Exception:  # noqa: S110
         pass

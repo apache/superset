@@ -23,12 +23,12 @@ from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset import is_feature_enabled
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.dashboards.schemas import EmbeddedDashboardResponseSchema
-from superset.embedded.dao import EmbeddedDAO
-from superset.embedded_dashboard.commands.exceptions import (
+from superset.commands.dashboard.embedded.exceptions import (
     EmbeddedDashboardNotFoundError,
 )
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.daos.dashboard import EmbeddedDashboardDAO
+from superset.dashboards.schemas import EmbeddedDashboardResponseSchema
 from superset.extensions import event_logger
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.reports.logs.schemas import openapi_spec_methods_override
@@ -58,7 +58,7 @@ class EmbeddedDashboardRestApi(BaseSupersetModelRestApi):
 
     embedded_response_schema = EmbeddedDashboardResponseSchema()
 
-    @expose("/<uuid>", methods=["GET"])
+    @expose("/<uuid>", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
@@ -68,18 +68,43 @@ class EmbeddedDashboardRestApi(BaseSupersetModelRestApi):
     )
     # pylint: disable=arguments-differ, arguments-renamed)
     def get(self, uuid: str) -> Response:
-        """Response
-        Returns the dashboard's embedded configuration
+        """Get the dashboard's embedded configuration.
         ---
         get:
-          description: >-
-            Returns the dashboard's embedded configuration
+          summary: >-
+            Get the dashboard's embedded configuration this endpoint is also used
+            to embed dashboards.
           parameters:
           - in: path
             schema:
               type: string
             name: uuid
             description: The embedded configuration uuid
+          - in: query
+            schema:
+              type: number
+            name: uiConfig
+            description: The ui config of embedded dashboard (optional).
+          - in: query
+            schema:
+              type: boolean
+            name: show_filters
+            description: Show filters (optional).
+          - in: query
+            schema:
+              type: boolean
+            name: expand_filters
+            description: Expand filters (optional).
+          - in: query
+            schema:
+              type: string
+            name: native_filters_key
+            description: Native filters key to apply filters. (optional).
+          - in: query
+            schema:
+              type: string
+            name: permalink_key
+            description: Permalink key to apply filters. (optional).
           responses:
             200:
               description: Result contains the embedded dashboard configuration
@@ -90,6 +115,9 @@ class EmbeddedDashboardRestApi(BaseSupersetModelRestApi):
                     properties:
                       result:
                         $ref: '#/components/schemas/EmbeddedDashboardResponseSchema'
+                text/html:
+                    schema:
+                        type: string
             401:
               $ref: '#/components/responses/401'
             404:
@@ -98,7 +126,7 @@ class EmbeddedDashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            embedded = EmbeddedDAO.find_by_id(uuid)
+            embedded = EmbeddedDashboardDAO.find_by_id(uuid)
             if not embedded:
                 raise EmbeddedDashboardNotFoundError()
             result = self.embedded_response_schema.dump(embedded)

@@ -25,21 +25,22 @@ import {
 import { defineSavedMetrics } from '@superset-ui/chart-controls';
 
 describe('defineSavedMetrics', () => {
-  it('defines saved metrics if source is a Dataset', () => {
+  test('defines saved metrics if source is a Dataset', () => {
     const dataset = {
       id: 1,
       metrics: [
         {
           metric_name: 'COUNT(*) non-default-dataset-metric',
           expression: 'COUNT(*) non-default-dataset-metric',
+          uuid: '1',
         },
       ],
       type: DatasourceType.Table,
       main_dttm_col: 'test',
-      time_grain_sqla: 'P1D',
+      time_grain_sqla: [],
       columns: [],
       verbose_map: {},
-      column_format: {},
+      column_formats: {},
       datasource_name: 'my_datasource',
       description: 'this is my datasource',
     };
@@ -47,13 +48,14 @@ describe('defineSavedMetrics', () => {
       {
         metric_name: 'COUNT(*) non-default-dataset-metric',
         expression: 'COUNT(*) non-default-dataset-metric',
+        uuid: '1',
       },
     ]);
-    // @ts-ignore
+    // @ts-expect-error
     expect(defineSavedMetrics({ ...dataset, metrics: undefined })).toEqual([]);
   });
 
-  it('returns default saved metrics if souce is a Query', () => {
+  test('returns default saved metrics if source is a Query', () => {
     expect(defineSavedMetrics(testQuery as QueryResponse)).toEqual(
       DEFAULT_METRICS,
     );

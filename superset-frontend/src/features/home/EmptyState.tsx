@@ -1,0 +1,120 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import {
+  Button,
+  EmptyState as EmptyStateComponent,
+} from '@superset-ui/core/components';
+import { TableTab } from 'src/views/CRUD/types';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
+import { navigateTo } from 'src/utils/navigationUtils';
+import { makeUrl } from 'src/utils/pathUtils';
+import { WelcomeTable } from './types';
+
+const EmptyContainer = styled.div`
+  min-height: 200px;
+  display: flex;
+  color: ${({ theme }) => theme.colorTextDescription};
+  flex-direction: column;
+  justify-content: space-around;
+`;
+
+const ICONS = {
+  [WelcomeTable.Charts]: 'empty-charts.svg',
+  [WelcomeTable.Dashboards]: 'empty-dashboard.svg',
+  [WelcomeTable.Recents]: 'union.svg',
+  [WelcomeTable.SavedQueries]: 'empty.svg',
+} as const;
+
+const LABELS = {
+  create: {
+    [WelcomeTable.Charts]: t('Chart'),
+    [WelcomeTable.Dashboards]: t('Dashboard'),
+    [WelcomeTable.SavedQueries]: t('SQL query'),
+  },
+  viewAll: {
+    [WelcomeTable.Charts]: t('charts'),
+    [WelcomeTable.Dashboards]: t('dashboards'),
+    [WelcomeTable.SavedQueries]: t('SQL Lab queries'),
+  },
+} as const;
+
+const REDIRECTS = {
+  create: {
+    [WelcomeTable.Charts]: '/chart/add',
+    [WelcomeTable.Dashboards]: '/dashboard/new',
+    [WelcomeTable.SavedQueries]: makeUrl('/sqllab?new=true'),
+  },
+  viewAll: {
+    [WelcomeTable.Charts]: '/chart/list',
+    [WelcomeTable.Dashboards]: '/dashboard/list/',
+    [WelcomeTable.SavedQueries]: '/savedqueryview/list/',
+  },
+} as const;
+
+export interface EmptyStateProps {
+  tableName: WelcomeTable;
+  tab?: string;
+  otherTabTitle?: string;
+}
+
+export default function EmptyState({ tableName, tab }: EmptyStateProps) {
+  const getActionButton = () => {
+    if (tableName === WelcomeTable.Recents) {
+      return null;
+    }
+
+    const isFavorite = tab === TableTab.Favorite;
+    const buttonText = isFavorite
+      ? LABELS.viewAll[tableName]
+      : LABELS.create[tableName];
+
+    const url = isFavorite
+      ? REDIRECTS.viewAll[tableName]
+      : REDIRECTS.create[tableName];
+
+    return (
+      <Button
+        buttonStyle="secondary"
+        onClick={() => {
+          navigateTo(url);
+        }}
+      >
+        {isFavorite
+          ? t('See all %(tableName)s', { tableName: buttonText })
+          : buttonText}
+      </Button>
+    );
+  };
+
+  const image =
+    tab === TableTab.Favorite ? 'star-circle.svg' : ICONS[tableName];
+
+  return (
+    <EmptyContainer>
+      <EmptyStateComponent
+        image={image}
+        size="large"
+        description={t('Nothing here yet')}
+      >
+        {getActionButton()}
+      </EmptyStateComponent>
+    </EmptyContainer>
+  );
+}

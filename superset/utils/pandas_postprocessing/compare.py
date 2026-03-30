@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import List, Optional
+from typing import Optional
 
 import pandas as pd
 from flask_babel import gettext as _
@@ -29,8 +29,8 @@ from superset.utils.pandas_postprocessing.utils import validate_column_args
 @validate_column_args("source_columns", "compare_columns")
 def compare(  # pylint: disable=too-many-arguments
     df: DataFrame,
-    source_columns: List[str],
-    compare_columns: List[str],
+    source_columns: list[str],
+    compare_columns: list[str],
     compare_type: PandasPostprocessingCompare,
     drop_original_columns: Optional[bool] = False,
     precision: Optional[int] = 4,
@@ -59,7 +59,7 @@ def compare(  # pylint: disable=too-many-arguments
     if len(source_columns) == 0:
         return df
 
-    for s_col, c_col in zip(source_columns, compare_columns):
+    for s_col, c_col in zip(source_columns, compare_columns, strict=False):
         s_df = df.loc[:, [s_col]]
         s_df.rename(columns={s_col: "__intermediate"}, inplace=True)
         c_df = df.loc[:, [c_col]]
@@ -81,5 +81,10 @@ def compare(  # pylint: disable=too-many-arguments
         df = pd.concat([df, diff_df], axis=1)
 
     if drop_original_columns:
-        df = df.drop(source_columns + compare_columns, axis=1)
+        level = (
+            0
+            if isinstance(df.columns, pd.MultiIndex) and df.columns.nlevels > 1
+            else None
+        )
+        df = df.drop(source_columns + compare_columns, axis=1, level=level)
     return df

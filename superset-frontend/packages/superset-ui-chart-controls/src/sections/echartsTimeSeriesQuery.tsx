@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { hasGenericChartAxes, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { ControlPanelSectionConfig, ControlSetRow } from '../types';
 import {
   contributionModeControl,
-  emitFilterControl,
-  xAxisSortControl,
+  xAxisForceCategoricalControl,
   xAxisSortAscControl,
+  xAxisSortControl,
 } from '../shared-controls';
 
 const controlsWithoutXAxis: ControlSetRow[] = [
@@ -30,8 +30,7 @@ const controlsWithoutXAxis: ControlSetRow[] = [
   ['groupby'],
   [contributionModeControl],
   ['adhoc_filters'],
-  emitFilterControl,
-  ['limit'],
+  ['limit', 'group_others_when_limit_reached'],
   ['timeseries_limit_metric'],
   ['order_desc'],
   ['row_limit'],
@@ -42,21 +41,18 @@ const controlsWithoutXAxis: ControlSetRow[] = [
 export const echartsTimeSeriesQuery: ControlPanelSectionConfig = {
   label: t('Query'),
   expanded: true,
-  controlSetRows: [
-    [hasGenericChartAxes ? 'x_axis' : null],
-    [hasGenericChartAxes ? 'time_grain_sqla' : null],
-    ...controlsWithoutXAxis,
-  ],
+  controlSetRows: [['x_axis'], ['time_grain_sqla'], ...controlsWithoutXAxis],
 };
 
 export const echartsTimeSeriesQueryWithXAxisSort: ControlPanelSectionConfig = {
   label: t('Query'),
   expanded: true,
   controlSetRows: [
-    [hasGenericChartAxes ? 'x_axis' : null],
-    [hasGenericChartAxes ? 'time_grain_sqla' : null],
-    [hasGenericChartAxes ? xAxisSortControl : null],
-    [hasGenericChartAxes ? xAxisSortAscControl : null],
+    ['x_axis'],
+    ['time_grain_sqla'],
+    [xAxisForceCategoricalControl],
+    [xAxisSortControl],
+    [xAxisSortAscControl],
     ...controlsWithoutXAxis,
   ],
 };

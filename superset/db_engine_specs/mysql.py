@@ -14,12 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
+import contextlib
+import logging
 import re
 from datetime import datetime
-from typing import Any, Dict, Optional, Pattern, Tuple
+from decimal import Decimal
+from re import Pattern
+from typing import Any, Callable, Optional, TYPE_CHECKING
 from urllib import parse
 
 from flask_babel import gettext as __
+from sqlalchemy import types
 from sqlalchemy.dialects.mysql import (
     BIT,
     DECIMAL,
@@ -34,15 +41,21 @@ from sqlalchemy.dialects.mysql import (
 )
 from sqlalchemy.engine.url import URL
 
+from superset.constants import TimeGrain
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
     BasicParametersMixin,
-    ColumnTypeMapping,
+    DatabaseCategory,
 )
 from superset.errors import SupersetErrorType
 from superset.models.sql_lab import Query
-from superset.utils import core as utils
-from superset.utils.core import ColumnSpec, GenericDataType
+from superset.utils import json
+from superset.utils.core import GenericDataType
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
+
+logger = logging.getLogger(__name__)
 
 # Regular expressions to catch custom errors
 CONNECTION_ACCESS_DENIED_REGEX = re.compile(
@@ -62,7 +75,7 @@ SYNTAX_ERROR_REGEX = re.compile(
 )
 
 
-class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
+class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
     engine = "mysql"
     engine_name = "MySQL"
     max_column_name_length = 64
@@ -72,6 +85,107 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
         "mysql://user:password@host:port/dbname[?key=value&key=value...]"
     )
     encryption_parameters = {"ssl": "1"}
+
+    supports_dynamic_schema = True
+    supports_multivalues_insert = True
+
+    metadata = {
+        "description": "MySQL is a popular open-source relational database.",
+        "logo": "mysql.png",
+        "homepage_url": "https://www.mysql.com/",
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["mysqlclient"],
+        "connection_string": "mysql://{username}:{password}@{host}/{database}",
+        "default_port": 3306,
+        "parameters": {
+            "username": "Database username",
+            "password": "Database password",
+            "host": "localhost, 127.0.0.1, IP address, or hostname",
+            "database": "Database name",
+        },
+        "host_examples": [
+            {"platform": "Localhost", "host": "localhost or 127.0.0.1"},
+            {"platform": "Docker on Linux", "host": "172.18.0.1"},
+            {"platform": "Docker on macOS", "host": "docker.for.mac.host.internal"},
+            {"platform": "On-premise", "host": "IP address or hostname"},
+        ],
+        "drivers": [
+            {
+                "name": "mysqlclient",
+                "pypi_package": "mysqlclient",
+                "connection_string": (
+                    "mysql://{username}:{password}@{host}/{database}"
+                ),
+                "is_recommended": True,
+                "notes": (
+                    "Recommended driver. May fail with caching_sha2_password auth."
+                ),
+            },
+            {
+                "name": "mysql-connector-python",
+                "pypi_package": "mysql-connector-python",
+                "connection_string": (
+                    "mysql+mysqlconnector://{username}:{password}@{host}/{database}"
+                ),
+                "is_recommended": False,
+                "notes": (
+                    "Required for newer MySQL databases using "
+                    "caching_sha2_password authentication."
+                ),
+            },
+        ],
+        "compatible_databases": [
+            {
+                "name": "MariaDB",
+                "description": (
+                    "MariaDB is a community-developed fork of MySQL, "
+                    "fully compatible with MySQL."
+                ),
+                "logo": "mariadb.png",
+                "homepage_url": "https://mariadb.org/",
+                "pypi_packages": ["mysqlclient"],
+                "connection_string": (
+                    "mysql://{username}:{password}@{host}:{port}/{database}"
+                ),
+                "categories": [DatabaseCategory.OPEN_SOURCE],
+            },
+            {
+                "name": "Amazon Aurora MySQL",
+                "description": (
+                    "Amazon Aurora MySQL is a fully managed, MySQL-compatible "
+                    "relational database with up to 5x the throughput of "
+                    "standard MySQL."
+                ),
+                "logo": "aws-aurora.jpg",
+                "homepage_url": "https://aws.amazon.com/rds/aurora/",
+                "pypi_packages": ["sqlalchemy-aurora-data-api"],
+                "connection_string": (
+                    "mysql+auroradataapi://{aws_access_id}:{aws_secret_access_key}@/"
+                    "{database_name}?aurora_cluster_arn={aurora_cluster_arn}&"
+                    "secret_arn={secret_arn}&region_name={region_name}"
+                ),
+                "parameters": {
+                    "aws_access_id": "AWS Access Key ID",
+                    "aws_secret_access_key": "AWS Secret Access Key",
+                    "database_name": "Database name",
+                    "aurora_cluster_arn": "Aurora cluster ARN",
+                    "secret_arn": "Secrets Manager ARN for credentials",
+                    "region_name": "AWS region (e.g., us-east-1)",
+                },
+                "notes": (
+                    "Uses the Data API for serverless access. "
+                    "Standard MySQL connections also work with mysqlclient."
+                ),
+                "categories": [
+                    DatabaseCategory.CLOUD_AWS,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+            },
+        ],
+    }
 
     column_type_mappings = (
         (
@@ -125,29 +239,32 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
             GenericDataType.STRING,
         ),
     )
+    column_type_mutators: dict[types.TypeEngine, Callable[[Any], Any]] = {
+        DECIMAL: lambda val: Decimal(val) if isinstance(val, str) else val
+    }
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "DATE_ADD(DATE({col}), "
+        TimeGrain.SECOND: "DATE_ADD(DATE({col}), "
         "INTERVAL (HOUR({col})*60*60 + MINUTE({col})*60"
         " + SECOND({col})) SECOND)",
-        "PT1M": "DATE_ADD(DATE({col}), "
+        TimeGrain.MINUTE: "DATE_ADD(DATE({col}), "
         "INTERVAL (HOUR({col})*60 + MINUTE({col})) MINUTE)",
-        "PT1H": "DATE_ADD(DATE({col}), " "INTERVAL HOUR({col}) HOUR)",
-        "P1D": "DATE({col})",
-        "P1W": "DATE(DATE_SUB({col}, " "INTERVAL DAYOFWEEK({col}) - 1 DAY))",
-        "P1M": "DATE(DATE_SUB({col}, " "INTERVAL DAYOFMONTH({col}) - 1 DAY))",
-        "P3M": "MAKEDATE(YEAR({col}), 1) "
+        TimeGrain.HOUR: "DATE_ADD(DATE({col}), INTERVAL HOUR({col}) HOUR)",
+        TimeGrain.DAY: "DATE({col})",
+        TimeGrain.WEEK: "DATE(DATE_SUB({col}, INTERVAL DAYOFWEEK({col}) - 1 DAY))",
+        TimeGrain.MONTH: "DATE(DATE_SUB({col}, INTERVAL DAYOFMONTH({col}) - 1 DAY))",
+        TimeGrain.QUARTER: "MAKEDATE(YEAR({col}), 1) "
         "+ INTERVAL QUARTER({col}) QUARTER - INTERVAL 1 QUARTER",
-        "P1Y": "DATE(DATE_SUB({col}, " "INTERVAL DAYOFYEAR({col}) - 1 DAY))",
-        "1969-12-29T00:00:00Z/P1W": "DATE(DATE_SUB({col}, "
+        TimeGrain.YEAR: "DATE(DATE_SUB({col}, INTERVAL DAYOFYEAR({col}) - 1 DAY))",
+        TimeGrain.WEEK_STARTING_MONDAY: "DATE(DATE_SUB({col}, "
         "INTERVAL DAYOFWEEK(DATE_SUB({col}, "
         "INTERVAL 1 DAY)) - 1 DAY))",
     }
 
-    type_code_map: Dict[int, str] = {}  # loaded from get_datatype only if needed
+    type_code_map: dict[int, str] = {}  # loaded from get_datatype only if needed
 
-    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
+    custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         CONNECTION_ACCESS_DENIED_REGEX: (
             __('Either the username "%(username)s" or the password is incorrect.'),
             SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
@@ -177,27 +294,108 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
             {},
         ),
     }
+    disallow_uri_query_params = {
+        "mysqldb": {"local_infile"},
+        "mysqlconnector": {"allow_local_infile"},
+    }
+    enforce_uri_query_params = {
+        "mysqldb": {"local_infile": 0},
+        "mysqlconnector": {"allow_local_infile": 0},
+    }
+
+    # Sensitive fields that should be masked in encrypted_extra.
+    # This follows the pattern used by other engine specs (bigquery, snowflake, etc.)
+    # that specify exact paths rather than using the base class's catch-all "$.*".
+    encrypted_extra_sensitive_fields = {
+        "$.aws_iam.external_id": "AWS IAM External ID",
+        "$.aws_iam.role_arn": "AWS IAM Role ARN",
+    }
+
+    @staticmethod
+    def update_params_from_encrypted_extra(
+        database: Database,
+        params: dict[str, Any],
+    ) -> None:
+        """
+        Extract sensitive parameters from encrypted_extra.
+
+        Handles AWS IAM authentication if configured, then merges any
+        remaining encrypted_extra keys into params.
+        """
+        if not database.encrypted_extra:
+            return
+
+        try:
+            encrypted_extra = json.loads(database.encrypted_extra)
+        except json.JSONDecodeError as ex:
+            logger.error(ex, exc_info=True)
+            raise
+
+        # Handle AWS IAM auth: pop the key so it doesn't reach create_engine()
+        iam_config = encrypted_extra.pop("aws_iam", None)
+        if iam_config and iam_config.get("enabled"):
+            from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin
+
+            AWSIAMAuthMixin._apply_iam_authentication(
+                database,
+                params,
+                iam_config,
+                # MySQL drivers (mysqlclient) use 'ssl' dict, not 'ssl_mode'.
+                # SSL is typically configured via the database's extra settings,
+                # so we pass empty ssl_args here to avoid driver compatibility issues.
+                ssl_args={},
+                default_port=3306,
+            )
+
+        # Standard behavior: merge remaining keys into params
+        if encrypted_extra:
+            params.update(encrypted_extra)
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt == utils.TemporalType.DATE:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.Date):
             return f"STR_TO_DATE('{dttm.date().isoformat()}', '%Y-%m-%d')"
-        if tt == utils.TemporalType.DATETIME:
+        if isinstance(sqla_type, types.DateTime):
             datetime_formatted = dttm.isoformat(sep=" ", timespec="microseconds")
             return f"""STR_TO_DATE('{datetime_formatted}', '%Y-%m-%d %H:%i:%s.%f')"""
         return None
 
     @classmethod
-    def adjust_database_uri(
-        cls, uri: URL, selected_schema: Optional[str] = None
-    ) -> URL:
-        if selected_schema:
-            uri = uri.set(database=parse.quote(selected_schema, safe=""))
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: dict[str, Any],
+        catalog: Optional[str] = None,
+        schema: Optional[str] = None,
+    ) -> tuple[URL, dict[str, Any]]:
+        uri, new_connect_args = super().adjust_engine_params(
+            uri,
+            connect_args,
+            catalog,
+            schema,
+        )
 
-        return uri
+        if schema:
+            uri = uri.set(database=parse.quote(schema, safe=""))
+
+        return uri, new_connect_args
+
+    @classmethod
+    def get_schema_from_engine_params(
+        cls,
+        sqlalchemy_uri: URL,
+        connect_args: dict[str, Any],
+    ) -> Optional[str]:
+        """
+        Return the configured schema.
+
+        A MySQL database is a SQLAlchemy schema.
+        """
+        return parse.unquote(sqlalchemy_uri.database)
 
     @classmethod
     def get_datatype(cls, type_code: Any) -> Optional[str]:
@@ -225,29 +423,10 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     def _extract_error_message(cls, ex: Exception) -> str:
         """Extract error message for queries"""
         message = str(ex)
-        try:
+        with contextlib.suppress(AttributeError, KeyError):
             if isinstance(ex.args, tuple) and len(ex.args) > 1:
                 message = ex.args[1]
-        except (AttributeError, KeyError):
-            pass
         return message
-
-    @classmethod
-    def get_column_spec(
-        cls,
-        native_type: Optional[str],
-        db_extra: Optional[Dict[str, Any]] = None,
-        source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
-        column_type_mappings: Tuple[ColumnTypeMapping, ...] = column_type_mappings,
-    ) -> Optional[ColumnSpec]:
-
-        column_spec = super().get_column_spec(native_type)
-        if column_spec:
-            return column_spec
-
-        return super().get_column_spec(
-            native_type, column_type_mappings=column_type_mappings
-        )
 
     @classmethod
     def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
