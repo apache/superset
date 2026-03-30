@@ -82,32 +82,19 @@ class DatasetValidator:
         # Collect all column references
         column_refs = DatasetValidator._extract_column_references(config)
 
-        # Validate each column exists
-        invalid_columns = []
-        for col_ref in column_refs:
-            if not DatasetValidator._column_exists(col_ref.name, dataset_context):
-                invalid_columns.append(col_ref)
-
-        if invalid_columns:
-            # Generate suggestions for invalid columns
-            suggestions_map = {}
-            for col_ref in invalid_columns:
-                suggestions = DatasetValidator._get_column_suggestions(
-                    col_ref.name, dataset_context
-                )
-                suggestions_map[col_ref.name] = suggestions
-
-            # Build error with suggestions
-            return False, DatasetValidator._build_column_error(
-                invalid_columns, suggestions_map, dataset_context
-            )
-
-        # Validate saved metrics exist in dataset metrics (not just columns)
+        # Validate saved metrics exist in dataset metrics specifically
         invalid_saved = DatasetValidator._validate_saved_metrics(
             column_refs, dataset_context
         )
         if invalid_saved:
             return False, invalid_saved
+
+        # Validate columns exist (skip saved metrics — already validated above)
+        column_error = DatasetValidator._validate_columns_exist(
+            column_refs, dataset_context
+        )
+        if column_error:
+            return False, column_error
 
         # Validate aggregation compatibility
         if isinstance(config, (TableChartConfig, XYChartConfig)):
@@ -118,6 +105,32 @@ class DatasetValidator:
                 return False, aggregation_errors[0]
 
         return True, None
+
+    @staticmethod
+    def _validate_columns_exist(
+        column_refs: List[ColumnRef], dataset_context: DatasetContext
+    ) -> ChartGenerationError | None:
+        """Validate that non-saved-metric column refs exist in the dataset."""
+        invalid_columns = []
+        for col_ref in column_refs:
+            if col_ref.saved_metric:
+                continue
+            if not DatasetValidator._column_exists(col_ref.name, dataset_context):
+                invalid_columns.append(col_ref)
+
+        if not invalid_columns:
+            return None
+
+        suggestions_map = {}
+        for col_ref in invalid_columns:
+            suggestions = DatasetValidator._get_column_suggestions(
+                col_ref.name, dataset_context
+            )
+            suggestions_map[col_ref.name] = suggestions
+
+        return DatasetValidator._build_column_error(
+            invalid_columns, suggestions_map, dataset_context
+        )
 
     @staticmethod
     def _get_dataset_context(dataset_id: int | str) -> DatasetContext | None:

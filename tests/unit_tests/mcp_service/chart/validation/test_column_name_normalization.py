@@ -712,10 +712,12 @@ class TestValidateSavedMetrics:
         )
         assert not is_valid
         assert error is not None
+        assert error.error_code == "INVALID_SAVED_METRIC"
 
     def test_nonexistent_saved_metric_fails(
         self, mock_dataset_context: DatasetContext
     ) -> None:
+        """A nonexistent saved metric should produce a specific error."""
         config = XYChartConfig(
             chart_type="xy",
             x=ColumnRef(name="OrderDate"),
@@ -726,3 +728,4 @@ class TestValidateSavedMetrics:
         )
         assert not is_valid
         assert error is not None
+        assert error.error_code == "INVALID_SAVED_METRIC"
