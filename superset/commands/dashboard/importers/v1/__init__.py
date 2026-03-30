@@ -87,7 +87,6 @@ class ImportDashboardsCommand(ImportModelsCommand):
             )
             db.session.commit()
         except CommandException:
-            db.session.rollback()
             raise
         except Exception as ex:
             db.session.rollback()
