@@ -23,7 +23,7 @@ import time
 from collections import defaultdict
 from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING
 
-from flask import current_app, Flask, g, Request
+from flask import current_app, Flask, g, Request, request
 from flask_appbuilder import Model
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.security.sqla.apis import RoleApi, UserApi
@@ -478,14 +478,30 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def create_login_manager(self, app: Flask) -> LoginManager:
         lm = super().create_login_manager(app)
         lm.request_loader(self.request_loader)
+
+        @app.before_request
+        def load_guest_user_from_token() -> None:
+            # pylint: disable=import-outside-toplevel
+            from superset.extensions import feature_flag_manager
+
+            if feature_flag_manager.is_feature_enabled("EMBEDDED_SUPERSET"):
+                guest_user = self.get_guest_user_from_request(request)
+                if guest_user is not None:
+                    # Preempt Flask-Login's session-based user loading.
+                    # Flask-Login's _get_user() skips _load_user() (which would
+                    # prefer the session over the request_loader) if g._login_user
+                    # is already set, so setting it here ensures the guest token
+                    # takes priority over any active session.
+                    g._login_user = guest_user
+
         return lm
 
-    def request_loader(self, request: Request) -> Optional[User]:
+    def request_loader(self, req: Request) -> Optional[User]:
         # pylint: disable=import-outside-toplevel
         from superset.extensions import feature_flag_manager
 
         if feature_flag_manager.is_feature_enabled("EMBEDDED_SUPERSET"):
-            return self.get_guest_user_from_request(request)
+            return self.get_guest_user_from_request(req)
         return None
 
     def get_catalog_perm(

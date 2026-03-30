@@ -19,7 +19,7 @@
 from unittest.mock import Mock, patch
 
 import pytest
-from flask import g
+from flask import g, session
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
@@ -98,6 +98,35 @@ class TestGuestUserSecurity(SupersetTestCase):
 
         roles = security_manager.get_user_roles()
         assert guest.roles == roles
+
+    def test_guest_token_takes_priority_over_session(self):
+        """Guest token should take priority over an active session cookie.
+
+        When a user has both a Superset session cookie (their real account) and
+        a guest token in the request headers, the guest token identity should be
+        used. Without this, users with active sessions would always be identified
+        as their real account, ignoring the guest token entirely.
+        """
+        token = security_manager.create_guest_access_token(
+            {"username": "test_guest"},
+            [{"some": "resource"}],
+            [{"dataset": 1, "clause": "access = 1"}],
+        )
+        admin = security_manager.find_user("admin")
+
+        with self.app.test_request_context(
+            headers={self.app.config["GUEST_TOKEN_HEADER_NAME"]: token}
+        ):
+            # Simulate an active session with a regular user
+            session["_user_id"] = admin.get_id()
+
+            # Run before_request hooks to simulate the request lifecycle
+            for func in self.app.before_request_funcs.get(None, []):
+                func()
+
+            # Despite the active session, the guest token should take priority
+            assert hasattr(g, "_login_user")
+            assert g._login_user.username == "test_guest"
 
 
 @patch.dict(
