@@ -1061,7 +1061,11 @@ function makeColPivotSettings(
     visibleColKeys: [[value]],
     colAttrSpans: [[1]],
     rowTotals: false,
-    colSubtotalDisplay: { enabled: false, displayOnTop: false, hideOnExpand: false },
+    colSubtotalDisplay: {
+      enabled: false,
+      displayOnTop: false,
+      hideOnExpand: false,
+    },
     maxColVisible: 1,
     pivotData: {},
     namesMapping: {},
@@ -1069,7 +1073,9 @@ function makeColPivotSettings(
   } as unknown as Parameters<TableRenderer['renderColHeaderRow']>[2];
 }
 
-function makeRowPivotSettings(): Parameters<TableRenderer['renderTableRow']>[2] {
+function makeRowPivotSettings(): Parameters<
+  TableRenderer['renderTableRow']
+>[2] {
   const aggregator = {
     value: jest.fn().mockReturnValue(1),
     format: jest.fn().mockReturnValue('1'),
@@ -1082,7 +1088,11 @@ function makeRowPivotSettings(): Parameters<TableRenderer['renderTableRow']>[2] 
     visibleColKeys: [[]],
     pivotData: { getAggregator: jest.fn().mockReturnValue(aggregator) },
     rowTotals: false,
-    rowSubtotalDisplay: { enabled: false, displayOnTop: false, hideOnExpand: false },
+    rowSubtotalDisplay: {
+      enabled: false,
+      displayOnTop: false,
+      hideOnExpand: false,
+    },
     arrowExpanded: null,
     arrowCollapsed: null,
     cellCallbacks: {},
@@ -1108,7 +1118,11 @@ test.each([
         dateFormatters: { event_time: formatter },
       },
     });
-    tableRenderer.renderColHeaderRow('event_time', 0, makeColPivotSettings(input));
+    tableRenderer.renderColHeaderRow(
+      'event_time',
+      0,
+      makeColPivotSettings(input),
+    );
     expect(formatter).toHaveBeenCalledWith(expected);
   },
 );
