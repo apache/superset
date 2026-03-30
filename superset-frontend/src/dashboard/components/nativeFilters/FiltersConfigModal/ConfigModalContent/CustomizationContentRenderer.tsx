@@ -21,6 +21,8 @@ import {
   ChartCustomization,
   ChartCustomizationType,
   ChartCustomizationDivider,
+  Divider,
+  Filter,
 } from '@superset-ui/core';
 import type { FormInstance } from '@superset-ui/core/components';
 import FiltersConfigForm from '../FiltersConfigForm/FiltersConfigForm';
@@ -29,9 +31,12 @@ import { NativeFiltersForm, FilterRemoval } from '../types';
 import { CHART_CUSTOMIZATION_DIVIDER_PREFIX } from '../utils';
 
 export interface CustomizationContentRendererProps {
+  filterIds: string[];
   chartCustomizationIds: string[];
   renderedIds: string[];
   removedItems: Record<string, FilterRemoval>;
+  filterRemovedItems: Record<string, FilterRemoval>;
+  filterConfigMap: Record<string, Filter | Divider>;
   chartCustomizationConfigMap: Record<
     string,
     ChartCustomization | ChartCustomizationDivider
@@ -49,9 +54,12 @@ export interface CustomizationContentRendererProps {
 }
 
 function CustomizationContentRenderer({
+  filterIds,
   chartCustomizationIds,
   renderedIds,
   removedItems,
+  filterRemovedItems,
+  filterConfigMap,
   chartCustomizationConfigMap,
   isItemActive,
   expanded,
@@ -90,6 +98,9 @@ function CustomizationContentRenderer({
                 itemType="chartCustomization"
                 form={form}
                 removedFilters={removedItems}
+                nativeFilterIds={filterIds}
+                nativeFilterConfigMap={filterConfigMap}
+                removedNativeFilters={filterRemovedItems}
                 restoreFilter={restoreItem}
                 customizationToEdit={
                   chartCustomizationConfigMap[id]?.type ===
@@ -113,9 +124,12 @@ function CustomizationContentRenderer({
         );
       }),
     [
+      filterIds,
       chartCustomizationIds,
       renderedIds,
       removedItems,
+      filterRemovedItems,
+      filterConfigMap,
       handleSetErroredCustomizations,
       isItemActive,
       form,

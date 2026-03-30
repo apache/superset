@@ -771,6 +771,16 @@ test('renders a filter with a chart containing BigInt values', async () => {
 });
 
 test('persists a dynamic title template and token mappings when reopened', async () => {
+  const scopedDashboardLayout = {
+    ...dashboardLayout,
+    present: {
+      ...dashboardLayout.present,
+      CHART_ID: {
+        ...dashboardLayout.present.CHART_ID,
+        parents: ['ROOT_ID'],
+      },
+    },
+  };
   const nativeFilterConfig = [
     buildNativeFilter('NATIVE_FILTER-country', 'Country', []),
   ];
@@ -807,7 +817,7 @@ test('persists a dynamic title template and token mappings when reopened', async
         chart_customization_config: [existingCustomization],
       },
     },
-    dashboardLayout,
+    dashboardLayout: scopedDashboardLayout,
     nativeFilters: {
       filters: nativeFiltersMap,
     },
@@ -887,4 +897,138 @@ test('persists a dynamic title template and token mappings when reopened', async
   expect(screen.getByRole('textbox', { name: /template/i })).toHaveValue(
     '{{chart_title}} - {{country}} (updated)',
   );
+});
+
+test('prevents saving a dynamic title when its referenced filter is removed in the same session', async () => {
+  const scopedDashboardLayout = {
+    ...dashboardLayout,
+    present: {
+      ...dashboardLayout.present,
+      CHART_ID: {
+        ...dashboardLayout.present.CHART_ID,
+        parents: ['ROOT_ID'],
+      },
+    },
+  };
+  const nativeFilterConfig = [
+    buildNativeFilter('NATIVE_FILTER-country', 'Country', []),
+    buildNativeFilter('NATIVE_FILTER-segment', 'Segment', []),
+  ];
+  const existingCustomization = {
+    id: 'CHART_CUSTOMIZATION-dynamic-title',
+    type: 'CHART_CUSTOMIZATION',
+    name: 'Sales context',
+    filterType: ChartCustomizationPlugins.DynamicTitle,
+    targets: [],
+    scope: {
+      rootPath: ['ROOT_ID'],
+      excluded: [],
+    },
+    controlValues: {
+      template: '{{chart_title}} - {{country}}',
+      tokenMappings: {
+        country: 'NATIVE_FILTER-country',
+      },
+    },
+    defaultDataMask: {},
+  };
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+        chart_customization_config: [existingCustomization],
+      },
+    },
+    dashboardLayout: scopedDashboardLayout,
+  };
+  const onSave = jest.fn();
+
+  defaultRender(state as ReturnType<typeof defaultState>, {
+    ...props,
+    createNewOnOpen: false,
+    initialFilterId: existingCustomization.id,
+    onSave,
+  });
+
+  const filterContainer = screen.getByTestId('filter-title-container');
+  const filterTabs = within(filterContainer).getAllByRole('tab');
+  const deleteCountryIcon = filterTabs[0].querySelector('[data-icon="delete"]');
+
+  fireEvent.click(deleteCountryIcon!);
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+
+  expect(
+    await screen.findByText(/update or remove invalid tokens: country/i),
+  ).toBeInTheDocument();
+  expect(onSave).not.toHaveBeenCalled();
+});
+
+test('prevents saving a dynamic title when its referenced filter is outside the selected scope', async () => {
+  const scopedDashboardLayout = {
+    ...dashboardLayout,
+    present: {
+      ...dashboardLayout.present,
+      CHART_ID: {
+        ...dashboardLayout.present.CHART_ID,
+        parents: ['ROOT_ID'],
+      },
+    },
+  };
+  const dashboardChartId = scopedDashboardLayout.present.CHART_ID.meta.chartId;
+  const nativeFilterConfig = [
+    {
+      ...buildNativeFilter('NATIVE_FILTER-country', 'Country', []),
+      scope: {
+        rootPath: ['ROOT_ID'],
+        excluded: [dashboardChartId],
+      },
+    },
+  ];
+  const existingCustomization = {
+    id: 'CHART_CUSTOMIZATION-dynamic-title',
+    type: 'CHART_CUSTOMIZATION',
+    name: 'Sales context',
+    filterType: ChartCustomizationPlugins.DynamicTitle,
+    targets: [],
+    scope: {
+      rootPath: ['ROOT_ID'],
+      excluded: [],
+    },
+    controlValues: {
+      template: '{{chart_title}} - {{country}}',
+      tokenMappings: {
+        country: 'NATIVE_FILTER-country',
+      },
+    },
+    defaultDataMask: {},
+  };
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+        chart_customization_config: [existingCustomization],
+      },
+    },
+    dashboardLayout: scopedDashboardLayout,
+  };
+  const onSave = jest.fn();
+
+  defaultRender(state as ReturnType<typeof defaultState>, {
+    ...props,
+    createNewOnOpen: false,
+    initialFilterId: existingCustomization.id,
+    onSave,
+  });
+
+  fireEvent.change(screen.getByRole('textbox', { name: /template/i }), {
+    target: { value: '{{chart_title}} - {{country}} (updated)' },
+  });
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+
+  expect(
+    await screen.findByText(/update or remove invalid tokens: country/i),
+  ).toBeInTheDocument();
+  expect(onSave).not.toHaveBeenCalled();
 });

@@ -27,6 +27,7 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   Filter,
+  Divider,
   ChartCustomization,
   ChartCustomizationDivider,
   ChartCustomizationType,
@@ -106,6 +107,7 @@ import {
 import {
   ChartCustomizationsFormItem,
   FilterRemoval,
+  NativeFiltersFormItem,
   NativeFiltersForm,
 } from '../types';
 import { isChartCustomizationId } from '../utils';
@@ -184,6 +186,12 @@ const DynamicTitleHint = styled.div`
     margin-top: ${theme.sizeUnit * 2}px;
     color: ${theme.colorTextSecondary};
     font-size: ${theme.fontSizeSM}px;
+  `}
+`;
+
+const DynamicTitleFieldGroup = styled.div<{ expanded: boolean }>`
+  ${({ expanded }) => `
+    width: ${expanded ? '49%' : `${FORM_ITEM_WIDTH}px`};
   `}
 `;
 
@@ -299,6 +307,9 @@ export interface FiltersConfigFormProps {
   filterId: string;
   filterToEdit?: Filter;
   customizationToEdit?: ChartCustomization;
+  nativeFilterIds: string[];
+  nativeFilterConfigMap: Record<string, Filter | Divider>;
+  removedNativeFilters: Record<string, FilterRemoval>;
   chartCustomizationConfigMap?: Record<
     string,
     ChartCustomization | ChartCustomizationDivider
@@ -341,6 +352,9 @@ const FiltersConfigForm = (
     filterId,
     filterToEdit,
     customizationToEdit,
+    nativeFilterIds,
+    nativeFilterConfigMap,
+    removedNativeFilters,
     chartCustomizationConfigMap = {},
     itemType = 'filter',
     removedFilters,
@@ -367,9 +381,6 @@ const FiltersConfigForm = (
   );
   const dashboardId = useSelector<RootState, number>(
     state => state.dashboardInfo.id,
-  );
-  const nativeFiltersState = useSelector(
-    (state: RootState) => state.nativeFilters.filters,
   );
   const dataMask = useSelector<RootState, DataMaskStateWithId>(
     state => state.dataMask,
@@ -816,61 +827,64 @@ const FiltersConfigForm = (
       }, {}),
     [chartLayoutItems],
   );
-  const availableDynamicTitleFilters = useMemo(
-    () =>
-      Object.values(nativeFiltersState)
-        .filter(
-          (filter): filter is Filter =>
-            filter.type === NativeFilterType.NativeFilter,
-        )
-        .map(filter => ({
-          id: filter.id,
-          name: filter.name,
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name)),
-    [nativeFiltersState],
-  );
-  const dynamicTitleTokenOptions = useMemo<DynamicTitleTokenOption[]>(
-    () => [
-      {
-        value: BUILT_IN_CHART_TITLE_TOKEN_VALUE,
-        label: t('Current chart title'),
-        alias: DYNAMIC_TITLE_CHART_TITLE_ALIAS,
-        kind: 'built_in',
-      },
-      ...availableDynamicTitleFilters.map(filter => ({
-        value: filter.id,
-        label: filter.name,
-        alias: filter.name,
-        kind: 'filter' as const,
-        filterId: filter.id,
-      })),
-    ],
-    [availableDynamicTitleFilters],
-  );
-  const dynamicTitleControlValues = getDynamicTitleControlValues(
-    isDynamicTitleCustomization ? customizationToEdit : undefined,
-  );
-  const dynamicTitleTemplate =
-    formFilter?.controlValues?.template ??
-    dynamicTitleControlValues.template ??
-    '';
-  const dynamicTitleTokenMappings = useMemo(
-    () =>
-      (formFilter?.controlValues?.tokenMappings ??
-        dynamicTitleControlValues.tokenMappings ??
-        {}) as DynamicTitleTokenMappings,
+  const getNativeFilterChartsInScope = useCallback(
+    (nativeFilterId: string): number[] => {
+      if (removedNativeFilters[nativeFilterId]) {
+        return [];
+      }
+
+      const formNativeFilter = form.getFieldValue([
+        'filters',
+        nativeFilterId,
+      ]) as NativeFiltersFormItem | undefined;
+      const savedNativeFilter = nativeFilterConfigMap[nativeFilterId];
+      const nativeFilter =
+        formNativeFilter?.type === NativeFilterType.NativeFilter
+          ? formNativeFilter
+          : savedNativeFilter?.type === NativeFilterType.NativeFilter
+            ? savedNativeFilter
+            : undefined;
+
+      if (!nativeFilter) {
+        return [];
+      }
+
+      const scope = formNativeFilter?.scope ?? nativeFilter.scope;
+
+      if (scope && Array.isArray(scope.excluded)) {
+        return getChartIdsInFilterScope(
+          scope,
+          dashboardChartIds,
+          chartLayoutItems,
+        );
+      }
+
+      return 'chartsInScope' in nativeFilter &&
+        Array.isArray(nativeFilter.chartsInScope)
+        ? nativeFilter.chartsInScope
+        : [];
+    },
     [
-      formFilter?.controlValues?.tokenMappings,
-      dynamicTitleControlValues.tokenMappings,
+      chartLayoutItems,
+      dashboardChartIds,
+      form,
+      nativeFilterConfigMap,
+      removedNativeFilters,
     ],
   );
-  const dynamicTitleFilterIds = useMemo(
-    () => new Set(availableDynamicTitleFilters.map(filter => filter.id)),
-    [availableDynamicTitleFilters],
+  const doesNativeFilterCoverCharts = useCallback(
+    (nativeFilterId: string, chartIds: number[]) => {
+      if (chartIds.length === 0) {
+        return true;
+      }
+
+      const nativeFilterCharts = new Set(
+        getNativeFilterChartsInScope(nativeFilterId),
+      );
+      return chartIds.every(chartId => nativeFilterCharts.has(chartId));
+    },
+    [getNativeFilterChartsInScope],
   );
-  const dynamicTitleUsesChartTitleToken =
-    usesChartTitleToken(dynamicTitleTemplate);
   const hasAvailableFilters = availableFilters.length > 0;
   const hasTimeDependency = availableFilters
     .filter(filter => filter.type === 'filter_time')
@@ -943,11 +957,95 @@ const FiltersConfigForm = (
       removedFilters,
     ],
   );
-
   const currentDynamicTitleScopeCandidate = useMemo(
     () => getDynamicTitleScopeCandidate(filterId),
     [filterId, getDynamicTitleScopeCandidate],
   );
+  const currentDynamicTitleChartIds =
+    currentDynamicTitleScopeCandidate?.chartsInScope || [];
+  const availableDynamicTitleFilters = useMemo(
+    () =>
+      nativeFilterIds
+        .filter(id => !removedNativeFilters[id])
+        .map(id => {
+          const formFilter = filters?.[id];
+          const savedFilter = nativeFilterConfigMap[id];
+          const filter =
+            formFilter?.type === NativeFilterType.NativeFilter
+              ? formFilter
+              : savedFilter?.type === NativeFilterType.NativeFilter
+                ? savedFilter
+                : undefined;
+
+          if (!filter) {
+            return null;
+          }
+
+          if (
+            currentDynamicTitleChartIds.length > 0 &&
+            !doesNativeFilterCoverCharts(id, currentDynamicTitleChartIds)
+          ) {
+            return null;
+          }
+
+          return {
+            id,
+            name: filter.name || t('[untitled]'),
+          };
+        })
+        .filter((filter): filter is { id: string; name: string } => !!filter)
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [
+      currentDynamicTitleChartIds,
+      doesNativeFilterCoverCharts,
+      filters,
+      nativeFilterConfigMap,
+      nativeFilterIds,
+      removedNativeFilters,
+    ],
+  );
+  const dynamicTitleTokenOptions = useMemo<DynamicTitleTokenOption[]>(
+    () => [
+      {
+        value: BUILT_IN_CHART_TITLE_TOKEN_VALUE,
+        label: t('Current chart title'),
+        alias: DYNAMIC_TITLE_CHART_TITLE_ALIAS,
+        kind: 'built_in',
+      },
+      ...availableDynamicTitleFilters.map(filter => ({
+        value: filter.id,
+        label: filter.name,
+        alias: filter.name,
+        kind: 'filter' as const,
+        filterId: filter.id,
+      })),
+    ],
+    [availableDynamicTitleFilters],
+  );
+  const dynamicTitleControlValues = getDynamicTitleControlValues(
+    isDynamicTitleCustomization ? customizationToEdit : undefined,
+  );
+  const dynamicTitleTemplate =
+    formFilter?.controlValues?.template ??
+    dynamicTitleControlValues.template ??
+    '';
+  const dynamicTitleTokenMappings = useMemo(
+    () =>
+      (formFilter?.controlValues?.tokenMappings ??
+        dynamicTitleControlValues.tokenMappings ??
+        {}) as DynamicTitleTokenMappings,
+    [
+      formFilter?.controlValues?.tokenMappings,
+      dynamicTitleControlValues.tokenMappings,
+    ],
+  );
+  const dynamicTitleFilterIds = useMemo(
+    () => new Set(availableDynamicTitleFilters.map(filter => filter.id)),
+    [availableDynamicTitleFilters],
+  );
+  const dynamicTitleUsesChartTitleToken =
+    usesChartTitleToken(dynamicTitleTemplate);
+
   const currentDynamicTitleScopeLabel = useMemo(() => {
     const chartsInScope =
       currentDynamicTitleScopeCandidate?.chartsInScope || [];
@@ -977,8 +1075,23 @@ const FiltersConfigForm = (
       ...Object.entries(dynamicTitleTokenMappings).reduce<
         Record<string, string | undefined>
       >((acc, [alias, mappedFilterId]) => {
-        const filter = nativeFiltersState[mappedFilterId];
-        if (!filter || filter.type !== NativeFilterType.NativeFilter) {
+        const filter = nativeFilterConfigMap[mappedFilterId];
+        if (
+          removedNativeFilters[mappedFilterId] ||
+          !filter ||
+          filter.type !== NativeFilterType.NativeFilter
+        ) {
+          acc[alias] = undefined;
+          return acc;
+        }
+
+        if (
+          currentDynamicTitleChartIds.length > 0 &&
+          !doesNativeFilterCoverCharts(
+            mappedFilterId,
+            currentDynamicTitleChartIds,
+          )
+        ) {
           acc[alias] = undefined;
           return acc;
         }
@@ -997,11 +1110,14 @@ const FiltersConfigForm = (
 
     return renderDynamicTitleTemplate(dynamicTitleTemplate, aliasValues);
   }, [
+    currentDynamicTitleChartIds,
     dataMask,
+    doesNativeFilterCoverCharts,
     dynamicTitleTemplate,
     dynamicTitleTokenMappings,
-    nativeFiltersState,
+    nativeFilterConfigMap,
     previewChartTitle,
+    removedNativeFilters,
   ]);
 
   const validateDynamicTitleScopeOverlap = useCallback(async () => {
@@ -1549,98 +1665,105 @@ const FiltersConfigForm = (
                                           }}
                                         />
                                       </StyledFormItem>
-                                      <StyledFormItem
+                                      <DynamicTitleFieldGroup
                                         expanded={expanded}
-                                        name={[
-                                          'filters',
-                                          filterId,
-                                          'controlValues',
-                                          'template',
-                                        ]}
-                                        initialValue={dynamicTitleTemplate}
-                                        label={
-                                          <>
-                                            <StyledLabel>
-                                              {t('Template')}
-                                            </StyledLabel>
-                                            &nbsp;
-                                            <InfoTooltip
-                                              placement="top"
-                                              tooltip={t(
-                                                'Use {{chart_title}} to keep each chart title, and filter tokens like {{country}} to append dashboard context.',
-                                              )}
-                                            />
-                                          </>
-                                        }
-                                        rules={[
-                                          {
-                                            required: !isRemoved,
-                                            message: t('Template is required'),
-                                          },
-                                          {
-                                            validator: async (_, value) => {
-                                              const aliases =
-                                                extractDynamicTitleAliases(
-                                                  value,
-                                                );
-                                              const missingAliases =
-                                                aliases.filter(
-                                                  alias =>
-                                                    !isBuiltInDynamicTitleAlias(
-                                                      alias,
-                                                    ) &&
-                                                    !dynamicTitleTokenMappings[
-                                                      alias
-                                                    ],
-                                                );
-                                              if (missingAliases.length > 0) {
-                                                throw new Error(
-                                                  t(
-                                                    'Insert tokens for: %s',
-                                                    missingAliases.join(', '),
-                                                  ),
-                                                );
-                                              }
-
-                                              const invalidAliases =
-                                                aliases.filter(alias => {
-                                                  const mappedFilterId =
-                                                    dynamicTitleTokenMappings[
-                                                      alias
-                                                    ];
-                                                  return (
-                                                    !!mappedFilterId &&
-                                                    !dynamicTitleFilterIds.has(
-                                                      mappedFilterId,
-                                                    )
-                                                  );
-                                                });
-                                              if (invalidAliases.length > 0) {
-                                                throw new Error(
-                                                  t(
-                                                    'Update or remove invalid tokens: %s',
-                                                    invalidAliases.join(', '),
-                                                  ),
-                                                );
-                                              }
-
-                                              await validateDynamicTitleScopeOverlap();
-                                            },
-                                          },
-                                        ]}
                                       >
-                                        <Input.TextArea
-                                          rows={4}
-                                          value={dynamicTitleTemplate}
-                                          placeholder={t(
-                                            'Example: {{chart_title}} - {{country}}',
-                                          )}
-                                          onChange={event => {
-                                            updateDynamicTitleControlValues({
-                                              template: event.target.value,
-                                            });
-                                          }}
-                                        />
+                                        <StyledFormItem
+                                          expanded={expanded}
+                                          name={[
+                                            'filters',
+                                            filterId,
+                                            'controlValues',
+                                            'template',
+                                          ]}
+                                          initialValue={dynamicTitleTemplate}
+                                          label={
+                                            <>
+                                              <StyledLabel>
+                                                {t('Template')}
+                                              </StyledLabel>
+                                              &nbsp;
+                                              <InfoTooltip
+                                                placement="top"
+                                                tooltip={t(
+                                                  'Use {{chart_title}} to keep each chart title, and filter tokens like {{country}} to append dashboard context.',
+                                                )}
+                                              />
+                                            </>
+                                          }
+                                          rules={[
+                                            {
+                                              required: !isRemoved,
+                                              message: t(
+                                                'Template is required',
+                                              ),
+                                            },
+                                            {
+                                              validator: async (_, value) => {
+                                                const aliases =
+                                                  extractDynamicTitleAliases(
+                                                    value,
+                                                  );
+                                                const missingAliases =
+                                                  aliases.filter(
+                                                    alias =>
+                                                      !isBuiltInDynamicTitleAlias(
+                                                        alias,
+                                                      ) &&
+                                                      !dynamicTitleTokenMappings[
+                                                        alias
+                                                      ],
+                                                  );
+                                                if (missingAliases.length > 0) {
+                                                  throw new Error(
+                                                    t(
+                                                      'Insert tokens for: %s',
+                                                      missingAliases.join(', '),
+                                                    ),
+                                                  );
+                                                }
+
+                                                const invalidAliases =
+                                                  aliases.filter(alias => {
+                                                    const mappedFilterId =
+                                                      dynamicTitleTokenMappings[
+                                                        alias
+                                                      ];
+                                                    return (
+                                                      !!mappedFilterId &&
+                                                      !dynamicTitleFilterIds.has(
+                                                        mappedFilterId,
+                                                      )
+                                                    );
+                                                  });
+                                                if (invalidAliases.length > 0) {
+                                                  throw new Error(
+                                                    t(
+                                                      'Update or remove invalid tokens: %s',
+                                                      invalidAliases.join(', '),
+                                                    ),
+                                                  );
+                                                }
+
+                                                await validateDynamicTitleScopeOverlap();
+                                              },
+                                            },
+                                          ]}
+                                        >
+                                          <Input.TextArea
+                                            aria-label={t('Template')}
+                                            rows={4}
+                                            value={dynamicTitleTemplate}
+                                            placeholder={t(
+                                              'Example: {{chart_title}} - {{country}}',
+                                            )}
+                                            onChange={event => {
+                                              updateDynamicTitleControlValues({
+                                                template: event.target.value,
+                                              });
+                                            }}
+                                          />
+                                        </StyledFormItem>
                                         <DynamicTitleHint>
                                           {t(
                                             'Applied to: %s. Use {{chart_title}} when the scope includes multiple charts.',
@@ -1657,7 +1780,7 @@ const FiltersConfigForm = (
                                               )}
                                             </DynamicTitleHint>
                                           )}
-                                      </StyledFormItem>
+                                      </DynamicTitleFieldGroup>
                                     </StyledRowContainer>
                                     <StyledRowContainer justify="space-between">
                                       <StyledFormItem
