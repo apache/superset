@@ -123,6 +123,10 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
 - chart_type="pie": Pie chart for proportional data (set donut=True for donut)
 - chart_type="pivot_table": Interactive pivot table for cross-tabulation
 - chart_type="mixed_timeseries": Dual-series chart combining two chart types
+- chart_type="handlebars": Custom HTML template chart (KPI cards, leaderboards, reports)
+  Requires handlebars_template with Handlebars HTML template string.
+  Supports query_mode="aggregate" (with metrics/groupby) or "raw" (with columns).
+  Data available as {{{{data}}}} array; helpers: dateFormat, formatNumber, stringify.
 
 Time grain for temporal x-axis (time_grain parameter):
 - PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P1Y (yearly)
@@ -155,8 +159,8 @@ CRITICAL RULES - NEVER VIOLATE:
   open_sql_lab_with_context, etc.) and use the URL it returns.
 - To modify an existing chart's filters, metrics, or dimensions, use update_chart.
   Do NOT use execute_sql for chart modifications.
-- Parameter name reminders: open_sql_lab_with_context uses "sql" (not "query"),
-  execute_sql uses "sql" (not "query").
+- Parameter name reminders: ALWAYS use the EXACT parameter names from the tool schema.
+  Do NOT use Superset's internal form_data names.
 
 IMPORTANT - Tool-Only Interaction:
 - Do NOT generate code artifacts, HTML pages, JavaScript snippets, or any code intended
