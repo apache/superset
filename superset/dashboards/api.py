@@ -1402,7 +1402,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         )
         # Don't shrink the image if thumb_size is not specified
         thumb_size = kwargs["rison"].get("thumb_size") or window_size
-        force = kwargs["rison"].get("force", True)
+        force = kwargs["rison"].get("force", False)
         dashboard_state: DashboardPermalinkState = {
             "dataMask": payload.get("dataMask", {}),
             "activeTabs": payload.get("activeTabs", []),

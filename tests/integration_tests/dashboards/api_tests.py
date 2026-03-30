@@ -3481,12 +3481,10 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         security_manager.add_permission_role(gamma_role, write_tags_perm)
         security_manager.add_permission_role(gamma_role, tag_dashboards_perm)
 
-    def _cache_screenshot(self, dashboard_id, payload=None, force=None):
+    def _cache_screenshot(self, dashboard_id, payload=None):
         if payload is None:
             payload = {"dataMask": {}, "activeTabs": [], "anchor": "", "urlParams": []}
         uri = f"/api/v1/dashboard/{dashboard_id}/cache_dashboard_screenshot/"
-        if force is not None:
-            uri += f"?q={prison.dumps({'force': force})}"
         return self.client.post(uri, json=payload)
 
     def _get_screenshot(self, dashboard_id, cache_key, download_format):
@@ -3504,31 +3502,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         )
         response = self._cache_screenshot(dashboard.id)
         assert response.status_code == 202
-
-    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
-    @pytest.mark.usefixtures("create_dashboard_with_tag")
-    @patch("superset.dashboards.api.cache_dashboard_screenshot")
-    def test_cache_dashboard_screenshot_force_true_by_default(self, mock_cache_task):
-        """
-        Verify that force=True is passed by default when caching dashboard screenshots.
-        Downloads should always generate fresh screenshots to reflect current data.
-        """
-        self.login(ADMIN_USERNAME)
-        dashboard = (
-            db.session.query(Dashboard)
-            .filter(Dashboard.dashboard_title == "dash with tag")
-            .first()
-        )
-        response = self._cache_screenshot(dashboard.id)
-        assert response.status_code == 202
-
-        # Verify force=True was passed to the Celery task
-        mock_cache_task.delay.assert_called_once()
-        call_kwargs = mock_cache_task.delay.call_args.kwargs
-        assert call_kwargs.get("force") is True, (
-            "force should be True by default to ensure downloads always generate "
-            "fresh screenshots"
-        )
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
@@ -3586,8 +3559,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
         )
-        # Use force=False to test returning cached image (status 200)
-        cache_resp = self._cache_screenshot(dashboard.id, force=False)
+        cache_resp = self._cache_screenshot(dashboard.id)
         assert cache_resp.status_code == 200
         cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
 
@@ -3597,7 +3569,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert response.data == b"fake image data"
 
         mock_get_from_cache_key.return_value = ScreenshotCachePayload()
-        cache_resp = self._cache_screenshot(dashboard.id, force=False)
+        cache_resp = self._cache_screenshot(dashboard.id)
         assert cache_resp.status_code == 202
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
@@ -3626,8 +3598,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
         )
-        # Use force=False to test returning cached image (status 200)
-        cache_resp = self._cache_screenshot(dashboard.id, force=False)
+        cache_resp = self._cache_screenshot(dashboard.id)
         assert cache_resp.status_code == 200
         cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
 
@@ -3637,7 +3608,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert response.data == b"fake pdf data"
 
         mock_get_from_cache_key.return_value = ScreenshotCachePayload()
-        cache_resp = self._cache_screenshot(dashboard.id, force=False)
+        cache_resp = self._cache_screenshot(dashboard.id)
         assert cache_resp.status_code == 202
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
@@ -3685,13 +3656,12 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             .first()
         )
 
-        # Use force=False to test returning cached image (status 200)
-        cache_resp = self._cache_screenshot(dashboard.id, force=False)
+        cache_resp = self._cache_screenshot(dashboard.id)
         assert cache_resp.status_code == 200
         cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
 
         mock_get_from_cache_key.return_value = ScreenshotCachePayload()
-        cache_resp = self._cache_screenshot(dashboard.id, force=False)
+        cache_resp = self._cache_screenshot(dashboard.id)
         assert cache_resp.status_code == 202
 
         response = self._get_screenshot(dashboard.id, cache_key, "invalid")
@@ -3721,8 +3691,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             .first()
         )
 
-        # Use force=False to test returning cached image (status 200)
-        cache_resp = self._cache_screenshot(dashboard.id, force=False)
+        cache_resp = self._cache_screenshot(dashboard.id)
         assert cache_resp.status_code == 200
         cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
 
@@ -3758,8 +3727,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         db.session.add(dashboard)
         db.session.commit()
 
-        # Use force=False to test returning cached image (status 200)
-        cache_resp = self._cache_screenshot(dashboard.id, force=False)
+        cache_resp = self._cache_screenshot(dashboard.id)
         assert cache_resp.status_code == 200
         cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
 
