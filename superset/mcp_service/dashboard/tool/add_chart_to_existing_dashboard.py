@@ -438,25 +438,62 @@ def add_chart_to_existing_dashboard(
 
         # Re-fetch the dashboard with eager-loaded relationships to avoid
         # "Instance is not bound to a Session" errors when serializing
-        # chart .tags and .owners.
+        # chart .tags and .owners.  The preceding command.run() commit may
+        # invalidate the session in multi-tenant environments; on failure,
+        # return a minimal response using only scalar attributes that are
+        # already loaded — relationship fields (owners, tags, slices) would
+        # trigger lazy-loading on the same dead session.
         from sqlalchemy.orm import subqueryload
 
-        from superset.daos.dashboard import DashboardDAO
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
 
-        updated_dashboard = (
-            DashboardDAO.find_by_id(
-                updated_dashboard.id,
-                query_options=[
-                    subqueryload(Dashboard.slices).subqueryload(Slice.owners),
-                    subqueryload(Dashboard.slices).subqueryload(Slice.tags),
-                    subqueryload(Dashboard.owners),
-                    subqueryload(Dashboard.tags),
-                ],
+        try:
+            updated_dashboard = (
+                DashboardDAO.find_by_id(
+                    updated_dashboard.id,
+                    query_options=[
+                        subqueryload(Dashboard.slices).subqueryload(Slice.owners),
+                        subqueryload(Dashboard.slices).subqueryload(Slice.tags),
+                        subqueryload(Dashboard.owners),
+                        subqueryload(Dashboard.tags),
+                    ],
+                )
+                or updated_dashboard
             )
-            or updated_dashboard
-        )
+        except SQLAlchemyError:
+            logger.warning(
+                "Re-fetch of dashboard %s failed; returning minimal response",
+                updated_dashboard.id,
+                exc_info=True,
+            )
+            try:
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+            except SQLAlchemyError:
+                logger.warning(
+                    "Database rollback failed during dashboard re-fetch error handling",
+                    exc_info=True,
+                )
+            dashboard_url = (
+                f"{get_superset_base_url()}/superset/dashboard/{updated_dashboard.id}/"
+            )
+            position_info = {
+                "row": row_key,
+                "chart_key": chart_key,
+                "row_key": row_key,
+            }
+            return AddChartToDashboardResponse(
+                dashboard=DashboardInfo(
+                    id=updated_dashboard.id,
+                    dashboard_title=updated_dashboard.dashboard_title,
+                    published=updated_dashboard.published,
+                    chart_count=len(all_chart_objects),
+                    url=dashboard_url,
+                ),
+                dashboard_url=dashboard_url,
+                position=position_info,
+                error=None,
+            )
 
         # Convert to response format
         from superset.mcp_service.dashboard.schemas import (
@@ -514,6 +551,14 @@ def add_chart_to_existing_dashboard(
         )
 
     except (CommandException, SQLAlchemyError, KeyError, ValueError) as e:
+        from superset import db
+
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError:
+            logger.warning(
+                "Database rollback failed during error handling", exc_info=True
+            )
         logger.error("Error adding chart to dashboard: %s", e)
         return AddChartToDashboardResponse(
             dashboard=None,

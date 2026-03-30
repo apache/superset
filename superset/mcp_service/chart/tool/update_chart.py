@@ -24,6 +24,7 @@ import time
 
 from fastmcp import Context
 from mcp.types import ToolAnnotations
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.exceptions import CommandException
 from superset.extensions import event_logger
@@ -270,7 +271,21 @@ async def update_chart(
         }
         return GenerateChartResponse.model_validate(result)
 
-    except (CommandException, ValueError, KeyError, AttributeError) as e:
+    except (
+        CommandException,
+        SQLAlchemyError,
+        ValueError,
+        KeyError,
+        AttributeError,
+    ) as e:
+        from superset import db
+
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError:
+            logger.warning(
+                "Database rollback failed during error handling", exc_info=True
+            )
         execution_time = int((time.time() - start_time) * 1000)
         return GenerateChartResponse.model_validate(
             {
