@@ -53,6 +53,7 @@ import {
   setColorScheme,
   setDashboardMetadata,
 } from 'src/dashboard/actions/dashboardState';
+import { dashboardInfoChanged } from 'src/dashboard/actions/dashboardInfo';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { StandardModal, useModalValidation } from 'src/components/Modal';
 import { validateRefreshFrequency } from '../RefreshFrequency';
@@ -143,6 +144,8 @@ const PropertiesModal = ({
   >([]);
   const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
   const originalDashboardMetadata = useRef<Record<string, any>>({});
+  const originalCss = useRef<string | null>(null);
+  const cssDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleErrorResponse = async (response: Response) => {
     const { error, statusText, message } = await getClientErrorObject(response);
@@ -195,6 +198,9 @@ const PropertiesModal = ({
       setOwners(owners);
       setRoles(roles);
       setCustomCss(css || '');
+      if (originalCss.current === null) {
+        originalCss.current = css || '';
+      }
       setCurrentColorScheme(metadata?.color_scheme);
       setSelectedThemeId(theme?.id || null);
 
@@ -269,7 +275,16 @@ const PropertiesModal = ({
     setRoles(parsedRoles);
   };
 
-  const handleOnCancel = () => onHide();
+  const handleOnCancel = () => {
+    if (cssDebounceTimer.current) {
+      clearTimeout(cssDebounceTimer.current);
+    }
+    dispatch(dashboardInfoChanged({ css: originalCss.current ?? '' }));
+    dispatch(
+      setColorScheme(originalDashboardMetadata.current.color_scheme ?? ''),
+    );
+    onHide();
+  };
 
   const onColorSchemeChange = (
     colorScheme = '',
@@ -428,6 +443,14 @@ const PropertiesModal = ({
       }, handleErrorResponse);
     }
   };
+
+  // Must be defined before the data-loading effect so it runs first when show
+  // becomes true, ensuring handleDashboardData sees null and captures original CSS
+  useEffect(() => {
+    if (show) {
+      originalCss.current = null;
+    }
+  }, [show]);
 
   useEffect(() => {
     if (show) {
@@ -596,6 +619,21 @@ const PropertiesModal = ({
 
   const isDataReady = !isLoading && dashboardInfo;
 
+  // Debounced live CSS preview so changes are reflected on the dashboard
+  // without clicking Apply. Called only on user edits, not on data load.
+  const handleCustomCssChange = useCallback(
+    (css: string) => {
+      setCustomCss(css);
+      if (cssDebounceTimer.current) {
+        clearTimeout(cssDebounceTimer.current);
+      }
+      cssDebounceTimer.current = setTimeout(() => {
+        dispatch(dashboardInfoChanged({ css }));
+      }, 500);
+    },
+    [dispatch],
+  );
+
   // Validate basic section when title changes or data loads
   useEffect(() => {
     if (isDataReady) {
@@ -722,7 +760,7 @@ const PropertiesModal = ({
                   showChartTimestamps={showChartTimestamps}
                   onThemeChange={handleThemeChange}
                   onColorSchemeChange={onColorSchemeChange}
-                  onCustomCssChange={setCustomCss}
+                  onCustomCssChange={handleCustomCssChange}
                   onShowChartTimestampsChange={setShowChartTimestamps}
                   addDangerToast={addDangerToast}
                 />
