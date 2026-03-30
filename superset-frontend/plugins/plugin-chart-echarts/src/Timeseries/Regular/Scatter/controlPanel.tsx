@@ -121,6 +121,8 @@ const config: ControlPanelConfig = {
                   controls?.datasource?.datasource,
                   [GenericDataType.Temporal],
                 ),
+              disableStash: true,
+              resetOnHide: false,
             },
           },
           {
