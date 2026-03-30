@@ -43,7 +43,6 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
 )
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
-from superset.mcp_service.utils.schema_utils import parse_request
 from superset.utils.core import merge_extra_filters
 
 logger = logging.getLogger(__name__)
@@ -83,7 +82,6 @@ def _get_cached_form_data(form_data_key: str) -> str | None:
         destructiveHint=False,
     ),
 )
-@parse_request(GetChartDataRequest)
 async def get_chart_data(  # noqa: C901
     request: GetChartDataRequest, ctx: Context
 ) -> ChartData | ChartError:
