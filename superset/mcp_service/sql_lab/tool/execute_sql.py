@@ -22,8 +22,6 @@ Tool for executing SQL queries against databases using the unified
 Database.execute() API with RLS, template rendering, and security validation.
 """
 
-from __future__ import annotations
-
 import logging
 from decimal import Decimal
 from typing import Any
@@ -48,7 +46,6 @@ from superset.mcp_service.sql_lab.schemas import (
     StatementData,
     StatementInfo,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +60,6 @@ logger = logging.getLogger(__name__)
         destructiveHint=True,
     ),
 )
-@parse_request(ExecuteSqlRequest)
 async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlResponse:
     """Execute SQL query against database using the unified Database.execute() API."""
     await ctx.info(
