@@ -192,7 +192,7 @@ def test_import_dashboard_do_not_overwrite_charts_and_datasets(
     final_chart_changed_on = imported_chart.changed_on.strftime("%Y-%m-%d %H:%M:%S")
     final_dataset_changed_on = imported_dataset.changed_on.strftime("%Y-%m-%d %H:%M:%S")
 
-    # asserting the changed_on field was updated on all three records
+    # asserting the changed_on field was updated on dashboard but not on charts and datasets
     assert initial_dashboard_changed_on != final_dashboard_changed_on
     assert initial_chart_changed_on == final_chart_changed_on
     assert initial_dataset_changed_on == final_dataset_changed_on
