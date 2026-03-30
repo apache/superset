@@ -378,3 +378,137 @@ def test_get_native_filters_params_unknown_filter_type():
     assert len(warnings) == 1
     assert "unrecognized filter type" in warnings[0]
     assert "filter_unknown_type" in warnings[0]
+
+
+def test_report_generate_native_filter_time_empty_values():
+    """
+    Test filter_time with empty values returns empty dict and warning.
+    """
+    report_schedule = ReportSchedule()
+    result, warning = report_schedule._generate_native_filter(
+        "filter_id", "filter_time", "column_name", []
+    )
+    assert result == {}
+    assert warning is not None
+    assert "filter_time" in warning
+    assert "empty filterValues" in warning
+    assert "filter_id" in warning
+
+
+def test_report_generate_native_filter_timegrain_empty_values():
+    """
+    Test filter_timegrain with empty values returns empty dict and warning.
+    """
+    report_schedule = ReportSchedule()
+    result, warning = report_schedule._generate_native_filter(
+        "filter_id", "filter_timegrain", "column_name", []
+    )
+    assert result == {}
+    assert warning is not None
+    assert "filter_timegrain" in warning
+    assert "empty filterValues" in warning
+    assert "filter_id" in warning
+
+
+def test_report_generate_native_filter_timecolumn_empty_values():
+    """
+    Test filter_timecolumn with empty values returns empty dict and warning.
+    """
+    report_schedule = ReportSchedule()
+    result, warning = report_schedule._generate_native_filter(
+        "filter_id", "filter_timecolumn", "column_name", []
+    )
+    assert result == {}
+    assert warning is not None
+    assert "filter_timecolumn" in warning
+    assert "empty filterValues" in warning
+    assert "filter_id" in warning
+
+
+def test_report_generate_native_filter_range_empty_values():
+    """
+    Test filter_range with empty values handles gracefully.
+    Returns filter with None values for min/max.
+    """
+    report_schedule = ReportSchedule()
+    result, warning = report_schedule._generate_native_filter(
+        "filter_id", "filter_range", "column_name", []
+    )
+    assert result == {
+        "filter_id": {
+            "id": "filter_id",
+            "extraFormData": {"filters": []},
+            "filterState": {
+                "value": [None, None],
+                "label": "",
+            },
+            "ownState": {},
+        }
+    }
+    assert warning is None
+
+
+def test_report_generate_native_filter_range_none_values():
+    """
+    Test filter_range with None values handles gracefully without TypeError.
+    Previously this would fail with: TypeError: object of type 'NoneType' has no len()
+    """
+    report_schedule = ReportSchedule()
+    result, warning = report_schedule._generate_native_filter(
+        "filter_id", "filter_range", "column_name", None
+    )
+    assert result == {
+        "filter_id": {
+            "id": "filter_id",
+            "extraFormData": {"filters": []},
+            "filterState": {
+                "value": [None, None],
+                "label": "",
+            },
+            "ownState": {},
+        }
+    }
+    assert warning is None
+
+
+def test_get_native_filters_params_time_filters_empty_values():
+    """
+    Test get_native_filters_params with time filters having empty values.
+    Should skip those filters and include warnings.
+    """
+    report_schedule = ReportSchedule()
+    report_schedule.extra = {
+        "dashboard": {
+            "nativeFilters": [
+                {
+                    "nativeFilterId": "time_filter",
+                    "filterType": "filter_time",
+                    "columnName": "time_col",
+                    "filterValues": [],  # Empty values
+                },
+                {
+                    "nativeFilterId": "timegrain_filter",
+                    "filterType": "filter_timegrain",
+                    "columnName": "grain_col",
+                    "filterValues": None,  # None values (coerced to [])
+                },
+                {
+                    "nativeFilterId": "select_filter",
+                    "filterType": "filter_select",
+                    "columnName": "select_col",
+                    "filterValues": ["value1"],  # Valid filter
+                },
+            ]
+        }
+    }
+
+    result, warnings = report_schedule.get_native_filters_params()
+    # The time filters should be skipped, select filter should be present
+    assert "select_filter" in result
+    assert "time_filter" not in result
+    assert "timegrain_filter" not in result
+    assert "value1" in result
+    # Should have two warnings for the empty time filters
+    assert len(warnings) == 2
+    assert any("filter_time" in w for w in warnings)
+    assert any("filter_timegrain" in w for w in warnings)
