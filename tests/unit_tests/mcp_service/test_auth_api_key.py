@@ -25,14 +25,14 @@ from flask import g
 from superset.mcp_service.auth import get_user_from_request
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_user():
     user = MagicMock()
     user.username = "api_key_user"
     return user
 
 
-@pytest.fixture()
+@pytest.fixture
 def _enable_api_keys(app):
     """Enable FAB API key auth and clear MCP_DEV_USERNAME so the API key
     path is exercised instead of falling through to the dev-user fallback."""
@@ -44,7 +44,7 @@ def _enable_api_keys(app):
         app.config["MCP_DEV_USERNAME"] = old_dev
 
 
-@pytest.fixture()
+@pytest.fixture
 def _disable_api_keys(app):
     app.config["FAB_API_KEY_ENABLED"] = False
     old_dev = app.config.pop("MCP_DEV_USERNAME", None)
