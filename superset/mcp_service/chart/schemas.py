@@ -831,7 +831,9 @@ class HandlebarsChartConfig(UnknownFieldCheckMixin):
                     "Handlebars chart in 'aggregate' query mode requires 'metrics' "
                     "field. Specify at least one metric with an aggregate function."
                 )
-            missing_agg = [m.name for m in self.metrics if not m.aggregate]
+            missing_agg = [
+                m.name for m in self.metrics if not m.aggregate and not m.saved_metric
+            ]
             if missing_agg:
                 raise ValueError(
                     f"Handlebars chart in 'aggregate' query mode requires an "

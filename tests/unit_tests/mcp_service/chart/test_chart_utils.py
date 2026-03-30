@@ -701,6 +701,44 @@ class TestMapXYConfig:
 
         assert result["row_limit"] == 10000
 
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_saved_metric(self, mock_is_temporal: Any) -> None:
+        """Test XY config with saved metric emits string in metrics list"""
+        mock_is_temporal.return_value = True
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="order_date"),
+            y=[ColumnRef(name="total_revenue", saved_metric=True)],
+            kind="line",
+        )
+
+        result = map_xy_config(config, dataset_id=1)
+
+        assert result["metrics"] == ["total_revenue"]
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_mixed_saved_and_adhoc_metrics(
+        self, mock_is_temporal: Any
+    ) -> None:
+        """Test XY config with both saved and ad-hoc metrics"""
+        mock_is_temporal.return_value = True
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="order_date"),
+            y=[
+                ColumnRef(name="total_revenue", saved_metric=True),
+                ColumnRef(name="quantity", aggregate="SUM"),
+            ],
+            kind="line",
+        )
+
+        result = map_xy_config(config, dataset_id=1)
+
+        assert len(result["metrics"]) == 2
+        assert result["metrics"][0] == "total_revenue"
+        assert isinstance(result["metrics"][1], dict)
+        assert result["metrics"][1]["aggregate"] == "SUM"
+
 
 class TestMapConfigToFormData:
     """Test map_config_to_form_data function"""

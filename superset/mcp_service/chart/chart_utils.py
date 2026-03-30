@@ -884,9 +884,9 @@ def _truncate(name: str, max_length: int = 60) -> str:
 
 def _table_chart_what(config: TableChartConfig, dataset_name: str | None) -> str:
     """Build the descriptive fragment for a table chart."""
-    has_agg = any(col.aggregate for col in config.columns)
+    has_agg = any(col.aggregate or col.saved_metric for col in config.columns)
     if has_agg:
-        metrics = [col for col in config.columns if col.aggregate]
+        metrics = [col for col in config.columns if col.aggregate or col.saved_metric]
         what = ", ".join(_humanize_column(m) for m in metrics[:2])
         return f"{what} Summary"
     if dataset_name:
