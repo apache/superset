@@ -1083,7 +1083,11 @@ def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilit
     # Classify data types
     data_types = []
     if hasattr(config, "x") and config.x:
-        data_types.append("categorical" if not config.x.aggregate else "metric")
+        data_types.append(
+            "categorical"
+            if not config.x.aggregate and not config.x.saved_metric
+            else "metric"
+        )
     if hasattr(config, "y") and config.y:
         data_types.extend(["metric"] * len(config.y))
     if "time" in viz_type or "timeseries" in viz_type:

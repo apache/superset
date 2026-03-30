@@ -605,7 +605,9 @@ class PieChartConfig(UnknownFieldCheckMixin):
         validation_alias=AliasChoices("dimension", "groupby"),
     )
     metric: ColumnRef = Field(
-        ..., description="Value metric (needs aggregate e.g. SUM, COUNT)"
+        ...,
+        description="Value metric (use aggregate e.g. SUM, COUNT for ad-hoc, "
+        "or set saved_metric=True for a saved dataset metric)",
     )
     donut: bool = False
     show_labels: bool = True
@@ -651,7 +653,8 @@ class PivotTableChartConfig(UnknownFieldCheckMixin):
     metrics: List[ColumnRef] = Field(
         ...,
         min_length=1,
-        description="Metrics (need aggregate e.g. SUM, COUNT, AVG)",
+        description="Metrics (use aggregate e.g. SUM, COUNT, AVG for ad-hoc, "
+        "or set saved_metric=True for saved dataset metrics)",
     )
     aggregate_function: Literal[
         "Sum",
