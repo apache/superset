@@ -22,11 +22,11 @@ Tool for executing SQL queries against databases using the unified
 Database.execute() API with RLS, template rendering, and security validation.
 """
 
-from __future__ import annotations
-
 import logging
+from decimal import Decimal
 from typing import Any
 
+import pandas as pd
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset_core.queries.types import (
@@ -46,7 +46,6 @@ from superset.mcp_service.sql_lab.schemas import (
     StatementData,
     StatementInfo,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +60,6 @@ logger = logging.getLogger(__name__)
         destructiveHint=True,
     ),
 )
-@parse_request(ExecuteSqlRequest)
 async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlResponse:
     """Execute SQL query against database using the unified Database.execute() API."""
     await ctx.info(
@@ -159,6 +157,62 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
         raise
 
 
+def _sanitize_row_values(rows: list[dict[str, Any]]) -> None:
+    """Sanitize non-serializable values in rows for JSON serialization."""
+    for row in rows:
+        for key, value in row.items():
+            if isinstance(value, (bytes, memoryview)):
+                raw = bytes(value) if isinstance(value, memoryview) else value
+                try:
+                    row[key] = raw.decode("utf-8")
+                except (UnicodeDecodeError, AttributeError):
+                    row[key] = raw.hex()
+            elif isinstance(value, Decimal):
+                row[key] = float(value)
+            elif not isinstance(value, (str, int, float, bool, type(None), list, dict)):
+                row[key] = str(value)
+
+
+def _data_to_statement_data(data: Any) -> StatementData:
+    """Convert statement data (DataFrame, list, dict, bytes) to StatementData.
+
+    When results come from cache, data may be a dict/list/bytes instead of
+    a pandas DataFrame. This function handles all cases defensively.
+    """
+    from superset.utils import json as json_utils
+
+    if isinstance(data, list):
+        rows_data = data
+    elif isinstance(data, dict):
+        rows_data = data.get("data", [data])
+        if not isinstance(rows_data, list):
+            rows_data = [rows_data]
+    elif isinstance(data, pd.DataFrame):
+        rows_data = data.to_dict(orient="records")
+        _sanitize_row_values(rows_data)
+        return StatementData(
+            rows=rows_data,
+            columns=[
+                ColumnInfo(name=col, type=str(data[col].dtype)) for col in data.columns
+            ],
+        )
+    elif isinstance(data, bytes):
+        try:
+            decoded = json_utils.loads(data)
+            rows_data = decoded if isinstance(decoded, list) else [decoded]
+        except (ValueError, UnicodeDecodeError):
+            rows_data = []
+    else:
+        rows_data = [{"value": str(data)}]
+
+    _sanitize_row_values(rows_data)
+    col_names = list(rows_data[0].keys()) if rows_data else []
+    return StatementData(
+        rows=rows_data,
+        columns=[ColumnInfo(name=col, type="object") for col in col_names],
+    )
+
+
 def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
     """Convert QueryResult to ExecuteSqlResponse."""
     if result.status != QueryStatus.SUCCESS:
@@ -176,13 +230,7 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
     for stmt in result.statements:
         stmt_data: StatementData | None = None
         if stmt.data is not None:
-            df = stmt.data
-            stmt_data = StatementData(
-                rows=df.to_dict(orient="records"),
-                columns=[
-                    ColumnInfo(name=col, type=str(df[col].dtype)) for col in df.columns
-                ],
-            )
+            stmt_data = _data_to_statement_data(stmt.data)
             data_bearing_count += 1
 
         statements.append(

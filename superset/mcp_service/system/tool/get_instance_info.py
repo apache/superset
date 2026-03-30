@@ -40,7 +40,6 @@ from superset.mcp_service.system.system_utils import (
     calculate_popular_content,
     calculate_recent_activity,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +72,9 @@ _instance_info_core = InstanceInfoCore(
 )
 
 
+_DEFAULT_INSTANCE_INFO_REQUEST = GetSupersetInstanceInfoRequest()
+
+
 @tool(
     tags=["core"],
     annotations=ToolAnnotations(
@@ -81,9 +83,9 @@ _instance_info_core = InstanceInfoCore(
         destructiveHint=False,
     ),
 )
-@parse_request(GetSupersetInstanceInfoRequest)
 def get_instance_info(
-    request: GetSupersetInstanceInfoRequest, ctx: Context
+    request: GetSupersetInstanceInfoRequest = _DEFAULT_INSTANCE_INFO_REQUEST,
+    ctx: Context = None,
 ) -> InstanceInfo:
     """Get instance statistics.
 

@@ -212,6 +212,7 @@ test('should identify matrixify property changes correctly', () => {
     formData: {
       datasource: '',
       viz_type: VizType.Table,
+      matrixify_enable: true,
       matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: { dimension: 'country', values: ['USA'] },
       matrixify_charts_per_row: 3,
@@ -234,6 +235,7 @@ test('should identify matrixify property changes correctly', () => {
     formData: {
       datasource: '',
       viz_type: VizType.Table,
+      matrixify_enable: true,
       matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: {
         dimension: 'country',
@@ -277,6 +279,7 @@ test('should handle matrixify-related form data changes', () => {
     formData: {
       datasource: '',
       viz_type: VizType.Table,
+      matrixify_enable: true,
       matrixify_mode_rows: 'metrics', // This is a significant change
       regular_control: 'value1',
     },
@@ -296,6 +299,7 @@ test('should detect matrixify property addition', () => {
     formData: {
       datasource: '',
       viz_type: VizType.Table,
+      matrixify_enable: true,
       matrixify_mode_rows: 'metrics',
       // No matrixify_dimension_x initially
     },
@@ -317,6 +321,7 @@ test('should detect matrixify property addition', () => {
     formData: {
       datasource: '',
       viz_type: VizType.Table,
+      matrixify_enable: true,
       matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: { dimension: 'country', values: ['USA'] }, // Added
     },
@@ -336,6 +341,7 @@ test('should detect nested matrixify property changes', () => {
     formData: {
       datasource: '',
       viz_type: VizType.Table,
+      matrixify_enable: true,
       matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: {
         dimension: 'country',
@@ -361,6 +367,7 @@ test('should detect nested matrixify property changes', () => {
     formData: {
       datasource: '',
       viz_type: VizType.Table,
+      matrixify_enable: true,
       matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: {
         dimension: 'country',

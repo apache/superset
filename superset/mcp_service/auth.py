@@ -19,24 +19,41 @@
 Authentication and authorization hooks for MCP tools.
 
 This module provides:
-- User authentication from JWT or configured dev user
+- User authentication from JWT, API key, or configured dev user
 - RBAC permission checking aligned with Superset's REST API permissions
 - Dataset access validation
 - Session lifecycle management
 
 The RBAC enforcement mirrors Flask-AppBuilder's @protect() decorator,
 ensuring MCP tools respect the same permission model as the REST API.
+
+Supports multiple authentication methods:
+1. API Key authentication via FAB SecurityManager (configurable prefix)
+2. JWT token authentication (via FastMCP BearerAuthProvider)
+3. Development mode (MCP_DEV_USERNAME configuration)
+
+API Key Authentication:
+- Users create API keys via FAB's /api/v1/security/api_keys/ endpoints
+- Keys use configurable prefixes (FAB_API_KEY_PREFIXES, default: ["sst_"])
+- Keys are validated by FAB's SecurityManager.validate_api_key()
+- Keys inherit the user's roles and permissions via FAB's RBAC
+
+Configuration:
+- FAB_API_KEY_ENABLED: Flask config key to enable API key auth (default: False)
+- FAB_API_KEY_PREFIXES: Key prefixes (default: ["sst_"])
+- MCP_DEV_USERNAME: Fallback username for development
 """
 
 import logging
 from contextlib import AbstractContextManager
 from typing import Any, Callable, TYPE_CHECKING, TypeVar
 
-from flask import g
+from flask import g, has_request_context
 from flask_appbuilder.security.sqla.models import Group, User
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
+    from superset.mcp_service.chart.chart_utils import DatasetValidationResult
 
 # Type variable for decorated functions
 F = TypeVar("F", bound=Callable[..., Any])
@@ -177,8 +194,9 @@ def get_user_from_request() -> User:
     Get the current user for the MCP tool request.
 
     Priority order:
-    1. g.user if already set (by Preset workspace middleware)
-    2. MCP_DEV_USERNAME from configuration (for development/testing)
+    1. g.user if already set (by Preset workspace middleware or FastMCP auth)
+    2. API key from Authorization header (via FAB SecurityManager)
+    3. MCP_DEV_USERNAME from configuration (for development/testing)
 
     Returns:
         User object with roles and groups eagerly loaded
@@ -191,6 +209,55 @@ def get_user_from_request() -> User:
     # First check if user is already set by Preset workspace middleware
     if hasattr(g, "user") and g.user:
         return g.user
+
+    # Try API key authentication via FAB SecurityManager
+    # Only attempt when in a request context (not for MCP internal operations
+    # like tool discovery that run with only an application context)
+    # Use the Flask config key FAB_API_KEY_ENABLED (not the feature flag),
+    # because the config key controls whether FAB registers the API key
+    # endpoints and validation logic. The feature flag with the same name
+    # in DEFAULT_FEATURE_FLAGS only controls the frontend UI visibility.
+    if current_app.config.get("FAB_API_KEY_ENABLED", False) and has_request_context():
+        sm = current_app.appbuilder.sm
+        # _extract_api_key_from_request is FAB's internal method for reading
+        # the Bearer token from the Authorization header and matching prefixes.
+        # Not all FAB versions include this method, so guard with hasattr.
+        if not hasattr(sm, "_extract_api_key_from_request"):
+            logger.debug(
+                "FAB SecurityManager does not have _extract_api_key_from_request; "
+                "API key authentication is not available in this FAB version"
+            )
+        else:
+            api_key_string = sm._extract_api_key_from_request()
+            if api_key_string is not None:
+                if not hasattr(sm, "validate_api_key"):
+                    logger.warning(
+                        "FAB SecurityManager does not have validate_api_key; "
+                        "cannot validate API key"
+                    )
+                    raise PermissionError(
+                        "API key validation is not available in this FAB version."
+                    )
+                user = sm.validate_api_key(api_key_string)
+                if user:
+                    # Reload user with all relationships eagerly loaded to avoid
+                    # detached-instance errors during later permission checks.
+                    user_with_rels = load_user_with_relationships(
+                        username=user.username,
+                    )
+                    if user_with_rels is None:
+                        logger.warning(
+                            "Failed to reload API key user %s with relationships; "
+                            "using original user object which may have lazy-loaded "
+                            "relationships",
+                            user.username,
+                        )
+                        return user
+                    return user_with_rels
+                raise PermissionError(
+                    "Invalid or expired API key. "
+                    "Create a new key at /api/v1/security/api_keys/."
+                )
 
     # Fall back to configured username for development/single-user deployments
     username = current_app.config.get("MCP_DEV_USERNAME")
@@ -209,11 +276,13 @@ def get_user_from_request() -> User:
             f"JWT keys configured={jwt_configured})"
         )
         details.append("MCP_DEV_USERNAME is not configured")
+        configured_prefixes = current_app.config.get("FAB_API_KEY_PREFIXES", ["sst_"])
+        prefix_example = configured_prefixes[0] if configured_prefixes else "sst_"
         raise ValueError(
             "No authenticated user found. Tried:\n"
             + "\n".join(f"  - {d}" for d in details)
-            + "\n\nEither pass a valid JWT bearer token or configure "
-            "MCP_DEV_USERNAME for development."
+            + f"\n\nEither pass a valid API key (Bearer {prefix_example}...), "
+            "JWT token, or configure MCP_DEV_USERNAME for development."
         )
 
     # Use helper function to load user with all required relationships
@@ -261,6 +330,24 @@ def has_dataset_access(dataset: "SqlaTable") -> bool:
         return False  # Deny access on error
 
 
+def check_chart_data_access(chart: Any) -> "DatasetValidationResult":
+    """Validate that the current user can access a chart's underlying dataset.
+
+    This extends the RBAC system: ``mcp_auth_hook`` enforces class-level
+    permissions before tool execution; this function enforces data-level
+    permissions inside tools after retrieving specific objects.
+
+    Args:
+        chart: A Slice ORM object with datasource_id attribute
+
+    Returns:
+        DatasetValidationResult with is_valid, error, etc.
+    """
+    from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+
+    return validate_chart_dataset(chart, check_access=True)
+
+
 def _setup_user_context() -> User | None:
     """
     Set up user context for MCP tool execution.
@@ -277,6 +364,23 @@ def _setup_user_context() -> User | None:
             logger.debug("No Flask app context available for user setup")
             return None
         raise
+    except ValueError as e:
+        # JWT user resolution failed (e.g. SAML subject not in DB).
+        # If middleware already set g.user (request context exists),
+        # use that instead of failing closed.
+        from flask import has_request_context
+
+        if has_request_context() and hasattr(g, "user") and g.user:
+            logger.warning(
+                "JWT user resolution failed (%s), using middleware-provided g.user=%s",
+                e,
+                g.user.username,
+            )
+            # Assign to local so relationship validation below runs
+            # (same as the normal path) to prevent detached instance errors.
+            user = g.user
+        else:
+            raise
 
     # Validate user has necessary relationships loaded
     # (Force access to ensure they're loaded if lazy)
@@ -334,6 +438,26 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
 
     is_async = inspect.iscoroutinefunction(tool_func)
 
+    # Detect if the original function expects a ctx: Context parameter.
+    # If so, we inject it via get_context() at call time so tool functions
+    # don't need @parse_request to handle Context injection.
+    from fastmcp import Context as FMContext
+
+    _tool_sig = inspect.signature(tool_func)
+    _needs_ctx = any(
+        p.annotation is FMContext
+        or (hasattr(p.annotation, "__name__") and p.annotation.__name__ == "Context")
+        for p in _tool_sig.parameters.values()
+    )
+
+    def _inject_ctx(kwargs: dict[str, Any]) -> dict[str, Any]:
+        """Inject FastMCP Context into kwargs if the tool function expects it."""
+        if _needs_ctx and "ctx" not in kwargs:
+            from fastmcp.server.dependencies import get_context
+
+            kwargs["ctx"] = get_context()
+        return kwargs
+
     if is_async:
 
         @functools.wraps(tool_func)
@@ -348,7 +472,7 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
                         "MCP internal call without Flask context: tool=%s",
                         tool_func.__name__,
                     )
-                    return await tool_func(*args, **kwargs)
+                    return await tool_func(*args, **_inject_ctx(kwargs))
 
                 # RBAC permission check
                 if not check_tool_permission(tool_func):
@@ -366,7 +490,7 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
                         user.username,
                         tool_func.__name__,
                     )
-                    result = await tool_func(*args, **kwargs)
+                    result = await tool_func(*args, **_inject_ctx(kwargs))
                     return result
                 except Exception:
                     _cleanup_session_on_error()
@@ -388,7 +512,7 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
                         "MCP internal call without Flask context: tool=%s",
                         tool_func.__name__,
                     )
-                    return tool_func(*args, **kwargs)
+                    return tool_func(*args, **_inject_ctx(kwargs))
 
                 # RBAC permission check
                 if not check_tool_permission(tool_func):
@@ -406,7 +530,7 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
                         user.username,
                         tool_func.__name__,
                     )
-                    result = tool_func(*args, **kwargs)
+                    result = tool_func(*args, **_inject_ctx(kwargs))
                     return result
                 except Exception:
                     _cleanup_session_on_error()
@@ -445,17 +569,15 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
     # Set __signature__ from the original function, but:
     # 1. Remove ctx parameter - FastMCP tools don't expose it to clients
     # 2. Skip if original has *args (parse_request output has its own handling)
-    from fastmcp import Context as FMContext
-
-    tool_sig = inspect.signature(tool_func)
     has_var_positional = any(
-        p.kind == inspect.Parameter.VAR_POSITIONAL for p in tool_sig.parameters.values()
+        p.kind == inspect.Parameter.VAR_POSITIONAL
+        for p in _tool_sig.parameters.values()
     )
 
     if not has_var_positional:
         # For functions without *args, preserve signature but remove ctx
         new_params = []
-        for _name, param in tool_sig.parameters.items():
+        for _name, param in _tool_sig.parameters.items():
             # Skip ctx parameter - FastMCP tools don't expose it to clients
             if param.annotation is FMContext or (
                 hasattr(param.annotation, "__name__")
@@ -463,7 +585,7 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
             ):
                 continue
             new_params.append(param)
-        new_wrapper.__signature__ = tool_sig.replace(  # type: ignore[attr-defined]
+        new_wrapper.__signature__ = _tool_sig.replace(  # type: ignore[attr-defined]
             parameters=new_params
         )
 
