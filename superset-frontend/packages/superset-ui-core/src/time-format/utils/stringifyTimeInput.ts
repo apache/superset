@@ -18,11 +18,16 @@
  */
 
 export default function stringifyTimeInput(
-  value: Date | number | undefined | null,
+  value: Date | number | string | undefined | null,
   fn: (time: Date) => string,
 ) {
   if (value === null || value === undefined) {
     return `${value}`;
+  }
+
+  if (typeof value === 'string') {
+    const num = Number(value);
+    return fn(new Date(Number.isFinite(num) ? num : value));
   }
 
   return fn(value instanceof Date ? value : new Date(value));
