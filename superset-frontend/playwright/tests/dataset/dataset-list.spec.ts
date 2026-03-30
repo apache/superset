@@ -518,25 +518,12 @@ test.describe('import dataset', () => {
       importResponse = await importResponsePromise;
     }
 
-    // Check final import response for gsheets connector errors
+    // Fail hard if dataset import fails.
+    // The fixture contains a gsheets dataset; shillelagh[gsheetsapi] is a base
+    // dependency (pyproject.toml), so the engine is always available in CI.
     if (!importResponse.ok()) {
       const errorBody = await importResponse.json().catch(() => ({}));
-      const errorText = JSON.stringify(errorBody);
-      // Skip test if gsheets connector not installed
-      if (
-        errorText.includes('gsheets') ||
-        errorText.includes('No such DB engine') ||
-        errorText.includes('Could not load database driver')
-      ) {
-        await test.info().attach('skip-reason', {
-          body: `Import failed due to missing gsheets connector: ${errorText}`,
-          contentType: 'text/plain',
-        });
-        test.skip();
-        return;
-      }
-      // Re-throw other errors
-      throw new Error(`Import failed: ${errorText}`);
+      throw new Error(`Import failed: ${JSON.stringify(errorBody)}`);
     }
 
     // Modal should close on success

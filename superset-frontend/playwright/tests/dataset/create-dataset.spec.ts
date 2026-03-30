@@ -37,7 +37,7 @@ interface GsheetsSetupResult {
 
 /**
  * Sets up gsheets database and navigates to create dataset page.
- * Skips test if gsheets connector unavailable (test.skip() throws, so no return).
+ * Skips test on timeout if Google Sheets API is slow (transient external dependency).
  * @param testInfo - Test info for parallelIndex to avoid name collisions in parallel runs
  * @returns Setup result with names and page object
  */
@@ -77,22 +77,15 @@ async function setupGsheetsDataset(
     }),
   });
 
-  // Check if gsheets connector is available
+  // Fail hard if gsheets database creation fails.
+  // shillelagh[gsheetsapi] is a base dependency (pyproject.toml), so the engine
+  // is always available after `pip install -e .`; a failure here means the CI
+  // environment is broken, not that the driver is missing.
   if (!createDbRes.ok()) {
     const errorBody = await createDbRes.json();
-    const errorText = JSON.stringify(errorBody);
-    // Skip test if gsheets connector not installed
-    if (
-      errorText.includes('gsheets') ||
-      errorText.includes('No such DB engine')
-    ) {
-      await test.info().attach('skip-reason', {
-        body: `Google Sheets connector unavailable: ${errorText}`,
-        contentType: 'text/plain',
-      });
-      test.skip(); // throws, no return needed
-    }
-    throw new Error(`Failed to create gsheets database: ${errorText}`);
+    throw new Error(
+      `Failed to create gsheets database: ${JSON.stringify(errorBody)}`,
+    );
   }
 
   const createDbBody = await createDbRes.json();
