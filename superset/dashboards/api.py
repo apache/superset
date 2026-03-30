@@ -1924,7 +1924,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             else None
         )
         overwrite = request.form.get("overwrite") == "true"
-        overwrite_all = request.form.get("overwrite_all") == "true"
+        overwrite_all = request.form.get("overwrite_all", "true" if overwrite else "false") == "true"
 
         ssh_tunnel_passwords = (
             json.loads(request.form["ssh_tunnel_passwords"])

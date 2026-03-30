@@ -391,7 +391,7 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
             type="text"
             onChange={confirmOverwrite}
           />
-          {resourceLabel === 'dashboard' && needsOverwriteConfirm && (
+          {resourceName === 'dashboard' && needsOverwriteConfirm && (
             <Checkbox
               checked={overwriteAll}
               onChange={e => setOverwriteAll(e.target.checked)}

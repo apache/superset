@@ -85,9 +85,12 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 self.contents,
                 overwrite_all=self.overwrite_all,
             )
+            db.session.commit()
         except CommandException:
+            db.session.rollback()
             raise
         except Exception as ex:
+            db.session.rollback()
             raise self.import_error() from ex
 
     # TODO (betodealmeida): refactor to use code from other commands
