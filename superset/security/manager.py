@@ -507,7 +507,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Override to save the upstream OAuth token when a user logs in via OAuth.
 
         If ``save_token: True`` is set in the matching OAUTH_PROVIDERS entry and
-        ``DATABASE_OAUTH2_UPSTREAM_PROVIDERS`` maps a database to this provider,
+        a database has ``oauth2_upstream_provider`` set in its ``encrypted_extra``,
         the token will be forwarded to that database instead of triggering a
         separate OAuth2 dance.
         """

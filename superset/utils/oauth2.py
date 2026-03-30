@@ -282,6 +282,29 @@ def check_for_oauth2(database: Database) -> Iterator[None]:
         raise
 
 
+def get_access_token_for_database(database: Database, user_id: int) -> str | None:
+    """
+    Return a valid OAuth2 access token for the given database and user.
+
+    First checks if the database has an upstream OAuth provider configured in its
+    ``encrypted_extra`` (key ``oauth2_upstream_provider``). If so, returns the saved
+    upstream login token for that provider.
+
+    Otherwise, falls back to the database-specific OAuth2 flow.
+    """
+    upstream_provider = database.get_encrypted_extra().get("oauth2_upstream_provider")
+    if upstream_provider:
+        return get_upstream_provider_token(upstream_provider, user_id)
+
+    oauth2_config = database.get_oauth2_config()
+    if oauth2_config:
+        return get_oauth2_access_token(
+            oauth2_config, database.id, user_id, database.db_engine_spec
+        )
+
+    return None
+
+
 def save_user_provider_token(
     user_id: int,
     provider: str,
@@ -310,6 +333,13 @@ def save_user_provider_token(
     db.session.commit()
 
 
+@backoff.on_exception(
+    backoff.expo,
+    AcquireDistributedLockFailedException,
+    factor=10,
+    base=2,
+    max_tries=5,
+)
 def get_upstream_provider_token(provider: str, user_id: int) -> str | None:
     """
     Retrieve a valid access token for the given provider and user.
@@ -350,30 +380,42 @@ def _refresh_upstream_provider_token(
     """
     from flask import current_app as flask_app
 
-    try:
-        remote_app = flask_app.extensions["authlib.integrations.flask_client"][provider]
-        token_response = remote_app.fetch_access_token(
-            grant_type="refresh_token",
-            refresh_token=token.refresh_token,
+    with DistributedLock(
+        namespace="refresh_upstream_oauth_token",
+        user_id=token.user_id,
+        provider=provider,
+    ):
+        try:
+            remote_app = flask_app.extensions["authlib.integrations.flask_client"][
+                provider
+            ]
+            token_response = remote_app.fetch_access_token(
+                grant_type="refresh_token",
+                refresh_token=token.refresh_token,
+            )
+        except Exception:  # pylint: disable=broad-except
+            logger.warning(
+                "Failed to refresh upstream OAuth token for provider %s",
+                provider,
+                exc_info=True,
+            )
+            db.session.delete(token)
+            db.session.commit()
+            return None
+
+        if "access_token" not in token_response:
+            db.session.delete(token)
+            db.session.commit()
+            return None
+
+        token.access_token = token_response["access_token"]
+        expires_in = token_response.get("expires_in")
+        token.access_token_expiration = (
+            datetime.now() + timedelta(seconds=expires_in) if expires_in else None
         )
-    except Exception:  # pylint: disable=broad-except
-        logger.warning("Failed to refresh upstream OAuth token")
-        db.session.delete(token)
+        if "refresh_token" in token_response:
+            token.refresh_token = token_response["refresh_token"]
+        db.session.add(token)
         db.session.commit()
-        return None
 
-    if "access_token" not in token_response:
-        db.session.delete(token)
-        db.session.commit()
-        return None
-
-    token.access_token = token_response["access_token"]
-    expires_in = token_response.get("expires_in")
-    token.access_token_expiration = (
-        datetime.now() + timedelta(seconds=expires_in) if expires_in else None
-    )
-    if "refresh_token" in token_response:
-        token.refresh_token = token_response["refresh_token"]
-    db.session.add(token)
-    db.session.commit()
     return token.access_token
