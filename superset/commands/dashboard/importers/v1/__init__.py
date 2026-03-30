@@ -68,7 +68,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
     }
     import_error = DashboardImportError
 
-    def __init__(self, contents: dict[str, str], *args: Any, **kwargs: Any):
+    def __init__(self, contents: dict[str, str], *args: Any, **kwargs: Any) -> None:
         self.overwrite_all = kwargs.pop("overwrite_all", False)
         super().__init__(contents, *args, **kwargs)
 
