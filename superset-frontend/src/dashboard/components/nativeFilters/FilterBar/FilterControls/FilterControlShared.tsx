@@ -19,6 +19,7 @@
 import { useMemo } from 'react';
 import { truncationCSS } from '@superset-ui/core';
 import { styled, SupersetTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import {
   FormItem as StyledFormItem,
   Form,
@@ -230,6 +231,25 @@ export const DescriptionToolTip = ({
         textOverflow: 'ellipsis',
         whiteSpace: 'normal',
       }}
+    >
+      <Icons.InfoCircleOutlined
+        className="text-muted"
+        role="button"
+        css={(theme: SupersetTheme) => ({
+          paddingLeft: `${theme.sizeUnit}px`,
+        })}
+      />
+    </Tooltip>
+  </ToolTipContainer>
+);
+
+export const DeckglLayerVisibilityTooltip = () => (
+  <ToolTipContainer>
+    <Tooltip
+      title={t(
+        'Choose layers to hide from all deck.gl Multiple Layer charts in this dashboard.',
+      )}
+      placement="right"
     >
       <Icons.InfoCircleOutlined
         className="text-muted"
