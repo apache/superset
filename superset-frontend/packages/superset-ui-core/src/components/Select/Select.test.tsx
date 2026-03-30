@@ -915,6 +915,38 @@ test('"Select all" does not affect disabled options', async () => {
   expect(await findSelectValue()).not.toHaveTextContent(options[1].label);
 });
 
+test('dropdown takes full width of the select input for multi select', async () => {
+  render(
+    <div style={{ width: '400px' }}>
+      <Select {...defaultProps} mode="multiple" options={OPTIONS} />
+    </div>,
+  );
+  await open();
+  const dropdown = document.querySelector(
+    '.ant-select-dropdown',
+  ) as HTMLElement;
+  expect(dropdown).toBeInTheDocument();
+  // When popupMatchSelectWidth is true, antd dynamically matches the
+  // trigger width and does not set a fixed inline width on the dropdown.
+  const widthValue = parseInt(dropdown.style.width, 10);
+  expect(Number.isNaN(widthValue) || widthValue === 0).toBe(true);
+});
+
+test('dropdown takes full width of the select input for single select', async () => {
+  render(
+    <div style={{ width: '400px' }}>
+      <Select {...defaultProps} mode="single" options={OPTIONS} />
+    </div>,
+  );
+  await open();
+  const dropdown = document.querySelector(
+    '.ant-select-dropdown',
+  ) as HTMLElement;
+  expect(dropdown).toBeInTheDocument();
+  const widthValue = parseInt(dropdown.style.width, 10);
+  expect(Number.isNaN(widthValue) || widthValue === 0).toBe(true);
+});
+
 test('does not fire onChange when searching but no selection', async () => {
   const onChange = jest.fn();
   render(
