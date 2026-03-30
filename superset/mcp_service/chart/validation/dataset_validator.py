@@ -102,6 +102,13 @@ class DatasetValidator:
                 invalid_columns, suggestions_map, dataset_context
             )
 
+        # Validate saved metrics exist in dataset metrics (not just columns)
+        invalid_saved = DatasetValidator._validate_saved_metrics(
+            column_refs, dataset_context
+        )
+        if invalid_saved:
+            return False, invalid_saved
+
         # Validate aggregation compatibility
         if isinstance(config, (TableChartConfig, XYChartConfig)):
             aggregation_errors = DatasetValidator._validate_aggregations(
@@ -417,6 +424,49 @@ class DatasetValidator:
                 ],
                 error_code="MULTIPLE_INVALID_COLUMNS",
             )
+
+    @staticmethod
+    def _validate_saved_metrics(
+        column_refs: List[ColumnRef], dataset_context: DatasetContext
+    ) -> ChartGenerationError | None:
+        """Validate that saved_metric refs exist in dataset metrics.
+
+        A ColumnRef with saved_metric=True must match an entry in
+        available_metrics, not just available_columns.  Without this check
+        a regular column name marked as saved_metric would pass
+        _column_exists (which checks both lists) but fail at query time.
+        """
+        metric_names = {m["name"].lower() for m in dataset_context.available_metrics}
+        invalid = [
+            col_ref.name
+            for col_ref in column_refs
+            if col_ref.saved_metric and col_ref.name.lower() not in metric_names
+        ]
+        if not invalid:
+            return None
+
+        from superset.mcp_service.utils.error_builder import ChartErrorBuilder
+
+        available = [m["name"] for m in dataset_context.available_metrics]
+        return ChartErrorBuilder.build_error(
+            error_type="invalid_saved_metric",
+            template_key="column_not_found",
+            template_vars={
+                "column": ", ".join(invalid),
+                "suggestions": (
+                    f"Available saved metrics: {', '.join(available[:10])}"
+                    if available
+                    else "This dataset has no saved metrics"
+                ),
+            },
+            custom_suggestions=[
+                f"'{name}' is not a saved metric in this dataset. "
+                "Remove saved_metric=True to use it as a column with an aggregate, "
+                "or use get_dataset_info to see available saved metrics."
+                for name in invalid
+            ],
+            error_code="INVALID_SAVED_METRIC",
+        )
 
     @staticmethod
     def _validate_aggregations(
