@@ -426,6 +426,8 @@ class DatasetValidator:
         errors = []
 
         for col_ref in column_refs:
+            if col_ref.saved_metric:
+                continue  # Saved metrics have built-in aggregation
             if not col_ref.aggregate:
                 continue
 

@@ -55,6 +55,7 @@ class TestCreateMetricObject:
         col = ColumnRef(name="revenue", aggregate="SUM", label="Total Revenue")
         result = create_metric_object(col)
 
+        assert isinstance(result, dict)
         assert result["aggregate"] == "SUM"
         assert result["column"]["column_name"] == "revenue"
         assert result["label"] == "Total Revenue"
@@ -66,10 +67,27 @@ class TestCreateMetricObject:
         col = ColumnRef(name="orders")
         result = create_metric_object(col)
 
+        assert isinstance(result, dict)
         assert result["aggregate"] == "SUM"
         assert result["column"]["column_name"] == "orders"
         assert result["label"] == "SUM(orders)"
         assert result["optionName"] == "metric_orders"
+
+    def test_create_metric_object_saved_metric_returns_string(self) -> None:
+        """Test that saved metrics return a plain string metric name"""
+        col = ColumnRef(name="total_revenue", saved_metric=True)
+        result = create_metric_object(col)
+
+        assert result == "total_revenue"
+        assert isinstance(result, str)
+
+    def test_create_metric_object_saved_metric_ignores_aggregate(self) -> None:
+        """Test that saved metrics ignore aggregate even if somehow set"""
+        col = ColumnRef(name="total_revenue", saved_metric=True, aggregate="SUM")
+        result = create_metric_object(col)
+
+        # saved_metric validator clears aggregate, result is plain string
+        assert result == "total_revenue"
 
 
 class TestMapFilterOperator:
@@ -337,6 +355,38 @@ class TestMapTableConfig:
         result = map_table_config(config)
 
         assert result["row_limit"] == 1000
+
+    def test_map_table_config_saved_metric_as_metric(self) -> None:
+        """Test that saved metrics are routed to metrics, not raw columns."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[
+                ColumnRef(name="product_line"),
+                ColumnRef(name="total_revenue", saved_metric=True),
+            ],
+        )
+
+        result = map_table_config(config)
+
+        assert result["query_mode"] == "aggregate"
+        assert result["metrics"] == ["total_revenue"]
+        assert "product_line" in result["groupby"]
+
+    def test_map_table_config_saved_metric_only(self) -> None:
+        """Test table with only saved metrics (no raw columns)."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[
+                ColumnRef(name="total_revenue", saved_metric=True),
+                ColumnRef(name="avg_order_value", saved_metric=True),
+            ],
+        )
+
+        result = map_table_config(config)
+
+        assert result["query_mode"] == "aggregate"
+        assert result["metrics"] == ["total_revenue", "avg_order_value"]
+        assert "all_columns" not in result
 
 
 class TestAddAdhocFilters:

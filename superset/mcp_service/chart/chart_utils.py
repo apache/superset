@@ -381,8 +381,8 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
     aggregated_metrics = []
 
     for col in config.columns:
-        if col.aggregate:
-            # Column has aggregation - treat as metric
+        if col.saved_metric or col.aggregate:
+            # Saved metric or column with aggregation - treat as metric
             aggregated_metrics.append(create_metric_object(col))
         else:
             # No aggregation - treat as raw column
@@ -441,8 +441,16 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
     return form_data
 
 
-def create_metric_object(col: ColumnRef) -> Dict[str, Any]:
-    """Create a metric object for a column with enhanced validation."""
+def create_metric_object(col: ColumnRef) -> Dict[str, Any] | str:
+    """Create a metric object for a column with enhanced validation.
+
+    For saved metrics, returns the metric name as a plain string which
+    Superset's query engine resolves via its metrics_by_name lookup.
+    For ad-hoc metrics, returns a SIMPLE expression dict.
+    """
+    if col.saved_metric:
+        return col.name
+
     # Ensure aggregate is valid - default to SUM if not specified or invalid
     valid_aggregates = {
         "SUM",
@@ -840,6 +848,8 @@ def _humanize_column(col: ColumnRef) -> str:
     if col.label:
         return col.label
     name = col.name.replace("_", " ").title()
+    if col.saved_metric:
+        return name
     if col.aggregate:
         return f"{col.aggregate.capitalize()}({name})"
     return name
