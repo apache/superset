@@ -33,7 +33,7 @@ from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
 
-Datasource = Union[SqlaTable, Query, SavedQuery]
+Datasource = Union[SqlaTable, Query, SavedQuery, SemanticView]
 
 
 class DatasourceDAO(BaseDAO[Datasource]):
