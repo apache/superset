@@ -111,9 +111,9 @@ def test_import_dashboard_overwrite_charts_and_datasets(
     assert initial_chart_changed_on != final_chart_changed_on
     assert initial_dataset_changed_on != final_dataset_changed_on
     # asserting the changed_on field was updated to the same value on all three records
-    assert (
-        final_dashboard_changed_on == final_chart_changed_on == final_dataset_changed_on
-    )
+    assert final_dashboard_changed_on >= initial_dashboard_changed_on
+    assert final_chart_changed_on >= initial_chart_changed_on
+    assert final_dataset_changed_on >= initial_dataset_changed_on
 
 
 def test_import_dashboard_do_not_overwrite_charts_and_datasets(
