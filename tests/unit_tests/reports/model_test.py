@@ -563,12 +563,11 @@ def test_generate_native_filter_range_zero_min():
     result, warning = report_schedule._generate_native_filter(
         "F5", "filter_range", "price", [0, 100]
     )
-    # Filters use `is not None` so they are correct
     assert result["F5"]["extraFormData"]["filters"] == [
         {"col": "price", "op": ">=", "val": 0},
         {"col": "price", "op": "<=", "val": 100},
     ]
-    # Label uses truthiness so this assertion documents the bug
+    # Label generation correctly treats zero as a valid bound
     assert result["F5"]["filterState"]["label"] == "0 ≤ x ≤ 100"
 
 
