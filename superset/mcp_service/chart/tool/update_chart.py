@@ -23,6 +23,7 @@ import logging
 import time
 
 from fastmcp import Context
+from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.exceptions import CommandException
@@ -39,7 +40,6 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
     UpdateChartRequest,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
@@ -55,7 +55,6 @@ logger = logging.getLogger(__name__)
         destructiveHint=True,
     ),
 )
-@parse_request(UpdateChartRequest)
 async def update_chart(
     request: UpdateChartRequest, ctx: Context
 ) -> GenerateChartResponse:
@@ -270,7 +269,21 @@ async def update_chart(
         }
         return GenerateChartResponse.model_validate(result)
 
-    except (CommandException, ValueError, KeyError, AttributeError) as e:
+    except (
+        CommandException,
+        SQLAlchemyError,
+        ValueError,
+        KeyError,
+        AttributeError,
+    ) as e:
+        from superset import db
+
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError:
+            logger.warning(
+                "Database rollback failed during error handling", exc_info=True
+            )
         execution_time = int((time.time() - start_time) * 1000)
         return GenerateChartResponse.model_validate(
             {

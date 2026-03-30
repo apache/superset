@@ -381,7 +381,7 @@ test('removes form_data_key from URL parameters after save', () => {
   // other parameters should remain
   expect(result.get('other_param')).toEqual('value');
   expect(result.get('slice_id')).toEqual('1');
-  expect(result.get('save_action')).toEqual('overwrite');
+  expect(result.has('save_action')).toBe(false);
 });
 
 test('dispatches removeChartState when saving and going to dashboard', async () => {
