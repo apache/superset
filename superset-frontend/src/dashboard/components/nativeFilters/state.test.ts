@@ -30,6 +30,7 @@ import {
   useIsFilterInScope,
   useSelectFiltersInScope,
   useInteractiveChartCustomizationConfiguration,
+  useDynamicTitleCustomizations,
 } from './state';
 
 jest.mock('react-redux', () => {
@@ -580,4 +581,60 @@ test('useInteractiveChartCustomizationConfiguration excludes dynamic titles', ()
     'customization-divider',
     'interactive-customization',
   ]);
+});
+
+test('useDynamicTitleCustomizations excludes customizations scoped outside the dashboard', () => {
+  (useSelector as jest.Mock).mockImplementation((selector: Function) => {
+    const mockState = {
+      dashboardInfo: {
+        metadata: {
+          chart_customization_config: [
+            {
+              id: 'dynamic-title-in-scope',
+              type: ChartCustomizationType.ChartCustomization,
+              name: 'Dynamic title',
+              filterType: ChartCustomizationPlugins.DynamicTitle,
+              targets: [],
+              scope: { rootPath: ['ROOT_ID'], excluded: [] },
+              chartsInScope: [123],
+              controlValues: {
+                template: 'Sales in {{country}}',
+                tokenMappings: { country: 'NATIVE_FILTER-country' },
+              },
+              defaultDataMask: {},
+            },
+            {
+              id: 'dynamic-title-out-of-scope',
+              type: ChartCustomizationType.ChartCustomization,
+              name: 'Dynamic title',
+              filterType: ChartCustomizationPlugins.DynamicTitle,
+              targets: [],
+              scope: { rootPath: ['ROOT_ID'], excluded: [] },
+              chartsInScope: [999],
+              controlValues: {
+                template: 'Sales in {{country}}',
+                tokenMappings: { country: 'NATIVE_FILTER-country' },
+              },
+              defaultDataMask: {},
+            },
+          ],
+        },
+      },
+      dashboardLayout: {
+        present: {
+          CHART_ID: {
+            id: 'CHART_ID',
+            type: 'CHART',
+            meta: { chartId: 123 },
+          },
+        },
+      },
+    };
+    return selector(mockState);
+  });
+
+  const { result } = renderHook(() => useDynamicTitleCustomizations());
+
+  expect(result.current).toHaveLength(1);
+  expect(result.current[0].id).toBe('dynamic-title-in-scope');
 });

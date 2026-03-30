@@ -260,21 +260,6 @@ const dataMaskReducer = produce(
             ...dataMask[customizationFilterId],
           };
 
-          if (
-            draft[customizationFilterId] &&
-            customizationItem.defaultDataMask &&
-            !areObjectsEqual(
-              customizationItem.defaultDataMask,
-              draft[customizationFilterId],
-              { ignoreUndefined: true },
-            )
-          ) {
-            cleanState[customizationFilterId] = {
-              ...cleanState[customizationFilterId],
-              ...customizationItem.defaultDataMask,
-            };
-          }
-
           if (customizationItem.controlValues?.column) {
             cleanState[customizationFilterId].ownState = {
               ...cleanState[customizationFilterId].ownState,

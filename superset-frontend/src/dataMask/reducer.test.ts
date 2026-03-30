@@ -22,7 +22,11 @@ import {
   SET_DATA_MASK_FOR_FILTER_CHANGES_COMPLETE,
   type SetDataMaskForFilterChangesComplete,
 } from './actions';
+import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
+import { ChartCustomizationPlugins } from 'src/constants';
 import {
+  type ChartCustomization,
+  ChartCustomizationType,
   type DataMaskStateWithId,
   type Filter,
   type NativeFilterTarget,
@@ -115,4 +119,60 @@ test('when user edits a filter without changing targets, their selection is pres
   expect(result['NATIVE_FILTER-1']?.extraFormData?.time_range).toEqual(
     '1 year ago',
   );
+});
+
+test('HYDRATE_DASHBOARD keeps persisted data mask values for chart customizations', () => {
+  const customizationId = 'CHART_CUSTOMIZATION-groupby';
+  const defaultGroupBy = ['country'];
+  const persistedGroupBy = ['state'];
+  const initialState: DataMaskStateWithId = {
+    [customizationId]: {
+      id: customizationId,
+      ...getInitialDataMask(customizationId),
+      filterState: { value: ['draft-value'] },
+    },
+  };
+
+  const chartCustomization: ChartCustomization = {
+    id: customizationId,
+    name: 'Dynamic group by',
+    type: ChartCustomizationType.ChartCustomization,
+    filterType: ChartCustomizationPlugins.DynamicGroupBy,
+    targets: [],
+    scope: { rootPath: ['ROOT_ID'], excluded: [] },
+    chartsInScope: [101],
+    controlValues: { column: 'country' },
+    defaultDataMask: {
+      extraFormData: { interactive_groupby: defaultGroupBy },
+      filterState: { value: ['default-value'] },
+    },
+    description: '',
+  };
+
+  const result = reducer(initialState, {
+    type: HYDRATE_DASHBOARD,
+    data: {
+      dashboardInfo: {
+        metadata: {
+          chart_customization_config: [chartCustomization],
+        },
+      },
+      dataMask: {
+        [customizationId]: {
+          id: customizationId,
+          extraFormData: { interactive_groupby: persistedGroupBy },
+          filterState: { value: ['persisted-value'] },
+          ownState: {},
+        },
+      },
+    },
+  });
+
+  expect(result[customizationId]?.filterState?.value).toEqual([
+    'persisted-value',
+  ]);
+  expect(result[customizationId]?.extraFormData?.interactive_groupby).toEqual(
+    persistedGroupBy,
+  );
+  expect(result[customizationId]?.ownState?.column).toEqual('country');
 });

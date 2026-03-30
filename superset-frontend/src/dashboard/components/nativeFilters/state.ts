@@ -143,8 +143,7 @@ export function useInteractiveChartCustomizationConfiguration() {
 }
 
 export const selectDynamicTitleCustomizations = createSelector(
-  (state: RootState) =>
-    state.dashboardInfo?.metadata?.chart_customization_config || EMPTY_ARRAY,
+  selectChartCustomizationConfiguration,
   customizations =>
     customizations.filter(
       customization =>

@@ -94,7 +94,13 @@ const defaultState = {
     common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 0, SQL_MAX_ROW: 666 } },
   },
   dashboardLayout: {
-    present: {},
+    present: {
+      CHART_ID: {
+        id: 'CHART_ID',
+        type: 'CHART',
+        meta: { chartId: queryId },
+      },
+    },
     past: [],
     future: [],
   },
