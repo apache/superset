@@ -281,9 +281,15 @@ def test_mcp_auth_hook_clears_stale_g_user(app) -> None:
 
     with app.app_context():
         g.user = stale_user
-        with patch(
-            "superset.mcp_service.auth.get_user_from_request",
-            side_effect=lambda: _assert_cleared_then_return(),
+        # Explicitly mock has_request_context to False because the test
+        # framework's autouse app_context fixture may implicitly provide
+        # a request context in some CI environments.
+        with (
+            patch("superset.mcp_service.auth.has_request_context", return_value=False),
+            patch(
+                "superset.mcp_service.auth.get_user_from_request",
+                side_effect=lambda: _assert_cleared_then_return(),
+            ),
         ):
             result = wrapped()
 
@@ -317,9 +323,12 @@ def test_mcp_auth_hook_clears_stale_g_user_async(app) -> None:
 
     with app.app_context():
         g.user = stale_user
-        with patch(
-            "superset.mcp_service.auth.get_user_from_request",
-            side_effect=lambda: _assert_cleared_then_return(),
+        with (
+            patch("superset.mcp_service.auth.has_request_context", return_value=False),
+            patch(
+                "superset.mcp_service.auth.get_user_from_request",
+                side_effect=lambda: _assert_cleared_then_return(),
+            ),
         ):
             result = asyncio.run(wrapped())
 
