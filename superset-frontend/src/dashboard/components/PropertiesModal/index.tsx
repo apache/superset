@@ -279,10 +279,14 @@ const PropertiesModal = ({
     if (cssDebounceTimer.current) {
       clearTimeout(cssDebounceTimer.current);
     }
-    dispatch(dashboardInfoChanged({ css: originalCss.current ?? '' }));
-    dispatch(
-      setColorScheme(originalDashboardMetadata.current.color_scheme ?? ''),
-    );
+    if (originalCss.current !== null) {
+      dispatch(dashboardInfoChanged({ css: originalCss.current }));
+    }
+    const originalColorScheme = originalDashboardMetadata.current
+      .color_scheme as string | undefined;
+    if (typeof originalColorScheme === 'string') {
+      dispatch(setColorScheme(originalColorScheme));
+    }
     onHide();
   };
 
