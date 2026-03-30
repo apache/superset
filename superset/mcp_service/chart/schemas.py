@@ -492,6 +492,11 @@ class ColumnRef(BaseModel):
         "When set, 'aggregate' is ignored.",
     )
 
+    @property
+    def is_metric(self) -> bool:
+        """Whether this ref acts as a metric (has aggregate or is a saved metric)."""
+        return bool(self.aggregate) or self.saved_metric
+
     @model_validator(mode="after")
     def clear_aggregate_for_saved_metric(self) -> "ColumnRef":
         """Clear aggregate when saved_metric is True since it's ignored."""
@@ -834,9 +839,7 @@ class HandlebarsChartConfig(UnknownFieldCheckMixin):
                     "Handlebars chart in 'aggregate' query mode requires 'metrics' "
                     "field. Specify at least one metric with an aggregate function."
                 )
-            missing_agg = [
-                m.name for m in self.metrics if not m.aggregate and not m.saved_metric
-            ]
+            missing_agg = [m.name for m in self.metrics if not m.is_metric]
             if missing_agg:
                 raise ValueError(
                     f"Handlebars chart in 'aggregate' query mode requires an "

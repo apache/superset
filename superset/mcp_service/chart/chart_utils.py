@@ -381,7 +381,7 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
     aggregated_metrics = []
 
     for col in config.columns:
-        if col.saved_metric or col.aggregate:
+        if col.is_metric:
             # Saved metric or column with aggregation - treat as metric
             aggregated_metrics.append(create_metric_object(col))
         else:
@@ -884,9 +884,9 @@ def _truncate(name: str, max_length: int = 60) -> str:
 
 def _table_chart_what(config: TableChartConfig, dataset_name: str | None) -> str:
     """Build the descriptive fragment for a table chart."""
-    has_agg = any(col.aggregate or col.saved_metric for col in config.columns)
+    has_agg = any(col.is_metric for col in config.columns)
     if has_agg:
-        metrics = [col for col in config.columns if col.aggregate or col.saved_metric]
+        metrics = [col for col in config.columns if col.is_metric]
         what = ", ".join(_humanize_column(m) for m in metrics[:2])
         return f"{what} Summary"
     if dataset_name:
@@ -1083,11 +1083,7 @@ def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilit
     # Classify data types
     data_types = []
     if hasattr(config, "x") and config.x:
-        data_types.append(
-            "categorical"
-            if not config.x.aggregate and not config.x.saved_metric
-            else "metric"
-        )
+        data_types.append("categorical" if not config.x.is_metric else "metric")
     if hasattr(config, "y") and config.y:
         data_types.extend(["metric"] * len(config.y))
     if "time" in viz_type or "timeseries" in viz_type:
