@@ -27,10 +27,12 @@ jobs:
         id: check
         shell: bash
         run: |
-          if [ -n "${{ (secrets.SUPERSET_SITE_BUILD != '' && secrets.SUPERSET_SITE_BUILD != '') || '' }}" ]; then
+          if [ -n "${SUPERSET_SITE_BUILD}" ]; then
             echo "has-secrets=1" >> "$GITHUB_OUTPUT"
           fi
 
+        env:
+          SUPERSET_SITE_BUILD: ${{ (secrets.SUPERSET_SITE_BUILD != '' && secrets.SUPERSET_SITE_BUILD != '') || '' }}
   build-deploy:
     needs: config
     if: needs.config.outputs.has-secrets

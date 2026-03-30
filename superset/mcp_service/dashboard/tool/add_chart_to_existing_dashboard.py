@@ -26,8 +26,10 @@ import re
 from typing import Any, Dict
 
 from fastmcp import Context
+from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.commands.exceptions import CommandException
 from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import serialize_chart_object
 from superset.mcp_service.dashboard.constants import (
@@ -40,7 +42,6 @@ from superset.mcp_service.dashboard.schemas import (
     AddChartToDashboardResponse,
     DashboardInfo,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
@@ -290,8 +291,17 @@ def _ensure_layout_structure(
     if "ROOT_ID" in layout:
         if "children" not in layout["ROOT_ID"]:
             layout["ROOT_ID"]["children"] = []
-        if "GRID_ID" not in layout["ROOT_ID"]["children"]:
-            layout["ROOT_ID"]["children"].append("GRID_ID")
+        # Only add GRID_ID to ROOT_ID when TABS are not already a direct
+        # child of ROOT_ID.  Real Superset dashboards with tabs place a
+        # TABS container directly under ROOT_ID (ROOT_ID → TABS → TABs).
+        # Adding GRID_ID as a sibling of TABS confuses the frontend layout
+        # engine and makes charts invisible.
+        root_children = layout["ROOT_ID"]["children"]
+        has_tabs_under_root = any(
+            layout.get(c, {}).get("type") == "TABS" for c in root_children
+        )
+        if not has_tabs_under_root and "GRID_ID" not in root_children:
+            root_children.append("GRID_ID")
     else:
         # Create ROOT_ID if it doesn't exist
         layout["ROOT_ID"] = {
@@ -314,7 +324,6 @@ def _ensure_layout_structure(
         destructiveHint=False,
     ),
 )
-@parse_request(AddChartToDashboardRequest)
 def add_chart_to_existing_dashboard(
     request: AddChartToDashboardRequest, ctx: Context
 ) -> AddChartToDashboardResponse:
@@ -426,25 +435,62 @@ def add_chart_to_existing_dashboard(
 
         # Re-fetch the dashboard with eager-loaded relationships to avoid
         # "Instance is not bound to a Session" errors when serializing
-        # chart .tags and .owners.
+        # chart .tags and .owners.  The preceding command.run() commit may
+        # invalidate the session in multi-tenant environments; on failure,
+        # return a minimal response using only scalar attributes that are
+        # already loaded — relationship fields (owners, tags, slices) would
+        # trigger lazy-loading on the same dead session.
         from sqlalchemy.orm import subqueryload
 
-        from superset.daos.dashboard import DashboardDAO
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
 
-        updated_dashboard = (
-            DashboardDAO.find_by_id(
-                updated_dashboard.id,
-                query_options=[
-                    subqueryload(Dashboard.slices).subqueryload(Slice.owners),
-                    subqueryload(Dashboard.slices).subqueryload(Slice.tags),
-                    subqueryload(Dashboard.owners),
-                    subqueryload(Dashboard.tags),
-                ],
+        try:
+            updated_dashboard = (
+                DashboardDAO.find_by_id(
+                    updated_dashboard.id,
+                    query_options=[
+                        subqueryload(Dashboard.slices).subqueryload(Slice.owners),
+                        subqueryload(Dashboard.slices).subqueryload(Slice.tags),
+                        subqueryload(Dashboard.owners),
+                        subqueryload(Dashboard.tags),
+                    ],
+                )
+                or updated_dashboard
             )
-            or updated_dashboard
-        )
+        except SQLAlchemyError:
+            logger.warning(
+                "Re-fetch of dashboard %s failed; returning minimal response",
+                updated_dashboard.id,
+                exc_info=True,
+            )
+            try:
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+            except SQLAlchemyError:
+                logger.warning(
+                    "Database rollback failed during dashboard re-fetch error handling",
+                    exc_info=True,
+                )
+            dashboard_url = (
+                f"{get_superset_base_url()}/superset/dashboard/{updated_dashboard.id}/"
+            )
+            position_info = {
+                "row": row_key,
+                "chart_key": chart_key,
+                "row_key": row_key,
+            }
+            return AddChartToDashboardResponse(
+                dashboard=DashboardInfo(
+                    id=updated_dashboard.id,
+                    dashboard_title=updated_dashboard.dashboard_title,
+                    published=updated_dashboard.published,
+                    chart_count=len(all_chart_objects),
+                    url=dashboard_url,
+                ),
+                dashboard_url=dashboard_url,
+                position=position_info,
+                error=None,
+            )
 
         # Convert to response format
         from superset.mcp_service.dashboard.schemas import (
@@ -477,8 +523,9 @@ def add_chart_to_existing_dashboard(
             ],
             roles=[],
             charts=[
-                serialize_chart_object(chart)
+                obj
                 for chart in getattr(updated_dashboard, "slices", [])
+                if (obj := serialize_chart_object(chart)) is not None
             ],
         )
 
@@ -500,7 +547,15 @@ def add_chart_to_existing_dashboard(
             error=None,
         )
 
-    except Exception as e:
+    except (CommandException, SQLAlchemyError, KeyError, ValueError) as e:
+        from superset import db
+
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError:
+            logger.warning(
+                "Database rollback failed during error handling", exc_info=True
+            )
         logger.error("Error adding chart to dashboard: %s", e)
         return AddChartToDashboardResponse(
             dashboard=None,

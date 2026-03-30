@@ -35,9 +35,12 @@ MCP_DEV_USERNAME = "admin"
 ```
 
 **How it works**:
-1. The `@mcp_auth_hook` decorator calls `get_user_from_request()`
-2. `get_user_from_request()` reads `MCP_DEV_USERNAME` from config
-3. User is queried from database and set as `g.user`
+1. The `@mcp_auth_hook` decorator clears any stale `g.user` and calls `get_user_from_request()`
+2. `get_user_from_request()` resolves the user in priority order:
+   - **JWT auth context** (per-request ContextVar from MCP SDK) — safest, prevents stale user impersonation
+   - **`MCP_DEV_USERNAME`** from config — for development/single-user deployments
+   - **`g.user` fallback** — for external middleware (e.g., Preset's WorkspaceContextMiddleware)
+3. User is queried from database (with roles/groups eagerly loaded) and set as `g.user`
 4. All subsequent Superset operations use this user's permissions
 
 **Development Use Only**:
