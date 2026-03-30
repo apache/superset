@@ -483,6 +483,8 @@ def add_chart_to_existing_dashboard(
                 dashboard=DashboardInfo(
                     id=updated_dashboard.id,
                     dashboard_title=updated_dashboard.dashboard_title,
+                    published=updated_dashboard.published,
+                    chart_count=len(all_chart_objects),
                     url=dashboard_url,
                 ),
                 dashboard_url=dashboard_url,
