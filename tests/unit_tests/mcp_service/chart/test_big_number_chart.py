@@ -132,7 +132,7 @@ class TestBigNumberChartConfig:
         assert len(config.filters) == 1
 
     def test_extra_fields_forbidden(self) -> None:
-        with pytest.raises(ValidationError, match="Extra inputs"):
+        with pytest.raises(ValueError, match="Unknown field 'unknown_field'"):
             BigNumberChartConfig(
                 chart_type="big_number",
                 metric=ColumnRef(name="revenue", aggregate="SUM"),
