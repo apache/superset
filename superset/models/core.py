@@ -508,26 +508,13 @@ class Database(
             if user and user.email:
                 effective_username = user.email.split("@")[0]
 
-        # Check if this database has an upstream login provider configured.
-        # If so, use the saved login token instead of a separate database OAuth2 dance.
-        upstream_providers = app.config.get("DATABASE_OAUTH2_UPSTREAM_PROVIDERS", {})
-        upstream_provider = upstream_providers.get(self.database_name)
-        if upstream_provider and hasattr(g, "user") and hasattr(g.user, "id"):
-            from superset.utils.oauth2 import get_upstream_provider_token
+        from superset.utils.oauth2 import get_access_token_for_database
 
-            access_token = get_upstream_provider_token(upstream_provider, g.user.id)
-        else:
-            oauth2_config = self.get_oauth2_config()
-            access_token = (
-                get_oauth2_access_token(
-                    oauth2_config,
-                    self.id,
-                    g.user.id,
-                    self.db_engine_spec,
-                )
-                if oauth2_config and hasattr(g, "user") and hasattr(g.user, "id")
-                else None
-            )
+        access_token = (
+            get_access_token_for_database(self, g.user.id)
+            if hasattr(g, "user") and hasattr(g.user, "id")
+            else None
+        )
         masked_url = self.get_password_masked_url(sqlalchemy_url)
         logger.debug("Database._get_sqla_engine(). Masked URL: %s", str(masked_url))
 
