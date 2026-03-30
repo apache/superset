@@ -69,8 +69,9 @@ describe('TimeFormatter', () => {
     });
     test('handles numeric string, treating it as a timestamp', () => {
       // PivotData.processRecord coerces values with String(), turning numeric
-      // timestamps into strings. 1704067200000 = 2024-01-01T00:00:00.000Z
-      expect(formatter.format('1704067200000')).toEqual('2024');
+      // timestamps into strings.
+      const timestamp = PREVIEW_TIME.getTime().toString();
+      expect(formatter.format(timestamp)).toEqual('2017');
     });
     test('otherwise returns formatted value', () => {
       expect(formatter.format(PREVIEW_TIME)).toEqual('2017');
