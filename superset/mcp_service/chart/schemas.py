@@ -46,6 +46,7 @@ from superset.mcp_service.common.cache_schemas import (
     QueryCacheControl,
 )
 from superset.mcp_service.common.error_schemas import ChartGenerationError
+from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
     serialize_user_object,
@@ -1043,7 +1044,13 @@ class ListChartsRequest(MetadataCacheControl):
         Field(default=1, description="Page number for pagination (1-based)"),
     ]
     page_size: Annotated[
-        PositiveInt, Field(default=10, description="Number of items per page")
+        int,
+        Field(
+            default=DEFAULT_PAGE_SIZE,
+            gt=0,
+            le=MAX_PAGE_SIZE,
+            description=f"Number of items per page (max {MAX_PAGE_SIZE})",
+        ),
     ]
 
     @model_validator(mode="after")
