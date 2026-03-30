@@ -246,6 +246,69 @@ def _resolve_user_from_jwt_context(app: Any) -> User | None:
     return user
 
 
+def _resolve_user_from_api_key(app: Any) -> User | None:
+    """
+    Resolve the current user from an API key in the Authorization header.
+
+    Uses FAB SecurityManager's API key validation. Only attempts when
+    FAB_API_KEY_ENABLED is True and a request context is active.
+
+    Returns:
+        User object with relationships loaded, or None if no API key present
+        or API key auth is not enabled/available.
+
+    Raises:
+        PermissionError: If an API key is present but invalid/expired,
+            or if validation is not available in this FAB version.
+    """
+    if not app.config.get("FAB_API_KEY_ENABLED", False) or not has_request_context():
+        return None
+
+    sm = app.appbuilder.sm
+    # _extract_api_key_from_request is FAB's internal method for reading
+    # the Bearer token from the Authorization header and matching prefixes.
+    # Not all FAB versions include this method, so guard with hasattr.
+    if not hasattr(sm, "_extract_api_key_from_request"):
+        logger.debug(
+            "FAB SecurityManager does not have _extract_api_key_from_request; "
+            "API key authentication is not available in this FAB version"
+        )
+        return None
+
+    api_key_string = sm._extract_api_key_from_request()
+    if api_key_string is None:
+        return None
+
+    if not hasattr(sm, "validate_api_key"):
+        logger.warning(
+            "FAB SecurityManager does not have validate_api_key; "
+            "cannot validate API key"
+        )
+        raise PermissionError(
+            "API key validation is not available in this FAB version."
+        )
+
+    user = sm.validate_api_key(api_key_string)
+    if not user:
+        raise PermissionError(
+            "Invalid or expired API key. "
+            "Create a new key at /api/v1/security/api_keys/."
+        )
+
+    # Reload user with all relationships eagerly loaded to avoid
+    # detached-instance errors during later permission checks.
+    user_with_rels = load_user_with_relationships(username=user.username)
+    if user_with_rels is None:
+        logger.warning(
+            "Failed to reload API key user %s with relationships; "
+            "using original user object which may have lazy-loaded "
+            "relationships",
+            user.username,
+        )
+        return user
+    return user_with_rels
+
+
 def get_user_from_request() -> User:
     """
     Get the current user for the MCP tool request.
@@ -274,53 +337,8 @@ def get_user_from_request() -> User:
         return jwt_user
 
     # Priority 2: API key authentication via FAB SecurityManager
-    # Only attempt when in a request context (not for MCP internal operations
-    # like tool discovery that run with only an application context)
-    # Use the Flask config key FAB_API_KEY_ENABLED (not the feature flag),
-    # because the config key controls whether FAB registers the API key
-    # endpoints and validation logic. The feature flag with the same name
-    # in DEFAULT_FEATURE_FLAGS only controls the frontend UI visibility.
-    if current_app.config.get("FAB_API_KEY_ENABLED", False) and has_request_context():
-        sm = current_app.appbuilder.sm
-        # _extract_api_key_from_request is FAB's internal method for reading
-        # the Bearer token from the Authorization header and matching prefixes.
-        # Not all FAB versions include this method, so guard with hasattr.
-        if not hasattr(sm, "_extract_api_key_from_request"):
-            logger.debug(
-                "FAB SecurityManager does not have _extract_api_key_from_request; "
-                "API key authentication is not available in this FAB version"
-            )
-        else:
-            api_key_string = sm._extract_api_key_from_request()
-            if api_key_string is not None:
-                if not hasattr(sm, "validate_api_key"):
-                    logger.warning(
-                        "FAB SecurityManager does not have validate_api_key; "
-                        "cannot validate API key"
-                    )
-                    raise PermissionError(
-                        "API key validation is not available in this FAB version."
-                    )
-                user = sm.validate_api_key(api_key_string)
-                if user:
-                    # Reload user with all relationships eagerly loaded to avoid
-                    # detached-instance errors during later permission checks.
-                    user_with_rels = load_user_with_relationships(
-                        username=user.username,
-                    )
-                    if user_with_rels is None:
-                        logger.warning(
-                            "Failed to reload API key user %s with relationships; "
-                            "using original user object which may have lazy-loaded "
-                            "relationships",
-                            user.username,
-                        )
-                        return user
-                    return user_with_rels
-                raise PermissionError(
-                    "Invalid or expired API key. "
-                    "Create a new key at /api/v1/security/api_keys/."
-                )
+    if (api_key_user := _resolve_user_from_api_key(current_app)) is not None:
+        return api_key_user
 
     # Priority 3: Configured dev username for development/single-user deployments
     if username := current_app.config.get("MCP_DEV_USERNAME"):
