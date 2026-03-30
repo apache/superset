@@ -276,7 +276,7 @@ afterEach(() => {
   restoreDefaultTabsRoute();
 
   // Clear call history so stale counts don't leak between tests
-  fetchMock.callHistory.clear();
+  fetchMock.clearHistory();
 
   // Remove test-specific named routes (try/catch — may not exist)
   for (const name of [
@@ -1799,7 +1799,7 @@ const setupAnchorMocks = (
   const tabs = tabsOverride ?? defaultTabs;
 
   // Clear call history so waitFor assertions don't match calls from prior tests.
-  fetchMock.callHistory.clear();
+  fetchMock.clearHistory();
 
   // Only replace the named routes that need anchor-specific overrides;
   // unnamed related-endpoint routes (owners, database, etc.) stay intact.
