@@ -196,10 +196,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
   handleRedirect = (windowLocationSearch: string, chart: any) => {
     const searchParams = new URLSearchParams(windowLocationSearch);
-    searchParams.set('save_action', this.state.action);
-
     searchParams.delete('form_data_key');
-
     searchParams.set('slice_id', chart.id.toString());
     return searchParams;
   };
@@ -343,7 +340,9 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
         return;
       }
       const searchParams = this.handleRedirect(window.location.search, value);
-      this.props.history.replace(`/explore/?${searchParams.toString()}`);
+      this.props.history.replace(`/explore/?${searchParams.toString()}`, {
+        saveAction: this.state.action,
+      });
 
       this.setState({ isLoading: false });
       this.onHide();
