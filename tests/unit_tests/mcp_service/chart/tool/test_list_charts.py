@@ -28,14 +28,15 @@ from superset.mcp_service.chart.schemas import (
     ChartFilter,
     ListChartsRequest,
 )
+from superset.mcp_service.constants import MAX_PAGE_SIZE
 
 
-@pytest.fixture
+@pytest.fixture()
 def mcp_server():
     return mcp
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_chart():
     """Create a mock chart object."""
     chart = Mock()
@@ -132,6 +133,19 @@ class TestListChartsRequestSchema:
 
         with pytest.raises(ValueError, match="Input should be greater than 0"):
             ListChartsRequest(page_size=0)
+
+    def test_page_size_exceeds_max(self):
+        """Test that page_size over MAX_PAGE_SIZE raises validation error."""
+        with pytest.raises(
+            ValueError,
+            match=f"Input should be less than or equal to {MAX_PAGE_SIZE}",
+        ):
+            ListChartsRequest(page_size=MAX_PAGE_SIZE + 1)
+
+    def test_page_size_at_max(self):
+        """Test that page_size at MAX_PAGE_SIZE is accepted."""
+        request = ListChartsRequest(page_size=MAX_PAGE_SIZE)
+        assert request.page_size == MAX_PAGE_SIZE
 
     def test_filter_validation(self):
         """Test that filter validation works correctly."""
