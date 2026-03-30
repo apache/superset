@@ -55,6 +55,7 @@ class TestCreateMetricObject:
         col = ColumnRef(name="revenue", aggregate="SUM", label="Total Revenue")
         result = create_metric_object(col)
 
+        assert isinstance(result, dict)
         assert result["aggregate"] == "SUM"
         assert result["column"]["column_name"] == "revenue"
         assert result["label"] == "Total Revenue"
@@ -66,10 +67,27 @@ class TestCreateMetricObject:
         col = ColumnRef(name="orders")
         result = create_metric_object(col)
 
+        assert isinstance(result, dict)
         assert result["aggregate"] == "SUM"
         assert result["column"]["column_name"] == "orders"
         assert result["label"] == "SUM(orders)"
         assert result["optionName"] == "metric_orders"
+
+    def test_create_metric_object_saved_metric_returns_string(self) -> None:
+        """Test that saved metrics return a plain string metric name"""
+        col = ColumnRef(name="total_revenue", saved_metric=True)
+        result = create_metric_object(col)
+
+        assert result == "total_revenue"
+        assert isinstance(result, str)
+
+    def test_create_metric_object_saved_metric_ignores_aggregate(self) -> None:
+        """Test that saved metrics ignore aggregate even if somehow set"""
+        col = ColumnRef(name="total_revenue", saved_metric=True, aggregate="SUM")
+        result = create_metric_object(col)
+
+        # saved_metric validator clears aggregate, result is plain string
+        assert result == "total_revenue"
 
 
 class TestMapFilterOperator:
@@ -337,6 +355,38 @@ class TestMapTableConfig:
         result = map_table_config(config)
 
         assert result["row_limit"] == 1000
+
+    def test_map_table_config_saved_metric_as_metric(self) -> None:
+        """Test that saved metrics are routed to metrics, not raw columns."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[
+                ColumnRef(name="product_line"),
+                ColumnRef(name="total_revenue", saved_metric=True),
+            ],
+        )
+
+        result = map_table_config(config)
+
+        assert result["query_mode"] == "aggregate"
+        assert result["metrics"] == ["total_revenue"]
+        assert "product_line" in result["groupby"]
+
+    def test_map_table_config_saved_metric_only(self) -> None:
+        """Test table with only saved metrics (no raw columns)."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[
+                ColumnRef(name="total_revenue", saved_metric=True),
+                ColumnRef(name="avg_order_value", saved_metric=True),
+            ],
+        )
+
+        result = map_table_config(config)
+
+        assert result["query_mode"] == "aggregate"
+        assert result["metrics"] == ["total_revenue", "avg_order_value"]
+        assert "all_columns" not in result
 
 
 class TestAddAdhocFilters:
@@ -650,6 +700,44 @@ class TestMapXYConfig:
         result = map_xy_config(config)
 
         assert result["row_limit"] == 10000
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_saved_metric(self, mock_is_temporal: Any) -> None:
+        """Test XY config with saved metric emits string in metrics list"""
+        mock_is_temporal.return_value = True
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="order_date"),
+            y=[ColumnRef(name="total_revenue", saved_metric=True)],
+            kind="line",
+        )
+
+        result = map_xy_config(config, dataset_id=1)
+
+        assert result["metrics"] == ["total_revenue"]
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_mixed_saved_and_adhoc_metrics(
+        self, mock_is_temporal: Any
+    ) -> None:
+        """Test XY config with both saved and ad-hoc metrics"""
+        mock_is_temporal.return_value = True
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="order_date"),
+            y=[
+                ColumnRef(name="total_revenue", saved_metric=True),
+                ColumnRef(name="quantity", aggregate="SUM"),
+            ],
+            kind="line",
+        )
+
+        result = map_xy_config(config, dataset_id=1)
+
+        assert len(result["metrics"]) == 2
+        assert result["metrics"][0] == "total_revenue"
+        assert isinstance(result["metrics"][1], dict)
+        assert result["metrics"][1]["aggregate"] == "SUM"
 
 
 class TestMapConfigToFormData:
