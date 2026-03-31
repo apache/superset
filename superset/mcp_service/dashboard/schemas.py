@@ -65,7 +65,7 @@ Example usage:
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List, Literal, TYPE_CHECKING
 
 import humanize
@@ -520,7 +520,7 @@ def _humanize_timestamp(dt: datetime | None) -> str | None:
     """Convert a datetime to a humanized string like '2 hours ago'."""
     if dt is None:
         return None
-    return humanize.naturaltime(datetime.now() - dt)
+    return humanize.naturaltime(datetime.now(timezone.utc) - dt)
 
 
 def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:

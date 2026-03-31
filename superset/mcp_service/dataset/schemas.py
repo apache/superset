@@ -21,7 +21,7 @@ Pydantic schemas for dataset-related responses
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List, Literal
 
 import humanize
@@ -312,7 +312,7 @@ def _humanize_timestamp(dt: datetime | None) -> str | None:
     """Convert a datetime to a humanized string like '2 hours ago'."""
     if dt is None:
         return None
-    return humanize.naturaltime(datetime.now() - dt)
+    return humanize.naturaltime(datetime.now(timezone.utc) - dt)
 
 
 def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:

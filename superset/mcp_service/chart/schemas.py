@@ -276,7 +276,7 @@ def _humanize_timestamp(dt: datetime | None) -> str | None:
     """Convert a datetime to a humanized string like '2 hours ago'."""
     if dt is None:
         return None
-    return humanize.naturaltime(datetime.now() - dt)
+    return humanize.naturaltime(datetime.now(timezone.utc) - dt)
 
 
 def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:

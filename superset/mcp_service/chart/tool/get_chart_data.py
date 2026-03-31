@@ -372,18 +372,9 @@ async def get_chart_data(  # noqa: C901
                 # Deck.gl chart types store spatial data (lat/lon)
                 # rather than traditional metrics/groupby. They
                 # require a saved query_context to retrieve data.
-                deck_gl_types = (
-                    "deck_arc",
-                    "deck_geojson",
-                    "deck_grid",
-                    "deck_hex",
-                    "deck_multi",
-                    "deck_path",
-                    "deck_polygon",
-                    "deck_scatter",
-                    "deck_screengrid",
-                )
-                if viz_type in deck_gl_types:
+                # Match by prefix to cover all current and future
+                # deck.gl viz types (deck_arc, deck_scatter, etc.).
+                if viz_type.startswith("deck_"):
                     await ctx.warning(
                         "Chart %s is a deck.gl visualization (%s) with no "
                         "saved query_context. Data retrieval requires "
