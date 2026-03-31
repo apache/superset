@@ -1837,3 +1837,20 @@ describe('Tooltip with long labels', () => {
     expect(result).toContain('599616000000');
   });
 });
+
+test('should adjust dataZoom bottom when chart height changes', () => {
+  const smallChart = createTestChartProps({ height: 300 });
+  const largeChart = createTestChartProps({ height: 600 });
+
+  const smallResult = transformProps(smallChart);
+  const largeResult = transformProps(largeChart);
+
+  const smallBottom = (smallResult.echartOptions.dataZoom as any[])[0].bottom;
+  const largeBottom = (largeResult.echartOptions.dataZoom as any[])[0].bottom;
+
+  expect(smallBottom).toBeDefined();
+  expect(largeBottom).toBeDefined();
+
+  // Bottom should vary with height
+  expect(smallBottom).not.toEqual(largeBottom);
+});
