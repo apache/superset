@@ -23,7 +23,7 @@ from flask import make_response, request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import lazy_gettext as t
+from flask_babel import lazy_gettext as t, ngettext
 from marshmallow import ValidationError
 from pydantic import ValidationError as PydanticValidationError
 
@@ -33,6 +33,7 @@ from superset.commands.semantic_layer.create import (
     CreateSemanticViewCommand,
 )
 from superset.commands.semantic_layer.delete import (
+    BulkDeleteSemanticViewCommand,
     DeleteSemanticLayerCommand,
     DeleteSemanticViewCommand,
 )
@@ -55,6 +56,7 @@ from superset.commands.semantic_layer.update import (
 )
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.daos.semantic_layer import SemanticLayerDAO, SemanticViewDAO
+from superset.datasets.schemas import get_delete_ids_schema
 from superset.models.core import Database
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.semantic_layers.registry import registry
@@ -171,7 +173,7 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
     allow_browser_login = True
     class_permission_name = "SemanticView"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
-    include_route_methods = {"put", "post", "delete"}
+    include_route_methods = {"put", "post", "delete", "bulk_delete"}
 
     edit_model_schema = SemanticViewPutSchema()
 
@@ -363,6 +365,66 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
         except SemanticViewDeleteFailedError as ex:
             logger.error(
                 "Error deleting semantic view: %s",
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
+
+    @expose("/", methods=("DELETE",))
+    @protect()
+    @statsd_metrics
+    @rison(get_delete_ids_schema)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
+        log_to_statsd=False,
+    )
+    def bulk_delete(self, **kwargs: Any) -> Response:
+        """Bulk delete semantic views.
+        ---
+        delete:
+          summary: Bulk delete semantic views
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_delete_ids_schema'
+          responses:
+            200:
+              description: Semantic views deleted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+        """
+        item_ids: list[int] = kwargs["rison"]
+        try:
+            BulkDeleteSemanticViewCommand(item_ids).run()
+            return self.response(
+                200,
+                message=ngettext(
+                    "Deleted %(num)d semantic view",
+                    "Deleted %(num)d semantic views",
+                    num=len(item_ids),
+                ),
+            )
+        except SemanticViewNotFoundError:
+            return self.response_404()
+        except SemanticViewDeleteFailedError as ex:
+            logger.error(
+                "Error bulk deleting semantic views: %s",
                 str(ex),
                 exc_info=True,
             )
