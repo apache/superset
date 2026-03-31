@@ -25,6 +25,7 @@ import difflib
 from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List, Literal, Protocol
 
+import humanize
 from pydantic import (
     AliasChoices,
     AliasPath,
@@ -240,6 +241,13 @@ class GetChartInfoRequest(BaseModel):
     )
 
 
+def _humanize_timestamp(dt: datetime | None) -> str | None:
+    """Convert a datetime to a humanized string like '2 hours ago'."""
+    if dt is None:
+        return None
+    return humanize.naturaltime(datetime.now() - dt)
+
+
 def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     if not chart:
         return None
@@ -274,9 +282,9 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         cache_timeout=getattr(chart, "cache_timeout", None),
         form_data=chart_form_data,
         changed_on=getattr(chart, "changed_on", None),
-        changed_on_humanized=getattr(chart, "changed_on_humanized", None),
+        changed_on_humanized=_humanize_timestamp(getattr(chart, "changed_on", None)),
         created_on=getattr(chart, "created_on", None),
-        created_on_humanized=getattr(chart, "created_on_humanized", None),
+        created_on_humanized=_humanize_timestamp(getattr(chart, "created_on", None)),
         uuid=str(getattr(chart, "uuid", "")) if getattr(chart, "uuid", None) else None,
         tags=[
             TagInfo.model_validate(tag, from_attributes=True)

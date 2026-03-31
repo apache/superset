@@ -51,6 +51,7 @@ DEFAULT_DASHBOARD_COLUMNS = [
     "dashboard_title",
     "slug",
     "url",
+    "changed_on",
     "changed_on_humanized",
 ]
 

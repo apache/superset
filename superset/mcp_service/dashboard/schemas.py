@@ -69,6 +69,7 @@ import logging
 from datetime import datetime
 from typing import Annotated, Any, Dict, List, Literal, TYPE_CHECKING
 
+import humanize
 from pydantic import (
     AliasChoices,
     BaseModel,
@@ -728,6 +729,13 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
     )
 
 
+def _humanize_timestamp(dt: datetime | None) -> str | None:
+    """Convert a datetime to a humanized string like '2 hours ago'."""
+    if dt is None:
+        return None
+    return humanize.naturaltime(datetime.now() - dt)
+
+
 def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
     """Simple dashboard serializer that safely handles object attributes."""
     from superset.mcp_service.utils.url_utils import get_superset_base_url
@@ -753,9 +761,13 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
         url=dashboard_url,
         published=getattr(dashboard, "published", None),
         changed_on=getattr(dashboard, "changed_on", None),
-        changed_on_humanized=getattr(dashboard, "changed_on_humanized", None),
+        changed_on_humanized=_humanize_timestamp(
+            getattr(dashboard, "changed_on", None)
+        ),
         created_on=getattr(dashboard, "created_on", None),
-        created_on_humanized=getattr(dashboard, "created_on_humanized", None),
+        created_on_humanized=_humanize_timestamp(
+            getattr(dashboard, "created_on", None)
+        ),
         description=getattr(dashboard, "description", None),
         css=getattr(dashboard, "css", None),
         certified_by=getattr(dashboard, "certified_by", None),
