@@ -84,7 +84,11 @@ class TableColumnInfo(BaseModel):
 
 
 class SqlMetricInfo(BaseModel):
-    metric_name: str = Field(..., description="Metric name")
+    metric_name: str = Field(
+        ...,
+        description="Saved metric name. In chart configs, reference as "
+        '{"name": "<metric_name>", "saved_metric": true}.',
+    )
     verbose_name: str | None = Field(None, description="Verbose name")
     expression: str | None = Field(None, description="SQL expression")
     description: str | None = Field(None, description="Metric description")
@@ -133,7 +137,9 @@ class DatasetInfo(BaseModel):
         default_factory=list, description="Columns in the dataset"
     )
     metrics: List[SqlMetricInfo] = Field(
-        default_factory=list, description="Metrics in the dataset"
+        default_factory=list,
+        description="Saved metrics (pre-defined aggregations). "
+        "NOT columns — use saved_metric=true in chart configs.",
     )
     is_favorite: bool | None = Field(
         None, description="Whether this dataset is favorited by the current user"
