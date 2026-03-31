@@ -369,6 +369,38 @@ async def get_chart_data(  # noqa: C901
                 # Bubble charts use x/y/size as separate metric fields.
                 viz_type = chart.viz_type or ""
 
+                # Deck.gl chart types store spatial data (lat/lon)
+                # rather than traditional metrics/groupby. They
+                # require a saved query_context to retrieve data.
+                deck_gl_types = (
+                    "deck_arc",
+                    "deck_geojson",
+                    "deck_grid",
+                    "deck_hex",
+                    "deck_multi",
+                    "deck_path",
+                    "deck_polygon",
+                    "deck_scatter",
+                    "deck_screengrid",
+                )
+                if viz_type in deck_gl_types:
+                    await ctx.warning(
+                        "Chart %s is a deck.gl visualization (%s) with no "
+                        "saved query_context. Data retrieval requires "
+                        "re-saving the chart in Superset." % (chart.id, viz_type)
+                    )
+                    return ChartError(
+                        error=(
+                            f"Chart {chart.id} is a deck.gl visualization "
+                            f"(type: {viz_type}) with no saved query_context. "
+                            f"Deck.gl charts use spatial data (lat/lon) that "
+                            f"cannot be reconstructed from form_data alone. "
+                            f"Please open this chart in Superset and re-save "
+                            f"it to generate a query_context."
+                        ),
+                        error_type="MissingQueryContext",
+                    )
+
                 singular_metric_no_groupby = (
                     "big_number",
                     "big_number_total",
