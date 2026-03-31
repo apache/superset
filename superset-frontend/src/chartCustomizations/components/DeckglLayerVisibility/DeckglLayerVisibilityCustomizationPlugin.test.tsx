@@ -460,6 +460,27 @@ test('deduplicates layer IDs from multiple charts', async () => {
   expect(callArgs.endpoint).toContain('/api/v1/chart/?q=');
 });
 
+test('renders validate message when filterState has validateMessage', async () => {
+  mockSupersetClientGet.mockResolvedValue(mockApiResponse);
+
+  render(
+    <DeckglLayerVisibilityCustomizationPlugin
+      {...defaultProps}
+      filterState={{ validateMessage: 'This field is required', validateStatus: 'error' }}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        sliceEntities: { slices: mockCharts },
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.getByText('This field is required')).toBeInTheDocument();
+  });
+});
+
 test('respects existing visible_deckgl_layers from Redux state', async () => {
   mockSupersetClientGet.mockResolvedValue(mockApiResponse);
   const setDataMaskMock = jest.fn();
