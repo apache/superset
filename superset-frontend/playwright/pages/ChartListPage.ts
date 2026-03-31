@@ -166,9 +166,7 @@ export class ChartListPage {
   async clickCardDeleteAction(chartName: string): Promise<void> {
     const card = this.getChartCard(chartName);
     await card.locator('[aria-label="more"]').click();
-    await this.page
-      .locator('[data-test="chart-list-delete-option"]')
-      .click();
+    await this.page.locator('[data-test="chart-list-delete-option"]').click();
   }
 
   /**
@@ -177,8 +175,6 @@ export class ChartListPage {
   async clickCardEditAction(chartName: string): Promise<void> {
     const card = this.getChartCard(chartName);
     await card.locator('[aria-label="more"]').click();
-    await this.page
-      .locator('[data-test="chart-list-edit-option"]')
-      .click();
+    await this.page.locator('[data-test="chart-list-edit-option"]').click();
   }
 }

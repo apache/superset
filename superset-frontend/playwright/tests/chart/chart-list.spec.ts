@@ -261,10 +261,7 @@ test('should bulk delete multiple charts', async ({
   }
 });
 
-test('should edit chart name from card view', async ({
-  page,
-  testAssets,
-}) => {
+test('should edit chart name from card view', async ({ page, testAssets }) => {
   // Create throwaway chart for editing
   const { id: chartId, name: chartName } = await createTestChart(
     page,
