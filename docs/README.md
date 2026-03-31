@@ -20,7 +20,7 @@ under the License.
 This is the public documentation site for Superset, built using
 [Docusaurus 3](https://docusaurus.io/). See the
 [Developer Docs](https://superset.apache.org/developer-docs/contributing/development-setup#documentation)
-for documentation on contributing to documentation.
+for information on contributing to the documentation.
 
 ## Version Management
 
@@ -60,7 +60,7 @@ yarn version:add:components 1.2.0
 ### Managing Versions
 
 #### With Automated Scripts
-The automated scripts handle all configuration updates automatically. No manual editing required!
+The automated scripts handle all configuration updates automatically. No manual editing is required.
 
 #### Manual Configuration
 If creating versions manually, you'll need to:
