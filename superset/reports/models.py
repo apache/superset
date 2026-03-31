@@ -236,7 +236,7 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
         native_filter_id: str,
         filter_type: str,
         column_name: str,
-        values: Optional[list[Optional[str]]],
+        values: list[Optional[str]],
     ) -> tuple[dict[str, Any], Optional[str]]:
         """
         Generate a native filter configuration for the given filter type.
@@ -245,10 +245,6 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
             A tuple of (filter_config, warning_message). If the filter type is
             unrecognized, returns an empty dict and a warning message.
         """
-        # Normalize None to empty list to avoid TypeError on len(values)
-        if values is None:
-            values = []
-
         # Filter types that require at least one value
         requires_values = ("filter_time", "filter_timegrain", "filter_timecolumn")
         if filter_type in requires_values and not values:
@@ -330,8 +326,9 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
             )
         if filter_type == "filter_range":
             # For range filters, values should be [min, max] or [value] for single value
-            min_val = values[0] if len(values) > 0 else None
-            max_val = values[1] if len(values) > 1 else None
+            values_list = values or []
+            min_val = values_list[0] if len(values_list) > 0 else None
+            max_val = values_list[1] if len(values_list) > 1 else None
 
             filters = []
             if min_val is not None:
