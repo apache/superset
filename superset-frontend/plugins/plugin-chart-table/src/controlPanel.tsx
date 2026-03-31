@@ -874,7 +874,7 @@ const config: ControlPanelConfig = {
               type: 'UrlLinkControl',
               renderTrigger: true,
               label: t('Url Link'),
-              description: t('Add a new column, that can config a link'),
+              description: t('Add a new column that can configure a link'),
               shouldMapStateToProps() {
                 return true;
               },

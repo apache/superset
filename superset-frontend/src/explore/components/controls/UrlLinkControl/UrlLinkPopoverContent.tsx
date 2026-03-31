@@ -43,7 +43,7 @@ const JustifyEnd = styled.div`
 
 const rulesRequired = [{ required: true, message: t('Required') }];
 
-const schemaPlaceholder = `You can use column name as a variable to splice url. 
+const schemaPlaceholder = `You can use column name as a variable to splice url.
 such as: https://superset.apache.org/docs/miscellaneous/issue-codes#issue-\${issueId}`;
 
 export const UrlLinkPopoverContent = ({

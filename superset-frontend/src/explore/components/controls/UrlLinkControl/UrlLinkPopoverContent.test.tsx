@@ -21,9 +21,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import { UrlLinkPopoverContent } from './UrlLinkPopoverContent';
 
 const renderComponent = (onChange = jest.fn()) => {
-  render(
-    <UrlLinkPopoverContent onChange={onChange} columns={[]} />,
-  );
+  render(<UrlLinkPopoverContent onChange={onChange} columns={[]} />);
 };
 
 test('Should render', () => {
