@@ -81,3 +81,35 @@ def test_delete_semantic_view_not_found(mocker: MockerFixture) -> None:
 
     with pytest.raises(SemanticViewNotFoundError):
         DeleteSemanticViewCommand(999).run()
+
+
+def test_bulk_delete_semantic_view_success(mocker: MockerFixture) -> None:
+    """Test successful bulk deletion of semantic views."""
+    mock_models = [MagicMock(), MagicMock()]
+
+    dao = mocker.patch(
+        "superset.commands.semantic_layer.delete.SemanticViewDAO",
+    )
+    dao.find_by_ids.return_value = mock_models
+
+    from superset.commands.semantic_layer.delete import BulkDeleteSemanticViewCommand
+
+    BulkDeleteSemanticViewCommand([1, 2]).run()
+
+    dao.find_by_ids.assert_called_once_with([1, 2], id_column="id")
+    dao.delete.assert_called_once_with(mock_models)
+
+
+def test_bulk_delete_semantic_view_not_found(mocker: MockerFixture) -> None:
+    """Test that SemanticViewNotFoundError is raised when any id is missing."""
+    dao = mocker.patch(
+        "superset.commands.semantic_layer.delete.SemanticViewDAO",
+    )
+    # Only one model returned for two requested ids
+    dao.find_by_ids.return_value = [MagicMock()]
+
+    from superset.commands.semantic_layer.delete import BulkDeleteSemanticViewCommand
+    from superset.commands.semantic_layer.exceptions import SemanticViewNotFoundError
+
+    with pytest.raises(SemanticViewNotFoundError):
+        BulkDeleteSemanticViewCommand([1, 2]).run()
