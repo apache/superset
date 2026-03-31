@@ -47,6 +47,7 @@ DEFAULT_CHART_COLUMNS = [
     "slice_name",
     "viz_type",
     "url",
+    "changed_on",
     "changed_on_humanized",
 ]
 
