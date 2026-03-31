@@ -52,13 +52,15 @@ def _get_old_adhoc_filters(form_data_key: str) -> list[Dict[str, Any]] | None:
 
     try:
         cmd_params = CommandParameters(key=form_data_key)
-        cached_json = GetFormDataCommand(cmd_params).run()
-        if cached_json:
-            cached_form_data = utils_json.loads(cached_json)
-            adhoc_filters = cached_form_data.get("adhoc_filters")
-            if adhoc_filters:
-                return adhoc_filters
-    except (KeyError, ValueError, CommandException):
+        cached_data = GetFormDataCommand(cmd_params).run()
+        if cached_data:
+            if isinstance(cached_data, str):
+                cached_data = utils_json.loads(cached_data)
+            if isinstance(cached_data, dict):
+                adhoc_filters = cached_data.get("adhoc_filters")
+                if adhoc_filters:
+                    return adhoc_filters
+    except (KeyError, ValueError, TypeError, CommandException):
         logger.debug("Could not retrieve old form_data for filter preservation")
     return None
 
