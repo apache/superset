@@ -181,7 +181,7 @@ export default function DeckglLayerVisibilityCustomizationPlugin(
         >
           <div>
             <Select
-              data-testid="deckgl-layer-visibility-select"
+              data-test="deckgl-layer-visibility-select"
               mode="multiple"
               oneLine
               value={hiddenLayers}

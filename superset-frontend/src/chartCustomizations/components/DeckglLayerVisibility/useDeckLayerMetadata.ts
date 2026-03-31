@@ -35,7 +35,7 @@ export const useDeckLayerMetadata = (
   error: string | null;
 } => {
   const [layers, setLayers] = useState<LayerInfo[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(sliceIds.length > 0);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {

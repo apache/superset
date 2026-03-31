@@ -92,10 +92,13 @@ test('displays loading state initially', () => {
     },
   });
 
-  expect(screen.getByText('Loading deck.gl layers...')).toBeInTheDocument();
+  expect(
+    screen.getByTestId('deckgl-layer-visibility-select'),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('combobox')).toBeDisabled();
 });
 
-test('displays message when no deck.gl multi layer charts are found', async () => {
+test('displays disabled select when no deck.gl multi layer charts are found', async () => {
   mockSupersetClientGet.mockResolvedValue({ json: { result: [] } });
 
   render(<DeckglLayerVisibilityCustomizationPlugin {...defaultProps} />, {
@@ -114,11 +117,7 @@ test('displays message when no deck.gl multi layer charts are found', async () =
   });
 
   await waitFor(() => {
-    expect(
-      screen.getByText(
-        'No deck.gl multi layer charts found in this dashboard.',
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('combobox')).toBeDisabled();
   });
 });
 
@@ -346,13 +345,21 @@ test('handles multiple layer selection', async () => {
   });
 });
 
-test('displays tooltip info icon', async () => {
-  mockSupersetClientGet.mockResolvedValue(mockApiResponse);
+test('displays tooltip on hover when select is disabled', async () => {
+  mockSupersetClientGet.mockResolvedValue({ json: { result: [] } });
 
   render(<DeckglLayerVisibilityCustomizationPlugin {...defaultProps} />, {
     useRedux: true,
     initialState: {
-      sliceEntities: { slices: mockCharts },
+      sliceEntities: {
+        slices: {
+          chart1: {
+            form_data: {
+              viz_type: 'line',
+            },
+          },
+        },
+      },
     },
   });
 
@@ -362,15 +369,12 @@ test('displays tooltip info icon', async () => {
     ).toBeInTheDocument();
   });
 
-  const tooltipIcon = screen.getByRole('img', { name: /info-circle/i });
-  expect(tooltipIcon).toBeInTheDocument();
-
-  await userEvent.hover(tooltipIcon);
+  await userEvent.hover(screen.getByTestId('deckgl-layer-visibility-select'));
 
   await waitFor(() => {
     expect(
       screen.getByText(
-        'Choose layers to hide from all deck.gl Multiple Layer charts in this dashboard.',
+        'No multilayer deck.gl charts are currently added to this dashboard.',
       ),
     ).toBeInTheDocument();
   });
@@ -395,11 +399,7 @@ test('handles charts with undefined deck_slices', async () => {
   });
 
   await waitFor(() => {
-    expect(
-      screen.getByText(
-        'No deck.gl multi layer charts found in this dashboard.',
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('combobox')).toBeDisabled();
   });
 });
 
@@ -423,11 +423,7 @@ test('handles charts with non-array deck_slices', async () => {
   });
 
   await waitFor(() => {
-    expect(
-      screen.getByText(
-        'No deck.gl multi layer charts found in this dashboard.',
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('combobox')).toBeDisabled();
   });
 });
 
