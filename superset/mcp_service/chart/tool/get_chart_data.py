@@ -43,7 +43,6 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
 )
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
-from superset.mcp_service.utils.schema_utils import parse_request
 from superset.utils.core import merge_extra_filters
 
 logger = logging.getLogger(__name__)
@@ -83,7 +82,6 @@ def _get_cached_form_data(form_data_key: str) -> str | None:
         destructiveHint=False,
     ),
 )
-@parse_request(GetChartDataRequest)
 async def get_chart_data(  # noqa: C901
     request: GetChartDataRequest, ctx: Context
 ) -> ChartData | ChartError:
@@ -370,6 +368,29 @@ async def get_chart_data(  # noqa: C901
                 #   world_map, treemap_v2, sunburst_v2, gauge_chart
                 # Bubble charts use x/y/size as separate metric fields.
                 viz_type = chart.viz_type or ""
+
+                # Deck.gl chart types store spatial data (lat/lon)
+                # rather than traditional metrics/groupby. They
+                # require a saved query_context to retrieve data.
+                # Match by prefix to cover all current and future
+                # deck.gl viz types (deck_arc, deck_scatter, etc.).
+                if viz_type.startswith("deck_"):
+                    await ctx.warning(
+                        "Chart %s is a deck.gl visualization (%s) with no "
+                        "saved query_context. Data retrieval requires "
+                        "re-saving the chart in Superset." % (chart.id, viz_type)
+                    )
+                    return ChartError(
+                        error=(
+                            f"Chart {chart.id} is a deck.gl visualization "
+                            f"(type: {viz_type}) with no saved query_context. "
+                            f"Deck.gl charts use spatial data (lat/lon) that "
+                            f"cannot be reconstructed from form_data alone. "
+                            f"Please open this chart in Superset and re-save "
+                            f"it to generate a query_context."
+                        ),
+                        error_type="MissingQueryContext",
+                    )
 
                 singular_metric_no_groupby = (
                     "big_number",
