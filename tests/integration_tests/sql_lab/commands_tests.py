@@ -37,6 +37,7 @@ from superset.models.sql_lab import Query
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.schemas import EstimateQueryCostSchema
 from superset.utils import core as utils
+from superset.utils.core import override_user
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
 
@@ -251,6 +252,7 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
     def create_database_and_query(self):
         with self.create_app().app_context():
             database = get_example_database()
+            admin = self.get_user("admin")
             query_obj = Query(
                 client_id="test",
                 database=database,
@@ -264,6 +266,7 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
                 rows=104,
                 error_message="none",
                 results_key="abc_query",
+                user_id=admin.id,
             )
 
             db.session.add(query_obj)
@@ -369,7 +372,6 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
 
     @pytest.mark.usefixtures("create_database_and_query")
     @patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
-    @patch("superset.models.sql_lab.Query.raise_for_access", lambda _: None)
     def test_run_succeeds(self) -> None:
         data = [{"col_0": i} for i in range(104)]
         payload = {
@@ -383,8 +385,11 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
         results.results_backend = mock.Mock()
         results.results_backend.get.return_value = compressed
 
-        command = results.SqlExecutionResultsCommand("abc_query", 1000)
-        result = command.run()
+        admin = self.get_user("admin")
+        with current_app.test_request_context():
+            with override_user(admin):
+                command = results.SqlExecutionResultsCommand("abc_query", 1000)
+                result = command.run()
 
         assert result.get("status") == "success"
         assert result["query"].get("rows") == 104
