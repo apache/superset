@@ -281,11 +281,9 @@ const PropertiesModal = ({
     }
     if (originalCss.current !== null) {
       dispatch(dashboardInfoChanged({ css: originalCss.current }));
-    }
-    const originalColorScheme = originalDashboardMetadata.current
-      .color_scheme as string | undefined;
-    if (typeof originalColorScheme === 'string') {
-      dispatch(setColorScheme(originalColorScheme));
+      dispatch(
+        setColorScheme(originalDashboardMetadata.current.color_scheme ?? ''),
+      );
     }
     onHide();
   };
