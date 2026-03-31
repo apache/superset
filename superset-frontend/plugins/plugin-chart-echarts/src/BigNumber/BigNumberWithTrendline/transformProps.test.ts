@@ -188,14 +188,17 @@ describe('BigNumberWithTrendline transformProps', () => {
       rawFormData: baseRawFormData,
       hooks: baseHooks,
       datasource: baseDatasource,
-      theme: { colors: { grayscale: { light5: '#eee' } } },
+      theme: {
+        colors: { grayscale: { light5: '#eee' } },
+        colorPrimary: '#1677ff',
+      },
     };
 
     const result = transformProps(
       chartProps as unknown as BigNumberWithTrendlineChartProps,
     );
 
-    expect(result.mainColor).toBe('rgb(0, 0, 0)');
+    expect(result.mainColor).toBe('#1677ff');
   });
 
   test('should compute bigNumber from parseMetricValue', () => {

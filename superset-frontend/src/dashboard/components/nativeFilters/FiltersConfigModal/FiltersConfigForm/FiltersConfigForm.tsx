@@ -862,7 +862,7 @@ const FiltersConfigForm = (
       return 'chartsInScope' in nativeFilter &&
         Array.isArray(nativeFilter.chartsInScope)
         ? nativeFilter.chartsInScope
-        : [];
+        : dashboardChartIds;
     },
     [
       chartLayoutItems,
