@@ -19,13 +19,9 @@
 
 import { ReactNode } from 'react';
 import { PopoverProps } from '@superset-ui/core/components/Popover';
-import { ControlComponentProps } from '@superset-ui/chart-controls';
+import { ControlComponentProps, UrlLinkConfig } from '@superset-ui/chart-controls';
 
-export type UrlLinkConfig = {
-  columnName?: string;
-  linkText?: string;
-  linkSchema?: string;
-};
+export type { UrlLinkConfig };
 
 export type UrlLinkControlProps = ControlComponentProps<UrlLinkConfig[]> & {
   colnames: string[];

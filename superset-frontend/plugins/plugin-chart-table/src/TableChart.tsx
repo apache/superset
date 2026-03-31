@@ -1135,15 +1135,16 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           let urlLinkHref;
           let linkTextString;
           if (hasColumnUrlLinks) {
-            columnUrlLinks!
-              .filter(urlLink => urlLink.column === column.key)
-              .forEach(urlLink => {
-                urlLinkHref = urlLink.getTextFromValues(
-                  value as number,
-                  row.original,
-                );
-                linkTextString = urlLink.linkText;
-              });
+            const matchedUrlLink = columnUrlLinks?.find(
+              urlLink => urlLink.column === column.key,
+            );
+            if (matchedUrlLink) {
+              urlLinkHref = matchedUrlLink.getTextFromValues(
+                value as number,
+                row.original,
+              );
+              linkTextString = matchedUrlLink.linkText;
+            }
           }
           if (urlLinkHref) {
             return (

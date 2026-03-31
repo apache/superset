@@ -686,16 +686,20 @@ const transformProps = (
 
   // append url link columns to columns
   if (columnUrlLinks.length) {
+    const existingColumnKeys = new Set(columns.map(col => col.key));
     columnUrlLinks.forEach(({ column }) => {
-      columns.push({
-        key: column,
-        label: column,
-        dataType: GenericDataType.String,
-        isNumeric: false,
-        isMetric: false,
-        isPercentMetric: false,
-        config: {},
-      });
+      if (!existingColumnKeys.has(column)) {
+        existingColumnKeys.add(column);
+        columns.push({
+          key: column,
+          label: column,
+          dataType: GenericDataType.String,
+          isNumeric: false,
+          isMetric: false,
+          isPercentMetric: false,
+          config: {},
+        });
+      }
     });
   }
 

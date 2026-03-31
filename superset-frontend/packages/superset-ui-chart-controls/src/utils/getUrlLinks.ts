@@ -25,7 +25,7 @@ const parseLinkSchema = (schema: string) => schema.match(/(?<=\$\{).*?(?=\})/g);
 const genLinkHref = (values: DataRecord, schema: string) => {
   let result = schema;
   parseLinkSchema(schema)?.forEach(name => {
-    const val = values[name]?.toString() || '';
+    const val = values[name]?.toString() ?? '';
     result = result.replace(`$\{${name}}`, val);
   });
   return result;
