@@ -532,7 +532,7 @@ const Chart = (props: ChartProps) => {
 
         const filterState = dataMask[filterId]?.filterState;
         const label = extractLabel(filterState);
-        const value = label ?? getFilterValueForDisplay(filterState?.value);
+        const value = label || getFilterValueForDisplay(filterState?.value);
         acc[alias] = value || undefined;
         return acc;
       }, {}),

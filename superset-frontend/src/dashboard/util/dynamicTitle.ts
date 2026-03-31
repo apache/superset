@@ -68,12 +68,9 @@ export const extractDynamicTitleAliases = (template?: string): string[] => {
   }
 
   const aliases: string[] = [];
-  let match = PLACEHOLDER_REGEX.exec(template);
-  while (match) {
+  for (const match of template.matchAll(PLACEHOLDER_REGEX)) {
     aliases.push(match[1]);
-    match = PLACEHOLDER_REGEX.exec(template);
   }
-  PLACEHOLDER_REGEX.lastIndex = 0;
   return uniq(aliases);
 };
 
