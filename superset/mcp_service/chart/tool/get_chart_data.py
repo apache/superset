@@ -25,7 +25,7 @@ from typing import Any, Dict, List, TYPE_CHECKING
 
 from fastmcp import Context
 from flask import current_app
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
     from superset.models.slice import Slice
@@ -43,7 +43,6 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
 )
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
-from superset.mcp_service.utils.schema_utils import parse_request
 from superset.utils.core import merge_extra_filters
 
 logger = logging.getLogger(__name__)
@@ -74,8 +73,15 @@ def _get_cached_form_data(form_data_key: str) -> str | None:
         return None
 
 
-@tool(tags=["data"], class_permission_name="Chart")
-@parse_request(GetChartDataRequest)
+@tool(
+    tags=["data"],
+    class_permission_name="Chart",
+    annotations=ToolAnnotations(
+        title="Get chart data",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 async def get_chart_data(  # noqa: C901
     request: GetChartDataRequest, ctx: Context
 ) -> ChartData | ChartError:

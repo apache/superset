@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any
+
 import pytest
 
 from superset.extensions import csrf
@@ -24,9 +26,10 @@ from superset.extensions import csrf
     [{"WTF_CSRF_ENABLED": True}],
     indirect=True,
 )
-def test_csrf_not_exempt(app_context: None) -> None:
+def test_csrf_exempt_blueprints(app_context: None) -> None:
     """
-    Test that REST API is not exempt from CSRF.
+    Test that only FAB security API blueprints (which use token-based auth)
+    are exempt from CSRF protection.
     """
     assert {blueprint.name for blueprint in csrf._exempt_blueprints} == {
         "GroupApi",
@@ -39,3 +42,21 @@ def test_csrf_not_exempt(app_context: None) -> None:
         "PermissionApi",
         "ViewMenuApi",
     }
+
+
+@pytest.mark.parametrize(
+    "app",
+    [
+        {
+            "WTF_CSRF_ENABLED": True,
+            "FAB_API_KEY_ENABLED": True,
+        }
+    ],
+    indirect=True,
+)
+def test_csrf_exempt_blueprints_with_api_key(app: Any, app_context: None) -> None:
+    """
+    Test that ApiKeyApi blueprint is CSRF-exempt when FAB_API_KEY_ENABLED
+    config is enabled.
+    """
+    assert "ApiKeyApi" in {blueprint.name for blueprint in csrf._exempt_blueprints}

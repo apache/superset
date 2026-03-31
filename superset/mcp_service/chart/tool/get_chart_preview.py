@@ -23,7 +23,7 @@ import logging
 from typing import Any, Dict, List, Protocol
 
 from fastmcp import Context
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.exceptions import CommandException
 from superset.exceptions import SupersetException
@@ -41,7 +41,6 @@ from superset.mcp_service.chart.schemas import (
     URLPreview,
     VegaLitePreview,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 
 logger = logging.getLogger(__name__)
@@ -2177,8 +2176,15 @@ async def _get_chart_preview_internal(  # noqa: C901
         )
 
 
-@tool(tags=["data"], class_permission_name="Chart")
-@parse_request(GetChartPreviewRequest)
+@tool(
+    tags=["data"],
+    class_permission_name="Chart",
+    annotations=ToolAnnotations(
+        title="Get chart preview",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 async def get_chart_preview(
     request: GetChartPreviewRequest, ctx: Context
 ) -> ChartPreview | ChartError:

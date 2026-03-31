@@ -24,7 +24,7 @@ import time
 from typing import Any, Dict
 
 from fastmcp import Context
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_utils import (
@@ -39,13 +39,20 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
     UpdateChartPreviewRequest,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
 
-@tool(tags=["mutate"], class_permission_name="Chart", method_permission_name="write")
-@parse_request(UpdateChartPreviewRequest)
+@tool(
+    tags=["mutate"],
+    class_permission_name="Chart",
+    method_permission_name="write",
+    annotations=ToolAnnotations(
+        title="Update chart preview",
+        readOnlyHint=False,
+        destructiveHint=True,
+    ),
+)
 def update_chart_preview(
     request: UpdateChartPreviewRequest, ctx: Context
 ) -> Dict[str, Any]:

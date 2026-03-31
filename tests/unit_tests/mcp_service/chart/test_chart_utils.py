@@ -23,6 +23,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from superset.mcp_service.chart.chart_utils import (
+    _add_adhoc_filters,
+    adhoc_filters_to_query_filters,
     configure_temporal_handling,
     create_metric_object,
     generate_chart_name,
@@ -53,6 +55,7 @@ class TestCreateMetricObject:
         col = ColumnRef(name="revenue", aggregate="SUM", label="Total Revenue")
         result = create_metric_object(col)
 
+        assert isinstance(result, dict)
         assert result["aggregate"] == "SUM"
         assert result["column"]["column_name"] == "revenue"
         assert result["label"] == "Total Revenue"
@@ -64,10 +67,27 @@ class TestCreateMetricObject:
         col = ColumnRef(name="orders")
         result = create_metric_object(col)
 
+        assert isinstance(result, dict)
         assert result["aggregate"] == "SUM"
         assert result["column"]["column_name"] == "orders"
         assert result["label"] == "SUM(orders)"
         assert result["optionName"] == "metric_orders"
+
+    def test_create_metric_object_saved_metric_returns_string(self) -> None:
+        """Test that saved metrics return a plain string metric name"""
+        col = ColumnRef(name="total_revenue", saved_metric=True)
+        result = create_metric_object(col)
+
+        assert result == "total_revenue"
+        assert isinstance(result, str)
+
+    def test_create_metric_object_saved_metric_ignores_aggregate(self) -> None:
+        """Test that saved metrics ignore aggregate even if somehow set"""
+        col = ColumnRef(name="total_revenue", saved_metric=True, aggregate="SUM")
+        result = create_metric_object(col)
+
+        # saved_metric validator clears aggregate, result is plain string
+        assert result == "total_revenue"
 
 
 class TestMapFilterOperator:
@@ -313,6 +333,98 @@ class TestMapTableConfig:
 
         assert result["viz_type"] == "table"
 
+    def test_map_table_config_row_limit(self) -> None:
+        """Test that row_limit is mapped to form_data."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product")],
+            row_limit=500,
+        )
+
+        result = map_table_config(config)
+
+        assert result["row_limit"] == 500
+
+    def test_map_table_config_default_row_limit(self) -> None:
+        """Test that default row_limit is mapped to form_data."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product", aggregate="SUM")],
+        )
+
+        result = map_table_config(config)
+
+        assert result["row_limit"] == 1000
+
+    def test_map_table_config_saved_metric_as_metric(self) -> None:
+        """Test that saved metrics are routed to metrics, not raw columns."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[
+                ColumnRef(name="product_line"),
+                ColumnRef(name="total_revenue", saved_metric=True),
+            ],
+        )
+
+        result = map_table_config(config)
+
+        assert result["query_mode"] == "aggregate"
+        assert result["metrics"] == ["total_revenue"]
+        assert "product_line" in result["groupby"]
+
+    def test_map_table_config_saved_metric_only(self) -> None:
+        """Test table with only saved metrics (no raw columns)."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[
+                ColumnRef(name="total_revenue", saved_metric=True),
+                ColumnRef(name="avg_order_value", saved_metric=True),
+            ],
+        )
+
+        result = map_table_config(config)
+
+        assert result["query_mode"] == "aggregate"
+        assert result["metrics"] == ["total_revenue", "avg_order_value"]
+        assert "all_columns" not in result
+
+
+class TestAddAdhocFilters:
+    """Test _add_adhoc_filters helper function"""
+
+    def test_adds_filters_to_form_data(self) -> None:
+        """Test that filters are correctly added to form_data."""
+        form_data: dict[str, Any] = {}
+        filters = [
+            FilterConfig(column="region", op="=", value="US"),
+            FilterConfig(column="year", op=">", value=2020),
+        ]
+
+        _add_adhoc_filters(form_data, filters)
+
+        assert "adhoc_filters" in form_data
+        assert len(form_data["adhoc_filters"]) == 2
+        assert form_data["adhoc_filters"][0]["subject"] == "region"
+        assert form_data["adhoc_filters"][0]["operator"] == "=="
+        assert form_data["adhoc_filters"][1]["subject"] == "year"
+        assert form_data["adhoc_filters"][1]["operator"] == ">"
+
+    def test_no_filters_does_nothing(self) -> None:
+        """Test that None filters leave form_data unchanged."""
+        form_data: dict[str, Any] = {"viz_type": "table"}
+
+        _add_adhoc_filters(form_data, None)
+
+        assert "adhoc_filters" not in form_data
+
+    def test_empty_list_does_nothing(self) -> None:
+        """Test that empty filter list leaves form_data unchanged."""
+        form_data: dict[str, Any] = {"viz_type": "table"}
+
+        _add_adhoc_filters(form_data, [])
+
+        assert "adhoc_filters" not in form_data
+
 
 class TestMapXYConfig:
     """Test map_xy_config function"""
@@ -537,6 +649,95 @@ class TestMapXYConfig:
         assert result["orientation"] == "horizontal"
         assert result["stack"] == "Stack"
         assert result["groupby"] == ["level"]
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_with_filters(self, mock_is_temporal) -> None:
+        """Test that filters are mapped to adhoc_filters in XY form_data."""
+        mock_is_temporal.return_value = True
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+            filters=[FilterConfig(column="region", op="=", value="US")],
+        )
+
+        result = map_xy_config(config)
+
+        assert "adhoc_filters" in result
+        assert len(result["adhoc_filters"]) == 1
+        assert result["adhoc_filters"][0]["subject"] == "region"
+        assert result["adhoc_filters"][0]["operator"] == "=="
+        assert result["adhoc_filters"][0]["comparator"] == "US"
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_row_limit(self, mock_is_temporal) -> None:
+        """Test that row_limit is mapped to form_data."""
+        mock_is_temporal.return_value = True
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+            row_limit=250,
+        )
+
+        result = map_xy_config(config)
+
+        assert result["row_limit"] == 250
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_default_row_limit(self, mock_is_temporal) -> None:
+        """Test that default row_limit is mapped to form_data."""
+        mock_is_temporal.return_value = True
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="bar",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["row_limit"] == 10000
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_saved_metric(self, mock_is_temporal: Any) -> None:
+        """Test XY config with saved metric emits string in metrics list"""
+        mock_is_temporal.return_value = True
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="order_date"),
+            y=[ColumnRef(name="total_revenue", saved_metric=True)],
+            kind="line",
+        )
+
+        result = map_xy_config(config, dataset_id=1)
+
+        assert result["metrics"] == ["total_revenue"]
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_mixed_saved_and_adhoc_metrics(
+        self, mock_is_temporal: Any
+    ) -> None:
+        """Test XY config with both saved and ad-hoc metrics"""
+        mock_is_temporal.return_value = True
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="order_date"),
+            y=[
+                ColumnRef(name="total_revenue", saved_metric=True),
+                ColumnRef(name="quantity", aggregate="SUM"),
+            ],
+            kind="line",
+        )
+
+        result = map_xy_config(config, dataset_id=1)
+
+        assert len(result["metrics"]) == 2
+        assert result["metrics"][0] == "total_revenue"
+        assert isinstance(result["metrics"][1], dict)
+        assert result["metrics"][1]["aggregate"] == "SUM"
 
 
 class TestMapConfigToFormData:
@@ -1335,3 +1536,56 @@ class TestValidateChartDataset:
         mock_find.side_effect = SQLAlchemyError("db gone")
         url = generate_explore_link(5, {"viz_type": "table"})
         assert "datasource_id=5" in url
+
+
+class TestAdhocFiltersToQueryFilters:
+    """Tests for adhoc_filters_to_query_filters conversion."""
+
+    def test_converts_simple_filters(self) -> None:
+        adhoc = [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "genre",
+                "operator": "==",
+                "comparator": "Action",
+            }
+        ]
+        result = adhoc_filters_to_query_filters(adhoc)
+        assert result == [{"col": "genre", "op": "==", "val": "Action"}]
+
+    def test_converts_multiple_filters(self) -> None:
+        adhoc = [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "genre",
+                "operator": "==",
+                "comparator": "Action",
+            },
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "year",
+                "operator": ">=",
+                "comparator": "2010",
+            },
+        ]
+        result = adhoc_filters_to_query_filters(adhoc)
+        assert len(result) == 2
+        assert result[0] == {"col": "genre", "op": "==", "val": "Action"}
+        assert result[1] == {"col": "year", "op": ">=", "val": "2010"}
+
+    def test_empty_list(self) -> None:
+        assert adhoc_filters_to_query_filters([]) == []
+
+    def test_skips_non_simple_expression_types(self) -> None:
+        adhoc = [
+            {
+                "clause": "WHERE",
+                "expressionType": "SQL",
+                "sqlExpression": "col > 5",
+            }
+        ]
+        result = adhoc_filters_to_query_filters(adhoc)
+        assert result == []

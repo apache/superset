@@ -42,7 +42,10 @@ function alterUnsavedQueryEditorState(
   id: string,
   silent = false,
 ): Partial<SqlLabState> {
-  if (state.tabHistory[state.tabHistory.length - 1] !== id) {
+  if (
+    state.tabHistory.length > 0 &&
+    state.tabHistory[state.tabHistory.length - 1] !== id
+  ) {
     const { queryEditors } = alterInArr(
       state,
       'queryEditors',

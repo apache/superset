@@ -26,8 +26,10 @@ from superset.mcp_service.mcp_config import MCP_TOOL_SEARCH_CONFIG
 from superset.mcp_service.server import (
     _apply_tool_search_transform,
     _fix_call_tool_arguments,
+    _normalize_call_tool_arguments,
     _serialize_tools_without_output_schema,
 )
+from superset.utils import json
 
 
 def test_tool_search_config_defaults():
@@ -171,3 +173,130 @@ def test_serialize_tools_handles_no_output_schema():
     assert len(result) == 1
     assert result[0]["name"] == "simple_tool"
     assert "outputSchema" not in result[0]
+
+
+# -- _normalize_call_tool_arguments tests --
+
+
+def test_normalize_serializes_dict_with_anyof_string():
+    """Dict value is JSON-serialized when schema has anyOf with string type."""
+    arguments = {"request": {"dataset_id": 1, "config": {"key": "val"}}}
+    schema = {
+        "properties": {
+            "request": {
+                "anyOf": [
+                    {"type": "string"},
+                    {"$ref": "#/$defs/SomeModel"},
+                ]
+            }
+        }
+    }
+
+    result = _normalize_call_tool_arguments(arguments, schema)
+
+    assert isinstance(result["request"], str)
+    assert json.loads(result["request"]) == {
+        "dataset_id": 1,
+        "config": {"key": "val"},
+    }
+
+
+def test_normalize_serializes_dict_with_oneof_string():
+    """Dict value is JSON-serialized when schema has oneOf with string type."""
+    arguments = {"request": {"name": "test"}}
+    schema = {
+        "properties": {
+            "request": {
+                "oneOf": [
+                    {"type": "string"},
+                    {"type": "object"},
+                ]
+            }
+        }
+    }
+
+    result = _normalize_call_tool_arguments(arguments, schema)
+
+    assert isinstance(result["request"], str)
+
+
+def test_normalize_leaves_dict_without_string_variant():
+    """Dict value is left as-is when schema has no string variant."""
+    arguments = {"config": {"key": "val"}}
+    schema = {
+        "properties": {
+            "config": {
+                "anyOf": [
+                    {"type": "object"},
+                    {"type": "null"},
+                ]
+            }
+        }
+    }
+
+    result = _normalize_call_tool_arguments(arguments, schema)
+
+    assert isinstance(result["config"], dict)
+    assert result["config"] == {"key": "val"}
+
+
+def test_normalize_leaves_non_dict_unchanged():
+    """Non-dict/list values pass through unchanged."""
+    arguments = {"name": "test", "count": 42, "flag": True}
+    schema = {
+        "properties": {
+            "name": {"type": "string"},
+            "count": {"type": "integer"},
+            "flag": {"type": "boolean"},
+        }
+    }
+
+    result = _normalize_call_tool_arguments(arguments, schema)
+
+    assert result == {"name": "test", "count": 42, "flag": True}
+
+
+def test_normalize_returns_none_for_none_arguments():
+    """None arguments returns None."""
+    result = _normalize_call_tool_arguments(None, {"properties": {}})
+
+    assert result is None
+
+
+def test_normalize_returns_arguments_for_non_dict_schema():
+    """Non-dict schema returns arguments unchanged."""
+    arguments = {"request": {"key": "val"}}
+
+    result = _normalize_call_tool_arguments(arguments, None)
+
+    assert result is arguments
+
+
+def test_normalize_serializes_list_with_anyof_string():
+    """List value is JSON-serialized when schema has anyOf with string type."""
+    arguments = {"items": [1, 2, 3]}
+    schema = {
+        "properties": {
+            "items": {
+                "anyOf": [
+                    {"type": "string"},
+                    {"type": "array", "items": {"type": "integer"}},
+                ]
+            }
+        }
+    }
+
+    result = _normalize_call_tool_arguments(arguments, schema)
+
+    assert isinstance(result["items"], str)
+    assert json.loads(result["items"]) == [1, 2, 3]
+
+
+def test_normalize_ignores_keys_not_in_schema():
+    """Dict values for keys not in schema properties are left unchanged."""
+    arguments = {"unknown_key": {"nested": True}}
+    schema = {"properties": {"other_key": {"type": "string"}}}
+
+    result = _normalize_call_tool_arguments(arguments, schema)
+
+    assert isinstance(result["unknown_key"], dict)

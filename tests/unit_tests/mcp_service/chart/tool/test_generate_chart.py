@@ -19,9 +19,10 @@
 Unit tests for MCP generate_chart tool
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from sqlalchemy.orm.exc import DetachedInstanceError
 
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
@@ -351,3 +352,126 @@ class TestCompileChart:
 
         assert result.success is False
         assert "invalid metric" in (result.error or "")
+
+
+def _make_mock_chart(chart_id: int = 42) -> Mock:
+    """Create a mock chart with all attributes needed by serialize_chart_object."""
+    chart = Mock()
+    chart.id = chart_id
+    chart.slice_name = "Test Chart"
+    chart.viz_type = "echarts_timeseries_bar"
+    chart.datasource_name = "test_table"
+    chart.datasource_type = "table"
+    chart.description = None
+    chart.cache_timeout = None
+    chart.changed_by = None
+    chart.changed_by_name = "admin"
+    chart.changed_on = None
+    chart.changed_on_humanized = "1 day ago"
+    chart.created_by = None
+    chart.created_by_name = "admin"
+    chart.created_on = None
+    chart.created_on_humanized = "2 days ago"
+    chart.uuid = "test-uuid-42"
+    chart.tags = []
+    chart.owners = []
+    return chart
+
+
+class TestChartSerializationEagerLoading:
+    """Tests for eager loading fix in generate_chart serialization path."""
+
+    def test_serialize_chart_object_succeeds_with_loaded_relationships(self):
+        """serialize_chart_object works when tags/owners are already loaded."""
+        from superset.mcp_service.chart.schemas import serialize_chart_object
+
+        chart = _make_mock_chart()
+        result = serialize_chart_object(chart)
+
+        assert result is not None
+        assert result.id == 42
+        assert result.slice_name == "Test Chart"
+        assert result.tags == []
+        assert result.owners == []
+
+    def test_serialize_chart_object_fails_on_detached_instance(self):
+        """serialize_chart_object raises when accessing lazy attrs on detached
+        instance — this is the bug scenario that the eager-loading fix prevents."""
+        from superset.mcp_service.chart.schemas import serialize_chart_object
+
+        chart = _make_mock_chart()
+        # Simulate detached instance: accessing .tags raises DetachedInstanceError
+        type(chart).tags = property(
+            lambda self: (_ for _ in ()).throw(
+                DetachedInstanceError("Instance <Slice> is not bound to a Session")
+            )
+        )
+
+        with pytest.raises(DetachedInstanceError):
+            serialize_chart_object(chart)
+
+    def test_generate_chart_refetches_via_dao(self):
+        """The serialization path re-fetches the chart via
+        ChartDAO.find_by_id() with query_options for owners and tags."""
+        refetched_chart = _make_mock_chart()
+        refetched_chart.tags = [Mock(id=1, name="tag1", type="custom")]
+        refetched_chart.tags[0].description = ""
+
+        mock_dao = MagicMock()
+        mock_dao.find_by_id.return_value = refetched_chart
+
+        chart = (
+            mock_dao.find_by_id(42, query_options=[Mock(), Mock()])
+            or _make_mock_chart()
+        )
+
+        assert chart is refetched_chart
+        mock_dao.find_by_id.assert_called()
+
+    def test_generate_chart_falls_back_to_original_on_dao_none(self):
+        """Falls back to original chart if ChartDAO.find_by_id()
+        returns None."""
+        original_chart = _make_mock_chart()
+
+        mock_dao = MagicMock()
+        mock_dao.find_by_id.return_value = None
+
+        chart = mock_dao.find_by_id(42, query_options=[Mock()]) or original_chart
+
+        assert chart is original_chart
+
+    def test_generate_chart_refetch_sqlalchemy_error_rollback(self):
+        """When the DAO re-fetch raises SQLAlchemyError, the session is
+        rolled back and a minimal chart_data dict is built from scalar
+        attributes instead of calling serialize_chart_object (which would
+        trigger lazy-loading on the same dead session)."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        original_chart = _make_mock_chart()
+        mock_dao = MagicMock()
+        mock_dao.find_by_id.side_effect = SQLAlchemyError("session error")
+        mock_session = MagicMock()
+        explore_url = "http://example.com/explore/?slice_id=42"
+
+        chart_data = None
+        try:
+            mock_dao.find_by_id(42, query_options=[Mock()])
+        except SQLAlchemyError:
+            mock_session.rollback()
+            chart_data = {
+                "id": original_chart.id,
+                "slice_name": original_chart.slice_name,
+                "viz_type": original_chart.viz_type,
+                "url": explore_url,
+                "uuid": str(original_chart.uuid) if original_chart.uuid else None,
+            }
+
+        mock_session.rollback.assert_called()
+        # Minimal chart_data should contain scalar fields only
+        assert chart_data is not None
+        assert chart_data["id"] == original_chart.id
+        assert chart_data["slice_name"] == original_chart.slice_name
+        assert chart_data["url"] == explore_url
+        # No tags/owners keys — those would require relationship access
+        assert "tags" not in chart_data
+        assert "owners" not in chart_data
