@@ -1037,11 +1037,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
     if (semanticViews.length) {
       promises.push(
-        ...semanticViews.map(sv =>
-          SupersetClient.delete({
-            endpoint: `/api/v1/semantic_view/${sv.id}`,
-          }),
-        ),
+        SupersetClient.delete({
+          endpoint: `/api/v1/semantic_view/?q=${rison.encode(
+            semanticViews.map(({ id }) => id),
+          )}`,
+        }),
       );
     }
 
