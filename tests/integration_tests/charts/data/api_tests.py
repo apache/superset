@@ -1677,7 +1677,9 @@ def test_data_cache_default_timeout(
     assert rv.json["result"][0]["cache_timeout"] == 3456
 
 
-def _native_filter_cache_config(filter_state_timeout: int | None = 7890) -> dict[str, Any]:
+def _native_filter_cache_config(
+    filter_state_timeout: int | None = 7890,
+) -> dict[str, Any]:
     """Build a patched config for native filter cache timeout tests."""
     config = {
         **app.config,
