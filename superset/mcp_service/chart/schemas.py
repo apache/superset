@@ -37,6 +37,8 @@ from pydantic import (
     PositiveInt,
 )
 
+import humanize
+
 from superset.constants import TimeGrain
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import (
@@ -271,6 +273,13 @@ class GetChartInfoRequest(BaseModel):
         return self
 
 
+def _humanize_timestamp(dt: datetime | None) -> str | None:
+    """Convert a datetime to a humanized string like '2 hours ago'."""
+    if dt is None:
+        return None
+    return humanize.naturaltime(datetime.now() - dt)
+
+
 def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     if not chart:
         return None
@@ -296,11 +305,11 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         or (str(chart.changed_by) if getattr(chart, "changed_by", None) else None),
         changed_by_name=getattr(chart, "changed_by_name", None),
         changed_on=getattr(chart, "changed_on", None),
-        changed_on_humanized=getattr(chart, "changed_on_humanized", None),
+        changed_on_humanized=_humanize_timestamp(getattr(chart, "changed_on", None)),
         created_by=getattr(chart, "created_by_name", None)
         or (str(chart.created_by) if getattr(chart, "created_by", None) else None),
         created_on=getattr(chart, "created_on", None),
-        created_on_humanized=getattr(chart, "created_on_humanized", None),
+        created_on_humanized=_humanize_timestamp(getattr(chart, "created_on", None)),
         uuid=str(getattr(chart, "uuid", "")) if getattr(chart, "uuid", None) else None,
         tags=[
             TagInfo.model_validate(tag, from_attributes=True)
