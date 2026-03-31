@@ -1338,6 +1338,7 @@ test('should not apply axis bounds calculation when seriesType is not Bar for ho
   expect(xAxisRaw.max).toBeUndefined();
 });
 
+<<<<<<< HEAD
 test('x-axis formatter deduplicates consecutive identical labels for coarse time grains', () => {
   const yearData = [
     { __timestamp: Date.UTC(2003, 0, 1), sales: 100 },
@@ -1425,3 +1426,21 @@ test('should assign distinct dash patterns for multiple time offsets consistentl
   // must be different patterns
   expect(symbol1).not.toEqual(symbol2);
 });
+=======
+test('should adjust dataZoom bottom when chart height changes', () => {
+  const smallChart = createTestChartProps({ height: 300 });
+  const largeChart = createTestChartProps({ height: 600 });
+
+  const smallResult = transformProps(smallChart);
+  const largeResult = transformProps(largeChart);
+
+  const smallBottom = (smallResult.echartOptions.dataZoom as any[])[0].bottom;
+  const largeBottom = (largeResult.echartOptions.dataZoom as any[])[0].bottom;
+
+  expect(smallBottom).toBeDefined();
+  expect(largeBottom).toBeDefined();
+
+  // Bottom should vary with height
+  expect(smallBottom).not.toEqual(largeBottom);
+});
+>>>>>>> 45150e96c9 (test(echarts-timeseries): add unit test for dynamic dataZoom bottom based on chart height)
