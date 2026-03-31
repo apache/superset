@@ -246,7 +246,12 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
             unrecognized, returns an empty dict and a warning message.
         """
         # Filter types that require at least one value
-        requires_values = ("filter_time", "filter_timegrain", "filter_timecolumn")
+        requires_values = (
+            "filter_time",
+            "filter_timegrain",
+            "filter_timecolumn",
+            "filter_range",
+        )
         if filter_type in requires_values and not values:
             warning_msg = (
                 f"Skipping {filter_type} with empty filterValues "
@@ -326,9 +331,8 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
             )
         if filter_type == "filter_range":
             # For range filters, values should be [min, max] or [value] for single value
-            values_list = values or []
-            min_val = values_list[0] if len(values_list) > 0 else None
-            max_val = values_list[1] if len(values_list) > 1 else None
+            min_val = values[0] if len(values) > 0 else None
+            max_val = values[1] if len(values) > 1 else None
 
             filters = []
             if min_val is not None:

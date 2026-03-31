@@ -91,7 +91,7 @@ def test_report_generate_native_filter_no_values():
     native_filter_id = "filter_id"
     column_name = "column_name"
     filter_type = "filter_select"
-    values = None
+    values: list[str | None] = []
 
     result, warning = report_schedule._generate_native_filter(
         native_filter_id, filter_type, column_name, values
@@ -427,48 +427,17 @@ def test_report_generate_native_filter_timecolumn_empty_values():
 
 def test_report_generate_native_filter_range_empty_values():
     """
-    Test filter_range with empty values handles gracefully.
-    Returns filter with None values for min/max.
+    Test filter_range with empty values returns empty dict and warning.
     """
     report_schedule = ReportSchedule()
     result, warning = report_schedule._generate_native_filter(
         "filter_id", "filter_range", "column_name", []
     )
-    assert result == {
-        "filter_id": {
-            "id": "filter_id",
-            "extraFormData": {"filters": []},
-            "filterState": {
-                "value": [None, None],
-                "label": "",
-            },
-            "ownState": {},
-        }
-    }
-    assert warning is None
-
-
-def test_report_generate_native_filter_range_none_values():
-    """
-    Test filter_range with None values handles gracefully without TypeError.
-    Previously this would fail with: TypeError: object of type 'NoneType' has no len()
-    """
-    report_schedule = ReportSchedule()
-    result, warning = report_schedule._generate_native_filter(
-        "filter_id", "filter_range", "column_name", None
-    )
-    assert result == {
-        "filter_id": {
-            "id": "filter_id",
-            "extraFormData": {"filters": []},
-            "filterState": {
-                "value": [None, None],
-                "label": "",
-            },
-            "ownState": {},
-        }
-    }
-    assert warning is None
+    assert result == {}
+    assert warning is not None
+    assert "filter_range" in warning
+    assert "empty filterValues" in warning
+    assert "filter_id" in warning
 
 
 def test_get_native_filters_params_time_filters_empty_values():
