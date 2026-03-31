@@ -185,3 +185,43 @@ def test_get_column_description_from_empty_data_using_cursor_description(
     )
     assert any(col.get("column_name") == "__time" for col in result_set.columns)
     logger.exception.assert_not_called()
+
+
+def test_empty_column_names_get_synthetic_names() -> None:
+    """
+    SQL Server returns an empty-string column name in cursor.description for
+    any un-aliased expression (e.g. ``SELECT COUNT(*) FROM t``).  An empty
+    field name is illegal in NumPy structured arrays and PyArrow tables.
+
+    SupersetResultSet must replace empty column names with synthetic names
+    so queries like ``SELECT COUNT(*) FROM t`` succeed on MSSQL.
+
+    Regression test for https://github.com/apache/superset/issues/23848
+    """
+    data = [(42,)]
+    description = [("", 3, None, None, None, None, None)]
+    result_set = SupersetResultSet(data, description, BaseEngineSpec)  # type: ignore
+
+    assert result_set.columns[0]["column_name"] == "_col_0"
+    df = result_set.to_pandas_df()
+    assert list(df.columns) == ["_col_0"]
+    assert df["_col_0"].iloc[0] == 42
+
+
+def test_multiple_empty_column_names_get_unique_synthetic_names() -> None:
+    """
+    When several columns have empty names (e.g. ``SELECT COUNT(*), SUM(x)``
+    on MSSQL), each must receive a distinct synthetic name.
+    """
+    data = [(10, 20)]
+    description = [
+        ("", 3, None, None, None, None, None),
+        ("", 3, None, None, None, None, None),
+    ]
+    result_set = SupersetResultSet(data, description, BaseEngineSpec)  # type: ignore
+
+    col_names = [c["column_name"] for c in result_set.columns]
+    assert len(col_names) == 2
+    assert len(set(col_names)) == 2  # all unique
+    df = result_set.to_pandas_df()
+    assert df.iloc[0].tolist() == [10, 20]

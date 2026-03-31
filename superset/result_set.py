@@ -116,8 +116,16 @@ class SupersetResultSet:
 
         if cursor_description:
             # get deduped list of column names
+            # Some databases (e.g. SQL Server) return an empty string as the
+            # column name for un-aliased expressions like SELECT COUNT(*).
+            # An empty field name is illegal in NumPy structured arrays and in
+            # PyArrow tables, so we substitute a synthetic name when needed.
+            # See https://github.com/apache/superset/issues/23848
             column_names = dedup(
-                [convert_to_string(col[0]) for col in cursor_description]
+                [
+                    convert_to_string(col[0]) or f"_col_{i}"
+                    for i, col in enumerate(cursor_description)
+                ]
             )
 
             # fix cursor descriptor with the deduped names
