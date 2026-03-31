@@ -270,6 +270,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     null,
   );
 
+  const [svCurrentlyDeleting, setSvCurrentlyDeleting] =
+    useState<Dataset | null>(null);
+
   const [showAddSemanticViewModal, setShowAddSemanticViewModal] =
     useState(false);
   const [importingDataset, showImportModal] = useState<boolean>(false);
@@ -407,11 +410,18 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     [addDangerToast, setPreparingExport],
   );
 
-  const handleSemanticViewDelete = ({ id, table_name: tableName }: Dataset) => {
+  const handleSemanticViewDelete = (sv: Dataset) => {
+    setSvCurrentlyDeleting(sv);
+  };
+
+  const handleSemanticViewDeleteConfirm = () => {
+    if (!svCurrentlyDeleting) return;
+    const { id, table_name: tableName } = svCurrentlyDeleting;
     SupersetClient.delete({
       endpoint: `/api/v1/semantic_view/${id}`,
     }).then(
       () => {
+        setSvCurrentlyDeleting(null);
         refreshData();
         addSuccessToast(t('Deleted: %s', tableName));
       },
@@ -1187,6 +1197,18 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           onHide={closeDatasetDeleteModal}
           open
           title={t('Delete Dataset?')}
+        />
+      )}
+      {svCurrentlyDeleting && (
+        <DeleteModal
+          description={t(
+            'Are you sure you want to delete %s?',
+            svCurrentlyDeleting.table_name,
+          )}
+          onConfirm={handleSemanticViewDeleteConfirm}
+          onHide={() => setSvCurrentlyDeleting(null)}
+          open
+          title={t('Delete Semantic View?')}
         />
       )}
       {datasetCurrentlyEditing && (

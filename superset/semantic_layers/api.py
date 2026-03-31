@@ -23,6 +23,7 @@ from flask import make_response, request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_babel import lazy_gettext as t
 from marshmallow import ValidationError
 from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy.orm import load_only
@@ -555,7 +556,17 @@ class SemanticLayerRestApi(BaseSupersetApi):
         try:
             views = layer.implementation.get_semantic_views(runtime_data)
         except Exception as ex:  # pylint: disable=broad-except
-            return self.response_400(message=str(ex))
+            logger.error(
+                "Error fetching semantic views for layer %s: %s",
+                uuid,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_400(
+                message=t(
+                    "Unable to fetch semantic views. Check the layer configuration."
+                )
+            )
 
         # Check which views already exist with the same runtime config
         existing = SemanticViewDAO.find_by_semantic_layer(str(layer.uuid))
