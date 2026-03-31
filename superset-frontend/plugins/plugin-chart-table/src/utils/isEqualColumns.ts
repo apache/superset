@@ -44,6 +44,8 @@ export default function isEqualColumns(
     JSON.stringify(a.formData.extraFormData || null) ===
       JSON.stringify(b.formData.extraFormData || null) &&
     JSON.stringify(a.rawFormData.column_config || null) ===
-      JSON.stringify(b.rawFormData.column_config || null)
+      JSON.stringify(b.rawFormData.column_config || null) &&
+    JSON.stringify((a.rawFormData as any).url_link || null) ===
+      JSON.stringify((b.rawFormData as any).url_link || null)
   );
 }

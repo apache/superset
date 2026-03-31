@@ -24,6 +24,7 @@ import type {
   Column,
   CurrencyFormatter,
   Currency,
+  DataRecord,
   DatasourceType,
   DataRecordValue,
   JsonObject,
@@ -511,6 +512,18 @@ export type ResolvedColorFormatterResult = {
   backgroundColor?: string;
   color?: string;
 };
+
+export type UrlLinkConfig = {
+  columnName?: string;
+  linkText?: string;
+  linkSchema?: string;
+};
+
+export type UrlLinks = {
+  column: string;
+  linkText: string;
+  getTextFromValues: (value: number, values: DataRecord) => string;
+}[];
 
 export default {};
 
