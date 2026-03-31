@@ -333,7 +333,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     filters,
     sticky = true, // whether to use sticky header
     columnColorFormatters,
-    columnUrlLinks,
     allowRearrangeColumns = false,
     allowRenderHtml = true,
     onContextMenu,
@@ -880,8 +879,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         Array.isArray(columnColorFormatters) &&
         columnColorFormatters.length > 0;
 
-      const hasColumnUrlLinks = columnUrlLinks?.length;
-
       const hasBasicColorFormatters =
         isUsingTimeComparison &&
         Array.isArray(basicColorFormatters) &&
@@ -1009,21 +1006,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             { backgroundColor, color },
             rowSurfaceColor,
           );
-
-          let urlLinkHref: string | undefined;
-          let linkTextString: string | undefined;
-          if (hasColumnUrlLinks) {
-            columnUrlLinks!
-              .filter(formatter => formatter.column === column.key)
-              .forEach(formatter => {
-                urlLinkHref = formatter.getTextFromValues(
-                  value as number,
-                  row.original,
-                );
-                linkTextString = formatter.linkText;
-              });
-          }
-
           const StyledCell = styled.td`
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
@@ -1145,15 +1127,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             // Safe: HTML is sanitized via formatColumnValue
             // eslint-disable-next-line react/no-danger
             return <StyledCell {...cellProps} dangerouslySetInnerHTML={html} />;
-          }
-          if (urlLinkHref) {
-            return (
-              <StyledCell {...cellProps}>
-                <a target="_blank" href={urlLinkHref} rel="noreferrer">
-                  {linkTextString}
-                </a>
-              </StyledCell>
-            );
           }
           // If cellProps renders textContent already, then we don't have to
           // render `Cell`. This saves some time for large tables.
@@ -1281,7 +1254,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       defaultAlignPN,
       defaultColorPN,
       columnColorFormatters,
-      columnUrlLinks,
       isUsingTimeComparison,
       basicColorFormatters,
       showCellBars,

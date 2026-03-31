@@ -41,7 +41,6 @@ import {
   ColorFormatters,
   ConditionalFormattingConfig,
   getColorFormatters,
-  getTextFromValues,
   ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
 
@@ -214,7 +213,6 @@ const processColumns = memoizeOne(function processColumns(
       percent_metrics: percentMetrics_,
       column_config: columnConfig = {},
       query_mode: queryMode,
-      url_link: urlLink,
     },
     rawDatasource,
     queriesData,
@@ -332,23 +330,6 @@ const processColumns = memoizeOne(function processColumns(
         currencyCodeColumn,
       };
     });
-  // append url link columns to columns
-  const columnUrlLinks = getTextFromValues(urlLink) ?? [];
-  if (columnUrlLinks.length) {
-    columnUrlLinks.forEach(({ getTextFromValues: getLinkText, column }) => {
-      columns.push({
-        key: column,
-        label: column,
-        dataType: GenericDataType.String,
-        isNumeric: false,
-        isMetric: false,
-        isPercentMetric: false,
-        // formatter cast is needed since the URL link formatter accepts row data
-        formatter: getLinkText as unknown as DataColumnMeta['formatter'],
-        config: {},
-      });
-    });
-  }
   return [metrics, percentMetrics, columns] as [
     typeof metrics,
     typeof percentMetrics,
@@ -544,7 +525,6 @@ const transformProps = (
     show_totals: showTotals,
     conditional_formatting: conditionalFormatting,
     allow_rearrange_columns: allowRearrangeColumns,
-    url_link: urlLink,
     allow_render_html: allowRenderHtml,
     time_compare,
     comparison_color_enabled: comparisonColorEnabled = false,
@@ -741,8 +721,6 @@ const transformProps = (
     getColorFormatters(conditionalFormatting, passedData, theme) ??
     defaultColorFormatters;
 
-  const columnUrlLinks = getTextFromValues(urlLink) ?? [];
-
   const basicColorColumnFormatters = getBasicColorFormatterForColumn(
     baseQuery?.data,
     columns,
@@ -802,7 +780,6 @@ const transformProps = (
     emitCrossFilters,
     onChangeFilter,
     columnColorFormatters,
-    columnUrlLinks,
     timeGrain,
     allowRearrangeColumns,
     allowRenderHtml,
