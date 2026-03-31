@@ -294,8 +294,12 @@ def get_access_token_for_database(database: Database, user_id: int) -> str | Non
     """
     upstream_provider = database.get_encrypted_extra().get("oauth2_upstream_provider")
     if upstream_provider:
-        return get_upstream_provider_token(upstream_provider, user_id)
+        access_token = get_upstream_provider_token(upstream_provider, user_id)
+        if access_token:
+            return access_token
 
+    # Fall back to database-specific OAuth2 (also used when upstream token is
+    # unavailable, e.g. expired without a refresh token).
     oauth2_config = database.get_oauth2_config()
     if oauth2_config:
         return get_oauth2_access_token(
