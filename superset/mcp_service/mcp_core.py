@@ -142,6 +142,11 @@ class ModelListCore(BaseCore, Generic[L]):
         page: int = 0,
         page_size: int = 10,
     ) -> L:
+        from superset.mcp_service.constants import MAX_PAGE_SIZE
+
+        # Clamp page_size to MAX_PAGE_SIZE as defense-in-depth
+        page_size = min(page_size, MAX_PAGE_SIZE)
+
         # Parse filters using generic utility (accepts JSON string or object)
         from superset.mcp_service.utils.schema_utils import (
             parse_json_or_list,
