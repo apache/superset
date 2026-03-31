@@ -118,6 +118,9 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
 - chart_type="xy", kind="bar": Bar chart for category comparison
 - chart_type="xy", kind="area": Area chart for volume visualization
 - chart_type="xy", kind="scatter": Scatter plot for correlation analysis
+- chart_type="big_number": Big Number display (single metric, header only)
+- chart_type="big_number", show_trendline=True,
+  temporal_column="<date_col>": Big Number with trendline
 - chart_type="table": Data table for detailed views
 - chart_type="table", viz_type="ag-grid-table": Interactive AG Grid table
 - chart_type="pie": Pie chart for proportional data (set donut=True for donut)
