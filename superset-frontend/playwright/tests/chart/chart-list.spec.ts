@@ -305,3 +305,39 @@ test('should bulk export multiple charts', async ({
     expectedNames: [chart1.name, chart2.name],
   });
 });
+
+// Card-view smoke test — uses testWithAssets directly (no table-view fixture)
+testWithAssets(
+  'should delete a chart from card view',
+  async ({ page, testAssets }) => {
+    const chartListPage = new ChartListPage(page);
+    const { name: chartName } = await createTestChart(
+      page,
+      testAssets,
+      testWithAssets.info(),
+      { prefix: 'test_card_delete' },
+    );
+
+    // Navigate to card view and wait for cards to render
+    await chartListPage.gotoCardView();
+    await chartListPage.waitForCardLoad();
+
+    // Verify chart card is visible
+    await expect(chartListPage.getChartCard(chartName)).toBeVisible();
+
+    // Delete via card dropdown menu
+    await chartListPage.clickCardDeleteAction(chartName);
+
+    // Confirm deletion
+    const deleteModal = new DeleteConfirmationModal(page);
+    await deleteModal.waitForVisible();
+    await deleteModal.fillConfirmationInput('DELETE');
+    await deleteModal.clickDelete();
+    await deleteModal.waitForHidden();
+
+    // Verify success toast and card removal
+    const toast = new Toast(page);
+    await expect(toast.getSuccess()).toBeVisible();
+    await expect(chartListPage.getChartCard(chartName)).not.toBeVisible();
+  },
+);

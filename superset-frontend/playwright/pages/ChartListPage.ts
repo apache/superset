@@ -47,7 +47,7 @@ export class ChartListPage {
   }
 
   /**
-   * Navigate to the chart list page.
+   * Navigate to the chart list page in table view.
    * Forces table view via URL parameter to avoid card view default
    * (ListviewsDefaultCardView feature flag may enable card view).
    */
@@ -56,11 +56,28 @@ export class ChartListPage {
   }
 
   /**
+   * Navigate to the chart list page in card view.
+   */
+  async gotoCardView(): Promise<void> {
+    await this.page.goto(`${URL.CHART_LIST}?viewMode=card`);
+  }
+
+  /**
    * Wait for the table to load
    * @param options - Optional wait options
    */
   async waitForTableLoad(options?: { timeout?: number }): Promise<void> {
     await this.table.waitForVisible(options);
+  }
+
+  /**
+   * Wait for card view to finish loading.
+   */
+  async waitForCardLoad(options?: { timeout?: number }): Promise<void> {
+    await this.page
+      .locator('[data-test="styled-card"]')
+      .first()
+      .waitFor({ state: 'visible', ...options });
   }
 
   /**
@@ -128,5 +145,40 @@ export class ChartListPage {
    */
   async clickBulkAction(actionName: string): Promise<void> {
     await this.bulkSelect.clickAction(actionName);
+  }
+
+  // --- Card view methods ---
+
+  /**
+   * Gets a chart card locator by name (card view).
+   */
+  getChartCard(chartName: string): Locator {
+    return this.page
+      .locator('[data-test="styled-card"]')
+      .filter({ hasText: chartName });
+  }
+
+  /**
+   * Clicks the delete option in a chart card's dropdown menu (card view).
+   * Opens the "more" menu on the card, then clicks the delete item
+   * (rendered in a page-level portal).
+   */
+  async clickCardDeleteAction(chartName: string): Promise<void> {
+    const card = this.getChartCard(chartName);
+    await card.locator('[aria-label="more"]').click();
+    await this.page
+      .locator('[data-test="chart-list-delete-option"]')
+      .click();
+  }
+
+  /**
+   * Clicks the edit option in a chart card's dropdown menu (card view).
+   */
+  async clickCardEditAction(chartName: string): Promise<void> {
+    const card = this.getChartCard(chartName);
+    await card.locator('[aria-label="more"]').click();
+    await this.page
+      .locator('[data-test="chart-list-edit-option"]')
+      .click();
   }
 }
