@@ -62,6 +62,11 @@ async def get_dataset_info(
     - DO NOT use schema.table_name format (e.g., "public.customers")
     - To find a dataset ID, use the list_datasets tool first
 
+    IMPORTANT - Saved Metrics vs Columns:
+    The response includes both 'columns' (raw database columns) and 'metrics'
+    (pre-defined saved metrics). When building chart configs, use saved_metric=true
+    for metrics — do not treat them as columns. See instructions for details.
+
     Example usage:
     ```json
     {
