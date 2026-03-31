@@ -1317,3 +1317,20 @@ test('should not apply axis bounds calculation when seriesType is not Bar for ho
   // Should not have explicit max set when seriesType is not Bar
   expect(xAxisRaw.max).toBeUndefined();
 });
+
+test('should adjust dataZoom bottom when chart height changes', () => {
+  const smallChart = createTestChartProps({ height: 300 });
+  const largeChart = createTestChartProps({ height: 600 });
+
+  const smallResult = transformProps(smallChart);
+  const largeResult = transformProps(largeChart);
+
+  const smallBottom = (smallResult.echartOptions.dataZoom as any[])[0].bottom;
+  const largeBottom = (largeResult.echartOptions.dataZoom as any[])[0].bottom;
+
+  expect(smallBottom).toBeDefined();
+  expect(largeBottom).toBeDefined();
+
+  // Bottom should vary with height
+  expect(smallBottom).not.toEqual(largeBottom);
+});
