@@ -278,6 +278,7 @@ const PropertiesModal = ({
   const handleOnCancel = () => {
     if (cssDebounceTimer.current) {
       clearTimeout(cssDebounceTimer.current);
+      cssDebounceTimer.current = null;
     }
     if (originalCss.current !== null) {
       dispatch(dashboardInfoChanged({ css: originalCss.current }));
@@ -628,12 +629,23 @@ const PropertiesModal = ({
       setCustomCss(css);
       if (cssDebounceTimer.current) {
         clearTimeout(cssDebounceTimer.current);
+        cssDebounceTimer.current = null;
       }
       cssDebounceTimer.current = setTimeout(() => {
         dispatch(dashboardInfoChanged({ css }));
       }, 500);
     },
     [dispatch],
+  );
+
+  useEffect(
+    () => () => {
+      if (cssDebounceTimer.current) {
+        clearTimeout(cssDebounceTimer.current);
+        cssDebounceTimer.current = null;
+      }
+    },
+    [],
   );
 
   // Validate basic section when title changes or data loads
