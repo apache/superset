@@ -42,6 +42,7 @@ import {
   ColorFormatters,
   ConditionalFormattingConfig,
   getColorFormatters,
+  getTextFromValues,
   ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
 
@@ -524,6 +525,7 @@ const transformProps = (
     query_mode: queryMode,
     show_totals: showTotals,
     conditional_formatting: conditionalFormatting,
+    url_link: urlLink,
     allow_rearrange_columns: allowRearrangeColumns,
     allow_render_html: allowRenderHtml,
     time_compare,
@@ -693,6 +695,24 @@ const transformProps = (
     : '';
 
   const [metrics, percentMetrics, columns] = processColumns(chartProps);
+
+  const columnUrlLinks = getTextFromValues(urlLink) ?? [];
+
+  // append url link columns to columns
+  if (columnUrlLinks.length) {
+    columnUrlLinks.forEach(({ column }) => {
+      columns.push({
+        key: column,
+        label: column,
+        dataType: GenericDataType.String,
+        isNumeric: false,
+        isMetric: false,
+        isPercentMetric: false,
+        config: {},
+      });
+    });
+  }
+
   let comparisonColumns: DataColumnMeta[] = [];
   if (isUsingTimeComparison) {
     comparisonColumns = processComparisonColumns(
@@ -794,6 +814,7 @@ const transformProps = (
     emitCrossFilters,
     onChangeFilter,
     columnColorFormatters,
+    columnUrlLinks,
     timeGrain,
     allowRearrangeColumns,
     allowRenderHtml,
