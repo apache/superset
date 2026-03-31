@@ -2233,7 +2233,7 @@ msgid "By value: use metric values as sorting key"
 msgstr "Par valeur : utilisez les valeurs mesures comme clé de tri"
 
 msgid "CANCEL"
-msgstr "CANCEL"
+msgstr "ANNULER"
 
 #, fuzzy
 msgid "CC recipients"
