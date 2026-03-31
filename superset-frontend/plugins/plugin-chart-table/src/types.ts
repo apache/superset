@@ -34,6 +34,7 @@ import type {
   DataColumnMeta,
   ServerPaginationData,
   TableColumnConfig,
+  UrlLinks,
 } from '@superset-ui/chart-controls';
 
 // Re-export shared types used by internal plugin files that import from './types'
@@ -108,6 +109,7 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   emitCrossFilters?: boolean;
   onChangeFilter?: ChartProps['hooks']['onAddFilter'];
   columnColorFormatters?: ColorFormatters;
+  columnUrlLinks?: UrlLinks;
   allowRearrangeColumns?: boolean;
   allowRenderHtml?: boolean;
   onContextMenu?: (

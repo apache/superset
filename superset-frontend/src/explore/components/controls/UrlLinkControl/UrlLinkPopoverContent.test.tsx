@@ -16,18 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
+import { render, screen } from 'spec/helpers/testing-library';
+import { UrlLinkPopoverContent } from './UrlLinkPopoverContent';
 
-export * from './checkColumnType';
-export * from './selectOptions';
-export * from './D3Formatting';
-export * from './expandControlConfig';
-export * from './getColorFormatters';
-export { default as mainMetric } from './mainMetric';
-export { default as columnChoices, columnsByType } from './columnChoices';
-export * from './defineSavedMetrics';
-export * from './getStandardizedControls';
-export * from './getTemporalColumns';
-export * from './displayTimeRelatedControls';
-export * from './colorControls';
-export * from './metricColumnFilter';
-export * from './getUrlLinks';
+const renderComponent = (onChange = jest.fn()) => {
+  render(
+    <UrlLinkPopoverContent onChange={onChange} columns={[]} />,
+  );
+};
+
+test('Should render', () => {
+  renderComponent();
+  expect(screen.getByText('link column name')).toBeInTheDocument();
+});
+
+test('Should render required fields', () => {
+  renderComponent();
+  expect(screen.getAllByText('Required').length).toEqual(3);
+});
