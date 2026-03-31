@@ -45,7 +45,6 @@ from superset.mcp_service.chart.schemas import (
     GenerateChartResponse,
     PerformanceMetadata,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
@@ -133,7 +132,6 @@ def _compile_chart(
         destructiveHint=False,
     ),
 )
-@parse_request(GenerateChartRequest)
 async def generate_chart(  # noqa: C901
     request: GenerateChartRequest, ctx: Context
 ) -> GenerateChartResponse:
@@ -744,7 +742,13 @@ async def generate_chart(  # noqa: C901
                     chart.id,
                     exc_info=True,
                 )
-                db.session.rollback()
+                try:
+                    db.session.rollback()  # pylint: disable=consider-using-transaction
+                except SQLAlchemyError:
+                    logger.warning(
+                        "Database rollback failed during chart re-fetch error handling",
+                        exc_info=True,
+                    )
                 chart_data = {
                     "id": chart.id,
                     "slice_name": chart.slice_name,
@@ -807,6 +811,14 @@ async def generate_chart(  # noqa: C901
         return GenerateChartResponse.model_validate(result)
 
     except (CommandException, SQLAlchemyError, KeyError, ValueError) as e:
+        from superset import db
+
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError:
+            logger.warning(
+                "Database rollback failed during error handling", exc_info=True
+            )
         await ctx.error(
             "Chart generation failed: error=%s, execution_time_ms=%s"
             % (

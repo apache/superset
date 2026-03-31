@@ -17,6 +17,8 @@ concurrency:
 jobs:
   unit-tests:
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     strategy:
       matrix:
         python-version: ["previous", "current", "next"]
@@ -56,5 +58,6 @@ jobs:
         uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v5
         with:
           flags: python,unit
-          token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
+          use_oidc: true
+          slug: apache/superset
