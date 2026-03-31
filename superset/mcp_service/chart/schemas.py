@@ -46,6 +46,7 @@ from superset.mcp_service.common.cache_schemas import (
     QueryCacheControl,
 )
 from superset.mcp_service.common.error_schemas import ChartGenerationError
+from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
     serialize_user_object,
@@ -485,6 +486,24 @@ class ColumnRef(BaseModel):
         ]
         | None
     ) = Field(None, description="SQL aggregate function")
+    saved_metric: bool = Field(
+        False,
+        description="If true, 'name' refers to a saved metric from the dataset "
+        "(use get_dataset_info to see available metrics). "
+        "When set, 'aggregate' is ignored.",
+    )
+
+    @property
+    def is_metric(self) -> bool:
+        """Whether this ref acts as a metric (has aggregate or is a saved metric)."""
+        return bool(self.aggregate) or self.saved_metric
+
+    @model_validator(mode="after")
+    def clear_aggregate_for_saved_metric(self) -> "ColumnRef":
+        """Clear aggregate when saved_metric is True since it's ignored."""
+        if self.saved_metric and self.aggregate is not None:
+            self.aggregate = None
+        return self
 
     @field_validator("name")
     @classmethod
@@ -592,7 +611,9 @@ class PieChartConfig(UnknownFieldCheckMixin):
         validation_alias=AliasChoices("dimension", "groupby"),
     )
     metric: ColumnRef = Field(
-        ..., description="Value metric (needs aggregate e.g. SUM, COUNT)"
+        ...,
+        description="Value metric (use aggregate e.g. SUM, COUNT for ad-hoc, "
+        "or set saved_metric=True for a saved dataset metric)",
     )
     donut: bool = False
     show_labels: bool = True
@@ -638,7 +659,8 @@ class PivotTableChartConfig(UnknownFieldCheckMixin):
     metrics: List[ColumnRef] = Field(
         ...,
         min_length=1,
-        description="Metrics (need aggregate e.g. SUM, COUNT, AVG)",
+        description="Metrics (use aggregate e.g. SUM, COUNT, AVG for ad-hoc, "
+        "or set saved_metric=True for saved dataset metrics)",
     )
     aggregate_function: Literal[
         "Sum",
@@ -818,7 +840,7 @@ class HandlebarsChartConfig(UnknownFieldCheckMixin):
                     "Handlebars chart in 'aggregate' query mode requires 'metrics' "
                     "field. Specify at least one metric with an aggregate function."
                 )
-            missing_agg = [m.name for m in self.metrics if not m.aggregate]
+            missing_agg = [m.name for m in self.metrics if not m.is_metric]
             if missing_agg:
                 raise ValueError(
                     f"Handlebars chart in 'aggregate' query mode requires an "
@@ -861,7 +883,9 @@ class TableChartConfig(UnknownFieldCheckMixin):
 
         for i, col in enumerate(self.columns):
             # Generate the label that will be used (same logic as create_metric_object)
-            if col.aggregate:
+            if col.saved_metric:
+                label = col.label or col.name
+            elif col.aggregate:
                 label = col.label or f"{col.aggregate}({col.name})"
             else:
                 label = col.label or col.name
@@ -943,7 +967,9 @@ class XYChartConfig(UnknownFieldCheckMixin):
 
         # Check Y-axis labels
         for i, col in enumerate(self.y):
-            if col.aggregate:
+            if col.saved_metric:
+                label = col.label or col.name
+            elif col.aggregate:
                 label = col.label or f"{col.aggregate}({col.name})"
             else:
                 label = col.label or col.name
@@ -1069,7 +1095,13 @@ class ListChartsRequest(MetadataCacheControl):
         Field(default=1, description="Page number for pagination (1-based)"),
     ]
     page_size: Annotated[
-        PositiveInt, Field(default=10, description="Number of items per page")
+        int,
+        Field(
+            default=DEFAULT_PAGE_SIZE,
+            gt=0,
+            le=MAX_PAGE_SIZE,
+            description=f"Number of items per page (max {MAX_PAGE_SIZE})",
+        ),
     ]
 
     @model_validator(mode="after")
