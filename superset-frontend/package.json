@@ -345,7 +345,7 @@
     "lerna": "^9.0.4",
     "lightningcss": "^1.32.0",
     "mini-css-extract-plugin": "^2.10.1",
-    "open-cli": "^8.0.0",
+    "open-cli": "^9.0.0",
     "oxlint": "^1.56.0",
     "po2json": "^0.4.5",
     "prettier": "3.8.1",
