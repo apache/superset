@@ -399,15 +399,18 @@ class SchemaValidator:
                 ],
                 error_code="INVALID_BIG_NUMBER_METRIC_TYPE",
             )
-        if not metric.get("aggregate"):
+        if not metric.get("aggregate") and not metric.get("saved_metric"):
             return False, ChartGenerationError(
                 error_type="missing_metric_aggregate",
-                message="Big Number metric must include an aggregate function",
-                details="The metric 'aggregate' field is required "
-                "for Big Number charts",
+                message="Big Number metric must include an aggregate function "
+                "or reference a saved metric",
+                details="The metric must have an 'aggregate' field "
+                "or 'saved_metric': true",
                 suggestions=[
                     "Add 'aggregate' to your metric: "
                     "{'name': 'col', 'aggregate': 'SUM'}",
+                    "Or use a saved metric: "
+                    "{'name': 'total_sales', 'saved_metric': true}",
                     "Valid aggregates: SUM, COUNT, AVG, MIN, MAX",
                 ],
                 error_code="MISSING_BIG_NUMBER_AGGREGATE",

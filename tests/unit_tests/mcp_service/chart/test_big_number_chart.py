@@ -84,6 +84,16 @@ class TestBigNumberChartConfig:
         assert config.metric.saved_metric is True
         assert config.metric.is_metric is True
 
+    def test_saved_metric_passes_pre_validation(self) -> None:
+        """Verify saved metrics pass through SchemaValidator pre-validation."""
+        data = {
+            "chart_type": "big_number",
+            "metric": {"name": "total_sales", "saved_metric": True},
+        }
+        is_valid, error = SchemaValidator._pre_validate_big_number_config(data)
+        assert is_valid is True
+        assert error is None
+
     def test_with_subheader(self) -> None:
         config = BigNumberChartConfig(
             chart_type="big_number",
