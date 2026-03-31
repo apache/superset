@@ -25,6 +25,7 @@ import difflib
 from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List, Literal, Protocol
 
+import humanize
 from pydantic import (
     AliasChoices,
     AliasPath,
@@ -36,8 +37,6 @@ from pydantic import (
     model_validator,
     PositiveInt,
 )
-
-import humanize
 
 from superset.constants import TimeGrain
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum

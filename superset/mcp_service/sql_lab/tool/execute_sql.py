@@ -36,8 +36,7 @@ from superset_core.queries.types import (
     QueryStatus,
 )
 
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorException, SupersetSecurityException
+from superset.errors import SupersetErrorType
 from superset.extensions import event_logger
 from superset.mcp_service.sql_lab.schemas import (
     ColumnInfo,
