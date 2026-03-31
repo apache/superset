@@ -593,6 +593,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enables the tagging system for organizing assets
     # @lifecycle: development
     "TAGGING_SYSTEM": False,
+    # Enables Alerts and reports new implementation
     # =================================================================
     # IN TESTING
     # =================================================================

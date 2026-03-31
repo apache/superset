@@ -440,6 +440,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("can_read", "AnnotationLayerRestApi"),
         # Chart permalinks (for shared chart links)
         ("can_read", "ExplorePermalinkRestApi"),
+        # User info for embedded views (needed by frontend during initialization)
+        ("can_read", "CurrentUserRestApi"),
     }
 
     # View menus that Public role should NOT have access to
@@ -2589,6 +2591,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
                 or self.is_owner(datasource)
+                # Grant access for embedded charts via guest token with chart_permalink
+                or self.has_guest_chart_permalink_access(datasource)
                 or (
                     # Grant access to the datasource only if dashboard RBAC is enabled
                     # or the user is an embedded guest user with access to the dashboard
@@ -2980,7 +2984,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.commands.dashboard.embedded.exceptions import (
             EmbeddedDashboardNotFoundError,
         )
+        from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
         from superset.daos.dashboard import EmbeddedDashboardDAO
+        from superset.embedded_chart.exceptions import (
+            EmbeddedChartPermalinkNotFoundError,
+        )
+        from superset.explore.permalink.exceptions import (
+            ExplorePermalinkGetFailedError,
+        )
         from superset.models.dashboard import Dashboard
 
         for resource in resources:
@@ -2991,6 +3002,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     embedded = EmbeddedDashboardDAO.find_by_id(str(resource["id"]))
                     if not embedded:
                         raise EmbeddedDashboardNotFoundError()
+            elif resource["type"] == GuestTokenResourceType.CHART_PERMALINK.value:
+                # Validate that the chart permalink exists
+                permalink_key = str(resource["id"])
+                try:
+                    permalink_value = GetExplorePermalinkCommand(permalink_key).run()
+                    if not permalink_value:
+                        raise EmbeddedChartPermalinkNotFoundError()
+                except EmbeddedChartPermalinkNotFoundError:
+                    raise
+                except (ExplorePermalinkGetFailedError, ValueError):
+                    raise EmbeddedChartPermalinkNotFoundError() from None
 
     def create_guest_access_token(
         self,
@@ -3108,6 +3130,28 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if str(resource["id"]) == str(dashboard.embedded[0].uuid):
                 return True
         return False
+
+    def has_guest_chart_permalink_access(self, datasource: Any) -> bool:
+        """
+        Check if a guest user has access to a datasource via a chart permalink resource.
+
+        For embedded charts, the guest token contains chart_permalink resources.
+        This grants datasource access when the user holds at least one
+        chart_permalink resource. The embedded chart page constrains the actual
+        query to the datasource specified in the permalink's formData.
+
+        TODO: For stricter security, resolve each permalink and compare the
+        datasource in its formData against the requested datasource. This would
+        prevent a guest user from crafting requests to other datasources.
+        """
+        user = self.get_current_guest_user_if_guest()
+        if not user or not isinstance(user, GuestUser):
+            return False
+
+        return any(
+            r.get("type") == GuestTokenResourceType.CHART_PERMALINK.value
+            for r in user.resources
+        )
 
     def raise_for_ownership(self, resource: Model) -> None:
         """

@@ -197,18 +197,23 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     [redirectSQLLab, history],
   );
 
-  const [menu, isDropdownVisible, setIsDropdownVisible, streamingExportState] =
-    useExploreAdditionalActionsMenu(
-      latestQueryFormData,
-      canDownload,
-      slice,
-      redirectToSQLLab,
-      openPropertiesModal,
-      ownState,
-      metadata?.dashboards,
-      showReportModal,
-      setCurrentReportDeleting,
-    );
+  const [
+    menu,
+    isDropdownVisible,
+    setIsDropdownVisible,
+    streamingExportState,
+    embedChartModal,
+  ] = useExploreAdditionalActionsMenu(
+    latestQueryFormData,
+    canDownload,
+    slice,
+    redirectToSQLLab,
+    openPropertiesModal,
+    ownState,
+    metadata?.dashboards,
+    showReportModal,
+    setCurrentReportDeleting,
+  );
 
   const metadataBar = useExploreMetadataBar(metadata, slice ?? null);
   const oldSliceName = slice?.slice_name;
@@ -394,6 +399,8 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
         onDownload={streamingExportState.onDownload}
         progress={streamingExportState.progress}
       />
+
+      {embedChartModal}
     </>
   );
 };
