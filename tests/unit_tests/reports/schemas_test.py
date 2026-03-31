@@ -199,3 +199,26 @@ def test_subscribe_schema_ignores_excluded_fields(mocker: MockerFixture) -> None
     )
     assert "recipients" not in result
     assert "creation_method" not in result
+
+
+def test_subscribe_schema_rejects_alert_type(mocker: MockerFixture) -> None:
+    """Subscribe endpoint must not allow Alert type — prevents privilege escalation."""
+    mocker.patch(
+        "flask.current_app.config",
+        {
+            "ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH": 100,
+            "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": 2000,
+        },
+    )
+    schema = ReportScheduleSubscribeSchema()
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(
+            {
+                "type": "Alert",
+                "name": "My alert",
+                "crontab": "0 9 * * *",
+                "timezone": "UTC",
+                "chart": 1,
+            }
+        )
+    assert "type" in exc_info.value.messages
