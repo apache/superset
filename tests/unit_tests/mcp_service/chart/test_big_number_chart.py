@@ -70,11 +70,19 @@ class TestBigNumberChartConfig:
             )
 
     def test_metric_without_aggregate_fails(self) -> None:
-        with pytest.raises(ValidationError, match="must have an aggregate function"):
+        with pytest.raises(ValidationError, match="saved dataset metric"):
             BigNumberChartConfig(
                 chart_type="big_number",
                 metric=ColumnRef(name="revenue"),
             )
+
+    def test_saved_metric_accepted(self) -> None:
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="total_sales", saved_metric=True),
+        )
+        assert config.metric.saved_metric is True
+        assert config.metric.is_metric is True
 
     def test_with_subheader(self) -> None:
         config = BigNumberChartConfig(
@@ -179,6 +187,7 @@ class TestMapBigNumberConfig:
         )
         form_data = map_big_number_config(config)
         assert form_data["viz_type"] == "big_number"
+        assert form_data["show_trend_line"] is True
         assert "x_axis" not in form_data
         assert form_data["granularity_sqla"] == "order_date"
         assert form_data["start_y_axis_at_zero"] is True

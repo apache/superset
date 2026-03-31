@@ -947,12 +947,13 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
 
     @model_validator(mode="after")
     def validate_metric_aggregate(self) -> Self:
-        """Ensure metric has an aggregate function."""
-        if not self.metric.aggregate:
+        """Ensure metric is a valid metric reference (aggregate or saved)."""
+        if not self.metric.is_metric:
             raise ValueError(
-                "Big Number metric must have an aggregate function "
-                "(e.g., SUM, COUNT, AVG). Add 'aggregate' to the "
-                "metric specification."
+                "Big Number metric must be either a saved dataset metric "
+                "or include an aggregate function (e.g., SUM, COUNT, AVG). "
+                "Set 'saved_metric': true to use a saved metric, or add "
+                "'aggregate' to the metric specification."
             )
         return self
 
