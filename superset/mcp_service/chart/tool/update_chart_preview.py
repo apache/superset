@@ -39,8 +39,28 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
     UpdateChartPreviewRequest,
 )
+from superset.utils import json as utils_json
 
 logger = logging.getLogger(__name__)
+
+
+def _get_old_adhoc_filters(form_data_key: str) -> list[Dict[str, Any]] | None:
+    """Retrieve adhoc_filters from the previously cached form_data."""
+    from superset.commands.exceptions import CommandException
+    from superset.commands.explore.form_data.get import GetFormDataCommand
+    from superset.commands.explore.form_data.parameters import CommandParameters
+
+    try:
+        cmd_params = CommandParameters(key=form_data_key)
+        cached_json = GetFormDataCommand(cmd_params).run()
+        if cached_json:
+            cached_form_data = utils_json.loads(cached_json)
+            adhoc_filters = cached_form_data.get("adhoc_filters")
+            if adhoc_filters:
+                return adhoc_filters
+    except (KeyError, ValueError, CommandException):
+        logger.debug("Could not retrieve old form_data for filter preservation")
+    return None
 
 
 @tool(
@@ -80,6 +100,16 @@ def update_chart_preview(
                 request.config, dataset_id=request.dataset_id
             )
             new_form_data.pop("_mcp_warnings", None)
+
+            # Preserve adhoc filters from the previous cached form_data
+            # when the new config doesn't explicitly specify filters
+            if (
+                getattr(request.config, "filters", None) is None
+                and request.form_data_key
+            ):
+                old_adhoc_filters = _get_old_adhoc_filters(request.form_data_key)
+                if old_adhoc_filters:
+                    new_form_data["adhoc_filters"] = old_adhoc_filters
 
             # Generate new explore link with updated form_data
             explore_url = generate_explore_link(request.dataset_id, new_form_data)
