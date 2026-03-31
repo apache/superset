@@ -879,8 +879,12 @@ class TestGenerateExploreLinkColumnNormalization:
             assert form_data["x_axis"] == "OrderDate"
             # filter subject normalized to match x-axis
             adhoc_filters = form_data.get("adhoc_filters", [])
-            assert len(adhoc_filters) == 1
+            # User filter + auto-added TEMPORAL_RANGE for temporal x-axis
+            assert len(adhoc_filters) == 2
             assert adhoc_filters[0]["subject"] == "OrderDate"
+            assert adhoc_filters[0]["operator"] == ">"
+            assert adhoc_filters[1]["operator"] == "TEMPORAL_RANGE"
+            assert adhoc_filters[1]["subject"] == "OrderDate"
 
     @patch(
         "superset.mcp_service.chart.validation.dataset_validator.DatasetValidator._get_dataset_context"
