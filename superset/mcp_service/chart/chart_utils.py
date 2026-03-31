@@ -381,8 +381,8 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
     aggregated_metrics = []
 
     for col in config.columns:
-        if col.aggregate:
-            # Column has aggregation - treat as metric
+        if col.is_metric:
+            # Saved metric or column with aggregation - treat as metric
             aggregated_metrics.append(create_metric_object(col))
         else:
             # No aggregation - treat as raw column
@@ -441,8 +441,16 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
     return form_data
 
 
-def create_metric_object(col: ColumnRef) -> Dict[str, Any]:
-    """Create a metric object for a column with enhanced validation."""
+def create_metric_object(col: ColumnRef) -> Dict[str, Any] | str:
+    """Create a metric object for a column with enhanced validation.
+
+    For saved metrics, returns the metric name as a plain string which
+    Superset's query engine resolves via its metrics_by_name lookup.
+    For ad-hoc metrics, returns a SIMPLE expression dict.
+    """
+    if col.saved_metric:
+        return col.name
+
     # Ensure aggregate is valid - default to SUM if not specified or invalid
     valid_aggregates = {
         "SUM",
@@ -840,6 +848,8 @@ def _humanize_column(col: ColumnRef) -> str:
     if col.label:
         return col.label
     name = col.name.replace("_", " ").title()
+    if col.saved_metric:
+        return name
     if col.aggregate:
         return f"{col.aggregate.capitalize()}({name})"
     return name
@@ -874,9 +884,9 @@ def _truncate(name: str, max_length: int = 60) -> str:
 
 def _table_chart_what(config: TableChartConfig, dataset_name: str | None) -> str:
     """Build the descriptive fragment for a table chart."""
-    has_agg = any(col.aggregate for col in config.columns)
+    has_agg = any(col.is_metric for col in config.columns)
     if has_agg:
-        metrics = [col for col in config.columns if col.aggregate]
+        metrics = [col for col in config.columns if col.is_metric]
         what = ", ".join(_humanize_column(m) for m in metrics[:2])
         return f"{what} Summary"
     if dataset_name:
@@ -1073,7 +1083,7 @@ def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilit
     # Classify data types
     data_types = []
     if hasattr(config, "x") and config.x:
-        data_types.append("categorical" if not config.x.aggregate else "metric")
+        data_types.append("categorical" if not config.x.is_metric else "metric")
     if hasattr(config, "y") and config.y:
         data_types.extend(["metric"] * len(config.y))
     if "time" in viz_type or "timeseries" in viz_type:
