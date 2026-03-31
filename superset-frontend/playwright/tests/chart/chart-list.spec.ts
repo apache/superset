@@ -261,6 +261,63 @@ test('should bulk delete multiple charts', async ({
   }
 });
 
+test('should edit chart name from card view', async ({
+  page,
+  testAssets,
+}) => {
+  // Create throwaway chart for editing
+  const { id: chartId, name: chartName } = await createTestChart(
+    page,
+    testAssets,
+    test.info(),
+    { prefix: 'test_card_edit' },
+  );
+
+  // Navigate to card view (not table view)
+  const cardListPage = new ChartListPage(page);
+  await cardListPage.gotoCardView();
+  await cardListPage.waitForCardLoad();
+
+  // Verify chart card is visible
+  await expect(cardListPage.getChartCard(chartName)).toBeVisible();
+
+  // Open card dropdown and click edit
+  await cardListPage.clickCardEditAction(chartName);
+
+  // Wait for properties modal to be ready
+  const propertiesModal = new ChartPropertiesModal(page);
+  await propertiesModal.waitForReady();
+
+  // Edit the chart name
+  const newName = `card_renamed_${Date.now()}_${test.info().parallelIndex}`;
+  await propertiesModal.fillName(newName);
+
+  // Set up response intercept for save
+  const saveResponsePromise = waitForPut(page, `${ENDPOINTS.CHART}${chartId}`);
+
+  // Click Save button
+  await propertiesModal.clickSave();
+
+  // Wait for save to complete and verify success
+  expectStatusOneOf(await saveResponsePromise, [200, 201]);
+
+  // Modal should close
+  await propertiesModal.waitForHidden();
+
+  // Verify success toast appears
+  const toast = new Toast(page);
+  await expect(toast.getSuccess()).toBeVisible();
+
+  // Verify the renamed card appears in card view and old name is gone
+  await expect(cardListPage.getChartCard(newName)).toBeVisible();
+  await expect(cardListPage.getChartCard(chartName)).not.toBeVisible();
+
+  // Backend verification: API returns updated name
+  const response = await apiGetChart(page, chartId);
+  const chart = (await response.json()).result;
+  expect(chart.slice_name).toBe(newName);
+});
+
 test('should bulk export multiple charts', async ({
   page,
   chartListPage,
@@ -305,39 +362,3 @@ test('should bulk export multiple charts', async ({
     expectedNames: [chart1.name, chart2.name],
   });
 });
-
-// Card-view smoke test — uses testWithAssets directly (no table-view fixture)
-testWithAssets(
-  'should delete a chart from card view',
-  async ({ page, testAssets }) => {
-    const chartListPage = new ChartListPage(page);
-    const { name: chartName } = await createTestChart(
-      page,
-      testAssets,
-      testWithAssets.info(),
-      { prefix: 'test_card_delete' },
-    );
-
-    // Navigate to card view and wait for cards to render
-    await chartListPage.gotoCardView();
-    await chartListPage.waitForCardLoad();
-
-    // Verify chart card is visible
-    await expect(chartListPage.getChartCard(chartName)).toBeVisible();
-
-    // Delete via card dropdown menu
-    await chartListPage.clickCardDeleteAction(chartName);
-
-    // Confirm deletion
-    const deleteModal = new DeleteConfirmationModal(page);
-    await deleteModal.waitForVisible();
-    await deleteModal.fillConfirmationInput('DELETE');
-    await deleteModal.clickDelete();
-    await deleteModal.waitForHidden();
-
-    // Verify success toast and card removal
-    const toast = new Toast(page);
-    await expect(toast.getSuccess()).toBeVisible();
-    await expect(chartListPage.getChartCard(chartName)).not.toBeVisible();
-  },
-);

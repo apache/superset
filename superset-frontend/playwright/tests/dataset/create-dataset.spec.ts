@@ -17,17 +17,17 @@
  * under the License.
  */
 
-import { test, expect } from '../../../helpers/fixtures/testAssets';
-import type { TestAssets } from '../../../helpers/fixtures/testAssets';
+import { test, expect } from '../../helpers/fixtures/testAssets';
+import type { TestAssets } from '../../helpers/fixtures/testAssets';
 import type { Page, TestInfo } from '@playwright/test';
-import { ExplorePage } from '../../../pages/ExplorePage';
-import { CreateDatasetPage } from '../../../pages/CreateDatasetPage';
-import { DatasetListPage } from '../../../pages/DatasetListPage';
-import { ChartCreationPage } from '../../../pages/ChartCreationPage';
-import { ENDPOINTS } from '../../../helpers/api/dataset';
-import { waitForPost } from '../../../helpers/api/intercepts';
-import { expectStatusOneOf } from '../../../helpers/api/assertions';
-import { apiPostDatabase } from '../../../helpers/api/database';
+import { ExplorePage } from '../../pages/ExplorePage';
+import { CreateDatasetPage } from '../../pages/CreateDatasetPage';
+import { DatasetListPage } from '../../pages/DatasetListPage';
+import { ChartCreationPage } from '../../pages/ChartCreationPage';
+import { ENDPOINTS } from '../../helpers/api/dataset';
+import { waitForGet, waitForPost } from '../../helpers/api/intercepts';
+import { expectStatusOneOf } from '../../helpers/api/assertions';
+import { apiPostDatabase } from '../../helpers/api/database';
 
 interface GsheetsSetupResult {
   sheetName: string;
@@ -37,7 +37,10 @@ interface GsheetsSetupResult {
 
 /**
  * Sets up gsheets database and navigates to create dataset page.
- * Skips test on timeout if Google Sheets API is slow (transient external dependency).
+ * Intercepts the tables API to distinguish Superset regressions from transient issues:
+ * - Tables API error → hard failure (Superset bug)
+ * - Tables API success, sheet missing → skip (Google Sheets API slow)
+ * - Tables API success, sheet present → proceed (UI timeout = real regression)
  * @param testInfo - Test info for parallelIndex to avoid name collisions in parallel runs
  * @returns Setup result with names and page object
  */
@@ -100,23 +103,70 @@ async function setupGsheetsDataset(
   await createDatasetPage.goto();
   await createDatasetPage.waitForPageLoad();
 
-  // Select the Google Sheets database
+  // Select the Google Sheets database and intercept the tables API response
+  // to distinguish Superset regressions from transient Google Sheets delays.
+  // Pin to our dbId so a stale localStorage selection can't satisfy the waiter.
+  const tablesResponsePromise = waitForGet(
+    page,
+    new RegExp(`/api/v1/database/${dbId}/tables`),
+  );
   await createDatasetPage.selectDatabase(dbName);
 
-  // Try to select the sheet - if not found due to timeout, skip
+  // Check the tables API response.
+  // Outcomes:
+  //   1. Response never arrives (TimeoutError)    → Google Sheets too slow → skip
+  //   2. Response arrives, non-OK status          → Superset regression   → fail hard
+  //   3. Response OK, empty result (0 tables)     → Google Sheets slow    → skip
+  //   4. Response OK, non-empty but sheet missing → Superset wrong data   → fail hard
+  //   5. Response OK, sheet present               → proceed to UI select
+  let tablesResponse: Awaited<typeof tablesResponsePromise>;
   try {
-    await createDatasetPage.selectTable(sheetName);
+    tablesResponse = await tablesResponsePromise;
   } catch (error) {
-    // Only skip on TimeoutError (sheet not loaded); re-throw everything else
     if (!(error instanceof Error) || error.name !== 'TimeoutError') {
       throw error;
     }
     await test.info().attach('skip-reason', {
-      body: `Table "${sheetName}" not found in dropdown after timeout.`,
+      body: `Tables API for database ${dbId} did not respond in time — Google Sheets metadata may be slow.`,
       contentType: 'text/plain',
     });
-    test.skip(); // throws, no return needed
+    test.skip();
+    // test.skip() throws; this line is unreachable but satisfies TypeScript
+    throw error;
   }
+
+  if (!tablesResponse.ok()) {
+    throw new Error(
+      `Tables API failed (${tablesResponse.status()}): ${await tablesResponse.text()}`,
+    );
+  }
+
+  const tablesBody = await tablesResponse.json();
+  const tableNames: string[] = (tablesBody.result ?? []).map(
+    (t: { value: string }) => t.value,
+  );
+
+  if (!tableNames.includes(sheetName)) {
+    if (tableNames.length === 0) {
+      // Empty result — Google Sheets API hasn't returned table metadata yet.
+      // This is the only legitimate transient case: we created the database
+      // with exactly one sheet in its catalog, so an empty response means the
+      // external API was too slow, not that Superset returned wrong data.
+      await test.info().attach('skip-reason', {
+        body: `Tables API returned 0 tables for database ${dbId} — Google Sheets API may be slow.`,
+        contentType: 'text/plain',
+      });
+      test.skip();
+    }
+    // Non-empty result that omits our sheet — Superset returned wrong data
+    throw new Error(
+      `Tables API returned ${tableNames.length} tables but "${sheetName}" was not among them: [${tableNames.join(', ')}]`,
+    );
+  }
+
+  // Table confirmed in API response — select it from the dropdown.
+  // A timeout here is now a genuine UI regression, not a transient skip.
+  await createDatasetPage.selectTable(sheetName);
 
   return { sheetName, dbName, createDatasetPage };
 }
