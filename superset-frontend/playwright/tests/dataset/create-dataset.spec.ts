@@ -193,10 +193,8 @@ test('should create a dataset via wizard', async ({ page, testAssets }) => {
   );
   const createBody = await createResponse.json();
   const newDatasetId = createBody.result?.id ?? createBody.id;
-
-  if (newDatasetId) {
-    testAssets.trackDataset(newDatasetId);
-  }
+  expect(newDatasetId).toBeTruthy();
+  testAssets.trackDataset(newDatasetId);
 
   // Verify we navigated to Chart Creation page with dataset pre-selected
   await page.waitForURL(/.*\/chart\/add.*/);
@@ -247,9 +245,8 @@ test('should create a dataset without exploring', async ({
   );
   const createBody = await createResponse.json();
   const datasetId = createBody.result?.id ?? createBody.id;
-  if (datasetId) {
-    testAssets.trackDataset(datasetId);
-  }
+  expect(datasetId).toBeTruthy();
+  testAssets.trackDataset(datasetId);
 
   // Verify redirect to dataset list (not chart creation)
   // Note: "Create dataset" action does not show a toast
