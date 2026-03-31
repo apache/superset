@@ -37,7 +37,7 @@ class CrateEngineSpec(BaseEngineSpec):
             "CrateDB is a distributed SQL database for machine data and IoT workloads."
         ),
         "logo": "cratedb.svg",
-        "homepage_url": "https://crate.io/",
+        "homepage_url": "https://cratedb.com/",
         "categories": [DatabaseCategory.TIME_SERIES, DatabaseCategory.OPEN_SOURCE],
         "pypi_packages": ["crate", "sqlalchemy-cratedb"],
         "connection_string": "crate://{host}:{port}",
@@ -49,7 +49,7 @@ class CrateEngineSpec(BaseEngineSpec):
         "drivers": [
             {
                 "name": "crate",
-                "pypi_package": "crate[sqlalchemy]",
+                "pypi_package": "sqlalchemy-cratedb",
                 "connection_string": "crate://{host}:{port}",
                 "is_recommended": True,
             },
