@@ -269,6 +269,11 @@ function sortHierarchicalObject(
   return result;
 }
 
+function convertToNumberIfNumeric(value: string): string | number {
+  const n = Number(value);
+  return value.trim() !== '' && !Number.isNaN(n) ? n : value;
+}
+
 function convertToArray(
   obj: Map<string, unknown>,
   rowEnabled: boolean | undefined,
@@ -868,7 +873,9 @@ export class TableRenderer extends Component<
           );
         };
         const headerCellFormattedValue =
-          dateFormatters?.[attrName]?.(colKey[attrIdx]) ?? colKey[attrIdx];
+          dateFormatters?.[attrName]?.(
+            convertToNumberIfNumeric(colKey[attrIdx]),
+          ) ?? colKey[attrIdx];
         const { backgroundColor, color } = getCellColor(
           [attrName],
           headerCellFormattedValue,
@@ -1111,7 +1118,7 @@ export class TableRenderer extends Component<
           : null;
 
         const headerCellFormattedValue =
-          dateFormatters?.[rowAttrs[i]]?.(r) ?? r;
+          dateFormatters?.[rowAttrs[i]]?.(convertToNumberIfNumeric(r)) ?? r;
 
         const { backgroundColor, color } = getCellColor(
           [rowAttrs[i]],
