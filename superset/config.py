@@ -1151,6 +1151,10 @@ EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
 STORE_CACHE_KEYS_IN_METADATA_DB = False
 
+# If True, native filter option queries use FILTER_STATE_CACHE_CONFIG timeout
+# instead of DATA_CACHE_CONFIG. Disabled by default for backward compatibility.
+NATIVE_FILTER_QUERIES_USE_FILTER_STATE_TIMEOUT = False
+
 # CORS Options
 # NOTE: enabling this requires installing the cors-related python dependencies
 # `pip install .[cors]` or `pip install apache_superset[cors]`, depending
