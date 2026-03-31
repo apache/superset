@@ -93,6 +93,7 @@ from superset.mcp_service.system.schemas import (
     TagInfo,
     UserInfo,
 )
+from superset.mcp_service.utils.sanitization import sanitize_user_input
 
 
 class DashboardError(BaseModel):
@@ -447,6 +448,14 @@ class GenerateDashboardRequest(BaseModel):
     published: bool = Field(
         default=True, description="Whether to publish the dashboard"
     )
+
+    @field_validator("dashboard_title")
+    @classmethod
+    def sanitize_dashboard_title(cls, v: str | None) -> str | None:
+        """Sanitize dashboard title to prevent XSS attacks."""
+        return sanitize_user_input(
+            v, "Dashboard title", max_length=255, allow_empty=True
+        )
 
 
 class GenerateDashboardResponse(BaseModel):
