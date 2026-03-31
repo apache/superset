@@ -141,7 +141,7 @@ export default function ExplorePage() {
       fetchGeneration.current += 1;
       const generation = fetchGeneration.current;
       const exploreUrlParams = getParsedExploreURLParams(loc);
-      const dashboardContextFormData = getDashboardContextFormData();
+      const dashboardContextFormData = getDashboardContextFormData(loc.search);
 
       const isStale = () => generation !== fetchGeneration.current;
 
