@@ -58,16 +58,17 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        "idx_upstream_oauth_tokens_user_provider",
+    op.create_unique_constraint(
+        "uq_upstream_oauth_tokens_user_provider",
         "upstream_oauth_tokens",
         ["user_id", "provider"],
     )
 
 
 def downgrade() -> None:
-    op.drop_index(
-        "idx_upstream_oauth_tokens_user_provider",
-        table_name="upstream_oauth_tokens",
+    op.drop_constraint(
+        "uq_upstream_oauth_tokens_user_provider",
+        "upstream_oauth_tokens",
+        type_="unique",
     )
     op.drop_table("upstream_oauth_tokens")

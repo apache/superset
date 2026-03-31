@@ -1362,7 +1362,9 @@ class UpstreamOAuthToken(Model, AuditMixinNullable):
 
     __tablename__ = "upstream_oauth_tokens"
     __table_args__ = (
-        sqla.Index("idx_upstream_oauth_tokens_user_provider", "user_id", "provider"),
+        sqla.UniqueConstraint(
+            "user_id", "provider", name="uq_upstream_oauth_tokens_user_provider"
+        ),
     )
 
     id = Column(Integer, primary_key=True)
