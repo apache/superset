@@ -42,6 +42,11 @@ import {
   failedQueryWithFrontendTimeoutErrors,
 } from 'src/SqlLab/fixtures';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { ViewLocations } from 'src/SqlLab/contributions';
+import {
+  registerToolbarAction,
+  cleanupExtensions,
+} from 'spec/helpers/extensionTestHelpers';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -160,6 +165,7 @@ describe('ResultSet', () => {
   // Add cleanup after each test
   afterEach(async () => {
     fetchMock.clearHistory();
+    cleanupExtensions();
     // Wait for any pending effects to complete
     await new Promise(resolve => setTimeout(resolve, 0));
   });
@@ -955,5 +961,36 @@ describe('ResultSet', () => {
     expect(clipboardButton).toBeDisabled();
     expect(clipboardButton).toHaveAttribute('aria-label', 'Copy to Clipboard');
     mockIsFeatureEnabled.mockReset();
+  });
+
+  test('renders contributed toolbar action in results slot', async () => {
+    registerToolbarAction(
+      ViewLocations.sqllab.results,
+      'test-results-action',
+      'Results Action',
+      jest.fn(),
+    );
+
+    const { getByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user,
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: queries[0],
+          },
+        },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(getByTestId('table-container')).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByRole('button', { name: 'Results Action' }),
+    ).toBeInTheDocument();
   });
 });

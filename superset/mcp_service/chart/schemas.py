@@ -21,11 +21,13 @@ Pydantic schemas for chart-related responses
 
 from __future__ import annotations
 
+import difflib
 from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List, Literal, Protocol
 
 from pydantic import (
     AliasChoices,
+    AliasPath,
     BaseModel,
     ConfigDict,
     Field,
@@ -44,6 +46,7 @@ from superset.mcp_service.common.cache_schemas import (
     QueryCacheControl,
 )
 from superset.mcp_service.common.error_schemas import ChartGenerationError
+from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
     serialize_user_object,
@@ -395,6 +398,67 @@ def _normalize_group_by_input(v: Any) -> Any:
     return v
 
 
+def _top_level_key(alias: str | AliasPath) -> str | None:
+    """Extract the top-level dict key from a str or AliasPath."""
+    if isinstance(alias, str):
+        return alias
+    if isinstance(alias, AliasPath) and alias.path and isinstance(alias.path[0], str):
+        return alias.path[0]
+    return None
+
+
+def _get_known_fields(model_class: type[BaseModel]) -> set[str]:
+    """Collect all valid field names including validation aliases."""
+    known: set[str] = set()
+    for field_name, field_info in model_class.model_fields.items():
+        known.add(field_name)
+        alias = field_info.validation_alias
+        if isinstance(alias, AliasChoices):
+            for choice in alias.choices:
+                key = _top_level_key(choice)
+                if key:
+                    known.add(key)
+        elif alias is not None:
+            key = _top_level_key(alias)
+            if key:
+                known.add(key)
+    return known
+
+
+def _check_unknown_fields(data: Any, model_class: type[BaseModel]) -> Any:
+    """Raise ValueError for unrecognized fields with 'did you mean?' suggestions.
+
+    Catches fields that would be silently dropped by extra='ignore' and provides
+    actionable error messages to help LLMs self-correct parameter names.
+    """
+    if not isinstance(data, dict):
+        return data
+    known = _get_known_fields(model_class)
+    unknown = set(data.keys()) - known
+    if not unknown:
+        return data
+
+    messages = []
+    for field in sorted(unknown):
+        matches = difflib.get_close_matches(field, sorted(known), n=1, cutoff=0.6)
+        if matches:
+            messages.append(f"Unknown field '{field}' — did you mean '{matches[0]}'?")
+        else:
+            messages.append(
+                f"Unknown field '{field}'. Valid fields: {', '.join(sorted(known))}"
+            )
+    raise ValueError(" | ".join(messages))
+
+
+class UnknownFieldCheckMixin(BaseModel):
+    """Mixin that rejects unknown fields with 'did you mean?' suggestions."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def check_unknown_fields(cls, data: Any) -> Any:
+        return _check_unknown_fields(data, cls)
+
+
 class ColumnRef(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
@@ -422,6 +486,24 @@ class ColumnRef(BaseModel):
         ]
         | None
     ) = Field(None, description="SQL aggregate function")
+    saved_metric: bool = Field(
+        False,
+        description="If true, 'name' refers to a saved metric from the dataset "
+        "(use get_dataset_info to see available metrics). "
+        "When set, 'aggregate' is ignored.",
+    )
+
+    @property
+    def is_metric(self) -> bool:
+        """Whether this ref acts as a metric (has aggregate or is a saved metric)."""
+        return bool(self.aggregate) or self.saved_metric
+
+    @model_validator(mode="after")
+    def clear_aggregate_for_saved_metric(self) -> "ColumnRef":
+        """Clear aggregate when saved_metric is True since it's ignored."""
+        if self.saved_metric and self.aggregate is not None:
+            self.aggregate = None
+        return self
 
     @field_validator("name")
     @classmethod
@@ -519,7 +601,7 @@ class FilterConfig(BaseModel):
 
 
 # Actual chart types
-class PieChartConfig(BaseModel):
+class PieChartConfig(UnknownFieldCheckMixin):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["pie"] = "pie"
@@ -529,7 +611,9 @@ class PieChartConfig(BaseModel):
         validation_alias=AliasChoices("dimension", "groupby"),
     )
     metric: ColumnRef = Field(
-        ..., description="Value metric (needs aggregate e.g. SUM, COUNT)"
+        ...,
+        description="Value metric (use aggregate e.g. SUM, COUNT for ad-hoc, "
+        "or set saved_metric=True for a saved dataset metric)",
     )
     donut: bool = False
     show_labels: bool = True
@@ -559,7 +643,7 @@ class PieChartConfig(BaseModel):
     )
 
 
-class PivotTableChartConfig(BaseModel):
+class PivotTableChartConfig(UnknownFieldCheckMixin):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["pivot_table"] = "pivot_table"
@@ -575,7 +659,8 @@ class PivotTableChartConfig(BaseModel):
     metrics: List[ColumnRef] = Field(
         ...,
         min_length=1,
-        description="Metrics (need aggregate e.g. SUM, COUNT, AVG)",
+        description="Metrics (use aggregate e.g. SUM, COUNT, AVG for ad-hoc, "
+        "or set saved_metric=True for saved dataset metrics)",
     )
     aggregate_function: Literal[
         "Sum",
@@ -603,7 +688,7 @@ class PivotTableChartConfig(BaseModel):
     value_format: str = Field("SMART_NUMBER", max_length=50)
 
 
-class MixedTimeseriesChartConfig(BaseModel):
+class MixedTimeseriesChartConfig(UnknownFieldCheckMixin):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["mixed_timeseries"] = "mixed_timeseries"
@@ -612,7 +697,11 @@ class MixedTimeseriesChartConfig(BaseModel):
         description="Shared temporal X-axis column",
         validation_alias=AliasChoices("x", "x_axis"),
     )
-    time_grain: TimeGrain | None = Field(None, description="PT1H, P1D, P1W, P1M, P1Y")
+    time_grain: TimeGrain | None = Field(
+        None,
+        description="PT1H, P1D, P1W, P1M, P1Y",
+        validation_alias=AliasChoices("time_grain", "time_grain_sqla"),
+    )
     # Primary series (Query A)
     y: List[ColumnRef] = Field(
         ...,
@@ -659,7 +748,110 @@ class MixedTimeseriesChartConfig(BaseModel):
         return _normalize_group_by_input(v)
 
 
-class TableChartConfig(BaseModel):
+class HandlebarsChartConfig(UnknownFieldCheckMixin):
+    model_config = ConfigDict(extra="ignore")
+
+    chart_type: Literal["handlebars"] = Field(
+        ...,
+        description=(
+            "Chart type discriminator - MUST be 'handlebars' for custom HTML "
+            "template charts. Handlebars charts render query results using "
+            "Handlebars templates, enabling fully custom layouts like KPI cards, "
+            "leaderboards, and formatted reports."
+        ),
+    )
+    handlebars_template: str = Field(
+        ...,
+        description=(
+            "Handlebars HTML template string. Data is available as {{data}} array. "
+            "Built-in helpers: {{dateFormat val format='YYYY-MM-DD'}}, "
+            "{{formatNumber val}}, {{stringify obj}}. "
+            "Example: '<ul>{{#each data}}<li>{{this.name}}: {{this.value}}</li>"
+            "{{/each}}</ul>'"
+        ),
+        min_length=1,
+        max_length=50000,
+    )
+    query_mode: Literal["aggregate", "raw"] = Field(
+        "aggregate",
+        description=(
+            "Query mode: 'aggregate' groups data with metrics, "
+            "'raw' returns individual rows"
+        ),
+    )
+    columns: list[ColumnRef] | None = Field(
+        None,
+        description=(
+            "Columns to display in raw mode (query_mode='raw'). "
+            "Each column specifies a column name to include in the query results."
+        ),
+    )
+    groupby: list[ColumnRef] | None = Field(
+        None,
+        description=(
+            "Columns to group by in aggregate mode (query_mode='aggregate'). "
+            "These become the dimensions for aggregation."
+        ),
+        validation_alias=AliasChoices("groupby", "group_by"),
+    )
+    metrics: list[ColumnRef] | None = Field(
+        None,
+        description=(
+            "Metrics to aggregate in aggregate mode. "
+            "Each must have an aggregate function (e.g., SUM, COUNT)."
+        ),
+    )
+    filters: list[FilterConfig] | None = Field(None, description="Filters to apply")
+    row_limit: int = Field(
+        1000,
+        description="Maximum number of rows",
+        ge=1,
+        le=50000,
+    )
+    order_desc: bool = Field(True, description="Sort in descending order")
+    style_template: str | None = Field(
+        None,
+        description="Optional CSS styles to apply to the rendered template",
+        max_length=10000,
+    )
+
+    @model_validator(mode="after")
+    def validate_query_fields(self) -> "HandlebarsChartConfig":
+        """Validate that the right fields are provided for the query mode."""
+        if self.query_mode == "raw":
+            if not self.columns:
+                raise ValueError(
+                    "Handlebars chart in 'raw' query mode requires 'columns' field. "
+                    "Specify which columns to include in the query results."
+                )
+            if self.metrics:
+                raise ValueError(
+                    "Handlebars chart in 'raw' query mode does not use 'metrics'. "
+                    "Remove 'metrics' or switch to 'aggregate' query mode."
+                )
+            if self.groupby:
+                raise ValueError(
+                    "Handlebars chart in 'raw' query mode does not use 'groupby'. "
+                    "Remove 'groupby' or switch to 'aggregate' query mode."
+                )
+        if self.query_mode == "aggregate":
+            if not self.metrics:
+                raise ValueError(
+                    "Handlebars chart in 'aggregate' query mode requires 'metrics' "
+                    "field. Specify at least one metric with an aggregate function."
+                )
+            missing_agg = [m.name for m in self.metrics if not m.is_metric]
+            if missing_agg:
+                raise ValueError(
+                    f"Handlebars chart in 'aggregate' query mode requires an "
+                    f"aggregate function on every metric. Missing aggregate for: "
+                    f"{', '.join(missing_agg)}. "
+                    f"Use one of: SUM, COUNT, AVG, MIN, MAX, COUNT_DISTINCT, etc."
+                )
+        return self
+
+
+class TableChartConfig(UnknownFieldCheckMixin):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["table"] = "table"
@@ -677,7 +869,10 @@ class TableChartConfig(BaseModel):
         description="Structured filters (column/op/value). "
         "Do NOT use adhoc_filters or raw SQL expressions.",
     )
-    sort_by: List[str] | None = None
+    sort_by: List[str] | None = Field(
+        None,
+        validation_alias=AliasChoices("sort_by", "order_by_cols", "order_by"),
+    )
     row_limit: int = Field(1000, description="Max rows returned", ge=1, le=50000)
 
     @model_validator(mode="after")
@@ -688,7 +883,9 @@ class TableChartConfig(BaseModel):
 
         for i, col in enumerate(self.columns):
             # Generate the label that will be used (same logic as create_metric_object)
-            if col.aggregate:
+            if col.saved_metric:
+                label = col.label or col.name
+            elif col.aggregate:
                 label = col.label or f"{col.aggregate}({col.name})"
             else:
                 label = col.label or col.name
@@ -708,7 +905,7 @@ class TableChartConfig(BaseModel):
         return self
 
 
-class XYChartConfig(BaseModel):
+class XYChartConfig(UnknownFieldCheckMixin):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["xy"] = "xy"
@@ -725,12 +922,17 @@ class XYChartConfig(BaseModel):
     )
     kind: Literal["line", "bar", "area", "scatter"] = "line"
     time_grain: TimeGrain | None = Field(
-        None, description="PT1S, PT1M, PT1H, P1D, P1W, P1M, P3M, P1Y"
+        None,
+        description="PT1S, PT1M, PT1H, P1D, P1W, P1M, P3M, P1Y",
+        validation_alias=AliasChoices("time_grain", "time_grain_sqla"),
     )
     orientation: Literal["vertical", "horizontal"] | None = Field(
         None, description="Bar orientation (only for kind='bar')"
     )
-    stacked: bool = False
+    stacked: bool = Field(
+        False,
+        validation_alias=AliasChoices("stacked", "stack"),
+    )
     group_by: List[ColumnRef] | None = Field(
         None,
         description="Series breakdown columns",
@@ -765,7 +967,9 @@ class XYChartConfig(BaseModel):
 
         # Check Y-axis labels
         for i, col in enumerate(self.y):
-            if col.aggregate:
+            if col.saved_metric:
+                label = col.label or col.name
+            elif col.aggregate:
                 label = col.label or f"{col.aggregate}({col.name})"
             else:
                 label = col.label or col.name
@@ -810,12 +1014,13 @@ ChartConfig = Annotated[
     | TableChartConfig
     | PieChartConfig
     | PivotTableChartConfig
-    | MixedTimeseriesChartConfig,
+    | MixedTimeseriesChartConfig
+    | HandlebarsChartConfig,
     Field(
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
-            "'pie', 'pivot_table', or 'mixed_timeseries'"
+            "'pie', 'pivot_table', 'mixed_timeseries', or 'handlebars'"
         ),
     ),
 ]
@@ -890,7 +1095,13 @@ class ListChartsRequest(MetadataCacheControl):
         Field(default=1, description="Page number for pagination (1-based)"),
     ]
     page_size: Annotated[
-        PositiveInt, Field(default=10, description="Number of items per page")
+        int,
+        Field(
+            default=DEFAULT_PAGE_SIZE,
+            gt=0,
+            le=MAX_PAGE_SIZE,
+            description=f"Number of items per page (max {MAX_PAGE_SIZE})",
+        ),
     ]
 
     @model_validator(mode="after")

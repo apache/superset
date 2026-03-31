@@ -50,7 +50,7 @@ export const MODAL_LARGE_WIDTH = 900;
 
 const StyledModal = styled(Modal)`
   .ant-modal-body {
-    max-height: 60vh;
+    max-height: 80vh;
     height: auto;
     overflow-y: auto;
     padding: 0;
@@ -130,6 +130,7 @@ export function StandardModal({
       show={show}
       width={`${width}px`}
       wrapProps={wrapProps}
+      centered={centered}
       title={
         icon ? (
           <ModalTitleWithIcon

@@ -31,6 +31,7 @@ from superset.mcp_service.chart.schemas import (
     ChartSemantics,
     ColumnRef,
     FilterConfig,
+    HandlebarsChartConfig,
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
@@ -309,7 +310,8 @@ def map_config_to_form_data(
     | XYChartConfig
     | PieChartConfig
     | PivotTableChartConfig
-    | MixedTimeseriesChartConfig,
+    | MixedTimeseriesChartConfig
+    | HandlebarsChartConfig,
     dataset_id: int | str | None = None,
 ) -> Dict[str, Any]:
     """Map chart config to Superset form_data."""
@@ -323,6 +325,8 @@ def map_config_to_form_data(
         return map_pivot_table_config(config)
     elif isinstance(config, MixedTimeseriesChartConfig):
         return map_mixed_timeseries_config(config, dataset_id=dataset_id)
+    elif isinstance(config, HandlebarsChartConfig):
+        return map_handlebars_config(config)
     else:
         raise ValueError(f"Unsupported config type: {type(config)}")
 
@@ -377,8 +381,8 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
     aggregated_metrics = []
 
     for col in config.columns:
-        if col.aggregate:
-            # Column has aggregation - treat as metric
+        if col.is_metric:
+            # Saved metric or column with aggregation - treat as metric
             aggregated_metrics.append(create_metric_object(col))
         else:
             # No aggregation - treat as raw column
@@ -437,8 +441,16 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
     return form_data
 
 
-def create_metric_object(col: ColumnRef) -> Dict[str, Any]:
-    """Create a metric object for a column with enhanced validation."""
+def create_metric_object(col: ColumnRef) -> Dict[str, Any] | str:
+    """Create a metric object for a column with enhanced validation.
+
+    For saved metrics, returns the metric name as a plain string which
+    Superset's query engine resolves via its metrics_by_name lookup.
+    For ad-hoc metrics, returns a SIMPLE expression dict.
+    """
+    if col.saved_metric:
+        return col.name
+
     # Ensure aggregate is valid - default to SUM if not specified or invalid
     valid_aggregates = {
         "SUM",
@@ -638,6 +650,44 @@ def map_pie_config(config: PieChartConfig) -> Dict[str, Any]:
     return form_data
 
 
+def map_handlebars_config(config: HandlebarsChartConfig) -> Dict[str, Any]:
+    """Map handlebars chart config to Superset form_data."""
+    form_data: Dict[str, Any] = {
+        "viz_type": "handlebars",
+        "handlebars_template": config.handlebars_template,
+        "row_limit": config.row_limit,
+        "order_desc": config.order_desc,
+    }
+
+    if config.style_template:
+        form_data["styleTemplate"] = config.style_template
+
+    if config.query_mode == "raw":
+        form_data["query_mode"] = "raw"
+        if config.columns:
+            form_data["all_columns"] = [col.name for col in config.columns]
+    else:
+        form_data["query_mode"] = "aggregate"
+        if config.groupby:
+            form_data["groupby"] = [col.name for col in config.groupby]
+        if config.metrics:
+            form_data["metrics"] = [create_metric_object(col) for col in config.metrics]
+    if config.filters:
+        form_data["adhoc_filters"] = [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": filter_config.column,
+                "operator": map_filter_operator(filter_config.op),
+                "comparator": filter_config.value,
+            }
+            for filter_config in config.filters
+            if filter_config is not None
+        ]
+
+    return form_data
+
+
 def map_pivot_table_config(config: PivotTableChartConfig) -> Dict[str, Any]:
     """Map pivot table config to Superset form_data."""
     if not config.rows:
@@ -798,6 +848,8 @@ def _humanize_column(col: ColumnRef) -> str:
     if col.label:
         return col.label
     name = col.name.replace("_", " ").title()
+    if col.saved_metric:
+        return name
     if col.aggregate:
         return f"{col.aggregate.capitalize()}({name})"
     return name
@@ -832,9 +884,9 @@ def _truncate(name: str, max_length: int = 60) -> str:
 
 def _table_chart_what(config: TableChartConfig, dataset_name: str | None) -> str:
     """Build the descriptive fragment for a table chart."""
-    has_agg = any(col.aggregate for col in config.columns)
+    has_agg = any(col.is_metric for col in config.columns)
     if has_agg:
-        metrics = [col for col in config.columns if col.aggregate]
+        metrics = [col for col in config.columns if col.is_metric]
         what = ", ".join(_humanize_column(m) for m in metrics[:2])
         return f"{what} Summary"
     if dataset_name:
@@ -908,12 +960,28 @@ def _mixed_timeseries_what(config: MixedTimeseriesChartConfig) -> str:
     return f"{primary} + {secondary}"
 
 
+def _handlebars_chart_what(config: HandlebarsChartConfig) -> str:
+    """Build the 'what' portion for a handlebars chart name.
+
+    Uses parentheses instead of en-dash to avoid collision with
+    ``generate_chart_name``'s ``\u2013`` context separator.
+    """
+    if config.query_mode == "raw" and config.columns:
+        cols = ", ".join(col.name for col in config.columns[:3])
+        return f"Handlebars ({cols})"
+    elif config.metrics:
+        metrics = ", ".join(col.name for col in config.metrics[:3])
+        return f"Handlebars ({metrics})"
+    return "Handlebars Chart"
+
+
 def generate_chart_name(
     config: TableChartConfig
     | XYChartConfig
     | PieChartConfig
     | PivotTableChartConfig
-    | MixedTimeseriesChartConfig,
+    | MixedTimeseriesChartConfig
+    | HandlebarsChartConfig,
     dataset_name: str | None = None,
 ) -> str:
     """Generate a descriptive chart name following a standard format.
@@ -944,6 +1012,9 @@ def generate_chart_name(
     elif isinstance(config, MixedTimeseriesChartConfig):
         what = _mixed_timeseries_what(config)
         context = _summarize_filters(config.filters)
+    elif isinstance(config, HandlebarsChartConfig):
+        what = _handlebars_chart_what(config)
+        context = _summarize_filters(getattr(config, "filters", None))
     else:
         return "Chart"
 
@@ -951,6 +1022,31 @@ def generate_chart_name(
     if context:
         name = f"{what} \u2013 {context}"
     return _truncate(name)
+
+
+def _resolve_viz_type(config: Any) -> str:
+    """Resolve the Superset viz_type from a chart config object."""
+    chart_type = getattr(config, "chart_type", "unknown")
+    if chart_type == "xy":
+        kind = getattr(config, "kind", "line")
+        viz_type_map = {
+            "line": "echarts_timeseries_line",
+            "bar": "echarts_timeseries_bar",
+            "area": "echarts_area",
+            "scatter": "echarts_timeseries_scatter",
+        }
+        return viz_type_map.get(kind, "echarts_timeseries_line")
+    elif chart_type == "table":
+        return getattr(config, "viz_type", "table")
+    elif chart_type == "pie":
+        return "pie"
+    elif chart_type == "pivot_table":
+        return "pivot_table_v2"
+    elif chart_type == "mixed_timeseries":
+        return "mixed_timeseries"
+    elif chart_type == "handlebars":
+        return "handlebars"
+    return "unknown"
 
 
 def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilities:
@@ -987,7 +1083,7 @@ def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilit
     # Classify data types
     data_types = []
     if hasattr(config, "x") and config.x:
-        data_types.append("categorical" if not config.x.aggregate else "metric")
+        data_types.append("categorical" if not config.x.is_metric else "metric")
     if hasattr(config, "y") and config.y:
         data_types.extend(["metric"] * len(config.y))
     if "time" in viz_type or "timeseries" in viz_type:
@@ -1001,29 +1097,6 @@ def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilit
         optimal_formats=optimal_formats,
         data_types=list(set(data_types)),
     )
-
-
-def _resolve_viz_type(config: Any) -> str:
-    """Resolve viz_type from a chart config object."""
-    chart_type = getattr(config, "chart_type", "unknown")
-    if chart_type == "xy":
-        kind = getattr(config, "kind", "line")
-        viz_type_map = {
-            "line": "echarts_timeseries_line",
-            "bar": "echarts_timeseries_bar",
-            "area": "echarts_area",
-            "scatter": "echarts_timeseries_scatter",
-        }
-        return viz_type_map.get(kind, "echarts_timeseries_line")
-    elif chart_type == "table":
-        return getattr(config, "viz_type", "table")
-    elif chart_type == "pie":
-        return "pie"
-    elif chart_type == "pivot_table":
-        return "pivot_table_v2"
-    elif chart_type == "mixed_timeseries":
-        return "mixed_timeseries"
-    return "unknown"
 
 
 def analyze_chart_semantics(chart: Any | None, config: Any) -> ChartSemantics:
@@ -1051,6 +1124,10 @@ def analyze_chart_semantics(chart: Any | None, config: Any) -> ChartSemantics:
         "mixed_timeseries": (
             "Combines two different chart types on the same time axis "
             "for comparing related metrics with different scales"
+        ),
+        "handlebars": (
+            "Renders data using a custom Handlebars HTML template for "
+            "fully flexible layouts like KPI cards, leaderboards, and reports"
         ),
     }
 
