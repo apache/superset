@@ -27,16 +27,17 @@
     "access": "restricted"
   },
   "dependencies": {
-    "@stdlib/stats-base-dists-normal-cdf": "^0.2.1"
+    "@stdlib/stats-base-dists-normal-cdf": "^0.2.1",
+    "@stdlib/types": "^0.4.3"
   },
   "peerDependencies": {
+    "@ant-design/icons": "^5.0.1",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "@ant-design/icons": "^5.0.1",
-    "react": "^16.13.1 || ^17.0.0",
-    "react-dom": "^16.13.1 || ^17.0.0",
+    "lodash": "^4.17.11",
     "prop-types": "*",
-    "lodash": "^4.17.11"
+    "react": "^16.13.1 || ^17.0.0",
+    "react-dom": "^16.13.1 || ^17.0.0"
   },
   "devDependencies": {
     "@babel/types": "^7.24.0",

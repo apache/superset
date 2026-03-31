@@ -33,11 +33,11 @@ function buildCumulativeArray(
   const metrics: object[] = [];
 
   allTimestamps.forEach(timestamp => {
-    const newEntry = {};
-    const lastElement =
+    const newEntry: any = {};
+    const lastElement: any =
       metrics.at(-1) ?? Object.fromEntries(metricsNames.map(name => [name, 0]));
     const curData = timestampMap.get(timestamp);
-    metricsNames.forEach(metric => {
+    metricsNames.forEach((metric: string) => {
       newEntry[metric] = lastElement[metric] + (curData?.[metric] ?? 0);
     });
     metrics.push(newEntry);

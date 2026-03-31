@@ -4,10 +4,6 @@
     "outDir": "lib",
     "rootDir": "src"
   },
-  "exclude": [
-    "lib",
-    "test"
-  ],
   "extends": "../../tsconfig.json",
   "include": [
     "src/**/*",

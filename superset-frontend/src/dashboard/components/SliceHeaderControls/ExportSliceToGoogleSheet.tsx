@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
-import { Menu } from 'src/components/Menu';
+import { Menu } from '@superset-ui/core/components/Menu';
 
 const getExportGoogleSheetsUrl = (sliceId: number) =>
   `/export/chart/${sliceId}/google-sheets/`;
