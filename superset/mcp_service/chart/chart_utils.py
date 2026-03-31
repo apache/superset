@@ -26,6 +26,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Dict
 
+from superset.constants import NO_TIME_RANGE
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     ChartCapabilities,
@@ -41,6 +42,7 @@ from superset.mcp_service.chart.schemas import (
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
+from superset.utils.core import FilterOperator
 
 logger = logging.getLogger(__name__)
 
@@ -545,6 +547,7 @@ def configure_temporal_handling(
     Stores any warnings in ``form_data["_mcp_warnings"]``.
     """
     if x_is_temporal:
+        form_data["granularity_sqla"] = form_data.get("x_axis")
         if time_grain:
             form_data["time_grain_sqla"] = time_grain
     else:
@@ -559,6 +562,33 @@ def configure_temporal_handling(
                 f"column is not a temporal type. time_grain only applies to "
                 f"DATE/DATETIME/TIMESTAMP columns."
             )
+
+
+def _ensure_temporal_adhoc_filter(form_data: Dict[str, Any], column: str) -> None:
+    """Ensure a TEMPORAL_RANGE adhoc filter exists for the given column.
+
+    Mirrors the Explore UI behavior: when a temporal column is set as
+    the x-axis, a TEMPORAL_RANGE filter must be present so dashboard
+    time-range filters can bind to it.  Without this filter, Explore
+    shows a warning dialog asking the user to add it manually.
+    """
+    existing = form_data.get("adhoc_filters", [])
+    if any(
+        f.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+        and f.get("subject") == column
+        for f in existing
+    ):
+        return
+    existing.append(
+        {
+            "clause": "WHERE",
+            "expressionType": "SIMPLE",
+            "subject": column,
+            "operator": FilterOperator.TEMPORAL_RANGE.value,
+            "comparator": NO_TIME_RANGE,
+        }
+    )
+    form_data["adhoc_filters"] = existing
 
 
 def map_xy_config(
@@ -617,6 +647,9 @@ def map_xy_config(
             form_data["groupby"] = groupby_columns
 
     _add_adhoc_filters(form_data, config.filters)
+
+    if x_is_temporal:
+        _ensure_temporal_adhoc_filter(form_data, config.x.name)
 
     form_data["row_limit"] = config.row_limit
 
