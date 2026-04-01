@@ -209,7 +209,7 @@ export const getUserEditedObjects = (
         resource === 'dashboard'
           ? 'dashboard_is_editable'
           : 'chart_is_editable',
-      value: true,
+      value: 1,
     },
   ],
   selectColumns?: string[],

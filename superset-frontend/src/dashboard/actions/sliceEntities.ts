@@ -138,7 +138,7 @@ export function fetchSlices(
       : [];
 
     if (userId) {
-      filters.push({ col: 'id', opr: 'chart_is_editable', value: true });
+      filters.push({ col: 'id', opr: 'chart_is_editable', value: 1 });
     }
 
     return SupersetClient.get({
