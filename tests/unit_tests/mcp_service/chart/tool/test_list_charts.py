@@ -46,6 +46,8 @@ def mock_chart():
     chart.datasource_name = "test_dataset"
     chart.datasource_type = "table"
     chart.description = "Test chart"
+    chart.certified_by = None
+    chart.certification_details = None
     chart.url = "/chart/1"
     chart.changed_by_name = "admin"
     chart.changed_on = None

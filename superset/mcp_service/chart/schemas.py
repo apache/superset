@@ -74,6 +74,8 @@ class ChartLike(Protocol):
     cache_timeout: int | None
     form_data: Dict[str, Any] | None
     query_context: Any | None
+    certified_by: str | None
+    certification_details: str | None
     changed_by: Any | None  # User object
     changed_by_name: str | None
     changed_on: str | datetime | None
@@ -112,6 +114,12 @@ class ChartInfo(BaseModel):
     created_on: str | datetime | None = Field(None, description="Creation timestamp")
     created_on_humanized: str | None = Field(
         None, description="Humanized creation time"
+    )
+    certified_by: str | None = Field(
+        None, description="Name of the person or team who certified this chart"
+    )
+    certification_details: str | None = Field(
+        None, description="Certification details or reason"
     )
     uuid: str | None = Field(None, description="Chart UUID")
     tags: List[TagInfo] = Field(default_factory=list, description="Chart tags")
@@ -300,6 +308,8 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         datasource_type=getattr(chart, "datasource_type", None),
         url=chart_url,
         description=getattr(chart, "description", None),
+        certified_by=getattr(chart, "certified_by", None),
+        certification_details=getattr(chart, "certification_details", None),
         cache_timeout=getattr(chart, "cache_timeout", None),
         changed_by=getattr(chart, "changed_by_name", None)
         or (str(chart.changed_by) if getattr(chart, "changed_by", None) else None),
