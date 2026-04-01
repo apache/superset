@@ -184,7 +184,7 @@
     "json-stringify-pretty-compact": "^2.0.0",
     "lodash": "^4.17.23",
     "mapbox-gl": "^3.20.0",
-    "markdown-to-jsx": "^9.7.6",
+    "markdown-to-jsx": "^9.7.13",
     "match-sorter": "^8.2.0",
     "memoize-one": "^5.2.1",
     "mousetrap": "^1.6.5",
