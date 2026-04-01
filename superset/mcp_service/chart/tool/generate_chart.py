@@ -25,7 +25,8 @@ from typing import Any, Dict, List
 from urllib.parse import parse_qs, urlparse
 
 from fastmcp import Context
-from superset_core.mcp.decorators import tool
+from sqlalchemy.exc import SQLAlchemyError
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.exceptions import CommandException
 from superset.extensions import event_logger
@@ -39,11 +40,11 @@ from superset.mcp_service.chart.chart_utils import (
 )
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
+    ChartError,
     GenerateChartRequest,
     GenerateChartResponse,
     PerformanceMetadata,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
@@ -80,20 +81,34 @@ def _compile_chart(
         ChartDataQueryFailedError,
     )
     from superset.common.query_context_factory import QueryContextFactory
+    from superset.mcp_service.chart.chart_utils import adhoc_filters_to_query_filters
     from superset.mcp_service.chart.preview_utils import _build_query_columns
 
     try:
         columns = _build_query_columns(form_data)
+        query_filters = adhoc_filters_to_query_filters(
+            form_data.get("adhoc_filters", [])
+        )
+
+        # Big Number charts use singular "metric" instead of "metrics"
+        metrics = form_data.get("metrics", [])
+        if not metrics and form_data.get("metric"):
+            metrics = [form_data["metric"]]
+
+        # Big Number with trendline uses granularity_sqla as the time column
+        if not columns and form_data.get("granularity_sqla"):
+            columns = [form_data["granularity_sqla"]]
+
         factory = QueryContextFactory()
         query_context = factory.create(
             datasource={"id": dataset_id, "type": "table"},
             queries=[
                 {
                     "columns": columns,
-                    "metrics": form_data.get("metrics", []),
+                    "metrics": metrics,
                     "orderby": form_data.get("orderby", []),
                     "row_limit": 2,
-                    "filters": form_data.get("adhoc_filters", []),
+                    "filters": query_filters,
                     "time_range": form_data.get("time_range", "No filter"),
                 }
             ],
@@ -101,6 +116,7 @@ def _compile_chart(
         )
 
         command = ChartDataCommand(query_context)
+        command.validate()
         result = command.run()
 
         warnings: List[str] = []
@@ -117,8 +133,15 @@ def _compile_chart(
         return CompileResult(success=False, error=str(exc))
 
 
-@tool(tags=["mutate"])
-@parse_request(GenerateChartRequest)
+@tool(
+    tags=["mutate"],
+    class_permission_name="Chart",
+    annotations=ToolAnnotations(
+        title="Create chart",
+        readOnlyHint=False,
+        destructiveHint=False,
+    ),
+)
 async def generate_chart(  # noqa: C901
     request: GenerateChartRequest, ctx: Context
 ) -> GenerateChartResponse:
@@ -256,16 +279,12 @@ async def generate_chart(  # noqa: C901
         chart_id = None
         explore_url = None
         form_data_key = None
-        response_warnings: list[str] = []
+        response_warnings: list[str] = form_data.pop("_mcp_warnings", [])
 
         # Save chart by default (unless save_chart=False)
         if request.save_chart:
             await ctx.report_progress(2, 5, "Creating chart in database")
             from superset.commands.chart.create import CreateChartCommand
-
-            # Use custom chart name if provided, otherwise auto-generate
-            chart_name = request.chart_name or generate_chart_name(request.config)
-            await ctx.debug("Chart name: chart_name=%s" % (chart_name,))
 
             # Find the dataset to get its numeric ID
             from superset.daos.dataset import DatasetDAO
@@ -342,6 +361,15 @@ async def generate_chart(  # noqa: C901
                         "api_version": "v1",
                     }
                 )
+
+            # Generate chart name after dataset lookup so we can include dataset name
+            dataset_name = getattr(dataset, "datasource_name", None) or getattr(
+                dataset, "table_name", None
+            )
+            chart_name = request.chart_name or generate_chart_name(
+                request.config, dataset_name=dataset_name
+            )
+            await ctx.debug("Chart name: chart_name=%s" % (chart_name,))
 
             try:
                 with event_logger.log_context(action="mcp.generate_chart.db_write"):
@@ -630,7 +658,12 @@ async def generate_chart(  # noqa: C901
                                 preview_request, ctx
                             )
 
-                            if hasattr(preview_result, "content"):
+                            if isinstance(preview_result, ChartError):
+                                await ctx.warning(
+                                    "Preview '%s' failed: %s"
+                                    % (format_type, preview_result.error)
+                                )
+                            elif hasattr(preview_result, "content"):
                                 previews[format_type] = preview_result.content
                         else:
                             # For preview-only mode (save_chart=false)
@@ -668,7 +701,12 @@ async def generate_chart(  # noqa: C901
                                     preview_format=format_type,
                                 )
 
-                                if not hasattr(preview_result, "error"):
+                                if isinstance(preview_result, ChartError):
+                                    await ctx.warning(
+                                        "Preview '%s' failed: %s"
+                                        % (format_type, preview_result.error)
+                                    )
+                                else:
                                     previews[format_type] = preview_result
 
             except (CommandException, ValueError, KeyError) as e:
@@ -681,17 +719,61 @@ async def generate_chart(  # noqa: C901
 
         # Build chart info using serialize_chart_object for saved charts
         chart_info = None
+        chart_data = None
         if request.save_chart and chart:
-            from superset.mcp_service.chart.schemas import serialize_chart_object
+            from sqlalchemy.orm import joinedload
 
-            chart_info = serialize_chart_object(chart)
-            if chart_info:
-                # Override the URL with explore_url
-                chart_info.url = explore_url
+            from superset import db
+            from superset.daos.chart import ChartDAO
+            from superset.mcp_service.chart.schemas import serialize_chart_object
+            from superset.models.slice import Slice
+
+            # Re-fetch with eager-loaded relationships to avoid detached
+            # instance errors when serialize_chart_object accesses .tags
+            # and .owners.  The preceding commit may invalidate the session
+            # in multi-tenant environments; on failure, build a minimal
+            # chart_data dict from scalar attributes that are already loaded
+            # — relationship fields (owners, tags) would trigger
+            # lazy-loading on the same dead session.
+            try:
+                chart = (
+                    ChartDAO.find_by_id(
+                        chart.id,
+                        query_options=[
+                            joinedload(Slice.owners),
+                            joinedload(Slice.tags),
+                        ],
+                    )
+                    or chart
+                )
+            except SQLAlchemyError:
+                logger.warning(
+                    "Re-fetch of chart %s failed; returning minimal response",
+                    chart.id,
+                    exc_info=True,
+                )
+                try:
+                    db.session.rollback()  # pylint: disable=consider-using-transaction
+                except SQLAlchemyError:
+                    logger.warning(
+                        "Database rollback failed during chart re-fetch error handling",
+                        exc_info=True,
+                    )
+                chart_data = {
+                    "id": chart.id,
+                    "slice_name": chart.slice_name,
+                    "viz_type": chart.viz_type,
+                    "url": explore_url,
+                    "uuid": str(chart.uuid) if chart.uuid else None,
+                }
+
+            if chart_data is None:
+                chart_info = serialize_chart_object(chart)
+                if chart_info:
+                    chart_info.url = explore_url
 
         # Safely serialize chart_info - handle both Pydantic models and dicts
-        chart_data = None
-        if chart_info:
+        if chart_data is None and chart_info is not None:
             if hasattr(chart_info, "model_dump"):
                 chart_data = chart_info.model_dump()
             elif isinstance(chart_info, dict):
@@ -738,7 +820,15 @@ async def generate_chart(  # noqa: C901
         )
         return GenerateChartResponse.model_validate(result)
 
-    except Exception as e:
+    except (CommandException, SQLAlchemyError, KeyError, ValueError) as e:
+        from superset import db
+
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError:
+            logger.warning(
+                "Database rollback failed during error handling", exc_info=True
+            )
         await ctx.error(
             "Chart generation failed: error=%s, execution_time_ms=%s"
             % (

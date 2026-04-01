@@ -28,6 +28,8 @@ import { getControlsState } from 'src/explore/store';
 import { Dispatch } from 'redux';
 import {
   Currency,
+  DataMaskStateWithId,
+  JsonObject,
   ensureIsArray,
   FeatureFlag,
   getCategoricalSchemeRegistry,
@@ -60,7 +62,12 @@ export const hydrateExplore =
     dataset,
     metadata,
     saveAction = null,
-  }: ExplorePageInitialData) =>
+    dataMask,
+    chartStates,
+  }: ExplorePageInitialData & {
+    dataMask?: DataMaskStateWithId;
+    chartStates?: Record<number, JsonObject>;
+  }) =>
   (dispatch: Dispatch, getState: () => ExplorePageState) => {
     const { user, datasources, charts, sliceEntities, common, explore } =
       getState();
@@ -204,7 +211,7 @@ export const hydrateExplore =
       sliceFormData,
       queryController: null,
       queriesResponse: null,
-      triggerQuery: false,
+      triggerQuery: !!saveAction,
       lastRendered: 0,
     };
 
@@ -224,12 +231,13 @@ export const hydrateExplore =
           saveModalAlert: null,
           isVisible: false,
         },
-        explore: exploreState,
+        explore: { ...exploreState, chartStates },
+        dataMask,
       },
     });
   };
 
 export type HydrateExplore = {
   type: typeof HYDRATE_EXPLORE;
-  data: ExplorePageState;
+  data: ExplorePageState & { dataMask?: DataMaskStateWithId };
 };

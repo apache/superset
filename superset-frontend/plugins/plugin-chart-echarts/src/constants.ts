@@ -47,6 +47,11 @@ export const TIMESERIES_CONSTANTS = {
   extraControlsOffset: 22,
   // Min right padding (px) for horizontal bar charts to ensure value labels are fully visible
   horizontalBarLabelRightPadding: 70,
+  // Height thresholds (px) for responsive y-axis behavior
+  compactChartHeight: 100,
+  microChartHeight: 60,
+  // One y-axis tick per this many pixels of chart height
+  yAxisPixelsPerTick: 80,
 };
 
 export enum OpacityEnum {
@@ -104,7 +109,7 @@ export const DEFAULT_TITLE_FORM_DATA: TitleFormData = {
   xAxisTitle: '',
   xAxisTitleMargin: 0,
   yAxisTitle: '',
-  yAxisTitleMargin: 0,
+  yAxisTitleMargin: 15,
   yAxisTitlePosition: 'Top',
 };
 
