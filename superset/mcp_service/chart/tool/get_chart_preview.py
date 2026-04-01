@@ -139,12 +139,18 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             groupby_columns = form_data.get("groupby", [])
             metrics = form_data.get("metrics", [])
 
-            columns = groupby_columns.copy()
-            if x_axis_config and isinstance(x_axis_config, str):
-                columns.append(x_axis_config)
-            elif x_axis_config and isinstance(x_axis_config, dict):
-                if "column_name" in x_axis_config:
-                    columns.append(x_axis_config["column_name"])
+            # Table charts in raw mode use all_columns or columns
+            all_columns = form_data.get("all_columns", [])
+            raw_columns = form_data.get("columns", [])
+            if form_data.get("query_mode") == "raw" and (all_columns or raw_columns):
+                columns = list(all_columns or raw_columns)
+            else:
+                columns = groupby_columns.copy()
+                if x_axis_config and isinstance(x_axis_config, str):
+                    columns.append(x_axis_config)
+                elif x_axis_config and isinstance(x_axis_config, dict):
+                    if "column_name" in x_axis_config:
+                        columns.append(x_axis_config["column_name"])
 
             if not columns and not metrics:
                 return ChartError(
