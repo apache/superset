@@ -2526,7 +2526,7 @@ class DatasourceEditor extends PureComponent<
               key: TABS_KEYS.SETTINGS,
               label: t('Settings'),
               children: (
-                <div style={{ overflow: 'hidden' }}>
+                <div style={{ overflowX: 'hidden' }}>
                   <Row gutter={16}>
                     <Col xs={24} md={12}>
                       <FormContainer>
