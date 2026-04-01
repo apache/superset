@@ -287,12 +287,12 @@ def get_access_token_for_database(database: Database, user_id: int) -> str | Non
     Return a valid OAuth2 access token for the given database and user.
 
     First checks if the database has an upstream OAuth provider configured in its
-    ``encrypted_extra`` (key ``oauth2_upstream_provider``). If so, returns the saved
+    ``extra`` JSON (key ``oauth2_upstream_provider``). If so, returns the saved
     upstream login token for that provider.
 
     Otherwise, falls back to the database-specific OAuth2 flow.
     """
-    upstream_provider = database.get_encrypted_extra().get("oauth2_upstream_provider")
+    upstream_provider = database.get_extra().get("oauth2_upstream_provider")
     if upstream_provider:
         access_token = get_upstream_provider_token(upstream_provider, user_id)
         if access_token:

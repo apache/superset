@@ -408,10 +408,10 @@ def test_get_access_token_for_database_upstream_provider(
 ) -> None:
     """
     Test that `get_access_token_for_database` uses the upstream provider token
-    when ``oauth2_upstream_provider`` is set in encrypted_extra.
+    when ``oauth2_upstream_provider`` is set in extra.
     """
     database = mocker.MagicMock()
-    database.get_encrypted_extra.return_value = {
+    database.get_extra.return_value = {
         "oauth2_upstream_provider": "keycloak",
     }
 
@@ -435,7 +435,7 @@ def test_get_access_token_for_database_db_specific_oauth2(
     OAuth2 when no upstream provider is configured.
     """
     database = mocker.MagicMock()
-    database.get_encrypted_extra.return_value = {}
+    database.get_extra.return_value = {}
     database.get_oauth2_config.return_value = {"id": "client-id"}
     database.id = 42
     database.db_engine_spec = mocker.MagicMock()
@@ -459,7 +459,7 @@ def test_get_access_token_for_database_no_oauth(mocker: MockerFixture) -> None:
     provider nor database-specific OAuth2 is configured.
     """
     database = mocker.MagicMock()
-    database.get_encrypted_extra.return_value = {}
+    database.get_extra.return_value = {}
     database.get_oauth2_config.return_value = None
 
     result = get_access_token_for_database(database, user_id=1)
