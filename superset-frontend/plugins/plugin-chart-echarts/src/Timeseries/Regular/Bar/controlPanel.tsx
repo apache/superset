@@ -16,9 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
-import { ensureIsArray, JsonArray } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import {
+  ensureIsArray,
+  getColumnLabel,
+  JsonArray,
+  QueryFormColumn,
+} from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
+import {
+  checkColumnType,
   ControlPanelConfig,
   ControlPanelsContainerProps,
   ControlSetRow,
@@ -41,6 +48,7 @@ import {
   xAxisLabelRotation,
   xAxisLabelInterval,
   forceMaxInterval,
+  colorByPrimaryAxisSection,
 } from '../../../controls';
 
 import { OrientationType } from '../../types';
@@ -153,6 +161,13 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
     Boolean(controls?.orientation.value === OrientationType.Vertical);
   const isHorizontal = (controls: ControlStateMapping) =>
     Boolean(controls?.orientation.value === OrientationType.Horizontal);
+  const isNumericXAxis = (controls: ControlStateMapping) =>
+    checkColumnType(
+      getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+      controls?.datasource?.datasource,
+      [GenericDataType.Numeric],
+    );
+
   return [
     [
       {
@@ -162,7 +177,23 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
           default: 'smart_date',
           description: `${D3_TIME_FORMAT_DOCS}. ${TIME_SERIES_DESCRIPTION_TEXT}`,
           visibility: ({ controls }: ControlPanelsContainerProps) =>
-            isXAxis ? isVertical(controls) : isHorizontal(controls),
+            (isXAxis ? isVertical(controls) : isHorizontal(controls)) &&
+            !isNumericXAxis(controls),
+          disableStash: true,
+          resetOnHide: false,
+        },
+      },
+    ],
+    [
+      {
+        name: 'x_axis_number_format',
+        config: {
+          ...sharedControls.x_axis_number_format,
+          default: '~g',
+          mapStateToProps: undefined,
+          visibility: ({ controls }: ControlPanelsContainerProps) =>
+            (isXAxis ? isVertical(controls) : isHorizontal(controls)) &&
+            isNumericXAxis(controls),
           disableStash: true,
           resetOnHide: false,
         },
@@ -328,6 +359,7 @@ const config: ControlPanelConfig = {
         ['color_scheme'],
         ['time_shift_color'],
         ...showValueSectionWithoutStream,
+        ...colorByPrimaryAxisSection,
         [
           {
             name: 'stackDimension',
@@ -372,6 +404,7 @@ const config: ControlPanelConfig = {
         ...richTooltipSection,
         [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
         ...createAxisControl('y'),
+        ['echart_options'],
       ],
     },
   ],

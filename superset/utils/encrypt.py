@@ -54,7 +54,7 @@ class SQLAlchemyUtilsAdapter(  # pylint: disable=too-few-public-methods
         **kwargs: Optional[dict[str, Any]],
     ) -> TypeDecorator:
         if app_config:
-            return EncryptedType(*args, app_config["SECRET_KEY"], **kwargs)
+            return EncryptedType(*args, lambda: app_config["SECRET_KEY"], **kwargs)
 
         raise Exception(  # pylint: disable=broad-exception-raised
             "Missing app_config kwarg"

@@ -36,6 +36,16 @@ const CustomPopover: React.FC<Props> = ({
   const triggerRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
 
+  const handleClickOutside = (event: MouseEvent) => {
+    if (
+      popoverRef.current &&
+      !popoverRef.current.contains(event.target as Node) &&
+      !triggerRef.current?.contains(event.target as Node)
+    ) {
+      onClose();
+    }
+  };
+
   useEffect(() => {
     const updatePosition = () => {
       const rect = triggerRef.current?.getBoundingClientRect();
@@ -72,16 +82,6 @@ const CustomPopover: React.FC<Props> = ({
       window.removeEventListener('resize', updatePosition);
     };
   }, [isOpen]);
-
-  const handleClickOutside = (event: MouseEvent) => {
-    if (
-      popoverRef.current &&
-      !popoverRef.current.contains(event.target as Node) &&
-      !triggerRef.current?.contains(event.target as Node)
-    ) {
-      onClose();
-    }
-  };
 
   return (
     <PopoverWrapper>

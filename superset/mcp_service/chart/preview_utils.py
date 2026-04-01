@@ -23,6 +23,7 @@ from form data without requiring a saved chart object.
 """
 
 import logging
+import math
 from typing import Any, Dict, List
 
 from superset.commands.chart.data.get_data_command import ChartDataCommand
@@ -80,10 +81,26 @@ def generate_preview_from_form_data(
 
         # Create query context from form data using factory
         from superset.common.query_context_factory import QueryContextFactory
+        from superset.mcp_service.chart.chart_utils import (
+            adhoc_filters_to_query_filters,
+        )
 
         # Build columns list: include x_axis and groupby for XY charts,
         # fall back to form_data "columns" for table charts
         columns = _build_query_columns(form_data)
+
+        query_filters = adhoc_filters_to_query_filters(
+            form_data.get("adhoc_filters", [])
+        )
+
+        # Big Number charts use singular "metric" instead of "metrics"
+        metrics = form_data.get("metrics", [])
+        if not metrics and form_data.get("metric"):
+            metrics = [form_data["metric"]]
+
+        # Big Number with trendline uses granularity_sqla as the time column
+        if not columns and form_data.get("granularity_sqla"):
+            columns = [form_data["granularity_sqla"]]
 
         factory = QueryContextFactory()
         query_context_obj = factory.create(
@@ -91,10 +108,10 @@ def generate_preview_from_form_data(
             queries=[
                 {
                     "columns": columns,
-                    "metrics": form_data.get("metrics", []),
+                    "metrics": metrics,
                     "orderby": form_data.get("orderby", []),
                     "row_limit": form_data.get("row_limit", 100),
-                    "filters": form_data.get("adhoc_filters", []),
+                    "filters": query_filters,
                     "time_range": form_data.get("time_range", "No filter"),
                 }
             ],
@@ -103,6 +120,7 @@ def generate_preview_from_form_data(
 
         # Execute query
         command = ChartDataCommand(query_context_obj)
+        command.validate()
         result = command.run()
 
         if not result or not result.get("queries"):
@@ -182,19 +200,21 @@ def _calculate_column_widths(
 def _format_value(val: Any, width: int) -> str:
     """Format a value based on its type."""
     if isinstance(val, float):
-        if abs(val) >= 1000000:
+        if math.isnan(val):
+            val_str = "N/A"
+        elif math.isfinite(val) and val.is_integer():
+            # Integer-like float (e.g. 1988.0) — format without decimals
+            val_str = str(int(val))
+        elif abs(val) >= 1000000:
             val_str = f"{val:.2e}"  # Scientific notation for large numbers
         elif abs(val) >= 1000:
             val_str = f"{val:,.2f}"  # Thousands separator
         else:
-            val_str = f"{val:.2f}"
+            val_str = f"{val:g}"
     elif isinstance(val, int):
-        if abs(val) >= 1000:
-            val_str = f"{val:,}"  # Thousands separator
-        else:
-            val_str = str(val)
+        val_str = str(val)
     elif val is None:
-        val_str = "NULL"
+        val_str = "N/A"
     else:
         val_str = str(val)
 

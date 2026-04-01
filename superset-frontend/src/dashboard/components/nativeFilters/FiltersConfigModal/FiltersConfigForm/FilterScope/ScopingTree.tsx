@@ -19,7 +19,7 @@
 
 import { FC, useMemo, useState, memo } from 'react';
 import { NativeFilterScope } from '@superset-ui/core';
-import { styled, css } from '@apache-superset/core/ui';
+import { styled, css } from '@apache-superset/core/theme';
 import Tree from '@superset-ui/core/components/Tree';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { Tooltip } from '@superset-ui/core/components';

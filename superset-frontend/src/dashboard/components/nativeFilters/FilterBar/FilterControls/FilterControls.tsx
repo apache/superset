@@ -26,7 +26,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   DataMask,
   DataMaskStateWithId,
@@ -38,7 +38,12 @@ import {
   isChartCustomizationDivider,
   ChartCustomizationDivider,
 } from '@superset-ui/core';
-import { css, SupersetTheme, useTheme, styled } from '@apache-superset/core/ui';
+import {
+  css,
+  SupersetTheme,
+  useTheme,
+  styled,
+} from '@apache-superset/core/theme';
 import {
   createHtmlPortalNode,
   InPortal,
@@ -279,10 +284,14 @@ const FilterControls: FC<FilterControlsProps> = ({
           />
         );
       }
+      const filterWithDataMask = addDataMaskToCustomization(
+        item,
+        dataMaskSelected,
+      );
       return (
         <FilterControl
           key={item.id}
-          filter={addDataMaskToCustomization(item, dataMaskSelected)}
+          filter={filterWithDataMask}
           dataMaskSelected={dataMaskSelected}
           onFilterSelectionChange={(_, dataMask) =>
             handleChartCustomizationChange(item, dataMask)

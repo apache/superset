@@ -18,6 +18,11 @@
  */
 import '@testing-library/jest-dom';
 import {
+  getTextColorForBackground,
+  ObjectFormattingEnum,
+} from '@superset-ui/chart-controls';
+import { supersetTheme } from '@apache-superset/core/theme';
+import {
   render,
   screen,
   fireEvent,
@@ -25,8 +30,14 @@ import {
   within,
 } from '@superset-ui/core/spec';
 import { cloneDeep } from 'lodash';
+import {
+  QueryMode,
+  TimeGranularity,
+  SMART_DATE_ID,
+  getTimeFormatterForGranularity,
+} from '@superset-ui/core';
 import TableChart, { sanitizeHeaderId } from '../src/TableChart';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import transformProps from '../src/transformProps';
 import DateWithFormatter from '../src/utils/DateWithFormatter';
 import testData from './testData';
@@ -376,6 +387,52 @@ describe('plugin-chart-table', () => {
       expect(percentMetric2?.originalLabel).toBe('metric_2');
     });
 
+    test('should not apply time grain formatting in Raw Records mode', () => {
+      const rawRecordsProps = {
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          query_mode: QueryMode.Raw,
+          time_grain_sqla: TimeGranularity.MONTH,
+          table_timestamp_format: SMART_DATE_ID,
+        },
+      };
+
+      const transformedProps = transformProps(rawRecordsProps);
+      const timestampColumn = transformedProps.columns.find(
+        col => col.key === '__timestamp',
+      );
+
+      expect(timestampColumn).toBeDefined();
+      const testValue = new Date('2023-01-15T10:30:45');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const formatted = (timestampColumn?.formatter as any)?.(testValue);
+      const granularityFormatted = getTimeFormatterForGranularity(
+        TimeGranularity.MONTH,
+      )(testValue as number | Date | null);
+      expect(formatted).not.toBe(granularityFormatted);
+      expect(typeof formatted).toBe('string');
+      expect(formatted).toContain('2023');
+    });
+
+    test('should handle null/undefined timestamp values correctly', () => {
+      const rawRecordsProps = {
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          query_mode: QueryMode.Raw,
+        },
+      };
+
+      const transformedProps = transformProps(rawRecordsProps);
+      expect(transformedProps.isRawRecords).toBe(true);
+
+      const timestampColumn = transformedProps.columns.find(
+        col => col.key === '__timestamp',
+      );
+      expect(timestampColumn).toBeDefined();
+    });
+
     describe('TableChart', () => {
       test('render basic data', () => {
         render(
@@ -385,7 +442,8 @@ describe('plugin-chart-table', () => {
         const firstDataRow = screen.getAllByRole('rowgroup')[1];
         const cells = firstDataRow.querySelectorAll('td');
         expect(cells).toHaveLength(12);
-        expect(cells[0]).toHaveTextContent('2020-01-01 12:34:56');
+        // Date is rendered as ISO string format
+        expect(cells[0]).toHaveTextContent('2020-01-01T12:34:56');
         expect(cells[1]).toHaveTextContent('Michael');
         // number is not in `metrics` list, so it should output raw value
         // (in real world Superset, this would mean the column is used in GROUP BY)
@@ -616,6 +674,52 @@ describe('plugin-chart-table', () => {
         );
         expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
       });
+
+      test('preserves muted null styling when no formatter resolves text color', () => {
+        const dataWithEmptyCell = cloneDeep(testData.advanced.queriesData[0]);
+        dataWithEmptyCell.data.push({
+          __timestamp: null,
+          name: 'Noah',
+          sum__num: null,
+          '%pct_nice': 0.643,
+          'abc.com': 'bazzinga',
+        });
+
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  queriesData: [dataWithEmptyCell],
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'sum__num',
+                        operator: '<',
+                        targetValue: 12342,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        const noahRow = screen.getByText('Noah').closest('tr');
+        expect(noahRow).not.toBeNull();
+
+        const nullCell = noahRow?.querySelector('td.dt-is-null');
+        expect(nullCell).not.toBeNull();
+        expect((nullCell as HTMLElement).style.color).toBe('');
+        expect(getComputedStyle(nullCell as Element).color).toBe(
+          'rgba(0, 0, 0, 0.45)',
+        );
+      });
+
       test('should display original label in grouped headers', () => {
         const props = transformProps(testData.comparison);
 
@@ -1250,7 +1354,7 @@ describe('plugin-chart-table', () => {
                         column: 'sum__num',
                         operator: '>',
                         targetValue: 2467,
-                        toAllRow: true,
+                        columnFormatting: ObjectFormattingEnum.ENTIRE_ROW,
                       },
                     ],
                   },
@@ -1286,7 +1390,7 @@ describe('plugin-chart-table', () => {
                         column: 'sum__num',
                         operator: '>',
                         targetValue: 2467,
-                        toTextColor: true,
+                        objectFormatting: ObjectFormattingEnum.TEXT_COLOR,
                       },
                     ],
                   },
@@ -1297,11 +1401,9 @@ describe('plugin-chart-table', () => {
         );
 
         expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).color).toBe(
-          'rgba(0, 0, 0, 0.88)',
-        );
+        expect((screen.getByTitle('2467') as HTMLElement).style.color).toBe('');
       });
 
       test('display text color using column color formatter for entire row', () => {
@@ -1319,8 +1421,8 @@ describe('plugin-chart-table', () => {
                         column: 'sum__num',
                         operator: '>',
                         targetValue: 2467,
-                        toAllRow: true,
-                        toTextColor: true,
+                        columnFormatting: ObjectFormattingEnum.ENTIRE_ROW,
+                        objectFormatting: ObjectFormattingEnum.TEXT_COLOR,
                       },
                     ],
                   },
@@ -1331,13 +1433,182 @@ describe('plugin-chart-table', () => {
         );
 
         expect(getComputedStyle(screen.getByText('Michael')).color).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByTitle('0.123456')).color).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
+        );
+      });
+
+      test('derive readable text color from dark background formatting', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#111111',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        useGradient: false,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+          'rgb(17, 17, 17)',
+        );
+        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
+          'rgb(255, 255, 255)',
+        );
+      });
+
+      test('keep explicit text color over adaptive contrast', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#111111',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        useGradient: false,
+                      },
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        objectFormatting: ObjectFormattingEnum.TEXT_COLOR,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+          'rgb(17, 17, 17)',
+        );
+        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
+          'rgb(172, 225, 196)',
+        );
+      });
+
+      test('support legacy toTextColor formatters', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#111111',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        useGradient: false,
+                      },
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        toTextColor: true,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+          'rgb(17, 17, 17)',
+        );
+        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
+          'rgb(172, 225, 196)',
+        );
+      });
+
+      test('use striped row surface when deriving adaptive text color', () => {
+        const backgroundColor = Array.from(
+          { length: 0xff },
+          (_, index) => `#000000${(index + 1).toString(16).padStart(2, '0')}`,
+        ).find(candidate => {
+          const baseColor = getTextColorForBackground(
+            { backgroundColor: candidate },
+            supersetTheme.colorBgBase,
+          );
+          const layoutColor = getTextColorForBackground(
+            { backgroundColor: candidate },
+            supersetTheme.colorBgLayout,
+          );
+          return baseColor !== layoutColor;
+        });
+
+        expect(backgroundColor).toBeDefined();
+
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: backgroundColor,
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2000,
+                        useGradient: false,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
+          getTextColorForBackground(
+            { backgroundColor },
+            supersetTheme.colorBgLayout,
+          ),
+        );
+        expect(getComputedStyle(screen.getByTitle('2467')).color).toBe(
+          getTextColorForBackground(
+            { backgroundColor },
+            supersetTheme.colorBgBase,
+          ),
         );
       });
 
@@ -1421,7 +1692,6 @@ describe('plugin-chart-table', () => {
                         column: 'sum__num',
                         operator: '>',
                         targetValue: 2467,
-                        // useGradient is undefined
                       },
                     ],
                   },

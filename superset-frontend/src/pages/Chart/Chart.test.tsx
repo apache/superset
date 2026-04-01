@@ -260,7 +260,11 @@ describe('ChartPage', () => {
       const { getByTestId } = render(
         <>
           <Link
-            to={`/?${URL_PARAMS.dashboardPageId.name}=${dashboardPageId}&${URL_PARAMS.saveAction.name}=overwrite`}
+            to={{
+              pathname: '/',
+              search: `?${URL_PARAMS.dashboardPageId.name}=${dashboardPageId}`,
+              state: { saveAction: 'overwrite' },
+            }}
           >
             Change route
           </Link>
@@ -296,6 +300,61 @@ describe('ChartPage', () => {
         JSON.stringify({
           show_cell_bars: updatedExploreFormData.show_cell_bars,
         }).slice(1, -1),
+      );
+    });
+
+    test('re-fetches explore data on back-button navigation (POP)', async () => {
+      const exploreApiRoute = 'glob:*/api/v1/explore/*';
+      const initialFormData = getExploreFormData({
+        viz_type: VizType.Table,
+        show_cell_bars: true,
+      });
+      const updatedFormData = getExploreFormData({
+        viz_type: VizType.Table,
+        show_cell_bars: false,
+      });
+      fetchMock.get(exploreApiRoute, {
+        result: { dataset: { id: 1 }, form_data: initialFormData },
+      });
+      render(
+        <>
+          <Link to="/?slice_id=99">Navigate away</Link>
+          <ChartPage />
+        </>,
+        {
+          useRouter: true,
+          useRedux: true,
+          useDnd: true,
+        },
+      );
+      await waitFor(() =>
+        expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
+      );
+      expect(screen.getByTestId('mock-explore-chart-panel')).toHaveTextContent(
+        JSON.stringify({ show_cell_bars: true }).slice(1, -1),
+      );
+
+      // Navigate forward (PUSH) then simulate back-button (POP)
+      fetchMock.clearHistory().removeRoutes();
+      fetchMock.get(exploreApiRoute, {
+        result: { dataset: { id: 1 }, form_data: updatedFormData },
+      });
+      fireEvent.click(screen.getByText('Navigate away'));
+      await waitFor(() =>
+        expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
+      );
+
+      fetchMock.clearHistory().removeRoutes();
+      fetchMock.get(exploreApiRoute, {
+        result: { dataset: { id: 1 }, form_data: initialFormData },
+      });
+      // Simulate back button
+      window.history.back();
+      await waitFor(() =>
+        expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
+      );
+      expect(screen.getByTestId('mock-explore-chart-panel')).toHaveTextContent(
+        JSON.stringify({ show_cell_bars: true }).slice(1, -1),
       );
     });
   });

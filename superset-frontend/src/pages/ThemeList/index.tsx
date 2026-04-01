@@ -18,9 +18,10 @@
  */
 
 import { useCallback, useMemo, useState, useEffect } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
-import { styled, Alert } from '@apache-superset/core/ui';
+import { Alert } from '@apache-superset/core/components';
+import { styled } from '@apache-superset/core/theme';
 import {
   Tag,
   DeleteModal,
@@ -439,15 +440,6 @@ function ThemesList({
           const handleExport = () => handleBulkThemeExport([original]);
 
           const actions = [
-            canApply
-              ? {
-                  label: 'apply-action',
-                  tooltip: t('Set local theme for testing'),
-                  placement: 'bottom',
-                  icon: 'ThunderboltOutlined',
-                  onClick: handleApply,
-                }
-              : null,
             canEdit
               ? {
                   label: 'edit-action',
@@ -455,6 +447,15 @@ function ThemesList({
                   placement: 'bottom',
                   icon: original.is_system ? 'EyeOutlined' : 'EditOutlined',
                   onClick: handleEdit,
+                }
+              : null,
+            canApply
+              ? {
+                  label: 'apply-action',
+                  tooltip: t('Set local theme for testing'),
+                  placement: 'bottom',
+                  icon: 'ThunderboltOutlined',
+                  onClick: handleApply,
                 }
               : null,
             canExport

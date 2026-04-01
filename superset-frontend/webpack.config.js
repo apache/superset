@@ -217,24 +217,31 @@ if (!isDevMode) {
   );
 }
 
-// TypeScript type checking configuration
-// SWC handles transpilation. In production, type checking is done by:
-// 1. `npm run plugins:build` which generates .d.ts files
-// 2. `npm run type` which runs full TypeScript checking
-// We skip ForkTsCheckerWebpackPlugin in production because:
-// - Story files import from @storybook-shared which causes rootDir errors
-// - The above commands already provide comprehensive type checking
+// TypeScript type checking and .d.ts generation
+// SWC handles transpilation; this plugin handles type checking separately.
+// build: true enables project references so .d.ts files are auto-generated.
+// mode: 'write-references' writes .d.ts output (no manual `npm run plugins:build` needed).
+// Story files are excluded because they import @storybook-shared which resolves
+// outside plugin rootDir ("src"), causing errors in --build mode.
 if (isDevMode) {
   plugins.push(
     new ForkTsCheckerWebpackPlugin({
       async: true,
       typescript: {
+        build: true,
+        mode: 'write-references',
         memoryLimit: TYPESCRIPT_MEMORY_LIMIT,
         configOverwrite: {
           compilerOptions: {
             skipLibCheck: true,
             incremental: true,
           },
+          exclude: [
+            'src/**/*.js',
+            'src/**/*.jsx',
+            '**/*.test.*',
+            '**/*.stories.*',
+          ],
         },
       },
     }),
@@ -455,15 +462,6 @@ const config = {
       This prevents "Module not found" errors for moment locale files.
       */
       'moment/min/moment-with-locales': false,
-      // Storybook 8 expects React 18's createRoot API. Since this project uses React 17,
-      // we alias to the react-16 shim which provides the legacy ReactDOM.render API.
-      // Remove this alias when React is upgraded to v18+.
-      '@storybook/react-dom-shim': path.resolve(
-        path.join(
-          APP_DIR,
-          './node_modules/@storybook/react-dom-shim/dist/react-16',
-        ),
-      ),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
     fallback: {
@@ -492,7 +490,7 @@ const config = {
         },
       },
       {
-        test: /node_modules\/(geostyler-style|geostyler-qgis-parser)\/.*\.js$/,
+        test: /node_modules\/(geostyler|geostyler-openlayers-parser|geostyler-mapbox-parser|geostyler-sld-parser)\/.*\.js$/,
         resolve: {
           fullySpecified: false,
         },

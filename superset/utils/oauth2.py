@@ -167,6 +167,10 @@ def refresh_oauth2_token(
         token.access_token_expiration = datetime.now() + timedelta(
             seconds=token_response["expires_in"]
         )
+        # Support single-use refresh tokens
+        if new_refresh_token := token_response.get("refresh_token"):
+            token.refresh_token = new_refresh_token
+
         db.session.add(token)
 
     return token.access_token

@@ -17,13 +17,18 @@
  * under the License.
  */
 import { ReactNode, useState, useEffect, useMemo } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   NO_TIME_RANGE,
   useCSSTextTruncation,
   fetchTimeRange,
 } from '@superset-ui/core';
-import { css, styled, useTheme, SupersetTheme } from '@apache-superset/core/ui';
+import {
+  css,
+  styled,
+  useTheme,
+  SupersetTheme,
+} from '@apache-superset/core/theme';
 import {
   Button,
   Constants,

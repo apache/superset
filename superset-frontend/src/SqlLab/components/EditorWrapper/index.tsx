@@ -19,7 +19,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { usePrevious } from '@superset-ui/core';
-import { css, useTheme } from '@apache-superset/core/ui';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { Global } from '@emotion/react';
 import type { editors } from '@apache-superset/core';
 

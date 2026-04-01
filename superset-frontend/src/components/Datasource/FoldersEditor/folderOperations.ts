@@ -23,7 +23,7 @@
  */
 
 import { Metric, ColumnMeta } from '@superset-ui/chart-controls';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { v4 as uuidv4 } from 'uuid';
 import {
   DatasourceFolder,
@@ -80,7 +80,13 @@ export const filterItemsBySearch = (
 
   items.forEach(item => {
     const name = 'metric_name' in item ? item.metric_name : item.column_name;
-    if (name?.toLowerCase().includes(lowerSearch)) {
+    const { verbose_name: verboseName, expression } = item;
+
+    if (
+      name?.toLowerCase().includes(lowerSearch) ||
+      verboseName?.toLowerCase().includes(lowerSearch) ||
+      expression?.toLowerCase().includes(lowerSearch)
+    ) {
       matchingIds.add(item.uuid);
     }
   });
@@ -168,8 +174,6 @@ export const ensureDefaultFolders = (
     f => f.uuid === DEFAULT_COLUMNS_FOLDER_UUID,
   );
 
-  const result = [...enrichedFolders];
-
   // Build a Set of all assigned UUIDs in a single pass for O(1) lookups
   const assignedIds = new Set<string>();
   const collectAssignedIds = (folder: DatasourceFolder) => {
@@ -183,33 +187,60 @@ export const ensureDefaultFolders = (
   };
   enrichedFolders.forEach(collectAssignedIds);
 
-  if (!hasMetricsFolder) {
-    const unassignedMetrics = metrics.filter(m => !assignedIds.has(m.uuid));
+  const unassignedMetrics = metrics
+    .filter(m => !assignedIds.has(m.uuid))
+    .map(m => ({
+      type: FoldersEditorItemType.Metric as const,
+      uuid: m.uuid,
+      name: m.metric_name || '',
+    }));
+  const unassignedColumns = columns
+    .filter(c => !assignedIds.has(c.uuid))
+    .map(c => ({
+      type: FoldersEditorItemType.Column as const,
+      uuid: c.uuid,
+      name: c.column_name || '',
+    }));
 
+  // Add unassigned items to existing default folders (handles new items added after last save)
+  const result = enrichedFolders.map(folder => {
+    if (
+      folder.uuid === DEFAULT_METRICS_FOLDER_UUID &&
+      unassignedMetrics.length > 0
+    ) {
+      return {
+        ...folder,
+        children: [...(folder.children || []), ...unassignedMetrics],
+      };
+    }
+    if (
+      folder.uuid === DEFAULT_COLUMNS_FOLDER_UUID &&
+      unassignedColumns.length > 0
+    ) {
+      return {
+        ...folder,
+        children: [...(folder.children || []), ...unassignedColumns],
+      };
+    }
+    return folder;
+  });
+
+  // If default folders don't exist at all, add them at the end (backward compatibility)
+  if (!hasMetricsFolder) {
     result.push({
       uuid: DEFAULT_METRICS_FOLDER_UUID,
       type: FoldersEditorItemType.Folder,
       name: t('Metrics'),
-      children: unassignedMetrics.map(m => ({
-        type: FoldersEditorItemType.Metric,
-        uuid: m.uuid,
-        name: m.metric_name || '',
-      })),
+      children: unassignedMetrics,
     });
   }
 
   if (!hasColumnsFolder) {
-    const unassignedColumns = columns.filter(c => !assignedIds.has(c.uuid));
-
     result.push({
       uuid: DEFAULT_COLUMNS_FOLDER_UUID,
       type: FoldersEditorItemType.Folder,
       name: t('Columns'),
-      children: unassignedColumns.map(c => ({
-        type: FoldersEditorItemType.Column,
-        uuid: c.uuid,
-        name: c.column_name || '',
-      })),
+      children: unassignedColumns,
     });
   }
 
