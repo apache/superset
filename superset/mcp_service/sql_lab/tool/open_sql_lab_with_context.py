@@ -120,7 +120,7 @@ def open_sql_lab_with_context(
 
     except Exception as e:
         try:
-            db.session.rollback()
+            db.session.rollback()  # pylint: disable=consider-using-transaction
         except SQLAlchemyError:
             logger.warning(
                 "Database rollback failed during error handling", exc_info=True

@@ -101,8 +101,20 @@ def get_instance_info(
             "resetting session and retrying: %s",
             e,
         )
-        db.session.rollback()
-        db.session.remove()
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except Exception:
+            logger.warning(
+                "Rollback failed during get_instance_info connection reset",
+                exc_info=True,
+            )
+        try:
+            db.session.remove()  # pylint: disable=consider-using-transaction
+        except Exception:
+            logger.warning(
+                "Session remove failed during get_instance_info connection reset",
+                exc_info=True,
+            )
 
         try:
             result = _run_instance_info()
