@@ -228,6 +228,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "chart",
         "dashboard",
         "database",
+        "owners",
         "created_by",
         "changed_by",
         "editors",

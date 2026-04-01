@@ -41,7 +41,7 @@ import {
   CardContainer,
   createErrorHandler,
   getRecentActivityObjs,
-  getUserEditedObjects,
+  getUserEditableObjects,
   loadingCardCount,
   mq,
 } from 'src/views/CRUD/utils';
@@ -251,7 +251,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
       },
     ];
     Promise.all([
-      getUserEditedObjects(id, 'dashboard')
+      getUserEditableObjects(id, 'dashboard')
         .then(r => {
           setDashboardData(r);
           return Promise.resolve();
@@ -263,7 +263,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           );
           return Promise.resolve();
         }),
-      getUserEditedObjects(id, 'chart')
+      getUserEditableObjects(id, 'chart')
         .then(r => {
           setChartData(r);
           return Promise.resolve();
@@ -274,7 +274,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           return Promise.resolve();
         }),
       canReadSavedQueries
-        ? getUserEditedObjects(id, 'saved_query', ownSavedQueryFilters)
+        ? getUserEditableObjects(id, 'saved_query', ownSavedQueryFilters)
             .then(r => {
               setQueryData(r);
               return Promise.resolve();

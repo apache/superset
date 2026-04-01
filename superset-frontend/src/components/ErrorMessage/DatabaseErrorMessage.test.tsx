@@ -44,7 +44,7 @@ const mockedProps = {
           message: 'Issue code message B',
         },
       ],
-      owners: ['Owner A', 'Owner B'],
+      editors: ['Owner A', 'Owner B'],
     },
     level: 'error' as ErrorLevel,
     message: 'Error message',

@@ -283,6 +283,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     }
 
     allowed_rel_fields = {
+        "owners",
         "created_by",
         "changed_by",
         "editors",

@@ -22,10 +22,13 @@ from typing import Any, Optional
 
 from flask import current_app
 from flask_babel import lazy_gettext as _
-from sqlalchemy import or_
+from sqlalchemy import or_, Table
+from sqlalchemy.orm import DeclarativeMeta
 from sqlalchemy.orm.query import Query
 
+from superset import db, is_feature_enabled, security_manager
 from superset.subjects.models import Subject
+from superset.utils.core import get_user_id
 from superset.views.base import BaseFilter
 
 
@@ -104,3 +107,54 @@ class FilterRelatedSubjects(BaseFilter):
                 )
             )
         return query
+
+
+class EditableFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """Filter resources the current user can edit (subject-based).
+
+    When ``ENABLE_VIEWERS`` is on: checks all user subjects (user + roles + groups).
+    When off: checks only the user's own USER-type subject.
+    Admin: no filter (sees everything).
+
+    Subclasses must set ``model`` and ``editors_table``.
+    """
+
+    name = _("Editable")
+    arg_name = "is_editable"
+
+    model: type[DeclarativeMeta]
+    editors_table: Table
+    editors_fk_column: str  # e.g. "dashboard_id", "chart_id"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        if security_manager.is_admin():
+            return query
+
+        editors_table = self.editors_table
+        fk_col = editors_table.c[self.editors_fk_column]
+
+        if is_feature_enabled("ENABLE_VIEWERS"):
+            from superset.subjects.utils import get_user_subject_ids_subquery
+
+            user_id = get_user_id()
+            if not user_id:
+                return query.filter(self.model.id < 0)
+
+            subject_subquery = get_user_subject_ids_subquery(user_id)
+            editor_query = db.session.query(fk_col).filter(
+                editors_table.c.subject_id.in_(subject_subquery)
+            )
+            return query.filter(self.model.id.in_(editor_query))
+
+        editor_ids_query = (
+            db.session.query(fk_col)
+            .join(
+                Subject.__table__,
+                Subject.__table__.c.id == editors_table.c.subject_id,
+            )
+            .filter(
+                Subject.__table__.c.type == 1,
+                Subject.__table__.c.user_id == get_user_id(),
+            )
+        )
+        return query.filter(self.model.id.in_(editor_ids_query))

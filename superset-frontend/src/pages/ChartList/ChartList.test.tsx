@@ -285,11 +285,7 @@ describe('ChartList - Global Filter Interactions', () => {
     // Mock feature flag to enable tags
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
-    ).mockImplementation(
-      (feature: string) =>
-        feature === 'TAGGING_SYSTEM' ||
-        feature !== 'LISTVIEWS_DEFAULT_CARD_VIEW',
-    );
+    ).mockImplementation((feature: string) => feature === 'TAGGING_SYSTEM');
 
     // Render with tag permissions
     const userWithTagPerms = {
@@ -314,11 +310,7 @@ describe('ChartList - Global Filter Interactions', () => {
   test('does not render Tags filter when TAGGING_SYSTEM is disabled', async () => {
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
-    ).mockImplementation(
-      (feature: string) =>
-        feature !== 'LISTVIEWS_DEFAULT_CARD_VIEW' &&
-        feature !== 'TAGGING_SYSTEM',
-    );
+    ).mockImplementation(() => false);
 
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');

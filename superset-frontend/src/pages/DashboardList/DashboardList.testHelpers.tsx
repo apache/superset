@@ -200,6 +200,7 @@ export const API_ENDPOINTS = {
   DASHBOARD_GET: 'glob:*/api/v1/dashboard/*',
   DASHBOARD_FAVORITE_STATUS: 'glob:*/api/v1/dashboard/favorite_status*',
   DASHBOARD_RELATED_OWNERS: 'glob:*/api/v1/dashboard/related/owners*',
+  DASHBOARD_RELATED_EDITORS: 'glob:*/api/v1/dashboard/related/editors*',
   DASHBOARD_RELATED_CHANGED_BY: 'glob:*/api/v1/dashboard/related/changed_by*',
   THUMBNAIL: '/thumbnail',
   CATCH_ALL: 'glob:*',
@@ -309,6 +310,12 @@ export const setupMocks = (
     API_ENDPOINTS.DASHBOARD_RELATED_OWNERS,
     { result: [], count: 0 },
     { name: API_ENDPOINTS.DASHBOARD_RELATED_OWNERS },
+  );
+
+  fetchMock.get(
+    API_ENDPOINTS.DASHBOARD_RELATED_EDITORS,
+    { result: [], count: 0 },
+    { name: API_ENDPOINTS.DASHBOARD_RELATED_EDITORS },
   );
 
   fetchMock.get(

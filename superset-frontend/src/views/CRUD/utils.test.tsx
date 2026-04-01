@@ -640,7 +640,7 @@ test('getFilterValues', () => {
       [
         {
           id: 'id',
-          operator: 'chart_is_editable',
+          operator: 'is_editable',
           value: true,
         },
       ],
@@ -653,7 +653,7 @@ test('getFilterValues', () => {
       [
         {
           id: 'id',
-          operator: 'dashboard_is_editable',
+          operator: 'is_editable',
           value: true,
         },
       ],

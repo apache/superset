@@ -199,16 +199,13 @@ export const getEditedObjects = (userId: string | number) => {
     .catch(err => err);
 };
 
-export const getUserEditedObjects = (
+export const getUserEditableObjects = (
   userId: string | number,
   resource: string,
   filters: Filter[] = [
     {
       col: 'id',
-      opr:
-        resource === 'dashboard'
-          ? 'dashboard_is_editable'
-          : 'chart_is_editable',
+      opr: 'is_editable',
       value: 1,
     },
   ],
@@ -399,7 +396,7 @@ export function handleDashboardDelete(
         filters: [
           {
             id: 'id',
-            operator: 'dashboard_is_editable',
+            operator: 'is_editable',
             value: true,
           },
         ],
@@ -653,10 +650,7 @@ export function getFilterValues(
     return [
       {
         id: 'id',
-        operator:
-          welcomeTable === WelcomeTable.Dashboards
-            ? 'dashboard_is_editable'
-            : 'chart_is_editable',
+        operator: 'is_editable',
         value: true,
       },
     ];

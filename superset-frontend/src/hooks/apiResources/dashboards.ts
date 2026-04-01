@@ -41,6 +41,7 @@ const DASHBOARD_GET_COLUMNS = [
   'created_by',
   'charts',
   'editors',
+  'viewers',
   'roles',
   'tags',
   'changed_on_delta_humanized',
@@ -61,6 +62,7 @@ export const useDashboard = (idOrSlug: string | number) => {
       position_data:
         dashboard.position_json && JSON.parse(dashboard.position_json),
       editors: dashboard.editors || [],
+      viewers: dashboard.viewers || [],
     }),
   );
 };

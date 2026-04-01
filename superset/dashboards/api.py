@@ -439,6 +439,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         "viewers": RelatedFieldFilter("label", FilterRelatedSubjects),
     }
     allowed_rel_fields = {
+        "owners",
         "created_by",
         "changed_by",
         "editors",

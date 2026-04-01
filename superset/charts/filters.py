@@ -26,6 +26,8 @@ from superset.connectors.sqla import models
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import FavStar
 from superset.models.slice import Slice
+from superset.subjects.filters import EditableFilter
+from superset.subjects.models import chart_editors
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
 from superset.utils.core import get_user_id
 from superset.utils.filters import get_dataset_access_filters
@@ -162,52 +164,12 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         return query.filter(get_dataset_access_filters(self.model))
 
 
-class ChartEditableFilter(BaseFilter):  # pylint: disable=too-few-public-methods
-    """
-    Filter for charts the user can edit (subject-based).
+class ChartEditableFilter(EditableFilter):  # pylint: disable=too-few-public-methods
+    """Filter for charts the user can edit."""
 
-    When ``ENABLE_VIEWERS`` is on: join chart_editors, filter by subject subquery.
-    When off: legacy owner-based query via user-type subjects.
-    Admin: no filter.
-    """
-
-    name = _("Editable")
-    arg_name = "chart_is_editable"
-
-    def apply(self, query: Query, value: Any) -> Query:
-        if security_manager.is_admin():
-            return query
-
-        if is_feature_enabled("ENABLE_VIEWERS"):
-            from superset.subjects.models import chart_editors
-            from superset.subjects.utils import get_user_subject_ids_subquery
-
-            user_id = get_user_id()
-            if not user_id:
-                return query.filter(Slice.id < 0)
-
-            subject_subquery = get_user_subject_ids_subquery(user_id)
-            editor_query = (
-                db.session.query(Slice.id)
-                .join(chart_editors, Slice.id == chart_editors.c.chart_id)
-                .filter(chart_editors.c.subject_id.in_(subject_subquery))
-            )
-            return query.filter(Slice.id.in_(editor_query))
-
-        from superset.subjects.models import chart_editors, Subject
-
-        editor_ids_query = (
-            db.session.query(chart_editors.c.chart_id)
-            .join(
-                Subject.__table__,
-                Subject.__table__.c.id == chart_editors.c.subject_id,
-            )
-            .filter(
-                Subject.__table__.c.type == 1,
-                Subject.__table__.c.user_id == get_user_id(),
-            )
-        )
-        return query.filter(Slice.id.in_(editor_ids_query))
+    model = Slice
+    editors_table = chart_editors
+    editors_fk_column = "chart_id"
 
 
 class ChartHasCreatedByFilter(BaseFilter):  # pylint: disable=too-few-public-methods

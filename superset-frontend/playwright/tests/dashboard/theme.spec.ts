@@ -87,17 +87,17 @@ test('non-admin user can view a themed dashboard without 403 or infinite spinner
     dashboardId = dashBody.id;
     expect(dashboardId).toBeTruthy();
 
-    // 3. Grant non-admin user access by adding them as a dashboard owner
+    // 3. Grant non-admin user access by adding them as a dashboard editor
     const usersRes = await apiGet(
       adminPage,
-      `api/v1/dashboard/related/owners?q=(filter:'${NONADMIN_USERNAME}')`,
+      `api/v1/dashboard/related/editors?q=(filter:'${NONADMIN_USERNAME}')`,
     );
     expect(usersRes.ok()).toBe(true);
     const usersBody = await usersRes.json();
-    const gammaUserId = usersBody.result?.[0]?.value;
-    expect(gammaUserId).toBeTruthy();
+    const gammaSubjectId = usersBody.result?.[0]?.value;
+    expect(gammaSubjectId).toBeTruthy();
     const putRes = await apiPutDashboard(adminPage, dashboardId!, {
-      owners: [gammaUserId],
+      editors: [gammaSubjectId],
     });
     expect(putRes.ok()).toBe(true);
 

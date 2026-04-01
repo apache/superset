@@ -138,7 +138,7 @@ const createProps = (additionalProps = {}) =>
     metadata: {
       created_on_humanized: 'a week ago',
       changed_on_humanized: '2 days ago',
-      owners: ['John Doe'],
+      editors: ['John Doe'],
       created_by: 'John Doe',
       changed_by: 'John Doe',
       dashboards: [{ id: 1, dashboard_title: 'Test' }],

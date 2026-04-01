@@ -28,6 +28,7 @@ from superset.models.dashboard import Dashboard, is_uuid
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
 from superset.security.guest_token import GuestTokenResourceType, GuestUser
+from superset.subjects.filters import EditableFilter
 from superset.subjects.models import dashboard_editors, dashboard_viewers, Subject
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
 from superset.utils.core import get_user_id
@@ -328,52 +329,12 @@ class FilterRelatedRoles(BaseFilter):  # pylint: disable=too-few-public-methods
         return query
 
 
-class DashboardEditableFilter(BaseFilter):  # pylint: disable=too-few-public-methods
-    """
-    Filter for dashboards the user can edit (e.g. chart save → dashboard picker).
+class DashboardEditableFilter(EditableFilter):  # pylint: disable=too-few-public-methods
+    """Filter for dashboards the user can edit."""
 
-    When ``ENABLE_VIEWERS`` is on: join dashboard_editors, filter by subject subquery.
-    When off: legacy owner-based query.
-    Admin: no filter.
-    """
-
-    name = _("Editable")
-    arg_name = "dashboard_is_editable"
-
-    def apply(self, query: Query, value: Any) -> Query:
-        if security_manager.is_admin():
-            return query
-
-        if is_feature_enabled("ENABLE_VIEWERS"):
-            from superset.subjects.utils import get_user_subject_ids_subquery
-
-            user_id = get_user_id()
-            if not user_id:
-                return query.filter(Dashboard.id < 0)
-
-            subject_subquery = get_user_subject_ids_subquery(user_id)
-            editor_query = (
-                db.session.query(Dashboard.id)
-                .join(
-                    dashboard_editors,
-                    Dashboard.id == dashboard_editors.c.dashboard_id,
-                )
-                .filter(dashboard_editors.c.subject_id.in_(subject_subquery))
-            )
-            return query.filter(Dashboard.id.in_(editor_query))
-
-        editor_ids_query = (
-            db.session.query(dashboard_editors.c.dashboard_id)
-            .join(
-                Subject.__table__,
-                Subject.__table__.c.id == dashboard_editors.c.subject_id,
-            )
-            .filter(
-                Subject.__table__.c.type == 1,
-                Subject.__table__.c.user_id == get_user_id(),
-            )
-        )
-        return query.filter(Dashboard.id.in_(editor_ids_query))
+    model = Dashboard
+    editors_table = dashboard_editors
+    editors_fk_column = "dashboard_id"
 
 
 class DashboardCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-methods
