@@ -685,14 +685,17 @@ export default function transformProps(
 
   // For horizontal bar charts, set max/min from calculated data bounds
   if (shouldCalculateDataBounds) {
-    // For stacked charts, use the max stacked total to avoid clipping bars;
-    // for non-stacked charts, use the individual series max.
+    // For stacked charts, clamp against the per-row stacked total to avoid
+    // clipping bars. Also keep dataMax so that mixed-sign stacks (where
+    // positive and negative values cancel in the algebraic row sum) cannot
+    // produce an axis max smaller than the largest individual positive segment.
+    const stackedTotalMax = Math.max(
+      ...sortedTotalValues.filter(
+        (v): v is number => typeof v === 'number' && !Number.isNaN(v),
+      ),
+    );
     const effectiveDataMax = stack
-      ? Math.max(
-          ...sortedTotalValues.filter(
-            (v): v is number => typeof v === 'number' && !Number.isNaN(v),
-          ),
-        )
+      ? Math.max(dataMax ?? Number.NEGATIVE_INFINITY, stackedTotalMax)
       : dataMax;
     if (
       effectiveDataMax !== undefined &&
