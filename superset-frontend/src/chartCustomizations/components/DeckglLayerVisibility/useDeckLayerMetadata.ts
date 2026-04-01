@@ -41,6 +41,7 @@ export const useDeckLayerMetadata = (
   useEffect(() => {
     if (!sliceIds || sliceIds.length === 0) {
       setLayers([]);
+      setIsLoading(false);
       return;
     }
 

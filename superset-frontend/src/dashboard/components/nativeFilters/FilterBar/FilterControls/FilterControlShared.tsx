@@ -249,7 +249,11 @@ export const DeckglLayerVisibilityTooltip = () => (
       )}
       placement="right"
     >
-      <StyledInfoCircleOutlined className="text-muted" role="button" />
+      <StyledInfoCircleOutlined
+        className="text-muted"
+        role="button"
+        data-test="deckgl-layer-visibility-tooltip-icon"
+      />
     </Tooltip>
   </ToolTipContainer>
 );

@@ -18,7 +18,12 @@
  */
 import { ReactNode } from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import { ChartCustomization, ChartCustomizationType } from '@superset-ui/core';
+import {
+  ChartCustomization,
+  ChartCustomizationType,
+  Filter,
+  NativeFilterType,
+} from '@superset-ui/core';
 import { ChartCustomizationPlugins } from 'src/constants';
 import FilterControl from './FilterControl';
 
@@ -62,9 +67,33 @@ const deckglFilter: ChartCustomization = {
   defaultDataMask: {},
 };
 
+const nativeFilter: Filter = {
+  id: 'filter2',
+  name: 'Select Filter',
+  filterType: 'filter_select',
+  type: NativeFilterType.NativeFilter,
+  targets: [],
+  scope: { rootPath: [], excluded: [] },
+  controlValues: {},
+  defaultDataMask: {},
+  cascadeParentIds: [],
+  description: '',
+};
+
 test('renders DeckglLayerVisibilityTooltip for deckgl layer visibility filter type', () => {
   render(
     <FilterControl filter={deckglFilter} onFilterSelectionChange={jest.fn()} />,
   );
-  expect(screen.getByRole('button')).toBeInTheDocument();
+  expect(
+    screen.getByTestId('deckgl-layer-visibility-tooltip-icon'),
+  ).toBeInTheDocument();
+});
+
+test('does not render DeckglLayerVisibilityTooltip for standard filter type', () => {
+  render(
+    <FilterControl filter={nativeFilter} onFilterSelectionChange={jest.fn()} />,
+  );
+  expect(
+    screen.queryByTestId('deckgl-layer-visibility-tooltip-icon'),
+  ).not.toBeInTheDocument();
 });
