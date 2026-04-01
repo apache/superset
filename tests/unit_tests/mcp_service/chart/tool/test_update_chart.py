@@ -45,7 +45,7 @@ from superset.mcp_service.chart.tool.update_chart import (
 class TestUpdateChart:
     """Tests for update_chart MCP tool."""
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_request_structure(self):
         """Test that chart update request structures are properly formed."""
         # Table chart update with numeric ID
@@ -60,10 +60,11 @@ class TestUpdateChart:
         )
         table_request = UpdateChartRequest(identifier=123, config=table_config)
         assert table_request.identifier == 123
-        assert table_request.config.chart_type == "table"
-        assert len(table_request.config.columns) == 2
-        assert table_request.config.columns[0].name == "region"
-        assert table_request.config.columns[1].aggregate == "SUM"
+        # config is now Dict[str, Any] in the schema; validate via dict access
+        assert table_request.config["chart_type"] == "table"
+        assert len(table_request.config["columns"]) == 2
+        assert table_request.config["columns"][0]["name"] == "region"
+        assert table_request.config["columns"][1]["aggregate"] == "SUM"
 
         # XY chart update with UUID
         xy_config = XYChartConfig(
@@ -80,12 +81,12 @@ class TestUpdateChart:
             identifier="a1b2c3d4-e5f6-7890-abcd-ef1234567890", config=xy_config
         )
         assert xy_request.identifier == "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-        assert xy_request.config.chart_type == "xy"
-        assert xy_request.config.x.name == "date"
-        assert xy_request.config.y[0].aggregate == "SUM"
-        assert xy_request.config.kind == "line"
+        assert xy_request.config["chart_type"] == "xy"
+        assert xy_request.config["x"]["name"] == "date"
+        assert xy_request.config["y"][0]["aggregate"] == "SUM"
+        assert xy_request.config["kind"] == "line"
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_with_chart_name(self):
         """Test updating chart with custom chart name."""
         config = TableChartConfig(
@@ -103,7 +104,7 @@ class TestUpdateChart:
         )
         assert request2.chart_name == "Updated Sales Report"
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_preview_generation(self):
         """Test preview generation options in update request."""
         config = TableChartConfig(
@@ -132,7 +133,7 @@ class TestUpdateChart:
         )
         assert request3.generate_preview is False
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_identifier_types(self):
         """Test that identifier can be int or string (UUID)."""
         config = TableChartConfig(
@@ -157,7 +158,7 @@ class TestUpdateChart:
         assert request3.identifier == "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
         assert isinstance(request3.identifier, str)
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_config_variations(self):
         """Test various chart configuration options in updates."""
         # Test all XY chart types
@@ -170,7 +171,7 @@ class TestUpdateChart:
                 kind=chart_type,
             )
             request = UpdateChartRequest(identifier=1, config=config)
-            assert request.config.kind == chart_type
+            assert request.config["kind"] == chart_type
 
         # Test multiple Y columns
         multi_y_config = XYChartConfig(
@@ -184,8 +185,8 @@ class TestUpdateChart:
             kind="line",
         )
         request = UpdateChartRequest(identifier=1, config=multi_y_config)
-        assert len(request.config.y) == 3
-        assert request.config.y[1].aggregate == "AVG"
+        assert len(request.config["y"]) == 3
+        assert request.config["y"][1]["aggregate"] == "AVG"
 
         # Test filter operators
         operators = ["=", "!=", ">", ">=", "<", "<="]
@@ -196,9 +197,9 @@ class TestUpdateChart:
             filters=filters,
         )
         request = UpdateChartRequest(identifier=1, config=table_config)
-        assert len(request.config.filters) == 6
+        assert len(request.config["filters"]) == 6
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_response_structure(self):
         """Test the expected response structure for chart updates."""
         # The response should contain these fields
@@ -233,7 +234,7 @@ class TestUpdateChart:
         assert "success" in expected_response
         assert len(optional_fields) > 0
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_axis_configurations(self):
         """Test axis configuration updates."""
         config = XYChartConfig(
@@ -252,14 +253,14 @@ class TestUpdateChart:
             ),
         )
         request = UpdateChartRequest(identifier=1, config=config)
-        assert request.config.x_axis.title == "Date"
-        assert request.config.x_axis.format == "smart_date"
-        assert request.config.x_axis.scale == "linear"
-        assert request.config.y_axis.title == "Sales Amount"
-        assert request.config.y_axis.format == "$,.2f"
-        assert request.config.y_axis.scale == "log"
+        assert request.config["x_axis"]["title"] == "Date"
+        assert request.config["x_axis"]["format"] == "smart_date"
+        assert request.config["x_axis"]["scale"] == "linear"
+        assert request.config["y_axis"]["title"] == "Sales Amount"
+        assert request.config["y_axis"]["format"] == "$,.2f"
+        assert request.config["y_axis"]["scale"] == "log"
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_legend_configurations(self):
         """Test legend configuration updates."""
         positions = ["top", "bottom", "left", "right"]
@@ -271,8 +272,8 @@ class TestUpdateChart:
                 legend=LegendConfig(show=True, position=pos),
             )
             request = UpdateChartRequest(identifier=1, config=config)
-            assert request.config.legend.position == pos
-            assert request.config.legend.show is True
+            assert request.config["legend"]["position"] == pos
+            assert request.config["legend"]["show"] is True
 
         # Hidden legend
         config = XYChartConfig(
@@ -282,9 +283,9 @@ class TestUpdateChart:
             legend=LegendConfig(show=False),
         )
         request = UpdateChartRequest(identifier=1, config=config)
-        assert request.config.legend.show is False
+        assert request.config["legend"]["show"] is False
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_aggregation_functions(self):
         """Test all supported aggregation functions in updates."""
         aggs = ["SUM", "AVG", "COUNT", "MIN", "MAX", "COUNT_DISTINCT"]
@@ -294,9 +295,9 @@ class TestUpdateChart:
                 columns=[ColumnRef(name="value", aggregate=agg)],
             )
             request = UpdateChartRequest(identifier=1, config=config)
-            assert request.config.columns[0].aggregate == agg
+            assert request.config["columns"][0]["aggregate"] == agg
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_error_responses(self):
         """Test expected error response structures use ChartGenerationError."""
         # Chart not found error
@@ -337,7 +338,7 @@ class TestUpdateChart:
         assert update_error.error is not None
         assert "failed" in update_error.error.message.lower()
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_chart_name_sanitization(self):
         """Test that chart names are properly sanitized."""
         config = TableChartConfig(
@@ -358,7 +359,7 @@ class TestUpdateChart:
             # Chart name should be set (sanitization happens in the validator)
             assert request.chart_name is not None
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_with_filters(self):
         """Test updating chart with various filter configurations."""
         filters = [
@@ -378,12 +379,12 @@ class TestUpdateChart:
         )
 
         request = UpdateChartRequest(identifier=1, config=config)
-        assert len(request.config.filters) == 3
-        assert request.config.filters[0].column == "region"
-        assert request.config.filters[1].op == ">="
-        assert request.config.filters[2].value == "2024-01-01"
+        assert len(request.config["filters"]) == 3
+        assert request.config["filters"][0]["column"] == "region"
+        assert request.config["filters"][1]["op"] == ">="
+        assert request.config["filters"][2]["value"] == "2024-01-01"
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_cache_control(self):
         """Test cache control parameters in update request."""
         config = TableChartConfig(
@@ -410,7 +411,7 @@ class TestUpdateChart:
         assert request2.cache_timeout == 300
 
 
-@pytest.fixture
+@pytest.fixture()
 def mcp_server():
     return mcp
 
@@ -435,7 +436,7 @@ class TestUpdateChartDatasetAccess:
     )
     @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
     @patch("superset.db.session")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_dataset_access_denied(
         self, mock_db_session, mock_find_by_id, mock_validate, mcp_server
     ):
@@ -477,7 +478,7 @@ class TestUpdateChartDatasetAccess:
     )
     @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
     @patch("superset.db.session")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_dataset_not_found(
         self, mock_db_session, mock_find_by_id, mock_validate, mcp_server
     ):
