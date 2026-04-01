@@ -93,6 +93,10 @@ from superset.mcp_service.system.schemas import (
     TagInfo,
     UserInfo,
 )
+from superset.mcp_service.utils.sanitization import (
+    _remove_dangerous_unicode,
+    _strip_html_tags,
+)
 
 
 class DashboardError(BaseModel):
@@ -447,6 +451,16 @@ class GenerateDashboardRequest(BaseModel):
     published: bool = Field(
         default=True, description="Whether to publish the dashboard"
     )
+
+    @field_validator("dashboard_title")
+    @classmethod
+    def sanitize_dashboard_title(cls, v: str | None) -> str | None:
+        """Strip HTML tags from dashboard title to prevent XSS."""
+        if v is None:
+            return None
+        v = _strip_html_tags(v.strip())
+        v = _remove_dangerous_unicode(v)
+        return v
 
 
 class GenerateDashboardResponse(BaseModel):
