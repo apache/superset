@@ -136,6 +136,7 @@ const StyledTableTabs = styled(Tabs)`
     flex: 1;
     min-height: 0;
     overflow: auto;
+    padding-top: ${({ theme }) => theme.paddingMD}px;
   }
 
   .ant-tabs-content {
@@ -2035,18 +2036,20 @@ class DatasourceEditor extends PureComponent {
               key: TABS_KEYS.SETTINGS,
               label: t('Settings'),
               children: (
-                <Row gutter={16}>
-                  <Col xs={24} md={12}>
-                    <FormContainer>
-                      {this.renderSettingsFieldset()}
-                    </FormContainer>
-                  </Col>
-                  <Col xs={24} md={12}>
-                    <FormContainer>
-                      {this.renderAdvancedFieldset()}
-                    </FormContainer>
-                  </Col>
-                </Row>
+                <div style={{ overflowX: 'hidden' }}>
+                  <Row gutter={16}>
+                    <Col xs={24} md={12}>
+                      <FormContainer>
+                        {this.renderSettingsFieldset()}
+                      </FormContainer>
+                    </Col>
+                    <Col xs={24} md={12}>
+                      <FormContainer>
+                        {this.renderAdvancedFieldset()}
+                      </FormContainer>
+                    </Col>
+                  </Row>
+                </div>
               ),
             },
           ]}

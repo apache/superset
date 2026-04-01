@@ -379,7 +379,6 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       resizable
       resizableConfig={{
         defaultSize: { width: 'auto', height: `${MODAL_HEIGHT_VH}vh` },
-        maxHeight: `${MODAL_HEIGHT_VH}vh`,
       }}
       draggable
     >
