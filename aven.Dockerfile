@@ -17,4 +17,7 @@ RUN /app/.venv/bin/python -m pip install playwright==1.39.0 && \
     playwright install-deps && \
     playwright install chromium
 
+RUN /app/.venv/bin/python -m pip install opentelemetry-api==1.29.0 && \
+    /app/.venv/bin/python -m pip install opentelemetry-sdk==1.29.0
+
 USER superset
