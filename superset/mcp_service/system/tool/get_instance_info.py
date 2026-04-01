@@ -23,21 +23,23 @@ InstanceInfoCore for flexible, extensible metrics calculation.
 import logging
 
 from fastmcp import Context
-from superset_core.mcp import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.extensions import event_logger
 from superset.mcp_service.mcp_core import InstanceInfoCore
 from superset.mcp_service.system.schemas import (
     GetSupersetInstanceInfoRequest,
     InstanceInfo,
+    serialize_user_object,
 )
 from superset.mcp_service.system.system_utils import (
     calculate_dashboard_breakdown,
     calculate_database_breakdown,
+    calculate_feature_availability,
     calculate_instance_summary,
     calculate_popular_content,
     calculate_recent_activity,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +61,7 @@ _instance_info_core = InstanceInfoCore(
         "dashboard_breakdown": calculate_dashboard_breakdown,
         "database_breakdown": calculate_database_breakdown,
         "popular_content": calculate_popular_content,
+        "feature_availability": calculate_feature_availability,
     },
     time_windows={
         "recent": 7,
@@ -69,10 +72,20 @@ _instance_info_core = InstanceInfoCore(
 )
 
 
-@tool(tags=["core"])
-@parse_request(GetSupersetInstanceInfoRequest)
+_DEFAULT_INSTANCE_INFO_REQUEST = GetSupersetInstanceInfoRequest()
+
+
+@tool(
+    tags=["core"],
+    annotations=ToolAnnotations(
+        title="Get instance info",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 def get_instance_info(
-    request: GetSupersetInstanceInfoRequest, ctx: Context
+    request: GetSupersetInstanceInfoRequest = _DEFAULT_INSTANCE_INFO_REQUEST,
+    ctx: Context = None,
 ) -> InstanceInfo:
     """Get instance statistics.
 
@@ -80,6 +93,8 @@ def get_instance_info(
     """
     try:
         # Import DAOs at runtime to avoid circular imports
+        from flask import g
+
         from superset.daos.chart import ChartDAO
         from superset.daos.dashboard import DashboardDAO
         from superset.daos.database import DatabaseDAO
@@ -98,7 +113,15 @@ def get_instance_info(
         }
 
         # Run the configurable core
-        return _instance_info_core.run_tool()
+        with event_logger.log_context(action="mcp.get_instance_info.metrics"):
+            result = _instance_info_core.run_tool()
+
+        # Attach the authenticated user's identity to the response
+        user = getattr(g, "user", None)
+        if user is not None:
+            result.current_user = serialize_user_object(user)
+
+        return result
 
     except Exception as e:
         error_msg = f"Unexpected error in instance info: {str(e)}"

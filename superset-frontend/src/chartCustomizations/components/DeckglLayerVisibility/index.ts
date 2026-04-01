@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { Behavior, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
@@ -31,6 +31,7 @@ export default class DeckglLayerVisibilityCustomizationPlugin extends ChartPlugi
       tags: [t('Deckgl'), t('Experimental')],
       thumbnail: '',
       enableNoResults: false,
+      datasourceCount: 0,
     });
 
     super({

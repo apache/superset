@@ -27,7 +27,8 @@ import {
 } from 'react';
 import classNames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
-import { t, styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 
 import { EditableTitle, EmptyState } from '@superset-ui/core/components';
 import { setEditMode, onRefresh } from 'src/dashboard/actions/dashboardState';
@@ -35,6 +36,10 @@ import getChartIdsFromComponent from 'src/dashboard/util/getChartIdsFromComponen
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import { Typography } from '@superset-ui/core/components/Typography';
+import {
+  useIsAutoRefreshing,
+  useIsRefreshInFlight,
+} from 'src/dashboard/contexts/AutoRefreshContext';
 import {
   DragDroppable,
   Droppable,
@@ -159,6 +164,8 @@ const Tab = (props: TabProps): ReactElement => {
     (state: RootState) => state.dashboardState.tabActivationTimes?.[props.id],
   );
   const dashboardInfo = useSelector((state: RootState) => state.dashboardInfo);
+  const isAutoRefreshing = useIsAutoRefreshing();
+  const isRefreshInFlight = useIsRefreshInFlight();
 
   // Track which refresh we've already handled to prevent duplicates
   const handledRefreshRef = useRef<string | null>(null);
@@ -179,9 +186,14 @@ const Tab = (props: TabProps): ReactElement => {
 
           const chartIds = getChartIdsFromComponent(props.id, dashboardLayout);
           if (chartIds.length > 0) {
-            // Use lazy load flag to avoid updating global refresh time
+            if (isAutoRefreshing || isRefreshInFlight) {
+              return;
+            }
+            // Use lazy load flags to avoid updating global refresh time and filters
             setTimeout(() => {
-              dispatch(onRefresh(chartIds, true, 0, dashboardInfo.id, true));
+              dispatch(
+                onRefresh(chartIds, true, 0, dashboardInfo.id, false, true),
+              );
             }, CHART_MOUNT_DELAY);
           }
         }
@@ -195,6 +207,8 @@ const Tab = (props: TabProps): ReactElement => {
     tabActivationTime,
     dashboardLayout,
     dashboardInfo.id,
+    isAutoRefreshing,
+    isRefreshInFlight,
     dispatch,
   ]);
 
@@ -432,7 +446,7 @@ const Tab = (props: TabProps): ReactElement => {
             title={component.meta.text}
             defaultTitle={component.meta.defaultText}
             placeholder={component.meta.placeholder}
-            canEdit={editMode && isFocused}
+            canEdit={editMode}
             onSaveTitle={handleChangeText}
             showTooltip={false}
             editing={editMode && isFocused}

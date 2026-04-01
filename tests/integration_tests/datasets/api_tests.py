@@ -861,6 +861,29 @@ class TestDatasetApi(SupersetTestCase):
         assert alpha in model.owners
         self.items_to_delete = [model]
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_create_dataset_with_currency_code_column(self):
+        """
+        Dataset API: Test create dataset persists currency_code_column
+        """
+
+        energy_usage_ds = self.get_energy_usage_dataset()
+        self.login(ALPHA_USERNAME)
+        table_data = {
+            "database": energy_usage_ds.database_id,
+            "table_name": "energy_usage_virtual_currency_column",
+            "sql": "select * from energy_usage",
+            "currency_code_column": "currency",
+        }
+        if schema := get_example_default_schema():
+            table_data["schema"] = schema
+        rv = self.post_assert_metric("/api/v1/dataset/", table_data, "post")
+        assert rv.status_code == 201
+        data = json.loads(rv.data.decode("utf-8"))
+        model = db.session.query(SqlaTable).get(data.get("id"))
+        assert model.currency_code_column == "currency"
+        self.items_to_delete = [model]
+
     @unittest.skip("test is failing stochastically")
     def test_create_dataset_same_name_different_schema(self):
         if backend() == "sqlite":
@@ -1510,7 +1533,7 @@ class TestDatasetApi(SupersetTestCase):
                 {
                     "metric_name": "test",
                     "expression": "COUNT(*)",
-                    "currency": '{"symbol": "USD", "symbolPosition": "suffix"}',
+                    "currency": {"symbol": "", "symbolPosition": ""},
                 },
             ]
         }

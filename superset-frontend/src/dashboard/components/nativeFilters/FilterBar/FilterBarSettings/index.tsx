@@ -19,8 +19,8 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { t } from '@apache-superset/core';
-import { styled, useTheme, css } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled, useTheme, css } from '@apache-superset/core/theme';
 import { MenuProps } from '@superset-ui/core/components/Menu';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
@@ -206,7 +206,7 @@ const FilterBarSettings = () => {
                   <Icons.CheckOutlined
                     iconColor={theme.colorPrimary}
                     iconSize="m"
-                    aria-label="check"
+                    aria-label={t('Selected')}
                   />
                 )}
               </Space>
@@ -224,7 +224,7 @@ const FilterBarSettings = () => {
                     css={css`
                       vertical-align: middle;
                     `}
-                    aria-label="check"
+                    aria-label={t('Selected')}
                   />
                 )}
               </Space>

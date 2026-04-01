@@ -21,9 +21,7 @@ import {
   test as testWithAssets,
   expect,
 } from '../../../helpers/fixtures/testAssets';
-import type { Response } from '@playwright/test';
 import path from 'path';
-import * as unzipper from 'unzipper';
 import { DatasetListPage } from '../../../pages/DatasetListPage';
 import { ExplorePage } from '../../../pages/ExplorePage';
 import { ConfirmDialog } from '../../../components/modals/ConfirmDialog';
@@ -45,7 +43,10 @@ import {
   waitForPost,
   waitForPut,
 } from '../../../helpers/api/intercepts';
-import { expectStatusOneOf } from '../../../helpers/api/assertions';
+import {
+  expectStatusOneOf,
+  expectValidExportZip,
+} from '../../../helpers/api/assertions';
 import { TIMEOUT } from '../../../utils/constants';
 
 /**
@@ -59,40 +60,6 @@ const test = testWithAssets.extend<{ datasetListPage: DatasetListPage }>({
     await use(datasetListPage);
   },
 });
-
-/**
- * Helper to validate an export zip response.
- * Verifies headers, parses zip contents, and validates expected structure.
- */
-async function expectValidExportZip(
-  response: Response,
-  options: { minDatasetCount?: number; checkContentDisposition?: boolean } = {},
-): Promise<void> {
-  const { minDatasetCount = 1, checkContentDisposition = false } = options;
-
-  // Verify headers
-  expect(response.headers()['content-type']).toContain('application/zip');
-  if (checkContentDisposition) {
-    expect(response.headers()['content-disposition']).toMatch(
-      /filename=.*dataset_export.*\.zip/,
-    );
-  }
-
-  // Parse and validate zip contents
-  const body = await response.body();
-  expect(body.length).toBeGreaterThan(0);
-
-  const entries: string[] = [];
-  const directory = await unzipper.Open.buffer(body);
-  directory.files.forEach(file => entries.push(file.path));
-
-  // Validate structure
-  const datasetYamlFiles = entries.filter(
-    entry => entry.includes('datasets/') && entry.endsWith('.yaml'),
-  );
-  expect(datasetYamlFiles.length).toBeGreaterThanOrEqual(minDatasetCount);
-  expect(entries.some(entry => entry.endsWith('metadata.yaml'))).toBe(true);
-}
 
 test('should navigate to Explore when dataset name is clicked', async ({
   page,
@@ -286,7 +253,10 @@ test('should export a dataset as a zip file', async ({
 
   // Wait for export API response and validate zip contents
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);
-  await expectValidExportZip(exportResponse, { checkContentDisposition: true });
+  await expectValidExportZip(exportResponse, {
+    resourceDir: 'datasets',
+    contentDispositionPattern: /filename=.*dataset_export.*\.zip/,
+  });
 });
 
 test('should export multiple datasets via bulk select action', async ({
@@ -327,7 +297,10 @@ test('should export multiple datasets via bulk select action', async ({
 
   // Wait for export API response and validate zip contains multiple datasets
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);
-  await expectValidExportZip(exportResponse, { minDatasetCount: 2 });
+  await expectValidExportZip(exportResponse, {
+    resourceDir: 'datasets',
+    minCount: 2,
+  });
 });
 
 test('should edit dataset name via modal', async ({

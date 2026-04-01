@@ -17,15 +17,15 @@
  * under the License.
  */
 
-import type { editors, contributions } from '@apache-superset/core';
+import type { editors } from '@apache-superset/core';
 import { Disposable } from '../models';
 
-type EditorLanguage = contributions.EditorLanguage;
+type EditorLanguage = editors.EditorLanguage;
 type EditorProvider = editors.EditorProvider;
-type EditorContribution = editors.EditorContribution;
+type Editor = editors.Editor;
 type EditorComponent = editors.EditorComponent;
-type EditorProviderRegisteredEvent = editors.EditorProviderRegisteredEvent;
-type EditorProviderUnregisteredEvent = editors.EditorProviderUnregisteredEvent;
+type EditorRegisteredEvent = editors.EditorRegisteredEvent;
+type EditorUnregisteredEvent = editors.EditorUnregisteredEvent;
 
 /**
  * Listener function type for events.
@@ -86,13 +86,12 @@ class EditorProviders {
   /**
    * Event emitter for provider registration events.
    */
-  private registerEmitter = new EventEmitter<EditorProviderRegisteredEvent>();
+  private registerEmitter = new EventEmitter<EditorRegisteredEvent>();
 
   /**
    * Event emitter for provider unregistration events.
    */
-  private unregisterEmitter =
-    new EventEmitter<EditorProviderUnregisteredEvent>();
+  private unregisterEmitter = new EventEmitter<EditorUnregisteredEvent>();
 
   // eslint-disable-next-line no-useless-constructor
   private constructor() {
@@ -114,15 +113,15 @@ class EditorProviders {
    * Register an editor provider.
    * When registered, the provider replaces the default editor for its supported languages.
    *
-   * @param contribution The editor contribution metadata.
+   * @param editor The editor descriptor.
    * @param component The React component implementing the editor.
    * @returns A Disposable to unregister the provider.
    */
   public registerProvider(
-    contribution: EditorContribution,
+    editor: Editor,
     component: EditorComponent,
   ): Disposable {
-    const { id, languages } = contribution;
+    const { id, languages } = editor;
 
     // Check if provider with this ID already exists
     if (this.providers.has(id)) {
@@ -132,7 +131,7 @@ class EditorProviders {
     }
 
     const provider: EditorProvider = {
-      contribution,
+      editor,
       component,
     };
 
@@ -145,7 +144,7 @@ class EditorProviders {
     });
 
     // Fire registration event
-    this.registerEmitter.fire({ provider });
+    this.registerEmitter.fire({ editor });
 
     // Return disposable for cleanup
     return new Disposable(() => {
@@ -163,10 +162,10 @@ class EditorProviders {
       return;
     }
 
-    const { contribution } = provider;
+    const { editor } = provider;
 
     // Remove language mappings for this provider
-    contribution.languages.forEach(language => {
+    editor.languages.forEach(language => {
       if (this.languageToProvider.get(language) === id) {
         this.languageToProvider.delete(language);
       }
@@ -176,7 +175,7 @@ class EditorProviders {
     this.providers.delete(id);
 
     // Fire unregistration event
-    this.unregisterEmitter.fire({ contribution });
+    this.unregisterEmitter.fire({ editor });
   }
 
   /**
@@ -214,9 +213,7 @@ class EditorProviders {
    * @param listener The listener function.
    * @returns A Disposable to unsubscribe.
    */
-  public onDidRegister(
-    listener: Listener<EditorProviderRegisteredEvent>,
-  ): Disposable {
+  public onDidRegister(listener: Listener<EditorRegisteredEvent>): Disposable {
     return this.registerEmitter.subscribe(listener);
   }
 
@@ -226,7 +223,7 @@ class EditorProviders {
    * @returns A Disposable to unsubscribe.
    */
   public onDidUnregister(
-    listener: Listener<EditorProviderUnregisteredEvent>,
+    listener: Listener<EditorUnregisteredEvent>,
   ): Disposable {
     return this.unregisterEmitter.subscribe(listener);
   }

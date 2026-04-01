@@ -834,6 +834,48 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch("superset.charts.data.api.ChartDataCommand.run")
+    def test_chart_data_async_force_refresh(self, mock_run):
+        """
+        Chart data API: Test that force=true skips cache and triggers async job
+        """
+        app._got_first_request = False
+        async_query_manager_factory.init_app(app)
+
+        # Mock the command.run to return cached data
+        class QueryContext:
+            result_format = ChartDataResultFormat.JSON
+            result_type = ChartDataResultType.FULL
+
+        mock_run.return_value = {
+            "query_context": QueryContext(),
+            "queries": [{"query": "select * from foo", "is_cached": True}],
+        }
+
+        # Test without force - should return cached data synchronously
+        self.query_context_payload["result_type"] = ChartDataResultType.FULL
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 200
+        mock_run.assert_called_once_with(force_cached=True)
+
+        # Reset the mock
+        mock_run.reset_mock()
+
+        # Test with force=true - should skip cache and return async response
+        self.query_context_payload["force"] = True
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 202
+        # When force=true, command.run should not be called at all in _run_async
+        # since we skip the cache check entirely
+        mock_run.assert_not_called()
+        data = json.loads(rv.data.decode("utf-8"))
+        keys = list(data.keys())
+        self.assertCountEqual(  # noqa: PT009
+            keys, ["channel_id", "job_id", "user_id", "status", "errors", "result_url"]
+        )
+
+    @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_async_results_type(self):
         """
         Chart data API: Test chart data query non-JSON format (async)

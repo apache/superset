@@ -26,7 +26,7 @@ import {
   ReactNode,
 } from 'react';
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   isFeatureEnabled,
   FeatureFlag,
@@ -34,11 +34,22 @@ import {
   VizType,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { css, styled, SupersetTheme, useTheme } from '@apache-superset/core/ui';
+import {
+  css,
+  styled,
+  SupersetTheme,
+  useTheme,
+} from '@apache-superset/core/theme';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
+import {
+  OwnerSelectLabel,
+  OWNER_TEXT_LABEL_PROP,
+  OWNER_EMAIL_PROP,
+  OWNER_OPTION_FILTER_PROPS,
+} from 'src/features/owners/OwnerSelectLabel';
 // import { Form as AntdForm } from 'src/components/Form';
 import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 import {
@@ -54,6 +65,7 @@ import {
   Select,
   Switch,
   TreeSelect,
+  Button,
   type CheckboxChangeEvent,
 } from '@superset-ui/core/components';
 
@@ -80,6 +92,7 @@ import {
   ContentType,
   ExtraNativeFilter,
   NativeFilterObject,
+  DashboardTabsResponse,
 } from 'src/features/alerts/types';
 import { StatusMessage } from 'src/filters/components/common';
 import { useSelector } from 'react-redux';
@@ -371,15 +384,6 @@ export const StyledInputContainer = styled.div`
         display: 'flex';
         color: ${theme.colorIcon};
       }
-      .filters-add-container {
-        flex: '.25';
-        padding: '${theme.sizeUnit * 3} 0';
-
-        .filters-add-btn {
-          padding: ${theme.sizeUnit * 2}px;
-          color: ${theme.colorWhite};
-        }
-      }
     }
   `}
 `;
@@ -528,7 +532,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       label: string;
     }[]
   >([]);
-  const [tabNativeFilters, setTabNativeFilters] = useState<object>({});
+  const [tabNativeFilters, setTabNativeFilters] = useState<
+    Partial<Record<string, NativeFilterObject[]>>
+  >({});
   const [nativeFilterData, setNativeFilterData] = useState<ExtraNativeFilter[]>(
     [
       {
@@ -604,6 +610,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [emailSubject, setEmailSubject] = useState<string>('');
   const [emailError, setEmailError] = useState(false);
 
+  const allowedNotificationMethodsCount = useMemo(
+    () =>
+      allowedNotificationMethods.reduce((accum: string[], setting: string) => {
+        if (
+          accum.some(nm => nm.includes('slack')) &&
+          setting.toLowerCase().includes('slack')
+        ) {
+          return accum;
+        }
+        return [...accum, setting.toLowerCase()];
+      }, []).length,
+    [allowedNotificationMethods],
+  );
+
   const onNotificationAdd = () => {
     setNotificationSettings([
       ...notificationSettings,
@@ -667,9 +687,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const fetchDashboardFilterValues = async (
     dashboardId: number | string | undefined,
     columnName: string,
-    datasetId: number | string,
+    datasetId: number | string | null,
     vizType = 'filter_select',
-    adhocFilters = [],
+    adhocFilters: any[] = [],
   ) => {
     if (vizType === 'filter_time') {
       return;
@@ -730,7 +750,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     nativeFilterData.map(nativeFilter => {
       if (!nativeFilter.nativeFilterId) return;
       const filter = nativeFilters.filter(
-        (f: any) => f.id === nativeFilter.nativeFilterId,
+        f => f.id === nativeFilter.nativeFilterId,
       )[0];
 
       const { datasetId } = filter.targets[0];
@@ -980,9 +1000,18 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           endpoint: `/api/v1/report/related/created_by?q=${query}`,
         }).then(response => ({
           data: response.json.result.map(
-            (item: { value: number; text: string }) => ({
+            (item: {
+              value: number;
+              text: string;
+              extra: { email?: string };
+            }) => ({
               value: item.value,
-              label: item.text,
+              label: OwnerSelectLabel({
+                name: item.text,
+                email: item.extra?.email,
+              }),
+              [OWNER_TEXT_LABEL_PROP]: item.text,
+              [OWNER_EMAIL_PROP]: item.extra?.email ?? '',
             }),
           ),
           totalCount: response.json.count,
@@ -1058,10 +1087,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             tab_tree: tabTree,
             all_tabs: allTabs,
             native_filters: nativeFilters,
-          } = response.json.result;
-          const allTabsWithOrder = tabTree.map(
-            (tab: { value: string }) => tab.value,
-          );
+          }: DashboardTabsResponse = response.json.result;
+          const allTabsWithOrder = tabTree.map(tab => tab.value);
 
           // Only show all tabs when there are more than one tab
           if (allTabsWithOrder.length > 1) {
@@ -1073,14 +1100,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           }
 
           setTabOptions(tabTree);
-          setTabNativeFilters(nativeFilters);
+          setTabNativeFilters(nativeFilters ?? {});
 
-          if (isEditMode && nativeFilters.all) {
+          if (isEditMode && nativeFilters?.all) {
             // update options for all filters
             addNativeFilterOptions(nativeFilters.all);
             // Also set the available filter options for the add button
             setNativeFilterOptions(
-              nativeFilters.all.map((filter: any) => ({
+              nativeFilters.all.map(filter => ({
                 value: filter.id,
                 label: filter.name,
               })),
@@ -1092,8 +1119,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               const parsedAnchor = JSON.parse(anchor);
               if (!Array.isArray(parsedAnchor)) {
                 // only show filters scoped to anchor
+                const anchorFilters: NativeFilterObject[] =
+                  nativeFilters?.[anchor] ?? [];
                 setNativeFilterOptions(
-                  nativeFilters[anchor].map((filter: any) => ({
+                  anchorFilters.map(filter => ({
                     value: filter.id,
                     label: filter.name,
                   })),
@@ -1101,7 +1130,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               }
               if (Array.isArray(parsedAnchor)) {
                 // Check if all elements in parsedAnchor list are in allTabs
-                const isValidSubset = parsedAnchor.every(tab => tab in allTabs);
+                const isValidSubset =
+                  allTabs && parsedAnchor.every(tab => tab in allTabs);
                 if (!isValidSubset) {
                   updateAnchorState(undefined);
                 }
@@ -1109,13 +1139,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 throw new Error('Parsed value is not an array');
               }
             } catch (error) {
-              if (!(anchor in allTabs)) {
+              if (!allTabs || !(anchor in allTabs)) {
                 updateAnchorState(undefined);
               }
             }
-          } else if (nativeFilters.all) {
+          } else if (nativeFilters?.all) {
             setNativeFilterOptions(
-              nativeFilters.all.map((filter: any) => ({
+              nativeFilters.all.map(filter => ({
                 value: filter.id,
                 label: filter.name,
               })),
@@ -1417,8 +1447,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       return;
 
     // find specific filter tied to the selected filter
-    const filters = Object.values(tabNativeFilters).flat();
-    const filter = filters.filter((f: any) => f.id === nativeFilterId)[0];
+    const filters = Object.values(tabNativeFilters).flatMap(arr => arr ?? []);
+    const filter = filters.filter(f => f.id === nativeFilterId)[0];
 
     const { filterType, adhoc_filters: adhocFilters } = filter;
     const filterAlreadyExist = nativeFilterData.some(
@@ -1850,7 +1880,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           ? [
               {
                 value: currentUser.userId,
-                label: `${currentUser.firstName} ${currentUser.lastName}`,
+                label: OwnerSelectLabel({
+                  name: `${currentUser.firstName} ${currentUser.lastName}`,
+                  email: currentUser.email,
+                }),
+                [OWNER_TEXT_LABEL_PROP]: `${currentUser.firstName} ${currentUser.lastName}`,
+                [OWNER_EMAIL_PROP]: currentUser.email ?? '',
               },
             ]
           : [],
@@ -1877,6 +1912,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       if (resource.extra?.dashboard?.nativeFilters) {
         const filters = resource.extra.dashboard.nativeFilters;
         setNativeFilterData(filters);
+        // Seed options from saved data so names display while dashboard metadata loads
+        const savedOptions = filters
+          .filter(f => f.nativeFilterId && f.filterName)
+          .map(f => ({ value: f.nativeFilterId!, label: f.filterName! }));
+        if (savedOptions.length > 0) {
+          setNativeFilterOptions(savedOptions);
+        }
       }
 
       // Add notification settings
@@ -1936,12 +1978,21 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               label: (resource.database as DatabaseObject).database_name,
             }
           : undefined,
-        owners: (alert?.owners || []).map(owner => ({
-          value: (owner as MetaObject).value || owner.id,
-          label:
+        owners: (resource.owners || []).map(owner => {
+          const ownerName =
             (owner as MetaObject).label ||
-            `${(owner as Owner).first_name} ${(owner as Owner).last_name}`,
-        })),
+            `${(owner as Owner).first_name} ${(owner as Owner).last_name}`;
+          return {
+            value: (owner as MetaObject).value || owner.id,
+            label: OwnerSelectLabel({
+              name: typeof ownerName === 'string' ? ownerName : '',
+              email: (owner as Owner).email,
+            }),
+            [OWNER_TEXT_LABEL_PROP]:
+              typeof ownerName === 'string' ? ownerName : '',
+            [OWNER_EMAIL_PROP]: (owner as Owner).email ?? '',
+          };
+        }),
         validator_config_json:
           resource.validator_type === 'not null'
             ? {
@@ -1976,20 +2027,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   useEffect(() => {
     enforceValidation();
   }, [validationStatus]);
-
-  const allowedNotificationMethodsCount = useMemo(
-    () =>
-      allowedNotificationMethods.reduce((accum: string[], setting: string) => {
-        if (
-          accum.some(nm => nm.includes('slack')) &&
-          setting.toLowerCase().includes('slack')
-        ) {
-          return accum;
-        }
-        return [...accum, setting.toLowerCase()];
-      }, []).length,
-    [allowedNotificationMethods],
-  );
 
   // Show/hide
   if (isHidden && show) {
@@ -2108,6 +2145,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       options={loadOwnerOptions}
                       onChange={onOwnersChange}
                       data-test="owners-select"
+                      optionFilterProps={OWNER_OPTION_FILTER_PROPS}
                     />
                   </ModalFormField>
                   <ModalFormField label={t('Description')}>
@@ -2472,28 +2510,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                                   )}
                                 </div>
                               ))}
-                              <div className="filters-add-container">
-                                {filterNativeFilterOptions().length > 0 && (
-                                  // eslint-disable-next-line jsx-a11y/anchor-is-valid
-                                  <a
-                                    className="filters-add-btn"
-                                    role="button"
-                                    tabIndex={0}
-                                    onClick={() => {
-                                      handleAddFilterField();
-                                      add();
-                                    }}
-                                    onKeyDown={e => {
-                                      if (e.key === 'Enter' || e.key === ' ') {
-                                        handleAddFilterField();
-                                        add();
-                                      }
-                                    }}
-                                  >
-                                    + {t('Apply another dashboard filter')}
-                                  </a>
-                                )}
-                              </div>
+                              {filterNativeFilterOptions().length > 0 && (
+                                <Button
+                                  buttonStyle="link"
+                                  onClick={() => {
+                                    handleAddFilterField();
+                                    add();
+                                  }}
+                                >
+                                  + {t('Apply another dashboard filter')}
+                                </Button>
+                              )}
                             </div>
                           )}
                         </AntdForm.List>

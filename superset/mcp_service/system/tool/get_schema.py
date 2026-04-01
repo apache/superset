@@ -27,8 +27,9 @@ import logging
 from typing import Callable, Literal
 
 from fastmcp import Context
-from superset_core.mcp import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.extensions import event_logger
 from superset.mcp_service.common.schema_discovery import (
     CHART_DEFAULT_COLUMNS,
     CHART_SEARCH_COLUMNS,
@@ -47,7 +48,6 @@ from superset.mcp_service.common.schema_discovery import (
     ModelSchemaInfo,
 )
 from superset.mcp_service.mcp_core import ModelGetSchemaCore
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -120,8 +120,14 @@ _SCHEMA_CORE_FACTORIES: dict[
 }
 
 
-@tool(tags=["discovery"])
-@parse_request(GetSchemaRequest)
+@tool(
+    tags=["discovery"],
+    annotations=ToolAnnotations(
+        title="Get schema",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 async def get_schema(request: GetSchemaRequest, ctx: Context) -> GetSchemaResponse:
     """
     Get comprehensive schema metadata for a model type.
@@ -154,8 +160,9 @@ async def get_schema(request: GetSchemaRequest, ctx: Context) -> GetSchemaRespon
         )
 
     # Create core instance and run (columns extracted dynamically)
-    core = factory()
-    schema_info = core.run_tool()
+    with event_logger.log_context(action="mcp.get_schema.discovery"):
+        core = factory()
+        schema_info = core.run_tool()
 
     await ctx.debug(
         f"Schema for {request.model_type}: "

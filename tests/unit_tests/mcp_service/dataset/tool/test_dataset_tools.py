@@ -194,13 +194,13 @@ async def test_list_datasets_basic(mock_list, mcp_server):
         assert len(data["datasets"]) == 1
         assert data["datasets"][0]["id"] == 1
         assert data["datasets"][0]["table_name"] == "Test DatasetInfo"
-        assert data["datasets"][0]["uuid"] == "test-dataset-uuid-1"
         # Note: columns and metrics are not in minimal default columns
-        # (id, table_name, schema, uuid). Use select_columns to include them.
+        # (id, table_name, schema, changed_on_humanized). Use select_columns
+        # to include them.
 
-        # Verify UUID is in default columns (datasets don't have slugs)
-        assert "uuid" in data["columns_requested"]
-        assert "uuid" in data["columns_loaded"]
+        # Verify changed_on_humanized is in default columns
+        assert "changed_on_humanized" in data["columns_requested"]
+        assert "changed_on_humanized" in data["columns_loaded"]
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
@@ -934,6 +934,52 @@ async def test_invalid_filter_column_raises(mcp_server):
             )
 
 
+def test_database_name_filter_accepted():
+    """Test that database_name is accepted as a valid filter column.
+
+    Regression test for TypeError 'encoding without a string argument' when
+    filtering datasets by database_name.
+    """
+    request = ListDatasetsRequest(
+        filters=[{"col": "database_name", "opr": "ilike", "value": "%dynamo%"}],
+        select_columns=["id", "database_name", "table_name"],
+    )
+    assert len(request.filters) == 1
+    assert request.filters[0].col == "database_name"
+    assert request.filters[0].opr.value == "ilike"
+    assert request.filters[0].value == "%dynamo%"
+
+
+@patch("superset.daos.dataset.DatasetDAO.list")
+@pytest.mark.asyncio
+async def test_list_datasets_with_database_name_filter(mock_list, mcp_server):
+    """Test list_datasets with database_name filter via MCP client.
+
+    Regression test: previously database_name was not in the allowed filter
+    columns, causing a Pydantic ValidationError that downstream code could
+    not serialize properly (TypeError: encoding without a string argument).
+    """
+    dataset = create_mock_dataset(
+        dataset_id=5,
+        table_name="dynamo_table",
+        database_name="dynamodb",
+    )
+    mock_list.return_value = ([dataset], 1)
+    async with Client(mcp_server) as client:
+        request = ListDatasetsRequest(
+            filters=[{"col": "database_name", "opr": "ilike", "value": "%dynamo%"}],
+            select_columns=["id", "database_name", "table_name"],
+        )
+        result = await client.call_tool(
+            "list_datasets", {"request": request.model_dump()}
+        )
+        assert result.content is not None
+        data = json.loads(result.content[0].text)
+        assert data["datasets"] is not None
+        assert len(data["datasets"]) == 1
+        assert data["datasets"][0]["database_name"] == "dynamodb"
+
+
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_get_dataset_info_includes_columns_and_metrics(mock_info, mcp_server):
@@ -1023,7 +1069,8 @@ async def test_list_datasets_includes_columns_and_metrics(mock_list, mcp_server)
     """Test that columns and metrics are included when explicitly requested.
 
     Note: columns and metrics are not in minimal default columns
-    (id, table_name, schema, uuid). Use select_columns to include them.
+    (id, table_name, schema, changed_on_humanized). Use select_columns to
+    include them.
     """
     dataset = MagicMock()
     dataset.id = 11
@@ -1152,7 +1199,13 @@ class TestDatasetDefaultColumnFiltering:
 
         # Should have exactly 4 minimal columns
         assert len(DATASET_DEFAULT_COLUMNS) == 4
-        assert set(DATASET_DEFAULT_COLUMNS) == {"id", "table_name", "schema", "uuid"}
+        assert set(DATASET_DEFAULT_COLUMNS) == {
+            "id",
+            "table_name",
+            "schema",
+            "changed_on_humanized",
+        }
+        assert "uuid" not in DATASET_DEFAULT_COLUMNS
 
         # Heavy columns should NOT be in defaults
         assert "columns" not in DATASET_DEFAULT_COLUMNS
@@ -1183,7 +1236,8 @@ class TestDatasetDefaultColumnFiltering:
                 "id",
                 "table_name",
                 "schema",
-                "uuid",
+                "changed_on",
+                "changed_on_humanized",
             }
 
             # Verify heavy columns are NOT in columns_loaded
@@ -1266,7 +1320,13 @@ class TestDatasetDefaultColumnFiltering:
             dataset_item = data["datasets"][0]
 
             # Verify ONLY default columns are present in the response item
-            expected_keys = {"id", "table_name", "schema_name", "uuid"}
+            expected_keys = {
+                "id",
+                "table_name",
+                "schema",
+                "changed_on",
+                "changed_on_humanized",
+            }
             actual_keys = set(dataset_item.keys())
 
             # The response should only contain the default columns, NOT all columns
@@ -1282,7 +1342,6 @@ class TestDatasetDefaultColumnFiltering:
                 "description",
                 "database_name",
                 "changed_by",
-                "changed_on",
                 "columns",
                 "metrics",
             ]

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { DatasourceType, TimeGranularity, VizType } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import transformProps from '../../src/BigNumber/BigNumberWithTrendline/transformProps';
 import {
   BigNumberDatum,
@@ -196,7 +196,9 @@ describe('BigNumberWithTrendline', () => {
           showXAxis: true,
         },
       });
-      expect((transformed.echartOptions?.xAxis as any).show).toBe(true);
+      expect((transformed.echartOptions!.xAxis as { show: boolean }).show).toBe(
+        true,
+      );
     });
 
     test('should not show X axis when showXAxis is false', () => {
@@ -207,7 +209,9 @@ describe('BigNumberWithTrendline', () => {
           showXAxis: false,
         },
       });
-      expect((transformed.echartOptions?.xAxis as any).show).toBe(false);
+      expect((transformed.echartOptions!.xAxis as { show: boolean }).show).toBe(
+        false,
+      );
     });
 
     test('should show Y axis when showYAxis is true', () => {
@@ -218,7 +222,9 @@ describe('BigNumberWithTrendline', () => {
           showYAxis: true,
         },
       });
-      expect((transformed.echartOptions?.yAxis as any).show).toBe(true);
+      expect((transformed.echartOptions!.yAxis as { show: boolean }).show).toBe(
+        true,
+      );
     });
 
     test('should not show Y axis when showYAxis is false', () => {
@@ -229,7 +235,9 @@ describe('BigNumberWithTrendline', () => {
           showYAxis: false,
         },
       });
-      expect((transformed.echartOptions?.yAxis as any).show).toBe(false);
+      expect((transformed.echartOptions!.yAxis as { show: boolean }).show).toBe(
+        false,
+      );
     });
   });
 

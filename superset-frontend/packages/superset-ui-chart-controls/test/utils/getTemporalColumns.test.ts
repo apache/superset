@@ -17,7 +17,7 @@
  * under the License.
  */
 import { testQueryResponse, testQueryResults } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   Dataset,
   getTemporalColumns,

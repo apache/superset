@@ -240,4 +240,33 @@ export type DashboardComponentMetadata = {
   dataMask: DataMaskStateWithId;
 };
 
+export interface LegacyChartCustomizationDataset {
+  value: number | string;
+  label: string;
+  table_name?: string;
+}
+
+export interface LegacyChartCustomizationConfig {
+  name: string;
+  dataset: string | number | LegacyChartCustomizationDataset | null;
+  column: string | string[] | null;
+  sortAscending?: boolean;
+  sortMetric?: string;
+  canSelectMultiple?: boolean;
+  defaultDataMask?: DataMask;
+  controlValues?: {
+    enableEmptyFilter?: boolean;
+    [key: string]: any;
+  };
+  description?: string;
+}
+
+export interface LegacyChartCustomizationItem {
+  id: string;
+  title?: string;
+  removed?: boolean;
+  chartId?: number;
+  customization: LegacyChartCustomizationConfig;
+}
+
 export default {};

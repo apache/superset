@@ -26,11 +26,12 @@ import logging
 from typing import TYPE_CHECKING
 
 from fastmcp import Context
-from superset_core.mcp import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
 
+from superset.extensions import event_logger
 from superset.mcp_service.dataset.schemas import (
     DatasetFilter,
     DatasetInfo,
@@ -39,7 +40,6 @@ from superset.mcp_service.dataset.schemas import (
     serialize_dataset_object,
 )
 from superset.mcp_service.mcp_core import ModelListCore
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,8 @@ DEFAULT_DATASET_COLUMNS = [
     "id",
     "table_name",
     "schema",
-    "uuid",
+    "changed_on",
+    "changed_on_humanized",
 ]
 
 SORTABLE_DATASET_COLUMNS = [
@@ -60,12 +61,20 @@ SORTABLE_DATASET_COLUMNS = [
 ]
 
 
-@tool(tags=["core"])
-@parse_request(ListDatasetsRequest)
+@tool(
+    tags=["core"],
+    class_permission_name="Dataset",
+    annotations=ToolAnnotations(
+        title="List datasets",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetList:
     """List datasets with filtering and search.
 
-    Returns dataset metadata including columns and metrics.
+    Returns dataset metadata including table name, schema, and last modified
+    time.
 
     Sortable columns for order_column: id, table_name, schema, changed_on,
     created_on
@@ -129,15 +138,16 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
             logger=logger,
         )
 
-        result = tool.run_tool(
-            filters=request.filters,
-            search=request.search,
-            select_columns=request.select_columns,
-            order_column=request.order_column,
-            order_direction=request.order_direction,
-            page=max(request.page - 1, 0),
-            page_size=request.page_size,
-        )
+        with event_logger.log_context(action="mcp.list_datasets.query"):
+            result = tool.run_tool(
+                filters=request.filters,
+                search=request.search,
+                select_columns=request.select_columns,
+                order_column=request.order_column,
+                order_direction=request.order_direction,
+                page=max(request.page - 1, 0),
+                page_size=request.page_size,
+            )
 
         await ctx.info(
             "Datasets listed successfully: count=%s, total_count=%s, total_pages=%s"
@@ -156,9 +166,11 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
             "Applying field filtering via serialization context: columns=%s"
             % (columns_to_filter,)
         )
-        return result.model_dump(
-            mode="json", context={"select_columns": columns_to_filter}
-        )
+        with event_logger.log_context(action="mcp.list_datasets.serialization"):
+            return result.model_dump(
+                mode="json",
+                context={"select_columns": columns_to_filter},
+            )
 
     except Exception as e:
         await ctx.error(

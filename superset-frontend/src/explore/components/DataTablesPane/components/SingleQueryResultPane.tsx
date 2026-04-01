@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState, useCallback } from 'react';
-import { t } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
 import {
   TableView,
   TableSize,

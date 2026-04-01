@@ -32,7 +32,7 @@ import {
   AsyncEsmComponent,
   PlaceholderProps,
 } from '@superset-ui/core/components/AsyncEsmComponent';
-import { useTheme, css } from '@apache-superset/core/ui';
+import { useTheme, css } from '@apache-superset/core/theme';
 import { Global } from '@emotion/react';
 
 export { getTooltipHTML } from './Tooltip';
@@ -114,7 +114,7 @@ export function AsyncAceEditor(
     defaultMode,
     defaultTheme,
     defaultTabSize = 2,
-    fontFamily = 'Menlo, Consolas, Courier New, Ubuntu Mono, source-code-pro, Lucida Console, monospace',
+    fontFamily,
     placeholder,
   }: AsyncAceEditorOptions = {},
 ) {
@@ -171,6 +171,7 @@ export function AsyncAceEditor(
         ref,
       ) {
         const token = useTheme();
+        const editorFontFamily = fontFamily || token.fontFamilyCode;
         const langTools = acequire('ace/ext/language_tools');
 
         const setCompleters = useCallback(
@@ -436,7 +437,7 @@ export function AsyncAceEditor(
               theme={theme}
               tabSize={tabSize}
               defaultValue={defaultValue}
-              setOptions={{ fontFamily }}
+              setOptions={{ fontFamily: editorFontFamily }}
               {...props}
             />
           </>
@@ -499,5 +500,11 @@ export const JsonEditor = AsyncAceEditor(['mode/json', 'theme/github']);
 export const ConfigEditor = AsyncAceEditor([
   'mode/json',
   'mode/yaml',
+  'theme/github',
+]);
+
+export const JSEditor = AsyncAceEditor([
+  'mode/javascript',
+  'mode/json',
   'theme/github',
 ]);
