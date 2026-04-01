@@ -23,9 +23,10 @@ InstanceInfoCore for flexible, extensible metrics calculation.
 import logging
 
 from fastmcp import Context
+from sqlalchemy.exc import OperationalError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.extensions import event_logger
+from superset.extensions import db, event_logger
 from superset.mcp_service.mcp_core import InstanceInfoCore
 from superset.mcp_service.system.schemas import (
     GetSupersetInstanceInfoRequest,
@@ -92,38 +93,59 @@ def get_instance_info(
     Returns counts, activity metrics, and database types.
     """
     try:
-        # Import DAOs at runtime to avoid circular imports
-        from flask import g
+        return _run_instance_info()
 
-        from superset.daos.chart import ChartDAO
-        from superset.daos.dashboard import DashboardDAO
-        from superset.daos.database import DatabaseDAO
-        from superset.daos.dataset import DatasetDAO
-        from superset.daos.tag import TagDAO
-        from superset.daos.user import UserDAO
+    except OperationalError as e:
+        logger.warning(
+            "Database connection error in get_instance_info, "
+            "resetting session and retrying: %s",
+            e,
+        )
+        db.session.rollback()
+        db.session.remove()
 
-        # Configure DAO classes at runtime
-        _instance_info_core.dao_classes = {
-            "dashboards": DashboardDAO,
-            "charts": ChartDAO,
-            "datasets": DatasetDAO,
-            "databases": DatabaseDAO,
-            "users": UserDAO,
-            "tags": TagDAO,
-        }
-
-        # Run the configurable core
-        with event_logger.log_context(action="mcp.get_instance_info.metrics"):
-            result = _instance_info_core.run_tool()
-
-        # Attach the authenticated user's identity to the response
-        user = getattr(g, "user", None)
-        if user is not None:
-            result.current_user = serialize_user_object(user)
-
-        return result
+        try:
+            result = _run_instance_info()
+            logger.info("get_instance_info retry succeeded after connection reset")
+            return result
+        except OperationalError as retry_error:
+            logger.error(
+                "get_instance_info retry failed after connection reset: %s",
+                retry_error,
+                exc_info=True,
+            )
+            raise
 
     except Exception as e:
         error_msg = f"Unexpected error in instance info: {str(e)}"
         logger.error(error_msg, exc_info=True)
         raise
+
+
+def _run_instance_info() -> InstanceInfo:
+    """Execute the instance info core logic."""
+    from flask import g
+
+    from superset.daos.chart import ChartDAO
+    from superset.daos.dashboard import DashboardDAO
+    from superset.daos.database import DatabaseDAO
+    from superset.daos.dataset import DatasetDAO
+    from superset.daos.tag import TagDAO
+    from superset.daos.user import UserDAO
+
+    _instance_info_core.dao_classes = {
+        "dashboards": DashboardDAO,
+        "charts": ChartDAO,
+        "datasets": DatasetDAO,
+        "databases": DatabaseDAO,
+        "users": UserDAO,
+        "tags": TagDAO,
+    }
+
+    with event_logger.log_context(action="mcp.get_instance_info.metrics"):
+        result = _instance_info_core.run_tool()
+
+    if (user := getattr(g, "user", None)) is not None:
+        result.current_user = serialize_user_object(user)
+
+    return result
