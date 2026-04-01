@@ -466,7 +466,10 @@ test('renders validate message when filterState has validateMessage', async () =
   render(
     <DeckglLayerVisibilityCustomizationPlugin
       {...defaultProps}
-      filterState={{ validateMessage: 'This field is required', validateStatus: 'error' }}
+      filterState={{
+        validateMessage: 'This field is required',
+        validateStatus: 'error',
+      }}
     />,
     {
       useRedux: true,
