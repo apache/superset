@@ -57,18 +57,11 @@ def upgrade() -> None:
             ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint("id"),
-    )
-    op.create_unique_constraint(
-        "uq_upstream_oauth_tokens_user_provider",
-        "upstream_oauth_tokens",
-        ["user_id", "provider"],
+        sa.UniqueConstraint(
+            "user_id", "provider", name="uq_upstream_oauth_tokens_user_provider"
+        ),
     )
 
 
 def downgrade() -> None:
-    op.drop_constraint(
-        "uq_upstream_oauth_tokens_user_provider",
-        "upstream_oauth_tokens",
-        type_="unique",
-    )
     op.drop_table("upstream_oauth_tokens")
