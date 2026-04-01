@@ -397,6 +397,22 @@ describe('ChartHolder', () => {
     expect(computedWidth).toEqual(expectedWidth);
   });
 
+  test('should render fullscreen chart content via portal to document.body', async () => {
+    renderWrapper(createMockStore(), {
+      fullSizeChartId: chartId,
+    });
+
+    const fullscreenChartHolder = screen.getByTestId(
+      'dashboard-component-chart-holder',
+    );
+    const dragDroppable = screen.getByTestId('dragdroppable-object');
+
+    // Fullscreen content should be rendered outside the drag/drop container
+    // to avoid transform clipping in dashboard grid wrappers.
+    expect(dragDroppable.contains(fullscreenChartHolder)).toBe(false);
+    expect(fullscreenChartHolder.parentElement).toBe(document.body);
+  });
+
   test('should call deleteComponent when deleted', async () => {
     const deleteComponent = jest.fn();
     const store = createMockStore();

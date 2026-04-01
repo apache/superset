@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useState, useMemo, useCallback, useEffect, memo } from 'react';
+import { createPortal } from 'react-dom';
 
 import { ResizeCallback, ResizeStartCallback } from 're-resizable';
 import cx from 'classnames';
@@ -96,11 +97,14 @@ const ChartHolder = ({
   const theme = useTheme();
   const fullSizeStyle = css`
     && {
-      position: fixed !important;
+      position: fixed;
       z-index: 3000;
       left: 0;
       top: 0;
+      width: 100vw;
+      height: 100vh;
       padding: ${theme.sizeUnit * 2}px;
+      background: ${theme.colorBgContainer};
     }
   `;
   const { chartId } = component.meta;
@@ -238,6 +242,86 @@ const ChartHolder = ({
     }));
   }, []);
 
+  const chartContent = useMemo(
+    () => (
+      <div
+        data-test="dashboard-component-chart-holder"
+        style={isFullSize ? undefined : focusHighlightStyles}
+        css={isFullSize ? fullSizeStyle : undefined}
+        className={cx(
+          'dashboard-component',
+          'dashboard-component-chart-holder',
+          `dashboard-chart-id-${chartId}`,
+          outlinedComponentId ? 'fade-in' : 'fade-out',
+        )}
+      >
+        {!editMode && (
+          <AnchorLink
+            id={component.id}
+            scrollIntoView={outlinedComponentId === component.id}
+          />
+        )}
+        {!!outlinedComponentId && (
+          <style>
+            {`label[for=${outlinedColumnName}] + .Select .Select__control {
+                  border-color: ${theme.colorPrimary};
+                  transition: border-color 1s ease-in-out;
+                }`}
+          </style>
+        )}
+        <Chart
+          componentId={component.id}
+          id={component.meta.chartId ?? 0}
+          dashboardId={dashboardId}
+          width={chartWidth}
+          height={chartHeight}
+          sliceName={
+            component.meta.sliceNameOverride || component.meta.sliceName || ''
+          }
+          updateSliceName={(_sliceId: number, name: string) =>
+            handleUpdateSliceName(name)
+          }
+          isComponentVisible={isComponentVisible}
+          handleToggleFullSize={handleToggleFullSize}
+          isFullSize={isFullSize}
+          setControlValue={handleExtraControl}
+          extraControls={extraControls}
+          isInView={isInView}
+        />
+        {editMode && (
+          <HoverMenu position="top">
+            <div data-test="dashboard-delete-component-button">
+              <DeleteComponentButton onDelete={handleDeleteComponent} />
+            </div>
+          </HoverMenu>
+        )}
+      </div>
+    ),
+    [
+      isFullSize,
+      focusHighlightStyles,
+      fullSizeStyle,
+      chartId,
+      outlinedComponentId,
+      editMode,
+      component.id,
+      component.meta.chartId,
+      component.meta.sliceNameOverride,
+      component.meta.sliceName,
+      outlinedColumnName,
+      dashboardId,
+      chartWidth,
+      chartHeight,
+      handleUpdateSliceName,
+      isComponentVisible,
+      handleToggleFullSize,
+      handleExtraControl,
+      extraControls,
+      isInView,
+      handleDeleteComponent,
+    ],
+  );
+
   const renderChild = useCallback(
     ({ dragSourceRef }) => (
       <ResizableContainer
@@ -256,68 +340,16 @@ const ChartHolder = ({
         onResizeStop={onResizeStop}
         editMode={editMode}
       >
-        <div
-          ref={dragSourceRef}
-          data-test="dashboard-component-chart-holder"
-          style={focusHighlightStyles}
-          css={isFullSize ? fullSizeStyle : undefined}
-          className={cx(
-            'dashboard-component',
-            'dashboard-component-chart-holder',
-            // The following class is added to support custom dashboard styling via the CSS editor
-            `dashboard-chart-id-${chartId}`,
-            outlinedComponentId ? 'fade-in' : 'fade-out',
-          )}
-        >
-          {!editMode && (
-            <AnchorLink
-              id={component.id}
-              scrollIntoView={outlinedComponentId === component.id}
-            />
-          )}
-          {!!outlinedComponentId && (
-            <style>
-              {`label[for=${outlinedColumnName}] + .Select .Select__control {
-                    border-color: ${theme.colorPrimary};
-                    transition: border-color 1s ease-in-out;
-                  }`}
-            </style>
-          )}
-          <Chart
-            componentId={component.id}
-            id={component.meta.chartId ?? 0}
-            dashboardId={dashboardId}
-            width={chartWidth}
-            height={chartHeight}
-            sliceName={
-              component.meta.sliceNameOverride || component.meta.sliceName || ''
-            }
-            updateSliceName={(_sliceId: number, name: string) =>
-              handleUpdateSliceName(name)
-            }
-            isComponentVisible={isComponentVisible}
-            handleToggleFullSize={handleToggleFullSize}
-            isFullSize={isFullSize}
-            setControlValue={handleExtraControl}
-            extraControls={extraControls}
-            isInView={isInView}
-          />
-          {editMode && (
-            <HoverMenu position="top">
-              <div data-test="dashboard-delete-component-button">
-                <DeleteComponentButton onDelete={handleDeleteComponent} />
-              </div>
-            </HoverMenu>
-          )}
-        </div>
+        {isFullSize ? (
+          <div ref={dragSourceRef} />
+        ) : (
+          <div ref={dragSourceRef}>{chartContent}</div>
+        )}
       </ResizableContainer>
     ),
     [
       component.id,
       component.meta.height,
-      component.meta.chartId,
-      component.meta.sliceNameOverride,
-      component.meta.sliceName,
       parentComponent.type,
       columnWidth,
       widthMultiple,
@@ -326,38 +358,27 @@ const ChartHolder = ({
       onResize,
       onResizeStop,
       editMode,
-      focusHighlightStyles,
       isFullSize,
-      fullSizeStyle,
-      chartId,
-      outlinedComponentId,
-      outlinedColumnName,
-      dashboardId,
-      chartWidth,
-      chartHeight,
-      handleUpdateSliceName,
-      isComponentVisible,
-      handleToggleFullSize,
-      handleExtraControl,
-      extraControls,
-      isInView,
-      handleDeleteComponent,
+      chartContent,
     ],
   );
 
   return (
-    <Draggable
-      component={component}
-      parentComponent={parentComponent}
-      orientation={parentComponent.type === ROW_TYPE ? 'column' : 'row'}
-      index={index}
-      depth={depth}
-      onDrop={handleComponentDrop}
-      disableDragDrop={false}
-      editMode={editMode}
-    >
-      {renderChild}
-    </Draggable>
+    <>
+      <Draggable
+        component={component}
+        parentComponent={parentComponent}
+        orientation={parentComponent.type === ROW_TYPE ? 'column' : 'row'}
+        index={index}
+        depth={depth}
+        onDrop={handleComponentDrop}
+        disableDragDrop={false}
+        editMode={editMode}
+      >
+        {renderChild}
+      </Draggable>
+      {isFullSize && createPortal(chartContent, document.body)}
+    </>
   );
 };
 
