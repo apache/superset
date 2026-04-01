@@ -460,7 +460,7 @@ class GenerateDashboardRequest(BaseModel):
             return None
         v = _strip_html_tags(v.strip())
         v = _remove_dangerous_unicode(v)
-        return v or None
+        return v
 
 
 class GenerateDashboardResponse(BaseModel):
