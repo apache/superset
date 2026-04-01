@@ -75,6 +75,7 @@ from superset.utils.core import (
     get_user_id,
     RowLevelSecurityFilterType,
 )
+from superset.utils.database import parse_resource
 from superset.utils.filters import get_dataset_access_filters
 from superset.utils.urls import get_url_host
 
@@ -809,7 +810,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         default_schema = database.get_default_schema(default_catalog)
 
         for perm in schema_access:
-            parts = [part[1:-1] for part in perm.split(".")]
+            parts = parse_resource(perm)
 
             if parts[0] != database.database_name:
                 continue
@@ -869,14 +870,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         default_catalog = database.get_default_catalog()
 
         for perm in catalog_access:
-            parts = [part[1:-1] for part in perm.split(".")]
+            parts = parse_resource(perm)
             if parts[0] == database.database_name:
                 accessible_catalogs.add(parts[1])
 
         # schema access
         schema_access = self.user_view_menu_names("schema_access")
         for perm in schema_access:
-            parts = [part[1:-1] for part in perm.split(".")]
+            parts = parse_resource(perm)
 
             if parts[0] != database.database_name:
                 continue

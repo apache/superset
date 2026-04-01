@@ -25,6 +25,7 @@ from sqlalchemy.sql.sqltypes import JSON
 
 from superset import app, security_manager
 from superset.models.core import Database
+from superset.utils.database import parse_resource
 from superset.views.base import BaseFilter
 
 
@@ -33,7 +34,7 @@ def can_access_databases(view_menu_name: str) -> set[str]:
     Return names of databases available in `view_menu_name`.
     """
     return {
-        vm[1 : vm.index("]")]
+        parse_resource(vm)[0]
         for vm in security_manager.user_view_menu_names(view_menu_name)
     }
 

@@ -17,7 +17,8 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+import re
+from typing import List, TYPE_CHECKING
 
 from flask import current_app
 
@@ -80,3 +81,17 @@ def remove_database(database: Database) -> None:
 
     db.session.delete(database)
     db.session.flush()
+
+
+def parse_resource(resource_name: str) -> List[str]:
+    """
+    Parses a resource string looking like "[database].[catalog].[schema]" or
+    "[database].[schema]" and returns a list of its components.
+    Handles dots in any part.
+    """
+    if not resource_name:
+        return []
+
+    # Regex to match components within square brackets
+    pattern = r"\[(.*?)\]"
+    return re.findall(pattern, resource_name)

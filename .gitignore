@@ -20,7 +20,7 @@
 *.sqllite
 *.swp
 __pycache__
-
+.venv
 .local
 .cache
 .bento*
