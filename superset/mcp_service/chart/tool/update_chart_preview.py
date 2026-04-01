@@ -115,7 +115,10 @@ def update_chart_preview(
 
             # Preserve adhoc filters from the previous cached form_data
             # when the new config doesn't explicitly specify filters
-            if getattr(config, "filters", None) is None and request.form_data_key:
+            if (
+                getattr(request.config, "filters", None) is None
+                and request.form_data_key
+            ):
                 old_adhoc_filters = _get_old_adhoc_filters(request.form_data_key)
                 if old_adhoc_filters:
                     new_form_data["adhoc_filters"] = old_adhoc_filters
