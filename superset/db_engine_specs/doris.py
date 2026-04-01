@@ -158,6 +158,7 @@ class DorisEngineSpec(MySQLEngineSpec):
                 "homepage_url": "https://velodb.io/",
                 "categories": [
                     DatabaseCategory.ANALYTICAL_DATABASES,
+                    DatabaseCategory.SEARCH_NOSQL,
                     DatabaseCategory.TIME_SERIES,
                     DatabaseCategory.CLOUD_DATA_WAREHOUSES,
                     DatabaseCategory.HOSTED_OPEN_SOURCE,
@@ -181,6 +182,7 @@ class DorisEngineSpec(MySQLEngineSpec):
                 "homepage_url": "https://selectdb.com/",
                 "categories": [
                     DatabaseCategory.ANALYTICAL_DATABASES,
+                    DatabaseCategory.SEARCH_NOSQL,
                     DatabaseCategory.TIME_SERIES,
                     DatabaseCategory.CLOUD_DATA_WAREHOUSES,
                     DatabaseCategory.HOSTED_OPEN_SOURCE,

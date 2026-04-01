@@ -1699,7 +1699,7 @@
               1030
             ]
           }
-        ]
+        ],
         "compatible_databases": [
           {
             "name": "VeloDB",
@@ -1708,7 +1708,7 @@
             "homepage_url": "https://velodb.io/",
             "categories": [
               "ANALYTICAL_DATABASES",
-              "SEARCH_DATABASES",
+              "SEARCH_NOSQL",
               "TIME_SERIES",
               "CLOUD_DATA_WAREHOUSES",
               "HOSTED_OPEN_SOURCE"
@@ -1727,7 +1727,7 @@
             "homepage_url": "https://selectdb.com/",
             "categories": [
               "ANALYTICAL_DATABASES",
-              "SEARCH_DATABASES",
+              "SEARCH_NOSQL",
               "TIME_SERIES",
               "CLOUD_DATA_WAREHOUSES",
               "HOSTED_OPEN_SOURCE"
