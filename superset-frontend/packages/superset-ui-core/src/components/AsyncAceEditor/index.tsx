@@ -283,6 +283,16 @@ export function AsyncAceEditor(
                   color: ${token.colorText} !important;
                 }
 
+                /* Fix cursor misalignment by ensuring consistent font-family */
+                .ace_editor .ace_content {
+                  font-family: ${editorFontFamily} !important;
+                }
+
+                /* Ensure the text layer uses the same font-family */
+                .ace_editor .ace_text-layer {
+                  font-family: ${editorFontFamily} !important;
+                }
+
                 /* Adjust gutter colors */
                 .ace_editor .ace_gutter {
                   background-color: ${token.colorBgElevated} !important;
