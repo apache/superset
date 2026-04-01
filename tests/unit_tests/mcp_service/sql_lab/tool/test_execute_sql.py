@@ -237,7 +237,7 @@ class TestExecuteSql:
         mock_security_manager,  # noqa: PT019
         mcp_server,
     ):
-        """Test error when database is not found."""
+        """Test graceful error when database is not found."""
         # mock_security_manager is patched but not used (error happens first)
         del mock_security_manager  # Silence unused variable warning
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
@@ -251,8 +251,10 @@ class TestExecuteSql:
         }
 
         async with Client(mcp_server) as client:
-            with pytest.raises(ToolError, match="Database with ID 999 not found"):
-                await client.call_tool("execute_sql", {"request": request})
+            result = await client.call_tool("execute_sql", {"request": request})
+            data = result.structured_content
+            assert data["success"] is False
+            assert "Database with ID 999 not found" in data["error"]
 
     @patch("superset.security_manager", new_callable=MagicMock)
     @patch("superset.db")
@@ -274,8 +276,10 @@ class TestExecuteSql:
         }
 
         async with Client(mcp_server) as client:
-            with pytest.raises(ToolError, match="Access denied to database"):
-                await client.call_tool("execute_sql", {"request": request})
+            result = await client.call_tool("execute_sql", {"request": request})
+            data = result.structured_content
+            assert data["success"] is False
+            assert "Access denied to database" in data["error"]
 
     @patch("superset.security_manager")
     @patch("superset.db")
