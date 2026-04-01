@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useState } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { ensureIsArray, SupersetClient } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import rison from 'rison';

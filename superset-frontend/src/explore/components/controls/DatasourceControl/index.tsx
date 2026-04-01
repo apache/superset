@@ -20,13 +20,13 @@
 
 import React, { PureComponent } from 'react';
 import { DatasourceType, SupersetClient, Datasource } from '@superset-ui/core';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   css,
   styled,
   withTheme,
   type SupersetTheme,
-} from '@apache-superset/core/ui';
+} from '@apache-superset/core/theme';
 import { getTemporalColumns } from '@superset-ui/chart-controls';
 import { getUrlParam } from 'src/utils/urlUtils';
 import {

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   NO_TIME_RANGE,
@@ -80,9 +80,9 @@ export const datePickerInAdhocFilterMixin: Pick<
     // 2) there was a time filter in adhoc filters
     if (
       state?.controls?.time_range?.value ||
-      ensureIsArray(control.value).findIndex(
+      ensureIsArray(control.value).some(
         (flt: any) => flt?.operator === 'TEMPORAL_RANGE',
-      ) > -1
+      )
     ) {
       return undefined;
     }

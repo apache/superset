@@ -1,6 +1,14 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["import", "react", "jest", "jsx-a11y", "typescript", "unicorn"],
+  "plugins": [
+    "import",
+    "react",
+    "jest",
+    "jsx-a11y",
+    "typescript",
+    "unicorn",
+    "oxc"
+  ],
   "env": {
     "browser": true,
     "node": true,
@@ -34,7 +42,8 @@
     "no-unused-vars": "off",
     "no-undef": "error",
     "no-prototype-builtins": "off",
-    "no-unsafe-optional-chaining": "off",
+    "no-unsafe-optional-chaining": "error",
+    "no-constant-binary-expression": "error",
     "no-import-assign": "off",
     "no-promise-executor-return": "off",
 
@@ -72,6 +81,12 @@
       "as-needed",
       { "requireReturnForObjectLiteral": false }
     ],
+    "no-useless-constructor": "error",
+    "no-else-return": "error",
+    "no-array-constructor": "error",
+    "no-new-wrappers": "error",
+    "no-regex-spaces": "error",
+    "no-object-constructor": "error",
 
     // === Import plugin rules ===
     "import/no-unresolved": "error",
@@ -132,7 +147,7 @@
       "warn",
       { "extensions": [".jsx", ".tsx"] }
     ],
-    "react/jsx-fragments": ["warn", "syntax"],
+    "react/jsx-fragments": "error",
     "react/jsx-no-bind": "off",
     "react/jsx-props-no-spreading": "off",
     "react/jsx-boolean-value": ["error", "never", { "always": [] }],
@@ -197,7 +212,7 @@
     // === JSX-a11y rules ===
     "jsx-a11y/alt-text": "error",
     "jsx-a11y/anchor-has-content": "error",
-    "jsx-a11y/anchor-is-valid": "warn",
+    "jsx-a11y/anchor-is-valid": "error",
     "jsx-a11y/aria-activedescendant-has-tabindex": "error",
     "jsx-a11y/aria-props": "error",
     "jsx-a11y/aria-proptypes": "error",
@@ -222,8 +237,7 @@
     "jsx-a11y/no-noninteractive-tabindex": "error",
     "jsx-a11y/no-redundant-roles": "error",
     "jsx-a11y/no-static-element-interactions": "off",
-    // TODO: Fix missing aria-selected on tab roles
-    "jsx-a11y/role-has-required-aria-props": "warn",
+    "jsx-a11y/role-has-required-aria-props": "error",
     "jsx-a11y/role-supports-aria-props": "error",
     "jsx-a11y/scope": "error",
     "jsx-a11y/tabindex-no-positive": "error",
@@ -254,6 +268,16 @@
     // === Unicorn rules (bonus coverage) ===
     "unicorn/no-new-array": "error",
     "unicorn/no-invalid-remove-event-listener": "error",
+    "unicorn/no-useless-length-check": "error",
+    "unicorn/no-length-as-slice-end": "error",
+    "unicorn/no-useless-spread": "error",
+    "unicorn/no-thenable": "error",
+    "unicorn/escape-case": "error",
+    "unicorn/prefer-array-flat-map": "error",
+    "unicorn/prefer-array-some": "error",
+    "unicorn/throw-new-error": "error",
+    "unicorn/prefer-negative-index": "error",
+    "unicorn/prefer-math-trunc": "error",
     "unicorn/filename-case": "off",
     "unicorn/prevent-abbreviations": "off",
     "unicorn/no-null": "off",

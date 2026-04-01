@@ -360,6 +360,51 @@ def test_unmask_encrypted_extra() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "masked_encrypted_extra,expected_result",
+    [
+        (
+            {
+                "$.credentials_info.private_key": "Private Key",
+                "$.access_token": "Access Token",
+            },
+            {
+                "$.credentials_info.private_key",
+                "$.access_token",
+            },
+        ),
+        (
+            {
+                "$.credentials_info.private_key",
+                "$.access_token",
+            },
+            {
+                "$.credentials_info.private_key",
+                "$.access_token",
+            },
+        ),
+        (
+            None,
+            {"$.*"},
+        ),
+    ],
+)
+def test_encrypted_extra_sensitive_field_paths_from_dict(
+    masked_encrypted_extra: set[str] | dict[str, str] | None,
+    expected_result: set[str],
+) -> None:
+    """
+    Test that `encrypted_extra_sensitive_field_paths` extracts the keys
+    when `encrypted_extra_sensitive_fields` is a dict.
+    """
+
+    class DictFieldsSpec(BaseEngineSpec):
+        if masked_encrypted_extra:
+            encrypted_extra_sensitive_fields = masked_encrypted_extra
+
+    assert DictFieldsSpec.encrypted_extra_sensitive_field_paths() == expected_result
+
+
 def test_impersonate_user_backwards_compatible(mocker: MockerFixture) -> None:
     """
     Test that the `impersonate_user` method calls the original methods it replaced.
@@ -1005,6 +1050,97 @@ def test_get_oauth2_token_with_pkce(mocker: MockerFixture) -> None:
     call_kwargs = mock_post.call_args
     request_body = call_kwargs.kwargs.get("json") or call_kwargs.kwargs.get("data")
     assert request_body["code_verifier"] == code_verifier
+
+
+def test_get_oauth2_authorization_uri_additional_params(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a subclass can inject additional query params into the authorization URI
+    via `oauth2_additional_auth_uri_query_params`.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    class CustomEngineSpec(BaseEngineSpec):
+        oauth2_additional_auth_uri_query_params = {
+            "prompt": "consent",
+            "access_type": "offline",
+        }
+
+    config: OAuth2ClientConfig = {
+        "id": "client-id",
+        "secret": "client-secret",
+        "scope": "read write",
+        "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+        "authorization_request_uri": "https://oauth.example.com/authorize",
+        "token_request_uri": "https://oauth.example.com/token",
+        "request_content_type": "json",
+    }
+
+    state: OAuth2State = {
+        "database_id": 1,
+        "user_id": 1,
+        "default_redirect_uri": "http://localhost:8088/api/v1/oauth2/",
+        "tab_id": "1234",
+    }
+
+    url = CustomEngineSpec.get_oauth2_authorization_uri(config, state)
+    parsed = urlparse(url)
+    query = parse_qs(parsed.query)
+
+    # Standard params still present
+    assert query["response_type"][0] == "code"
+    assert query["client_id"][0] == "client-id"
+
+    # Additional params included
+    assert query["prompt"][0] == "consent"
+    assert query["access_type"][0] == "offline"
+
+
+def test_get_oauth2_token_additional_params(mocker: MockerFixture) -> None:
+    """
+    Test that a subclass can inject additional params into the token request body
+    via `oauth2_additional_token_request_params`.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    class CustomEngineSpec(BaseEngineSpec):
+        oauth2_additional_token_request_params = {
+            "audience": "https://api.example.com",
+        }
+
+    mocker.patch(
+        "flask.current_app.config",
+        {"DATABASE_OAUTH2_TIMEOUT": mocker.MagicMock(total_seconds=lambda: 30)},
+    )
+    mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
+    mock_post.return_value.json.return_value = {
+        "access_token": "test-access-token",  # noqa: S105
+        "expires_in": 3600,
+    }
+
+    config: OAuth2ClientConfig = {
+        "id": "client-id",
+        "secret": "client-secret",
+        "scope": "read write",
+        "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+        "authorization_request_uri": "https://oauth.example.com/authorize",
+        "token_request_uri": "https://oauth.example.com/token",
+        "request_content_type": "json",
+    }
+
+    result = CustomEngineSpec.get_oauth2_token(config, "auth-code")
+
+    assert result["access_token"] == "test-access-token"  # noqa: S105
+    call_kwargs = mock_post.call_args
+    request_body = call_kwargs.kwargs.get("json") or call_kwargs.kwargs.get("data")
+
+    # Standard params still present
+    assert request_body["grant_type"] == "authorization_code"
+    assert request_body["client_id"] == "client-id"
+
+    # Additional param included
+    assert request_body["audience"] == "https://api.example.com"
 
 
 def test_start_oauth2_dance_uses_config_redirect_uri(mocker: MockerFixture) -> None:

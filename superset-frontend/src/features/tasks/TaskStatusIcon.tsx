@@ -18,7 +18,8 @@
  */
 
 import React from 'react';
-import { useTheme, SupersetTheme, t } from '@apache-superset/core/ui';
+import { useTheme, SupersetTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Tooltip } from '@superset-ui/core/components';
 import { TaskStatus } from './types';

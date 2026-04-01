@@ -1,0 +1,141 @@
+---
+title: Checkbox
+sidebar_label: Checkbox
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# Checkbox
+
+Checkbox component that supports both regular and indeterminate states, built on top of Ant Design v5 Checkbox.
+
+## Live Example
+
+<StoryWithControls
+  component="Checkbox"
+  props={{
+  checked: false,
+  indeterminate: false
+}}
+  controls={[
+  {
+    name: "checked",
+    label: "Checked",
+    type: "boolean",
+    description: "Whether the checkbox is checked."
+  },
+  {
+    name: "indeterminate",
+    label: "Indeterminate",
+    type: "boolean",
+    description: "Whether the checkbox is in indeterminate state (partially selected)."
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <Checkbox
+      // Add props here
+    />
+  );
+}
+```
+
+## All Checkbox States
+
+```tsx live
+function AllStates() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <Checkbox checked={false}>Unchecked</Checkbox>
+      <Checkbox checked={true}>Checked</Checkbox>
+      <Checkbox indeterminate={true}>Indeterminate</Checkbox>
+      <Checkbox disabled>Disabled unchecked</Checkbox>
+      <Checkbox disabled checked>Disabled checked</Checkbox>
+    </div>
+  );
+}
+```
+
+## Select All Pattern
+
+```tsx live
+function SelectAllDemo() {
+  const [selected, setSelected] = React.useState([]);
+  const options = ['Option A', 'Option B', 'Option C'];
+
+  const allSelected = selected.length === options.length;
+  const indeterminate = selected.length > 0 && !allSelected;
+
+  return (
+    <div>
+      <Checkbox
+        checked={allSelected}
+        indeterminate={indeterminate}
+        onChange={(e) => setSelected(e.target.checked ? [...options] : [])}
+      >
+        Select All
+      </Checkbox>
+      <div style={{ marginLeft: 24, marginTop: 8 }}>
+        {options.map(opt => (
+          <div key={opt}>
+            <Checkbox
+              checked={selected.includes(opt)}
+              onChange={() => setSelected(prev =>
+                prev.includes(opt) ? prev.filter(x => x !== opt) : [...prev, opt]
+              )}
+            >
+              {opt}
+            </Checkbox>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `checked` | `boolean` | `false` | Whether the checkbox is checked. |
+| `indeterminate` | `boolean` | `false` | Whether the checkbox is in indeterminate state (partially selected). |
+
+## Import
+
+```tsx
+import { Checkbox } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/Checkbox/Checkbox.stories.tsx).
+:::

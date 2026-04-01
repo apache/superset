@@ -69,7 +69,7 @@ class DummyDAO:
         return [SimpleNamespace(id=1, name="foo"), SimpleNamespace(id=2, name="bar")], 2
 
     @classmethod
-    def find_by_id(cls, id):
+    def find_by_id(cls, id, **kwargs):
         if id == 1:
             return SimpleNamespace(id=1, name="foo")
         return None
@@ -95,10 +95,11 @@ def test_model_list_tool_basic():
     assert result.count == 2
     assert result.total_count == 2
     assert isinstance(result.items[0], DummyOutputSchema)
-    assert result.page == 1
+    # run_tool receives 0-based page; response reports 1-based (page+1)
+    assert result.page == 2
     assert result.page_size == 2
     assert result.total_pages == 1
-    # For page=1, ModelListCore sets has_previous=True
+    # For page=1 (0-based), ModelListCore sets has_previous=True
     assert result.has_previous is True
     assert result.has_next is False
     assert result.columns_requested == ["id", "name"]
@@ -196,7 +197,7 @@ def test_model_get_info_tool_not_found():
 def test_model_get_info_tool_exception():
     class FailingDAO:
         @classmethod
-        def find_by_id(cls, id):
+        def find_by_id(cls, id, **kwargs):
             raise Exception("fail")
 
     tool = ModelGetInfoCore(
