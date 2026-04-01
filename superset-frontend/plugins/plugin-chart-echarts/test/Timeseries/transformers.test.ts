@@ -17,29 +17,25 @@
  * under the License.
  */
 import { CategoricalColorScale, ChartProps } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { GenericDataType } from '@apache-superset/core/common';
+import { supersetTheme } from '@apache-superset/core/theme';
 import type { SeriesOption } from 'echarts';
 import { EchartsTimeseriesSeriesType } from '../../src';
 import { TIMESERIES_CONSTANTS } from '../../src/constants';
-import {
-  LegendOrientation,
-  EchartsTimeseriesChartProps,
-} from '../../src/types';
+import { LegendOrientation } from '../../src/types';
 import {
   transformSeries,
-  optimizeBarLabelPlacement,
+  transformNegativeLabelsPosition,
   getPadding,
 } from '../../src/Timeseries/transformers';
 import transformProps from '../../src/Timeseries/transformProps';
+import { EchartsTimeseriesChartProps } from '../../src/types';
 import * as seriesUtils from '../../src/utils/series';
 
-// Mock the colorScale function to return different colors based on key
-const mockColorScale = jest.fn((key: string) => {
-  if (key === 'test-key') return '#1f77b4'; // blue
-  if (key === 'series-key') return '#ff7f0e'; // orange
-  return '#2ca02c'; // green for any other key
-}) as unknown as CategoricalColorScale;
+// Mock the colorScale function
+const mockColorScale = jest.fn(
+  (key: string, sliceId?: number) => `color-for-${key}-${sliceId}`,
+) as unknown as CategoricalColorScale;
 
 describe('transformSeries', () => {
   const series = { name: 'test-series' };
@@ -53,8 +49,7 @@ describe('transformSeries', () => {
 
     const result = transformSeries(series, mockColorScale, 'test-key', opts);
 
-    expect(mockColorScale).toHaveBeenCalledWith('test-key', 1);
-    expect((result as any)?.itemStyle.color).toBe('#1f77b4');
+    expect((result as any)?.itemStyle.color).toBe('color-for-test-key-1');
   });
 
   test('should use seriesKey if timeShiftColor is not enabled', () => {
@@ -66,8 +61,7 @@ describe('transformSeries', () => {
 
     const result = transformSeries(series, mockColorScale, 'test-key', opts);
 
-    expect(mockColorScale).toHaveBeenCalledWith('series-key', 2);
-    expect((result as any)?.itemStyle.color).toBe('#ff7f0e');
+    expect((result as any)?.itemStyle.color).toBe('color-for-series-key-2');
   });
 
   test('should apply border styles for bar series with connectNulls', () => {
@@ -129,8 +123,8 @@ describe('transformSeries', () => {
   });
 });
 
-describe('optimizeBarLabelPlacement', () => {
-  test('label position for non-stacked vertical charts', () => {
+describe('transformNegativeLabelsPosition', () => {
+  test('label position bottom of negative value no Horizontal', () => {
     const isHorizontal = false;
     const series: SeriesOption = {
       data: [
@@ -143,12 +137,15 @@ describe('optimizeBarLabelPlacement', () => {
       type: EchartsTimeseriesSeriesType.Bar,
       stack: undefined,
     };
-    const result = optimizeBarLabelPlacement(series, isHorizontal);
-    expect((result as any)[0].label.position).toBe('insideTop');
-    expect((result as any)[1].label.position).toBe('insideTop');
-    expect((result as any)[2].label.position).toBe('insideBottom');
-    expect((result as any)[3].label.position).toBe('insideBottom');
-    expect((result as any)[4].label.position).toBe('insideTop');
+    const result =
+      Array.isArray(series.data) && series.type === 'bar' && !series.stack
+        ? transformNegativeLabelsPosition(series, isHorizontal)
+        : series.data;
+    expect((result as any)[0].label).toBe(undefined);
+    expect((result as any)[1].label).toBe(undefined);
+    expect((result as any)[2].label.position).toBe('outside');
+    expect((result as any)[3].label.position).toBe('outside');
+    expect((result as any)[4].label).toBe(undefined);
   });
 
   test('label position left of negative value is Horizontal', () => {
@@ -165,12 +162,15 @@ describe('optimizeBarLabelPlacement', () => {
       stack: undefined,
     };
 
-    const result = optimizeBarLabelPlacement(series, isHorizontal);
-    expect((result as any)[0].label.position).toBe('insideRight');
-    expect((result as any)[1].label.position).toBe('insideLeft');
-    expect((result as any)[2].label.position).toBe('insideRight');
-    expect((result as any)[3].label.position).toBe('insideLeft');
-    expect((result as any)[4].label.position).toBe('insideLeft');
+    const result =
+      Array.isArray(series.data) && series.type === 'bar' && !series.stack
+        ? transformNegativeLabelsPosition(series, isHorizontal)
+        : series.data;
+    expect((result as any)[0].label).toBe(undefined);
+    expect((result as any)[1].label.position).toBe('outside');
+    expect((result as any)[2].label).toBe(undefined);
+    expect((result as any)[3].label.position).toBe('outside');
+    expect((result as any)[4].label.position).toBe('outside');
   });
 
   test('label position to line type', () => {
@@ -192,7 +192,7 @@ describe('optimizeBarLabelPlacement', () => {
       !series.stack &&
       series.type !== 'line' &&
       series.type === 'bar'
-        ? optimizeBarLabelPlacement(series, isHorizontal)
+        ? transformNegativeLabelsPosition(series, isHorizontal)
         : series.data;
     expect((result as any)[0].label).toBe(undefined);
     expect((result as any)[1].label).toBe(undefined);
@@ -215,36 +215,48 @@ describe('optimizeBarLabelPlacement', () => {
       stack: 'obs',
     };
 
-    const result = optimizeBarLabelPlacement(series, isHorizontal);
-    expect((result as any)[0].label.position).toBe('insideTop');
-    expect((result as any)[1].label.position).toBe('insideTop');
-    expect((result as any)[2].label.position).toBe('insideBottom');
-    expect((result as any)[3].label.position).toBe('insideBottom');
-    expect((result as any)[4].label.position).toBe('insideTop');
-  });
-
-  test('label position for horizontal stacked charts', () => {
-    const isHorizontal = true;
-    const series: SeriesOption = {
-      data: [
-        [1, 2020],
-        [-3, 2021],
-        [2, 2022],
-        [-4, 2023],
-        [-6, 2024],
-      ],
-      type: EchartsTimeseriesSeriesType.Bar,
-      stack: 'obs',
-    };
-
-    const result = optimizeBarLabelPlacement(series, isHorizontal);
-    expect((result as any)[0].label.position).toBe('insideRight');
-    expect((result as any)[1].label.position).toBe('insideLeft');
-    expect((result as any)[2].label.position).toBe('insideRight');
-    expect((result as any)[3].label.position).toBe('insideLeft');
-    expect((result as any)[4].label.position).toBe('insideLeft');
+    const result =
+      Array.isArray(series.data) && series.type === 'bar' && !series.stack
+        ? transformNegativeLabelsPosition(series, isHorizontal)
+        : series.data;
+    expect((result as any)[0].label).toBe(undefined);
+    expect((result as any)[1].label).toBe(undefined);
+    expect((result as any)[2].label).toBe(undefined);
+    expect((result as any)[3].label).toBe(undefined);
+    expect((result as any)[4].label).toBe(undefined);
   });
 });
+
+function buildTimeseriesChartProps(
+  overrides: Record<string, unknown> = {},
+): EchartsTimeseriesChartProps {
+  return new ChartProps({
+    formData: {
+      colorScheme: 'bnbColors',
+      datasource: '3__table',
+      granularity_sqla: 'ds',
+      metric: 'sum__num',
+      viz_type: 'my_viz',
+      ...overrides,
+    },
+    width: 800,
+    height: 600,
+    queriesData: [
+      {
+        data: [
+          { sum__num: 100, __timestamp: new Date('2026-01-01').getTime() },
+          { sum__num: 200, __timestamp: new Date('2026-04-01').getTime() },
+          { sum__num: 300, __timestamp: new Date('2026-07-01').getTime() },
+          { sum__num: 400, __timestamp: new Date('2026-10-01').getTime() },
+          { sum__num: 500, __timestamp: new Date('2026-12-01').getTime() },
+        ],
+        colnames: ['sum__num', '__timestamp'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Temporal],
+      },
+    ],
+    theme: supersetTheme,
+  }) as unknown as EchartsTimeseriesChartProps;
+}
 
 test('should configure time axis labels to show max label for last month visibility', () => {
   const formData = {
@@ -287,6 +299,71 @@ test('should configure time axis labels to show max label for last month visibil
       }),
     }),
   );
+});
+
+test('x-axis dates do not overlap and last label stays visible at 0° rotation', () => {
+  const result = transformProps(buildTimeseriesChartProps());
+  const { axisLabel } = result.echartOptions.xAxis as Record<string, any>;
+
+  expect(axisLabel.hideOverlap).toBe(true);
+  // showMaxLabel forces the last data point label to render even
+  // when hideOverlap is active, preventing the #37181 regression.
+  expect(axisLabel.showMaxLabel).toBe(true);
+  expect(axisLabel.alignMaxLabel).toBe('right');
+});
+
+test('last x-axis date is visible and not cut off when rotated -45°', () => {
+  const lastDataPointTimestamp = new Date('2026-12-01').getTime();
+  const result = transformProps(
+    buildTimeseriesChartProps({
+      xAxisLabelRotation: -45,
+      x_axis_time_format: '%d-%m-%Y %H:%M:%S',
+    }),
+  );
+  const { xAxis, grid } = result.echartOptions as Record<string, any>;
+  const { axisLabel } = xAxis;
+
+  // The formatter renders the last data point's date as a full string
+  const lastDateLabel = axisLabel.formatter(lastDataPointTimestamp);
+  expect(lastDateLabel).toMatch(/01-12-2026/);
+  expect(lastDateLabel).not.toBe('');
+
+  // Labels are not aggressively hidden so the last date stays visible
+  expect(axisLabel.hideOverlap).toBe(false);
+  expect(axisLabel.rotate).toBe(-45);
+  // No phantom label at a position that doesn't correspond to any bar
+  expect(axisLabel.showMaxLabel).toBeUndefined();
+  // Enough right padding so the last rotated label is not clipped
+  expect(grid.right).toBeGreaterThan(TIMESERIES_CONSTANTS.gridOffsetRight);
+});
+
+test('last x-axis date is visible and not cut off when rotated 45°', () => {
+  const lastDataPointTimestamp = new Date('2026-12-01').getTime();
+  const result = transformProps(
+    buildTimeseriesChartProps({
+      xAxisLabelRotation: 45,
+      x_axis_time_format: '%d-%m-%Y %H:%M:%S',
+    }),
+  );
+  const { xAxis, grid } = result.echartOptions as Record<string, any>;
+
+  const lastDateLabel = xAxis.axisLabel.formatter(lastDataPointTimestamp);
+  expect(lastDateLabel).toMatch(/01-12-2026/);
+  expect(lastDateLabel).not.toBe('');
+
+  expect(xAxis.axisLabel.hideOverlap).toBe(false);
+  expect(xAxis.axisLabel.rotate).toBe(45);
+  expect(grid.right).toBeGreaterThan(TIMESERIES_CONSTANTS.gridOffsetRight);
+});
+
+test('no phantom date label appears at the axis boundary', () => {
+  const result = transformProps(
+    buildTimeseriesChartProps({ xAxisLabelRotation: -45 }),
+  );
+  const { axisLabel } = result.echartOptions.xAxis as Record<string, any>;
+
+  expect(axisLabel.showMaxLabel).toBeUndefined();
+  expect(axisLabel.showMinLabel).toBeUndefined();
 });
 
 function setupGetChartPaddingMock(): jest.SpyInstance {

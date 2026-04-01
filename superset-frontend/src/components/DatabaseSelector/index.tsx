@@ -24,9 +24,9 @@ import {
   useRef,
   useCallback,
 } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { SupersetClient, SupersetError } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import rison from 'rison';
 import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -304,7 +304,7 @@ export function DatabaseSelector({
       if (schemas.length === 1) {
         changeSchema(schemas[0]);
       } else if (
-        !schemas.find(schemaOption => schemaRef.current === schemaOption.value)
+        !schemas.some(schemaOption => schemaRef.current === schemaOption.value)
       ) {
         changeSchema(undefined);
       }
@@ -345,7 +345,7 @@ export function DatabaseSelector({
       } else if (catalogs.length === 1) {
         changeCatalog(catalogs[0]);
       } else if (
-        !catalogs.find(
+        !catalogs.some(
           catalogOption => catalogRef.current === catalogOption.value,
         )
       ) {

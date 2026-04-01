@@ -48,12 +48,16 @@ under the License.
 
 A modern, enterprise-ready business intelligence web application.
 
+### Documentation
+
+- **[User Guide](https://superset.apache.org/user-docs/)** — For analysts and business users. Explore data, build charts, create dashboards, and connect databases.
+- **[Administrator Guide](https://superset.apache.org/admin-docs/)** — Install, configure, and operate Superset. Covers security, scaling, and database drivers.
+- **[Developer Guide](https://superset.apache.org/developer-docs/)** — Contribute to Superset or build on its REST API and extension framework.
+
 [**Why Superset?**](#why-superset) |
 [**Supported Databases**](#supported-databases) |
-[**Installation and Configuration**](#installation-and-configuration) |
 [**Release Notes**](https://github.com/apache/superset/blob/master/RELEASING/README.md#release-notes-for-recent-releases) |
 [**Get Involved**](#get-involved) |
-[**Contributor Guide**](#contributor-guide) |
 [**Resources**](#resources) |
 [**Organizations Using Superset**](https://superset.apache.org/inTheWild)
 
@@ -191,7 +195,7 @@ Try out Superset's [quickstart](https://superset.apache.org/docs/quickstart/) gu
 ## Contributor Guide
 
 Interested in contributing? Check out our
-[Developer Portal](https://superset.apache.org/developer_portal/)
+[Developer Guide](https://superset.apache.org/developer-docs/)
 to find resources around contributing along with a detailed guide on
 how to set up a development environment.
 

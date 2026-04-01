@@ -26,7 +26,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   DataMask,
   DataMaskStateWithId,
@@ -38,7 +38,12 @@ import {
   isChartCustomizationDivider,
   ChartCustomizationDivider,
 } from '@superset-ui/core';
-import { css, SupersetTheme, useTheme, styled } from '@apache-superset/core/ui';
+import {
+  css,
+  SupersetTheme,
+  useTheme,
+  styled,
+} from '@apache-superset/core/theme';
 import {
   createHtmlPortalNode,
   InPortal,

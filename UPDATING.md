@@ -24,6 +24,18 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Deck.gl MapBox viewport and opacity controls are functional
+
+The Deck.gl MapBox chart's **Opacity**, **Default longitude**, **Default latitude**, and **Zoom** controls were previously non-functional — changing them had no effect on the rendered map. These controls are now wired up correctly.
+
+**Behavior change for existing charts:** Previously, the viewport controls had hard-coded default values (`-122.405293`, `37.772123`, zoom `11` — San Francisco) that were stored in each chart's `form_data` but never applied. The map always used `fitBounds` to center on the data. With this fix, those stored values are now respected, which means existing MapBox charts may open centered on the old default coordinates instead of fitting to data bounds.
+
+**To restore fit-to-data behavior:** Open the chart in Explore, clear the **Default longitude**, **Default latitude**, and **Zoom** fields in the Viewport section, and re-save the chart.
+
+### ClickHouse minimum driver version bump
+
+The minimum required version of `clickhouse-connect` has been raised to `>=0.13.0`. If you are using the ClickHouse connector, please upgrade your `clickhouse-connect` package. The `_mutate_label` workaround that appended hash suffixes to column aliases has also been removed, as it is no longer needed with modern versions of the driver.
+
 ### MCP Tool Observability
 
 MCP (Model Context Protocol) tools now include enhanced observability instrumentation for monitoring and debugging:
@@ -60,19 +72,19 @@ ORDER BY total_calls DESC;
 
 **Security note:** Sensitive parameters (passwords, API keys, tokens) are automatically redacted in logs as `[REDACTED]`.
 
-### Signal Cache Backend
+### Distributed Coordination Backend
 
-A new `SIGNAL_CACHE_CONFIG` configuration provides a unified Redis-based backend for real-time coordination features in Superset. This backend enables:
+A new `DISTRIBUTED_COORDINATION_CONFIG` configuration provides a unified Redis-based backend for real-time coordination features in Superset. This backend enables:
 
 - **Pub/sub messaging** for real-time event notifications between workers
 - **Atomic distributed locking** using Redis SET NX EX (more performant than database-backed locks)
 - **Event-based coordination** for background task management
 
-The signal cache is used by the Global Task Framework (GTF) for abort notifications and task completion signaling, and will eventually replace `GLOBAL_ASYNC_QUERIES_CACHE_BACKEND` as the standard signaling backend. Configuring this is recommended for Redis enabled production deployments.
+The distributed coordination is used by the Global Task Framework (GTF) for abort notifications and task completion signaling, and will eventually replace `GLOBAL_ASYNC_QUERIES_CACHE_BACKEND` as the standard signaling backend. Configuring this is recommended for Redis enabled production deployments.
 
 Example configuration in `superset_config.py`:
 ```python
-SIGNAL_CACHE_CONFIG = {
+DISTRIBUTED_COORDINATION_CONFIG = {
     "CACHE_TYPE": "RedisCache",
     "CACHE_KEY_PREFIX": "signal_",
     "CACHE_REDIS_URL": "redis://localhost:6379/1",
@@ -296,13 +308,13 @@ Note: Pillow is now a required dependency (previously optional) to support image
   There's a migration added that can potentially affect a significant number of existing charts.
 - [32317](https://github.com/apache/superset/pull/32317) The horizontal filter bar feature is now out of testing/beta development and its feature flag `HORIZONTAL_FILTER_BAR` has been removed.
 - [31590](https://github.com/apache/superset/pull/31590) Marks the begining of intricate work around supporting dynamic Theming, and breaks support for [THEME_OVERRIDES](https://github.com/apache/superset/blob/732de4ac7fae88e29b7f123b6cbb2d7cd411b0e4/superset/config.py#L671) in favor of a new theming system based on AntD V5. Likely this will be in disrepair until settling over the 5.x lifecycle.
-- [32432](https://github.com/apache/superset/pull/31260) Moves the List Roles FAB view to the frontend and requires `FAB_ADD_SECURITY_API` to be enabled in the configuration and `superset init` to be executed.
+- [32432](https://github.com/apache/superset/pull/32432) Moves the List Roles FAB view to the frontend and requires `FAB_ADD_SECURITY_API` to be enabled in the configuration and `superset init` to be executed.
 - [34319](https://github.com/apache/superset/pull/34319) Drill to Detail and Drill By is now supported in Embedded mode, and also with the `DASHBOARD_RBAC` FF. If you don't want to expose these features in Embedded / `DASHBOARD_RBAC`, make sure the roles used for Embedded / `DASHBOARD_RBAC`don't have the required permissions to perform D2D actions.
 
 ## 5.0.0
 
 - [31976](https://github.com/apache/superset/pull/31976) Removed the `DISABLE_LEGACY_DATASOURCE_EDITOR` feature flag. The previous value of the feature flag was `True` and now the feature is permanently removed.
-- [31959](https://github.com/apache/superset/pull/32000) Removes CSV_UPLOAD_MAX_SIZE config, use your web server to control file upload size.
+- [32000](https://github.com/apache/superset/pull/32000) Removes CSV_UPLOAD_MAX_SIZE config, use your web server to control file upload size.
 - [31959](https://github.com/apache/superset/pull/31959) Removes the following endpoints from data uploads: `/api/v1/database/<id>/<file type>_upload` and `/api/v1/database/<file type>_metadata`, in favour of new one (Details on the PR). And simplifies permissions.
 - [31844](https://github.com/apache/superset/pull/31844) The `ALERT_REPORTS_EXECUTE_AS` and `THUMBNAILS_EXECUTE_AS` config parameters have been renamed to `ALERT_REPORTS_EXECUTORS` and `THUMBNAILS_EXECUTORS` respectively. A new config flag `CACHE_WARMUP_EXECUTORS` has also been introduced to be able to control which user is used to execute cache warmup tasks. Finally, the config flag `THUMBNAILS_SELENIUM_USER` has been removed. To use a fixed executor for async tasks, use the new `FixedExecutor` class. See the config and docs for more info on setting up different executor profiles.
 - [31894](https://github.com/apache/superset/pull/31894) Domain sharding is deprecated in favor of HTTP2. The `SUPERSET_WEBSERVER_DOMAINS` configuration will be removed in the next major version (6.0)

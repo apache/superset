@@ -18,7 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import { SupersetClient } from '@superset-ui/core';
-import { t } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
 import rison from 'rison';
 import {
   addDangerToast,
