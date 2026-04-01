@@ -16,11 +16,49 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, SqlaFormData, supersetTheme } from '@superset-ui/core';
+import {
+  ChartDataResponseResult,
+  ChartProps,
+  DataRecord,
+  GenericDataType,
+  SqlaFormData,
+  supersetTheme,
+} from '@superset-ui/core';
+import { StackControlsValue } from '../../../src/constants';
 import { EchartsTimeseriesChartProps } from '../../../src/types';
 import transformProps from '../../../src/Timeseries/transformProps';
 import { DEFAULT_FORM_DATA } from '../../../src/Timeseries/constants';
-import { EchartsTimeseriesSeriesType } from '../../../src/Timeseries/types';
+import {
+  EchartsTimeseriesFormData,
+  OrientationType,
+  EchartsTimeseriesSeriesType,
+} from '../../../src/Timeseries/types';
+import { createEchartsTimeseriesTestChartProps } from '../../helpers';
+
+function createTestQueryData(
+  data: DataRecord[],
+  overrides?: Partial<ChartDataResponseResult>,
+): ChartDataResponseResult {
+  return {
+    annotation_data: null,
+    cache_key: null,
+    cache_timeout: null,
+    cached_dttm: null,
+    data,
+    colnames: [],
+    coltypes: [],
+    error: null,
+    is_cached: false,
+    query: '',
+    rowcount: data.length,
+    sql_rowcount: data.length,
+    stacktrace: null,
+    status: 'success',
+    from_dttm: null,
+    to_dttm: null,
+    ...overrides,
+  };
+}
 
 describe('Bar Chart X-axis Time Formatting', () => {
   const baseFormData: SqlaFormData = {
@@ -348,6 +386,97 @@ describe('Bar Chart X-axis Time Formatting', () => {
 
       expect(chartProps.formData.xAxisTimeFormat).toBeDefined();
       expect(chartProps.formData.xAxisTimeFormat).toBe('smart_date');
+    });
+  });
+
+  describe('Horizontal stacked bar chart axis bounds', () => {
+    // Dataset where each series max = 4 but stacked total max = 8
+    const stackedData: ChartDataResponseResult[] = [
+      createTestQueryData(
+        [
+          { team: 'Team A', High: 2, Low: 2, Medium: 4 },
+          { team: 'Team B', High: null, Low: null, Medium: 3 },
+          { team: 'Team C', High: null, Low: null, Medium: 1 },
+        ],
+        {
+          colnames: ['team', 'High', 'Low', 'Medium'],
+          coltypes: [
+            GenericDataType.String,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+          ],
+        },
+      ),
+    ];
+
+    const horizontalStackedFormData: EchartsTimeseriesFormData = {
+      ...(baseFormData as EchartsTimeseriesFormData),
+      x_axis: 'team',
+      metric: ['High', 'Low', 'Medium'],
+      groupby: [],
+      orientation: OrientationType.Horizontal,
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      stack: StackControlsValue.Stack,
+      truncateYAxis: true,
+    };
+
+    test('xAxis.max uses stacked total, not individual series max', () => {
+      // Individual series max = 4 (Medium), stacked total for Team A = 8
+      // Without the fix, xAxis.max would be 4, clipping bars and duplicating labels
+      const chartProps = createEchartsTimeseriesTestChartProps<
+        EchartsTimeseriesFormData,
+        EchartsTimeseriesChartProps
+      >({
+        defaultFormData: horizontalStackedFormData,
+        defaultVizType: 'echarts_timeseries_bar',
+        defaultQueriesData: stackedData,
+      });
+
+      const { echartOptions } = transformProps(chartProps);
+      const xAxis = echartOptions.xAxis as any;
+
+      // xAxis.max must be >= stacked total (8), not capped at individual series max (4)
+      expect(xAxis.max).toBeGreaterThanOrEqual(8);
+    });
+
+    test('xAxis.max is not set to individual series max when stacking', () => {
+      const chartProps = createEchartsTimeseriesTestChartProps<
+        EchartsTimeseriesFormData,
+        EchartsTimeseriesChartProps
+      >({
+        defaultFormData: horizontalStackedFormData,
+        defaultVizType: 'echarts_timeseries_bar',
+        defaultQueriesData: stackedData,
+      });
+
+      const { echartOptions } = transformProps(chartProps);
+      const xAxis = echartOptions.xAxis as any;
+
+      // 4 is the individual series max — the axis should not be clipped there
+      expect(xAxis.max).not.toBe(4);
+    });
+
+    test('non-stacked horizontal bar chart still uses individual series max', () => {
+      const nonStackedFormData: EchartsTimeseriesFormData = {
+        ...horizontalStackedFormData,
+        stack: null,
+      };
+
+      const chartProps = createEchartsTimeseriesTestChartProps<
+        EchartsTimeseriesFormData,
+        EchartsTimeseriesChartProps
+      >({
+        defaultFormData: nonStackedFormData,
+        defaultVizType: 'echarts_timeseries_bar',
+        defaultQueriesData: stackedData,
+      });
+
+      const { echartOptions } = transformProps(chartProps);
+      const xAxis = echartOptions.xAxis as any;
+
+      // Without stacking, xAxis.max should be based on individual series values
+      expect(xAxis.max).toBe(4);
     });
   });
 });
