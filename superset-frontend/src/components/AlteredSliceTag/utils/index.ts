@@ -52,7 +52,7 @@ export const formatValueHandler = (
           v.comparator && v.comparator.constructor === Array
             ? `[${v.comparator.join(', ')}]`
             : v.comparator;
-        return `${v.subject} ${v.operator} ${filterVal}`;
+        return filterVal ? `${v.subject} ${v.operator} ${filterVal}` : `${v.subject} ${v.operator}`;
       })
       .join(', ');
   }

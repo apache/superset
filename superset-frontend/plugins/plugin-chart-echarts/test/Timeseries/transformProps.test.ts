@@ -1338,7 +1338,101 @@ test('should not apply axis bounds calculation when seriesType is not Bar for ho
   expect(xAxisRaw.max).toBeUndefined();
 });
 
-<<<<<<< HEAD
+test('legend is visible on tall charts when enabled by the user', () => {
+  const chartProps = createTestChartProps({
+    height: 400,
+    formData: { showLegend: true },
+  });
+  const { legend } = transformProps(chartProps).echartOptions as any;
+
+  expect(legend.show).toBe(true);
+});
+
+test('legend is hidden on small charts even when enabled by the user', () => {
+  const chartProps = createTestChartProps({
+    height: 80,
+    formData: { showLegend: true },
+  });
+  const { legend } = transformProps(chartProps).echartOptions as any;
+
+  expect(legend.show).toBe(false);
+});
+
+test('y-axis labels remain visible on small charts for scale reference', () => {
+  const chartProps = createTestChartProps({ height: 80 });
+  const { yAxis } = transformProps(chartProps).echartOptions as any;
+
+  expect(yAxis.axisLabel.show).toBe(true);
+});
+
+test('y-axis labels are hidden on micro charts for a sparkline view', () => {
+  const chartProps = createTestChartProps({ height: 40 });
+  const { yAxis } = transformProps(chartProps).echartOptions as any;
+
+  expect(yAxis.axisLabel.show).toBe(false);
+});
+
+test('y-axis tick count scales with chart height', () => {
+  const short = transformProps(createTestChartProps({ height: 200 }));
+  const tall = transformProps(createTestChartProps({ height: 500 }));
+  const shortYAxis = short.echartOptions.yAxis as any;
+  const tallYAxis = tall.echartOptions.yAxis as any;
+
+  expect(tallYAxis.splitNumber).toBeGreaterThan(shortYAxis.splitNumber);
+});
+
+test('small chart y-axis uses splitNumber=1 to show only boundary labels', () => {
+  const chartProps = createTestChartProps({ height: 80 });
+  const { yAxis } = transformProps(chartProps).echartOptions as any;
+
+  expect(yAxis.splitNumber).toBe(1);
+});
+
+test('zoomable small chart preserves bottom padding for the dataZoom slider', () => {
+  const chartProps = createTestChartProps({
+    height: 80,
+    formData: { zoomable: true },
+  });
+  const result = transformProps(chartProps);
+  const grid = result.echartOptions.grid as any;
+
+  expect(grid.bottom).toBeGreaterThan(5);
+});
+
+test('boundary: height at exactly 100px uses full axis behavior', () => {
+  const chartProps = createTestChartProps({ height: 100 });
+  const { yAxis } = transformProps(chartProps).echartOptions as any;
+
+  expect(yAxis.axisLabel.show).toBe(true);
+  expect(yAxis.splitNumber).toBeGreaterThanOrEqual(3);
+});
+
+test('boundary: height at 99px triggers small chart behavior', () => {
+  const chartProps = createTestChartProps({
+    height: 99,
+    formData: { showLegend: true },
+  });
+  const { yAxis, legend } = transformProps(chartProps).echartOptions as any;
+
+  expect(yAxis.splitNumber).toBe(1);
+  expect(legend.show).toBe(false);
+});
+
+test('boundary: height at exactly 60px shows labels but uses compact axis', () => {
+  const chartProps = createTestChartProps({ height: 60 });
+  const { yAxis } = transformProps(chartProps).echartOptions as any;
+
+  expect(yAxis.axisLabel.show).toBe(true);
+  expect(yAxis.splitNumber).toBe(1);
+});
+
+test('boundary: height at 59px triggers micro chart behavior', () => {
+  const chartProps = createTestChartProps({ height: 59 });
+  const { yAxis } = transformProps(chartProps).echartOptions as any;
+
+  expect(yAxis.axisLabel.show).toBe(false);
+});
+
 test('x-axis formatter deduplicates consecutive identical labels for coarse time grains', () => {
   const yearData = [
     { __timestamp: Date.UTC(2003, 0, 1), sales: 100 },
@@ -1426,7 +1520,6 @@ test('should assign distinct dash patterns for multiple time offsets consistentl
   // must be different patterns
   expect(symbol1).not.toEqual(symbol2);
 });
-=======
 test('should adjust dataZoom bottom when chart height changes', () => {
   const smallChart = createTestChartProps({ height: 300 });
   const largeChart = createTestChartProps({ height: 600 });
@@ -1434,13 +1527,19 @@ test('should adjust dataZoom bottom when chart height changes', () => {
   const smallResult = transformProps(smallChart);
   const largeResult = transformProps(largeChart);
 
-  const smallBottom = (smallResult.echartOptions.dataZoom as any[])[0].bottom;
-  const largeBottom = (largeResult.echartOptions.dataZoom as any[])[0].bottom;
+  const smallDataZoom = smallResult.echartOptions.dataZoom as any[];
+  const largeDataZoom = largeResult.echartOptions.dataZoom as any[];
+
+  expect(smallDataZoom).toBeDefined();
+  expect(largeDataZoom).toBeDefined();
+  expect(smallDataZoom.length).toBeGreaterThan(0);
+  expect(largeDataZoom.length).toBeGreaterThan(0);
+
+  const smallBottom = smallDataZoom[0]?.bottom;
+  const largeBottom = largeDataZoom[0]?.bottom;
 
   expect(smallBottom).toBeDefined();
   expect(largeBottom).toBeDefined();
 
-  // Bottom should vary with height
   expect(smallBottom).not.toEqual(largeBottom);
 });
->>>>>>> 45150e96c9 (test(echarts-timeseries): add unit test for dynamic dataZoom bottom based on chart height)
