@@ -90,8 +90,7 @@ class Datasource(BaseSupersetView):
         )
         orm_datasource.database_id = database_id
 
-        if "owners" in datasource_dict and orm_datasource.owner_class is not None:
-            # Check ownership
+        if orm_datasource.owner_class is not None:
             try:
                 security_manager.raise_for_ownership(orm_datasource)
             except SupersetSecurityException as ex:
@@ -131,6 +130,7 @@ class Datasource(BaseSupersetView):
         datasource = DatasourceDAO.get_datasource(
             DatasourceType(datasource_type), datasource_id
         )
+        security_manager.raise_for_access(datasource=datasource)
         return self.json_response(sanitize_datasource_data(datasource.data))
 
     @expose("/external_metadata/<datasource_type>/<datasource_id>/")
@@ -145,6 +145,7 @@ class Datasource(BaseSupersetView):
             DatasourceType(datasource_type),
             datasource_id,
         )
+        security_manager.raise_for_access(datasource=datasource)
         try:
             external_metadata = datasource.external_metadata()
         except SupersetException as ex:
@@ -174,6 +175,7 @@ class Datasource(BaseSupersetView):
         try:
             if datasource is not None:
                 # Get columns from Superset metadata
+                security_manager.raise_for_access(datasource=datasource)
                 external_metadata = datasource.external_metadata()
             else:
                 # Use the SQLAlchemy inspector to get columns
@@ -182,9 +184,18 @@ class Datasource(BaseSupersetView):
                     .filter_by(database_name=params["database_name"])
                     .one()
                 )
+                table = Table(
+                    params["table_name"],
+                    params["schema_name"],
+                    params.get("catalog_name"),
+                )
+                security_manager.raise_for_access(
+                    database=database,
+                    table=table,
+                )
                 external_metadata = get_physical_table_metadata(
                     database=database,
-                    table=Table(params["table_name"], params["schema_name"]),
+                    table=table,
                     normalize_columns=params.get("normalize_columns") or False,
                 )
         except (NoResultFound, NoSuchTableError) as ex:

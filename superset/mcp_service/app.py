@@ -70,7 +70,8 @@ Chart Management:
 
 SQL Lab Integration:
 - execute_sql: Execute SQL queries and get results (requires database_id)
-- open_sql_lab_with_context: Generate SQL Lab URL with pre-filled query
+- save_sql_query: Save a SQL query to Saved Queries list
+- open_sql_lab_with_context: Generate SQL Lab URL with pre-filled sql
 
 Schema Discovery:
 - get_schema: Get schema metadata for chart/dataset/dashboard (columns, filters)
@@ -87,11 +88,29 @@ Available Prompts:
 - quickstart: Interactive guide for getting started with the MCP service
 - create_chart_guided: Step-by-step chart creation wizard
 
+IMPORTANT - Using Saved Metrics vs Columns:
+When get_dataset_info returns a dataset, it includes both 'columns' and 'metrics'.
+- 'columns' are raw database columns (e.g., order_date, product_name, revenue)
+- 'metrics' are pre-defined saved metrics with SQL expressions
+  (e.g., count, total_revenue)
+
+When building chart configurations
+(generate_chart, generate_explore_link, update_chart):
+- For raw columns: use {{"name": "col_name", "aggregate": "SUM"}}
+- For saved metrics: use {{"name": "metric", "saved_metric": true}}
+  Do NOT add an aggregate when using saved_metric=true
+  (it's already defined in the metric).
+  Do NOT use a saved metric name as if it were a column — it will fail.
+
+Example: If get_dataset_info returns metrics=[{{"metric_name": "count", ...}}], use:
+  {{"name": "count", "saved_metric": true}}  ← CORRECT
+  {{"name": "count", "aggregate": "COUNT"}}  ← WRONG (count is not a column)
+
 Recommended Workflows:
 
 To create a chart:
 1. list_datasets -> find a dataset
-2. get_dataset_info(id) -> examine columns and metrics
+2. get_dataset_info(id) -> examine columns AND metrics (note which names are metrics!)
 3. generate_explore_link(dataset_id, config) -> preview interactively
 4. generate_chart(dataset_id, config, save_chart=True) -> save permanently
 
@@ -103,9 +122,10 @@ To find your own charts/dashboards:
    "opr": "eq", "value": current_user.id}}])
 
 To explore data with SQL:
-1. get_instance_info -> find database_id
+1. list_datasets -> find a dataset and note its database_id
 2. execute_sql(database_id, sql) -> run query
-3. open_sql_lab_with_context(database_id) -> open SQL Lab UI
+3. save_sql_query(database_id, label, sql) -> save query for later reuse
+4. open_sql_lab_with_context(database_id) -> open SQL Lab UI
 
 generate_explore_link vs generate_chart:
 - Use generate_explore_link for exploration (no permanent chart created)
@@ -116,11 +136,18 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
 - chart_type="xy", kind="bar": Bar chart for category comparison
 - chart_type="xy", kind="area": Area chart for volume visualization
 - chart_type="xy", kind="scatter": Scatter plot for correlation analysis
+- chart_type="big_number": Big Number display (single metric, header only)
+- chart_type="big_number", show_trendline=True,
+  temporal_column="<date_col>": Big Number with trendline
 - chart_type="table": Data table for detailed views
 - chart_type="table", viz_type="ag-grid-table": Interactive AG Grid table
 - chart_type="pie": Pie chart for proportional data (set donut=True for donut)
 - chart_type="pivot_table": Interactive pivot table for cross-tabulation
 - chart_type="mixed_timeseries": Dual-series chart combining two chart types
+- chart_type="handlebars": Custom HTML template chart (KPI cards, leaderboards, reports)
+  Requires handlebars_template with Handlebars HTML template string.
+  Supports query_mode="aggregate" (with metrics/groupby) or "raw" (with columns).
+  Data available as {{{{data}}}} array; helpers: dateFormat, formatNumber, stringify.
 
 Time grain for temporal x-axis (time_grain parameter):
 - PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P1Y (yearly)
@@ -153,8 +180,21 @@ CRITICAL RULES - NEVER VIOLATE:
   open_sql_lab_with_context, etc.) and use the URL it returns.
 - To modify an existing chart's filters, metrics, or dimensions, use update_chart.
   Do NOT use execute_sql for chart modifications.
-- Parameter name reminders: open_sql_lab_with_context uses "sql" (not "query"),
-  execute_sql uses "sql" (not "query").
+- Parameter name reminders: ALWAYS use the EXACT parameter names from the tool schema.
+  Do NOT use Superset's internal form_data names.
+
+IMPORTANT - Tool-Only Interaction:
+- Do NOT generate code artifacts, HTML pages, JavaScript snippets, or any code intended
+  for the user to run. All visualization, data retrieval, and authentication are handled
+  by the provided MCP tools.
+- Always call the appropriate tool directly instead of writing code. For example, use
+  generate_chart to create visualizations rather than generating plotting code.
+- When a tool returns a URL (chart URL, dashboard URL, explore link, SQL Lab link),
+  return that URL to the user. Do NOT attempt to recreate the visualization in code.
+- Do NOT generate HTML dashboards, embed scripts, or custom frontend code. Use
+  generate_dashboard and add_chart_to_existing_dashboard for dashboard operations.
+- If a user asks for something the tools cannot do, explain the limitation and suggest
+  the closest available tool rather than generating code as a workaround.
 
 General usage tips:
 - All listing tools use 1-based pagination (first page is 1)
@@ -402,6 +442,7 @@ from superset.mcp_service.explore.tool import (  # noqa: F401, E402
 from superset.mcp_service.sql_lab.tool import (  # noqa: F401, E402
     execute_sql,
     open_sql_lab_with_context,
+    save_sql_query,
 )
 from superset.mcp_service.system import (  # noqa: F401, E402
     prompts as system_prompts,

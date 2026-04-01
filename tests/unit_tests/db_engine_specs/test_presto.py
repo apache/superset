@@ -42,17 +42,17 @@ from tests.unit_tests.db_engine_specs.utils import (
         (
             "TIMESTAMP",
             datetime(2022, 1, 1, 1, 23, 45, 600000),
-            "TIMESTAMP '2022-01-01 01:23:45.600000'",
+            "TIMESTAMP '2022-01-01 01:23:45.600'",
         ),
         (
             "TIMESTAMP WITH TIME ZONE",
             datetime(2022, 1, 1, 1, 23, 45, 600000),
-            "TIMESTAMP '2022-01-01 01:23:45.600000'",
+            "TIMESTAMP '2022-01-01 01:23:45.600'",
         ),
         (
             "TIMESTAMP WITH TIME ZONE",
             datetime(2022, 1, 1, 1, 23, 45, 600000, tzinfo=pytz.UTC),
-            "TIMESTAMP '2022-01-01 01:23:45.600000+00:00'",
+            "TIMESTAMP '2022-01-01 01:23:45.600+00:00'",
         ),
     ],
 )

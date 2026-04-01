@@ -118,7 +118,7 @@ export interface ResultSetProps {
 const ResultContainer = styled.div`
   display: flex;
   flex-direction: column;
-  row-gap: ${({ theme }) => theme.sizeUnit * 2}px;
+  row-gap: ${({ theme }) => theme.sizeUnit * 3}px;
   height: 100%;
 `;
 
@@ -749,6 +749,7 @@ const ResultSet = ({
               <div
                 css={css`
                   flex: 1 1 auto;
+                  padding-bottom: ${theme.sizeUnit * 3}px;
                 `}
               >
                 <AutoSizer disableWidth>
