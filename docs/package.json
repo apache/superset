@@ -105,7 +105,7 @@
     "eslint-plugin-react": "^7.37.5",
     "globals": "^17.4.0",
     "prettier": "^3.8.1",
-    "typescript": "~5.9.3",
+    "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.0",
     "webpack": "^5.105.4"
   },
