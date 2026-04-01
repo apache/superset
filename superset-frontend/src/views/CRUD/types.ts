@@ -154,3 +154,13 @@ export interface Tag {
 
 export type DatabaseObject = Partial<Database> &
   Pick<Database, 'sqlalchemy_uri'>;
+
+export interface EncryptedExtraField {
+  path: string;
+  label: string;
+}
+
+export interface FileEncryptedExtraFields {
+  fileName: string;
+  fields: EncryptedExtraField[];
+}

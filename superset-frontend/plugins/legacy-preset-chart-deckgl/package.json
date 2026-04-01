@@ -24,9 +24,9 @@
     "lib"
   ],
   "dependencies": {
-    "@deck.gl/aggregation-layers": "~9.2.5",
+    "@deck.gl/aggregation-layers": "~9.2.9",
     "@deck.gl/core": "~9.2.5",
-    "@deck.gl/extensions": "~9.2.5",
+    "@deck.gl/extensions": "~9.2.9",
     "@deck.gl/geo-layers": "~9.2.5",
     "@deck.gl/layers": "~9.2.5",
     "@deck.gl/mesh-layers": "~9.2.5",
@@ -45,7 +45,7 @@
     "d3-array": "^3.2.4",
     "d3-color": "^3.1.0",
     "d3-scale": "^4.0.2",
-    "handlebars": "^4.7.8",
+    "handlebars": "^4.7.9",
     "lodash": "^4.17.23",
     "mousetrap": "^1.6.5",
     "ngeohash": "^0.6.3",

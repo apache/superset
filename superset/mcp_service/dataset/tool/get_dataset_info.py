@@ -27,7 +27,7 @@ from datetime import datetime, timezone
 
 from fastmcp import Context
 from sqlalchemy.orm import joinedload, subqueryload
-from superset_core.mcp import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
 from superset.mcp_service.dataset.schemas import (
@@ -37,13 +37,19 @@ from superset.mcp_service.dataset.schemas import (
     serialize_dataset_object,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
 
-@tool(tags=["discovery"])
-@parse_request(GetDatasetInfoRequest)
+@tool(
+    tags=["discovery"],
+    class_permission_name="Dataset",
+    annotations=ToolAnnotations(
+        title="Get dataset info",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 async def get_dataset_info(
     request: GetDatasetInfoRequest, ctx: Context
 ) -> DatasetInfo | DatasetError:
@@ -55,6 +61,11 @@ async def get_dataset_info(
     - Use numeric ID (e.g., 123) or UUID string (e.g., "a1b2c3d4-...")
     - DO NOT use schema.table_name format (e.g., "public.customers")
     - To find a dataset ID, use the list_datasets tool first
+
+    IMPORTANT - Saved Metrics vs Columns:
+    The response includes both 'columns' (raw database columns) and 'metrics'
+    (pre-defined saved metrics). When building chart configs, use saved_metric=true
+    for metrics — do not treat them as columns. See instructions for details.
 
     Example usage:
     ```json

@@ -38,6 +38,12 @@ superset-extensions build: Builds extension assets.
 superset-extensions bundle: Packages the extension into a .supx file.
 
 superset-extensions dev: Automatically rebuilds the extension as files change.
+
+superset-extensions validate: Validates the extension structure and metadata consistency.
+
+superset-extensions update: Updates derived and generated files in the extension project.
+  Use --version [<version>] to update the version (prompts if no value given).
+  Use --license [<license>] to update the license (prompts if no value given).
 ```
 
 When creating a new extension with `superset-extensions init`, the CLI generates a standardized folder structure:
@@ -52,9 +58,10 @@ dataset-references/
 │   └── package.json
 ├── backend/
 │   ├── src/
-│   │    └── superset_extensions/
+│   │    └── my_org/
 │   │         └── dataset_references/
-│   ├── tests/
+│   │              ├── api.py
+│   │              └── entrypoint.py
 │   ├── pyproject.toml
 │   └── requirements.txt
 ├── dist/
@@ -64,20 +71,20 @@ dataset-references/
 │   │         ├── remoteEntry.d7a9225d042e4ccb6354.js
 │   │         └── 900.038b20cdff6d49cfa8d9.js
 │   └── backend
-│        └── superset_extensions/
+│        └── my_org/
 │             └── dataset_references/
-│                  ├── __init__.py
 │                  ├── api.py
 │                  └── entrypoint.py
-├── dataset-references-1.0.0.supx
+├── my-org.dataset-references-1.0.0.supx
 └── README.md
 ```
 
-**Note**: The extension ID (`dataset-references`) serves as the basis for all technical names:
+**Note**: With publisher `my-org` and name `dataset-references`, the technical names are:
 - Directory name: `dataset-references` (kebab-case)
-- Backend Python package: `dataset_references` (snake_case)
-- Frontend package name: `dataset-references` (kebab-case)
-- Module Federation name: `datasetReferences` (camelCase)
+- Backend Python namespace: `my_org.dataset_references`
+- Backend distribution package: `my_org-dataset_references`
+- Frontend package name: `@my-org/dataset-references` (scoped)
+- Module Federation name: `myOrg_datasetReferences` (camelCase)
 
 The `extension.json` file serves as the declared metadata for the extension, containing the extension's name, version, author, description, and a list of capabilities. This file is essential for the host application to understand how to load and manage the extension.
 
@@ -91,39 +98,45 @@ The `README.md` file provides documentation and instructions for using the exten
 
 ## Extension Metadata
 
-The `extension.json` file contains all metadata necessary for the host application to understand and manage the extension:
+The `extension.json` file contains the metadata necessary for the host application to identify and load the extension. Extensions follow a **convention-over-configuration** approach where entry points and build configuration are determined by standardized file locations rather than explicit declarations.
 
 ```json
 {
-  "id": "dataset-references",
-  "name": "Dataset References",
+  "publisher": "my-org",
+  "name": "dataset-references",
+  "displayName": "Dataset References",
   "version": "1.0.0",
-  "frontend": {
-    "contributions": {
-      "views": {
-        "sqllab": {
-          "panels": [
-            {
-              "id": "dataset-references.main",
-              "name": "Dataset References"
-            }
-          ]
-        }
-      }
-    },
-    "moduleFederation": {
-      "exposes": ["./index"],
-      "name": "datasetReferences"
-    }
-  },
-  "backend": {
-    "entryPoints": ["superset_extensions.dataset_references.entrypoint"],
-    "files": ["backend/src/superset_extensions/dataset_references/**/*.py"]
-  }
+  "license": "Apache-2.0",
+  "permissions": []
 }
 ```
 
-The `contributions` section declares how the extension extends Superset's functionality through views, commands, menus, and other contribution types. The `backend` section specifies entry points and files to include in the bundle.
+### Convention-Based Entry Points
+
+Extensions use standardized entry point locations:
+
+- **Backend**: `backend/src/{publisher}/{name}/entrypoint.py`
+- **Frontend**: `frontend/src/index.tsx`
+
+### Build Configuration
+
+Backend build configuration is specified in `backend/pyproject.toml`:
+
+```toml
+[project]
+name = "my_org-dataset_references"
+version = "1.0.0"
+license = "Apache-2.0"
+
+[tool.apache_superset_extensions.build]
+# Files to include in the extension build/bundle
+include = [
+    "src/my_org/dataset_references/**/*.py",
+]
+exclude = []
+```
+
+The `include` patterns specify which files to bundle, while `exclude` patterns can filter out unwanted files (e.g., test files, cache directories).
 
 ## Interacting with the Host
 
@@ -154,34 +167,38 @@ export const onDidQueryStop: Event<QueryContext>;
 The following code demonstrates more examples of the existing frontend APIs:
 
 ```typescript
-import { core, commands, sqlLab, authentication, Button } from '@apache-superset/core';
+import React from 'react';
+import { views, commands, sqlLab, authentication, Button } from '@apache-superset/core';
 import MyPanel from './MyPanel';
 
-export function activate(context) {
-  // Register a new panel (view) in SQL Lab and use shared UI components in your extension's React code
-  const panelDisposable = core.registerView('my_extension.panel', <MyPanel><Button/></MyPanel>);
+// Register a new panel (view) in SQL Lab and use shared UI components in your extension's React code
+views.registerView(
+  { id: 'my-extension.panel', name: 'My Panel' },
+  'sqllab.panels',
+  () => <MyPanel><Button /></MyPanel>,
+);
 
-  // Register a custom command
-  const commandDisposable = commands.registerCommand(
-    'my_extension.copy_query',
-    () => {
-      // Command logic here
-    },
-  );
+// Register a custom command
+commands.registerCommand(
+  {
+    id: 'my-extension.copy-query',
+    title: 'Copy Query',
+    description: 'Copy the current query to clipboard',
+  },
+  () => {
+    // Command logic here
+  },
+);
 
-  // Listen for query run events in SQL Lab
-  const eventDisposable = sqlLab.onDidQueryRun(queryContext => {
-    console.log('Query started on database:', queryContext.tab.databaseId);
-  });
+// Listen for query run events in SQL Lab
+sqlLab.onDidQueryRun(queryContext => {
+  console.log('Query started on database:', queryContext.tab.databaseId);
+});
 
-  // Access a CSRF token for secure API requests
-  authentication.getCSRFToken().then(token => {
-    // Use token as needed
-  });
-
-  // Add all disposables for automatic cleanup on deactivation
-  context.subscriptions.push(panelDisposable, commandDisposable, eventDisposable);
-}
+// Access a CSRF token for secure API requests
+authentication.getCSRFToken().then(token => {
+  // Use token as needed
+});
 ```
 
 ### Backend APIs
@@ -191,33 +208,54 @@ Backend APIs (via `apache-superset-core`) follow a similar pattern, providing ac
 Extension endpoints are registered under a dedicated `/extensions` namespace to avoid conflicting with built-in endpoints and also because they don't share the same version constraints. By grouping all extension endpoints under `/extensions`, Superset establishes a clear boundary between core and extension functionality, making it easier to manage, document, and secure both types of APIs.
 
 ```python
-from superset_core.api.models import Database, get_session
-from superset_core.api.daos import DatabaseDAO
-from superset_core.api.rest_api import add_extension_api
-from .api import DatasetReferencesAPI
+from superset_core.common.models import Database, get_session
+from superset_core.common.daos import DatabaseDAO
+from superset_core.rest_api.api import RestApi
+from superset_core.rest_api.decorators import api
+from flask_appbuilder.api import expose, protect
 
-# Register a new extension REST API
-add_extension_api(DatasetReferencesAPI)
-
-# Fetch Superset entities via the DAO to apply base filters that filter out entities
-# that the user doesn't have access to
-databases = DatabaseDAO.find_all()
-
-# ..or apply simple filters on top of base filters
-databases = DatabaseDAO.filter_by(uuid=database.uuid)
-if not databases:
-    raise Exception("Database not found")
-
-return databases[0]
-
-# Perform complex queries using SQLAlchemy Query, also filtering out
-# inaccessible entities
-session = get_session()
-databases_query = session.query(Database).filter(
-    Database.database_name.ilike("%abc%")
+@api(
+    id="dataset_references_api",
+    name="Dataset References API",
+    description="API for managing dataset references"
 )
-return DatabaseDAO.query(databases_query)
+class DatasetReferencesAPI(RestApi):
+    @expose("/datasets", methods=("GET",))
+    @protect()
+    def get_datasets(self) -> Response:
+        """Get all accessible datasets."""
+        # Fetch Superset entities via the DAO to apply base filters that filter out entities
+        # that the user doesn't have access to
+        databases = DatabaseDAO.find_all()
+
+        # ..or apply simple filters on top of base filters
+        databases = DatabaseDAO.filter_by(uuid=database.uuid)
+        if not databases:
+            raise Exception("Database not found")
+
+        return self.response(200, result={"databases": databases})
+
+    @expose("/search", methods=("GET",))
+    @protect()
+    def search_databases(self) -> Response:
+        """Search databases with complex queries."""
+        # Perform complex queries using SQLAlchemy Query, also filtering out
+        # inaccessible entities
+        session = get_session()
+        databases_query = session.query(Database).filter(
+            Database.database_name.ilike("%abc%")
+        )
+        databases = DatabaseDAO.query(databases_query)
+
+        return self.response(200, result={"databases": databases})
 ```
+
+### Automatic Context Detection
+
+The [`@api`](superset-core/src/superset_core/rest_api/decorators.py) decorator automatically detects whether it's being used in host or extension code:
+
+- **Extension APIs**: Registered under `/extensions/{publisher}/{name}/` with IDs prefixed as `extensions.{publisher}.{name}.{id}`
+- **Host APIs**: Registered under `/api/v1/` with original IDs
 
 In the future, we plan to expand the backend APIs to support configuring security models, database engines, SQL Alchemy dialects, etc.
 
@@ -232,7 +270,7 @@ LOCAL_EXTENSIONS = [
 ]
 ```
 
-This instructs Superset to load and serve extensions directly from disk, so you can iterate quickly. Running `superset-extensions dev` watches for file changes and rebuilds assets automatically, while the Webpack development server (started separately with `npm run dev-server`) serves updated files as soon as they're modified. This enables immediate feedback for React components, styles, and other frontend code. Changes to backend files are also detected automatically and immediately synced, ensuring that both frontend and backend updates are reflected in your development environment.
+This instructs Superset to load and serve extensions directly from disk, so you can iterate quickly. Running `superset-extensions dev` watches for file changes and rebuilds assets automatically, while the Webpack development server (started separately with `npm run start`) serves updated files as soon as they're modified. This enables immediate feedback for React components, styles, and other frontend code. Changes to backend files are also detected automatically and immediately synced, ensuring that both frontend and backend updates are reflected in your development environment.
 
 Example output when running in development mode:
 
@@ -299,7 +337,7 @@ InteractiveMyComponent.argTypes = {
 
 When the docs site is built (`yarn start` or `yarn build` in the `docs/` directory):
 
-1. The `generate-extension-components` script scans all stories in `superset-core`
+1. The `generate-superset-components` script scans all stories (including `superset-core`)
 2. For each story, it generates an MDX page with:
    - Component description
    - **Live interactive example** with controls extracted from `argTypes`

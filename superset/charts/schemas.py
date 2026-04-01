@@ -459,7 +459,7 @@ class ChartDataAggregateOptionsSchema(ChartDataPostProcessingOperationOptionsSch
                 allow_none=False,
                 metadata={"description": "Columns by which to group by"},
             ),
-            minLength=1,
+            metadata={"minLength": 1},
             required=True,
         ),
     )
@@ -656,8 +656,8 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
             "description": "Time periods (in units of `time_grain`) to predict into "
             "the future",
             "example": 7,
+            "min": 0,
         },
-        min=0,
         required=True,
     )
     confidence_interval = fields.Float(
@@ -790,8 +790,10 @@ class ChartDataPivotOptionsSchema(ChartDataPostProcessingOperationOptionsSchema)
     index = (
         fields.List(
             fields.String(allow_none=False),
-            metadata={"description": "Columns to group by on the table index (=rows)"},
-            minLength=1,
+            metadata={
+                "description": "Columns to group by on the table index (=rows)",
+                "minLength": 1,
+            },
             required=True,
         ),
     )
@@ -1681,7 +1683,7 @@ class DashboardSchema(Schema):
 
 
 class ChartGetResponseSchema(Schema):
-    id = fields.Int(description=id_description)
+    id = fields.Int(metadata={"description": id_description})
     url = fields.String()
     cache_timeout = fields.String()
     certified_by = fields.String()

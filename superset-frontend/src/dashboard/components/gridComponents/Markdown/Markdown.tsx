@@ -22,7 +22,8 @@ import cx from 'classnames';
 import type { JsonObject } from '@superset-ui/core';
 import type { ResizeStartCallback, ResizeCallback } from 're-resizable';
 
-import { t, css, styled } from '@apache-superset/core/ui';
+import { css, styled } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { SafeMarkdown } from '@superset-ui/core/components';
 import { EditorHost } from 'src/core/editors';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';

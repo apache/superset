@@ -19,7 +19,7 @@
 
 import { ReactNode } from 'react';
 import { Divider, Filter } from '@superset-ui/core';
-import { css, SupersetTheme } from '@apache-superset/core/ui';
+import { css, SupersetTheme } from '@apache-superset/core/theme';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';
 import { CrossFilterIndicator } from '../../selectors';

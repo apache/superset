@@ -49,8 +49,8 @@ def template_context():
         "npm_name": "@test-org/test-extension",
         "mf_name": "testOrg_testExtension",
         "backend_package": "test_org-test_extension",
-        "backend_path": "superset_extensions.test_org.test_extension",
-        "backend_entry": "superset_extensions.test_org.test_extension.entrypoint",
+        "backend_path": "test_org.test_extension",
+        "backend_entry": "test_org.test_extension.entrypoint",
         "version": "0.1.0",
         "license": "Apache-2.0",
         "include_frontend": True,
@@ -78,39 +78,19 @@ def test_extension_json_template_renders_with_both_frontend_and_backend(
     assert parsed["license"] == "Apache-2.0"
     assert parsed["permissions"] == []
 
-    # Verify frontend section exists
-    assert "frontend" in parsed
-    frontend = parsed["frontend"]
-    assert "contributions" in frontend
-    assert "moduleFederation" in frontend
-    assert frontend["contributions"] == {
-        "commands": [],
-        "views": {},
-        "menus": {},
-        "editors": [],
-    }
-    assert frontend["moduleFederation"] == {
-        "exposes": ["./index"],
-        "name": "testOrg_testExtension",
-    }
+    # Verify frontend section is not present (contributions are code-first)
+    assert "frontend" not in parsed
 
-    # Verify backend section exists
-    assert "backend" in parsed
-    backend = parsed["backend"]
-    assert backend["entryPoints"] == [
-        "superset_extensions.test_org.test_extension.entrypoint"
-    ]
-    assert backend["files"] == [
-        "backend/src/superset_extensions/test_org/test_extension/**/*.py"
-    ]
+    # Verify no backend section in extension.json (moved to pyproject.toml)
+    assert "backend" not in parsed
 
 
 @pytest.mark.unit
 @pytest.mark.parametrize(
     "include_frontend,include_backend,expected_sections",
     [
-        (True, False, ["frontend"]),
-        (False, True, ["backend"]),
+        (True, False, []),
+        (False, True, []),
         (False, False, []),
     ],
 )
@@ -217,8 +197,8 @@ def test_template_rendering_with_different_ids(
         "npm_name": f"@{publisher}/{technical_name}",
         "mf_name": get_module_federation_name(publisher, technical_name),
         "backend_package": f"{publisher_snake}-{name_snake}",
-        "backend_path": f"superset_extensions.{publisher_snake}.{name_snake}",
-        "backend_entry": f"superset_extensions.{publisher_snake}.{name_snake}.entrypoint",
+        "backend_path": f"{publisher_snake}.{name_snake}",
+        "backend_entry": f"{publisher_snake}.{name_snake}.entrypoint",
         "version": "1.0.0",
         "license": "MIT",
         "include_frontend": True,
@@ -233,12 +213,7 @@ def test_template_rendering_with_different_ids(
     assert parsed["publisher"] == publisher
     assert parsed["name"] == technical_name
     assert parsed["displayName"] == display_name
-    assert parsed["backend"]["entryPoints"] == [
-        f"superset_extensions.{publisher_snake}.{name_snake}.entrypoint"
-    ]
-    assert parsed["backend"]["files"] == [
-        f"backend/src/superset_extensions/{publisher_snake}/{name_snake}/**/*.py"
-    ]
+    assert "backend" not in parsed
 
     # Test package.json template
     template = jinja_env.get_template("frontend/package.json.j2")
@@ -299,8 +274,8 @@ def test_template_rendering_with_different_licenses(jinja_env, license_type):
         "npm_name": "@test-pub/test-ext",
         "mf_name": "testPub_testExt",
         "backend_package": "test_pub-test_ext",
-        "backend_path": "superset_extensions.test_pub.test_ext",
-        "backend_entry": "superset_extensions.test_pub.test_ext.entrypoint",
+        "backend_path": "test_pub.test_ext",
+        "backend_entry": "test_pub.test_ext.entrypoint",
         "version": "1.0.0",
         "license": license_type,
         "include_frontend": True,
@@ -372,8 +347,8 @@ def test_template_context_edge_cases(jinja_env):
         "npm_name": "@min/minimal",
         "mf_name": "min_minimal",
         "backend_package": "min-minimal",
-        "backend_path": "superset_extensions.min.minimal",
-        "backend_entry": "superset_extensions.min.minimal.entrypoint",
+        "backend_path": "min.minimal",
+        "backend_entry": "min.minimal.entrypoint",
         "version": "1.0.0",
         "license": "MIT",
         "include_frontend": False,

@@ -23,7 +23,7 @@
  */
 
 import { Metric, ColumnMeta } from '@superset-ui/chart-controls';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { v4 as uuidv4 } from 'uuid';
 import {
   DatasourceFolder,

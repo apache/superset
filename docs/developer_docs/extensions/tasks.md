@@ -50,7 +50,7 @@ When GTF is considered stable, it will replace legacy Celery tasks for built-in 
 ### Define a Task
 
 ```python
-from superset_core.api.tasks import task, get_context
+from superset_core.tasks.decorators import task, get_context
 
 @task
 def process_data(dataset_id: int) -> None:
@@ -245,7 +245,8 @@ Always implement an abort handler for long-running tasks. This allows users to c
 Set a timeout to automatically abort tasks that run too long:
 
 ```python
-from superset_core.api.tasks import task, get_context, TaskOptions
+from superset_core.tasks.decorators import task, get_context
+from superset_core.tasks.types import TaskOptions
 
 # Set default timeout in decorator
 @task(timeout=300)  # 5 minutes
@@ -299,7 +300,7 @@ Timeouts require an abort handler to be effective. Without one, the timeout trig
 Use `task_key` to prevent duplicate task execution:
 
 ```python
-from superset_core.api.tasks import TaskOptions
+from superset_core.tasks.types import TaskOptions
 
 # Without key - creates new task each time (random UUID)
 task1 = my_task.schedule(x=1)
@@ -331,7 +332,8 @@ print(task2.status)  # "success" (terminal status)
 ## Task Scopes
 
 ```python
-from superset_core.api.tasks import task, TaskScope
+from superset_core.tasks.decorators import task
+from superset_core.tasks.types import TaskScope
 
 @task  # Private by default
 def private_task(): ...
@@ -369,8 +371,8 @@ The prune job only removes tasks in terminal states (`SUCCESS`, `FAILURE`, `ABOR
 
 See `superset/config.py` for a complete example configuration.
 
-:::tip Signal Cache for Faster Notifications
-By default, abort detection and sync join-and-wait use database polling. Configure `SIGNAL_CACHE_CONFIG` to enable Redis pub/sub for real-time notifications. See [Signal Cache Backend](/admin-docs/configuration/cache#signal-cache-backend) for configuration details.
+:::tip Distributed Coordination for Faster Notifications
+By default, abort detection and sync join-and-wait use database polling. Configure `DISTRIBUTED_COORDINATION_CONFIG` to enable Redis pub/sub for real-time notifications. See [Distributed Coordination Backend](/admin-docs/configuration/cache#signal-cache-backend) for configuration details.
 :::
 
 ## API Reference

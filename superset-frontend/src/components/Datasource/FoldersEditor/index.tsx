@@ -105,6 +105,8 @@ export default function FoldersEditor({
   const [searchTerm, setSearchTerm] = useState('');
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [preSearchCollapsedIds, setPreSearchCollapsedIds] =
+    useState<Set<string> | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const sensors = useSensors(useSensor(PointerSensor, pointerSensorOptions));
@@ -113,41 +115,175 @@ export default function FoldersEditor({
 
   const fullFlattenedItems = useMemo(() => flattenTree(items), [items]);
 
+  // Track which folders contain matching items during search
+  const { visibleItemIds, searchExpandedFolderIds, foldersWithMatches } =
+    useMemo(() => {
+      if (!searchTerm) {
+        const allIds = new Set<string>();
+        metrics.forEach(m => allIds.add(m.uuid));
+        columns.forEach(c => allIds.add(c.uuid));
+        return {
+          visibleItemIds: allIds,
+          searchExpandedFolderIds: new Set<string>(),
+          foldersWithMatches: new Set<string>(),
+        };
+      }
+
+      const allItems = [...metrics, ...columns];
+      const matchingItemIds = filterItemsBySearch(searchTerm, allItems);
+      const expandedFolders = new Set<string>();
+      const matchingFolders = new Set<string>();
+      const lowerSearch = searchTerm.toLowerCase();
+
+      // Helper to check if folder title matches search
+      const folderMatches = (folder: TreeItemType): boolean =>
+        folder.type === FoldersEditorItemType.Folder &&
+        folder.name?.toLowerCase().includes(lowerSearch);
+
+      // Helper to recursively check if a folder contains matching items
+      const folderContainsMatches = (folder: TreeItemType): boolean => {
+        if (folder.type !== FoldersEditorItemType.Folder) return false;
+
+        // If folder name matches, it contains matches
+        if (folderMatches(folder)) {
+          return true;
+        }
+
+        // Check direct children
+        if (
+          folder.children?.some(child => {
+            if (child.type === FoldersEditorItemType.Folder) {
+              return folderContainsMatches(child);
+            }
+            return matchingItemIds.has(child.uuid);
+          })
+        ) {
+          return true;
+        }
+
+        return false;
+      };
+
+      // Helper to get all item IDs in a folder
+      const getAllItemsInFolder = (
+        folder: TreeItemType,
+        itemSet: Set<string>,
+      ) => {
+        if ('children' in folder && folder.children) {
+          folder.children.forEach((child: TreeItemType) => {
+            if (child.type === FoldersEditorItemType.Folder) {
+              getAllItemsInFolder(child, itemSet);
+            } else {
+              itemSet.add(child.uuid);
+            }
+          });
+        }
+      };
+
+      // Process each folder to determine which should expand and which items to show
+      const finalVisibleItems = new Set<string>(matchingItemIds);
+
+      items.forEach(item => {
+        if (item.type === FoldersEditorItemType.Folder) {
+          if (folderMatches(item)) {
+            // Folder title matches - expand and show all children
+            expandedFolders.add(item.uuid);
+            matchingFolders.add(item.uuid);
+            getAllItemsInFolder(item, finalVisibleItems);
+
+            // Recursively expand all subfolders
+            const expandAllSubfolders = (folder: TreeItemType) => {
+              if ('children' in folder && folder.children) {
+                folder.children.forEach((child: TreeItemType) => {
+                  if (child.type === FoldersEditorItemType.Folder) {
+                    expandedFolders.add(child.uuid);
+                    matchingFolders.add(child.uuid);
+                    expandAllSubfolders(child);
+                  }
+                });
+              }
+            };
+            expandAllSubfolders(item);
+          } else if (folderContainsMatches(item)) {
+            // Folder contains matching items - expand it
+            expandedFolders.add(item.uuid);
+            matchingFolders.add(item.uuid);
+
+            // Recursively expand subfolders that contain matches
+            const expandMatchingSubfolders = (folder: TreeItemType) => {
+              if ('children' in folder && folder.children) {
+                folder.children.forEach((child: TreeItemType) => {
+                  if (
+                    child.type === FoldersEditorItemType.Folder &&
+                    folderContainsMatches(child)
+                  ) {
+                    expandedFolders.add(child.uuid);
+                    matchingFolders.add(child.uuid);
+                    expandMatchingSubfolders(child);
+                  }
+                });
+              }
+            };
+            expandMatchingSubfolders(item);
+          }
+        }
+      });
+
+      return {
+        visibleItemIds: finalVisibleItems,
+        searchExpandedFolderIds: expandedFolders,
+        foldersWithMatches: matchingFolders,
+      };
+    }, [searchTerm, metrics, columns, items]);
+
   const collapsedFolderIds = useMemo(() => {
     const result: UniqueIdentifier[] = [];
     for (const { uuid, type, children } of fullFlattenedItems) {
-      if (
-        type === FoldersEditorItemType.Folder &&
-        collapsedIds.has(uuid) &&
-        children?.length
-      ) {
-        result.push(uuid);
+      if (type === FoldersEditorItemType.Folder && children?.length) {
+        // During search, use search-expanded folders
+        if (searchTerm) {
+          if (!searchExpandedFolderIds.has(uuid)) {
+            result.push(uuid);
+          }
+        } else {
+          // Normal collapse state when not searching
+          if (collapsedIds.has(uuid)) {
+            result.push(uuid);
+          }
+        }
       }
     }
     return result;
-  }, [fullFlattenedItems, collapsedIds]);
+  }, [fullFlattenedItems, collapsedIds, searchTerm, searchExpandedFolderIds]);
 
   const computeFlattenedItems = useCallback(
-    (activeId: UniqueIdentifier | null) =>
-      removeChildrenOf(
-        fullFlattenedItems,
+    (activeId: UniqueIdentifier | null) => {
+      // During search, filter out folders that don't match
+      let itemsToProcess = fullFlattenedItems;
+      if (searchTerm && foldersWithMatches) {
+        itemsToProcess = fullFlattenedItems.filter(item => {
+          if (item.type === FoldersEditorItemType.Folder) {
+            return foldersWithMatches.has(item.uuid);
+          }
+          return visibleItemIds.has(item.uuid);
+        });
+      }
+
+      return removeChildrenOf(
+        itemsToProcess,
         activeId != null
           ? [activeId, ...collapsedFolderIds]
           : collapsedFolderIds,
-      ),
-    [fullFlattenedItems, collapsedFolderIds],
+      );
+    },
+    [
+      fullFlattenedItems,
+      collapsedFolderIds,
+      searchTerm,
+      foldersWithMatches,
+      visibleItemIds,
+    ],
   );
-
-  const visibleItemIds = useMemo(() => {
-    if (!searchTerm) {
-      const allIds = new Set<string>();
-      metrics.forEach(m => allIds.add(m.uuid));
-      columns.forEach(c => allIds.add(c.uuid));
-      return allIds;
-    }
-    const allItems = [...metrics, ...columns];
-    return filterItemsBySearch(searchTerm, allItems);
-  }, [searchTerm, metrics, columns]);
 
   const metricsMap = useMemo(
     () => new Map(metrics.map(m => [m.uuid, m])),
@@ -184,9 +320,18 @@ export default function FoldersEditor({
 
   const debouncedSearch = useCallback(
     debounce((term: string) => {
+      // Save collapsed state before search starts
+      if (!searchTerm && term) {
+        setPreSearchCollapsedIds(new Set(collapsedIds));
+      }
+      // Restore collapsed state when search is cleared
+      if (searchTerm && !term && preSearchCollapsedIds) {
+        setCollapsedIds(preSearchCollapsedIds);
+        setPreSearchCollapsedIds(null);
+      }
       setSearchTerm(term);
     }, 300),
-    [],
+    [searchTerm, collapsedIds, preSearchCollapsedIds],
   );
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
