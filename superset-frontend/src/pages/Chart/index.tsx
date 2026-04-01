@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { useLocation } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
+import type { Location, Action } from 'history';
 import { t } from '@apache-superset/core/translation';
 import {
   getLabelsColorMap,
@@ -84,11 +85,11 @@ const getDashboardPageContext = (pageId?: string | null) => {
   return getItem(LocalStorageKeys.DashboardExploreContext, {})[pageId] || null;
 };
 
-const getDashboardContextFormData = () => {
-  const dashboardPageId = getUrlParam(URL_PARAMS.dashboardPageId);
+const getDashboardContextFormData = (search: string) => {
+  const dashboardPageId = getUrlParam(URL_PARAMS.dashboardPageId, search);
   const dashboardContext = getDashboardPageContext(dashboardPageId);
   if (dashboardContext) {
-    const sliceId = getUrlParam(URL_PARAMS.sliceId) || 0;
+    const sliceId = getUrlParam(URL_PARAMS.sliceId, search) || 0;
     const {
       colorScheme,
       labelsColor,
@@ -128,20 +129,28 @@ const getDashboardContextFormData = () => {
 
 export default function ExplorePage() {
   const [isLoaded, setIsLoaded] = useState(false);
-  const isExploreInitialized = useRef(false);
+  const fetchGeneration = useRef(0);
   const dispatch = useDispatch();
-  const location = useLocation();
+  const history = useHistory();
 
-  useEffect(() => {
-    const exploreUrlParams = getParsedExploreURLParams(location);
-    const saveAction = getUrlParam(
-      URL_PARAMS.saveAction,
-    ) as SaveActionType | null;
-    const dashboardContextFormData = getDashboardContextFormData();
+  const loadExploreData = useCallback(
+    (
+      loc: { search: string; pathname: string },
+      saveAction?: SaveActionType | null,
+    ) => {
+      fetchGeneration.current += 1;
+      const generation = fetchGeneration.current;
+      const exploreUrlParams = getParsedExploreURLParams(loc);
+      const dashboardContextFormData = getDashboardContextFormData(loc.search);
 
-    if (!isExploreInitialized.current || !!saveAction) {
+      const isStale = () => generation !== fetchGeneration.current;
+
       fetchExploreData(exploreUrlParams)
         .then(({ result }) => {
+          if (isStale()) {
+            return;
+          }
+
           const formData = dashboardContextFormData
             ? getFormDataWithDashboardContext(
                 result.form_data,
@@ -150,16 +159,36 @@ export default function ExplorePage() {
               )
             : result.form_data;
 
+          let chartStates: Record<number, JsonObject> | undefined;
+          if (result.chartState) {
+            const sliceId =
+              getUrlParam(URL_PARAMS.sliceId) ||
+              (formData as JsonObject).slice_id ||
+              0;
+            chartStates = {
+              [sliceId]: {
+                chartId: sliceId,
+                state: result.chartState,
+                lastModified: Date.now(),
+              },
+            };
+          }
+
           dispatch(
             hydrateExplore({
               ...result,
               form_data: formData,
               saveAction,
+              chartStates,
             }),
           );
         })
         .catch(err => Promise.all([getClientErrorObject(err), err]))
         .then(resolved => {
+          if (isStale()) {
+            return;
+          }
+
           const [clientError, err] = resolved || [];
           if (!err) {
             return Promise.resolve();
@@ -193,6 +222,9 @@ export default function ExplorePage() {
             )
               .then(
                 ({ result: { id, url, owners, form_data: _, ...data } }) => {
+                  if (isStale()) {
+                    return;
+                  }
                   const slice = {
                     ...data,
                     datasource: err.extra?.datasource_name,
@@ -209,6 +241,9 @@ export default function ExplorePage() {
                 },
               )
               .catch(() => {
+                if (isStale()) {
+                  return;
+                }
                 dispatch(hydrateExplore(exploreData));
               });
           }
@@ -216,12 +251,39 @@ export default function ExplorePage() {
           return Promise.resolve();
         })
         .finally(() => {
-          setIsLoaded(true);
-          isExploreInitialized.current = true;
+          if (!isStale()) {
+            setIsLoaded(true);
+          }
         });
-    }
+    },
+    [dispatch],
+  );
+
+  // Initial fetch on mount
+  useEffect(() => {
+    loadExploreData(history.location);
     getLabelsColorMap().source = LabelsColorMapSource.Explore;
-  }, [dispatch, location]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Re-fetch on navigation or post-save.
+  // PUSH/POP: full reload (unmount + re-fetch).
+  // REPLACE with saveAction state: re-fetch without unmount (keeps chart visible).
+  // Other REPLACE: ignored (URL sync from updateHistory).
+  useEffect(() => {
+    const unlisten = history.listen((loc: Location, action: Action) => {
+      const saveAction = (loc.state as Record<string, unknown>)?.saveAction as
+        | SaveActionType
+        | undefined;
+      if (action === 'PUSH' || action === 'POP') {
+        setIsLoaded(false);
+        loadExploreData(loc, saveAction);
+      } else if (saveAction) {
+        loadExploreData(loc, saveAction);
+      }
+    });
+    return unlisten;
+  }, [history, loadExploreData]);
 
   if (!isLoaded) {
     return <Loading />;

@@ -10638,7 +10638,7 @@ msgstr "Біг"
 
 #, fuzzy, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
-msgstr "Запуск оператора %(statement_num)s з %(statement_count)s"
+msgstr "Запуск оператора %(block_num)s з %(block_count)s"
 
 msgid "SAT"
 msgstr "Сидіти"
