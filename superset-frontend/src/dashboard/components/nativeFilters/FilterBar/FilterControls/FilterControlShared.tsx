@@ -202,6 +202,10 @@ const ToolTipContainer = styled.div`
   display: flex;
 `;
 
+const StyledInfoCircleOutlined = styled(Icons.InfoCircleOutlined)`
+  padding-left: ${({ theme }) => theme.sizeUnit}px;
+`;
+
 export const RequiredFieldIndicator = () => (
   <span
     css={(theme: SupersetTheme) => ({
@@ -232,13 +236,7 @@ export const DescriptionToolTip = ({
         whiteSpace: 'normal',
       }}
     >
-      <Icons.InfoCircleOutlined
-        className="text-muted"
-        role="button"
-        css={(theme: SupersetTheme) => ({
-          paddingLeft: `${theme.sizeUnit}px`,
-        })}
-      />
+      <StyledInfoCircleOutlined className="text-muted" role="button" />
     </Tooltip>
   </ToolTipContainer>
 );
@@ -251,13 +249,7 @@ export const DeckglLayerVisibilityTooltip = () => (
       )}
       placement="right"
     >
-      <Icons.InfoCircleOutlined
-        className="text-muted"
-        role="button"
-        css={(theme: SupersetTheme) => ({
-          paddingLeft: `${theme.sizeUnit}px`,
-        })}
-      />
+      <StyledInfoCircleOutlined className="text-muted" role="button" />
     </Tooltip>
   </ToolTipContainer>
 );
