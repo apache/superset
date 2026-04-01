@@ -93,7 +93,10 @@ from superset.mcp_service.system.schemas import (
     TagInfo,
     UserInfo,
 )
-from superset.mcp_service.utils.sanitization import sanitize_user_input
+from superset.mcp_service.utils.sanitization import (
+    _remove_dangerous_unicode,
+    _strip_html_tags,
+)
 
 
 class DashboardError(BaseModel):
@@ -452,10 +455,12 @@ class GenerateDashboardRequest(BaseModel):
     @field_validator("dashboard_title")
     @classmethod
     def sanitize_dashboard_title(cls, v: str | None) -> str | None:
-        """Sanitize dashboard title to prevent XSS attacks."""
-        return sanitize_user_input(
-            v, "Dashboard title", max_length=255, allow_empty=True
-        )
+        """Strip HTML tags from dashboard title to prevent XSS."""
+        if v is None:
+            return None
+        v = _strip_html_tags(v.strip())
+        v = _remove_dangerous_unicode(v)
+        return v or None
 
 
 class GenerateDashboardResponse(BaseModel):
