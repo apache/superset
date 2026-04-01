@@ -17,7 +17,7 @@
  * under the License.
  */
 import { JsonObject, LatestQueryFormData } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import type { ChartStatus, Datasource } from 'src/explore/types';
 
 export enum ResultTypes {

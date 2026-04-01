@@ -24,7 +24,7 @@ import {
   ChartCustomizationDivider,
 } from '@superset-ui/core';
 import type { FormInstance } from '@superset-ui/core/components';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { Flex } from '@superset-ui/core/components';
 import FilterContentRenderer from './FilterContentRenderer';
 import CustomizationContentRenderer from './CustomizationContentRenderer';

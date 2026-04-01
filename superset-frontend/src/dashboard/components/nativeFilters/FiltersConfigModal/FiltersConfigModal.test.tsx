@@ -223,6 +223,10 @@ function queryCheckbox(name: RegExp) {
   return screen.queryByRole('checkbox', { name });
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 test('renders a value filter type', () => {
   defaultRender();
 
@@ -524,7 +528,10 @@ test('deletes a filter including dependencies', async () => {
   );
 }, 30000);
 
-test('reorders filters via drag and drop', async () => {
+const SORTABLE_ITEM_HEIGHT = 40;
+const SORTABLE_ITEM_WIDTH = 200;
+
+test('reorders filters via keyboard (Space, ArrowDown, Space)', async () => {
   const nativeFilterConfig = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', []),
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),
@@ -543,92 +550,109 @@ test('reorders filters via drag and drop', async () => {
 
   const onSave = jest.fn();
 
-  defaultRender(state, {
-    ...props,
-    createNewOnOpen: false,
-    onSave,
-  });
-
-  const filterContainer = screen.getByTestId('filter-title-container');
-  const draggableFilters = within(filterContainer).getAllByRole('tab');
-
-  fireEvent.dragStart(draggableFilters[0]);
-  fireEvent.dragOver(draggableFilters[2]);
-  fireEvent.drop(draggableFilters[2]);
-  fireEvent.dragEnd(draggableFilters[0]);
-
-  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
-
-  await waitFor(() =>
-    expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({
-        filterChanges: expect.objectContaining({
-          deleted: [],
-          modified: [],
-          reordered: expect.arrayContaining([
-            'NATIVE_FILTER-2',
-            'NATIVE_FILTER-3',
-            'NATIVE_FILTER-1',
-          ]),
-        }),
-      }),
-    ),
+  const originalOffsetHeight = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    'offsetHeight',
   );
-});
+  const originalOffsetWidth = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    'offsetWidth',
+  );
 
-test('rearranges three filters and deletes one of them', async () => {
-  const nativeFilterConfig = [
-    buildNativeFilter('NATIVE_FILTER-1', 'state', []),
-    buildNativeFilter('NATIVE_FILTER-2', 'country', []),
-    buildNativeFilter('NATIVE_FILTER-3', 'product', []),
-  ];
-
-  const state = {
-    ...defaultState(),
-    dashboardInfo: {
-      metadata: {
-        native_filter_configuration: nativeFilterConfig,
-      },
+  Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+    configurable: true,
+    get() {
+      return SORTABLE_ITEM_HEIGHT;
     },
-    dashboardLayout,
-  };
-
-  const onSave = jest.fn();
-
-  defaultRender(state, {
-    ...props,
-    createNewOnOpen: false,
-    onSave,
+  });
+  Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
+    configurable: true,
+    get() {
+      return SORTABLE_ITEM_WIDTH;
+    },
   });
 
-  const filterContainer = screen.getByTestId('filter-title-container');
-  const draggableFilters = within(filterContainer).getAllByRole('tab');
-  const deleteIcon = draggableFilters[1].querySelector('[data-icon="delete"]');
-  fireEvent.click(deleteIcon!);
+  try {
+    defaultRender(state, {
+      ...props,
+      createNewOnOpen: false,
+      onSave,
+    });
 
-  fireEvent.dragStart(draggableFilters[0]);
-  fireEvent.dragOver(draggableFilters[2]);
-  fireEvent.drop(draggableFilters[2]);
-  fireEvent.dragEnd(draggableFilters[0]);
+    const filterContainer = screen.getByTestId('filter-title-container');
+    const sortableElements = filterContainer.querySelectorAll(
+      '[aria-roledescription="sortable"]',
+    );
 
-  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+    sortableElements.forEach((el, index) => {
+      const sortableNode = el.parentElement;
+      if (sortableNode) {
+        jest.spyOn(sortableNode, 'getBoundingClientRect').mockImplementation(
+          () =>
+            ({
+              bottom: (index + 1) * SORTABLE_ITEM_HEIGHT,
+              height: SORTABLE_ITEM_HEIGHT,
+              left: 0,
+              right: SORTABLE_ITEM_WIDTH,
+              top: index * SORTABLE_ITEM_HEIGHT,
+              width: SORTABLE_ITEM_WIDTH,
+              x: 0,
+              y: index * SORTABLE_ITEM_HEIGHT,
+              toJSON: () => ({}),
+            }) as DOMRect,
+        );
+      }
+    });
 
-  await waitFor(() =>
-    expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({
-        filterChanges: expect.objectContaining({
-          modified: [],
-          deleted: ['NATIVE_FILTER-2'],
-          reordered: expect.arrayContaining([
-            'NATIVE_FILTER-2',
-            'NATIVE_FILTER-3',
-            'NATIVE_FILTER-1',
-          ]),
-        }),
-      }),
-    ),
-  );
-});
+    const firstSortable = sortableElements[0] as HTMLElement;
+    firstSortable.focus();
+
+    fireEvent.keyDown(firstSortable, { code: 'Space' });
+    await sleep(1);
+    fireEvent.keyDown(document.activeElement ?? firstSortable, {
+      code: 'ArrowDown',
+    });
+    await sleep(1);
+    fireEvent.keyDown(document.activeElement ?? firstSortable, {
+      code: 'Space',
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+
+    await waitFor(
+      () =>
+        expect(onSave).toHaveBeenCalledWith(
+          expect.objectContaining({
+            filterChanges: expect.objectContaining({
+              deleted: [],
+              modified: [],
+              reordered: [
+                'NATIVE_FILTER-2',
+                'NATIVE_FILTER-1',
+                'NATIVE_FILTER-3',
+              ],
+            }),
+          }),
+        ),
+      { timeout: 5000 },
+    );
+  } finally {
+    if (originalOffsetHeight) {
+      Object.defineProperty(
+        HTMLElement.prototype,
+        'offsetHeight',
+        originalOffsetHeight,
+      );
+    }
+    if (originalOffsetWidth) {
+      Object.defineProperty(
+        HTMLElement.prototype,
+        'offsetWidth',
+        originalOffsetWidth,
+      );
+    }
+  }
+}, 30000);
 
 test('updates sidebar title when filter name changes', async () => {
   const nativeFilterConfig = [

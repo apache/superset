@@ -130,8 +130,8 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
     # when editing the database, mask this field in `encrypted_extra`
     # pylint: disable=invalid-name
     encrypted_extra_sensitive_fields = {
-        "$.service_account_info.private_key",
-        "$.oauth2_client_info.secret",
+        "$.service_account_info.private_key": "Service Account Private Key",
+        "$.oauth2_client_info.secret": "OAuth2 Client Secret",
     }
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {

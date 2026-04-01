@@ -115,6 +115,10 @@ function processPolygonData(
 
             if (parsed.coordinates) {
               polygonCoords = parsed.coordinates[0] || parsed.coordinates;
+            } else if (parsed.geometry?.coordinates) {
+              // Non-standard format with nested geometry
+              polygonCoords =
+                parsed.geometry.coordinates[0] || parsed.geometry.coordinates;
             } else if (Array.isArray(parsed)) {
               polygonCoords = parsed;
             } else {

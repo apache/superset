@@ -1,0 +1,137 @@
+---
+title: Radio
+sidebar_label: Radio
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# Radio
+
+Radio button component for selecting one option from a set. Supports standalone radio buttons, radio buttons styled as buttons, and grouped radio buttons with layout configuration.
+
+## Live Example
+
+<StoryWithControls
+  component="Radio"
+  props={{
+  value: "radio1",
+  disabled: false,
+  checked: false,
+  children: "Radio"
+}}
+  controls={[
+  {
+    name: "value",
+    label: "Value",
+    type: "text",
+    description: "The value associated with this radio button."
+  },
+  {
+    name: "disabled",
+    label: "Disabled",
+    type: "boolean",
+    description: "Whether the radio button is disabled."
+  },
+  {
+    name: "checked",
+    label: "Checked",
+    type: "boolean",
+    description: "Whether the radio button is checked (controlled mode)."
+  },
+  {
+    name: "children",
+    label: "Children",
+    type: "text",
+    description: "Label text displayed next to the radio button."
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <Radio
+      value="radio1"
+    >
+      Radio
+    </Radio>
+  );
+}
+```
+
+## Radio Button Variants
+
+```tsx live
+function RadioButtonDemo() {
+  const [value, setValue] = React.useState('line');
+  return (
+    <Radio.Group value={value} onChange={e => setValue(e.target.value)}>
+      <Radio.Button value="line">Line Chart</Radio.Button>
+      <Radio.Button value="bar">Bar Chart</Radio.Button>
+      <Radio.Button value="pie">Pie Chart</Radio.Button>
+    </Radio.Group>
+  );
+}
+```
+
+## Vertical Radio Group
+
+```tsx live
+function VerticalDemo() {
+  const [value, setValue] = React.useState('option1');
+  return (
+    <Radio.Group value={value} onChange={e => setValue(e.target.value)}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <Radio value="option1">First option</Radio>
+        <Radio value="option2">Second option</Radio>
+        <Radio value="option3">Third option</Radio>
+      </div>
+    </Radio.Group>
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `value` | `string` | `"radio1"` | The value associated with this radio button. |
+| `disabled` | `boolean` | `false` | Whether the radio button is disabled. |
+| `checked` | `boolean` | `false` | Whether the radio button is checked (controlled mode). |
+| `children` | `string` | `"Radio"` | Label text displayed next to the radio button. |
+
+## Import
+
+```tsx
+import { Radio } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/Radio/Radio.stories.tsx).
+:::

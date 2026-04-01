@@ -23,7 +23,7 @@ import {
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
-import { ThemeMode } from '@apache-superset/core/ui';
+import { ThemeMode } from '@apache-superset/core/theme';
 import { Menu } from '@superset-ui/core/components';
 import { ThemeSubMenuProps, useThemeMenuItems } from './useThemeMenuItems';
 

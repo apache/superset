@@ -141,7 +141,7 @@ export const useInitialization = () => {
     }
 
     if (
-      Object.values(filters).find(
+      Object.values(filters).some(
         filter => 'requiredFirst' in filter && filter.requiredFirst,
       )
     ) {

@@ -21,9 +21,9 @@ import { useSelector } from 'react-redux';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { last } from 'lodash';
 import contentDisposition from 'content-disposition';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { SupersetClient, SupersetApiError } from '@superset-ui/core';
-import { logging } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
 import {
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF,

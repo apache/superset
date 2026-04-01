@@ -47,6 +47,40 @@ const SUPERSET_CUSTOM_TOKENS: Set<string> = new Set([
 
   // Font loading
   'fontUrls',
+
+  // Label variant tokens — Published/Draft (dashboard status)
+  'labelPublishedColor',
+  'labelPublishedBg',
+  'labelPublishedBorderColor',
+  'labelPublishedIconColor',
+  'labelDraftColor',
+  'labelDraftBg',
+  'labelDraftBorderColor',
+  'labelDraftIconColor',
+
+  // Label variant tokens — Dataset type (Physical/Virtual)
+  'labelDatasetPhysicalColor',
+  'labelDatasetPhysicalBg',
+  'labelDatasetPhysicalBorderColor',
+  'labelDatasetPhysicalIconColor',
+  'labelDatasetVirtualColor',
+  'labelDatasetVirtualBg',
+  'labelDatasetVirtualBorderColor',
+  'labelDatasetVirtualIconColor',
+
+  // Editor tokens
+  'colorEditorSelection',
+
+  // Secondary button tokens
+  'buttonSecondaryColor',
+  'buttonSecondaryBg',
+  'buttonSecondaryBorderColor',
+  'buttonSecondaryHoverColor',
+  'buttonSecondaryHoverBg',
+  'buttonSecondaryHoverBorderColor',
+  'buttonSecondaryActiveColor',
+  'buttonSecondaryActiveBg',
+  'buttonSecondaryActiveBorderColor',
 ]);
 
 /**

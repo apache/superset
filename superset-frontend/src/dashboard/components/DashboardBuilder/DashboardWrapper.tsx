@@ -18,7 +18,7 @@
  */
 import { FC, PropsWithChildren, useEffect, useState } from 'react';
 
-import { css, styled } from '@apache-superset/core/ui';
+import { css, styled } from '@apache-superset/core/theme';
 import { Constants } from '@superset-ui/core/components';
 import { RootState } from 'src/dashboard/types';
 import { useSelector } from 'react-redux';

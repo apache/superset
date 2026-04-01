@@ -33,7 +33,7 @@ import {
   SMART_DATE_VERBOSE_ID,
   VizType,
 } from '@superset-ui/core';
-import { t } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 
 import 'nvd3-fork/build/nv.d3.css';

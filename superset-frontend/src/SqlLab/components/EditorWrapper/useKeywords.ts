@@ -18,7 +18,7 @@
  */
 import { useEffect, useMemo, useRef } from 'react';
 import { useSelector, useDispatch, shallowEqual, useStore } from 'react-redux';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { getExtensionsRegistry } from '@superset-ui/core';
 
 import type { Editor } from '@superset-ui/core/components';

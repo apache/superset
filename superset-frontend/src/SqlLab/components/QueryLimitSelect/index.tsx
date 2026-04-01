@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useDispatch } from 'react-redux';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { Dropdown, Button } from '@superset-ui/core/components';
 import { Menu } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
