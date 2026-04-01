@@ -36,7 +36,7 @@ import type {
   QueryResponse,
   TimeFormatter,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { sharedControls, sharedControlComponents } from './shared-controls';
 
 export type { Metric } from '@superset-ui/core';
@@ -506,6 +506,11 @@ export type ColorFormatters = {
     value: number | string | boolean | null,
   ) => string | undefined;
 }[];
+
+export type ResolvedColorFormatterResult = {
+  backgroundColor?: string;
+  color?: string;
+};
 
 export default {};
 

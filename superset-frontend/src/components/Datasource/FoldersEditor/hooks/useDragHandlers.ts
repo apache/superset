@@ -18,7 +18,7 @@
  */
 
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   UniqueIdentifier,
   DragStartEvent,

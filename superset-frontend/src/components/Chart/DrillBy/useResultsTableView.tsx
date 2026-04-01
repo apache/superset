@@ -17,7 +17,8 @@
  * under the License.
  */
 import { isDefined, QueryData } from '@superset-ui/core';
-import { css, styled, t } from '@apache-superset/core/ui';
+import { css, styled } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { SingleQueryResultPane } from 'src/explore/components/DataTablesPane/components/SingleQueryResultPane';
 import Tabs from '@superset-ui/core/components/Tabs';
 

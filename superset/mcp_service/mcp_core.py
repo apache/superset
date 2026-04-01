@@ -142,6 +142,11 @@ class ModelListCore(BaseCore, Generic[L]):
         page: int = 0,
         page_size: int = 10,
     ) -> L:
+        from superset.mcp_service.constants import MAX_PAGE_SIZE
+
+        # Clamp page_size to MAX_PAGE_SIZE as defense-in-depth
+        page_size = min(page_size, MAX_PAGE_SIZE)
+
         # Parse filters using generic utility (accepts JSON string or object)
         from superset.mcp_service.utils.schema_utils import (
             parse_json_or_list,
@@ -181,8 +186,11 @@ class ModelListCore(BaseCore, Generic[L]):
         total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 0
         from superset.mcp_service.system.schemas import PaginationInfo
 
+        # Report 1-based page in response to match the 1-based input convention
+        # used by all list tool wrappers (list_charts, list_datasets, etc.)
+        page_1based = page + 1
         pagination_info = PaginationInfo(
-            page=page,
+            page=page_1based,
             page_size=page_size,
             total_count=total_count,
             total_pages=total_pages,
@@ -202,7 +210,7 @@ class ModelListCore(BaseCore, Generic[L]):
             self.list_field_name: item_objs,
             "count": len(item_objs),
             "total_count": total_count,
-            "page": page,
+            "page": page_1based,
             "page_size": page_size,
             "total_pages": total_pages,
             "has_previous": page > 0,

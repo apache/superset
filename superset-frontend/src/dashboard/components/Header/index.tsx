@@ -23,7 +23,8 @@ import {
   FeatureFlag,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { styled, css, SupersetTheme, t } from '@apache-superset/core/ui';
+import { styled, css, SupersetTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { Global } from '@emotion/react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -106,7 +107,7 @@ type DashboardPropertiesUpdate = {
   owners?: Owner[];
   roles?: Role[];
   tags?: TagType[];
-  themeId?: number | null;
+  theme?: { id: number; theme_name: string; json_data: string } | null;
   css?: string;
   title?: string;
 };
@@ -560,7 +561,10 @@ const Header = (): JSX.Element => {
         owners: updates.owners,
         roles: updates.roles,
         tags: updates.tags,
-        theme_id: updates.themeId,
+        // Conditional spread: omit `theme` key entirely when undefined
+        // to prevent the reducer from overwriting the existing theme.
+        // `undefined` means "not changed" (e.g., theme not in fetched list).
+        ...(updates.theme !== undefined && { theme: updates.theme }),
         css: updates.css,
       });
       boundActionCreators.setUnsavedChanges(true);

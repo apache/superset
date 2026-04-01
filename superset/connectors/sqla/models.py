@@ -66,7 +66,7 @@ from sqlalchemy.sql.elements import ColumnClause, TextClause
 from sqlalchemy.sql.expression import Label
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy.types import JSON
-from superset_core.api.models import Dataset as CoreDataset
+from superset_core.common.models import Dataset as CoreDataset
 
 from superset import db, is_feature_enabled, security_manager
 from superset.commands.dataset.exceptions import DatasetNotFoundError
@@ -299,6 +299,7 @@ class BaseDatasource(
                 "last_name": o.last_name,
                 "username": o.username,
                 "id": o.id,
+                "email": o.email,
             }
             for o in self.owners
         ]
@@ -740,15 +741,19 @@ class BaseDatasource(
     def get_sqla_row_level_filters(
         self,
         template_processor: Optional[BaseTemplateProcessor] = None,
+        include_global_guest_rls: bool = True,
     ) -> list[TextClause]:
         """
         Return the appropriate row level security filters for this table and the
-        current user. A custom username can be passed when the user is not present in the
-        Flask global namespace.
+        current user.
 
         :param template_processor: The template processor to apply to the filters.
+        :param include_global_guest_rls: Whether to include global (unscoped) guest
+            RLS filters. Set to False for underlying tables in virtual datasets to
+            prevent double application of global guest rules. Dataset-scoped guest
+            rules are always included regardless of this parameter.
         :returns: A list of SQL clauses to be ANDed together.
-        """  # noqa: E501
+        """
         template_processor = template_processor or self.get_template_processor()
 
         all_filters: list[TextClause] = []
@@ -765,6 +770,8 @@ class BaseDatasource(
 
             if is_feature_enabled("EMBEDDED_SUPERSET"):
                 for rule in security_manager.get_guest_rls_filters(self):
+                    if not include_global_guest_rls and not rule.get("dataset"):
+                        continue
                     clause = self.text(
                         f"({template_processor.process_template(rule['clause'])})"
                     )
@@ -1646,8 +1653,20 @@ class SqlaTable(
             if has_timegrain or force_type_check:
                 try:
                     # probe adhoc column type
+                    # Most databases populate cursor.description from query-plan
+                    # metadata, so WHERE FALSE (zero rows, no table scan) is
+                    # preferred — it avoids hitting row-read limits enforced by
+                    # engines like ClickHouse (max_rows_to_read).
+                    # A small number of drivers (Druid, Pinot) instead build
+                    # cursor.description by inspecting the first returned row;
+                    # for those we fall back to LIMIT 1.
                     tbl, _ = self.get_from_clause(template_processor)
-                    qry = sa.select([sqla_column]).limit(1).select_from(tbl)
+                    if self.db_engine_spec.type_probe_needs_row:
+                        qry = sa.select([sqla_column]).limit(1).select_from(tbl)
+                    else:
+                        qry = (
+                            sa.select([sqla_column]).where(sa.false()).select_from(tbl)
+                        )
                     sql = self.database.compile_sqla_query(
                         qry,
                         catalog=self.catalog,

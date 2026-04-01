@@ -17,6 +17,7 @@
  * under the License.
  */
 
+/* istanbul ignore next */
 const console =
   typeof window !== 'undefined' ? window.console || {} : globalThis.console;
 const log = console.log || (() => {});

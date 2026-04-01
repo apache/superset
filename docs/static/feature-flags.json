@@ -52,6 +52,18 @@
         "description": "Enable Superset extensions for custom functionality without modifying core"
       },
       {
+        "name": "FAB_API_KEY_ENABLED",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enable API key authentication via FAB SecurityManager When enabled, users can create/manage API keys in the User Info page"
+      },
+      {
+        "name": "GRANULAR_EXPORT_CONTROLS",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enable granular export controls (can_export_data, can_export_image, can_copy_clipboard) instead of the single can_csv permission"
+      },
+      {
         "name": "MATRIXIFY",
         "default": false,
         "lifecycle": "development",

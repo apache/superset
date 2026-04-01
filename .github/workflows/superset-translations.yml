@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
           submodules: recursive
@@ -31,7 +31,7 @@ jobs:
 
       - name: Setup Node.js
         if: steps.check.outputs.frontend
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version-file:  './superset-frontend/.nvmrc'
       - name: Install dependencies
@@ -49,7 +49,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
           submodules: recursive
@@ -62,6 +62,10 @@ jobs:
       - name: Setup Python
         if: steps.check.outputs.python
         uses: ./.github/actions/setup-backend/
+
+      - name: Install msgcat
+        run: sudo apt update && sudo apt install gettext
+
       - name: Test babel extraction
         if: steps.check.outputs.python
         run: ./scripts/translations/babel_update.sh

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { FunctionComponent, useMemo } from 'react';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { ListView } from 'src/components';

@@ -31,7 +31,7 @@ import {
   DatasourceType,
   LatestQueryFormData,
 } from '@superset-ui/core';
-import { t } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
 import type { ControlStateMapping } from '@superset-ui/chart-controls';
 import { getControlsState } from 'src/explore/store';
 import {

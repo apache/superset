@@ -23,7 +23,7 @@ from uuid import UUID
 
 import pytest
 from freezegun import freeze_time
-from superset_core.api.tasks import TaskStatus
+from superset_core.tasks.types import TaskStatus
 
 from superset.tasks.context import TaskContext
 

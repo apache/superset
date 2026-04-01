@@ -54,7 +54,7 @@ certifi==2025.6.15
     # via
     #   requests
     #   selenium
-cffi==1.17.1
+cffi==2.0.0
     # via
     #   cryptography
     #   pynacl
@@ -86,7 +86,7 @@ cron-descriptor==1.4.5
     # via apache-superset (pyproject.toml)
 croniter==6.0.0
     # via apache-superset (pyproject.toml)
-cryptography==44.0.3
+cryptography==46.0.5
     # via
     #   apache-superset (pyproject.toml)
     #   paramiko
@@ -120,7 +120,7 @@ flask==2.3.3
     #   flask-session
     #   flask-sqlalchemy
     #   flask-wtf
-flask-appbuilder==5.0.2
+flask-appbuilder==5.2.0
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
@@ -219,7 +219,7 @@ markupsafe==3.0.2
     #   mako
     #   werkzeug
     #   wtforms
-marshmallow==3.26.1
+marshmallow==3.26.2
     # via
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
@@ -317,9 +317,9 @@ pyjwt==2.10.1
     #   flask-appbuilder
     #   flask-jwt-extended
     #   redis
-pynacl==1.5.0
+pynacl==1.6.2
     # via paramiko
-pyopenssl==25.1.0
+pyopenssl==25.3.0
     # via shillelagh
 pyparsing==3.2.3
     # via apache-superset (pyproject.toml)
@@ -457,7 +457,7 @@ wcwidth==0.2.13
     # via prompt-toolkit
 websocket-client==1.8.0
     # via selenium
-werkzeug==3.1.5
+werkzeug==3.1.6
     # via
     #   -r requirements/base.in
     #   flask

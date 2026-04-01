@@ -17,9 +17,9 @@
  * under the License.
  */
 import { FC, ReactNode, useCallback, useState } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { NativeFilterType, ChartCustomizationType } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { Collapse, Flex } from '@superset-ui/core/components';
 import type { DragEndEvent } from '@dnd-kit/core';
 import {

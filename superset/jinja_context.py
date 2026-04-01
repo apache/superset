@@ -122,13 +122,13 @@ class ExtraCache:
     # be added to the cache key.
     regex = re.compile(
         r"(\{\{|\{%)[^{}]*?("
-        r"current_user_id\([^()]*\)|"
-        r"current_username\([^()]*\)|"
-        r"current_user_email\([^()]*\)|"
-        r"current_user_rls_rules\([^()]*\)|"
-        r"current_user_roles\([^()]*\)|"
-        r"cache_key_wrapper\([^()]*\)|"
-        r"url_param\([^()]*\)"
+        r"current_user_id\([^)]*\)|"
+        r"current_username\([^)]*\)|"
+        r"current_user_email\([^)]*\)|"
+        r"current_user_rls_rules\([^)]*\)|"
+        r"current_user_roles\([^)]*\)|"
+        r"cache_key_wrapper\([^)]*\)|"
+        r"url_param\([^)]*\)"
         r")"
         r"[^{}]*?(\}\}|\%\})"
     )
@@ -371,11 +371,11 @@ class ExtraCache:
                 {%- for filter in get_filters('full_name', remove_filter=True) -%}
                 {%- if filter.get('op') == 'IN' -%}
                     AND
-                    full_name IN ( {{ "'" + "', '".join(filter.get('val')) + "'" }} )
+                    full_name IN {{ filter.get('val')|where_in }}
                 {%- endif -%}
                 {%- if filter.get('op') == 'LIKE' -%}
                     AND
-                    full_name LIKE {{ "'" + filter.get('val') + "'" }}
+                    full_name LIKE '{{ filter.get('val') | replace("'", "''") }}'
                 {%- endif -%}
                 {%- endfor -%}
                 UNION ALL

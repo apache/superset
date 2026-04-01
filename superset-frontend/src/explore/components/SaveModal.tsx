@@ -36,15 +36,16 @@ import {
   Flex,
   TreeSelect,
 } from '@superset-ui/core/components';
-import { t, logging } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
+import { t } from '@apache-superset/core/translation';
 import { DatasourceType, isDefined, SupersetClient } from '@superset-ui/core';
+import { Alert } from '@apache-superset/core/components';
 import {
   css,
   styled,
   withTheme,
-  Alert,
   type SupersetTheme,
-} from '@apache-superset/core/ui';
+} from '@apache-superset/core/theme';
 import { Radio } from '@superset-ui/core/components/Radio';
 import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
 import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
@@ -195,10 +196,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
   handleRedirect = (windowLocationSearch: string, chart: any) => {
     const searchParams = new URLSearchParams(windowLocationSearch);
-    searchParams.set('save_action', this.state.action);
-
     searchParams.delete('form_data_key');
-
     searchParams.set('slice_id', chart.id.toString());
     return searchParams;
   };
@@ -342,7 +340,9 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
         return;
       }
       const searchParams = this.handleRedirect(window.location.search, value);
-      this.props.history.replace(`/explore/?${searchParams.toString()}`);
+      this.props.history.replace(`/explore/?${searchParams.toString()}`, {
+        saveAction: this.state.action,
+      });
 
       this.setState({ isLoading: false });
       this.onHide();

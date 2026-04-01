@@ -26,7 +26,7 @@ from __future__ import annotations
 import time
 import uuid
 
-from superset_core.api.tasks import TaskScope, TaskStatus
+from superset_core.tasks.types import TaskScope, TaskStatus
 
 from superset.daos.tasks import TaskDAO
 from superset.extensions import db

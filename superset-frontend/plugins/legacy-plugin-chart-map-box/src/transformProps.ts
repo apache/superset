@@ -23,6 +23,30 @@ import { ChartProps } from '@superset-ui/core';
 import { DEFAULT_POINT_RADIUS, DEFAULT_MAX_ZOOM } from './MapBox';
 
 const NOOP = () => {};
+const MIN_LONGITUDE = -180;
+const MAX_LONGITUDE = 180;
+const MIN_LATITUDE = -90;
+const MAX_LATITUDE = 90;
+const MIN_ZOOM = 0;
+
+function toFiniteNumber(
+  value: string | number | null | undefined,
+): number | undefined {
+  if (value === null || value === undefined) return undefined;
+  const normalizedValue = typeof value === 'string' ? value.trim() : value;
+  if (normalizedValue === '') return undefined;
+  const num = Number(normalizedValue);
+  return Number.isFinite(num) ? num : undefined;
+}
+
+function clampNumber(
+  value: number | undefined,
+  min: number,
+  max: number,
+): number | undefined {
+  if (value === undefined) return undefined;
+  return Math.min(max, Math.max(min, value));
+}
 
 interface ClusterProperties {
   metric: number;
@@ -45,6 +69,9 @@ export default function transformProps(chartProps: ChartProps) {
     pandasAggfunc,
     pointRadiusUnit,
     renderWhileDragging,
+    viewportLongitude,
+    viewportLatitude,
+    viewportZoom,
   } = formData;
 
   // Validate mapbox color
@@ -93,7 +120,6 @@ export default function transformProps(chartProps: ChartProps) {
     aggregatorName: pandasAggfunc,
     bounds,
     clusterer,
-    globalOpacity,
     hasCustomMetric,
     mapboxApiKey,
     mapStyle: mapboxStyle,
@@ -116,5 +142,21 @@ export default function transformProps(chartProps: ChartProps) {
     pointRadiusUnit,
     renderWhileDragging,
     rgb,
+    viewportLongitude: clampNumber(
+      toFiniteNumber(viewportLongitude),
+      MIN_LONGITUDE,
+      MAX_LONGITUDE,
+    ),
+    viewportLatitude: clampNumber(
+      toFiniteNumber(viewportLatitude),
+      MIN_LATITUDE,
+      MAX_LATITUDE,
+    ),
+    viewportZoom: clampNumber(
+      toFiniteNumber(viewportZoom),
+      MIN_ZOOM,
+      DEFAULT_MAX_ZOOM,
+    ),
+    globalOpacity: Math.min(1, Math.max(0, toFiniteNumber(globalOpacity) ?? 1)),
   };
 }

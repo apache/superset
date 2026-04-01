@@ -156,9 +156,9 @@ export default function webpackExtendPlugin(): Plugin<void> {
             // to source so the docs build doesn't depend on pre-built lib/ artifacts.
             // More specific sub-path aliases must come first; webpack matches the
             // longest prefix.
-            '@apache-superset/core/ui': path.resolve(
+            '@apache-superset/core/components': path.resolve(
               __dirname,
-              '../../superset-frontend/packages/superset-core/src/ui',
+              '../../superset-frontend/packages/superset-core/src/components',
             ),
             '@apache-superset/core/api/core': path.resolve(
               __dirname,

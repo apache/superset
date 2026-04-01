@@ -30,7 +30,7 @@ import {
   ReactElement,
 } from 'react';
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { ensureIsArray, usePrevious } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
 import {
@@ -777,7 +777,7 @@ const Select = forwardRef(
           options={visibleOptions}
           optionRender={option => <Space>{option.label || option.value}</Space>}
           oneLine={oneLine}
-          popupMatchSelectWidth={selectAllEnabled ? 168 : true}
+          popupMatchSelectWidth
           css={props.css}
           dropdownAlign={DROPDOWN_ALIGN_BOTTOM}
           {...props}

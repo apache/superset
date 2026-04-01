@@ -311,6 +311,7 @@ WTF_CSRF_EXEMPT_LIST = [
     "superset.views.core.explore_json",
     "superset.views.core.log",
     "superset.views.datasource.views.samples",
+    "flask_appbuilder.security.views.acs",
 ]
 
 # Whether to run the web server in debug mode or not
@@ -562,6 +563,14 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # in addition to relative timeshifts (e.g., "1 day ago")
     # @lifecycle: development
     "DATE_RANGE_TIMESHIFTS_ENABLED": False,
+    # Enable API key authentication via FAB SecurityManager
+    # When enabled, users can create/manage API keys in the User Info page
+    # @lifecycle: development
+    "FAB_API_KEY_ENABLED": False,
+    # Enable granular export controls (can_export_data, can_export_image,
+    # can_copy_clipboard) instead of the single can_csv permission
+    # @lifecycle: development
+    "GRANULAR_EXPORT_CONTROLS": False,
     # Enables advanced data type support
     # @lifecycle: development
     "ENABLE_ADVANCED_DATA_TYPES": False,
@@ -1633,6 +1642,13 @@ FAB_ADD_SECURITY_PERMISSION_VIEW = False
 FAB_ADD_SECURITY_VIEW_MENU_VIEW = False
 FAB_ADD_SECURITY_PERMISSION_VIEWS_VIEW = False
 
+# API Key Authentication via FAB SecurityManager
+# FAB reads this config directly to register the ApiKeyApi blueprint.
+# The FAB_API_KEY_ENABLED feature flag (in DEFAULT_FEATURE_FLAGS) controls
+# the frontend UI visibility independently.
+FAB_API_KEY_ENABLED = False
+FAB_API_KEY_PREFIXES = ["sst_"]
+
 # The link to a page containing common errors and their resolutions
 # It will be appended at the bottom of sql_lab errors.
 TROUBLESHOOTING_LINK = ""
@@ -1964,6 +1980,8 @@ ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 1
 # Custom width for screenshots
 ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH = 600
 ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH = 2400
+# Rewrite external links in alert/report emails to go through a warning page
+ALERT_REPORTS_ENABLE_LINK_REDIRECT = True
 # Set a minimum interval threshold between executions (for each Alert/Report)
 # Value should be an integer i.e. int(timedelta(minutes=5).total_seconds())
 # You can also assign a function to the config that returns the expected integer
