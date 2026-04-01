@@ -37,31 +37,11 @@ Superset uses text editors in various places throughout the application:
 | `css` | Dashboard Properties, CSS Template Modal |
 | `markdown` | Dashboard Markdown component |
 | `yaml` | Template Params Editor |
+| `javascript` | Custom JavaScript editor contexts |
+| `python` | Custom Python editor contexts |
+| `text` | Plain text editor contexts |
 
-By registering an editor provider for a language, your extension replaces the default Ace editor in **all** locations that use that language.
-
-## Manifest Configuration
-
-Declare editor contributions in your `extension.json` manifest:
-
-```json
-{
-  "name": "monaco-editor",
-  "version": "1.0.0",
-  "frontend": {
-    "contributions": {
-      "editors": [
-        {
-          "id": "monaco-editor.sql",
-          "name": "Monaco SQL Editor",
-          "languages": ["sql"],
-          "description": "Monaco-based SQL editor with IntelliSense"
-        }
-      ]
-    }
-  }
-}
-```
+By registering an editor for a language, your extension replaces the default Ace editor in **all** locations that use that language.
 
 ## Implementing an Editor
 
@@ -165,21 +145,22 @@ const MonacoSQLEditor = forwardRef<editors.EditorHandle, editors.EditorProps>(
 export default MonacoSQLEditor;
 ```
 
-### activate.ts
+### index.tsx
+
+Register the editor at module load time from your extension's entry point:
 
 ```typescript
 import { editors } from '@apache-superset/core';
 import MonacoSQLEditor from './MonacoSQLEditor';
 
-export function activate(context) {
-  // Register the Monaco editor for SQL using the contribution ID from extension.json
-  const disposable = editors.registerEditorProvider(
-    'monaco-sql-editor.sql',
-    MonacoSQLEditor,
-  );
-
-  context.subscriptions.push(disposable);
-}
+editors.registerEditor(
+  {
+    id: 'my-extension.monaco-sql',
+    name: 'Monaco SQL Editor',
+    languages: ['sql'],
+  },
+  MonacoSQLEditor,
+);
 ```
 
 ## Handling Hotkeys

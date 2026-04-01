@@ -18,7 +18,7 @@
  */
 import { forwardRef, RefObject } from 'react';
 import { QueryData } from '@superset-ui/core';
-import { css, SupersetTheme } from '@apache-superset/core/ui';
+import { css, SupersetTheme } from '@apache-superset/core/theme';
 import {
   CachedLabel,
   type LabelType,

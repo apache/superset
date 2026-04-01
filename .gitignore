@@ -68,11 +68,11 @@ superset-websocket/config.json
 *.js.map
 node_modules
 npm-debug.log*
+superset/static/*
 superset/static/assets/*
 !superset/static/assets/.gitkeep
 superset/static/uploads/*
 !superset/static/uploads/.gitkeep
-superset/static/version_info.json
 yarn-error.log
 *.map
 *.min.js
@@ -133,6 +133,7 @@ CLAUDE.local.md
 PROJECT.md
 .aider*
 .claude_rc*
+.claude/settings.local.json
 .env.local
 oxc-custom-build/
 *.code-workspace

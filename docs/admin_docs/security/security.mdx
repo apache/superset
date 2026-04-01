@@ -24,6 +24,14 @@ A table with the permissions for these roles can be found at [/RESOURCES/STANDAR
 Admins have all possible rights, including granting or revoking rights from other
 users and altering other people’s slices and dashboards.
 
+>#### Threat Model and Privilege Boundaries: The Admin Role
+>
+>Apache Superset is built with a granular permission model where users assigned the Admin role are considered fully trusted. Admins possess complete control over the application's configuration, UI rendering, and access controls.
+>
+>Consequently, actions performed by an Admin that alter the application's behavior or presentation—such as injecting custom CSS, modifying Jinja templates, or altering security flags—are intended administrative capabilities by design.
+>
+>In accordance with MITRE CNA Rule 4.1, a vulnerability must represent a violation of an explicit security policy. Because the Admin role is defined as a trusted operational boundary, actions executed with Admin privileges do not cross a security perimeter. Therefore, exploit vectors that strictly require Admin access are not classified as security vulnerabilities and are ineligible for CVE assignment.
+
 ### Alpha
 
 Alpha users have access to all data sources, but they cannot grant or revoke access

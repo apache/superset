@@ -17,7 +17,11 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
-import { ObjectFormattingEnum } from '@superset-ui/chart-controls';
+import {
+  getTextColorForBackground,
+  ObjectFormattingEnum,
+} from '@superset-ui/chart-controls';
+import { supersetTheme } from '@apache-superset/core/theme';
 import {
   render,
   screen,
@@ -33,7 +37,7 @@ import {
   getTimeFormatterForGranularity,
 } from '@superset-ui/core';
 import TableChart, { sanitizeHeaderId } from '../src/TableChart';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import transformProps from '../src/transformProps';
 import DateWithFormatter from '../src/utils/DateWithFormatter';
 import testData from './testData';
@@ -670,6 +674,52 @@ describe('plugin-chart-table', () => {
         );
         expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
       });
+
+      test('preserves muted null styling when no formatter resolves text color', () => {
+        const dataWithEmptyCell = cloneDeep(testData.advanced.queriesData[0]);
+        dataWithEmptyCell.data.push({
+          __timestamp: null,
+          name: 'Noah',
+          sum__num: null,
+          '%pct_nice': 0.643,
+          'abc.com': 'bazzinga',
+        });
+
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  queriesData: [dataWithEmptyCell],
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'sum__num',
+                        operator: '<',
+                        targetValue: 12342,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        const noahRow = screen.getByText('Noah').closest('tr');
+        expect(noahRow).not.toBeNull();
+
+        const nullCell = noahRow?.querySelector('td.dt-is-null');
+        expect(nullCell).not.toBeNull();
+        expect((nullCell as HTMLElement).style.color).toBe('');
+        expect(getComputedStyle(nullCell as Element).color).toBe(
+          'rgba(0, 0, 0, 0.45)',
+        );
+      });
+
       test('should display original label in grouped headers', () => {
         const props = transformProps(testData.comparison);
 
@@ -1351,11 +1401,9 @@ describe('plugin-chart-table', () => {
         );
 
         expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).color).toBe(
-          'rgba(0, 0, 0, 0.88)',
-        );
+        expect((screen.getByTitle('2467') as HTMLElement).style.color).toBe('');
       });
 
       test('display text color using column color formatter for entire row', () => {
@@ -1385,13 +1433,182 @@ describe('plugin-chart-table', () => {
         );
 
         expect(getComputedStyle(screen.getByText('Michael')).color).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByTitle('0.123456')).color).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
+        );
+      });
+
+      test('derive readable text color from dark background formatting', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#111111',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        useGradient: false,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+          'rgb(17, 17, 17)',
+        );
+        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
+          'rgb(255, 255, 255)',
+        );
+      });
+
+      test('keep explicit text color over adaptive contrast', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#111111',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        useGradient: false,
+                      },
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        objectFormatting: ObjectFormattingEnum.TEXT_COLOR,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+          'rgb(17, 17, 17)',
+        );
+        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
+          'rgb(172, 225, 196)',
+        );
+      });
+
+      test('support legacy toTextColor formatters', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#111111',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        useGradient: false,
+                      },
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        toTextColor: true,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+          'rgb(17, 17, 17)',
+        );
+        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
+          'rgb(172, 225, 196)',
+        );
+      });
+
+      test('use striped row surface when deriving adaptive text color', () => {
+        const backgroundColor = Array.from(
+          { length: 0xff },
+          (_, index) => `#000000${(index + 1).toString(16).padStart(2, '0')}`,
+        ).find(candidate => {
+          const baseColor = getTextColorForBackground(
+            { backgroundColor: candidate },
+            supersetTheme.colorBgBase,
+          );
+          const layoutColor = getTextColorForBackground(
+            { backgroundColor: candidate },
+            supersetTheme.colorBgLayout,
+          );
+          return baseColor !== layoutColor;
+        });
+
+        expect(backgroundColor).toBeDefined();
+
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: backgroundColor,
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2000,
+                        useGradient: false,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
+          getTextColorForBackground(
+            { backgroundColor },
+            supersetTheme.colorBgLayout,
+          ),
+        );
+        expect(getComputedStyle(screen.getByTitle('2467')).color).toBe(
+          getTextColorForBackground(
+            { backgroundColor },
+            supersetTheme.colorBgBase,
+          ),
         );
       });
 

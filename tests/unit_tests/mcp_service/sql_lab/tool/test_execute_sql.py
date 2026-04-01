@@ -23,6 +23,7 @@ and response conversion logic.
 """
 
 import logging
+from decimal import Decimal
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
@@ -30,7 +31,7 @@ import pandas as pd
 import pytest
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
-from superset_core.api.types import QueryResult, QueryStatus, StatementResult
+from superset_core.queries.types import QueryResult, QueryStatus, StatementResult
 
 from superset.mcp_service.app import mcp
 
@@ -236,7 +237,7 @@ class TestExecuteSql:
         mock_security_manager,  # noqa: PT019
         mcp_server,
     ):
-        """Test error when database is not found."""
+        """Test graceful error when database is not found."""
         # mock_security_manager is patched but not used (error happens first)
         del mock_security_manager  # Silence unused variable warning
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
@@ -250,8 +251,10 @@ class TestExecuteSql:
         }
 
         async with Client(mcp_server) as client:
-            with pytest.raises(ToolError, match="Database with ID 999 not found"):
-                await client.call_tool("execute_sql", {"request": request})
+            result = await client.call_tool("execute_sql", {"request": request})
+            data = result.structured_content
+            assert data["success"] is False
+            assert "Database with ID 999 not found" in data["error"]
 
     @patch("superset.security_manager", new_callable=MagicMock)
     @patch("superset.db")
@@ -273,8 +276,10 @@ class TestExecuteSql:
         }
 
         async with Client(mcp_server) as client:
-            with pytest.raises(ToolError, match="Access denied to database"):
-                await client.call_tool("execute_sql", {"request": request})
+            result = await client.call_tool("execute_sql", {"request": request})
+            data = result.structured_content
+            assert data["success"] is False
+            assert "Access denied to database" in data["error"]
 
     @patch("superset.security_manager")
     @patch("superset.db")
@@ -530,6 +535,21 @@ class TestExecuteSql:
             assert data["rows"] == [{"b": 2}]
             assert data["row_count"] == 1
 
+            # Per-statement data should be present for both statements
+            assert data["statements"][0]["data"] is not None
+            assert data["statements"][0]["data"]["rows"] == [{"a": 1}]
+            assert len(data["statements"][0]["data"]["columns"]) == 1
+            assert data["statements"][0]["data"]["columns"][0]["name"] == "a"
+
+            assert data["statements"][1]["data"] is not None
+            assert data["statements"][1]["data"]["rows"] == [{"b": 2}]
+            assert len(data["statements"][1]["data"]["columns"]) == 1
+            assert data["statements"][1]["data"]["columns"][0]["name"] == "b"
+
+            # Warning should be present for multi-data-bearing queries
+            assert data["multi_statement_warning"] is not None
+            assert "2 data-bearing statements" in data["multi_statement_warning"]
+
     @patch("superset.security_manager")
     @patch("superset.db")
     @pytest.mark.asyncio
@@ -609,6 +629,14 @@ class TestExecuteSql:
             assert "id" in column_names
             assert "amount" in column_names
 
+            # SET statement should have no data, SELECT should have data
+            assert data["statements"][0]["data"] is None
+            assert data["statements"][1]["data"] is not None
+            assert len(data["statements"][1]["data"]["rows"]) == 2
+
+            # No warning since only one data-bearing statement
+            assert data["multi_statement_warning"] is None
+
     @patch("superset.security_manager")
     @patch("superset.db")
     @pytest.mark.asyncio
@@ -664,6 +692,94 @@ class TestExecuteSql:
             # affected_rows should come from the last statement
             assert data["affected_rows"] == 5
 
+            # DML statements should have no per-statement data
+            assert data["statements"][0]["data"] is None
+            assert data["statements"][1]["data"] is None
+
+            # No warning for DML-only queries
+            assert data["multi_statement_warning"] is None
+
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    async def test_execute_sql_multi_statement_preserves_all_data(
+        self, mock_db, mock_security_manager, mcp_server
+    ) -> None:
+        """Test that multi-statement SQL returns per-statement data for ALL results.
+
+        Regression test: previously, running two SELECT statements would only
+        return the last statement's rows in the top-level response and
+        completely lose the first statement's row data.
+        """
+        mock_database = _mock_database()
+        mock_database.execute.return_value = QueryResult(
+            status=QueryStatus.SUCCESS,
+            statements=[
+                StatementResult(
+                    original_sql="SELECT COUNT(*) AS order_count FROM orders",
+                    executed_sql="SELECT COUNT(*) AS order_count FROM orders",
+                    data=pd.DataFrame([{"order_count": 42}]),
+                    row_count=1,
+                    execution_time_ms=5.0,
+                ),
+                StatementResult(
+                    original_sql="SELECT SUM(revenue) AS total_revenue FROM orders",
+                    executed_sql="SELECT SUM(revenue) AS total_revenue FROM orders",
+                    data=pd.DataFrame([{"total_revenue": 12345.67}]),
+                    row_count=1,
+                    execution_time_ms=7.0,
+                ),
+            ],
+            query_id=None,
+            total_execution_time_ms=12.0,
+            is_cached=False,
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.can_access_database.return_value = True
+
+        request = {
+            "database_id": 1,
+            "sql": (
+                "SELECT COUNT(*) AS order_count FROM orders;"
+                " SELECT SUM(revenue) AS total_revenue FROM orders"
+            ),
+            "limit": 100,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+
+            data = result.structured_content
+            assert data["success"] is True
+
+            # Top-level rows/columns should be from the LAST data-bearing stmt
+            assert data["rows"] == [{"total_revenue": 12345.67}]
+            assert data["row_count"] == 1
+
+            # Both statements should have per-statement data
+            assert len(data["statements"]) == 2
+
+            # First statement's data is accessible
+            first_stmt = data["statements"][0]
+            assert first_stmt["data"] is not None
+            assert first_stmt["data"]["rows"] == [{"order_count": 42}]
+            assert len(first_stmt["data"]["columns"]) == 1
+            assert first_stmt["data"]["columns"][0]["name"] == "order_count"
+
+            # Second statement's data is accessible
+            second_stmt = data["statements"][1]
+            assert second_stmt["data"] is not None
+            assert second_stmt["data"]["rows"] == [{"total_revenue": 12345.67}]
+            assert len(second_stmt["data"]["columns"]) == 1
+            assert second_stmt["data"]["columns"][0]["name"] == "total_revenue"
+
+            # Warning should tell LLM to check statements array
+            assert data["multi_statement_warning"] is not None
+            assert "2 data-bearing statements" in data["multi_statement_warning"]
+            assert "statements" in data["multi_statement_warning"]
+
     @pytest.mark.asyncio
     async def test_execute_sql_empty_query_validation(self, mcp_server):
         """Test validation of empty SQL query."""
@@ -705,6 +821,41 @@ class TestExecuteSql:
     @patch("superset.security_manager")
     @patch("superset.db")
     @pytest.mark.asyncio
+    async def test_execute_sql_no_limit_respects_sql(
+        self, mock_db, mock_security_manager, mcp_server
+    ):
+        """Test that omitting limit lets the SQL LIMIT clause be respected."""
+        mock_database = _mock_database()
+        mock_database.execute.return_value = _create_select_result(
+            rows=[{"id": i} for i in range(5)],
+            columns=["id"],
+            original_sql="SELECT id FROM users LIMIT 5",
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.can_access_database.return_value = True
+
+        # No 'limit' key — should default to None (no override)
+        request = {
+            "database_id": 1,
+            "sql": "SELECT id FROM users LIMIT 5",
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+
+            data = result.structured_content
+            assert data["success"] is True
+
+            # Verify limit=None was passed to QueryOptions (no override)
+            call_args = mock_database.execute.call_args
+            options = call_args[0][1]
+            assert options.limit is None
+
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
     async def test_execute_sql_force_refresh(
         self, mock_db, mock_security_manager, mcp_server
     ):
@@ -737,3 +888,208 @@ class TestExecuteSql:
             options = call_args[0][1]
             assert options.cache is not None
             assert options.cache.force_refresh is True
+
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    async def test_execute_sql_bytes_in_dataframe(
+        self, mock_db, mock_security_manager, mcp_server
+    ):
+        """Test that bytes/memoryview values in DataFrame are sanitized for JSON.
+
+        Regression test: execute_sql fails with 'encoding without a string
+        argument' when queries return binary/bytea data.
+        """
+        mock_database = _mock_database()
+        df = pd.DataFrame(
+            [
+                {
+                    "id": 1,
+                    "name": "test",
+                    "utf8_data": b"hello world",
+                    "binary_data": b"\x00\x01\x02\xff",
+                },
+            ]
+        )
+        mock_database.execute.return_value = QueryResult(
+            status=QueryStatus.SUCCESS,
+            statements=[
+                StatementResult(
+                    original_sql="SELECT * FROM files",
+                    executed_sql="SELECT * FROM files",
+                    data=df,
+                    row_count=1,
+                    execution_time_ms=5.0,
+                )
+            ],
+            query_id=None,
+            total_execution_time_ms=5.0,
+            is_cached=False,
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.can_access_database.return_value = True
+
+        request = {
+            "database_id": 1,
+            "sql": "SELECT * FROM files",
+            "limit": 10,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+
+            data = result.structured_content
+            assert data["success"] is True
+            assert data["row_count"] == 1
+            row = data["rows"][0]
+            # UTF-8 decodable bytes should become string
+            assert row["utf8_data"] == "hello world"
+            # Non-UTF-8 bytes should become hex
+            assert row["binary_data"] == "000102ff"
+
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    async def test_execute_sql_decimal_in_dataframe(
+        self, mock_db, mock_security_manager, mcp_server
+    ):
+        """Test that Decimal values in DataFrame are converted to float for JSON.
+
+        Regression test: execute_sql fails with 'encoding without a string
+        argument' when queries return Decimal types (common with SUM/AVG).
+        """
+        mock_database = _mock_database()
+        df = pd.DataFrame(
+            [
+                {
+                    "id": 1,
+                    "price": Decimal("19.99"),
+                    "total": Decimal("1234567.89"),
+                },
+            ]
+        )
+        mock_database.execute.return_value = QueryResult(
+            status=QueryStatus.SUCCESS,
+            statements=[
+                StatementResult(
+                    original_sql="SELECT * FROM orders",
+                    executed_sql="SELECT * FROM orders",
+                    data=df,
+                    row_count=1,
+                    execution_time_ms=5.0,
+                )
+            ],
+            query_id=None,
+            total_execution_time_ms=5.0,
+            is_cached=False,
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.can_access_database.return_value = True
+
+        request = {
+            "database_id": 1,
+            "sql": "SELECT * FROM orders",
+            "limit": 10,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+
+            data = result.structured_content
+            assert data["success"] is True
+            assert data["row_count"] == 1
+            row = data["rows"][0]
+            assert row["price"] == 19.99
+            assert row["total"] == 1234567.89
+            assert isinstance(row["price"], float)
+
+
+class TestSanitizeRowValues:
+    """Unit tests for _sanitize_row_values helper function."""
+
+    def test_sanitize_utf8_bytes(self):
+        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
+
+        rows = [{"data": b"hello"}]
+        _sanitize_row_values(rows)
+        assert rows[0]["data"] == "hello"
+
+    def test_sanitize_non_utf8_bytes(self):
+        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
+
+        rows = [{"data": b"\x00\xff"}]
+        _sanitize_row_values(rows)
+        assert rows[0]["data"] == "00ff"
+
+    def test_sanitize_memoryview(self):
+        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
+
+        rows = [{"data": memoryview(b"test")}]
+        _sanitize_row_values(rows)
+        assert rows[0]["data"] == "test"
+
+    def test_sanitize_decimal(self):
+        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
+
+        rows = [{"price": Decimal("19.99"), "count": Decimal("42")}]
+        _sanitize_row_values(rows)
+        assert rows[0]["price"] == 19.99
+        assert isinstance(rows[0]["price"], float)
+        assert rows[0]["count"] == 42.0
+
+    def test_sanitize_custom_type_uses_str(self):
+        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
+
+        class CustomType:
+            def __str__(self):
+                return "custom_value"
+
+        rows = [{"data": CustomType()}]
+        _sanitize_row_values(rows)
+        assert rows[0]["data"] == "custom_value"
+
+    def test_preserves_json_serializable_types(self):
+        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
+
+        rows = [
+            {
+                "str_val": "hello",
+                "int_val": 42,
+                "float_val": 3.14,
+                "bool_val": True,
+                "none_val": None,
+                "list_val": [1, 2],
+                "dict_val": {"a": 1},
+            }
+        ]
+        original = [dict(row) for row in rows]
+        _sanitize_row_values(rows)
+        assert rows == original
+
+    def test_sanitize_empty_rows(self):
+        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
+
+        rows: list[dict[str, Any]] = []
+        _sanitize_row_values(rows)
+        assert rows == []
+
+    def test_sanitize_mixed_types_in_single_row(self):
+        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
+
+        rows = [
+            {
+                "id": 1,
+                "name": "test",
+                "price": Decimal("9.99"),
+                "blob": b"\x00\x01\x02\xff",
+            }
+        ]
+        _sanitize_row_values(rows)
+        assert rows[0]["id"] == 1
+        assert rows[0]["name"] == "test"
+        assert rows[0]["price"] == 9.99
+        assert rows[0]["blob"] == "000102ff"

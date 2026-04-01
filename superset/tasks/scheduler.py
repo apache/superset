@@ -25,7 +25,7 @@ from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
 from celery.signals import task_failure
 from flask import current_app
-from superset_core.api.tasks import TaskStatus
+from superset_core.tasks.types import TaskStatus
 
 from superset import is_feature_enabled
 from superset.commands.exceptions import CommandException

@@ -17,7 +17,7 @@
 
 [project]
 name = "apache-superset-extensions-cli"
-version = "0.0.1rc2"
+version = "0.1.0rc2"
 description = "Official command-line interface for building, bundling, and managing Apache Superset extensions"
 readme = "README.md"
 authors = [
@@ -49,6 +49,7 @@ dependencies = [
     "jinja2>=3.1.6",
     "semver>=3.0.4",
     "tomli>=2.2.1; python_version < '3.11'",
+    "tomli-w>=1.2.0",
     "watchdog>=6.0.0",
 ]
 

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState, useEffect, useRef, MouseEvent } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   getNumberFormatter,
   getTimeFormatter,
@@ -27,7 +27,7 @@ import {
   BinaryQueryObjectFilterClause,
   DTTM_ALIAS,
 } from '@superset-ui/core';
-import { styled, useTheme } from '@apache-superset/core/ui';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import Echart from '../components/Echart';
 import { BigNumberVizProps } from './types';
 import { EventHandlers } from '../types';

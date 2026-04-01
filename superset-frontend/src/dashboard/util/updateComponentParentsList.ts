@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { logging } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
 
 interface LayoutComponent {
   id: string;

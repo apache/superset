@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useMemo, useReducer, useCallback } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   Table,
   type TableMetaData,

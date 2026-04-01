@@ -18,7 +18,7 @@
  */
 
 import { safeHtmlSpan } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { ReactNode } from 'react';
 
 export type TooltipProps = {

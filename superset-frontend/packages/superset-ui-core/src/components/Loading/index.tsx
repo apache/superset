@@ -18,8 +18,8 @@
  */
 
 import cls from 'classnames';
-import { t } from '@apache-superset/core';
-import { styled, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { Loading as LoaderSvg } from '../assets';
 import type { LoadingProps, SizeOption } from './types';
 

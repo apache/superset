@@ -29,8 +29,7 @@ import {
 } from 'react';
 import { useSelector } from 'react-redux';
 
-import { mergeReplaceArrays } from '@superset-ui/core';
-import { styled, useTheme } from '@apache-superset/core/ui';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { use, init, EChartsType, registerLocale } from 'echarts/core';
 import {
   SankeyChart,
@@ -66,6 +65,7 @@ import {
 import { LabelLayout } from 'echarts/features';
 import { EchartsHandler, EchartsProps, EchartsStylesProps } from '../types';
 import { DEFAULT_LOCALE } from '../constants';
+import { mergeEchartsThemeOverrides } from '../utils/themeOverrides';
 
 // Define this interface here to avoid creating a dependency back to superset-frontend,
 // TODO: to move the type to @superset-ui/core
@@ -232,6 +232,9 @@ function Echart(
             axisLine: { lineStyle: { color: antdTheme.colorSplit } },
             axisLabel: { color: antdTheme.colorTextSecondary },
             splitLine: { lineStyle: { color: antdTheme.colorSplit } },
+            minorSplitLine: {
+              lineStyle: { color: antdTheme.colorBorderSecondary },
+            },
           };
         }
         if (options?.yAxis) {
@@ -239,6 +242,9 @@ function Echart(
             axisLine: { lineStyle: { color: antdTheme.colorSplit } },
             axisLabel: { color: antdTheme.colorTextSecondary },
             splitLine: { lineStyle: { color: antdTheme.colorSplit } },
+            minorSplitLine: {
+              lineStyle: { color: antdTheme.colorBorderSecondary },
+            },
           };
         }
         return echartsTheme;
@@ -258,7 +264,7 @@ function Echart(
           }
         : {};
 
-      const themedEchartOptions = mergeReplaceArrays(
+      const themedEchartOptions = mergeEchartsThemeOverrides(
         baseTheme,
         echartOptions,
         globalOverrides,
