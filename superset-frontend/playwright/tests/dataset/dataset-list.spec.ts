@@ -17,19 +17,18 @@
  * under the License.
  */
 
-import {
-  test as testWithAssets,
-  expect,
-} from '../../helpers/fixtures/testAssets';
+import { test as testWithAssets, expect } from '../../helpers/fixtures';
 import path from 'path';
 import { DatasetListPage } from '../../pages/DatasetListPage';
 import { ExplorePage } from '../../pages/ExplorePage';
-import { ConfirmDialog } from '../../components/modals/ConfirmDialog';
-import { DeleteConfirmationModal } from '../../components/modals/DeleteConfirmationModal';
-import { ImportDatasetModal } from '../../components/modals/ImportDatasetModal';
-import { DuplicateDatasetModal } from '../../components/modals/DuplicateDatasetModal';
-import { EditDatasetModal } from '../../components/modals/EditDatasetModal';
-import { Toast } from '../../components/core/Toast';
+import {
+  ConfirmDialog,
+  DeleteConfirmationModal,
+  DuplicateDatasetModal,
+  EditDatasetModal,
+  ImportDatasetModal,
+} from '../../components/modals';
+import { Toast } from '../../components/core';
 import {
   apiDeleteDataset,
   apiGetDataset,

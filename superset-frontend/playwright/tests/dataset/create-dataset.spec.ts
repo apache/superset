@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { test, expect } from '../../helpers/fixtures/testAssets';
-import type { TestAssets } from '../../helpers/fixtures/testAssets';
+import { test, expect } from '../../helpers/fixtures';
+import type { TestAssets } from '../../helpers/fixtures';
 import type { Page, TestInfo } from '@playwright/test';
 import { ExplorePage } from '../../pages/ExplorePage';
 import { CreateDatasetPage } from '../../pages/CreateDatasetPage';

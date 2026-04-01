@@ -18,7 +18,7 @@
  */
 
 import type { Page, TestInfo } from '@playwright/test';
-import type { TestAssets } from '../../helpers/fixtures/testAssets';
+import type { TestAssets } from '../../helpers/fixtures';
 import { createTestVirtualDataset } from '../../helpers/api/dataset';
 
 interface TestDatasetResult {

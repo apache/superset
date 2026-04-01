@@ -159,17 +159,6 @@ export class ChartListPage {
   }
 
   /**
-   * Clicks the delete option in a chart card's dropdown menu (card view).
-   * Opens the "more" menu on the card, then clicks the delete item
-   * (rendered in a page-level portal).
-   */
-  async clickCardDeleteAction(chartName: string): Promise<void> {
-    const card = this.getChartCard(chartName);
-    await card.locator('[aria-label="more"]').click();
-    await this.page.locator('[data-test="chart-list-delete-option"]').click();
-  }
-
-  /**
    * Clicks the edit option in a chart card's dropdown menu (card view).
    */
   async clickCardEditAction(chartName: string): Promise<void> {

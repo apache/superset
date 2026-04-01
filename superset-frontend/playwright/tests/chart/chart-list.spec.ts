@@ -17,14 +17,13 @@
  * under the License.
  */
 
-import {
-  test as testWithAssets,
-  expect,
-} from '../../helpers/fixtures/testAssets';
+import { test as testWithAssets, expect } from '../../helpers/fixtures';
 import { ChartListPage } from '../../pages/ChartListPage';
-import { ChartPropertiesModal } from '../../components/modals/ChartPropertiesModal';
-import { DeleteConfirmationModal } from '../../components/modals/DeleteConfirmationModal';
-import { Toast } from '../../components/core/Toast';
+import {
+  ChartPropertiesModal,
+  DeleteConfirmationModal,
+} from '../../components/modals';
+import { Toast } from '../../components/core';
 import { apiGetChart, ENDPOINTS } from '../../helpers/api/chart';
 import { createTestChart } from './chart-test-helpers';
 import { waitForGet, waitForPut } from '../../helpers/api/intercepts';

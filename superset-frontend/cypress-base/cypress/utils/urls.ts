@@ -25,7 +25,3 @@ export const SUPPORTED_CHARTS_DASHBOARD =
   '/superset/dashboard/supported_charts_dash/';
 export const TABBED_DASHBOARD = '/superset/dashboard/tabbed_dash/';
 export const DATABASE_LIST = '/databaseview/list';
-export const ALERT_LIST = '/alert/list/';
-export const REPORT_LIST = '/report/list/';
-export const LOGIN = '/login/';
-export const REGISTER = '/register/';

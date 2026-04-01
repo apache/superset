@@ -31,15 +31,7 @@ export const interceptV1ChartData = (alias = 'v1Data') => {
   cy.intercept('**/api/v1/chart/data*').as(alias);
 };
 
-export function interceptExploreJson(alias = 'getJson') {
-  cy.intercept('POST', `**/superset/explore_json/**`).as(alias);
-}
-
-export const interceptFormDataKey = () => {
-  cy.intercept('POST', '**/api/v1/explore/form_data').as('formDataKey');
-};
-
-export function interceptExploreGet() {
+function interceptExploreGet() {
   cy.intercept({
     method: 'GET',
     url: /.*\/api\/v1\/explore\/\?(form_data_key|dashboard_page_id|slice_id)=.*/,

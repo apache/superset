@@ -17,14 +17,13 @@
  * under the License.
  */
 
-import {
-  test as testWithAssets,
-  expect,
-} from '../../helpers/fixtures/testAssets';
+import { test as testWithAssets, expect } from '../../helpers/fixtures';
 import { DashboardListPage } from '../../pages/DashboardListPage';
-import { DeleteConfirmationModal } from '../../components/modals/DeleteConfirmationModal';
-import { ImportDatasetModal } from '../../components/modals/ImportDatasetModal';
-import { Toast } from '../../components/core/Toast';
+import {
+  DeleteConfirmationModal,
+  ImportDatasetModal,
+} from '../../components/modals';
+import { Toast } from '../../components/core';
 import {
   apiGetDashboard,
   apiDeleteDashboard,
