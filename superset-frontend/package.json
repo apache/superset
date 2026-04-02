@@ -337,7 +337,7 @@
     "imports-loader": "^5.0.0",
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^29.7.0",
-    "jest-html-reporter": "^4.3.0",
+    "jest-html-reporter": "^4.4.0",
     "jest-websocket-mock": "^2.5.0",
     "js-yaml-loader": "^1.2.2",
     "jsdom": "^29.0.1",
