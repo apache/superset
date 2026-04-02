@@ -412,9 +412,12 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
     # Handle raw columns (no aggregation)
     if raw_columns and not aggregated_metrics:
         # Pure raw columns - show individual rows
+        # Include both "all_columns" (Superset table viz) and "columns"
+        # (QueryContextFactory validation) to avoid "Empty query?" errors
         form_data.update(
             {
                 "all_columns": raw_columns,
+                "columns": raw_columns,
                 "query_mode": "raw",
                 "include_time": False,
                 "order_desc": True,
