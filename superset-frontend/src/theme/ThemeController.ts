@@ -308,6 +308,18 @@ export class ThemeController {
   }
 
   /**
+   * Returns the resolved theme mode as 'dark' or 'light'.
+   * Takes into account SYSTEM mode and returns the actual resolved preference.
+   */
+  public getCurrentModeResolved(): 'dark' | 'light' {
+    const mode =
+      this.currentMode === ThemeMode.SYSTEM
+        ? this.systemMode
+        : this.currentMode;
+    return mode === ThemeMode.DARK ? 'dark' : 'light';
+  }
+
+  /**
    * Sets new theme.
    * @param theme - The new theme to apply
    * @throws {Error} If the user does not have permission to update the theme
