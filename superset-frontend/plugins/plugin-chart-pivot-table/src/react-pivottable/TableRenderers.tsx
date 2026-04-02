@@ -1310,6 +1310,62 @@ export function TableRenderer(props: TableRendererProps) {
                 tableOptions.clickRowHeaderCallback,
               )}
               onContextMenu={handleContextMenu}
+        };
+        const headerCellFormattedValue =
+          dateFormatters?.[attrName]?.(
+            convertToNumberIfNumeric(colKey[attrIdx]),
+          ) ?? colKey[attrIdx];
+        const { backgroundColor, color } = getCellColor(
+          [attrName],
+          headerCellFormattedValue,
+          cellColorFormatters,
+          isActiveHeader ? activeHeaderBackgroundColor : cellBackgroundColor,
+        );
+        const style = {
+          backgroundColor,
+          ...(color ? { color } : {}),
+        };
+        attrValueCells.push(
+          <th
+            className={colLabelClass}
+            key={`colKey-${flatColKey}`}
+            style={style}
+            colSpan={colSpan}
+            rowSpan={rowSpan}
+            role="columnheader button"
+            onClick={this.clickHeaderHandler(
+              pivotData,
+              colKey,
+              this.props.cols,
+              attrIdx,
+              this.props.tableOptions.clickColumnHeaderCallback,
+            )}
+            onContextMenu={handleContextMenu}
+          >
+            {displayHeaderCell(
+              needToggle,
+              this.state.collapsedCols[flatColKey]
+                ? arrowCollapsed
+                : arrowExpanded,
+              onArrowClick,
+              headerCellFormattedValue,
+              namesMapping,
+              allowRenderHtml,
+            )}
+            <span
+              role="columnheader"
+              tabIndex={0}
+              // Prevents event bubbling to avoid conflict with column header click handlers
+              // Ensures sort operation executes without triggering cross-filtration
+              onClick={e => {
+                e.stopPropagation();
+              }}
+              aria-label={
+                this.state.activeSortColumn === i
+                  ? `Sorted by ${columnName} ${this.state.sortingOrder[i] === 'asc' ? 'ascending' : 'descending'}`
+                  : undefined
+              }
+
             >
               {displayHeaderCell(
                 needRowToggle,
