@@ -457,7 +457,8 @@ test.describe('import dataset', () => {
     testAssets,
   }) => {
     // Dataset name from fixture (test_netflix_1768502050965)
-    // Note: Fixture contains a Google Sheets dataset - test will skip if gsheets connector unavailable
+    // Note: Fixture contains a Google Sheets dataset backed by shillelagh[gsheetsapi],
+    // which is a base dependency — import failure fails the test hard (no skip).
     const importedDatasetName = 'test_netflix_1768502050965';
     const fixturePath = path.resolve(
       __dirname,
