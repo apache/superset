@@ -108,9 +108,9 @@ def normalize_cursor_description_names(
     """
     normalized_names: list[str] = []
     unavailable_names = {
-        column_name
+        convert_to_string(col[0])
         for col in cursor_description
-        if (column_name := convert_to_string(col[0]))
+        if convert_to_string(col[0])
     }
     synthetic_index = 0
 

@@ -225,3 +225,22 @@ def test_multiple_empty_column_names_get_unique_synthetic_names() -> None:
     assert len(set(col_names)) == 2  # all unique
     df = result_set.to_pandas_df()
     assert df.iloc[0].tolist() == [10, 20]
+
+
+def test_empty_column_names_do_not_rename_explicit_synthetic_names() -> None:
+    """
+    Synthetic names assigned to empty columns must not collide with explicit
+    user-selected names that already look like Superset fallbacks.
+    """
+    data = [(10, 20)]
+    description = [
+        ("", 3, None, None, None, None, None),
+        ("_col_0", 3, None, None, None, None, None),
+    ]
+    result_set = SupersetResultSet(data, description, BaseEngineSpec)  # type: ignore
+
+    col_names = [c["column_name"] for c in result_set.columns]
+    assert col_names == ["_col_1", "_col_0"]
+    df = result_set.to_pandas_df()
+    assert list(df.columns) == ["_col_1", "_col_0"]
+    assert df.iloc[0].tolist() == [10, 20]
