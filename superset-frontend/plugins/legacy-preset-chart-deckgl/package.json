@@ -46,7 +46,7 @@
     "d3-color": "^3.1.0",
     "d3-scale": "^4.0.2",
     "handlebars": "^4.7.9",
-    "lodash": "^4.17.23",
+    "lodash": "^4.18.1",
     "mousetrap": "^1.6.5",
     "ngeohash": "^0.6.3",
     "prop-types": "^15.8.1",
