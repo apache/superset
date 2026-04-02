@@ -523,6 +523,15 @@ def create_fks_for_table(
         )
         return
 
+    inspector = Inspector.from_engine(connection)
+    existing_fks = {fk["name"] for fk in inspector.get_foreign_keys(table_name)}
+    if foreign_key_name in existing_fks:
+        logger.info(
+            f"Foreign key {GREEN}{foreign_key_name}{RESET} already exists on table "
+            f"{GREEN}{table_name}{RESET}. Skipping..."
+        )
+        return
+
     if isinstance(connection.dialect, SQLiteDialect):
         # SQLite requires batch mode since ALTER TABLE is limited
         with op.batch_alter_table(table_name) as batch_op:
