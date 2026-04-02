@@ -413,6 +413,20 @@ describe('ChartHolder', () => {
     expect(fullscreenChartHolder.parentElement).toBe(document.body);
   });
 
+  test('should call setFullSizeChartId(null) when exiting fullscreen from chart menu', () => {
+    const setFullSizeChartId = jest.fn();
+    renderWrapper(createMockStore(), {
+      fullSizeChartId: chartId,
+      setFullSizeChartId,
+      editMode: false,
+    });
+
+    userEvent.click(screen.getByRole('button', { name: 'More Options' }));
+    userEvent.click(screen.getByText('Exit fullscreen'));
+
+    expect(setFullSizeChartId).toHaveBeenCalledWith(null);
+  });
+
   test('should call deleteComponent when deleted', async () => {
     const deleteComponent = jest.fn();
     const store = createMockStore();

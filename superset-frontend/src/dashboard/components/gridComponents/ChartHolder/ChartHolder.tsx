@@ -103,6 +103,7 @@ const ChartHolder = ({
       top: 0;
       width: 100vw;
       height: 100vh;
+      box-sizing: border-box;
       padding: ${theme.sizeUnit * 2}px;
       background: ${theme.colorBgContainer};
     }
