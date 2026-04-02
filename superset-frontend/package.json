@@ -361,7 +361,7 @@
     "swc-loader": "^0.2.7",
     "terser-webpack-plugin": "^5.4.0",
     "thread-loader": "^4.0.4",
-    "ts-jest": "^29.4.6",
+    "ts-jest": "^29.4.9",
     "tscw-config": "^1.1.2",
     "tsx": "^4.21.0",
     "typescript": "5.4.5",
