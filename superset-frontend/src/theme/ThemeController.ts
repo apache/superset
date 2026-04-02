@@ -312,11 +312,13 @@ export class ThemeController {
    * Takes into account SYSTEM mode and returns the actual resolved preference.
    */
   public getCurrentModeResolved(): 'dark' | 'light' {
-    const mode =
-      this.currentMode === ThemeMode.SYSTEM
-        ? this.systemMode
-        : this.currentMode;
-    return mode === ThemeMode.DARK ? 'dark' : 'light';
+    const activeTheme = this.getThemeForMode(this.currentMode);
+    if (activeTheme) {
+      const normalizedTheme = this.normalizeTheme(activeTheme);
+      return isThemeConfigDark(normalizedTheme) ? 'dark' : 'light';
+    }
+
+    return this.currentMode === ThemeMode.DARK ? 'dark' : 'light';
   }
 
   /**
