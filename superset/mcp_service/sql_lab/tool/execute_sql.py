@@ -22,8 +22,6 @@ Tool for executing SQL queries against databases using the unified
 Database.execute() API with RLS, template rendering, and security validation.
 """
 
-from __future__ import annotations
-
 import logging
 from decimal import Decimal
 from typing import Any
@@ -38,8 +36,7 @@ from superset_core.queries.types import (
     QueryStatus,
 )
 
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorException, SupersetSecurityException
+from superset.errors import SupersetErrorType
 from superset.extensions import event_logger
 from superset.mcp_service.sql_lab.schemas import (
     ColumnInfo,
@@ -48,7 +45,6 @@ from superset.mcp_service.sql_lab.schemas import (
     StatementData,
     StatementInfo,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +59,6 @@ logger = logging.getLogger(__name__)
         destructiveHint=True,
     ),
 )
-@parse_request(ExecuteSqlRequest)
 async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlResponse:
     """Execute SQL query against database using the unified Database.execute() API."""
     await ctx.info(
@@ -95,21 +90,23 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
                 db.session.query(Database).filter_by(id=request.database_id).first()
             )
             if not database:
-                raise SupersetErrorException(
-                    SupersetError(
-                        message=f"Database with ID {request.database_id} not found",
-                        error_type=SupersetErrorType.DATABASE_NOT_FOUND_ERROR,
-                        level=ErrorLevel.ERROR,
-                    )
+                await ctx.error(
+                    "Database not found: database_id=%s" % request.database_id
+                )
+                return ExecuteSqlResponse(
+                    success=False,
+                    error=f"Database with ID {request.database_id} not found",
+                    error_type=SupersetErrorType.DATABASE_NOT_FOUND_ERROR.value,
                 )
 
             if not security_manager.can_access_database(database):
-                raise SupersetSecurityException(
-                    SupersetError(
-                        message=(f"Access denied to database {database.database_name}"),
-                        error_type=SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR,
-                        level=ErrorLevel.ERROR,
-                    )
+                await ctx.error(
+                    "Access denied to database: %s" % database.database_name
+                )
+                return ExecuteSqlResponse(
+                    success=False,
+                    error=f"Access denied to database {database.database_name}",
+                    error_type=SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR.value,
                 )
 
         # 2. Build QueryOptions and execute query

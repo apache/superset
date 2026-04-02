@@ -16,10 +16,12 @@ jobs:
         id: check
         shell: bash
         run: |
-          if [ -n "${{ (secrets.NPM_TOKEN != '') || '' }}" ]; then
+          if [ -n "${NPM_TOKEN}" ]; then
             echo "has-secrets=1" >> "$GITHUB_OUTPUT"
           fi
 
+        env:
+          NPM_TOKEN: ${{ (secrets.NPM_TOKEN != '') || '' }}
   build:
     needs: config
     if: needs.config.outputs.has-secrets
