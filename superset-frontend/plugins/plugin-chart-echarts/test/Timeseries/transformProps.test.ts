@@ -1839,8 +1839,14 @@ describe('Tooltip with long labels', () => {
 });
 
 test('should adjust dataZoom bottom when chart height changes', () => {
-  const smallChart = createTestChartProps({ height: 300 });
-  const largeChart = createTestChartProps({ height: 600 });
+  const smallChart = createTestChartProps({
+    height: 300,
+    formData: { zoomable: true },
+  });
+  const largeChart = createTestChartProps({
+    height: 600,
+    formData: { zoomable: true },
+  });
 
   const smallResult = transformProps(smallChart);
   const largeResult = transformProps(largeChart);
