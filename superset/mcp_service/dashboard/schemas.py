@@ -509,7 +509,7 @@ class GenerateDashboardRequest(BaseModel):
     )
     description: str | None = Field(None, description="Description for the dashboard")
     published: bool = Field(
-        default=True, description="Whether to publish the dashboard"
+        default=False, description="Whether to publish the dashboard"
     )
 
     @field_validator("dashboard_title")
