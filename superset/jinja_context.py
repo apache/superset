@@ -285,12 +285,16 @@ class ExtraCache:
         # pylint: disable=import-outside-toplevel
         from superset.views.utils import get_form_data
 
+        # Resolve value: URL query string takes priority over form_data url_params.
+        # Both sources are subject to the same escaping logic below — previously
+        # request.args values were returned raw, bypassing escape_result entirely.
         if has_request_context() and request.args.get(param):
-            return request.args.get(param, default)
+            result = request.args.get(param, default)
+        else:
+            form_data, _ = get_form_data()
+            url_params = form_data.get("url_params") or {}
+            result = url_params.get(param, default)
 
-        form_data, _ = get_form_data()
-        url_params = form_data.get("url_params") or {}
-        result = url_params.get(param, default)
         if result and escape_result and self.dialect:
             # use the dialect specific quoting logic to escape string
             result = String().literal_processor(dialect=self.dialect)(value=result)[
