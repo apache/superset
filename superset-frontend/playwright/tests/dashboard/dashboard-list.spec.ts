@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { test as testWithAssets, expect } from '../../helpers/fixtures';
+import { testWithAssets, expect } from '../../helpers/fixtures';
 import { DashboardListPage } from '../../pages/DashboardListPage';
 import {
   DeleteConfirmationModal,

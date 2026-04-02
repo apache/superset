@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { test as testWithAssets, expect } from '../../helpers/fixtures';
+import { testWithAssets, expect } from '../../helpers/fixtures';
 import { ChartListPage } from '../../pages/ChartListPage';
 import {
   ChartPropertiesModal,

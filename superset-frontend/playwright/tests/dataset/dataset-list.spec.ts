@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { test as testWithAssets, expect } from '../../helpers/fixtures';
+import { testWithAssets, expect } from '../../helpers/fixtures';
 import path from 'path';
 import { DatasetListPage } from '../../pages/DatasetListPage';
 import { ExplorePage } from '../../pages/ExplorePage';
