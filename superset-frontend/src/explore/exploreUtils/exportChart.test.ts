@@ -143,6 +143,22 @@ test('exportChart passes xlsx exportType for Excel exports', async () => {
   );
 });
 
+test('exportChart passes pdf exportType for PDF exports', async () => {
+  const onStartStreamingExport = jest.fn();
+
+  await exportChart({
+    formData: baseFormData,
+    resultFormat: 'pdf',
+    onStartStreamingExport: onStartStreamingExport as unknown as null,
+  });
+
+  expect(onStartStreamingExport).toHaveBeenCalledWith(
+    expect.objectContaining({
+      exportType: 'pdf',
+    }),
+  );
+});
+
 test('exportChart legacy API (useLegacyApi=true) passes prefixed URL with app root configured', async () => {
   const appRoot = '/superset';
   ensureAppRoot.mockImplementation((path: string) => `${appRoot}${path}`);
@@ -216,6 +232,31 @@ test('exportChart legacy API builds relative URL for xlsx export', async () => {
   expect(onStartStreamingExport).toHaveBeenCalledTimes(1);
   const callArgs = onStartStreamingExport.mock.calls[0][0];
   expect(callArgs.url).toBe('/superset/explore_json/?xlsx=true');
+});
+
+test('exportChart legacy API builds relative URL for pdf export', async () => {
+  ensureAppRoot.mockImplementation((path: string) => path);
+
+  getChartMetadataRegistry.mockReturnValue({
+    get: jest.fn().mockReturnValue({ useLegacyApi: true, parseMethod: 'json' }),
+  });
+
+  const onStartStreamingExport = jest.fn();
+  const legacyFormData = {
+    datasource: '1__table',
+    viz_type: 'bubble',
+  };
+
+  await exportChart({
+    formData: legacyFormData,
+    resultFormat: 'pdf',
+    resultType: 'results',
+    onStartStreamingExport: onStartStreamingExport as unknown as null,
+  });
+
+  expect(onStartStreamingExport).toHaveBeenCalledTimes(1);
+  const callArgs = onStartStreamingExport.mock.calls[0][0];
+  expect(callArgs.url).toBe('/superset/explore_json/?pdf=true');
 });
 
 test('exportChart legacy API calls postForm with relative URL', async () => {

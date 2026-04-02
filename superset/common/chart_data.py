@@ -24,6 +24,7 @@ class ChartDataResultFormat(StrEnum):
 
     CSV = "csv"
     JSON = "json"
+    PDF = "pdf"
     XLSX = "xlsx"
 
     @classmethod

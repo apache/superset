@@ -256,6 +256,30 @@ test('should call exportChart when exportXLSX is clicked', async () => {
   stubbedExportXLSX.mockRestore();
 });
 
+test('should call exportChart when exportPDF is clicked', async () => {
+  const stubbedExportPDF = jest
+    .spyOn(exploreUtils, 'exportChart')
+    .mockImplementation((() => {}) as any);
+  const { findByText, getByRole } = setup(
+    {},
+    {
+      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_csv: true },
+    },
+  );
+  fireEvent.click(getByRole('button', { name: 'More Options' }));
+  fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+  const exportAction = await findByText('Export to PDF');
+  fireEvent.click(exportAction);
+  expect(stubbedExportPDF).toHaveBeenCalledTimes(1);
+  expect(stubbedExportPDF).toHaveBeenCalledWith(
+    expect.objectContaining({
+      resultType: 'full',
+      resultFormat: 'pdf',
+    }),
+  );
+  stubbedExportPDF.mockRestore();
+});
+
 test('should call exportChart with row_limit props.maxRows when exportFullXLSX is clicked', async () => {
   (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: true,

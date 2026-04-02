@@ -38,6 +38,7 @@ const createProps = (viz_type = VizType.Sunburst) =>
     exportCSV: jest.fn(),
     exportFullCSV: jest.fn(),
     exportXLSX: jest.fn(),
+    exportPDF: jest.fn(),
     exportFullXLSX: jest.fn(),
     exportPivotExcel: jest.fn(),
     forceRefresh: jest.fn(),
@@ -193,6 +194,17 @@ test('Should "export to Excel"', async () => {
   userEvent.click(await screen.findByText('Export to Excel'));
   expect(props.exportXLSX).toHaveBeenCalledTimes(1);
   expect(props.exportXLSX).toHaveBeenCalledWith(371);
+});
+
+test('Should "export to PDF"', async () => {
+  const props = createProps();
+  renderWrapper(props);
+  openMenu();
+  expect(props.exportPDF).toHaveBeenCalledTimes(0);
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.click(await screen.findByText('Export to PDF'));
+  expect(props.exportPDF).toHaveBeenCalledTimes(1);
+  expect(props.exportPDF).toHaveBeenCalledWith(371);
 });
 
 test('Export full CSV is under featureflag', async () => {

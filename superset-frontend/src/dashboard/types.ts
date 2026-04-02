@@ -370,6 +370,7 @@ export enum MenuKeys {
   ExportPivotCsv = 'export_pivot_csv',
   ExportFullCsv = 'export_full_csv',
   ExportXlsx = 'export_xlsx',
+  ExportPdf = 'export_pdf',
   ExportFullXlsx = 'export_full_xlsx',
   ForceRefresh = 'force_refresh',
   Fullscreen = 'fullscreen',

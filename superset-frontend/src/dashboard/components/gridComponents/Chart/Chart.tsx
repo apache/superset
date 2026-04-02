@@ -36,6 +36,7 @@ import {
   LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
   LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
   LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF,
   LOG_ACTIONS_EXPORT_XLSX_DASHBOARD_CHART,
   LOG_ACTIONS_FORCE_REFRESH_CHART,
 } from 'src/logger/LogUtils';
@@ -474,7 +475,9 @@ const Chart = (props: ChartProps) => {
       const logAction =
         format === 'csv'
           ? LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART
-          : LOG_ACTIONS_EXPORT_XLSX_DASHBOARD_CHART;
+          : format === 'pdf'
+            ? LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF
+            : LOG_ACTIONS_EXPORT_XLSX_DASHBOARD_CHART;
       boundActionCreators.logEvent(logAction, {
         slice_id: sliceSliceId,
         is_cached: isCached,
@@ -599,6 +602,10 @@ const Chart = (props: ChartProps) => {
     exportTable('xlsx', true);
   }, [exportTable]);
 
+  const exportPDF = useCallback(() => {
+    exportTable('pdf', false);
+  }, [exportTable]);
+
   const forceRefresh = useCallback(() => {
     boundActionCreators.logEvent(LOG_ACTIONS_FORCE_REFRESH_CHART, {
       slice_id: sliceSliceId,
@@ -664,6 +671,7 @@ const Chart = (props: ChartProps) => {
         exportCSV={exportCSV}
         exportPivotCSV={exportPivotCSV}
         exportXLSX={exportXLSX}
+        exportPDF={exportPDF}
         exportFullCSV={exportFullCSV}
         exportFullXLSX={exportFullXLSX}
         updateSliceName={(name: string) =>

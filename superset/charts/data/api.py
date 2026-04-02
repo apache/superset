@@ -58,6 +58,7 @@ from superset.utils.core import (
     get_user_id,
 )
 from superset.utils.decorators import logs_context
+from superset.utils.pdf import apply_column_labels_to_rows, build_pdf_from_chart_data
 from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
 from superset.views.base_api import statsd_metrics
 
@@ -404,7 +405,10 @@ class ChartDataRestApi(ChartRestApi):
         if result_type == ChartDataResultType.POST_PROCESSED:
             result = apply_client_processing(result, form_data, datasource)
 
-        if result_format in ChartDataResultFormat.table_like():
+        export_result_formats = ChartDataResultFormat.table_like() | {
+            ChartDataResultFormat.PDF
+        }
+        if result_format in export_result_formats:
             # Verify user has permission to export file
             if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
                 has_export_perm = security_manager.can_access(
@@ -419,6 +423,28 @@ class ChartDataRestApi(ChartRestApi):
                 return self.response_400(_("Empty query result"))
 
             is_csv_format = result_format == ChartDataResultFormat.CSV
+            is_pdf_format = result_format == ChartDataResultFormat.PDF
+
+            def _get_pdf_column_labels() -> dict[str, str]:
+                query_context = result.get("query_context")
+                resolved_datasource = datasource or getattr(
+                    query_context, "datasource", None
+                )
+                datasource_data = getattr(resolved_datasource, "data", None)
+                if not isinstance(datasource_data, dict):
+                    return {}
+                verbose_map = datasource_data.get("verbose_map")
+                if not isinstance(verbose_map, dict):
+                    return {}
+                return {
+                    str(column_name): str(label) if label else str(column_name)
+                    for column_name, label in verbose_map.items()
+                }
+
+            pdf_column_labels = _get_pdf_column_labels() if is_pdf_format else {}
+
+            def _normalize_pdf_rows(query_data: Any) -> list[dict[str, Any]]:
+                return apply_column_labels_to_rows(query_data, pdf_column_labels)
 
             # Check if we should use streaming for large datasets
             if is_csv_format and self._should_use_streaming(result, form_data):
@@ -431,6 +457,13 @@ class ChartDataRestApi(ChartRestApi):
                 data = result["queries"][0]["data"]
                 if is_csv_format:
                     return CsvResponse(data, headers=generate_download_headers("csv"))
+                if is_pdf_format:
+                    pdf_data = build_pdf_from_chart_data(_normalize_pdf_rows(data))
+                    return Response(
+                        pdf_data,
+                        headers=generate_download_headers("pdf"),
+                        mimetype="application/pdf",
+                    )
 
                 return XlsxResponse(data, headers=generate_download_headers("xlsx"))
 
@@ -439,6 +472,8 @@ class ChartDataRestApi(ChartRestApi):
                 if result_format == ChartDataResultFormat.CSV:
                     encoding = app.config["CSV_EXPORT"].get("encoding", "utf-8")
                     return query_data.encode(encoding)
+                if result_format == ChartDataResultFormat.PDF:
+                    return build_pdf_from_chart_data(_normalize_pdf_rows(query_data))
                 return query_data
 
             files = {

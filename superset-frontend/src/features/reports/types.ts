@@ -32,6 +32,8 @@ export enum ReportType {
 
 export enum NotificationFormats {
   Text = 'TEXT',
+  PDF = 'PDF',
+  PDFNew = 'PDF_NEW',
   PNG = 'PNG',
   CSV = 'CSV',
 }

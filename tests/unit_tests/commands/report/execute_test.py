@@ -26,8 +26,10 @@ from pytest_mock import MockerFixture
 from superset.app import SupersetApp
 from superset.commands.exceptions import UpdateFailedError
 from superset.commands.report.execute import BaseReportState
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.reports.models import (
+    ReportDataFormat,
     ReportRecipients,
     ReportRecipientType,
     ReportSchedule,
@@ -596,3 +598,66 @@ def test_update_recipient_to_slack_v2_missing_channels(mocker: MockerFixture):
     )
     with pytest.raises(UpdateFailedError):
         mock_cmmd.update_report_schedule_slack_v2()
+
+
+def test_get_url_with_pdf_result_format_uses_chart_data_endpoint(
+    mocker: MockerFixture,
+) -> None:
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.chart = True
+    mock_report_schedule.chart_id = 456
+    mock_report_schedule.force_screenshot = False
+
+    expected_url = "https://superset.local/api/v1/chart/456/data/"
+    get_url_path_mock = mocker.patch(
+        "superset.commands.report.execute.get_url_path",
+        return_value=expected_url,
+    )
+
+    class_instance = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+
+    result = class_instance._get_url(result_format=ChartDataResultFormat.PDF)
+
+    assert result == expected_url
+    get_url_path_mock.assert_called_once_with(
+        "ChartDataRestApi.get_data",
+        pk=456,
+        format=ChartDataResultFormat.PDF.value,
+        type=ChartDataResultType.FULL.value,
+        force="false",
+    )
+
+
+def test_get_notification_content_uses_chart_data_pdf_for_pdf_new(
+    mocker: MockerFixture,
+) -> None:
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.type = ReportScheduleType.REPORT
+    mock_report_schedule.name = "Weekly Report"
+    mock_report_schedule.description = "Test Description"
+    mock_report_schedule.report_format = ReportDataFormat.PDF_NEW
+    mock_report_schedule.chart = mocker.Mock()
+    mock_report_schedule.chart.slice_name = "Sales Chart"
+    mock_report_schedule.chart_id = 1
+    mock_report_schedule.dashboard = None
+    mock_report_schedule.owners = []
+    mock_report_schedule.recipients = []
+    mock_report_schedule.email_subject = None
+
+    class_instance = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    mocker.patch.object(class_instance, "_get_url", return_value="https://example.com")
+    chart_pdf_mock = mocker.patch.object(
+        class_instance, "_get_chart_data_pdf", return_value=b"pdf-bytes"
+    )
+    screenshot_pdf_mock = mocker.patch.object(class_instance, "_get_pdf")
+
+    content = class_instance._get_notification_content()
+
+    assert content.pdf == b"pdf-bytes"
+    assert content.name == "Weekly Report: Sales Chart"
+    chart_pdf_mock.assert_called_once()
+    screenshot_pdf_mock.assert_not_called()

@@ -37,6 +37,7 @@ from superset.commands.report.exceptions import (
     ReportScheduleDataFrameTimeout,
     ReportScheduleExecuteUnexpectedError,
     ReportScheduleNotFoundError,
+    ReportSchedulePdfFailedError,
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
@@ -222,12 +223,18 @@ class BaseReportState:
             if result_format in {
                 ChartDataResultFormat.CSV,
                 ChartDataResultFormat.JSON,
+                ChartDataResultFormat.PDF,
             }:
+                result_type = (
+                    ChartDataResultType.FULL.value
+                    if result_format == ChartDataResultFormat.PDF
+                    else ChartDataResultType.POST_PROCESSED.value
+                )
                 return get_url_path(
                     "ChartDataRestApi.get_data",
                     pk=self._report_schedule.chart_id,
                     format=result_format.value,
-                    type=ChartDataResultType.POST_PROCESSED.value,
+                    type=result_type,
                     force=force,
                 )
             return get_url_path(
@@ -445,6 +452,64 @@ class BaseReportState:
 
         return pdf
 
+    def _get_chart_data_pdf(self) -> bytes:
+        """
+        Get chart-data based pdf for chart reports.
+        :raises: ReportSchedulePdfFailedError
+        """
+        if not self._report_schedule.chart:
+            raise ReportSchedulePdfFailedError(
+                "Chart data pdf export is only supported for chart reports"
+            )
+
+        start_time = datetime.utcnow()
+        url = self._get_url(result_format=ChartDataResultFormat.PDF)
+        _, username = get_executor(
+            executors=app.config["ALERT_REPORTS_EXECUTORS"],
+            model=self._report_schedule,
+        )
+        user = security_manager.find_user(username)
+        auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
+
+        if self._report_schedule.chart.query_context is None:
+            logger.warning("No query context found, taking a screenshot to generate it")
+            self._update_query_context()
+
+        try:
+            chart_data = get_chart_csv_data(chart_url=url, auth_cookies=auth_cookies)
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.info(
+                "Chart data PDF generation from %s as user %s took %.2fs - execution_id: %s",  # noqa: E501
+                url,
+                username,
+                elapsed_seconds,
+                self._execution_id,
+            )
+        except SoftTimeLimitExceeded as ex:
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.warning(
+                "Chart data PDF generation timeout after %.2fs - execution_id: %s",
+                elapsed_seconds,
+                self._execution_id,
+            )
+            raise ReportSchedulePdfFailedError(
+                "A timeout occurred while generating a pdf."
+            ) from ex
+        except Exception as ex:
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.error(
+                "Chart data PDF generation failed after %.2fs - execution_id: %s",
+                elapsed_seconds,
+                self._execution_id,
+            )
+            raise ReportSchedulePdfFailedError(
+                f"Failed generating pdf {str(ex)}"
+            ) from ex
+
+        if not chart_data:
+            raise ReportSchedulePdfFailedError()
+        return chart_data
+
     def _get_csv_data(self) -> bytes:
         start_time = datetime.utcnow()
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
@@ -620,6 +685,13 @@ class BaseReportState:
                 pdf_data = self._get_pdf()
                 if not pdf_data:
                     error_text = "Unexpected missing pdf"
+            elif self._report_schedule.report_format == ReportDataFormat.PDF_NEW:
+                if self._report_schedule.chart:
+                    pdf_data = self._get_chart_data_pdf()
+                    if not pdf_data:
+                        error_text = "Unexpected missing pdf"
+                else:
+                    error_text = "PDF NEW is only supported for chart reports"
             elif (
                 self._report_schedule.chart
                 and self._report_schedule.report_format == ReportDataFormat.CSV
