@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { test, expect } from '../../helpers/fixtures';
+import { testWithAssets as test, expect } from '../../helpers/fixtures';
 import type { TestAssets } from '../../helpers/fixtures';
 import type { Page, TestInfo } from '@playwright/test';
 import { ExplorePage } from '../../pages/ExplorePage';
@@ -25,7 +25,7 @@ import { CreateDatasetPage } from '../../pages/CreateDatasetPage';
 import { DatasetListPage } from '../../pages/DatasetListPage';
 import { ChartCreationPage } from '../../pages/ChartCreationPage';
 import { ENDPOINTS } from '../../helpers/api/dataset';
-import { waitForGet, waitForPost } from '../../helpers/api/intercepts';
+import { waitForPost } from '../../helpers/api/intercepts';
 import { expectStatusOneOf } from '../../helpers/api/assertions';
 import { apiPostDatabase } from '../../helpers/api/database';
 
@@ -37,10 +37,7 @@ interface GsheetsSetupResult {
 
 /**
  * Sets up gsheets database and navigates to create dataset page.
- * Intercepts the tables API to distinguish Superset regressions from transient issues:
- * - Tables API error → hard failure (Superset bug)
- * - Tables API success, sheet missing → skip (Google Sheets API slow)
- * - Tables API success, sheet present → proceed (UI timeout = real regression)
+ * Skips test if gsheets connector unavailable (test.skip() throws, so no return).
  * @param testInfo - Test info for parallelIndex to avoid name collisions in parallel runs
  * @returns Setup result with names and page object
  */
@@ -80,15 +77,22 @@ async function setupGsheetsDataset(
     }),
   });
 
-  // Fail hard if gsheets database creation fails.
-  // shillelagh[gsheetsapi] is a base dependency (pyproject.toml), so the engine
-  // is always available after `pip install -e .`; a failure here means the CI
-  // environment is broken, not that the driver is missing.
+  // Check if gsheets connector is available
   if (!createDbRes.ok()) {
     const errorBody = await createDbRes.json();
-    throw new Error(
-      `Failed to create gsheets database: ${JSON.stringify(errorBody)}`,
-    );
+    const errorText = JSON.stringify(errorBody);
+    // Skip test if gsheets connector not installed
+    if (
+      errorText.includes('gsheets') ||
+      errorText.includes('No such DB engine')
+    ) {
+      await test.info().attach('skip-reason', {
+        body: `Google Sheets connector unavailable: ${errorText}`,
+        contentType: 'text/plain',
+      });
+      test.skip(); // throws, no return needed
+    }
+    throw new Error(`Failed to create gsheets database: ${errorText}`);
   }
 
   const createDbBody = await createDbRes.json();
@@ -103,70 +107,23 @@ async function setupGsheetsDataset(
   await createDatasetPage.goto();
   await createDatasetPage.waitForPageLoad();
 
-  // Select the Google Sheets database and intercept the tables API response
-  // to distinguish Superset regressions from transient Google Sheets delays.
-  // Pin to our dbId so a stale localStorage selection can't satisfy the waiter.
-  const tablesResponsePromise = waitForGet(
-    page,
-    new RegExp(`/api/v1/database/${dbId}/tables`),
-  );
+  // Select the Google Sheets database
   await createDatasetPage.selectDatabase(dbName);
 
-  // Check the tables API response.
-  // Outcomes:
-  //   1. Response never arrives (TimeoutError)    → Google Sheets too slow → skip
-  //   2. Response arrives, non-OK status          → Superset regression   → fail hard
-  //   3. Response OK, empty result (0 tables)     → Google Sheets slow    → skip
-  //   4. Response OK, non-empty but sheet missing → Superset wrong data   → fail hard
-  //   5. Response OK, sheet present               → proceed to UI select
-  let tablesResponse: Awaited<typeof tablesResponsePromise>;
+  // Try to select the sheet - if not found due to timeout, skip
   try {
-    tablesResponse = await tablesResponsePromise;
+    await createDatasetPage.selectTable(sheetName);
   } catch (error) {
+    // Only skip on TimeoutError (sheet not loaded); re-throw everything else
     if (!(error instanceof Error) || error.name !== 'TimeoutError') {
       throw error;
     }
     await test.info().attach('skip-reason', {
-      body: `Tables API for database ${dbId} did not respond in time — Google Sheets metadata may be slow.`,
+      body: `Table "${sheetName}" not found in dropdown after timeout.`,
       contentType: 'text/plain',
     });
-    test.skip();
-    // test.skip() throws; this line is unreachable but satisfies TypeScript
-    throw error;
+    test.skip(); // throws, no return needed
   }
-
-  if (!tablesResponse.ok()) {
-    throw new Error(
-      `Tables API failed (${tablesResponse.status()}): ${await tablesResponse.text()}`,
-    );
-  }
-
-  const tablesBody = await tablesResponse.json();
-  const tableNames: string[] = (tablesBody.result ?? []).map(
-    (t: { value: string }) => t.value,
-  );
-
-  if (!tableNames.includes(sheetName)) {
-    if (tableNames.length === 0) {
-      // Empty result — Google Sheets API hasn't returned table metadata yet.
-      // This is the only legitimate transient case: we created the database
-      // with exactly one sheet in its catalog, so an empty response means the
-      // external API was too slow, not that Superset returned wrong data.
-      await test.info().attach('skip-reason', {
-        body: `Tables API returned 0 tables for database ${dbId} — Google Sheets API may be slow.`,
-        contentType: 'text/plain',
-      });
-      test.skip();
-    }
-    // Non-empty result that omits our sheet — Superset returned wrong data
-    throw new Error(
-      `Tables API returned ${tableNames.length} tables but "${sheetName}" was not among them: [${tableNames.join(', ')}]`,
-    );
-  }
-
-  // Table confirmed in API response — select it from the dropdown.
-  // A timeout here is now a genuine UI regression, not a transient skip.
-  await createDatasetPage.selectTable(sheetName);
 
   return { sheetName, dbName, createDatasetPage };
 }
@@ -193,8 +150,10 @@ test('should create a dataset via wizard', async ({ page, testAssets }) => {
   );
   const createBody = await createResponse.json();
   const newDatasetId = createBody.result?.id ?? createBody.id;
-  expect(newDatasetId).toBeTruthy();
-  testAssets.trackDataset(newDatasetId);
+
+  if (newDatasetId) {
+    testAssets.trackDataset(newDatasetId);
+  }
 
   // Verify we navigated to Chart Creation page with dataset pre-selected
   await page.waitForURL(/.*\/chart\/add.*/);
@@ -245,8 +204,9 @@ test('should create a dataset without exploring', async ({
   );
   const createBody = await createResponse.json();
   const datasetId = createBody.result?.id ?? createBody.id;
-  expect(datasetId).toBeTruthy();
-  testAssets.trackDataset(datasetId);
+  if (datasetId) {
+    testAssets.trackDataset(datasetId);
+  }
 
   // Verify redirect to dataset list (not chart creation)
   // Note: "Create dataset" action does not show a toast

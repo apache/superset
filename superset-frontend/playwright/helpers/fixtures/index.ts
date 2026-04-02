@@ -18,9 +18,4 @@
  */
 
 // Base fixture with test asset cleanup
-export {
-  test,
-  test as testWithAssets,
-  expect,
-  type TestAssets,
-} from './testAssets';
+export { test as testWithAssets, expect, type TestAssets } from './testAssets';
