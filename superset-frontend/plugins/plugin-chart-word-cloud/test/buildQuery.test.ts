@@ -21,17 +21,52 @@ import { VizType } from '@superset-ui/core';
 import { WordCloudFormData } from '../src';
 import buildQuery from '../src/plugin/buildQuery';
 
-describe('WordCloud buildQuery', () => {
-  const formData: WordCloudFormData = {
-    datasource: '5__table',
-    granularity_sqla: 'ds',
-    series: 'foo',
-    viz_type: VizType.WordCloud,
-  };
+const basicFormData: WordCloudFormData = {
+  datasource: '5__table',
+  granularity_sqla: 'ds',
+  series: 'foo',
+  viz_type: VizType.WordCloud,
+};
 
-  test('should build columns from series in form data', () => {
-    const queryContext = buildQuery(formData);
-    const [query] = queryContext.queries;
-    expect(query.columns).toEqual(['foo']);
+describe('plugin-chart-word-cloud', () => {
+  describe('buildQuery', () => {
+    test('should build columns from series in form data', () => {
+      const queryContext = buildQuery(basicFormData);
+      const [query] = queryContext.queries;
+      expect(query.columns).toEqual(['foo']);
+    });
+
+    test('should order by series ASC when sort_by_metric is false', () => {
+      const queryContext = buildQuery({
+        ...basicFormData,
+        metric: 'count',
+        sort_by_metric: false,
+        row_limit: 100,
+      });
+      const [query] = queryContext.queries;
+      expect(query.orderby).toEqual([['foo', true]]);
+    });
+
+    test('should order by metric DESC only when sort_by_metric is true', () => {
+      const queryContext = buildQuery({
+        ...basicFormData,
+        metric: 'count',
+        sort_by_metric: true,
+        row_limit: 100,
+      });
+      const [query] = queryContext.queries;
+      expect(query.orderby).toEqual([['count', false]]);
+    });
+
+    test('should not include secondary series sort when sort_by_metric is true', () => {
+      const queryContext = buildQuery({
+        ...basicFormData,
+        metric: 'count',
+        sort_by_metric: true,
+        row_limit: 100,
+      });
+      const [query] = queryContext.queries;
+      expect(query.orderby).toHaveLength(1);
+    });
   });
 });
