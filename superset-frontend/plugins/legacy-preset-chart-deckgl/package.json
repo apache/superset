@@ -47,7 +47,7 @@
     "d3-scale": "^3.0.0",
     "dayjs": "^1.11.13",
     "handlebars": "^4.7.8",
-    "lodash": "^4.17.23",
+    "lodash": "^4.18.1",
     "mousetrap": "^1.6.5",
     "ngeohash": "^0.6.3",
     "prop-types": "^15.8.1",

@@ -26,7 +26,7 @@
   "dependencies": {
     "@react-icons/all-files": "^4.1.0",
     "@types/react": "*",
-    "lodash": "^4.17.23"
+    "lodash": "^4.18.1"
   },
   "peerDependencies": {
     "@ant-design/icons": "^5.2.6",
