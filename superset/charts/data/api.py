@@ -58,7 +58,7 @@ from superset.utils.core import (
     get_user_id,
 )
 from superset.utils.decorators import logs_context
-from superset.utils.pdf import build_pdf_from_chart_data
+from superset.utils.pdf import apply_column_labels_to_rows, build_pdf_from_chart_data
 from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
 from superset.views.base_api import statsd_metrics
 
@@ -425,16 +425,26 @@ class ChartDataRestApi(ChartRestApi):
             is_csv_format = result_format == ChartDataResultFormat.CSV
             is_pdf_format = result_format == ChartDataResultFormat.PDF
 
+            def _get_pdf_column_labels() -> dict[str, str]:
+                query_context = result.get("query_context")
+                resolved_datasource = datasource or getattr(
+                    query_context, "datasource", None
+                )
+                datasource_data = getattr(resolved_datasource, "data", None)
+                if not isinstance(datasource_data, dict):
+                    return {}
+                verbose_map = datasource_data.get("verbose_map")
+                if not isinstance(verbose_map, dict):
+                    return {}
+                return {
+                    str(column_name): str(label) if label else str(column_name)
+                    for column_name, label in verbose_map.items()
+                }
+
+            pdf_column_labels = _get_pdf_column_labels() if is_pdf_format else {}
+
             def _normalize_pdf_rows(query_data: Any) -> list[dict[str, Any]]:
-                if not isinstance(query_data, list):
-                    return []
-                rows: list[dict[str, Any]] = []
-                for row in query_data:
-                    if isinstance(row, dict):
-                        rows.append({str(key): value for key, value in row.items()})
-                    else:
-                        rows.append({"value": row})
-                return rows
+                return apply_column_labels_to_rows(query_data, pdf_column_labels)
 
             # Check if we should use streaming for large datasets
             if is_csv_format and self._should_use_streaming(result, form_data):

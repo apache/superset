@@ -31,13 +31,14 @@ except ModuleNotFoundError:
 
 
 NEWLINE_PATTERN = re.compile(r"\r\n|\r|\n")
-DEFAULT_PAGE_WIDTH = 1240
 DEFAULT_PAGE_HEIGHT = 1754
 PAGE_MARGIN = 48
 CELL_PADDING_X = 8
 CELL_PADDING_Y = 6
 MIN_COLUMN_CHARS = 10
-MAX_COLUMN_CHARS = 60
+MAX_COLUMN_CHARS = 120
+MIN_PAGE_WIDTH = 360
+MAX_PAGE_WIDTH = 4096
 HEADER_BG_COLOR = (244, 244, 244)
 GRID_COLOR = (210, 210, 210)
 TEXT_COLOR = (0, 0, 0)
@@ -76,6 +77,60 @@ def _normalize_chart_row_value(value: Any) -> str:
         value_str = str(value)
     value_str = NEWLINE_PATTERN.sub(" ", value_str).replace("\t", "    ")
     return value_str
+
+
+def apply_column_labels_to_rows(
+    query_data: Any,
+    column_labels: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    """
+    Apply human-friendly column labels to row keys while preserving row values.
+
+    If multiple source columns resolve to the same label, unique suffixes are
+    applied to prevent key collisions and data loss.
+    """
+    if not isinstance(query_data, list):
+        return []
+
+    normalized_labels = {
+        str(column_name): str(label) if label else str(column_name)
+        for column_name, label in (column_labels or {}).items()
+    }
+
+    header_map: dict[str, str] = {}
+    used_headers: set[str] = set()
+    for row in query_data:
+        if not isinstance(row, dict):
+            continue
+        for key in row:
+            source_key = str(key)
+            if source_key in header_map:
+                continue
+
+            preferred = normalized_labels.get(source_key, source_key)
+            candidate = preferred
+            if candidate in used_headers:
+                candidate = f"{preferred} ({source_key})"
+            suffix = 2
+            while candidate in used_headers:
+                candidate = f"{preferred} ({suffix})"
+                suffix += 1
+
+            header_map[source_key] = candidate
+            used_headers.add(candidate)
+
+    rows: list[dict[str, Any]] = []
+    for row in query_data:
+        if isinstance(row, dict):
+            rows.append(
+                {
+                    header_map.get(str(key), str(key)): value
+                    for key, value in row.items()
+                }
+            )
+        else:
+            rows.append({"value": row})
+    return rows
 
 
 def _load_table_font() -> Any:
@@ -128,6 +183,13 @@ def _estimate_column_width_chars(
             max_length = max(max_length, len(cell_value))
         widths.append(min(max(max_length, MIN_COLUMN_CHARS), MAX_COLUMN_CHARS))
     return widths
+
+
+def _calculate_page_width(table_width: int) -> int:
+    """
+    Calculate page width based on table content width with safe bounds.
+    """
+    return min(max((PAGE_MARGIN * 2) + table_width, MIN_PAGE_WIDTH), MAX_PAGE_WIDTH)
 
 
 def _wrap_cell(value: str, width_chars: int) -> list[str]:
@@ -204,7 +266,7 @@ def build_pdf_from_chart_data(rows: list[dict[str, Any]]) -> bytes:  # noqa: C90
             for width_chars in column_widths_chars
         ]
         table_width = sum(column_widths_px)
-        page_width = max(DEFAULT_PAGE_WIDTH, (PAGE_MARGIN * 2) + table_width)
+        page_width = _calculate_page_width(table_width)
         page_height = DEFAULT_PAGE_HEIGHT
         x_origin = PAGE_MARGIN
 
