@@ -25,6 +25,7 @@ import difflib
 from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List, Literal, Protocol
 
+import humanize
 from pydantic import (
     AliasChoices,
     AliasPath,
@@ -36,6 +37,7 @@ from pydantic import (
     model_validator,
     PositiveInt,
 )
+from typing_extensions import Self
 
 from superset.constants import TimeGrain
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
@@ -46,6 +48,7 @@ from superset.mcp_service.common.cache_schemas import (
     QueryCacheControl,
 )
 from superset.mcp_service.common.error_schemas import ChartGenerationError
+from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
     serialize_user_object,
@@ -270,6 +273,13 @@ class GetChartInfoRequest(BaseModel):
         return self
 
 
+def _humanize_timestamp(dt: datetime | None) -> str | None:
+    """Convert a datetime to a humanized string like '2 hours ago'."""
+    if dt is None:
+        return None
+    return humanize.naturaltime(datetime.now() - dt)
+
+
 def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     if not chart:
         return None
@@ -295,11 +305,11 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         or (str(chart.changed_by) if getattr(chart, "changed_by", None) else None),
         changed_by_name=getattr(chart, "changed_by_name", None),
         changed_on=getattr(chart, "changed_on", None),
-        changed_on_humanized=getattr(chart, "changed_on_humanized", None),
+        changed_on_humanized=_humanize_timestamp(getattr(chart, "changed_on", None)),
         created_by=getattr(chart, "created_by_name", None)
         or (str(chart.created_by) if getattr(chart, "created_by", None) else None),
         created_on=getattr(chart, "created_on", None),
-        created_on_humanized=getattr(chart, "created_on_humanized", None),
+        created_on_humanized=_humanize_timestamp(getattr(chart, "created_on", None)),
         uuid=str(getattr(chart, "uuid", "")) if getattr(chart, "uuid", None) else None,
         tags=[
             TagInfo.model_validate(tag, from_attributes=True)
@@ -850,6 +860,112 @@ class HandlebarsChartConfig(UnknownFieldCheckMixin):
         return self
 
 
+class BigNumberChartConfig(UnknownFieldCheckMixin):
+    model_config = ConfigDict(extra="ignore")
+
+    chart_type: Literal["big_number"] = Field(
+        ...,
+        description=(
+            "Chart type discriminator - MUST be 'big_number'. "
+            "Creates Big Number charts that display a single prominent "
+            "metric value. Set show_trendline=True with a temporal_column "
+            "for a number with trendline, or leave show_trendline=False "
+            "for a standalone number."
+        ),
+    )
+    metric: ColumnRef = Field(
+        ...,
+        description=(
+            "The metric to display as a big number. "
+            "Must include an aggregate function (e.g., SUM, COUNT)."
+        ),
+    )
+    temporal_column: str | None = Field(
+        None,
+        description=(
+            "Temporal column for the trendline x-axis. "
+            "Required when show_trendline is True."
+        ),
+        min_length=1,
+        max_length=255,
+        pattern=r"^[a-zA-Z0-9_][a-zA-Z0-9_\s\-\.]*$",
+    )
+    time_grain: TimeGrain | None = Field(
+        None,
+        description=(
+            "Time granularity for trendline data. "
+            "Common values: PT1H (hour), P1D (day), P1W (week), "
+            "P1M (month), P1Y (year)."
+        ),
+    )
+    show_trendline: bool = Field(
+        False,
+        description=(
+            "Show a trendline below the big number. "
+            "Requires 'temporal_column' to be set."
+        ),
+    )
+    subheader: str | None = Field(
+        None,
+        description="Subtitle text displayed below the big number",
+        max_length=500,
+    )
+    y_axis_format: str | None = Field(
+        None,
+        description=(
+            "Number format string for the metric value "
+            "(e.g., '$,.2f' for currency, ',.0f' for integers, "
+            "'.2%' for percentages)"
+        ),
+        max_length=50,
+    )
+    start_y_axis_at_zero: bool = Field(
+        True,
+        description="Anchor trendline y-axis at zero",
+    )
+    compare_lag: int | None = Field(
+        None,
+        description=(
+            "Number of time periods to compare against. "
+            "Displays a percentage change vs the prior period."
+        ),
+        ge=1,
+    )
+    filters: list[FilterConfig] | None = Field(
+        None,
+        description="Filters to apply",
+    )
+
+    @model_validator(mode="after")
+    def validate_trendline_fields(self) -> Self:
+        """Validate trendline requires temporal column."""
+        if self.show_trendline and not self.temporal_column:
+            raise ValueError(
+                "Big Number chart with show_trendline=True requires "
+                "'temporal_column'. Specify a date/time column for "
+                "the trendline x-axis."
+            )
+        if self.compare_lag and not self.show_trendline:
+            raise ValueError(
+                "compare_lag requires show_trendline=True. "
+                "Period comparison is only available for "
+                "trendline charts."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_metric_aggregate(self) -> Self:
+        """Ensure metric is a valid metric reference (aggregate or saved)."""
+        if not self.metric.is_metric:
+            raise ValueError(
+                "Big Number metric must be either a saved dataset metric "
+                "or include an aggregate function (e.g., SUM, COUNT, AVG). "
+                "Set 'saved_metric': true to use a saved metric, or add "
+                "'aggregate' to the metric specification."
+            )
+        return self
+
+
 class TableChartConfig(UnknownFieldCheckMixin):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
@@ -1014,12 +1130,14 @@ ChartConfig = Annotated[
     | PieChartConfig
     | PivotTableChartConfig
     | MixedTimeseriesChartConfig
-    | HandlebarsChartConfig,
+    | HandlebarsChartConfig
+    | BigNumberChartConfig,
     Field(
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
-            "'pie', 'pivot_table', 'mixed_timeseries', or 'handlebars'"
+            "'pie', 'pivot_table', 'mixed_timeseries', 'handlebars', "
+            "or 'big_number'"
         ),
     ),
 ]
@@ -1094,7 +1212,13 @@ class ListChartsRequest(MetadataCacheControl):
         Field(default=1, description="Page number for pagination (1-based)"),
     ]
     page_size: Annotated[
-        PositiveInt, Field(default=10, description="Number of items per page")
+        int,
+        Field(
+            default=DEFAULT_PAGE_SIZE,
+            gt=0,
+            le=MAX_PAGE_SIZE,
+            description=f"Number of items per page (max {MAX_PAGE_SIZE})",
+        ),
     ]
 
     @model_validator(mode="after")
