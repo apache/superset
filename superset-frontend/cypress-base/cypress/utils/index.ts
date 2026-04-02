@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { getChartAlias, Slice } from 'cypress/utils/vizPlugins';
+
 export * from './vizPlugins';
 export { default as parsePostForm } from './parsePostForm';
 export interface ChartSpec {
@@ -23,10 +25,41 @@ export interface ChartSpec {
   viz: string;
 }
 
-function getChartGridComponent({ name, viz }: ChartSpec) {
+const toSlicelike = ($chart: JQuery<HTMLElement>): Slice => {
+  const chartId = $chart.attr('data-test-chart-id');
+  const vizType = $chart.attr('data-test-viz-type');
+
+  return {
+    slice_id: chartId ? parseInt(chartId, 10) : null,
+    form_data: {
+      viz_type: vizType || null,
+    },
+  };
+};
+
+export function getChartGridComponent({ name, viz }: ChartSpec) {
   return cy
     .get(`[data-test-chart-name="${name}"]`)
     .should('have.attr', 'data-test-viz-type', viz);
+}
+
+export function getChartAliasBySpec(chart: ChartSpec) {
+  return getChartGridComponent(chart).then($chart =>
+    cy.wrap(getChartAlias(toSlicelike($chart))),
+  );
+}
+
+export function getChartAliasesBySpec(charts: readonly ChartSpec[]) {
+  const aliases: string[] = [];
+  charts.forEach(chart =>
+    getChartAliasBySpec(chart).then(alias => {
+      aliases.push(alias);
+    }),
+  );
+  // Wrapping the aliases is key.
+  // That way callers can chain off this function
+  // and actually get the list of aliases.
+  return cy.wrap(aliases);
 }
 
 export function waitForChartLoad(chart: ChartSpec) {
