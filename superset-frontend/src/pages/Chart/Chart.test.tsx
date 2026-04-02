@@ -54,6 +54,15 @@ jest.mock('src/explore/exploreUtils/getParsedExploreURLParams', () => ({
   getParsedExploreURLParams: jest.fn(),
 }));
 
+const mockAddDangerToast = jest.fn();
+jest.mock('src/components/MessageToasts/actions', () => ({
+  ...jest.requireActual('src/components/MessageToasts/actions'),
+  addDangerToast: (...args: unknown[]) => {
+    mockAddDangerToast(...args);
+    return { type: 'ADD_TOAST' };
+  },
+}));
+
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ChartPage', () => {
   beforeEach(() => {
@@ -69,6 +78,7 @@ describe('ChartPage', () => {
 
   afterEach(() => {
     fetchMock.clearHistory().removeRoutes();
+    mockAddDangerToast.mockClear();
   });
 
   test('fetches metadata on mount', async () => {
@@ -357,5 +367,95 @@ describe('ChartPage', () => {
         JSON.stringify({ show_cell_bars: true }).slice(1, -1),
       );
     });
+  });
+
+  test('does not show error toast when request is aborted on unmount', async () => {
+    const exploreApiRoute = 'glob:*/api/v1/explore/*';
+    let rejectRequest: (error: Error) => void;
+    const pendingPromise = new Promise((_, reject) => {
+      rejectRequest = reject;
+    });
+
+    fetchMock.get(exploreApiRoute, () => pendingPromise);
+
+    const { unmount } = render(<ChartPage />, {
+      useRouter: true,
+      useRedux: true,
+      useDnd: true,
+    });
+
+    // Unmount before the request completes
+    unmount();
+
+    // Simulate the aborted request rejection
+    const abortError = new Error('The operation was aborted.');
+    abortError.name = 'AbortError';
+    rejectRequest!(abortError);
+
+    // Wait a bit to ensure any async error handling would have occurred
+    await waitFor(() => {
+      expect(mockAddDangerToast).not.toHaveBeenCalled();
+    });
+  });
+
+  test('aborts in-flight request when a new request is made', async () => {
+    const exploreApiRoute = 'glob:*/api/v1/explore/*';
+    const exploreFormData = getExploreFormData({
+      viz_type: VizType.Table,
+      show_cell_bars: true,
+    });
+
+    // First request will be slow
+    let firstRequestResolve: () => void;
+    const firstRequestPromise = new Promise<void>(resolve => {
+      firstRequestResolve = resolve;
+    });
+
+    fetchMock.get(
+      exploreApiRoute,
+      () =>
+        firstRequestPromise.then(() => ({
+          result: { dataset: { id: 1 }, form_data: exploreFormData },
+        })),
+      { overwriteRoutes: true },
+    );
+
+    render(
+      <>
+        <Link to="/?slice_id=99">Navigate</Link>
+        <ChartPage />
+      </>,
+      {
+        useRouter: true,
+        useRedux: true,
+        useDnd: true,
+      },
+    );
+
+    // Wait for the first request to be initiated
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
+    );
+
+    // Set up second request to return immediately
+    fetchMock.get(
+      exploreApiRoute,
+      { result: { dataset: { id: 1 }, form_data: exploreFormData } },
+      { overwriteRoutes: true },
+    );
+
+    // Navigate to trigger a new request (which should abort the first)
+    fireEvent.click(screen.getByText('Navigate'));
+
+    // Complete the first request after it should have been aborted
+    firstRequestResolve!();
+
+    // Wait for the second request to complete
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(2),
+    );
+
+    // No error toast should be shown from the aborted first request
+    expect(mockAddDangerToast).not.toHaveBeenCalled();
   });
 });

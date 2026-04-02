@@ -440,11 +440,13 @@ export default function DrillByModal({
 
   useEffect(() => {
     if (drilledFormData) {
+      const controller = new AbortController();
       const [useLegacyApi] = getQuerySettings(drilledFormData);
       setIsChartDataLoading(true);
       setChartDataResult(undefined);
       getChartDataRequest({
         formData: drilledFormData,
+        requestParams: { signal: controller.signal },
       })
         .then(({ response, json }) =>
           handleChartDataResponse(response, json, useLegacyApi),
@@ -452,13 +454,22 @@ export default function DrillByModal({
         .then(queriesResponse => {
           setChartDataResult(queriesResponse);
         })
-        .catch(() => {
+        .catch(err => {
+          // Silently ignore aborted requests
+          if (err.name === 'AbortError') {
+            return;
+          }
           addDangerToast(t('Failed to load chart data.'));
         })
         .finally(() => {
           setIsChartDataLoading(false);
         });
+
+      return () => {
+        controller.abort();
+      };
     }
+    return undefined;
   }, [addDangerToast, drilledFormData]);
   const { metadataBar } = useDatasetMetadataBar({ dataset });
 

@@ -37,6 +37,18 @@ jest.mock('src/dashboard/util/isEmbedded', () => ({
   isEmbedded: jest.fn(() => false),
 }));
 
+const mockAddDangerToast = jest.fn();
+jest.mock('src/components/MessageToasts/withToasts', () => ({
+  __esModule: true,
+  default: (Component: React.ComponentType) => Component,
+  useToasts: () => ({
+    addDangerToast: mockAddDangerToast,
+    addInfoToast: jest.fn(),
+    addSuccessToast: jest.fn(),
+    addWarningToast: jest.fn(),
+  }),
+}));
+
 const CHART_DATA_ENDPOINT = 'glob:*/api/v1/chart/data*';
 const FORM_DATA_KEY_ENDPOINT = 'glob:*/api/v1/explore/form_data';
 
@@ -131,7 +143,10 @@ beforeEach(() => {
     );
 });
 
-afterEach(() => fetchMock.removeRoutes().clearHistory());
+afterEach(() => {
+  fetchMock.removeRoutes().clearHistory();
+  mockAddDangerToast.mockClear();
+});
 
 test('should render the title', async () => {
   await renderModal();
@@ -574,5 +589,62 @@ describe('Table view with pagination', () => {
     await waitFor(() => {
       expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
     });
+  });
+});
+
+test('does not show error toast when chart data request is aborted on modal close', async () => {
+  let rejectRequest: (error: Error) => void;
+  const pendingPromise = new Promise((_, reject) => {
+    rejectRequest = reject;
+  });
+
+  fetchMock.removeRoute(CHART_DATA_ENDPOINT);
+  fetchMock.post(CHART_DATA_ENDPOINT, () => pendingPromise, {
+    name: CHART_DATA_ENDPOINT,
+  });
+
+  const DrillByModalWrapper = () => {
+    const [showModal, setShowModal] = useState(false);
+
+    return (
+      <DashboardPageIdContext.Provider value="1">
+        <button type="button" onClick={() => setShowModal(true)}>
+          Show modal
+        </button>
+        {showModal && (
+          <DrillByModal
+            formData={formData}
+            onHideModal={() => setShowModal(false)}
+            dataset={dataset}
+            drillByConfig={{ groupbyFieldName: 'groupby', filters: [] }}
+            canDownload
+          />
+        )}
+      </DashboardPageIdContext.Provider>
+    );
+  };
+
+  render(<DrillByModalWrapper />, {
+    useDnd: true,
+    useRedux: true,
+    useRouter: true,
+    initialState: drillByModalState,
+  });
+
+  // Open the modal
+  userEvent.click(screen.getByRole('button', { name: 'Show modal' }));
+  await screen.findByRole('dialog', { name: `Drill by: ${chartName}` });
+
+  // Close the modal before the request completes
+  userEvent.click(screen.getAllByRole('button', { name: 'Close' })[1]);
+
+  // Simulate the aborted request rejection
+  const abortError = new Error('The operation was aborted.');
+  abortError.name = 'AbortError';
+  rejectRequest!(abortError);
+
+  // Wait a bit to ensure any async error handling would have occurred
+  await waitFor(() => {
+    expect(mockAddDangerToast).not.toHaveBeenCalled();
   });
 });
