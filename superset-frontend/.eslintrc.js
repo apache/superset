@@ -127,7 +127,6 @@ module.exports = {
   },
   plugins: [
     'import',
-    'file-progress',
     'lodash',
     'theme-colors',
     'icons',

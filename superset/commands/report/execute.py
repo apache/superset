@@ -484,7 +484,7 @@ class BaseReportState:
             raise ReportScheduleCsvTimeout() from ex
         except Exception as ex:
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
-            logger.error(
+            logger.exception(
                 "CSV generation failed after %.2fs - execution_id: %s",
                 elapsed_seconds,
                 self._execution_id,
