@@ -526,6 +526,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     force_column_alias_quotes = False
     arraysize = 0
     max_column_name_length: int | None = None
+
+    # Some databases (e.g. Druid, Pinot) build cursor.description by inspecting
+    # the values in the first returned row rather than from query-plan metadata.
+    # For those engines WHERE FALSE returns no rows and therefore leaves
+    # cursor.description as None, which breaks the adhoc column type probe.
+    # Set this to True on any engine spec where at least one row must be
+    # fetched for cursor.description to be populated.
+    type_probe_needs_row: bool = False
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
     run_multiple_statements_as_one = False
     custom_errors: dict[

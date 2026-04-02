@@ -143,24 +143,19 @@ def test_no_request_context_skips_api_key_auth(app) -> None:
     mock_sm._extract_api_key_from_request.assert_not_called()
 
 
-# -- g.user already set -> API key auth skipped (JWT precedence) --
+# -- g.user fallback when no higher-priority auth succeeds --
 
 
-@pytest.mark.usefixtures("_enable_api_keys")
-def test_existing_g_user_takes_precedence(app, mock_user) -> None:
-    """If g.user is already set (e.g., by JWT middleware), API key auth
-    should not be attempted."""
-    mock_sm = MagicMock()
-
-    with app.test_request_context(headers={"Authorization": "Bearer sst_abc123"}):
+@pytest.mark.usefixtures("_disable_api_keys")
+def test_g_user_fallback_when_no_jwt_or_api_key(app, mock_user) -> None:
+    """When no JWT or API key auth succeeds and MCP_DEV_USERNAME is not set,
+    g.user (set by external middleware) is used as fallback."""
+    with app.test_request_context():
         g.user = mock_user
-        app.appbuilder = MagicMock()
-        app.appbuilder.sm = mock_sm
 
         result = get_user_from_request()
 
     assert result.username == "api_key_user"
-    mock_sm._extract_api_key_from_request.assert_not_called()
 
 
 # -- FAB version without _extract_api_key_from_request --

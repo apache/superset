@@ -68,6 +68,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Any, Dict, List, Literal, TYPE_CHECKING
 
+import humanize
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -84,12 +85,17 @@ if TYPE_CHECKING:
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.chart.schemas import ChartInfo, serialize_chart_object
 from superset.mcp_service.common.cache_schemas import MetadataCacheControl
+from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
     RoleInfo,
     serialize_user_object,
     TagInfo,
     UserInfo,
+)
+from superset.mcp_service.utils.sanitization import (
+    _remove_dangerous_unicode,
+    _strip_html_tags,
 )
 
 
@@ -244,7 +250,13 @@ class ListDashboardsRequest(MetadataCacheControl):
         Field(default=1, description="Page number for pagination (1-based)"),
     ]
     page_size: Annotated[
-        PositiveInt, Field(default=10, description="Number of items per page")
+        int,
+        Field(
+            default=DEFAULT_PAGE_SIZE,
+            gt=0,
+            le=MAX_PAGE_SIZE,
+            description=f"Number of items per page (max {MAX_PAGE_SIZE})",
+        ),
     ]
 
     @model_validator(mode="after")
@@ -440,6 +452,16 @@ class GenerateDashboardRequest(BaseModel):
         default=True, description="Whether to publish the dashboard"
     )
 
+    @field_validator("dashboard_title")
+    @classmethod
+    def sanitize_dashboard_title(cls, v: str | None) -> str | None:
+        """Strip HTML tags from dashboard title to prevent XSS."""
+        if v is None:
+            return None
+        v = _strip_html_tags(v.strip())
+        v = _remove_dangerous_unicode(v)
+        return v
+
 
 class GenerateDashboardResponse(BaseModel):
     """Response schema for dashboard generation."""
@@ -508,6 +530,13 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
     )
 
 
+def _humanize_timestamp(dt: datetime | None) -> str | None:
+    """Convert a datetime to a humanized string like '2 hours ago'."""
+    if dt is None:
+        return None
+    return humanize.naturaltime(datetime.now() - dt)
+
+
 def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
     """Simple dashboard serializer that safely handles object attributes."""
     from superset.mcp_service.utils.url_utils import get_superset_base_url
@@ -530,10 +559,14 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
         published=getattr(dashboard, "published", None),
         changed_by=getattr(dashboard, "changed_by_name", None),
         changed_on=getattr(dashboard, "changed_on", None),
-        changed_on_humanized=getattr(dashboard, "changed_on_humanized", None),
+        changed_on_humanized=_humanize_timestamp(
+            getattr(dashboard, "changed_on", None)
+        ),
         created_by=getattr(dashboard, "created_by_name", None),
         created_on=getattr(dashboard, "created_on", None),
-        created_on_humanized=getattr(dashboard, "created_on_humanized", None),
+        created_on_humanized=_humanize_timestamp(
+            getattr(dashboard, "created_on", None)
+        ),
         description=getattr(dashboard, "description", None),
         css=getattr(dashboard, "css", None),
         certified_by=getattr(dashboard, "certified_by", None),
@@ -547,8 +580,9 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
         else None,
         chart_count=len(getattr(dashboard, "slices", [])),
         owners=[
-            UserInfo.model_validate(owner, from_attributes=True)
+            info
             for owner in getattr(dashboard, "owners", [])
+            if (info := serialize_user_object(owner)) is not None
         ]
         if getattr(dashboard, "owners", None)
         else [],
