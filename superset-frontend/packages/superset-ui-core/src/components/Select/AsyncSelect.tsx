@@ -60,6 +60,9 @@ import {
   mapOptions,
   getOption,
   isObject,
+  splitWithQuoteEscaping,
+  findLastUnquotedSeparatorIndex,
+  stripSurroundingQuotes,
   isEqual as utilsIsEqual,
 } from './utils';
 import {
@@ -173,6 +176,11 @@ const AsyncSelect = forwardRef(
     // request is still pending.
     const inFlightFetchesRef = useRef(0);
     const mappedMode = isSingleMode ? undefined : 'multiple';
+
+    const antdTokenSeparators = useMemo(
+      () => tokenSeparators.filter(sep => sep !== ','),
+      [tokenSeparators],
+    );
     const allowFetch = !fetchOnlyOnSearch || inputValue;
     const [maxTagCount, setMaxTagCount] = useState(
       propsMaxTagCount ?? MAX_TAG_COUNT,
@@ -270,6 +278,8 @@ const AsyncSelect = forwardRef(
           }
           return previousState;
         });
+        setInputValue('');
+        setSelectOptions(prev => prev.sort(sortComparatorForNoSearch));
         fireOnChange();
       }
       if (autoClearSearchValue) {
@@ -452,13 +462,20 @@ const AsyncSelect = forwardRef(
       [fetchPage],
     );
 
-    const handleOnSearch = debounce((search: string) => {
+    const handleOnSearchDebounced = useRef(
+      debounce((fn: () => void) => fn(), Constants.FAST_DEBOUNCE),
+    ).current;
+
+    useEffect(() => () => handleOnSearchDebounced.cancel(), []);
+
+    const runSearchLogic = (search: string) => {
       const searchValue = search.trim();
       if (allowNewOptions) {
-        const newOption = searchValue &&
-          !hasOption(searchValue, fullSelectOptions, true) && {
-            label: searchValue,
-            value: searchValue,
+        const unquotedSearch = stripSurroundingQuotes(searchValue);
+        const newOption = unquotedSearch &&
+          !hasOption(unquotedSearch, fullSelectOptions, true) && {
+            label: unquotedSearch,
+            value: unquotedSearch,
             isNewOption: true,
           };
         const cleanSelectOptions = fullSelectOptions.filter(
@@ -474,15 +491,55 @@ const AsyncSelect = forwardRef(
         loadingEnabled &&
         !fetchedQueries.current.has(getQueryCacheKey(searchValue, 0, pageSize))
       ) {
-        // if fetch only on search but search value is empty, then should not be
-        // in loading state
         setIsLoading(!(fetchOnlyOnSearch && !searchValue));
       }
-      setInputValue(search);
       onSearch?.(searchValue);
-    }, Constants.FAST_DEBOUNCE);
+    };
 
-    useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
+    const selectTokenizedValues = (values: string[]) => {
+      const newOptions: SelectOptionsType = [];
+      values.forEach(item => {
+        const option = getOption(item, fullSelectOptions, true);
+        if (!option && !allowNewOptions) return;
+        if (!option) {
+          newOptions.push({ label: item, value: item, isNewOption: true });
+        }
+        const value: AntdLabeledValue = { label: item, value: item };
+        if (option) {
+          value.label = isObject(option) ? option.label : option;
+          value.value = isObject(option) ? option.value! : option;
+        }
+        handleOnSelect(value, {
+          label: value.label,
+          value: value.value,
+          isNewOption: !option,
+        });
+      });
+      if (newOptions.length > 0) {
+        setSelectOptions(prev => [...newOptions, ...prev]);
+      }
+    };
+
+    const onSearchChange = (search: string) => {
+      if (!isSingleMode && tokenSeparators.includes(',')) {
+        const lastCommaIdx = findLastUnquotedSeparatorIndex(search, ',');
+        if (lastCommaIdx !== -1) {
+          const before = search.slice(0, lastCommaIdx);
+          const after = search.slice(lastCommaIdx + 1);
+          const parts = splitWithQuoteEscaping(before, [','])
+            .map(p => p.trim())
+            .filter(Boolean);
+          if (parts.length > 0) {
+            selectTokenizedValues(parts);
+          }
+          setInputValue(after);
+          handleOnSearchDebounced(() => runSearchLogic(after));
+          return;
+        }
+      }
+      setInputValue(search);
+      handleOnSearchDebounced(() => runSearchLogic(search));
+    };
 
     const handlePagination = (e: UIEvent<HTMLElement>) => {
       const vScroll = e.currentTarget;
@@ -695,22 +752,13 @@ const AsyncSelect = forwardRef(
           setSelectValue(value);
         }
       } else {
+        e.preventDefault();
         // antd v6 widened `tokenSeparators` to `string[] | (input => string[])`;
         // Superset always uses the array form.
         const separators = Array.isArray(tokenSeparators)
           ? tokenSeparators
           : [];
-        const token = separators.find((token: string) =>
-          pastedText.includes(token),
-        );
-        const array = token
-          ? uniq(
-              pastedText
-                .split(token)
-                .map(s => s.trim())
-                .filter(Boolean),
-            )
-          : [pastedText.trim()].filter(Boolean);
+        const array = uniq(splitWithQuoteEscaping(pastedText, separators));
         const values = (
           await Promise.all(array.map(item => getPastedTextValue(item)))
         ).filter(item => item !== undefined) as AntdLabeledValue[];
@@ -779,7 +827,7 @@ const AsyncSelect = forwardRef(
           // surface, but the underlying input accepts it and we rely on that.
           onPaste={onPaste}
           onPopupScroll={handlePagination}
-          onSearch={shouldShowSearch ? handleOnSearch : undefined}
+          onSearch={shouldShowSearch ? onSearchChange : undefined}
           onSelect={
             handleOnSelect as unknown as (
               value: unknown,
@@ -791,7 +839,8 @@ const AsyncSelect = forwardRef(
           optionRender={option => <Space>{option.label || option.value}</Space>}
           placeholder={placeholder}
           showSearch={shouldShowSearch}
-          tokenSeparators={tokenSeparators}
+          searchValue={inputValue}
+          tokenSeparators={antdTokenSeparators}
           builtinPlacements={DROPDOWN_BUILTIN_PLACEMENTS}
           value={selectValue}
           suffixIcon={getSuffixIcon(
