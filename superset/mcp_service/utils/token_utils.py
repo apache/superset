@@ -220,6 +220,11 @@ def generate_size_reduction_suggestions(
                 f"Add a 'limit' or 'page_size' parameter (suggested: 10-25 items) "
                 f"to reduce response size by ~{reduction_pct}%"
             )
+        elif tool_name == "execute_sql":
+            suggestions.append(
+                f"Use the 'limit' parameter (e.g., limit=100) to cap the number "
+                f"of rows returned — need ~{reduction_pct}% reduction"
+            )
 
     # Suggestion 2: Use select_columns to reduce fields
     current_columns = query_params.get("select_columns") or query_params.get("columns")
@@ -348,9 +353,13 @@ def _get_tool_specific_suggestions(
 
     elif tool_name == "execute_sql":
         suggestions.append(
-            "Add LIMIT clause to your SQL query to restrict the number of rows "
-            "(e.g., SELECT * FROM table LIMIT 100)"
+            "Add a LIMIT clause to your SQL query (e.g., SELECT * FROM table LIMIT 100)"
         )
+        if not query_params.get("limit"):
+            suggestions.append(
+                "Use the execute_sql 'limit' parameter to cap rows returned "
+                "(e.g., limit=100) — this overrides any SQL LIMIT clause"
+            )
 
     elif tool_name in ("get_chart_info", "get_dashboard_info", "get_dataset_info"):
         suggestions.append(
