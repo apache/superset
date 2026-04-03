@@ -536,8 +536,13 @@ def create_fks_for_table(
 
     if foreign_key_name in get_foreign_key_names(table_name):
         logger.info(
-            f"Foreign key {GREEN}{foreign_key_name}{RESET} already exists on table "
-            f"{GREEN}{table_name}{RESET}. Skipping..."
+            "Foreign key %s%s%s already exists on table %s%s%s. Skipping...",
+            GREEN,
+            foreign_key_name,
+            RESET,
+            GREEN,
+            table_name,
+            RESET,
         )
         return
 
