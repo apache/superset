@@ -32,6 +32,7 @@ import { URL_PARAMS } from 'src/constants';
 import { JsonObject, VizType } from '@superset-ui/core';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { getParsedExploreURLParams } from 'src/explore/exploreUtils/getParsedExploreURLParams';
+import * as messageToastActions from 'src/components/MessageToasts/actions';
 import ChartPage from '.';
 
 jest.mock('src/hooks/useUnsavedChangesPrompt', () => ({
@@ -54,15 +55,6 @@ jest.mock('src/explore/exploreUtils/getParsedExploreURLParams', () => ({
   getParsedExploreURLParams: jest.fn(),
 }));
 
-const mockAddDangerToast = jest.fn();
-jest.mock('src/components/MessageToasts/actions', () => ({
-  ...jest.requireActual('src/components/MessageToasts/actions'),
-  addDangerToast: (...args: unknown[]) => {
-    mockAddDangerToast(...args);
-    return { type: 'ADD_TOAST' };
-  },
-}));
-
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ChartPage', () => {
   beforeEach(() => {
@@ -78,7 +70,6 @@ describe('ChartPage', () => {
 
   afterEach(() => {
     fetchMock.clearHistory().removeRoutes();
-    mockAddDangerToast.mockClear();
   });
 
   test('fetches metadata on mount', async () => {
@@ -370,6 +361,7 @@ describe('ChartPage', () => {
   });
 
   test('does not show error toast when request is aborted on unmount', async () => {
+    const addDangerToastSpy = jest.spyOn(messageToastActions, 'addDangerToast');
     const exploreApiRoute = 'glob:*/api/v1/explore/*';
     let rejectRequest: (error: Error) => void;
     const pendingPromise = new Promise((_, reject) => {
@@ -394,11 +386,14 @@ describe('ChartPage', () => {
 
     // Wait a bit to ensure any async error handling would have occurred
     await waitFor(() => {
-      expect(mockAddDangerToast).not.toHaveBeenCalled();
+      expect(addDangerToastSpy).not.toHaveBeenCalled();
     });
+
+    addDangerToastSpy.mockRestore();
   });
 
   test('aborts in-flight request when a new request is made', async () => {
+    const addDangerToastSpy = jest.spyOn(messageToastActions, 'addDangerToast');
     const exploreApiRoute = 'glob:*/api/v1/explore/*';
     const exploreFormData = getExploreFormData({
       viz_type: VizType.Table,
@@ -411,13 +406,10 @@ describe('ChartPage', () => {
       firstRequestResolve = resolve;
     });
 
-    fetchMock.get(
-      exploreApiRoute,
-      () =>
-        firstRequestPromise.then(() => ({
-          result: { dataset: { id: 1 }, form_data: exploreFormData },
-        })),
-      { overwriteRoutes: true },
+    fetchMock.get(exploreApiRoute, () =>
+      firstRequestPromise.then(() => ({
+        result: { dataset: { id: 1 }, form_data: exploreFormData },
+      })),
     );
 
     render(
@@ -438,11 +430,10 @@ describe('ChartPage', () => {
     );
 
     // Set up second request to return immediately
-    fetchMock.get(
-      exploreApiRoute,
-      { result: { dataset: { id: 1 }, form_data: exploreFormData } },
-      { overwriteRoutes: true },
-    );
+    fetchMock.clearHistory().removeRoutes();
+    fetchMock.get(exploreApiRoute, {
+      result: { dataset: { id: 1 }, form_data: exploreFormData },
+    });
 
     // Navigate to trigger a new request (which should abort the first)
     fireEvent.click(screen.getByText('Navigate'));
@@ -452,10 +443,12 @@ describe('ChartPage', () => {
 
     // Wait for the second request to complete
     await waitFor(() =>
-      expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(2),
+      expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
     );
 
     // No error toast should be shown from the aborted first request
-    expect(mockAddDangerToast).not.toHaveBeenCalled();
+    expect(addDangerToastSpy).not.toHaveBeenCalled();
+
+    addDangerToastSpy.mockRestore();
   });
 });

@@ -194,9 +194,12 @@ export default function ExplorePage() {
           );
         })
         .catch(err => {
-          // Silently ignore aborted requests
-          if (err.name === 'AbortError') {
-            return undefined;
+          // Silently ignore aborted requests - AbortError may be wrapped in SupersetApiError by makeApi
+          if (
+            err.name === 'AbortError' ||
+            err.originalError?.name === 'AbortError'
+          ) {
+            return;
           }
           return Promise.all([getClientErrorObject(err), err]);
         })
@@ -267,7 +270,7 @@ export default function ExplorePage() {
           return Promise.resolve();
         })
         .finally(() => {
-          if (!isStale()) {
+          if (!isStale() && !controller.signal.aborted) {
             setIsLoaded(true);
           }
         });
