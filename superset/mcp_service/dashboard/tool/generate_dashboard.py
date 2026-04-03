@@ -29,7 +29,6 @@ from flask import g
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
-from superset.mcp_service.chart.schemas import serialize_chart_object
 from superset.mcp_service.dashboard.constants import (
     generate_id,
     GRID_COLUMN_COUNT,
@@ -395,6 +394,7 @@ def generate_dashboard(  # noqa: C901
 
         # Convert to our response format
         from superset.mcp_service.dashboard.schemas import (
+            _serialize_chart_summary,
             serialize_tag_object,
             serialize_user_object,
         )
@@ -426,7 +426,7 @@ def generate_dashboard(  # noqa: C901
             charts=[
                 obj
                 for chart in getattr(dashboard, "slices", [])
-                if (obj := serialize_chart_object(chart)) is not None
+                if (obj := _serialize_chart_summary(chart)) is not None
             ],
         )
 
