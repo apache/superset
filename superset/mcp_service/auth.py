@@ -482,19 +482,11 @@ def _setup_user_context() -> User | None:
                 continue
             logger.error("DB connection failed on retry during user setup: %s", e)
             raise
-        except ValueError as e:
+        except ValueError:
             # JWT user resolution failed (e.g. SAML subject not in DB).
-            from flask import has_request_context
-
-            if has_request_context() and hasattr(g, "user") and g.user:
-                logger.warning(
-                    "JWT user resolution failed (%s), "
-                    "using middleware-provided g.user=%s",
-                    e,
-                    g.user.username,
-                )
-                user = g.user
-                break
+            # Fail closed — never fall back to g.user from middleware,
+            # as that would bypass JWT identity validation and could
+            # allow cross-tenant tool access in multi-tenant deployments.
             raise
 
     g.user = user
