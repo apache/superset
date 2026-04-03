@@ -215,7 +215,13 @@ async def generate_chart(  # noqa: C901
             request.preview_formats,
         )
     )
-    await ctx.debug("Chart configuration details: config=%s" % (request.config,))
+    await ctx.debug(
+        "Chart configuration details: chart_type=%s, keys=%s"
+        % (
+            request.config.get("chart_type", "unknown"),
+            sorted(request.config.keys()),
+        )
+    )
 
     # Track runtime warnings to include in response
     runtime_warnings: list[str] = []
