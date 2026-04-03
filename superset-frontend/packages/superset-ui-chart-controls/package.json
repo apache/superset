@@ -30,7 +30,7 @@
     "tinycolor2": "*"
   },
   "peerDependencies": {
-    "@ant-design/icons": "^5.2.6",
+    "@ant-design/icons": "^5.6.1",
     "@emotion/react": "^11.4.1",
     "@superset-ui/core": "*",
     "@testing-library/dom": "^8.20.1",
