@@ -18,7 +18,7 @@
  */
 import { FunctionComponent } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { styled } from '@apache-superset/core/theme';
+import { useTheme, styled } from '@apache-superset/core/theme';
 import { Button, Modal } from '@superset-ui/core/components';
 import SyntaxHighlighterCopy from 'src/features/queries/SyntaxHighlighterCopy';
 import withToasts, {
@@ -77,6 +77,15 @@ const SavedQueryPreviewModal: FunctionComponent<
       currentQueryId: savedQuery.id,
       fetchData,
     });
+  const theme = useTheme();
+  const codeBlockStyle = {
+    border: 1,
+    borderColor: theme.colorBorder,
+    borderStyle: 'solid',
+    marginTop: theme.sizeUnit * 4,
+    fontSize: '0.75em',
+    height: 375,
+  };
 
   return (
     <div role="none" onKeyUp={handleKeyPress}>
@@ -123,6 +132,7 @@ const SavedQueryPreviewModal: FunctionComponent<
           language="sql"
           addDangerToast={addDangerToast}
           addSuccessToast={addSuccessToast}
+          customStyle={codeBlockStyle}
         >
           {savedQuery.sql || ''}
         </SyntaxHighlighterCopy>

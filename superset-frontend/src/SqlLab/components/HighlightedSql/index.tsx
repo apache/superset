@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { ModalTrigger } from '@superset-ui/core/components';
 import CodeSyntaxHighlighter from '@superset-ui/core/components/CodeSyntaxHighlighter';
@@ -63,14 +64,25 @@ function TriggerNode({ shrink, sql, maxLines, maxWidth }: TriggerNodeProps) {
 }
 
 function HighlightSqlModal({ rawSql, sql }: HighlightedSqlModalTypes) {
+  const theme = useTheme();
+  const codeBlockStyle = {
+    border: 1,
+    borderColor: theme.colorBorder,
+    borderStyle: 'solid',
+  };
+
   return (
     <div>
       <h4>{t('Source SQL')}</h4>
-      <CodeSyntaxHighlighter language="sql">{sql}</CodeSyntaxHighlighter>
+      <CodeSyntaxHighlighter language="sql" customStyle={codeBlockStyle}>
+        {sql}
+      </CodeSyntaxHighlighter>
       {rawSql && rawSql !== sql && (
         <div>
           <h4>{t('Executed SQL')}</h4>
-          <CodeSyntaxHighlighter language="sql">{rawSql}</CodeSyntaxHighlighter>
+          <CodeSyntaxHighlighter language="sql" customStyle={codeBlockStyle}>
+            {rawSql}
+          </CodeSyntaxHighlighter>
         </div>
       )}
     </div>
