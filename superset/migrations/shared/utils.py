@@ -199,6 +199,18 @@ def has_table(table_name: str) -> bool:
     return table_exists
 
 
+def get_foreign_key_names(table_name: str) -> set[str]:
+    """
+    Get the set of foreign key constraint names for a table.
+
+    :param table_name: The table name
+    :returns: A set of foreign key constraint names
+    """
+    connection = op.get_bind()
+    inspector = Inspector.from_engine(connection)
+    return {fk["name"] for fk in inspector.get_foreign_keys(table_name)}
+
+
 def drop_fks_for_table(
     table_name: str, foreign_key_names: list[str] | None = None
 ) -> None:
@@ -211,13 +223,12 @@ def drop_fks_for_table(
     If None is provided, all will be dropped.
     """
     connection = op.get_bind()
-    inspector = Inspector.from_engine(connection)
 
     if isinstance(connection.dialect, SQLiteDialect):
         return  # sqlite doesn't like constraints
 
     if has_table(table_name):
-        existing_fks = {fk["name"] for fk in inspector.get_foreign_keys(table_name)}
+        existing_fks = get_foreign_key_names(table_name)
 
         # What to delete based on whether the list was passed
         if foreign_key_names is not None:
@@ -523,9 +534,7 @@ def create_fks_for_table(
         )
         return
 
-    inspector = Inspector.from_engine(connection)
-    existing_fks = {fk["name"] for fk in inspector.get_foreign_keys(table_name)}
-    if foreign_key_name in existing_fks:
+    if foreign_key_name in get_foreign_key_names(table_name):
         logger.info(
             f"Foreign key {GREEN}{foreign_key_name}{RESET} already exists on table "
             f"{GREEN}{table_name}{RESET}. Skipping..."
