@@ -296,16 +296,46 @@ def get_access_token_for_database(database: Database, user_id: int) -> str | Non
     if upstream_provider:
         access_token = get_upstream_provider_token(upstream_provider, user_id)
         if access_token:
+            logger.info(
+                "Using upstream OAuth token from provider '%s' "
+                "for database '%s' (id=%d, user_id=%d)",
+                upstream_provider,
+                database.database_name,
+                database.id,
+                user_id,
+            )
             return access_token
+        logger.warning(
+            "Upstream provider '%s' configured for database '%s' "
+            "(id=%d) but no valid token found for user_id=%d, "
+            "falling back to database-specific OAuth2",
+            upstream_provider,
+            database.database_name,
+            database.id,
+            user_id,
+        )
 
     # Fall back to database-specific OAuth2 (also used when upstream token is
     # unavailable, e.g. expired without a refresh token).
     oauth2_config = database.get_oauth2_config()
     if oauth2_config:
+        logger.info(
+            "Using database-specific OAuth2 token "
+            "for database '%s' (id=%d, user_id=%d)",
+            database.database_name,
+            database.id,
+            user_id,
+        )
         return get_oauth2_access_token(
             oauth2_config, database.id, user_id, database.db_engine_spec
         )
 
+    logger.warning(
+        "No OAuth2 token available for database '%s' (id=%d, user_id=%d)",
+        database.database_name,
+        database.id,
+        user_id,
+    )
     return None
 
 
