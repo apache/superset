@@ -42,6 +42,7 @@ MAX_PAGE_WIDTH = 4096
 HEADER_BG_COLOR = (244, 244, 244)
 GRID_COLOR = (210, 210, 210)
 TEXT_COLOR = (0, 0, 0)
+TURKISH_GLYPH_PROBE = "ĞÜŞİÖÇğüşıöç"
 
 
 def build_pdf_from_screenshots(snapshots: list[bytes]) -> bytes:
@@ -135,18 +136,48 @@ def apply_column_labels_to_rows(
 
 def _load_table_font() -> Any:
     """
-    Load a monospaced font when available, with a safe fallback.
+    Load a Unicode-capable font for table rendering, with a safe fallback.
     """
     font_candidates = [
+        "/app/.venv/lib/python3.11/site-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSansMono.ttf",
+        "/app/.venv/lib/python3.11/site-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSans.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
         "/usr/share/fonts/dejavu/DejaVuSansMono.ttf",
+        "/usr/share/fonts/dejavu/DejaVuSans.ttf",
     ]
+
+    def _supports_glyphs(font: Any, probe: str) -> bool:
+        """
+        Return False when unsupported chars are silently rendered as '?' glyph.
+        """
+        def _mask_bytes(char: str) -> bytes:
+            # Pillow may return ImagingCore which supports bytes() but not tobytes().
+            return bytes(font.getmask(char))
+
+        try:
+            fallback_mask = _mask_bytes("?")
+            for char in probe:
+                if char.isspace():
+                    continue
+                if _mask_bytes(char) == fallback_mask and char != "?":
+                    return False
+            return True
+        except Exception:
+            return False
+
     for font_path in font_candidates:
         try:
-            return ImageFont.truetype(font_path, 15)
+            font = ImageFont.truetype(font_path, 15)
+            if _supports_glyphs(font, TURKISH_GLYPH_PROBE):
+                return font
         except OSError:
             continue
+    logger.warning(
+        "Could not load a Unicode-capable table font; falling back to default font."
+    )
     return ImageFont.load_default()
 
 

@@ -42,7 +42,9 @@ def test_build_pdf_from_chart_data_with_empty_rows() -> None:
     assert len(pdf_bytes) > 100
 
 
-def _capture_page_width(monkeypatch: pytest.MonkeyPatch, rows: list[dict[str, str]]) -> int:
+def _capture_page_width(
+    monkeypatch: pytest.MonkeyPatch, rows: list[dict[str, str]]
+) -> int:
     captured_widths: list[int] = []
     original_image_new = pdf_utils.Image.new
 
@@ -76,16 +78,31 @@ def test_build_pdf_from_chart_data_adjusts_page_width_to_content(
 def test_apply_column_labels_to_rows_uses_dataset_labels() -> None:
     rows = apply_column_labels_to_rows(
         [{"country": "TR", "sales": 10}],
-        {"country": "Ülke", "sales": "Satış"},
+        {"country": "\u00dclke", "sales": "Sat\u0131\u015f"},
     )
 
-    assert rows == [{"Ülke": "TR", "Satış": 10}]
+    assert rows == [{"\u00dclke": "TR", "Sat\u0131\u015f": 10}]
 
 
 def test_apply_column_labels_to_rows_avoids_header_collisions() -> None:
     rows = apply_column_labels_to_rows(
         [{"src_a": 1, "src_b": 2}],
-        {"src_a": "Aynı", "src_b": "Aynı"},
+        {"src_a": "Ayn\u0131", "src_b": "Ayn\u0131"},
     )
 
-    assert rows == [{"Aynı": 1, "Aynı (src_b)": 2}]
+    assert rows == [{"Ayn\u0131": 1, "Ayn\u0131 (src_b)": 2}]
+
+
+def test_build_pdf_from_chart_data_handles_turkish_characters() -> None:
+    pdf_bytes = build_pdf_from_chart_data(
+        [
+            {
+                "\u00dclke": "T\u00fcrkiye",
+                "\u015eehir": "\u0130zmir",
+                "A\u00e7\u0131klama": "\u00c7al\u0131\u015f\u0131yor",
+            }
+        ]
+    )
+
+    assert pdf_bytes.startswith(b"%PDF")
+    assert len(pdf_bytes) > 100
