@@ -180,7 +180,7 @@ const DetailsPanelPopover = ({
 
   return (
     <Popover
-      color={`${theme.colorBgElevated}cc`}
+      color={theme.colorBgElevated}
       content={content}
       open={popoverVisible}
       onOpenChange={handleVisibility}
