@@ -83,8 +83,8 @@ const SavedQueryPreviewModal: FunctionComponent<
     borderColor: theme.colorBorder,
     borderStyle: 'solid',
     marginTop: theme.sizeUnit * 4,
-    fontSize: '0.75em',
-    height: 375,
+    fontSize: theme.fontSize * 0.75,
+    height: theme.sizeUnit * 100,
   };
 
   return (
