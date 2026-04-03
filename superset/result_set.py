@@ -178,8 +178,9 @@ class SupersetResultSet:
                         except Exception as ex:  # pylint: disable=broad-except
                             logger.exception(ex)
 
-        if not pa_data:
-            column_names = []
+        if not pa_data and column_names:
+            # Build zero-length arrays so column metadata survives empty result sets
+            pa_data = [pa.array([], type=pa.null()) for _ in column_names]
 
         self.table = pa.Table.from_arrays(pa_data, names=column_names)
         self._type_dict: dict[str, Any] = {}
