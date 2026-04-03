@@ -99,6 +99,7 @@ class BaseReportState:
         self._scheduled_dttm = scheduled_dttm
         self._start_dttm = datetime.utcnow()
         self._execution_id = execution_id
+        self._filter_warnings: list[str] = []
 
     def update_report_schedule_and_log(
         self,
@@ -265,10 +266,18 @@ class BaseReportState:
         if (
             dashboard_state := self._report_schedule.extra.get("dashboard")
         ) and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS"):
-            native_filter_params = self._report_schedule.get_native_filters_params()
+            native_filter_params, filter_warnings = (
+                self._report_schedule.get_native_filters_params()
+            )
+            if filter_warnings:
+                self._filter_warnings.extend(filter_warnings)
             if anchor := dashboard_state.get("anchor"):
                 try:
-                    anchor_list: list[str] = json.loads(anchor)
+                    anchor_list = json.loads(anchor)
+                    if not isinstance(anchor_list, list):
+                        raise json.JSONDecodeError(
+                            "Anchor value is not a list", anchor, 0
+                        )
                     urls = self._get_tabs_urls(
                         anchor_list,
                         native_filter_params=native_filter_params,
@@ -470,7 +479,7 @@ class BaseReportState:
             raise ReportScheduleCsvTimeout() from ex
         except Exception as ex:
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
-            logger.error(
+            logger.exception(
                 "CSV generation failed after %.2fs - execution_id: %s",
                 elapsed_seconds,
                 self._execution_id,
@@ -831,7 +840,13 @@ class ReportNotTriggeredErrorState(BaseReportState):
                     )
                     return
             self.send()
-            self.update_report_schedule_and_log(ReportState.SUCCESS)
+            # Include filter warnings in the log if any were collected
+            warning_message = (
+                ";".join(self._filter_warnings) if self._filter_warnings else None
+            )
+            self.update_report_schedule_and_log(
+                ReportState.SUCCESS, error_message=warning_message
+            )
         except (SupersetErrorsException, Exception) as first_ex:
             error_message = str(first_ex)
             if isinstance(first_ex, SupersetErrorsException):
@@ -976,7 +991,13 @@ class ReportSuccessState(BaseReportState):
 
         try:
             self.send()
-            self.update_report_schedule_and_log(ReportState.SUCCESS)
+            # Include filter warnings in the log if any were collected
+            warning_message = (
+                ";".join(self._filter_warnings) if self._filter_warnings else None
+            )
+            self.update_report_schedule_and_log(
+                ReportState.SUCCESS, error_message=warning_message
+            )
         except Exception as ex:  # pylint: disable=broad-except
             try:
                 self.update_report_schedule_and_log(

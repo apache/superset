@@ -38,7 +38,6 @@ from superset.mcp_service.chart.schemas import (
     serialize_chart_object,
 )
 from superset.mcp_service.mcp_core import ModelListCore
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +47,7 @@ DEFAULT_CHART_COLUMNS = [
     "slice_name",
     "viz_type",
     "url",
+    "changed_on",
     "changed_on_humanized",
 ]
 
@@ -71,7 +71,6 @@ SORTABLE_CHART_COLUMNS = [
         destructiveHint=False,
     ),
 )
-@parse_request(ListChartsRequest)
 async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
     """List charts with filtering and search.
 
