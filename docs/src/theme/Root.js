@@ -286,16 +286,41 @@ export default function Root({ children }) {
       document.addEventListener('copy', handleCopy);
       window.addEventListener('scroll', handleScroll, { passive: true });
 
-      // Watch for color mode changes
+      // Watch for color mode changes — also syncs the kapa.ai widget theme
+      // with a smooth CSS transition on the widget host element.
+      const syncKapaTheme = (isDark) => {
+        // The kapa widget renders inside a shadow host div injected by kapa-widget.bundle.js.
+        // We find the widget host and add a transition class so theme changes animate smoothly.
+        const kapaHost = document.querySelector('kapa-widget') || document.getElementById('kapa-widget-root');
+        if (kapaHost) {
+          // Inject a one-time transition style into the host element so the
+          // background, text, and border colours cross-fade over 300ms.
+          kapaHost.style.transition = 'background-color 300ms ease, color 300ms ease, border-color 300ms ease, box-shadow 300ms ease';
+        }
+
+        // Update the data-color-scheme attribute on the kapa script tag so the
+        // widget re-reads it on next open. The selector-based sync handles live
+        // updates automatically, but we also set this for programmatic clarity.
+        const kapaScript = document.querySelector('script[data-website-id]');
+        if (kapaScript) {
+          kapaScript.setAttribute('data-color-scheme', isDark ? 'dark' : 'light');
+        }
+      };
+
       const colorModeObserver = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
           if (mutation.attributeName === 'data-theme') {
-            trackEvent('User Preference', 'Color Mode Change',
-              document.documentElement.getAttribute('data-theme'));
+            const theme = document.documentElement.getAttribute('data-theme');
+            trackEvent('User Preference', 'Color Mode Change', theme);
+            // Sync kapa widget with smooth animation
+            syncKapaTheme(theme === 'dark');
           }
         });
       });
       colorModeObserver.observe(document.documentElement, { attributes: true });
+
+      // Run once on mount to set the correct initial theme state
+      syncKapaTheme(document.documentElement.getAttribute('data-theme') === 'dark');
 
       // Set up Algolia tracking
       const algoliaObserver = setupAlgoliaTracking();
