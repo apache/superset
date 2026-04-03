@@ -396,6 +396,20 @@ class TestChartSerializationEagerLoading:
         assert result.tags == []
         assert result.owners == []
 
+    def test_serialize_chart_object_with_certification_fields(self):
+        """serialize_chart_object correctly serializes non-None certification values."""
+        from superset.mcp_service.chart.schemas import serialize_chart_object
+
+        chart = _make_mock_chart()
+        chart.certified_by = "Data Team"
+        chart.certification_details = "Verified Q1 2026 metrics"
+
+        result = serialize_chart_object(chart)
+
+        assert result is not None
+        assert result.certified_by == "Data Team"
+        assert result.certification_details == "Verified Q1 2026 metrics"
+
     def test_serialize_chart_object_fails_on_detached_instance(self):
         """serialize_chart_object raises when accessing lazy attrs on detached
         instance — this is the bug scenario that the eager-loading fix prevents."""
