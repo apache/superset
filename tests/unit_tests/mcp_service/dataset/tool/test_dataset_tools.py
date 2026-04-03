@@ -1220,7 +1220,7 @@ class TestDatasetCertificationSerialization:
     """Test certification fields flow through dataset serialization."""
 
     def test_serialize_dataset_with_certification_fields(self):
-        """serialize_dataset_object correctly serializes non-None certification values."""
+        """Serializes non-None certification values."""
         from superset.mcp_service.dataset.schemas import serialize_dataset_object
 
         dataset = create_mock_dataset()
