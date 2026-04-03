@@ -301,7 +301,13 @@ async def get_chart_data(  # noqa: C901
                     cached_groupby: list[str] = []
                 else:
                     cached_metrics = cached_form_data_dict.get("metrics", [])
-                    cached_groupby = cached_form_data_dict.get("groupby", [])
+                    raw_groupby = cached_form_data_dict.get("groupby", [])
+                    # Guard against string groupby (e.g. heatmap_v2 migrated
+                    # from legacy heatmap where all_columns_y was a string)
+                    if isinstance(raw_groupby, str):
+                        cached_groupby = [raw_groupby]
+                    else:
+                        cached_groupby = list(raw_groupby)
 
                 _apply_extra_form_data(cached_form_data_dict, request.extra_form_data)
 
@@ -443,7 +449,13 @@ async def get_chart_data(  # noqa: C901
                 else:
                     # Standard charts use "metrics" (plural) and "groupby"
                     metrics = form_data.get("metrics", [])
-                    groupby_columns = list(form_data.get("groupby") or [])
+                    raw_groupby = form_data.get("groupby") or []
+                    # Guard against string groupby (e.g. heatmap_v2 migrated
+                    # from legacy heatmap where all_columns_y was a string)
+                    if isinstance(raw_groupby, str):
+                        groupby_columns = [raw_groupby]
+                    else:
+                        groupby_columns = list(raw_groupby)
                     # Some chart types use "columns" instead of "groupby"
                     if not groupby_columns:
                         form_columns = form_data.get("columns")
