@@ -637,12 +637,17 @@ class TestParseChartConfig:
             {"chart_type": "xy", "x": {"name": "date"}, "y": [{"name": "v"}]}
         )
         assert config.chart_type == "xy"
+        assert config.x.name == "date"
+        assert len(config.y) == 1
+        assert config.y[0].name == "v"
 
     def test_parse_valid_table_config(self) -> None:
         config = parse_chart_config(
             {"chart_type": "table", "columns": [{"name": "col1"}]}
         )
         assert config.chart_type == "table"
+        assert len(config.columns) == 1
+        assert config.columns[0].name == "col1"
 
     def test_parse_missing_chart_type_raises(self) -> None:
         with pytest.raises(ValidationError):
