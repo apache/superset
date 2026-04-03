@@ -26,7 +26,19 @@ export default function transformProps(chartProps: ChartProps) {
     selectCountry,
     colorScheme,
     sliceId,
+    customColorScale,
   } = formData;
+
+  let parsedColorScale = [];
+
+  try {
+    parsedColorScale = customColorScale ? JSON.parse(customColorScale) : [];
+  } catch (error) {
+    console.warn(
+      'Invalid JSON in customColorScale. Please check your configuration syntax:',
+      error && error.message ? error.message : error,
+    );
+  }
 
   return {
     width,
@@ -37,5 +49,6 @@ export default function transformProps(chartProps: ChartProps) {
     numberFormat,
     colorScheme,
     sliceId,
+    customColorScale: Array.isArray(parsedColorScale) ? parsedColorScale : [],
   };
 }
