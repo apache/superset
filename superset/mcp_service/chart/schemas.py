@@ -36,6 +36,7 @@ from pydantic import (
     model_serializer,
     model_validator,
     PositiveInt,
+    TypeAdapter,
 )
 from typing_extensions import Self
 
@@ -1154,6 +1155,10 @@ ChartConfig = Annotated[
     ),
 ]
 
+# Module-level TypeAdapter avoids repeated schema compilation in
+# parse_chart_config() — safe because ChartConfig is fully defined above.
+_CHART_CONFIG_ADAPTER: TypeAdapter = TypeAdapter(ChartConfig)
+
 # Compact description for JSON Schema — keeps tool inputSchema small while
 # giving LLMs enough context to construct valid configs.
 _CHART_CONFIG_DESCRIPTION = (
@@ -1183,10 +1188,7 @@ def parse_chart_config(
     Validates the dict against the discriminated union using chart_type.
     Call this in tool function bodies to get a typed config object.
     """
-    from pydantic import TypeAdapter
-
-    adapter = TypeAdapter(ChartConfig)
-    return adapter.validate_python(config)
+    return _CHART_CONFIG_ADAPTER.validate_python(config)
 
 
 def _coerce_config_to_dict(v: Any) -> Dict[str, Any]:
