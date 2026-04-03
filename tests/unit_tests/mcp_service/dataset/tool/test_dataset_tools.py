@@ -1223,12 +1223,14 @@ class TestDatasetDefaultColumnFiltering:
         """Test that minimal default columns are properly defined."""
         from superset.mcp_service.common.schema_discovery import DATASET_DEFAULT_COLUMNS
 
-        # Should have exactly 4 minimal columns
-        assert len(DATASET_DEFAULT_COLUMNS) == 4
         assert set(DATASET_DEFAULT_COLUMNS) == {
             "id",
             "table_name",
             "schema",
+            "description",
+            "certified_by",
+            "certification_details",
+            "changed_on",
             "changed_on_humanized",
         }
         assert "uuid" not in DATASET_DEFAULT_COLUMNS
@@ -1236,7 +1238,6 @@ class TestDatasetDefaultColumnFiltering:
         # Heavy columns should NOT be in defaults
         assert "columns" not in DATASET_DEFAULT_COLUMNS
         assert "metrics" not in DATASET_DEFAULT_COLUMNS
-        assert "description" not in DATASET_DEFAULT_COLUMNS
         assert "database_name" not in DATASET_DEFAULT_COLUMNS
 
     @patch("superset.daos.dataset.DatasetDAO.list")
