@@ -16,7 +16,7 @@
 # under the License.
 """add_upstream_oauth_tokens
 
-Revision ID: c0d1e2f3a4b5
+Revision ID: b2c3d4e5f6a7
 Revises: a1b2c3d4e5f6
 Create Date: 2026-03-06 12:00:00.000000
 
@@ -26,7 +26,7 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "c0d1e2f3a4b5"
+revision = "b2c3d4e5f6a7"
 down_revision = "a1b2c3d4e5f6"
 
 
