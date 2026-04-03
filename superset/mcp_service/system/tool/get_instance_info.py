@@ -103,14 +103,18 @@ def get_instance_info(
         )
         try:
             db.session.rollback()  # pylint: disable=consider-using-transaction
-        except Exception:
+        except Exception:  # noqa: BLE001
+            # Broad catch: the DB connection itself may be broken (e.g.,
+            # SSL drop), so even rollback can fail with non-SQLAlchemy
+            # errors. This is a cleanup path — swallow and log.
             logger.warning(
                 "Rollback failed during get_instance_info connection reset",
                 exc_info=True,
             )
         try:
             db.session.remove()  # pylint: disable=consider-using-transaction
-        except Exception:
+        except Exception:  # noqa: BLE001
+            # Same as above — cleanup must not prevent the retry.
             logger.warning(
                 "Session remove failed during get_instance_info connection reset",
                 exc_info=True,

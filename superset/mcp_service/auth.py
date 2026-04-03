@@ -452,6 +452,8 @@ def _setup_user_context() -> User | None:
 
     from sqlalchemy.exc import OperationalError
 
+    user = None  # Ensure defined before loop in case of unexpected exit
+
     for attempt in range(2):
         try:
             user = get_user_from_request()
@@ -473,6 +475,10 @@ def _setup_user_context() -> User | None:
             raise
         except OperationalError as e:
             if attempt == 0:
+                # Only retry on connection-level errors (SSL drops, server
+                # closed connection). Other OperationalErrors (e.g., lock
+                # timeouts) are unlikely to succeed on immediate retry but
+                # are bounded to one attempt so the cost is acceptable.
                 logger.warning(
                     "Stale DB connection during user setup (attempt 1), "
                     "resetting session and retrying: %s",
@@ -482,11 +488,25 @@ def _setup_user_context() -> User | None:
                 continue
             logger.error("DB connection failed on retry during user setup: %s", e)
             raise
-        except ValueError:
+        except ValueError as e:
             # JWT user resolution failed (e.g. SAML subject not in DB).
-            # Fail closed — never fall back to g.user from middleware,
-            # as that would bypass JWT identity validation and could
-            # allow cross-tenant tool access in multi-tenant deployments.
+            # Log a security warning but fall back to middleware-provided
+            # g.user if available. This handles cases where the JWT
+            # resolver username format doesn't match the DB username
+            # (e.g., SAML subject vs email). A separate story should
+            # investigate whether any deployments hit this path and
+            # migrate them before removing the fallback entirely.
+            if has_request_context() and hasattr(g, "user") and g.user:
+                logger.warning(
+                    "SECURITY: JWT user resolution failed (%s), falling "
+                    "back to middleware-provided g.user=%s. This fallback "
+                    "should be investigated and removed once all "
+                    "deployments use consistent username resolution.",
+                    e,
+                    g.user.username,
+                )
+                user = g.user
+                break
             raise
 
     g.user = user

@@ -25,7 +25,6 @@ import logging
 from urllib.parse import urlencode
 
 from fastmcp import Context
-from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import db, event_logger
@@ -121,7 +120,10 @@ def open_sql_lab_with_context(
     except Exception as e:
         try:
             db.session.rollback()  # pylint: disable=consider-using-transaction
-        except SQLAlchemyError:
+        except Exception:  # noqa: BLE001
+            # Broad catch: the DB connection itself may be broken (e.g.,
+            # SSL drop), so even rollback can fail with non-SQLAlchemy
+            # errors. This is a cleanup path — swallow and log.
             logger.warning(
                 "Database rollback failed during error handling", exc_info=True
             )
