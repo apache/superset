@@ -455,6 +455,15 @@ def _setup_user_context() -> User | None:
     for attempt in range(2):
         try:
             user = get_user_from_request()
+
+            # Validate user has necessary relationships loaded.
+            # Force access to ensure they're loaded if lazy.
+            # This is inside the retry loop because relationship loading
+            # also hits the DB and can fail on stale SSL connections.
+            user_roles = user.roles  # noqa: F841
+            if hasattr(user, "groups"):
+                user_groups = user.groups  # noqa: F841
+
             break
         except RuntimeError as e:
             # No Flask application context (e.g., prompts before middleware runs)
@@ -487,12 +496,6 @@ def _setup_user_context() -> User | None:
                 user = g.user
                 break
             raise
-
-    # Validate user has necessary relationships loaded
-    # (Force access to ensure they're loaded if lazy)
-    user_roles = user.roles  # noqa: F841
-    if hasattr(user, "groups"):
-        user_groups = user.groups  # noqa: F841
 
     g.user = user
     return user
