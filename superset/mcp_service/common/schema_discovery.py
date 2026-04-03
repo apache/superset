@@ -312,6 +312,18 @@ CHART_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
         type="str",
         is_default=False,
     ),
+    "certified_by": ColumnMetadata(
+        name="certified_by",
+        description="Name of the person who certified this chart",
+        type="str",
+        is_default=True,
+    ),
+    "certification_details": ColumnMetadata(
+        name="certification_details",
+        description="Certification details or reason",
+        type="str",
+        is_default=True,
+    ),
     "tags": ColumnMetadata(
         name="tags", description="Chart tags", type="list", is_default=False
     ),
@@ -381,6 +393,18 @@ DATASET_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
         description="Humanized creation time",
         type="str",
         is_default=False,
+    ),
+    "certified_by": ColumnMetadata(
+        name="certified_by",
+        description="Name of the person who certified this dataset",
+        type="str",
+        is_default=True,
+    ),
+    "certification_details": ColumnMetadata(
+        name="certification_details",
+        description="Certification details or reason",
+        type="str",
+        is_default=True,
     ),
     "metrics": ColumnMetadata(
         name="metrics",
