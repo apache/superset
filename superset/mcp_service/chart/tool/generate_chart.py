@@ -89,13 +89,23 @@ def _compile_chart(
         query_filters = adhoc_filters_to_query_filters(
             form_data.get("adhoc_filters", [])
         )
+
+        # Big Number charts use singular "metric" instead of "metrics"
+        metrics = form_data.get("metrics", [])
+        if not metrics and form_data.get("metric"):
+            metrics = [form_data["metric"]]
+
+        # Big Number with trendline uses granularity_sqla as the time column
+        if not columns and form_data.get("granularity_sqla"):
+            columns = [form_data["granularity_sqla"]]
+
         factory = QueryContextFactory()
         query_context = factory.create(
             datasource={"id": dataset_id, "type": "table"},
             queries=[
                 {
                     "columns": columns,
-                    "metrics": form_data.get("metrics", []),
+                    "metrics": metrics,
                     "orderby": form_data.get("orderby", []),
                     "row_limit": 2,
                     "filters": query_filters,
@@ -742,7 +752,13 @@ async def generate_chart(  # noqa: C901
                     chart.id,
                     exc_info=True,
                 )
-                db.session.rollback()
+                try:
+                    db.session.rollback()  # pylint: disable=consider-using-transaction
+                except SQLAlchemyError:
+                    logger.warning(
+                        "Database rollback failed during chart re-fetch error handling",
+                        exc_info=True,
+                    )
                 chart_data = {
                     "id": chart.id,
                     "slice_name": chart.slice_name,
@@ -805,6 +821,14 @@ async def generate_chart(  # noqa: C901
         return GenerateChartResponse.model_validate(result)
 
     except (CommandException, SQLAlchemyError, KeyError, ValueError) as e:
+        from superset import db
+
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError:
+            logger.warning(
+                "Database rollback failed during error handling", exc_info=True
+            )
         await ctx.error(
             "Chart generation failed: error=%s, execution_time_ms=%s"
             % (

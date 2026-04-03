@@ -444,7 +444,34 @@ class TestGenerateDashboard:
                 == "Minimal Dashboard"
             )
 
-            # Verify dashboard was created with default published=True
+            # Verify dashboard was created with default published=False
+            created = mock_dashboard_cls.return_value
+            assert created.published is False
+
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_explicit_published(
+        self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
+    ):
+        """Test dashboard generation with published explicitly set to True."""
+        charts = [_mock_chart(id=3)]
+        mock_dashboard = _mock_dashboard(id=41, title="Published Dashboard")
+        _setup_generate_dashboard_mocks(
+            mock_db_session, mock_find_by_id, mock_dashboard_cls, charts, mock_dashboard
+        )
+
+        request = {
+            "chart_ids": [3],
+            "dashboard_title": "Published Dashboard",
+            "published": True,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            assert result.structured_content["error"] is None
             created = mock_dashboard_cls.return_value
             assert created.published is True
 
@@ -809,14 +836,16 @@ class TestAddChartToExistingDashboard:
                 "DASHBOARD_VERSION_KEY": "v2",
             }
         )
-        mock_find_dashboard.return_value = mock_dashboard
-
         mock_chart = _mock_chart(id=25, slice_name="Tab Chart")
         mock_db_session.get.return_value = mock_chart
 
         updated_dashboard = _mock_dashboard(id=3, title="Tabbed Dashboard")
         updated_dashboard.slices = [_mock_chart(id=10), _mock_chart(id=25)]
         mock_update_command.return_value.run.return_value = updated_dashboard
+
+        # side_effect: first call returns initial dashboard (validation),
+        # second call returns updated dashboard (re-fetch after update)
+        mock_find_dashboard.side_effect = [mock_dashboard, updated_dashboard]
 
         request = {"dashboard_id": 3, "chart_id": 25}
 
@@ -909,14 +938,16 @@ class TestAddChartToExistingDashboard:
                 "DASHBOARD_VERSION_KEY": "v2",
             }
         )
-        mock_find_dashboard.return_value = mock_dashboard
-
         mock_chart = _mock_chart(id=30, slice_name="Customer Chart")
         mock_db_session.get.return_value = mock_chart
 
         updated_dashboard = _mock_dashboard(id=3, title="Tabbed Dashboard")
         updated_dashboard.slices = [_mock_chart(id=10), _mock_chart(id=30)]
         mock_update_command.return_value.run.return_value = updated_dashboard
+
+        # side_effect: first call returns initial dashboard (validation),
+        # second call returns updated dashboard (re-fetch after update)
+        mock_find_dashboard.side_effect = [mock_dashboard, updated_dashboard]
 
         request = {"dashboard_id": 3, "chart_id": 30, "target_tab": "Customers"}
 
@@ -1404,56 +1435,101 @@ class TestGenerateTitleFromCharts:
 class TestDashboardSerializationEagerLoading:
     """Tests for eager loading fix in dashboard serialization paths."""
 
+    @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
-    def test_generate_dashboard_refetches_via_dao(self, mock_find_by_id):
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_refetches_via_dao(
+        self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
+    ):
         """generate_dashboard re-fetches dashboard via DashboardDAO.find_by_id
         with eager-loaded slice relationships before serialization."""
-        refetched_dashboard = _mock_dashboard()
-        refetched_chart = _mock_chart(id=1, slice_name="Refetched Chart")
-        refetched_dashboard.slices = [refetched_chart]
+        charts = [_mock_chart(id=1, slice_name="Refetched Chart")]
+        refetched_dashboard = _mock_dashboard(id=10)
+        refetched_dashboard.slices = charts
 
-        mock_find_by_id.return_value = refetched_dashboard
-
-        from superset.daos.dashboard import DashboardDAO
-
-        result = (
-            DashboardDAO.find_by_id(1, query_options=["dummy"]) or _mock_dashboard()
+        _setup_generate_dashboard_mocks(
+            mock_db_session,
+            mock_find_by_id,
+            mock_dashboard_cls,
+            charts,
+            refetched_dashboard,
         )
 
-        assert result is refetched_dashboard
-        mock_find_by_id.assert_called_once_with(1, query_options=["dummy"])
+        request = {"chart_ids": [1]}
 
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            assert result.structured_content["error"] is None
+            # Verify DashboardDAO.find_by_id was called for re-fetch
+            mock_find_by_id.assert_called()
+
+    @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
-    def test_add_chart_refetches_dashboard_via_dao(self, mock_find_by_id):
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_add_chart_refetches_dashboard_via_dao(
+        self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
+    ):
         """add_chart_to_existing_dashboard re-fetches dashboard via
         DashboardDAO.find_by_id with eager-loaded slice relationships."""
-        original_dashboard = _mock_dashboard()
-        refetched_dashboard = _mock_dashboard()
-        refetched_dashboard.slices = [_mock_chart()]
+        mock_dashboard = _mock_dashboard(id=1)
+        mock_dashboard.slices = []
+        mock_dashboard.position_json = "{}"
 
-        mock_find_by_id.return_value = refetched_dashboard
+        mock_chart = _mock_chart(id=5, slice_name="New Chart")
+        mock_db_session.get.return_value = mock_chart
 
-        from superset.daos.dashboard import DashboardDAO
+        updated_dashboard = _mock_dashboard(id=1)
+        updated_dashboard.slices = [mock_chart]
+        mock_update_command.return_value.run.return_value = updated_dashboard
 
-        result = (
-            DashboardDAO.find_by_id(original_dashboard.id, query_options=["dummy"])
-            or original_dashboard
-        )
+        # side_effect: first call returns initial dashboard (validation),
+        # second call returns updated dashboard (re-fetch with eager loading)
+        mock_find_dashboard.side_effect = [mock_dashboard, updated_dashboard]
 
-        assert result is refetched_dashboard
+        request = {"dashboard_id": 1, "chart_id": 5}
 
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "add_chart_to_existing_dashboard", {"request": request}
+            )
+
+            assert result.structured_content["error"] is None
+            # DashboardDAO.find_by_id called twice: validation + re-fetch
+            assert mock_find_dashboard.call_count == 2
+
+    @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
-    def test_add_chart_falls_back_on_refetch_failure(self, mock_find_by_id):
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_add_chart_falls_back_on_refetch_failure(
+        self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
+    ):
         """add_chart_to_existing_dashboard falls back to original dashboard
-        if DashboardDAO.find_by_id returns None."""
-        original_dashboard = _mock_dashboard()
-        mock_find_by_id.return_value = None
+        if DashboardDAO.find_by_id returns None on re-fetch."""
+        mock_dashboard = _mock_dashboard(id=1)
+        mock_dashboard.slices = []
+        mock_dashboard.position_json = "{}"
 
-        from superset.daos.dashboard import DashboardDAO
+        mock_chart = _mock_chart(id=5, slice_name="New Chart")
+        mock_db_session.get.return_value = mock_chart
 
-        result = (
-            DashboardDAO.find_by_id(original_dashboard.id, query_options=["dummy"])
-            or original_dashboard
-        )
+        updated_dashboard = _mock_dashboard(id=1)
+        updated_dashboard.slices = [mock_chart]
+        mock_update_command.return_value.run.return_value = updated_dashboard
 
-        assert result is original_dashboard
+        # side_effect: first call returns dashboard (validation),
+        # second call returns None (re-fetch fails, should fall back)
+        mock_find_dashboard.side_effect = [mock_dashboard, None]
+
+        request = {"dashboard_id": 1, "chart_id": 5}
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "add_chart_to_existing_dashboard", {"request": request}
+            )
+
+            # Tool should still succeed using fallback dashboard
+            assert result.structured_content["error"] is None

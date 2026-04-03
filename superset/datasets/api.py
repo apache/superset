@@ -1257,7 +1257,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
         if parse_boolean_string(request.args.get("include_rendered_sql")):
             try:
-                processor = get_template_processor(database=table.database)
+                processor = get_template_processor(database=table.database, table=table)
                 response["result"] = self.render_dataset_fields(
                     response["result"], processor
                 )

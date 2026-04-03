@@ -48,6 +48,7 @@ DEFAULT_DATASET_COLUMNS = [
     "id",
     "table_name",
     "schema",
+    "changed_on",
     "changed_on_humanized",
 ]
 

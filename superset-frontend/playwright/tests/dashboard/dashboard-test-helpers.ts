@@ -18,8 +18,8 @@
  */
 
 import type { Page, TestInfo } from '@playwright/test';
-import type { TestAssets } from '../../../helpers/fixtures/testAssets';
-import { apiPostDashboard } from '../../../helpers/api/dashboard';
+import type { TestAssets } from '../../helpers/fixtures';
+import { apiPostDashboard } from '../../helpers/api/dashboard';
 
 interface TestDashboardResult {
   id: number;
