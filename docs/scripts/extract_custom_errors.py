@@ -25,6 +25,8 @@ Usage: python scripts/extract_custom_errors.py
 Output: JSON mapping of engine spec module names to their custom errors
 """
 
+from __future__ import annotations
+
 import ast
 import json  # noqa: TID251 - standalone docs script, not part of superset
 import sys
@@ -201,7 +203,7 @@ def extract_regex_info(key: ast.expr) -> dict[str, Any]:
 
 def extract_invalid_fields(extra_node: ast.Dict) -> list[str]:
     """Extract invalid fields from the extra dict."""
-    for k, v in zip(extra_node.keys, extra_node.values, strict=False):
+    for k, v in zip(extra_node.keys, extra_node.values):
         if (
             isinstance(k, ast.Constant)
             and k.value == "invalid"
@@ -248,7 +250,7 @@ def extract_errors_from_dict(dict_node: ast.Dict, source: str) -> list[dict[str,
     """Extract error information from a custom_errors dict AST node."""
     errors = []
 
-    for key, value in zip(dict_node.keys, dict_node.values, strict=False):
+    for key, value in zip(dict_node.keys, dict_node.values):
         if key is None or value is None:
             continue
 

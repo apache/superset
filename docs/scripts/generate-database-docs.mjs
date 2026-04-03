@@ -63,7 +63,7 @@ with app.app_context():
     docs = generate_yaml_docs()
     print(json.dumps(docs, default=str))
 `;
-    const result = spawnSync('python', ['-c', pythonCode], {
+    const result = spawnSync('python3', ['-c', pythonCode], {
       cwd: ROOT_DIR,
       encoding: 'utf-8',
       timeout: 60000,

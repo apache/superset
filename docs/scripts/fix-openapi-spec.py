@@ -22,6 +22,8 @@ This script patches the openapi.json file to add any missing schemas
 that are referenced but not defined.
 """
 
+from __future__ import annotations
+
 import json  # noqa: TID251 - standalone docs script
 import sys
 from pathlib import Path
