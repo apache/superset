@@ -261,6 +261,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     userstatschartview = None
     register_superset_auth_view = True
     """Set to False in subclasses that provide their own auth view."""
+    register_superset_registeruser_view = True
+    """Set to False in subclasses that provide their own register user view."""
     READ_ONLY_MODEL_VIEWS = {"Database", "DynamicPlugin"}
 
     role_api = SupersetRoleApi
@@ -3171,9 +3173,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         if self.register_superset_auth_view:
             self.auth_view = self.appbuilder.add_view_no_menu(SupersetAuthView)
-        self.registeruser_view = self.appbuilder.add_view_no_menu(
-            SupersetRegisterUserView
-        )
+        if self.register_superset_registeruser_view:
+            self.registeruser_view = self.appbuilder.add_view_no_menu(
+                SupersetRegisterUserView
+            )
 
         # Apply rate limiting to auth view if enabled
         # This needs to be done after the view is added, otherwise the blueprint
