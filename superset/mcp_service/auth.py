@@ -284,41 +284,80 @@ def _setup_user_context() -> User | None:
     """
     Set up user context for MCP tool execution.
 
+    Includes retry logic for stale database connections (e.g., SSL dropped
+    by proxy/load balancer after idle periods). On OperationalError, the
+    session is reset and the user lookup is retried once.
+
     Returns:
         User object with roles and groups loaded, or None if no Flask context
     """
-    try:
-        user = get_user_from_request()
-    except RuntimeError as e:
-        # No Flask application context (e.g., prompts before middleware runs)
-        # This is expected for some FastMCP operations - return None gracefully
-        if "application context" in str(e):
-            logger.debug("No Flask app context available for user setup")
-            return None
-        raise
-    except ValueError as e:
-        # JWT user resolution failed (e.g. SAML subject not in DB).
-        # If middleware already set g.user (request context exists),
-        # use that instead of failing closed.
-        from flask import has_request_context
+    # Clear stale g.user to prevent user impersonation across
+    # tool calls when no per-request middleware refreshes it.
+    # Only clear in app-context-only mode; preserve g.user when
+    # a request context is active (external middleware set it).
+    from flask import has_request_context
 
-        if has_request_context() and hasattr(g, "user") and g.user:
-            logger.warning(
-                "JWT user resolution failed (%s), using middleware-provided g.user=%s",
-                e,
-                g.user.username,
-            )
-            # Assign to local so relationship validation below runs
-            # (same as the normal path) to prevent detached instance errors.
-            user = g.user
-        else:
+    if not has_request_context():
+        g.pop("user", None)
+
+    from sqlalchemy.exc import OperationalError
+
+    user = None  # Ensure defined before loop in case of unexpected exit
+
+    for attempt in range(2):
+        try:
+            user = get_user_from_request()
+
+            # Validate user has necessary relationships loaded.
+            # Force access to ensure they're loaded if lazy.
+            # This is inside the retry loop because relationship loading
+            # also hits the DB and can fail on stale SSL connections.
+            user_roles = user.roles  # noqa: F841
+            if hasattr(user, "groups"):
+                user_groups = user.groups  # noqa: F841
+
+            break
+        except RuntimeError as e:
+            # No Flask application context (e.g., prompts before middleware runs)
+            if "application context" in str(e):
+                logger.debug("No Flask app context available for user setup")
+                return None
             raise
-
-    # Validate user has necessary relationships loaded
-    # (Force access to ensure they're loaded if lazy)
-    user_roles = user.roles  # noqa: F841
-    if hasattr(user, "groups"):
-        user_groups = user.groups  # noqa: F841
+        except OperationalError as e:
+            if attempt == 0:
+                # Only retry on connection-level errors (SSL drops, server
+                # closed connection). Other OperationalErrors (e.g., lock
+                # timeouts) are unlikely to succeed on immediate retry but
+                # are bounded to one attempt so the cost is acceptable.
+                logger.warning(
+                    "Stale DB connection during user setup (attempt 1), "
+                    "resetting session and retrying: %s",
+                    e,
+                )
+                _cleanup_session_on_error()
+                continue
+            logger.error("DB connection failed on retry during user setup: %s", e)
+            raise
+        except ValueError as e:
+            # JWT user resolution failed (e.g. SAML subject not in DB).
+            # Log a security warning but fall back to middleware-provided
+            # g.user if available. This handles cases where the JWT
+            # resolver username format doesn't match the DB username
+            # (e.g., SAML subject vs email). A separate story should
+            # investigate whether any deployments hit this path and
+            # migrate them before removing the fallback entirely.
+            if has_request_context() and hasattr(g, "user") and g.user:
+                logger.warning(
+                    "SECURITY: JWT user resolution failed (%s), falling "
+                    "back to middleware-provided g.user=%s. This fallback "
+                    "should be investigated and removed once all "
+                    "deployments use consistent username resolution.",
+                    e,
+                    g.user.username,
+                )
+                user = g.user
+                break
+            raise
 
     g.user = user
     return user
