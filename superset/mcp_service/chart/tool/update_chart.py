@@ -90,11 +90,15 @@ def _build_update_payload(
         return GenerateChartResponse.model_validate(
             {
                 "chart": None,
-                "error": (
-                    "Either 'config' or 'chart_name' must be provided. "
-                    "Use config for visualization changes, chart_name "
-                    "for renaming."
-                ),
+                "error": {
+                    "error_type": "ValidationError",
+                    "message": ("Either 'config' or 'chart_name' must be provided."),
+                    "details": (
+                        "Either 'config' or 'chart_name' must be provided. "
+                        "Use config for visualization changes, chart_name "
+                        "for renaming."
+                    ),
+                },
                 "success": False,
                 "schema_version": "2.0",
                 "api_version": "v1",
@@ -169,7 +173,15 @@ async def update_chart(
             return GenerateChartResponse.model_validate(
                 {
                     "chart": None,
-                    "error": f"No chart found with identifier: {request.identifier}",
+                    "error": {
+                        "error_type": "NotFound",
+                        "message": (
+                            f"No chart found with identifier: {request.identifier}"
+                        ),
+                        "details": (
+                            f"No chart found with identifier: {request.identifier}"
+                        ),
+                    },
                     "success": False,
                     "schema_version": "2.0",
                     "api_version": "v1",
@@ -315,7 +327,11 @@ async def update_chart(
         return GenerateChartResponse.model_validate(
             {
                 "chart": None,
-                "error": f"Chart update failed: {str(e)}",
+                "error": {
+                    "error_type": type(e).__name__,
+                    "message": f"Chart update failed: {e}",
+                    "details": str(e),
+                },
                 "performance": {
                     "query_duration_ms": execution_time,
                     "cache_status": "error",
