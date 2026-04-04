@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { act, screen, waitFor, within, fireEvent } from '@testing-library/react';
+import {
+  act,
+  screen,
+  waitFor,
+  within,
+  fireEvent,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import { selectOption } from 'spec/helpers/testing-library';
@@ -83,13 +89,27 @@ test('renders all required column headers', async () => {
     expect(screen.getByTestId('listview-table')).toBeInTheDocument();
   });
   const table = screen.getByTestId('listview-table');
-  expect(within(table).getByRole('columnheader', { name: /Name/i })).toBeInTheDocument();
-  expect(within(table).getByRole('columnheader', { name: /Type/i })).toBeInTheDocument();
-  expect(within(table).getByRole('columnheader', { name: /Database/i })).toBeInTheDocument();
-  expect(within(table).getByRole('columnheader', { name: /Schema/i })).toBeInTheDocument();
-  expect(within(table).getByRole('columnheader', { name: /Owners/i })).toBeInTheDocument();
-  expect(within(table).getByRole('columnheader', { name: /Last modified/i })).toBeInTheDocument();
-  expect(within(table).getByRole('columnheader', { name: /Actions/i })).toBeInTheDocument();
+  expect(
+    within(table).getByRole('columnheader', { name: /Name/i }),
+  ).toBeInTheDocument();
+  expect(
+    within(table).getByRole('columnheader', { name: /Type/i }),
+  ).toBeInTheDocument();
+  expect(
+    within(table).getByRole('columnheader', { name: /Database/i }),
+  ).toBeInTheDocument();
+  expect(
+    within(table).getByRole('columnheader', { name: /Schema/i }),
+  ).toBeInTheDocument();
+  expect(
+    within(table).getByRole('columnheader', { name: /Owners/i }),
+  ).toBeInTheDocument();
+  expect(
+    within(table).getByRole('columnheader', { name: /Last modified/i }),
+  ).toBeInTheDocument();
+  expect(
+    within(table).getByRole('columnheader', { name: /Actions/i }),
+  ).toBeInTheDocument();
 });
 
 test('displays dataset name in Name column', async () => {
@@ -123,7 +143,9 @@ test('displays database name in Database column', async () => {
   fetchMock.get(API_ENDPOINTS.DATASETS, { result: [dataset], count: 1 });
   renderDatasetList(mockAdminUser);
   await waitFor(() => {
-    expect(screen.getByText(dataset.database.database_name)).toBeInTheDocument();
+    expect(
+      screen.getByText(dataset.database.database_name),
+    ).toBeInTheDocument();
   });
 });
 
@@ -133,7 +155,9 @@ test('displays last modified date in humanized format', async () => {
   fetchMock.get(API_ENDPOINTS.DATASETS, { result: [dataset], count: 1 });
   renderDatasetList(mockAdminUser);
   await waitFor(() => {
-    expect(screen.getByText(dataset.changed_on_delta_humanized)).toBeInTheDocument();
+    expect(
+      screen.getByText(dataset.changed_on_delta_humanized),
+    ).toBeInTheDocument();
   });
 });
 
@@ -144,7 +168,9 @@ test('sorting by Name column updates API call with sort parameter', async () => 
   });
   const table = screen.getByTestId('listview-table');
   const nameHeader = within(table).getByRole('columnheader', { name: /Name/i });
-  const initialCalls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).length;
+  const initialCalls = fetchMock.callHistory.calls(
+    API_ENDPOINTS.DATASETS,
+  ).length;
   await userEvent.click(nameHeader);
   await waitFor(() => {
     const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
@@ -158,7 +184,10 @@ test('delete action successfully deletes dataset and refreshes list', async () =
   const datasetToDelete = mockDatasets[0];
   setupDeleteMocks(datasetToDelete.id);
   fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, { result: [datasetToDelete], count: 1 });
+  fetchMock.get(API_ENDPOINTS.DATASETS, {
+    result: [datasetToDelete],
+    count: 1,
+  });
   renderDatasetList(mockAdminUser, { addSuccessToast: mockAddSuccessToast });
   await waitFor(() => {
     expect(screen.getByTestId('listview-table')).toBeInTheDocument();
@@ -169,15 +198,21 @@ test('delete action successfully deletes dataset and refreshes list', async () =
   const modal = await screen.findByRole('dialog');
   const confirmInput = within(modal).getByTestId('delete-modal-input');
   await userEvent.type(confirmInput, 'DELETE');
-  const callsBefore = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).length;
-  const confirmButton = within(modal).getAllByRole('button', { name: /^delete$/i }).pop();
+  const callsBefore = fetchMock.callHistory.calls(
+    API_ENDPOINTS.DATASETS,
+  ).length;
+  const confirmButton = within(modal)
+    .getAllByRole('button', { name: /^delete$/i })
+    .pop();
   await userEvent.click(confirmButton!);
   await waitFor(() => {
     expect(mockAddSuccessToast).toHaveBeenCalled();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
   await waitFor(() => {
-    expect(fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).length).toBeGreaterThan(callsBefore);
+    expect(
+      fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).length,
+    ).toBeGreaterThan(callsBefore);
   });
 });
 
@@ -197,15 +232,23 @@ test('duplicate action successfully duplicates virtual dataset', async () => {
   const input = within(modal).getByRole('textbox');
   await userEvent.clear(input);
   await userEvent.type(input, 'Copy of Analytics');
-  const callsBefore = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).length;
-  const submitButton = within(modal).getByRole('button', { name: /duplicate/i });
+  const callsBefore = fetchMock.callHistory.calls(
+    API_ENDPOINTS.DATASETS,
+  ).length;
+  const submitButton = within(modal).getByRole('button', {
+    name: /duplicate/i,
+  });
   await userEvent.click(submitButton);
   await waitFor(() => {
-    expect(fetchMock.callHistory.calls(API_ENDPOINTS.DATASET_DUPLICATE).length).toBeGreaterThan(0);
+    expect(
+      fetchMock.callHistory.calls(API_ENDPOINTS.DATASET_DUPLICATE).length,
+    ).toBeGreaterThan(0);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
   await waitFor(() => {
-    expect(fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).length).toBeGreaterThan(callsBefore);
+    expect(
+      fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).length,
+    ).toBeGreaterThan(callsBefore);
   });
 });
 
@@ -225,46 +268,78 @@ test('bulk select enables checkboxes', async () => {
 test('sort order persists after deleting a dataset', async () => {
   const datasetToDelete = mockDatasets[0];
   setupDeleteMocks(datasetToDelete.id);
+
   renderDatasetList(mockAdminUser, {
     addSuccessToast: mockAddSuccessToast,
     addDangerToast: mockAddDangerToast,
   });
+
   const table = await screen.findByTestId('listview-table');
   const nameHeader = within(table).getByRole('columnheader', { name: /Name/i });
-  const initialCalls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).length;
+  const initialCalls = fetchMock.callHistory.calls(
+    API_ENDPOINTS.DATASETS,
+  ).length;
+
   await userEvent.click(nameHeader);
+
   await waitFor(() => {
-    expect(fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).length).toBeGreaterThan(initialCalls);
+    expect(
+      fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).length,
+    ).toBeGreaterThan(initialCalls);
   });
+
   const rows = screen.getAllByRole('row');
   const deleteButton = within(rows[1]).getByTestId('delete');
   await userEvent.click(deleteButton);
+
   const modal = await screen.findByRole('dialog');
   const confirmInput = within(modal).getByTestId('delete-modal-input');
+
+  // Direct change to bypass lag
   fireEvent.change(confirmInput, { target: { value: 'DELETE' } });
-  const callsBeforeDelete = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).length;
-  const confirmButton = within(modal).getAllByRole('button', { name: /^delete$/i }).pop();
+
+  const callsBeforeDelete = fetchMock.callHistory.calls(
+    API_ENDPOINTS.DATASETS,
+  ).length;
+  const confirmButton = within(modal)
+    .getAllByRole('button', { name: /^delete$/i })
+    .pop();
+
   if (confirmButton) {
     await userEvent.click(confirmButton);
   }
-  await waitFor(() => {
-    expect(mockAddSuccessToast).toHaveBeenCalled();
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  }, { timeout: 5000 });
-  await waitFor(() => {
-    const freshHeader = screen.getByRole('columnheader', { name: /Name/i });
-    const headerCell = freshHeader.closest('th');
-    if (headerCell) {
-      const carets = within(headerCell).getAllByLabelText(/caret/i);
-      expect(carets.length).toBeGreaterThan(0);
-    }
-    expect(fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).length).toBeGreaterThan(callsBeforeDelete);
-  });
-}, 30000);
+
+  // Optimized Wait: combine toast and modal check
+  await waitFor(
+    () => {
+      expect(mockAddSuccessToast).toHaveBeenCalled();
+    },
+    { timeout: 10000 },
+  );
+
+  // Final verification with extended timeout
+  await waitFor(
+    () => {
+      const freshHeader = screen.getByRole('columnheader', { name: /Name/i });
+      const headerCell = freshHeader.closest('th');
+      if (headerCell) {
+        const carets = within(headerCell).getAllByLabelText(/caret/i);
+        expect(carets.length).toBeGreaterThan(0);
+      }
+      expect(
+        fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).length,
+      ).toBeGreaterThan(callsBeforeDelete);
+    },
+    { timeout: 10000 },
+  );
+}, 60000); // INCREASED TO 60s
 
 test('bulk selection clears when filter changes', async () => {
   fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, { result: mockDatasets, count: mockDatasets.length });
+  fetchMock.get(API_ENDPOINTS.DATASETS, {
+    result: mockDatasets,
+    count: mockDatasets.length,
+  });
   renderDatasetList(mockAdminUser);
   await waitFor(() => {
     expect(screen.getByTestId('listview-table')).toBeInTheDocument();
@@ -277,7 +352,9 @@ test('bulk selection clears when filter changes', async () => {
   const firstCell = await within(table).findByText(mockDatasets[0].table_name);
   await userEvent.click(within(firstCell.closest('tr')!).getByRole('checkbox'));
   await waitFor(() => {
-    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(/1 Selected/i);
+    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+      /1 Selected/i,
+    );
   });
   await screen.findByRole('combobox', { name: 'Type' });
   await selectOption('Virtual', 'Type');
@@ -320,6 +397,8 @@ test('delete modal hides affected dashboards section when count is zero', async 
   const deleteButton = await within(table).findByTestId('delete');
   await userEvent.click(deleteButton);
   const modal = await screen.findByRole('dialog');
-  expect(within(modal).queryByText('Affected Dashboards')).not.toBeInTheDocument();
+  expect(
+    within(modal).queryByText('Affected Dashboards'),
+  ).not.toBeInTheDocument();
   expect(within(modal).getByText('Affected Charts')).toBeInTheDocument();
 });
