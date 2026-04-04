@@ -523,6 +523,23 @@ class GenerateDashboardResponse(BaseModel):
     error: str | None = Field(None, description="Error message, if creation failed")
 
 
+def _parse_json_metadata(json_metadata_str: str | None) -> Dict[str, Any] | None:
+    """Parse json_metadata string into a dict, returning None on any failure.
+
+    Handles None/empty input, invalid JSON, and non-dict JSON values
+    (e.g. ``"[]"``, ``"123"``) by returning None instead of raising.
+    """
+    if not json_metadata_str:
+        return None
+    try:
+        metadata = json_loads(json_metadata_str)
+    except (ValueError, TypeError):
+        return None
+    if not isinstance(metadata, dict):
+        return None
+    return metadata
+
+
 def _extract_native_filters(json_metadata_str: str | None) -> List[NativeFilterSummary]:
     """Extract native filter summaries from raw json_metadata string.
 
@@ -530,14 +547,8 @@ def _extract_native_filters(json_metadata_str: str | None) -> List[NativeFilterS
     name, type, and targets — dropping verbose fields like controlValues,
     defaultDataMask, scope, and cascadeParentIds.
     """
-    if not json_metadata_str:
-        return []
-    try:
-        metadata = json_loads(json_metadata_str)
-    except (ValueError, TypeError):
-        return []
-
-    if not isinstance(metadata, dict):
+    metadata = _parse_json_metadata(json_metadata_str)
+    if metadata is None:
         return []
 
     native_filters = metadata.get("native_filter_configuration", [])
@@ -564,17 +575,12 @@ def _extract_native_filters(json_metadata_str: str | None) -> List[NativeFilterS
 
 def _extract_cross_filters_enabled(json_metadata_str: str | None) -> bool | None:
     """Extract the cross_filters_enabled flag from json_metadata."""
-    if not json_metadata_str:
+    metadata = _parse_json_metadata(json_metadata_str)
+    if metadata is None:
         return None
-    try:
-        metadata = json_loads(json_metadata_str)
-    except (ValueError, TypeError):
-        return None
-    if not isinstance(metadata, dict):
-        return None
-    value = metadata.get("cross_filters_enabled")
-    if isinstance(value, bool):
-        return value
+    cross_filters = metadata.get("cross_filters_enabled")
+    if isinstance(cross_filters, bool):
+        return cross_filters
     return None
 
 
