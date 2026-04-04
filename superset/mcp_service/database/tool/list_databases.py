@@ -43,15 +43,6 @@ from superset.mcp_service.mcp_core import ModelListCore
 
 logger = logging.getLogger(__name__)
 
-# Minimal defaults for reduced token usage - users can request more via select_columns
-DEFAULT_DATABASE_COLUMNS = [
-    "id",
-    "database_name",
-    "backend",
-    "expose_in_sqllab",
-    "changed_on_humanized",
-]
-
 
 @tool(
     tags=["core"],
@@ -100,6 +91,7 @@ async def list_databases(request: ListDatabasesRequest, ctx: Context) -> Databas
     try:
         from superset.daos.database import DatabaseDAO
         from superset.mcp_service.common.schema_discovery import (
+            DATABASE_DEFAULT_COLUMNS,
             DATABASE_SORTABLE_COLUMNS,
             get_all_column_names,
             get_database_columns,
@@ -120,7 +112,7 @@ async def list_databases(request: ListDatabasesRequest, ctx: Context) -> Databas
             output_schema=DatabaseInfo,
             item_serializer=_serialize_database,
             filter_type=DatabaseFilter,
-            default_columns=DEFAULT_DATABASE_COLUMNS,
+            default_columns=DATABASE_DEFAULT_COLUMNS,
             search_columns=["database_name"],
             list_field_name="databases",
             output_list_schema=DatabaseList,

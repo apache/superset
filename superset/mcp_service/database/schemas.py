@@ -29,6 +29,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    field_validator,
     model_serializer,
     model_validator,
     PositiveInt,
@@ -38,6 +39,10 @@ from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import MetadataCacheControl
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.system.schemas import PaginationInfo
+from superset.mcp_service.utils.schema_utils import (
+    parse_json_or_list,
+    parse_json_or_model_list,
+)
 from superset.utils import json
 
 
@@ -53,10 +58,14 @@ class DatabaseFilter(ColumnOperator):
         "database_name",
         "expose_in_sqllab",
         "allow_file_upload",
+        "created_by_fk",
+        "changed_by_fk",
     ] = Field(
         ...,
         description="Column to filter on. Use get_schema(model_type='database') for "
-        "available filter columns.",
+        "available filter columns. Use created_by_fk with the user "
+        "ID from get_instance_info's current_user to find "
+        "databases created by a specific user.",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
@@ -230,6 +239,18 @@ class ListDatabasesRequest(MetadataCacheControl):
             description=f"Number of items per page (max {MAX_PAGE_SIZE})",
         ),
     ]
+
+    @field_validator("filters", mode="before")
+    @classmethod
+    def parse_filters(cls, v: Any) -> List[DatabaseFilter]:
+        """Accept both JSON string and list of objects."""
+        return parse_json_or_model_list(v, DatabaseFilter, "filters")
+
+    @field_validator("select_columns", mode="before")
+    @classmethod
+    def parse_columns(cls, v: Any) -> List[str]:
+        """Accept JSON array, list, or comma-separated string."""
+        return parse_json_or_list(v, "select_columns")
 
     @model_validator(mode="after")
     def validate_search_and_filters(self) -> "ListDatabasesRequest":

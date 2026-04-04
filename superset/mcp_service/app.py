@@ -118,11 +118,13 @@ To create a chart:
 3. generate_explore_link(dataset_id, config) -> preview interactively
 4. generate_chart(dataset_id, config, save_chart=True) -> save permanently
 
-To find your own charts/dashboards:
+To find your own charts/dashboards/databases:
 1. get_instance_info -> get current_user.id
 2. list_charts(filters=[{{"col": "created_by_fk",
    "opr": "eq", "value": current_user.id}}])
 3. Or: list_dashboards(filters=[{{"col": "created_by_fk",
+   "opr": "eq", "value": current_user.id}}])
+4. Or: list_databases(filters=[{{"col": "created_by_fk",
    "opr": "eq", "value": current_user.id}}])
 
 To explore data with SQL:
@@ -171,6 +173,8 @@ Query Examples:
 - My charts (use current_user.id from get_instance_info):
   filters=[{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]
 - My dashboards:
+  filters=[{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]
+- My databases:
   filters=[{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]
 
 To modify an existing chart (add filters, change metrics, change dimensions, etc.):
