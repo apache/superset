@@ -487,12 +487,17 @@ def _setup_user_context() -> User | None:
                 _cleanup_session_on_error()
                 continue
             logger.error("DB connection failed on retry during user setup: %s", e)
+            _cleanup_session_on_error()
             raise
         except ValueError as e:
             # User resolution failed — fail closed. Do not fall back to
             # g.user from middleware, as that could allow a request to
             # proceed as a different user in multi-tenant deployments.
+            # Clear g.user so error/audit logging doesn't attribute
+            # the denied request to the middleware-provided identity.
             logger.error("MCP user resolution failed, denying request: %s", e)
+            if has_request_context():
+                g.pop("user", None)
             raise
 
     g.user = user
