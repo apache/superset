@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { waitFor } from 'spec/helpers/testing-library';
 import {
   createEvent,
   fireEvent,
@@ -61,14 +60,10 @@ describe('SelectControl', () => {
     const onChange = jest.fn();
     renderSelectControl({ onChange });
 
-    // Open the dropdown
     const input = screen.getByRole('combobox', { name: /row limit/i });
     await userEvent.click(input);
 
-    // Find and click the actual option in the portal
-    const option = await screen.findByText('1 year ago', {
-      selector: '.ant-select-item-option-content',
-    });
+    const option = await screen.findByText('1 year ago');
     await userEvent.click(option);
 
     expect(onChange).toHaveBeenCalledWith('1 year ago', expect.anything());
@@ -155,7 +150,7 @@ describe('SelectControl', () => {
     test('areAllValuesNumbers validates numeric arrays and edge cases', () => {
       expect(areAllValuesNumbers([1, 2, 3])).toBe(true);
       expect(areAllValuesNumbers([1, 'two', 3])).toBe(false);
-      // This must be FALSE to pass the Superset contract
+      // Contract returns false for empty arrays
       expect(areAllValuesNumbers([])).toBe(false);
       expect(areAllValuesNumbers([{ v: 1 }, { v: 2 }], 'v')).toBe(true);
     });
