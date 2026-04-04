@@ -25,6 +25,7 @@ from typing import Any, Callable, Dict, Generic, List, Literal, Type, TypeVar
 from pydantic import BaseModel
 
 from superset.daos.base import BaseDAO
+from superset.mcp_service.constants import ModelType
 from superset.mcp_service.utils import _is_uuid
 
 # Type variables for generic model tools
@@ -521,7 +522,7 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
 
     def __init__(
         self,
-        model_type: Literal["chart", "dataset", "dashboard", "database"],
+        model_type: ModelType,
         dao_class: Type[BaseDAO[Any]],
         output_schema: Type[S],
         select_columns: List[Any],

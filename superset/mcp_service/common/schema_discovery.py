@@ -29,6 +29,8 @@ import sqlalchemy as sa
 from pydantic import BaseModel, Field
 from sqlalchemy.inspection import inspect
 
+from superset.mcp_service.constants import ModelType
+
 
 class ColumnMetadata(BaseModel):
     """Metadata for a selectable column."""
@@ -52,7 +54,7 @@ class ModelSchemaInfo(BaseModel):
     - Default values for each
     """
 
-    model_type: Literal["chart", "dataset", "dashboard", "database"] = Field(
+    model_type: ModelType = Field(
         ..., description="The model type this schema describes"
     )
     select_columns: list[ColumnMetadata] = Field(
@@ -82,9 +84,7 @@ class ModelSchemaInfo(BaseModel):
 class GetSchemaRequest(BaseModel):
     """Request schema for unified get_schema tool."""
 
-    model_type: Literal["chart", "dataset", "dashboard", "database"] = Field(
-        ..., description="Model type to get schema for"
-    )
+    model_type: ModelType = Field(..., description="Model type to get schema for")
 
 
 class GetSchemaResponse(BaseModel):

@@ -24,7 +24,7 @@ Column metadata is extracted dynamically from SQLAlchemy models.
 """
 
 import logging
-from typing import Callable, Literal
+from typing import Callable
 
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
@@ -51,6 +51,7 @@ from superset.mcp_service.common.schema_discovery import (
     GetSchemaResponse,
     ModelSchemaInfo,
 )
+from superset.mcp_service.constants import ModelType
 from superset.mcp_service.mcp_core import ModelGetSchemaCore
 
 logger = logging.getLogger(__name__)
@@ -134,7 +135,7 @@ def _get_database_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
 
 # Map model types to their core factory functions
 _SCHEMA_CORE_FACTORIES: dict[
-    Literal["chart", "dataset", "dashboard", "database"],
+    ModelType,
     Callable[[], ModelGetSchemaCore[ModelSchemaInfo]],
 ] = {
     "chart": _get_chart_schema_core,
