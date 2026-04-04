@@ -56,7 +56,7 @@ Dashboard Management:
 
 Database Connections:
 - list_databases: List database connections with advanced filters (1-based pagination)
-- get_database_info: Get detailed database connection info by ID (backend, permissions)
+- get_database_info: Get detailed database connection info by ID (backend, capabilities)
 
 Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)

@@ -462,6 +462,7 @@ DATABASE_DEFAULT_COLUMNS = [
     "database_name",
     "backend",
     "expose_in_sqllab",
+    "changed_on",
     "changed_on_humanized",
 ]
 DATABASE_SORTABLE_COLUMNS = [

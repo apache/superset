@@ -203,6 +203,4 @@ async def test_get_database_info_not_found(mock_find, mcp_server):
         result = await client.call_tool(
             "get_database_info", {"request": {"identifier": 999}}
         )
-        assert result.content is not None
-        data = json.loads(result.content[0].text)
-        assert "error" in data
+        assert result.data["error_type"] == "not_found"

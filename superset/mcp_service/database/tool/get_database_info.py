@@ -54,8 +54,8 @@ async def get_database_info(
 ) -> DatabaseInfo | DatabaseError:
     """Get database connection metadata by ID or UUID.
 
-    Returns database configuration including backend type, permissions,
-    and capabilities.
+    Returns database configuration including backend type and capabilities
+    (allow_ctas, allow_dml, expose_in_sqllab, etc.).
 
     IMPORTANT FOR LLM CLIENTS:
     - Use numeric ID (e.g., 123) or UUID string (e.g., "a1b2c3d4-...")
