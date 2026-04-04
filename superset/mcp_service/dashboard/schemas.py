@@ -28,7 +28,7 @@ Example usage:
         dashboard_title="Sales Dashboard",
         published=True,
         owners=[UserInfo(id=1, username="admin")],
-        charts=[ChartInfo(id=1, slice_name="Sales Chart")]
+        charts=[DashboardChartSummary(id=1, slice_name="Sales Chart")]
     )
 
     # For dashboard list responses
@@ -537,6 +537,9 @@ def _extract_native_filters(json_metadata_str: str | None) -> List[NativeFilterS
     except (ValueError, TypeError):
         return []
 
+    if not isinstance(metadata, dict):
+        return []
+
     native_filters = metadata.get("native_filter_configuration", [])
     if not isinstance(native_filters, list):
         return []
@@ -545,12 +548,15 @@ def _extract_native_filters(json_metadata_str: str | None) -> List[NativeFilterS
     for f in native_filters:
         if not isinstance(f, dict):
             continue
+        raw_targets = f.get("targets", [])
+        if not isinstance(raw_targets, list):
+            raw_targets = []
         summaries.append(
             NativeFilterSummary(
                 id=f.get("id"),
                 name=f.get("name"),
                 filter_type=f.get("filterType"),
-                targets=f.get("targets", []),
+                targets=raw_targets,
             )
         )
     return summaries
@@ -563,6 +569,8 @@ def _extract_cross_filters_enabled(json_metadata_str: str | None) -> bool | None
     try:
         metadata = json_loads(json_metadata_str)
     except (ValueError, TypeError):
+        return None
+    if not isinstance(metadata, dict):
         return None
     value = metadata.get("cross_filters_enabled")
     if isinstance(value, bool):

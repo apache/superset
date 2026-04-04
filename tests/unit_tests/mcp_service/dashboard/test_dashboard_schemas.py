@@ -244,6 +244,12 @@ class TestExtractNativeFilters:
         result = _extract_native_filters(metadata)
         assert len(result) == 1
 
+    def test_non_dict_top_level_json(self):
+        """json_metadata that parses to a list/number should return empty."""
+        assert _extract_native_filters("[]") == []
+        assert _extract_native_filters("123") == []
+        assert _extract_native_filters('"just a string"') == []
+
 
 class TestExtractCrossFiltersEnabled:
     """Tests for _extract_cross_filters_enabled helper."""
@@ -266,3 +272,9 @@ class TestExtractCrossFiltersEnabled:
         assert (
             _extract_cross_filters_enabled('{"cross_filters_enabled": "yes"}') is None
         )
+
+    def test_non_dict_top_level_json(self):
+        """json_metadata that parses to a list/number should return None."""
+        assert _extract_cross_filters_enabled("[]") is None
+        assert _extract_cross_filters_enabled("123") is None
+        assert _extract_cross_filters_enabled('"just a string"') is None
