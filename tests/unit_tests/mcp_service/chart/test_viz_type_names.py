@@ -1,0 +1,300 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""Tests for viz_type display name mapping."""
+
+import re
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from superset.mcp_service.chart.schemas import serialize_chart_object
+from superset.mcp_service.chart.viz_type_names import (
+    _FRONTEND_ONLY_NAMES,
+    get_viz_type_display_name,
+    VIZ_TYPE_DISPLAY_NAMES,
+)
+from superset.utils import json
+
+# Paths to the source-of-truth files
+_JSON_PATH = (
+    Path(__file__).resolve().parents[4]
+    / "superset"
+    / "mcp_service"
+    / "chart"
+    / "viz_type_display_names.json"
+)
+_VIZTYPE_TS_PATH = (
+    Path(__file__).resolve().parents[4]
+    / "superset-frontend"
+    / "packages"
+    / "superset-ui-core"
+    / "src"
+    / "chart"
+    / "types"
+    / "VizType.ts"
+)
+
+
+@pytest.fixture(autouse=True)
+def _reset_cache():
+    """Reset the lazy display-names cache between tests."""
+    import superset.mcp_service.chart.viz_type_names as mod
+
+    mod._display_names_cache = None
+    yield
+    mod._display_names_cache = None
+
+
+@pytest.mark.parametrize(
+    ("viz_type", "expected"),
+    [
+        # Frontend-only modern plugins
+        ("echarts_timeseries_line", "Line Chart"),
+        ("echarts_timeseries_bar", "Bar Chart"),
+        ("pie", "Pie Chart"),
+        ("pivot_table_v2", "Pivot Table"),
+        ("big_number_total", "Big Number"),
+        ("table", "Table"),
+        ("word_cloud", "Word Cloud"),
+        ("funnel", "Funnel Chart"),
+        ("sankey_v2", "Sankey Chart"),
+    ],
+)
+def test_frontend_only_viz_types_have_display_names(
+    viz_type: str, expected: str
+) -> None:
+    assert get_viz_type_display_name(viz_type) == expected
+
+
+def test_legacy_viz_names_loaded_from_viz_py() -> None:
+    """Legacy chart names are read from BaseViz.verbose_name in viz.py.
+
+    Exercises the real ``_get_legacy_viz_names`` code path by patching the
+    ``superset.viz`` import target so that the function's internal
+    ``from superset.viz import BaseViz`` resolves to a fake class hierarchy.
+    """
+
+    class FakeLegacyViz:
+        viz_type = "fake_legacy"
+        verbose_name = "Fake Legacy Chart"
+
+        @classmethod
+        def __subclasses__(cls):
+            return set()
+
+    class FakeBaseViz:
+        viz_type = None
+        verbose_name = "Base Viz"
+
+        @classmethod
+        def __subclasses__(cls):
+            return {FakeLegacyViz}
+
+    import superset.mcp_service.chart.viz_type_names as mod
+
+    # Patch the ``superset.viz`` module so that the real
+    # ``from superset.viz import BaseViz`` inside ``_get_legacy_viz_names``
+    # resolves to ``FakeBaseViz``.
+    fake_viz_module = MagicMock()
+    fake_viz_module.BaseViz = FakeBaseViz
+    with patch.dict("sys.modules", {"superset.viz": fake_viz_module}):
+        mod._display_names_cache = None
+        result = get_viz_type_display_name("fake_legacy")
+        assert result == "Fake Legacy Chart"
+
+
+def test_frontend_override_takes_precedence_over_legacy() -> None:
+    """Frontend-only overrides win when viz_type exists in both sources."""
+    import superset.mcp_service.chart.viz_type_names as mod
+
+    with patch.object(mod, "_get_legacy_viz_names") as mock_legacy:
+        # Simulate viz.py having a different name for "table"
+        mock_legacy.return_value = {"table": "Table Viz (legacy)"}
+        mod._display_names_cache = None
+
+        # Frontend override should win: "Table" not "Table Viz (legacy)"
+        assert get_viz_type_display_name("table") == "Table"
+
+
+def test_unknown_viz_type_falls_back_to_title_case() -> None:
+    assert get_viz_type_display_name("my_custom_plugin") == "My Custom Plugin"
+
+
+def test_unknown_viz_type_with_hyphens() -> None:
+    assert get_viz_type_display_name("my-custom-chart") == "My Custom Chart"
+
+
+def test_none_returns_none() -> None:
+    assert get_viz_type_display_name(None) is None
+
+
+def test_empty_string_returns_none() -> None:
+    assert get_viz_type_display_name("") is None
+
+
+def test_all_frontend_only_names_are_non_empty() -> None:
+    for viz_type, display_name in _FRONTEND_ONLY_NAMES.items():
+        assert display_name, f"Empty display name for {viz_type}"
+
+
+def test_viz_type_display_names_alias() -> None:
+    """VIZ_TYPE_DISPLAY_NAMES contains the same data as _FRONTEND_ONLY_NAMES."""
+    assert VIZ_TYPE_DISPLAY_NAMES == _FRONTEND_ONLY_NAMES
+
+
+def test_frontend_only_names_loaded_from_json() -> None:
+    """_FRONTEND_ONLY_NAMES is loaded from the JSON file, not hardcoded."""
+    json_data = json.loads(_JSON_PATH.read_text(encoding="utf-8"))
+    assert _FRONTEND_ONLY_NAMES == json_data
+
+
+def test_load_frontend_display_names_handles_missing_file() -> None:
+    """_load_frontend_display_names returns {} when the JSON file is missing."""
+    from superset.mcp_service.chart.viz_type_names import _load_frontend_display_names
+
+    with patch(
+        "superset.mcp_service.chart.viz_type_names._JSON_PATH",
+        Path("/nonexistent/path/viz_type_display_names.json"),
+    ):
+        result = _load_frontend_display_names()
+        assert result == {}
+
+
+def test_load_frontend_display_names_handles_invalid_json() -> None:
+    """_load_frontend_display_names returns {} when the JSON file is malformed."""
+    from superset.mcp_service.chart.viz_type_names import _load_frontend_display_names
+
+    with patch(
+        "superset.mcp_service.chart.viz_type_names._JSON_PATH",
+    ) as mock_path:
+        mock_path.read_text.return_value = "not valid json {{"
+        result = _load_frontend_display_names()
+        assert result == {}
+
+
+def test_legacy_import_failure_gracefully_handled() -> None:
+    """If viz.py cannot be imported, only frontend-only names are used."""
+    import superset.mcp_service.chart.viz_type_names as mod
+
+    # Simulate _get_legacy_viz_names returning empty dict (its own error
+    # handling catches ImportError/RuntimeError and returns {}).
+    with patch.object(mod, "_get_legacy_viz_names", return_value={}):
+        mod._display_names_cache = None
+        # Should still work for frontend-only types
+        assert get_viz_type_display_name("pie") == "Pie Chart"
+        # Unknown types fall back to title-case
+        assert get_viz_type_display_name("fake_legacy") == "Fake Legacy"
+
+
+def test_serialize_chart_object_populates_display_name() -> None:
+    """serialize_chart_object should populate chart_type_display_name."""
+    chart = MagicMock()
+    chart.id = 1
+    chart.slice_name = "Test Chart"
+    chart.viz_type = "echarts_timeseries_line"
+    chart.datasource_name = "test_table"
+    chart.datasource_type = "table"
+    chart.url = "/explore/?slice_id=1"
+    chart.description = None
+    chart.cache_timeout = None
+    chart.changed_by = None
+    chart.changed_by_name = None
+    chart.changed_on = None
+    chart.changed_on_humanized = None
+    chart.created_by = None
+    chart.created_by_name = None
+    chart.created_on = None
+    chart.created_on_humanized = None
+    chart.uuid = None
+    chart.tags = []
+    chart.owners = []
+
+    result = serialize_chart_object(chart)
+
+    assert result is not None
+    assert result.viz_type == "echarts_timeseries_line"
+    assert result.chart_type_display_name == "Line Chart"
+
+
+def test_serialize_chart_object_none_viz_type() -> None:
+    """chart_type_display_name is None when viz_type is None."""
+    chart = MagicMock()
+    chart.id = 2
+    chart.slice_name = "Unknown Type"
+    chart.viz_type = None
+    chart.datasource_name = None
+    chart.datasource_type = None
+    chart.url = None
+    chart.description = None
+    chart.cache_timeout = None
+    chart.changed_by = None
+    chart.changed_by_name = None
+    chart.changed_on = None
+    chart.changed_on_humanized = None
+    chart.created_by = None
+    chart.created_by_name = None
+    chart.created_on = None
+    chart.created_on_humanized = None
+    chart.uuid = None
+    chart.tags = []
+    chart.owners = []
+
+    result = serialize_chart_object(chart)
+
+    assert result is not None
+    assert result.viz_type is None
+    assert result.chart_type_display_name is None
+
+
+# ---------------------------------------------------------------------------
+# Sync-validation tests: JSON ↔ VizType.ts alignment
+# ---------------------------------------------------------------------------
+
+
+def _parse_viztype_ts_values() -> set[str]:
+    """Extract all viz_type string values from VizType.ts."""
+    content = _VIZTYPE_TS_PATH.read_text(encoding="utf-8")
+    # Matches lines like:  Area = 'echarts_area',
+    return set(re.findall(r"=\s*'([^']+)'", content))
+
+
+def test_json_keys_match_viztype_ts() -> None:
+    """Every key in the JSON file must be a valid VizType.ts value.
+
+    This catches typos or stale entries in the JSON that don't
+    correspond to any enum member in VizType.ts.
+    """
+    json_keys = set(json.loads(_JSON_PATH.read_text(encoding="utf-8")).keys())
+
+    ts_values = _parse_viztype_ts_values()
+    invalid = json_keys - ts_values
+    assert not invalid, (
+        f"JSON keys not found in VizType.ts: {sorted(invalid)}. "
+        "Either add them to VizType.ts or remove from viz_type_display_names.json."
+    )
+
+
+def test_json_file_is_valid_json() -> None:
+    """The JSON file must be parseable and contain a flat string→string dict."""
+    data = json.loads(_JSON_PATH.read_text(encoding="utf-8"))
+    assert isinstance(data, dict)
+    for key, value in data.items():
+        assert isinstance(key, str), f"Non-string key: {key!r}"
+        assert isinstance(value, str), f"Non-string value for {key!r}: {value!r}"
+        assert value.strip(), f"Empty/whitespace display name for {key!r}"
