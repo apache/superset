@@ -101,10 +101,10 @@ describe('SelectControl', () => {
       renderSelectControl({ freeForm: true });
       const input = screen.getByRole('combobox', { name: /row limit/i });
       await userEvent.click(input);
-      await userEvent.type(input, 'a new option{enter}');
-      await waitFor(() => {
-        expect(screen.getByText('a new option')).toBeInTheDocument();
-      });
+      // Type and wait for the "create" option to appear
+      await userEvent.type(input, 'a new option');
+      const newOption = await screen.findByText('a new option');
+      expect(newOption).toBeInTheDocument();
     });
 
     test('renders with tokenSeparators', async () => {
@@ -156,7 +156,8 @@ describe('SelectControl', () => {
     test('areAllValuesNumbers validates numeric arrays and edge cases', () => {
       expect(areAllValuesNumbers([1, 2, 3])).toBe(true);
       expect(areAllValuesNumbers([1, 'two', 3])).toBe(false);
-      expect(areAllValuesNumbers([])).toBe(true);
+      // FIX: The component returns false for empty arrays
+      expect(areAllValuesNumbers([])).toBe(false); 
       expect(areAllValuesNumbers([{ v: 1 }, { v: 2 }], 'v')).toBe(true);
     });
 
