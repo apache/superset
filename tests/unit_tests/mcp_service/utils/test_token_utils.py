@@ -427,7 +427,7 @@ class TestTruncateLists:
     """Test _truncate_lists helper."""
 
     def test_truncates_long_lists(self) -> None:
-        """Should truncate lists exceeding max_items."""
+        """Should truncate lists exceeding max_items without inline markers."""
         data: dict[str, Any] = {
             "columns": [{"name": f"col_{i}"} for i in range(50)],
             "tags": [1, 2],
@@ -435,12 +435,12 @@ class TestTruncateLists:
         notes: list[str] = []
         changed = _truncate_lists(data, notes, max_items=10)
         assert changed is True
-        # 10 items + 1 truncation marker
-        assert len(data["columns"]) == 11
-        assert data["columns"][-1]["_truncated"] is True
-        assert "50" in data["columns"][-1]["_message"]
+        # Exactly 10 items — no marker appended (preserves type contract)
+        assert len(data["columns"]) == 10
+        assert all(isinstance(c, dict) and "name" in c for c in data["columns"])
         assert data["tags"] == [1, 2]  # Not truncated
         assert len(notes) == 1
+        assert "50" in notes[0]
 
     def test_does_not_truncate_short_lists(self) -> None:
         """Should not truncate lists within limit."""
@@ -476,7 +476,7 @@ class TestReplaceCollectionsWithSummaries:
     """Test _replace_collections_with_summaries helper."""
 
     def test_replaces_lists_and_dicts(self) -> None:
-        """Should replace all non-empty collections with summaries."""
+        """Should clear non-empty collections to reduce size."""
         data: dict[str, Any] = {
             "columns": [1, 2, 3],
             "params": {"a": 1},
@@ -486,15 +486,15 @@ class TestReplaceCollectionsWithSummaries:
         notes: list[str] = []
         changed = _replace_collections_with_summaries(data, notes)
         assert changed is True
-        # Lists become single-item lists with summary
-        assert len(data["columns"]) == 1
-        assert data["columns"][0]["_truncated"] is True
-        # Dicts become summary dicts
-        assert data["params"]["_truncated"] is True
+        # Lists become empty lists (preserves type)
+        assert data["columns"] == []
+        # Dicts become empty dicts (preserves type)
+        assert data["params"] == {}
         # Scalars unchanged
         assert data["name"] == "test"
         # Empty collections unchanged
         assert data["empty"] == []
+        assert len(notes) == 2
 
 
 class TestTruncateOversizedResponse:

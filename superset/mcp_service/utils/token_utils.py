@@ -417,21 +417,18 @@ def _truncate_strings(
 
 
 def _truncate_lists(data: Dict[str, Any], notes: List[str], max_items: int) -> bool:
-    """Truncate list fields exceeding max_items. Returns True if any truncated."""
+    """Truncate list fields exceeding max_items. Returns True if any truncated.
+
+    Does NOT append marker objects into the list to preserve the element type
+    contract (e.g. ``List[TableColumnInfo]`` stays homogeneous).  Truncation
+    metadata is communicated through the *notes* list and top-level response
+    fields ``_response_truncated`` / ``_truncation_notes``.
+    """
     changed = False
     for key, value in data.items():
         if isinstance(value, list) and len(value) > max_items:
             original_len = len(value)
             data[key] = value[:max_items]
-            data[key].append(
-                {
-                    "_truncated": True,
-                    "_message": (
-                        f"Showing {max_items} of {original_len} items. "
-                        "Use select_columns or filters to narrow results."
-                    ),
-                }
-            )
             notes.append(
                 f"Field '{key}' truncated from {original_len} to {max_items} items"
             )
@@ -460,21 +457,22 @@ def _summarize_large_dicts(
 
 
 def _replace_collections_with_summaries(data: Dict[str, Any], notes: List[str]) -> bool:
-    """Replace all non-empty list/dict fields with summary markers."""
+    """Replace all non-empty list/dict fields with empty/minimal values.
+
+    Lists are emptied (preserving the list type) rather than replaced with
+    marker objects to avoid breaking typed list contracts.
+    """
     changed = False
     for key, value in list(data.items()):
         if not isinstance(value, (list, dict)) or not value:
             continue
         count = len(value)
-        kind = "List" if isinstance(value, list) else "Dict"
-        unit = "items" if isinstance(value, list) else "keys"
-        data[key] = {
-            "_truncated": True,
-            "_message": f"{kind} with {count} {unit} omitted to fit within limit.",
-        }
         if isinstance(value, list):
-            data[key] = [data[key]]
-        notes.append(f"Field '{key}' replaced with summary")
+            data[key] = []
+            notes.append(f"Field '{key}' list ({count} items) cleared to fit limit")
+        else:
+            data[key] = {}
+            notes.append(f"Field '{key}' dict ({count} keys) cleared to fit limit")
         changed = True
     return changed
 
