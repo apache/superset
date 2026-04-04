@@ -489,11 +489,10 @@ def _setup_user_context() -> User | None:
             logger.error("DB connection failed on retry during user setup: %s", e)
             raise
         except ValueError as e:
-            # JWT user resolution failed (e.g. SAML subject not in DB).
-            # Fail closed — do not fall back to g.user from middleware,
-            # as that could allow a request to proceed as a different
-            # user in multi-tenant deployments.
-            logger.error("JWT user resolution failed, denying request: %s", e)
+            # User resolution failed — fail closed. Do not fall back to
+            # g.user from middleware, as that could allow a request to
+            # proceed as a different user in multi-tenant deployments.
+            logger.error("MCP user resolution failed, denying request: %s", e)
             raise
 
     g.user = user
