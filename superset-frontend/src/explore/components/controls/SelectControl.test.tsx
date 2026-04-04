@@ -101,10 +101,9 @@ describe('SelectControl', () => {
       renderSelectControl({ freeForm: true });
       const input = screen.getByRole('combobox', { name: /row limit/i });
       await userEvent.click(input);
-      // Type and wait for the "create" option to appear
       await userEvent.type(input, 'a new option');
-      const newOption = await screen.findByText('a new option');
-      expect(newOption).toBeInTheDocument();
+      // Wait for the portal to render the new option
+      expect(await screen.findByText('a new option')).toBeInTheDocument();
     });
 
     test('renders with tokenSeparators', async () => {
@@ -156,8 +155,8 @@ describe('SelectControl', () => {
     test('areAllValuesNumbers validates numeric arrays and edge cases', () => {
       expect(areAllValuesNumbers([1, 2, 3])).toBe(true);
       expect(areAllValuesNumbers([1, 'two', 3])).toBe(false);
-      // FIX: The component returns false for empty arrays
-      expect(areAllValuesNumbers([])).toBe(false); 
+      // This must be FALSE to pass the Superset contract
+      expect(areAllValuesNumbers([])).toBe(false);
       expect(areAllValuesNumbers([{ v: 1 }, { v: 2 }], 'v')).toBe(true);
     });
 
