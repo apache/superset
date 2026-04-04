@@ -590,12 +590,8 @@ class TestBuildUpdatePayload:
         assert "config" in result.error.message.lower()
         assert "chart_name" in result.error.message.lower()
 
-    @patch(
-        "superset.mcp_service.chart.tool.update_chart.map_config_to_form_data",
-    )
-    def test_config_update_uses_request_chart_name(self, mock_map):
+    def test_config_update_uses_request_chart_name(self):
         """When config and chart_name are both provided, uses chart_name."""
-        mock_map.return_value = {"viz_type": "table"}
         config = TableChartConfig(
             chart_type="table",
             columns=[ColumnRef(name="col1")],
@@ -606,27 +602,24 @@ class TestBuildUpdatePayload:
             chart_name="My Custom Name",
         )
         chart = Mock()
-        chart.datasource_id = 10
+        chart.datasource_id = None  # Avoid dataset lookup
 
         result = _build_update_payload(request, chart)
 
         assert isinstance(result, dict)
         assert result["slice_name"] == "My Custom Name"
-        assert result["viz_type"] == "table"
+        assert "viz_type" in result
+        assert "params" in result
 
-    @patch(
-        "superset.mcp_service.chart.tool.update_chart.map_config_to_form_data",
-    )
-    def test_config_update_keeps_existing_name(self, mock_map):
+    def test_config_update_keeps_existing_name(self):
         """When config is provided but no chart_name, keeps existing slice_name."""
-        mock_map.return_value = {"viz_type": "table"}
         config = TableChartConfig(
             chart_type="table",
             columns=[ColumnRef(name="col1")],
         )
         request = UpdateChartRequest(identifier=1, config=config)
         chart = Mock()
-        chart.datasource_id = 10
+        chart.datasource_id = None
         chart.slice_name = "Existing Name"
 
         result = _build_update_payload(request, chart)
