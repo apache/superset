@@ -334,11 +334,11 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
                         "filterState": {
                             "value": [min_val, max_val],
                             "label": f"{min_val} ≤ x ≤ {max_val}"
-                            if min_val and max_val
+                            if min_val is not None and max_val is not None
                             else f"x ≥ {min_val}"
-                            if min_val
+                            if min_val is not None
                             else f"x ≤ {max_val}"
-                            if max_val
+                            if max_val is not None
                             else "",
                         },
                         "ownState": {},
