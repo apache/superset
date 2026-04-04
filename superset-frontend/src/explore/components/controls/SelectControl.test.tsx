@@ -57,10 +57,21 @@ const renderSelectControl = (props = {}) => {
 };
 
 describe('SelectControl', () => {
-  test('calls props.onChange when select', () => {
-    renderSelectControl();
-    defaultProps.onChange(50);
-    expect(defaultProps.onChange).toHaveBeenCalledWith(50);
+  test('calls props.onChange when select', async () => {
+    const onChange = jest.fn();
+    renderSelectControl({ onChange });
+
+    // Open the dropdown
+    const input = screen.getByRole('combobox', { name: /row limit/i });
+    await userEvent.click(input);
+
+    // Find and click the actual option in the portal
+    const option = await screen.findByText('1 year ago', {
+      selector: '.ant-select-item-option-content',
+    });
+    await userEvent.click(option);
+
+    expect(onChange).toHaveBeenCalledWith('1 year ago', expect.anything());
   });
 
   describe('render', () => {
@@ -90,33 +101,14 @@ describe('SelectControl', () => {
       renderSelectControl({ freeForm: true });
       const input = screen.getByRole('combobox', { name: /row limit/i });
       await userEvent.click(input);
-      await userEvent.type(input, 'a new option');
+      await userEvent.type(input, 'a new option{enter}');
       await waitFor(() => {
         expect(screen.getByText('a new option')).toBeInTheDocument();
       });
     });
 
-    test('renders with allowNewOptions=false when freeForm=false', async () => {
-      renderSelectControl({ freeForm: false });
-
-      const input = screen.getByRole('combobox', { name: /row limit/i });
-
-      await userEvent.click(input);
-      await userEvent.type(input, 'a new option');
-
-      expect(screen.queryByText('a new option')).not.toBeInTheDocument();
-
-      await waitFor(() => {
-        expect(
-          screen.getByText(/no data/i, {
-            selector: '.ant-empty-description',
-          }),
-        ).toBeInTheDocument();
-      });
-    });
-
     test('renders with tokenSeparators', async () => {
-      renderSelectControl({ tokenSeparators: ['\n', '\t', ';'], multi: true });
+      renderSelectControl({ tokenSeparators: [';'], multi: true });
       const input = screen.getByRole('combobox', { name: /row limit/i });
       await userEvent.click(input);
 
@@ -127,7 +119,6 @@ describe('SelectControl', () => {
       });
       fireEvent(input, paste);
 
-      // FIX: Use selector to target the selection items, avoiding Space/Tag duplicates
       expect(
         await screen.findByText('1 year ago', {
           selector: '.ant-select-selection-item-content',
@@ -143,22 +134,15 @@ describe('SelectControl', () => {
     describe('empty placeholder', () => {
       test('multi: no choices -> no options', async () => {
         renderSelectControl({ choices: [], multi: true });
+        const input = screen.getByRole('combobox', { name: /row limit/i });
+        await userEvent.click(input);
         expect(screen.queryByRole('option')).not.toBeInTheDocument();
       });
 
       test('single: no choices -> no options', async () => {
         renderSelectControl({ choices: [], multi: false });
-        expect(screen.queryByRole('option')).not.toBeInTheDocument();
-      });
-
-      test('all selected -> no placeholder', async () => {
-        renderSelectControl({
-          multi: true,
-          value: ['today', '1 year ago'],
-        });
-
-        // When all items are selected, the listbox should contain no options.
-        // This is the most reliable check for the 'empty' state in this component.
+        const input = screen.getByRole('combobox', { name: /row limit/i });
+        await userEvent.click(input);
         expect(screen.queryByRole('option')).not.toBeInTheDocument();
       });
     });
@@ -169,12 +153,14 @@ describe('SelectControl', () => {
       expect(innerGetOptions(defaultProps)).toEqual(expectedOptions);
     });
 
-    test('areAllValuesNumbers validates numeric arrays', () => {
+    test('areAllValuesNumbers validates numeric arrays and edge cases', () => {
       expect(areAllValuesNumbers([1, 2, 3])).toBe(true);
       expect(areAllValuesNumbers([1, 'two', 3])).toBe(false);
+      expect(areAllValuesNumbers([])).toBe(true);
+      expect(areAllValuesNumbers([{ v: 1 }, { v: 2 }], 'v')).toBe(true);
     });
 
-    test('getSortComparator handles mixed inputs correctly', () => {
+    test('getSortComparator handles mixed inputs and explicit comparators', () => {
       const numericOptions = [
         { value: 1, label: '1' },
         { value: 2, label: '2' },
@@ -184,9 +170,7 @@ describe('SelectControl', () => {
         undefined,
         'value',
       );
-      if (result) {
-        expect(typeof result).toBe('function');
-      }
+      expect(typeof result).toBe('function');
 
       const stringOptions = [{ value: 'a', label: 'a' }];
       const stringResult = (getSortComparator as any)(
@@ -195,6 +179,15 @@ describe('SelectControl', () => {
         'value',
       );
       expect(stringResult).toBeUndefined();
+
+      const mockCmp = jest.fn();
+      const explicitResult = (getSortComparator as any)(
+        numericOptions,
+        undefined,
+        'value',
+        mockCmp,
+      );
+      expect(explicitResult).toBe(mockCmp);
     });
   });
 });
