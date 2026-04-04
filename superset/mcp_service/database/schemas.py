@@ -274,9 +274,11 @@ class DatabaseError(BaseModel):
     @classmethod
     def create(cls, error: str, error_type: str) -> "DatabaseError":
         """Create a standardized DatabaseError with timestamp."""
-        from datetime import datetime
+        from datetime import datetime, timezone
 
-        return cls(error=error, error_type=error_type, timestamp=datetime.now())
+        return cls(
+            error=error, error_type=error_type, timestamp=datetime.now(timezone.utc)
+        )
 
 
 class GetDatabaseInfoRequest(MetadataCacheControl):
@@ -306,7 +308,8 @@ def _humanize_timestamp(dt: datetime | None) -> str | None:
     """Convert a datetime to a humanized string like '2 hours ago'."""
     if dt is None:
         return None
-    return humanize.naturaltime(datetime.now() - dt)
+    now = datetime.now(dt.tzinfo) if dt.tzinfo else datetime.now()
+    return humanize.naturaltime(now - dt)
 
 
 def serialize_database_object(database: Any) -> DatabaseInfo | None:

@@ -32,16 +32,16 @@ logger = logging.getLogger(__name__)
 
 
 def create_mock_database(
-    database_id=1,
-    database_name="examples",
-    backend="postgresql",
-    expose_in_sqllab=True,
-    allow_ctas=False,
-    allow_cvas=False,
-    allow_dml=False,
-    allow_file_upload=False,
-    allow_run_async=False,
-):
+    database_id: int = 1,
+    database_name: str = "examples",
+    backend: str = "postgresql",
+    expose_in_sqllab: bool = True,
+    allow_ctas: bool = False,
+    allow_cvas: bool = False,
+    allow_dml: bool = False,
+    allow_file_upload: bool = False,
+    allow_run_async: bool = False,
+) -> MagicMock:
     """Factory function to create mock database objects with sensible defaults."""
     database = MagicMock()
     database.id = database_id

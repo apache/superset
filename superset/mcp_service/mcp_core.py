@@ -537,7 +537,7 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
         Initialize the schema discovery core.
 
         Args:
-            model_type: The type of model (chart, dataset, dashboard)
+            model_type: The type of model (chart, dataset, dashboard, database)
             dao_class: The DAO class to query for filter columns
             output_schema: Pydantic schema for the response (e.g., ModelSchemaInfo)
             select_columns: Column metadata (List[ColumnMetadata] or similar)
