@@ -52,19 +52,26 @@ logger = logging.getLogger(__name__)
 async def get_database_info(
     request: GetDatabaseInfoRequest, ctx: Context
 ) -> DatabaseInfo | DatabaseError:
-    """Get database connection metadata by ID.
+    """Get database connection metadata by ID or UUID.
 
     Returns database configuration including backend type, permissions,
     and capabilities.
 
     IMPORTANT FOR LLM CLIENTS:
-    - Use numeric ID (e.g., 123)
+    - Use numeric ID (e.g., 123) or UUID string (e.g., "a1b2c3d4-...")
     - To find a database ID, use the list_databases tool first
 
     Example usage:
     ```json
     {
         "identifier": 1
+    }
+    ```
+
+    Or with UUID:
+    ```json
+    {
+        "identifier": "a1b2c3d4-5678-90ab-cdef-1234567890ab"
     }
     ```
     """

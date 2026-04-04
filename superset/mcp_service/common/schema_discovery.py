@@ -180,6 +180,7 @@ def get_columns_from_model(
     model_cls: Type[Any],
     default_columns: list[str],
     extra_columns: dict[str, ColumnMetadata] | None = None,
+    exclude_columns: set[str] | None = None,
 ) -> list[ColumnMetadata]:
     """
     Dynamically extract column metadata from a SQLAlchemy model.
@@ -188,6 +189,7 @@ def get_columns_from_model(
         model_cls: The SQLAlchemy model class to inspect
         default_columns: List of column names that should be marked as defaults
         extra_columns: Additional columns not on the model (e.g., computed fields)
+        exclude_columns: Column names to omit (e.g., sensitive fields)
 
     Returns:
         List of ColumnMetadata objects for all columns
@@ -197,6 +199,8 @@ def get_columns_from_model(
 
     for col in mapper.columns:
         col_name = col.key
+        if exclude_columns and col_name in exclude_columns:
+            continue
         col_type = _get_sqlalchemy_type_name(col.type)
         # Get description from column doc, comment, or fallback mapping
         description = (
@@ -538,12 +542,24 @@ def get_dashboard_columns() -> list[ColumnMetadata]:
     )
 
 
+# Sensitive columns that should not be exposed via schema discovery
+DATABASE_EXCLUDE_COLUMNS = {
+    "sqlalchemy_uri",
+    "password",
+    "encrypted_extra",
+    "server_cert",
+}
+
+
 def get_database_columns() -> list[ColumnMetadata]:
     """Get column metadata for Database model dynamically."""
     from superset.models.core import Database
 
     return get_columns_from_model(
-        Database, DATABASE_DEFAULT_COLUMNS, DATABASE_EXTRA_COLUMNS
+        Database,
+        DATABASE_DEFAULT_COLUMNS,
+        DATABASE_EXTRA_COLUMNS,
+        exclude_columns=DATABASE_EXCLUDE_COLUMNS,
     )
 
 

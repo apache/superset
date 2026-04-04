@@ -61,6 +61,7 @@ def create_mock_database(
     database.is_managed_externally = False
     database.external_url = None
     database.extra = '{"metadata_params": {}, "engine_params": {}}'
+    database.uuid = f"test-database-uuid-{database_id}"
     database.changed_by_name = "admin"
     database.changed_by = None
     database.changed_on = None

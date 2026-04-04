@@ -51,7 +51,6 @@ class DatabaseFilter(ColumnOperator):
 
     col: Literal[
         "database_name",
-        "backend",
         "expose_in_sqllab",
         "allow_file_upload",
     ] = Field(
@@ -71,6 +70,7 @@ class DatabaseFilter(ColumnOperator):
 
 class DatabaseInfo(BaseModel):
     id: int | None = Field(None, description="Database ID")
+    uuid: str | None = Field(None, description="Database UUID")
     database_name: str | None = Field(None, description="Database connection name")
     backend: str | None = Field(None, description="Database backend (e.g., postgresql)")
     expose_in_sqllab: bool | None = Field(
@@ -259,11 +259,11 @@ class DatabaseError(BaseModel):
 
 
 class GetDatabaseInfoRequest(MetadataCacheControl):
-    """Request schema for get_database_info with support for ID."""
+    """Request schema for get_database_info with support for ID or UUID."""
 
     identifier: Annotated[
-        int,
-        Field(description="Database identifier (numeric ID)"),
+        int | str,
+        Field(description="Database identifier - can be numeric ID or UUID string"),
     ]
 
 
@@ -294,6 +294,9 @@ def serialize_database_object(database: Any) -> DatabaseInfo | None:
 
     return DatabaseInfo(
         id=getattr(database, "id", None),
+        uuid=str(getattr(database, "uuid", ""))
+        if getattr(database, "uuid", None)
+        else None,
         database_name=getattr(database, "database_name", None),
         backend=getattr(database, "backend", None),
         expose_in_sqllab=getattr(database, "expose_in_sqllab", None),
