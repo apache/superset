@@ -286,8 +286,7 @@ export default function Root({ children }) {
       document.addEventListener('copy', handleCopy);
       window.addEventListener('scroll', handleScroll, { passive: true });
 
-      // Watch for color mode changes — also syncs the kapa.ai widget theme
-      // with a smooth CSS transition on the widget host element.
+      // Watch for color mode changes, also syncs the kapa.ai widget theme
       const syncKapaTheme = (isDark) => {
         // The kapa widget renders inside a shadow host div injected by kapa-widget.bundle.js.
         // We find the widget host and add a transition class so theme changes animate smoothly.
@@ -299,8 +298,7 @@ export default function Root({ children }) {
         }
 
         // Update the data-color-scheme attribute on the kapa script tag so the
-        // widget re-reads it on next open. The selector-based sync handles live
-        // updates automatically, but we also set this for programmatic clarity.
+        // widget re-reads it on next open. 
         const kapaScript = document.querySelector('script[data-website-id]');
         if (kapaScript) {
           kapaScript.setAttribute('data-color-scheme', isDark ? 'dark' : 'light');
