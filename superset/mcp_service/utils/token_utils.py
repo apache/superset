@@ -405,7 +405,7 @@ _MAX_DICT_KEYS = 20
 def _truncate_strings(
     data: Dict[str, Any], notes: List[str], max_chars: int = _MAX_STRING_CHARS
 ) -> bool:
-    """Truncate string fields exceeding max_chars. Returns True if any truncated."""
+    """Truncate string fields exceeding max_chars at the top level only."""
     changed = False
     for key, value in data.items():
         if isinstance(value, str) and len(value) > max_chars:
@@ -413,6 +413,47 @@ def _truncate_strings(
             data[key] = value[:max_chars] + f"... [truncated from {original_len} chars]"
             notes.append(f"Field '{key}' truncated from {original_len} chars")
             changed = True
+    return changed
+
+
+def _truncate_strings_recursive(
+    data: Any,
+    notes: List[str],
+    max_chars: int = _MAX_STRING_CHARS,
+    path: str = "",
+    _depth: int = 0,
+) -> bool:
+    """Recursively truncate strings throughout the entire data tree.
+
+    Walks nested dicts and list items to catch strings like
+    ``charts[0].description`` that top-level truncation misses.
+    Depth is capped at 10 to avoid runaway recursion.
+    """
+    if _depth > 10:
+        return False
+    changed = False
+    if isinstance(data, dict):
+        for key, value in data.items():
+            field_path = f"{path}.{key}" if path else key
+            if isinstance(value, str) and len(value) > max_chars:
+                original_len = len(value)
+                data[key] = (
+                    value[:max_chars] + f"... [truncated from {original_len} chars]"
+                )
+                notes.append(
+                    f"Field '{field_path}' truncated from {original_len} chars"
+                )
+                changed = True
+            elif isinstance(value, (dict, list)):
+                changed |= _truncate_strings_recursive(
+                    value, notes, max_chars, field_path, _depth + 1
+                )
+    elif isinstance(data, list):
+        for i, item in enumerate(data):
+            if isinstance(item, (dict, list)):
+                changed |= _truncate_strings_recursive(
+                    item, notes, max_chars, f"{path}[{i}]", _depth + 1
+                )
     return changed
 
 
@@ -491,11 +532,12 @@ def truncate_oversized_response(
     """
     Dynamically truncate large fields in a response to fit within the token limit.
 
-    Applies four progressive phases of truncation:
-    1. Truncate long string fields
+    Applies five progressive phases of truncation:
+    1. Truncate long top-level string fields
     2. Truncate large list fields to _MAX_LIST_ITEMS
-    3. Aggressively reduce lists to 10 items and summarize large dicts
-    4. Replace all collections with summary markers
+    3. Recursively truncate strings in nested structures (list items, nested dicts)
+    4. Aggressively reduce lists to 10 items and summarize large dicts
+    5. Replace all collections with empty values
 
     Args:
         response: The tool response (Pydantic model, dict, or other).
@@ -526,13 +568,19 @@ def truncate_oversized_response(
     if _is_under_limit(data, token_limit):
         return data, was_truncated, notes
 
-    # Phase 3: Aggressively reduce lists and summarize large dicts
+    # Phase 3: Recursively truncate strings inside nested structures
+    # (e.g. charts[i].description, native_filters[i].config, etc.)
+    was_truncated |= _truncate_strings_recursive(data, notes)
+    if _is_under_limit(data, token_limit):
+        return data, was_truncated, notes
+
+    # Phase 4: Aggressively reduce lists and summarize large dicts
     was_truncated |= _truncate_lists(data, notes, max_items=10)
     was_truncated |= _summarize_large_dicts(data, notes)
     if _is_under_limit(data, token_limit):
         return data, was_truncated, notes
 
-    # Phase 4: Nuclear — replace all collections with summaries
+    # Phase 5: Nuclear — replace all collections with empty values
     was_truncated |= _replace_collections_with_summaries(data, notes)
 
     return data, was_truncated, notes

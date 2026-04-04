@@ -28,6 +28,7 @@ from superset.mcp_service.utils.token_utils import (
     _summarize_large_dicts,
     _truncate_lists,
     _truncate_strings,
+    _truncate_strings_recursive,
     CHARS_PER_TOKEN,
     estimate_response_tokens,
     estimate_token_count,
@@ -421,6 +422,78 @@ class TestTruncateStrings:
         assert changed is False
         assert data["name"] == "hello"
         assert len(notes) == 0
+
+
+class TestTruncateStringsRecursive:
+    """Test _truncate_strings_recursive helper."""
+
+    def test_truncates_nested_strings_in_list_items(self) -> None:
+        """Should truncate strings inside list items (e.g. charts[i].description)."""
+        data: dict[str, Any] = {
+            "id": 1,
+            "charts": [
+                {"id": 1, "description": "x" * 1000},
+                {"id": 2, "description": "short"},
+            ],
+        }
+        notes: list[str] = []
+        changed = _truncate_strings_recursive(data, notes, max_chars=500)
+        assert changed is True
+        assert "[truncated" in data["charts"][0]["description"]
+        assert data["charts"][1]["description"] == "short"
+        assert len(notes) == 1
+        assert "charts[0].description" in notes[0]
+
+    def test_truncates_nested_strings_in_dicts(self) -> None:
+        """Should truncate strings inside nested dicts."""
+        data: dict[str, Any] = {
+            "filter_state": {
+                "dataMask": {"some_filter": "y" * 2000},
+            },
+        }
+        notes: list[str] = []
+        changed = _truncate_strings_recursive(data, notes, max_chars=500)
+        assert changed is True
+        assert "[truncated" in data["filter_state"]["dataMask"]["some_filter"]
+
+    def test_respects_depth_limit(self) -> None:
+        """Should stop recursing at depth 10."""
+        # Build a deeply nested structure (15 levels)
+        data: dict[str, Any] = {"level": "x" * 1000}
+        current = data
+        for _ in range(15):
+            current["nested"] = {"level": "x" * 1000}
+            current = current["nested"]
+        notes: list[str] = []
+        _truncate_strings_recursive(data, notes, max_chars=500)
+        # Should truncate levels 0-10 but stop before 15
+        assert len(notes) <= 11
+
+    def test_handles_empty_structures(self) -> None:
+        """Should handle empty dicts and lists gracefully."""
+        data: dict[str, Any] = {"items": [], "meta": {}, "name": "ok"}
+        notes: list[str] = []
+        changed = _truncate_strings_recursive(data, notes, max_chars=500)
+        assert changed is False
+
+    def test_dashboard_with_many_charts_edge_case(self) -> None:
+        """Simulate a dashboard with 30 charts each having long descriptions."""
+        data: dict[str, Any] = {
+            "id": 1,
+            "dashboard_title": "Big Dashboard",
+            "charts": [
+                {"id": i, "slice_name": f"Chart {i}", "description": "d" * 2000}
+                for i in range(30)
+            ],
+        }
+        notes: list[str] = []
+        changed = _truncate_strings_recursive(data, notes, max_chars=500)
+        assert changed is True
+        # All 30 chart descriptions should be truncated
+        assert len(notes) == 30
+        for chart in data["charts"]:
+            assert len(chart["description"]) < 2000
+            assert "[truncated" in chart["description"]
 
 
 class TestTruncateLists:
