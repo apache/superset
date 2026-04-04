@@ -21,6 +21,7 @@ MCP tool: update_chart
 
 import logging
 import time
+from typing import Any
 
 from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
@@ -44,6 +45,62 @@ from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
+
+
+def _find_chart(identifier: int | str) -> Any | None:
+    """Find a chart by numeric ID or UUID string."""
+    from superset.daos.chart import ChartDAO
+
+    if isinstance(identifier, int) or (
+        isinstance(identifier, str) and identifier.isdigit()
+    ):
+        chart_id = int(identifier) if isinstance(identifier, str) else identifier
+        return ChartDAO.find_by_id(chart_id)
+    return ChartDAO.find_by_id(identifier, id_column="uuid")
+
+
+def _build_update_payload(
+    request: UpdateChartRequest,
+    chart: Any,
+) -> dict[str, Any] | GenerateChartResponse:
+    """Build the update payload for a chart update.
+
+    Returns a dict payload on success, or a GenerateChartResponse error
+    when neither config nor chart_name is provided.
+    """
+    if request.config is not None:
+        dataset_id = chart.datasource_id if chart.datasource_id else None
+        new_form_data = map_config_to_form_data(request.config, dataset_id=dataset_id)
+        new_form_data.pop("_mcp_warnings", None)
+
+        chart_name = (
+            request.chart_name
+            if request.chart_name
+            else chart.slice_name or generate_chart_name(request.config)
+        )
+
+        return {
+            "slice_name": chart_name,
+            "viz_type": new_form_data["viz_type"],
+            "params": json.dumps(new_form_data),
+        }
+
+    # Name-only update: keep existing visualization, just rename
+    if not request.chart_name:
+        return GenerateChartResponse.model_validate(
+            {
+                "chart": None,
+                "error": (
+                    "Either 'config' or 'chart_name' must be provided. "
+                    "Use config for visualization changes, chart_name "
+                    "for renaming."
+                ),
+                "success": False,
+                "schema_version": "2.0",
+                "api_version": "v1",
+            }
+        )
+    return {"slice_name": request.chart_name}
 
 
 @tool(
@@ -105,23 +162,8 @@ async def update_chart(
     start_time = time.time()
 
     try:
-        # Find the existing chart
-        from superset.daos.chart import ChartDAO
-
         with event_logger.log_context(action="mcp.update_chart.chart_lookup"):
-            chart = None
-            if isinstance(request.identifier, int) or (
-                isinstance(request.identifier, str) and request.identifier.isdigit()
-            ):
-                chart_id = (
-                    int(request.identifier)
-                    if isinstance(request.identifier, str)
-                    else request.identifier
-                )
-                chart = ChartDAO.find_by_id(chart_id)
-            else:
-                # Try UUID lookup using DAO flexible method
-                chart = ChartDAO.find_by_id(request.identifier, id_column="uuid")
+            chart = _find_chart(request.identifier)
 
         if not chart:
             return GenerateChartResponse.model_validate(
@@ -157,30 +199,15 @@ async def update_chart(
                 }
             )
 
-        # Map the new config to form_data format
-        # Get dataset_id from existing chart for column type checking
-        dataset_id = chart.datasource_id if chart.datasource_id else None
-        new_form_data = map_config_to_form_data(request.config, dataset_id=dataset_id)
-        new_form_data.pop("_mcp_warnings", None)
-
-        # Update chart using Superset's command
+        # Build update payload (config update or name-only rename)
         from superset.commands.chart.update import UpdateChartCommand
 
+        payload_or_error = _build_update_payload(request, chart)
+        if isinstance(payload_or_error, GenerateChartResponse):
+            return payload_or_error
+
         with event_logger.log_context(action="mcp.update_chart.db_write"):
-            # Generate new chart name if provided, otherwise keep existing
-            chart_name = (
-                request.chart_name
-                if request.chart_name
-                else chart.slice_name or generate_chart_name(request.config)
-            )
-
-            update_payload = {
-                "slice_name": chart_name,
-                "viz_type": new_form_data["viz_type"],
-                "params": json.dumps(new_form_data),
-            }
-
-            command = UpdateChartCommand(chart.id, update_payload)
+            command = UpdateChartCommand(chart.id, payload_or_error)
             updated_chart = command.run()
 
         # Generate semantic analysis
