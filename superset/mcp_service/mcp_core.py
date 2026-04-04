@@ -160,11 +160,23 @@ class ModelListCore(BaseCore, Generic[L]):
             select_columns = parse_json_or_list(
                 select_columns, param_name="select_columns"
             )
-            columns_to_load = select_columns
+            columns_to_load = list(select_columns)
             columns_requested = select_columns
         else:
-            columns_to_load = self.default_columns
+            columns_to_load = list(self.default_columns)
             columns_requested = self.default_columns
+
+        # Ensure computed columns have their dependencies loaded.
+        # Humanized timestamps are derived from their raw counterparts —
+        # if the raw column isn't loaded, the serializer produces null.
+        computed_deps: dict[str, str] = {
+            "changed_on_humanized": "changed_on",
+            "created_on_humanized": "created_on",
+        }
+        for computed, dependency in computed_deps.items():
+            if computed in columns_to_load and dependency not in columns_to_load:
+                columns_to_load.append(dependency)
+
         # Query the DAO
         items: List[Any]
         items, total_count = self.dao_class.list(
