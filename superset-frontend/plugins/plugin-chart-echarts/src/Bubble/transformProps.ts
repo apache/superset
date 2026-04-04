@@ -207,13 +207,12 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
   const echartOptions: EChartsCoreOption = {
     series,
     xAxis: {
-      axisLabel: { formatter: xAxisFormatter },
+      axisLabel: { formatter: xAxisFormatter, rotate: xAxisLabelRotation },
       splitLine: {
         lineStyle: {
           type: 'dashed',
         },
       },
-      nameRotate: xAxisLabelRotation,
       interval: xAxisLabelInterval,
       scale: true,
       name: bubbleXAxisTitle,
@@ -226,13 +225,12 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
       ...getMinAndMaxFromBounds(xAxisType, truncateXAxis, xAxisMin, xAxisMax),
     },
     yAxis: {
-      axisLabel: { formatter: yAxisFormatter },
+      axisLabel: { formatter: yAxisFormatter, rotate: yAxisLabelRotation },
       splitLine: {
         lineStyle: {
           type: 'dashed',
         },
       },
-      nameRotate: yAxisLabelRotation,
       scale: truncateYAxis,
       name: bubbleYAxisTitle,
       nameLocation: 'middle',

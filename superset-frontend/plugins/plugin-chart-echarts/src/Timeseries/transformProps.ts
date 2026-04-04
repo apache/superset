@@ -659,7 +659,10 @@ export default function transformProps(
     for (const s of series) {
       if (s.id) {
         const columnsArr = labelMap[s.id];
-        (s as any).stack = columnsArr[idxSelectedDimension];
+        const dimensionValue = columnsArr?.[idxSelectedDimension];
+        if (dimensionValue !== undefined) {
+          (s as any).stack = dimensionValue;
+        }
       }
     }
   }
@@ -682,9 +685,24 @@ export default function transformProps(
 
   // For horizontal bar charts, set max/min from calculated data bounds
   if (shouldCalculateDataBounds) {
-    // Set max to actual data max to avoid gaps and ensure labels are visible
-    if (dataMax !== undefined && yAxisMax === undefined) {
-      yAxisMax = dataMax;
+    // For stacked charts, clamp against the per-row stacked total to avoid
+    // clipping bars. Also keep dataMax so that mixed-sign stacks (where
+    // positive and negative values cancel in the algebraic row sum) cannot
+    // produce an axis max smaller than the largest individual positive segment.
+    const stackedTotalMax = Math.max(
+      ...sortedTotalValues.filter(
+        (v): v is number => typeof v === 'number' && !Number.isNaN(v),
+      ),
+    );
+    const effectiveDataMax = stack
+      ? Math.max(dataMax ?? Number.NEGATIVE_INFINITY, stackedTotalMax)
+      : dataMax;
+    if (
+      effectiveDataMax !== undefined &&
+      Number.isFinite(effectiveDataMax) &&
+      yAxisMax === undefined
+    ) {
+      yAxisMax = effectiveDataMax;
     }
     // Set min to actual data min for diverging bars
     if (dataMin !== undefined && yAxisMin === undefined && dataMin < 0) {
@@ -711,6 +729,10 @@ export default function transformProps(
     onLegendScroll,
   } = hooks;
 
+  const addYAxisLabelOffset =
+    !!yAxisTitle && convertInteger(yAxisTitleMargin) !== 0;
+  const addXAxisLabelOffset =
+    !!xAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
   const legendData =
     colorByPrimaryAxis && groupBy.length === 0 && series.length > 0
       ? (() => {
@@ -745,10 +767,6 @@ export default function transformProps(
           )
           .map(entry => entry.name || '')
           .concat(extractAnnotationLabels(annotationLayers));
-  const addYAxisLabelOffset =
-    !!yAxisTitle && convertInteger(yAxisTitleMargin) !== 0;
-  const addXAxisLabelOffset =
-    !!xAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
 
   const sortedLegendData = [...legendData].sort((a: string, b: string) => {
     if (!legendSort) return 0;
@@ -824,6 +842,16 @@ export default function transformProps(
     isHorizontal,
   );
 
+  // Reduce grid padding for small charts to maximize the drawing area.
+  // Keep enough top padding so the max label doesn't clip against the cell border.
+  // Preserve bottom padding when zoomable, since getPadding() reserves space for the dataZoom slider.
+  if (height < TIMESERIES_CONSTANTS.compactChartHeight) {
+    padding.top = Math.min(padding.top, 12);
+    if (!zoomable) {
+      padding.bottom = Math.min(padding.bottom, 5);
+    }
+  }
+
   // When showMaxLabel is true, ECharts may render a label at the axis
   // boundary that formats identically to the last data-point tick (e.g.
   // "2005" appears twice with Year grain). Wrap the formatter to suppress
@@ -896,14 +924,35 @@ export default function transformProps(
     ),
   };
 
+  // Adapt y-axis to chart height: three tiers based on available space.
+  // >= 100px: full axis with proportional tick count
+  // 60-99px: show only min/max boundary labels (splitNumber=1), hide lines/ticks
+  // < 60px: hide all axis decorations, show line only
+  const isSmallChart = height < TIMESERIES_CONSTANTS.compactChartHeight;
+  const isMicroChart = height < TIMESERIES_CONSTANTS.microChartHeight;
+  const yAxisSplitNumber = isMicroChart
+    ? undefined
+    : isSmallChart
+      ? 1
+      : Math.max(
+          3,
+          Math.floor(height / TIMESERIES_CONSTANTS.yAxisPixelsPerTick),
+        );
+
   let yAxis: any = {
     ...defaultYAxis,
     type: logAxis ? AxisType.Log : AxisType.Value,
+    ...(yAxisSplitNumber !== undefined && { splitNumber: yAxisSplitNumber }),
     min: yAxisMin,
     max: yAxisMax,
-    minorTick: { show: minorTicks },
-    minorSplitLine: { show: minorSplitLine },
+    minorTick: { show: isSmallChart ? false : minorTicks },
+    minorSplitLine: { show: isSmallChart ? false : minorSplitLine },
+    splitLine: { show: !isSmallChart },
     axisLabel: {
+      show: !isMicroChart,
+      showMinLabel: !isMicroChart,
+      showMaxLabel: !isMicroChart,
+      hideOverlap: true,
       formatter: getYAxisFormatter(
         metrics,
         forcePercentFormatter,
@@ -912,8 +961,9 @@ export default function transformProps(
         yAxisFormat,
       ),
     },
+    axisTick: { show: !isSmallChart },
     scale: truncateYAxis,
-    name: yAxisTitle,
+    name: isSmallChart ? undefined : yAxisTitle,
     nameGap: convertInteger(yAxisTitleMargin),
     nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
   };
@@ -1065,7 +1115,8 @@ export default function transformProps(
       ...getLegendProps(
         effectiveLegendType,
         legendOrientation,
-        showLegend,
+        // Hide legend on compact charts — not enough vertical space
+        isSmallChart ? false : showLegend,
         theme,
         zoomable,
         legendState,

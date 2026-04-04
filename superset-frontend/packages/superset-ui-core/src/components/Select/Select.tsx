@@ -778,7 +778,7 @@ const Select = forwardRef(
           options={visibleOptions}
           optionRender={option => <Space>{option.label || option.value}</Space>}
           oneLine={oneLine}
-          popupMatchSelectWidth={selectAllEnabled ? 168 : true}
+          popupMatchSelectWidth
           css={props.css}
           dropdownAlign={DROPDOWN_ALIGN_BOTTOM}
           {...props}
