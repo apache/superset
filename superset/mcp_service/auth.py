@@ -490,23 +490,10 @@ def _setup_user_context() -> User | None:
             raise
         except ValueError as e:
             # JWT user resolution failed (e.g. SAML subject not in DB).
-            # Log a security warning but fall back to middleware-provided
-            # g.user if available. This handles cases where the JWT
-            # resolver username format doesn't match the DB username
-            # (e.g., SAML subject vs email). A separate story should
-            # investigate whether any deployments hit this path and
-            # migrate them before removing the fallback entirely.
-            if has_request_context() and hasattr(g, "user") and g.user:
-                logger.warning(
-                    "SECURITY: JWT user resolution failed (%s), falling "
-                    "back to middleware-provided g.user=%s. This fallback "
-                    "should be investigated and removed once all "
-                    "deployments use consistent username resolution.",
-                    e,
-                    g.user.username,
-                )
-                user = g.user
-                break
+            # Fail closed — do not fall back to g.user from middleware,
+            # as that could allow a request to proceed as a different
+            # user in multi-tenant deployments.
+            logger.error("JWT user resolution failed, denying request: %s", e)
             raise
 
     g.user = user
