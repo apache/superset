@@ -52,7 +52,7 @@ class ModelSchemaInfo(BaseModel):
     - Default values for each
     """
 
-    model_type: Literal["chart", "dataset", "dashboard"] = Field(
+    model_type: Literal["chart", "dataset", "dashboard", "database"] = Field(
         ..., description="The model type this schema describes"
     )
     select_columns: list[ColumnMetadata] = Field(
@@ -82,7 +82,7 @@ class ModelSchemaInfo(BaseModel):
 class GetSchemaRequest(BaseModel):
     """Request schema for unified get_schema tool."""
 
-    model_type: Literal["chart", "dataset", "dashboard"] = Field(
+    model_type: Literal["chart", "dataset", "dashboard", "database"] = Field(
         ..., description="Model type to get schema for"
     )
 
@@ -452,6 +452,67 @@ DASHBOARD_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
 }
 
 
+# Database configuration
+DATABASE_DEFAULT_COLUMNS = [
+    "id",
+    "database_name",
+    "backend",
+    "expose_in_sqllab",
+    "changed_on_humanized",
+]
+DATABASE_SORTABLE_COLUMNS = [
+    "id",
+    "database_name",
+    "changed_on",
+    "created_on",
+]
+DATABASE_SEARCH_COLUMNS = ["database_name"]
+DATABASE_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
+    "backend": ColumnMetadata(
+        name="backend",
+        description="Database backend type (e.g., postgresql, mysql)",
+        type="str",
+        is_default=True,
+    ),
+    "changed_by": ColumnMetadata(
+        name="changed_by",
+        description="Last modifier username",
+        type="str",
+        is_default=False,
+    ),
+    "changed_by_name": ColumnMetadata(
+        name="changed_by_name",
+        description="Last modifier display name",
+        type="str",
+        is_default=False,
+    ),
+    "changed_on_humanized": ColumnMetadata(
+        name="changed_on_humanized",
+        description="Humanized modification time",
+        type="str",
+        is_default=True,
+    ),
+    "created_by": ColumnMetadata(
+        name="created_by",
+        description="Creator username",
+        type="str",
+        is_default=False,
+    ),
+    "created_by_name": ColumnMetadata(
+        name="created_by_name",
+        description="Creator display name",
+        type="str",
+        is_default=False,
+    ),
+    "created_on_humanized": ColumnMetadata(
+        name="created_on_humanized",
+        description="Humanized creation time",
+        type="str",
+        is_default=False,
+    ),
+}
+
+
 def get_chart_columns() -> list[ColumnMetadata]:
     """Get column metadata for Chart model dynamically."""
     from superset.models.slice import Slice
@@ -477,6 +538,15 @@ def get_dashboard_columns() -> list[ColumnMetadata]:
     )
 
 
+def get_database_columns() -> list[ColumnMetadata]:
+    """Get column metadata for Database model dynamically."""
+    from superset.models.core import Database
+
+    return get_columns_from_model(
+        Database, DATABASE_DEFAULT_COLUMNS, DATABASE_EXTRA_COLUMNS
+    )
+
+
 def get_all_column_names(columns: list[ColumnMetadata]) -> list[str]:
     """Extract all column names from column metadata list."""
     return [col.name for col in columns]
@@ -487,3 +557,4 @@ def get_all_column_names(columns: list[ColumnMetadata]) -> list[str]:
 CHART_ALL_COLUMNS: list[str] = []
 DATASET_ALL_COLUMNS: list[str] = []
 DASHBOARD_ALL_COLUMNS: list[str] = []
+DATABASE_ALL_COLUMNS: list[str] = []

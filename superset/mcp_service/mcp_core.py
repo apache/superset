@@ -521,7 +521,7 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
 
     def __init__(
         self,
-        model_type: Literal["chart", "dataset", "dashboard"],
+        model_type: Literal["chart", "dataset", "dashboard", "database"],
         dao_class: Type[BaseDAO[Any]],
         output_schema: Type[S],
         select_columns: List[Any],

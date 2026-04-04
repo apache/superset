@@ -54,6 +54,10 @@ Dashboard Management:
 - generate_dashboard: Create a dashboard from chart IDs
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard
 
+Database Connections:
+- list_databases: List database connections with advanced filters (1-based pagination)
+- get_database_info: Get detailed database connection info by ID (backend, permissions)
+
 Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
 - get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
@@ -431,6 +435,10 @@ from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     generate_dashboard,
     get_dashboard_info,
     list_dashboards,
+)
+from superset.mcp_service.database.tool import (  # noqa: F401, E402
+    get_database_info,
+    list_databases,
 )
 from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
     get_dataset_info,
