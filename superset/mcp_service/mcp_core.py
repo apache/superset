@@ -531,6 +531,7 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
         search_columns: List[str],
         default_sort: str = "changed_on",
         default_sort_direction: Literal["asc", "desc"] = "desc",
+        exclude_filter_columns: set[str] | None = None,
         logger: logging.Logger | None = None,
     ) -> None:
         """
@@ -546,6 +547,8 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
             search_columns: Column names used for text search
             default_sort: Default sort column
             default_sort_direction: Default sort direction
+            exclude_filter_columns: Column names to omit from filter discovery
+                (e.g., sensitive fields like passwords or connection URIs)
             logger: Optional logger instance
         """
         super().__init__(logger)
@@ -558,6 +561,7 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
         self.search_columns = search_columns
         self.default_sort = default_sort
         self.default_sort_direction = default_sort_direction
+        self.exclude_filter_columns = exclude_filter_columns or set()
 
     def _get_filter_columns(self) -> Dict[str, List[str]]:
         """Get filterable columns and operators from the DAO."""
@@ -568,16 +572,25 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
                 return {}
             # Convert to dict safely - handle both dict and dict-like objects
             if isinstance(filterable, dict):
-                return dict(filterable)
-            # Try to convert mapping-like objects
-            try:
-                return dict(filterable)
-            except (TypeError, ValueError):
-                self._log_warning(
-                    f"Unexpected filter columns type for {self.model_type}: "
-                    f"{type(filterable)}"
-                )
-                return {}
+                result = dict(filterable)
+            else:
+                # Try to convert mapping-like objects
+                try:
+                    result = dict(filterable)
+                except (TypeError, ValueError):
+                    self._log_warning(
+                        f"Unexpected filter columns type for {self.model_type}: "
+                        f"{type(filterable)}"
+                    )
+                    return {}
+            # Remove excluded columns (e.g., sensitive fields)
+            if self.exclude_filter_columns:
+                result = {
+                    k: v
+                    for k, v in result.items()
+                    if k not in self.exclude_filter_columns
+                }
+            return result
         except Exception as e:
             self._log_warning(
                 f"Failed to get filter columns for {self.model_type}: {e}"

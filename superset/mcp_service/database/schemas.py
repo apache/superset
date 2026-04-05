@@ -312,6 +312,19 @@ def _humanize_timestamp(dt: datetime | None) -> str | None:
     return humanize.naturaltime(now - dt)
 
 
+def _get_backend(database: Any) -> str | None:
+    """Safely get backend from a Database object or row proxy.
+
+    backend is a @property that decrypts sqlalchemy_uri, which fails on
+    row proxies returned by column-only DAO list queries. Fall back to None
+    when the property raises.
+    """
+    try:
+        return database.backend
+    except (AttributeError, TypeError):
+        return None
+
+
 def serialize_database_object(database: Any) -> DatabaseInfo | None:
     if not database:
         return None
@@ -322,7 +335,7 @@ def serialize_database_object(database: Any) -> DatabaseInfo | None:
         if getattr(database, "uuid", None)
         else None,
         database_name=getattr(database, "database_name", None),
-        backend=getattr(database, "backend", None),
+        backend=_get_backend(database),
         expose_in_sqllab=getattr(database, "expose_in_sqllab", None),
         allow_ctas=getattr(database, "allow_ctas", None),
         allow_cvas=getattr(database, "allow_cvas", None),

@@ -118,6 +118,7 @@ def _get_database_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
     """Create database schema core with dynamically extracted columns."""
     # Lazy import to avoid circular dependency at module load time
     from superset.daos.database import DatabaseDAO
+    from superset.mcp_service.common.schema_discovery import DATABASE_EXCLUDE_COLUMNS
 
     return ModelGetSchemaCore(
         model_type="database",
@@ -129,6 +130,7 @@ def _get_database_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
         search_columns=DATABASE_SEARCH_COLUMNS,
         default_sort="changed_on",
         default_sort_direction="desc",
+        exclude_filter_columns=DATABASE_EXCLUDE_COLUMNS,
         logger=logger,
     )
 
