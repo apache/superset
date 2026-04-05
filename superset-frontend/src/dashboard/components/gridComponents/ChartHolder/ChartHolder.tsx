@@ -373,7 +373,7 @@ const ChartHolder = ({
         index={index}
         depth={depth}
         onDrop={handleComponentDrop}
-        disableDragDrop={false}
+        disableDragDrop={isFullSize}
         editMode={editMode}
       >
         {renderChild}

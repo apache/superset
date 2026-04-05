@@ -42,6 +42,58 @@ import {
 import ChartHolder, { CHART_MARGIN } from './ChartHolder';
 import { GRID_BASE_UNIT, GRID_GUTTER_SIZE } from '../../../util/constants';
 
+jest.mock('src/dashboard/components/dnd/DragDroppable', () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires -- jest.mock factory
+  const React = require('react');
+  const actual = jest.requireActual(
+    'src/dashboard/components/dnd/DragDroppable',
+  );
+  // eslint-disable-next-line @typescript-eslint/no-var-requires -- jest.mock factory
+  const cx = require('classnames');
+
+  function MockDraggable(props: Record<string, unknown>) {
+    const { editMode, orientation, children, disableDragDrop } = props as {
+      editMode?: boolean;
+      orientation?: 'row' | 'column';
+      disableDragDrop?: boolean;
+      children: (childProps: Record<string, unknown>) => unknown;
+    };
+    const childFn = children as (
+      childProps: Record<string, unknown>,
+    ) => unknown;
+    const childProps = editMode
+      ? {
+          dragSourceRef: jest.fn(),
+          dropIndicatorProps: null,
+          draggingTabOnTab: false,
+          'data-test': 'dragdroppable-content',
+        }
+      : {
+          dropIndicatorProps: null,
+          'data-test': 'dragdroppable-content',
+        };
+    return React.createElement(
+      'div',
+      {
+        'data-test': 'dragdroppable-object',
+        'data-disable-drag-drop': String(!!disableDragDrop),
+        className: cx(
+          'dragdroppable',
+          editMode && 'dragdroppable--edit-mode',
+          orientation === 'row' && 'dragdroppable-row',
+          orientation === 'column' && 'dragdroppable-column',
+        ),
+      },
+      childFn(childProps),
+    );
+  }
+
+  return {
+    ...actual,
+    Draggable: MockDraggable,
+  };
+});
+
 const DEFAULT_HEADER_HEIGHT = 22;
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -425,6 +477,30 @@ describe('ChartHolder', () => {
     userEvent.click(screen.getByText('Exit fullscreen'));
 
     expect(setFullSizeChartId).toHaveBeenCalledWith(null);
+  });
+
+  test('should disable dashboard drag-and-drop while chart is fullscreen in edit mode', () => {
+    renderWrapper(createMockStore(), {
+      fullSizeChartId: chartId,
+      editMode: true,
+      isInView: true,
+    });
+    expect(screen.getByTestId('dragdroppable-object')).toHaveAttribute(
+      'data-disable-drag-drop',
+      'true',
+    );
+  });
+
+  test('should allow dashboard drag-and-drop when chart is not fullscreen in edit mode', () => {
+    renderWrapper(createMockStore(), {
+      fullSizeChartId: null,
+      editMode: true,
+      isInView: true,
+    });
+    expect(screen.getByTestId('dragdroppable-object')).toHaveAttribute(
+      'data-disable-drag-drop',
+      'false',
+    );
   });
 
   test('should call deleteComponent when deleted', async () => {
