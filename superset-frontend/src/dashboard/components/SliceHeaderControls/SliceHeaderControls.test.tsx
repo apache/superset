@@ -82,7 +82,7 @@ const createProps = (viz_type = VizType.Sunburst) =>
     cachedDttm: [''],
     updatedDttm: 1617213803803,
     supersetCanExplore: true,
-    supersetCanCSV: true,
+    supersetCanDownload: true,
     componentId: 'CHART-fYo7IyvKZQ',
     dashboardId: 26,
     isFullSize: false,

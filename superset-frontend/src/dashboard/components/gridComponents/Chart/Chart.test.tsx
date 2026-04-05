@@ -89,7 +89,7 @@ const defaultState = {
     id: props.dashboardId,
     superset_can_explore: false,
     superset_can_share: false,
-    superset_can_csv: false,
+    superset_can_download: false,
     common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 0, SQL_MAX_ROW: 666 } },
   },
   dashboardLayout: {
@@ -181,7 +181,7 @@ test('should call exportChart when exportCSV is clicked', async () => {
   const { findByText, getByRole } = setup(
     {},
     {
-      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_csv: true },
+      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_download: true },
     },
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
@@ -211,7 +211,7 @@ test('should call exportChart with row_limit props.maxRows when exportFullCSV is
   const { findByText, getByRole } = setup(
     {},
     {
-      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_csv: true },
+      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_download: true },
     },
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
@@ -239,7 +239,7 @@ test('should call exportChart when exportXLSX is clicked', async () => {
   const { findByText, getByRole } = setup(
     {},
     {
-      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_csv: true },
+      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_download: true },
     },
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
@@ -266,7 +266,7 @@ test('should call exportChart with row_limit props.maxRows when exportFullXLSX i
   const { findByText, getByRole } = setup(
     {},
     {
-      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_csv: true },
+      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_download: true },
     },
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));

@@ -353,7 +353,7 @@ export const hydrateDashboard =
             'Superset',
             roles,
           ),
-          superset_can_csv: findPermission('can_csv', 'Superset', roles),
+          superset_can_download: findPermission('can_csv', 'Superset', roles),
           common: {
             // legacy, please use state.common instead
             conf: common?.conf,

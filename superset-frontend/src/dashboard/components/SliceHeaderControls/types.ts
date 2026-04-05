@@ -57,7 +57,7 @@ export interface SliceHeaderControlsProps {
 
   supersetCanExplore?: boolean;
   supersetCanShare?: boolean;
-  supersetCanCSV?: boolean;
+  supersetCanDownload?: boolean;
 
   crossFiltersEnabled?: boolean;
 }

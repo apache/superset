@@ -203,9 +203,9 @@ const Chart = (props: ChartProps) => {
     (state: RootState) =>
       !!(state.dashboardInfo as JsonObject).superset_can_share,
   );
-  const supersetCanCSV = useSelector(
+  const supersetCanDownload = useSelector(
     (state: RootState) =>
-      !!(state.dashboardInfo as JsonObject).superset_can_csv,
+      !!(state.dashboardInfo as JsonObject).superset_can_download,
   );
   const timeout: number = useSelector(
     (state: RootState) =>
@@ -672,7 +672,7 @@ const Chart = (props: ChartProps) => {
         sliceName={props.sliceName}
         supersetCanExplore={supersetCanExplore}
         supersetCanShare={supersetCanShare}
-        supersetCanCSV={supersetCanCSV}
+        supersetCanDownload={supersetCanDownload}
         componentId={props.componentId}
         dashboardId={props.dashboardId}
         filters={getActiveFilters() || EMPTY_OBJECT}
