@@ -384,10 +384,9 @@ describe('ChartPage', () => {
     abortError.name = 'AbortError';
     rejectRequest!(abortError);
 
-    // Wait a bit to ensure any async error handling would have occurred
-    await waitFor(() => {
-      expect(addDangerToastSpy).not.toHaveBeenCalled();
-    });
+    // Wait for the rejected request to settle before asserting no toast was shown
+    await pendingPromise.catch(() => undefined);
+    expect(addDangerToastSpy).not.toHaveBeenCalled();
 
     addDangerToastSpy.mockRestore();
   });
@@ -400,17 +399,13 @@ describe('ChartPage', () => {
       show_cell_bars: true,
     });
 
-    // First request will be slow
-    let firstRequestResolve: () => void;
-    const firstRequestPromise = new Promise<void>(resolve => {
-      firstRequestResolve = resolve;
+    // First request will reject with AbortError when aborted
+    let rejectFirstRequest: (error: Error) => void;
+    const firstRequestPromise = new Promise((_, reject) => {
+      rejectFirstRequest = reject;
     });
 
-    fetchMock.get(exploreApiRoute, () =>
-      firstRequestPromise.then(() => ({
-        result: { dataset: { id: 1 }, form_data: exploreFormData },
-      })),
-    );
+    fetchMock.get(exploreApiRoute, () => firstRequestPromise);
 
     render(
       <>
@@ -438,8 +433,13 @@ describe('ChartPage', () => {
     // Navigate to trigger a new request (which should abort the first)
     fireEvent.click(screen.getByText('Navigate'));
 
-    // Complete the first request after it should have been aborted
-    firstRequestResolve!();
+    // Simulate the first request being aborted
+    const abortError = new Error('The operation was aborted.');
+    abortError.name = 'AbortError';
+    rejectFirstRequest!(abortError);
+
+    // Wait for the first request to settle before asserting
+    await firstRequestPromise.catch(() => undefined);
 
     // Wait for the second request to complete
     await waitFor(() =>

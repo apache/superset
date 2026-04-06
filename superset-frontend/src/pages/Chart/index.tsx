@@ -195,9 +195,12 @@ export default function ExplorePage() {
         })
         .catch(err => {
           // Silently ignore aborted requests - AbortError may be wrapped in SupersetApiError by makeApi
+          // or come through with statusText === 'abort' from SupersetClient
           if (
             err.name === 'AbortError' ||
-            err.originalError?.name === 'AbortError'
+            err.statusText === 'abort' ||
+            err.originalError?.name === 'AbortError' ||
+            err.originalError?.statusText === 'abort'
           ) {
             return;
           }
