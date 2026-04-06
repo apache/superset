@@ -243,7 +243,7 @@ Array.from(seriesInCategoriesMap.entries()).forEach(([key, map]) => {
   prevSum = sum;
 });
 
-const safeLabelWidth = Math.min(maxCategoryLabelWidth, 200);
+const safeLabelWidth = maxCategoryLabelWidth;
 
 const xAxisFormatter = getXAxisFormatter(xAxisTimeFormat);
 const tooltipTimeFormatter = getTooltipTimeFormatter(tooltipTimeFormat);
