@@ -650,11 +650,11 @@ class TestParseChartConfig:
         assert config.columns[0].name == "col1"
 
     def test_parse_missing_chart_type_raises(self) -> None:
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValueError, match="chart://configs"):
             parse_chart_config({"x": {"name": "date"}, "y": [{"name": "v"}]})
 
     def test_parse_unknown_chart_type_raises(self) -> None:
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValueError, match="chart://configs"):
             parse_chart_config({"chart_type": "nonexistent", "x": {"name": "d"}})
 
     def test_coerce_json_string_config(self) -> None:
