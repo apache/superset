@@ -243,6 +243,7 @@ multi_line_output = 3
 order_by_type = false
 
 [tool.mypy]
+python_version = "3.10"
 check_untyped_defs = true
 disallow_any_generics = true
 disallow_untyped_calls = true
@@ -356,7 +357,6 @@ select = [
 
 ignore = [
     "S101",
-    "PT004",  # Fixtures that don't return values - underscore prefix conflicts with pytest usage
     "PT006",
     "T201",
     "N999",

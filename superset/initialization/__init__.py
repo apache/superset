@@ -273,6 +273,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(SqlLabPermalinkRestApi)
         appbuilder.add_api(LogRestApi)
 
+        from superset.extension_storage.api import ExtensionStorageRestApi
+
+        appbuilder.add_api(ExtensionStorageRestApi)
+
         if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
             from superset.extensions.api import ExtensionsRestApi
 

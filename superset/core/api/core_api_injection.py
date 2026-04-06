@@ -58,6 +58,9 @@ def inject_dao_implementations() -> None:
     from superset.daos.tag import TagDAO as HostTagDAO
     from superset.daos.tasks import TaskDAO as HostTaskDAO
     from superset.daos.user import UserDAO as HostUserDAO
+    from superset.extension_storage.daos import (
+        ExtensionStorageDAO as HostExtensionStorageDAO,
+    )
 
     # Replace abstract classes in common.daos with concrete implementations
     core_common_dao_module.DatasetDAO = HostDatasetDAO  # type: ignore[assignment,misc]
@@ -67,6 +70,7 @@ def inject_dao_implementations() -> None:
     core_common_dao_module.UserDAO = HostUserDAO  # type: ignore[assignment,misc]
     core_common_dao_module.TagDAO = HostTagDAO  # type: ignore[assignment,misc]
     core_common_dao_module.KeyValueDAO = HostKeyValueDAO  # type: ignore[assignment,misc]
+    core_common_dao_module.ExtensionStorageDAO = HostExtensionStorageDAO  # type: ignore[assignment,misc]
 
     # Replace abstract classes in queries.daos
     core_queries_dao_module.QueryDAO = HostQueryDAO  # type: ignore[assignment,misc]
@@ -89,6 +93,9 @@ def inject_model_implementations() -> None:
     from flask_appbuilder.security.sqla.models import User as HostUser
 
     from superset.connectors.sqla.models import SqlaTable as HostDataset
+    from superset.extension_storage.models import (
+        ExtensionStorage as HostExtensionStorage,
+    )
     from superset.key_value.models import KeyValueEntry as HostKeyValue
     from superset.models.core import Database as HostDatabase
     from superset.models.dashboard import Dashboard as HostDashboard
@@ -105,6 +112,7 @@ def inject_model_implementations() -> None:
     core_common_models_module.User = HostUser  # type: ignore[misc]
     core_common_models_module.Tag = HostTag  # type: ignore[misc]
     core_common_models_module.KeyValue = HostKeyValue  # type: ignore[misc]
+    core_common_models_module.ExtensionStorage = HostExtensionStorage  # type: ignore[misc]
 
     # In-place replacement in queries.models
     core_queries_models_module.Query = HostQuery  # type: ignore[misc]
