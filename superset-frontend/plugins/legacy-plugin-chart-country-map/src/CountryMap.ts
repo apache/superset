@@ -61,7 +61,8 @@ interface CountryMapProps {
   height: number;
   country: string;
   linearColorScheme: string;
-  formatter: ValueFormatter;
+  numberFormat?: string; // left for backward compatibility
+  formatter?: ValueFormatter;
   colorScheme: string;
   sliceId: number;
 }
