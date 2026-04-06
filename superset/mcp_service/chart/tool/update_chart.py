@@ -243,11 +243,7 @@ async def update_chart(
         chart_name = (
             updated_chart.slice_name
             if updated_chart and hasattr(updated_chart, "slice_name")
-            else (
-                generate_chart_name(config)
-                if config
-                else "Updated chart"
-            )
+            else (generate_chart_name(config) if config else "Updated chart")
         )
         accessibility = AccessibilityMetadata(
             color_blind_safe=True,  # Would need actual analysis
