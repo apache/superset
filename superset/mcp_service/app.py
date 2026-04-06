@@ -54,6 +54,10 @@ Dashboard Management:
 - generate_dashboard: Create a dashboard from chart IDs
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard
 
+Database Connections:
+- list_databases: List database connections with advanced filters (1-based pagination)
+- get_database_info: Get detailed database connection info by ID (backend, capabilities)
+
 Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
 - get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
@@ -96,11 +100,13 @@ To create a chart:
 3. generate_explore_link(dataset_id, config) -> preview interactively
 4. generate_chart(dataset_id, config, save_chart=True) -> save permanently
 
-To find your own charts/dashboards:
+To find your own charts/dashboards/databases:
 1. get_instance_info -> get current_user.id
 2. list_charts(filters=[{{"col": "created_by_fk",
    "opr": "eq", "value": current_user.id}}])
 3. Or: list_dashboards(filters=[{{"col": "created_by_fk",
+   "opr": "eq", "value": current_user.id}}])
+4. Or: list_databases(filters=[{{"col": "created_by_fk",
    "opr": "eq", "value": current_user.id}}])
 
 To explore data with SQL:
@@ -169,6 +175,8 @@ Query Examples:
 - My charts (use current_user.id from get_instance_info):
   filters=[{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]
 - My dashboards:
+  filters=[{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]
+- My databases:
   filters=[{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]
 
 To modify an existing chart (add filters, change metrics, change dimensions, etc.):
@@ -425,6 +433,10 @@ from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     generate_dashboard,
     get_dashboard_info,
     list_dashboards,
+)
+from superset.mcp_service.database.tool import (  # noqa: F401, E402
+    get_database_info,
+    list_databases,
 )
 from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
     get_dataset_info,
