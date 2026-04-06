@@ -930,6 +930,80 @@ export function sanitizeHtml(text: string): string {
   return format.encodeHTML(text);
 }
 
+/** Lower bound for epoch milliseconds (~1973); filters ordinary business metrics. */
+const EPOCH_MS_HEURISTIC_MIN = 1e11;
+/** Upper bound for epoch milliseconds (sanity cap). */
+const EPOCH_MS_HEURISTIC_MAX = 1e14;
+
+export function isLikelyEpochMilliseconds(n: number): boolean {
+  if (!Number.isFinite(n)) {
+    return false;
+  }
+  if (n < EPOCH_MS_HEURISTIC_MIN || n >= EPOCH_MS_HEURISTIC_MAX) {
+    return false;
+  }
+  return !Number.isNaN(new Date(n).getTime());
+}
+
+/**
+ * Collects numeric X values from tabular chart rows for axis-type heuristics.
+ */
+export function sampleNumericXValuesFromData(
+  data: DataRecord[],
+  columnKeys: (string | undefined)[],
+  maxSamples = 32,
+): number[] {
+  const keys = columnKeys.filter((k): k is string => Boolean(k));
+  const out: number[] = [];
+
+  outer: for (const row of data) {
+    for (const key of keys) {
+      if (!(key in row)) {
+        continue;
+      }
+      const x = row[key] as DataRecordValue;
+      if (typeof x === 'number' && Number.isFinite(x)) {
+        out.push(x);
+        if (out.length >= maxSamples) {
+          break outer;
+        }
+        continue outer;
+      }
+      if (typeof x === 'string' && x.trim() !== '') {
+        const parsed = Number(x);
+        if (Number.isFinite(parsed)) {
+          out.push(parsed);
+          if (out.length >= maxSamples) {
+            break outer;
+          }
+        }
+      }
+      continue outer;
+    }
+  }
+  return out;
+}
+
+/**
+ * When coltypes report Numeric but values are epoch ms, use a time axis and
+ * time formatters so labels are not shown as raw integers (Shortcut #88943).
+ */
+export function shouldCoerceNumericXAxisToTemporal(
+  coltype: GenericDataType | undefined,
+  forceCategorical: boolean | undefined,
+  sampleValues: number[],
+  minMatchRatio = 0.9,
+): boolean {
+  if (forceCategorical || coltype !== GenericDataType.Numeric) {
+    return false;
+  }
+  if (sampleValues.length === 0) {
+    return false;
+  }
+  const matches = sampleValues.filter(isLikelyEpochMilliseconds).length;
+  return matches / sampleValues.length >= minMatchRatio;
+}
+
 export function getAxisType(
   stack: StackType,
   forceCategorical?: boolean,

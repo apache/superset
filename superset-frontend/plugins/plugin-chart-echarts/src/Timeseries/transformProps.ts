@@ -80,6 +80,8 @@ import {
   extractTooltipKeys,
   getAxisType,
   getColtypesMapping,
+  sampleNumericXValuesFromData,
+  shouldCoerceNumericXAxisToTemporal,
   getHorizontalLegendAvailableWidth,
   getLegendProps,
   getMinAndMaxFromBounds,
@@ -314,7 +316,22 @@ export default function transformProps(
 
   const isMultiSeries = groupBy.length || metrics?.length > 1;
   const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
-  const xAxisType = getAxisType(stack, xAxisForceCategorical, xAxisDataType);
+  const sampledNumericX = sampleNumericXValuesFromData(rebasedData, [
+    xAxisLabel,
+    xAxisOrig,
+  ]);
+  const effectiveXAxisDataType = shouldCoerceNumericXAxisToTemporal(
+    xAxisDataType,
+    xAxisForceCategorical,
+    sampledNumericX,
+  )
+    ? GenericDataType.Temporal
+    : xAxisDataType;
+  const xAxisType = getAxisType(
+    stack,
+    xAxisForceCategorical,
+    effectiveXAxisDataType,
+  );
 
   const [rawSeries, sortedTotalValues, minPositiveValue] = extractSeries(
     rebasedData,
@@ -711,13 +728,13 @@ export default function transformProps(
   }
 
   const tooltipFormatter =
-    xAxisDataType === GenericDataType.Temporal
+    effectiveXAxisDataType === GenericDataType.Temporal
       ? getTooltipTimeFormatter(tooltipTimeFormat)
       : String;
   const xAxisFormatter =
-    xAxisDataType === GenericDataType.Temporal
+    effectiveXAxisDataType === GenericDataType.Temporal
       ? getXAxisFormatter(xAxisTimeFormat, timeGrainSqla)
-      : xAxisDataType === GenericDataType.Numeric
+      : effectiveXAxisDataType === GenericDataType.Numeric
         ? getNumberFormatter(xAxisNumberFormat)
         : String;
 

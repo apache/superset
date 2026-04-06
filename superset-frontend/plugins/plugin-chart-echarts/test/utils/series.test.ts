@@ -35,6 +35,9 @@ import {
   formatSeriesName,
   getAxisType,
   getChartPadding,
+  isLikelyEpochMilliseconds,
+  sampleNumericXValuesFromData,
+  shouldCoerceNumericXAxisToTemporal,
   getLegendProps,
   getOverMaxHiddenFormatter,
   getMinAndMaxFromBounds,
@@ -1398,6 +1401,58 @@ test('getAxisType with forced categorical', () => {
   expect(getAxisType(false, true, GenericDataType.Numeric)).toEqual(
     AxisType.Category,
   );
+});
+
+test('isLikelyEpochMilliseconds', () => {
+  expect(isLikelyEpochMilliseconds(1745784000000)).toBe(true);
+  expect(isLikelyEpochMilliseconds(100)).toBe(false);
+  expect(isLikelyEpochMilliseconds(1e15)).toBe(false);
+  expect(isLikelyEpochMilliseconds(Number.NaN)).toBe(false);
+});
+
+test('sampleNumericXValuesFromData prefers first matching column key', () => {
+  const data: DataRecord[] = [
+    { ts: 1745784000000, v: 1 },
+    { ts: 1745870400000, v: 2 },
+  ];
+  expect(sampleNumericXValuesFromData(data, ['ts'], 4)).toEqual([
+    1745784000000, 1745870400000,
+  ]);
+  expect(
+    sampleNumericXValuesFromData(data, ['missing', 'ts'], 4),
+  ).toEqual([1745784000000, 1745870400000]);
+});
+
+test('shouldCoerceNumericXAxisToTemporal', () => {
+  const epochSamples = [1745784000000, 1745870400000, 1745956800000];
+  expect(
+    shouldCoerceNumericXAxisToTemporal(
+      GenericDataType.Numeric,
+      false,
+      epochSamples,
+    ),
+  ).toBe(true);
+  expect(
+    shouldCoerceNumericXAxisToTemporal(
+      GenericDataType.Numeric,
+      false,
+      [100, 200, 300],
+    ),
+  ).toBe(false);
+  expect(
+    shouldCoerceNumericXAxisToTemporal(
+      GenericDataType.Temporal,
+      false,
+      epochSamples,
+    ),
+  ).toBe(false);
+  expect(
+    shouldCoerceNumericXAxisToTemporal(
+      GenericDataType.Numeric,
+      true,
+      epochSamples,
+    ),
+  ).toBe(false);
 });
 
 test('getMinAndMaxFromBounds returns empty object when not truncating', () => {

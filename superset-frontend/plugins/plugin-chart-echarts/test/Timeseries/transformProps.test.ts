@@ -20,6 +20,7 @@ import {
   AnnotationSourceType,
   AnnotationStyle,
   AnnotationType,
+  AxisType,
   ComparisonType,
   DataRecord,
   EventAnnotationLayer,
@@ -1470,6 +1471,39 @@ test('x-axis formatter deduplicates consecutive identical labels for coarse time
   expect(label2).toBe('2004');
   expect(label3).toBe('2005');
   expect(label4).toBe('');
+});
+
+test('numeric x coltype with epoch ms uses time axis and formatted labels', () => {
+  const ts1 = 1745784000000;
+  const ts2 = 1745870400000;
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['metric'],
+      granularity_sqla: 'ds',
+      x_axis: '__timestamp',
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          { __timestamp: ts1, metric: 10 },
+          { __timestamp: ts2, metric: 20 },
+        ],
+        {
+          colnames: ['__timestamp', 'metric'],
+          coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        },
+      ),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as {
+    type: string;
+    axisLabel: { formatter: (v: number) => string };
+  };
+
+  expect(xAxis.type).toBe(AxisType.Time);
+  expect(xAxis.axisLabel.formatter(ts1)).not.toBe(String(ts1));
 });
 
 test('should assign distinct dash patterns for multiple time offsets consistently', () => {
