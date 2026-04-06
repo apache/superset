@@ -837,20 +837,34 @@ test('dropdown width matches input width after tags collapse in oneLine mode', a
   });
 
   const selectElement = document.querySelector('.ant-select') as HTMLElement;
+  expect(selectElement).toBeInTheDocument();
+
+  // Mock the select element's width since JSDOM doesn't perform real layout
+  jest.spyOn(selectElement, 'getBoundingClientRect').mockReturnValue({
+    width: 300,
+    height: 32,
+    top: 0,
+    left: 0,
+    right: 300,
+    bottom: 32,
+    x: 0,
+    y: 0,
+    toJSON: () => ({}),
+  } as DOMRect);
+
+  // Close and reopen to trigger width measurement with mocked value
+  await type('{esc}');
+  await open();
+
   const dropdown = document.querySelector(
     '.ant-select-dropdown',
   ) as HTMLElement;
-
-  expect(selectElement).toBeInTheDocument();
   expect(dropdown).toBeInTheDocument();
 
-  // The dropdown width should match the collapsed input width
-  const selectWidth = selectElement.getBoundingClientRect().width;
-  const dropdownWidth = dropdown.getBoundingClientRect().width;
-
-  // In oneLine mode with tags, dropdown width should match input width
-  // Allow small tolerance for sub-pixel differences
-  expect(Math.abs(dropdownWidth - selectWidth)).toBeLessThanOrEqual(1);
+  // Verify the dropdown has inline width matching the mocked select width
+  await waitFor(() => {
+    expect(parseInt(dropdown.style.width, 10)).toBe(300);
+  });
 });
 
 test('does not render "Select all" when there are 0 or 1 options', async () => {
