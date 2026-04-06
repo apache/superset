@@ -118,29 +118,11 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
 }
 
 
-@tool(
-    tags=["read"],
-    annotations=ToolAnnotations(
-        title="Get chart type schema",
-        readOnlyHint=True,
-        destructiveHint=False,
-    ),
-)
-def get_chart_type_schema(
+def _get_chart_type_schema_impl(
     chart_type: str,
     include_examples: bool = True,
 ) -> Dict[str, Any]:
-    """Get the full JSON Schema and examples for a specific chart type.
-
-    Use this tool to discover the exact fields, types, and constraints
-    for a chart configuration before calling generate_chart or update_chart.
-
-    Valid chart_type values: xy, table, pie, pivot_table,
-    mixed_timeseries, handlebars, big_number.
-
-    Returns the JSON Schema for the requested chart type, optionally
-    with working examples.
-    """
+    """Pure logic for chart type schema lookup — no auth, no decorators."""
     adapter = _CHART_TYPE_ADAPTERS.get(chart_type)
     if adapter is None:
         return {
@@ -163,3 +145,29 @@ def get_chart_type_schema(
         result["examples"] = _CHART_EXAMPLES.get(chart_type, [])
 
     return result
+
+
+@tool(
+    tags=["discovery"],
+    annotations=ToolAnnotations(
+        title="Get chart type schema",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
+def get_chart_type_schema(
+    chart_type: str,
+    include_examples: bool = True,
+) -> Dict[str, Any]:
+    """Get the full JSON Schema and examples for a specific chart type.
+
+    Use this tool to discover the exact fields, types, and constraints
+    for a chart configuration before calling generate_chart or update_chart.
+
+    Valid chart_type values: xy, table, pie, pivot_table,
+    mixed_timeseries, handlebars, big_number.
+
+    Returns the JSON Schema for the requested chart type, optionally
+    with working examples.
+    """
+    return _get_chart_type_schema_impl(chart_type, include_examples)

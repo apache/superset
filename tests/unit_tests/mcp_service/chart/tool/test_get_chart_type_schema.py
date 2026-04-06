@@ -21,29 +21,9 @@ import pytest
 
 from superset.mcp_service.chart.tool.get_chart_type_schema import (
     _CHART_EXAMPLES,
-    _CHART_TYPE_ADAPTERS,
+    _get_chart_type_schema_impl as _call_schema,
     VALID_CHART_TYPES,
 )
-
-
-def _call_schema(chart_type: str, include_examples: bool = True) -> dict:
-    """Replicate tool logic without the @tool decorator (avoids auth)."""
-    adapter = _CHART_TYPE_ADAPTERS.get(chart_type)
-    if adapter is None:
-        return {
-            "error": f"Unknown chart_type: {chart_type!r}",
-            "valid_chart_types": VALID_CHART_TYPES,
-            "hint": (
-                "Use one of the valid chart_type values listed above. "
-                "Call this tool again with a valid chart_type to see "
-                "its schema and examples."
-            ),
-        }
-    schema = adapter.json_schema()
-    result: dict = {"chart_type": chart_type, "schema": schema}
-    if include_examples:
-        result["examples"] = _CHART_EXAMPLES.get(chart_type, [])
-    return result
 
 
 class TestGetChartTypeSchema:
