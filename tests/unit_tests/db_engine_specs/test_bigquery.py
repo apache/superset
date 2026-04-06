@@ -604,3 +604,59 @@ def test_string_literal_in_filter_with_apostrophe() -> None:
 
     assert "'Fernando''s'" in compiled_sql
     assert "'O''Brien'" in compiled_sql
+
+
+def test_process_string_literal_directly() -> None:
+    """
+    Test _process_string_literal covers apostrophe doubling and percent
+    escaping for format-string safety.
+    """
+    from superset.db_engine_specs.bigquery import _process_string_literal
+
+    assert _process_string_literal("hello") == "'hello'"
+    assert _process_string_literal("O'Brien") == "'O''Brien'"
+    assert _process_string_literal("100%") == "'100%%'"
+    assert _process_string_literal("it's 100%") == "'it''s 100%%'"
+
+
+def test_literal_processor_non_bigquery_dialect() -> None:
+    """
+    Test that BigQuerySafeString.literal_processor falls back to the parent
+    implementation when used with a non-BigQuery dialect.
+    """
+    from sqlalchemy import create_engine
+
+    from superset.db_engine_specs.bigquery import (
+        _monkeypatch_bigquery_string_literal,  # noqa: F811
+    )
+
+    _monkeypatch_bigquery_string_literal()
+
+    safe_cls = BigQueryDialect.colspecs[sqltypes.String]
+    instance = safe_cls()
+
+    # Use a non-BigQuery dialect (sqlite)
+    sqlite_dialect = create_engine("sqlite://").dialect
+    processor = instance.literal_processor(sqlite_dialect)
+
+    # The fallback processor should still produce a valid quoted string
+    assert processor is not None
+
+
+def test_monkeypatch_is_applied() -> None:
+    """
+    Test that _monkeypatch_bigquery_string_literal installs the custom
+    type decorator into BigQueryDialect.colspecs.
+    """
+    from sqlalchemy.sql import sqltypes as sa_sqltypes
+
+    from superset.db_engine_specs.bigquery import (
+        BigQueryEngineSpec,  # noqa: F811
+    )
+
+    assert BigQueryEngineSpec
+
+    colspecs = BigQueryDialect.colspecs
+    assert sa_sqltypes.String in colspecs
+    safe_cls = colspecs[sa_sqltypes.String]
+    assert safe_cls.__name__ == "BigQuerySafeString"
