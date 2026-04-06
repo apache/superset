@@ -18,9 +18,9 @@
  */
 
 import type { Page, TestInfo } from '@playwright/test';
-import type { TestAssets } from '../../../helpers/fixtures/testAssets';
-import { apiPostChart } from '../../../helpers/api/chart';
-import { getDatasetByName } from '../../../helpers/api/dataset';
+import type { TestAssets } from '../../helpers/fixtures';
+import { apiPostChart } from '../../helpers/api/chart';
+import { getDatasetByName } from '../../helpers/api/dataset';
 
 interface TestChartResult {
   id: number;

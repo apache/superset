@@ -323,6 +323,124 @@ def test_report_generate_native_filter_no_column_name():
     assert warning is None
 
 
+def test_report_generate_native_filter_select_null_column():
+    report_schedule = ReportSchedule()
+    result, warning = report_schedule._generate_native_filter(
+        "F1", "filter_select", None, ["US"]
+    )
+    assert result["F1"]["extraFormData"]["filters"][0]["col"] == ""
+    assert result["F1"]["filterState"]["label"] == ""
+    assert warning is None
+
+
+def test_generate_native_filter_time_normal():
+    report_schedule = ReportSchedule()
+    result, warning = report_schedule._generate_native_filter(
+        "F2", "filter_time", "ignored", ["Last week"]
+    )
+    assert result == {
+        "F2": {
+            "id": "F2",
+            "extraFormData": {"time_range": "Last week"},
+            "filterState": {"value": "Last week"},
+            "ownState": {},
+        }
+    }
+    assert warning is None
+
+
+def test_generate_native_filter_timegrain_normal():
+    report_schedule = ReportSchedule()
+    result, warning = report_schedule._generate_native_filter(
+        "F3", "filter_timegrain", "ignored", ["P1D"]
+    )
+    assert result == {
+        "F3": {
+            "id": "F3",
+            "extraFormData": {"time_grain_sqla": "P1D"},
+            "filterState": {"value": ["P1D"]},
+            "ownState": {},
+        }
+    }
+    assert warning is None
+
+
+def test_generate_native_filter_timecolumn_normal():
+    """filter_timecolumn is the only branch missing 'id' in its output."""
+    report_schedule = ReportSchedule()
+    result, warning = report_schedule._generate_native_filter(
+        "F4", "filter_timecolumn", "ignored", ["ds"]
+    )
+    assert result == {
+        "F4": {
+            "extraFormData": {"granularity_sqla": "ds"},
+            "filterState": {"value": ["ds"]},
+        }
+    }
+    assert "id" not in result["F4"]
+    assert warning is None
+
+
+def test_generate_native_filter_range_normal():
+    report_schedule = ReportSchedule()
+    result, warning = report_schedule._generate_native_filter(
+        "F5", "filter_range", "price", [10, 100]
+    )
+    assert result == {
+        "F5": {
+            "id": "F5",
+            "extraFormData": {
+                "filters": [
+                    {"col": "price", "op": ">=", "val": 10},
+                    {"col": "price", "op": "<=", "val": 100},
+                ]
+            },
+            "filterState": {
+                "value": [10, 100],
+                "label": "10 ≤ x ≤ 100",
+            },
+            "ownState": {},
+        }
+    }
+    assert warning is None
+
+
+def test_generate_native_filter_range_min_only():
+    report_schedule = ReportSchedule()
+    result, warning = report_schedule._generate_native_filter(
+        "F5", "filter_range", "price", [10]
+    )
+    assert result["F5"]["extraFormData"]["filters"] == [
+        {"col": "price", "op": ">=", "val": 10}
+    ]
+    assert result["F5"]["filterState"]["label"] == "x ≥ 10"
+    assert result["F5"]["filterState"]["value"] == [10, None]
+    assert warning is None
+
+
+def test_generate_native_filter_range_max_only():
+    report_schedule = ReportSchedule()
+    result, warning = report_schedule._generate_native_filter(
+        "F5", "filter_range", "price", [None, 100]
+    )
+    assert result["F5"]["extraFormData"]["filters"] == [
+        {"col": "price", "op": "<=", "val": 100}
+    ]
+    assert result["F5"]["filterState"]["label"] == "x ≤ 100"
+    assert warning is None
+
+
+def test_generate_native_filter_range_empty_values():
+    report_schedule = ReportSchedule()
+    result, warning = report_schedule._generate_native_filter(
+        "F5", "filter_range", "price", []
+    )
+    assert result["F5"]["extraFormData"]["filters"] == []
+    assert result["F5"]["filterState"]["label"] == ""
+    assert result["F5"]["filterState"]["value"] == [None, None]
+    assert warning is None
+
+
 def test_report_generate_native_filter_unknown_filter_type():
     """
     Test the ``_generate_native_filter`` method with an unknown filter type.
@@ -342,6 +460,34 @@ def test_report_generate_native_filter_unknown_filter_type():
     assert "unrecognized filter type" in warning
     assert "filter_unknown" in warning
     assert "filter_id" in warning
+
+
+def test_get_native_filters_params_null_native_filters():
+    report_schedule = ReportSchedule()
+    report_schedule.extra = {"dashboard": {"nativeFilters": None}}
+    result, warnings = report_schedule.get_native_filters_params()
+    assert result == "()"
+    assert warnings == []
+
+
+def test_get_native_filters_params_rison_quote_escaping():
+    report_schedule = ReportSchedule()
+    report_schedule.extra = {
+        "dashboard": {
+            "nativeFilters": [
+                {
+                    "nativeFilterId": "F1",
+                    "filterType": "filter_select",
+                    "columnName": "name",
+                    "filterValues": ["O'Brien"],
+                }
+            ]
+        }
+    }
+    result, warnings = report_schedule.get_native_filters_params()
+    assert "'" not in result
+    assert "%27" in result
+    assert warnings == []
 
 
 def test_get_native_filters_params_unknown_filter_type():
@@ -378,3 +524,135 @@ def test_get_native_filters_params_unknown_filter_type():
     assert len(warnings) == 1
     assert "unrecognized filter type" in warnings[0]
     assert "filter_unknown_type" in warnings[0]
+
+
+def test_get_native_filters_params_missing_filter_id_key():
+    report_schedule = ReportSchedule()
+    report_schedule.extra = {
+        "dashboard": {
+            "nativeFilters": [
+                {
+                    "filterType": "filter_select",
+                    "columnName": "col",
+                    "filterValues": ["v"],
+                    # Missing "nativeFilterId" key — skipped by defensive guard
+                }
+            ]
+        }
+    }
+    result, warnings = report_schedule.get_native_filters_params()
+    assert result == "()"
+    assert len(warnings) == 1
+    assert "Skipping malformed native filter" in warnings[0]
+
+
+def test_generate_native_filter_empty_filter_id():
+    """Empty native_filter_id triggers the ``or ""`` fallback branches."""
+    report_schedule = ReportSchedule()
+    result, warning = report_schedule._generate_native_filter(
+        "", "filter_select", "col", ["x"]
+    )
+    assert "" in result
+    assert result[""]["id"] == ""
+    assert warning is None
+
+
+def test_generate_native_filter_range_zero_min():
+    """Zero min_val should produce a two-sided label, not a max-only label."""
+    report_schedule = ReportSchedule()
+    result, warning = report_schedule._generate_native_filter(
+        "F5", "filter_range", "price", [0, 100]
+    )
+    assert result["F5"]["extraFormData"]["filters"] == [
+        {"col": "price", "op": ">=", "val": 0},
+        {"col": "price", "op": "<=", "val": 100},
+    ]
+    # Label generation correctly treats zero as a valid bound
+    assert result["F5"]["filterState"]["label"] == "0 ≤ x ≤ 100"
+
+
+def test_generate_native_filter_range_zero_max():
+    """Zero max_val should produce a two-sided label, not a min-only label."""
+    report_schedule = ReportSchedule()
+    result, warning = report_schedule._generate_native_filter(
+        "F5", "filter_range", "price", [10, 0]
+    )
+    assert result["F5"]["extraFormData"]["filters"] == [
+        {"col": "price", "op": ">=", "val": 10},
+        {"col": "price", "op": "<=", "val": 0},
+    ]
+    assert result["F5"]["filterState"]["label"] == "10 ≤ x ≤ 0"
+
+
+def test_generate_native_filter_range_both_zero():
+    """Both values zero should produce a two-sided label, not an empty string."""
+    report_schedule = ReportSchedule()
+    result, warning = report_schedule._generate_native_filter(
+        "F5", "filter_range", "price", [0, 0]
+    )
+    assert result["F5"]["extraFormData"]["filters"] == [
+        {"col": "price", "op": ">=", "val": 0},
+        {"col": "price", "op": "<=", "val": 0},
+    ]
+    assert result["F5"]["filterState"]["label"] == "0 ≤ x ≤ 0"
+
+
+def test_get_native_filters_params_missing_filter_type():
+    """Missing filterType skips the filter and emits a warning."""
+    report_schedule = ReportSchedule()
+    report_schedule.extra = {
+        "dashboard": {
+            "nativeFilters": [
+                {
+                    "nativeFilterId": "F1",
+                    "columnName": "col",
+                    "filterValues": ["v"],
+                }
+            ]
+        }
+    }
+    result, warnings = report_schedule.get_native_filters_params()
+    assert result == "()"
+    assert len(warnings) == 1
+    assert "Skipping malformed native filter" in warnings[0]
+
+
+def test_get_native_filters_params_missing_column_name():
+    """Missing columnName defaults to empty string via .get() fallback."""
+    report_schedule = ReportSchedule()
+    report_schedule.extra = {
+        "dashboard": {
+            "nativeFilters": [
+                {
+                    "nativeFilterId": "F1",
+                    "filterType": "filter_select",
+                    "filterValues": ["v"],
+                }
+            ]
+        }
+    }
+    result, warnings = report_schedule.get_native_filters_params()
+    assert "F1" in result
+    assert warnings == []
+
+
+def test_generate_native_filter_range_null_column():
+    """Range filter with None column_name falls back to empty string."""
+    report_schedule = ReportSchedule()
+    result, warning = report_schedule._generate_native_filter(
+        "F5", "filter_range", None, [10, 100]
+    )
+    assert result["F5"]["extraFormData"]["filters"][0]["col"] == ""
+    assert result["F5"]["extraFormData"]["filters"][1]["col"] == ""
+    assert warning is None
+
+
+def test_generate_native_filter_time_empty_id():
+    """Empty string filter ID for filter_time uses the ``or ""`` fallback."""
+    report_schedule = ReportSchedule()
+    result, warning = report_schedule._generate_native_filter(
+        "", "filter_time", "ignored", ["Last week"]
+    )
+    assert "" in result
+    assert result[""]["id"] == ""
+    assert warning is None
