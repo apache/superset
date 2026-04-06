@@ -914,7 +914,7 @@ def test_monkeypatch_handles_missing_bigquery_package() -> None:
 
     original_import = builtins.__import__
 
-    def mock_import(name: str, *args: object, **kwargs: object) -> object:
+    def mock_import(name: str, *args: Any, **kwargs: Any) -> Any:
         if name == "sqlalchemy_bigquery":
             raise ImportError("mocked missing package")
         return original_import(name, *args, **kwargs)
