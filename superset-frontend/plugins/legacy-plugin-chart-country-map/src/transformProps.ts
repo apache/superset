@@ -55,6 +55,7 @@ export default function transformProps(chartProps: ChartProps) {
     data: queriesData[0].data,
     country: selectCountry ? String(selectCountry).toLowerCase() : null,
     linearColorScheme,
+    numberFormat, // left for backward compatibility
     colorScheme,
     sliceId,
     formatter,
