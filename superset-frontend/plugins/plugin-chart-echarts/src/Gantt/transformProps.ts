@@ -223,7 +223,7 @@ if (typeof document !== 'undefined') {
 Array.from(seriesInCategoriesMap.entries()).forEach(([key, map]) => {
   sum += map.size;
 
-  const name = key ? String(key) : undefined;
+  const name = key === null || key === undefined ? undefined : String(key);
 
   categoryLines.push({
     yAxis: seriesCount - (sum + prevSum) / 2,
