@@ -32,6 +32,11 @@ logger = logging.getLogger(__name__)
 
 
 def _key_to_fernet(raw_key: str | bytes) -> Fernet:
+    """Derive a Fernet instance from an arbitrary-length secret string.
+
+    SHA-256 compresses the key to exactly 32 bytes, which are then
+    base64url-encoded to satisfy Fernet's key format requirement.
+    """
     if isinstance(raw_key, str):
         raw_key = raw_key.encode()
     return Fernet(base64.urlsafe_b64encode(hashlib.sha256(raw_key).digest()))

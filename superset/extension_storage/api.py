@@ -46,6 +46,7 @@ from flask import request, Response
 from flask_appbuilder.api import expose, protect, safe
 
 from superset.extension_storage.daos import ExtensionStorageDAO
+from superset.extension_storage.models import ExtensionStorage
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import get_user_id
 from superset.utils.decorators import transaction
@@ -78,10 +79,7 @@ def _extension_id(publisher: str, name: str) -> str:
     return f"{publisher}.{name}"
 
 
-def _entry_to_dict(entry: object) -> dict[str, object]:
-    from superset.extension_storage.models import ExtensionStorage
-
-    assert isinstance(entry, ExtensionStorage)
+def _entry_to_dict(entry: "ExtensionStorage") -> dict[str, object]:
     return {
         "key": entry.key,
         "value_type": entry.value_type,
@@ -181,13 +179,11 @@ class ExtensionStorageRestApi(BaseSupersetApi):
               description: Not found
         """
         ext_id = _extension_id(publisher, name)
-        value = ExtensionStorageDAO.get_value(ext_id, key)
-        if value is None:
-            return self.response(404, message="Not found")
         entry = ExtensionStorageDAO.get(ext_id, key)
-        assert entry is not None
-        mime = entry.value_type
-        return Response(value, status=200, mimetype=mime)
+        if entry is None:
+            return self.response(404, message="Not found")
+        value = ExtensionStorageDAO.get_value(ext_id, key) or b""
+        return Response(value, status=200, mimetype=entry.value_type)
 
     @expose(
         "/<publisher>/<name>/storage/persistent/global/<key>",
@@ -366,11 +362,10 @@ class ExtensionStorageRestApi(BaseSupersetApi):
         if not user_id:
             return self.response(401, message="Authentication required")
         ext_id = _extension_id(publisher, name)
-        value = ExtensionStorageDAO.get_value(ext_id, key, user_fk=user_id)
-        if value is None:
-            return self.response(404, message="Not found")
         entry = ExtensionStorageDAO.get(ext_id, key, user_fk=user_id)
-        assert entry is not None
+        if entry is None:
+            return self.response(404, message="Not found")
+        value = ExtensionStorageDAO.get_value(ext_id, key, user_fk=user_id) or b""
         return Response(value, status=200, mimetype=entry.value_type)
 
     @expose(
@@ -398,9 +393,22 @@ class ExtensionStorageRestApi(BaseSupersetApi):
               in: path
               required: true
               schema: {type: string}
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    value: {type: string}
+                    value_type: {type: string}
+                    category: {type: string}
+                    description: {type: string}
+                    is_encrypted: {type: boolean}
           responses:
             200:
               description: Success
+            401:
+              description: Authentication required
         """
         user_id = get_user_id()
         if not user_id:
@@ -571,15 +579,17 @@ class ExtensionStorageRestApi(BaseSupersetApi):
               description: Not found
         """
         ext_id = _extension_id(publisher, name)
-        value = ExtensionStorageDAO.get_value(
-            ext_id, key, resource_type=resource_type, resource_uuid=resource_uuid
-        )
-        if value is None:
-            return self.response(404, message="Not found")
         entry = ExtensionStorageDAO.get(
             ext_id, key, resource_type=resource_type, resource_uuid=resource_uuid
         )
-        assert entry is not None
+        if entry is None:
+            return self.response(404, message="Not found")
+        value = (
+            ExtensionStorageDAO.get_value(
+                ext_id, key, resource_type=resource_type, resource_uuid=resource_uuid
+            )
+            or b""
+        )
         return Response(value, status=200, mimetype=entry.value_type)
 
     @expose(
@@ -622,6 +632,17 @@ class ExtensionStorageRestApi(BaseSupersetApi):
               in: path
               required: true
               schema: {type: string}
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    value: {type: string}
+                    value_type: {type: string}
+                    category: {type: string}
+                    description: {type: string}
+                    is_encrypted: {type: boolean}
           responses:
             200:
               description: Success

@@ -211,6 +211,28 @@ def test_list_resource(session: Session) -> None:
     assert keys == {"ra", "rb"}
 
 
+def test_list_resource_filtered_by_category(session: Session) -> None:
+    _make_entry(
+        session,
+        key="r1",
+        resource_type=RES_TYPE,
+        resource_uuid=RES_UUID,
+        category="state",
+    )
+    _make_entry(
+        session,
+        key="r2",
+        resource_type=RES_TYPE,
+        resource_uuid=RES_UUID,
+        category="config",
+    )
+    results = ExtensionStorageDAO.list_resource(
+        EXT_A, RES_TYPE, RES_UUID, category="state"
+    )
+    assert len(results) == 1
+    assert results[0].key == "r1"
+
+
 # ── Pagination ────────────────────────────────────────────────────────────────
 
 
