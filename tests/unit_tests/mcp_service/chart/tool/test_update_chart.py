@@ -30,10 +30,15 @@ from superset.mcp_service.chart.schemas import (
     AxisConfig,
     ColumnRef,
     FilterConfig,
+    GenerateChartResponse,
     LegendConfig,
     TableChartConfig,
     UpdateChartRequest,
     XYChartConfig,
+)
+from superset.mcp_service.chart.tool.update_chart import (
+    _build_update_payload,
+    _find_chart,
 )
 
 
@@ -293,29 +298,44 @@ class TestUpdateChart:
 
     @pytest.mark.asyncio
     async def test_update_chart_error_responses(self):
-        """Test expected error response structures."""
+        """Test expected error response structures use ChartGenerationError."""
         # Chart not found error
-        error_response = {
-            "chart": None,
-            "error": "No chart found with identifier: 999",
-            "success": False,
-            "schema_version": "2.0",
-            "api_version": "v1",
-        }
-        assert error_response["success"] is False
-        assert error_response["chart"] is None
-        assert "chart found" in error_response["error"].lower()
+        error_response = GenerateChartResponse.model_validate(
+            {
+                "chart": None,
+                "error": {
+                    "error_type": "NotFound",
+                    "message": "No chart found with identifier: 999",
+                    "details": "No chart found with identifier: 999",
+                },
+                "success": False,
+                "schema_version": "2.0",
+                "api_version": "v1",
+            }
+        )
+        assert error_response.success is False
+        assert error_response.chart is None
+        assert error_response.error is not None
+        assert error_response.error.error_type == "NotFound"
+        assert "chart found" in error_response.error.message.lower()
 
         # General update error
-        update_error = {
-            "chart": None,
-            "error": "Chart update failed: Permission denied",
-            "success": False,
-            "schema_version": "2.0",
-            "api_version": "v1",
-        }
-        assert update_error["success"] is False
-        assert "failed" in update_error["error"].lower()
+        update_error = GenerateChartResponse.model_validate(
+            {
+                "chart": None,
+                "error": {
+                    "error_type": "ValueError",
+                    "message": "Chart update failed: Permission denied",
+                    "details": "Permission denied",
+                },
+                "success": False,
+                "schema_version": "2.0",
+                "api_version": "v1",
+            }
+        )
+        assert update_error.success is False
+        assert update_error.error is not None
+        assert "failed" in update_error.error.message.lower()
 
     @pytest.mark.asyncio
     async def test_chart_name_sanitization(self):
@@ -491,3 +511,220 @@ class TestUpdateChartDatasetAccess:
             error = result.structured_content["error"]
             assert error["error_type"] == "DatasetNotAccessible"
             assert "deleted" in error["message"]
+
+
+class TestFindChart:
+    """Tests for _find_chart helper."""
+
+    @patch("superset.daos.chart.ChartDAO.find_by_id")
+    def test_find_chart_by_numeric_id(self, mock_find):
+        """Numeric int identifier calls find_by_id with int."""
+        mock_chart = Mock()
+        mock_find.return_value = mock_chart
+
+        result = _find_chart(42)
+
+        mock_find.assert_called_once_with(42)
+        assert result is mock_chart
+
+    @patch("superset.daos.chart.ChartDAO.find_by_id")
+    def test_find_chart_by_numeric_string(self, mock_find):
+        """String-digit identifier is converted to int."""
+        mock_chart = Mock()
+        mock_find.return_value = mock_chart
+
+        result = _find_chart("123")
+
+        mock_find.assert_called_once_with(123)
+        assert result is mock_chart
+
+    @patch("superset.daos.chart.ChartDAO.find_by_id")
+    def test_find_chart_by_uuid(self, mock_find):
+        """Non-digit string identifier looks up by uuid column."""
+        mock_chart = Mock()
+        mock_find.return_value = mock_chart
+
+        uuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        result = _find_chart(uuid)
+
+        mock_find.assert_called_once_with(uuid, id_column="uuid")
+        assert result is mock_chart
+
+    @patch("superset.daos.chart.ChartDAO.find_by_id")
+    def test_find_chart_returns_none(self, mock_find):
+        """Returns None when chart is not found."""
+        mock_find.return_value = None
+
+        result = _find_chart(999)
+
+        assert result is None
+
+
+class TestBuildUpdatePayload:
+    """Tests for _build_update_payload helper."""
+
+    def test_name_only_update(self):
+        """Name-only update returns a dict with just slice_name."""
+        request = UpdateChartRequest(
+            identifier=1,
+            chart_name="New Name",
+        )
+        chart = Mock()
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        assert result == {"slice_name": "New Name"}
+
+    def test_error_when_no_config_and_no_name(self):
+        """Returns GenerateChartResponse error when neither config nor chart_name."""
+        request = UpdateChartRequest(identifier=1)
+        chart = Mock()
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, GenerateChartResponse)
+        assert result.success is False
+        assert result.error is not None
+        assert result.error.error_type == "ValidationError"
+        assert "config" in result.error.message.lower()
+        assert "chart_name" in result.error.message.lower()
+
+    def test_config_update_uses_request_chart_name(self):
+        """When config and chart_name are both provided, uses chart_name."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="col1")],
+        )
+        request = UpdateChartRequest(
+            identifier=1,
+            config=config,
+            chart_name="My Custom Name",
+        )
+        chart = Mock()
+        chart.datasource_id = None  # Avoid dataset lookup
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        assert result["slice_name"] == "My Custom Name"
+        assert "viz_type" in result
+        assert "params" in result
+
+    def test_config_update_keeps_existing_name(self):
+        """When config is provided but no chart_name, keeps existing slice_name."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="col1")],
+        )
+        request = UpdateChartRequest(identifier=1, config=config)
+        chart = Mock()
+        chart.datasource_id = None
+        chart.slice_name = "Existing Name"
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        assert result["slice_name"] == "Existing Name"
+
+
+class TestUpdateChartNameOnly:
+    """Integration-style tests for name-only update via MCP tool."""
+
+    @patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        new_callable=Mock,
+    )
+    @patch(
+        "superset.commands.chart.update.UpdateChartCommand",
+        new_callable=Mock,
+    )
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_name_only_update_success(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_update_cmd_cls,
+        mock_check_access,
+        mcp_server,
+    ):
+        """Successful name-only update (identifier + chart_name, no config)."""
+        mock_chart = Mock()
+        mock_chart.id = 1
+        mock_chart.datasource_id = 10
+        mock_chart.slice_name = "Old Name"
+        mock_chart.viz_type = "table"
+        mock_chart.uuid = "abc-123"
+        mock_find_by_id.return_value = mock_chart
+
+        mock_check_access.return_value = DatasetValidationResult(
+            is_valid=True,
+            dataset_id=10,
+            dataset_name="my_dataset",
+            warnings=[],
+        )
+
+        updated_chart = Mock()
+        updated_chart.id = 1
+        updated_chart.slice_name = "Renamed Chart"
+        updated_chart.viz_type = "table"
+        updated_chart.uuid = "abc-123"
+        mock_update_cmd_cls.return_value.run.return_value = updated_chart
+
+        request = {
+            "identifier": 1,
+            "chart_name": "Renamed Chart",
+            "generate_preview": False,
+        }
+
+        async with Client(mcp) as client:
+            result = await client.call_tool("update_chart", {"request": request})
+
+            assert result.structured_content["success"] is True
+            assert result.structured_content["chart"]["slice_name"] == "Renamed Chart"
+
+            # Verify UpdateChartCommand was called with name-only payload
+            mock_update_cmd_cls.assert_called_once_with(
+                1, {"slice_name": "Renamed Chart"}
+            )
+
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_no_config_no_name_returns_error(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mcp_server,
+    ):
+        """Error when neither config nor chart_name is provided."""
+        mock_chart = Mock()
+        mock_chart.id = 1
+        mock_chart.datasource_id = 10
+        mock_find_by_id.return_value = mock_chart
+
+        with patch(
+            "superset.mcp_service.auth.check_chart_data_access",
+            new_callable=Mock,
+        ) as mock_check_access:
+            mock_check_access.return_value = DatasetValidationResult(
+                is_valid=True,
+                dataset_id=10,
+                dataset_name="my_dataset",
+                warnings=[],
+            )
+
+            request = {
+                "identifier": 1,
+            }
+
+            async with Client(mcp) as client:
+                result = await client.call_tool("update_chart", {"request": request})
+
+                assert result.structured_content["success"] is False
+                error = result.structured_content["error"]
+                assert error["error_type"] == "ValidationError"
+                assert "config" in error["message"].lower()
+                assert "chart_name" in error["message"].lower()
