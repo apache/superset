@@ -113,16 +113,16 @@ def _monkeypatch_bigquery_string_literal() -> None:
     try:
         from sqlalchemy_bigquery import BigQueryDialect
 
-        class BigQuerySafeString(types.TypeDecorator):  # type: ignore
+        class BigQuerySafeString(types.TypeDecorator):
             impl = types.String
             cache_ok = True
 
             def literal_processor(self, dialect: Any) -> Callable[[str], str]:
                 if dialect.name == "bigquery":
                     return _process_string_literal
-                return super().literal_processor(dialect)  # type: ignore
+                return super().literal_processor(dialect)
 
-        BigQueryDialect.colspecs[types.String] = BigQuerySafeString  # type: ignore
+        BigQueryDialect.colspecs[types.String] = BigQuerySafeString
 
     except ImportError:
         pass

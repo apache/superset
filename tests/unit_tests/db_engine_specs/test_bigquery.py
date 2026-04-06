@@ -545,8 +545,8 @@ def test_string_literal_with_apostrophe() -> None:
 
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec  # noqa: F811
 
-    # Ensure the monkey-patch was applied
-    assert BigQueryEngineSpec  # trigger module load / patch
+    # Trigger module load to ensure the monkey-patch is applied
+    assert BigQueryEngineSpec is not None
 
     dialect = BigQueryDialect()
 
@@ -571,7 +571,7 @@ def test_string_literal_without_apostrophe() -> None:
 
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec  # noqa: F811
 
-    assert BigQueryEngineSpec
+    assert BigQueryEngineSpec is not None
 
     dialect = BigQueryDialect()
 
@@ -591,7 +591,7 @@ def test_string_literal_in_filter_with_apostrophe() -> None:
 
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec  # noqa: F811
 
-    assert BigQueryEngineSpec
+    assert BigQueryEngineSpec is not None
 
     dialect = BigQueryDialect()
 
@@ -654,7 +654,7 @@ def test_monkeypatch_is_applied() -> None:
         BigQueryEngineSpec,  # noqa: F811
     )
 
-    assert BigQueryEngineSpec
+    assert BigQueryEngineSpec is not None
 
     colspecs = BigQueryDialect.colspecs
     assert sa_sqltypes.String in colspecs
