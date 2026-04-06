@@ -126,7 +126,13 @@ def _log_audit_event(action: str, payload: dict[str, Any]) -> None:
 
     Uses the AbstractEventLogger so that custom implementations
     (e.g. S3EventLogger) also receive these audit events.
+
+    After logging, re-merges the current user into the session if needed.
+    Some event loggers (e.g. DBEventLogger) call db.session.commit() which
+    expires all objects in the session, causing DetachedInstanceError when
+    FAB later accesses user attributes during login/logout flows.
     """
+    from superset import db  # pylint: disable=import-outside-toplevel
     from superset.extensions import (
         event_logger,  # pylint: disable=import-outside-toplevel
     )
@@ -146,6 +152,17 @@ def _log_audit_event(action: str, payload: dict[str, Any]) -> None:
         )
     except Exception:  # pylint: disable=broad-except
         logger.warning("Failed to log audit event: %s", action, exc_info=True)
+
+    # Re-attach the current user to the session if it was detached by a
+    # commit inside the event logger (e.g. DBEventLogger).
+    try:
+        user = g.get("user", None)
+        if user is not None and not isinstance(user, AnonymousUserMixin):
+            insp = inspect(user, raiseerr=False)
+            if insp is not None and insp.detached:
+                g.user = db.session.merge(user)
+    except Exception:  # pylint: disable=broad-except  # noqa: S110
+        logger.debug("Could not re-attach user to session", exc_info=True)
 
 
 class SupersetRoleApi(RoleApi):
@@ -259,19 +276,13 @@ class SupersetGroupApi(GroupApi):
     """
 
     def post_add(self, item: Model) -> None:
-        _log_audit_event(
-            "GroupCreated", {"group_name": item.name, "group_id": item.id}
-        )
+        _log_audit_event("GroupCreated", {"group_name": item.name, "group_id": item.id})
 
     def post_update(self, item: Model) -> None:
-        _log_audit_event(
-            "GroupUpdated", {"group_name": item.name, "group_id": item.id}
-        )
+        _log_audit_event("GroupUpdated", {"group_name": item.name, "group_id": item.id})
 
     def post_delete(self, item: Model) -> None:
-        _log_audit_event(
-            "GroupDeleted", {"group_name": item.name, "group_id": item.id}
-        )
+        _log_audit_event("GroupDeleted", {"group_name": item.name, "group_id": item.id})
 
 
 # Limiting routes on FAB model views
