@@ -94,6 +94,29 @@ describe('ChartPage', () => {
     );
   });
 
+  test('does not re-fetch when navigating to a non-explore route', async () => {
+    const exploreApiRoute = 'glob:*/api/v1/explore/*';
+    const exploreFormData = getExploreFormData({ viz_type: VizType.Table });
+    fetchMock.get(exploreApiRoute, {
+      result: { dataset: { id: 1 }, form_data: exploreFormData },
+    });
+    render(
+      <>
+        <Link to="/chart/list/">Go to chart list</Link>
+        <ChartPage />
+      </>,
+      { useRouter: true, useRedux: true, useDnd: true },
+    );
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
+    );
+    fetchMock.clearHistory();
+    fireEvent.click(screen.getByText('Go to chart list'));
+    // Flush promises — no additional fetch should have been triggered
+    await Promise.resolve();
+    expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(0);
+  });
+
   test('displays the dataset name and error when it is prohibited', async () => {
     const chartApiRoute = `glob:*/api/v1/chart/*`;
     const exploreApiRoute = 'glob:*/api/v1/explore/*';
@@ -261,7 +284,7 @@ describe('ChartPage', () => {
         <>
           <Link
             to={{
-              pathname: '/',
+              pathname: '/explore/',
               search: `?${URL_PARAMS.dashboardPageId.name}=${dashboardPageId}`,
               state: { saveAction: 'overwrite' },
             }}
@@ -318,7 +341,7 @@ describe('ChartPage', () => {
       });
       render(
         <>
-          <Link to="/?slice_id=99">Navigate away</Link>
+          <Link to="/explore/?slice_id=99">Navigate away</Link>
           <ChartPage />
         </>,
         {
