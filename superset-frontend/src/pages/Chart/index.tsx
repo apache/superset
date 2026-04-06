@@ -272,6 +272,15 @@ export default function ExplorePage() {
   // Other REPLACE: ignored (URL sync from updateHistory).
   useEffect(() => {
     const unlisten = history.listen((loc: Location, action: Action) => {
+      // Only re-fetch when navigating within explore routes. history.listen fires
+      // before component unmount, so navigating away would trigger a fetch with
+      // invalid params and produce a spurious toast on the destination page.
+      if (
+        !loc.pathname.startsWith('/explore/') &&
+        !loc.pathname.startsWith('/superset/explore/')
+      ) {
+        return;
+      }
       const saveAction = (loc.state as Record<string, unknown>)?.saveAction as
         | SaveActionType
         | undefined;
