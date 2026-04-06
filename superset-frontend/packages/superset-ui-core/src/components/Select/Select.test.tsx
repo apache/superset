@@ -811,6 +811,48 @@ test('Maintains stable maxTagCount to prevent click target disappearing in oneLi
   expect(withinSelector.getByText('+ 2 ...')).toBeVisible();
 });
 
+test('dropdown width matches input width after tags collapse in oneLine mode', async () => {
+  render(
+    <div style={{ width: '300px' }}>
+      <Select
+        {...defaultProps}
+        value={[OPTIONS[0], OPTIONS[1], OPTIONS[2]]}
+        mode="multiple"
+        oneLine
+      />
+    </div>,
+  );
+
+  await open();
+
+  // Wait for RAF to complete and tags to collapse
+  await waitFor(() => {
+    const withinSelector = within(
+      getElementByClassName('.ant-select-selector'),
+    );
+    expect(
+      withinSelector.queryByText(OPTIONS[0].label),
+    ).not.toBeInTheDocument();
+    expect(withinSelector.getByText('+ 3 ...')).toBeVisible();
+  });
+
+  const selectElement = document.querySelector('.ant-select') as HTMLElement;
+  const dropdown = document.querySelector(
+    '.ant-select-dropdown',
+  ) as HTMLElement;
+
+  expect(selectElement).toBeInTheDocument();
+  expect(dropdown).toBeInTheDocument();
+
+  // The dropdown width should match the collapsed input width
+  const selectWidth = selectElement.getBoundingClientRect().width;
+  const dropdownWidth = dropdown.getBoundingClientRect().width;
+
+  // In oneLine mode with tags, dropdown width should match input width
+  // Allow small tolerance for sub-pixel differences
+  expect(Math.abs(dropdownWidth - selectWidth)).toBeLessThanOrEqual(1);
+});
+
 test('does not render "Select all" when there are 0 or 1 options', async () => {
   const { rerender } = render(
     <Select {...defaultProps} options={[]} mode="multiple" allowNewOptions />,
