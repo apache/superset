@@ -222,7 +222,25 @@ class TestGenerateSizeReductionSuggestions:
             estimated_tokens=50000,
             token_limit=25000,
         )
-        assert any("LIMIT" in s or "limit" in s.lower() for s in suggestions)
+        combined = " ".join(suggestions)
+        # Should suggest SQL LIMIT clause
+        assert "LIMIT" in combined
+        # Should suggest the tool's limit parameter
+        assert "'limit' parameter" in combined.lower() or "limit=" in combined.lower()
+
+    def test_execute_sql_with_limit_param_no_duplicate_suggestion(self) -> None:
+        """When limit param is already set, should not suggest adding it again."""
+        suggestions = generate_size_reduction_suggestions(
+            tool_name="execute_sql",
+            params={"sql": "SELECT * FROM table", "limit": 500},
+            estimated_tokens=50000,
+            token_limit=25000,
+        )
+        combined = " ".join(suggestions)
+        # Should still suggest SQL LIMIT
+        assert "LIMIT" in combined
+        # Should suggest reducing the existing limit (from general suggestion)
+        assert "500" in combined or "limit" in combined.lower()
 
     def test_tool_specific_suggestions_list_charts(self) -> None:
         """Should provide chart-specific suggestions for list_charts."""

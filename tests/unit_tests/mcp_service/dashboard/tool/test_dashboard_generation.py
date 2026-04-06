@@ -444,7 +444,34 @@ class TestGenerateDashboard:
                 == "Minimal Dashboard"
             )
 
-            # Verify dashboard was created with default published=True
+            # Verify dashboard was created with default published=False
+            created = mock_dashboard_cls.return_value
+            assert created.published is False
+
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_explicit_published(
+        self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
+    ):
+        """Test dashboard generation with published explicitly set to True."""
+        charts = [_mock_chart(id=3)]
+        mock_dashboard = _mock_dashboard(id=41, title="Published Dashboard")
+        _setup_generate_dashboard_mocks(
+            mock_db_session, mock_find_by_id, mock_dashboard_cls, charts, mock_dashboard
+        )
+
+        request = {
+            "chart_ids": [3],
+            "dashboard_title": "Published Dashboard",
+            "published": True,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            assert result.structured_content["error"] is None
             created = mock_dashboard_cls.return_value
             assert created.published is True
 
