@@ -1292,6 +1292,36 @@ async def test_get_dataset_info_by_uuid(mock_find_object, mcp_server):
         assert data["table_name"] == "Test Dataset UUID"
 
 
+class TestDatasetCertificationSerialization:
+    """Test certification fields flow through dataset serialization."""
+
+    def test_serialize_dataset_with_certification_fields(self):
+        """Serializes non-None certification values."""
+        from superset.mcp_service.dataset.schemas import serialize_dataset_object
+
+        dataset = create_mock_dataset()
+        dataset.certified_by = "Analytics Engineering"
+        dataset.certification_details = "Production-ready, SLA-backed"
+
+        result = serialize_dataset_object(dataset)
+
+        assert result is not None
+        assert result.certified_by == "Analytics Engineering"
+        assert result.certification_details == "Production-ready, SLA-backed"
+
+    def test_serialize_dataset_with_none_certification(self):
+        """serialize_dataset_object handles None certification fields."""
+        from superset.mcp_service.dataset.schemas import serialize_dataset_object
+
+        dataset = create_mock_dataset()
+
+        result = serialize_dataset_object(dataset)
+
+        assert result is not None
+        assert result.certified_by is None
+        assert result.certification_details is None
+
+
 class TestDatasetDefaultColumnFiltering:
     """Test default column filtering behavior for datasets."""
 
@@ -1299,12 +1329,14 @@ class TestDatasetDefaultColumnFiltering:
         """Test that minimal default columns are properly defined."""
         from superset.mcp_service.common.schema_discovery import DATASET_DEFAULT_COLUMNS
 
-        # Should have exactly 4 minimal columns
-        assert len(DATASET_DEFAULT_COLUMNS) == 4
         assert set(DATASET_DEFAULT_COLUMNS) == {
             "id",
             "table_name",
             "schema",
+            "description",
+            "certified_by",
+            "certification_details",
+            "changed_on",
             "changed_on_humanized",
         }
         assert "uuid" not in DATASET_DEFAULT_COLUMNS
@@ -1312,7 +1344,6 @@ class TestDatasetDefaultColumnFiltering:
         # Heavy columns should NOT be in defaults
         assert "columns" not in DATASET_DEFAULT_COLUMNS
         assert "metrics" not in DATASET_DEFAULT_COLUMNS
-        assert "description" not in DATASET_DEFAULT_COLUMNS
         assert "database_name" not in DATASET_DEFAULT_COLUMNS
 
     @patch("superset.daos.dataset.DatasetDAO.list")
@@ -1341,6 +1372,8 @@ class TestDatasetDefaultColumnFiltering:
                 "database_name",
                 "database",
                 "description",
+                "certified_by",
+                "certification_details",
                 "changed_on",
                 "changed_on_humanized",
             }
@@ -1435,6 +1468,8 @@ class TestDatasetDefaultColumnFiltering:
                 "schema",
                 "database_name",
                 "description",
+                "certified_by",
+                "certification_details",
                 "changed_on",
                 "changed_on_humanized",
             }

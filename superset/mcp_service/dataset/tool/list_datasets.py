@@ -62,6 +62,8 @@ DEFAULT_DATASET_COLUMNS = [
     "database_name",
     "database",
     "description",
+    "certified_by",
+    "certification_details",
     "changed_on",
     "changed_on_humanized",
 ]
