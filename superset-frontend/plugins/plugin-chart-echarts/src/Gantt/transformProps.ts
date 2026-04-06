@@ -205,23 +205,49 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     seriesCount += map.size;
   });
 
-  const borderLines: { yAxis: number }[] = [];
-  const categoryLines: { yAxis: number; name?: string }[] = [];
-  let sum = 0;
-  let prevSum = 0;
-  Array.from(seriesInCategoriesMap.entries()).forEach(([key, map]) => {
-    sum += map.size;
-    categoryLines.push({
-      yAxis: seriesCount - (sum + prevSum) / 2,
-      name: key ? String(key) : undefined,
-    });
-    borderLines.push({ yAxis: seriesCount - sum });
-    prevSum = sum;
+const borderLines: { yAxis: number }[] = [];
+const categoryLines: { yAxis: number; name?: string }[] = [];
+let sum = 0;
+let prevSum = 0;
+let maxCategoryLabelWidth = 0;
+
+let measureContext: CanvasRenderingContext2D | null = null;
+if (typeof document !== 'undefined') {
+  const canvas = document.createElement('canvas');
+  measureContext = canvas.getContext('2d');
+  if (measureContext) {
+    measureContext.font = `${theme.fontSizeSM}px ${theme.fontFamily}`;
+  }
+}
+
+Array.from(seriesInCategoriesMap.entries()).forEach(([key, map]) => {
+  sum += map.size;
+
+  const name = key ? String(key) : undefined;
+
+  categoryLines.push({
+    yAxis: seriesCount - (sum + prevSum) / 2,
+    name,
   });
 
-  const xAxisFormatter = getXAxisFormatter(xAxisTimeFormat);
-  const tooltipTimeFormatter = getTooltipTimeFormatter(tooltipTimeFormat);
-  const tooltipValuesFormatter = getNumberFormatter(tooltipValuesFormat);
+  if (name) {
+    const labelWidth = measureContext
+      ? measureContext.measureText(name).width
+      : name.length * theme.fontSizeSM * 0.62;
+
+    maxCategoryLabelWidth = Math.max(maxCategoryLabelWidth, labelWidth);
+  }
+
+  borderLines.push({ yAxis: seriesCount - sum });
+
+  prevSum = sum;
+});
+
+const safeLabelWidth = Math.min(maxCategoryLabelWidth, 200);
+
+const xAxisFormatter = getXAxisFormatter(xAxisTimeFormat);
+const tooltipTimeFormatter = getTooltipTimeFormatter(tooltipTimeFormat);
+const tooltipValuesFormatter = getNumberFormatter(tooltipValuesFormat);
 
   const bounds: [number | undefined, number | undefined] = [
     undefined,
@@ -353,13 +379,13 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
   const { legendLayout, effectiveLegendType } = resolveLegendLayout({
     availableWidth:
       legendOrientation === LegendOrientation.Top ||
-      legendOrientation === LegendOrientation.Bottom
+        legendOrientation === LegendOrientation.Bottom
         ? getHorizontalLegendAvailableWidth({
-            chartWidth: width,
-            orientation: legendOrientation,
-            padding,
-            zoomable,
-          })
+          chartWidth: width,
+          orientation: legendOrientation,
+          padding,
+          zoomable,
+        })
         : undefined,
     chartHeight: height,
     chartWidth: width,
@@ -426,6 +452,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     grid: {
       ...defaultGrid,
       ...padding,
+      left: (padding.left || 0) + safeLabelWidth + 10,
     },
     dataZoom: zoomable && [
       {
