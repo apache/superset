@@ -310,6 +310,9 @@ def _parse_json_field(obj: Any, field_name: str) -> Dict[str, Any] | None:
 def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
     if not dataset:
         return None
+
+    from superset.mcp_service.utils.url_utils import get_superset_base_url
+
     params = getattr(dataset, "params", None)
     if isinstance(params, str):
         try:
@@ -373,7 +376,12 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         if getattr(dataset, "uuid", None)
         else None,
         schema_perm=getattr(dataset, "schema_perm", None),
-        url=getattr(dataset, "url", None),
+        url=(
+            f"{get_superset_base_url()}/tablemodelview/edit/"
+            f"{getattr(dataset, 'id', None)}"
+            if getattr(dataset, "id", None)
+            else None
+        ),
         sql=getattr(dataset, "sql", None),
         main_dttm_col=getattr(dataset, "main_dttm_col", None),
         offset=getattr(dataset, "offset", None),
