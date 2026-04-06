@@ -660,3 +660,50 @@ def test_monkeypatch_is_applied() -> None:
     assert sa_sqltypes.String in colspecs
     safe_cls = colspecs[sa_sqltypes.String]
     assert safe_cls.__name__ == "BigQuerySafeString"
+
+
+def test_literal_processor_returns_process_string_literal_for_bigquery() -> None:
+    """
+    Test that BigQuerySafeString.literal_processor returns the
+    _process_string_literal function when given a BigQuery dialect,
+    and that calling it produces correctly escaped output.
+    """
+    from superset.db_engine_specs.bigquery import (
+        _monkeypatch_bigquery_string_literal,
+        _process_string_literal,
+    )
+
+    _monkeypatch_bigquery_string_literal()
+
+    safe_cls = BigQueryDialect.colspecs[sqltypes.String]
+    instance = safe_cls()
+
+    dialect = BigQueryDialect()
+    processor = instance.literal_processor(dialect)
+
+    assert processor is _process_string_literal
+    assert processor("O'Brien") == "'O''Brien'"
+    assert processor("plain") == "'plain'"
+
+
+def test_monkeypatch_handles_missing_bigquery_package() -> None:
+    """
+    Test that _monkeypatch_bigquery_string_literal gracefully handles
+    the case where sqlalchemy_bigquery is not installed.
+    """
+    import builtins
+
+    from superset.db_engine_specs.bigquery import (
+        _monkeypatch_bigquery_string_literal,
+    )
+
+    original_import = builtins.__import__
+
+    def mock_import(name: str, *args: object, **kwargs: object) -> object:
+        if name == "sqlalchemy_bigquery":
+            raise ImportError("mocked missing package")
+        return original_import(name, *args, **kwargs)
+
+    with mock.patch("builtins.__import__", side_effect=mock_import):
+        # Should not raise — the except ImportError branch handles it
+        _monkeypatch_bigquery_string_literal()
