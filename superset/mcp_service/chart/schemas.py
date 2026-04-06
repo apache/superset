@@ -1157,7 +1157,7 @@ ChartConfig = Annotated[
 
 # Module-level TypeAdapter avoids repeated schema compilation in
 # parse_chart_config() — safe because ChartConfig is fully defined above.
-_CHART_CONFIG_ADAPTER: TypeAdapter = TypeAdapter(ChartConfig)
+_CHART_CONFIG_ADAPTER: TypeAdapter[ChartConfig] = TypeAdapter(ChartConfig)
 
 # Compact description for JSON Schema — keeps tool inputSchema small while
 # giving LLMs enough context to construct valid configs.
@@ -1188,7 +1188,14 @@ def parse_chart_config(
     Validates the dict against the discriminated union using chart_type.
     Call this in tool function bodies to get a typed config object.
     """
-    return _CHART_CONFIG_ADAPTER.validate_python(config)
+    try:
+        return _CHART_CONFIG_ADAPTER.validate_python(config)
+    except Exception as e:
+        raise ValueError(
+            f"{e}\n\n"
+            f"Hint: read the chart://configs resource for valid configuration "
+            f"examples and field reference."
+        ) from e
 
 
 def _coerce_config_to_dict(v: Any) -> Dict[str, Any]:
@@ -1362,7 +1369,9 @@ class UpdateChartRequest(QueryCacheControl):
     identifier: int | str = Field(..., description="Chart ID or UUID")
     config: Dict[str, Any] | None = Field(
         None,
-        description=_CHART_CONFIG_DESCRIPTION,
+        description=(
+            f"{_CHART_CONFIG_DESCRIPTION} Optional; omit to only update chart_name."
+        ),
     )
     chart_name: str | None = Field(
         None, description="Auto-generates if omitted", max_length=255
@@ -1374,7 +1383,9 @@ class UpdateChartRequest(QueryCacheControl):
 
     @field_validator("config", mode="before")
     @classmethod
-    def coerce_config(cls, v: Any) -> Dict[str, Any]:
+    def coerce_config(cls, v: Any) -> Dict[str, Any] | None:
+        if v is None:
+            return None
         return _coerce_config_to_dict(v)
 
     @field_validator("chart_name")
