@@ -57,10 +57,11 @@ class TestGenerateChart:
         )
         table_request = GenerateChartRequest(dataset_id="1", config=table_config)
         assert table_request.dataset_id == "1"
-        assert table_request.config.chart_type == "table"
-        assert len(table_request.config.columns) == 2
-        assert table_request.config.columns[0].name == "region"
-        assert table_request.config.columns[1].aggregate == "SUM"
+        # config is now Dict[str, Any] in the schema; validate via dict access
+        assert table_request.config["chart_type"] == "table"
+        assert len(table_request.config["columns"]) == 2
+        assert table_request.config["columns"][0]["name"] == "region"
+        assert table_request.config["columns"][1]["aggregate"] == "SUM"
 
         # XY chart request
         xy_config = XYChartConfig(
@@ -74,12 +75,12 @@ class TestGenerateChart:
             legend=LegendConfig(show=True, position="top"),
         )
         xy_request = GenerateChartRequest(dataset_id="2", config=xy_config)
-        assert xy_request.config.chart_type == "xy"
-        assert xy_request.config.x.name == "date"
-        assert xy_request.config.y[0].aggregate == "SUM"
-        assert xy_request.config.kind == "line"
-        assert xy_request.config.x_axis.title == "Date"
-        assert xy_request.config.legend.show is True
+        assert xy_request.config["chart_type"] == "xy"
+        assert xy_request.config["x"]["name"] == "date"
+        assert xy_request.config["y"][0]["aggregate"] == "SUM"
+        assert xy_request.config["kind"] == "line"
+        assert xy_request.config["x_axis"]["title"] == "Date"
+        assert xy_request.config["legend"]["show"] is True
 
     @pytest.mark.asyncio
     async def test_generate_chart_validation_error_handling(self):
