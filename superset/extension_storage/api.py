@@ -45,10 +45,10 @@ import logging
 from flask import request, Response
 from flask_appbuilder.api import expose, protect, safe
 
-from superset import db
 from superset.extension_storage.daos import ExtensionStorageDAO
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import get_user_id
+from superset.utils.decorators import transaction
 from superset.views.base_api import BaseSupersetApi
 
 logger = logging.getLogger(__name__)
@@ -95,6 +95,7 @@ def _entry_to_dict(entry: object) -> dict[str, object]:
 class ExtensionStorageRestApi(BaseSupersetApi):
     """Generic persistent storage for extensions (Tier 3)."""
 
+    allow_browser_login = True
     route_base = "/api/v1/extensions"
     resource_name = "extensions"
     openapi_spec_tag = "Extension Storage"
@@ -194,6 +195,7 @@ class ExtensionStorageRestApi(BaseSupersetApi):
     )
     @protect()
     @safe
+    @transaction()
     def set_global(self, publisher: str, name: str, key: str) -> FlaskResponse:
         """Create or update a global persistent value.
         ---
@@ -240,7 +242,6 @@ class ExtensionStorageRestApi(BaseSupersetApi):
             description=body.get("description"),
             is_encrypted=bool(body.get("is_encrypted", False)),
         )
-        db.session.commit()
         return self.response(200, result=_entry_to_dict(entry))
 
     @expose(
@@ -249,6 +250,7 @@ class ExtensionStorageRestApi(BaseSupersetApi):
     )
     @protect()
     @safe
+    @transaction()
     def delete_global(self, publisher: str, name: str, key: str) -> FlaskResponse:
         """Delete a global persistent value.
         ---
@@ -277,7 +279,6 @@ class ExtensionStorageRestApi(BaseSupersetApi):
         deleted = ExtensionStorageDAO.delete(ext_id, key)
         if not deleted:
             return self.response(404, message="Not found")
-        db.session.commit()
         return self.response(200, message="Deleted")
 
     # ── User scope ────────────────────────────────────────────────────────────
@@ -378,6 +379,7 @@ class ExtensionStorageRestApi(BaseSupersetApi):
     )
     @protect()
     @safe
+    @transaction()
     def set_user(self, publisher: str, name: str, key: str) -> FlaskResponse:
         """Create or update a user-scoped persistent value.
         ---
@@ -417,7 +419,6 @@ class ExtensionStorageRestApi(BaseSupersetApi):
             description=body.get("description"),
             is_encrypted=bool(body.get("is_encrypted", False)),
         )
-        db.session.commit()
         return self.response(200, result=_entry_to_dict(entry))
 
     @expose(
@@ -426,6 +427,7 @@ class ExtensionStorageRestApi(BaseSupersetApi):
     )
     @protect()
     @safe
+    @transaction()
     def delete_user(self, publisher: str, name: str, key: str) -> FlaskResponse:
         """Delete a user-scoped persistent value.
         ---
@@ -457,7 +459,6 @@ class ExtensionStorageRestApi(BaseSupersetApi):
         deleted = ExtensionStorageDAO.delete(ext_id, key, user_fk=user_id)
         if not deleted:
             return self.response(404, message="Not found")
-        db.session.commit()
         return self.response(200, message="Deleted")
 
     # ── Resource scope ────────────────────────────────────────────────────────
@@ -587,6 +588,7 @@ class ExtensionStorageRestApi(BaseSupersetApi):
     )
     @protect()
     @safe
+    @transaction()
     def set_resource(
         self,
         publisher: str,
@@ -639,7 +641,6 @@ class ExtensionStorageRestApi(BaseSupersetApi):
             description=body.get("description"),
             is_encrypted=bool(body.get("is_encrypted", False)),
         )
-        db.session.commit()
         return self.response(200, result=_entry_to_dict(entry))
 
     @expose(
@@ -648,6 +649,7 @@ class ExtensionStorageRestApi(BaseSupersetApi):
     )
     @protect()
     @safe
+    @transaction()
     def delete_resource(
         self,
         publisher: str,
@@ -693,5 +695,4 @@ class ExtensionStorageRestApi(BaseSupersetApi):
         )
         if not deleted:
             return self.response(404, message="Not found")
-        db.session.commit()
         return self.response(200, message="Deleted")
