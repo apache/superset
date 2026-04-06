@@ -98,6 +98,12 @@ class DatasetInfo(BaseModel):
     schema_name: str | None = Field(None, description="Schema name", alias="schema")
     database_name: str | None = Field(None, description="Database name")
     description: str | None = Field(None, description="Dataset description")
+    certified_by: str | None = Field(
+        None, description="Name of the person or team who certified this dataset"
+    )
+    certification_details: str | None = Field(
+        None, description="Certification details or reason"
+    )
     changed_by: str | None = Field(None, description="Last modifier (username)")
     changed_on: str | datetime | None = Field(
         None, description="Last modification timestamp"
@@ -357,6 +363,8 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         if getattr(dataset, "database", None)
         else None,
         description=getattr(dataset, "description", None),
+        certified_by=getattr(dataset, "certified_by", None),
+        certification_details=getattr(dataset, "certification_details", None),
         changed_by=getattr(dataset, "changed_by_name", None)
         or (str(dataset.changed_by) if getattr(dataset, "changed_by", None) else None),
         changed_on=getattr(dataset, "changed_on", None),

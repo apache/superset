@@ -238,7 +238,17 @@ def get_columns_from_model(
 # - Extra columns (computed/relationship fields not on the model)
 
 # Chart configuration
-CHART_DEFAULT_COLUMNS = ["id", "slice_name", "viz_type", "url", "changed_on_humanized"]
+CHART_DEFAULT_COLUMNS = [
+    "id",
+    "slice_name",
+    "viz_type",
+    "description",
+    "certified_by",
+    "certification_details",
+    "url",
+    "changed_on",
+    "changed_on_humanized",
+]
 CHART_SORTABLE_COLUMNS = [
     "id",
     "slice_name",
@@ -306,6 +316,18 @@ CHART_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
         type="str",
         is_default=False,
     ),
+    "certified_by": ColumnMetadata(
+        name="certified_by",
+        description="Name of the person who certified this chart",
+        type="str",
+        is_default=True,
+    ),
+    "certification_details": ColumnMetadata(
+        name="certification_details",
+        description="Certification details or reason",
+        type="str",
+        is_default=True,
+    ),
     "tags": ColumnMetadata(
         name="tags", description="Chart tags", type="list", is_default=False
     ),
@@ -315,7 +337,16 @@ CHART_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
 }
 
 # Dataset configuration
-DATASET_DEFAULT_COLUMNS = ["id", "table_name", "schema", "changed_on_humanized"]
+DATASET_DEFAULT_COLUMNS = [
+    "id",
+    "table_name",
+    "schema",
+    "description",
+    "certified_by",
+    "certification_details",
+    "changed_on",
+    "changed_on_humanized",
+]
 DATASET_SORTABLE_COLUMNS = [
     "id",
     "table_name",
@@ -367,6 +398,18 @@ DATASET_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
         type="str",
         is_default=False,
     ),
+    "certified_by": ColumnMetadata(
+        name="certified_by",
+        description="Name of the person who certified this dataset",
+        type="str",
+        is_default=True,
+    ),
+    "certification_details": ColumnMetadata(
+        name="certification_details",
+        description="Certification details or reason",
+        type="str",
+        is_default=True,
+    ),
     "metrics": ColumnMetadata(
         name="metrics",
         description="Dataset metrics definitions",
@@ -392,7 +435,11 @@ DASHBOARD_DEFAULT_COLUMNS = [
     "id",
     "dashboard_title",
     "slug",
+    "description",
+    "certified_by",
+    "certification_details",
     "url",
+    "changed_on",
     "changed_on_humanized",
 ]
 DASHBOARD_SORTABLE_COLUMNS = [

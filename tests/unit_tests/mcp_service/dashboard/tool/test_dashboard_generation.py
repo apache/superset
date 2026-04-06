@@ -87,6 +87,8 @@ def _mock_chart(id: int = 1, slice_name: str = "Test Chart") -> Mock:
     chart.datasource_name = None
     chart.datasource_type = None
     chart.description = None
+    chart.certified_by = None
+    chart.certification_details = None
     chart.cache_timeout = None
     chart.changed_by = None
     chart.changed_by_name = None
