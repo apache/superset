@@ -127,6 +127,20 @@ playwright_testdata() {
   superset load_test_users
   superset load_examples
   superset init
+  # Enable DML on the examples database so Playwright tests can create/drop
+  # temporary tables via SQL Lab without depending on external data sources.
+  python -c "
+from superset.app import create_app
+app = create_app()
+with app.app_context():
+    from superset.extensions import db
+    from superset.models.core import Database
+    examples_db = db.session.query(Database).filter_by(database_name='examples').first()
+    if examples_db:
+        examples_db.allow_dml = True
+        db.session.commit()
+        print('Enabled allow_dml on examples database')
+"
   say "::endgroup::"
 }
 
