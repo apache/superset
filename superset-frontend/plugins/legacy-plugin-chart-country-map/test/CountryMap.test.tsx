@@ -92,6 +92,7 @@ describe('CountryMap (legacy d3)', () => {
         linearColorScheme="bnbColors"
         colorScheme=""
         numberFormat=".2f"
+        formatter={jest.fn().mockReturnValue('100')}
       />,
     );
 
@@ -101,7 +102,7 @@ describe('CountryMap (legacy d3)', () => {
     expect(region).not.toBeNull();
   });
 
-  it('shows tooltip on mouseenter/mousemove/mouseout', async () => {
+  test('shows tooltip on mouseenter/mousemove/mouseout', async () => {
     d3.json.mockImplementation((_url: string, cb: D3JsonCallback) =>
       cb(null, mockMapData),
     );
@@ -114,6 +115,7 @@ describe('CountryMap (legacy d3)', () => {
         country="canada"
         linearColorScheme="bnbColors"
         colorScheme=""
+        formatter={jest.fn().mockReturnValue('100')}
       />,
     );
 

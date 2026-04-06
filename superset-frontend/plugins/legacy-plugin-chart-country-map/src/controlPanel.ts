@@ -68,6 +68,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['currency_format'],
         ['linear_color_scheme'],
       ],
     },

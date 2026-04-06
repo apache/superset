@@ -21,7 +21,6 @@ import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { extent as d3Extent } from 'd3-array';
 import {
-  getNumberFormatter,
   getSequentialSchemeRegistry,
   CategoricalColorNamespace,
 } from '@superset-ui/core';
@@ -52,16 +51,21 @@ function CountryMap(element, props) {
     height,
     country,
     linearColorScheme,
-    numberFormat,
+    formatter,
     colorScheme,
     sliceId,
   } = props;
 
   const container = element;
-  const format = getNumberFormatter(numberFormat);
-  const linearColorScale = getSequentialSchemeRegistry()
-    .get(linearColorScheme)
-    .createLinearScale(d3Extent(data, v => v.metric));
+  const rawExtents = d3Extent(data, v => v.metric);
+  const extents =
+    rawExtents[0] != null && rawExtents[1] != null
+      ? [rawExtents[0], rawExtents[1]]
+      : [0, 1];
+  const colorSchemeObj = getSequentialSchemeRegistry().get(linearColorScheme);
+  const linearColorScale = colorSchemeObj
+    ? colorSchemeObj.createLinearScale(extents)
+    : () => '#ccc'; // fallback if scheme not found
   const colorScale = CategoricalColorNamespace.getScale(colorScheme);
 
   const colorMap = {};
@@ -152,7 +156,7 @@ function CountryMap(element, props) {
       .style('top', `${position[1] + 30}px`)
       .style('left', `${position[0]}px`)
       .html(
-        `<div><strong>${getNameOfRegion(d)}</strong><br>${result.length > 0 ? format(result[0].metric) : ''}</div>`,
+        `<div><strong>${getNameOfRegion(d)}</strong><br>${result.length > 0 ? formatter(result[0].metric) : ''}</div>`,
       );
   };
 
