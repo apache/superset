@@ -233,6 +233,14 @@ HASH_ALGORITHM_FALLBACKS: list[Literal["md5", "sha256"]] = ["md5"]
 # a sufficiently random sequence, ex: openssl rand -base64 42"
 SECRET_KEY = os.environ.get("SUPERSET_SECRET_KEY") or CHANGE_ME_SECRET_KEY
 
+# Keys used to encrypt extension storage entries (Tier 3 persistent storage).
+# The first key in the list is used for new encryptions; all keys are tried
+# on decryption.  To rotate: prepend the new key, restart, then run
+# ``superset rotate-extension-storage-keys``.  Once all rows are re-encrypted
+# the old key(s) can be removed from the list.
+# Falls back to SECRET_KEY when not set.
+EXTENSION_STORAGE_ENCRYPTION_KEYS: list[str] = []
+
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = (
     f"""sqlite:///{os.path.join(DATA_DIR, "superset.db")}?check_same_thread=false"""

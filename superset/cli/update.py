@@ -103,6 +103,54 @@ def update_api_docs() -> None:
 
 @click.command()
 @with_appcontext
+@transaction()
+def rotate_extension_storage_keys() -> None:
+    """Re-encrypt all encrypted extension storage rows with the current key.
+
+    Run this after prepending a new key to EXTENSION_STORAGE_ENCRYPTION_KEYS
+    in your Superset config.  MultiFernet.rotate() decrypts each token with
+    whichever old key succeeds, then re-encrypts it with the first (new) key.
+    Once all rows are rotated you can remove old keys from the config list.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset import db
+    from superset.extension_storage.daos import _fernet
+    from superset.extension_storage.models import ExtensionStorage
+
+    fernet = _fernet()
+    entries = (
+        db.session.query(ExtensionStorage)
+        .filter(ExtensionStorage.is_encrypted.is_(True))
+        .all()
+    )
+    if not entries:
+        click.secho("No encrypted entries found.", fg="yellow")
+        return
+    failed = 0
+    for entry in entries:
+        try:
+            entry.value = fernet.rotate(entry.value)
+        except Exception as exc:  # pylint: disable=broad-except
+            click.secho(
+                f"Failed to rotate key={entry.key} ext={entry.extension_id}: {exc}",
+                fg="red",
+                err=True,
+            )
+            failed += 1
+    rotated = len(entries) - failed
+    click.secho(
+        f"Rotated {rotated}/{len(entries)} entries"
+        + (
+            f" ({failed} failed — check EXTENSION_STORAGE_ENCRYPTION_KEYS)"
+            if failed
+            else ""
+        ),
+        fg="green" if not failed else "yellow",
+    )
+
+
+@click.command()
+@with_appcontext
 @click.option(
     "--previous_secret_key",
     "-a",

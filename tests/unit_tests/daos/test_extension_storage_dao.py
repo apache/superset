@@ -304,6 +304,74 @@ def test_encrypted_value_is_fernet_token(session: Session) -> None:
     assert decoded[0] == 0x80, "stored value should be a Fernet token"
 
 
+# ── Key rotation ──────────────────────────────────────────────────────────────
+
+
+def test_key_rotation_roundtrip(session: Session, app: object) -> None:
+    """MultiFernet.rotate() re-encrypts so only the new key is needed afterwards."""
+    import base64
+    import hashlib
+
+    from cryptography.fernet import Fernet, MultiFernet
+    from flask import current_app
+
+    # Store a value encrypted with the current key (derived from SECRET_KEY).
+    payload = b"sensitive-data"
+    ExtensionStorageDAO.set(EXT_A, "rot_key", payload, is_encrypted=True)
+
+    entry = ExtensionStorageDAO.get(EXT_A, "rot_key")
+    assert entry is not None
+    old_ciphertext = entry.value
+
+    # Simulate adding a NEW key at the front of EXTENSION_STORAGE_ENCRYPTION_KEYS.
+    new_raw = b"brand-new-secret-key-32-bytes!!!"
+    new_fernet = Fernet(base64.urlsafe_b64encode(hashlib.sha256(new_raw).digest()))
+    old_raw = current_app.config["SECRET_KEY"]
+    if isinstance(old_raw, str):
+        old_raw = old_raw.encode()
+    old_fernet = Fernet(base64.urlsafe_b64encode(hashlib.sha256(old_raw).digest()))
+
+    multi = MultiFernet([new_fernet, old_fernet])
+
+    # Rotate: re-encrypt the old ciphertext with the new key.
+    entry.value = multi.rotate(old_ciphertext)
+    session.flush()
+
+    # Now the rotated ciphertext must differ from the old one…
+    assert entry.value != old_ciphertext
+    # …but decrypting with only the NEW key must return the original plaintext.
+    assert new_fernet.decrypt(entry.value) == payload
+
+
+def test_multi_fernet_decrypts_old_key(session: Session, app: object) -> None:
+    """MultiFernet tries all keys: a token encrypted with key-A is still readable
+    when key-B is current (before rotation completes)."""
+    import base64
+    import hashlib
+
+    from cryptography.fernet import Fernet, MultiFernet
+    from flask import current_app
+
+    payload = b"still-readable"
+    ExtensionStorageDAO.set(EXT_A, "multi_key", payload, is_encrypted=True)
+
+    entry = ExtensionStorageDAO.get(EXT_A, "multi_key")
+    assert entry is not None
+
+    # Build a MultiFernet with a new key first, then the current one.
+    new_raw = b"another-brand-new-secret-key!!!!"
+    new_fernet = Fernet(base64.urlsafe_b64encode(hashlib.sha256(new_raw).digest()))
+    old_raw = current_app.config["SECRET_KEY"]
+    if isinstance(old_raw, str):
+        old_raw = old_raw.encode()
+    old_fernet = Fernet(base64.urlsafe_b64encode(hashlib.sha256(old_raw).digest()))
+
+    multi = MultiFernet([new_fernet, old_fernet])
+
+    # Token was encrypted by old_fernet; multi should still decrypt it.
+    assert multi.decrypt(entry.value) == payload
+
+
 # ── Value blob ────────────────────────────────────────────────────────────────
 
 

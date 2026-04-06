@@ -21,7 +21,7 @@ import base64
 import hashlib
 import logging
 
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, MultiFernet
 from flask import current_app
 from sqlalchemy import and_
 
@@ -31,13 +31,25 @@ from superset.extension_storage.models import ExtensionStorage
 logger = logging.getLogger(__name__)
 
 
-def _fernet() -> Fernet:
-    """Return a Fernet instance derived from the app SECRET_KEY."""
-    raw_key = current_app.config["SECRET_KEY"]
+def _key_to_fernet(raw_key: str | bytes) -> Fernet:
     if isinstance(raw_key, str):
         raw_key = raw_key.encode()
-    derived = hashlib.sha256(raw_key).digest()
-    return Fernet(base64.urlsafe_b64encode(derived))
+    return Fernet(base64.urlsafe_b64encode(hashlib.sha256(raw_key).digest()))
+
+
+def _fernet() -> MultiFernet:
+    """Return a MultiFernet built from EXTENSION_STORAGE_ENCRYPTION_KEYS.
+
+    Falls back to SECRET_KEY when the config list is absent.  The first key in
+    the list is used for new encryptions; all keys are tried on decryption,
+    enabling zero-downtime rotation: add the new key at the front of
+    EXTENSION_STORAGE_ENCRYPTION_KEYS, then run ``superset rotate-extension-
+    storage-keys`` to re-encrypt every row with the new key.
+    """
+    raw_keys: list[str | bytes] = current_app.config.get(
+        "EXTENSION_STORAGE_ENCRYPTION_KEYS"
+    ) or [current_app.config["SECRET_KEY"]]
+    return MultiFernet([_key_to_fernet(k) for k in raw_keys])
 
 
 def _scope_filter(
