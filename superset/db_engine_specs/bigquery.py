@@ -332,8 +332,14 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             if type(first_batch[0]).__name__ == "Row":
                 first_batch = [r.values() for r in first_batch]
 
-            # Estimate how many rows fit in the memory budget using per-row sizes
-            first_batch_bytes = sum(sys.getsizeof(row) for row in first_batch)
+            # Estimate how many rows fit in the memory budget.
+            # Sum container + element sizes (one level deep) for a better
+            # estimate. Most BigQuery cell values are primitives (str, int,
+            # float, date), so one level captures the dominant allocation.
+            first_batch_bytes = sum(
+                sys.getsizeof(row) + sum(sys.getsizeof(v) for v in row)
+                for row in first_batch
+            )
             rows_fetched = len(first_batch)
             avg_bytes_per_row = first_batch_bytes / rows_fetched
             total_rows_for_target = int(max_bytes / avg_bytes_per_row)
