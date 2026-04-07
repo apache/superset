@@ -51,12 +51,12 @@ export default defineConfig({
   reporter: process.env.CI
     ? [
         ['github'], // GitHub Actions annotations
-        ['list'], // Detailed output with summary table
+        ['./playwright/reporters/cypress-style-reporter.ts'], // Cypress-style grouped output
         ['html', { outputFolder: 'playwright-report', open: 'never' }], // Interactive report
         ['json', { outputFile: 'test-results/results.json' }], // Machine-readable
       ]
     : [
-        ['list'], // Shows summary table locally
+        ['./playwright/reporters/cypress-style-reporter.ts'], // Cypress-style grouped output
         ['html', { outputFolder: 'playwright-report', open: 'on-failure' }], // Auto-open on failure
       ],
 
