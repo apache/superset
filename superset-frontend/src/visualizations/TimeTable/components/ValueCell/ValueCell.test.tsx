@@ -89,7 +89,7 @@ describe('ValueCell', () => {
     );
   });
 
-  test('should render null value', () => {
+  test('should render error message', () => {
     render(<ValueCell value={null} column={mockColumn} errorMsg='This is an error message' />);
 
     expect(screen.getByText('This is an error message')).toBeInTheDocument();
