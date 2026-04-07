@@ -148,7 +148,7 @@ const config: ControlPanelConfig = {
       label: t('Advanced'),
       controlSetRows: [
         [jsColumns],
-        //[jsDataMutator], // TODO: uncomment
+        [jsDataMutator],
         [jsTooltip],
         [jsOnclickHref],
       ],

@@ -173,11 +173,10 @@ export const getHighlightLayer: GetLayerType<PathLayer> = function ({
     };
   });
 
-  // TODO: uncomment
-  // if (fd.js_data_mutator) {
-  //   const jsFnMutator = sandboxedEval(fd.js_data_mutator);
-  //   data = jsFnMutator(data);
-  // }
+  if (fd.js_data_mutator) {
+    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
+    data = jsFnMutator(data);
+  }
 
   const filteredData = data.filter(
     (d: JsonObject) =>
