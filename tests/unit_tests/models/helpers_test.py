@@ -98,6 +98,125 @@ def test_values_for_column(database: Database) -> None:
         assert table.values_for_column("a") == [1, None]
 
 
+def test_values_for_column_passes_catalog_and_schema(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Test that `values_for_column` forwards the dataset's catalog and schema
+    to `database.get_sqla_engine()` so that engine params are adjusted with
+    the correct schema context (e.g. for MySQL, Snowflake, Presto).
+    """
+    import pandas as pd
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+
+    connection = engine.raw_connection()
+    connection.execute("CREATE TABLE t (a INTEGER, b TEXT)")
+    connection.execute("INSERT INTO t VALUES (1, 'Alice')")
+    connection.commit()
+
+    # Track the catalog/schema values passed to get_sqla_engine
+    captured_kwargs: dict[str, str | None] = {}
+
+    @contextmanager
+    def mock_get_sqla_engine(catalog=None, schema=None, **kwargs):
+        captured_kwargs["catalog"] = catalog
+        captured_kwargs["schema"] = schema
+        yield engine
+
+    mocker.patch.object(
+        database,
+        "get_sqla_engine",
+        new=mock_get_sqla_engine,
+    )
+
+    table = SqlaTable(
+        database=database,
+        catalog="my_catalog",
+        schema="my_schema",
+        table_name="t",
+        columns=[TableColumn(column_name="a")],
+    )
+
+    with patch(
+        "pandas.read_sql_query",
+        return_value=pd.DataFrame({"column_values": [1]}),
+    ):
+        table.values_for_column("a")
+
+    assert captured_kwargs["catalog"] == "my_catalog"
+    assert captured_kwargs["schema"] == "my_schema"
+
+
+def test_values_for_column_passes_none_catalog_and_schema(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Test that `values_for_column` forwards None catalog/schema when the
+    dataset has no catalog or schema set.
+    """
+    import pandas as pd
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+
+    connection = engine.raw_connection()
+    connection.execute("CREATE TABLE t (a INTEGER, b TEXT)")
+    connection.execute("INSERT INTO t VALUES (1, 'Alice')")
+    connection.commit()
+
+    captured_kwargs: dict[str, str | None] = {}
+
+    @contextmanager
+    def mock_get_sqla_engine(catalog=None, schema=None, **kwargs):
+        captured_kwargs["catalog"] = catalog
+        captured_kwargs["schema"] = schema
+        yield engine
+
+    mocker.patch.object(
+        database,
+        "get_sqla_engine",
+        new=mock_get_sqla_engine,
+    )
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a")],
+    )
+
+    with patch(
+        "pandas.read_sql_query",
+        return_value=pd.DataFrame({"column_values": [1]}),
+    ):
+        table.values_for_column("a")
+
+    assert captured_kwargs["catalog"] is None
+    assert captured_kwargs["schema"] is None
+
+
 def test_values_for_column_with_rls(database: Database) -> None:
     """
     Test the `values_for_column` method with RLS enabled.
