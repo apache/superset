@@ -2094,6 +2094,15 @@ TEST_DATABASE_CONNECTION_TIMEOUT = timedelta(seconds=30)
 # the existing tokens from the database. This needs to be done by running a query to
 # delete the existing tokens.
 DATABASE_OAUTH2_CLIENTS: dict[str, dict[str, Any]] = {
+    # "Databricks": {
+    #     "id": "<your-databricks-oauth-client-id>",
+    #     "secret": "<your-databricks-oauth-client-secret>",
+    #     "host": "<workspace>.cloud.databricks.com",
+    #     "scope": "sql offline_access",
+    #     # OIDC endpoints are auto-derived from host. Override if needed:
+    #     # "authorization_request_uri": "https://<workspace>.cloud.databricks.com/oidc/v1/authorize",
+    #     # "token_request_uri": "https://<workspace>.cloud.databricks.com/oidc/v1/token",
+    # },
     # "Google Sheets": {
     #     "id": "XXX.apps.googleusercontent.com",
     #     "secret": "GOCSPX-YYY",
