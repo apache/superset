@@ -117,12 +117,8 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
     ({ sqlLab }: SqlLabRootState) => sqlLab.tables,
     shallowEqual,
   );
-  const queryEditor = useQueryEditor(queryEditorId, [
-    'dbId',
-    'schema',
-    'catalog',
-  ]);
-  const { dbId, catalog, schema: selectedSchema } = queryEditor;
+  const queryEditor = useQueryEditor(queryEditorId, ['dbId', 'catalog']);
+  const { dbId, catalog } = queryEditor;
   const pinnedTables = useMemo(
     () =>
       Object.fromEntries(
@@ -141,12 +137,11 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
     refetch,
     loadingNodes,
     handleToggle,
-    fetchLazyTables,
+    handleRefreshTables,
     errorPayload,
   } = useTreeData({
     dbId,
     catalog,
-    selectedSchema,
     pinnedTables,
   });
 
@@ -238,13 +233,13 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
         loadingNodes={loadingNodes}
         searchTerm={searchTerm}
         catalog={catalog}
-        fetchLazyTables={fetchLazyTables}
+        handleRefreshTables={handleRefreshTables}
         handlePinTable={handlePinTable}
       />
     ),
     [
       catalog,
-      fetchLazyTables,
+      handleRefreshTables,
       handlePinTable,
       loadingNodes,
       manuallyOpenedNodes,

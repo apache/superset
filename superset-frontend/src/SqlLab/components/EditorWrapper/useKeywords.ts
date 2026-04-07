@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useMemo, useRef } from 'react';
-import { useSelector, useDispatch, shallowEqual, useStore } from 'react-redux';
+import { useDispatch, useStore } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import { getExtensionsRegistry } from '@superset-ui/core';
 
@@ -30,15 +30,10 @@ import {
   COLUMN_AUTOCOMPLETE_SCORE,
   SQL_FUNCTIONS_AUTOCOMPLETE_SCORE,
 } from 'src/SqlLab/constants';
-import {
-  schemaEndpoints,
-  tableEndpoints,
-  skipToken,
-} from 'src/hooks/apiResources';
+import { schemaEndpoints } from 'src/hooks/apiResources';
 import { api } from 'src/hooks/apiResources/queryApi';
 import { useDatabaseFunctionsQuery } from 'src/hooks/apiResources/databaseFunctions';
 import useEffectEvent from 'src/hooks/useEffectEvent';
-import { SqlLabRootState } from 'src/SqlLab/types';
 
 type Params = {
   queryEditorId: string | number;
@@ -51,7 +46,6 @@ type Params = {
 const EMPTY_LIST = [] as typeof sqlKeywords;
 
 const { useQueryState: useSchemasQueryState } = schemaEndpoints.schemas;
-const { useQueryState: useTablesQueryState } = tableEndpoints.tables;
 
 const getHelperText = (value: string) =>
   value.length > 30 && {
@@ -87,16 +81,6 @@ export function useKeywords(
     },
     { skip: skipFetch || !dbId },
   );
-  const { currentData: tableData } = useTablesQueryState(
-    {
-      dbId,
-      catalog,
-      schema,
-      forceRefresh: false,
-    },
-    { skip: skipFetch || !dbId || !schema },
-  );
-
   const { currentData: functionNames, isError } = useDatabaseFunctionsQuery(
     { dbId },
     { skip: skipFetch || !dbId },
@@ -110,41 +94,64 @@ export function useKeywords(
     }
   }, [dispatch, isError]);
 
-  const tablesForColumnMetadata = useSelector<SqlLabRootState, string[]>(
-    ({ sqlLab }) =>
-      skip
-        ? []
-        : (sqlLab?.tables ?? [])
-            .filter(table => table.queryEditorId === queryEditorId)
-            .map(table => table.name),
-    shallowEqual,
-  );
-
   const store = useStore();
   const apiState = store.getState()[api.reducerPath];
 
+  // Normalize catalog for comparison (null/undefined both mean "no catalog")
+  const normalizedCatalog = catalog ?? null;
+
+  // Collect all table names from all cached table-list queries for this database/catalog.
+  // This includes tables from any schema the user has expanded in the tree.
+  const allCachedTables = useMemo(() => {
+    if (skipFetch || !dbId || !apiState) return [];
+    const tables: { value: string; label: string; schema: string }[] = [];
+    const seen = new Set<string>();
+    const queries = apiState.queries ?? {};
+    for (const entry of Object.values(queries) as any[]) {
+      const arg = entry?.originalArgs;
+      if (
+        arg?.dbId === dbId &&
+        (arg?.catalog ?? null) === normalizedCatalog &&
+        entry?.status === 'fulfilled' &&
+        entry?.data?.options
+      ) {
+        for (const table of entry.data.options) {
+          const key = `${arg.schema}.${table.value}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            tables.push({
+              value: table.value,
+              label: table.label ?? table.value,
+              schema: arg.schema,
+            });
+          }
+        }
+      }
+    }
+    return tables;
+  }, [dbId, normalizedCatalog, apiState, skipFetch]);
+
+  // Collect column names from all cached table-metadata queries for this database/catalog.
+  // This includes columns from any table the user has expanded in the tree.
   const allColumns = useMemo(() => {
+    if (skipFetch || !dbId || !apiState) return [];
     const columns = new Set<string>();
-    tablesForColumnMetadata.forEach(table => {
-      tableEndpoints.tableMetadata
-        .select(
-          dbId && schema
-            ? {
-                dbId,
-                catalog,
-                schema,
-                table,
-              }
-            : skipToken,
-        )({
-          [api.reducerPath]: apiState,
-        })
-        .data?.columns?.forEach(({ name }) => {
-          columns.add(name);
-        });
-    });
+    const queries = apiState.queries ?? {};
+    for (const entry of Object.values(queries) as any[]) {
+      const arg = entry?.originalArgs;
+      if (
+        entry?.status === 'fulfilled' &&
+        entry?.data?.columns &&
+        arg?.dbId === dbId &&
+        (arg?.catalog ?? null) === normalizedCatalog
+      ) {
+        for (const col of entry.data.columns) {
+          columns.add(col.name);
+        }
+      }
+    }
     return [...columns];
-  }, [dbId, catalog, schema, apiState, tablesForColumnMetadata]);
+  }, [dbId, normalizedCatalog, apiState, skipFetch]);
 
   const insertMatch = useEffectEvent((editor: Editor, data: any) => {
     if (data.meta === 'table') {
@@ -187,7 +194,7 @@ export function useKeywords(
 
   const tableKeywords = useMemo(
     () =>
-      (tableData?.options ?? []).map(({ value, label }) => ({
+      allCachedTables.map(({ value, label }) => ({
         name: label,
         value,
         score: TABLE_AUTOCOMPLETE_SCORE,
@@ -197,7 +204,7 @@ export function useKeywords(
         },
         ...getHelperText(value),
       })),
-    [tableData?.options, insertMatch],
+    [allCachedTables, insertMatch],
   );
 
   const columnKeywords = useMemo(

@@ -180,7 +180,7 @@ test('should render schema selector, database selector container, and selects', 
     name: 'Select database or type to search databases',
   });
   const schemaSelect = screen.getByRole('combobox', {
-    name: 'Select schema or type to search schemas',
+    name: 'Select schema',
   });
   expect(databaseSelect).toBeInTheDocument();
   expect(schemaSelect).toBeInTheDocument();

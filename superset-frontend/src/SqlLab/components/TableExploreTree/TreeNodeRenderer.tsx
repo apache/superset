@@ -19,11 +19,11 @@
 import { css, styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import type { NodeRendererProps } from 'react-arborist';
-import { Icons, Tooltip, Typography } from '@superset-ui/core/components';
+import { Icons, Typography } from '@superset-ui/core/components';
 import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
 import ColumnElement from 'src/SqlLab/components/ColumnElement';
-import IconButton from 'src/dashboard/components/IconButton';
-import type { TreeNodeData, FetchLazyTablesParams } from './types';
+import { ActionButton } from '@superset-ui/core/components/ActionButton';
+import type { TreeNodeData } from './types';
 
 const StyledColumnNode = styled.div`
   & > .ant-flex {
@@ -67,7 +67,11 @@ export interface TreeNodeRendererProps extends NodeRendererProps<TreeNodeData> {
   loadingNodes: Record<string, boolean>;
   searchTerm: string;
   catalog: string | null | undefined;
-  fetchLazyTables: (params: FetchLazyTablesParams) => void;
+  handleRefreshTables: (params: {
+    dbId: number;
+    catalog: string | null | undefined;
+    schema: string;
+  }) => void;
   handlePinTable: (
     tableName: string,
     schemaName: string,
@@ -82,7 +86,7 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
   loadingNodes,
   searchTerm,
   catalog,
-  fetchLazyTables,
+  handleRefreshTables,
   handlePinTable,
 }) => {
   const { data } = node;
@@ -205,11 +209,10 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
           <RefreshLabel
             onClick={e => {
               e.stopPropagation();
-              fetchLazyTables({
-                dbId: _dbId,
+              handleRefreshTables({
+                dbId: Number(_dbId),
                 catalog,
                 schema,
-                forceRefresh: true,
               });
             }}
             tooltipContent={t('Force refresh table list')}
@@ -220,20 +223,15 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
         <div
           className="side-action-container"
           role="menu"
-          css={css`
-            position: inherit;
-          `}
+          onClick={e => e.stopPropagation()}
         >
-          <IconButton
-            icon={
-              <Tooltip title={t('Pin to the result panel')}>
-                <Icons.PushpinOutlined iconSize="xl" />
-              </Tooltip>
+          <ActionButton
+            label="pin-table"
+            tooltip={t('Pin to the result panel')}
+            icon={<Icons.PushpinOutlined iconSize="m" />}
+            onClick={() =>
+              handlePinTable(tableName, schema, catalog ?? null)
             }
-            onClick={e => {
-              e.stopPropagation();
-              handlePinTable(tableName, schema, catalog ?? null);
-            }}
           />
         </div>
       )}
