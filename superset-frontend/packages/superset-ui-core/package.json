@@ -53,7 +53,7 @@
     "react-ace": "^14.0.1",
     "react-draggable": "^4.5.0",
     "react-error-boundary": "6.0.0",
-    "react-js-cron": "^5.2.0",
+    "react-js-cron": "^6.0.2",
     "react-markdown": "^8.0.7",
     "react-resize-detector": "^7.1.2",
     "react-syntax-highlighter": "^16.1.0",
