@@ -65,6 +65,10 @@ export default function exportPivotExcel(
   fileName: string,
 ) {
   const table = document.querySelector(tableSelector);
+  if (!table) {
+    console.error(`[exportPivotExcel] No element found for selector: "${tableSelector}"`);
+    return;
+  }
   // `raw: true` keeps every cell as the literal text rendered in the DOM.
   // Without it, SheetJS tries to infer numbers/dates from the displayed
   // string, which mangles values that were formatted using a non-US
