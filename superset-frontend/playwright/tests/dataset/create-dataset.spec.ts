@@ -49,7 +49,7 @@ interface ExamplesSetupResult {
  */
 async function setupExamplesDataset(
   page: Page,
-  testAssets: TestAssets,
+  _testAssets: TestAssets,
   testInfo: TestInfo,
 ): Promise<ExamplesSetupResult> {
   // Look up the examples database (always available in CI via load_examples)

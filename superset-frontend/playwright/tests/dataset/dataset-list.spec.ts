@@ -518,10 +518,18 @@ test.describe('import dataset', () => {
     // Verify dataset appears in list
     await expect(datasetListPage.getDatasetRow(datasetName)).toBeVisible();
 
-    // Track for cleanup: look up the reimported dataset by name
-    const reimported = await getDatasetByName(page, datasetName);
-    if (reimported) {
-      testAssets.trackDataset(reimported.id);
+    // Track for cleanup: extract dataset ID from import response
+    const importBody = await importResponse.json().catch(() => ({}));
+    const importedId =
+      importBody?.result?.[0]?.id ?? importBody?.result?.id ?? null;
+    if (importedId) {
+      testAssets.trackDataset(importedId);
+    } else {
+      // Fallback: look up by name if response didn't include an ID
+      const reimported = await getDatasetByName(page, datasetName);
+      if (reimported) {
+        testAssets.trackDataset(reimported.id);
+      }
     }
   });
 });
