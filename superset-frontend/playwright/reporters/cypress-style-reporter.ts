@@ -46,6 +46,7 @@ interface FileResult {
   bufferedOutput: string[];
   duration: number;
   started: boolean;
+  hasPromotedResults: boolean;
 }
 
 interface Colors {
@@ -114,6 +115,7 @@ export default class CypressStyleReporter implements Reporter {
           bufferedOutput: [],
           duration: 0,
           started: false,
+          hasPromotedResults: false,
         });
         this.fileOrder.push(fileKey);
       }
@@ -226,6 +228,7 @@ export default class CypressStyleReporter implements Reporter {
       for (const [testId, pending] of file.pendingResults) {
         if (!file.results.has(testId)) {
           file.results.set(testId, pending);
+          file.hasPromotedResults = true;
         }
       }
     }
@@ -435,7 +438,8 @@ export default class CypressStyleReporter implements Reporter {
       let passing = 0;
       let failing = 0;
       let skippedCount = 0;
-      const wasInterrupted = file.results.size < file.totalExpected;
+      const wasInterrupted =
+        file.hasPromotedResults || file.results.size < file.totalExpected;
 
       for (const r of file.results.values()) {
         if (r.outcome === 'expected' || r.outcome === 'flaky') passing += 1;
@@ -445,7 +449,7 @@ export default class CypressStyleReporter implements Reporter {
 
       const tests = file.results.size;
       totalSpecs += 1;
-      if (failing > 0) failedSpecs += 1;
+      if (failing > 0 && !wasInterrupted) failedSpecs += 1;
       totalSkipped += skippedCount;
 
       const marker = wasInterrupted

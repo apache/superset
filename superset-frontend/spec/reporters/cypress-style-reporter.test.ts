@@ -859,6 +859,42 @@ test('footer counts failed specs, not individual failed tests', () => {
   expect(output).not.toContain('2 of 4 failed');
 });
 
+test('promoted retry results keep spec marked as interrupted in summary', () => {
+  const reporter = new CypressStyleReporter();
+  const t1 = mockTest({
+    id: '1',
+    title: 'fails once',
+    file: 'tests/promoted.spec.ts',
+    retries: 2,
+    outcome: 'unexpected',
+  });
+
+  reporter.onBegin(mockConfig, mockSuite([t1]));
+
+  // First attempt fails (non-terminal: retry 0 !== retries 2)
+  reporter.onTestEnd(
+    t1,
+    mockResult({
+      status: 'failed',
+      retry: 0,
+      duration: 1000,
+      errors: [{ message: 'first fail' }],
+    }),
+  );
+
+  // Run interrupted before retry 1 — onEnd promotes pending result
+  reporter.onEnd({ status: 'interrupted' } as any);
+
+  const output = getStdout();
+  // Per-file box: promoted result shown with interrupted label
+  expect(output).toContain('✗ fails once');
+  expect(output).toContain('1 of 1 (interrupted)');
+  // Footer: "Run was interrupted", NOT "1 of 1 failed"
+  // (the failure is transient — test never exhausted its retries)
+  expect(output).toContain('interrupted');
+  expect(output).not.toContain('1 of 1 failed');
+});
+
 test('interrupted test with retries is treated as terminal, not dropped', () => {
   const reporter = new CypressStyleReporter();
   const t1 = mockTest({
