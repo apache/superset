@@ -52,9 +52,8 @@ const ButtonsContainer = styled.div<{ isVertical: boolean; width: number }>`
       ? css`
           flex-direction: column;
           align-items: center;
-          position: fixed;
+          position: sticky;
           z-index: 100;
-          width: ${width - 1}px;
           bottom: 0;
           padding: ${theme.sizeUnit * 4}px;
           padding-top: ${theme.sizeUnit * 6}px;
