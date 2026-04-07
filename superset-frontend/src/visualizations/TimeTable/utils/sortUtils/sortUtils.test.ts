@@ -18,21 +18,6 @@
  */
 import { sortNumberWithMixedTypes } from './sortUtils';
 
-jest.mock('src/utils/sortNumericValues', () => ({
-  sortNumericValues: jest.fn((a, b, options) => {
-    const numA = Number(a);
-    const numB = Number(b);
-
-    if (Number.isNaN(numA) && Number.isNaN(numB)) return 0;
-    if (Number.isNaN(numA))
-      return options.nanTreatment === 'asSmallest' ? -1 : 1;
-    if (Number.isNaN(numB))
-      return options.nanTreatment === 'asSmallest' ? 1 : -1;
-
-    return numA - numB;
-  }),
-}));
-
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('sortNumberWithMixedTypes', () => {
   const createMockRow = (value: any) => ({

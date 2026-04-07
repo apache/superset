@@ -88,4 +88,10 @@ describe('ValueCell', () => {
       expect.stringMatching(/color: rgb\([0-9]{1,3}, [0-9]{1,3}, [0-9]{1,3}\)/),
     );
   });
+
+  test('should render null value', () => {
+    render(<ValueCell value={null} column={mockColumn} errorMsg='This is an error message' />);
+
+    expect(screen.getByText('This is an error message')).toBeInTheDocument();
+  });
 });
