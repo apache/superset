@@ -49,11 +49,8 @@ export function forExtension(extensionId: string): typeof storageApi {
   };
 }
 
-export const storage: typeof storageApi & {
-  forExtension: typeof forExtension;
-} = {
+export const storage: typeof storageApi = {
   localState,
   sessionState,
   ephemeralState,
-  forExtension,
 };

@@ -81,7 +81,7 @@ class SharedEphemeralStateAccessor:
 
     def _build_key(self, key: str) -> str:
         """Build a shared (global) cache key."""
-        return _build_cache_key(KEY_PREFIX, self._extension_id, key)
+        return _build_cache_key(KEY_PREFIX, self._extension_id, "shared", key)
 
     def get(self, key: str) -> Any:
         """

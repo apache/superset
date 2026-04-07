@@ -37,9 +37,11 @@ function buildEphemeralStateUrl(
   isShared: boolean,
 ): string {
   const basePath = '/api/v1/extensions/storage/ephemeral';
+  const encodedExtensionId = encodeURIComponent(extensionId);
+  const encodedKey = encodeURIComponent(key);
   return isShared
-    ? `${basePath}/shared/${extensionId}/${key}`
-    : `${basePath}/${extensionId}/${key}`;
+    ? `${basePath}/shared/${encodedExtensionId}/${encodedKey}`
+    : `${basePath}/${encodedExtensionId}/${encodedKey}`;
 }
 
 /**
@@ -54,7 +56,7 @@ class SharedEphemeralStateAccessor
     this.extensionId = extensionId;
   }
 
-  async get(key: string): Promise<unknown> {
+  async get(key: string): Promise<StorageTypes.JsonValue | null> {
     const url = buildEphemeralStateUrl(this.extensionId, key, true);
     const response = await SupersetClient.get({ endpoint: url });
     return response.json?.result ?? null;
@@ -62,7 +64,7 @@ class SharedEphemeralStateAccessor
 
   async set(
     key: string,
-    value: unknown,
+    value: StorageTypes.JsonValue,
     options?: StorageTypes.ephemeralState.SetOptions,
   ): Promise<void> {
     const url = buildEphemeralStateUrl(this.extensionId, key, true);
@@ -89,7 +91,7 @@ class SharedEphemeralStateAccessor
 export const ephemeralState: typeof storageApi.ephemeralState = {
   DEFAULT_TTL,
 
-  async get(key: string): Promise<unknown> {
+  async get(key: string): Promise<StorageTypes.JsonValue | null> {
     const extensionId = getCurrentExtensionId();
     const url = buildEphemeralStateUrl(extensionId, key, false);
     const response = await SupersetClient.get({ endpoint: url });
@@ -98,7 +100,7 @@ export const ephemeralState: typeof storageApi.ephemeralState = {
 
   async set(
     key: string,
-    value: unknown,
+    value: StorageTypes.JsonValue,
     options?: StorageTypes.ephemeralState.SetOptions,
   ): Promise<void> {
     const extensionId = getCurrentExtensionId();
@@ -134,7 +136,7 @@ export function createBoundEphemeralState(
   class BoundSharedEphemeralAccessor
     implements StorageTypes.ephemeralState.EphemeralStateAccessor
   {
-    async get(key: string): Promise<unknown> {
+    async get(key: string): Promise<StorageTypes.JsonValue | null> {
       const url = buildEphemeralStateUrl(extensionId, key, true);
       const response = await SupersetClient.get({ endpoint: url });
       return response.json?.result ?? null;
@@ -142,7 +144,7 @@ export function createBoundEphemeralState(
 
     async set(
       key: string,
-      value: unknown,
+      value: StorageTypes.JsonValue,
       options?: StorageTypes.ephemeralState.SetOptions,
     ): Promise<void> {
       const url = buildEphemeralStateUrl(extensionId, key, true);
@@ -165,7 +167,7 @@ export function createBoundEphemeralState(
   return {
     DEFAULT_TTL,
 
-    async get(key: string): Promise<unknown> {
+    async get(key: string): Promise<StorageTypes.JsonValue | null> {
       const url = buildEphemeralStateUrl(extensionId, key, false);
       const response = await SupersetClient.get({ endpoint: url });
       return response.json?.result ?? null;
@@ -173,7 +175,7 @@ export function createBoundEphemeralState(
 
     async set(
       key: string,
-      value: unknown,
+      value: StorageTypes.JsonValue,
       options?: StorageTypes.ephemeralState.SetOptions,
     ): Promise<void> {
       const url = buildEphemeralStateUrl(extensionId, key, false);

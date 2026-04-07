@@ -49,34 +49,7 @@
  * ```
  */
 
-/**
- * Interface for scoped local state access.
- * Returned by `shared()` for shared operations.
- */
-export interface LocalStateAccessor {
-  /**
-   * Get a value from scoped local state.
-   *
-   * @param key The key to retrieve.
-   * @returns The stored value, or null if not found.
-   */
-  get(key: string): Promise<unknown>;
-
-  /**
-   * Set a value in scoped local state.
-   *
-   * @param key The key to store.
-   * @param value The value to store (must be JSON-serializable).
-   */
-  set(key: string, value: unknown): Promise<void>;
-
-  /**
-   * Remove a value from scoped local state.
-   *
-   * @param key The key to remove.
-   */
-  remove(key: string): Promise<void>;
-}
+import type { JsonValue, StorageAccessor } from './types';
 
 /**
  * Get a value from user-scoped local state.
@@ -95,7 +68,7 @@ export interface LocalStateAccessor {
  * }
  * ```
  */
-export declare function get(key: string): Promise<unknown>;
+export declare function get(key: string): Promise<JsonValue | null>;
 
 /**
  * Set a value in user-scoped local state.
@@ -112,7 +85,7 @@ export declare function get(key: string): Promise<unknown>;
  * await localState.set('panel_width', 300);
  * ```
  */
-export declare function set(key: string, value: unknown): Promise<void>;
+export declare function set(key: string, value: JsonValue): Promise<void>;
 
 /**
  * Remove a value from user-scoped local state.
@@ -147,4 +120,4 @@ export declare function remove(key: string): Promise<void>;
  * await localState.shared().set('last_used_printer', 'HP-1234');
  * ```
  */
-export declare function shared(): LocalStateAccessor;
+export declare function shared(): StorageAccessor;
