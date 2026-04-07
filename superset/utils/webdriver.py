@@ -419,7 +419,8 @@ class WebDriverSelenium(WebDriverProxy):
     def driver(self) -> WebDriver:
         if not self._driver:
             self._driver = self._create()
-            assert self._driver  # for mypy
+            if not self._driver:
+                raise RuntimeError("WebDriver creation failed")
             self._driver.set_window_size(*self._window)
             if self._user:
                 self._auth(self._user)
@@ -558,10 +559,11 @@ class WebDriverSelenium(WebDriverProxy):
         logger.debug("Init selenium driver")
         return driver_class(**kwargs)
 
-    def _auth(self, user: User) -> WebDriver:
-        driver = self._create()
-        return machine_auth_provider_factory.instance.authenticate_webdriver(
-            driver, user
+    def _auth(self, user: User) -> None:
+        """Authenticate the persistent driver in-place."""
+        assert self._driver is not None
+        machine_auth_provider_factory.instance.authenticate_webdriver(
+            self._driver, user
         )
 
     def _destroy(self, tries: int = 2) -> None:

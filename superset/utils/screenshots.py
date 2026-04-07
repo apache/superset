@@ -212,7 +212,11 @@ class BaseScreenshot:
         self, user: User, window_size: WindowSize | None = None
     ) -> bytes | None:
         driver = self.driver(window_size, user)
-        self.screenshot = driver.get_screenshot(self.url, self.element)
+        try:
+            self.screenshot = driver.get_screenshot(self.url, self.element)
+        finally:
+            if isinstance(driver, WebDriverSelenium):
+                driver.destroy()
         return self.screenshot
 
     def get_cache_key(
