@@ -25,6 +25,18 @@
  */
 
 /**
+ * JSON-compatible value type.
+ * These are the only values that can be safely serialized/deserialized via JSON.
+ */
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+/**
  * Base interface for a storage accessor.
  * All storage tiers implement this interface for both user-scoped and shared access.
  */
@@ -35,7 +47,7 @@ export interface StorageAccessor {
    * @param key The key to retrieve.
    * @returns The stored value, or null if not found.
    */
-  get(key: string): Promise<unknown>;
+  get(key: string): Promise<JsonValue | null>;
 
   /**
    * Set a value in storage.
@@ -46,8 +58,8 @@ export interface StorageAccessor {
    */
   set(
     key: string,
-    value: unknown,
-    options?: Record<string, unknown>,
+    value: JsonValue,
+    options?: Record<string, JsonValue>,
   ): Promise<void>;
 
   /**

@@ -34,20 +34,20 @@ import { buildKey, getCurrentExtensionId, getCurrentUserId } from './utils';
 export function createBrowserStorageImpl(
   storage: Storage,
 ): typeof storageApi.localState {
-  class SharedAccessor implements StorageTypes.localState.LocalStateAccessor {
+  class SharedAccessor implements StorageTypes.StorageAccessor {
     private extensionId: string;
 
     constructor(extensionId: string) {
       this.extensionId = extensionId;
     }
 
-    async get(key: string): Promise<unknown> {
+    async get(key: string): Promise<StorageTypes.JsonValue | null> {
       const storageKey = buildKey(this.extensionId, key);
       const value = storage.getItem(storageKey);
       return value ? JSON.parse(value) : null;
     }
 
-    async set(key: string, value: unknown): Promise<void> {
+    async set(key: string, value: StorageTypes.JsonValue): Promise<void> {
       const storageKey = buildKey(this.extensionId, key);
       storage.setItem(storageKey, JSON.stringify(value));
     }
@@ -59,7 +59,7 @@ export function createBrowserStorageImpl(
   }
 
   return {
-    async get(key: string): Promise<unknown> {
+    async get(key: string): Promise<StorageTypes.JsonValue | null> {
       const extensionId = getCurrentExtensionId();
       const userId = getCurrentUserId();
       const storageKey = buildKey(extensionId, 'user', userId, key);
@@ -67,7 +67,7 @@ export function createBrowserStorageImpl(
       return value ? JSON.parse(value) : null;
     },
 
-    async set(key: string, value: unknown): Promise<void> {
+    async set(key: string, value: StorageTypes.JsonValue): Promise<void> {
       const extensionId = getCurrentExtensionId();
       const userId = getCurrentUserId();
       const storageKey = buildKey(extensionId, 'user', userId, key);
@@ -81,7 +81,7 @@ export function createBrowserStorageImpl(
       storage.removeItem(storageKey);
     },
 
-    shared(): StorageTypes.localState.LocalStateAccessor {
+    shared(): StorageTypes.StorageAccessor {
       const extensionId = getCurrentExtensionId();
       return new SharedAccessor(extensionId);
     },
@@ -95,16 +95,14 @@ export function createBoundBrowserStorage(
   browserStorage: Storage,
   extensionId: string,
 ): typeof storageApi.localState {
-  class BoundSharedAccessor
-    implements StorageTypes.localState.LocalStateAccessor
-  {
-    async get(key: string): Promise<unknown> {
+  class BoundSharedAccessor implements StorageTypes.StorageAccessor {
+    async get(key: string): Promise<StorageTypes.JsonValue | null> {
       const storageKey = buildKey(extensionId, key);
       const value = browserStorage.getItem(storageKey);
       return value ? JSON.parse(value) : null;
     }
 
-    async set(key: string, value: unknown): Promise<void> {
+    async set(key: string, value: StorageTypes.JsonValue): Promise<void> {
       const storageKey = buildKey(extensionId, key);
       browserStorage.setItem(storageKey, JSON.stringify(value));
     }
@@ -116,14 +114,14 @@ export function createBoundBrowserStorage(
   }
 
   return {
-    async get(key: string): Promise<unknown> {
+    async get(key: string): Promise<StorageTypes.JsonValue | null> {
       const userId = getCurrentUserId();
       const storageKey = buildKey(extensionId, 'user', userId, key);
       const value = browserStorage.getItem(storageKey);
       return value ? JSON.parse(value) : null;
     },
 
-    async set(key: string, value: unknown): Promise<void> {
+    async set(key: string, value: StorageTypes.JsonValue): Promise<void> {
       const userId = getCurrentUserId();
       const storageKey = buildKey(extensionId, 'user', userId, key);
       browserStorage.setItem(storageKey, JSON.stringify(value));
@@ -135,7 +133,7 @@ export function createBoundBrowserStorage(
       browserStorage.removeItem(storageKey);
     },
 
-    shared(): StorageTypes.localState.LocalStateAccessor {
+    shared(): StorageTypes.StorageAccessor {
       return new BoundSharedAccessor();
     },
   };
