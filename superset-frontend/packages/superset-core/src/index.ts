@@ -23,6 +23,7 @@ export * as editors from './editors';
 export * as extensions from './extensions';
 export * as menus from './menus';
 export * as sqlLab from './sqlLab';
+export * as storage from './storage';
 export * as views from './views';
 export * as contributions from './contributions';
 export * as theme from './theme';
