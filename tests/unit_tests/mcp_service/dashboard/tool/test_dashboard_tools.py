@@ -529,13 +529,15 @@ class TestDashboardDefaultColumnFiltering:
             DASHBOARD_DEFAULT_COLUMNS,
         )
 
-        # Should have exactly 5 minimal columns
-        assert len(DASHBOARD_DEFAULT_COLUMNS) == 5
         assert set(DASHBOARD_DEFAULT_COLUMNS) == {
             "id",
             "dashboard_title",
             "slug",
+            "description",
+            "certified_by",
+            "certification_details",
             "url",
+            "changed_on",
             "changed_on_humanized",
         }
 
