@@ -31,6 +31,7 @@ import {
   AnnotationSourceType,
   AnnotationStyle,
 } from '@superset-ui/core';
+import * as toastActions from 'src/components/MessageToasts/actions';
 import { LOG_EVENT } from 'src/logger/actions';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import * as actions from 'src/components/Chart/chartAction';
@@ -339,6 +340,56 @@ describe('chart actions', () => {
         },
       );
       expect(result).toEqual([1, 2, 3]);
+    });
+
+    test('dispatches addWarningToast when a query response includes a warning', async () => {
+      const warningMessage =
+        'Results truncated to 1,000 rows due to memory constraints.';
+      fetchMock.removeRoute(MOCK_URL);
+      fetchMock.post(
+        `glob:*${MOCK_URL}*`,
+        { result: [{ warning: warningMessage }] },
+        { name: MOCK_URL },
+      );
+      const addWarningToastSpy = jest.spyOn(toastActions, 'addWarningToast');
+
+      const actionThunk = actions.postChartFormData(
+        { viz_type: 'my_viz' } as QueryFormData,
+        false,
+        undefined,
+        undefined,
+      );
+      await actionThunk(
+        dispatch as unknown as actions.ChartThunkDispatch,
+        mockGetState as unknown as () => actions.RootState,
+        undefined,
+      );
+
+      expect(addWarningToastSpy).toHaveBeenCalledWith(warningMessage, {
+        noDuplicate: true,
+      });
+      addWarningToastSpy.mockRestore();
+      fetchMock.removeRoute(MOCK_URL);
+      setupDefaultFetchMock();
+    });
+
+    test('does not dispatch addWarningToast when no query response has a warning', async () => {
+      const addWarningToastSpy = jest.spyOn(toastActions, 'addWarningToast');
+
+      const actionThunk = actions.postChartFormData(
+        { viz_type: 'my_viz' } as QueryFormData,
+        false,
+        undefined,
+        undefined,
+      );
+      await actionThunk(
+        dispatch as unknown as actions.ChartThunkDispatch,
+        mockGetState as unknown as () => actions.RootState,
+        undefined,
+      );
+
+      expect(addWarningToastSpy).not.toHaveBeenCalled();
+      addWarningToastSpy.mockRestore();
     });
   });
 

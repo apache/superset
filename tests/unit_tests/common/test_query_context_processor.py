@@ -1426,17 +1426,14 @@ def test_get_df_payload_bq_memory_limited_warning():
         mock_cache.sql_rowcount = 3
         mock_cache.cache_dttm = "2024-01-01T00:00:00"
         mock_cache.queried_dttm = "2024-01-01T00:00:00"
+        mock_cache.bq_memory_limited = True
+        mock_cache.bq_memory_limited_row_count = 5000
         mock_cache_manager.get.return_value = mock_cache
 
         with patch.object(query_obj, "validate", return_value=None):
             with patch.object(processor, "query_cache_key", return_value="key"):
                 with patch.object(processor, "get_cache_timeout", return_value=3600):
-                    # Simulate BigQuery memory-limited flag being set on Flask g
-                    with patch("superset.common.query_context_processor.g") as mock_g:
-                        mock_g.bq_memory_limited = True
-                        mock_g.bq_memory_limited_row_count = 5000
-
-                        result = processor.get_df_payload(query_obj, force_cached=False)
+                    result = processor.get_df_payload(query_obj, force_cached=False)
 
     assert result["warning"] is not None
     assert "Chart 42" in result["warning"]
@@ -1489,15 +1486,12 @@ def test_get_df_payload_no_warning_when_not_memory_limited():
         mock_cache.sql_rowcount = 2
         mock_cache.cache_dttm = "2024-01-01T00:00:00"
         mock_cache.queried_dttm = "2024-01-01T00:00:00"
+        mock_cache.bq_memory_limited = False
         mock_cache_manager.get.return_value = mock_cache
 
         with patch.object(query_obj, "validate", return_value=None):
             with patch.object(processor, "query_cache_key", return_value="key"):
                 with patch.object(processor, "get_cache_timeout", return_value=3600):
-                    # g.bq_memory_limited is not set (default)
-                    with patch("superset.common.query_context_processor.g") as mock_g:
-                        mock_g.bq_memory_limited = False
-
-                        result = processor.get_df_payload(query_obj, force_cached=False)
+                    result = processor.get_df_payload(query_obj, force_cached=False)
 
     assert result["warning"] is None

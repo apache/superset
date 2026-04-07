@@ -21,7 +21,7 @@ import re
 from typing import Any, cast, ClassVar, Sequence, TYPE_CHECKING
 
 import pandas as pd
-from flask import current_app, g
+from flask import current_app
 from flask_babel import gettext as _
 
 from superset.common.chart_data import ChartDataResultFormat
@@ -191,12 +191,8 @@ class QueryContextProcessor:
         cache.df.columns = [unescape_separator(col) for col in cache.df.columns.values]
 
         warning: str | None = None
-        if getattr(g, "bq_memory_limited", False):
-            row_count = getattr(g, "bq_memory_limited_row_count", len(cache.df))
-            # Reset flags immediately so subsequent queries in the same request
-            # don't inherit this warning
-            g.bq_memory_limited = False
-            g.bq_memory_limited_row_count = 0
+        if cache.bq_memory_limited:
+            row_count = cache.bq_memory_limited_row_count
             chart_id = (self._query_context.form_data or {}).get("slice_id", "")
             prefix = f"Chart {chart_id}: " if chart_id else ""
             warning = _(
