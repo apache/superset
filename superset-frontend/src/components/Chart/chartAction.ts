@@ -810,7 +810,7 @@ export function exploreJSON(
         );
         (queriesResponse as QueryData[]).forEach(response => {
           if (response.warning) {
-            dispatch(addWarningToast(response.warning));
+            dispatch(addWarningToast(response.warning, { noDuplicate: true }));
           }
         });
         return dispatch(
