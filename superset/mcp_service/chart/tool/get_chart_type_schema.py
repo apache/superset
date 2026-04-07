@@ -105,6 +105,7 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
     "handlebars": [
         {
             "chart_type": "handlebars",
+            "query_mode": "raw",
             "columns": [{"name": "customer_name"}, {"name": "email"}],
             "handlebars_template": "{{#each data}}<p>{{customer_name}}</p>{{/each}}",
         },
