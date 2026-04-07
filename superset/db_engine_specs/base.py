@@ -88,6 +88,7 @@ from superset.utils.oauth2 import (
     encode_oauth2_state,
     generate_code_challenge,
     generate_code_verifier,
+    get_oauth2_redirect_uri,
 )
 
 if TYPE_CHECKING:
@@ -654,10 +655,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         from superset.daos.key_value import KeyValueDAO
 
         tab_id = str(uuid4())
-        default_redirect_uri = app.config.get(
-            "DATABASE_OAUTH2_REDIRECT_URI",
-            url_for("DatabaseRestApi.oauth2", _external=True),
-        )
+        default_redirect_uri = get_oauth2_redirect_uri()
 
         # Generate PKCE code verifier (RFC 7636)
         code_verifier = generate_code_verifier()
@@ -720,10 +718,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return None
 
         db_engine_spec_config = oauth2_config[cls.engine_name]
-        redirect_uri = app.config.get(
-            "DATABASE_OAUTH2_REDIRECT_URI",
-            url_for("DatabaseRestApi.oauth2", _external=True),
-        )
+        redirect_uri = get_oauth2_redirect_uri()
 
         config: OAuth2ClientConfig = {
             "id": db_engine_spec_config["id"],
