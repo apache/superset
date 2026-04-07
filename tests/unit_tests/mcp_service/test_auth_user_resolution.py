@@ -427,3 +427,30 @@ def test_default_resolver_preferred_username_takes_priority() -> None:
         }
     )
     assert default_user_resolver(None, token) == "alice"
+
+
+def test_setup_user_context_propagates_valueerror(app) -> None:
+    """ValueError from get_user_from_request propagates — no g.user fallback.
+
+    This is a security-critical test: when JWT resolution explicitly fails
+    (user not in DB), the request must be denied. The auth layer must NOT
+    silently fall back to g.user from middleware.
+
+    Uses test_request_context() so g.user is preserved (not cleared by
+    the no-request-context guard), validating that the ValueError still
+    propagates even when middleware has set g.user.
+    """
+    from superset.mcp_service.auth import _setup_user_context
+
+    fallback_user = _make_mock_user("middleware_user")
+
+    with app.test_request_context():
+        g.user = fallback_user
+        with patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            side_effect=ValueError("User 'ghost' not found"),
+        ):
+            with pytest.raises(ValueError, match="User 'ghost' not found"):
+                _setup_user_context()
+            # g.user should be cleared after ValueError (no misleading audit)
+            assert not hasattr(g, "user") or g.user is None

@@ -36,6 +36,7 @@ from superset.mcp_service.chart.chart_utils import (
 )
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
+    parse_chart_config,
     PerformanceMetadata,
     UpdateChartPreviewRequest,
 )
@@ -95,20 +96,20 @@ def update_chart_preview(
     start_time = time.time()
 
     try:
+        # Parse the raw config dict into a typed ChartConfig
+        config = parse_chart_config(request.config)
+
         with event_logger.log_context(action="mcp.update_chart_preview.form_data"):
             # Map the new config to form_data format
             # Pass dataset_id to enable column type checking
             new_form_data = map_config_to_form_data(
-                request.config, dataset_id=request.dataset_id
+                config, dataset_id=request.dataset_id
             )
             new_form_data.pop("_mcp_warnings", None)
 
             # Preserve adhoc filters from the previous cached form_data
             # when the new config doesn't explicitly specify filters
-            if (
-                getattr(request.config, "filters", None) is None
-                and request.form_data_key
-            ):
+            if getattr(config, "filters", None) is None and request.form_data_key:
                 old_adhoc_filters = _get_old_adhoc_filters(request.form_data_key)
                 if old_adhoc_filters:
                     new_form_data["adhoc_filters"] = old_adhoc_filters
@@ -123,8 +124,8 @@ def update_chart_preview(
 
         with event_logger.log_context(action="mcp.update_chart_preview.metadata"):
             # Generate semantic analysis
-            capabilities = analyze_chart_capabilities(None, request.config)
-            semantics = analyze_chart_semantics(None, request.config)
+            capabilities = analyze_chart_capabilities(None, config)
+            semantics = analyze_chart_semantics(None, config)
 
         # Create performance metadata
         execution_time = int((time.time() - start_time) * 1000)
@@ -135,7 +136,7 @@ def update_chart_preview(
         )
 
         # Create accessibility metadata
-        chart_name = generate_chart_name(request.config)
+        chart_name = generate_chart_name(config)
         accessibility = AccessibilityMetadata(
             color_blind_safe=True,  # Would need actual analysis
             alt_text=f"Updated chart preview showing {chart_name}",

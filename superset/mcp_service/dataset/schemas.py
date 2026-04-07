@@ -102,6 +102,12 @@ class DatasetInfo(BaseModel):
     schema_name: str | None = Field(None, description="Schema name", alias="schema")
     database_name: str | None = Field(None, description="Database name")
     description: str | None = Field(None, description="Dataset description")
+    certified_by: str | None = Field(
+        None, description="Name of the person or team who certified this dataset"
+    )
+    certification_details: str | None = Field(
+        None, description="Certification details or reason"
+    )
     changed_by: str | None = Field(None, description="Last modifier (username)")
     changed_on: str | datetime | None = Field(
         None, description="Last modification timestamp"
@@ -324,6 +330,9 @@ def _humanize_timestamp(dt: datetime | None) -> str | None:
 def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
     if not dataset:
         return None
+
+    from superset.mcp_service.utils.url_utils import get_superset_base_url
+
     params = getattr(dataset, "params", None)
     if isinstance(params, str):
         try:
@@ -360,6 +369,8 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         if getattr(dataset, "database", None)
         else None,
         description=getattr(dataset, "description", None),
+        certified_by=getattr(dataset, "certified_by", None),
+        certification_details=getattr(dataset, "certification_details", None),
         changed_by=getattr(dataset, "changed_by_name", None)
         or (str(dataset.changed_by) if getattr(dataset, "changed_by", None) else None),
         changed_on=getattr(dataset, "changed_on", None),
@@ -387,7 +398,12 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         if getattr(dataset, "uuid", None)
         else None,
         schema_perm=getattr(dataset, "schema_perm", None),
-        url=getattr(dataset, "url", None),
+        url=(
+            f"{get_superset_base_url()}/tablemodelview/edit/"
+            f"{getattr(dataset, 'id', None)}"
+            if getattr(dataset, "id", None)
+            else None
+        ),
         sql=getattr(dataset, "sql", None),
         main_dttm_col=getattr(dataset, "main_dttm_col", None),
         offset=getattr(dataset, "offset", None),
