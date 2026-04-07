@@ -41,6 +41,7 @@ const QueryLabel = styled.div`
 const StyledModal = styled(Modal)`
   .ant-modal-body {
     padding: 24px;
+    padding-top: 0;
   }
 `;
 

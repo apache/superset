@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, useTheme } from '@apache-superset/core/theme';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { ModalTrigger } from '@superset-ui/core/components';
 import CodeSyntaxHighlighter from '@superset-ui/core/components/CodeSyntaxHighlighter';
@@ -81,7 +81,11 @@ function HighlightSqlModal({ rawSql, sql }: HighlightedSqlModalTypes) {
   };
 
   return (
-    <div>
+    <div
+      css={css`
+        margin: -${theme.sizeUnit * 6}px;
+      `}
+    >
       <Title>{t('Source SQL')}</Title>
       <CodeSyntaxHighlighter language="sql" customStyle={codeBlockStyle}>
         {sql}

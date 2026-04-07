@@ -65,6 +65,7 @@ const TabButton = styled.div`
 const StyledModal = styled(Modal)`
   .ant-modal-body {
     padding: ${({ theme }) => theme.sizeUnit * 6}px;
+    padding-top: 0;
   }
 `;
 
