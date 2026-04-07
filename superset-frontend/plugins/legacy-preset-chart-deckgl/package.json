@@ -31,7 +31,7 @@
     "@deck.gl/layers": "~9.2.5",
     "@deck.gl/mesh-layers": "~9.2.5",
     "@deck.gl/react": "~9.2.11",
-    "@luma.gl/constants": "~9.2.5",
+    "@luma.gl/constants": "~9.3.2",
     "@luma.gl/core": "~9.2.5",
     "@luma.gl/engine": "~9.2.6",
     "@luma.gl/shadertools": "~9.2.6",
