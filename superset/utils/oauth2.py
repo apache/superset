@@ -256,8 +256,7 @@ def get_oauth2_redirect_uri() -> str:
     empty string so that callers can detect the missing URI
     instead of crashing.
     """
-    configured = app.config.get("DATABASE_OAUTH2_REDIRECT_URI")
-    if configured:
+    if configured := app.config.get("DATABASE_OAUTH2_REDIRECT_URI"):
         return configured
 
     try:
