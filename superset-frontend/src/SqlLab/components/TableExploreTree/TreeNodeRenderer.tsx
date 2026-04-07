@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled } from '@apache-superset/core/theme';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import type { NodeRendererProps } from 'react-arborist';
 import { Icons, Typography } from '@superset-ui/core/components';
@@ -67,6 +67,8 @@ export interface TreeNodeRendererProps extends NodeRendererProps<TreeNodeData> {
   loadingNodes: Record<string, boolean>;
   searchTerm: string;
   catalog: string | null | undefined;
+  dbId: number | undefined;
+  pinnedTableKeys: Set<string>;
   handleRefreshTables: (params: {
     dbId: number;
     catalog: string | null | undefined;
@@ -77,6 +79,7 @@ export interface TreeNodeRendererProps extends NodeRendererProps<TreeNodeData> {
     schemaName: string,
     catalogName: string | null,
   ) => void;
+  handleUnpinTable: (tableName: string, schemaName: string) => void;
 }
 
 const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
@@ -86,9 +89,13 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
   loadingNodes,
   searchTerm,
   catalog,
+  dbId,
+  pinnedTableKeys,
   handleRefreshTables,
   handlePinTable,
+  handleUnpinTable,
 }) => {
+  const theme = useTheme();
   const { data } = node;
   const parts = data.id.split(':');
   const [identifier, _dbId, schema, tableName] = parts;
@@ -219,22 +226,52 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
           />
         </div>
       )}
-      {identifier === 'table' && (
-        <div
-          className="side-action-container"
-          role="menu"
-          onClick={e => e.stopPropagation()}
-        >
-          <ActionButton
-            label="pin-table"
-            tooltip={t('Pin to the result panel')}
-            icon={<Icons.PushpinOutlined iconSize="m" />}
-            onClick={() =>
-              handlePinTable(tableName, schema, catalog ?? null)
-            }
-          />
-        </div>
-      )}
+      {identifier === 'table' &&
+        (() => {
+          const isPinned = pinnedTableKeys.has(
+            `${dbId}:${schema}:${tableName}`,
+          );
+          return (
+            <>
+              {isPinned && (
+                <Icons.PushpinFilled
+                  iconSize="s"
+                  css={css`
+                    color: ${theme.colorTextDescription};
+                    flex-shrink: 0;
+                    margin-left: ${theme.sizeUnit}px;
+                  `}
+                />
+              )}
+              <div
+                className="side-action-container"
+                role="menu"
+                onClick={e => e.stopPropagation()}
+              >
+                <ActionButton
+                  label={isPinned ? 'unpin-table' : 'pin-table'}
+                  tooltip={
+                    isPinned
+                      ? t('Unpin from the result panel')
+                      : t('Pin to the result panel')
+                  }
+                  icon={
+                    isPinned ? (
+                      <Icons.PushpinFilled iconSize="m" />
+                    ) : (
+                      <Icons.PushpinOutlined iconSize="m" />
+                    )
+                  }
+                  onClick={() =>
+                    isPinned
+                      ? handleUnpinTable(tableName, schema)
+                      : handlePinTable(tableName, schema, catalog ?? null)
+                  }
+                />
+              </div>
+            </>
+          );
+        })()}
     </div>
   );
 };

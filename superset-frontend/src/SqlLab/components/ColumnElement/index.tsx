@@ -76,8 +76,10 @@ interface ColumnElementProps {
   };
 }
 
-const NowrapDiv = styled.div`
+const ColumnType = styled.div`
   white-space: nowrap;
+  color: ${({ theme }) => theme.colorTextDescription};
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
 `;
 
 const ColumnElement = ({ column }: ColumnElementProps) => {
@@ -111,9 +113,7 @@ const ColumnElement = ({ column }: ColumnElementProps) => {
         {columnName}
         {icons}
       </div>
-      <NowrapDiv className="text-muted">
-        <small> {column.type}</small>
-      </NowrapDiv>
+      <ColumnType>{column.type}</ColumnType>
     </Flex>
   );
 };

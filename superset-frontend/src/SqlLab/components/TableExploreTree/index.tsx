@@ -40,7 +40,7 @@ import {
 } from '@superset-ui/core/components';
 import type { SqlLabRootState } from 'src/SqlLab/types';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
-import { addTable } from 'src/SqlLab/actions/sqlLab';
+import { addTable, removeTables } from 'src/SqlLab/actions/sqlLab';
 import PanelToolbar from 'src/components/PanelToolbar';
 import { ViewLocations } from 'src/SqlLab/contributions';
 import TreeNodeRenderer from './TreeNodeRenderer';
@@ -117,17 +117,22 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
     ({ sqlLab }: SqlLabRootState) => sqlLab.tables,
     shallowEqual,
   );
-  const queryEditor = useQueryEditor(queryEditorId, ['dbId', 'catalog']);
+  const queryEditor = useQueryEditor(queryEditorId, [
+    'dbId',
+    'catalog',
+    'tabViewId',
+  ]);
   const { dbId, catalog } = queryEditor;
+  const editorId = queryEditor.tabViewId ?? queryEditor.id;
   const pinnedTables = useMemo(
     () =>
       Object.fromEntries(
         tables.map(({ queryEditorId, dbId, schema, name, persistData }) => [
-          queryEditor.id === queryEditorId ? `${dbId}:${schema}:${name}` : '',
+          editorId === queryEditorId ? `${dbId}:${schema}:${name}` : '',
           persistData,
         ]),
       ),
-    [tables, queryEditor.id],
+    [tables, editorId],
   );
 
   // Tree data hook - manages schema/table/column data fetching and tree structure
@@ -145,10 +150,36 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
     pinnedTables,
   });
 
+  const pinnedTableKeys = useMemo(
+    () =>
+      new Set(
+        tables
+          .filter(({ queryEditorId: qeId }) => editorId === qeId)
+          .map(({ dbId, schema, name }) => `${dbId}:${schema}:${name}`),
+      ),
+    [tables, editorId],
+  );
+
   const handlePinTable = useCallback(
     (tableName: string, schemaName: string, catalogName: string | null) =>
       dispatch(addTable(queryEditor, tableName, catalogName, schemaName)),
     [dispatch, queryEditor],
+  );
+
+  const handleUnpinTable = useCallback(
+    (tableName: string, schemaName: string) => {
+      const table = tables.find(
+        t =>
+          t.queryEditorId === editorId &&
+          t.dbId === dbId &&
+          t.schema === schemaName &&
+          t.name === tableName,
+      );
+      if (table) {
+        dispatch(removeTables([table]));
+      }
+    },
+    [dispatch, tables, editorId, dbId],
   );
   const [searchTerm, setSearchTerm] = useState('');
   const handleSearchChange = useCallback(
@@ -233,14 +264,20 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
         loadingNodes={loadingNodes}
         searchTerm={searchTerm}
         catalog={catalog}
+        dbId={dbId}
+        pinnedTableKeys={pinnedTableKeys}
         handleRefreshTables={handleRefreshTables}
         handlePinTable={handlePinTable}
+        handleUnpinTable={handleUnpinTable}
       />
     ),
     [
       catalog,
+      dbId,
+      pinnedTableKeys,
       handleRefreshTables,
       handlePinTable,
+      handleUnpinTable,
       loadingNodes,
       manuallyOpenedNodes,
       searchTerm,
