@@ -169,7 +169,7 @@
     "fast-glob": "^3.3.2",
     "fs-extra": "^11.3.4",
     "fuse.js": "^7.1.0",
-    "geolib": "^3.3.4",
+    "geolib": "^3.3.14",
     "geostyler": "^18.3.1",
     "geostyler-data": "^1.1.0",
     "geostyler-openlayers-parser": "^5.4.1",
