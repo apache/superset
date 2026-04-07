@@ -60,10 +60,11 @@ class TestUpdateChart:
         )
         table_request = UpdateChartRequest(identifier=123, config=table_config)
         assert table_request.identifier == 123
-        assert table_request.config.chart_type == "table"
-        assert len(table_request.config.columns) == 2
-        assert table_request.config.columns[0].name == "region"
-        assert table_request.config.columns[1].aggregate == "SUM"
+        # config is now Dict[str, Any] in the schema; validate via dict access
+        assert table_request.config["chart_type"] == "table"
+        assert len(table_request.config["columns"]) == 2
+        assert table_request.config["columns"][0]["name"] == "region"
+        assert table_request.config["columns"][1]["aggregate"] == "SUM"
 
         # XY chart update with UUID
         xy_config = XYChartConfig(
@@ -80,10 +81,10 @@ class TestUpdateChart:
             identifier="a1b2c3d4-e5f6-7890-abcd-ef1234567890", config=xy_config
         )
         assert xy_request.identifier == "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-        assert xy_request.config.chart_type == "xy"
-        assert xy_request.config.x.name == "date"
-        assert xy_request.config.y[0].aggregate == "SUM"
-        assert xy_request.config.kind == "line"
+        assert xy_request.config["chart_type"] == "xy"
+        assert xy_request.config["x"]["name"] == "date"
+        assert xy_request.config["y"][0]["aggregate"] == "SUM"
+        assert xy_request.config["kind"] == "line"
 
     @pytest.mark.asyncio
     async def test_update_chart_with_chart_name(self):
@@ -170,7 +171,7 @@ class TestUpdateChart:
                 kind=chart_type,
             )
             request = UpdateChartRequest(identifier=1, config=config)
-            assert request.config.kind == chart_type
+            assert request.config["kind"] == chart_type
 
         # Test multiple Y columns
         multi_y_config = XYChartConfig(
@@ -184,8 +185,8 @@ class TestUpdateChart:
             kind="line",
         )
         request = UpdateChartRequest(identifier=1, config=multi_y_config)
-        assert len(request.config.y) == 3
-        assert request.config.y[1].aggregate == "AVG"
+        assert len(request.config["y"]) == 3
+        assert request.config["y"][1]["aggregate"] == "AVG"
 
         # Test filter operators
         operators = ["=", "!=", ">", ">=", "<", "<="]
@@ -196,7 +197,7 @@ class TestUpdateChart:
             filters=filters,
         )
         request = UpdateChartRequest(identifier=1, config=table_config)
-        assert len(request.config.filters) == 6
+        assert len(request.config["filters"]) == 6
 
     @pytest.mark.asyncio
     async def test_update_chart_response_structure(self):
@@ -252,12 +253,12 @@ class TestUpdateChart:
             ),
         )
         request = UpdateChartRequest(identifier=1, config=config)
-        assert request.config.x_axis.title == "Date"
-        assert request.config.x_axis.format == "smart_date"
-        assert request.config.x_axis.scale == "linear"
-        assert request.config.y_axis.title == "Sales Amount"
-        assert request.config.y_axis.format == "$,.2f"
-        assert request.config.y_axis.scale == "log"
+        assert request.config["x_axis"]["title"] == "Date"
+        assert request.config["x_axis"]["format"] == "smart_date"
+        assert request.config["x_axis"]["scale"] == "linear"
+        assert request.config["y_axis"]["title"] == "Sales Amount"
+        assert request.config["y_axis"]["format"] == "$,.2f"
+        assert request.config["y_axis"]["scale"] == "log"
 
     @pytest.mark.asyncio
     async def test_update_chart_legend_configurations(self):
@@ -271,8 +272,8 @@ class TestUpdateChart:
                 legend=LegendConfig(show=True, position=pos),
             )
             request = UpdateChartRequest(identifier=1, config=config)
-            assert request.config.legend.position == pos
-            assert request.config.legend.show is True
+            assert request.config["legend"]["position"] == pos
+            assert request.config["legend"]["show"] is True
 
         # Hidden legend
         config = XYChartConfig(
@@ -282,7 +283,7 @@ class TestUpdateChart:
             legend=LegendConfig(show=False),
         )
         request = UpdateChartRequest(identifier=1, config=config)
-        assert request.config.legend.show is False
+        assert request.config["legend"]["show"] is False
 
     @pytest.mark.asyncio
     async def test_update_chart_aggregation_functions(self):
@@ -294,7 +295,7 @@ class TestUpdateChart:
                 columns=[ColumnRef(name="value", aggregate=agg)],
             )
             request = UpdateChartRequest(identifier=1, config=config)
-            assert request.config.columns[0].aggregate == agg
+            assert request.config["columns"][0]["aggregate"] == agg
 
     @pytest.mark.asyncio
     async def test_update_chart_error_responses(self):
@@ -378,10 +379,10 @@ class TestUpdateChart:
         )
 
         request = UpdateChartRequest(identifier=1, config=config)
-        assert len(request.config.filters) == 3
-        assert request.config.filters[0].column == "region"
-        assert request.config.filters[1].op == ">="
-        assert request.config.filters[2].value == "2024-01-01"
+        assert len(request.config["filters"]) == 3
+        assert request.config["filters"][0]["column"] == "region"
+        assert request.config["filters"][1]["op"] == ">="
+        assert request.config["filters"][2]["value"] == "2024-01-01"
 
     @pytest.mark.asyncio
     async def test_update_chart_cache_control(self):

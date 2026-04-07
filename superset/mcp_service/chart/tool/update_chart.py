@@ -38,6 +38,7 @@ from superset.mcp_service.chart.chart_utils import (
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     GenerateChartResponse,
+    parse_chart_config,
     PerformanceMetadata,
     UpdateChartRequest,
 )
@@ -69,14 +70,15 @@ def _build_update_payload(
     when neither config nor chart_name is provided.
     """
     if request.config is not None:
+        config = parse_chart_config(request.config)
         dataset_id = chart.datasource_id if chart.datasource_id else None
-        new_form_data = map_config_to_form_data(request.config, dataset_id=dataset_id)
+        new_form_data = map_config_to_form_data(config, dataset_id=dataset_id)
         new_form_data.pop("_mcp_warnings", None)
 
         chart_name = (
             request.chart_name
             if request.chart_name
-            else chart.slice_name or generate_chart_name(request.config)
+            else chart.slice_name or generate_chart_name(config)
         )
 
         return {
@@ -222,9 +224,12 @@ async def update_chart(
             command = UpdateChartCommand(chart.id, payload_or_error)
             updated_chart = command.run()
 
+        # Parse config for analysis (may be None for name-only updates)
+        config = parse_chart_config(request.config) if request.config else None
+
         # Generate semantic analysis
-        capabilities = analyze_chart_capabilities(updated_chart, request.config)
-        semantics = analyze_chart_semantics(updated_chart, request.config)
+        capabilities = analyze_chart_capabilities(updated_chart, config)
+        semantics = analyze_chart_semantics(updated_chart, config)
 
         # Create performance metadata
         execution_time = int((time.time() - start_time) * 1000)
@@ -238,11 +243,7 @@ async def update_chart(
         chart_name = (
             updated_chart.slice_name
             if updated_chart and hasattr(updated_chart, "slice_name")
-            else (
-                generate_chart_name(request.config)
-                if request.config
-                else "Updated chart"
-            )
+            else (generate_chart_name(config) if config else "Updated chart")
         )
         accessibility = AccessibilityMetadata(
             color_blind_safe=True,  # Would need actual analysis
