@@ -43,6 +43,7 @@ import {
   waitForPut,
 } from '../../helpers/api/intercepts';
 import {
+  expectDeleted,
   expectStatusOneOf,
   expectValidExportZip,
 } from '../../helpers/api/assertions';
@@ -135,17 +136,9 @@ test('should delete a dataset with confirmation', async ({
   await expect(datasetListPage.getDatasetRow(datasetName)).not.toBeVisible();
 
   // Verify via API that dataset no longer exists (404)
-  await expect
-    .poll(
-      async () => {
-        const response = await apiGetDataset(page, datasetId, {
-          failOnStatusCode: false,
-        });
-        return response.status();
-      },
-      { timeout: 10000, message: `Dataset ${datasetId} should return 404` },
-    )
-    .toBe(404);
+  await expectDeleted(page, ENDPOINTS.DATASET, datasetId, {
+    label: `Dataset ${datasetId}`,
+  });
 });
 
 test('should duplicate a dataset with new name', async ({
@@ -420,29 +413,12 @@ test('should bulk delete multiple datasets', async ({
   await expect(datasetListPage.getDatasetRow(dataset2.name)).not.toBeVisible();
 
   // Verify via API that datasets no longer exist (404)
-  // Use polling with explicit timeout since deletes may be async
-  await expect
-    .poll(
-      async () => {
-        const response = await apiGetDataset(page, dataset1.id, {
-          failOnStatusCode: false,
-        });
-        return response.status();
-      },
-      { timeout: 10000, message: `Dataset ${dataset1.id} should return 404` },
-    )
-    .toBe(404);
-  await expect
-    .poll(
-      async () => {
-        const response = await apiGetDataset(page, dataset2.id, {
-          failOnStatusCode: false,
-        });
-        return response.status();
-      },
-      { timeout: 10000, message: `Dataset ${dataset2.id} should return 404` },
-    )
-    .toBe(404);
+  await expectDeleted(page, ENDPOINTS.DATASET, dataset1.id, {
+    label: `Dataset ${dataset1.id}`,
+  });
+  await expectDeleted(page, ENDPOINTS.DATASET, dataset2.id, {
+    label: `Dataset ${dataset2.id}`,
+  });
 });
 
 // Import test uses export-then-reimport approach (no static fixture needed).
@@ -475,20 +451,9 @@ test.describe('import dataset', () => {
     await apiDeleteDataset(page, datasetId);
 
     // Verify it's gone
-    await expect
-      .poll(
-        async () => {
-          const response = await apiGetDataset(page, datasetId, {
-            failOnStatusCode: false,
-          });
-          return response.status();
-        },
-        {
-          timeout: 10000,
-          message: `Dataset ${datasetId} should return 404 after delete`,
-        },
-      )
-      .toBe(404);
+    await expectDeleted(page, ENDPOINTS.DATASET, datasetId, {
+      label: `Dataset ${datasetId}`,
+    });
 
     // Refresh to confirm dataset is no longer in the list
     await datasetListPage.goto();
@@ -503,11 +468,7 @@ test.describe('import dataset', () => {
     await importModal.waitForReady();
 
     // Upload the exported zip via buffer (no temp file needed)
-    await page.locator('[data-test="model-file-input"]').setInputFiles({
-      name: 'dataset_export.zip',
-      mimeType: 'application/zip',
-      buffer: exportBuffer,
-    });
+    await importModal.uploadFileBuffer(exportBuffer);
 
     // Set up response intercept to catch the import POST
     let importResponsePromise = waitForPost(page, ENDPOINTS.DATASET_IMPORT, {
