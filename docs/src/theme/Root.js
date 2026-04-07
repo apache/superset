@@ -290,7 +290,7 @@ export default function Root({ children }) {
         mutations.forEach((mutation) => {
           if (mutation.attributeName === 'data-theme') {
             trackEvent('User Preference', 'Color Mode Change',
-            document.documentElement.getAttribute('data-theme'));
+                       document.documentElement.getAttribute('data-theme'));
           }
         });
       });
