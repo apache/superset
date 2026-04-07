@@ -37,7 +37,7 @@ from superset_core.queries.types import (
 )
 
 from superset.errors import SupersetErrorType
-from superset.exceptions import OAuth2RedirectError
+from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.extensions import event_logger
 from superset.mcp_service.sql_lab.schemas import (
     ColumnInfo,
@@ -148,7 +148,7 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
 
         return response
 
-    except OAuth2RedirectError:
+    except (OAuth2RedirectError, OAuth2Error):
         await ctx.error(
             "Database requires OAuth authentication: database_id=%s"
             % request.database_id

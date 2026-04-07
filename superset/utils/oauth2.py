@@ -262,7 +262,7 @@ def get_oauth2_redirect_uri() -> str:
 
     try:
         return url_for("DatabaseRestApi.oauth2", _external=True)
-    except BuildError:
+    except (BuildError, RuntimeError):
         logger.warning(
             "Could not build OAuth2 redirect URI via url_for(); "
             "set DATABASE_OAUTH2_REDIRECT_URI in the config."
