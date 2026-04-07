@@ -26,6 +26,7 @@ import {
   addPropertiesToFeature,
 } from '../transformUtils';
 import { DeckPathFormData } from './buildQuery';
+import { isFixedValue, getFixedValue } from '../utils/metricUtils';
 
 declare global {
   interface Window {
@@ -48,6 +49,8 @@ interface PathFeature {
   path: [number, number][];
   metric?: number;
   timestamp?: unknown;
+  width?: number;
+  cat_color?: string;
   extraProps?: Record<string, unknown>;
   [key: string]: unknown;
 }
@@ -91,6 +94,9 @@ function processPathData(
   reverseLongLat: boolean = false,
   metricLabel?: string,
   jsColumns?: string[],
+  widthMetricLabel?: string,
+  fixedWidthValue?: number | string | null,
+  categoryColumn?: string,
 ): PathFeature[] {
   if (!records.length || !lineColumn) {
     return [];
@@ -103,6 +109,8 @@ function processPathData(
       'timestamp',
       DTTM_ALIAS,
       metricLabel,
+      widthMetricLabel,
+      categoryColumn,
       ...(jsColumns || []),
     ].filter(Boolean) as string[],
   );
@@ -130,6 +138,24 @@ function processPathData(
         feature.metric = metricValue;
       }
     }
+    // Set width from metric or fixed value
+    if (fixedWidthValue != null) {
+      // Use fixed width
+      const parsedFixedWith = parseMetricValue(fixedWidthValue);
+      if (parsedFixedWith !== undefined) {
+        feature.width = parsedFixedWith;
+      }
+    } else if (widthMetricLabel && record[widthMetricLabel] != null) {
+      // Use metric value for width
+      const widthValue = parseMetricValue(record[widthMetricLabel]);
+      if (widthValue !== undefined) {
+        feature.width = widthValue;
+      }
+    }
+
+    if (categoryColumn && record[categoryColumn] != null) {
+      feature.cat_color = String(record[categoryColumn]);
+    }
 
     feature = addJsColumnsToExtraProps(feature, record, jsColumns);
     feature = addPropertiesToFeature(feature, record, excludeKeys);
@@ -143,24 +169,47 @@ export default function transformProps(chartProps: ChartProps) {
     line_column,
     line_type = 'json',
     metric,
+    line_width,
+    dimension,
     reverse_long_lat = false,
     js_columns,
+    breakpoint_metric,
   } = formData as DeckPathTransformPropsFormData;
 
-  const metricLabel = getMetricLabelFromFormData(metric);
+  const fixedWidthValue = isFixedValue(line_width)
+    ? getFixedValue(line_width)
+    : null;
+  const widthMetricLabel = getMetricLabelFromFormData(line_width);
+
+  const breakpointMetricLabel = getMetricLabelFromFormData(breakpoint_metric);
+  const baseMetricLabel = getMetricLabelFromFormData(metric);
+  const metricLabel = breakpointMetricLabel || baseMetricLabel;
+
+  // ensure all metric labels are included
+  const metricLabels = [
+    ...(metricLabel ? [metricLabel] : []),
+    ...(widthMetricLabel && widthMetricLabel !== metricLabel
+      ? [widthMetricLabel]
+      : []),
+  ];
+
   const records = getRecordsFromQuery(chartProps.queriesData);
-  const features = processPathData(
+  let features = processPathData(
     records,
     line_column || '',
     line_type,
     reverse_long_lat,
     metricLabel,
     js_columns,
+    widthMetricLabel,
+    fixedWidthValue,
+    dimension,
   ).reverse();
 
   return createBaseTransformResult(
     chartProps,
     features,
-    metricLabel ? [metricLabel] : [],
+    //metricLabel ? [metricLabel] : [],
+    metricLabels,
   );
 }
