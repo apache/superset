@@ -23,6 +23,10 @@ export default function exportPivotExcel(
   fileName: string,
 ) {
   const table = document.querySelector(tableSelector);
+  if (!table) {
+    console.error(`[exportPivotExcel] No element found for selector: "${tableSelector}"`);
+    return;
+  }
   const workbook = utils.table_to_book(table);
   writeFile(workbook, `${fileName}.xlsx`);
 }
