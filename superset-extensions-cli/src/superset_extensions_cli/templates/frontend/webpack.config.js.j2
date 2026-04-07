@@ -26,8 +26,13 @@ module.exports = (env, argv) => {
       extensions: [".ts", ".tsx", ".js", ".jsx"],
     },
     externalsType: "window",
-    externals: {
-      "@apache-superset/core": "superset",
+    externals: ({ request }, callback) => {
+      // Map @apache-superset/core and subpaths to window.superset
+      if (request?.startsWith("@apache-superset/core")) {
+        const parts = request.replace("@apache-superset/core", "superset").split("/");
+        return callback(null, parts);
+      }
+      callback();
     },
     module: {
       rules: [

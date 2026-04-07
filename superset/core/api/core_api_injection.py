@@ -229,6 +229,22 @@ def inject_model_session_implementation() -> None:
     core_models_module.get_session = get_session
 
 
+def inject_storage_implementations() -> None:
+    """
+    Replace abstract storage functions in superset_core.extensions.storage with concrete
+    implementations from Superset.
+    """
+    import superset_core.extensions.storage.ephemeral_state as core_ephemeral_state
+
+    from superset.extensions.storage.ephemeral_state import EphemeralStateImpl
+
+    # Replace abstract functions with concrete implementations
+    core_ephemeral_state.get = EphemeralStateImpl.get
+    core_ephemeral_state.set = EphemeralStateImpl.set
+    core_ephemeral_state.remove = EphemeralStateImpl.remove
+    core_ephemeral_state.shared = EphemeralStateImpl.shared
+
+
 def initialize_core_api_dependencies() -> None:
     """
     Initialize all dependency injections for the superset-core API.
@@ -242,3 +258,4 @@ def initialize_core_api_dependencies() -> None:
     inject_query_implementations()
     inject_task_implementations()
     inject_rest_api_implementations()
+    inject_storage_implementations()

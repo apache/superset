@@ -16,23 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { common as coreType } from '@apache-superset/core';
-import { Disposable } from './models';
 
-const { GenericDataType } = coreType;
+/**
+ * Host implementation for Tier 1 Session State (sessionStorage).
+ */
 
-export const core: typeof coreType = {
-  GenericDataType,
-  Disposable,
-};
+import { createBrowserStorageImpl } from './localState';
 
-export * from './authentication';
-export * from './commands';
-export * from './editors';
-export * from './extensions';
-export * from './menus';
-export * from './models';
-export * from './sqlLab';
-export * from './storage';
-export * from './utils';
-export * from './views';
+/**
+ * Session state implementation using sessionStorage.
+ * Cleared when the browser tab is closed.
+ */
+export const sessionState = createBrowserStorageImpl(sessionStorage);
