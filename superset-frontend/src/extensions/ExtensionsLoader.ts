@@ -19,7 +19,7 @@
 import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import type { common as core } from '@apache-superset/core';
-import { storage } from 'src/core';
+import { forExtension } from 'src/core/storage';
 import './types';
 
 type Extension = core.Extension;
@@ -142,7 +142,7 @@ class ExtensionsLoader {
     // Bind storage to this extension before executing the module.
     // The extension's imports resolve via webpack externals at load time,
     // capturing this bound instance.
-    window.superset.storage = storage.forExtension(id);
+    window.superset.storage = forExtension(id);
 
     // Execute the module factory - side effects fire registrations
     factory();

@@ -49,34 +49,7 @@
  * ```
  */
 
-/**
- * Interface for scoped session state access.
- * Returned by `shared()` for shared operations.
- */
-export interface SessionStateAccessor {
-  /**
-   * Get a value from scoped session state.
-   *
-   * @param key The key to retrieve.
-   * @returns The stored value, or null if not found.
-   */
-  get(key: string): Promise<unknown>;
-
-  /**
-   * Set a value in scoped session state.
-   *
-   * @param key The key to store.
-   * @param value The value to store (must be JSON-serializable).
-   */
-  set(key: string, value: unknown): Promise<void>;
-
-  /**
-   * Remove a value from scoped session state.
-   *
-   * @param key The key to remove.
-   */
-  remove(key: string): Promise<void>;
-}
+import type { JsonValue, StorageAccessor } from './types';
 
 /**
  * Get a value from user-scoped session state.
@@ -96,7 +69,7 @@ export interface SessionStateAccessor {
  * }
  * ```
  */
-export declare function get(key: string): Promise<unknown>;
+export declare function get(key: string): Promise<JsonValue | null>;
 
 /**
  * Set a value in user-scoped session state.
@@ -114,7 +87,7 @@ export declare function get(key: string): Promise<unknown>;
  * await sessionState.set('unsaved_form', formData);
  * ```
  */
-export declare function set(key: string, value: unknown): Promise<void>;
+export declare function set(key: string, value: JsonValue): Promise<void>;
 
 /**
  * Remove a value from user-scoped session state.
@@ -148,4 +121,4 @@ export declare function remove(key: string): Promise<void>;
  * const result = await sessionState.shared().get('temp_computation');
  * ```
  */
-export declare function shared(): SessionStateAccessor;
+export declare function shared(): StorageAccessor;

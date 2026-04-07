@@ -17,6 +17,8 @@
  * under the License.
  */
 
+import type { JsonValue, StorageAccessor } from './types';
+
 /**
  * @fileoverview Ephemeral State API for Superset extensions (Tier 2 Storage).
  *
@@ -64,17 +66,9 @@ export interface SetOptions {
 
 /**
  * Interface for scoped ephemeral state access.
- * Returned by `shared()` for shared (global) operations.
+ * Extends StorageAccessor with TTL-specific options for set().
  */
-export interface EphemeralStateAccessor {
-  /**
-   * Get a value from scoped ephemeral state.
-   *
-   * @param key The key to retrieve.
-   * @returns The stored value, or null if not found or expired.
-   */
-  get(key: string): Promise<unknown>;
-
+export interface EphemeralStateAccessor extends StorageAccessor {
   /**
    * Set a value in scoped ephemeral state with TTL.
    *
@@ -82,14 +76,7 @@ export interface EphemeralStateAccessor {
    * @param value The value to store (must be JSON-serializable).
    * @param options Optional settings including TTL.
    */
-  set(key: string, value: unknown, options?: SetOptions): Promise<void>;
-
-  /**
-   * Remove a value from scoped ephemeral state.
-   *
-   * @param key The key to remove.
-   */
-  remove(key: string): Promise<void>;
+  set(key: string, value: JsonValue, options?: SetOptions): Promise<void>;
 }
 
 /**
@@ -109,7 +96,7 @@ export interface EphemeralStateAccessor {
  * }
  * ```
  */
-export declare function get(key: string): Promise<unknown>;
+export declare function get(key: string): Promise<JsonValue | null>;
 
 /**
  * Set a value in user-scoped ephemeral state with TTL.
@@ -132,7 +119,7 @@ export declare function get(key: string): Promise<unknown>;
  */
 export declare function set(
   key: string,
-  value: unknown,
+  value: JsonValue,
   options?: SetOptions,
 ): Promise<void>;
 

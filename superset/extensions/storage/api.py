@@ -58,6 +58,21 @@ def _get_extension_or_404(extension_id: str) -> LoadedExtension | None:
     return extensions.get(extension_id)
 
 
+def _parse_ttl(body: dict[str, Any]) -> tuple[int | None, str | None]:
+    """Parse and validate TTL from request body.
+
+    Returns:
+        (ttl, error_message) - ttl is the parsed value, error_message is set if invalid
+    """
+    try:
+        ttl = int(body.get("ttl", DEFAULT_TTL))
+    except (TypeError, ValueError):
+        return None, "Field 'ttl' must be a positive integer"
+    if ttl <= 0:
+        return None, "Field 'ttl' must be a positive integer"
+    return ttl, None
+
+
 class ExtensionStorageRestApi(BaseApi):
     """REST API for extension ephemeral state storage."""
 
@@ -180,7 +195,9 @@ class ExtensionStorageRestApi(BaseApi):
             return self.response_400("Request body must contain 'value' field")
 
         value = body["value"]
-        ttl = body.get("ttl", DEFAULT_TTL)
+        ttl, error = _parse_ttl(body)
+        if error:
+            return self.response_400(error)
 
         user_id = g.user.id
         cache_key = _build_cache_key(KEY_PREFIX, extension_id, "user", user_id, key)
@@ -269,7 +286,7 @@ class ExtensionStorageRestApi(BaseApi):
         if not extension:
             return self.response_404("Extension not found")
 
-        cache_key = _build_cache_key(KEY_PREFIX, extension_id, key)
+        cache_key = _build_cache_key(KEY_PREFIX, extension_id, "shared", key)
         value = cache_manager.extension_ephemeral_state_cache.get(cache_key)
 
         return self.response(200, result=value)
@@ -326,9 +343,11 @@ class ExtensionStorageRestApi(BaseApi):
             return self.response_400("Request body must contain 'value' field")
 
         value = body["value"]
-        ttl = body.get("ttl", DEFAULT_TTL)
+        ttl, error = _parse_ttl(body)
+        if error:
+            return self.response_400(error)
 
-        cache_key = _build_cache_key(KEY_PREFIX, extension_id, key)
+        cache_key = _build_cache_key(KEY_PREFIX, extension_id, "shared", key)
         cache_manager.extension_ephemeral_state_cache.set(cache_key, value, timeout=ttl)
 
         return self.response(200, message="Value stored successfully")
@@ -366,7 +385,7 @@ class ExtensionStorageRestApi(BaseApi):
         if not extension:
             return self.response_404("Extension not found")
 
-        cache_key = _build_cache_key(KEY_PREFIX, extension_id, key)
+        cache_key = _build_cache_key(KEY_PREFIX, extension_id, "shared", key)
         cache_manager.extension_ephemeral_state_cache.delete(cache_key)
 
         return self.response(200, message="Value deleted successfully")

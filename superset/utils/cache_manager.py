@@ -250,7 +250,7 @@ class CacheManager:
         self._init_cache(
             app,
             self._extension_ephemeral_state_cache,
-            app.config["EXTENSIONS_STORAGE"]["EPHEMERAL"],
+            app.config.get("EXTENSIONS_STORAGE", {}).get("EPHEMERAL", {}),
             required=True,
         )
         self._init_distributed_coordination(app)
