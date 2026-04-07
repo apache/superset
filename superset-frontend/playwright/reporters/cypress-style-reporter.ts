@@ -41,6 +41,7 @@ interface FileResult {
   fileIndex: number;
   totalExpected: number;
   results: Map<string, CompletedTest>;
+  pendingResults: Map<string, CompletedTest>;
   retryDurations: Map<string, number>;
   bufferedOutput: string[];
   duration: number;
@@ -108,6 +109,7 @@ export default class CypressStyleReporter implements Reporter {
           fileIndex: this.fileOrder.length,
           totalExpected: 0,
           results: new Map(),
+          pendingResults: new Map(),
           retryDurations: new Map(),
           bufferedOutput: [],
           duration: 0,
@@ -144,15 +146,21 @@ export default class CypressStyleReporter implements Reporter {
       result.retry === test.retries ||
       // Expected failure (test.fail()) — Playwright won't retry
       (test.expectedStatus === 'failed' && result.status === 'failed');
-    if (!isTerminal) return;
-
-    fileResult.results.set(test.id, {
+    const completedTest: CompletedTest = {
       title: test.title,
       titlePath: tp,
       duration: fileResult.retryDurations.get(test.id)!,
       outcome: test.outcome(),
       errors: result.errors,
-    });
+    };
+
+    if (!isTerminal) {
+      fileResult.pendingResults.set(test.id, completedTest);
+      return;
+    }
+
+    fileResult.results.set(test.id, completedTest);
+    fileResult.pendingResults.delete(test.id);
 
     if (fileResult.results.size === fileResult.totalExpected) {
       this.flushFileBlock(fileKey, false);
@@ -170,6 +178,7 @@ export default class CypressStyleReporter implements Reporter {
       const fileResult = this.fileResults.get(fileKey);
       if (fileResult && !this.flushedFiles.has(fileKey)) {
         fileResult.bufferedOutput.push(chunk.toString());
+        fileResult.started = true;
         return;
       }
     }
@@ -187,6 +196,7 @@ export default class CypressStyleReporter implements Reporter {
       const fileResult = this.fileResults.get(fileKey);
       if (fileResult && !this.flushedFiles.has(fileKey)) {
         fileResult.bufferedOutput.push(chunk.toString());
+        fileResult.started = true;
         return;
       }
     }
@@ -208,6 +218,18 @@ export default class CypressStyleReporter implements Reporter {
   }
 
   onEnd(result: FullResult): void {
+    // Promote pending (non-terminal) retry results so interrupted runs
+    // preserve the last observed failure instead of losing it entirely
+    for (const fileKey of this.fileOrder) {
+      const file = this.fileResults.get(fileKey);
+      if (!file) continue;
+      for (const [testId, pending] of file.pendingResults) {
+        if (!file.results.has(testId)) {
+          file.results.set(testId, pending);
+        }
+      }
+    }
+
     const runFailed = result.status !== 'passed';
     for (const fileKey of this.fileOrder) {
       if (!this.flushedFiles.has(fileKey)) {
@@ -402,9 +424,8 @@ export default class CypressStyleReporter implements Reporter {
 
     lines.push(this.boxTop());
 
-    let totalTests = 0;
-    let totalPassing = 0;
-    let totalFailing = 0;
+    let totalSpecs = 0;
+    let failedSpecs = 0;
     let totalSkipped = 0;
 
     for (const fileKey of this.fileOrder) {
@@ -423,9 +444,8 @@ export default class CypressStyleReporter implements Reporter {
       }
 
       const tests = file.results.size;
-      totalTests += tests;
-      totalPassing += passing;
-      totalFailing += failing;
+      totalSpecs += 1;
+      if (failing > 0) failedSpecs += 1;
       totalSkipped += skippedCount;
 
       const marker = wasInterrupted
@@ -460,9 +480,9 @@ export default class CypressStyleReporter implements Reporter {
     lines.push('');
 
     const skippedSuffix = totalSkipped > 0 ? ` (${totalSkipped} skipped)` : '';
-    if (totalFailing > 0) {
+    if (failedSpecs > 0) {
       lines.push(
-        `    ${c.red}✗ ${totalFailing} of ${totalTests} failed${c.reset}${skippedSuffix}`,
+        `    ${c.red}✗ ${failedSpecs} of ${totalSpecs} failed${c.reset}${skippedSuffix}`,
       );
     } else if (runStatus === 'interrupted') {
       lines.push(
@@ -474,7 +494,7 @@ export default class CypressStyleReporter implements Reporter {
       lines.push(`    ${c.red}✗ Run failed${c.reset}${skippedSuffix}`);
     } else {
       lines.push(
-        `    ${c.green}✓ All ${totalTests - totalSkipped} passed${c.reset}${skippedSuffix}`,
+        `    ${c.green}✓ All ${totalSpecs} passed${c.reset}${skippedSuffix}`,
       );
     }
     lines.push('');

@@ -747,6 +747,118 @@ test('NO_COLOR strips ANSI escapes from error messages and stack traces', () => 
   expect(output).toContain('at test.ts:10');
 });
 
+test('buffered test output marks file as started for interrupted flush', () => {
+  const reporter = new CypressStyleReporter();
+  const t1 = mockTest({
+    id: '1',
+    title: 'crashes after output',
+    file: 'tests/output-crash.spec.ts',
+  });
+
+  reporter.onBegin(mockConfig, mockSuite([t1]));
+
+  // Test writes to stdout but worker crashes before onTestEnd fires
+  reporter.onStdOut('debug: starting test\n', t1);
+
+  reporter.onEnd({ status: 'interrupted' } as any);
+
+  const output = getStdout();
+  // File should be shown because it started (received test output)
+  expect(output).toContain('Running:  tests/output-crash.spec.ts');
+  expect(output).toContain('0 of 1 (interrupted)');
+  expect(output).toContain('debug: starting test');
+});
+
+test('interrupted retry preserves last failed attempt with error details', () => {
+  const reporter = new CypressStyleReporter();
+  const t1 = mockTest({
+    id: '1',
+    title: 'passes',
+    file: 'tests/retry-interrupt.spec.ts',
+    retries: 1,
+  });
+  const t2 = mockTest({
+    id: '2',
+    title: 'fails then interrupted',
+    file: 'tests/retry-interrupt.spec.ts',
+    retries: 1,
+    outcome: 'unexpected',
+  });
+
+  reporter.onBegin(mockConfig, mockSuite([t1, t2]));
+
+  // Test 1 passes (terminal)
+  reporter.onTestEnd(t1, mockResult({ duration: 500 }));
+
+  // Test 2 fails on retry 0 (non-terminal: 0 !== 1), stored as pending
+  reporter.onTestEnd(
+    t2,
+    mockResult({
+      status: 'failed',
+      retry: 0,
+      duration: 2000,
+      errors: [{ message: 'assertion failed' }],
+    }),
+  );
+
+  // Run interrupted before retry 1 — onEnd promotes pending results
+  reporter.onEnd({ status: 'interrupted' } as any);
+
+  const output = getStdout();
+  expect(output).toContain('Running:  tests/retry-interrupt.spec.ts');
+  expect(output).toContain('✓ passes');
+  expect(output).toContain('✗ fails then interrupted');
+  expect(output).toContain('assertion failed');
+  // Both tests reported (pending promoted to results)
+  expect(output).toContain('2 of 2 (interrupted)');
+});
+
+test('footer counts failed specs, not individual failed tests', () => {
+  const reporter = new CypressStyleReporter();
+  // One spec with 3 tests: 1 passes, 2 fail
+  const t1 = mockTest({
+    id: '1',
+    title: 'passes',
+    file: 'tests/multi.spec.ts',
+  });
+  const t2 = mockTest({
+    id: '2',
+    title: 'fails one',
+    file: 'tests/multi.spec.ts',
+    outcome: 'unexpected',
+  });
+  const t3 = mockTest({
+    id: '3',
+    title: 'fails two',
+    file: 'tests/multi.spec.ts',
+    outcome: 'unexpected',
+  });
+  // Another spec that passes
+  const t4 = mockTest({
+    id: '4',
+    title: 'passes too',
+    file: 'tests/other.spec.ts',
+  });
+
+  reporter.onBegin(mockConfig, mockSuite([t1, t2, t3, t4]));
+  reporter.onTestEnd(t1, mockResult());
+  reporter.onTestEnd(
+    t2,
+    mockResult({ status: 'failed', errors: [{ message: 'a' }] }),
+  );
+  reporter.onTestEnd(
+    t3,
+    mockResult({ status: 'failed', errors: [{ message: 'b' }] }),
+  );
+  reporter.onTestEnd(t4, mockResult());
+  reporter.onEnd(mockFullResult);
+
+  const output = getStdout();
+  // Footer: 1 spec failed (not 2 tests), out of 2 total specs
+  expect(output).toContain('1 of 2 failed');
+  expect(output).not.toContain('2 of 4 failed');
+});
+
 test('interrupted test with retries is treated as terminal, not dropped', () => {
   const reporter = new CypressStyleReporter();
   const t1 = mockTest({
