@@ -1148,6 +1148,35 @@ EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
     "CODEC": JsonKeyValueCodec(),
 }
 
+# Extension storage configuration for all storage tiers.
+# Extensions use these storage tiers for different persistence needs:
+# - EPHEMERAL (Tier 2): Short-lived cache storage with TTL
+# - PERSISTENT (Tier 3): Durable database storage [future]
+EXTENSIONS_STORAGE: dict[str, Any] = {
+    # Tier 2: Ephemeral State - Server-side cache with TTL.
+    # Short-lived KV storage that automatically expires. Not guaranteed to
+    # survive server restarts. Use for temporary state like job progress,
+    # intermediate results, or cross-request state.
+    "EPHEMERAL": {
+        "CACHE_TYPE": "SupersetMetastoreCache",
+        "CACHE_DEFAULT_TIMEOUT": int(timedelta(hours=1).total_seconds()),
+        # Should the timeout be reset when retrieving a cached value?
+        "REFRESH_TIMEOUT_ON_RETRIEVAL": False,
+        # The following parameter only applies to `MetastoreCache`:
+        # How should entries be serialized/deserialized?
+        "CODEC": JsonKeyValueCodec(),
+    },
+    # Tier 3: Persistent State - Database storage [future]
+    # Durable KV storage backed by a dedicated database table.
+    # Survives server restarts. Supports encryption and resource linking.
+    # "PERSISTENT": {
+    #     # Maximum storage quota per extension in bytes (default: 1MB)
+    #     "QUOTA_PER_EXTENSION": 1024 * 1024,
+    #     # Enable encryption at rest for sensitive data
+    #     "ENCRYPTION_ENABLED": True,
+    # },
+}
+
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
 STORE_CACHE_KEYS_IN_METADATA_DB = False
 

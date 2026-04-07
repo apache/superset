@@ -275,8 +275,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
             from superset.extensions.api import ExtensionsRestApi
+            from superset.extensions.storage.api import ExtensionStorageRestApi
 
             appbuilder.add_api(ExtensionsRestApi)
+            appbuilder.add_api(ExtensionStorageRestApi)
 
         if feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
             from superset.tasks.api import TaskRestApi

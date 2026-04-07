@@ -19,6 +19,8 @@
 import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import type { common as core } from '@apache-superset/core';
+import { storage } from 'src/core';
+import './types';
 
 type Extension = core.Extension;
 
@@ -136,6 +138,12 @@ class ExtensionsLoader {
     await container.init(__webpack_share_scopes__.default);
 
     const factory = await container.get('./index');
+
+    // Bind storage to this extension before executing the module.
+    // The extension's imports resolve via webpack externals at load time,
+    // capturing this bound instance.
+    window.superset.storage = storage.forExtension(id);
+
     // Execute the module factory - side effects fire registrations
     factory();
   }
