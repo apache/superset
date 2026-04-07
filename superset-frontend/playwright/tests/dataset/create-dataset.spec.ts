@@ -65,6 +65,7 @@ async function setupExamplesDataset(
   const uniqueSuffix = `${Date.now()}_${testInfo.parallelIndex}`;
   const tableName = `test_pw_${uniqueSuffix}`;
 
+  // CI examples DB is always PostgreSQL, so 'public' is the correct schema.
   const createTableRes = await apiExecuteSql(
     page,
     dbId,
@@ -83,7 +84,8 @@ async function setupExamplesDataset(
   await createDatasetPage.goto();
   await createDatasetPage.waitForPageLoad();
 
-  // Select the examples database, public schema, and temp table
+  // Select the examples database, public schema, and temp table.
+  // Schema is 'public' because the CI examples DB is always PostgreSQL.
   await createDatasetPage.selectDatabase('examples');
   await createDatasetPage.selectSchema('public');
   await createDatasetPage.selectTable(tableName);
@@ -100,6 +102,7 @@ async function dropTempTable(
   dbId: number,
   tableName: string,
 ): Promise<void> {
+  // Schema matches 'public' used in setupExamplesDataset (CI examples DB is PostgreSQL).
   await apiExecuteSql(
     page,
     dbId,
