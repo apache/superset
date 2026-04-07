@@ -48,7 +48,7 @@ def get_dash_url(dashboard: Dashboard) -> str:
             "{SUPERSET_WEBSERVER_ADDRESS}:"
             "{SUPERSET_WEBSERVER_PORT}".format(**current_app.config)
         )
-        return f"{baseurl}{dashboard.url}"
+        return f"{baseurl.rstrip('/')}{dashboard.url}"
 
 
 class Strategy:  # pylint: disable=too-few-public-methods
