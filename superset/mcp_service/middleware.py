@@ -130,6 +130,23 @@ class LoggingMiddleware(Middleware):
     in on_message().
     """
 
+    def _is_error_response(self, result: Any) -> bool:
+        """Check if a ToolResult contains an error response.
+
+        StructuredContentStripperMiddleware catches exceptions and converts them
+        to ToolResult with content starting with "Error:". This method detects
+        such error responses so we can log them with success=False.
+        """
+        if not isinstance(result, ToolResult):
+            return False
+        if not result.content:
+            return False
+        # Check first content item for error prefix
+        first_content = result.content[0]
+        if hasattr(first_content, "text") and first_content.text:
+            return first_content.text.startswith("Error:")
+        return False
+
     def _extract_context_info(
         self, context: MiddlewareContext
     ) -> tuple[
@@ -169,10 +186,16 @@ class LoggingMiddleware(Middleware):
 
         start_time = time.time()
         success = False
+        result = None
         try:
             result = await call_next(context)
-            success = True
+            # Check if result is an error response
+            # (converted by StructuredContentStripperMiddleware)
+            success = not self._is_error_response(result)
             return result
+        except Exception:
+            success = False
+            raise
         finally:
             duration_ms = int((time.time() - start_time) * 1000)
             if has_app_context():

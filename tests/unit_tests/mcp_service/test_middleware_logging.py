@@ -205,3 +205,79 @@ class TestExtractContextInfo:
         _, _, _, slice_id, _, _ = middleware._extract_context_info(ctx)
 
         assert slice_id == 66
+
+
+class TestIsErrorResponse:
+    """Tests for LoggingMiddleware._is_error_response()."""
+
+    def test_detects_error_response_with_error_prefix(self):
+        """Detects ToolResult with content starting with 'Error:'."""
+        from fastmcp.tools.tool import ToolResult
+        from mcp import types as mt
+
+        middleware = LoggingMiddleware()
+        error_result = ToolResult(
+            content=[mt.TextContent(type="text", text="Error: Chart not found")]
+        )
+
+        assert middleware._is_error_response(error_result) is True
+
+    def test_success_response_not_detected_as_error(self):
+        """Normal ToolResult is not detected as error."""
+        from fastmcp.tools.tool import ToolResult
+        from mcp import types as mt
+
+        middleware = LoggingMiddleware()
+        success_result = ToolResult(
+            content=[mt.TextContent(type="text", text="Successfully retrieved data")]
+        )
+
+        assert middleware._is_error_response(success_result) is False
+
+    def test_non_tool_result_not_detected_as_error(self):
+        """Non-ToolResult values are not detected as errors."""
+        middleware = LoggingMiddleware()
+
+        assert middleware._is_error_response("string result") is False
+        assert middleware._is_error_response({"key": "value"}) is False
+        assert middleware._is_error_response(None) is False
+
+    def test_empty_content_not_detected_as_error(self):
+        """ToolResult with empty content is not detected as error."""
+        from fastmcp.tools.tool import ToolResult
+
+        middleware = LoggingMiddleware()
+        empty_result = ToolResult(content=[])
+
+        assert middleware._is_error_response(empty_result) is False
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_on_call_tool_detects_error_response_as_failure(
+        self, mock_get_user_id, mock_event_logger
+    ):
+        """on_call_tool logs success=False when result is an error response.
+
+        This tests the scenario where StructuredContentStripperMiddleware
+        catches an exception and converts it to a ToolResult with "Error:" prefix.
+        """
+        from fastmcp.tools.tool import ToolResult
+        from mcp import types as mt
+
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="get_chart_info")
+
+        # Simulate error response from StructuredContentStripperMiddleware
+        error_result = ToolResult(
+            content=[mt.TextContent(type="text", text="Error: Chart 999999 not found")]
+        )
+        call_next = AsyncMock(return_value=error_result)
+
+        result = await middleware.on_call_tool(ctx, call_next)
+
+        assert result == error_result
+        mock_event_logger.log.assert_called_once()
+        call_kwargs = mock_event_logger.log.call_args[1]
+        assert call_kwargs["curated_payload"]["success"] is False
+        assert call_kwargs["curated_payload"]["tool"] == "get_chart_info"

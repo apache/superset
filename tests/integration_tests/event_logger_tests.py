@@ -254,3 +254,64 @@ class TestEventLogger(unittest.TestCase):
                 }
             ]
             assert payload["duration_ms"] >= 100
+
+    @patch("superset.utils.log.db")
+    def test_curated_payload_used_when_records_empty(self, mock_db):
+        """Test that curated_payload is used when records is empty (MCP pattern).
+
+        MCP middleware passes curated_payload instead of records. This test verifies
+        that DBEventLogger.log() creates a Log entry from curated_payload when
+        records is empty.
+        """
+        logger = DBEventLogger()
+
+        with app.test_request_context():
+            logger.log(
+                user_id=1,
+                action="mcp_tool_call",
+                dashboard_id=None,
+                duration_ms=100,
+                slice_id=None,
+                referrer=None,
+                curated_payload={"tool": "list_charts", "success": True},
+            )
+
+        # Verify bulk_save_objects was called with one Log object
+        mock_db.session.bulk_save_objects.assert_called_once()
+        logs = mock_db.session.bulk_save_objects.call_args[0][0]
+        assert len(logs) == 1
+        assert logs[0].action == "mcp_tool_call"
+        assert logs[0].duration_ms == 100
+        # Verify JSON contains the curated_payload data
+        from superset.utils import json as json_utils
+
+        payload = json_utils.loads(logs[0].json)
+        assert payload["tool"] == "list_charts"
+        assert payload["success"] is True
+
+    @patch("superset.utils.log.db")
+    def test_records_takes_precedence_over_curated_payload(self, mock_db):
+        """Test that records takes precedence over curated_payload."""
+        logger = DBEventLogger()
+
+        with app.test_request_context():
+            logger.log(
+                user_id=1,
+                action="test_action",
+                dashboard_id=None,
+                duration_ms=50,
+                slice_id=None,
+                referrer=None,
+                records=[{"from_records": True}],
+                curated_payload={"from_curated": True},
+            )
+
+        # Verify only records data is used, not curated_payload
+        mock_db.session.bulk_save_objects.assert_called_once()
+        logs = mock_db.session.bulk_save_objects.call_args[0][0]
+        assert len(logs) == 1
+        from superset.utils import json as json_utils
+
+        payload = json_utils.loads(logs[0].json)
+        assert payload.get("from_records") is True
+        assert "from_curated" not in payload
