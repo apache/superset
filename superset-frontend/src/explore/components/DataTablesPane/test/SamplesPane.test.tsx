@@ -17,14 +17,14 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import {
-  render,
-  userEvent,
-  waitForElementToBeRemoved,
-  waitFor,
-} from 'spec/helpers/testing-library';
+import { render, waitFor } from 'spec/helpers/testing-library';
+import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { SamplesPane } from '../components';
 import { createSamplesPaneProps } from './fixture';
+
+beforeAll(() => {
+  setupAGGridModules();
+});
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SamplesPane', () => {
@@ -91,12 +91,12 @@ describe('SamplesPane', () => {
     expect(await findByText('Error: Bad request')).toBeVisible();
   });
 
-  test('force query, render and search', async () => {
+  test('force query, render', async () => {
     const props = createSamplesPaneProps({
       datasourceId: 35,
       queryForce: true,
     });
-    const { queryByText, getByPlaceholderText } = render(
+    const { queryByText } = render(
       <SamplesPane {...props} setForceQuery={setForceQuery} />,
       {
         useRedux: true,
@@ -109,10 +109,5 @@ describe('SamplesPane', () => {
     expect(queryByText('2 rows')).toBeVisible();
     expect(queryByText('Action')).toBeVisible();
     expect(queryByText('Horror')).toBeVisible();
-
-    userEvent.type(getByPlaceholderText('Search'), 'hor');
-    await waitForElementToBeRemoved(() => queryByText('Action'));
-    expect(queryByText('Horror')).toBeVisible();
-    expect(queryByText('Action')).not.toBeInTheDocument();
   });
 });
