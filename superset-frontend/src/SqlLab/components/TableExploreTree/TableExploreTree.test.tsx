@@ -128,9 +128,9 @@ test('filters schemas when searching', async () => {
     expect(screen.getByText('public')).toBeInTheDocument();
   });
 
-  // Verify selected schemas are initially visible
-  expect(screen.queryByText('test_schema')).not.toBeInTheDocument();
-  expect(screen.queryByText('information_schema')).not.toBeInTheDocument();
+  // All schemas are visible (no longer filtered to selected schema)
+  expect(screen.getByText('test_schema')).toBeInTheDocument();
+  expect(screen.getByText('information_schema')).toBeInTheDocument();
 
   const searchInput = screen.getByPlaceholderText(
     'Enter a part of the object name',
