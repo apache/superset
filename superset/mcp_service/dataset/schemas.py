@@ -24,6 +24,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Any, Dict, List, Literal
 
+import humanize
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -35,6 +36,7 @@ from pydantic import (
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import MetadataCacheControl
+from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
     serialize_user_object,
@@ -83,7 +85,11 @@ class TableColumnInfo(BaseModel):
 
 
 class SqlMetricInfo(BaseModel):
-    metric_name: str = Field(..., description="Metric name")
+    metric_name: str = Field(
+        ...,
+        description="Saved metric name. In chart configs, reference as "
+        '{"name": "<metric_name>", "saved_metric": true}.',
+    )
     verbose_name: str | None = Field(None, description="Verbose name")
     expression: str | None = Field(None, description="SQL expression")
     description: str | None = Field(None, description="Metric description")
@@ -96,6 +102,12 @@ class DatasetInfo(BaseModel):
     schema_name: str | None = Field(None, description="Schema name", alias="schema")
     database_name: str | None = Field(None, description="Database name")
     description: str | None = Field(None, description="Dataset description")
+    certified_by: str | None = Field(
+        None, description="Name of the person or team who certified this dataset"
+    )
+    certification_details: str | None = Field(
+        None, description="Certification details or reason"
+    )
     changed_by: str | None = Field(None, description="Last modifier (username)")
     changed_on: str | datetime | None = Field(
         None, description="Last modification timestamp"
@@ -132,7 +144,9 @@ class DatasetInfo(BaseModel):
         default_factory=list, description="Columns in the dataset"
     )
     metrics: List[SqlMetricInfo] = Field(
-        default_factory=list, description="Metrics in the dataset"
+        default_factory=list,
+        description="Saved metrics (pre-defined aggregations). "
+        "NOT columns — use saved_metric=true in chart configs.",
     )
     is_favorite: bool | None = Field(
         None, description="Whether this dataset is favorited by the current user"
@@ -247,7 +261,13 @@ class ListDatasetsRequest(MetadataCacheControl):
         Field(default=1, description="Page number for pagination (1-based)"),
     ]
     page_size: Annotated[
-        PositiveInt, Field(default=10, description="Number of items per page")
+        int,
+        Field(
+            default=DEFAULT_PAGE_SIZE,
+            gt=0,
+            le=MAX_PAGE_SIZE,
+            description=f"Number of items per page (max {MAX_PAGE_SIZE})",
+        ),
     ]
 
     @model_validator(mode="after")
@@ -300,9 +320,19 @@ def _parse_json_field(obj: Any, field_name: str) -> Dict[str, Any] | None:
     return value
 
 
+def _humanize_timestamp(dt: datetime | None) -> str | None:
+    """Convert a datetime to a humanized string like '2 hours ago'."""
+    if dt is None:
+        return None
+    return humanize.naturaltime(datetime.now() - dt)
+
+
 def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
     if not dataset:
         return None
+
+    from superset.mcp_service.utils.url_utils import get_superset_base_url
+
     params = getattr(dataset, "params", None)
     if isinstance(params, str):
         try:
@@ -339,14 +369,16 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         if getattr(dataset, "database", None)
         else None,
         description=getattr(dataset, "description", None),
+        certified_by=getattr(dataset, "certified_by", None),
+        certification_details=getattr(dataset, "certification_details", None),
         changed_by=getattr(dataset, "changed_by_name", None)
         or (str(dataset.changed_by) if getattr(dataset, "changed_by", None) else None),
         changed_on=getattr(dataset, "changed_on", None),
-        changed_on_humanized=getattr(dataset, "changed_on_humanized", None),
+        changed_on_humanized=_humanize_timestamp(getattr(dataset, "changed_on", None)),
         created_by=getattr(dataset, "created_by_name", None)
         or (str(dataset.created_by) if getattr(dataset, "created_by", None) else None),
         created_on=getattr(dataset, "created_on", None),
-        created_on_humanized=getattr(dataset, "created_on_humanized", None),
+        created_on_humanized=_humanize_timestamp(getattr(dataset, "created_on", None)),
         tags=[
             TagInfo.model_validate(tag, from_attributes=True)
             for tag in getattr(dataset, "tags", [])
@@ -366,7 +398,12 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         if getattr(dataset, "uuid", None)
         else None,
         schema_perm=getattr(dataset, "schema_perm", None),
-        url=getattr(dataset, "url", None),
+        url=(
+            f"{get_superset_base_url()}/tablemodelview/edit/"
+            f"{getattr(dataset, 'id', None)}"
+            if getattr(dataset, "id", None)
+            else None
+        ),
         sql=getattr(dataset, "sql", None),
         main_dttm_col=getattr(dataset, "main_dttm_col", None),
         offset=getattr(dataset, "offset", None),
