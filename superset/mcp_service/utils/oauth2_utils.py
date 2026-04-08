@@ -30,7 +30,7 @@ def build_oauth2_redirect_message(ex: OAuth2RedirectError) -> str:
     the MCP client can present it to the user for authentication.
     """
 
-    if oauth_url := ex.error.extra.get("redirect_uri", ""):
+    if oauth_url := (ex.error.extra or {}).get("redirect_uri", ""):
         return (
             "This database uses OAuth for authentication. "
             "Please open the following URL in your browser to "
