@@ -40,10 +40,6 @@ import { isFilterId, isChartCustomizationId, isDivider } from '../utils';
 // there are many filters (sc-101839). The parent height chain through the
 // antd Form is unreliable, so a viewport-relative max-height is used instead
 // of height: 100%.
-//
-// TODO: If the height chain through BaseModalBody / BaseForm is ever fixed
-// (so that height: 100% propagates correctly to this element), this
-// max-height workaround can be replaced with `height: 100%; min-height: 0;`.
 const StyledSidebarFlex = styled(Flex)`
   min-width: 290px;
   max-width: 290px;
