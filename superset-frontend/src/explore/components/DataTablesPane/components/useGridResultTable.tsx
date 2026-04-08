@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useCallback, useRef, useState, useEffect } from 'react';
+import { useMemo, useCallback, useRef, useState } from 'react';
 import { getTimeFormatter, safeHtmlSpan, TimeFormats } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -91,26 +91,36 @@ export function useKeywordFilter(filterText: string) {
 
 /**
  * Measures the height of an absolutely-positioned inner element that fills
- * its relative-positioned parent. This avoids circular dependencies between
- * GridTable's explicit pixel height and flex layout.
+ * its relative-positioned parent. Uses a callback ref so the ResizeObserver
+ * is created when the element mounts (which may be after initial render if
+ * the component conditionally renders a loading state first).
  */
 export function useGridHeight(fallbackHeight = 400) {
   const [gridHeight, setGridHeight] = useState(fallbackHeight);
-  const measuredRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<ResizeObserver | null>(null);
 
-  useEffect(() => {
-    const el = measuredRef.current;
-    if (!el) return undefined;
-    const observer = new ResizeObserver(entries => {
-      const entry = entries[0];
-      if (entry) {
-        const h = Math.floor(entry.contentRect.height);
-        setGridHeight(prev => (prev !== h ? h : prev));
+  const measuredRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+        observerRef.current = null;
       }
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
+      if (!el) return;
+
+      const observer = new ResizeObserver(entries => {
+        const entry = entries[0];
+        if (entry) {
+          const h = Math.floor(entry.contentRect.height);
+          if (h > 0) {
+            setGridHeight(prev => (prev !== h ? h : prev));
+          }
+        }
+      });
+      observer.observe(el);
+      observerRef.current = observer;
+    },
+    [],
+  );
 
   return { gridHeight, measuredRef };
 }
