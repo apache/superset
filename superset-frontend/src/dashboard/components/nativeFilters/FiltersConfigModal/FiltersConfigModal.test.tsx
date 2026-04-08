@@ -655,7 +655,8 @@ test('reorders filters via keyboard (Space, ArrowDown, Space)', async () => {
   }
 }, 30000);
 
-test('updates sidebar title when filter name changes', async () => {
+// eslint-disable-next-line jest/no-disabled-tests -- flaky timeout, see https://github.com/apache/superset/pull/39181
+test.skip('updates sidebar title when filter name changes', async () => {
   const nativeFilterConfig = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', []),
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),

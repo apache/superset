@@ -17,28 +17,27 @@
  * under the License.
  */
 
+import { testWithAssets, expect } from '../../helpers/fixtures';
+import { DashboardListPage } from '../../pages/DashboardListPage';
 import {
-  test as testWithAssets,
-  expect,
-} from '../../../helpers/fixtures/testAssets';
-import { DashboardListPage } from '../../../pages/DashboardListPage';
-import { DeleteConfirmationModal } from '../../../components/modals/DeleteConfirmationModal';
-import { ImportDatasetModal } from '../../../components/modals/ImportDatasetModal';
-import { Toast } from '../../../components/core/Toast';
+  DeleteConfirmationModal,
+  ImportDatasetModal,
+} from '../../components/modals';
+import { Toast } from '../../components/core';
 import {
   apiGetDashboard,
   apiDeleteDashboard,
   apiExportDashboards,
   getDashboardByName,
   ENDPOINTS,
-} from '../../../helpers/api/dashboard';
+} from '../../helpers/api/dashboard';
 import { createTestDashboard } from './dashboard-test-helpers';
-import { waitForGet, waitForPost } from '../../../helpers/api/intercepts';
+import { waitForGet, waitForPost } from '../../helpers/api/intercepts';
 import {
   expectStatusOneOf,
   expectValidExportZip,
-} from '../../../helpers/api/assertions';
-import { TIMEOUT } from '../../../utils/constants';
+} from '../../helpers/api/assertions';
+import { TIMEOUT } from '../../utils/constants';
 
 /**
  * Extend testWithAssets with dashboardListPage navigation (beforeEach equivalent).

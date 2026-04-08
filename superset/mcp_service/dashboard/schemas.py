@@ -93,6 +93,10 @@ from superset.mcp_service.system.schemas import (
     TagInfo,
     UserInfo,
 )
+from superset.mcp_service.utils.sanitization import (
+    _remove_dangerous_unicode,
+    _strip_html_tags,
+)
 
 
 class DashboardError(BaseModel):
@@ -445,8 +449,18 @@ class GenerateDashboardRequest(BaseModel):
     )
     description: str | None = Field(None, description="Description for the dashboard")
     published: bool = Field(
-        default=True, description="Whether to publish the dashboard"
+        default=False, description="Whether to publish the dashboard"
     )
+
+    @field_validator("dashboard_title")
+    @classmethod
+    def sanitize_dashboard_title(cls, v: str | None) -> str | None:
+        """Strip HTML tags from dashboard title to prevent XSS."""
+        if v is None:
+            return None
+        v = _strip_html_tags(v.strip())
+        v = _remove_dangerous_unicode(v)
+        return v
 
 
 class GenerateDashboardResponse(BaseModel):
@@ -566,8 +580,9 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
         else None,
         chart_count=len(getattr(dashboard, "slices", [])),
         owners=[
-            UserInfo.model_validate(owner, from_attributes=True)
+            info
             for owner in getattr(dashboard, "owners", [])
+            if (info := serialize_user_object(owner)) is not None
         ]
         if getattr(dashboard, "owners", None)
         else [],
