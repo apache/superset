@@ -115,6 +115,10 @@ services:
       DATABASE_HOST: db-light
       DATABASE_DB: superset_light
       POSTGRES_DB: superset_light
+      EXAMPLES_HOST: db-light
+      EXAMPLES_DB: superset_light
+      EXAMPLES_USER: superset
+      EXAMPLES_PASSWORD: superset
       SUPERSET_CONFIG_PATH: /app/docker/pythonpath_dev/superset_config_docker_light.py
       GITHUB_HEAD_REF: ${GITHUB_HEAD_REF:-}
       GITHUB_SHA: ${GITHUB_SHA:-}
@@ -137,6 +141,10 @@ services:
       DATABASE_HOST: db-light
       DATABASE_DB: superset_light
       POSTGRES_DB: superset_light
+      EXAMPLES_HOST: db-light
+      EXAMPLES_DB: superset_light
+      EXAMPLES_USER: superset
+      EXAMPLES_PASSWORD: superset
       SUPERSET_CONFIG_PATH: /app/docker/pythonpath_dev/superset_config_docker_light.py
     healthcheck:
       disable: true
