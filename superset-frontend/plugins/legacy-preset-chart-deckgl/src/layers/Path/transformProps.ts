@@ -194,7 +194,7 @@ export default function transformProps(chartProps: ChartProps) {
   ];
 
   const records = getRecordsFromQuery(chartProps.queriesData);
-  let features = processPathData(
+  const features = processPathData(
     records,
     line_column || '',
     line_type,
@@ -206,10 +206,5 @@ export default function transformProps(chartProps: ChartProps) {
     dimension,
   ).reverse();
 
-  return createBaseTransformResult(
-    chartProps,
-    features,
-    //metricLabel ? [metricLabel] : [],
-    metricLabels,
-  );
+  return createBaseTransformResult(chartProps, features, metricLabels);
 }
