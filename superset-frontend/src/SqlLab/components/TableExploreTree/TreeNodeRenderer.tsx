@@ -23,6 +23,7 @@ import { Icons, Typography } from '@superset-ui/core/components';
 import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
 import ColumnElement from 'src/SqlLab/components/ColumnElement';
 import { ActionButton } from '@superset-ui/core/components/ActionButton';
+import copyTextToClipboard from 'src/utils/copy';
 import type { TreeNodeData } from './types';
 
 const StyledColumnNode = styled.div`
@@ -69,6 +70,7 @@ export interface TreeNodeRendererProps extends NodeRendererProps<TreeNodeData> {
   catalog: string | null | undefined;
   dbId: number | undefined;
   pinnedTableKeys: Set<string>;
+  selectStarMap: Record<string, string>;
   handleRefreshTables: (params: {
     dbId: number;
     catalog: string | null | undefined;
@@ -91,6 +93,7 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
   catalog,
   dbId,
   pinnedTableKeys,
+  selectStarMap,
   handleRefreshTables,
   handlePinTable,
   handleUnpinTable,
@@ -228,28 +231,49 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
       )}
       {identifier === 'table' &&
         (() => {
-          const isPinned = pinnedTableKeys.has(
-            `${dbId}:${schema}:${tableName}`,
-          );
+          const nodeDbId = Number(_dbId);
+          const tableKey = `${nodeDbId}:${schema}:${tableName}`;
+          const isPinned = pinnedTableKeys.has(tableKey);
+          const selectStar = selectStarMap[tableKey];
           return (
-            <>
+            <div
+              className="side-action-container"
+              role="menu"
+              onClick={e => e.stopPropagation()}
+            >
               {isPinned && (
-                <Icons.PushpinFilled
-                  iconSize="s"
-                  css={css`
-                    color: ${theme.colorTextDescription};
-                    flex-shrink: 0;
-                    margin-left: ${theme.sizeUnit}px;
-                  `}
-                />
+                <div className="action-static">
+                  <ActionButton
+                    label={`pinned-${schema}-${tableName}`}
+                    icon={
+                      <Icons.PushpinFilled
+                        iconSize="m"
+                        css={css`
+                          color: ${theme.colorTextDescription};
+                        `}
+                      />
+                    }
+                    onClick={() => handleUnpinTable(tableName, schema)}
+                  />
+                </div>
               )}
-              <div
-                className="side-action-container"
-                role="menu"
-                onClick={e => e.stopPropagation()}
-              >
+              <div className="action-hover">
+                {selectStar && (
+                  <ActionButton
+                    label={`copy-select-${schema}-${tableName}`}
+                    tooltip={t('Copy SELECT statement to the clipboard')}
+                    icon={<Icons.CopyOutlined iconSize="m" />}
+                    onClick={() =>
+                      copyTextToClipboard(() => Promise.resolve(selectStar))
+                    }
+                  />
+                )}
                 <ActionButton
-                  label={isPinned ? 'unpin-table' : 'pin-table'}
+                  label={
+                    isPinned
+                      ? `unpin-${schema}-${tableName}`
+                      : `pin-${schema}-${tableName}`
+                  }
                   tooltip={
                     isPinned
                       ? t('Unpin from the result panel')
@@ -269,7 +293,7 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
                   }
                 />
               </div>
-            </>
+            </div>
           );
         })()}
     </div>

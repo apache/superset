@@ -101,6 +101,7 @@ interface UseTreeDataResult {
   isFetching: boolean;
   refetch: () => void;
   loadingNodes: Record<string, boolean>;
+  selectStarMap: Record<string, string>;
   handleToggle: (id: string, isOpen: boolean) => Promise<void>;
   handleRefreshTables: (params: {
     dbId: number;
@@ -354,11 +355,27 @@ const useTreeData = ({
     return data ?? [];
   }, [dbId, schemaData, tableData, tableSchemaData, pinnedTables]);
 
+  // Map of tableKey -> selectStar SQL from table metadata
+  const selectStarMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    const addEntry = (key: string, meta: TableMetaData | undefined) => {
+      if (meta?.selectStar) {
+        map[key] = meta.selectStar;
+      }
+    };
+    Object.entries(tableSchemaData).forEach(([key, meta]) =>
+      addEntry(key, meta),
+    );
+    Object.entries(pinnedTables).forEach(([key, meta]) => addEntry(key, meta));
+    return map;
+  }, [tableSchemaData, pinnedTables]);
+
   return {
     treeData,
     isFetching,
     refetch,
     loadingNodes,
+    selectStarMap,
     handleToggle,
     handleRefreshTables,
     errorPayload,

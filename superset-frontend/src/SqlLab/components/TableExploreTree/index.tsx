@@ -64,16 +64,24 @@ const StyledTreeContainer = styled.div`
     &:hover {
       background-color: ${({ theme }) => theme.colorBgTextHover};
 
-      .side-action-container {
-        opacity: 1;
+      .action-static {
+        display: none;
+      }
+
+      .action-hover {
+        display: flex;
       }
     }
 
     &[data-selected='true'] {
       background-color: ${({ theme }) => theme.colorBgTextActive};
 
-      .side-action-container {
-        opacity: 1;
+      .action-static {
+        display: none;
+      }
+
+      .action-hover {
+        display: flex;
       }
     }
   }
@@ -98,12 +106,21 @@ const StyledTreeContainer = styled.div`
   }
 
   .side-action-container {
-    opacity: 0;
-    position: absolute;
-    right: ${({ theme }) => theme.sizeUnit * 1.5}px;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: ${({ theme }) => theme.zIndexPopupBase};
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+
+  .action-static {
+    display: flex;
+    align-items: center;
+  }
+
+  .action-hover {
+    display: none;
+    align-items: center;
+    gap: ${({ theme }) => theme.sizeUnit * 0.5}px;
   }
 `;
 
@@ -141,6 +158,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
     isFetching,
     refetch,
     loadingNodes,
+    selectStarMap,
     handleToggle,
     handleRefreshTables,
     errorPayload,
@@ -266,6 +284,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
         catalog={catalog}
         dbId={dbId}
         pinnedTableKeys={pinnedTableKeys}
+        selectStarMap={selectStarMap}
         handleRefreshTables={handleRefreshTables}
         handlePinTable={handlePinTable}
         handleUnpinTable={handleUnpinTable}
@@ -275,6 +294,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
       catalog,
       dbId,
       pinnedTableKeys,
+      selectStarMap,
       handleRefreshTables,
       handlePinTable,
       handleUnpinTable,
