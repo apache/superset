@@ -731,9 +731,9 @@ test('opens Schedule Section on click', async () => {
     useRedux: true,
   });
   userEvent.click(screen.getByTestId('schedule-panel'));
-  const scheduleHeader = within(
+  const [scheduleHeader] = within(
     screen.getByRole('tab', { expanded: true }),
-  ).queryAllByText(/schedule/i)[0];
+  ).queryAllByText(/schedule/i);
   expect(scheduleHeader).toBeInTheDocument();
 });
 test('renders default Schedule fields', async () => {
@@ -799,9 +799,9 @@ test('opens Notification Method Section on click', async () => {
     useRedux: true,
   });
   userEvent.click(screen.getByTestId('notification-method-panel'));
-  const notificationMethodHeader = within(
+  const [notificationMethodHeader] = within(
     screen.getByRole('tab', { expanded: true }),
-  ).queryAllByText(/notification method/i)[0];
+  ).queryAllByText(/notification method/i);
   expect(notificationMethodHeader).toBeInTheDocument();
 });
 
