@@ -25,6 +25,7 @@ import { GenericDataType } from '@apache-superset/core/common';
 import { GridTable } from 'src/components/GridTable';
 import { GridSize } from 'src/components/GridTable/constants';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
+import { getDrillPayload } from 'src/components/Chart/DrillDetail/utils';
 import {
   useGridColumns,
   useKeywordFilter,
@@ -48,13 +49,14 @@ const GridSizer = styled.div`
   inset: 0;
 `;
 
-const cache = new WeakSet();
+const cache = new WeakMap();
 
 const DEFAULT_ROW_LIMIT = 100;
 
 export const SamplesPane = ({
   isRequest,
   datasource,
+  queryFormData,
   queryForce,
   setForceQuery,
   isVisible,
@@ -77,23 +79,24 @@ export const SamplesPane = ({
   const handleRowLimitChange = useCallback(
     (limit: number) => {
       setRowLimit(limit);
-      cache.delete(datasource);
+      cache.delete(queryFormData);
     },
-    [datasource],
+    [queryFormData],
   );
 
   useEffect(() => {
     if (isRequest && queryForce) {
-      cache.delete(datasource);
+      cache.delete(queryFormData);
     }
 
-    if (isRequest && !cache.has(datasource)) {
+    if (isRequest && !cache.has(queryFormData)) {
       setIsLoading(true);
+      const payload = getDrillPayload(queryFormData) ?? {};
       getDatasourceSamples(
         datasource.type,
         datasource.id,
         queryForce,
-        {},
+        payload,
         rowLimit,
         1,
       )
@@ -103,7 +106,7 @@ export const SamplesPane = ({
           setColtypes(ensureIsArray(response.coltypes));
           setRowCount(response.rowcount);
           setResponseError('');
-          cache.add(datasource);
+          cache.set(queryFormData, true);
           if (queryForce) {
             setForceQuery?.(false);
           }
@@ -118,7 +121,7 @@ export const SamplesPane = ({
           setIsLoading(false);
         });
     }
-  }, [datasource, isRequest, queryForce, rowLimit]);
+  }, [datasource, queryFormData, isRequest, queryForce, rowLimit]);
 
   const columns = useGridColumns(colnames, coltypes, data);
   const keywordFilter = useKeywordFilter(filterText);

@@ -56,6 +56,7 @@ export interface ResultsPaneProps {
 export interface SamplesPaneProps {
   isRequest: boolean;
   datasource: Datasource;
+  queryFormData: LatestQueryFormData;
   queryForce: boolean;
   setForceQuery?: SetForceQueryAction;
   isVisible: boolean;

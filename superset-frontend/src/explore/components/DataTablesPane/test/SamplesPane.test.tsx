@@ -29,7 +29,7 @@ beforeAll(() => {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SamplesPane', () => {
   fetchMock.post(
-    'end:/datasource/samples?force=false&datasource_type=table&datasource_id=34',
+    'end:/datasource/samples?force=false&datasource_type=table&datasource_id=34&per_page=100&page=1',
     {
       result: {
         data: [],
@@ -40,7 +40,7 @@ describe('SamplesPane', () => {
   );
 
   fetchMock.post(
-    'end:/datasource/samples?force=true&datasource_type=table&datasource_id=35',
+    'end:/datasource/samples?force=true&datasource_type=table&datasource_id=35&per_page=100&page=1',
     {
       result: {
         data: [
@@ -56,7 +56,7 @@ describe('SamplesPane', () => {
   );
 
   fetchMock.post(
-    'end:/datasource/samples?force=false&datasource_type=table&datasource_id=36',
+    'end:/datasource/samples?force=false&datasource_type=table&datasource_id=36&per_page=100&page=1',
     400,
   );
 
