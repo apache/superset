@@ -1418,9 +1418,9 @@ test('sampleNumericXValuesFromData prefers first matching column key', () => {
   expect(sampleNumericXValuesFromData(data, ['ts'], 4)).toEqual([
     1745784000000, 1745870400000,
   ]);
-  expect(
-    sampleNumericXValuesFromData(data, ['missing', 'ts'], 4),
-  ).toEqual([1745784000000, 1745870400000]);
+  expect(sampleNumericXValuesFromData(data, ['missing', 'ts'], 4)).toEqual([
+    1745784000000, 1745870400000,
+  ]);
 });
 
 test('shouldCoerceNumericXAxisToTemporal', () => {
