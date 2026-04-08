@@ -17,9 +17,16 @@
 
 """Schemas for SQL Lab MCP tools."""
 
-from typing import Any
+from typing import Any, Dict
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
+from pydantic import (
+    AliasChoices,
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_serializer,
+)
 
 
 class ExecuteSqlRequest(BaseModel):
@@ -151,6 +158,8 @@ class ExecuteSqlResponse(BaseModel):
 class SaveSqlQueryRequest(BaseModel):
     """Request schema for saving a SQL query."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     database_id: int = Field(
         ..., description="Database connection ID the query runs against"
     )
@@ -192,6 +201,8 @@ class SaveSqlQueryRequest(BaseModel):
 class SaveSqlQueryResponse(BaseModel):
     """Response schema for a saved SQL query."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     id: int = Field(..., description="Saved query ID")
     label: str = Field(..., description="Query name")
     sql: str = Field(..., description="SQL query text")
@@ -205,6 +216,14 @@ class SaveSqlQueryResponse(BaseModel):
             "URL to open this saved query in SQL Lab (e.g., /sqllab?savedQueryId=42)"
         ),
     )
+
+    @model_serializer(mode="wrap", when_used="json")
+    def _normalize_schema_field(self, serializer: Any, info: Any) -> Dict[str, Any]:
+        """Rename schema_name → schema so the JSON key matches the alias."""
+        data = serializer(self)
+        if "schema_name" in data:
+            data["schema"] = data.pop("schema_name")
+        return data
 
 
 class OpenSqlLabRequest(BaseModel):
@@ -241,3 +260,11 @@ class SqlLabResponse(BaseModel):
     schema_name: str | None = Field(None, description="Schema selected", alias="schema")
     title: str | None = Field(None, description="Query title")
     error: str | None = Field(None, description="Error message if failed")
+
+    @model_serializer(mode="wrap", when_used="json")
+    def _normalize_schema_field(self, serializer: Any, info: Any) -> Dict[str, Any]:
+        """Rename schema_name → schema so the JSON key matches the alias."""
+        data = serializer(self)
+        if "schema_name" in data:
+            data["schema"] = data.pop("schema_name")
+        return data

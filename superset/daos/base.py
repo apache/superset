@@ -623,6 +623,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
 
         column_attrs = []
         relationship_loads = []
+        needs_full_model = False
         if columns is None:
             columns = []
         for name in columns:
@@ -634,11 +635,13 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
                 column_attrs.append(attr)
             elif isinstance(prop, RelationshipProperty):
                 relationship_loads.append(joinedload(attr))
-            # Ignore properties and other non-queryable attributes
+            else:
+                # Python @property or other descriptor — requires a full
+                # model instance (Row objects don't support descriptors)
+                needs_full_model = True
 
-        if relationship_loads:
-            # If any relationships are requested, query the full model
-            # but don't add the joins yet - we'll add them after counting
+        if relationship_loads or needs_full_model:
+            # Need full model for relationships or Python @property access
             query = data_model.session.query(cls.model_cls)
         elif column_attrs:
             # Only columns requested
