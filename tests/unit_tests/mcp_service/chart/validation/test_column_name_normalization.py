@@ -163,12 +163,12 @@ class TestNormalizeXYConfig:
             "x": {"name": "OrderDate"},
             "y": [{"name": "Sales", "aggregate": "SUM"}],
             "kind": "line",
-            "group_by": {"name": "productline"},
+            "group_by": [{"name": "productline"}],
         }
 
         DatasetValidator._normalize_xy_config(config_dict, mock_dataset_context)
 
-        assert config_dict["group_by"]["name"] == "ProductLine"
+        assert config_dict["group_by"][0]["name"] == "ProductLine"
 
 
 class TestNormalizeTableConfig:
@@ -397,7 +397,7 @@ class TestNormalizeUppercaseDataset:
         assert normalized.x.name == "ds"
         assert normalized.y[0].name == "DISTANCE"
         assert normalized.group_by is not None
-        assert normalized.group_by.name == "AIRLINE"
+        assert normalized.group_by[0].name == "AIRLINE"
         assert normalized.filters is not None
         assert normalized.filters[0].column == "AIRLINE"
 
@@ -531,7 +531,7 @@ class TestNormalizeEdgeCases:
         assert normalized.y[0].name == "Sales"
         assert normalized.y[1].name == "quantity_ordered"
         assert normalized.group_by is not None
-        assert normalized.group_by.name == "ProductLine"
+        assert normalized.group_by[0].name == "ProductLine"
         assert normalized.filters is not None
         assert normalized.filters[0].column == "ProductLine"
         assert normalized.filters[1].column == "OrderDate"
@@ -678,4 +678,54 @@ class TestNormalizeXAxisFilterConsistency:
 
         assert normalized.group_by is not None
         assert normalized.filters is not None
-        assert normalized.group_by.name == normalized.filters[0].column == "AIRLINE"
+        assert normalized.group_by[0].name == normalized.filters[0].column == "AIRLINE"
+
+
+class TestValidateSavedMetrics:
+    """Test that saved_metric refs are validated against dataset metrics."""
+
+    def test_valid_saved_metric_passes(
+        self, mock_dataset_context: DatasetContext
+    ) -> None:
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="OrderDate"),
+            y=[ColumnRef(name="TotalRevenue", saved_metric=True)],
+        )
+        is_valid, error = DatasetValidator.validate_against_dataset(
+            config, dataset_id=18, dataset_context=mock_dataset_context
+        )
+        assert is_valid
+        assert error is None
+
+    def test_column_name_as_saved_metric_fails(
+        self, mock_dataset_context: DatasetContext
+    ) -> None:
+        """A regular column marked as saved_metric should be rejected."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="OrderDate"),
+            y=[ColumnRef(name="Sales", saved_metric=True)],
+        )
+        is_valid, error = DatasetValidator.validate_against_dataset(
+            config, dataset_id=18, dataset_context=mock_dataset_context
+        )
+        assert not is_valid
+        assert error is not None
+        assert error.error_code == "INVALID_SAVED_METRIC"
+
+    def test_nonexistent_saved_metric_fails(
+        self, mock_dataset_context: DatasetContext
+    ) -> None:
+        """A nonexistent saved metric should produce a specific error."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="OrderDate"),
+            y=[ColumnRef(name="nonexistent_metric", saved_metric=True)],
+        )
+        is_valid, error = DatasetValidator.validate_against_dataset(
+            config, dataset_id=18, dataset_context=mock_dataset_context
+        )
+        assert not is_valid
+        assert error is not None
+        assert error.error_code == "INVALID_SAVED_METRIC"

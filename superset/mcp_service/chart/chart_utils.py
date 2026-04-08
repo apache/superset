@@ -26,11 +26,14 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Dict
 
+from superset.constants import NO_TIME_RANGE
 from superset.mcp_service.chart.schemas import (
+    BigNumberChartConfig,
     ChartCapabilities,
     ChartSemantics,
     ColumnRef,
     FilterConfig,
+    HandlebarsChartConfig,
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
@@ -39,6 +42,7 @@ from superset.mcp_service.chart.schemas import (
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
+from superset.utils.core import FilterOperator
 
 logger = logging.getLogger(__name__)
 
@@ -309,7 +313,9 @@ def map_config_to_form_data(
     | XYChartConfig
     | PieChartConfig
     | PivotTableChartConfig
-    | MixedTimeseriesChartConfig,
+    | MixedTimeseriesChartConfig
+    | HandlebarsChartConfig
+    | BigNumberChartConfig,
     dataset_id: int | str | None = None,
 ) -> Dict[str, Any]:
     """Map chart config to Superset form_data."""
@@ -323,6 +329,16 @@ def map_config_to_form_data(
         return map_pivot_table_config(config)
     elif isinstance(config, MixedTimeseriesChartConfig):
         return map_mixed_timeseries_config(config, dataset_id=dataset_id)
+    elif isinstance(config, HandlebarsChartConfig):
+        return map_handlebars_config(config)
+    elif isinstance(config, BigNumberChartConfig):
+        if config.show_trendline and config.temporal_column:
+            if not is_column_truly_temporal(config.temporal_column, dataset_id):
+                raise ValueError(
+                    f"Big Number trendline requires a temporal SQL column; "
+                    f"'{config.temporal_column}' is not temporal."
+                )
+        return map_big_number_config(config)
     else:
         raise ValueError(f"Unsupported config type: {type(config)}")
 
@@ -345,6 +361,27 @@ def _add_adhoc_filters(
         ]
 
 
+def adhoc_filters_to_query_filters(
+    adhoc_filters: list[Dict[str, Any]],
+) -> list[Dict[str, Any]]:
+    """Convert adhoc filter format to QueryObject filter format.
+
+    Adhoc filters use ``{subject, operator, comparator}`` keys while
+    ``QueryContextFactory`` expects ``{col, op, val}`` (QueryObjectFilterClause).
+    """
+    result: list[Dict[str, Any]] = []
+    for f in adhoc_filters:
+        if f.get("expressionType") == "SIMPLE":
+            result.append(
+                {
+                    "col": f.get("subject"),
+                    "op": f.get("operator"),
+                    "val": f.get("comparator"),
+                }
+            )
+    return result
+
+
 def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
     """Map table chart config to form_data with defensive validation."""
     # Early validation to prevent empty charts
@@ -356,8 +393,8 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
     aggregated_metrics = []
 
     for col in config.columns:
-        if col.aggregate:
-            # Column has aggregation - treat as metric
+        if col.is_metric:
+            # Saved metric or column with aggregation - treat as metric
             aggregated_metrics.append(create_metric_object(col))
         else:
             # No aggregation - treat as raw column
@@ -375,9 +412,12 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
     # Handle raw columns (no aggregation)
     if raw_columns and not aggregated_metrics:
         # Pure raw columns - show individual rows
+        # Include both "all_columns" (Superset table viz) and "columns"
+        # (QueryContextFactory validation) to avoid "Empty query?" errors
         form_data.update(
             {
                 "all_columns": raw_columns,
+                "columns": raw_columns,
                 "query_mode": "raw",
                 "include_time": False,
                 "order_desc": True,
@@ -416,8 +456,16 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
     return form_data
 
 
-def create_metric_object(col: ColumnRef) -> Dict[str, Any]:
-    """Create a metric object for a column with enhanced validation."""
+def create_metric_object(col: ColumnRef) -> Dict[str, Any] | str:
+    """Create a metric object for a column with enhanced validation.
+
+    For saved metrics, returns the metric name as a plain string which
+    Superset's query engine resolves via its metrics_by_name lookup.
+    For ad-hoc metrics, returns a SIMPLE expression dict.
+    """
+    if col.saved_metric:
+        return col.name
+
     # Ensure aggregate is valid - default to SUM if not specified or invalid
     valid_aggregates = {
         "SUM",
@@ -502,6 +550,7 @@ def configure_temporal_handling(
     Stores any warnings in ``form_data["_mcp_warnings"]``.
     """
     if x_is_temporal:
+        form_data["granularity_sqla"] = form_data.get("x_axis")
         if time_grain:
             form_data["time_grain_sqla"] = time_grain
     else:
@@ -516,6 +565,33 @@ def configure_temporal_handling(
                 f"column is not a temporal type. time_grain only applies to "
                 f"DATE/DATETIME/TIMESTAMP columns."
             )
+
+
+def _ensure_temporal_adhoc_filter(form_data: Dict[str, Any], column: str) -> None:
+    """Ensure a TEMPORAL_RANGE adhoc filter exists for the given column.
+
+    Mirrors the Explore UI behavior: when a temporal column is set as
+    the x-axis, a TEMPORAL_RANGE filter must be present so dashboard
+    time-range filters can bind to it.  Without this filter, Explore
+    shows a warning dialog asking the user to add it manually.
+    """
+    existing = form_data.get("adhoc_filters", [])
+    if any(
+        f.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+        and f.get("subject") == column
+        for f in existing
+    ):
+        return
+    existing.append(
+        {
+            "clause": "WHERE",
+            "expressionType": "SIMPLE",
+            "subject": column,
+            "operator": FilterOperator.TEMPORAL_RANGE.value,
+            "comparator": NO_TIME_RANGE,
+        }
+    )
+    form_data["adhoc_filters"] = existing
 
 
 def map_xy_config(
@@ -566,24 +642,17 @@ def map_xy_config(
     # Configure temporal handling based on whether column is truly temporal
     configure_temporal_handling(form_data, x_is_temporal, config.time_grain)
 
-    # CRITICAL FIX: For time series charts, handle groupby carefully to avoid duplicates
-    # The x_axis field already tells Superset which column to use for time grouping
-    groupby_columns = []
-
-    # Only add groupby columns if there's an explicit group_by specified
-    # The x_axis column should NOT be duplicated in groupby as it causes
-    # "Duplicate column/metric labels" errors in Superset
-    # Only add group_by column if it's specified AND different from x_axis
-    # NEVER add the x_axis column to groupby as it creates duplicate labels
-    if config.group_by and config.group_by.name != config.x.name:
-        groupby_columns.append(config.group_by.name)
-
-    # Set the groupby in form_data only if we have valid columns
-    # Don't set empty groupby - let Superset handle x_axis grouping automatically
-    if groupby_columns:
-        form_data["groupby"] = groupby_columns
+    # Only add groupby columns that differ from x_axis to avoid
+    # "Duplicate column/metric labels" errors in Superset.
+    if config.group_by:
+        groupby_columns = [c.name for c in config.group_by if c.name != config.x.name]
+        if groupby_columns:
+            form_data["groupby"] = groupby_columns
 
     _add_adhoc_filters(form_data, config.filters)
+
+    if x_is_temporal:
+        _ensure_temporal_adhoc_filter(form_data, config.x.name)
 
     form_data["row_limit"] = config.row_limit
 
@@ -623,6 +692,84 @@ def map_pie_config(config: PieChartConfig) -> Dict[str, Any]:
     }
 
     _add_adhoc_filters(form_data, config.filters)
+
+    return form_data
+
+
+def map_big_number_config(config: BigNumberChartConfig) -> Dict[str, Any]:
+    """Map big number chart config to Superset form_data."""
+    # Determine viz_type: big_number (with trendline) or big_number_total
+    if config.show_trendline and config.temporal_column:
+        viz_type = "big_number"
+    else:
+        viz_type = "big_number_total"
+
+    metric = create_metric_object(config.metric)
+    form_data: Dict[str, Any] = {
+        "viz_type": viz_type,
+        "metric": metric,
+    }
+
+    if config.subheader:
+        form_data["subheader"] = config.subheader
+
+    if config.y_axis_format:
+        form_data["y_axis_format"] = config.y_axis_format
+
+    # Trendline-specific fields
+    if viz_type == "big_number":
+        # Big Number with trendline uses granularity_sqla for the temporal column
+        # (unlike XY charts which use x_axis). This is how Superset's
+        # big_number viz determines the time column for the trendline.
+        form_data["granularity_sqla"] = config.temporal_column
+        form_data["show_trend_line"] = True
+        form_data["start_y_axis_at_zero"] = config.start_y_axis_at_zero
+
+        if config.time_grain:
+            form_data["time_grain_sqla"] = config.time_grain
+
+        if config.compare_lag is not None:
+            form_data["compare_lag"] = config.compare_lag
+
+    _add_adhoc_filters(form_data, config.filters)
+
+    return form_data
+
+
+def map_handlebars_config(config: HandlebarsChartConfig) -> Dict[str, Any]:
+    """Map handlebars chart config to Superset form_data."""
+    form_data: Dict[str, Any] = {
+        "viz_type": "handlebars",
+        "handlebars_template": config.handlebars_template,
+        "row_limit": config.row_limit,
+        "order_desc": config.order_desc,
+    }
+
+    if config.style_template:
+        form_data["styleTemplate"] = config.style_template
+
+    if config.query_mode == "raw":
+        form_data["query_mode"] = "raw"
+        if config.columns:
+            form_data["all_columns"] = [col.name for col in config.columns]
+    else:
+        form_data["query_mode"] = "aggregate"
+        if config.groupby:
+            form_data["groupby"] = [col.name for col in config.groupby]
+        if config.metrics:
+            form_data["metrics"] = [create_metric_object(col) for col in config.metrics]
+    if config.filters:
+        form_data["adhoc_filters"] = [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": filter_config.column,
+                "operator": map_filter_operator(filter_config.op),
+                "comparator": filter_config.value,
+            }
+            for filter_config in config.filters
+            if filter_config is not None
+        ]
 
     return form_data
 
@@ -742,12 +889,18 @@ def map_mixed_timeseries_config(
     configure_temporal_handling(form_data, x_is_temporal, config.time_grain)
 
     # Primary groupby (Query A)
-    if config.group_by and config.group_by.name != config.x.name:
-        form_data["groupby"] = [config.group_by.name]
+    if config.group_by:
+        groupby = [c.name for c in config.group_by if c.name != config.x.name]
+        if groupby:
+            form_data["groupby"] = groupby
 
     # Secondary groupby (Query B)
-    if config.group_by_secondary and config.group_by_secondary.name != config.x.name:
-        form_data["groupby_b"] = [config.group_by_secondary.name]
+    if config.group_by_secondary:
+        groupby_b = [
+            c.name for c in config.group_by_secondary if c.name != config.x.name
+        ]
+        if groupby_b:
+            form_data["groupby_b"] = groupby_b
 
     form_data["row_limit"] = config.row_limit
 
@@ -781,6 +934,8 @@ def _humanize_column(col: ColumnRef) -> str:
     if col.label:
         return col.label
     name = col.name.replace("_", " ").title()
+    if col.saved_metric:
+        return name
     if col.aggregate:
         return f"{col.aggregate.capitalize()}({name})"
     return name
@@ -815,9 +970,9 @@ def _truncate(name: str, max_length: int = 60) -> str:
 
 def _table_chart_what(config: TableChartConfig, dataset_name: str | None) -> str:
     """Build the descriptive fragment for a table chart."""
-    has_agg = any(col.aggregate for col in config.columns)
+    has_agg = any(col.is_metric for col in config.columns)
     if has_agg:
-        metrics = [col for col in config.columns if col.aggregate]
+        metrics = [col for col in config.columns if col.is_metric]
         what = ", ".join(_humanize_column(m) for m in metrics[:2])
         return f"{what} Summary"
     if dataset_name:
@@ -831,10 +986,10 @@ def _xy_chart_what(config: XYChartConfig) -> str:
     primary_metric = _humanize_column(config.y[0]) if config.y else "Value"
     dimension = _humanize_column(config.x)
 
-    if config.kind in ("line", "area") and config.group_by is None:
+    if config.kind in ("line", "area") and not config.group_by:
         return f"{primary_metric} Over Time"
-    if config.group_by is not None:
-        group_label = _humanize_column(config.group_by)
+    if config.group_by:
+        group_label = _humanize_column(config.group_by[0])
         return f"{primary_metric} by {group_label}"
     if config.kind == "scatter":
         return f"{primary_metric} vs {dimension}"
@@ -891,12 +1046,46 @@ def _mixed_timeseries_what(config: MixedTimeseriesChartConfig) -> str:
     return f"{primary} + {secondary}"
 
 
+def _handlebars_chart_what(config: HandlebarsChartConfig) -> str:
+    """Build the 'what' portion for a handlebars chart name.
+
+    Uses parentheses instead of en-dash to avoid collision with
+    ``generate_chart_name``'s ``\u2013`` context separator.
+    """
+    if config.query_mode == "raw" and config.columns:
+        cols = ", ".join(col.name for col in config.columns[:3])
+        return f"Handlebars ({cols})"
+    elif config.metrics:
+        metrics = ", ".join(col.name for col in config.metrics[:3])
+        return f"Handlebars ({metrics})"
+    return "Handlebars Chart"
+
+
+def _big_number_chart_what(config: BigNumberChartConfig) -> str:
+    """Build the 'what' portion for a big number chart name.
+
+    Uses parentheses instead of en-dash to avoid collision with
+    ``generate_chart_name``'s ``\u2013`` context separator.
+    """
+    if config.metric.label:
+        metric_label = config.metric.label
+    elif config.metric.aggregate:
+        metric_label = f"{config.metric.aggregate}({config.metric.name})"
+    else:
+        metric_label = config.metric.name
+    if config.show_trendline:
+        return f"Big Number ({metric_label}, trendline)"
+    return f"Big Number ({metric_label})"
+
+
 def generate_chart_name(
     config: TableChartConfig
     | XYChartConfig
     | PieChartConfig
     | PivotTableChartConfig
-    | MixedTimeseriesChartConfig,
+    | MixedTimeseriesChartConfig
+    | HandlebarsChartConfig
+    | BigNumberChartConfig,
     dataset_name: str | None = None,
 ) -> str:
     """Generate a descriptive chart name following a standard format.
@@ -927,6 +1116,12 @@ def generate_chart_name(
     elif isinstance(config, MixedTimeseriesChartConfig):
         what = _mixed_timeseries_what(config)
         context = _summarize_filters(config.filters)
+    elif isinstance(config, HandlebarsChartConfig):
+        what = _handlebars_chart_what(config)
+        context = _summarize_filters(getattr(config, "filters", None))
+    elif isinstance(config, BigNumberChartConfig):
+        what = _big_number_chart_what(config)
+        context = _summarize_filters(getattr(config, "filters", None))
     else:
         return "Chart"
 
@@ -934,6 +1129,37 @@ def generate_chart_name(
     if context:
         name = f"{what} \u2013 {context}"
     return _truncate(name)
+
+
+def _resolve_viz_type(config: Any) -> str:
+    """Resolve the Superset viz_type from a chart config object."""
+    chart_type = getattr(config, "chart_type", "unknown")
+    if chart_type == "xy":
+        kind = getattr(config, "kind", "line")
+        viz_type_map = {
+            "line": "echarts_timeseries_line",
+            "bar": "echarts_timeseries_bar",
+            "area": "echarts_area",
+            "scatter": "echarts_timeseries_scatter",
+        }
+        return viz_type_map.get(kind, "echarts_timeseries_line")
+    elif chart_type == "table":
+        return getattr(config, "viz_type", "table")
+    elif chart_type == "pie":
+        return "pie"
+    elif chart_type == "pivot_table":
+        return "pivot_table_v2"
+    elif chart_type == "mixed_timeseries":
+        return "mixed_timeseries"
+    elif chart_type == "handlebars":
+        return "handlebars"
+    elif chart_type == "big_number":
+        show_trendline = getattr(config, "show_trendline", False)
+        temporal_column = getattr(config, "temporal_column", None)
+        return (
+            "big_number" if show_trendline and temporal_column else "big_number_total"
+        )
+    return "unknown"
 
 
 def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilities:
@@ -970,7 +1196,7 @@ def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilit
     # Classify data types
     data_types = []
     if hasattr(config, "x") and config.x:
-        data_types.append("categorical" if not config.x.aggregate else "metric")
+        data_types.append("categorical" if not config.x.is_metric else "metric")
     if hasattr(config, "y") and config.y:
         data_types.extend(["metric"] * len(config.y))
     if "time" in viz_type or "timeseries" in viz_type:
@@ -984,29 +1210,6 @@ def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilit
         optimal_formats=optimal_formats,
         data_types=list(set(data_types)),
     )
-
-
-def _resolve_viz_type(config: Any) -> str:
-    """Resolve viz_type from a chart config object."""
-    chart_type = getattr(config, "chart_type", "unknown")
-    if chart_type == "xy":
-        kind = getattr(config, "kind", "line")
-        viz_type_map = {
-            "line": "echarts_timeseries_line",
-            "bar": "echarts_timeseries_bar",
-            "area": "echarts_area",
-            "scatter": "echarts_timeseries_scatter",
-        }
-        return viz_type_map.get(kind, "echarts_timeseries_line")
-    elif chart_type == "table":
-        return getattr(config, "viz_type", "table")
-    elif chart_type == "pie":
-        return "pie"
-    elif chart_type == "pivot_table":
-        return "pivot_table_v2"
-    elif chart_type == "mixed_timeseries":
-        return "mixed_timeseries"
-    return "unknown"
 
 
 def analyze_chart_semantics(chart: Any | None, config: Any) -> ChartSemantics:
@@ -1034,6 +1237,17 @@ def analyze_chart_semantics(chart: Any | None, config: Any) -> ChartSemantics:
         "mixed_timeseries": (
             "Combines two different chart types on the same time axis "
             "for comparing related metrics with different scales"
+        ),
+        "handlebars": (
+            "Renders data using a custom Handlebars HTML template for "
+            "fully flexible layouts like KPI cards, leaderboards, and reports"
+        ),
+        "big_number": (
+            "Displays a key metric with a trendline showing "
+            "how the value changes over time"
+        ),
+        "big_number_total": (
+            "Highlights a single key metric value as a prominent number"
         ),
     }
 
