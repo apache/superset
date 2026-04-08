@@ -34,8 +34,6 @@ const ROW_LIMIT_OPTIONS = [
   { value: 100, label: '100 rows' },
   { value: 500, label: '500 rows' },
   { value: 1000, label: '1k rows' },
-  { value: 5000, label: '5k rows' },
-  { value: 10000, label: '10k rows' },
 ];
 
 export const TableControlsWrapper = styled.div`
@@ -101,7 +99,9 @@ export const TableControls = ({
             `}
           />
         )}
-        <RowCountLabel rowcount={rowcount} loading={isLoading} />
+        {(!onRowLimitChange || rowcount < (rowLimit ?? Infinity)) && (
+          <RowCountLabel rowcount={rowcount} loading={isLoading} />
+        )}
         {canDownload && (
           <CopyToClipboardButton data={formattedData} columns={columnNames} />
         )}

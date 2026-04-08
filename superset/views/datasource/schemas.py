@@ -100,7 +100,7 @@ class SamplesRequestSchema(Schema):
     force = fields.Boolean(load_default=False)
     page = fields.Integer(load_default=1)
     per_page = fields.Integer(
-        validate=validate.Range(min=1, max=10000),
+        validate=validate.Range(min=1, max=1000),
         load_default=None,
     )
     dashboard_id = fields.Integer(required=False, allow_none=True, load_default=None)
