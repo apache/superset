@@ -78,7 +78,9 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
     <div>
       {message &&
         (messagePre ? (
-          <Typography.Paragraph style={preStyle}>{message}</Typography.Paragraph>
+          <Typography.Paragraph style={preStyle}>
+            {message}
+          </Typography.Paragraph>
         ) : (
           <div>{message}</div>
         ))}
