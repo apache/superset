@@ -69,7 +69,9 @@ const isDevMode = mode !== 'production';
 const isDevServer = process.argv[1]?.includes('webpack-dev-server') ?? false;
 
 // TypeScript checker memory limit (in MB)
-const TYPESCRIPT_MEMORY_LIMIT = 8192;
+// In watch mode, build: true loads all 23 project references into memory.
+// Use a lower limit to constrain the checker process.
+const TYPESCRIPT_MEMORY_LIMIT = 2048;
 
 const defaultEntryFilename = isDevMode
   ? '[name].[contenthash:8].entry.js'
@@ -219,11 +221,12 @@ if (!isDevMode) {
 
 // TypeScript type checking and .d.ts generation
 // SWC handles transpilation; this plugin handles type checking separately.
-// build: true enables project references so .d.ts files are auto-generated.
+// build: true enables project references so .d.ts files are auto-generated
+// across the monorepo when editing plugins/packages.
 // mode: 'write-references' writes .d.ts output (no manual `npm run plugins:build` needed).
-// Story files are excluded because they import @storybook-shared which resolves
-// outside plugin rootDir ("src"), causing errors in --build mode.
-if (isDevMode) {
+// Set DISABLE_TS_CHECKER=true to skip this plugin entirely (~2-3 GB savings).
+// Type errors are still caught by pre-commit and CI.
+if (isDevMode && !process.env.DISABLE_TS_CHECKER) {
   plugins.push(
     new ForkTsCheckerWebpackPlugin({
       async: true,
@@ -535,7 +538,7 @@ const config = {
           {
             loader: 'css-loader',
             options: {
-              sourceMap: true,
+              sourceMap: !isDevMode,
             },
           },
         ],
@@ -619,10 +622,23 @@ const config = {
   watchOptions: isDevMode
     ? {
         // Watch all plugin and package source directories
-        ignored: ['**/node_modules', '**/.git', '**/lib', '**/esm', '**/dist'],
-        // Poll less frequently to reduce file handles
+        ignored: [
+          '**/node_modules',
+          '**/.git',
+          '**/lib',
+          '**/esm',
+          '**/dist',
+          '**/.temp_cache',
+          '**/coverage',
+          '**/*.test.*',
+          '**/*.stories.*',
+          '**/cypress-base',
+          '**/*.geojson',
+        ],
+        // Poll-based watching is needed in Docker/VM where native fs events
+        // don't propagate from host to container.
         poll: 2000,
-        // Aggregate changes for 500ms before rebuilding
+        // Aggregate changes before rebuilding
         aggregateTimeout: 500,
       }
     : undefined,
