@@ -644,6 +644,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       </span>
     );
 
+    let isInSubSection = false;
     const PanelChildren = (
       <>
         <StashFormDataContainer
@@ -661,8 +662,19 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             .filter(Boolean)}
         />
         {isVisible && (
-          <>
+          <div style={{ paddingLeft: theme.sizeUnit * 2 }}>
             {section.controlSetRows.map((controlSets, i) => {
+              // Detect sub-section header rows (React elements with no name prop)
+              const isSubSectionHeaderRow = controlSets.some(
+                item =>
+                  isValidElement(item) &&
+                  !(item as React.ReactElement<Record<string, unknown>>).props
+                    ?.name,
+              );
+              if (isSubSectionHeaderRow) {
+                isInSubSection = true;
+              }
+
               const renderedControls = controlSets
                 .map(controlItem => {
                   if (!controlItem) {
@@ -686,14 +698,23 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               if (renderedControls.length === 0) {
                 return null;
               }
-              return (
+              // Indent controls within sub-sections for visual hierarchy
+              const paddingLeft =
+                isInSubSection && !isSubSectionHeaderRow
+                  ? theme.sizeUnit * 3
+                  : 0;
+              return paddingLeft ? (
+                <div key={`controlsetrow-${i}`} style={{ paddingLeft }}>
+                  <ControlRow controls={renderedControls} />
+                </div>
+              ) : (
                 <ControlRow
                   key={`controlsetrow-${i}`}
                   controls={renderedControls}
                 />
               );
             })}
-          </>
+          </div>
         )}
       </>
     );
