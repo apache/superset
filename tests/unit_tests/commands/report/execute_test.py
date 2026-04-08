@@ -1215,6 +1215,7 @@ def test_get_dashboard_urls_no_state_fallback(
     mock_report_schedule.dashboard.uuid = "dash-uuid-123"
     mock_report_schedule.dashboard.id = 42
     mock_report_schedule.recipients = []
+    mock_report_schedule.get_native_filters_params.return_value = ("", [])
 
     state = BaseReportState(mock_report_schedule, "Jan 1", "exec_id")
     state._report_schedule = mock_report_schedule
