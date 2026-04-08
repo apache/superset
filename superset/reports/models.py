@@ -244,8 +244,22 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
             A tuple of (filter_config, warning_message). If the filter type is
             unrecognized, returns an empty dict and a warning message.
         """
+        # Filter types that require at least one value
+        requires_values = (
+            "filter_time",
+            "filter_timegrain",
+            "filter_timecolumn",
+            "filter_range",
+        )
+        if filter_type in requires_values and not values:
+            warning_msg = (
+                f"Skipping {filter_type} with empty filterValues "
+                f"(filter_id: {native_filter_id})"
+            )
+            logger.warning(warning_msg)
+            return {}, warning_msg
+
         if filter_type == "filter_time":
-            # For select filters, we need to use the "IN" operator
             return (
                 {
                     native_filter_id or "": {
@@ -333,11 +347,11 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
                         "filterState": {
                             "value": [min_val, max_val],
                             "label": f"{min_val} ≤ x ≤ {max_val}"
-                            if min_val and max_val
+                            if min_val is not None and max_val is not None
                             else f"x ≥ {min_val}"
-                            if min_val
+                            if min_val is not None
                             else f"x ≤ {max_val}"
-                            if max_val
+                            if max_val is not None
                             else "",
                         },
                         "ownState": {},
