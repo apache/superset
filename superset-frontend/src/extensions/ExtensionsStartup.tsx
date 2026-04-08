@@ -28,7 +28,6 @@ import {
   extensions,
   menus,
   sqlLab,
-  storage,
   views,
 } from 'src/core';
 import { useSelector } from 'react-redux';
@@ -56,7 +55,6 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
       extensions,
       menus,
       sqlLab,
-      storage,
       views,
     };
 

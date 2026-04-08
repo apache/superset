@@ -17,112 +17,67 @@
  * under the License.
  */
 
-/**
- * Host implementation for Tier 2 Ephemeral State (Server Cache).
- */
-
-import {
-  storage as storageApi,
-  type storage as StorageTypes,
-} from '@apache-superset/core';
+import { type storage as StorageTypes } from '@apache-superset/core';
 import { SupersetClient } from '@superset-ui/core';
-import { DEFAULT_TTL, getCurrentExtensionId } from './utils';
+
+const DEFAULT_TTL = 3600;
 
 /**
- * Build the API URL for ephemeral state operations.
+ * Create ephemeral state (server cache) bound to an extension ID.
  */
-function buildEphemeralStateUrl(
+export function createEphemeralState(
   extensionId: string,
-  key: string,
-  isShared: boolean,
-): string {
-  const basePath = '/api/v1/extensions/storage/ephemeral';
-  const encodedExtensionId = encodeURIComponent(extensionId);
-  const encodedKey = encodeURIComponent(key);
-  return isShared
-    ? `${basePath}/shared/${encodedExtensionId}/${encodedKey}`
-    : `${basePath}/${encodedExtensionId}/${encodedKey}`;
+): typeof StorageTypes.ephemeralState {
+  const buildUrl = (key: string, isShared: boolean): string => {
+    const basePath = '/api/v1/extensions/storage/ephemeral';
+    const encodedId = encodeURIComponent(extensionId);
+    const encodedKey = encodeURIComponent(key);
+    return isShared
+      ? `${basePath}/shared/${encodedId}/${encodedKey}`
+      : `${basePath}/${encodedId}/${encodedKey}`;
+  };
+
+  const shared: StorageTypes.ephemeralState.EphemeralStateAccessor = {
+    get: async (key: string) => {
+      const response = await SupersetClient.get({ endpoint: buildUrl(key, true) });
+      return response.json?.result ?? null;
+    },
+    set: async (
+      key: string,
+      value: StorageTypes.JsonValue,
+      options?: StorageTypes.ephemeralState.SetOptions,
+    ) => {
+      await SupersetClient.put({
+        endpoint: buildUrl(key, true),
+        body: JSON.stringify({ value, ttl: options?.ttl ?? DEFAULT_TTL }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+    },
+    remove: async (key: string) => {
+      await SupersetClient.delete({ endpoint: buildUrl(key, true) });
+    },
+  };
+
+  return {
+    DEFAULT_TTL,
+    get: async (key: string) => {
+      const response = await SupersetClient.get({ endpoint: buildUrl(key, false) });
+      return response.json?.result ?? null;
+    },
+    set: async (
+      key: string,
+      value: StorageTypes.JsonValue,
+      options?: StorageTypes.ephemeralState.SetOptions,
+    ) => {
+      await SupersetClient.put({
+        endpoint: buildUrl(key, false),
+        body: JSON.stringify({ value, ttl: options?.ttl ?? DEFAULT_TTL }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+    },
+    remove: async (key: string) => {
+      await SupersetClient.delete({ endpoint: buildUrl(key, false) });
+    },
+    shared,
+  };
 }
-
-/**
- * Shared ephemeral state accessor implementation.
- */
-class SharedEphemeralStateAccessor
-  implements StorageTypes.ephemeralState.EphemeralStateAccessor
-{
-  private extensionId: string;
-
-  constructor(extensionId: string) {
-    this.extensionId = extensionId;
-  }
-
-  async get(key: string): Promise<StorageTypes.JsonValue | null> {
-    const url = buildEphemeralStateUrl(this.extensionId, key, true);
-    const response = await SupersetClient.get({ endpoint: url });
-    return response.json?.result ?? null;
-  }
-
-  async set(
-    key: string,
-    value: StorageTypes.JsonValue,
-    options?: StorageTypes.ephemeralState.SetOptions,
-  ): Promise<void> {
-    const url = buildEphemeralStateUrl(this.extensionId, key, true);
-    await SupersetClient.put({
-      endpoint: url,
-      body: JSON.stringify({
-        value,
-        ttl: options?.ttl ?? DEFAULT_TTL,
-      }),
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  async remove(key: string): Promise<void> {
-    const url = buildEphemeralStateUrl(this.extensionId, key, true);
-    await SupersetClient.delete({ endpoint: url });
-  }
-}
-
-/**
- * Ephemeral state implementation using REST API.
- * By default, all operations are user-scoped.
- */
-export const ephemeralState: typeof storageApi.ephemeralState = {
-  DEFAULT_TTL,
-
-  async get(key: string): Promise<StorageTypes.JsonValue | null> {
-    const extensionId = getCurrentExtensionId();
-    const url = buildEphemeralStateUrl(extensionId, key, false);
-    const response = await SupersetClient.get({ endpoint: url });
-    return response.json?.result ?? null;
-  },
-
-  async set(
-    key: string,
-    value: StorageTypes.JsonValue,
-    options?: StorageTypes.ephemeralState.SetOptions,
-  ): Promise<void> {
-    const extensionId = getCurrentExtensionId();
-    const url = buildEphemeralStateUrl(extensionId, key, false);
-    await SupersetClient.put({
-      endpoint: url,
-      body: JSON.stringify({
-        value,
-        ttl: options?.ttl ?? DEFAULT_TTL,
-      }),
-      headers: { 'Content-Type': 'application/json' },
-    });
-  },
-
-  async remove(key: string): Promise<void> {
-    const extensionId = getCurrentExtensionId();
-    const url = buildEphemeralStateUrl(extensionId, key, false);
-    await SupersetClient.delete({ endpoint: url });
-  },
-
-  get shared(): StorageTypes.ephemeralState.EphemeralStateAccessor {
-    const extensionId = getCurrentExtensionId();
-    return new SharedEphemeralStateAccessor(extensionId);
-  },
-};

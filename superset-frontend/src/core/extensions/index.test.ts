@@ -17,14 +17,10 @@
  * under the License.
  */
 
-/**
- * Host implementation for Tier 1 Session State (sessionStorage).
- */
+import { extensions as extensionsImpl } from './index';
 
-import { createBrowserStorageImpl } from './localState';
-
-/**
- * Session state implementation using sessionStorage.
- * Cleared when the browser tab is closed.
- */
-export const sessionState = createBrowserStorageImpl(sessionStorage);
+test('extensions.getContext throws when not in extension context', () => {
+  expect(() => extensionsImpl.getContext()).toThrow(
+    'getContext() must be called within an extension context',
+  );
+});

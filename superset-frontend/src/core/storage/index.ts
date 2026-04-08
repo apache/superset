@@ -18,24 +18,9 @@
  */
 
 /**
- * Host implementation for extension storage APIs.
- *
- * This module provides the concrete implementations that are exposed to
- * extensions via Module Federation. Extensions import from @apache-superset/core
- * and the host provides these implementations at runtime.
- *
- * All tiers follow the same pattern:
- * - User-scoped by default (private to current user)
- * - shared() accessor for data visible to all users
+ * Storage implementation for extensions.
+ * Extensions access storage via getContext().storage which is bound to each extension.
  */
 
-import { storage as storageApi } from '@apache-superset/core';
-import { localState } from './localState';
-import { sessionState } from './sessionState';
-import { ephemeralState } from './ephemeralState';
-
-export const storage: typeof storageApi = {
-  localState,
-  sessionState,
-  ephemeralState,
-};
+export { createBrowserStorage } from './localState';
+export { createEphemeralState } from './ephemeralState';
