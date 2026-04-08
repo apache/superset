@@ -64,8 +64,6 @@ const StyledDatasourceModal = styled(Modal)`
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
-    min-height: 0;
   }
 
   .ant-tabs-top {
@@ -379,6 +377,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       resizable
       resizableConfig={{
         defaultSize: { width: 'auto', height: `${MODAL_HEIGHT_VH}vh` },
+        maxHeight: `${MODAL_HEIGHT_VH}vh`,
       }}
       draggable
     >
