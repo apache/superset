@@ -1162,5 +1162,5 @@ class TestExecuteSqlOAuth2:
 
             data = result.structured_content
             assert data["success"] is False
-            assert "OAuth" in data["error"]
-            assert data["error_type"] == "OAUTH2_REDIRECT"
+            assert "configuration" in data["error"]
+            assert data["error_type"] == "OAUTH2_REDIRECT_ERROR"

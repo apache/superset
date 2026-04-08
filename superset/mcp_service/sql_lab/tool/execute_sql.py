@@ -148,7 +148,7 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
 
         return response
 
-    except (OAuth2RedirectError, OAuth2Error):
+    except OAuth2RedirectError:
         await ctx.error(
             "Database requires OAuth authentication: database_id=%s"
             % request.database_id
@@ -162,6 +162,19 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
                 "then retry this request."
             ),
             error_type=SupersetErrorType.OAUTH2_REDIRECT.value,
+        )
+    except OAuth2Error:
+        await ctx.error(
+            "OAuth2 configuration/flow error: database_id=%s" % request.database_id
+        )
+        return ExecuteSqlResponse(
+            success=False,
+            error=(
+                "OAuth authentication failed due to a configuration "
+                "or provider error. "
+                "Please contact your Superset administrator."
+            ),
+            error_type=SupersetErrorType.OAUTH2_REDIRECT_ERROR.value,
         )
     except Exception as e:
         await ctx.error(
