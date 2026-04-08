@@ -24,7 +24,6 @@ import type {
   extensions,
   menus,
   sqlLab,
-  storage,
   views,
 } from 'src/core';
 
@@ -38,7 +37,6 @@ declare global {
       extensions: typeof extensions;
       menus: typeof menus;
       sqlLab: typeof sqlLab;
-      storage: typeof storage;
       views: typeof views;
     };
   }
