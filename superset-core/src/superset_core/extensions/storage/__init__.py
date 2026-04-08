@@ -37,7 +37,7 @@ Tier 3 - Persistent State (Database) [Future]:
 
 All tiers follow the same API pattern:
     - User-scoped by default (private to current user)
-    - shared() accessor for data visible to all users
+    - `shared` accessor for data visible to all users
 
 Usage:
     from superset_core.extensions.storage import ephemeral_state
@@ -47,8 +47,8 @@ Usage:
     ephemeral_state.set('preference', 'compact', ttl=3600)
 
     # Shared state (explicit opt-in - visible to all users)
-    ephemeral_state.shared().get('job_progress')
-    ephemeral_state.shared().set('job_progress', {'pct': 42}, ttl=3600)
+    ephemeral_state.shared.get('job_progress')
+    ephemeral_state.shared.set('job_progress', {'pct': 42}, ttl=3600)
 
     # Future: Persistent state
     # from superset_core.extensions.storage import persistent_state

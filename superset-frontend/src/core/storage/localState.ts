@@ -81,60 +81,9 @@ export function createBrowserStorageImpl(
       storage.removeItem(storageKey);
     },
 
-    shared(): StorageTypes.StorageAccessor {
+    get shared(): StorageTypes.StorageAccessor {
       const extensionId = getCurrentExtensionId();
       return new SharedAccessor(extensionId);
-    },
-  };
-}
-
-/**
- * Create browser storage implementation bound to a specific extension ID.
- */
-export function createBoundBrowserStorage(
-  browserStorage: Storage,
-  extensionId: string,
-): typeof storageApi.localState {
-  class BoundSharedAccessor implements StorageTypes.StorageAccessor {
-    async get(key: string): Promise<StorageTypes.JsonValue | null> {
-      const storageKey = buildKey(extensionId, key);
-      const value = browserStorage.getItem(storageKey);
-      return value ? JSON.parse(value) : null;
-    }
-
-    async set(key: string, value: StorageTypes.JsonValue): Promise<void> {
-      const storageKey = buildKey(extensionId, key);
-      browserStorage.setItem(storageKey, JSON.stringify(value));
-    }
-
-    async remove(key: string): Promise<void> {
-      const storageKey = buildKey(extensionId, key);
-      browserStorage.removeItem(storageKey);
-    }
-  }
-
-  return {
-    async get(key: string): Promise<StorageTypes.JsonValue | null> {
-      const userId = getCurrentUserId();
-      const storageKey = buildKey(extensionId, 'user', userId, key);
-      const value = browserStorage.getItem(storageKey);
-      return value ? JSON.parse(value) : null;
-    },
-
-    async set(key: string, value: StorageTypes.JsonValue): Promise<void> {
-      const userId = getCurrentUserId();
-      const storageKey = buildKey(extensionId, 'user', userId, key);
-      browserStorage.setItem(storageKey, JSON.stringify(value));
-    },
-
-    async remove(key: string): Promise<void> {
-      const userId = getCurrentUserId();
-      const storageKey = buildKey(extensionId, 'user', userId, key);
-      browserStorage.removeItem(storageKey);
-    },
-
-    shared(): StorageTypes.StorageAccessor {
-      return new BoundSharedAccessor();
     },
   };
 }

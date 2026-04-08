@@ -24,9 +24,107 @@
  * including querying extension metadata and monitoring extension lifecycle events.
  * Extensions can use this API to discover other extensions and react to changes
  * in the extension ecosystem.
+ *
+ * Extensions can access their own context via `getContext()`, which provides:
+ * - Extension metadata (id, name, version, etc.)
+ * - Extension-scoped storage (localStorage, sessionStorage, ephemeral cache)
+ *
+ * @example
+ * ```typescript
+ * import { extensions } from '@apache-superset/core';
+ *
+ * // Get the current extension's context
+ * const ctx = extensions.getContext();
+ *
+ * // Access extension metadata
+ * console.log(`Running ${ctx.extension.name} v${ctx.extension.version}`);
+ *
+ * // Access extension-scoped storage
+ * await ctx.storage.local.set('preference', { theme: 'dark' });
+ * await ctx.storage.ephemeral.set('cache', data, { ttl: 300 });
+ * ```
  */
 
 import { Extension } from '../common';
+import { StorageTier } from '../storage/types';
+
+/**
+ * Extension-scoped storage accessor.
+ *
+ * All storage tiers are automatically namespaced to the current extension,
+ * preventing key collisions between extensions.
+ */
+export interface ExtensionStorage {
+  /**
+   * Browser localStorage - persists across browser sessions.
+   * Data is scoped to the current extension and user.
+   */
+  local: StorageTier;
+
+  /**
+   * Browser sessionStorage - cleared when the tab closes.
+   * Data is scoped to the current extension and user.
+   */
+  session: StorageTier;
+
+  /**
+   * Server-side cache (Redis/Memcached) with TTL.
+   * Data is scoped to the current extension and user.
+   * Use `.shared` for data visible to all users.
+   */
+  ephemeral: StorageTier;
+}
+
+/**
+ * Context object providing extension-specific resources.
+ *
+ * This context is only available during extension execution.
+ * Calling `getContext()` outside of an extension will throw an error.
+ */
+export interface ExtensionContext {
+  /**
+   * Metadata about the current extension.
+   */
+  extension: Extension;
+
+  /**
+   * Extension-scoped storage across all tiers.
+   * All keys are automatically namespaced to prevent collisions.
+   */
+  storage: ExtensionStorage;
+}
+
+/**
+ * Get the current extension's context.
+ *
+ * This function returns the context for the currently executing extension,
+ * providing access to extension metadata and scoped resources like storage.
+ *
+ * @returns The current extension's context.
+ * @throws Error if called outside of an extension context.
+ *
+ * @example
+ * ```typescript
+ * import { extensions } from '@apache-superset/core';
+ *
+ * const ctx = extensions.getContext();
+ *
+ * // Access extension metadata
+ * console.log(`Extension: ${ctx.extension.id}`);
+ * console.log(`Version: ${ctx.extension.version}`);
+ *
+ * // Access extension-scoped storage
+ * await ctx.storage.local.set('userPref', { sidebar: 'collapsed' });
+ * const pref = await ctx.storage.local.get('userPref');
+ *
+ * // Use ephemeral storage with TTL
+ * await ctx.storage.ephemeral.set('tempData', data, { ttl: 3600 });
+ *
+ * // Access shared (cross-user) storage
+ * await ctx.storage.ephemeral.shared.set('globalCounter', count);
+ * ```
+ */
+export declare function getContext(): ExtensionContext;
 
 /**
  * Get an extension by its full identifier in the form of: `publisher.name`.

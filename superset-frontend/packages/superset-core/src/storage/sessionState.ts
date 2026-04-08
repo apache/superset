@@ -25,7 +25,7 @@
  * truly transient UI state that should not persist across sessions.
  *
  * By default, all operations are user-scoped (private to the current user).
- * Use shared() to access state visible to all users on the same browser tab.
+ * Use `shared` to access state visible to all users on the same browser tab.
  *
  * Key patterns:
  * - User-scoped (default): superset-ext:{extension_id}:user:{user_id}:{key}
@@ -44,8 +44,8 @@
  * await sessionState.remove('wizard_step');
  *
  * // Shared state (visible to all users on same tab)
- * const tempData = await sessionState.shared().get('temp_data');
- * await sessionState.shared().set('temp_data', { draft: true });
+ * const tempData = await sessionState.shared.get('temp_data');
+ * await sessionState.shared.set('temp_data', { draft: true });
  * ```
  */
 
@@ -102,23 +102,21 @@ export declare function set(key: string, value: JsonValue): Promise<void>;
 export declare function remove(key: string): Promise<void>;
 
 /**
- * Get a shared session state accessor.
+ * Shared session state accessor.
  *
- * Returns an accessor for state that is shared across all users on the
+ * Accessor for state that is shared across all users on the
  * same browser tab. Data is cleared when the tab/window is closed.
  *
- * WARNING: Data stored via shared() is visible to all users on this tab.
+ * WARNING: Data stored via shared is visible to all users on this tab.
  * Do not store user-specific or sensitive data here.
- *
- * @returns An accessor for shared session state.
  *
  * @example
  * ```typescript
  * // Store temporary shared data
- * await sessionState.shared().set('temp_computation', result);
+ * await sessionState.shared.set('temp_computation', result);
  *
  * // Retrieve temporary shared data
- * const result = await sessionState.shared().get('temp_computation');
+ * const result = await sessionState.shared.get('temp_computation');
  * ```
  */
-export declare function shared(): StorageAccessor;
+export declare const shared: StorageAccessor;

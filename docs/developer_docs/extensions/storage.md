@@ -30,11 +30,11 @@ Each extension receives its own isolated storage namespace. When Superset loads 
 
 ## Storage Tiers
 
-| Tier | Storage Type | Module | Use Case |
-|------|--------------|--------|----------|
-| 1 | Browser storage | `localState`, `sessionState` | UI state, wizard progress, draft forms |
-| 2 | Server-side cache | `ephemeralState` | Job progress, temporary results |
-| 3 | Database | `persistentState` | User preferences, extension config (coming soon) |
+| Tier | Storage Type | Context Property | Use Case |
+|------|--------------|------------------|----------|
+| 1 | Browser storage | `ctx.storage.local`, `ctx.storage.session` | UI state, wizard progress, draft forms |
+| 2 | Server-side cache | `ctx.storage.ephemeral` | Job progress, temporary results |
+| 3 | Database | `ctx.storage.persistent` | User preferences, extension config (coming soon) |
 
 ## Tier 1: Local State
 
@@ -42,7 +42,7 @@ Browser-based storage that persists on the user's device. Use this for UI state 
 
 ### Why Use the API Instead of localStorage Directly?
 
-You might wonder why extensions should use `localState` instead of directly accessing `window.localStorage`. The managed API provides several benefits:
+You might wonder why extensions should use `ctx.storage.local` instead of directly accessing `window.localStorage`. The managed API provides several benefits:
 
 - **Automatic namespacing**: Each extension's data is isolated. Two extensions using the same key name won't collide.
 - **User isolation**: By default, data is scoped to the current user, preventing data leakage between users on shared devices.
@@ -55,16 +55,18 @@ You might wonder why extensions should use `localState` instead of directly acce
 Data persists across browser sessions until explicitly deleted or the user clears browser storage.
 
 ```typescript
-import { localState } from '@apache-superset/core/storage';
+import { getContext } from '@apache-superset/core/extensions';
+
+const ctx = getContext();
 
 // Save sidebar state
-await localState.set('sidebar_collapsed', true);
+await ctx.storage.local.set('sidebar_collapsed', true);
 
 // Retrieve it later
-const isCollapsed = await localState.get('sidebar_collapsed');
+const isCollapsed = await ctx.storage.local.get('sidebar_collapsed');
 
 // Remove it
-await localState.remove('sidebar_collapsed');
+await ctx.storage.local.remove('sidebar_collapsed');
 ```
 
 ### sessionState
@@ -72,26 +74,30 @@ await localState.remove('sidebar_collapsed');
 Data is cleared when the browser tab is closed. Use for transient state within a single session.
 
 ```typescript
-import { sessionState } from '@apache-superset/core/storage';
+import { getContext } from '@apache-superset/core/extensions';
+
+const ctx = getContext();
 
 // Save wizard progress (lost when tab closes)
-await sessionState.set('wizard_step', 3);
-await sessionState.set('unsaved_form', { name: 'Draft' });
+await ctx.storage.session.set('wizard_step', 3);
+await ctx.storage.session.set('unsaved_form', { name: 'Draft' });
 
 // Retrieve on page reload within same tab
-const step = await sessionState.get('wizard_step');
+const step = await ctx.storage.session.get('wizard_step');
 ```
 
 ### Shared State
 
-By default, data is scoped to the current user. Use `shared()` for data that should be accessible to all users on the same device.
+By default, data is scoped to the current user. Use `shared` for data that should be accessible to all users on the same device.
 
 ```typescript
-import { localState } from '@apache-superset/core/storage';
+import { getContext } from '@apache-superset/core/extensions';
+
+const ctx = getContext();
 
 // Shared across all users on this device
-await localState.shared().set('device_id', 'abc-123');
-const deviceId = await localState.shared().get('device_id');
+await ctx.storage.local.shared.set('device_id', 'abc-123');
+const deviceId = await ctx.storage.local.shared.get('device_id');
 ```
 
 ### When to Use Tier 1
@@ -114,34 +120,38 @@ Server-side cache storage with automatic TTL expiration. Use for temporary data 
 ### Frontend Usage
 
 ```typescript
-import { ephemeralState } from '@apache-superset/core/storage';
+import { getContext } from '@apache-superset/core/extensions';
+
+const ctx = getContext();
 
 // Store with default TTL (1 hour)
-await ephemeralState.set('job_progress', { pct: 42, status: 'running' });
+await ctx.storage.ephemeral.set('job_progress', { pct: 42, status: 'running' });
 
 // Store with custom TTL (5 minutes)
-await ephemeralState.set('quick_cache', { results: [1, 2, 3] }, { ttl: 300 });
+await ctx.storage.ephemeral.set('quick_cache', { results: [1, 2, 3] }, { ttl: 300 });
 
 // Retrieve
-const progress = await ephemeralState.get('job_progress');
+const progress = await ctx.storage.ephemeral.get('job_progress');
 
 // Remove
-await ephemeralState.remove('job_progress');
+await ctx.storage.ephemeral.remove('job_progress');
 ```
 
 ### Backend Usage
 
 ```python
-from superset_core.extensions.storage import ephemeral_state
+from superset_core.extensions.context import get_context
+
+ctx = get_context()
 
 # Store job progress
-ephemeral_state.set('job_progress', {'pct': 42, 'status': 'running'}, ttl=3600)
+ctx.storage.ephemeral.set('job_progress', {'pct': 42, 'status': 'running'}, ttl=3600)
 
 # Retrieve
-progress = ephemeral_state.get('job_progress')
+progress = ctx.storage.ephemeral.get('job_progress')
 
 # Remove
-ephemeral_state.remove('job_progress')
+ctx.storage.ephemeral.remove('job_progress')
 ```
 
 ### Shared State
@@ -149,17 +159,21 @@ ephemeral_state.remove('job_progress')
 For data that needs to be visible to all users:
 
 ```typescript
-import { ephemeralState } from '@apache-superset/core/storage';
+import { getContext } from '@apache-superset/core/extensions';
 
-await ephemeralState.shared().set('shared_result', { data: [1, 2, 3] });
-const result = await ephemeralState.shared().get('shared_result');
+const ctx = getContext();
+
+await ctx.storage.ephemeral.shared.set('shared_result', { data: [1, 2, 3] });
+const result = await ctx.storage.ephemeral.shared.get('shared_result');
 ```
 
 ```python
-from superset_core.extensions.storage import ephemeral_state
+from superset_core.extensions.context import get_context
 
-ephemeral_state.shared().set('shared_result', {'data': [1, 2, 3]})
-result = ephemeral_state.shared().get('shared_result')
+ctx = get_context()
+
+ctx.storage.ephemeral.shared.set('shared_result', {'data': [1, 2, 3]})
+result = ctx.storage.ephemeral.shared.get('shared_result')
 ```
 
 ### When to Use Tier 2
@@ -184,10 +198,10 @@ Coming soon.
 
 | Need | Recommended Tier |
 |------|------------------|
-| UI state (sidebar collapsed, panel sizes) | `localState` |
-| Wizard/form progress within a session | `sessionState` |
-| Background job progress | `ephemeralState` |
-| Temporary computation cache | `ephemeralState` |
+| UI state (sidebar collapsed, panel sizes) | `ctx.storage.local` |
+| Wizard/form progress within a session | `ctx.storage.session` |
+| Background job progress | `ctx.storage.ephemeral` |
+| Temporary computation cache | `ctx.storage.ephemeral` |
 
 ## Key Patterns
 
@@ -196,7 +210,7 @@ All storage keys are automatically namespaced:
 | Scope | Key Pattern |
 |-------|-------------|
 | User-scoped | `superset-ext:{extension_id}:user:{user_id}:{key}` |
-| Shared | `superset-ext:{extension_id}:{key}` |
+| Shared | `superset-ext:{extension_id}:shared:{key}` |
 
 This ensures:
 - Extensions cannot accidentally access each other's data

@@ -19,6 +19,70 @@
 import { extensions as extensionsApi } from '@apache-superset/core';
 import ExtensionsLoader from 'src/extensions/ExtensionsLoader';
 
+type ExtensionContext = extensionsApi.ExtensionContext;
+
+/**
+ * Current extension context for ambient context pattern.
+ * Set before executing extension code, restored after.
+ */
+let currentContext: ExtensionContext | null = null;
+
+/**
+ * Get the current extension context.
+ * @internal
+ */
+export function getCurrentContext(): ExtensionContext | null {
+  return currentContext;
+}
+
+/**
+ * Execute a callback with the given extension context.
+ * Saves the previous context and restores it after execution,
+ * supporting nested context switches.
+ *
+ * @param ctx The extension context to use during execution
+ * @param fn The callback to execute
+ * @returns The result of the callback
+ * @internal
+ */
+export function useContext<T>(ctx: ExtensionContext, fn: () => T): T {
+  const previousContext = currentContext;
+  currentContext = ctx;
+  try {
+    return fn();
+  } finally {
+    currentContext = previousContext;
+  }
+}
+
+/**
+ * Async version of useContext for async callbacks.
+ * @internal
+ */
+export async function useContextAsync<T>(
+  ctx: ExtensionContext,
+  fn: () => Promise<T>,
+): Promise<T> {
+  const previousContext = currentContext;
+  currentContext = ctx;
+  try {
+    return await fn();
+  } finally {
+    currentContext = previousContext;
+  }
+}
+
+const getContext: typeof extensionsApi.getContext = () => {
+  if (!currentContext) {
+    throw new Error(
+      'getContext() must be called within an extension context. ' +
+        'Ensure this code is being executed during extension loading or ' +
+        'within an extension callback.',
+    );
+  }
+  return currentContext;
+};
+
 const getExtension: typeof extensionsApi.getExtension = id =>
   ExtensionsLoader.getInstance().getExtension(id);
 
@@ -26,6 +90,7 @@ const getAllExtensions: typeof extensionsApi.getAllExtensions = () =>
   ExtensionsLoader.getInstance().getExtensions();
 
 export const extensions: typeof extensionsApi = {
+  getContext,
   getExtension,
   getAllExtensions,
 };

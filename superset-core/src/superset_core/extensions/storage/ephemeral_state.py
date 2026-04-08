@@ -38,9 +38,9 @@ Usage:
     ephemeral_state.remove('preference')
 
     # Shared state (explicit opt-in - visible to all users)
-    ephemeral_state.shared().get('job_progress')
-    ephemeral_state.shared().set('job_progress', {'pct': 42}, ttl=3600)
-    ephemeral_state.shared().remove('job_progress')
+    ephemeral_state.shared.get('job_progress')
+    ephemeral_state.shared.set('job_progress', {'pct': 42}, ttl=3600)
+    ephemeral_state.shared.remove('job_progress')
 """
 
 from typing import Any, Protocol
@@ -112,23 +112,24 @@ def remove(key: str) -> None:
     raise NotImplementedError("Function will be replaced during initialization")
 
 
-def shared() -> EphemeralStateAccessor:
-    """
-    Get a shared (global) ephemeral state accessor.
+class _SharedStub:
+    """Stub for shared accessor that raises NotImplementedError on any operation."""
 
-    Returns an accessor for state that is shared across all users.
-    Use this for data that needs to be visible to everyone, such as
-    job progress indicators or shared computation results.
+    def get(self, key: str) -> Any:
+        raise NotImplementedError("Accessor will be replaced during initialization")
 
-    WARNING: Data stored via shared() is visible to all users of the extension.
-    Do not store user-specific or sensitive data here.
+    def set(self, key: str, value: Any, ttl: int = DEFAULT_TTL) -> None:
+        raise NotImplementedError("Accessor will be replaced during initialization")
 
-    Host implementations will replace this function during initialization
-    with a concrete implementation providing actual functionality.
+    def remove(self, key: str) -> None:
+        raise NotImplementedError("Accessor will be replaced during initialization")
 
-    :returns: An accessor for shared ephemeral state.
-    """
-    raise NotImplementedError("Function will be replaced during initialization")
+
+#: Shared (global) ephemeral state accessor.
+#: Data stored via this accessor is visible to all users of the extension.
+#: WARNING: Do not store user-specific or sensitive data here.
+#: Host implementations will replace this during initialization.
+shared: EphemeralStateAccessor = _SharedStub()
 
 
 __all__ = [

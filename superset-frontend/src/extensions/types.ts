@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { storage as storageTypes } from '@apache-superset/core';
 import type {
   authentication,
   core,
@@ -25,6 +24,7 @@ import type {
   extensions,
   menus,
   sqlLab,
+  storage,
   views,
 } from 'src/core';
 
@@ -38,9 +38,7 @@ declare global {
       extensions: typeof extensions;
       menus: typeof menus;
       sqlLab: typeof sqlLab;
-      // Use the @apache-superset/core type (what extensions see),
-      // not the host's extended type with forExtension
-      storage: typeof storageTypes;
+      storage: typeof storage;
       views: typeof views;
     };
   }
