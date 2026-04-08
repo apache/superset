@@ -35,6 +35,7 @@ from superset.mcp_service.chart.chart_utils import (
 )
 from superset.mcp_service.chart.schemas import (
     GenerateExploreLinkRequest,
+    parse_chart_config,
 )
 
 
@@ -89,7 +90,7 @@ async def generate_explore_link(
     """
     await ctx.info(
         "Generating explore link for dataset_id=%s, chart_type=%s"
-        % (request.dataset_id, request.config.chart_type)
+        % (request.dataset_id, request.config.get("chart_type", "unknown"))
     )
     await ctx.debug(
         "Configuration details: use_cache=%s, force_refresh=%s, cache_form_data=%s"
@@ -97,7 +98,41 @@ async def generate_explore_link(
     )
 
     try:
-        await ctx.report_progress(1, 3, "Converting configuration to form data")
+        # Parse the raw config dict into a typed ChartConfig
+        config = parse_chart_config(request.config)
+
+        await ctx.report_progress(1, 4, "Validating dataset exists")
+        with event_logger.log_context(action="mcp.generate_explore_link.dataset_check"):
+            from superset.daos.dataset import DatasetDAO
+
+            dataset = None
+            if isinstance(request.dataset_id, int) or (
+                isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
+            ):
+                dataset_id_int = (
+                    int(request.dataset_id)
+                    if isinstance(request.dataset_id, str)
+                    else request.dataset_id
+                )
+                dataset = DatasetDAO.find_by_id(dataset_id_int)
+            else:
+                dataset = DatasetDAO.find_by_id(request.dataset_id, id_column="uuid")
+
+            if not dataset:
+                await ctx.error(
+                    "Dataset not found: dataset_id=%s" % (request.dataset_id,)
+                )
+                return {
+                    "url": "",
+                    "form_data": {},
+                    "form_data_key": None,
+                    "error": (
+                        f"Dataset not found: {request.dataset_id}. "
+                        "Use list_datasets to find valid dataset IDs."
+                    ),
+                }
+
+        await ctx.report_progress(2, 4, "Converting configuration to form data")
         with event_logger.log_context(action="mcp.generate_explore_link.form_data"):
             # Normalize column names to match canonical dataset column names
             # This fixes case sensitivity issues (e.g., 'order_date' vs 'OrderDate')
@@ -107,10 +142,10 @@ async def generate_explore_link(
                 )
 
                 normalized_config = DatasetValidator.normalize_column_names(
-                    request.config, request.dataset_id
+                    config, request.dataset_id
                 )
             except (ImportError, AttributeError, KeyError, ValueError, TypeError):
-                normalized_config = request.config
+                normalized_config = config
 
             # Map config to form_data using shared utilities
             form_data = map_config_to_form_data(
@@ -131,7 +166,7 @@ async def generate_explore_link(
             )
         )
 
-        await ctx.report_progress(2, 3, "Generating explore URL")
+        await ctx.report_progress(3, 4, "Generating explore URL")
         with event_logger.log_context(
             action="mcp.generate_explore_link.url_generation"
         ):
@@ -149,7 +184,7 @@ async def generate_explore_link(
             if form_data_key_list:
                 form_data_key = form_data_key_list[0]
 
-        await ctx.report_progress(3, 3, "URL generation complete")
+        await ctx.report_progress(4, 4, "URL generation complete")
         await ctx.info(
             "Explore link generated successfully: url_length=%s, dataset_id=%s, "
             "form_data_key=%s"
@@ -166,7 +201,12 @@ async def generate_explore_link(
     except Exception as e:
         await ctx.error(
             "Explore link generation failed for dataset_id=%s, chart_type=%s: %s: %s"
-            % (request.dataset_id, request.config.chart_type, type(e).__name__, str(e))
+            % (
+                request.dataset_id,
+                request.config.get("chart_type", "unknown"),
+                type(e).__name__,
+                str(e),
+            )
         )
         return {
             "url": "",

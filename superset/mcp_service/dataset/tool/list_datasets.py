@@ -48,6 +48,10 @@ DEFAULT_DATASET_COLUMNS = [
     "id",
     "table_name",
     "schema",
+    "description",
+    "certified_by",
+    "certification_details",
+    "changed_on",
     "changed_on_humanized",
 ]
 

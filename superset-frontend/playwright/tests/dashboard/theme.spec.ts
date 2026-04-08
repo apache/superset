@@ -18,16 +18,16 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { AuthPage } from '../../../pages/AuthPage';
-import { DashboardPage } from '../../../pages/DashboardPage';
-import { apiPostTheme, apiDeleteTheme } from '../../../helpers/api/theme';
+import { AuthPage } from '../../pages/AuthPage';
+import { DashboardPage } from '../../pages/DashboardPage';
+import { apiPostTheme, apiDeleteTheme } from '../../helpers/api/theme';
 import {
   apiPostDashboard,
   apiPutDashboard,
   apiDeleteDashboard,
-} from '../../../helpers/api/dashboard';
-import { apiGet } from '../../../helpers/api/requests';
-import { TIMEOUT } from '../../../utils/constants';
+} from '../../helpers/api/dashboard';
+import { apiGet } from '../../helpers/api/requests';
+import { TIMEOUT } from '../../utils/constants';
 
 /**
  * Dashboard Theme E2E tests.

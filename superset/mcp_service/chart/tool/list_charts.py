@@ -46,7 +46,11 @@ DEFAULT_CHART_COLUMNS = [
     "id",
     "slice_name",
     "viz_type",
+    "description",
+    "certified_by",
+    "certification_details",
     "url",
+    "changed_on",
     "changed_on_humanized",
 ]
 

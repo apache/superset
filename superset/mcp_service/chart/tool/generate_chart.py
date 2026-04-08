@@ -43,6 +43,7 @@ from superset.mcp_service.chart.schemas import (
     ChartError,
     GenerateChartRequest,
     GenerateChartResponse,
+    parse_chart_config,
     PerformanceMetadata,
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
@@ -89,13 +90,23 @@ def _compile_chart(
         query_filters = adhoc_filters_to_query_filters(
             form_data.get("adhoc_filters", [])
         )
+
+        # Big Number charts use singular "metric" instead of "metrics"
+        metrics = form_data.get("metrics", [])
+        if not metrics and form_data.get("metric"):
+            metrics = [form_data["metric"]]
+
+        # Big Number with trendline uses granularity_sqla as the time column
+        if not columns and form_data.get("granularity_sqla"):
+            columns = [form_data["granularity_sqla"]]
+
         factory = QueryContextFactory()
         query_context = factory.create(
             datasource={"id": dataset_id, "type": "table"},
             queries=[
                 {
                     "columns": columns,
-                    "metrics": form_data.get("metrics", []),
+                    "metrics": metrics,
                     "orderby": form_data.get("orderby", []),
                     "row_limit": 2,
                     "filters": query_filters,
@@ -199,13 +210,17 @@ async def generate_chart(  # noqa: C901
         "save_chart=%s, preview_formats=%s"
         % (
             request.dataset_id,
-            request.config.chart_type,
+            request.config.get("chart_type", "unknown"),
             request.save_chart,
             request.preview_formats,
         )
     )
     await ctx.debug(
-        "Chart configuration details: config=%s" % (request.config.model_dump(),)
+        "Chart configuration details: chart_type=%s, keys=%s"
+        % (
+            request.config.get("chart_type", "unknown"),
+            sorted(request.config.keys()),
+        )
     )
 
     # Track runtime warnings to include in response
@@ -259,11 +274,12 @@ async def generate_chart(  # noqa: C901
                 }
             )
 
+        # Parse the raw config dict into a typed ChartConfig for downstream use
+        config = parse_chart_config(request.config)
+
         # Map the simplified config to Superset's form_data format
         # Pass dataset_id to enable column type checking for proper viz_type selection
-        form_data = map_config_to_form_data(
-            request.config, dataset_id=request.dataset_id
-        )
+        form_data = map_config_to_form_data(config, dataset_id=request.dataset_id)
 
         chart = None
         chart_id = None
@@ -357,7 +373,7 @@ async def generate_chart(  # noqa: C901
                 dataset, "table_name", None
             )
             chart_name = request.chart_name or generate_chart_name(
-                request.config, dataset_name=dataset_name
+                config, dataset_name=dataset_name
             )
             await ctx.debug("Chart name: chart_name=%s" % (chart_name,))
 
@@ -597,8 +613,8 @@ async def generate_chart(  # noqa: C901
                 response_warnings.extend(compile_result.warnings)
 
         # Generate semantic analysis
-        capabilities = analyze_chart_capabilities(chart, request.config)
-        semantics = analyze_chart_semantics(chart, request.config)
+        capabilities = analyze_chart_capabilities(chart, config)
+        semantics = analyze_chart_semantics(chart, config)
 
         # Create performance metadata
         execution_time = int((time.time() - start_time) * 1000)
@@ -612,7 +628,7 @@ async def generate_chart(  # noqa: C901
         chart_name = (
             chart.slice_name
             if chart and hasattr(chart, "slice_name")
-            else generate_chart_name(request.config)
+            else generate_chart_name(config)
         )
         accessibility = AccessibilityMetadata(
             color_blind_safe=True,  # Would need actual analysis
@@ -742,7 +758,13 @@ async def generate_chart(  # noqa: C901
                     chart.id,
                     exc_info=True,
                 )
-                db.session.rollback()
+                try:
+                    db.session.rollback()  # pylint: disable=consider-using-transaction
+                except SQLAlchemyError:
+                    logger.warning(
+                        "Database rollback failed during chart re-fetch error handling",
+                        exc_info=True,
+                    )
                 chart_data = {
                     "id": chart.id,
                     "slice_name": chart.slice_name,
@@ -805,6 +827,14 @@ async def generate_chart(  # noqa: C901
         return GenerateChartResponse.model_validate(result)
 
     except (CommandException, SQLAlchemyError, KeyError, ValueError) as e:
+        from superset import db
+
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError:
+            logger.warning(
+                "Database rollback failed during error handling", exc_info=True
+            )
         await ctx.error(
             "Chart generation failed: error=%s, execution_time_ms=%s"
             % (
@@ -819,9 +849,9 @@ async def generate_chart(  # noqa: C901
         # Extract chart_type from different sources for better error context
         chart_type = "unknown"
         try:
-            if hasattr(request, "config") and hasattr(request.config, "chart_type"):
-                chart_type = request.config.chart_type
-        except AttributeError as extract_error:
+            if hasattr(request, "config") and isinstance(request.config, dict):
+                chart_type = request.config.get("chart_type", "unknown")
+        except (AttributeError, TypeError) as extract_error:
             # Ignore errors when extracting chart type for error context
             logger.debug("Could not extract chart type: %s", extract_error)
 
