@@ -25,7 +25,7 @@
  * devices or synced to the server).
  *
  * By default, all operations are user-scoped (private to the current user).
- * Use shared() to access state visible to all users on the same browser.
+ * Use `shared` to access state visible to all users on the same browser.
  *
  * Key patterns:
  * - User-scoped (default): superset-ext:{extension_id}:user:{user_id}:{key}
@@ -44,8 +44,8 @@
  * await localState.remove('sidebar_collapsed');
  *
  * // Shared state (visible to all users on same browser)
- * const deviceId = await localState.shared().get('device_id');
- * await localState.shared().set('device_id', 'abc-123');
+ * const deviceId = await localState.shared.get('device_id');
+ * await localState.shared.set('device_id', 'abc-123');
  * ```
  */
 
@@ -100,24 +100,22 @@ export declare function set(key: string, value: JsonValue): Promise<void>;
 export declare function remove(key: string): Promise<void>;
 
 /**
- * Get a shared local state accessor.
+ * Shared local state accessor.
  *
- * Returns an accessor for state that is shared across all users on the
+ * Accessor for state that is shared across all users on the
  * same browser/device. Use this for device-specific settings that should
  * persist regardless of which user is logged in.
  *
- * WARNING: Data stored via shared() is visible to all users on this browser.
+ * WARNING: Data stored via shared is visible to all users on this browser.
  * Do not store user-specific or sensitive data here.
- *
- * @returns An accessor for shared local state.
  *
  * @example
  * ```typescript
  * // Get device-specific setting
- * const deviceId = await localState.shared().get('device_id');
+ * const deviceId = await localState.shared.get('device_id');
  *
  * // Set device-specific setting
- * await localState.shared().set('last_used_printer', 'HP-1234');
+ * await localState.shared.set('last_used_printer', 'HP-1234');
  * ```
  */
-export declare function shared(): StorageAccessor;
+export declare const shared: StorageAccessor;

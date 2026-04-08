@@ -72,14 +72,12 @@ export interface StorageAccessor {
 
 /**
  * Base interface for a storage tier.
- * All storage tiers implement this interface with user-scoped default and shared() accessor.
+ * All storage tiers implement this interface with user-scoped default and shared accessor.
  */
 export interface StorageTier extends StorageAccessor {
   /**
-   * Get a shared storage accessor.
-   * Data stored via shared() is visible to all users.
-   *
-   * @returns An accessor for shared storage.
+   * Shared storage accessor.
+   * Data stored via shared is visible to all users.
    */
-  shared(): StorageAccessor;
+  shared: StorageAccessor;
 }

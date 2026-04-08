@@ -74,14 +74,13 @@ class SharedEphemeralStateAccessor:
     Accessor for shared (global) ephemeral state.
 
     Data stored via this accessor is visible to all users of the extension.
+    Extension ID is resolved lazily on each operation from the current context.
     """
-
-    def __init__(self, extension_id: str):
-        self._extension_id = extension_id
 
     def _build_key(self, key: str) -> str:
         """Build a shared (global) cache key."""
-        return _build_cache_key(KEY_PREFIX, self._extension_id, "shared", key)
+        extension_id = _get_extension_id()
+        return _build_cache_key(KEY_PREFIX, extension_id, "shared", key)
 
     def get(self, key: str) -> Any:
         """
@@ -122,7 +121,7 @@ class EphemeralStateImpl:
     superset_core.extensions.storage.ephemeral_state.
 
     By default, all operations are user-scoped (private to the current user).
-    Use shared() to access state that is visible to all users.
+    Use `shared` to access state that is visible to all users.
     """
 
     @staticmethod
@@ -169,24 +168,7 @@ class EphemeralStateImpl:
         cache_key = EphemeralStateImpl._build_user_key(extension_id, user_id, key)
         cache_manager.extension_ephemeral_state_cache.delete(cache_key)
 
-    @staticmethod
-    def shared() -> SharedEphemeralStateAccessor:
-        """
-        Get a shared (global) ephemeral state accessor.
-
-        Returns an accessor for state that is shared across all users.
-        Use this for data that needs to be visible to everyone.
-
-        WARNING: Data stored via shared() is visible to all users of the extension.
-
-        :returns: An accessor for shared ephemeral state.
-        """
-        extension_id = _get_extension_id()
-        return SharedEphemeralStateAccessor(extension_id)
-
-
-__all__ = [
-    "DEFAULT_TTL",
-    "EphemeralStateImpl",
-    "SharedEphemeralStateAccessor",
-]
+    #: Shared (global) ephemeral state accessor.
+    #: Data stored via this accessor is visible to all users of the extension.
+    #: WARNING: Do not store user-specific or sensitive data here.
+    shared: SharedEphemeralStateAccessor = SharedEphemeralStateAccessor()

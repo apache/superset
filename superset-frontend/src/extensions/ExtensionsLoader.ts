@@ -18,9 +18,12 @@
  */
 import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
-import type { common as core } from '@apache-superset/core';
-import { forExtension } from 'src/core/storage';
+import type { common as core, extensions } from '@apache-superset/core';
+import { storage } from 'src/core/storage';
+import { useContext } from 'src/core/extensions';
 import './types';
+
+type ExtensionContext = extensions.ExtensionContext;
 
 type Extension = core.Extension;
 
@@ -139,13 +142,23 @@ class ExtensionsLoader {
 
     const factory = await container.get('./index');
 
-    // Bind storage to this extension before executing the module.
-    // The extension's imports resolve via webpack externals at load time,
-    // capturing this bound instance.
-    window.superset.storage = forExtension(id);
+    // Create the extension context with ambient storage.
+    // Storage methods will get the extension ID from the ambient context.
+    const context: ExtensionContext = {
+      extension,
+      storage: {
+        local: storage.localState,
+        session: storage.sessionState,
+        ephemeral: storage.ephemeralState,
+      },
+    };
 
-    // Execute the module factory - side effects fire registrations
-    factory();
+    // Execute module with ambient context.
+    // Extensions call getContext() to access this.
+    // Context is automatically restored after execution.
+    useContext(context, () => {
+      factory();
+    });
   }
 
   /**
