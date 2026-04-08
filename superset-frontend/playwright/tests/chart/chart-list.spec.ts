@@ -17,21 +17,20 @@
  * under the License.
  */
 
+import { testWithAssets, expect } from '../../helpers/fixtures';
+import { ChartListPage } from '../../pages/ChartListPage';
 import {
-  test as testWithAssets,
-  expect,
-} from '../../../helpers/fixtures/testAssets';
-import { ChartListPage } from '../../../pages/ChartListPage';
-import { ChartPropertiesModal } from '../../../components/modals/ChartPropertiesModal';
-import { DeleteConfirmationModal } from '../../../components/modals/DeleteConfirmationModal';
-import { Toast } from '../../../components/core/Toast';
-import { apiGetChart, ENDPOINTS } from '../../../helpers/api/chart';
+  ChartPropertiesModal,
+  DeleteConfirmationModal,
+} from '../../components/modals';
+import { Toast } from '../../components/core';
+import { apiGetChart, ENDPOINTS } from '../../helpers/api/chart';
 import { createTestChart } from './chart-test-helpers';
-import { waitForGet, waitForPut } from '../../../helpers/api/intercepts';
+import { waitForGet, waitForPut } from '../../helpers/api/intercepts';
 import {
   expectStatusOneOf,
   expectValidExportZip,
-} from '../../../helpers/api/assertions';
+} from '../../helpers/api/assertions';
 
 /**
  * Extend testWithAssets with chartListPage navigation (beforeEach equivalent).
@@ -259,6 +258,60 @@ test('should bulk delete multiple charts', async ({
       )
       .toBe(404);
   }
+});
+
+test('should edit chart name from card view', async ({ page, testAssets }) => {
+  // Create throwaway chart for editing
+  const { id: chartId, name: chartName } = await createTestChart(
+    page,
+    testAssets,
+    test.info(),
+    { prefix: 'test_card_edit' },
+  );
+
+  // Navigate to card view (not table view)
+  const cardListPage = new ChartListPage(page);
+  await cardListPage.gotoCardView();
+  await cardListPage.waitForCardLoad();
+
+  // Verify chart card is visible
+  await expect(cardListPage.getChartCard(chartName)).toBeVisible();
+
+  // Open card dropdown and click edit
+  await cardListPage.clickCardEditAction(chartName);
+
+  // Wait for properties modal to be ready
+  const propertiesModal = new ChartPropertiesModal(page);
+  await propertiesModal.waitForReady();
+
+  // Edit the chart name
+  const newName = `card_renamed_${Date.now()}_${test.info().parallelIndex}`;
+  await propertiesModal.fillName(newName);
+
+  // Set up response intercept for save
+  const saveResponsePromise = waitForPut(page, `${ENDPOINTS.CHART}${chartId}`);
+
+  // Click Save button
+  await propertiesModal.clickSave();
+
+  // Wait for save to complete and verify success
+  expectStatusOneOf(await saveResponsePromise, [200, 201]);
+
+  // Modal should close
+  await propertiesModal.waitForHidden();
+
+  // Verify success toast appears
+  const toast = new Toast(page);
+  await expect(toast.getSuccess()).toBeVisible();
+
+  // Verify the renamed card appears in card view and old name is gone
+  await expect(cardListPage.getChartCard(newName)).toBeVisible();
+  await expect(cardListPage.getChartCard(chartName)).not.toBeVisible();
+
+  // Backend verification: API returns updated name
+  const response = await apiGetChart(page, chartId);
+  const chart = (await response.json()).result;
+  expect(chart.slice_name).toBe(newName);
 });
 
 test('should bulk export multiple charts', async ({
