@@ -72,6 +72,8 @@ export interface TableControlsProps {
   isLoading: boolean;
   rowcount: number;
   canDownload: boolean;
+  rowLimit?: number;
+  onRowLimitChange?: (limit: number) => void;
 }
 
 export interface QueryResultInterface {

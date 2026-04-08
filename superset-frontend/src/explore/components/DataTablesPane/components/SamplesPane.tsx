@@ -50,6 +50,8 @@ const GridSizer = styled.div`
 
 const cache = new WeakSet();
 
+const DEFAULT_ROW_LIMIT = 100;
+
 export const SamplesPane = ({
   isRequest,
   datasource,
@@ -59,6 +61,7 @@ export const SamplesPane = ({
   canDownload,
 }: SamplesPaneProps) => {
   const [filterText, setFilterText] = useState('');
+  const [rowLimit, setRowLimit] = useState(DEFAULT_ROW_LIMIT);
   const [data, setData] = useState<Record<string, any>[][]>([]);
   const [colnames, setColnames] = useState<string[]>([]);
   const [coltypes, setColtypes] = useState<GenericDataType[]>([]);
@@ -71,6 +74,14 @@ export const SamplesPane = ({
     [datasource],
   );
 
+  const handleRowLimitChange = useCallback(
+    (limit: number) => {
+      setRowLimit(limit);
+      cache.delete(datasource);
+    },
+    [datasource],
+  );
+
   useEffect(() => {
     if (isRequest && queryForce) {
       cache.delete(datasource);
@@ -78,7 +89,14 @@ export const SamplesPane = ({
 
     if (isRequest && !cache.has(datasource)) {
       setIsLoading(true);
-      getDatasourceSamples(datasource.type, datasource.id, queryForce, {})
+      getDatasourceSamples(
+        datasource.type,
+        datasource.id,
+        queryForce,
+        {},
+        rowLimit,
+        1,
+      )
         .then(response => {
           setData(ensureIsArray(response.data));
           setColnames(ensureIsArray(response.colnames));
@@ -100,7 +118,7 @@ export const SamplesPane = ({
           setIsLoading(false);
         });
     }
-  }, [datasource, isRequest, queryForce]);
+  }, [datasource, isRequest, queryForce, rowLimit]);
 
   const columns = useGridColumns(colnames, coltypes, data);
   const keywordFilter = useKeywordFilter(filterText);
@@ -126,6 +144,8 @@ export const SamplesPane = ({
           onInputChange={handleInputChange}
           isLoading={isLoading}
           canDownload={canDownload}
+          rowLimit={rowLimit}
+          onRowLimitChange={handleRowLimitChange}
         />
         <Error>{responseError}</Error>
       </>
@@ -148,6 +168,8 @@ export const SamplesPane = ({
         onInputChange={handleInputChange}
         isLoading={isLoading}
         canDownload={canDownload}
+        rowLimit={rowLimit}
+        onRowLimitChange={handleRowLimitChange}
       />
       <GridContainer>
         <GridSizer ref={measuredRef}>
