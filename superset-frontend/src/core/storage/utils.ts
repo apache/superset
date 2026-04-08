@@ -22,6 +22,7 @@
  */
 
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { getCurrentContext } from 'src/core/extensions';
 
 // Key prefix for extension storage
 export const KEY_PREFIX = 'superset-ext';
@@ -30,20 +31,18 @@ export const KEY_PREFIX = 'superset-ext';
 export const DEFAULT_TTL = 3600;
 
 /**
- * Get the current extension ID from context.
- * This is injected by the extension loader when running extension code.
+ * Get the current extension ID from ambient context.
+ * The context is set by ExtensionsLoader when executing extension code.
  */
 export function getCurrentExtensionId(): string {
-  const extensionId = (
-    window as unknown as { __SUPERSET_EXTENSION_ID__?: string }
-  ).__SUPERSET_EXTENSION_ID__;
-  if (!extensionId) {
+  const context = getCurrentContext();
+  if (!context) {
     throw new Error(
       'Storage APIs can only be used within an extension context. ' +
         'Ensure this code is being executed by an extension.',
     );
   }
-  return extensionId;
+  return context.extension.id;
 }
 
 /**

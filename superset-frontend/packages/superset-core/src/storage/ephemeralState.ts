@@ -27,7 +27,7 @@ import type { JsonValue, StorageAccessor } from './types';
  * Not guaranteed to survive server restarts.
  *
  * By default, all operations are user-scoped (private to the current user).
- * Use shared() to access state that is visible to all users.
+ * Use `shared` to access state that is visible to all users.
  *
  * Cache keys are namespaced automatically:
  * - User-scoped (default): superset-ext:{extension_id}:user:{user_id}:{key}
@@ -43,9 +43,9 @@ import type { JsonValue, StorageAccessor } from './types';
  * await ephemeralState.remove('job_progress');
  *
  * // Shared state (explicit opt-in - visible to all users)
- * const result = await ephemeralState.shared().get('shared_result');
- * await ephemeralState.shared().set('shared_result', { data: [1, 2, 3] });
- * await ephemeralState.shared().remove('shared_result');
+ * const result = await ephemeralState.shared.get('shared_result');
+ * await ephemeralState.shared.set('shared_result', { data: [1, 2, 3] });
+ * await ephemeralState.shared.remove('shared_result');
  * ```
  */
 
@@ -136,27 +136,25 @@ export declare function set(
 export declare function remove(key: string): Promise<void>;
 
 /**
- * Get a shared (global) ephemeral state accessor.
+ * Shared (global) ephemeral state accessor.
  *
- * Returns an accessor for state that is shared across all users.
+ * Accessor for state that is shared across all users.
  * Use this for data that needs to be visible to everyone, such as
  * job progress indicators or shared computation results.
  *
- * WARNING: Data stored via shared() is visible to all users of the extension.
+ * WARNING: Data stored via shared is visible to all users of the extension.
  * Do not store user-specific or sensitive data here.
- *
- * @returns An accessor for shared ephemeral state.
  *
  * @example
  * ```typescript
  * // Get shared job progress
- * const progress = await ephemeralState.shared().get('computation_progress');
+ * const progress = await ephemeralState.shared.get('computation_progress');
  *
  * // Update shared job progress
- * await ephemeralState.shared().set('computation_progress', { pct: 75 });
+ * await ephemeralState.shared.set('computation_progress', { pct: 75 });
  *
  * // Clear shared state
- * await ephemeralState.shared().remove('computation_progress');
+ * await ephemeralState.shared.remove('computation_progress');
  * ```
  */
-export declare function shared(): EphemeralStateAccessor;
+export declare const shared: EphemeralStateAccessor;

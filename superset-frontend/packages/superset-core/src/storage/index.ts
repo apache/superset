@@ -29,7 +29,7 @@
  *
  * All tiers follow the same API pattern:
  * - User-scoped by default (private to current user)
- * - `shared()` accessor for data visible to all users
+ * - `shared` accessor for data visible to all users
  *
  * @example
  * ```typescript
@@ -48,8 +48,8 @@
  * const progress = await ephemeralState.get('job_progress');
  *
  * // Shared state (visible to all users)
- * await localState.shared().set('device_id', 'abc-123');
- * await ephemeralState.shared().set('shared_result', { data: [1, 2, 3] });
+ * await localState.shared.set('device_id', 'abc-123');
+ * await ephemeralState.shared.set('shared_result', { data: [1, 2, 3] });
  * ```
  */
 

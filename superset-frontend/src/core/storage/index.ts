@@ -30,24 +30,9 @@
  */
 
 import { storage as storageApi } from '@apache-superset/core';
-import { localState, createBoundBrowserStorage } from './localState';
+import { localState } from './localState';
 import { sessionState } from './sessionState';
-import { ephemeralState, createBoundEphemeralState } from './ephemeralState';
-
-/**
- * Create a storage instance bound to a specific extension ID.
- * Used by ExtensionsLoader to provide pre-bound storage to extensions.
- *
- * @param extensionId The extension ID to bind storage to.
- * @returns A storage object with all tiers bound to the extension.
- */
-export function forExtension(extensionId: string): typeof storageApi {
-  return {
-    localState: createBoundBrowserStorage(localStorage, extensionId),
-    sessionState: createBoundBrowserStorage(sessionStorage, extensionId),
-    ephemeralState: createBoundEphemeralState(extensionId),
-  };
-}
+import { ephemeralState } from './ephemeralState';
 
 export const storage: typeof storageApi = {
   localState,

@@ -245,6 +245,18 @@ def inject_storage_implementations() -> None:
     core_ephemeral_state.shared = EphemeralStateImpl.shared
 
 
+def inject_extension_context() -> None:
+    """
+    Replace abstract get_context in superset_core.extensions.context
+    with concrete implementation from Superset.
+    """
+    import superset_core.extensions.context as core_context
+
+    from superset.extensions.context import get_context
+
+    core_context.get_context = get_context
+
+
 def initialize_core_api_dependencies() -> None:
     """
     Initialize all dependency injections for the superset-core API.
@@ -259,3 +271,4 @@ def initialize_core_api_dependencies() -> None:
     inject_task_implementations()
     inject_rest_api_implementations()
     inject_storage_implementations()
+    inject_extension_context()
