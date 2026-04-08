@@ -29,8 +29,18 @@ import type { TreeNodeData } from './types';
 const StyledColumnNode = styled.div`
   & > .ant-flex {
     flex: 1;
-    margin-right: ${({ theme }) => theme.sizeUnit * 1.5}px;
+    margin-right: ${({ theme }) => theme.sizeUnit * 4}px;
     cursor: default;
+  }
+
+  .col-copy-action {
+    opacity: 0;
+    flex-shrink: 0;
+    margin-left: ${({ theme }) => theme.sizeUnit}px;
+  }
+
+  &:hover .col-copy-action {
+    opacity: 1;
   }
 `;
 
@@ -123,8 +133,9 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
 
     if (identifier === 'table') {
       const TableTypeIcon =
-        data.tableType === 'view' ? Icons.EyeOutlined : Icons.TableOutlined;
-      // Show loading icon with table type icon when loading
+        data.tableType === 'view'
+          ? Icons.FunctionOutlined
+          : Icons.TableOutlined;
       if (isLoading) {
         return (
           <>
@@ -133,15 +144,7 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
           </>
         );
       }
-      const ExpandIcon = isManuallyOpen
-        ? Icons.MinusSquareOutlined
-        : Icons.PlusSquareOutlined;
-      return (
-        <>
-          <ExpandIcon iconSize="l" />
-          <TableTypeIcon iconSize="l" />
-        </>
-      );
+      return <TableTypeIcon iconSize="l" />;
     }
 
     return null;
@@ -176,7 +179,24 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
         data-selected={node.isSelected}
         onClick={() => node.select()}
       >
-        <ColumnElement column={data.columnData} />
+        <ColumnElement
+          column={data.columnData}
+          actions={
+            <span
+              className="col-copy-action"
+              onClick={e => e.stopPropagation()}
+            >
+              <ActionButton
+                label={`copy-col-${data.name}`}
+                tooltip={t('Copy column name')}
+                icon={<Icons.CopyOutlined iconSize="m" />}
+                onClick={() =>
+                  copyTextToClipboard(() => Promise.resolve(data.name))
+                }
+              />
+            </span>
+          }
+        />
       </StyledColumnNode>
     );
   }
@@ -293,6 +313,17 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
                   }
                 />
               </div>
+              <ActionButton
+                label={`toggle-${schema}-${tableName}`}
+                icon={
+                  isManuallyOpen ? (
+                    <Icons.UpOutlined iconSize="m" />
+                  ) : (
+                    <Icons.DownOutlined iconSize="m" />
+                  )
+                }
+                onClick={() => node.toggle()}
+              />
             </div>
           );
         })()}

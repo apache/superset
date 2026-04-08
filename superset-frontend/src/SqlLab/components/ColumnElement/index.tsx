@@ -74,6 +74,7 @@ interface ColumnElementProps {
     keys?: { type: ColumnKeyTypeType }[];
     type: string;
   };
+  actions?: ReactNode;
 }
 
 const ColumnType = styled.div`
@@ -82,7 +83,7 @@ const ColumnType = styled.div`
   font-size: ${({ theme }) => theme.fontSizeSM}px;
 `;
 
-const ColumnElement = ({ column }: ColumnElementProps) => {
+const ColumnElement = ({ column, actions }: ColumnElementProps) => {
   let columnName: ReactNode = column.name;
   let icons;
   if (column.keys && column.keys.length > 0) {
@@ -112,6 +113,7 @@ const ColumnElement = ({ column }: ColumnElementProps) => {
       <div data-test="col-name">
         {columnName}
         {icons}
+        {actions}
       </div>
       <ColumnType>{column.type}</ColumnType>
     </Flex>

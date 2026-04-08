@@ -211,7 +211,7 @@ test('renders list of options when user clicks on schema', async () => {
 
   // Schema select will be automatically populated if there is only one schema
   const schemaSelect = screen.getByRole('combobox', {
-    name: /select schema or type to search schemas/i,
+    name: /select schema/i,
   });
   await waitFor(() => {
     expect(schemaSelect).toBeEnabled();
@@ -231,7 +231,7 @@ test('searches for a table name', async () => {
   userEvent.click(await screen.findByText('test-postgres'));
 
   const schemaSelect = screen.getByRole('combobox', {
-    name: /select schema or type to search schemas/i,
+    name: /select schema/i,
   });
   const tableSelect = screen.getByRole('combobox', {
     name: /select table or type to search tables/i,
@@ -287,7 +287,7 @@ test('renders a warning icon when a table name has a preexisting dataset', async
   userEvent.click(await screen.findByText('test-postgres'));
 
   const schemaSelect = screen.getByRole('combobox', {
-    name: /select schema or type to search schemas/i,
+    name: /select schema/i,
   });
   const tableSelect = screen.getByRole('combobox', {
     name: /select table or type to search tables/i,
