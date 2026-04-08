@@ -30,11 +30,11 @@ Each extension receives its own isolated storage namespace. When Superset loads 
 
 ## Storage Tiers
 
-| Tier | Storage Type | Context Property | Use Case |
-|------|--------------|------------------|----------|
-| 1 | Browser storage | `ctx.storage.local`, `ctx.storage.session` | UI state, wizard progress, draft forms |
-| 2 | Server-side cache | `ctx.storage.ephemeral` | Job progress, temporary results |
-| 3 | Database | `ctx.storage.persistent` | User preferences, extension config (coming soon) |
+| Tier | Storage Type      | Context Property                           | Use Case                                         |
+| ---- | ----------------- | ------------------------------------------ | ------------------------------------------------ |
+| 1    | Browser storage   | `ctx.storage.local`, `ctx.storage.session` | UI state, wizard progress, draft forms           |
+| 2    | Server-side cache | `ctx.storage.ephemeral`                    | Job progress, temporary results                  |
+| 3    | Database          | `ctx.storage.persistent`                   | User preferences, extension config (coming soon) |
 
 ## Tier 1: Local State
 
@@ -128,7 +128,11 @@ const ctx = getContext();
 await ctx.storage.ephemeral.set('job_progress', { pct: 42, status: 'running' });
 
 // Store with custom TTL (5 minutes)
-await ctx.storage.ephemeral.set('quick_cache', { results: [1, 2, 3] }, { ttl: 300 });
+await ctx.storage.ephemeral.set(
+  'quick_cache',
+  { results: [1, 2, 3] },
+  { ttl: 300 },
+);
 
 // Retrieve
 const progress = await ctx.storage.ephemeral.get('job_progress');
@@ -194,25 +198,17 @@ result = ctx.storage.ephemeral.shared.get('shared_result')
 
 Coming soon.
 
-## Choosing the Right Tier
-
-| Need | Recommended Tier |
-|------|------------------|
-| UI state (sidebar collapsed, panel sizes) | `ctx.storage.local` |
-| Wizard/form progress within a session | `ctx.storage.session` |
-| Background job progress | `ctx.storage.ephemeral` |
-| Temporary computation cache | `ctx.storage.ephemeral` |
-
 ## Key Patterns
 
 All storage keys are automatically namespaced:
 
-| Scope | Key Pattern |
-|-------|-------------|
+| Scope       | Key Pattern                                        |
+| ----------- | -------------------------------------------------- |
 | User-scoped | `superset-ext:{extension_id}:user:{user_id}:{key}` |
-| Shared | `superset-ext:{extension_id}:shared:{key}` |
+| Shared      | `superset-ext:{extension_id}:shared:{key}`         |
 
 This ensures:
+
 - Extensions cannot accidentally access each other's data
 - Users cannot see other users' data (by default)
 - Clean prefix-based deletion on uninstall

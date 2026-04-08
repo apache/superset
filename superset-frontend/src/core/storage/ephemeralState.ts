@@ -28,13 +28,12 @@ const DEFAULT_TTL = 3600;
 export function createEphemeralState(
   extensionId: string,
 ): typeof StorageTypes.ephemeralState {
-  const buildUrl = (key: string, isShared: boolean): string => {
+  const buildUrl = (key: string, shared?: boolean): string => {
     const basePath = '/api/v1/extensions/storage/ephemeral';
     const encodedId = encodeURIComponent(extensionId);
     const encodedKey = encodeURIComponent(key);
-    return isShared
-      ? `${basePath}/shared/${encodedId}/${encodedKey}`
-      : `${basePath}/${encodedId}/${encodedKey}`;
+    const url = `${basePath}/${encodedId}/${encodedKey}`;
+    return shared ? `${url}?shared=true` : url;
   };
 
   const shared: StorageTypes.ephemeralState.EphemeralStateAccessor = {
@@ -63,9 +62,7 @@ export function createEphemeralState(
   return {
     DEFAULT_TTL,
     get: async (key: string) => {
-      const response = await SupersetClient.get({
-        endpoint: buildUrl(key, false),
-      });
+      const response = await SupersetClient.get({ endpoint: buildUrl(key) });
       return response.json?.result ?? null;
     },
     set: async (
@@ -74,13 +71,13 @@ export function createEphemeralState(
       options?: StorageTypes.ephemeralState.SetOptions,
     ) => {
       await SupersetClient.put({
-        endpoint: buildUrl(key, false),
+        endpoint: buildUrl(key),
         body: JSON.stringify({ value, ttl: options?.ttl ?? DEFAULT_TTL }),
         headers: { 'Content-Type': 'application/json' },
       });
     },
     remove: async (key: string) => {
-      await SupersetClient.delete({ endpoint: buildUrl(key, false) });
+      await SupersetClient.delete({ endpoint: buildUrl(key) });
     },
     shared,
   };

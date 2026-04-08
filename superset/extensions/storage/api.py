@@ -21,8 +21,8 @@ REST API for extension storage.
 Provides HTTP endpoints for frontend extensions to access server-side
 ephemeral storage without direct backend code.
 
-By default, all operations are user-scoped (private to the current user).
-Use the /shared/ endpoints to access state visible to all users.
+All operations are user-scoped by default. Use `?shared=true` query param
+to access shared state visible to all users.
 """
 
 from __future__ import annotations
@@ -73,6 +73,14 @@ def _parse_ttl(body: dict[str, Any]) -> tuple[int | None, str | None]:
     return ttl, None
 
 
+def _build_storage_key(extension_id: str, key: str, shared: bool) -> str:
+    """Build the cache key based on scope (user or shared)."""
+    if shared:
+        return _build_cache_key(KEY_PREFIX, extension_id, "shared", key)
+    user_id = g.user.id
+    return _build_cache_key(KEY_PREFIX, extension_id, "user", user_id, key)
+
+
 class ExtensionStorageRestApi(BaseApi):
     """REST API for extension ephemeral state storage."""
 
@@ -97,18 +105,14 @@ class ExtensionStorageRestApi(BaseApi):
 
         return jsonify({"message": message}), 400
 
-    # =========================================================================
-    # User-Scoped Ephemeral State Endpoints (Default)
-    # =========================================================================
-
     @protect()
     @safe
     @expose("/ephemeral/<extension_id>/<key>", methods=("GET",))
     def get_ephemeral(self, extension_id: str, key: str, **kwargs: Any) -> Response:
-        """Get a value from user-scoped ephemeral state.
+        """Get a value from ephemeral state.
         ---
         get:
-          summary: Get a value from user-scoped ephemeral state (default)
+          summary: Get a value from ephemeral state
           parameters:
           - in: path
             name: extension_id
@@ -122,6 +126,12 @@ class ExtensionStorageRestApi(BaseApi):
               type: string
             required: true
             description: Storage key
+          - in: query
+            name: shared
+            schema:
+              type: boolean
+            required: false
+            description: If true, read from shared state visible to all users
           responses:
             200:
               description: Value retrieved successfully
@@ -139,8 +149,8 @@ class ExtensionStorageRestApi(BaseApi):
         if not extension:
             return self.response_404("Extension not found")
 
-        user_id = g.user.id
-        cache_key = _build_cache_key(KEY_PREFIX, extension_id, "user", user_id, key)
+        shared = request.args.get("shared", "false").lower() == "true"
+        cache_key = _build_storage_key(extension_id, key, shared)
         value = cache_manager.extension_ephemeral_state_cache.get(cache_key)
 
         return self.response(200, result=value)
@@ -149,10 +159,10 @@ class ExtensionStorageRestApi(BaseApi):
     @safe
     @expose("/ephemeral/<extension_id>/<key>", methods=("PUT",))
     def set_ephemeral(self, extension_id: str, key: str, **kwargs: Any) -> Response:
-        """Set a value in user-scoped ephemeral state.
+        """Set a value in ephemeral state.
         ---
         put:
-          summary: Set a value in user-scoped ephemeral state (default)
+          summary: Set a value in ephemeral state
           parameters:
           - in: path
             name: extension_id
@@ -166,6 +176,12 @@ class ExtensionStorageRestApi(BaseApi):
               type: string
             required: true
             description: Storage key
+          - in: query
+            name: shared
+            schema:
+              type: boolean
+            required: false
+            description: If true, store as shared state visible to all users
           requestBody:
             required: true
             content:
@@ -199,8 +215,8 @@ class ExtensionStorageRestApi(BaseApi):
         if error:
             return self.response_400(error)
 
-        user_id = g.user.id
-        cache_key = _build_cache_key(KEY_PREFIX, extension_id, "user", user_id, key)
+        shared = request.args.get("shared", "false").lower() == "true"
+        cache_key = _build_storage_key(extension_id, key, shared)
         cache_manager.extension_ephemeral_state_cache.set(cache_key, value, timeout=ttl)
 
         return self.response(200, message="Value stored successfully")
@@ -209,10 +225,10 @@ class ExtensionStorageRestApi(BaseApi):
     @safe
     @expose("/ephemeral/<extension_id>/<key>", methods=("DELETE",))
     def delete_ephemeral(self, extension_id: str, key: str, **kwargs: Any) -> Response:
-        """Delete a value from user-scoped ephemeral state.
+        """Delete a value from ephemeral state.
         ---
         delete:
-          summary: Delete a value from user-scoped ephemeral state (default)
+          summary: Delete a value from ephemeral state
           parameters:
           - in: path
             name: extension_id
@@ -226,6 +242,12 @@ class ExtensionStorageRestApi(BaseApi):
               type: string
             required: true
             description: Storage key
+          - in: query
+            name: shared
+            schema:
+              type: boolean
+            required: false
+            description: If true, delete from shared state
           responses:
             200:
               description: Value deleted successfully
@@ -236,156 +258,8 @@ class ExtensionStorageRestApi(BaseApi):
         if not extension:
             return self.response_404("Extension not found")
 
-        user_id = g.user.id
-        cache_key = _build_cache_key(KEY_PREFIX, extension_id, "user", user_id, key)
-        cache_manager.extension_ephemeral_state_cache.delete(cache_key)
-
-        return self.response(200, message="Value deleted successfully")
-
-    # =========================================================================
-    # Shared (Global) Ephemeral State Endpoints
-    # =========================================================================
-
-    @protect()
-    @safe
-    @expose("/ephemeral/shared/<extension_id>/<key>", methods=("GET",))
-    def get_ephemeral_shared(
-        self, extension_id: str, key: str, **kwargs: Any
-    ) -> Response:
-        """Get a value from shared ephemeral state.
-        ---
-        get:
-          summary: Get a value from shared (global) ephemeral state
-          parameters:
-          - in: path
-            name: extension_id
-            schema:
-              type: string
-            required: true
-            description: Extension ID (publisher.name)
-          - in: path
-            name: key
-            schema:
-              type: string
-            required: true
-            description: Storage key
-          responses:
-            200:
-              description: Value retrieved successfully
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      result:
-                        description: The stored value
-            404:
-              description: Extension not found
-        """
-        extension = _get_extension_or_404(extension_id)
-        if not extension:
-            return self.response_404("Extension not found")
-
-        cache_key = _build_cache_key(KEY_PREFIX, extension_id, "shared", key)
-        value = cache_manager.extension_ephemeral_state_cache.get(cache_key)
-
-        return self.response(200, result=value)
-
-    @protect()
-    @safe
-    @expose("/ephemeral/shared/<extension_id>/<key>", methods=("PUT",))
-    def set_ephemeral_shared(
-        self, extension_id: str, key: str, **kwargs: Any
-    ) -> Response:
-        """Set a value in shared ephemeral state.
-        ---
-        put:
-          summary: Set a value in shared (global) ephemeral state
-          parameters:
-          - in: path
-            name: extension_id
-            schema:
-              type: string
-            required: true
-            description: Extension ID (publisher.name)
-          - in: path
-            name: key
-            schema:
-              type: string
-            required: true
-            description: Storage key
-          requestBody:
-            required: true
-            content:
-              application/json:
-                schema:
-                  type: object
-                  properties:
-                    value:
-                      description: The value to store
-                    ttl:
-                      type: integer
-                      description: Time-to-live in seconds (default 3600)
-          responses:
-            200:
-              description: Value stored successfully
-            400:
-              description: Invalid request body
-            404:
-              description: Extension not found
-        """
-        extension = _get_extension_or_404(extension_id)
-        if not extension:
-            return self.response_404("Extension not found")
-
-        body = request.get_json(silent=True) or {}
-        if "value" not in body:
-            return self.response_400("Request body must contain 'value' field")
-
-        value = body["value"]
-        ttl, error = _parse_ttl(body)
-        if error:
-            return self.response_400(error)
-
-        cache_key = _build_cache_key(KEY_PREFIX, extension_id, "shared", key)
-        cache_manager.extension_ephemeral_state_cache.set(cache_key, value, timeout=ttl)
-
-        return self.response(200, message="Value stored successfully")
-
-    @protect()
-    @safe
-    @expose("/ephemeral/shared/<extension_id>/<key>", methods=("DELETE",))
-    def delete_ephemeral_shared(
-        self, extension_id: str, key: str, **kwargs: Any
-    ) -> Response:
-        """Delete a value from shared ephemeral state.
-        ---
-        delete:
-          summary: Delete a value from shared (global) ephemeral state
-          parameters:
-          - in: path
-            name: extension_id
-            schema:
-              type: string
-            required: true
-            description: Extension ID (publisher.name)
-          - in: path
-            name: key
-            schema:
-              type: string
-            required: true
-            description: Storage key
-          responses:
-            200:
-              description: Value deleted successfully
-            404:
-              description: Extension not found
-        """
-        extension = _get_extension_or_404(extension_id)
-        if not extension:
-            return self.response_404("Extension not found")
-
-        cache_key = _build_cache_key(KEY_PREFIX, extension_id, "shared", key)
+        shared = request.args.get("shared", "false").lower() == "true"
+        cache_key = _build_storage_key(extension_id, key, shared)
         cache_manager.extension_ephemeral_state_cache.delete(cache_key)
 
         return self.response(200, message="Value deleted successfully")
