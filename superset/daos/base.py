@@ -40,13 +40,7 @@ from sqlalchemy import asc, cast, desc, or_, Text
 from sqlalchemy.exc import SQLAlchemyError, StatementError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.inspection import inspect
-from sqlalchemy.orm import (
-    ColumnProperty,
-    joinedload,
-    load_only,
-    Query,
-    RelationshipProperty,
-)
+from sqlalchemy.orm import ColumnProperty, joinedload, Query, RelationshipProperty
 from superset_core.common.daos import BaseDAO as CoreBaseDAO
 from superset_core.common.models import CoreModel
 
@@ -648,11 +642,10 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
 
         if relationship_loads or needs_full_model:
             # Need full model for relationships or Python @property access.
-            # Apply load_only() when we know the exact columns needed so
-            # SQLAlchemy skips loading unused heavy columns.
+            # Do NOT apply load_only() here — @property descriptors and
+            # serializers may access columns beyond the explicitly requested
+            # set (e.g., Slice.datasource_type accessed during serialization).
             query = data_model.session.query(cls.model_cls)
-            if column_attrs:
-                query = query.options(load_only(*column_attrs))
         elif column_attrs:
             # Only columns requested
             query = data_model.session.query(*column_attrs)
