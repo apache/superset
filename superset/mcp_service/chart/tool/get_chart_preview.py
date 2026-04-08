@@ -146,6 +146,16 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                     if "column_name" in x_axis_config:
                         columns.append(x_axis_config["column_name"])
 
+            if not columns and not metrics:
+                return ChartError(
+                    error=(
+                        "Cannot generate ASCII preview: chart has no columns or "
+                        "metrics in its configuration. This chart type may not "
+                        "support ASCII preview."
+                    ),
+                    error_type="UnsupportedChart",
+                )
+
             factory = QueryContextFactory()
             query_context = factory.create(
                 datasource={
