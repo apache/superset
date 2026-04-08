@@ -39,7 +39,9 @@ export function createEphemeralState(
 
   const shared: StorageTypes.ephemeralState.EphemeralStateAccessor = {
     get: async (key: string) => {
-      const response = await SupersetClient.get({ endpoint: buildUrl(key, true) });
+      const response = await SupersetClient.get({
+        endpoint: buildUrl(key, true),
+      });
       return response.json?.result ?? null;
     },
     set: async (
@@ -61,7 +63,9 @@ export function createEphemeralState(
   return {
     DEFAULT_TTL,
     get: async (key: string) => {
-      const response = await SupersetClient.get({ endpoint: buildUrl(key, false) });
+      const response = await SupersetClient.get({
+        endpoint: buildUrl(key, false),
+      });
       return response.json?.result ?? null;
     },
     set: async (
