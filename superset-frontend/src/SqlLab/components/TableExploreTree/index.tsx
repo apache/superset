@@ -282,7 +282,6 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
         loadingNodes={loadingNodes}
         searchTerm={searchTerm}
         catalog={catalog}
-        dbId={dbId}
         pinnedTableKeys={pinnedTableKeys}
         selectStarMap={selectStarMap}
         handleRefreshTables={handleRefreshTables}
@@ -292,7 +291,6 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
     ),
     [
       catalog,
-      dbId,
       pinnedTableKeys,
       selectStarMap,
       handleRefreshTables,

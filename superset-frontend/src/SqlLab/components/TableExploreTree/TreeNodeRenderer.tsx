@@ -78,7 +78,6 @@ export interface TreeNodeRendererProps extends NodeRendererProps<TreeNodeData> {
   loadingNodes: Record<string, boolean>;
   searchTerm: string;
   catalog: string | null | undefined;
-  dbId: number | undefined;
   pinnedTableKeys: Set<string>;
   selectStarMap: Record<string, string>;
   handleRefreshTables: (params: {
@@ -101,7 +100,6 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
   loadingNodes,
   searchTerm,
   catalog,
-  dbId,
   pinnedTableKeys,
   selectStarMap,
   handleRefreshTables,

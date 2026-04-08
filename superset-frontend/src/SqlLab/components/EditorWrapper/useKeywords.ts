@@ -160,7 +160,7 @@ export function useKeywords(
           { id: String(queryEditorId), dbId: dbId as number, tabViewId },
           data.value,
           catalog ?? null,
-          schema ?? '',
+          data.schema ?? schema ?? '',
           false, // Don't auto-expand/switch tabs when adding via autocomplete
         ),
       );
@@ -194,9 +194,10 @@ export function useKeywords(
 
   const tableKeywords = useMemo(
     () =>
-      allCachedTables.map(({ value, label }) => ({
+      allCachedTables.map(({ value, label, schema: tableSchema }) => ({
         name: label,
         value,
+        schema: tableSchema,
         score: TABLE_AUTOCOMPLETE_SCORE,
         meta: 'table',
         completer: {
