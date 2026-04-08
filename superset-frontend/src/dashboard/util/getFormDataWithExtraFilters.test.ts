@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { NativeFilterType } from '@superset-ui/core';
 import getFormDataWithExtraFilters, {
   CachedFormDataWithExtraControls,
   GetFormDataWithExtraFiltersArguments,
@@ -141,19 +142,22 @@ describe('getFormDataWithExtraFilters', () => {
     const customizationId = 'CHART_CUSTOMIZATION-1';
     const argsWithBoth: GetFormDataWithExtraFiltersArguments = {
       ...mockArgs,
-      chartConfiguration: {
+      chartConfiguration: {},
+      nativeFilters: {
         [filterId]: {
           id: filterId,
+          type: NativeFilterType.NativeFilter,
           targets: [
             {
               datasetId: 123,
               column: { name: 'country_name' },
             },
           ],
+          filterType: 'filter_select',
           scope: { rootPath: ['ROOT_ID'], excluded: [] },
-          cascadeParentIds: [],
+          chartsInScope: [chartId],
         },
-      } as any,
+      },
       dataMask: {
         [filterId]: {
           id: filterId,
@@ -205,6 +209,14 @@ describe('getFormDataWithExtraFilters', () => {
 
     const result = getFormDataWithExtraFilters(argsWithBoth);
     expect((result as any).time_grain_sqla).toEqual('PT1H');
-    expect(result.extra_form_data).toBeDefined();
+    expect(result.extra_form_data).toEqual({
+      filters: [
+        {
+          col: 'country_name',
+          op: 'IN',
+          val: ['United States'],
+        },
+      ],
+    });
   });
 });

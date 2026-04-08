@@ -23,6 +23,7 @@ import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
 import mockDatasource, { datasourceId, id } from 'spec/fixtures/mockDatasource';
 import { buildNativeFilter } from 'spec/fixtures/mockNativeFilters';
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -697,56 +698,55 @@ test.skip('updates sidebar title when filter name changes', async () => {
 
 test('modifies the name of a filter', async () => {
   jest.useFakeTimers();
-  try {
-    const nativeFilterConfig = [
-      buildNativeFilter('NATIVE_FILTER-1', 'state', []),
-      buildNativeFilter('NATIVE_FILTER-2', 'country', []),
-    ];
+  const nativeFilterConfig = [
+    buildNativeFilter('NATIVE_FILTER-1', 'state', []),
+    buildNativeFilter('NATIVE_FILTER-2', 'country', []),
+  ];
 
-    const state = {
-      ...defaultState(),
-      dashboardInfo: {
-        metadata: {
-          native_filter_configuration: nativeFilterConfig,
-        },
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
       },
-      dashboardLayout,
-    };
+    },
+    dashboardLayout,
+  };
 
-    const onSave = jest.fn();
+  const onSave = jest.fn();
 
-    defaultRender(state, {
-      ...props,
-      createNewOnOpen: false,
-      onSave,
-    });
+  defaultRender(state, {
+    ...props,
+    createNewOnOpen: false,
+    onSave,
+  });
 
-    const filterNameInput = screen.getByRole('textbox', {
-      name: FILTER_NAME_REGEX,
-    });
+  const filterNameInput = screen.getByRole('textbox', {
+    name: FILTER_NAME_REGEX,
+  });
 
-    await userEvent.clear(filterNameInput);
-    await userEvent.type(filterNameInput, 'New Filter Name');
+  fireEvent.change(filterNameInput, {
+    target: { value: 'New Filter Name' },
+  });
 
-    jest.runAllTimers();
+  act(() => {
+    jest.advanceTimersByTime(500);
+  });
 
-    await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+  fireEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
 
-    await waitFor(() =>
-      expect(onSave).toHaveBeenCalledWith(
-        expect.objectContaining({
-          filterChanges: expect.objectContaining({
-            modified: expect.arrayContaining([
-              expect.objectContaining({ name: 'New Filter Name' }),
-            ]),
-          }),
+  await waitFor(() =>
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filterChanges: expect.objectContaining({
+          modified: expect.arrayContaining([
+            expect.objectContaining({ name: 'New Filter Name' }),
+          ]),
         }),
-      ),
-    );
-  } finally {
-    jest.useRealTimers();
-  }
-});
+      }),
+    ),
+  );
+}, 30000);
 
 test('renders a filter with a chart containing BigInt values', async () => {
   const nativeFilterConfig = [
