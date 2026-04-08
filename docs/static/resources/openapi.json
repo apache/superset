@@ -258,7 +258,8 @@
               "",
               "opacityLow",
               "opacityMedium",
-              "opacityHigh"
+              "opacityHigh",
+              null
             ],
             "nullable": true,
             "type": "string"
@@ -987,6 +988,14 @@
       },
       "ChartDataExtras": {
         "properties": {
+          "column_order": {
+            "description": "Ordered list of column names for result ordering. Used to preserve user's column reordering (including mixed dimension columns and metrics)",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
           "having": {
             "description": "HAVING clause to be added to aggregate queries using AND operator.",
             "type": "string"
@@ -1033,11 +1042,17 @@
               "1969-12-28T00:00:00Z/P1W",
               "1969-12-29T00:00:00Z/P1W",
               "P1W/1970-01-03T00:00:00Z",
-              "P1W/1970-01-04T00:00:00Z"
+              "P1W/1970-01-04T00:00:00Z",
+              null
             ],
             "example": "P1D",
             "nullable": true,
             "type": "string"
+          },
+          "transpile_to_dialect": {
+            "description": "If true, WHERE/HAVING clauses will be transpiled to the target database dialect using SQLGlot.",
+            "nullable": true,
+            "type": "boolean"
           },
           "where": {
             "description": "WHERE clause to be added to queries using AND operator.",
@@ -1073,6 +1088,7 @@
               "LIKE",
               "NOT LIKE",
               "ILIKE",
+              "NOT ILIKE",
               "IS NULL",
               "IS NOT NULL",
               "IN",
@@ -1444,6 +1460,12 @@
             "nullable": true,
             "type": "string"
           },
+          "group_others_when_limit_reached": {
+            "default": false,
+            "description": "When true, groups remaining series into an 'Others' category when series limit is reached. Prevents incomplete data.",
+            "nullable": true,
+            "type": "boolean"
+          },
           "groupby": {
             "description": "Columns by which to group the query. This field is deprecated, use `columns` instead.",
             "items": {},
@@ -1515,7 +1537,8 @@
               "samples",
               "timegrains",
               "post_processed",
-              "drill_detail"
+              "drill_detail",
+              null
             ],
             "nullable": true
           },
@@ -1647,6 +1670,12 @@
             },
             "type": "array"
           },
+          "detected_currency": {
+            "default": null,
+            "description": "Detected ISO 4217 currency code when AUTO mode is used. Returns the currency code if all filtered data contains a single currency or null if multiple currencies are present.",
+            "nullable": true,
+            "type": "string"
+          },
           "error": {
             "description": "Error",
             "nullable": true,
@@ -1661,8 +1690,14 @@
             "description": "Is the result cached",
             "type": "boolean"
           },
+          "queried_dttm": {
+            "description": "UTC timestamp when the query was executed (ISO 8601 format)",
+            "nullable": true,
+            "type": "string"
+          },
           "query": {
-            "description": "The executed query statement",
+            "description": "The executed query statement. May be absent when validation errors occur.",
+            "nullable": true,
             "type": "string"
           },
           "rejected_filters": {
@@ -1705,12 +1740,20 @@
           "cache_timeout",
           "cached_dttm",
           "is_cached",
-          "query"
+          "queried_dttm"
         ],
         "type": "object"
       },
       "ChartDataResponseSchema": {
         "properties": {
+          "dashboard_filters": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DashboardFiltersResponseSchema"
+              }
+            ],
+            "description": "Metadata about dashboard native filters applied to the query. Only present when filters_dashboard_id is provided."
+          },
           "result": {
             "description": "A list of results for each corresponding query in the request.",
             "items": {
@@ -1723,123 +1766,10 @@
       },
       "ChartDataRestApi.get": {
         "properties": {
-          "cache_timeout": {
-            "nullable": true,
-            "type": "integer"
-          },
-          "certification_details": {
-            "nullable": true,
-            "type": "string"
-          },
-          "certified_by": {
-            "nullable": true,
-            "type": "string"
-          },
-          "changed_on_delta_humanized": {
-            "readOnly": true
-          },
-          "dashboards": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get.Dashboard"
-          },
-          "description": {
-            "nullable": true,
-            "type": "string"
-          },
           "id": {
             "type": "integer"
-          },
-          "is_managed_externally": {
-            "type": "boolean"
-          },
-          "owners": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get.User"
-          },
-          "params": {
-            "nullable": true,
-            "type": "string"
-          },
-          "query_context": {
-            "nullable": true,
-            "type": "string"
-          },
-          "slice_name": {
-            "maxLength": 250,
-            "nullable": true,
-            "type": "string"
-          },
-          "tags": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get.Tag"
-          },
-          "thumbnail_url": {
-            "readOnly": true
-          },
-          "url": {
-            "readOnly": true
-          },
-          "viz_type": {
-            "maxLength": 250,
-            "nullable": true,
-            "type": "string"
           }
         },
-        "type": "object"
-      },
-      "ChartDataRestApi.get.Dashboard": {
-        "properties": {
-          "dashboard_title": {
-            "maxLength": 500,
-            "nullable": true,
-            "type": "string"
-          },
-          "id": {
-            "type": "integer"
-          },
-          "json_metadata": {
-            "nullable": true,
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "ChartDataRestApi.get.Tag": {
-        "properties": {
-          "id": {
-            "type": "integer"
-          },
-          "name": {
-            "maxLength": 250,
-            "nullable": true,
-            "type": "string"
-          },
-          "type": {
-            "enum": [
-              1,
-              2,
-              3,
-              4
-            ]
-          }
-        },
-        "type": "object"
-      },
-      "ChartDataRestApi.get.User": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
         "type": "object"
       },
       "ChartDataRestApi.get_list": {
@@ -2077,6 +2007,10 @@
       },
       "ChartDataRestApi.get_list.User3": {
         "properties": {
+          "email": {
+            "maxLength": 320,
+            "type": "string"
+          },
           "first_name": {
             "maxLength": 64,
             "type": "string"
@@ -2090,6 +2024,7 @@
           }
         },
         "required": [
+          "email",
           "first_name",
           "last_name"
         ],
@@ -2180,6 +2115,11 @@
             "minLength": 1,
             "type": "string"
           },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
           "viz_type": {
             "description": "The type of chart visualization used.",
             "example": [
@@ -2235,7 +2175,8 @@
               "dataset",
               "query",
               "saved_query",
-              "view"
+              "view",
+              null
             ],
             "nullable": true,
             "type": "string"
@@ -2288,6 +2229,11 @@
               "type": "integer"
             },
             "type": "array"
+          },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
           },
           "viz_type": {
             "description": "The type of chart visualization used.",
@@ -2546,125 +2492,95 @@
         },
         "type": "object"
       },
-      "ChartRestApi.get": {
+      "ChartGetResponseSchema": {
         "properties": {
           "cache_timeout": {
-            "nullable": true,
-            "type": "integer"
+            "type": "string"
           },
           "certification_details": {
-            "nullable": true,
             "type": "string"
           },
           "certified_by": {
-            "nullable": true,
             "type": "string"
           },
           "changed_on_delta_humanized": {
-            "readOnly": true
+            "type": "string"
           },
           "dashboards": {
-            "$ref": "#/components/schemas/ChartRestApi.get.Dashboard"
+            "items": {
+              "$ref": "#/components/schemas/Dashboard"
+            },
+            "type": "array"
+          },
+          "datasource_id": {
+            "type": "integer"
+          },
+          "datasource_name_text": {
+            "readOnly": true
+          },
+          "datasource_type": {
+            "type": "string"
+          },
+          "datasource_url": {
+            "readOnly": true
+          },
+          "datasource_uuid": {
+            "format": "uuid",
+            "type": "string"
           },
           "description": {
-            "nullable": true,
             "type": "string"
           },
           "id": {
+            "description": "The id of the chart.",
             "type": "integer"
           },
           "is_managed_externally": {
             "type": "boolean"
           },
           "owners": {
-            "$ref": "#/components/schemas/ChartRestApi.get.User"
+            "items": {
+              "$ref": "#/components/schemas/User"
+            },
+            "type": "array"
           },
           "params": {
-            "nullable": true,
             "type": "string"
           },
           "query_context": {
-            "nullable": true,
             "type": "string"
           },
           "slice_name": {
-            "maxLength": 250,
-            "nullable": true,
             "type": "string"
           },
           "tags": {
-            "$ref": "#/components/schemas/ChartRestApi.get.Tag"
+            "items": {
+              "$ref": "#/components/schemas/Tag"
+            },
+            "type": "array"
           },
           "thumbnail_url": {
-            "readOnly": true
+            "type": "string"
           },
           "url": {
-            "readOnly": true
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
           },
           "viz_type": {
-            "maxLength": 250,
-            "nullable": true,
             "type": "string"
           }
         },
         "type": "object"
       },
-      "ChartRestApi.get.Dashboard": {
-        "properties": {
-          "dashboard_title": {
-            "maxLength": 500,
-            "nullable": true,
-            "type": "string"
-          },
-          "id": {
-            "type": "integer"
-          },
-          "json_metadata": {
-            "nullable": true,
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "ChartRestApi.get.Tag": {
+      "ChartRestApi.get": {
         "properties": {
           "id": {
             "type": "integer"
-          },
-          "name": {
-            "maxLength": 250,
-            "nullable": true,
-            "type": "string"
-          },
-          "type": {
-            "enum": [
-              1,
-              2,
-              3,
-              4
-            ]
           }
         },
-        "type": "object"
-      },
-      "ChartRestApi.get.User": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
         "type": "object"
       },
       "ChartRestApi.get_list": {
@@ -2902,6 +2818,10 @@
       },
       "ChartRestApi.get_list.User3": {
         "properties": {
+          "email": {
+            "maxLength": 320,
+            "type": "string"
+          },
           "first_name": {
             "maxLength": 64,
             "type": "string"
@@ -2915,6 +2835,7 @@
           }
         },
         "required": [
+          "email",
           "first_name",
           "last_name"
         ],
@@ -3005,6 +2926,11 @@
             "minLength": 1,
             "type": "string"
           },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
           "viz_type": {
             "description": "The type of chart visualization used.",
             "example": [
@@ -3060,7 +2986,8 @@
               "dataset",
               "query",
               "saved_query",
-              "view"
+              "view",
+              null
             ],
             "nullable": true,
             "type": "string"
@@ -3113,6 +3040,11 @@
               "type": "integer"
             },
             "type": "array"
+          },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
           },
           "viz_type": {
             "description": "The type of chart visualization used.",
@@ -3294,6 +3226,41 @@
         },
         "type": "object"
       },
+      "CurrentUserPutSchema": {
+        "properties": {
+          "first_name": {
+            "description": "The current user's first name",
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "last_name": {
+            "description": "The current user's last name",
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "password": {
+            "description": "The current user's password for authentication",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "Dashboard": {
+        "properties": {
+          "dashboard_title": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "json_metadata": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "DashboardCacheScreenshotResponseSchema": {
         "properties": {
           "cache_key": {
@@ -3374,6 +3341,9 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "currency_code_column": {
+            "type": "string"
           },
           "database": {
             "$ref": "#/components/schemas/Database"
@@ -3492,6 +3462,45 @@
         },
         "type": "object"
       },
+      "DashboardFilterInfo": {
+        "properties": {
+          "column": {
+            "description": "Target column name for the filter",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "description": "The native filter ID",
+            "type": "string"
+          },
+          "name": {
+            "description": "The native filter name",
+            "type": "string"
+          },
+          "status": {
+            "description": "Filter status: 'applied' (default value was included in the query), 'not_applied' (filter had no default value and was omitted, matching dashboard initial-load behavior), or 'not_applied_uses_default_to_first_item_prequery' (filter uses defaultToFirstItem which requires a pre-query to resolve and cannot be applied server-side)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status"
+        ],
+        "type": "object"
+      },
+      "DashboardFiltersResponseSchema": {
+        "properties": {
+          "filters": {
+            "description": "Metadata about each in-scope dashboard native filter and whether its default value was applied to the query",
+            "items": {
+              "$ref": "#/components/schemas/DashboardFilterInfo"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "DashboardGetResponseSchema": {
         "properties": {
           "certification_details": {
@@ -3503,7 +3512,7 @@
             "type": "string"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/User"
+            "$ref": "#/components/schemas/User1"
           },
           "changed_by_name": {
             "type": "string"
@@ -3523,7 +3532,7 @@
             "type": "array"
           },
           "created_by": {
-            "$ref": "#/components/schemas/User"
+            "$ref": "#/components/schemas/User1"
           },
           "created_on_delta_humanized": {
             "type": "string"
@@ -3531,6 +3540,12 @@
           "css": {
             "description": "Override CSS for the dashboard.",
             "type": "string"
+          },
+          "custom_tags": {
+            "items": {
+              "$ref": "#/components/schemas/Tag1"
+            },
+            "type": "array"
           },
           "dashboard_title": {
             "description": "A title for the dashboard.",
@@ -3549,7 +3564,7 @@
           },
           "owners": {
             "items": {
-              "$ref": "#/components/schemas/User"
+              "$ref": "#/components/schemas/User1"
             },
             "type": "array"
           },
@@ -3571,15 +3586,28 @@
           },
           "tags": {
             "items": {
-              "$ref": "#/components/schemas/Tag"
+              "$ref": "#/components/schemas/Tag1"
             },
             "type": "array"
+          },
+          "theme": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Theme"
+              }
+            ],
+            "nullable": true
           },
           "thumbnail_url": {
             "nullable": true,
             "type": "string"
           },
           "url": {
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
             "type": "string"
           }
         },
@@ -3599,6 +3627,11 @@
             "description": "Optional anchor link added to url hash",
             "nullable": true,
             "type": "string"
+          },
+          "chartStates": {
+            "description": "Chart-level state for stateful tables (column order, sorting, filtering)",
+            "nullable": true,
+            "type": "object"
           },
           "dataMask": {
             "description": "Data mask used for native filter state",
@@ -3777,6 +3810,10 @@
       },
       "DashboardRestApi.get_list.User2": {
         "properties": {
+          "email": {
+            "maxLength": 320,
+            "type": "string"
+          },
           "first_name": {
             "maxLength": 64,
             "type": "string"
@@ -3790,6 +3827,7 @@
           }
         },
         "required": [
+          "email",
           "first_name",
           "last_name"
         ],
@@ -3856,6 +3894,16 @@
             "description": "Unique identifying part for the web address of the dashboard.",
             "maxLength": 255,
             "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          },
+          "theme_id": {
+            "description": "Theme ID for the dashboard",
+            "nullable": true,
+            "type": "integer"
+          },
+          "uuid": {
+            "format": "uuid",
             "nullable": true,
             "type": "string"
           }
@@ -3938,6 +3986,42 @@
               "nullable": true,
               "type": "integer"
             },
+            "type": "array"
+          },
+          "theme_id": {
+            "description": "Theme ID for the dashboard",
+            "nullable": true,
+            "type": "integer"
+          },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DashboardScreenshotPostSchema": {
+        "properties": {
+          "activeTabs": {
+            "description": "A list representing active tabs.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "anchor": {
+            "description": "A string representing the anchor.",
+            "type": "string"
+          },
+          "dataMask": {
+            "additionalProperties": {},
+            "description": "An object representing the data mask.",
+            "type": "object"
+          },
+          "urlParams": {
+            "description": "A list of tuples, each containing two strings.",
+            "items": {},
             "type": "array"
           }
         },
@@ -4310,6 +4394,11 @@
           },
           "changed_on_delta_humanized": {
             "readOnly": true
+          },
+          "configuration_method": {
+            "maxLength": 255,
+            "nullable": true,
+            "type": "string"
           },
           "created_by": {
             "$ref": "#/components/schemas/DatabaseRestApi.get_list.User1"
@@ -5045,6 +5134,12 @@
             "minLength": 1,
             "type": "string"
           },
+          "datetime_format": {
+            "maxLength": 100,
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          },
           "description": {
             "nullable": true,
             "type": "string"
@@ -5148,6 +5243,21 @@
         ],
         "type": "object"
       },
+      "DatasetMetricCurrencyPut": {
+        "properties": {
+          "symbol": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "symbolPosition": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "DatasetMetricRestApi.get": {
         "properties": {
           "id": {
@@ -5183,10 +5293,12 @@
       "DatasetMetricsPut": {
         "properties": {
           "currency": {
-            "maxLength": 128,
-            "minLength": 1,
-            "nullable": true,
-            "type": "string"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DatasetMetricCurrencyPut"
+              }
+            ],
+            "nullable": true
           },
           "d3format": {
             "maxLength": 128,
@@ -5320,8 +5432,7 @@
             "type": "boolean"
           },
           "cache_timeout": {
-            "nullable": true,
-            "type": "integer"
+            "readOnly": true
           },
           "catalog": {
             "maxLength": 256,
@@ -5355,6 +5466,11 @@
           },
           "created_on_humanized": {
             "readOnly": true
+          },
+          "currency_code_column": {
+            "maxLength": 250,
+            "nullable": true,
+            "type": "string"
           },
           "database": {
             "$ref": "#/components/schemas/DatasetRestApi.get.Database"
@@ -5458,6 +5574,11 @@
           "url": {
             "readOnly": true
           },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
           "verbose_map": {
             "readOnly": true
           }
@@ -5484,6 +5605,11 @@
           },
           "id": {
             "type": "integer"
+          },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": [
@@ -5771,6 +5897,11 @@
           },
           "id": {
             "type": "integer"
+          },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": [
@@ -5865,6 +5996,15 @@
             "maxLength": 250,
             "minLength": 1,
             "type": "string"
+          },
+          "template_params": {
+            "nullable": true,
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": [
@@ -5894,6 +6034,12 @@
               "$ref": "#/components/schemas/DatasetColumnsPut"
             },
             "type": "array"
+          },
+          "currency_code_column": {
+            "maxLength": 250,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
           },
           "database_id": {
             "type": "integer"
@@ -5979,6 +6125,11 @@
             "type": "string"
           },
           "template_params": {
+            "nullable": true,
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
             "nullable": true,
             "type": "string"
           }
@@ -6068,7 +6219,7 @@
             "type": "array"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/User1"
+            "$ref": "#/components/schemas/User2"
           },
           "changed_on": {
             "format": "date-time",
@@ -6192,10 +6343,6 @@
             "nullable": true,
             "type": "boolean"
           },
-          "json": {
-            "nullable": true,
-            "type": "boolean"
-          },
           "queryLimit": {
             "nullable": true,
             "type": "integer"
@@ -6259,6 +6406,11 @@
       },
       "ExplorePermalinkStateSchema": {
         "properties": {
+          "chartState": {
+            "description": "Chart-level state for stateful tables (column filters, sorting, column order)",
+            "nullable": true,
+            "type": "object"
+          },
           "formData": {
             "description": "Chart form data",
             "type": "object"
@@ -6382,6 +6534,31 @@
         ],
         "type": "object"
       },
+      "FormatQueryPayloadSchema": {
+        "properties": {
+          "database_id": {
+            "description": "The database id",
+            "nullable": true,
+            "type": "integer"
+          },
+          "engine": {
+            "nullable": true,
+            "type": "string"
+          },
+          "sql": {
+            "type": "string"
+          },
+          "template_params": {
+            "description": "The SQL query template params as JSON string",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "sql"
+        ],
+        "type": "object"
+      },
       "GetFavStarIdsSchema": {
         "properties": {
           "result": {
@@ -6437,6 +6614,290 @@
         ],
         "type": "object"
       },
+      "GroupApi.get": {
+        "properties": {
+          "description": {
+            "maxLength": 512,
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 150,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "roles": {
+            "$ref": "#/components/schemas/GroupApi.get.Role"
+          },
+          "users": {
+            "$ref": "#/components/schemas/GroupApi.get.User"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "GroupApi.get.Role": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "GroupApi.get.User": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "username": {
+            "maxLength": 128,
+            "type": "string"
+          }
+        },
+        "required": [
+          "username"
+        ],
+        "type": "object"
+      },
+      "GroupApi.get_list": {
+        "properties": {
+          "description": {
+            "maxLength": 512,
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 150,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "roles": {
+            "$ref": "#/components/schemas/GroupApi.get_list.Role"
+          },
+          "users": {
+            "$ref": "#/components/schemas/GroupApi.get_list.User"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "GroupApi.get_list.Role": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "GroupApi.get_list.User": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "username": {
+            "maxLength": 128,
+            "type": "string"
+          }
+        },
+        "required": [
+          "username"
+        ],
+        "type": "object"
+      },
+      "GroupApi.post": {
+        "properties": {
+          "description": {
+            "description": "Group description",
+            "maxLength": 512,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
+          },
+          "label": {
+            "description": "Group label",
+            "maxLength": 150,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "description": "Group name",
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "roles": {
+            "description": "Group roles",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "users": {
+            "description": "Group users",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "GroupApi.put": {
+        "properties": {
+          "description": {
+            "description": "Group description",
+            "maxLength": 512,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
+          },
+          "label": {
+            "description": "Group label",
+            "maxLength": 150,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "description": "Group name",
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "roles": {
+            "description": "Group roles",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "users": {
+            "description": "Group users",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "GroupPostSchema": {
+        "properties": {
+          "description": {
+            "description": "Group description",
+            "maxLength": 512,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
+          },
+          "label": {
+            "description": "Group label",
+            "maxLength": 150,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "description": "Group name",
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "roles": {
+            "description": "Group roles",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "users": {
+            "description": "Group users",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "GroupPutSchema": {
+        "properties": {
+          "description": {
+            "description": "Group description",
+            "maxLength": 512,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
+          },
+          "label": {
+            "description": "Group label",
+            "maxLength": 150,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "description": "Group name",
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "roles": {
+            "description": "Group roles",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "users": {
+            "description": "Group users",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "GuestTokenCreate": {
         "properties": {
           "resources": {
@@ -6452,7 +6913,7 @@
             "type": "array"
           },
           "user": {
-            "$ref": "#/components/schemas/User2"
+            "$ref": "#/components/schemas/User3"
           }
         },
         "required": [
@@ -6482,6 +6943,15 @@
             "nullable": true,
             "type": "integer"
           },
+          "configuration_method": {
+            "default": "sqlalchemy_form",
+            "enum": [
+              "sqlalchemy_form",
+              "dynamic_form",
+              null
+            ],
+            "nullable": true
+          },
           "database_name": {
             "type": "string"
           },
@@ -6505,6 +6975,9 @@
           "is_managed_externally": {
             "nullable": true,
             "type": "boolean"
+          },
+          "masked_encrypted_extra": {
+            "type": "string"
           },
           "password": {
             "nullable": true,
@@ -6571,6 +7044,9 @@
             "additionalProperties": {},
             "type": "object"
           },
+          "per_user_caching": {
+            "type": "boolean"
+          },
           "schema_options": {
             "additionalProperties": {},
             "type": "object"
@@ -6624,21 +7100,28 @@
           "user": {
             "$ref": "#/components/schemas/LogRestApi.get.User"
           },
-          "user_id": {
-            "nullable": true,
-            "type": "integer"
-          }
+          "user_id": {}
         },
         "type": "object"
       },
       "LogRestApi.get.User": {
         "properties": {
-          "username": {
+          "first_name": {
             "maxLength": 64,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 128,
             "type": "string"
           }
         },
         "required": [
+          "first_name",
+          "last_name",
           "username"
         ],
         "type": "object"
@@ -6679,21 +7162,28 @@
           "user": {
             "$ref": "#/components/schemas/LogRestApi.get_list.User"
           },
-          "user_id": {
-            "nullable": true,
-            "type": "integer"
-          }
+          "user_id": {}
         },
         "type": "object"
       },
       "LogRestApi.get_list.User": {
         "properties": {
-          "username": {
+          "first_name": {
             "maxLength": 64,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 128,
             "type": "string"
           }
         },
         "required": [
+          "first_name",
+          "last_name",
           "username"
         ],
         "type": "object"
@@ -6860,27 +7350,15 @@
       },
       "PermissionViewMenuApi.post": {
         "properties": {
-          "permission_id": {
-            "nullable": true,
-            "type": "integer"
-          },
-          "view_menu_id": {
-            "nullable": true,
-            "type": "integer"
-          }
+          "permission_id": {},
+          "view_menu_id": {}
         },
         "type": "object"
       },
       "PermissionViewMenuApi.put": {
         "properties": {
-          "permission_id": {
-            "nullable": true,
-            "type": "integer"
-          },
-          "view_menu_id": {
-            "nullable": true,
-            "type": "integer"
-          }
+          "permission_id": {},
+          "view_menu_id": {}
         },
         "type": "object"
       },
@@ -7090,7 +7568,7 @@
             "type": "string"
           },
           "user": {
-            "$ref": "#/components/schemas/User"
+            "$ref": "#/components/schemas/User1"
           }
         },
         "type": "object"
@@ -7250,7 +7728,7 @@
       "RLSRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/User"
+            "$ref": "#/components/schemas/User1"
           },
           "changed_on_delta_humanized": {
             "readOnly": true
@@ -7622,7 +8100,8 @@
             "enum": [
               "Email",
               "Slack",
-              "SlackV2"
+              "SlackV2",
+              "Webhook"
             ],
             "type": "string"
           }
@@ -7839,6 +8318,10 @@
       },
       "ReportScheduleRestApi.get.User": {
         "properties": {
+          "email": {
+            "maxLength": 320,
+            "type": "string"
+          },
           "first_name": {
             "maxLength": 64,
             "type": "string"
@@ -7852,6 +8335,7 @@
           }
         },
         "required": [
+          "email",
           "first_name",
           "last_name"
         ],
@@ -7874,10 +8358,7 @@
           "changed_on_delta_humanized": {
             "readOnly": true
           },
-          "chart_id": {
-            "nullable": true,
-            "type": "integer"
-          },
+          "chart_id": {},
           "created_by": {
             "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User1"
           },
@@ -7898,10 +8379,7 @@
           "crontab_humanized": {
             "readOnly": true
           },
-          "dashboard_id": {
-            "nullable": true,
-            "type": "integer"
-          },
+          "dashboard_id": {},
           "description": {
             "nullable": true,
             "type": "string"
@@ -8000,6 +8478,10 @@
       },
       "ReportScheduleRestApi.get_list.User2": {
         "properties": {
+          "email": {
+            "maxLength": 320,
+            "type": "string"
+          },
           "first_name": {
             "maxLength": 64,
             "type": "string"
@@ -8013,6 +8495,7 @@
           }
         },
         "required": [
+          "email",
           "first_name",
           "last_name"
         ],
@@ -8233,6 +8716,7 @@
               "America/Coral_Harbour",
               "America/Cordoba",
               "America/Costa_Rica",
+              "America/Coyhaique",
               "America/Creston",
               "America/Cuiaba",
               "America/Curacao",
@@ -8785,7 +9269,8 @@
             "enum": [
               "charts",
               "dashboards",
-              "alerts_reports"
+              "alerts_reports",
+              null
             ],
             "nullable": true
           },
@@ -8806,6 +9291,7 @@
             "type": "integer"
           },
           "database": {
+            "nullable": true,
             "type": "integer"
           },
           "description": {
@@ -8974,6 +9460,7 @@
               "America/Coral_Harbour",
               "America/Cordoba",
               "America/Costa_Rica",
+              "America/Coyhaique",
               "America/Creston",
               "America/Cuiaba",
               "America/Curacao",
@@ -9489,7 +9976,8 @@
             "description": "Determines when to trigger alert based off value from alert query. Alerts will be triggered with these validator types:\n- Not Null - When the return value is Not NULL, Empty, or 0\n- Operator - When `sql_return_value comparison_operator threshold` is True e.g. `50 <= 75`<br>Supports the comparison operators <, <=, >, >=, ==, and !=",
             "enum": [
               "not null",
-              "operator"
+              "operator",
+              null
             ],
             "nullable": true,
             "type": "string"
@@ -9532,6 +10020,21 @@
         },
         "required": [
           "clause"
+        ],
+        "type": "object"
+      },
+      "RoleGroupPutSchema": {
+        "properties": {
+          "group_ids": {
+            "description": "List of group ids",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "group_ids"
         ],
         "type": "object"
       },
@@ -9809,10 +10312,7 @@
           "database": {
             "$ref": "#/components/schemas/SavedQueryRestApi.get_list.Database"
           },
-          "db_id": {
-            "nullable": true,
-            "type": "integer"
-          },
+          "db_id": {},
           "description": {
             "nullable": true,
             "type": "string"
@@ -9936,10 +10436,7 @@
             "nullable": true,
             "type": "string"
           },
-          "db_id": {
-            "nullable": true,
-            "type": "integer"
-          },
+          "db_id": {},
           "description": {
             "nullable": true,
             "type": "string"
@@ -9976,10 +10473,7 @@
             "nullable": true,
             "type": "string"
           },
-          "db_id": {
-            "nullable": true,
-            "type": "integer"
-          },
+          "db_id": {},
           "description": {
             "nullable": true,
             "type": "string"
@@ -10243,6 +10737,9 @@
             "maxLength": 64,
             "type": "string"
           },
+          "groups": {
+            "$ref": "#/components/schemas/SupersetUserApi.get.Group"
+          },
           "id": {
             "type": "integer"
           },
@@ -10263,7 +10760,7 @@
             "$ref": "#/components/schemas/SupersetUserApi.get.Role"
           },
           "username": {
-            "maxLength": 64,
+            "maxLength": 128,
             "type": "string"
           }
         },
@@ -10272,6 +10769,31 @@
           "first_name",
           "last_name",
           "username"
+        ],
+        "type": "object"
+      },
+      "SupersetUserApi.get.Group": {
+        "properties": {
+          "description": {
+            "maxLength": 512,
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 150,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
         ],
         "type": "object"
       },
@@ -10340,6 +10862,9 @@
             "maxLength": 64,
             "type": "string"
           },
+          "groups": {
+            "$ref": "#/components/schemas/SupersetUserApi.get_list.Group"
+          },
           "id": {
             "type": "integer"
           },
@@ -10360,7 +10885,7 @@
             "$ref": "#/components/schemas/SupersetUserApi.get_list.Role"
           },
           "username": {
-            "maxLength": 64,
+            "maxLength": 128,
             "type": "string"
           }
         },
@@ -10369,6 +10894,31 @@
           "first_name",
           "last_name",
           "username"
+        ],
+        "type": "object"
+      },
+      "SupersetUserApi.get_list.Group": {
+        "properties": {
+          "description": {
+            "maxLength": 512,
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 150,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
         ],
         "type": "object"
       },
@@ -10417,6 +10967,13 @@
             "description": "The user's first name",
             "type": "string"
           },
+          "groups": {
+            "description": "The user's roles",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
           "last_name": {
             "description": "The user's last name",
             "type": "string"
@@ -10430,7 +10987,6 @@
             "items": {
               "type": "integer"
             },
-            "minItems": 1,
             "type": "array"
           },
           "username": {
@@ -10445,7 +11001,6 @@
           "first_name",
           "last_name",
           "password",
-          "roles",
           "username"
         ],
         "type": "object"
@@ -10464,6 +11019,13 @@
             "description": "The user's first name",
             "type": "string"
           },
+          "groups": {
+            "description": "The user's roles",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
           "last_name": {
             "description": "The user's last name",
             "type": "string"
@@ -10477,7 +11039,6 @@
             "items": {
               "type": "integer"
             },
-            "minItems": 1,
             "type": "array"
           },
           "username": {
@@ -10795,6 +11356,25 @@
         },
         "type": "object"
       },
+      "Tag1": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              1,
+              2,
+              3,
+              4
+            ]
+          }
+        },
+        "type": "object"
+      },
       "TagGetResponseSchema": {
         "properties": {
           "id": {
@@ -10917,63 +11497,18 @@
       },
       "TagRestApi.get.User1": {
         "properties": {
-          "active": {
-            "nullable": true,
-            "type": "boolean"
-          },
-          "changed_on": {
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          },
-          "created_on": {
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          },
-          "email": {
-            "maxLength": 320,
-            "type": "string"
-          },
-          "fail_login_count": {
-            "nullable": true,
-            "type": "integer"
-          },
           "first_name": {
             "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "type": "integer"
-          },
-          "last_login": {
-            "format": "date-time",
-            "nullable": true,
             "type": "string"
           },
           "last_name": {
             "maxLength": 64,
             "type": "string"
-          },
-          "login_count": {
-            "nullable": true,
-            "type": "integer"
-          },
-          "password": {
-            "maxLength": 256,
-            "nullable": true,
-            "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
           }
         },
         "required": [
-          "email",
           "first_name",
-          "last_name",
-          "username"
+          "last_name"
         ],
         "type": "object"
       },
@@ -11091,7 +11626,7 @@
             "type": "string"
           },
           "created_by": {
-            "$ref": "#/components/schemas/User"
+            "$ref": "#/components/schemas/User1"
           },
           "creator": {
             "type": "string"
@@ -11104,7 +11639,7 @@
           },
           "owners": {
             "items": {
-              "$ref": "#/components/schemas/User1"
+              "$ref": "#/components/schemas/User2"
             },
             "type": "array"
           },
@@ -11144,6 +11679,218 @@
         },
         "required": [
           "value"
+        ],
+        "type": "object"
+      },
+      "Theme": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "json_data": {
+            "type": "string"
+          },
+          "theme_name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ThemeRestApi.get": {
+        "properties": {
+          "changed_by": {
+            "$ref": "#/components/schemas/ThemeRestApi.get.User"
+          },
+          "changed_on_delta_humanized": {
+            "readOnly": true
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/ThemeRestApi.get.User1"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "is_system": {
+            "type": "boolean"
+          },
+          "is_system_dark": {
+            "type": "boolean"
+          },
+          "is_system_default": {
+            "type": "boolean"
+          },
+          "json_data": {
+            "nullable": true,
+            "type": "string"
+          },
+          "theme_name": {
+            "maxLength": 250,
+            "nullable": true,
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ThemeRestApi.get.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "ThemeRestApi.get.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "ThemeRestApi.get_list": {
+        "properties": {
+          "changed_by": {
+            "$ref": "#/components/schemas/ThemeRestApi.get_list.User"
+          },
+          "changed_by_name": {
+            "readOnly": true
+          },
+          "changed_on_delta_humanized": {
+            "readOnly": true
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/ThemeRestApi.get_list.User1"
+          },
+          "created_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "is_system": {
+            "type": "boolean"
+          },
+          "is_system_dark": {
+            "type": "boolean"
+          },
+          "is_system_default": {
+            "type": "boolean"
+          },
+          "json_data": {
+            "nullable": true,
+            "type": "string"
+          },
+          "theme_name": {
+            "maxLength": 250,
+            "nullable": true,
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ThemeRestApi.get_list.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "ThemeRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "ThemeRestApi.post": {
+        "properties": {
+          "json_data": {
+            "type": "string"
+          },
+          "theme_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "json_data",
+          "theme_name"
+        ],
+        "type": "object"
+      },
+      "ThemeRestApi.put": {
+        "properties": {
+          "json_data": {
+            "type": "string"
+          },
+          "theme_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "json_data",
+          "theme_name"
         ],
         "type": "object"
       },
@@ -11324,6 +12071,9 @@
       },
       "User": {
         "properties": {
+          "email": {
+            "type": "string"
+          },
           "first_name": {
             "type": "string"
           },
@@ -11346,9 +12096,6 @@
           },
           "last_name": {
             "type": "string"
-          },
-          "username": {
-            "type": "string"
           }
         },
         "type": "object"
@@ -11358,11 +12105,92 @@
           "first_name": {
             "type": "string"
           },
+          "id": {
+            "type": "integer"
+          },
           "last_name": {
             "type": "string"
           },
           "username": {
             "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "User3": {
+        "properties": {
+          "first_name": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UserRegistrationsRestAPI.get": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "UserRegistrationsRestAPI.get_list": {
+        "properties": {
+          "email": {
+            "maxLength": 320,
+            "type": "string"
+          },
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "registration_date": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "registration_hash": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 128,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "first_name",
+          "last_name",
+          "username"
+        ],
+        "type": "object"
+      },
+      "UserRegistrationsRestAPI.post": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "UserRegistrationsRestAPI.put": {
+        "properties": {
+          "id": {
+            "type": "integer"
           }
         },
         "type": "object"
@@ -11386,6 +12214,9 @@
           },
           "last_name": {
             "type": "string"
+          },
+          "login_count": {
+            "type": "integer"
           },
           "username": {
             "type": "string"
@@ -11692,6 +12523,19 @@
                       "type": "boolean"
                     },
                     {
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "boolean"
+                          }
+                        ]
+                      },
                       "type": "array"
                     }
                   ]
@@ -12999,6 +13843,10 @@
                     "format": "binary",
                     "type": "string"
                   },
+                  "encrypted_extra_secrets": {
+                    "description": "JSON map of secret values for masked encrypted_extra fields. Each key is a database file path and the value is a map of JSONPath expressions to secret values. For example: `{\"databases/db.yaml\": {\"$.credentials_info.secret\": \"foo\"}}`.",
+                    "type": "string"
+                  },
                   "passwords": {
                     "description": "JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
                     "type": "string"
@@ -14212,7 +15060,7 @@
     },
     "/api/v1/chart/{pk}/data/": {
       "get": {
-        "description": "Takes a chart ID and uses the query context stored when the chart was saved to return payload data response.",
+        "description": "Takes a chart ID and uses the query context stored when the chart was saved to return payload data response. When filters_dashboard_id is provided, the chart's compiled SQL includes in scope dashboard filter default values.",
         "parameters": [
           {
             "description": "The chart ID",
@@ -14246,6 +15094,14 @@
             "schema": {
               "type": "boolean"
             }
+          },
+          {
+            "description": "Dashboard ID whose filter defaults should be applied to the chart's query context. The chart must belong to the specified dashboard. Only in scope filters with static default values are applied; filters that require a database query (I.E. defaultToFirstItem) or have no default are reported in the dashboard_filters response metadata.",
+            "in": "query",
+            "name": "filters_dashboard_id",
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -14274,6 +15130,12 @@
           },
           "401": {
             "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
           },
           "500": {
             "$ref": "#/components/responses/500"
@@ -15158,59 +16020,17 @@
                 "schema": {
                   "properties": {
                     "count": {
-                      "description": "The total record count on the backend",
-                      "type": "number"
-                    },
-                    "description_columns": {
-                      "properties": {
-                        "column_name": {
-                          "description": "The description for the column name. Will be translated by babel",
-                          "example": "A Nice description for the column",
-                          "type": "string"
-                        }
-                      },
-                      "type": "object"
+                      "type": "integer"
                     },
                     "ids": {
-                      "description": "A list of item ids, useful when you don't know the column id",
                       "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    },
-                    "label_columns": {
-                      "properties": {
-                        "column_name": {
-                          "description": "The label for the column name. Will be translated by babel",
-                          "example": "A Nice label for the column",
-                          "type": "string"
-                        }
-                      },
-                      "type": "object"
-                    },
-                    "list_columns": {
-                      "description": "A list of columns",
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    },
-                    "list_title": {
-                      "description": "A title to render. Will be translated by babel",
-                      "example": "List Items",
-                      "type": "string"
-                    },
-                    "order_columns": {
-                      "description": "A list of allowed columns to sort",
-                      "items": {
-                        "type": "string"
+                        "type": "integer"
                       },
                       "type": "array"
                     },
                     "result": {
-                      "description": "The result from the get list query",
                       "items": {
-                        "$ref": "#/components/schemas/DashboardRestApi.get_list"
+                        "type": "object"
                       },
                       "type": "array"
                     }
@@ -15694,6 +16514,17 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_item_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
           }
         ],
         "responses": {
@@ -16359,6 +17190,23 @@
         "summary": "Compute and cache a screenshot",
         "tags": [
           "Dashboards"
+        ],
+        "x-codeSamples": [
+          {
+            "lang": "cURL",
+            "label": "cURL",
+            "source": "curl -X POST \"http://localhost:8088/api/v1/dashboard/1/cache_dashboard_screenshot/\" \\\n  -H \"Authorization: Bearer $ACCESS_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"key\": \"value\"}'"
+          },
+          {
+            "lang": "Python",
+            "label": "Python",
+            "source": "import requests\n\nresponse = requests.post(\n    \"http://localhost:8088/api/v1/dashboard/1/cache_dashboard_screenshot/\",\n    headers={\"Authorization\": \"Bearer \" + access_token},\n    json={\"key\": \"value\"}\n)\nprint(response.json())"
+          },
+          {
+            "lang": "JavaScript",
+            "label": "JavaScript",
+            "source": "const response = await fetch(\n  \"http://localhost:8088/api/v1/dashboard/1/cache_dashboard_screenshot/\",\n  {\n    method: \"POST\",\n    headers: {\n      \"Authorization\": `Bearer ${accessToken}`,\n      \"Content-Type\": \"application/json\"\n    },\n    body: JSON.stringify({ key: \"value\" })\n  }\n);\nconst data = await response.json();\nconsole.log(data);"
+          }
         ]
       }
     },
@@ -17684,6 +18532,10 @@
             "multipart/form-data": {
               "schema": {
                 "properties": {
+                  "encrypted_extra_secrets": {
+                    "description": "JSON map of sensitive values for masked_encrypted_extra fields. Keys are file paths (e.g., \"databases/db.yaml\") and values are JSON objects mapping JSONPath expressions to secrets. (e.g., `{\"databases/MyDatabase.yaml\": {\"$.credentials_info.private_key\": \"actual_key\"}}`).",
+                    "type": "string"
+                  },
                   "formData": {
                     "description": "upload file (ZIP)",
                     "format": "binary",
@@ -20020,12 +20872,12 @@
         "description": "Get a dataset by ID",
         "parameters": [
           {
-            "description": "The dataset ID",
+            "description": "Either the id of the dataset, or its uuid",
             "in": "path",
-            "name": "pk",
+            "name": "id_or_uuid",
             "required": true,
             "schema": {
-              "type": "integer"
+              "type": "string"
             }
           },
           {
@@ -21369,6 +22221,11 @@
             "$ref": "#/components/responses/401"
           }
         },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
         "summary": "Get the user object",
         "tags": [
           "Current User"
@@ -21398,6 +22255,11 @@
             "$ref": "#/components/responses/401"
           }
         },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
         "summary": "Get the user roles",
         "tags": [
           "Current User"
@@ -24082,8 +24944,22 @@
         ]
       }
     },
-    "/api/v1/security/csrf_token/": {
+    "/api/v1/security/groups/_info": {
       "get": {
+        "description": "Get metadata information about this API resource",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_info_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -24098,10 +24974,16 @@
                 }
               }
             },
-            "description": "Result contains the CSRF token"
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
           },
           "401": {
             "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
           },
           "500": {
             "$ref": "#/components/responses/500"
@@ -24112,7 +24994,6 @@
             "jwt": []
           }
         ],
-        "summary": "Get the CSRF token",
         "tags": [
           "Security"
         ]
@@ -26146,7 +27027,10 @@
                 "schema": {
                   "properties": {
                     "result": {
-                      "$ref": "#/components/schemas/RolePermissionListSchema"
+                      "items": {
+                        "$ref": "#/components/schemas/RolePermissionListSchema"
+                      },
+                      "type": "array"
                     }
                   },
                   "type": "object"
@@ -26321,7 +27205,7 @@
                     "result": {
                       "description": "The result from the get list query",
                       "items": {
-                        "$ref": "#/components/schemas/SupersetUserApi.get_list"
+                        "$ref": "#/components/schemas/UserRegistrationsRestAPI.get_list"
                       },
                       "type": "array"
                     }
@@ -26330,7 +27214,7 @@
                 }
               }
             },
-            "description": "Items from Model"
+            "description": "Item from Model"
           },
           "400": {
             "$ref": "#/components/responses/400"
@@ -26367,13 +27251,13 @@
           "required": true
         },
         "responses": {
-          "201": {
+          "200": {
             "content": {
               "application/json": {
                 "schema": {
                   "properties": {
                     "result": {
-                      "$ref": "#/components/schemas/SupersetUserApi.post"
+                      "$ref": "#/components/schemas/UserRegistrationsRestAPI.put"
                     }
                   },
                   "type": "object"
@@ -28122,23 +29006,122 @@
         ]
       }
     },
-    "/api/v1/user/{user_id}/avatar.png": {
+    "/api/v1/theme/_info": {
       "get": {
-        "description": "Gets the avatar URL for the user with the given ID, or returns a 401 error if the user is unauthenticated.",
+        "description": "Get metadata information about this API resource",
         "parameters": [
           {
-            "description": "The ID of the user",
-            "in": "path",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_info_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
           }
         ],
         "responses": {
-          "301": {
-            "description": "A redirect to the user's avatar URL"
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "add_columns": {
+                      "type": "object"
+                    },
+                    "edit_columns": {
+                      "type": "object"
+                    },
+                    "filters": {
+                      "properties": {
+                        "column_name": {
+                          "items": {
+                            "properties": {
+                              "name": {
+                                "description": "The filter name. Will be translated by babel",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "The filter operation key to use on list filters",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "permissions": {
+                      "description": "The user permissions for this API resource",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Get metadata information about this API resource",
+        "tags": [
+          "Themes"
+        ]
+      }
+    },
+    "/api/v1/theme/export/": {
+      "get": {
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_export_ids_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Theme export"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
           },
           "401": {
             "$ref": "#/components/responses/401"
@@ -28153,17 +29136,27 @@
         ]
       }
     },
-    "/api/{version}/_openapi": {
+    "/api/v1/theme/related/{column_name}": {
       "get": {
-        "description": "Get the OpenAPI spec for a specific API version",
         "parameters": [
           {
             "in": "path",
-            "name": "version",
+            "name": "column_name",
             "required": true,
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_related_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
           }
         ],
         "responses": {
@@ -28171,11 +29164,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/RelatedResponseSchema"
                 }
               }
             },
-            "description": "The OpenAPI spec"
+            "description": "Related column data"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
           },
           "404": {
             "$ref": "#/components/responses/404"
@@ -28189,6 +29188,7 @@
             "jwt": []
           }
         ],
+        "summary": "Get related fields data",
         "tags": [
           "OpenApi"
         ]
