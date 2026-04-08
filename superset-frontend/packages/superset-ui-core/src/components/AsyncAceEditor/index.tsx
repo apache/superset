@@ -321,7 +321,7 @@ export function AsyncAceEditor(
 
                 /* Style bracket matching to blend with theme */
                 .ace_editor .ace_bracket {
-                  border-color: ${token.colorBorderSecondary} !important;
+                  border-color: ${token.colorPrimaryBorderHover} !important;
                 }
 
                 /* Adjust cursor color */
