@@ -93,11 +93,6 @@ export const StyledModal = styled(Modal)`
   .ant-modal-body {
     overflow: visible;
   }
-  i {
-    position: absolute;
-    top: -${({ theme }) => theme.sizeUnit * 5.25}px;
-    left: ${({ theme }) => theme.sizeUnit * 26.75}px;
-  }
 `;
 
 class SaveModal extends Component<SaveModalProps, SaveModalState> {
