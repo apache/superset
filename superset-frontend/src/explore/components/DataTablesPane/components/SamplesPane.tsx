@@ -16,24 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { t } from '@apache-superset/core/translation';
-import {
-  ensureIsArray,
-  getTimeFormatter,
-  safeHtmlSpan,
-  TimeFormats,
-} from '@superset-ui/core';
+import { ensureIsArray } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
-import {
-  Constants,
-  EmptyState,
-  Loading,
-} from '@superset-ui/core/components';
+import { EmptyState, Loading } from '@superset-ui/core/components';
 import { GenericDataType } from '@apache-superset/core/common';
 import { GridTable } from 'src/components/GridTable';
 import { GridSize } from 'src/components/GridTable/constants';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
+import {
+  useGridColumns,
+  useKeywordFilter,
+  useGridHeight,
+} from './useGridResultTable';
 import { TableControls } from './DataTableControls';
 import { SamplesPaneProps } from '../types';
 
@@ -48,14 +44,11 @@ const GridContainer = styled.div`
 
 const cache = new WeakSet();
 
-const timeFormatter = getTimeFormatter(TimeFormats.DATABASE_DATETIME);
-
 export const SamplesPane = ({
   isRequest,
   datasource,
   queryForce,
   setForceQuery,
-  dataSize = 50,
   isVisible,
   canDownload,
 }: SamplesPaneProps) => {
@@ -66,8 +59,7 @@ export const SamplesPane = ({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [rowcount, setRowCount] = useState<number>(0);
   const [responseError, setResponseError] = useState<string>('');
-  const [gridHeight, setGridHeight] = useState(300);
-  const gridContainerRef = useRef<HTMLDivElement>(null);
+  const { gridHeight, gridContainerRef } = useGridHeight();
   const datasourceId = useMemo(
     () => `${datasource.id}__${datasource.type}`,
     [datasource],
@@ -104,76 +96,8 @@ export const SamplesPane = ({
     }
   }, [datasource, isRequest, queryForce]);
 
-  useEffect(() => {
-    const container = gridContainerRef.current;
-    if (!container) return undefined;
-    const observer = new ResizeObserver(entries => {
-      const entry = entries[0];
-      if (entry) {
-        setGridHeight(entry.contentRect.height);
-      }
-    });
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, []);
-
-  const columns = useMemo(
-    () =>
-      colnames && data?.length
-        ? colnames
-            .filter((column: string) =>
-              Object.keys(data[0]).includes(column),
-            )
-            .map((key, index) => {
-              const colType = coltypes?.[index];
-              return {
-                label: key,
-                headerName: key,
-                render: ({ value }: { value: any }) => {
-                  if (value === true) {
-                    return Constants.BOOL_TRUE_DISPLAY;
-                  }
-                  if (value === false) {
-                    return Constants.BOOL_FALSE_DISPLAY;
-                  }
-                  if (value === null) {
-                    return (
-                      <span style={{ color: 'var(--ant-color-text-tertiary)' }}>
-                        {Constants.NULL_DISPLAY}
-                      </span>
-                    );
-                  }
-                  if (
-                    colType === GenericDataType.Temporal &&
-                    typeof value === 'number'
-                  ) {
-                    return timeFormatter(value);
-                  }
-                  if (typeof value === 'string') {
-                    return safeHtmlSpan(value);
-                  }
-                  return String(value);
-                },
-              };
-            })
-        : [],
-    [colnames, data, coltypes],
-  );
-
-  const keywordFilter = useCallback(
-    (node: any) => {
-      if (filterText && node.data) {
-        const lowerFilter = filterText.toLowerCase();
-        return Object.values(node.data).some(
-          (value: any) =>
-            value != null &&
-            String(value).toLowerCase().includes(lowerFilter),
-        );
-      }
-      return true;
-    },
-    [filterText],
-  );
+  const columns = useGridColumns(colnames, coltypes, data);
+  const keywordFilter = useKeywordFilter(filterText);
 
   const handleInputChange = useCallback(
     (input: string) => setFilterText(input),

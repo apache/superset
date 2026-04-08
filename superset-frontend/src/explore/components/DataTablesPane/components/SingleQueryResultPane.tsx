@@ -16,26 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import {
-  getTimeFormatter,
-  safeHtmlSpan,
-  TimeFormats,
-} from '@superset-ui/core';
+import { useState, useCallback } from 'react';
 import { styled } from '@apache-superset/core/theme';
-import { Constants } from '@superset-ui/core/components';
-import { GenericDataType } from '@apache-superset/core/common';
 import { GridTable } from 'src/components/GridTable';
 import { GridSize } from 'src/components/GridTable/constants';
+import {
+  useGridColumns,
+  useKeywordFilter,
+  useGridHeight,
+} from './useGridResultTable';
 import { TableControls } from './DataTableControls';
 import { SingleQueryResultPaneProp } from '../types';
+
+const ResultPaneContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+`;
 
 const GridContainer = styled.div`
   flex: 1;
   overflow: hidden;
 `;
-
-const timeFormatter = getTimeFormatter(TimeFormats.DATABASE_DATETIME);
 
 export const SingleQueryResultPane = ({
   data,
@@ -43,86 +46,14 @@ export const SingleQueryResultPane = ({
   coltypes,
   rowcount,
   datasourceId,
-  dataSize = 50,
-  isVisible,
   canDownload,
   columnDisplayNames,
 }: SingleQueryResultPaneProp) => {
   const [filterText, setFilterText] = useState('');
-  const [gridHeight, setGridHeight] = useState(300);
-  const gridContainerRef = useRef<HTMLDivElement>(null);
+  const { gridHeight, gridContainerRef } = useGridHeight();
 
-  useEffect(() => {
-    const container = gridContainerRef.current;
-    if (!container) return undefined;
-    const observer = new ResizeObserver(entries => {
-      const entry = entries[0];
-      if (entry) {
-        setGridHeight(entry.contentRect.height);
-      }
-    });
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, []);
-
-  const columns = useMemo(
-    () =>
-      colnames && data?.length
-        ? colnames
-            .filter((column: string) =>
-              Object.keys(data[0]).includes(column),
-            )
-            .map((key, index) => {
-              const colType = coltypes?.[index];
-              const headerLabel = columnDisplayNames?.[key] ?? key;
-              return {
-                label: key,
-                headerName: headerLabel,
-                render: ({ value }: { value: any }) => {
-                  if (value === true) {
-                    return Constants.BOOL_TRUE_DISPLAY;
-                  }
-                  if (value === false) {
-                    return Constants.BOOL_FALSE_DISPLAY;
-                  }
-                  if (value === null) {
-                    return (
-                      <span style={{ color: 'var(--ant-color-text-tertiary)' }}>
-                        {Constants.NULL_DISPLAY}
-                      </span>
-                    );
-                  }
-                  if (
-                    colType === GenericDataType.Temporal &&
-                    typeof value === 'number'
-                  ) {
-                    return timeFormatter(value);
-                  }
-                  if (typeof value === 'string') {
-                    return safeHtmlSpan(value);
-                  }
-                  return String(value);
-                },
-              };
-            })
-        : [],
-    [colnames, data, coltypes, columnDisplayNames],
-  );
-
-  const keywordFilter = useCallback(
-    (node: any) => {
-      if (filterText && node.data) {
-        const lowerFilter = filterText.toLowerCase();
-        return Object.values(node.data).some(
-          (value: any) =>
-            value != null &&
-            String(value).toLowerCase().includes(lowerFilter),
-        );
-      }
-      return true;
-    },
-    [filterText],
-  );
+  const columns = useGridColumns(colnames, coltypes, data, columnDisplayNames);
+  const keywordFilter = useKeywordFilter(filterText);
 
   const handleInputChange = useCallback(
     (input: string) => setFilterText(input),
@@ -130,7 +61,7 @@ export const SingleQueryResultPane = ({
   );
 
   return (
-    <>
+    <ResultPaneContainer>
       <TableControls
         data={data}
         columnNames={colnames}
@@ -151,6 +82,6 @@ export const SingleQueryResultPane = ({
           showRowNumber
         />
       </GridContainer>
-    </>
+    </ResultPaneContainer>
   );
 };

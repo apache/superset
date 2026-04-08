@@ -53,7 +53,6 @@ export const useResultsPane = ({
   errorMessage,
   setForceQuery,
   isVisible,
-  dataSize = 50,
   canDownload,
   columnDisplayNames,
 }: ResultsPaneProps): ReactElement[] => {
@@ -163,7 +162,6 @@ export const useResultsPane = ({
         colnames={result.colnames}
         coltypes={result.coltypes}
         rowcount={result.rowcount}
-        dataSize={dataSize}
         datasourceId={queryFormData.datasource}
         isVisible={isVisible}
         canDownload={canDownload}

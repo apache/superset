@@ -58,8 +58,6 @@ export interface SamplesPaneProps {
   datasource: Datasource;
   queryForce: boolean;
   setForceQuery?: SetForceQueryAction;
-  dataSize?: number;
-  // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
   isVisible: boolean;
   canDownload: boolean;
 }
@@ -86,11 +84,8 @@ export interface QueryResultInterface {
 export interface SingleQueryResultPaneProp extends QueryResultInterface {
   // {datasource.id}__{datasource.type}, eg: 1__table
   datasourceId?: string;
-  dataSize?: number;
-  // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
   isVisible: boolean;
   canDownload: boolean;
   // Optional map of column/metric name -> verbose label
   columnDisplayNames?: Record<string, string>;
-  isPaginationSticky?: boolean;
 }
