@@ -387,8 +387,7 @@ class WebDriverPlaywright(WebDriverProxy):
                     )
 
             except PlaywrightTimeout:
-                # raise again for the finally block, but handled above
-                pass
+                raise
             except PlaywrightError:
                 logger.exception(
                     "Encountered an unexpected error when requesting url %s", url
