@@ -224,7 +224,10 @@ if (!isDevMode) {
 // mode: 'write-references' writes .d.ts output (no manual `npm run plugins:build` needed).
 // Set DISABLE_TS_CHECKER=true to skip this plugin entirely (~2-3 GB savings).
 // Type errors are still caught by pre-commit and CI.
-if (isDevMode && !process.env.DISABLE_TS_CHECKER) {
+const disableTsChecker = ['true', '1'].includes(
+  (process.env.DISABLE_TS_CHECKER || '').toLowerCase(),
+);
+if (isDevMode && !disableTsChecker) {
   plugins.push(
     new ForkTsCheckerWebpackPlugin({
       async: true,
