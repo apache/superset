@@ -26,7 +26,8 @@ import {
   VizType,
 } from '@superset-ui/core';
 import { QUERY_MODE_REQUISITES } from 'src/explore/constants';
-import { MemoryRouter, Route } from 'react-router-dom';
+import { Router, Route } from 'react-router-dom';
+import { createMemoryHistory } from 'history';
 import {
   render,
   screen,
@@ -124,11 +125,13 @@ const renderWithRouter = ({
   overridePathname,
   initialState = reduxState,
   store,
+  history: existingHistory,
 }: {
   search?: string;
   overridePathname?: string;
   initialState?: object;
   store?: Store;
+  history?: ReturnType<typeof createMemoryHistory>;
 } = {}) => {
   const path = overridePathname ?? defaultPath;
   Object.defineProperty(window, 'location', {
@@ -136,14 +139,18 @@ const renderWithRouter = ({
       return { pathname: path, search };
     },
   });
-  return render(
-    <MemoryRouter initialEntries={[`${path}${search}`]}>
+  const history =
+    existingHistory ??
+    createMemoryHistory({ initialEntries: [`${path}${search}`] });
+  const result = render(
+    <Router history={history}>
       <Route path={path}>
         <ExploreViewContainer />
       </Route>
-    </MemoryRouter>,
+    </Router>,
     { useRedux: true, useDnd: true, initialState, store },
   );
+  return { ...result, history };
 };
 
 test('generates a new form_data param when none is available', async () => {
@@ -155,19 +162,18 @@ test('generates a new form_data param when none is available', async () => {
       useLegacyApi: false,
     }),
   );
-  const replaceState = jest.spyOn(window.history, 'replaceState');
-  await waitFor(() => renderWithRouter());
-  expect(replaceState).toHaveBeenCalledWith(
-    expect.anything(),
-    undefined,
+  const history = createMemoryHistory({ initialEntries: [defaultPath] });
+  const replaceSpy = jest.spyOn(history, 'replace');
+  await waitFor(() => renderWithRouter({ history }));
+  expect(replaceSpy).toHaveBeenCalledWith(
     expect.stringMatching('form_data_key'),
-  );
-  expect(replaceState).toHaveBeenCalledWith(
     expect.anything(),
-    undefined,
-    expect.stringMatching('datasource_id'),
   );
-  replaceState.mockRestore();
+  expect(replaceSpy).toHaveBeenCalledWith(
+    expect.stringMatching('datasource_id'),
+    expect.anything(),
+  );
+  replaceSpy.mockRestore();
 });
 
 test('renders chart in standalone mode', () => {
@@ -180,40 +186,37 @@ test('renders chart in standalone mode', () => {
   expect(queryByTestId('standalone-app')).toBeInTheDocument();
 });
 
-test('generates a different form_data param when one is provided and is mounting', async () => {
-  const replaceState = jest.spyOn(window.history, 'replaceState');
-  await waitFor(() => renderWithRouter({ search: SEARCH }));
-  expect(replaceState).not.toHaveBeenLastCalledWith(
-    0,
-    expect.anything(),
-    undefined,
-    expect.stringMatching(KEY),
-  );
-  expect(replaceState).toHaveBeenCalledWith(
-    expect.anything(),
-    undefined,
+test('generates a form_data param with datasource_id when mounting with existing key', async () => {
+  const history = createMemoryHistory({
+    initialEntries: [`${defaultPath}${SEARCH}`],
+  });
+  const replaceSpy = jest.spyOn(history, 'replace');
+  await waitFor(() => renderWithRouter({ search: SEARCH, history }));
+  expect(replaceSpy).toHaveBeenCalledWith(
     expect.stringMatching('datasource_id'),
+    expect.anything(),
   );
-  replaceState.mockRestore();
+  replaceSpy.mockRestore();
 });
 
 test('reuses the same form_data param when updating', async () => {
   getChartControlPanelRegistry().registerValue('table', {
     controlPanelSections: [],
   });
-  const replaceState = jest.spyOn(window.history, 'replaceState');
-  const pushState = jest.spyOn(window.history, 'pushState');
-  await waitFor(() => renderWithRouter({ search: SEARCH }));
-  expect(replaceState.mock.calls.length).toBe(1);
+  const history = createMemoryHistory({
+    initialEntries: [`${defaultPath}${SEARCH}`],
+  });
+  const replaceSpy = jest.spyOn(history, 'replace');
+  await waitFor(() => renderWithRouter({ search: SEARCH, history }));
+  expect(replaceSpy.mock.calls.length).toBe(1);
   userEvent.click(screen.getByText('Update chart'));
-  await waitFor(() => expect(pushState.mock.calls.length).toBe(1));
-  expect(replaceState.mock.calls[0]).toEqual(pushState.mock.calls[0]);
-  replaceState.mockRestore();
-  pushState.mockRestore();
+  await waitFor(() => expect(replaceSpy.mock.calls.length).toBe(2));
+  expect(replaceSpy.mock.calls[0]).toEqual(replaceSpy.mock.calls[1]);
+  replaceSpy.mockRestore();
   getChartControlPanelRegistry().remove('table');
 });
 
-test('doesnt call replaceState when pathname is not /explore', async () => {
+test('doesnt call replace when pathname is not /explore', async () => {
   getChartMetadataRegistry().registerValue(
     'table',
     new ChartMetadata({
@@ -222,24 +225,29 @@ test('doesnt call replaceState when pathname is not /explore', async () => {
       useLegacyApi: false,
     }),
   );
-  const replaceState = jest.spyOn(window.history, 'replaceState');
-  await waitFor(() => renderWithRouter({ overridePathname: '/dashboard' }));
-  expect(replaceState).not.toHaveBeenCalled();
-  replaceState.mockRestore();
+  const history = createMemoryHistory({ initialEntries: ['/dashboard'] });
+  const replaceSpy = jest.spyOn(history, 'replace');
+  await waitFor(() =>
+    renderWithRouter({ overridePathname: '/dashboard', history }),
+  );
+  expect(replaceSpy).not.toHaveBeenCalled();
+  replaceSpy.mockRestore();
 });
 
 test('preserves unknown parameters', async () => {
-  const replaceState = jest.spyOn(window.history, 'replaceState');
   const unknownParam = 'test=123';
+  const history = createMemoryHistory({
+    initialEntries: [`${defaultPath}${SEARCH}&${unknownParam}`],
+  });
+  const replaceSpy = jest.spyOn(history, 'replace');
   await waitFor(() =>
-    renderWithRouter({ search: `${SEARCH}&${unknownParam}` }),
+    renderWithRouter({ search: `${SEARCH}&${unknownParam}`, history }),
   );
-  expect(replaceState).toHaveBeenCalledWith(
-    expect.anything(),
-    undefined,
+  expect(replaceSpy).toHaveBeenCalledWith(
     expect.stringMatching(unknownParam),
+    expect.anything(),
   );
-  replaceState.mockRestore();
+  replaceSpy.mockRestore();
 });
 
 test('retains query mode requirements when query_mode is enabled', async () => {

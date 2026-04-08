@@ -28,7 +28,9 @@ import {
   SqlaFormData,
   TimeseriesAnnotationLayer,
   ChartDataResponseResult,
+  TimeGranularity,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { EchartsTimeseriesChartProps } from '../../src/types';
 import type { SeriesOption } from 'echarts';
 import transformProps from '../../src/Timeseries/transformProps';
@@ -37,7 +39,8 @@ import {
   OrientationType,
   EchartsTimeseriesFormData,
 } from '../../src/Timeseries/types';
-import { StackControlsValue } from '../../src/constants';
+import { StackControlsValue, TIMESERIES_CONSTANTS } from '../../src/constants';
+import { LegendOrientation, LegendType } from '../../src/types';
 import { DEFAULT_FORM_DATA } from '../../src/Timeseries/constants';
 import { createEchartsTimeseriesTestChartProps } from '../helpers';
 import { BASE_TIMESTAMP, createTestData } from './helpers';
@@ -898,6 +901,40 @@ describe('legend sorting', () => {
       'Boston',
     ]);
   });
+
+  test('falls back to scroll for zoomable top legends when toolbox space reduces available width', () => {
+    const narrowLegendData = [
+      createTestQueryData(
+        createTestData(
+          [
+            {
+              Alpha: 1,
+              Beta: 2,
+              Gamma: 3,
+            },
+          ],
+          { intervalMs: 300000000 },
+        ),
+      ),
+    ];
+    const chartProps = createTestChartProps({
+      width: 190 + TIMESERIES_CONSTANTS.legendTopRightOffset,
+      formData: {
+        ...formData,
+        legendType: LegendType.Plain,
+        legendOrientation: LegendOrientation.Top,
+        showLegend: true,
+        zoomable: true,
+      },
+      queriesData: narrowLegendData,
+    });
+
+    const transformed = transformProps(chartProps);
+
+    expect((transformed.echartOptions.legend as any).type).toBe(
+      LegendType.Scroll,
+    );
+  });
 });
 
 const timeCompareFormData: SqlaFormData = {
@@ -920,6 +957,7 @@ test('should apply dashed line style to time comparison series with single metri
     formData: {
       ...timeCompareFormData,
       time_compare: ['1 week ago'],
+      timeShiftColor: true,
       comparison_type: ComparisonType.Values,
     },
     queriesData: queriesDataWithTimeCompare,
@@ -939,18 +977,9 @@ test('should apply dashed line style to time comparison series with single metri
   expect(comparisonSeries).toBeDefined();
   // Main series should not have a dash pattern array
   expect(Array.isArray(mainSeries?.lineStyle?.type)).toBe(false);
-  // Comparison series should have a visible dash pattern array [dash, gap]
-  expect(Array.isArray(comparisonSeries?.lineStyle?.type)).toBe(true);
-  expect(
-    Array.isArray(comparisonSeries?.lineStyle?.type)
-      ? comparisonSeries.lineStyle.type[0]
-      : undefined,
-  ).toBeGreaterThanOrEqual(4);
-  expect(
-    Array.isArray(comparisonSeries?.lineStyle?.type)
-      ? comparisonSeries.lineStyle.type[1]
-      : undefined,
-  ).toBeGreaterThanOrEqual(3);
+  expect(mainSeries?.lineStyle?.type).not.toBe('dotted');
+  // Comparison series should have a visible dash pattern
+  expect(comparisonSeries?.lineStyle?.type).toBe('dotted');
 });
 
 test('should apply dashed line style to time comparison series with metric__offset pattern', () => {
@@ -973,6 +1002,7 @@ test('should apply dashed line style to time comparison series with metric__offs
     formData: {
       ...timeCompareFormData,
       time_compare: ['1 week ago'],
+      timeShiftColor: true,
       comparison_type: ComparisonType.Values,
     },
     queriesData: queriesDataWithTimeCompare,
@@ -994,18 +1024,8 @@ test('should apply dashed line style to time comparison series with metric__offs
   expect(comparisonSeries).toBeDefined();
   // Main series should not have a dash pattern array
   expect(Array.isArray(mainSeries?.lineStyle?.type)).toBe(false);
-  // Comparison series should have a visible dash pattern array [dash, gap]
-  expect(Array.isArray(comparisonSeries?.lineStyle?.type)).toBe(true);
-  expect(
-    Array.isArray(comparisonSeries?.lineStyle?.type)
-      ? comparisonSeries.lineStyle.type[0]
-      : undefined,
-  ).toBeGreaterThanOrEqual(4);
-  expect(
-    Array.isArray(comparisonSeries?.lineStyle?.type)
-      ? comparisonSeries.lineStyle.type[1]
-      : undefined,
-  ).toBeGreaterThanOrEqual(3);
+  // Comparison series should have a visible dash pattern
+  expect(comparisonSeries?.lineStyle?.type).toBe('dotted');
 });
 
 test('should apply connectNulls to time comparison series', () => {
@@ -1316,4 +1336,187 @@ test('should not apply axis bounds calculation when seriesType is not Bar for ho
   const xAxisRaw = transformedProps.echartOptions.xAxis as any;
   // Should not have explicit max set when seriesType is not Bar
   expect(xAxisRaw.max).toBeUndefined();
+});
+
+test('legend is visible on tall charts when enabled by the user', () => {
+  const chartProps = createTestChartProps({
+    height: 400,
+    formData: { showLegend: true },
+  });
+  const { legend } = transformProps(chartProps).echartOptions as any;
+
+  expect(legend.show).toBe(true);
+});
+
+test('legend is hidden on small charts even when enabled by the user', () => {
+  const chartProps = createTestChartProps({
+    height: 80,
+    formData: { showLegend: true },
+  });
+  const { legend } = transformProps(chartProps).echartOptions as any;
+
+  expect(legend.show).toBe(false);
+});
+
+test('y-axis labels remain visible on small charts for scale reference', () => {
+  const chartProps = createTestChartProps({ height: 80 });
+  const { yAxis } = transformProps(chartProps).echartOptions as any;
+
+  expect(yAxis.axisLabel.show).toBe(true);
+});
+
+test('y-axis labels are hidden on micro charts for a sparkline view', () => {
+  const chartProps = createTestChartProps({ height: 40 });
+  const { yAxis } = transformProps(chartProps).echartOptions as any;
+
+  expect(yAxis.axisLabel.show).toBe(false);
+});
+
+test('y-axis tick count scales with chart height', () => {
+  const short = transformProps(createTestChartProps({ height: 200 }));
+  const tall = transformProps(createTestChartProps({ height: 500 }));
+  const shortYAxis = short.echartOptions.yAxis as any;
+  const tallYAxis = tall.echartOptions.yAxis as any;
+
+  expect(tallYAxis.splitNumber).toBeGreaterThan(shortYAxis.splitNumber);
+});
+
+test('small chart y-axis uses splitNumber=1 to show only boundary labels', () => {
+  const chartProps = createTestChartProps({ height: 80 });
+  const { yAxis } = transformProps(chartProps).echartOptions as any;
+
+  expect(yAxis.splitNumber).toBe(1);
+});
+
+test('zoomable small chart preserves bottom padding for the dataZoom slider', () => {
+  const chartProps = createTestChartProps({
+    height: 80,
+    formData: { zoomable: true },
+  });
+  const result = transformProps(chartProps);
+  const grid = result.echartOptions.grid as any;
+
+  expect(grid.bottom).toBeGreaterThan(5);
+});
+
+test('boundary: height at exactly 100px uses full axis behavior', () => {
+  const chartProps = createTestChartProps({ height: 100 });
+  const { yAxis } = transformProps(chartProps).echartOptions as any;
+
+  expect(yAxis.axisLabel.show).toBe(true);
+  expect(yAxis.splitNumber).toBeGreaterThanOrEqual(3);
+});
+
+test('boundary: height at 99px triggers small chart behavior', () => {
+  const chartProps = createTestChartProps({
+    height: 99,
+    formData: { showLegend: true },
+  });
+  const { yAxis, legend } = transformProps(chartProps).echartOptions as any;
+
+  expect(yAxis.splitNumber).toBe(1);
+  expect(legend.show).toBe(false);
+});
+
+test('boundary: height at exactly 60px shows labels but uses compact axis', () => {
+  const chartProps = createTestChartProps({ height: 60 });
+  const { yAxis } = transformProps(chartProps).echartOptions as any;
+
+  expect(yAxis.axisLabel.show).toBe(true);
+  expect(yAxis.splitNumber).toBe(1);
+});
+
+test('boundary: height at 59px triggers micro chart behavior', () => {
+  const chartProps = createTestChartProps({ height: 59 });
+  const { yAxis } = transformProps(chartProps).echartOptions as any;
+
+  expect(yAxis.axisLabel.show).toBe(false);
+});
+
+test('x-axis formatter deduplicates consecutive identical labels for coarse time grains', () => {
+  const yearData = [
+    { __timestamp: Date.UTC(2003, 0, 1), sales: 100 },
+    { __timestamp: Date.UTC(2004, 0, 1), sales: 200 },
+    { __timestamp: Date.UTC(2005, 0, 1), sales: 300 },
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      granularity_sqla: 'ds',
+      time_grain_sqla: TimeGranularity.YEAR,
+      xAxisTimeFormat: '%Y',
+    },
+    queriesData: [
+      createTestQueryData(yearData, {
+        colnames: ['__timestamp', 'sales'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      }),
+    ],
+  });
+
+  const transformedProps = transformProps(chartProps);
+  const xAxisResult = transformedProps.echartOptions.xAxis as any;
+  const { formatter } = xAxisResult.axisLabel;
+
+  expect(typeof formatter).toBe('function');
+  expect(xAxisResult.axisLabel.showMaxLabel).toBe(true);
+
+  const label1 = formatter(Date.UTC(2003, 0, 1));
+  const label2 = formatter(Date.UTC(2004, 0, 1));
+  const label3 = formatter(Date.UTC(2005, 0, 1));
+  const label4 = formatter(Date.UTC(2005, 6, 1));
+
+  expect(label1).toBe('2003');
+  expect(label2).toBe('2004');
+  expect(label3).toBe('2005');
+  expect(label4).toBe('');
+});
+
+test('should assign distinct dash patterns for multiple time offsets consistently', () => {
+  const queriesDataWithMultipleOffsets = [
+    createTestQueryData([
+      {
+        sum__num: 100,
+        '1 year ago': 80,
+        '2 years ago': 60,
+        __timestamp: 599616000000,
+      },
+      {
+        sum__num: 150,
+        '1 year ago': 120,
+        '2 years ago': 90,
+        __timestamp: 599916000000,
+      },
+    ]),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...timeCompareFormData,
+      time_compare: ['1 year ago', '2 years ago'],
+      comparison_type: ComparisonType.Values,
+      timeShiftColor: true,
+    },
+    queriesData: queriesDataWithMultipleOffsets,
+  });
+
+  const transformed = transformProps(chartProps);
+  const series = (transformed.echartOptions.series as SeriesOption[]) || [];
+
+  const series1 = series.find(s => s.name === '1 year ago') as any;
+  const series2 = series.find(s => s.name === '2 years ago') as any;
+
+  expect(series1).toBeDefined();
+  expect(series2).toBeDefined();
+
+  const pattern1 = series1.lineStyle?.type;
+  const symbol1 = series1.symbol;
+  const pattern2 = series2.lineStyle?.type;
+  const symbol2 = series2.symbol;
+
+  // must be different patterns
+  expect(pattern1).not.toEqual(pattern2);
+
+  // must be different patterns
+  expect(symbol1).not.toEqual(symbol2);
 });

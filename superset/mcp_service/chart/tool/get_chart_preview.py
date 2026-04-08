@@ -41,7 +41,6 @@ from superset.mcp_service.chart.schemas import (
     URLPreview,
     VegaLitePreview,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 
 logger = logging.getLogger(__name__)
@@ -134,12 +133,28 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             groupby_columns = form_data.get("groupby", [])
             metrics = form_data.get("metrics", [])
 
-            columns = groupby_columns.copy()
-            if x_axis_config and isinstance(x_axis_config, str):
-                columns.append(x_axis_config)
-            elif x_axis_config and isinstance(x_axis_config, dict):
-                if "column_name" in x_axis_config:
-                    columns.append(x_axis_config["column_name"])
+            # Table charts in raw mode use all_columns or columns
+            all_columns = form_data.get("all_columns", [])
+            raw_columns = form_data.get("columns", [])
+            if form_data.get("query_mode") == "raw" and (all_columns or raw_columns):
+                columns = list(all_columns or raw_columns)
+            else:
+                columns = groupby_columns.copy()
+                if x_axis_config and isinstance(x_axis_config, str):
+                    columns.append(x_axis_config)
+                elif x_axis_config and isinstance(x_axis_config, dict):
+                    if "column_name" in x_axis_config:
+                        columns.append(x_axis_config["column_name"])
+
+            if not columns and not metrics:
+                return ChartError(
+                    error=(
+                        "Cannot generate ASCII preview: chart has no columns or "
+                        "metrics in its configuration. This chart type may not "
+                        "support ASCII preview."
+                    ),
+                    error_type="UnsupportedChart",
+                )
 
             factory = QueryContextFactory()
             query_context = factory.create(
@@ -2186,7 +2201,6 @@ async def _get_chart_preview_internal(  # noqa: C901
         destructiveHint=False,
     ),
 )
-@parse_request(GetChartPreviewRequest)
 async def get_chart_preview(
     request: GetChartPreviewRequest, ctx: Context
 ) -> ChartPreview | ChartError:

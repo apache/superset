@@ -653,7 +653,7 @@ function main() {
   }
 
   // eslint-disable-next-line no-console
-  console.log(`Checking ${files.length} files for Superset custom rules...\\n`);
+  console.log(`Checking ${files.length} files for Superset custom rules...\n`);
 
   files.forEach(file => {
     // Resolve the file path
@@ -666,7 +666,7 @@ function main() {
   });
 
   // eslint-disable-next-line no-console
-  console.log(`\\n${errorCount} errors, ${warningCount} warnings`);
+  console.log(`\n${errorCount} errors, ${warningCount} warnings`);
 
   if (errorCount > 0) {
     process.exit(1);

@@ -16,27 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { type ReactElement } from 'react';
+import { render } from '@testing-library/react';
+import { ThemeProvider } from '@emotion/react';
+import { Theme, supersetTheme } from '@apache-superset/core/theme';
 
-import { DATASET_LIST_PATH } from 'cypress/utils/urls';
-
-describe('Dataset list', () => {
-  before(() => {
-    cy.visit(DATASET_LIST_PATH);
-  });
-
-  xit('should open Explore on dataset name click', () => {
-    cy.intercept('**/api/v1/explore/**').as('explore');
-    cy.get('[data-test="listview-table"] [data-test="internal-link"]')
-      .contains('birth_names')
-      .click();
-    cy.wait('@explore');
-    cy.get('[data-test="datasource-control"] .title-select').contains(
-      'birth_names',
-    );
-    cy.get('.metric-option-label').first().contains('COUNT(*)');
-    cy.get('.column-option-label').first().contains('ds');
-    cy.get('[data-test="fast-viz-switcher"] > div:not([role="button"]')
-      .contains('Table')
-      .should('be.visible');
-  });
-});
+export function renderWithTheme(
+  ui: ReactElement,
+  tokenOverrides?: Record<string, string>,
+) {
+  const theme = tokenOverrides
+    ? Theme.fromConfig({ token: tokenOverrides }).theme
+    : supersetTheme;
+  return render(<ThemeProvider theme={theme}>{ui}</ThemeProvider>);
+}
