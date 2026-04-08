@@ -17,37 +17,36 @@
  * under the License.
  */
 
-import {
-  test as testWithAssets,
-  expect,
-} from '../../../helpers/fixtures/testAssets';
+import { testWithAssets, expect } from '../../helpers/fixtures';
 import path from 'path';
-import { DatasetListPage } from '../../../pages/DatasetListPage';
-import { ExplorePage } from '../../../pages/ExplorePage';
-import { ConfirmDialog } from '../../../components/modals/ConfirmDialog';
-import { DeleteConfirmationModal } from '../../../components/modals/DeleteConfirmationModal';
-import { ImportDatasetModal } from '../../../components/modals/ImportDatasetModal';
-import { DuplicateDatasetModal } from '../../../components/modals/DuplicateDatasetModal';
-import { EditDatasetModal } from '../../../components/modals/EditDatasetModal';
-import { Toast } from '../../../components/core/Toast';
+import { DatasetListPage } from '../../pages/DatasetListPage';
+import { ExplorePage } from '../../pages/ExplorePage';
+import {
+  ConfirmDialog,
+  DeleteConfirmationModal,
+  DuplicateDatasetModal,
+  EditDatasetModal,
+  ImportDatasetModal,
+} from '../../components/modals';
+import { Toast } from '../../components/core';
 import {
   apiDeleteDataset,
   apiGetDataset,
   apiPostVirtualDataset,
   getDatasetByName,
   ENDPOINTS,
-} from '../../../helpers/api/dataset';
+} from '../../helpers/api/dataset';
 import { createTestDataset } from './dataset-test-helpers';
 import {
   waitForGet,
   waitForPost,
   waitForPut,
-} from '../../../helpers/api/intercepts';
+} from '../../helpers/api/intercepts';
 import {
   expectStatusOneOf,
   expectValidExportZip,
-} from '../../../helpers/api/assertions';
-import { TIMEOUT } from '../../../utils/constants';
+} from '../../helpers/api/assertions';
+import { TIMEOUT } from '../../utils/constants';
 
 /**
  * Extend testWithAssets with datasetListPage navigation (beforeEach equivalent).
@@ -458,11 +457,12 @@ test.describe('import dataset', () => {
     testAssets,
   }) => {
     // Dataset name from fixture (test_netflix_1768502050965)
-    // Note: Fixture contains a Google Sheets dataset - test will skip if gsheets connector unavailable
+    // Note: Fixture contains a Google Sheets dataset backed by shillelagh[gsheetsapi],
+    // which is a base dependency — import failure fails the test hard (no skip).
     const importedDatasetName = 'test_netflix_1768502050965';
     const fixturePath = path.resolve(
       __dirname,
-      '../../../fixtures/dataset_export.zip',
+      '../../fixtures/dataset_export.zip',
     );
 
     // Cleanup: Delete any existing dataset with the same name from previous runs
@@ -518,25 +518,12 @@ test.describe('import dataset', () => {
       importResponse = await importResponsePromise;
     }
 
-    // Check final import response for gsheets connector errors
+    // Fail hard if dataset import fails.
+    // The fixture contains a gsheets dataset; shillelagh[gsheetsapi] is a base
+    // dependency (pyproject.toml), so the engine is always available in CI.
     if (!importResponse.ok()) {
       const errorBody = await importResponse.json().catch(() => ({}));
-      const errorText = JSON.stringify(errorBody);
-      // Skip test if gsheets connector not installed
-      if (
-        errorText.includes('gsheets') ||
-        errorText.includes('No such DB engine') ||
-        errorText.includes('Could not load database driver')
-      ) {
-        await test.info().attach('skip-reason', {
-          body: `Import failed due to missing gsheets connector: ${errorText}`,
-          contentType: 'text/plain',
-        });
-        test.skip();
-        return;
-      }
-      // Re-throw other errors
-      throw new Error(`Import failed: ${errorText}`);
+      throw new Error(`Import failed: ${JSON.stringify(errorBody)}`);
     }
 
     // Modal should close on success

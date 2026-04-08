@@ -149,6 +149,15 @@ test('getMatrixifyConfig should return null when matrixify_enable is false', () 
   expect(getMatrixifyConfig(formData)).toBeNull();
 });
 
+test('getMatrixifyConfig should return null when no axes are enabled', () => {
+  const formData = {
+    viz_type: 'table',
+    matrixify_enable: true,
+  } as MatrixifyFormData;
+
+  expect(getMatrixifyConfig(formData)).toBeNull();
+});
+
 test('getMatrixifyConfig should return valid config for metrics mode', () => {
   const formData = {
     viz_type: 'table',
@@ -212,6 +221,24 @@ test('getMatrixifyConfig should handle topn selection mode', () => {
   expect(config!.rows.dimension).toEqual(formData.matrixify_dimension_rows);
 });
 
+test('getMatrixifyConfig should preserve ascending topn order when explicitly disabled', () => {
+  const formData = {
+    viz_type: 'table',
+    matrixify_enable: true,
+    matrixify_mode_rows: 'dimensions',
+    matrixify_mode_columns: 'dimensions',
+    matrixify_dimension_rows: { dimension: 'country', values: ['USA'] },
+    matrixify_dimension_columns: { dimension: 'product', values: ['Widget'] },
+    matrixify_topn_order_rows: false,
+    matrixify_topn_order_columns: false,
+  } as MatrixifyFormData;
+
+  const config = getMatrixifyConfig(formData);
+  expect(config).not.toBeNull();
+  expect(config!.rows.topnOrder).toBe('asc');
+  expect(config!.columns.topnOrder).toBe('asc');
+});
+
 test('getMatrixifyValidationErrors should return empty array when matrixify is not enabled', () => {
   const formData = {
     viz_type: 'table',
@@ -251,6 +278,15 @@ test('getMatrixifyValidationErrors should return empty array when properly confi
     matrixify_mode_columns: 'metrics',
     matrixify_rows: [createMetric('Revenue')],
     matrixify_columns: [createMetric('Q1')],
+  } as MatrixifyFormData;
+
+  expect(getMatrixifyValidationErrors(formData)).toEqual([]);
+});
+
+test('getMatrixifyValidationErrors should return empty array when enabled with no active axes', () => {
+  const formData = {
+    viz_type: 'table',
+    matrixify_enable: true,
   } as MatrixifyFormData;
 
   expect(getMatrixifyValidationErrors(formData)).toEqual([]);

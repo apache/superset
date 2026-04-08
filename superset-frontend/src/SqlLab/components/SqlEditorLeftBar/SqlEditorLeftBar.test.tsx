@@ -32,6 +32,8 @@ import {
   defaultQueryEditor,
   extraQueryEditor2,
 } from 'src/SqlLab/fixtures';
+import { EMPTY_STATE_QE_ID } from 'src/SqlLab/hooks/useQueryEditor';
+import * as useDatabaseSelectorModule from '../SqlEditorTopBar/useDatabaseSelector';
 import type { RootState } from 'src/views/store';
 import type { Store } from 'redux';
 
@@ -234,4 +236,17 @@ test('ignore schema api when current schema is deprecated', async () => {
       ),
     ]),
   );
+});
+
+test('uses EMPTY_STATE_QE_ID when queryEditorId is empty', async () => {
+  const useDatabaseSelectorSpy = jest.spyOn(
+    useDatabaseSelectorModule,
+    'default',
+  );
+
+  await renderAndWait({ queryEditorId: '' }, undefined, initialState);
+
+  expect(useDatabaseSelectorSpy).toHaveBeenCalledWith(EMPTY_STATE_QE_ID);
+
+  useDatabaseSelectorSpy.mockRestore();
 });

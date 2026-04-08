@@ -18,9 +18,9 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { DashboardPage } from '../../../pages/DashboardPage';
-import { Toast } from '../../../components/core';
-import { TIMEOUT } from '../../../utils/constants';
+import { DashboardPage } from '../../pages/DashboardPage';
+import { Toast } from '../../components/core';
+import { TIMEOUT } from '../../utils/constants';
 
 /**
  * Dashboard Export E2E tests.
