@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, DTTM_ALIAS } from '@superset-ui/core';
+import { ChartProps, DTTM_ALIAS, getMetricLabel } from '@superset-ui/core';
 import { addJsColumnsToExtraProps, DataRecord } from '../spatialUtils';
 import {
   createBaseTransformResult,
@@ -176,12 +176,19 @@ export default function transformProps(chartProps: ChartProps) {
     breakpoint_metric,
   } = formData as DeckPathTransformPropsFormData;
 
-  const fixedWidthValue = isFixedValue(line_width)
-    ? getFixedValue(line_width)
-    : null;
+  // Check so legacy values still work
+  const fixedWidthValue =
+    typeof line_width === 'number'
+      ? line_width
+      : isFixedValue(line_width)
+        ? getFixedValue(line_width)
+        : undefined;
+
   const widthMetricLabel = getMetricLabelFromFormData(line_width);
 
-  const breakpointMetricLabel = getMetricLabelFromFormData(breakpoint_metric);
+  const breakpointMetricLabel = breakpoint_metric
+    ? getMetricLabel(breakpoint_metric)
+    : undefined;
   const baseMetricLabel = getMetricLabelFromFormData(metric);
   const metricLabel = breakpointMetricLabel || baseMetricLabel;
 

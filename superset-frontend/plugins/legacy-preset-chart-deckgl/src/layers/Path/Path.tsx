@@ -52,11 +52,6 @@ export const getLayer: GetLayerType<PathLayer> = function ({
 }) {
   const fd = formData;
   let data = payload.data.features.map((feature: JsonObject) => {
-    // let width = feature.width;
-    // if (fd.line_width_multiplier) {
-    //   width *= fd.line_width_multiplier;
-    // }
-
     if (feature.color) {
       return { ...feature };
     }
@@ -67,7 +62,6 @@ export const getLayer: GetLayerType<PathLayer> = function ({
     return {
       ...feature,
       path: feature.path,
-      //width,
       color,
     };
   });
@@ -108,8 +102,16 @@ export const getLayer: GetLayerType<PathLayer> = function ({
     });
   } else {
     // Fixed width mode
+    // Allows for use with legacy charts
+    const fixedWidth =
+      typeof fd.line_width === 'number'
+        ? fd.line_width
+        : typeof fd.line_width === 'object' && fd.line_width?.type === 'fix'
+          ? Number(fd.line_width.value)
+          : undefined;
+
     data = data.map((d: JsonObject) => {
-      let width = (d.width || 1) * multiplier;
+      let width = (d.width ?? fixedWidth ?? 1) * multiplier;
       width = Math.max(minWidth, Math.min(maxWidth, width));
       return { ...d, width };
     });

@@ -355,5 +355,3 @@ test('Path transformProps should have empty metric labels when no metric is set'
 
   expect(result.payload.data.metricLabels).toEqual([]);
 });
-
-// add breakpoint color test

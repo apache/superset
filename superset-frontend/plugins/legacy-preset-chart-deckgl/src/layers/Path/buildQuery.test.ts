@@ -67,7 +67,6 @@ test('Path buildQuery should handle missing line_width', () => {
   expect(query.metrics).toEqual([]);
 });
 
-
 test('Path buildQuery should include metric when line_width is metric type', () => {
   const formData: DeckPathFormData = {
     ...baseFormData,
@@ -350,4 +349,7 @@ test('Path buildQuery should handle line_width and breakpoint_metrics together t
 
   expect(query.metrics).toContain('SUM(distance)');
   expect(query.metrics).toContain('AVG(speed)');
+  expect(query.columns).toContain('color');
+  expect(query.columns).toContain('name');
+  expect(query.row_limit).toBe(500);
 });

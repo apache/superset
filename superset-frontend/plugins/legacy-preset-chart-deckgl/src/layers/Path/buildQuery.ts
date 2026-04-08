@@ -36,7 +36,7 @@ export interface DeckPathFormData extends SqlaFormData {
   tooltip_contents?: unknown[];
   tooltip_template?: string;
   line_width?:
-    | number
+    | string
     | { type?: 'fix' | 'metric'; value?: QueryFormMetric | number };
   line_width_multiplier?: number;
   min_width?: number;
