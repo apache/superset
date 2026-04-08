@@ -666,9 +666,10 @@ class TestWebDriverPlaywrightErrorHandling:
         mock_browser.new_context.return_value = mock_context
         mock_context.new_page.return_value = mock_page
 
-        # Mock locator to raise timeout on element wait
+        # Keep a reference to the exact instance so we can verify identity below.
+        timeout = PlaywrightTimeout()
         mock_page.locator.return_value = mock_element
-        mock_element.wait_for.side_effect = PlaywrightTimeout()
+        mock_element.wait_for.side_effect = timeout
 
         with patch("superset.utils.webdriver.app") as mock_app:
             mock_app.config = {
@@ -689,10 +690,15 @@ class TestWebDriverPlaywrightErrorHandling:
                 mock_auth.return_value = mock_context
 
                 driver = WebDriverPlaywright("chrome")
-                with pytest.raises(PlaywrightTimeout):
+                with pytest.raises(PlaywrightTimeout) as exc_info:
                     driver.get_screenshot(
                         "http://example.com", "test-element", mock_user
                     )
 
-        # Should log the timeout before re-raising
-        assert mock_logger.exception.call_count >= 1
+        # The exact injected instance must propagate — guards against the
+        # fallback alias (PlaywrightTimeout = Exception when playwright is
+        # not installed) accepting unrelated exceptions.
+        assert exc_info.value is timeout
+        mock_logger.exception.assert_any_call(
+            "Timed out requesting url %s", "http://example.com"
+        )
