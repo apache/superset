@@ -430,6 +430,7 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
     get_chart_data,
     get_chart_info,
     get_chart_preview,
+    get_chart_type_schema,
     list_charts,
     update_chart,
     update_chart_preview,
