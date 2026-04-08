@@ -71,17 +71,15 @@ export const getLayer: GetLayerType<PathLayer> = function ({
   const maxWidth = Number(fd.max_width) || 20; // defaulted to 20
   const multiplier = Number(fd.line_width_multiplier) || 1; // defaulted to 1
 
-  const widths = data
-    .map((d: JsonObject) => d.width)
-    .filter((w: any): w is number => w != null);
+  const widths = data.map((d: JsonObject) => d.width).filter(Number.isFinite);
 
   // Metric or fixed value
   const isMetricWidth = isMetricValue(fd.line_width);
 
   if (isMetricWidth) {
     // Get minimum and maximum widths in data set
-    const minVal = Math.min(...widths);
-    const maxVal = Math.max(...widths);
+    const minVal = widths.length > 0 ? Math.min(...widths) : minWidth;
+    const maxVal = widths.length > 0 ? Math.max(...widths) : maxWidth;
 
     data = data.map((d: JsonObject) => {
       if (d.width == null) return { ...d, width: minWidth };
