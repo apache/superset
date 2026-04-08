@@ -91,7 +91,7 @@ def test_report_generate_native_filter_no_values():
     native_filter_id = "filter_id"
     column_name = "column_name"
     filter_type = "filter_select"
-    values = None
+    values: list[str | None] = []
 
     result, warning = report_schedule._generate_native_filter(
         native_filter_id, filter_type, column_name, values
@@ -430,17 +430,6 @@ def test_generate_native_filter_range_max_only():
     assert warning is None
 
 
-def test_generate_native_filter_range_empty_values():
-    report_schedule = ReportSchedule()
-    result, warning = report_schedule._generate_native_filter(
-        "F5", "filter_range", "price", []
-    )
-    assert result["F5"]["extraFormData"]["filters"] == []
-    assert result["F5"]["filterState"]["label"] == ""
-    assert result["F5"]["filterState"]["value"] == [None, None]
-    assert warning is None
-
-
 def test_report_generate_native_filter_unknown_filter_type():
     """
     Test the ``_generate_native_filter`` method with an unknown filter type.
@@ -526,6 +515,109 @@ def test_get_native_filters_params_unknown_filter_type():
     assert "filter_unknown_type" in warnings[0]
 
 
+def test_report_generate_native_filter_time_empty_values():
+    """
+    Test filter_time with empty values returns empty dict and warning.
+    """
+    report_schedule = ReportSchedule()
+    result, warning = report_schedule._generate_native_filter(
+        "filter_id", "filter_time", "column_name", []
+    )
+    assert result == {}
+    assert warning is not None
+    assert "filter_time" in warning
+    assert "empty filterValues" in warning
+    assert "filter_id" in warning
+
+
+def test_report_generate_native_filter_timegrain_empty_values():
+    """
+    Test filter_timegrain with empty values returns empty dict and warning.
+    """
+    report_schedule = ReportSchedule()
+    result, warning = report_schedule._generate_native_filter(
+        "filter_id", "filter_timegrain", "column_name", []
+    )
+    assert result == {}
+    assert warning is not None
+    assert "filter_timegrain" in warning
+    assert "empty filterValues" in warning
+    assert "filter_id" in warning
+
+
+def test_report_generate_native_filter_timecolumn_empty_values():
+    """
+    Test filter_timecolumn with empty values returns empty dict and warning.
+    """
+    report_schedule = ReportSchedule()
+    result, warning = report_schedule._generate_native_filter(
+        "filter_id", "filter_timecolumn", "column_name", []
+    )
+    assert result == {}
+    assert warning is not None
+    assert "filter_timecolumn" in warning
+    assert "empty filterValues" in warning
+    assert "filter_id" in warning
+
+
+def test_report_generate_native_filter_range_empty_values():
+    """
+    Test filter_range with empty values returns empty dict and warning.
+    """
+    report_schedule = ReportSchedule()
+    result, warning = report_schedule._generate_native_filter(
+        "filter_id", "filter_range", "column_name", []
+    )
+    assert result == {}
+    assert warning is not None
+    assert "filter_range" in warning
+    assert "empty filterValues" in warning
+    assert "filter_id" in warning
+
+
+def test_get_native_filters_params_time_filters_empty_values():
+    """
+    Test get_native_filters_params with time filters having empty values.
+    Should skip those filters and include warnings.
+    """
+    report_schedule = ReportSchedule()
+    report_schedule.extra = {
+        "dashboard": {
+            "nativeFilters": [
+                {
+                    "nativeFilterId": "time_filter",
+                    "filterType": "filter_time",
+                    "columnName": "time_col",
+                    "filterValues": [],  # Empty values
+                },
+                {
+                    "nativeFilterId": "timegrain_filter",
+                    "filterType": "filter_timegrain",
+                    "columnName": "grain_col",
+                    "filterValues": None,  # None values (coerced to [])
+                },
+                {
+                    "nativeFilterId": "select_filter",
+                    "filterType": "filter_select",
+                    "columnName": "select_col",
+                    "filterValues": ["value1"],  # Valid filter
+                },
+            ]
+        }
+    }
+
+    result, warnings = report_schedule.get_native_filters_params()
+    # The time filters should be skipped, select filter should be present
+    assert "select_filter" in result
+    assert "time_filter" not in result
+    assert "timegrain_filter" not in result
+    assert "value1" in result
+    # Should have two warnings for the empty time filters
+    assert len(warnings) == 2
+    assert any("filter_time" in w for w in warnings)
+    assert any("filter_timegrain" in w for w in warnings)
+
+
 def test_get_native_filters_params_missing_filter_id_key():
     report_schedule = ReportSchedule()
     report_schedule.extra = {
@@ -560,7 +652,7 @@ def test_generate_native_filter_empty_filter_id():
 def test_generate_native_filter_range_zero_min():
     """Zero min_val should produce a two-sided label, not a max-only label."""
     report_schedule = ReportSchedule()
-    result, warning = report_schedule._generate_native_filter(
+    result, _ = report_schedule._generate_native_filter(
         "F5", "filter_range", "price", [0, 100]
     )
     assert result["F5"]["extraFormData"]["filters"] == [
@@ -574,7 +666,7 @@ def test_generate_native_filter_range_zero_min():
 def test_generate_native_filter_range_zero_max():
     """Zero max_val should produce a two-sided label, not a min-only label."""
     report_schedule = ReportSchedule()
-    result, warning = report_schedule._generate_native_filter(
+    result, _ = report_schedule._generate_native_filter(
         "F5", "filter_range", "price", [10, 0]
     )
     assert result["F5"]["extraFormData"]["filters"] == [
@@ -587,7 +679,7 @@ def test_generate_native_filter_range_zero_max():
 def test_generate_native_filter_range_both_zero():
     """Both values zero should produce a two-sided label, not an empty string."""
     report_schedule = ReportSchedule()
-    result, warning = report_schedule._generate_native_filter(
+    result, _ = report_schedule._generate_native_filter(
         "F5", "filter_range", "price", [0, 0]
     )
     assert result["F5"]["extraFormData"]["filters"] == [

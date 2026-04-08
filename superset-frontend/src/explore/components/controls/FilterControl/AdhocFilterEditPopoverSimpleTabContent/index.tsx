@@ -199,7 +199,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
     if (MULTI_OPERATORS.has(operatorId)) {
       newComparator = Array.isArray(currentComparator)
         ? currentComparator
-        : [currentComparator].filter(element => element);
+        : [currentComparator].filter(element => element != null);
     } else {
       newComparator = Array.isArray(currentComparator)
         ? currentComparator[0]
@@ -396,7 +396,8 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   };
 
   const comparatorHasValue =
-    comparator &&
+    comparator != null &&
+    comparator !== '' &&
     (Array.isArray(comparator)
       ? comparator.length > 0
       : String(comparator).length > 0);
