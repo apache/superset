@@ -255,7 +255,7 @@ class TestEventLogger(unittest.TestCase):
             ]
             assert payload["duration_ms"] >= 100
 
-    @patch("superset.utils.log.db")
+    @patch("superset.db")
     def test_curated_payload_used_when_records_empty(self, mock_db):
         """Test that curated_payload is used when records is empty (MCP pattern).
 
@@ -289,7 +289,7 @@ class TestEventLogger(unittest.TestCase):
         assert payload["tool"] == "list_charts"
         assert payload["success"] is True
 
-    @patch("superset.utils.log.db")
+    @patch("superset.db")
     def test_records_takes_precedence_over_curated_payload(self, mock_db):
         """Test that records takes precedence over curated_payload."""
         logger = DBEventLogger()
