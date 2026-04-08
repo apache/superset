@@ -119,9 +119,12 @@ import {
 import { getDefaultTooltip } from '../utils/tooltip';
 import {
   getPercentFormatter,
+  getSmartDateFormatter,
+  getSmartDateVerboseFormatter,
   getTooltipTimeFormatter,
   getXAxisFormatter,
   getYAxisFormatter,
+  withNaNFallback,
 } from '../utils/formatters';
 import { safeParseEChartOptions } from '../utils/safeEChartOptionsParser';
 import { mergeCustomEChartOptions } from '../utils/mergeCustomEChartOptions';
@@ -729,11 +732,17 @@ export default function transformProps(
 
   const tooltipFormatter =
     effectiveXAxisDataType === GenericDataType.Temporal
-      ? getTooltipTimeFormatter(tooltipTimeFormat)
+      ? withNaNFallback(
+          getTooltipTimeFormatter(tooltipTimeFormat),
+          getSmartDateVerboseFormatter(),
+        )
       : String;
   const xAxisFormatter =
     effectiveXAxisDataType === GenericDataType.Temporal
-      ? getXAxisFormatter(xAxisTimeFormat, timeGrainSqla)
+      ? withNaNFallback(
+          getXAxisFormatter(xAxisTimeFormat, timeGrainSqla)!,
+          getSmartDateFormatter(timeGrainSqla),
+        )
       : effectiveXAxisDataType === GenericDataType.Numeric
         ? getNumberFormatter(xAxisNumberFormat)
         : String;

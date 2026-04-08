@@ -20,12 +20,14 @@ import {
   AnnotationStyle,
   AnnotationType,
   AnnotationSourceType,
+  AxisType,
   DataRecord,
   FormulaAnnotationLayer,
   IntervalAnnotationLayer,
   VizType,
   ChartDataResponseResult,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   LegendOrientation,
   LegendType,
@@ -495,4 +497,81 @@ test('should add a formula annotation when X-axis column has dataset-level label
   expect(formulaSeries?.data).toBeDefined();
   expect(Array.isArray(formulaSeries?.data)).toBe(true);
   expect((formulaSeries!.data as unknown[]).length).toBeGreaterThan(0);
+});
+
+test('numeric x coltype with epoch ms uses time axis and formatted labels', () => {
+  const ts1 = 1745784000000;
+  const ts2 = 1745870400000;
+  const epochRows = [
+    { __timestamp: ts1, metric: 10 },
+    { __timestamp: ts2, metric: 20 },
+  ];
+  const epochQueryData = createTestQueryData(epochRows, {
+    colnames: ['__timestamp', 'metric'],
+    coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+    label_map: { __timestamp: ['__timestamp'], metric: ['metric'] },
+  });
+
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [epochQueryData, epochQueryData],
+    formData: {
+      ...formData,
+      x_axis: '__timestamp',
+      metrics: ['metric'],
+      metricsB: ['metric'],
+      groupby: [],
+      groupbyB: [],
+    },
+    queriesData: [epochQueryData, epochQueryData],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as {
+    type: string;
+    axisLabel: { formatter: (v: number) => string };
+  };
+
+  expect(xAxis.type).toBe(AxisType.Time);
+  expect(xAxis.axisLabel.formatter(ts1)).not.toBe(String(ts1));
+});
+
+test('xAxisForceCategorical prevents epoch-ms coercion to time axis', () => {
+  const ts1 = 1745784000000;
+  const ts2 = 1745870400000;
+  const epochRows = [
+    { __timestamp: ts1, metric: 10 },
+    { __timestamp: ts2, metric: 20 },
+  ];
+  const epochQueryData = createTestQueryData(epochRows, {
+    colnames: ['__timestamp', 'metric'],
+    coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+    label_map: { __timestamp: ['__timestamp'], metric: ['metric'] },
+  });
+
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [epochQueryData, epochQueryData],
+    formData: {
+      ...formData,
+      x_axis: '__timestamp',
+      metrics: ['metric'],
+      metricsB: ['metric'],
+      groupby: [],
+      groupbyB: [],
+      xAxisForceCategorical: true,
+    },
+    queriesData: [epochQueryData, epochQueryData],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as { type: string };
+
+  expect(xAxis.type).toBe(AxisType.Category);
 });

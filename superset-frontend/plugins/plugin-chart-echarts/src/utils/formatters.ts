@@ -184,3 +184,37 @@ export function getXAxisFormatter(
   }
   return String;
 }
+
+/**
+ * Wraps a formatter so that if its output contains "NaN" (e.g. "NaN/NaN/NaN"
+ * from d3-time-format on an Invalid Date), the fallback formatter is tried
+ * instead. If the fallback also produces NaN, String(value) is returned so the
+ * axis label is never visibly broken.
+ */
+export function withNaNFallback(
+  formatter: (v: unknown) => string,
+  fallback: (v: unknown) => string,
+): (v: unknown) => string {
+  return (value: unknown) => {
+    try {
+      const result = formatter(value);
+      if (typeof result === 'string' && !result.includes('NaN')) {
+        return result;
+      }
+    } catch {
+      // fall through
+    }
+    try {
+      const fallbackResult = fallback(value);
+      if (
+        typeof fallbackResult === 'string' &&
+        !fallbackResult.includes('NaN')
+      ) {
+        return fallbackResult;
+      }
+    } catch {
+      // fall through
+    }
+    return String(value);
+  };
+}

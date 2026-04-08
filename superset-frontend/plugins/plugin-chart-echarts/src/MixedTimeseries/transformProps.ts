@@ -100,9 +100,12 @@ import {
 import { TIMEGRAIN_TO_TIMESTAMP, TIMESERIES_CONSTANTS } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import {
+  getSmartDateFormatter,
+  getSmartDateVerboseFormatter,
   getTooltipTimeFormatter,
   getXAxisFormatter,
   getYAxisFormatter,
+  withNaNFallback,
 } from '../utils/formatters';
 import { getMetricDisplayName } from '../utils/metricDisplayName';
 import { mergeCustomEChartOptions } from '../utils/mergeCustomEChartOptions';
@@ -591,11 +594,17 @@ export default function transformProps(
 
   const tooltipFormatter =
     effectiveXAxisDataType === GenericDataType.Temporal
-      ? getTooltipTimeFormatter(tooltipTimeFormat)
+      ? withNaNFallback(
+          getTooltipTimeFormatter(tooltipTimeFormat),
+          getSmartDateVerboseFormatter(),
+        )
       : String;
   const xAxisFormatter =
     effectiveXAxisDataType === GenericDataType.Temporal
-      ? getXAxisFormatter(xAxisTimeFormat, timeGrainSqla)
+      ? withNaNFallback(
+          getXAxisFormatter(xAxisTimeFormat, timeGrainSqla)!,
+          getSmartDateFormatter(timeGrainSqla),
+        )
       : String;
 
   const showMaxLabel = xAxisType === AxisType.Time && xAxisLabelRotation === 0;

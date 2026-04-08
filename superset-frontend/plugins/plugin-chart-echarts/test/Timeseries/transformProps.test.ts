@@ -1506,6 +1506,36 @@ test('numeric x coltype with epoch ms uses time axis and formatted labels', () =
   expect(xAxis.axisLabel.formatter(ts1)).not.toBe(String(ts1));
 });
 
+test('xAxisForceCategorical prevents epoch-ms coercion to time axis', () => {
+  const ts1 = 1745784000000;
+  const ts2 = 1745870400000;
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['metric'],
+      granularity_sqla: 'ds',
+      x_axis: '__timestamp',
+      xAxisForceCategorical: true,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          { __timestamp: ts1, metric: 10 },
+          { __timestamp: ts2, metric: 20 },
+        ],
+        {
+          colnames: ['__timestamp', 'metric'],
+          coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        },
+      ),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as { type: string };
+
+  expect(xAxis.type).toBe(AxisType.Category);
+});
+
 test('should assign distinct dash patterns for multiple time offsets consistently', () => {
   const queriesDataWithMultipleOffsets = [
     createTestQueryData([

@@ -25,6 +25,7 @@ import {
 import {
   getPercentFormatter,
   getXAxisFormatter,
+  withNaNFallback,
 } from '../../src/utils/formatters';
 
 test('getPercentFormatter should format as percent if no format is specified', () => {
@@ -178,4 +179,42 @@ test('getXAxisFormatter without time grain should use standard smart date behavi
   );
 
   expect(standardResult).toBe(timeGrainResult);
+});
+
+describe('withNaNFallback', () => {
+  test('returns primary formatter result when it contains no NaN', () => {
+    const primary = () => '2025-01-01';
+    const fallback = () => 'fallback';
+    expect(withNaNFallback(primary, fallback)(0)).toBe('2025-01-01');
+  });
+
+  test('uses fallback when primary output contains NaN', () => {
+    const primary = () => 'NaN/NaN/NaN';
+    const fallback = () => '2025-01-01';
+    expect(withNaNFallback(primary, fallback)(0)).toBe('2025-01-01');
+  });
+
+  test('uses String(value) when both primary and fallback produce NaN', () => {
+    const primary = () => 'NaN/NaN/NaN';
+    const fallback = () => 'NaN/NaN/NaN';
+    expect(withNaNFallback(primary, fallback)(1745784000000)).toBe(
+      '1745784000000',
+    );
+  });
+
+  test('uses fallback when primary throws', () => {
+    const primary = () => {
+      throw new Error('boom');
+    };
+    const fallback = () => '2025-01-01';
+    expect(withNaNFallback(primary, fallback)(0)).toBe('2025-01-01');
+  });
+
+  test('uses String(value) when primary throws and fallback produces NaN', () => {
+    const primary = () => {
+      throw new Error('boom');
+    };
+    const fallback = () => 'NaN/NaN/NaN';
+    expect(withNaNFallback(primary, fallback)(42)).toBe('42');
+  });
 });
