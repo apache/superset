@@ -37,7 +37,7 @@ from superset.migrations.shared.migrate_viz.base import (
     QUERIES_BAK_FIELD_NAME,
     Slice,
 )
-from superset.migrations.shared.utils import try_load_json
+from superset.migrations.shared.utils import paginated_update, try_load_json
 from superset.utils import json
 
 logger = logging.getLogger("alembic.env")
