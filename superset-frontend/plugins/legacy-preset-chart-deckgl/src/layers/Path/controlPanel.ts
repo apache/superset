@@ -26,14 +26,17 @@ import {
   jsTooltip,
   jsOnclickHref,
   viewport,
-  lineWidth,
   lineType,
   reverseLongLat,
   mapboxStyle,
   tooltipContents,
   tooltipTemplate,
+  pathLineWidthFixedOrMetric,
+  generateDeckGLColorSchemeControls,
 } from '../../utilities/Shared_DeckGL';
 import { dndLineColumn } from '../../utilities/sharedDndControls';
+import { validateNonEmpty } from '@superset-ui/core';
+import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -64,28 +67,81 @@ const config: ControlPanelConfig = {
     {
       label: t('Map'),
       expanded: true,
+      controlSetRows: [[mapboxStyle], [viewport], [reverseLongLat], [autozoom]],
+    },
+    {
+      label: t('Path Size'),
+      expanded: true,
       controlSetRows: [
-        [mapboxStyle],
-        [viewport],
-        ['color_picker'],
-        [lineWidth],
+        [pathLineWidthFixedOrMetric],
         [
           {
             name: 'line_width_unit',
             config: {
               type: 'SelectControl',
               label: t('Line width unit'),
-              default: 'meters',
+              default: 'pixels',
               choices: [
                 ['meters', t('meters')],
                 ['pixels', t('pixels')],
               ],
-              renderTrigger: true,
             },
           },
         ],
-        [reverseLongLat],
-        [autozoom],
+        [
+          {
+            name: 'min_width',
+            config: {
+              type: 'TextControl',
+              label: t('Minimum Width'),
+              isFloat: true,
+              validators: [validateNonEmpty],
+              renderTrigger: true,
+              default: 1,
+              description: t(
+                'Minimum width size of the path, in pixels or meters.',
+              ),
+            },
+          },
+          {
+            name: 'max_width',
+            config: {
+              type: 'TextControl',
+              label: t('Maximum Width'),
+              isFloat: true,
+              validators: [validateNonEmpty],
+              renderTrigger: true,
+              default: 20,
+              description: t(
+                'Maximum width size of the path, in pixels or meters.',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'line_width_multiplier',
+            config: {
+              type: 'TextControl',
+              label: t('Width scale multiplier'),
+              renderTrigger: true,
+              isFloat: true,
+              default: 1,
+              description: t(
+                'Scale factor applied to metric-driven line widths',
+              ),
+            },
+          },
+        ],
+      ],
+    },
+    {
+      label: t('Path Color'),
+      expanded: true,
+      controlSetRows: [
+        ...generateDeckGLColorSchemeControls({
+          defaultSchemeType: COLOR_SCHEME_TYPES.fixed_color,
+        }),
       ],
     },
     {

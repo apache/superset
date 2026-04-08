@@ -261,6 +261,22 @@ export const lineWidth = {
   },
 };
 
+// created new const so as not to break lineWidth usages in other charts
+export const pathLineWidthFixedOrMetric = {
+  name: 'line_width',
+  config: {
+    type: 'FixedOrMetricControl', // using existing type
+    label: t('Line width'),
+    default: { type: 'fix', value: 1 }, // kept same default as before
+    description: t(
+      'The width of the lines as either a fixed value or variable width based on a metric.',
+    ),
+    mapStateToProps: (state: ControlPanelState) => ({
+      datasource: state.datasource,
+    }),
+  },
+};
+
 export const fillColorPicker: CustomControlItem = {
   name: 'fill_color_picker',
   config: {
@@ -613,6 +629,24 @@ export const deckGLColorBreakpointsSelect: CustomControlItem = {
   },
 };
 
+export const deckGLBreakpointMetric: CustomControlItem = {
+  name: 'breakpoint_metric',
+  config: {
+    ...sharedControls.metric,
+    label: t('Breakpoint Metric'),
+    default: null,
+    validators: [],
+    description: t(
+      'Select the metric used to determine which color breakpoint range each path falls into.',
+    ),
+    // mapStateToProps: (state: ControlPanelState) => ({
+    //   datasource: state.datasource,
+    // }),
+    visibility: ({ controls }: { controls: any }) =>
+      isColorSchemeTypeVisible(controls, COLOR_SCHEME_TYPES.color_breakpoints),
+  },
+};
+
 export const breakpointsDefaultColor: CustomControlItem = {
   name: 'default_breakpoint_color',
   config: {
@@ -665,6 +699,7 @@ export const generateDeckGLColorSchemeControls = ({
   [deckGLFixedColor],
   disableCategoricalColumn ? [] : [deckGLCategoricalColor],
   [deckGLCategoricalColorSchemeSelect],
+  [deckGLBreakpointMetric],
   [breakpointsDefaultColor],
   [deckGLColorBreakpointsSelect],
 ];
