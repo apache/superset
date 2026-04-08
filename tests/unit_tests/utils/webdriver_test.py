@@ -640,10 +640,10 @@ class TestWebDriverPlaywrightErrorHandling:
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver.sync_playwright")
     @patch("superset.utils.webdriver.logger")
-    def test_get_screenshot_logs_multiple_timeouts(
+    def test_get_screenshot_raises_on_element_wait_timeout(
         self, mock_logger, mock_sync_playwright
     ):
-        """Test that multiple timeout scenarios are logged appropriately."""
+        """Test that PlaywrightTimeout propagates when waiting for page elements."""
         from superset.utils.webdriver import PlaywrightTimeout
 
         mock_user = MagicMock()
@@ -686,10 +686,10 @@ class TestWebDriverPlaywrightErrorHandling:
                 mock_auth.return_value = mock_context
 
                 driver = WebDriverPlaywright("chrome")
-                result = driver.get_screenshot(
-                    "http://example.com", "test-element", mock_user
-                )
+                with pytest.raises(PlaywrightTimeout):
+                    driver.get_screenshot(
+                        "http://example.com", "test-element", mock_user
+                    )
 
-        assert result is None
-        # Should log timeout for element wait
+        # Should log the timeout before re-raising
         assert mock_logger.exception.call_count >= 1
