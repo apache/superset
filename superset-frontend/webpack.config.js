@@ -69,9 +69,7 @@ const isDevMode = mode !== 'production';
 const isDevServer = process.argv[1]?.includes('webpack-dev-server') ?? false;
 
 // TypeScript checker memory limit (in MB)
-// In watch mode, build: true loads all 23 project references into memory.
-// Use a lower limit to constrain the checker process.
-const TYPESCRIPT_MEMORY_LIMIT = 2048;
+const TYPESCRIPT_MEMORY_LIMIT = 8192;
 
 const defaultEntryFilename = isDevMode
   ? '[name].[contenthash:8].entry.js'
