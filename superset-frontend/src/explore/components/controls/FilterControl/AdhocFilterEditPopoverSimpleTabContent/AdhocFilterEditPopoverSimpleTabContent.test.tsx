@@ -40,6 +40,7 @@ import fetchMock from 'fetch-mock';
 
 import { TestDataset, Dataset } from '@superset-ui/chart-controls';
 import AdhocFilterEditPopoverSimpleTabContent, {
+  Props,
   useSimpleTabFilterProps,
 } from '.';
 import { Clauses, ExpressionTypes } from '../types';
@@ -253,6 +254,23 @@ test('will convert from individual comparator to array if the operator changes t
   expect(props.onChange.calledOnce).toBe(true);
   expect(props.onChange.lastCall.args[0].comparator).toEqual(['10']);
   expect(props.onChange.lastCall.args[0].operatorId).toEqual(Operators.In);
+});
+
+test('will preserve boolean false comparator when converting to multi operator', () => {
+  const booleanFalseFilter = new AdhocFilter({
+    expressionType: ExpressionTypes.Simple,
+    subject: 'value',
+    operatorId: Operators.Equals,
+    operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.Equals].operation,
+    comparator: false,
+    clause: Clauses.Where,
+  });
+  const props = setup({ adhocFilter: booleanFalseFilter });
+  const { onOperatorChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  onOperatorChange(Operators.In);
+  expect(props.onChange.lastCall.args[0].comparator).toEqual([false]);
 });
 
 test('will convert from array to individual comparators if the operator changes from multi', () => {
