@@ -159,12 +159,16 @@ export const getHighlightLayer: GetLayerType<PathLayer> = function ({
   filterState,
 }) {
   const fd = formData;
+  const minWidth = Number(fd.min_width) || 1;
+  const maxWidth = Number(fd.max_width) || 20;
+  const multiplier = Number(fd.line_width_multiplier) || 1;
   const fixedColor = HIGHLIGHT_COLOR_ARRAY;
   let data = payload.data.features.map((feature: JsonObject) => {
-    let width = feature.width;
-    if (fd.line_width_multiplier) {
-      width *= fd.line_width_multiplier;
-    }
+    const baseWidth = Number.isFinite(feature.width) ? feature.width : 1;
+    let width = baseWidth * multiplier;
+
+    width = Math.max(minWidth, Math.min(maxWidth, width));
+
     return {
       ...feature,
       path: feature.path,
