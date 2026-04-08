@@ -656,11 +656,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         tab_id = str(uuid4())
         default_redirect_uri = get_oauth2_redirect_uri()
-        if not default_redirect_uri:
-            raise OAuth2Error(
-                "Unable to determine the OAuth2 redirect URI. "
-                "Set DATABASE_OAUTH2_REDIRECT_URI in the configuration."
-            )
 
         # Generate PKCE code verifier (RFC 7636)
         code_verifier = generate_code_verifier()

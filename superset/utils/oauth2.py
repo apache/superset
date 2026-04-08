@@ -33,7 +33,7 @@ from werkzeug.routing import BuildError
 
 from superset import db
 from superset.distributed_lock import DistributedLock
-from superset.exceptions import AcquireDistributedLockFailedException
+from superset.exceptions import AcquireDistributedLockFailedException, OAuth2Error
 from superset.superset_typing import OAuth2ClientConfig, OAuth2State
 
 if TYPE_CHECKING:
@@ -252,9 +252,8 @@ def get_oauth2_redirect_uri() -> str:
 
     Tries the explicit config first, then falls back to url_for().
     If url_for() fails (e.g. in headless/MCP contexts where the
-    DatabaseRestApi blueprint may not be registered), returns an
-    empty string so that callers can detect the missing URI
-    instead of crashing.
+    DatabaseRestApi blueprint may not be registered), raises
+    OAuth2Error so callers don't silently proceed with an invalid URI.
     """
     if configured := app.config.get("DATABASE_OAUTH2_REDIRECT_URI"):
         return configured
@@ -262,11 +261,10 @@ def get_oauth2_redirect_uri() -> str:
     try:
         return url_for("DatabaseRestApi.oauth2", _external=True)
     except (BuildError, RuntimeError):
-        logger.warning(
-            "Could not build OAuth2 redirect URI via url_for(); "
-            "set DATABASE_OAUTH2_REDIRECT_URI in the config."
-        )
-        return ""
+        raise OAuth2Error(
+            "Unable to determine the OAuth2 redirect URI. "
+            "Set DATABASE_OAUTH2_REDIRECT_URI in the configuration."
+        ) from None
 
 
 class OAuth2ClientConfigSchema(Schema):
