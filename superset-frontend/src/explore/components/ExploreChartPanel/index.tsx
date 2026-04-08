@@ -149,7 +149,6 @@ const ExploreChartPanel = ({
   const gutterHeight = theme.sizeUnit * GUTTER_SIZE_FACTOR;
   const {
     ref: chartPanelRef,
-    observerRef: resizeObserverRef,
     width: chartPanelWidth,
     height: chartPanelHeight,
   } = useResizeDetectorByObserver();
@@ -319,7 +318,6 @@ const ExploreChartPanel = ({
           flex-direction: column;
           padding-top: ${theme.sizeUnit * 2}px;
         `}
-        ref={resizeObserverRef}
       >
         {vizTypeNeedsDataset && (
           <Alert
@@ -409,7 +407,6 @@ const ExploreChartPanel = ({
       </div>
     ),
     [
-      resizeObserverRef,
       showAlertBanner,
       errorMessage,
       onQuery,
@@ -460,7 +457,7 @@ const ExploreChartPanel = ({
       document.body.className += ` ${standaloneClass}`;
     }
     return (
-      <div id="app" data-test="standalone-app" ref={resizeObserverRef}>
+      <div id="app" data-test="standalone-app">
         {standaloneChartBody}
       </div>
     );
