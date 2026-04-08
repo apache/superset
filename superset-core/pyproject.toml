@@ -24,14 +24,13 @@ readme = "README.md"
 authors = [
     { name = "Apache Software Foundation", email = "dev@superset.apache.org" },
 ]
-license = { file="LICENSE.txt" }
+license = "Apache-2.0"
 requires-python = ">=3.10"
 keywords = ["superset", "apache", "analytics", "business-intelligence", "extensions", "visualization"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Web Environment",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",

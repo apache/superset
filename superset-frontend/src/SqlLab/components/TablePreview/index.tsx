@@ -58,6 +58,15 @@ const extensionsRegistry = getExtensionsRegistry();
 
 const COLUMN_KEYS = ['column_name', 'column_type', 'keys', 'comment'];
 
+type TableColumn = TableMetaData['columns'][number];
+type PreviewColumn = {
+  column_name: string;
+  column_type: string;
+  keys: TableColumn['keys'];
+  comment: TableColumn['comment'];
+};
+type TableIndex = NonNullable<TableMetaData['indexes']>[number];
+
 const TABS_KEYS = {
   COLUMNS: 'columns',
   METADATA: 'metadata',
@@ -155,7 +164,7 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
     () =>
       (tableMetadata?.columns.length ?? 0) > 0
         ? tableMetadata?.columns.map(
-            ({ name, type, longType, keys, comment }) => ({
+            ({ name, type, longType, keys, comment }: TableColumn) => ({
               column_name: name,
               column_type: longType || type,
               keys,
@@ -166,7 +175,7 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
     [tableMetadata],
   );
   const hasKeys = useMemo(
-    () => data?.some(({ keys }) => Boolean(keys?.length)),
+    () => data?.some(({ keys }: PreviewColumn) => Boolean(keys?.length)),
     [data],
   );
   const columns = useMemo(
@@ -366,11 +375,13 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
                   tabItems.push({
                     key: TABS_KEYS.INDEXES,
                     label: t('Indexes (%s)', tableData.indexes.length),
-                    children: tableData.indexes.map((ix, i) => (
+                    children: tableData.indexes.map(
+                      (ix: TableIndex, i: number) => (
                       <pre className="code" key={i}>
                         {JSON.stringify(ix, null, '  ')}
                       </pre>
-                    )),
+                      ),
+                    ),
                   });
                 }
 

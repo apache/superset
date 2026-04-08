@@ -40,7 +40,7 @@ const catalogApi = api.injectEndpoints({
   endpoints: builder => ({
     catalogs: builder.query<CatalogOption[], FetchCatalogsQueryParams>({
       providesTags: [{ type: 'Catalogs', id: 'LIST' }],
-      query: ({ dbId, forceRefresh }) => ({
+      query: ({ dbId, forceRefresh }: FetchCatalogsQueryParams) => ({
         endpoint: `/api/v1/database/${dbId}/catalogs/`,
         urlParams: {
           force: forceRefresh,
@@ -52,7 +52,11 @@ const catalogApi = api.injectEndpoints({
             title: value,
           })),
       }),
-      serializeQueryArgs: ({ queryArgs: { dbId } }) => ({
+      serializeQueryArgs: ({
+        queryArgs: { dbId },
+      }: {
+        queryArgs: Pick<FetchCatalogsQueryParams, 'dbId'>;
+      }) => ({
         dbId,
       }),
     }),
@@ -87,14 +91,24 @@ export function useCatalogs(options: Params) {
   const fetchData = useEffectEvent(
     (dbId: FetchCatalogsQueryParams['dbId'], forceRefresh = false) => {
       if (dbId && (!result.currentData || forceRefresh)) {
-        trigger({ dbId, forceRefresh }).then(({ isSuccess, isError, data }) => {
-          if (isSuccess) {
-            onSuccess?.(data || EMPTY_CATALOGS, forceRefresh);
-          }
-          if (isError) {
-            onError?.(result.error as ClientErrorObject);
-          }
-        });
+        trigger({ dbId, forceRefresh }).then(
+          ({
+            isSuccess,
+            isError,
+            data,
+          }: {
+            isSuccess: boolean;
+            isError: boolean;
+            data?: CatalogOption[];
+          }) => {
+            if (isSuccess) {
+              onSuccess?.(data || EMPTY_CATALOGS, forceRefresh);
+            }
+            if (isError) {
+              onError?.(result.error as ClientErrorObject);
+            }
+          },
+        );
       }
     },
   );

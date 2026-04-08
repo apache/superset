@@ -46,7 +46,7 @@ const sqlEditorApi = api.injectEndpoints({
           tabViewId,
         },
         extra,
-      }) => ({
+      }: EditorMutationParams) => ({
         method: 'PUT',
         endpoint: encodeURI(`/tabstateview/${tabViewId ?? id}`),
         postPayload: pickBy(
@@ -63,19 +63,19 @@ const sqlEditorApi = api.injectEndpoints({
             autorun,
             extra_json: JSON.stringify({ updatedAt, version, ...extra }),
           },
-          value => value !== undefined,
+          (value: unknown) => value !== undefined,
         ),
       }),
     }),
     updateCurrentSqlEditorTab: builder.mutation<string, string | number>({
-      query: queryEditorId => ({
+      query: (queryEditorId: string | number) => ({
         method: 'POST',
         endpoint: encodeURI(`/tabstateview/${queryEditorId}/activate`),
         transformResponse: () => queryEditorId,
       }),
     }),
     deleteSqlEditorTab: builder.mutation<void, string | number>({
-      query: queryEditorId => ({
+      query: (queryEditorId: string | number) => ({
         method: 'DELETE',
         endpoint: encodeURI(`/tabstateview/${queryEditorId}`),
         transformResponse: () => queryEditorId,

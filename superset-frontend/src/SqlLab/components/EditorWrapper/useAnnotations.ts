@@ -52,7 +52,17 @@ export function useAnnotations(params: FetchValidationQueryParams) {
     },
     {
       skip: !(hasValidator && dbId && sql),
-      selectFromResult: ({ isLoading, isError, error, data }) => {
+      selectFromResult: ({
+        isLoading,
+        isError,
+        error,
+        data,
+      }: {
+        isLoading: boolean;
+        isError: boolean;
+        error?: ClientErrorObject;
+        data?: ValidationResult[];
+      }) => {
         const errorObj = (error ?? {}) as ClientErrorObject;
         let message =
           errorObj?.error || errorObj?.statusText || t('Unknown error');
@@ -62,7 +72,7 @@ export function useAnnotations(params: FetchValidationQueryParams) {
         return {
           data:
             !isLoading && data?.length
-              ? data.map(err => ({
+              ? data.map((err: ValidationResult) => ({
                   type: 'error',
                   row: (err.line_number || 0) - 1,
                   column: (err.start_column || 0) - 1,

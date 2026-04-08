@@ -52,12 +52,15 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { Space } from '@superset-ui/core/components/Space';
 import ColumnElement, { ColumnKeyTypeType } from '../ColumnElement';
 import ShowSQL from '../ShowSQL';
+import type { TableMetaData } from 'src/hooks/apiResources';
 
 export interface Column {
   name: string;
   keys?: { type: ColumnKeyTypeType }[];
   type: string;
 }
+
+type TableIndex = NonNullable<TableMetaData['indexes']>[number];
 
 export interface TableElementProps extends CollapseProps {
   table: Table;
@@ -240,7 +243,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
       keyLink = (
         <ModalTrigger
           modalTitle={`${KEYS_FOR_TABLE_TEXT} ${name}`}
-          modalBody={tableData.indexes.map((ix, i) => (
+          modalBody={tableData.indexes.map((ix: TableIndex, i: number) => (
             <pre key={i}>{JSON.stringify(ix, null, '  ')}</pre>
           ))}
           triggerNode={
@@ -373,7 +376,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
   const renderBody = () => {
     let cols;
     if (tableData.columns) {
-      cols = tableData.columns.slice();
+      cols = tableData.columns.slice() as Column[];
       if (sortColumns) {
         cols.sort((a: Column, b: Column) => {
           const colA = a.name.toUpperCase();
@@ -387,7 +390,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
       <div data-test="table-element" css={{ paddingTop: 6 }}>
         {renderWell()}
         <div>
-          {cols?.map(col => (
+          {cols?.map((col: Column) => (
             <ColumnElement column={col} key={col.name} />
           ))}
         </div>

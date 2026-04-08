@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { configureStore } from '@reduxjs/toolkit';
 import { getChartComponentRegistry } from '@superset-ui/core';
 import { ThemeProvider } from '@apache-superset/core/theme';
-import { FC, useEffect, useState } from 'react';
+import { ComponentType, FC, useEffect, useState } from 'react';
 import { Provider as ReduxProvider } from 'react-redux';
+import { createStore } from 'redux';
 import { ChartWrapperProps } from '../types';
 
 export const ChartWrapper: FC<ChartWrapperProps> = ({
@@ -31,7 +31,7 @@ export const ChartWrapper: FC<ChartWrapperProps> = ({
   chartConfig,
   locale,
 }) => {
-  const [Chart, setChart] = useState<any>();
+  const [Chart, setChart] = useState<ComponentType<Record<string, unknown>>>();
 
   const getChartFromRegistry = async (vizType: string) => {
     const registry = getChartComponentRegistry();
@@ -45,9 +45,9 @@ export const ChartWrapper: FC<ChartWrapperProps> = ({
 
   // Create a mock store that is needed by
   // eCharts components to access the locale.
-  const mockStore = configureStore({
-    reducer: (state = { common: { locale } }) => state,
-  });
+  const mockStore = createStore(
+    (state = { common: { locale } }) => state,
+  );
 
   return (
     <ThemeProvider theme={theme}>

@@ -22,6 +22,7 @@ import {
   createListenerMiddleware,
   StoreEnhancer,
 } from '@reduxjs/toolkit';
+import type { Middleware } from 'redux';
 import thunk from 'redux-thunk';
 import { api } from 'src/hooks/apiResources/queryApi';
 import messageToastReducer from 'src/components/MessageToasts/reducers';
@@ -88,7 +89,7 @@ export const userReducer = (
 export const listenerMiddleware = createListenerMiddleware();
 
 const getMiddleware: ConfigureStoreOptions['middleware'] =
-  getDefaultMiddleware =>
+  (getDefaultMiddleware: (options?: unknown) => Middleware[]) =>
     process.env.REDUX_DEFAULT_MIDDLEWARE
       ? getDefaultMiddleware({
           immutableCheck: {

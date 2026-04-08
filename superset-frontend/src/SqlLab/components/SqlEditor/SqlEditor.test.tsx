@@ -152,7 +152,7 @@ const createStore = (initState: object) =>
     disableDebugger: true,
     initialState: initState,
     rootReducers: reducers,
-    middleware: getDefaultMiddleware =>
+    middleware: (getDefaultMiddleware: () => Middleware[]) =>
       getDefaultMiddleware().concat(api.middleware, logAction),
   });
 

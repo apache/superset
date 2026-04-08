@@ -34,6 +34,9 @@ import {
   schemaEndpoints,
   tableEndpoints,
   skipToken,
+  type SchemaOption,
+  type Table,
+  type Column,
 } from 'src/hooks/apiResources';
 import { api } from 'src/hooks/apiResources/queryApi';
 import { useDatabaseFunctionsQuery } from 'src/hooks/apiResources/databaseFunctions';
@@ -139,7 +142,7 @@ export function useKeywords(
         )({
           [api.reducerPath]: apiState,
         })
-        .data?.columns?.forEach(({ name }) => {
+        .data?.columns?.forEach(({ name }: Column) => {
           columns.add(name);
         });
     });
@@ -172,7 +175,7 @@ export function useKeywords(
 
   const schemaKeywords = useMemo(
     () =>
-      (schemaOptions ?? []).map(s => ({
+      (schemaOptions ?? []).map((s: SchemaOption) => ({
         name: s.label,
         value: s.value,
         score: SCHEMA_AUTOCOMPLETE_SCORE,
@@ -187,7 +190,7 @@ export function useKeywords(
 
   const tableKeywords = useMemo(
     () =>
-      (tableData?.options ?? []).map(({ value, label }) => ({
+      (tableData?.options ?? []).map(({ value, label }: Table) => ({
         name: label,
         value,
         score: TABLE_AUTOCOMPLETE_SCORE,
@@ -214,7 +217,7 @@ export function useKeywords(
 
   const functionKeywords = useMemo(
     () =>
-      (functionNames ?? []).map(func => ({
+      (functionNames ?? []).map((func: string) => ({
         name: func,
         value: func,
         score: SQL_FUNCTIONS_AUTOCOMPLETE_SCORE,

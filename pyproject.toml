@@ -25,7 +25,7 @@ description = "A modern, enterprise-ready business intelligence web application"
 readme = "README.md"
 dynamic = ["version", "scripts", "entry-points"]
 requires-python = ">=3.10"
-license = { file="LICENSE.txt" }
+license = "Apache-2.0"
 authors = [
     { name = "Apache Software Foundation", email = "dev@superset.apache.org" },
 ]

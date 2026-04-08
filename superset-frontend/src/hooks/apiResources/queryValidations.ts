@@ -40,7 +40,13 @@ const queryValidationApi = api.injectEndpoints({
       FetchValidationQueryParams
     >({
       providesTags: ['QueryValidations'],
-      query: ({ dbId, catalog, schema, sql, templateParams }) => {
+      query: ({
+        dbId,
+        catalog,
+        schema,
+        sql,
+        templateParams,
+      }: FetchValidationQueryParams) => {
         let template_params = templateParams;
         try {
           template_params = JSON.parse(templateParams || '');
