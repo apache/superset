@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { ModalTrigger } from '@superset-ui/core/components';
 import CodeSyntaxHighlighter from '@superset-ui/core/components/CodeSyntaxHighlighter';
@@ -40,6 +41,12 @@ interface TriggerNodeProps {
   maxWidth: number;
 }
 
+const Title = styled.h4`
+  font-size: ${({ theme }) => theme.fontSizeLG}px;
+  margin: ${({ theme }) => theme.sizeUnit * 2}px 0;
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
+`;
+
 const shrinkSql = (sql: string, maxLines: number, maxWidth: number) => {
   const ssql = sql || '';
   let lines = ssql.split('\n');
@@ -63,14 +70,32 @@ function TriggerNode({ shrink, sql, maxLines, maxWidth }: TriggerNodeProps) {
 }
 
 function HighlightSqlModal({ rawSql, sql }: HighlightedSqlModalTypes) {
+  const theme = useTheme();
+  const codeBlockStyle = {
+    border: 1,
+    borderColor: theme.colorBorder,
+    borderStyle: 'solid',
+    backgroundColor: theme.colorBgLayout,
+    fontSize: theme.fontSize * 0.9,
+    padding: theme.sizeUnit * 2,
+  };
+
   return (
-    <div>
-      <h4>{t('Source SQL')}</h4>
-      <CodeSyntaxHighlighter language="sql">{sql}</CodeSyntaxHighlighter>
+    <div
+      css={css`
+        margin: -${theme.sizeUnit * 6}px;
+      `}
+    >
+      <Title>{t('Source SQL')}</Title>
+      <CodeSyntaxHighlighter language="sql" customStyle={codeBlockStyle}>
+        {sql}
+      </CodeSyntaxHighlighter>
       {rawSql && rawSql !== sql && (
         <div>
-          <h4>{t('Executed SQL')}</h4>
-          <CodeSyntaxHighlighter language="sql">{rawSql}</CodeSyntaxHighlighter>
+          <Title>{t('Executed SQL')}</Title>
+          <CodeSyntaxHighlighter language="sql" customStyle={codeBlockStyle}>
+            {rawSql}
+          </CodeSyntaxHighlighter>
         </div>
       )}
     </div>
