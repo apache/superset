@@ -46,6 +46,10 @@ from superset.mcp_service.sql_lab.schemas import (
     StatementData,
     StatementInfo,
 )
+from superset.mcp_service.utils.oauth2_utils import (
+    build_oauth2_redirect_message,
+    OAUTH2_CONFIG_ERROR_MESSAGE,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -148,19 +152,14 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
 
         return response
 
-    except OAuth2RedirectError:
+    except OAuth2RedirectError as ex:
         await ctx.error(
             "Database requires OAuth authentication: database_id=%s"
             % request.database_id
         )
         return ExecuteSqlResponse(
             success=False,
-            error=(
-                "This database uses OAuth for authentication. "
-                "Please authenticate via the Superset UI first "
-                "(run any query in SQL Lab to trigger the OAuth flow), "
-                "then retry this request."
-            ),
+            error=build_oauth2_redirect_message(ex),
             error_type=SupersetErrorType.OAUTH2_REDIRECT.value,
         )
     except OAuth2Error:
@@ -169,11 +168,7 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
         )
         return ExecuteSqlResponse(
             success=False,
-            error=(
-                "OAuth authentication failed due to a configuration "
-                "or provider error. "
-                "Please contact your Superset administrator."
-            ),
+            error=OAUTH2_CONFIG_ERROR_MESSAGE,
             error_type=SupersetErrorType.OAUTH2_REDIRECT_ERROR.value,
         )
     except Exception as e:

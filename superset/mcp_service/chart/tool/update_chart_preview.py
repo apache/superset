@@ -26,6 +26,7 @@ from typing import Any, Dict
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
@@ -39,6 +40,10 @@ from superset.mcp_service.chart.schemas import (
     parse_chart_config,
     PerformanceMetadata,
     UpdateChartPreviewRequest,
+)
+from superset.mcp_service.utils.oauth2_utils import (
+    build_oauth2_redirect_message,
+    OAUTH2_CONFIG_ERROR_MESSAGE,
 )
 from superset.utils import json as utils_json
 
@@ -175,6 +180,23 @@ def update_chart_preview(
         }
         return result
 
+    except OAuth2RedirectError as ex:
+        await ctx.error(
+            "Chart preview update requires OAuth authentication: chart_id=%s"
+            % request.chart_id
+        )
+        return {
+            "chart": None,
+            "error": build_oauth2_redirect_message(ex),
+            "success": False,
+        }
+    except OAuth2Error:
+        await ctx.error("OAuth2 configuration error: chart_id=%s" % request.chart_id)
+        return {
+            "chart": None,
+            "error": OAUTH2_CONFIG_ERROR_MESSAGE,
+            "success": False,
+        }
     except Exception as e:
         execution_time = int((time.time() - start_time) * 1000)
         return {
