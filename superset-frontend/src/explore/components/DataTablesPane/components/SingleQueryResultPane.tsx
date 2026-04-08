@@ -16,19 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useCallback } from 'react';
-import { t } from '@apache-superset/core/translation';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
-  TableView,
-  TableSize,
-  EmptyWrapperType,
-} from '@superset-ui/core/components';
-import {
-  useFilteredTableData,
-  useTableColumns,
-} from 'src/explore/components/DataTableControl';
+  getTimeFormatter,
+  safeHtmlSpan,
+  TimeFormats,
+} from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
+import { Constants } from '@superset-ui/core/components';
+import { GenericDataType } from '@apache-superset/core/common';
+import { GridTable } from 'src/components/GridTable';
+import { GridSize } from 'src/components/GridTable/constants';
 import { TableControls } from './DataTableControls';
 import { SingleQueryResultPaneProp } from '../types';
+
+const GridContainer = styled.div`
+  flex: 1;
+  overflow: hidden;
+`;
+
+const timeFormatter = getTimeFormatter(TimeFormats.DATABASE_DATETIME);
 
 export const SingleQueryResultPane = ({
   data,
@@ -40,23 +47,82 @@ export const SingleQueryResultPane = ({
   isVisible,
   canDownload,
   columnDisplayNames,
-  isPaginationSticky = true,
 }: SingleQueryResultPaneProp) => {
   const [filterText, setFilterText] = useState('');
+  const [gridHeight, setGridHeight] = useState(300);
+  const gridContainerRef = useRef<HTMLDivElement>(null);
 
-  // this is to preserve the order of the columns, even if there are integer values,
-  // while also only grabbing the first column's keys
-  const columns = useTableColumns(
-    colnames,
-    coltypes,
-    data,
-    datasourceId,
-    isVisible,
-    {}, // moreConfig
-    true, // allowHTML
-    columnDisplayNames,
+  useEffect(() => {
+    const container = gridContainerRef.current;
+    if (!container) return undefined;
+    const observer = new ResizeObserver(entries => {
+      const entry = entries[0];
+      if (entry) {
+        setGridHeight(entry.contentRect.height);
+      }
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
+  const columns = useMemo(
+    () =>
+      colnames && data?.length
+        ? colnames
+            .filter((column: string) =>
+              Object.keys(data[0]).includes(column),
+            )
+            .map((key, index) => {
+              const colType = coltypes?.[index];
+              const headerLabel = columnDisplayNames?.[key] ?? key;
+              return {
+                label: key,
+                headerName: headerLabel,
+                render: ({ value }: { value: any }) => {
+                  if (value === true) {
+                    return Constants.BOOL_TRUE_DISPLAY;
+                  }
+                  if (value === false) {
+                    return Constants.BOOL_FALSE_DISPLAY;
+                  }
+                  if (value === null) {
+                    return (
+                      <span style={{ color: 'var(--ant-color-text-tertiary)' }}>
+                        {Constants.NULL_DISPLAY}
+                      </span>
+                    );
+                  }
+                  if (
+                    colType === GenericDataType.Temporal &&
+                    typeof value === 'number'
+                  ) {
+                    return timeFormatter(value);
+                  }
+                  if (typeof value === 'string') {
+                    return safeHtmlSpan(value);
+                  }
+                  return String(value);
+                },
+              };
+            })
+        : [],
+    [colnames, data, coltypes, columnDisplayNames],
   );
-  const filteredData = useFilteredTableData(filterText, data);
+
+  const keywordFilter = useCallback(
+    (node: any) => {
+      if (filterText && node.data) {
+        const lowerFilter = filterText.toLowerCase();
+        return Object.values(node.data).some(
+          (value: any) =>
+            value != null &&
+            String(value).toLowerCase().includes(lowerFilter),
+        );
+      }
+      return true;
+    },
+    [filterText],
+  );
 
   const handleInputChange = useCallback(
     (input: string) => setFilterText(input),
@@ -66,7 +132,7 @@ export const SingleQueryResultPane = ({
   return (
     <>
       <TableControls
-        data={filteredData}
+        data={data}
         columnNames={colnames}
         columnTypes={coltypes}
         rowcount={rowcount}
@@ -75,18 +141,16 @@ export const SingleQueryResultPane = ({
         isLoading={false}
         canDownload={canDownload}
       />
-      <TableView
-        columns={columns}
-        size={TableSize.Small}
-        data={filteredData}
-        pageSize={dataSize}
-        noDataText={t('No results')}
-        emptyWrapperType={EmptyWrapperType.Small}
-        className="table-condensed"
-        isPaginationSticky={isPaginationSticky}
-        showRowCount={false}
-        small
-      />
+      <GridContainer ref={gridContainerRef}>
+        <GridTable
+          data={data}
+          columns={columns}
+          height={gridHeight}
+          size={GridSize.Small}
+          externalFilter={keywordFilter}
+          showRowNumber
+        />
+      </GridContainer>
     </>
   );
 };
