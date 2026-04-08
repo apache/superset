@@ -128,7 +128,9 @@ const FilterValue: FC<FilterValueProps> = ({
     [isCustomization],
   );
   const [state, setState] = useState<ChartDataResponseResult[]>([]);
-  const hasDepsFilterValue = Boolean(filter.cascadeParentIds?.length);
+  const [hasDepsFilterValue, setHasDepsFilterValue] = useState(
+    Boolean(filter.cascadeParentIds?.length),
+  );
   const dashboardId = useSelector<RootState, number>(
     state => state.dashboardInfo.id,
   );
@@ -209,6 +211,7 @@ const FilterValue: FC<FilterValueProps> = ({
         // has all the required information from parent filters
         return;
       }
+      setHasDepsFilterValue(false);
     }
 
     // TODO: We should try to improve our useEffect hooks to depend more on
@@ -283,6 +286,7 @@ const FilterValue: FC<FilterValueProps> = ({
     isRefreshing,
     shouldRefresh,
     dataMaskSelected,
+    setHasDepsFilterValue,
   ]);
 
   useEffect(() => {
