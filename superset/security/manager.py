@@ -124,88 +124,29 @@ _RLSCache = dict[_RLSCacheKey, list[SqlaQuery]]
 def _log_audit_event(action: str, payload: dict[str, Any]) -> None:
     """Log an audit event via the configured event logger.
 
-    Uses the AbstractEventLogger so that custom implementations
-    (e.g. S3EventLogger) also receive these audit events.
-
-    Writes the log record using an independent DB session so that the
-    commit does not expire objects in the main session.  This prevents
-    DetachedInstanceError when FAB continues to use the User object
-    after a hook (e.g. on_user_login inside update_login_count) returns.
+    Delegates to the AbstractEventLogger interface so that every
+    configured implementation (DBEventLogger, S3EventLogger, etc.)
+    receives these security audit events.
     """
-    from superset import db  # pylint: disable=import-outside-toplevel
     from superset.extensions import (
         event_logger,  # pylint: disable=import-outside-toplevel
-    )
-    from superset.utils.log import (
-        DBEventLogger,  # pylint: disable=import-outside-toplevel
     )
 
     user_id = get_user_id()
     try:
-        if isinstance(event_logger, DBEventLogger):
-            _log_audit_event_to_db(db, user_id, action, payload)
-        else:
-            event_logger.log(
-                user_id=user_id,
-                action=action,
-                dashboard_id=None,
-                duration_ms=None,
-                slice_id=None,
-                referrer=None,
-                curated_payload=None,
-                curated_form_data=None,
-                records=[payload],
-            )
+        event_logger.log(
+            user_id=user_id,
+            action=action,
+            dashboard_id=None,
+            duration_ms=None,
+            slice_id=None,
+            referrer=None,
+            curated_payload=None,
+            curated_form_data=None,
+            records=[payload],
+        )
     except Exception:  # pylint: disable=broad-except
         logger.warning("Failed to log audit event: %s", action, exc_info=True)
-
-
-def _log_audit_event_to_db(
-    db: Any,
-    user_id: int | None,
-    action: str,
-    payload: dict[str, Any],
-) -> None:
-    """Write an audit Log record using an independent session.
-
-    Using a separate session avoids expiring objects in the main
-    scoped session, which would cause DetachedInstanceError in
-    callers that continue to use ORM objects after the hook returns.
-    """
-    from superset.models.core import Log  # pylint: disable=import-outside-toplevel
-    from superset.utils import (
-        json as json_utils,  # pylint: disable=import-outside-toplevel
-    )
-
-    bind = db.session.get_bind()
-    session_factory = db.create_scoped_session(
-        options={"bind": bind, "expire_on_commit": False}
-    )
-    session = session_factory()
-    try:
-        json_string: str | None
-        try:
-            json_string = json_utils.dumps(payload)
-        except Exception:  # pylint: disable=broad-except
-            json_string = None
-
-        log = Log(
-            action=action,
-            json=json_string,
-            dashboard_id=None,
-            slice_id=None,
-            duration_ms=None,
-            referrer=None,
-            user_id=user_id,
-        )
-        session.add(log)
-        session.commit()  # pylint: disable=consider-using-transaction
-    except Exception:
-        session.rollback()  # pylint: disable=consider-using-transaction
-        raise
-    finally:
-        session.close()
-        session_factory.remove()
 
 
 class SupersetRoleApi(RoleApi):
