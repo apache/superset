@@ -167,17 +167,21 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
     this.setState({ newSliceName: event.target.value });
   }
 
-  onDashboardChange = async (dashboard: {
-    label: string;
-    value: string | number;
-  }) => {
+  onDashboardChange = async (
+    dashboard:
+      | {
+          label: string;
+          value: string | number;
+        }
+      | undefined,
+  ) => {
     this.setState({
       dashboard,
       tabsData: [],
       selectedTab: undefined,
     });
 
-    if (typeof dashboard.value === 'number') {
+    if (dashboard && typeof dashboard.value === 'number') {
       await this.loadTabs(dashboard.value);
     }
   };
