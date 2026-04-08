@@ -29,6 +29,23 @@ from pydantic import (
 )
 
 
+class _SchemaFieldNormalizer(BaseModel):
+    """Mixin that renames schema_name → schema in JSON output.
+
+    Pydantic serializes using field names by default, but the MCP/API
+    convention uses the alias ``schema``.  Adding this as a base class
+    to any response model that carries a ``schema_name`` field with
+    ``alias="schema"`` keeps the JSON key consistent.
+    """
+
+    @model_serializer(mode="wrap", when_used="json")
+    def _normalize_schema_field(self, serializer: Any, _info: Any) -> Dict[str, Any]:
+        data = serializer(self)
+        if "schema_name" in data:
+            data["schema"] = data.pop("schema_name")
+        return data
+
+
 class ExecuteSqlRequest(BaseModel):
     """Request schema for executing SQL queries."""
 
@@ -198,7 +215,7 @@ class SaveSqlQueryRequest(BaseModel):
         return v.strip()
 
 
-class SaveSqlQueryResponse(BaseModel):
+class SaveSqlQueryResponse(_SchemaFieldNormalizer):
     """Response schema for a saved SQL query."""
 
     model_config = ConfigDict(populate_by_name=True)
@@ -216,14 +233,6 @@ class SaveSqlQueryResponse(BaseModel):
             "URL to open this saved query in SQL Lab (e.g., /sqllab?savedQueryId=42)"
         ),
     )
-
-    @model_serializer(mode="wrap", when_used="json")
-    def _normalize_schema_field(self, serializer: Any, info: Any) -> Dict[str, Any]:
-        """Rename schema_name → schema so the JSON key matches the alias."""
-        data = serializer(self)
-        if "schema_name" in data:
-            data["schema"] = data.pop("schema_name")
-        return data
 
 
 class OpenSqlLabRequest(BaseModel):
@@ -250,7 +259,7 @@ class OpenSqlLabRequest(BaseModel):
     title: str | None = Field(None, description="Title for the SQL Lab tab/query")
 
 
-class SqlLabResponse(BaseModel):
+class SqlLabResponse(_SchemaFieldNormalizer):
     """Response schema for SQL Lab URL generation."""
 
     model_config = ConfigDict(populate_by_name=True)
@@ -260,11 +269,3 @@ class SqlLabResponse(BaseModel):
     schema_name: str | None = Field(None, description="Schema selected", alias="schema")
     title: str | None = Field(None, description="Query title")
     error: str | None = Field(None, description="Error message if failed")
-
-    @model_serializer(mode="wrap", when_used="json")
-    def _normalize_schema_field(self, serializer: Any, info: Any) -> Dict[str, Any]:
-        """Rename schema_name → schema so the JSON key matches the alias."""
-        data = serializer(self)
-        if "schema_name" in data:
-            data["schema"] = data.pop("schema_name")
-        return data

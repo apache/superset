@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 # Minimal defaults for reduced token usage - users can request more via select_columns
 # NOTE: "database" (relationship) is included so the DAO eagerly loads it
 # via joinedload, which avoids N+1 lazy-load queries when the serializer
-# accesses dataset.database.database_name.
+# accesses dataset.database.name (via the database_name @property).
 DEFAULT_DATASET_COLUMNS = [
     "id",
     "table_name",
