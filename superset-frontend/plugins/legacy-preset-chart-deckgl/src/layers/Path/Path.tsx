@@ -69,7 +69,7 @@ export const getLayer: GetLayerType<PathLayer> = function ({
   // Variables for width scaling and normalization
   const minWidth = Number(fd.min_width) || 1; // defaulted to 1
   const maxWidth = Number(fd.max_width) || 20; // defaulted to 20
-  const multiplier = Number(fd.line_width_multiplier) || 1; // defaulted to one
+  const multiplier = Number(fd.line_width_multiplier) || 1; // defaulted to 1
 
   const widths = data
     .map((d: JsonObject) => d.width)
