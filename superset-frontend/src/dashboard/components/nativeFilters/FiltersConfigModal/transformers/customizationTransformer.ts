@@ -69,7 +69,7 @@ function isDividerType(
 function isFormInput(
   formInputs: ChartCustomizationFormOrSaved,
 ): formInputs is ChartCustomizationsFormItem {
-  return 'dataset' in formInputs && typeof formInputs.dataset === 'object';
+  return 'dataset' in formInputs;
 }
 
 function transformCustomizationDivider(

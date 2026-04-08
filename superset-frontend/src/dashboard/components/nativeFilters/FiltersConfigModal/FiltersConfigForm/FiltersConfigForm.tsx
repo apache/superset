@@ -1472,7 +1472,7 @@ const FiltersConfigForm = (
                             controlValues: {},
                             defaultDataMask: null,
                             column: null,
-                            dataset: undefined,
+                            dataset: null,
                             datasetInfo: undefined,
                           });
                           forceUpdate();
