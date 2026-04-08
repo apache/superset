@@ -259,7 +259,7 @@ flask==2.3.3
     #   flask-sqlalchemy
     #   flask-testing
     #   flask-wtf
-flask-appbuilder==5.2.1rc2
+flask-appbuilder==5.2.1rc3
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
