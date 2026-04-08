@@ -34,9 +34,17 @@ import {
   Row,
 } from 'react-table';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
-import { FaSort } from '@react-icons/all-files/fa/FaSort';
-import { FaSortDown as FaSortDesc } from '@react-icons/all-files/fa/FaSortDown';
-import { FaSortUp as FaSortAsc } from '@react-icons/all-files/fa/FaSortUp';
+import {
+  CaretUpOutlined,
+  CaretDownOutlined,
+  ColumnHeightOutlined,
+  CheckOutlined,
+  InfoCircleOutlined,
+  DownOutlined,
+  MinusCircleOutlined,
+  PlusCircleOutlined,
+  TableOutlined,
+} from '@ant-design/icons';
 import cx from 'classnames';
 import {
   DataRecord,
@@ -62,14 +70,6 @@ import {
   Dropdown,
   Tooltip,
 } from '@superset-ui/core/components';
-import {
-  CheckOutlined,
-  InfoCircleOutlined,
-  DownOutlined,
-  MinusCircleOutlined,
-  PlusCircleOutlined,
-  TableOutlined,
-} from '@ant-design/icons';
 import { isEmpty, debounce, isEqual } from 'lodash';
 import { ColorFormatters } from '@superset-ui/chart-controls';
 import {
@@ -216,9 +216,9 @@ function cellBackground({
 
 function SortIcon<D extends object>({ column }: { column: ColumnInstance<D> }) {
   const { isSorted, isSortedDesc } = column;
-  let sortIcon = <FaSort />;
+  let sortIcon = <ColumnHeightOutlined />;
   if (isSorted) {
-    sortIcon = isSortedDesc ? <FaSortDesc /> : <FaSortAsc />;
+    sortIcon = isSortedDesc ? <CaretDownOutlined /> : <CaretUpOutlined />;
   }
   return sortIcon;
 }
