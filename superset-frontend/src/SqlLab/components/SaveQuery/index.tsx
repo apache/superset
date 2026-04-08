@@ -242,7 +242,7 @@ const SaveQuery = ({
               {t('Cancel')}
             </Button>
             <Button
-              buttonStyle={isSaved ? undefined : 'primary'}
+              buttonStyle={isSaved ? 'secondary' : 'primary'}
               onClick={onSaveWrapper}
               cta
             >
