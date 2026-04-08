@@ -876,7 +876,9 @@ export class TableRenderer extends Component<
           );
         };
         const headerCellFormattedValue =
-          dateFormatters?.[attrName]?.(convertToNumberIfNumeric(colKey[attrIdx])) ?? colKey[attrIdx];
+          dateFormatters?.[attrName]?.(
+            convertToNumberIfNumeric(colKey[attrIdx]),
+          ) ?? colKey[attrIdx];
         const { backgroundColor, color } = getCellColor(
           [attrName],
           headerCellFormattedValue,
