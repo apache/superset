@@ -46,6 +46,8 @@ def create_mock_dataset(
     dataset.table_name = table_name
     dataset.schema = schema
     dataset.description = "desc"
+    dataset.certified_by = None
+    dataset.certification_details = None
     dataset.changed_by_name = "admin"
     dataset.changed_on = None
     dataset.changed_on_humanized = None
@@ -106,6 +108,8 @@ async def test_list_datasets_basic(mock_list, mcp_server):
     dataset.table_name = "Test DatasetInfo"
     dataset.schema = "main"
     dataset.description = "desc"
+    dataset.certified_by = None
+    dataset.certification_details = None
     dataset.changed_by_name = "admin"
     dataset.changed_on = None
     dataset.changed_on_humanized = None
@@ -212,6 +216,8 @@ async def test_list_datasets_custom_uuid_columns(mock_list, mcp_server):
     dataset.table_name = "custom_dataset"
     dataset.schema = "public"
     dataset.description = "desc"
+    dataset.certified_by = None
+    dataset.certification_details = None
     dataset.changed_by_name = "admin"
     dataset.changed_on = None
     dataset.changed_on_humanized = None
@@ -290,6 +296,8 @@ async def test_list_datasets_with_filters(mock_list, mcp_server):
     dataset.table_name = "Filtered Dataset"
     dataset.schema = "main"
     dataset.description = "desc"
+    dataset.certified_by = None
+    dataset.certification_details = None
     dataset.changed_by_name = "admin"
     dataset.changed_on = None
     dataset.changed_on_humanized = None
@@ -391,6 +399,8 @@ async def test_list_datasets_with_string_filters(mock_list, mcp_server):
     dataset.table_name = "String Filter Dataset"
     dataset.schema = "main"
     dataset.description = "desc"
+    dataset.certified_by = None
+    dataset.certification_details = None
     dataset.changed_by_name = "admin"
     dataset.changed_on = None
     dataset.changed_on_humanized = None
@@ -468,6 +478,8 @@ async def test_list_datasets_with_search(mock_list, mcp_server):
     dataset.database_name = "test_db"
     dataset.database = None
     dataset.description = "A test dataset"
+    dataset.certified_by = None
+    dataset.certification_details = None
     dataset.changed_by = "admin"
     dataset.changed_by_name = "admin"
     dataset.changed_on = None
@@ -559,6 +571,8 @@ async def test_list_datasets_simple_with_search(mock_list, mcp_server):
     dataset.database_name = "analytics_db"
     dataset.database = None
     dataset.description = "Another test dataset"
+    dataset.certified_by = None
+    dataset.certification_details = None
     dataset.changed_by = "user"
     dataset.changed_by_name = "user"
     dataset.changed_on = None
@@ -648,6 +662,8 @@ async def test_list_datasets_simple_basic(mock_list, mcp_server):
     dataset.table_name = "Test DatasetInfo"
     dataset.schema = "main"
     dataset.description = "desc"
+    dataset.certified_by = None
+    dataset.certification_details = None
     dataset.changed_by_name = "admin"
     dataset.changed_on = None
     dataset.changed_on_humanized = None
@@ -743,6 +759,8 @@ async def test_list_datasets_simple_with_filters(mock_list, mcp_server):
     dataset.table_name = "Sales Dataset"
     dataset.schema = "main"
     dataset.description = "desc"
+    dataset.certified_by = None
+    dataset.certification_details = None
     dataset.changed_by_name = "admin"
     dataset.changed_on = None
     dataset.changed_on_humanized = None
@@ -853,6 +871,8 @@ async def test_get_dataset_info_success(mock_info, mcp_server):
     dataset.table_name = "Test DatasetInfo"
     dataset.schema = "main"
     dataset.description = "desc"
+    dataset.certified_by = None
+    dataset.certification_details = None
     dataset.changed_by_name = "admin"
     dataset.changed_on = None
     dataset.changed_on_humanized = None
@@ -990,6 +1010,8 @@ async def test_get_dataset_info_includes_columns_and_metrics(mock_info, mcp_serv
     dataset.database = MagicMock()
     dataset.database.database_name = "examples"
     dataset.description = "desc"
+    dataset.certified_by = None
+    dataset.certification_details = None
     dataset.changed_by_name = "admin"
     dataset.changed_on = None
     dataset.changed_on_humanized = None
@@ -1080,6 +1102,8 @@ async def test_list_datasets_includes_columns_and_metrics(mock_list, mcp_server)
     dataset.database = MagicMock()
     dataset.database.database_name = "examples"
     dataset.description = "desc"
+    dataset.certified_by = None
+    dataset.certification_details = None
     dataset.changed_by_name = "admin"
     dataset.changed_on = None
     dataset.changed_on_humanized = None
@@ -1154,6 +1178,8 @@ async def test_get_dataset_info_by_uuid(mock_find_object, mcp_server):
     dataset.table_name = "Test Dataset UUID"
     dataset.schema = "main"
     dataset.description = "desc"
+    dataset.certified_by = None
+    dataset.certification_details = None
     dataset.changed_by_name = "admin"
     dataset.changed_on = None
     dataset.changed_on_humanized = None
@@ -1190,6 +1216,36 @@ async def test_get_dataset_info_by_uuid(mock_find_object, mcp_server):
         assert data["table_name"] == "Test Dataset UUID"
 
 
+class TestDatasetCertificationSerialization:
+    """Test certification fields flow through dataset serialization."""
+
+    def test_serialize_dataset_with_certification_fields(self):
+        """Serializes non-None certification values."""
+        from superset.mcp_service.dataset.schemas import serialize_dataset_object
+
+        dataset = create_mock_dataset()
+        dataset.certified_by = "Analytics Engineering"
+        dataset.certification_details = "Production-ready, SLA-backed"
+
+        result = serialize_dataset_object(dataset)
+
+        assert result is not None
+        assert result.certified_by == "Analytics Engineering"
+        assert result.certification_details == "Production-ready, SLA-backed"
+
+    def test_serialize_dataset_with_none_certification(self):
+        """serialize_dataset_object handles None certification fields."""
+        from superset.mcp_service.dataset.schemas import serialize_dataset_object
+
+        dataset = create_mock_dataset()
+
+        result = serialize_dataset_object(dataset)
+
+        assert result is not None
+        assert result.certified_by is None
+        assert result.certification_details is None
+
+
 class TestDatasetDefaultColumnFiltering:
     """Test default column filtering behavior for datasets."""
 
@@ -1197,12 +1253,14 @@ class TestDatasetDefaultColumnFiltering:
         """Test that minimal default columns are properly defined."""
         from superset.mcp_service.common.schema_discovery import DATASET_DEFAULT_COLUMNS
 
-        # Should have exactly 4 minimal columns
-        assert len(DATASET_DEFAULT_COLUMNS) == 4
         assert set(DATASET_DEFAULT_COLUMNS) == {
             "id",
             "table_name",
             "schema",
+            "description",
+            "certified_by",
+            "certification_details",
+            "changed_on",
             "changed_on_humanized",
         }
         assert "uuid" not in DATASET_DEFAULT_COLUMNS
@@ -1210,7 +1268,6 @@ class TestDatasetDefaultColumnFiltering:
         # Heavy columns should NOT be in defaults
         assert "columns" not in DATASET_DEFAULT_COLUMNS
         assert "metrics" not in DATASET_DEFAULT_COLUMNS
-        assert "description" not in DATASET_DEFAULT_COLUMNS
         assert "database_name" not in DATASET_DEFAULT_COLUMNS
 
     @patch("superset.daos.dataset.DatasetDAO.list")
@@ -1236,6 +1293,10 @@ class TestDatasetDefaultColumnFiltering:
                 "id",
                 "table_name",
                 "schema",
+                "description",
+                "certified_by",
+                "certification_details",
+                "changed_on",
                 "changed_on_humanized",
             }
 
@@ -1319,7 +1380,16 @@ class TestDatasetDefaultColumnFiltering:
             dataset_item = data["datasets"][0]
 
             # Verify ONLY default columns are present in the response item
-            expected_keys = {"id", "table_name", "schema", "changed_on_humanized"}
+            expected_keys = {
+                "id",
+                "table_name",
+                "schema",
+                "description",
+                "certified_by",
+                "certification_details",
+                "changed_on",
+                "changed_on_humanized",
+            }
             actual_keys = set(dataset_item.keys())
 
             # The response should only contain the default columns, NOT all columns
@@ -1332,10 +1402,8 @@ class TestDatasetDefaultColumnFiltering:
 
             # Verify non-default columns are NOT present (not even with null values)
             non_default_columns = [
-                "description",
                 "database_name",
                 "changed_by",
-                "changed_on",
                 "columns",
                 "metrics",
             ]

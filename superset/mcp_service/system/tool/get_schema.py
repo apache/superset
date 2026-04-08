@@ -24,7 +24,7 @@ Column metadata is extracted dynamically from SQLAlchemy models.
 """
 
 import logging
-from typing import Callable, Literal
+from typing import Callable
 
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
@@ -37,18 +37,22 @@ from superset.mcp_service.common.schema_discovery import (
     DASHBOARD_DEFAULT_COLUMNS,
     DASHBOARD_SEARCH_COLUMNS,
     DASHBOARD_SORTABLE_COLUMNS,
+    DATABASE_DEFAULT_COLUMNS,
+    DATABASE_SEARCH_COLUMNS,
+    DATABASE_SORTABLE_COLUMNS,
     DATASET_DEFAULT_COLUMNS,
     DATASET_SEARCH_COLUMNS,
     DATASET_SORTABLE_COLUMNS,
     get_chart_columns,
     get_dashboard_columns,
+    get_database_columns,
     get_dataset_columns,
     GetSchemaRequest,
     GetSchemaResponse,
     ModelSchemaInfo,
 )
+from superset.mcp_service.constants import ModelType
 from superset.mcp_service.mcp_core import ModelGetSchemaCore
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -110,14 +114,36 @@ def _get_dashboard_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
     )
 
 
+def _get_database_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
+    """Create database schema core with dynamically extracted columns."""
+    # Lazy import to avoid circular dependency at module load time
+    from superset.daos.database import DatabaseDAO
+    from superset.mcp_service.common.schema_discovery import DATABASE_EXCLUDE_COLUMNS
+
+    return ModelGetSchemaCore(
+        model_type="database",
+        dao_class=DatabaseDAO,
+        output_schema=ModelSchemaInfo,
+        select_columns=get_database_columns(),
+        sortable_columns=DATABASE_SORTABLE_COLUMNS,
+        default_columns=DATABASE_DEFAULT_COLUMNS,
+        search_columns=DATABASE_SEARCH_COLUMNS,
+        default_sort="changed_on",
+        default_sort_direction="desc",
+        exclude_filter_columns=DATABASE_EXCLUDE_COLUMNS,
+        logger=logger,
+    )
+
+
 # Map model types to their core factory functions
 _SCHEMA_CORE_FACTORIES: dict[
-    Literal["chart", "dataset", "dashboard"],
+    ModelType,
     Callable[[], ModelGetSchemaCore[ModelSchemaInfo]],
 ] = {
     "chart": _get_chart_schema_core,
     "dataset": _get_dataset_schema_core,
     "dashboard": _get_dashboard_schema_core,
+    "database": _get_database_schema_core,
 }
 
 
@@ -129,7 +155,6 @@ _SCHEMA_CORE_FACTORIES: dict[
         destructiveHint=False,
     ),
 )
-@parse_request(GetSchemaRequest)
 async def get_schema(request: GetSchemaRequest, ctx: Context) -> GetSchemaResponse:
     """
     Get comprehensive schema metadata for a model type.
@@ -145,7 +170,7 @@ async def get_schema(request: GetSchemaRequest, ctx: Context) -> GetSchemaRespon
     Column metadata is extracted dynamically from SQLAlchemy models.
 
     Args:
-        model_type: One of "chart", "dataset", or "dashboard"
+        model_type: One of "chart", "dataset", "dashboard", or "database"
 
     Returns:
         Comprehensive schema information for the requested model type

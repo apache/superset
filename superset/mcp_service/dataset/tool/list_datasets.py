@@ -40,7 +40,6 @@ from superset.mcp_service.dataset.schemas import (
     serialize_dataset_object,
 )
 from superset.mcp_service.mcp_core import ModelListCore
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +48,10 @@ DEFAULT_DATASET_COLUMNS = [
     "id",
     "table_name",
     "schema",
+    "description",
+    "certified_by",
+    "certification_details",
+    "changed_on",
     "changed_on_humanized",
 ]
 
@@ -70,7 +73,6 @@ SORTABLE_DATASET_COLUMNS = [
         destructiveHint=False,
     ),
 )
-@parse_request(ListDatasetsRequest)
 async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetList:
     """List datasets with filtering and search.
 
