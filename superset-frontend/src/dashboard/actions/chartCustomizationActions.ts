@@ -203,9 +203,16 @@ export function saveChartCustomization(
           acc[customization.id] = customization;
           return acc;
         }, {});
+        const interactiveCustomizationDataMaskUpdates =
+          modifiedCustomizations.filter(
+            (item): item is ChartCustomization =>
+              item.type === ChartCustomizationType.ChartCustomization &&
+              !isDynamicTitleCustomization(item),
+          );
 
         const customizationFilterChanges: SaveFilterChangesType = {
-          modified: modifiedCustomizations as unknown as Filter[],
+          modified:
+            interactiveCustomizationDataMaskUpdates as unknown as Filter[],
           deleted: deletedIds,
           reordered: reorderedIds,
         };

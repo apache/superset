@@ -1033,3 +1033,93 @@ test('prevents saving a dynamic title when its referenced filter is outside the 
   ).toBeInTheDocument();
   expect(onSave).not.toHaveBeenCalled();
 });
+
+test('prevents saving overlapping dynamic titles scoped to the same chart', async () => {
+  const scopedDashboardLayout = {
+    ...dashboardLayout,
+    present: {
+      ...dashboardLayout.present,
+      CHART_ID: {
+        ...dashboardLayout.present.CHART_ID,
+        parents: ['ROOT_ID'],
+      },
+    },
+  };
+  const nativeFilterConfig = [
+    buildNativeFilter('NATIVE_FILTER-country', 'Country', []),
+  ];
+  const existingCustomization = {
+    id: 'CHART_CUSTOMIZATION-dynamic-title-1',
+    type: 'CHART_CUSTOMIZATION',
+    name: 'Sales context',
+    filterType: ChartCustomizationPlugins.DynamicTitle,
+    targets: [],
+    scope: {
+      rootPath: ['ROOT_ID'],
+      excluded: [],
+    },
+    controlValues: {
+      template: '{{chart_title}} - {{country}}',
+      tokenMappings: {
+        country: 'NATIVE_FILTER-country',
+      },
+    },
+    defaultDataMask: {},
+  };
+  const conflictingCustomization = {
+    ...existingCustomization,
+    id: 'CHART_CUSTOMIZATION-dynamic-title-2',
+    name: 'Regional context',
+  };
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+        chart_customization_config: [
+          existingCustomization,
+          conflictingCustomization,
+        ],
+      },
+    },
+    dashboardLayout: scopedDashboardLayout,
+    nativeFilters: {
+      filters: {
+        'NATIVE_FILTER-country': {
+          ...nativeFilterConfig[0],
+          description: '',
+          chartsInScope: [18],
+        },
+      },
+    },
+    dataMask: {
+      'NATIVE_FILTER-country': {
+        id: 'NATIVE_FILTER-country',
+        extraFormData: {},
+        filterState: {
+          label: 'Austria',
+          value: ['Austria'],
+        },
+        ownState: {},
+      },
+    },
+  };
+  const onSave = jest.fn();
+
+  defaultRender(state as ReturnType<typeof defaultState>, {
+    ...props,
+    createNewOnOpen: false,
+    initialFilterId: conflictingCustomization.id,
+    onSave,
+  });
+
+  fireEvent.change(screen.getByRole('textbox', { name: /template/i }), {
+    target: { value: '{{chart_title}} - {{country}} - updated' },
+  });
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+
+  expect(
+    await screen.findByText(/a chart can only have one dynamic title/i),
+  ).toBeInTheDocument();
+  expect(onSave).not.toHaveBeenCalled();
+});

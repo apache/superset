@@ -47,6 +47,7 @@ import { DEFAULT_CSV_STREAMING_ROW_THRESHOLD } from 'src/constants';
 import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
 import type { RootState, Datasource, Slice } from 'src/dashboard/types';
+import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import {
   convertChartStateToOwnState,
   hasChartStateConverter,
@@ -86,6 +87,7 @@ import {
   DYNAMIC_TITLE_CHART_TITLE_ALIAS,
   getDynamicTitleControlValues,
   renderDynamicTitleTemplate,
+  resolveChartsInScope,
 } from '../../../util/dynamicTitle';
 
 interface ChartProps {
@@ -419,6 +421,9 @@ const Chart = (props: ChartProps) => {
   const allSliceIds = useSelector(
     (state: RootState) => state.dashboardState.sliceIds,
   );
+  const dashboardLayout = useSelector(
+    (state: RootState) => state.dashboardLayout.present,
+  );
   const nativeFilters = useSelector(
     (state: RootState) => state.nativeFilters?.filters,
   );
@@ -439,6 +444,18 @@ const Chart = (props: ChartProps) => {
     enforceSharedLabelsColorsArray(
       state.dashboardInfo?.metadata?.shared_label_colors,
     ),
+  );
+  const chartLayoutItems = useMemo(
+    () =>
+      Object.values(dashboardLayout).filter(item => item?.type === CHART_TYPE),
+    [dashboardLayout],
+  );
+  const dashboardChartIds = useMemo(
+    () =>
+      chartLayoutItems
+        .map(item => item.meta?.chartId)
+        .filter((chartId): chartId is number => typeof chartId === 'number'),
+    [chartLayoutItems],
   );
 
   const formData = useMemo(
@@ -523,8 +540,12 @@ const Chart = (props: ChartProps) => {
         if (
           !filter ||
           filter.type !== NativeFilterType.NativeFilter ||
-          (filter.chartsInScope != null &&
-            !filter.chartsInScope.includes(props.id))
+          !resolveChartsInScope({
+            scope: filter.scope,
+            chartsInScope: filter.chartsInScope,
+            dashboardChartIds,
+            chartLayoutItems,
+          }).includes(props.id)
         ) {
           acc[alias] = undefined;
           return acc;
@@ -545,6 +566,8 @@ const Chart = (props: ChartProps) => {
     dynamicTitleCustomizations,
     editMode,
     nativeFilters,
+    dashboardChartIds,
+    chartLayoutItems,
     props.id,
     props.sliceName,
   ]);

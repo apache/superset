@@ -149,7 +149,17 @@ function updateDataMaskForFilterChanges(
     delete mergedDataMask[filterId];
   });
 
-  filterChanges.modified.forEach((filter: Filter) => {
+  filterChanges.modified.forEach(modifiedItem => {
+    if (isCustomizationChanges) {
+      if (
+        !isChartCustomizationItem(modifiedItem) ||
+        isDynamicTitleCustomization(modifiedItem)
+      ) {
+        return;
+      }
+    }
+
+    const filter = modifiedItem as Filter;
     const existingFilter = draftDataMask[filter.id] as FilterWithExtaFromData;
     const prevFilterDef = initialDataMask?.[filter.id] as Filter | undefined;
 

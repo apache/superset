@@ -218,6 +218,76 @@ test('should render a dynamic title from dashboard filter values', () => {
   expect(screen.getByText('Sales in Brazil')).toBeInTheDocument();
 });
 
+test('should not resolve a dynamic title token from a native filter that is out of scope via scope-only config', () => {
+  setup(
+    { sliceName: 'Static chart title' },
+    {
+      dashboardInfo: {
+        ...defaultState.dashboardInfo,
+        metadata: {
+          chart_customization_config: [
+            {
+              id: 'CHART_CUSTOMIZATION-dynamic-title',
+              type: 'CHART_CUSTOMIZATION',
+              name: 'Dynamic title',
+              filterType: ChartCustomizationPlugins.DynamicTitle,
+              targets: [],
+              scope: { rootPath: ['ROOT_ID'], excluded: [] },
+              chartsInScope: [queryId],
+              controlValues: {
+                template: 'Sales in {{country}}',
+                tokenMappings: {
+                  country: 'NATIVE_FILTER-country',
+                },
+              },
+              defaultDataMask: {},
+            },
+          ],
+        },
+      },
+      dashboardLayout: {
+        ...defaultState.dashboardLayout,
+        present: {
+          CHART_ID: {
+            ...defaultState.dashboardLayout.present.CHART_ID,
+            parents: ['ROOT_ID'],
+          },
+        },
+      },
+      nativeFilters: {
+        filters: {
+          'NATIVE_FILTER-country': {
+            id: 'NATIVE_FILTER-country',
+            type: 'NATIVE_FILTER',
+            name: 'Country',
+            filterType: 'filter_select',
+            targets: [{ datasetId: 1, column: { name: 'country' } }],
+            scope: { rootPath: ['ROOT_ID'], excluded: [queryId] },
+            controlValues: {},
+            defaultDataMask: {},
+            cascadeParentIds: [],
+            description: '',
+          },
+        },
+      },
+      dataMask: {
+        'NATIVE_FILTER-country': {
+          id: 'NATIVE_FILTER-country',
+          extraFormData: {},
+          filterState: {
+            label: 'Brazil',
+            value: ['Brazil'],
+          },
+          ownState: {},
+        },
+      },
+    },
+  );
+
+  expect(screen.getByText('Sales in')).toBeInTheDocument();
+  expect(screen.queryByText('Sales in Brazil')).not.toBeInTheDocument();
+});
+
 test('should not apply a dynamic title globally when chartsInScope is missing', () => {
   setup(
     { sliceName: 'Static chart title' },

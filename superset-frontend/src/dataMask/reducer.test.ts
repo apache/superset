@@ -176,3 +176,75 @@ test('HYDRATE_DASHBOARD keeps persisted data mask values for chart customization
   );
   expect(result[customizationId]?.ownState?.column).toEqual('country');
 });
+
+test('SET_DATA_MASK_FOR_FILTER_CHANGES_COMPLETE ignores dynamic title customizations', () => {
+  const interactiveCustomizationId = 'CHART_CUSTOMIZATION-groupby';
+  const dynamicTitleCustomizationId = 'CHART_CUSTOMIZATION-dynamic-title';
+  const initialState: DataMaskStateWithId = {
+    [dynamicTitleCustomizationId]: {
+      id: dynamicTitleCustomizationId,
+      ...getInitialDataMask(dynamicTitleCustomizationId),
+      filterState: { value: ['leaked'] },
+    },
+  };
+
+  const interactiveCustomization: ChartCustomization = {
+    id: interactiveCustomizationId,
+    name: 'Dynamic group by',
+    type: ChartCustomizationType.ChartCustomization,
+    filterType: ChartCustomizationPlugins.DynamicGroupBy,
+    targets: [],
+    scope: { rootPath: ['ROOT_ID'], excluded: [] },
+    chartsInScope: [101],
+    controlValues: { column: 'country' },
+    defaultDataMask: {
+      extraFormData: { interactive_groupby: ['country'] },
+      filterState: { value: ['country'] },
+    },
+    description: '',
+  };
+
+  const dynamicTitleCustomization: ChartCustomization = {
+    id: dynamicTitleCustomizationId,
+    name: 'Dynamic title',
+    type: ChartCustomizationType.ChartCustomization,
+    filterType: ChartCustomizationPlugins.DynamicTitle,
+    targets: [],
+    scope: { rootPath: ['ROOT_ID'], excluded: [] },
+    chartsInScope: [101],
+    controlValues: {
+      template: '{{chart_title}} - {{country}}',
+      tokenMappings: { country: 'NATIVE_FILTER-country' },
+    },
+    defaultDataMask: {},
+    description: '',
+  };
+
+  const result = reducer(initialState, {
+    type: SET_DATA_MASK_FOR_FILTER_CHANGES_COMPLETE,
+    filterChanges: {
+      deleted: [],
+      reordered: [],
+      modified: [
+        interactiveCustomization as unknown as Filter,
+        dynamicTitleCustomization as unknown as Filter,
+      ],
+    },
+    filters: {
+      [interactiveCustomizationId]:
+        interactiveCustomization as unknown as Filter,
+      [dynamicTitleCustomizationId]:
+        dynamicTitleCustomization as unknown as Filter,
+    },
+    isCustomizationChanges: true,
+  });
+
+  expect(result[interactiveCustomizationId]).toEqual(
+    expect.objectContaining({
+      id: interactiveCustomizationId,
+      extraFormData: { interactive_groupby: ['country'] },
+      filterState: { value: ['country'] },
+    }),
+  );
+  expect(result[dynamicTitleCustomizationId]).toBeUndefined();
+});

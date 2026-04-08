@@ -93,7 +93,6 @@ import { SingleValueType } from 'src/filters/components/Range/SingleValueType';
 import { RangeDisplayMode } from 'src/filters/components/Range/types';
 import { ChartCustomizationPlugins } from 'src/constants';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
-import { getChartIdsInFilterScope } from 'src/dashboard/util/getChartIdsInFilterScope';
 import {
   getFormData,
   getFilterValueForDisplay,
@@ -144,6 +143,7 @@ import {
   hasSingleChartScope,
   isBuiltInDynamicTitleAlias,
   renderDynamicTitleTemplate,
+  resolveChartsInScope,
   usesChartTitleToken,
   type DynamicTitleScopeCandidate,
   type DynamicTitleTokenMappings,
@@ -849,20 +849,16 @@ const FiltersConfigForm = (
         return [];
       }
 
-      const scope = formNativeFilter?.scope ?? nativeFilter.scope;
-
-      if (scope && Array.isArray(scope.excluded)) {
-        return getChartIdsInFilterScope(
-          scope,
-          dashboardChartIds,
-          chartLayoutItems,
-        );
-      }
-
-      return 'chartsInScope' in nativeFilter &&
-        Array.isArray(nativeFilter.chartsInScope)
-        ? nativeFilter.chartsInScope
-        : dashboardChartIds;
+      return resolveChartsInScope({
+        scope: formNativeFilter?.scope ?? nativeFilter.scope,
+        chartsInScope:
+          'chartsInScope' in nativeFilter
+            ? nativeFilter.chartsInScope
+            : undefined,
+        dashboardChartIds,
+        chartLayoutItems,
+        preferScope: Boolean(formNativeFilter?.scope),
+      });
     },
     [
       chartLayoutItems,
@@ -926,14 +922,20 @@ const FiltersConfigForm = (
           : savedCustomization && !('title' in savedCustomization)
             ? savedCustomization.scope
             : undefined;
-      const chartsInScope =
-        scope && Array.isArray(scope.excluded)
-          ? getChartIdsInFilterScope(scope, dashboardChartIds, chartLayoutItems)
-          : savedCustomization &&
-              !('title' in savedCustomization) &&
-              Array.isArray(savedCustomization.chartsInScope)
+      const chartsInScope = resolveChartsInScope({
+        scope,
+        chartsInScope:
+          savedCustomization && !('title' in savedCustomization)
             ? savedCustomization.chartsInScope
-            : [];
+            : undefined,
+        dashboardChartIds,
+        chartLayoutItems,
+        preferScope: Boolean(
+          formCustomization &&
+          'scope' in formCustomization &&
+          formCustomization.scope,
+        ),
+      });
       const template =
         formCustomization &&
         'controlValues' in formCustomization &&

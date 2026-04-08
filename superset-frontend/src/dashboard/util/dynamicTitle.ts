@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartCustomization } from '@superset-ui/core';
+import { ChartCustomization, NativeFilterScope } from '@superset-ui/core';
 import uniq from 'lodash/uniq';
 import snakeCase from 'lodash/snakeCase';
 import { ChartCustomizationPlugins } from 'src/constants';
+import { LayoutItem } from 'src/dashboard/types';
+import { getChartIdsInFilterScope } from './getChartIdsInFilterScope';
 
 export type DynamicTitleTokenMappings = Record<string, string>;
 
@@ -32,6 +34,14 @@ export interface DynamicTitleScopeCandidate {
   id: string;
   chartsInScope: number[];
   template?: string;
+}
+
+interface ResolveChartsInScopeArgs {
+  scope?: NativeFilterScope;
+  chartsInScope?: number[];
+  dashboardChartIds: number[];
+  chartLayoutItems: LayoutItem[];
+  preferScope?: boolean;
 }
 
 const PLACEHOLDER_REGEX = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g;
@@ -103,6 +113,28 @@ export const canApplyDynamicTitleToScope = (
   }
 
   return hasSingleChartScope(chartsInScope) || usesChartTitleToken(template);
+};
+
+export const resolveChartsInScope = ({
+  scope,
+  chartsInScope,
+  dashboardChartIds,
+  chartLayoutItems,
+  preferScope = false,
+}: ResolveChartsInScopeArgs): number[] => {
+  if (preferScope && scope && Array.isArray(scope.excluded)) {
+    return getChartIdsInFilterScope(scope, dashboardChartIds, chartLayoutItems);
+  }
+
+  if (Array.isArray(chartsInScope)) {
+    return chartsInScope;
+  }
+
+  if (scope && Array.isArray(scope.excluded)) {
+    return getChartIdsInFilterScope(scope, dashboardChartIds, chartLayoutItems);
+  }
+
+  return dashboardChartIds;
 };
 
 export const createDynamicTitleAlias = (
