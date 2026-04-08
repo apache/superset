@@ -23,7 +23,7 @@ import {
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
-import { ThemeMode } from '@apache-superset/core/ui';
+import { ThemeMode } from '@apache-superset/core/theme';
 import { Menu } from '@superset-ui/core/components';
 import { ThemeSubMenuProps, useThemeMenuItems } from './useThemeMenuItems';
 
@@ -38,7 +38,6 @@ const TestComponent = (props: ThemeSubMenuProps) => {
   return <Menu items={[menuItem]} />;
 };
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('useThemeMenuItems', () => {
   const defaultProps = {
     allowOSPreference: true,
