@@ -34,8 +34,7 @@
     "lodash": "^4.18.1",
     "prop-types": "*",
     "react": "^17.0.2",
-    "react-dom": "^17.0.2",
-    "react-icons": "5.4.0"
+    "react-dom": "^17.0.2"
   },
   "devDependencies": {
     "@babel/types": "^7.29.0",
