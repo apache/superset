@@ -273,7 +273,7 @@ class OAuth2ClientConfigSchema(Schema):
     scope = fields.String(required=True)
     redirect_uri = fields.String(
         required=False,
-        load_default=lambda: get_oauth2_redirect_uri(),
+        load_default=get_oauth2_redirect_uri,
     )
     authorization_request_uri = fields.String(required=True)
     token_request_uri = fields.String(required=True)

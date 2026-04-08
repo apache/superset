@@ -19,19 +19,18 @@
 Utilities for handling OAuth2 errors in MCP tools.
 """
 
+from superset.exceptions import OAuth2RedirectError
 
-def build_oauth2_redirect_message(ex: Exception) -> str:
+
+def build_oauth2_redirect_message(ex: OAuth2RedirectError) -> str:
     """
     Build a user-facing message for OAuth2RedirectError.
 
     If the exception contains an authorization URL, include it so
     the MCP client can present it to the user for authentication.
     """
-    oauth_url = ""
-    if hasattr(ex, "error") and hasattr(ex.error, "extra") and ex.error.extra:
-        oauth_url = ex.error.extra.get("url", "")
 
-    if oauth_url:
+    if oauth_url := ex.error.extra.get("redirect_uri", ""):
         return (
             "This database uses OAuth for authentication. "
             "Please open the following URL in your browser to "
