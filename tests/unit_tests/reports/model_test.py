@@ -91,7 +91,7 @@ def test_report_generate_native_filter_no_values():
     native_filter_id = "filter_id"
     column_name = "column_name"
     filter_type = "filter_select"
-    values = None
+    values: list[str | None] = []
 
     result, warning = report_schedule._generate_native_filter(
         native_filter_id, filter_type, column_name, values
