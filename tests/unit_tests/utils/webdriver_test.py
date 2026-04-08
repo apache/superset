@@ -530,6 +530,7 @@ class TestWebDriverPlaywrightFallback:
                 "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": 30000,
                 "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "networkidle",
                 "SCREENSHOT_SELENIUM_HEADSTART": 5,
+                "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 1,
                 "SCREENSHOT_LOCATE_WAIT": 10,
                 "SCREENSHOT_LOAD_WAIT": 10,
                 "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE": 10,
@@ -546,8 +547,10 @@ class TestWebDriverPlaywrightFallback:
                     "http://example.com", "test-element", mock_user
                 )
 
-        # Should handle timeout gracefully and return None
-        assert result is None
+        # page.goto() timeout is caught and logged without aborting; execution
+        # continues to the element waits, which succeed here, so a screenshot
+        # is taken and returned (not None).
+        assert result is not None
         mock_logger.exception.assert_called()
         exception_call = mock_logger.exception.call_args[0][0]
         assert "Web event %s not detected" in exception_call
