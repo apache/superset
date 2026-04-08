@@ -37,7 +37,13 @@ const ResultPaneContainer = styled.div`
 
 const GridContainer = styled.div`
   flex: 1;
-  overflow: hidden;
+  min-height: 0;
+  position: relative;
+`;
+
+const GridSizer = styled.div`
+  position: absolute;
+  inset: 0;
 `;
 
 export const SingleQueryResultPane = ({
@@ -50,7 +56,7 @@ export const SingleQueryResultPane = ({
   columnDisplayNames,
 }: SingleQueryResultPaneProp) => {
   const [filterText, setFilterText] = useState('');
-  const { gridHeight, gridContainerRef } = useGridHeight();
+  const { gridHeight, measuredRef } = useGridHeight();
 
   const columns = useGridColumns(colnames, coltypes, data, columnDisplayNames);
   const keywordFilter = useKeywordFilter(filterText);
@@ -72,15 +78,17 @@ export const SingleQueryResultPane = ({
         isLoading={false}
         canDownload={canDownload}
       />
-      <GridContainer ref={gridContainerRef}>
-        <GridTable
-          data={data}
-          columns={columns}
-          height={gridHeight}
-          size={GridSize.Small}
-          externalFilter={keywordFilter}
-          showRowNumber
-        />
+      <GridContainer>
+        <GridSizer ref={measuredRef}>
+          <GridTable
+            data={data}
+            columns={columns}
+            height={gridHeight}
+            size={GridSize.Small}
+            externalFilter={keywordFilter}
+            showRowNumber
+          />
+        </GridSizer>
       </GridContainer>
     </ResultPaneContainer>
   );

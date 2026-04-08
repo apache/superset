@@ -89,22 +89,28 @@ export function useKeywordFilter(filterText: string) {
   );
 }
 
-export function useGridHeight(defaultHeight = 300) {
-  const [gridHeight, setGridHeight] = useState(defaultHeight);
-  const gridContainerRef = useRef<HTMLDivElement>(null);
+/**
+ * Measures the height of an absolutely-positioned inner element that fills
+ * its relative-positioned parent. This avoids circular dependencies between
+ * GridTable's explicit pixel height and flex layout.
+ */
+export function useGridHeight(fallbackHeight = 400) {
+  const [gridHeight, setGridHeight] = useState(fallbackHeight);
+  const measuredRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const container = gridContainerRef.current;
-    if (!container) return undefined;
+    const el = measuredRef.current;
+    if (!el) return undefined;
     const observer = new ResizeObserver(entries => {
       const entry = entries[0];
       if (entry) {
-        setGridHeight(entry.contentRect.height);
+        const h = Math.floor(entry.contentRect.height);
+        setGridHeight(prev => (prev !== h ? h : prev));
       }
     });
-    observer.observe(container);
+    observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
-  return { gridHeight, gridContainerRef };
+  return { gridHeight, measuredRef };
 }

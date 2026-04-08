@@ -39,7 +39,13 @@ const Error = styled.pre`
 
 const GridContainer = styled.div`
   flex: 1;
-  overflow: hidden;
+  min-height: 0;
+  position: relative;
+`;
+
+const GridSizer = styled.div`
+  position: absolute;
+  inset: 0;
 `;
 
 const cache = new WeakSet();
@@ -59,7 +65,7 @@ export const SamplesPane = ({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [rowcount, setRowCount] = useState<number>(0);
   const [responseError, setResponseError] = useState<string>('');
-  const { gridHeight, gridContainerRef } = useGridHeight();
+  const { gridHeight, measuredRef } = useGridHeight();
   const datasourceId = useMemo(
     () => `${datasource.id}__${datasource.type}`,
     [datasource],
@@ -143,15 +149,17 @@ export const SamplesPane = ({
         isLoading={isLoading}
         canDownload={canDownload}
       />
-      <GridContainer ref={gridContainerRef}>
-        <GridTable
-          data={data}
-          columns={columns}
-          height={gridHeight}
-          size={GridSize.Small}
-          externalFilter={keywordFilter}
-          showRowNumber
-        />
+      <GridContainer>
+        <GridSizer ref={measuredRef}>
+          <GridTable
+            data={data}
+            columns={columns}
+            height={gridHeight}
+            size={GridSize.Small}
+            externalFilter={keywordFilter}
+            showRowNumber
+          />
+        </GridSizer>
       </GridContainer>
     </>
   );
