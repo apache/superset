@@ -160,29 +160,24 @@ export const getYAxisFormatter = (
   return defaultFormatter ?? getNumberFormatter();
 };
 
-export function getTooltipTimeFormatter(
-  format?: string,
-): TimeFormatter | StringConstructor {
+export function getTooltipTimeFormatter(format?: string): TimeFormatter {
   if (format === SMART_DATE_ID) {
     return getSmartDateVerboseFormatter();
   }
   if (format) {
     return getTimeFormatter(format);
   }
-  return String;
+  return getSmartDateVerboseFormatter();
 }
 
 export function getXAxisFormatter(
   format?: string,
   timeGrain?: string,
-): TimeFormatter | StringConstructor | undefined {
+): TimeFormatter | undefined {
   if (format === SMART_DATE_ID || !format) {
     return getSmartDateFormatter(timeGrain);
   }
-  if (format) {
-    return getTimeFormatter(format);
-  }
-  return String;
+  return getTimeFormatter(format);
 }
 
 /**
