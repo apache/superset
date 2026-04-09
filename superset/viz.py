@@ -1521,6 +1521,29 @@ class MapboxViz(BaseViz):
         }
 
 
+class MapLibreViz(MapboxViz):
+    """Rich maps made with MapLibre"""
+
+    viz_type = "point_cluster_map"
+    verbose_name = _("Point Cluster Map")
+    credits = '<a href="https://maplibre.org/">MapLibre GL JS</a>'
+
+    @deprecated(deprecated_in="3.0")
+    def query_obj(self) -> QueryObjectDict:
+        self.form_data["mapbox_label"] = self.form_data.get("map_label")
+        return super().query_obj()
+
+    @deprecated(deprecated_in="3.0")
+    def get_data(self, df: pd.DataFrame) -> VizData:
+        self.form_data["mapbox_label"] = self.form_data.get("map_label")
+        self.form_data["mapbox_style"] = self.form_data.get("map_style")
+        self.form_data["mapbox_color"] = self.form_data.get("map_color")
+        data = super().get_data(df)
+        if data:
+            data.pop("mapboxApiKey", None)
+        return data
+
+
 class DeckGLMultiLayer(BaseViz):
     """Pile on multiple DeckGL layers"""
 
