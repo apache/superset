@@ -1200,7 +1200,7 @@ def test_start_oauth2_dance_falls_back_to_url_for(mocker: MockerFixture) -> None
         },
     )
     mocker.patch(
-        "superset.db_engine_specs.base.url_for",
+        "superset.utils.oauth2.url_for",
         return_value=fallback_uri,
     )
     mocker.patch("superset.daos.key_value.KeyValueDAO")

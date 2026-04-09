@@ -26,7 +26,7 @@ from fastmcp import Context
 from mcp.types import ToolAnnotations
 
 from superset.commands.exceptions import CommandException
-from superset.exceptions import SupersetException
+from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
 from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import mcp_auth_hook
@@ -42,6 +42,10 @@ from superset.mcp_service.chart.schemas import (
     TablePreview,
     URLPreview,
     VegaLitePreview,
+)
+from superset.mcp_service.utils.oauth2_utils import (
+    build_oauth2_redirect_message,
+    OAUTH2_CONFIG_ERROR_MESSAGE,
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 
@@ -2127,6 +2131,23 @@ async def get_chart_preview(
             )
 
         return result
+    except OAuth2RedirectError as ex:
+        await ctx.error(
+            "Chart preview requires OAuth authentication: identifier=%s"
+            % request.identifier
+        )
+        return ChartError(
+            error=build_oauth2_redirect_message(ex),
+            error_type="OAUTH2_REDIRECT",
+        )
+    except OAuth2Error:
+        await ctx.error(
+            "OAuth2 configuration error: identifier=%s" % request.identifier
+        )
+        return ChartError(
+            error=OAUTH2_CONFIG_ERROR_MESSAGE,
+            error_type="OAUTH2_REDIRECT_ERROR",
+        )
     except Exception as e:
         await ctx.error(
             "Chart preview generation failed: identifier=%s, error=%s, error_type=%s"

@@ -29,6 +29,7 @@ from mcp.types import ToolAnnotations
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.exceptions import CommandException
+from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.extensions import event_logger
 from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import has_dataset_access, mcp_auth_hook
@@ -45,6 +46,10 @@ from superset.mcp_service.chart.schemas import (
     GenerateChartRequest,
     GenerateChartResponse,
     PerformanceMetadata,
+)
+from superset.mcp_service.utils.oauth2_utils import (
+    build_oauth2_redirect_message,
+    OAUTH2_CONFIG_ERROR_MESSAGE,
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
@@ -805,6 +810,37 @@ async def generate_chart(  # noqa: C901
         )
         return GenerateChartResponse.model_validate(result)
 
+    except OAuth2RedirectError as ex:
+        await ctx.error(
+            "Chart generation requires OAuth authentication: dataset_id=%s"
+            % request.dataset_id
+        )
+        return GenerateChartResponse.model_validate(
+            {
+                "chart": None,
+                "success": False,
+                "error": {
+                    "error_type": "OAUTH2_REDIRECT",
+                    "message": build_oauth2_redirect_message(ex),
+                    "details": "OAuth2 authentication required",
+                },
+            }
+        )
+    except OAuth2Error:
+        await ctx.error(
+            "OAuth2 configuration error: dataset_id=%s" % request.dataset_id
+        )
+        return GenerateChartResponse.model_validate(
+            {
+                "chart": None,
+                "success": False,
+                "error": {
+                    "error_type": "OAUTH2_REDIRECT_ERROR",
+                    "message": OAUTH2_CONFIG_ERROR_MESSAGE,
+                    "details": "OAuth2 configuration or provider error",
+                },
+            }
+        )
     except (CommandException, SQLAlchemyError, KeyError, ValueError) as e:
         from superset import db
 

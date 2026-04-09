@@ -27,6 +27,7 @@ from mcp.types import ToolAnnotations
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.exceptions import CommandException
+from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.extensions import event_logger
 from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import mcp_auth_hook
@@ -41,6 +42,10 @@ from superset.mcp_service.chart.schemas import (
     GenerateChartResponse,
     PerformanceMetadata,
     UpdateChartRequest,
+)
+from superset.mcp_service.utils.oauth2_utils import (
+    build_oauth2_redirect_message,
+    OAUTH2_CONFIG_ERROR_MESSAGE,
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
@@ -57,7 +62,7 @@ logger = logging.getLogger(__name__)
     ),
 )
 @mcp_auth_hook(class_permission_name="Chart", method_permission_name="write")
-async def update_chart(
+async def update_chart(  # noqa: C901
     request: UpdateChartRequest, ctx: Context
 ) -> GenerateChartResponse:
     """Update existing chart with new configuration.
@@ -271,6 +276,35 @@ async def update_chart(
         }
         return GenerateChartResponse.model_validate(result)
 
+    except OAuth2RedirectError as ex:
+        await ctx.error(
+            "Chart update requires OAuth authentication: identifier=%s"
+            % request.identifier
+        )
+        return GenerateChartResponse.model_validate(
+            {
+                "chart": None,
+                "success": False,
+                "error": {
+                    "error_type": "OAUTH2_REDIRECT",
+                    "message": build_oauth2_redirect_message(ex),
+                    "details": "OAuth2 authentication required",
+                },
+            }
+        )
+    except OAuth2Error:
+        await ctx.error("OAuth2 configuration error: chart_id=%s" % request.identifier)
+        return GenerateChartResponse.model_validate(
+            {
+                "chart": None,
+                "success": False,
+                "error": {
+                    "error_type": "OAUTH2_REDIRECT_ERROR",
+                    "message": OAUTH2_CONFIG_ERROR_MESSAGE,
+                    "details": "OAuth2 configuration or provider error",
+                },
+            }
+        )
     except (
         CommandException,
         SQLAlchemyError,

@@ -29,10 +29,14 @@ import backoff
 import jwt
 from flask import current_app as app, url_for
 from marshmallow import EXCLUDE, fields, post_load, Schema, validate
+from werkzeug.routing import BuildError
 
 from superset import db
 from superset.distributed_lock import KeyValueDistributedLock
-from superset.exceptions import CreateKeyValueDistributedLockFailedException
+from superset.exceptions import (
+    CreateKeyValueDistributedLockFailedException,
+    OAuth2Error,
+)
 from superset.superset_typing import OAuth2ClientConfig, OAuth2State
 
 if TYPE_CHECKING:
@@ -243,16 +247,34 @@ def decode_oauth2_state(encoded_state: str) -> OAuth2State:
     return state
 
 
+def get_oauth2_redirect_uri() -> str:
+    """
+    Return the OAuth2 redirect URI.
+
+    Tries the explicit config first, then falls back to url_for().
+    If url_for() fails (e.g. in headless/MCP contexts where the
+    DatabaseRestApi blueprint may not be registered), raises
+    OAuth2Error so callers don't silently proceed with an invalid URI.
+    """
+    if configured := app.config.get("DATABASE_OAUTH2_REDIRECT_URI"):
+        return configured
+
+    try:
+        return url_for("DatabaseRestApi.oauth2", _external=True)
+    except (BuildError, RuntimeError):
+        raise OAuth2Error(
+            "Unable to determine the OAuth2 redirect URI. "
+            "Set DATABASE_OAUTH2_REDIRECT_URI in the configuration."
+        ) from None
+
+
 class OAuth2ClientConfigSchema(Schema):
     id = fields.String(required=True)
     secret = fields.String(required=True)
     scope = fields.String(required=True)
     redirect_uri = fields.String(
         required=False,
-        load_default=lambda: app.config.get(
-            "DATABASE_OAUTH2_REDIRECT_URI",
-            url_for("DatabaseRestApi.oauth2", _external=True),
-        ),
+        load_default=get_oauth2_redirect_uri,
     )
     authorization_request_uri = fields.String(required=True)
     token_request_uri = fields.String(required=True)
