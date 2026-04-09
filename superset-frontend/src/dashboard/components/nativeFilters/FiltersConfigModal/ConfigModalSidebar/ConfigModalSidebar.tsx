@@ -53,11 +53,11 @@ const StyledHeaderFlex = styled(Flex)`
 
 // min-height: 0 lets the flex item shrink below its content size so that
 // overflow: auto produces a scrollbar when the filter list is taller than
-// the sidebar (sc-101839). Without it, flex items default to
-// min-height: auto and refuse to shrink.
+// the sidebar. Without it, flex items default to min-height: auto and
+// refuse to shrink.
 const BaseStyledCollapse = styled(Collapse)<{ isDragging: boolean }>`
   flex: 1;
-  min-height: 0; /* required for flex item to shrink — see sc-101839 */
+  min-height: 0; /* required for flex item to shrink */
   overflow: auto;
   .ant-collapse-content-box {
     padding: 0;
