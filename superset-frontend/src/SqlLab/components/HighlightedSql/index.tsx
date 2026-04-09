@@ -121,6 +121,7 @@ function HighlightedSql({
           maxWidth={maxWidth}
         />
       }
+      responsive
     />
   );
 }
