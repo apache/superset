@@ -299,6 +299,23 @@ class BaseReportState:
                 )
             ]
 
+        native_filter_params, filter_warnings = (
+            self._report_schedule.get_native_filters_params()
+        )
+        if filter_warnings:
+            self._filter_warnings.extend(filter_warnings)
+        if native_filter_params and native_filter_params != "()":
+            return [
+                self._get_tab_url(
+                    {
+                        "urlParams": [
+                            ["native_filters", native_filter_params]  # type: ignore
+                        ],
+                    },
+                    user_friendly=user_friendly,
+                )
+            ]
+
         dashboard = self._report_schedule.dashboard
         dashboard_id_or_slug = (
             dashboard.uuid if dashboard and dashboard.uuid else dashboard.id
