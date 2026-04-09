@@ -745,8 +745,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         # Drill to Detail: no slice/chart context, dataset must belong to the dashboard
         if (
-            not form_data.get("slice_id")
-            and not form_data.get("chart_id")
+            form_data.get("slice_id") is None
+            and form_data.get("chart_id") is None
             and datasource in dashboard.datasources
         ):
             return True
