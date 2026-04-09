@@ -23,7 +23,7 @@ import logging
 from typing import cast, TYPE_CHECKING
 
 from fastmcp import Context
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
     from superset.models.slice import Slice
@@ -38,7 +38,6 @@ from superset.mcp_service.chart.schemas import (
     serialize_chart_object,
 )
 from superset.mcp_service.mcp_core import ModelListCore
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +46,12 @@ DEFAULT_CHART_COLUMNS = [
     "id",
     "slice_name",
     "viz_type",
-    "uuid",
+    "description",
+    "certified_by",
+    "certification_details",
+    "url",
+    "changed_on",
+    "changed_on_humanized",
 ]
 
 SORTABLE_CHART_COLUMNS = [
@@ -61,12 +65,20 @@ SORTABLE_CHART_COLUMNS = [
 ]
 
 
-@tool(tags=["core"])
-@parse_request(ListChartsRequest)
+@tool(
+    tags=["core"],
+    class_permission_name="Chart",
+    annotations=ToolAnnotations(
+        title="List charts",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
     """List charts with filtering and search.
 
-    Returns chart metadata including id, name, and viz_type.
+    Returns chart metadata including id, name, viz_type, URL, and last
+    modified time.
 
     Sortable columns for order_column: id, slice_name, viz_type,
     datasource_name, description, changed_on, created_on

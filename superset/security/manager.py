@@ -259,6 +259,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     SecurityManager
 ):
     userstatschartview = None
+    register_superset_auth_view = True
+    """Set to False in subclasses that provide their own auth view."""
+    register_superset_registeruser_view = True
+    """Set to False in subclasses that provide their own register user view."""
     READ_ONLY_MODEL_VIEWS = {"Database", "DynamicPlugin"}
 
     role_api = SupersetRoleApi
@@ -694,6 +698,32 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return True
 
         return False
+
+    def _validate_child_in_parent_multilayer(
+        self, child_slice_id: int, parent_slice: "Slice"
+    ) -> bool:
+        """
+        Validate that a child slice ID is actually configured in the parent
+        multi-layer chart's deck_slices configuration.
+
+        This prevents attackers from forging a parent_slice_id to gain
+        unauthorized access to arbitrary charts.
+        """
+        try:
+            # Parse the parent chart's configuration
+            parent_form_data = json.loads(parent_slice.params or "{}")
+
+            # Check if this is actually a multi-layer deck.gl chart
+            if parent_form_data.get("viz_type") != "deck_multi":
+                return False
+
+            # Get the configured child slices
+            deck_slices = parent_form_data.get("deck_slices", [])
+
+            # Validate the child is in the parent's configuration
+            return child_slice_id in deck_slices
+        except (json.JSONDecodeError, TypeError):
+            return False
 
     def has_drill_by_access(
         self,
@@ -2604,12 +2634,34 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             form_data.get("type") != "NATIVE_FILTER"
                             and (slice_id := form_data.get("slice_id"))
                             and (
-                                slc := self.session.query(Slice)
-                                .filter(Slice.id == slice_id)
-                                .one_or_none()
+                                # Direct chart access (no parent)
+                                (
+                                    form_data.get("parent_slice_id") is None
+                                    and (
+                                        slc := self.session.query(Slice)
+                                        .filter(Slice.id == slice_id)
+                                        .one_or_none()
+                                    )
+                                    and slc in dashboard_.slices
+                                    and slc.datasource == datasource
+                                )
+                                or
+                                # Multi-layer chart child access (has parent)
+                                (
+                                    (parent_id := form_data.get("parent_slice_id"))
+                                    and (
+                                        parent_slc := self.session.query(Slice)
+                                        .filter(Slice.id == parent_id)
+                                        .one_or_none()
+                                    )
+                                    and parent_slc in dashboard_.slices
+                                    # Validate child is actually part of parent's config
+                                    and self._validate_child_in_parent_multilayer(
+                                        child_slice_id=slice_id,
+                                        parent_slice=parent_slc,
+                                    )
+                                )
                             )
-                            and slc in dashboard_.slices
-                            and slc.datasource == datasource
                         )
                         or self.has_drill_by_access(form_data, dashboard_, datasource)
                     )
@@ -3119,10 +3171,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def register_views(self) -> None:
         from superset.views.auth import SupersetAuthView, SupersetRegisterUserView
 
-        self.auth_view = self.appbuilder.add_view_no_menu(SupersetAuthView)
-        self.registeruser_view = self.appbuilder.add_view_no_menu(
-            SupersetRegisterUserView
-        )
+        if self.register_superset_auth_view:
+            self.auth_view = self.appbuilder.add_view_no_menu(SupersetAuthView)
+        if self.register_superset_registeruser_view:
+            self.registeruser_view = self.appbuilder.add_view_no_menu(
+                SupersetRegisterUserView
+            )
 
         # Apply rate limiting to auth view if enabled
         # This needs to be done after the view is added, otherwise the blueprint

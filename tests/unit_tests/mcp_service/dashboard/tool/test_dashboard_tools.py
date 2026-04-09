@@ -108,14 +108,14 @@ async def test_list_dashboards_basic(mock_list, mcp_server):
         dashboards = data["dashboards"]
         assert len(dashboards) == 1
         assert dashboards[0]["dashboard_title"] == "Test Dashboard"
-        assert dashboards[0]["uuid"] == "test-dashboard-uuid-1"
         assert dashboards[0]["slug"] == "test-dashboard"
         # Note: published is not in minimal default columns (id, dashboard_title,
-        # slug, uuid) - use select_columns to include it if needed
+        # slug, url, changed_on_humanized) - use select_columns to include it
 
-        assert "uuid" in data["columns_requested"]
+        assert "url" in data["columns_requested"]
         assert "slug" in data["columns_requested"]
-        assert "uuid" in data["columns_loaded"]
+        assert "changed_on_humanized" in data["columns_requested"]
+        assert "url" in data["columns_loaded"]
         assert "slug" in data["columns_loaded"]
 
 
@@ -529,13 +529,16 @@ class TestDashboardDefaultColumnFiltering:
             DASHBOARD_DEFAULT_COLUMNS,
         )
 
-        # Should have exactly 4 minimal columns
-        assert len(DASHBOARD_DEFAULT_COLUMNS) == 4
         assert set(DASHBOARD_DEFAULT_COLUMNS) == {
             "id",
             "dashboard_title",
             "slug",
-            "uuid",
+            "description",
+            "certified_by",
+            "certification_details",
+            "url",
+            "changed_on",
+            "changed_on_humanized",
         }
 
         # Heavy columns should NOT be in defaults
@@ -543,6 +546,7 @@ class TestDashboardDefaultColumnFiltering:
         assert "published" not in DASHBOARD_DEFAULT_COLUMNS
         assert "json_metadata" not in DASHBOARD_DEFAULT_COLUMNS
         assert "position_json" not in DASHBOARD_DEFAULT_COLUMNS
+        assert "uuid" not in DASHBOARD_DEFAULT_COLUMNS
 
     def test_empty_select_columns_default(self):
         """Test that select_columns defaults to empty list which triggers
@@ -604,7 +608,8 @@ class TestDashboardDefaultColumnFiltering:
             assert "id" in data["columns_requested"]
             assert "dashboard_title" in data["columns_requested"]
             assert "slug" in data["columns_requested"]
-            assert "uuid" in data["columns_requested"]
+            assert "url" in data["columns_requested"]
+            assert "changed_on_humanized" in data["columns_requested"]
 
             # Verify heavy columns are NOT in columns_loaded by default
             assert "json_metadata" not in data["columns_loaded"]
