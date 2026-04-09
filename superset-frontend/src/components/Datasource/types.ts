@@ -53,6 +53,7 @@ export interface CRUDCollectionProps {
   emptyMessage?: ReactNode;
   expandFieldset?: ReactNode;
   extraButtons?: ReactNode;
+  toolbarExtra?: ReactNode;
   itemGenerator?: () => any;
   itemCellProps?: Record<
     string,

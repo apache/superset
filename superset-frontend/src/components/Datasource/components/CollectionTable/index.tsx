@@ -38,7 +38,9 @@ import {
 } from '../../types';
 
 const CrudButtonWrapper = styled.div`
-  text-align: right;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   ${({ theme }) => `margin-bottom: ${theme.sizeUnit * 2}px`}
 `;
 
@@ -466,24 +468,27 @@ export default class CRUDCollection extends PureComponent<
 
     return (
       <>
-        <CrudButtonWrapper>
-          {this.props.allowAddItem && (
-            <StyledButtonWrapper>
-              <Button
-                buttonSize="small"
-                buttonStyle="secondary"
-                onClick={this.onAddItem}
-                data-test="add-item-button"
-              >
-                <Icons.PlusOutlined
-                  iconSize="m"
-                  data-test="crud-add-table-item"
-                />
-                {t('Add item')}
-              </Button>
-            </StyledButtonWrapper>
-          )}
-        </CrudButtonWrapper>
+        {(this.props.toolbarExtra || this.props.allowAddItem) && (
+          <CrudButtonWrapper>
+            {this.props.toolbarExtra}
+            {this.props.allowAddItem && (
+              <StyledButtonWrapper>
+                <Button
+                  buttonSize="small"
+                  buttonStyle="secondary"
+                  onClick={this.onAddItem}
+                  data-test="add-item-button"
+                >
+                  <Icons.PlusOutlined
+                    iconSize="m"
+                    data-test="crud-add-table-item"
+                  />
+                  {t('Add item')}
+                </Button>
+              </StyledButtonWrapper>
+            )}
+          </CrudButtonWrapper>
+        )}
         <Table<CollectionItem>
           data-test="crud-table"
           columns={tableColumns}

@@ -311,6 +311,7 @@ interface ColumnCollectionTableProps {
   columnLabelTooltips?: Record<string, string>;
   filterTerm?: string;
   filterFields?: string[];
+  toolbarExtra?: ReactNode;
 }
 
 interface StackedFieldProps {
@@ -517,6 +518,7 @@ function ColumnCollectionTable({
   columnLabelTooltips,
   filterTerm,
   filterFields,
+  toolbarExtra,
 }: ColumnCollectionTableProps): JSX.Element {
   return (
     <CollectionTable
@@ -551,6 +553,7 @@ function ColumnCollectionTable({
       columnLabelTooltips={columnLabelTooltips}
       filterTerm={filterTerm}
       filterFields={filterFields}
+      toolbarExtra={toolbarExtra}
       stickyHeader
       expandFieldset={
         <FormContainer>
@@ -1820,6 +1823,7 @@ class DatasourceEditor extends PureComponent<
         <div
           css={theme => css`
             margin-top: ${theme.sizeUnit * 3}px;
+            margin-bottom: ${theme.sizeUnit * 2}px;
             display: flex;
             gap: ${theme.sizeUnit * 4}px;
           `}
@@ -1839,7 +1843,13 @@ class DatasourceEditor extends PureComponent<
         <Divider />
         <Fieldset item={datasource} onChange={this.onDatasourceChange} compact>
           {this.state.datasourceType === DATASOURCE_TYPES.virtual.key && (
-            <div>
+            <div
+              css={css`
+                .ant-form-item:last-child {
+                  margin-bottom: 0;
+                }
+              `}
+            >
               {this.state.isSqla && (
                 <>
                   <Col xs={24} md={12}>
@@ -2036,7 +2046,15 @@ class DatasourceEditor extends PureComponent<
             </div>
           )}
           {this.state.datasourceType === DATASOURCE_TYPES.physical.key && (
-            <Col xs={24} md={12}>
+            <Col
+              xs={24}
+              md={12}
+              css={css`
+                .ant-form-item:last-child {
+                  margin-bottom: 0;
+                }
+              `}
+            >
               {this.state.isSqla && (
                 <Field
                   fieldKey="tableSelector"
@@ -2131,21 +2149,24 @@ class DatasourceEditor extends PureComponent<
     const sortedMetrics = metrics?.length ? this.sortMetrics(metrics) : [];
     return (
       <div>
-        <Input.Search
-          placeholder={t('Search metrics by key or label')}
-          value={metricSearchTerm}
-          onChange={e => this.setState({ metricSearchTerm: e.target.value })}
-          css={theme => ({
-            marginBottom: theme.sizeUnit * 4,
-            width: theme.sizeUnit * 75,
-          })}
-          allowClear
-        />
         <CollectionTable
           tableColumns={['metric_name', 'verbose_name', 'expression']}
           sortColumns={['metric_name', 'verbose_name', 'expression']}
           filterTerm={metricSearchTerm}
           filterFields={['metric_name', 'verbose_name']}
+          toolbarExtra={
+            <Input.Search
+              placeholder={t('Search metrics by key or label')}
+              value={metricSearchTerm}
+              onChange={e =>
+                this.setState({ metricSearchTerm: e.target.value })
+              }
+              css={theme => ({
+                width: theme.sizeUnit * 75,
+              })}
+              allowClear
+            />
+          }
           columnLabels={{
             metric_name: t('Metric Key'),
             verbose_name: t('Label'),
@@ -2420,24 +2441,25 @@ class DatasourceEditor extends PureComponent<
               children: (
                 <StyledTableTabWrapper>
                   {this.renderDefaultColumnSettings()}
-                  <Input.Search
-                    placeholder={t('Search calculated columns by name')}
-                    value={this.state.calculatedColumnSearchTerm}
-                    onChange={e =>
-                      this.setState({
-                        calculatedColumnSearchTerm: e.target.value,
-                      })
-                    }
-                    css={theme => ({
-                      marginBottom: theme.sizeUnit * 4,
-                      width: theme.sizeUnit * 75,
-                    })}
-                    allowClear
-                  />
                   <ColumnCollectionTable
                     columns={this.state.calculatedColumns}
                     filterTerm={this.state.calculatedColumnSearchTerm}
                     filterFields={['column_name']}
+                    toolbarExtra={
+                      <Input.Search
+                        placeholder={t('Search calculated columns by name')}
+                        value={this.state.calculatedColumnSearchTerm}
+                        onChange={e =>
+                          this.setState({
+                            calculatedColumnSearchTerm: e.target.value,
+                          })
+                        }
+                        css={theme => ({
+                          width: theme.sizeUnit * 75,
+                        })}
+                        allowClear
+                      />
+                    }
                     onColumnsChange={calculatedColumns =>
                       this.setColumns({ calculatedColumns })
                     }
