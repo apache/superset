@@ -521,10 +521,13 @@ const DashboardBuilder = () => {
         {!hideDashboardHeader && <DashboardHeader />}
         {showFilterBar &&
           filterBarOrientation === FilterBarOrientation.Horizontal && (
-            <FilterBar
-              orientation={FilterBarOrientation.Horizontal}
-              hidden={isReport}
-            />
+            <>
+              <SrOnlyH2>{t('Filters')}</SrOnlyH2>
+              <FilterBar
+                orientation={FilterBarOrientation.Horizontal}
+                hidden={isReport}
+              />
+            </>
           )}
       </>
     ),
@@ -593,6 +596,7 @@ const DashboardBuilder = () => {
           hidden={isReport}
           data-test="dashboard-filters-panel"
         >
+          <SrOnlyH2>{t('Filters')}</SrOnlyH2>
           <StickyPanel ref={containerRef} width={filterBarWidth}>
             <ErrorBoundary>
               <FilterBar
