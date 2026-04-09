@@ -434,8 +434,8 @@ class Chart extends PureComponent<ChartProps, {}> {
           data-test="chart-container"
           height={height}
           width={width}
-          role="img"
-          aria-label={chartAriaLabel}
+          role={showSpinner ? undefined : 'img'}
+          aria-label={showSpinner ? undefined : chartAriaLabel}
         >
           {showSpinner
             ? this.renderSpinner(databaseName)
