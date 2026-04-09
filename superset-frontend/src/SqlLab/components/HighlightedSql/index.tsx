@@ -18,7 +18,7 @@
  */
 import { styled, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
-import { ModalTrigger } from '@superset-ui/core/components';
+import { ModalTrigger, Tabs } from '@superset-ui/core/components';
 import CodeSyntaxHighlighter from '@superset-ui/core/components/CodeSyntaxHighlighter';
 
 export interface HighlightedSqlProps {
@@ -46,6 +46,11 @@ const Title = styled.h4`
   margin: ${({ theme }) => theme.sizeUnit * 2}px 0;
   font-weight: ${({ theme }) => theme.fontWeightStrong};
 `;
+
+// Strip a trailing LIMIT (and optional OFFSET) clause for comparison purposes only.
+// This avoids showing tabs when the only difference is an applied row limit.
+const stripTrailingLimit = (sql: string) =>
+  sql.replace(/\s+LIMIT\s+\d+(\s+OFFSET\s+\d+)?\s*;?\s*$/i, '').trim();
 
 const shrinkSql = (sql: string, maxLines: number, maxWidth: number) => {
   const ssql = sql || '';
@@ -80,21 +85,46 @@ function HighlightSqlModal({ rawSql, sql }: HighlightedSqlModalTypes) {
     padding: theme.sizeUnit * 2,
   };
 
+  const sqlBlock = (
+    <CodeSyntaxHighlighter language="sql" customStyle={codeBlockStyle}>
+      {sql}
+    </CodeSyntaxHighlighter>
+  );
+
+  const isDifferent =
+    !!rawSql &&
+    rawSql !== sql &&
+    stripTrailingLimit(rawSql) !== stripTrailingLimit(sql);
+
+  if (!isDifferent) {
+    return (
+      <div>
+        <Title>{t('Source SQL')}</Title>
+        {sqlBlock}
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <Title>{t('Source SQL')}</Title>
-      <CodeSyntaxHighlighter language="sql" customStyle={codeBlockStyle}>
-        {sql}
-      </CodeSyntaxHighlighter>
-      {rawSql && rawSql !== sql && (
-        <div>
-          <Title>{t('Executed SQL')}</Title>
-          <CodeSyntaxHighlighter language="sql" customStyle={codeBlockStyle}>
-            {rawSql}
-          </CodeSyntaxHighlighter>
-        </div>
-      )}
-    </div>
+    <Tabs
+      defaultActiveKey="executed"
+      items={[
+        {
+          key: 'executed',
+          label: t('Executed SQL'),
+          children: (
+            <CodeSyntaxHighlighter language="sql" customStyle={codeBlockStyle}>
+              {rawSql}
+            </CodeSyntaxHighlighter>
+          ),
+        },
+        {
+          key: 'source',
+          label: t('Source SQL'),
+          children: sqlBlock,
+        },
+      ]}
+    />
   );
 }
 
