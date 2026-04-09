@@ -30,13 +30,7 @@ import { getTimeColumns } from 'src/explore/components/DataTableControl/utils';
 import RowCountLabel from 'src/components/RowCountLabel';
 import { TableControlsProps } from '../types';
 
-export const SAMPLES_ROW_LIMIT_OPTIONS = [
-  { value: 100, label: '100 rows' },
-  { value: 500, label: '500 rows' },
-  { value: 1000, label: '1k rows' },
-];
-
-export const RESULTS_ROW_LIMIT_OPTIONS = [
+export const ROW_LIMIT_OPTIONS = [
   { value: 100, label: '100 rows' },
   { value: 500, label: '500 rows' },
   { value: 1000, label: '1k rows' },

@@ -29,7 +29,7 @@ import { EmptyState, Loading } from '@superset-ui/core/components';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { ResultsPaneProps, QueryResultInterface } from '../types';
 import { SingleQueryResultPane } from './SingleQueryResultPane';
-import { TableControls, RESULTS_ROW_LIMIT_OPTIONS } from './DataTableControls';
+import { TableControls, ROW_LIMIT_OPTIONS } from './DataTableControls';
 
 const Error = styled.pre`
   margin-top: ${({ theme }) => `${theme.sizeUnit * 4}px`};
@@ -60,8 +60,8 @@ export const useResultsPane = ({
     queryFormData?.viz_type || queryFormData?.vizType,
   );
 
-  const DEFAULT_RESULTS_ROW_LIMIT = 1000;
-  const [rowLimit, setRowLimit] = useState(DEFAULT_RESULTS_ROW_LIMIT);
+  const chartRowLimit = queryFormData?.row_limit ?? 10000;
+  const [rowLimit, setRowLimit] = useState(1000);
   const [resultResp, setResultResp] = useState<QueryResultInterface[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [responseError, setResponseError] = useState<string>('');
@@ -70,9 +70,12 @@ export const useResultsPane = ({
 
   const noOpInputChange = useCallback(() => {}, []);
 
+  // Never exceed the chart's own row_limit
+  const effectiveRowLimit = Math.min(rowLimit, chartRowLimit);
+
   const cappedFormData = useMemo(
-    () => ({ ...queryFormData, row_limit: rowLimit }),
-    [queryFormData, rowLimit],
+    () => ({ ...queryFormData, row_limit: effectiveRowLimit }),
+    [queryFormData, effectiveRowLimit],
   );
 
   const handleRowLimitChange = useCallback(
@@ -182,7 +185,7 @@ export const useResultsPane = ({
         canDownload={canDownload}
         columnDisplayNames={columnDisplayNames}
         rowLimit={rowLimit}
-        rowLimitOptions={RESULTS_ROW_LIMIT_OPTIONS}
+        rowLimitOptions={ROW_LIMIT_OPTIONS}
         onRowLimitChange={handleRowLimitChange}
       />
     </StyledDiv>
