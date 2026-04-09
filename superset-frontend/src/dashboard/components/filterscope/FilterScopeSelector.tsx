@@ -210,11 +210,13 @@ const ScopeSelector = styled.div`
         &:hover {
           text-decoration: underline;
         }
+      }
 
-        &:focus-visible {
-          outline: 2px solid transparent; /* WCAG 2.4.7: transparent outline prevents double-ring */
-          box-shadow: 0 0 0 2px ${theme.colorPrimary};
-        }
+      /* WCAG 2.4.7: Focus on the clickable button that wraps the rct-icon spans */
+      .react-checkbox-tree button:focus-visible {
+        outline: 2px solid transparent;
+        box-shadow: 0 0 0 2px ${theme.colorPrimary};
+        border-radius: ${theme.borderRadius}px;
       }
 
       .filter-field-pane {

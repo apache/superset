@@ -85,7 +85,7 @@ export const FilterItem = styled.button`
     color: inherit;
 
     &:focus-visible {
-      box-shadow: 0 0 0 2px ${theme.colorPrimary};
+      box-shadow: inset 0 0 0 2px ${theme.colorPrimary};
       border-radius: ${theme.borderRadius}px;
     }
 

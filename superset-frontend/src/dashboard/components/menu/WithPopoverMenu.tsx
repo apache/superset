@@ -50,7 +50,9 @@ interface WithPopoverMenuState {
 const WithPopoverMenuStyles = styled.div`
   ${({ theme }) => css`
     position: relative;
-    outline: 2px solid transparent; /* WCAG 2.4.7: transparent outline prevents double-ring; :after pseudo-element provides visible focus border */
+    &:focus-visible {
+      outline: 2px solid transparent; /* WCAG 2.4.7: HC Mode fallback only when focused */
+    }
 
     &.with-popover-menu--focused:after {
       content: '';
