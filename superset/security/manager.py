@@ -26,7 +26,7 @@ from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING
 from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
 from flask_appbuilder.models.filters import BaseFilter
-from flask_appbuilder.security.sqla.apis import RoleApi, UserApi
+from flask_appbuilder.security.sqla.apis import GroupApi, RoleApi, UserApi
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
     assoc_group_role,
@@ -143,9 +143,38 @@ class SupersetRoleListWidget(ListWidget):  # pylint: disable=too-few-public-meth
         super().__init__(**kwargs)
 
 
+def _log_audit_event(action: str, payload: dict[str, Any]) -> None:
+    """Log an audit event via the configured event logger.
+
+    Delegates to the AbstractEventLogger interface so that every
+    configured implementation (DBEventLogger, S3EventLogger, etc.)
+    receives these security audit events.
+    """
+    from superset.extensions import (
+        event_logger,  # pylint: disable=import-outside-toplevel
+    )
+
+    user_id = get_user_id()
+    try:
+        event_logger.log(
+            user_id=user_id,
+            action=action,
+            dashboard_id=None,
+            duration_ms=None,
+            slice_id=None,
+            referrer=None,
+            curated_payload=None,
+            curated_form_data=None,
+            records=[payload],
+        )
+    except Exception:  # pylint: disable=broad-except
+        logger.warning("Failed to log audit event: %s", action, exc_info=True)
+
+
 class SupersetRoleApi(RoleApi):
     """
     Overriding the RoleApi to be able to delete roles with permissions
+    and to add audit logging for role CRUD operations.
     """
 
     def pre_delete(self, item: Model) -> None:
@@ -153,6 +182,15 @@ class SupersetRoleApi(RoleApi):
         Overriding this method to be able to delete items when they have constraints
         """
         item.permissions = []
+
+    def post_add(self, item: Model) -> None:
+        _log_audit_event("RoleCreated", {"role_name": item.name, "role_id": item.id})
+
+    def post_update(self, item: Model) -> None:
+        _log_audit_event("RoleUpdated", {"role_name": item.name, "role_id": item.id})
+
+    def post_delete(self, item: Model) -> None:
+        _log_audit_event("RoleDeleted", {"role_name": item.name, "role_id": item.id})
 
 
 class ExcludeUsersFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -181,6 +219,7 @@ class ExcludeUsersFilter(BaseFilter):  # pylint: disable=too-few-public-methods
 class SupersetUserApi(UserApi):
     """
     Overriding the UserApi to be able to delete users and filter excluded users
+    and to add audit logging for user CRUD operations.
     """
 
     base_filters = [["username", ExcludeUsersFilter, lambda: []]]
@@ -205,6 +244,51 @@ class SupersetUserApi(UserApi):
         Overriding this method to be able to delete items when they have constraints
         """
         item.roles = []
+
+    def post_add(self, item: Model) -> None:
+        _log_audit_event(
+            "UserCreated",
+            {
+                "target_username": item.username,
+                "target_user_id": item.id,
+                "email": item.email,
+            },
+        )
+
+    def post_update(self, item: Model) -> None:
+        _log_audit_event(
+            "UserUpdated",
+            {
+                "target_username": item.username,
+                "target_user_id": item.id,
+                "email": item.email,
+                "active": item.active,
+            },
+        )
+
+    def post_delete(self, item: Model) -> None:
+        _log_audit_event(
+            "UserDeleted",
+            {
+                "target_username": item.username,
+                "target_user_id": item.id,
+            },
+        )
+
+
+class SupersetGroupApi(GroupApi):
+    """
+    Overriding the GroupApi to add audit logging for group CRUD operations.
+    """
+
+    def post_add(self, item: Model) -> None:
+        _log_audit_event("GroupCreated", {"group_name": item.name, "group_id": item.id})
+
+    def post_update(self, item: Model) -> None:
+        _log_audit_event("GroupUpdated", {"group_name": item.name, "group_id": item.id})
+
+    def post_delete(self, item: Model) -> None:
+        _log_audit_event("GroupDeleted", {"group_name": item.name, "group_id": item.id})
 
 
 PermissionViewModelView.list_widget = SupersetSecurityListWidget
@@ -288,6 +372,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     role_api = SupersetRoleApi
     user_api = SupersetUserApi
+    group_api = SupersetGroupApi
 
     USER_MODEL_VIEWS = {
         "RegisterUserModelView",
@@ -440,6 +525,27 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         lm = super().create_login_manager(app)
         lm.request_loader(self.request_loader)
         return lm
+
+    def on_user_login(self, user: Any) -> None:
+        _log_audit_event(
+            "UserLoggedIn",
+            {"username": user.username, "user_id": user.id},
+        )
+
+    def on_user_login_failed(self, user: Any) -> None:
+        _log_audit_event(
+            "UserLoginFailed",
+            {"username": user.username, "user_id": user.id},
+        )
+
+    def on_user_logout(self, user: Any) -> None:
+        _log_audit_event(
+            "UserLoggedOut",
+            {
+                "username": getattr(user, "username", None),
+                "user_id": getattr(user, "id", None),
+            },
+        )
 
     def request_loader(self, request: Request) -> Optional[User]:
         # pylint: disable=import-outside-toplevel
