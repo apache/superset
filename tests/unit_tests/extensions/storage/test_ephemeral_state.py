@@ -28,7 +28,6 @@ from superset_core.extensions.types import Manifest
 from superset.extensions.context import ConcreteExtensionContext, use_context
 from superset.extensions.storage.ephemeral_state import (
     _build_cache_key,
-    DEFAULT_TTL,
     EphemeralStateImpl,
 )
 
@@ -71,11 +70,6 @@ def test_build_cache_key_joins_parts_with_separator():
     """_build_cache_key joins all parts with colon separator."""
     assert _build_cache_key("a", "b", "c") == "a:b:c"
     assert _build_cache_key("prefix", 123, "key") == "prefix:123:key"
-
-
-def test_default_ttl_is_one_hour():
-    """DEFAULT_TTL should be 3600 seconds (1 hour)."""
-    assert DEFAULT_TTL == 3600
 
 
 def test_ephemeral_state_raises_without_context(app: Flask) -> None:
@@ -140,8 +134,11 @@ def test_ephemeral_state_set_builds_correct_key_and_uses_ttl(
 
 
 @patch("superset.extensions.storage.ephemeral_state.cache_manager")
-def test_ephemeral_state_set_uses_default_ttl(mock_cm: MagicMock, app: Flask) -> None:
-    """EphemeralStateImpl.set() uses DEFAULT_TTL when ttl not specified."""
+def test_ephemeral_state_set_uses_cache_default_timeout(
+    mock_cm: MagicMock, app: Flask
+) -> None:
+    """EphemeralStateImpl.set() passes timeout=None when ttl not specified,
+    deferring to CACHE_DEFAULT_TIMEOUT in config."""
     mock_cache = MagicMock()
     mock_cm.extension_ephemeral_state_cache = mock_cache
 
@@ -153,7 +150,7 @@ def test_ephemeral_state_set_uses_default_ttl(mock_cm: MagicMock, app: Flask) ->
 
     mock_cache.set.assert_called_once()
     call_args = mock_cache.set.call_args
-    assert call_args.kwargs["timeout"] == DEFAULT_TTL
+    assert call_args.kwargs["timeout"] is None
 
 
 @patch("superset.extensions.storage.ephemeral_state.cache_manager")

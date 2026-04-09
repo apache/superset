@@ -39,7 +39,7 @@ import type { JsonValue, StorageAccessor } from './types';
  *
  * // User-scoped state (default - private to current user)
  * const progress = await ephemeralState.get('job_progress');
- * await ephemeralState.set('job_progress', { pct: 42 }, { ttl: 3600 });
+ * await ephemeralState.set('job_progress', { pct: 42 }, { ttl: 300 });
  * await ephemeralState.remove('job_progress');
  *
  * // Shared state (explicit opt-in - visible to all users)
@@ -50,16 +50,11 @@ import type { JsonValue, StorageAccessor } from './types';
  */
 
 /**
- * Default TTL in seconds (1 hour).
- */
-export const DEFAULT_TTL = 3600;
-
-/**
  * Options for setting ephemeral state values.
  */
 export interface SetOptions {
   /**
-   * Time-to-live in seconds. Defaults to 3600 (1 hour).
+   * Time-to-live in seconds. When omitted, the server uses CACHE_DEFAULT_TIMEOUT.
    */
   ttl?: number;
 }
@@ -106,11 +101,11 @@ export declare function get(key: string): Promise<JsonValue | null>;
  *
  * @param key The key to store.
  * @param value The value to store (must be JSON-serializable).
- * @param options Optional settings including TTL (default: 3600 seconds).
+ * @param options Optional settings including TTL (defaults to server CACHE_DEFAULT_TIMEOUT).
  *
  * @example
  * ```typescript
- * // Store with default TTL (1 hour)
+ * // Store with server default TTL (CACHE_DEFAULT_TIMEOUT)
  * await ephemeralState.set('recent_items', ['item1', 'item2']);
  *
  * // Store with custom TTL (5 minutes)
