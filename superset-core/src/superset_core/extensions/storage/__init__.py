@@ -56,12 +56,4 @@ Usage:
     # persistent_state.for_resource('dashboard', uuid).get('settings')
 """
 
-from superset_core.extensions.storage import ephemeral_state
-
-# Future: Tier 3
-# from superset_core.extensions.storage import persistent_state
-
-__all__ = [
-    "ephemeral_state",
-    # Future: "persistent_state",
-]
+from superset_core.extensions.storage import ephemeral_state  # noqa: F401
