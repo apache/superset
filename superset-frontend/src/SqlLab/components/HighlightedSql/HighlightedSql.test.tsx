@@ -36,6 +36,17 @@ test('renders a ModalTrigger component with shrink prop and maxWidth prop set to
   );
   expect(getByTestId('span-modal-trigger')).toBeInTheDocument();
 });
+test('renders single SQL block with no tabs when rawSql equals sql', () => {
+  const { getByRole, queryByRole, getByTestId, queryByText } = render(
+    <HighlightedSql sql={sql} rawSql={sql} shrink maxWidth={5} />,
+  );
+  expect(queryByRole('dialog')).not.toBeInTheDocument();
+  fireEvent.click(getByTestId('span-modal-trigger'));
+  expect(queryByRole('dialog')).toBeInTheDocument();
+  expect(queryByText('Executed SQL')).not.toBeInTheDocument();
+  expect(queryByText('Source SQL')).toBeInTheDocument();
+});
+
 test('renders tabs when rawSql differs from sql', () => {
   const { getByRole, queryByRole, getByTestId, getByText } = render(
     <HighlightedSql sql={sql} rawSql="SELECT * FROM foo" shrink maxWidth={5} />,

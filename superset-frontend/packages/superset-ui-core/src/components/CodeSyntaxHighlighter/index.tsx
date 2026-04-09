@@ -106,7 +106,7 @@ export const CodeSyntaxHighlighter: React.FC<CodeSyntaxHighlighterProps> = ({
   );
 
   const handleCopy = useCallback(() => {
-    navigator.clipboard?.writeText(children).then(() => {
+    navigator.clipboard?.writeText(children)?.then(() => {
       setCopied(true);
       copyTimeoutRef.current = setTimeout(() => setCopied(false), 1500);
     });
