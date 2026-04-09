@@ -394,7 +394,7 @@ def generate_dashboard(  # noqa: C901
 
         # Convert to our response format
         from superset.mcp_service.dashboard.schemas import (
-            _serialize_chart_summary,
+            serialize_chart_summary,
             serialize_tag_object,
             serialize_user_object,
         )
@@ -426,7 +426,7 @@ def generate_dashboard(  # noqa: C901
             charts=[
                 obj
                 for chart in getattr(dashboard, "slices", [])
-                if (obj := _serialize_chart_summary(chart)) is not None
+                if (obj := serialize_chart_summary(chart)) is not None
             ],
         )
 

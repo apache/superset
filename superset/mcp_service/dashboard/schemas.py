@@ -573,12 +573,13 @@ def _extract_native_filters(json_metadata_str: str | None) -> List[NativeFilterS
         raw_targets = f.get("targets", [])
         if not isinstance(raw_targets, list):
             raw_targets = []
+        targets = [t for t in raw_targets if isinstance(t, dict)]
         summaries.append(
             NativeFilterSummary(
                 id=f.get("id"),
                 name=f.get("name"),
                 filter_type=f.get("filterType"),
-                targets=raw_targets,
+                targets=targets,
             )
         )
     return summaries
@@ -627,7 +628,7 @@ def _build_omitted_fields(
     )
 
 
-def _serialize_chart_summary(chart: Any) -> DashboardChartSummary | None:
+def serialize_chart_summary(chart: Any) -> DashboardChartSummary | None:
     """Serialize a chart to a lightweight summary for dashboard context."""
     if not chart:
         return None
@@ -635,7 +636,7 @@ def _serialize_chart_summary(chart: Any) -> DashboardChartSummary | None:
 
     chart_id = getattr(chart, "id", None)
     chart_url = None
-    if chart_id:
+    if chart_id is not None:
         chart_url = f"{get_superset_base_url()}/explore/?slice_id={chart_id}"
 
     return DashboardChartSummary(
@@ -679,10 +680,15 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
         created_on_humanized=dashboard.created_on_humanized,
         changed_on_humanized=dashboard.changed_on_humanized,
         chart_count=len(dashboard.slices) if dashboard.slices else 0,
-        native_filters=_extract_native_filters(dashboard.json_metadata),
-        cross_filters_enabled=_extract_cross_filters_enabled(dashboard.json_metadata),
+        native_filters=_extract_native_filters(
+            getattr(dashboard, "json_metadata", None)
+        ),
+        cross_filters_enabled=_extract_cross_filters_enabled(
+            getattr(dashboard, "json_metadata", None)
+        ),
         omitted_fields=_build_omitted_fields(
-            dashboard.json_metadata, dashboard.position_json
+            getattr(dashboard, "json_metadata", None),
+            getattr(dashboard, "position_json", None),
         ),
         owners=[
             info
@@ -705,7 +711,7 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
         charts=[
             summary
             for chart in dashboard.slices
-            if (summary := _serialize_chart_summary(chart)) is not None
+            if (summary := serialize_chart_summary(chart)) is not None
         ]
         if dashboard.slices
         else [],
@@ -787,7 +793,7 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
         charts=[
             summary
             for chart in getattr(dashboard, "slices", [])
-            if (summary := _serialize_chart_summary(chart)) is not None
+            if (summary := serialize_chart_summary(chart)) is not None
         ]
         if getattr(dashboard, "slices", None)
         else [],

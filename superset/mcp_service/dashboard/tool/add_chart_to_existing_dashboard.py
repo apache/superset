@@ -37,10 +37,10 @@ from superset.mcp_service.dashboard.constants import (
     GRID_DEFAULT_CHART_WIDTH,
 )
 from superset.mcp_service.dashboard.schemas import (
-    _serialize_chart_summary,
     AddChartToDashboardRequest,
     AddChartToDashboardResponse,
     DashboardInfo,
+    serialize_chart_summary,
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
@@ -525,7 +525,7 @@ def add_chart_to_existing_dashboard(
             charts=[
                 obj
                 for chart in getattr(updated_dashboard, "slices", [])
-                if (obj := _serialize_chart_summary(chart)) is not None
+                if (obj := serialize_chart_summary(chart)) is not None
             ],
         )
 
