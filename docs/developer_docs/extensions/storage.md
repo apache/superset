@@ -30,11 +30,10 @@ Each extension receives its own isolated storage namespace. When Superset loads 
 
 ## Storage Tiers
 
-| Tier | Storage Type      | Context Property                           | Use Case                                         |
-| ---- | ----------------- | ------------------------------------------ | ------------------------------------------------ |
-| 1    | Browser storage   | `ctx.storage.local`, `ctx.storage.session` | UI state, wizard progress, draft forms           |
-| 2    | Server-side cache | `ctx.storage.ephemeral`                    | Job progress, temporary results                  |
-| 3    | Database          | `ctx.storage.persistent`                   | User preferences, extension config (coming soon) |
+| Tier | Storage Type      | Context Property                           | Use Case                               |
+| ---- | ----------------- | ------------------------------------------ | -------------------------------------- |
+| 1    | Browser storage   | `ctx.storage.local`, `ctx.storage.session` | UI state, wizard progress, draft forms |
+| 2    | Server-side cache | `ctx.storage.ephemeral`                    | Job progress, temporary results        |
 
 ## Tier 1: Local State
 
@@ -124,7 +123,7 @@ import { getContext } from '@apache-superset/core/extensions';
 
 const ctx = getContext();
 
-// Store with default TTL (1 hour)
+// Store with server default TTL (CACHE_DEFAULT_TIMEOUT)
 await ctx.storage.ephemeral.set('job_progress', { pct: 42, status: 'running' });
 
 // Store with custom TTL (5 minutes)
@@ -148,8 +147,8 @@ from superset_core.extensions.context import get_context
 
 ctx = get_context()
 
-# Store job progress
-ctx.storage.ephemeral.set('job_progress', {'pct': 42, 'status': 'running'}, ttl=3600)
+# Store job progress (uses CACHE_DEFAULT_TIMEOUT when ttl is omitted)
+ctx.storage.ephemeral.set('job_progress', {'pct': 42, 'status': 'running'})
 
 # Retrieve
 progress = ctx.storage.ephemeral.get('job_progress')
@@ -193,10 +192,6 @@ result = ctx.storage.ephemeral.shared.get('shared_result')
 - Not guaranteed to survive server restarts
 - Subject to cache eviction under memory pressure
 - TTL-based expiration (data disappears after timeout)
-
-## Tier 3: Persistent State
-
-Coming soon.
 
 ## Key Patterns
 
