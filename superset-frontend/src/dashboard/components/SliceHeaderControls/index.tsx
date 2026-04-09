@@ -616,9 +616,8 @@ const SliceHeaderControls = (
 
       if (isChartFullscreen !== Boolean(isFullSize)) {
         props.handleToggleFullSize();
+        queueChartResize();
       }
-
-      queueChartResize();
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
