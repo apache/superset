@@ -71,6 +71,7 @@ export const Alert = (props: AlertProps) => {
   return (
     <AntdAlert
       role="alert"
+      aria-atomic="true"
       aria-live={type === 'error' ? 'assertive' : 'polite'}
       type={type}
       showIcon={showIcon}

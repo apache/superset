@@ -90,3 +90,23 @@ test('should render with error theme', () => {
     `,
   );
 });
+
+// WCAG 3.3.1 - Error Identification accessibility tests
+test('should have role="alert" for screen reader announcement', () => {
+  render(<BasicErrorAlert {...mockedProps} />);
+  const alertElement = screen.getByRole('alert');
+  expect(alertElement).toBeInTheDocument();
+});
+
+test('should have aria-atomic="true" so the entire alert is read as a unit', () => {
+  render(<BasicErrorAlert {...mockedProps} />);
+  const alertElement = screen.getByRole('alert');
+  expect(alertElement).toHaveAttribute('aria-atomic', 'true');
+});
+
+test('should contain both title and body text within the alert region', () => {
+  render(<BasicErrorAlert {...mockedProps} />);
+  const alertElement = screen.getByRole('alert');
+  expect(alertElement).toHaveTextContent('Error title');
+  expect(alertElement).toHaveTextContent('Error body');
+});

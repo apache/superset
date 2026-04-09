@@ -176,8 +176,28 @@ const ControlHeader: FC<ControlHeaderProps> = ({
                 placement="top"
                 title={validationErrors?.join(' ')}
               >
-                <Icons.ExclamationCircleOutlined iconColor={theme.colorError} />
-              </Tooltip>{' '}
+                <Icons.ExclamationCircleOutlined
+                  iconColor={theme.colorError}
+                  aria-hidden="true"
+                />
+              </Tooltip>
+              <span
+                id={`${name || 'control'}-error`}
+                role="alert"
+                css={css`
+                  position: absolute;
+                  width: 1px;
+                  height: 1px;
+                  padding: 0;
+                  margin: -1px;
+                  overflow: hidden;
+                  clip: rect(0, 0, 0, 0);
+                  white-space: nowrap;
+                  border: 0;
+                `}
+              >
+                {validationErrors?.join('. ')}
+              </span>{' '}
             </span>
           )}
           {renderOptionalIcons()}
