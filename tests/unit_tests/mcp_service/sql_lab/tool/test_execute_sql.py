@@ -1130,7 +1130,7 @@ class TestExecuteSqlOAuth2:
             data = result.structured_content
             assert data["success"] is False
             assert "OAuth" in data["error"]
-            assert "https://superset.example.com/callback" in data["error"]
+            assert "https://oauth.example.com/authorize" in data["error"]
             assert data["error_type"] == "OAUTH2_REDIRECT"
 
     @patch("superset.security_manager")

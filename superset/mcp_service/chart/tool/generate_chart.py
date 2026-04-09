@@ -843,6 +843,7 @@ async def generate_chart(  # noqa: C901
                 "error": {
                     "error_type": "OAUTH2_REDIRECT",
                     "message": build_oauth2_redirect_message(ex),
+                    "details": "OAuth2 authentication required",
                 },
             }
         )
@@ -857,6 +858,7 @@ async def generate_chart(  # noqa: C901
                 "error": {
                     "error_type": "OAUTH2_REDIRECT_ERROR",
                     "message": OAUTH2_CONFIG_ERROR_MESSAGE,
+                    "details": "OAuth2 configuration or provider error",
                 },
             }
         )
