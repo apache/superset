@@ -24,7 +24,7 @@ import prison
 import pytest
 from flask import current_app
 
-from superset import db, security_manager
+from superset import db, security_manager as sm
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.connectors.sqla.models import (  # noqa: F401
@@ -536,26 +536,21 @@ class TestDatasource(SupersetTestCase):
         """
         # Gamma role doesn't have dataset access (mimic embedded role),
         # but needs access to the /samples endpoint
+        gamma_role = sm.find_role("Gamma")
+        perm_view = sm.find_permission_view_menu("can_samples", "Datasource")
+        sm.add_permission_role(gamma_role, perm_view)
         self.login(GAMMA_USERNAME)
-
-        perm_view = security_manager.find_permission_view_menu(
-            "can_samples", "Datasource"
-        )
-        security_manager.add_permission_role(
-            security_manager.find_role("Gamma"), perm_view
-        )
         mock_is_guest_user.return_value = True
         mock_has_guest_access.return_value = True
         mock_rls.return_value = []
         tbl = self.get_table(name="birth_names")
         dash = self.get_dash_by_slug("births")
-        uri = f"/datasource/samples?datasource_id={tbl.id}&datasource_type=table&dashboard_id={dash.id}"  # noqa: E501
-        resp = self.client.post(uri, json={})
-        assert resp.status_code == 200
-
-        security_manager.del_permission_role(
-            security_manager.find_role("Gamma"), perm_view
-        )
+        try:
+            uri = f"/datasource/samples?datasource_id={tbl.id}&datasource_type=table&dashboard_id={dash.id}"  # noqa: E501
+            resp = self.client.post(uri, json={})
+            assert resp.status_code == 200
+        finally:
+            sm.del_permission_role(gamma_role, perm_view)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
