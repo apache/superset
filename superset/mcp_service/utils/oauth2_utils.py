@@ -26,21 +26,15 @@ def build_oauth2_redirect_message(ex: OAuth2RedirectError) -> str:
     """
     Build a user-facing message for OAuth2RedirectError.
 
-    If the exception contains an authorization URL, include it so
-    the MCP client can present it to the user for authentication.
+    Extracts the authorization URL from the exception and includes it
+    so the MCP client can present it to the user for authentication.
     """
-
-    if oauth_url := (ex.error.extra or {}).get("url", ""):
-        return (
-            "This database uses OAuth for authentication. "
-            "Please open the following URL in your browser to "
-            "authorize access, then retry this request:\n\n"
-            f"{oauth_url}"
-        )
+    oauth_url = ex.error.extra["url"]
     return (
         "This database uses OAuth for authentication. "
-        "Please authenticate via the Superset UI first, "
-        "then retry this request."
+        "Please open the following URL in your browser to "
+        "authorize access, then retry this request:\n\n"
+        f"{oauth_url}"
     )
 
 
