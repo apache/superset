@@ -83,29 +83,6 @@ const Styles = styled.div<EchartsStylesProps>`
   width: ${({ width }) => width};
 `;
 
-const syncTooltipAppendToBody = (
-  tooltip: EchartsProps['echartOptions']['tooltip'],
-) => {
-  if (!tooltip) {
-    return tooltip;
-  }
-
-  const appendToBody =
-    typeof document !== 'undefined' ? !document.fullscreenElement : true;
-
-  if (Array.isArray(tooltip)) {
-    return tooltip.map(config => ({
-      ...config,
-      appendToBody,
-    }));
-  }
-
-  return {
-    ...tooltip,
-    appendToBody,
-  };
-};
-
 // eslint-disable-next-line react-hooks/rules-of-hooks -- This is ECharts' use function, not a React hook
 use([
   CanvasRenderer,
@@ -168,8 +145,6 @@ function Echart(
     refs.divRef = divRef;
   }
   const [didMount, setDidMount] = useState(false);
-  const [fullscreenTooltipSyncVersion, setFullscreenTooltipSyncVersion] =
-    useState(0);
   const chartRef = useRef<EChartsType>();
   const currentSelection = useMemo(
     () => Object.keys(selectedValues) || [],
@@ -275,12 +250,7 @@ function Echart(
         return echartsTheme;
       };
 
-      const syncedEchartOptions = {
-        ...echartOptions,
-        tooltip: syncTooltipAppendToBody(echartOptions.tooltip),
-      };
-
-      const baseTheme = getEchartsTheme(syncedEchartOptions);
+      const baseTheme = getEchartsTheme(echartOptions);
       const globalOverrides = theme.echartsOptionsOverrides || {};
       const chartOverrides = vizType
         ? theme.echartsOptionsOverridesByChartType?.[vizType] || {}
@@ -296,7 +266,7 @@ function Echart(
 
       const themedEchartOptions = mergeEchartsThemeOverrides(
         baseTheme,
-        syncedEchartOptions,
+        echartOptions,
         globalOverrides,
         chartOverrides,
         animationOverride,
@@ -313,31 +283,7 @@ function Echart(
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- isDashboardRefreshing intentionally excluded to prevent extra setOption calls
-  }, [
-    didMount,
-    echartOptions,
-    eventHandlers,
-    fullscreenTooltipSyncVersion,
-    zrEventHandlers,
-    theme,
-    vizType,
-  ]);
-
-  useEffect(() => {
-    if (!didMount) {
-      return undefined;
-    }
-
-    const handleFullscreenChange = () => {
-      chartRef.current?.dispatchAction({ type: 'hideTip' });
-      setFullscreenTooltipSyncVersion(version => version + 1);
-    };
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    };
-  }, [didMount]);
+  }, [didMount, echartOptions, eventHandlers, zrEventHandlers, theme, vizType]);
 
   useEffect(() => () => chartRef.current?.dispose(), []);
 
