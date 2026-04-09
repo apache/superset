@@ -74,9 +74,6 @@ function PropertiesModal({
   // values of form inputs
   const [name, setName] = useState(slice.slice_name || '');
   const [description, setDescription] = useState(slice.description || '');
-  const [cacheTimeout, setCacheTimeout] = useState(
-    slice.cache_timeout != null ? String(slice.cache_timeout) : '',
-  );
   const [certifiedBy, setCertifiedBy] = useState(slice.certified_by || '');
   const [certificationDetails, setCertificationDetails] = useState(
     slice.certified_by && slice.certification_details
@@ -93,7 +90,7 @@ function PropertiesModal({
     () => [
       {
         key: 'general',
-        name: t('General settings'),
+        name: t('Basic info'),
         validator: () => {
           const errors = [];
           if (!name || name.trim().length === 0) {
@@ -103,23 +100,12 @@ function PropertiesModal({
         },
       },
       {
-        key: 'configuration',
-        name: t('Configuration'),
-        validator: () => {
-          const errors = [];
-          if (cacheTimeout && Number.isNaN(Number(cacheTimeout))) {
-            errors.push(t('Cache timeout must be a number'));
-          }
-          return errors;
-        },
-      },
-      {
         key: 'advanced',
-        name: t('Advanced'),
+        name: t('Certification'),
         validator: () => [],
       },
     ],
-    [name, cacheTimeout],
+    [name],
   );
 
   const {
@@ -249,7 +235,6 @@ function PropertiesModal({
     const payload: { [key: string]: any } = {
       slice_name: name || null,
       description: description || null,
-      cache_timeout: cacheTimeout ? Number(cacheTimeout) : null,
       certified_by: certifiedBy || null,
       certification_details:
         certifiedBy && certificationDetails ? certificationDetails : null,
@@ -303,11 +288,6 @@ function PropertiesModal({
     validateSection('general');
   }, [name, validateSection]);
 
-  // Validate configuration section when cache timeout changes
-  useEffect(() => {
-    validateSection('configuration');
-  }, [cacheTimeout, validateSection]);
-
   const handleChangeTags = (tags: { label: string; value: number }[]) => {
     const parsedTags: TagType[] = ensureIsArray(tags).map(r => ({
       id: r.value,
@@ -349,8 +329,8 @@ function PropertiesModal({
             key: 'general',
             label: (
               <CollapseLabelInModal
-                title={t('General settings')}
-                subtitle={t('Basic information about the chart')}
+                title={t('Basic info')}
+                subtitle={t('Name, description, and ownership')}
                 validateCheckStatus={!validationStatus.general?.hasErrors}
                 testId="general-section"
               />
@@ -371,6 +351,7 @@ function PropertiesModal({
                     data-test="properties-modal-name-input"
                     type="text"
                     value={name}
+                    placeholder={t('Enter a name for this chart')}
                     onChange={(event: ChangeEvent<HTMLInputElement>) =>
                       setName(event.target.value ?? '')
                     }
@@ -379,12 +360,13 @@ function PropertiesModal({
                 <ModalFormField
                   label={t('Description')}
                   helperText={t(
-                    'The description can be displayed as widget headers in the dashboard view. Supports markdown.',
+                    'Add context to this chart. Supports markdown. The description can be displayed as a header in dashboard view.',
                   )}
                 >
                   <Input.TextArea
                     rows={3}
                     value={description}
+                    placeholder={t('Add a description for this chart')}
                     onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
                       setDescription(event.target.value ?? '')
                     }
@@ -393,7 +375,7 @@ function PropertiesModal({
                 <ModalFormField
                   label={t('Owners')}
                   helperText={t(
-                    'A list of users who can alter the chart. Searchable by name or username.',
+                    'Users who can modify this chart. Searchable by name or username.',
                   )}
                 >
                   <AsyncSelect
@@ -412,7 +394,7 @@ function PropertiesModal({
                   <ModalFormField
                     label={t('Tags')}
                     helperText={t(
-                      'A list of tags that have been applied to this chart.',
+                      'Tags applied to this chart for organization and discovery.',
                     )}
                     bottomSpacing={false}
                   >
@@ -431,46 +413,11 @@ function PropertiesModal({
             ),
           },
           {
-            key: 'configuration',
-            label: (
-              <CollapseLabelInModal
-                title={t('Configuration')}
-                subtitle={t('Configure caching and performance settings')}
-                validateCheckStatus={!validationStatus.configuration?.hasErrors}
-                testId="configuration-section"
-              />
-            ),
-            children: (
-              <ModalFormField
-                label={t('Cache timeout')}
-                helperText={t(
-                  "Duration (in seconds) of the caching timeout for this chart. Set to -1 to bypass the cache. Note this defaults to the dataset's timeout if undefined.",
-                )}
-                error={
-                  validationStatus.configuration?.hasErrors &&
-                  cacheTimeout &&
-                  Number.isNaN(Number(cacheTimeout))
-                    ? t('Cache timeout must be a number')
-                    : undefined
-                }
-                bottomSpacing={false}
-              >
-                <Input
-                  aria-label={t('Cache timeout')}
-                  value={cacheTimeout}
-                  onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                    setCacheTimeout(event.target.value ?? '')
-                  }
-                />
-              </ModalFormField>
-            ),
-          },
-          {
             key: 'advanced',
             label: (
               <CollapseLabelInModal
-                title={t('Advanced')}
-                subtitle={t('Certification and additional settings')}
+                title={t('Certification')}
+                subtitle={t('Mark this chart as certified')}
                 validateCheckStatus={!validationStatus.advanced?.hasErrors}
                 testId="advanced-section"
               />
@@ -480,12 +427,13 @@ function PropertiesModal({
                 <ModalFormField
                   label={t('Certified by')}
                   helperText={t(
-                    'Person or group that has certified this chart.',
+                    'Person or team that has certified this chart.',
                   )}
                 >
                   <Input
                     aria-label={t('Certified by')}
                     value={certifiedBy}
+                    placeholder={t('Name of certifying person or team')}
                     onChange={(event: ChangeEvent<HTMLInputElement>) =>
                       setCertifiedBy(event.target.value ?? '')
                     }
@@ -494,13 +442,14 @@ function PropertiesModal({
                 <ModalFormField
                   label={t('Certification details')}
                   helperText={t(
-                    'Any additional detail to show in the certification tooltip.',
+                    'Additional details shown in the certification tooltip.',
                   )}
                   bottomSpacing={false}
                 >
                   <Input
                     aria-label={t('Certification details')}
                     value={certificationDetails}
+                    placeholder={t('Describe the certification')}
                     onChange={(event: ChangeEvent<HTMLInputElement>) =>
                       setCertificationDetails(event.target.value ?? '')
                     }

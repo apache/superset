@@ -204,12 +204,14 @@ test('Should render all elements inside modal', async () => {
       // Check we have the modal
       expect(screen.getByRole('dialog')).toBeInTheDocument();
 
-      // Check for collapse sections instead of expecting all textboxes to be visible
-      expect(screen.getByText('General settings')).toBeInTheDocument();
-      expect(screen.getByText('Configuration')).toBeInTheDocument();
-      expect(screen.getByText('Advanced')).toBeInTheDocument();
+      // Check for collapse sections
+      expect(screen.getByText('Basic info')).toBeInTheDocument();
+      expect(screen.getByText('Certification')).toBeInTheDocument();
 
-      // Only General settings is expanded by default
+      // Configuration section should not be present
+      expect(screen.queryByText('Configuration')).not.toBeInTheDocument();
+
+      // Only Basic info is expanded by default
       // Check for visible labels and fields in the expanded section
       expect(screen.getByText('Name')).toBeInTheDocument();
       expect(screen.getByText('Description')).toBeInTheDocument();
@@ -284,8 +286,10 @@ test('Empty "Certified by" should clear "Certification details"', async () => {
   };
   renderModal(noCertifiedByProps);
 
-  // Expand the Advanced section first to access certification details
-  const advancedPanel = screen.getByText('Advanced').closest('[role="tab"]');
+  // Expand the Certification section first to access certification details
+  const advancedPanel = screen
+    .getByText('Certification')
+    .closest('[role="tab"]');
   if (advancedPanel) {
     await userEvent.click(advancedPanel);
   }
@@ -338,30 +342,15 @@ test('"Name" should not be empty when saved', async () => {
   });
 });
 
-test('"Cache timeout" should not be empty when saved', async () => {
+test('"Cache timeout" field should not be present in the modal', async () => {
   const props = createProps();
   renderModal(props);
 
-  // Expand the Configuration section first to access cache timeout
-  const configPanel = screen.getByText('Configuration').closest('[role="tab"]');
-  if (configPanel) {
-    await userEvent.click(configPanel);
-  }
-
-  const cacheTimeout = await screen.findByRole('textbox', {
-    name: 'Cache timeout',
-  });
-  await userEvent.clear(cacheTimeout);
-  await userEvent.type(cacheTimeout, '1000');
-  expect(cacheTimeout).toHaveValue('1000');
-
-  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
-
   await waitFor(() => {
-    expect(props.onSave).toHaveBeenCalledTimes(1);
-    expect(props.onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ cache_timeout: 1000 }),
-    );
+    expect(
+      screen.queryByRole('textbox', { name: 'Cache timeout' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Configuration')).not.toBeInTheDocument();
   });
 });
 
@@ -397,8 +386,10 @@ test('"Certified by" should not be empty when saved', async () => {
   const props = createProps();
   renderModal(props);
 
-  // Expand the Advanced section first to access certified by
-  const advancedPanel = screen.getByText('Advanced').closest('[role="tab"]');
+  // Expand the Certification section first to access certified by
+  const advancedPanel = screen
+    .getByText('Certification')
+    .closest('[role="tab"]');
   if (advancedPanel) {
     await userEvent.click(advancedPanel);
   }
