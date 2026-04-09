@@ -257,7 +257,10 @@ MCP_RESPONSE_SIZE_CONFIG: Dict[str, Any] = {
 #
 # Rollback:
 # ---------
-# Set enabled=False in superset_config.py for instant rollback.
+# - Set enabled=False to disable tool search entirely (full catalog exposed).
+# - Set compact_schemas=False to disable schema compaction only (full $defs
+#   and descriptions in search results, tool search still active).
+# - Set max_description_length=0 to disable description truncation only.
 # =============================================================================
 MCP_TOOL_SEARCH_CONFIG: Dict[str, Any] = {
     "enabled": True,  # Enabled by default — reduces initial context by ~70%

@@ -467,10 +467,11 @@ def test_truncate_description_empty():
 
 
 def test_truncate_description_zero_max():
-    """Zero max_length truncates to empty (caller gates on 0 = no truncation)."""
+    """Zero max_length produces ellipsis; the serializer skips calling this."""
     text = "Some text"
-    # _truncate_description(text, 0) truncates to 0 chars — the caller
-    # (_create_search_result_serializer) skips calling it when max_desc=0.
+    # _truncate_description(text, 0) truncates to 0 chars and appends "...".
+    # The caller (_create_search_result_serializer) skips calling it when
+    # max_desc=0 so this edge case only matters for direct callers.
     result = _truncate_description(text, 0)
     assert result == "..."
 
@@ -559,6 +560,44 @@ def test_create_serializer_disabled():
     assert result[0]["description"] == "A long description " * 20
 
 
+def test_create_serializer_compact_false_disables_truncation():
+    """compact_schemas=False also disables description truncation by default."""
+    long_desc = "A very long description. " * 30
+    tool = _make_mock_tool(
+        "test_tool",
+        long_desc,
+        {"type": "object", "$defs": {"Model": {"type": "object"}}},
+    )
+
+    serializer = _create_search_result_serializer({"compact_schemas": False})
+    result = serializer([tool])
+
+    # $defs should still be present (compaction disabled)
+    assert "$defs" in result[0]["inputSchema"]
+    # Description should NOT be truncated (max_desc defaults to 0 when compact=False)
+    assert result[0]["description"] == long_desc
+
+
+def test_create_serializer_compact_false_explicit_truncation():
+    """compact_schemas=False with explicit max_description_length still truncates."""
+    long_desc = "First sentence. " + "x" * 500
+    tool = _make_mock_tool(
+        "test_tool",
+        long_desc,
+        {"type": "object", "$defs": {"Model": {"type": "object"}}},
+    )
+
+    serializer = _create_search_result_serializer(
+        {"compact_schemas": False, "max_description_length": 200}
+    )
+    result = serializer([tool])
+
+    # $defs should still be present (compaction disabled)
+    assert "$defs" in result[0]["inputSchema"]
+    # Description SHOULD be truncated (explicitly requested)
+    assert len(result[0]["description"]) <= 203
+
+
 def test_create_serializer_uses_config_defaults():
     """Empty config uses defaults (compact=True, max_desc=300)."""
     long_desc = "First sentence. " + "x" * 500
@@ -577,3 +616,27 @@ def test_create_serializer_uses_config_defaults():
 
     assert "$defs" not in result[0]["inputSchema"]
     assert len(result[0]["description"]) <= 303
+
+
+def test_apply_transform_uses_compact_serializer():
+    """_apply_tool_search_transform wires _create_search_result_serializer."""
+    mock_mcp = MagicMock()
+    config = {
+        "strategy": "bm25",
+        "max_results": 5,
+        "always_visible": ["health_check"],
+        "search_tool_name": "search_tools",
+        "call_tool_name": "call_tool",
+        "compact_schemas": True,
+        "max_description_length": 200,
+    }
+
+    _apply_tool_search_transform(mock_mcp, config)
+
+    mock_mcp.add_transform.assert_called_once()
+    transform = mock_mcp.add_transform.call_args[0][0]
+    # The serializer should NOT be the plain _serialize_tools_without_output_schema
+    assert (
+        transform._search_result_serializer
+        is not _serialize_tools_without_output_schema
+    )

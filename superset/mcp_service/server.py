@@ -289,7 +289,10 @@ def _create_search_result_serializer(
     a basic invocation.
     """
     compact = config.get("compact_schemas", True)
-    max_desc = config.get("max_description_length", 300)
+    # Description truncation defaults to 300 when compact_schemas is on,
+    # but is disabled when compact_schemas is off (unless explicitly set).
+    max_desc_default = 300 if compact else 0
+    max_desc = config.get("max_description_length", max_desc_default)
 
     if not compact and not max_desc:
         return _serialize_tools_without_output_schema
