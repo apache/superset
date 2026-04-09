@@ -117,6 +117,24 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
       margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
     }
   }
+
+  /* WCAG 1.4.10 Reflow: wrap menu and buttons at narrow viewports */
+  @media (max-width: 480px) {
+    .menu {
+      flex-wrap: wrap;
+    }
+
+    .nav-right,
+    .nav-right-collapse {
+      position: relative;
+      right: auto;
+      float: none;
+      flex-wrap: wrap;
+      width: 100%;
+      justify-content: flex-start;
+      gap: ${({ theme }) => theme.sizeUnit}px;
+    }
+  }
 `;
 
 const styledDisabled = (theme: SupersetTheme) => css`

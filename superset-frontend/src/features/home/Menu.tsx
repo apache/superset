@@ -56,6 +56,12 @@ const StyledHeader = styled.header`
     .caret {
       display: none;
     }
+
+    /* WCAG 1.4.10 Reflow: prevent horizontal overflow at narrow viewports */
+    @media (max-width: 768px) {
+      padding: 0 ${theme.sizeUnit * 2}px;
+      overflow-x: hidden;
+    }
   `}
 `;
 
@@ -81,6 +87,11 @@ const StyledBrandText = styled.div`
     }
 
     @media (max-width: 1127px) {
+      display: none;
+    }
+
+    /* WCAG 1.4.10 Reflow: allow wrapping at narrow viewports */
+    @media (max-width: 768px) {
       display: none;
     }
   `}
@@ -141,6 +152,19 @@ const StyledMainNav = styled(MainNav)`
     .ant-menu-submenu-selected.ant-menu-submenu-horizontal::after {
       transform: scale(1);
     }
+
+    /* WCAG 1.4.10 Reflow: allow menu items to wrap at narrow viewports */
+    @media (max-width: 768px) {
+      flex-wrap: wrap;
+
+      .ant-menu-submenu.ant-menu-submenu-horizontal {
+        .ant-menu-submenu-title {
+          padding: 0 ${theme.sizeUnit * 2}px;
+          min-height: 44px;
+          min-width: 44px;
+        }
+      }
+    }
   `}
 `;
 
@@ -177,6 +201,12 @@ const StyledCol = styled(Col)`
     display: flex;
     gap: ${theme.sizeUnit * 4}px;
     flex-wrap: wrap;
+
+    /* WCAG 1.4.10 Reflow: allow stacking at narrow viewports */
+    @media (max-width: 768px) {
+      gap: ${theme.sizeUnit * 2}px;
+      max-width: 100%;
+    }
   `}
 `;
 

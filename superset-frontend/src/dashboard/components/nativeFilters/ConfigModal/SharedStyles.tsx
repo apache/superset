@@ -39,6 +39,18 @@ export const BaseModalWrapper = styled(StyledModal)<BaseModalWrapperProps>`
     min-width: auto;
   }
 
+  /* WCAG 1.4.10 Reflow: full-width modal at narrow viewports */
+  @media (max-width: 768px) {
+    min-width: 100%;
+    width: 100% !important;
+    padding: 0;
+    margin: 0;
+  }
+
+  @media (max-width: 480px) {
+    min-width: 100%;
+  }
+
   .ant-modal-header {
     margin-bottom: 0;
   }
@@ -82,6 +94,12 @@ export const BaseModalBody = styled.div<BaseModalBodyProps>`
     display: flex;
     flex-direction: column;
   }
+
+  /* WCAG 1.4.10 Reflow: stack sidebar above content at narrow viewports */
+  @media (max-width: 768px) {
+    flex-direction: column;
+    height: auto;
+  }
 `;
 
 export const BaseForm = styled(Form)`
@@ -94,14 +112,29 @@ export const BaseExpandButtonWrapper = styled.div`
 
 export const BaseFormItem = styled(Form.Item)<{ expanded?: boolean }>`
   width: ${({ expanded }) => (expanded ? '49%' : '260px')};
+
+  /* WCAG 1.4.10 Reflow */
+  @media (max-width: 480px) {
+    width: 100%;
+  }
 `;
 
 export const BaseRowFormItem = styled(Form.Item)<{ expanded?: boolean }>`
   min-width: ${({ expanded }) => (expanded ? '50%' : '260px')};
+
+  /* WCAG 1.4.10 Reflow */
+  @media (max-width: 480px) {
+    min-width: 100%;
+  }
 `;
 
 export const BaseRowSubFormItem = styled(Form.Item)<{ expanded?: boolean }>`
   min-width: ${({ expanded }) => (expanded ? '50%' : '260px')};
+
+  /* WCAG 1.4.10 Reflow */
+  @media (max-width: 480px) {
+    min-width: 100%;
+  }
 `;
 
 export const BaseLabel = styled.span`
