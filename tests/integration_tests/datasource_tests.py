@@ -24,7 +24,7 @@ import prison
 import pytest
 from flask import current_app
 
-from superset import db
+from superset import db, security_manager
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.connectors.sqla.models import (  # noqa: F401
@@ -531,9 +531,19 @@ class TestDatasource(SupersetTestCase):
         self, mock_has_guest_access, mock_is_guest_user, mock_rls
     ):
         """
-        Embedded user can access the /samples view.
+        Embedded guest user can access /samples (for D2D) via the dashboard context
+        passed as form_data to QueryContextFactory.
         """
-        self.login(ADMIN_USERNAME)
+        # Gamma role doesn't have dataset access (mimic embedded role),
+        # but needs access to the /samples endpoint
+        self.login(GAMMA_USERNAME)
+
+        perm_view = security_manager.find_permission_view_menu(
+            "can_samples", "Datasource"
+        )
+        security_manager.add_permission_role(
+            security_manager.find_role("Gamma"), perm_view
+        )
         mock_is_guest_user.return_value = True
         mock_has_guest_access.return_value = True
         mock_rls.return_value = []
@@ -542,6 +552,10 @@ class TestDatasource(SupersetTestCase):
         uri = f"/datasource/samples?datasource_id={tbl.id}&datasource_type=table&dashboard_id={dash.id}"  # noqa: E501
         resp = self.client.post(uri, json={})
         assert resp.status_code == 200
+
+        security_manager.del_permission_role(
+            security_manager.find_role("Gamma"), perm_view
+        )
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
