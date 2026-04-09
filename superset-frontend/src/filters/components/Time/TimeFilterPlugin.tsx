@@ -61,8 +61,8 @@ const ControlContainer = styled.div<{
   }
 
   /* WCAG 1.4.11: Focus indicator needs 3:1 contrast — controlOutline is too light (low alpha).
-     Use colorPrimary for both border and shadow to ensure 3:1+ contrast. */
-  &:focus > div {
+     Use focus-within since keyboard focus lands on descendants, not this container. */
+  &:focus-within > div {
     border-color: ${({ theme }) => theme.colorPrimary};
     box-shadow: ${({ theme }) => `0 0 0 2px ${theme.colorPrimary}`};
     outline: 0;
