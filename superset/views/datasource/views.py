@@ -201,16 +201,15 @@ class Datasource(BaseSupersetView):
             payload = SamplesPayloadSchema().load(request.json)
         except ValidationError as err:
             return json_error_response(err.messages, status=400)
-
+        dashboard_id = None
         if security_manager.is_guest_user():
             if not params["dashboard_id"]:
                 return json_error_response(_("Forbidden"), status=403)
+            dashboard_id = params["dashboard_id"]
             dataset = DatasetDAO.find_by_id(
                 params["datasource_id"], skip_base_filter=True
             )
-            dashboard = DashboardDAO.find_by_id(
-                params["dashboard_id"], skip_base_filter=True
-            )
+            dashboard = DashboardDAO.find_by_id(dashboard_id, skip_base_filter=True)
             if not (dashboard and dataset):
                 return self.response_404()
             if not security_manager.can_drill_dataset_via_dashboard_access(
@@ -226,6 +225,7 @@ class Datasource(BaseSupersetView):
             page=params["page"],
             per_page=params["per_page"],
             payload=payload,
+            dashboard_id=dashboard_id,
         )
         return self.json_response({"result": rv})
 

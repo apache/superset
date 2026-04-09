@@ -788,27 +788,36 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         except (json.JSONDecodeError, TypeError):
             return False
 
-    def has_drill_by_access(
+    def has_drill_access(
         self,
         form_data: dict[str, Any],
         dashboard: "Dashboard",
         datasource: "BaseDatasource | Explorable",
     ) -> bool:
         """
-        Return True if the form_data is performing a supported drill by operation,
-        False otherwise.
+        Return True if the form_data is performing a supported drill operation
+        (Drill to Detail or Drill By), False otherwise.
 
         :param form_data: The form_data included in the request.
         :param dashboard: The dashboard the user is drilling from.
         :param datasource: The datasource being queried
-        :returns: Whether the user has drill by access.
+        :returns: Whether the user has drill access.
         """
 
         from superset.models.slice import Slice
 
+        # Drill to Detail: no slice/chart context, dataset must belong to the dashboard
+        if (
+            form_data.get("slice_id") is None
+            and form_data.get("chart_id") is None
+            and datasource in dashboard.datasources
+        ):
+            return True
+
+        # Drill By: slice_id is 0 (sentinel), chart_id identifies the source chart,
+        # and the requested groupby columns must be drillable
         return bool(
-            form_data.get("type") != "NATIVE_FILTER"
-            and form_data.get("slice_id") == 0
+            form_data.get("slice_id") == 0
             and (chart_id := form_data.get("chart_id"))
             and (
                 slc := self.session.query(Slice)
@@ -2652,40 +2661,51 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             )
                         )
                         or (
-                            # Chart.
                             form_data.get("type") != "NATIVE_FILTER"
-                            and (slice_id := form_data.get("slice_id"))
                             and (
-                                # Direct chart access (no parent)
                                 (
-                                    form_data.get("parent_slice_id") is None
+                                    # Chart.
+                                    (slice_id := form_data.get("slice_id"))
                                     and (
-                                        slc := self.session.query(Slice)
-                                        .filter(Slice.id == slice_id)
-                                        .one_or_none()
+                                        # Direct chart access (no parent)
+                                        (
+                                            form_data.get("parent_slice_id") is None
+                                            and (
+                                                slc := self.session.query(Slice)
+                                                .filter(Slice.id == slice_id)
+                                                .one_or_none()
+                                            )
+                                            and slc in dashboard_.slices
+                                            and slc.datasource == datasource
+                                        )
+                                        or
+                                        # Multi-layer chart child access (has parent)
+                                        (
+                                            (
+                                                parent_id := form_data.get(
+                                                    "parent_slice_id"
+                                                )
+                                            )
+                                            and (
+                                                parent_slc := self.session.query(Slice)
+                                                .filter(Slice.id == parent_id)
+                                                .one_or_none()
+                                            )
+                                            and parent_slc in dashboard_.slices
+                                            # Validate child is actually part of parent's config    # noqa: E501
+                                            and self._validate_child_in_parent_multilayer(  # noqa: E501
+                                                child_slice_id=slice_id,
+                                                parent_slice=parent_slc,
+                                            )
+                                        )
                                     )
-                                    and slc in dashboard_.slices
-                                    and slc.datasource == datasource
                                 )
-                                or
-                                # Multi-layer chart child access (has parent)
-                                (
-                                    (parent_id := form_data.get("parent_slice_id"))
-                                    and (
-                                        parent_slc := self.session.query(Slice)
-                                        .filter(Slice.id == parent_id)
-                                        .one_or_none()
-                                    )
-                                    and parent_slc in dashboard_.slices
-                                    # Validate child is actually part of parent's config
-                                    and self._validate_child_in_parent_multilayer(
-                                        child_slice_id=slice_id,
-                                        parent_slice=parent_slc,
-                                    )
+                                # D2D or Drill By
+                                or self.has_drill_access(
+                                    form_data, dashboard_, datasource
                                 )
                             )
                         )
-                        or self.has_drill_by_access(form_data, dashboard_, datasource)
                     )
                     and self.can_access_dashboard(dashboard_)
                 )
