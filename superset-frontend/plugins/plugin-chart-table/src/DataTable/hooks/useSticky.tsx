@@ -173,47 +173,65 @@ function StickyWrap({
   // update scrollable area and header column sizes when mounted
   useLayoutEffect(() => {
     if (!theadRef.current) {
-      return;
+      return undefined;
     }
     const bodyThead = theadRef.current;
-    const theadHeight = bodyThead.clientHeight;
-    const tfootHeight = tfootRef.current ? tfootRef.current.clientHeight : 0;
-    if (!theadHeight) {
-      return;
+
+    const measure = () => {
+      const theadHeight = bodyThead.clientHeight;
+      const tfootHeight = tfootRef.current ? tfootRef.current.clientHeight : 0;
+      if (!theadHeight) {
+        return false;
+      }
+      const fullTableHeight = (bodyThead.parentNode as HTMLTableElement)
+        .clientHeight;
+      // instead of always using the first tr, we use the last one to support
+      // multi-level headers assuming the last one is the more detailed one
+      const ths = bodyThead.childNodes?.[bodyThead.childNodes?.length - 1 || 0]
+        .childNodes as NodeListOf<HTMLTableHeaderCellElement>;
+      const widths = Array.from(ths).map(
+        th => th.getBoundingClientRect()?.width || th.clientWidth,
+      );
+      const [hasVerticalScroll, hasHorizontalScroll] = needScrollBar({
+        width: maxWidth,
+        height: maxHeight - theadHeight - tfootHeight,
+        innerHeight: fullTableHeight,
+        innerWidth: widths.reduce(sum),
+        scrollBarSize,
+      });
+      // real container height, include table header, footer and space for
+      // horizontal scroll bar
+      const realHeight = Math.min(
+        maxHeight,
+        hasHorizontalScroll ? fullTableHeight + scrollBarSize : fullTableHeight,
+      );
+      setStickyState({
+        hasVerticalScroll,
+        hasHorizontalScroll,
+        setStickyState,
+        width: maxWidth,
+        height: maxHeight,
+        realHeight,
+        tableHeight: fullTableHeight,
+        bodyHeight: realHeight - theadHeight - tfootHeight,
+        columnWidths: widths,
+      });
+      return true;
+    };
+
+    if (!measure()) {
+      // The element is in a hidden tab (display: none); clientHeight returns 0.
+      // Observe the thead and retry measurement when the tab becomes visible.
+      const observer = new ResizeObserver(() => {
+        if (bodyThead.clientHeight > 0) {
+          observer.disconnect();
+          measure();
+        }
+      });
+      observer.observe(bodyThead);
+      return () => observer.disconnect();
     }
-    const fullTableHeight = (bodyThead.parentNode as HTMLTableElement)
-      .clientHeight;
-    // instead of always using the first tr, we use the last one to support
-    // multi-level headers assuming the last one is the more detailed one
-    const ths = bodyThead.childNodes?.[bodyThead.childNodes?.length - 1 || 0]
-      .childNodes as NodeListOf<HTMLTableHeaderCellElement>;
-    const widths = Array.from(ths).map(
-      th => th.getBoundingClientRect()?.width || th.clientWidth,
-    );
-    const [hasVerticalScroll, hasHorizontalScroll] = needScrollBar({
-      width: maxWidth,
-      height: maxHeight - theadHeight - tfootHeight,
-      innerHeight: fullTableHeight,
-      innerWidth: widths.reduce(sum),
-      scrollBarSize,
-    });
-    // real container height, include table header, footer and space for
-    // horizontal scroll bar
-    const realHeight = Math.min(
-      maxHeight,
-      hasHorizontalScroll ? fullTableHeight + scrollBarSize : fullTableHeight,
-    );
-    setStickyState({
-      hasVerticalScroll,
-      hasHorizontalScroll,
-      setStickyState,
-      width: maxWidth,
-      height: maxHeight,
-      realHeight,
-      tableHeight: fullTableHeight,
-      bodyHeight: realHeight - theadHeight - tfootHeight,
-      columnWidths: widths,
-    });
+    return undefined;
   }, [maxWidth, maxHeight, setStickyState, scrollBarSize]);
 
   let sizerTable: ReactElement | undefined;
