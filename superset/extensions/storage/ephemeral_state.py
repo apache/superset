@@ -31,9 +31,6 @@ from flask import g
 from superset.extensions import cache_manager
 from superset.extensions.context import get_current_extension_context
 
-# Default TTL: 1 hour
-DEFAULT_TTL = 3600
-
 # Key separator
 SEPARATOR = ":"
 
@@ -92,13 +89,13 @@ class SharedEphemeralStateAccessor:
         cache_key = self._build_key(key)
         return cache_manager.extension_ephemeral_state_cache.get(cache_key)
 
-    def set(self, key: str, value: Any, ttl: int = DEFAULT_TTL) -> None:
+    def set(self, key: str, value: Any, ttl: int | None = None) -> None:
         """
         Set a value in shared ephemeral state with TTL.
 
         :param key: The key to store.
         :param value: The value to store (must be JSON-serializable).
-        :param ttl: Time-to-live in seconds (default: 3600).
+        :param ttl: Time-to-live in seconds. Defaults to CACHE_DEFAULT_TIMEOUT.
         """
         cache_key = self._build_key(key)
         cache_manager.extension_ephemeral_state_cache.set(cache_key, value, timeout=ttl)
@@ -143,13 +140,13 @@ class EphemeralStateImpl:
         return cache_manager.extension_ephemeral_state_cache.get(cache_key)
 
     @staticmethod
-    def set(key: str, value: Any, ttl: int = DEFAULT_TTL) -> None:
+    def set(key: str, value: Any, ttl: int | None = None) -> None:
         """
         Set a value in user-scoped ephemeral state with TTL.
 
         :param key: The key to store.
         :param value: The value to store (must be JSON-serializable).
-        :param ttl: Time-to-live in seconds (default: 3600).
+        :param ttl: Time-to-live in seconds. Defaults to CACHE_DEFAULT_TIMEOUT.
         """
         extension_id = _get_extension_id()
         user_id = _get_current_user_id()

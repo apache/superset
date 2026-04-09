@@ -43,9 +43,6 @@ SEPARATOR = ":"
 # Key prefix for extension ephemeral state
 KEY_PREFIX = "superset-ext"
 
-# Default TTL: 1 hour
-DEFAULT_TTL = 3600
-
 
 def _build_cache_key(*parts: Any) -> str:
     """Build a namespaced cache key from parts."""
@@ -62,10 +59,13 @@ def _parse_ttl(body: dict[str, Any]) -> tuple[int | None, str | None]:
     """Parse and validate TTL from request body.
 
     Returns:
-        (ttl, error_message) - ttl is the parsed value, error_message is set if invalid
+        (ttl, error_message) - ttl is None when omitted (cache uses
+        CACHE_DEFAULT_TIMEOUT), error_message is set if the value is invalid.
     """
+    if "ttl" not in body:
+        return None, None
     try:
-        ttl = int(body.get("ttl", DEFAULT_TTL))
+        ttl = int(body["ttl"])
     except (TypeError, ValueError):
         return None, "Field 'ttl' must be a positive integer"
     if ttl <= 0:
@@ -193,7 +193,8 @@ class ExtensionStorageRestApi(BaseApi):
                       description: The value to store
                     ttl:
                       type: integer
-                      description: Time-to-live in seconds (default 3600)
+                      description: Time-to-live in seconds (defaults to
+                        CACHE_DEFAULT_TIMEOUT)
           responses:
             200:
               description: Value stored successfully

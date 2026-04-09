@@ -34,19 +34,16 @@ Usage:
 
     # User-scoped state (default - private to current user)
     ephemeral_state.get('preference')
-    ephemeral_state.set('preference', 'compact', ttl=3600)
+    ephemeral_state.set('preference', 'compact')
     ephemeral_state.remove('preference')
 
     # Shared state (explicit opt-in - visible to all users)
     ephemeral_state.shared.get('job_progress')
-    ephemeral_state.shared.set('job_progress', {'pct': 42}, ttl=3600)
+    ephemeral_state.shared.set('job_progress', {'pct': 42})
     ephemeral_state.shared.remove('job_progress')
 """
 
 from typing import Any, Protocol
-
-# Default TTL: 1 hour
-DEFAULT_TTL = 3600
 
 
 class EphemeralStateAccessor(Protocol):
@@ -56,7 +53,7 @@ class EphemeralStateAccessor(Protocol):
         """Get a value from ephemeral state."""
         ...
 
-    def set(self, key: str, value: Any, ttl: int = DEFAULT_TTL) -> None:
+    def set(self, key: str, value: Any, ttl: int | None = None) -> None:
         """Set a value in ephemeral state with TTL."""
         ...
 
@@ -81,7 +78,7 @@ def get(key: str) -> Any:
     raise NotImplementedError("Function will be replaced during initialization")
 
 
-def set(key: str, value: Any, ttl: int = DEFAULT_TTL) -> None:
+def set(key: str, value: Any, ttl: int | None = None) -> None:
     """
     Set a value in user-scoped ephemeral state with TTL.
 
@@ -93,7 +90,7 @@ def set(key: str, value: Any, ttl: int = DEFAULT_TTL) -> None:
 
     :param key: The key to store.
     :param value: The value to store (must be JSON-serializable).
-    :param ttl: Time-to-live in seconds (default: 3600).
+    :param ttl: Time-to-live in seconds. Defaults to CACHE_DEFAULT_TIMEOUT.
     """
     raise NotImplementedError("Function will be replaced during initialization")
 
@@ -118,7 +115,7 @@ class _SharedStub:
     def get(self, key: str) -> Any:
         raise NotImplementedError("Accessor will be replaced during initialization")
 
-    def set(self, key: str, value: Any, ttl: int = DEFAULT_TTL) -> None:
+    def set(self, key: str, value: Any, ttl: int | None = None) -> None:
         raise NotImplementedError("Accessor will be replaced during initialization")
 
     def remove(self, key: str) -> None:
@@ -133,7 +130,6 @@ shared: EphemeralStateAccessor = _SharedStub()
 
 
 __all__ = [
-    "DEFAULT_TTL",
     "EphemeralStateAccessor",
     "get",
     "set",

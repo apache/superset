@@ -20,8 +20,6 @@
 import { type storage as StorageTypes } from '@apache-superset/core';
 import { SupersetClient } from '@superset-ui/core';
 
-const DEFAULT_TTL = 3600;
-
 /**
  * Create ephemeral state (server cache) bound to an extension ID.
  */
@@ -48,9 +46,11 @@ export function createEphemeralState(
       value: StorageTypes.JsonValue,
       options?: StorageTypes.ephemeralState.SetOptions,
     ) => {
+      const body: Record<string, unknown> = { value };
+      if (options?.ttl !== undefined) body.ttl = options.ttl;
       await SupersetClient.put({
         endpoint: buildUrl(key, true),
-        body: JSON.stringify({ value, ttl: options?.ttl ?? DEFAULT_TTL }),
+        body: JSON.stringify(body),
         headers: { 'Content-Type': 'application/json' },
       });
     },
@@ -60,7 +60,6 @@ export function createEphemeralState(
   };
 
   return {
-    DEFAULT_TTL,
     get: async (key: string) => {
       const response = await SupersetClient.get({ endpoint: buildUrl(key) });
       return response.json?.result ?? null;
@@ -70,9 +69,11 @@ export function createEphemeralState(
       value: StorageTypes.JsonValue,
       options?: StorageTypes.ephemeralState.SetOptions,
     ) => {
+      const body: Record<string, unknown> = { value };
+      if (options?.ttl !== undefined) body.ttl = options.ttl;
       await SupersetClient.put({
         endpoint: buildUrl(key),
-        body: JSON.stringify({ value, ttl: options?.ttl ?? DEFAULT_TTL }),
+        body: JSON.stringify(body),
         headers: { 'Content-Type': 'application/json' },
       });
     },
