@@ -35,9 +35,11 @@ import {
   Row,
 } from 'react-table';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
-import { FaSort } from 'react-icons/fa';
-import { FaSortDown as FaSortDesc } from 'react-icons/fa';
-import { FaSortUp as FaSortAsc } from 'react-icons/fa';
+import {
+  CaretUpOutlined,
+  CaretDownOutlined,
+  ColumnHeightOutlined,
+} from '@ant-design/icons';
 import cx from 'classnames';
 import {
   DataRecord,
@@ -221,9 +223,9 @@ function cellBackground({
 
 function SortIcon<D extends object>({ column }: { column: ColumnInstance<D> }) {
   const { isSorted, isSortedDesc } = column;
-  let sortIcon = <FaSort />;
+  let sortIcon = <ColumnHeightOutlined />;
   if (isSorted) {
-    sortIcon = isSortedDesc ? <FaSortDesc /> : <FaSortAsc />;
+    sortIcon = isSortedDesc ? <CaretDownOutlined /> : <CaretUpOutlined />;
   }
   return sortIcon;
 }
