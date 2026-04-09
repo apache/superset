@@ -120,7 +120,7 @@ const EstimateQueryCostButton = ({
             key="query-estimate-btn"
             tooltip={tooltip}
             disabled={disabled}
-            icon={<Icons.MonitorOutlined iconSize="m" />}
+            icon={<Icons.MonitorOutlined iconSize="m" aria-hidden="true" />}
             aria-label={btnText}
           />
         }

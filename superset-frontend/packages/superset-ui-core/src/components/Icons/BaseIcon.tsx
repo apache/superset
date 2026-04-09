@@ -47,8 +47,9 @@ export const BaseIconComponent: React.FC<
   ...rest
 }) => {
   const theme = useTheme();
-  const whatRole = rest?.onClick ? 'button' : 'img';
-  const ariaLabel = genAriaLabel(fileName || '');
+  const isDecorative = rest?.['aria-hidden'] === true || rest?.['aria-hidden'] === 'true';
+  const whatRole = isDecorative ? 'presentation' : (rest?.onClick ? 'button' : 'img');
+  const ariaLabel = isDecorative ? undefined : genAriaLabel(fileName || '');
   const style = {
     color: iconColor,
     fontSize: iconSize
@@ -56,12 +57,14 @@ export const BaseIconComponent: React.FC<
       : `${theme.fontSize}px`,
     cursor: rest?.onClick ? 'pointer' : undefined,
   };
+  const dataTestLabel = genAriaLabel(fileName || '');
 
   return customIcons ? (
     <span
       role={whatRole}
       aria-label={ariaLabel}
-      data-test={ariaLabel}
+      aria-hidden={isDecorative ? true : undefined}
+      data-test={dataTestLabel}
       css={[
         css`
           display: inline-flex;
@@ -92,7 +95,8 @@ export const BaseIconComponent: React.FC<
       role={whatRole}
       style={style}
       aria-label={ariaLabel}
-      data-test={ariaLabel}
+      aria-hidden={isDecorative ? true : undefined}
+      data-test={dataTestLabel}
       {...(rest as AntdIconType)}
     />
   );

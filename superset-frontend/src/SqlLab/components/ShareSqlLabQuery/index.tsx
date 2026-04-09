@@ -79,7 +79,7 @@ const ShareSqlLabQuery = ({
             margin-right: 0;
           }
         `}
-        icon={<Icons.LinkOutlined iconSize="m" />}
+        icon={<Icons.LinkOutlined iconSize="m" aria-hidden="true" />}
       />
     );
   };
