@@ -66,9 +66,6 @@ const StyledDatasourceModal = styled(Modal)`
     flex-direction: column;
   }
 
-  .ant-tabs-top {
-    margin-top: -${({ theme }) => theme.sizeUnit * 4}px;
-  }
 `;
 
 function buildExtraJsonObject(

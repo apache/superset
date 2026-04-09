@@ -399,11 +399,6 @@ const EditLockContainer = styled.div`
   }
 `;
 
-const ColumnButtonWrapper = styled.div`
-  text-align: right;
-  ${({ theme }) => `margin-bottom: ${theme.sizeUnit * 2}px`}
-`;
-
 const StyledLabelWrapper = styled.div`
   display: flex;
   align-items: center;
@@ -444,16 +439,6 @@ const FieldLabelWithTooltip = styled.div`
     gap: ${theme.sizeUnit}px;
     font-size: ${theme.fontSizeSM}px;
     color: ${theme.colorTextLabel};
-  `}
-`;
-
-const StyledButtonWrapper = styled.span`
-  ${({ theme }) => `
-    margin-top: ${theme.sizeUnit * 3}px;
-    margin-left: ${theme.sizeUnit * 3}px;
-    button>span>:first-of-type {
-      margin-right: 0;
-    }
   `}
 `;
 
@@ -1897,22 +1882,20 @@ class DatasourceEditor extends PureComponent<
                         </div>
                       }
                     />
-                    <div css={{ width: 'calc(100% - 34px)', marginTop: -16 }}>
-                      <Field
-                        fieldKey="table_name"
-                        label={t('Name')}
-                        control={
-                          <TextControl
-                            controlId="table_name"
-                            onChange={table => {
-                              this.onDatasourcePropChange('table_name', table);
-                            }}
-                            placeholder={t('Dataset name')}
-                            disabled={!this.state.isEditMode}
-                          />
-                        }
-                      />
-                    </div>
+                    <Field
+                      fieldKey="table_name"
+                      label={t('Name')}
+                      control={
+                        <TextControl
+                          controlId="table_name"
+                          onChange={table => {
+                            this.onDatasourcePropChange('table_name', table);
+                          }}
+                          placeholder={t('Dataset name')}
+                          disabled={!this.state.isEditMode}
+                        />
+                      }
+                    />
                   </Col>
                   <Field
                     fieldKey="sql"
@@ -2152,7 +2135,10 @@ class DatasourceEditor extends PureComponent<
           placeholder={t('Search metrics by key or label')}
           value={metricSearchTerm}
           onChange={e => this.setState({ metricSearchTerm: e.target.value })}
-          style={{ marginBottom: 16, width: 300 }}
+          css={theme => ({
+            marginBottom: theme.sizeUnit * 4,
+            width: theme.sizeUnit * 75,
+          })}
           allowClear
         />
         <CollectionTable
@@ -2336,11 +2322,10 @@ class DatasourceEditor extends PureComponent<
       <DatasourceContainer data-test="datasource-editor">
         {this.renderErrors()}
         <Alert
-          css={theme => ({ marginBottom: theme.sizeUnit * 4 })}
+          css={theme => ({ marginBottom: theme.sizeUnit * 2 })}
           type="warning"
           message={
             <>
-              {' '}
               <strong>{t('Be careful.')} </strong>
               {t(
                 'Changing these settings will affect all charts using this dataset, including charts owned by other people.',
@@ -2380,29 +2365,35 @@ class DatasourceEditor extends PureComponent<
               children: (
                 <StyledTableTabWrapper>
                   {this.renderDefaultColumnSettings()}
-                  <ColumnButtonWrapper>
-                    <StyledButtonWrapper>
-                      <Button
-                        buttonSize="small"
-                        buttonStyle="tertiary"
-                        onClick={this.syncMetadata}
-                        className="sync-from-source"
-                        disabled={this.state.isEditMode}
-                      >
-                        <Icons.DatabaseOutlined iconSize="m" />
-                        {t('Sync columns from source')}
-                      </Button>
-                    </StyledButtonWrapper>
-                  </ColumnButtonWrapper>
-                  <Input.Search
-                    placeholder={t('Search columns by name')}
-                    value={this.state.columnSearchTerm}
-                    onChange={e =>
-                      this.setState({ columnSearchTerm: e.target.value })
-                    }
-                    style={{ marginBottom: 16, width: 300 }}
-                    allowClear
-                  />
+                  <Flex
+                    justify="space-between"
+                    align="center"
+                    css={theme => ({
+                      marginBottom: theme.sizeUnit * 4,
+                    })}
+                  >
+                    <Input.Search
+                      placeholder={t('Search columns by name')}
+                      value={this.state.columnSearchTerm}
+                      onChange={e =>
+                        this.setState({ columnSearchTerm: e.target.value })
+                      }
+                      css={theme => ({
+                        width: theme.sizeUnit * 75,
+                      })}
+                      allowClear
+                    />
+                    <Button
+                      buttonSize="small"
+                      buttonStyle="tertiary"
+                      onClick={this.syncMetadata}
+                      className="sync-from-source"
+                      disabled={this.state.isEditMode}
+                    >
+                      <Icons.DatabaseOutlined iconSize="m" />
+                      {t('Sync columns from source')}
+                    </Button>
+                  </Flex>
                   <ColumnCollectionTable
                     className="columns-table"
                     columns={this.state.databaseColumns}
@@ -2437,7 +2428,10 @@ class DatasourceEditor extends PureComponent<
                         calculatedColumnSearchTerm: e.target.value,
                       })
                     }
-                    style={{ marginBottom: 16, width: 300 }}
+                    css={theme => ({
+                      marginBottom: theme.sizeUnit * 4,
+                      width: theme.sizeUnit * 75,
+                    })}
                     allowClear
                   />
                   <ColumnCollectionTable
@@ -2526,7 +2520,7 @@ class DatasourceEditor extends PureComponent<
               key: TABS_KEYS.SETTINGS,
               label: t('Settings'),
               children: (
-                <div style={{ overflowX: 'hidden' }}>
+                <div css={{ overflow: 'hidden' }}>
                   <Row gutter={16}>
                     <Col xs={24} md={12}>
                       <FormContainer>
