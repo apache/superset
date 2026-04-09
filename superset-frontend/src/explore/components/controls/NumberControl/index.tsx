@@ -76,6 +76,12 @@ export default function NumberControl({
     onChange?.(val);
   };
 
+  const hasErrors =
+    rest.validationErrors && rest.validationErrors.length > 0;
+  const errorId = hasErrors
+    ? `${rest.name || 'number-control'}-error`
+    : undefined;
+
   return (
     <FullWidthDiv>
       <ControlHeader {...rest} />
@@ -90,7 +96,19 @@ export default function NumberControl({
         onStep={handleStep}
         disabled={disabled}
         aria-label={rest.label}
+        aria-invalid={hasErrors || undefined}
+        aria-describedby={errorId}
+        id={rest.name}
       />
+      {hasErrors && (
+        <span
+          id={errorId}
+          role="alert"
+          style={{ color: 'red', fontSize: '12px', display: 'block', marginTop: '4px' }}
+        >
+          {rest.validationErrors!.join('. ')}
+        </span>
+      )}
     </FullWidthDiv>
   );
 }

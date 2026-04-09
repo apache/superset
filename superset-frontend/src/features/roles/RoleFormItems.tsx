@@ -37,7 +37,11 @@ export const RoleNameField = () => (
     label={t('Role Name')}
     rules={[{ required: true, message: t('Role name is required') }]}
   >
-    <Input name="roleName" data-test="role-name-input" />
+    <Input
+      name="roleName"
+      data-test="role-name-input"
+      aria-required="true"
+    />
   </FormItem>
 );
 
