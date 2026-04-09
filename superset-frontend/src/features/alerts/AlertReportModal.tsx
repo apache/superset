@@ -2120,8 +2120,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     label={isReport ? t('Report name') : t('Alert name')}
                     required
                     error={
+                      currentAlert &&
                       validationStatus[Sections.General].hasErrors &&
-                      !currentAlert?.name?.length
+                      !currentAlert.name?.length
                         ? isReport
                           ? t('Report name is required')
                           : t('Alert name is required')
@@ -2143,8 +2144,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     label={t('Owners')}
                     required
                     error={
+                      currentAlert &&
                       validationStatus[Sections.General].hasErrors &&
-                      !currentAlert?.owners?.length
+                      !currentAlert.owners?.length
                         ? t('At least one owner is required')
                         : undefined
                     }

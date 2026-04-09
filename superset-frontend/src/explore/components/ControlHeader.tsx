@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, ReactNode } from 'react';
+import { FC, ReactNode, useId } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, useTheme, SupersetTheme } from '@apache-superset/core/theme';
 import { FormLabel, InfoTooltip, Tooltip } from '@superset-ui/core/components';
@@ -70,6 +70,8 @@ const ControlHeader: FC<ControlHeaderProps> = ({
   danger,
 }) => {
   const theme = useTheme();
+  const uniqueId = useId();
+  const errorId = `${name || uniqueId}-error`;
 
   if (!label) {
     return null;
@@ -182,7 +184,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
                 />
               </Tooltip>
               <span
-                id={`${name || 'control'}-error`}
+                id={errorId}
                 role="alert"
                 css={css`
                   position: absolute;
