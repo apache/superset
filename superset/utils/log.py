@@ -366,12 +366,7 @@ def get_event_logger_from_cfg_value(cfg_value: Any) -> AbstractEventLogger:
 
 
 class DBEventLogger(AbstractEventLogger):
-    """Event logger that commits logs to Superset DB
-
-    Uses an independent database session so that commits do not expire
-    objects in the main scoped session (which would cause
-    DetachedInstanceError in subsequent request processing).
-    """
+    """Event logger that commits logs to Superset DB"""
 
     def log(  # pylint: disable=too-many-arguments,too-many-locals
         self,
@@ -406,17 +401,9 @@ class DBEventLogger(AbstractEventLogger):
                 user_id=user_id,
             )
             logs.append(log)
-
-        # Use an independent session to avoid expiring objects in the main
-        # scoped session on commit (which causes DetachedInstanceError).
-        bind = db.session.get_bind()
-        session_factory = db.create_scoped_session(
-            options={"bind": bind, "expire_on_commit": False}
-        )
-        session = session_factory()
         try:
-            session.bulk_save_objects(logs)
-            session.commit()  # pylint: disable=consider-using-transaction
+            db.session.bulk_save_objects(logs)
+            db.session.commit()  # pylint: disable=consider-using-transaction
         except SQLAlchemyError as ex:
             # Log errors but don't raise - logging failures should not break the
             # application. Common in tests where the session may be in prepared state or
@@ -425,15 +412,12 @@ class DBEventLogger(AbstractEventLogger):
             logging.exception(ex)
             # Rollback to clean up the session state
             try:
-                session.rollback()  # pylint: disable=consider-using-transaction
+                db.session.rollback()  # pylint: disable=consider-using-transaction
             except Exception:  # pylint: disable=broad-except
                 # If rollback also fails, just continue - don't let issues crash the app
                 logging.error(
                     "DBEventLogger failed to rollback the session after failure"
                 )
-        finally:
-            session.close()
-            session_factory.remove()
 
 
 class StdOutEventLogger(AbstractEventLogger):
