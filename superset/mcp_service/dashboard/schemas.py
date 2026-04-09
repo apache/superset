@@ -375,6 +375,17 @@ class DashboardInfo(BaseModel):
         description="Whether cross-filtering between charts is enabled.",
     )
 
+    # Omission metadata — tells the agent what was stripped and why
+    omitted_fields: Dict[str, str] = Field(
+        default_factory=dict,
+        description=(
+            "Fields omitted from this response to reduce size. Keys are field "
+            "names, values describe what was omitted and how to access the full "
+            "data. Useful filter information has been extracted into "
+            "native_filters and cross_filters_enabled above."
+        ),
+    )
+
     # Fields for permalink/filter state support
     permalink_key: str | None = Field(
         None,
@@ -584,6 +595,38 @@ def _extract_cross_filters_enabled(json_metadata_str: str | None) -> bool | None
     return None
 
 
+def _build_omitted_fields(
+    json_metadata_str: str | None, position_json_str: str | None
+) -> Dict[str, str]:
+    """Build omission metadata describing which fields were stripped and why.
+
+    Uses the shared OmittedFieldsBuilder utility so the pattern is consistent
+    across all MCP tool serializers.
+    """
+    from superset.mcp_service.utils.response_utils import OmittedFieldsBuilder
+
+    return (
+        OmittedFieldsBuilder()
+        .add_raw_field(
+            "position_json",
+            raw_value=position_json_str,
+            reason=(
+                "Internal layout tree with component positions/hierarchy. "
+                "Not useful for analysis or LLM context."
+            ),
+        )
+        .add_extracted_field(
+            "json_metadata",
+            raw_value=json_metadata_str,
+            reason=(
+                "native_filters and cross_filters_enabled extracted into "
+                "dedicated fields above."
+            ),
+        )
+        .build()
+    )
+
+
 def _serialize_chart_summary(chart: Any) -> DashboardChartSummary | None:
     """Serialize a chart to a lightweight summary for dashboard context."""
     if not chart:
@@ -638,6 +681,9 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
         chart_count=len(dashboard.slices) if dashboard.slices else 0,
         native_filters=_extract_native_filters(dashboard.json_metadata),
         cross_filters_enabled=_extract_cross_filters_enabled(dashboard.json_metadata),
+        omitted_fields=_build_omitted_fields(
+            dashboard.json_metadata, dashboard.position_json
+        ),
         owners=[
             info
             for owner in dashboard.owners
@@ -688,6 +734,7 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
         )
 
     json_metadata_str = getattr(dashboard, "json_metadata", None)
+    position_json_str = getattr(dashboard, "position_json", None)
 
     return DashboardInfo(
         id=dashboard_id,
@@ -711,6 +758,7 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
         certification_details=getattr(dashboard, "certification_details", None),
         native_filters=_extract_native_filters(json_metadata_str),
         cross_filters_enabled=_extract_cross_filters_enabled(json_metadata_str),
+        omitted_fields=_build_omitted_fields(json_metadata_str, position_json_str),
         is_managed_externally=getattr(dashboard, "is_managed_externally", None),
         external_url=getattr(dashboard, "external_url", None),
         uuid=str(getattr(dashboard, "uuid", ""))

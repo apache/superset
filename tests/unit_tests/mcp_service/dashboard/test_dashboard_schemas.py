@@ -58,6 +58,7 @@ def _mock_dashboard(
     dashboard.certified_by = None
     dashboard.certification_details = None
     dashboard.json_metadata = None
+    dashboard.position_json = None
     dashboard.is_managed_externally = False
     dashboard.external_url = None
     dashboard.uuid = None
@@ -278,3 +279,63 @@ class TestExtractCrossFiltersEnabled:
         assert _extract_cross_filters_enabled("[]") is None
         assert _extract_cross_filters_enabled("123") is None
         assert _extract_cross_filters_enabled('"just a string"') is None
+
+
+class TestOmittedFieldsBuilder:
+    """Tests for the shared OmittedFieldsBuilder utility."""
+
+    def test_builder_basic(self):
+        from superset.mcp_service.utils.response_utils import OmittedFieldsBuilder
+
+        result = (
+            OmittedFieldsBuilder()
+            .add_raw_field("big_field", "x" * 2048, "Too large for context.")
+            .add_extracted_field("meta_field", "y" * 512, "Useful parts above.")
+            .build()
+        )
+        assert "big_field" in result
+        assert "~2 KB" in result["big_field"]
+        assert "Too large" in result["big_field"]
+        assert "meta_field" in result
+        assert "extracted" in result["meta_field"]
+
+    def test_builder_none_values(self):
+        from superset.mcp_service.utils.response_utils import OmittedFieldsBuilder
+
+        result = (
+            OmittedFieldsBuilder()
+            .add_raw_field("empty_field", None, "Was not set.")
+            .add_extracted_field("also_empty", None, "Nothing to extract.")
+            .build()
+        )
+        assert "empty" in result["empty_field"]
+        assert "empty" in result["also_empty"]
+
+    @patch("superset.mcp_service.utils.url_utils.get_superset_base_url")
+    def test_omitted_fields_in_serialized_dashboard(self, mock_base_url):
+        """omitted_fields should describe what was stripped and include sizes."""
+        mock_base_url.return_value = "http://localhost:8088"
+
+        dashboard = _mock_dashboard(id=1)
+        dashboard.json_metadata = json_dumps(
+            {"color_scheme": "preset", "native_filter_configuration": []}
+        )
+        dashboard.position_json = json_dumps({"ROOT_ID": {"children": ["GRID_ID"]}})
+
+        result = serialize_dashboard_object(dashboard)
+
+        assert "json_metadata" in result.omitted_fields
+        assert "position_json" in result.omitted_fields
+        assert "extracted" in result.omitted_fields["json_metadata"]
+        assert "layout tree" in result.omitted_fields["position_json"].lower()
+
+    @patch("superset.mcp_service.utils.url_utils.get_superset_base_url")
+    def test_omitted_fields_with_none_values(self, mock_base_url):
+        """omitted_fields should still be present when raw fields are None."""
+        mock_base_url.return_value = "http://localhost:8088"
+
+        dashboard = _mock_dashboard(id=1)
+        result = serialize_dashboard_object(dashboard)
+
+        assert "json_metadata" in result.omitted_fields
+        assert "position_json" in result.omitted_fields
