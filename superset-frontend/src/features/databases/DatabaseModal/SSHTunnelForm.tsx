@@ -79,11 +79,6 @@ const SSHTunnelForm = ({
               onChange={onSSHTunnelParametersChange}
               data-test="ssh-tunnel-server_address-input"
             />
-            {fieldError('server_address', db?.ssh_tunnel?.server_address) && (
-              <span id="server-address-error" role="alert" style={{ color: 'red', fontSize: 'inherit' }}>
-                {t('SSH Host is required')}
-              </span>
-            )}
           </StyledDiv>
         </Col>
         <Col xs={24} md={12}>
@@ -99,11 +94,6 @@ const SSHTunnelForm = ({
               onChange={onSSHTunnelParametersChange}
               data-test="ssh-tunnel-server_port-input"
             />
-            {fieldError('server_port', db?.ssh_tunnel?.server_port) && (
-              <span id="server-port-error" role="alert" style={{ color: 'red', fontSize: 'inherit' }}>
-                {t('SSH Port is required')}
-              </span>
-            )}
           </StyledDiv>
         </Col>
       </StyledRow>
@@ -121,11 +111,6 @@ const SSHTunnelForm = ({
               onChange={onSSHTunnelParametersChange}
               data-test="ssh-tunnel-username-input"
             />
-            {fieldError('username', db?.ssh_tunnel?.username) && (
-              <span id="ssh-username-error" role="alert" style={{ color: 'red', fontSize: 'inherit' }}>
-                {t('Username is required')}
-              </span>
-            )}
           </StyledDiv>
         </Col>
       </StyledRow>

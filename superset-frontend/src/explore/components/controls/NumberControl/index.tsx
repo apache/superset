@@ -85,15 +85,6 @@ export default function NumberControl({
         disabled={disabled}
         aria-label={rest.label}
       />
-      {hasErrors && (
-        <span
-          id={errorId}
-          role="alert"
-          style={{ color: 'red', fontSize: 'inherit', display: 'block', marginTop: '4px' }}
-        >
-          {rest.validationErrors!.join('. ')}
-        </span>
-      )}
     </FullWidthDiv>
   );
 }
