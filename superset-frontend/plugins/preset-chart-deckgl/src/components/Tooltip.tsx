@@ -68,10 +68,11 @@ export default function Tooltip(props: TooltipProps) {
   const { tooltip, variant = 'default' } = props;
   const [dismissed, setDismissed] = useState(false);
 
-  // Reset dismissed state when tooltip content changes (new hover target)
+  // Reset dismissed state only when tooltip content changes (new hover target),
+  // not on coordinate changes from mouse movement
   useEffect(() => {
     setDismissed(false);
-  }, [tooltip?.x, tooltip?.y]);
+  }, [tooltip?.content]);
 
   // Dismiss on Escape key
   useEffect(() => {
