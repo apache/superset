@@ -34,9 +34,6 @@ if TYPE_CHECKING:
     from superset_core.rest_api.api import RestApi
 
 
-__all__ = ["initialize_core_api_dependencies"]
-
-
 def inject_dao_implementations() -> None:
     """
     Replace abstract DAO classes in superset_core common/queries/tasks daos with

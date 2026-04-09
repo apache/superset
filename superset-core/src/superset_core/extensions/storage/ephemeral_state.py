@@ -127,12 +127,3 @@ class _SharedStub:
 #: WARNING: Do not store user-specific or sensitive data here.
 #: Host implementations will replace this during initialization.
 shared: EphemeralStateAccessor = _SharedStub()
-
-
-__all__ = [
-    "EphemeralStateAccessor",
-    "get",
-    "set",
-    "remove",
-    "shared",
-]
