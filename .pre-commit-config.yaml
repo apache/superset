@@ -24,6 +24,7 @@ repos:
     hooks:
       - id: mypy
         name: mypy (main)
+        language_version: python3.10
         args: [--check-untyped-defs]
         exclude: ^superset-extensions-cli/
         additional_dependencies: [
