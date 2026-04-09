@@ -20,7 +20,7 @@ Unit tests for dashboard generation MCP tools
 """
 
 import logging
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
@@ -87,6 +87,8 @@ def _mock_chart(id: int = 1, slice_name: str = "Test Chart") -> Mock:
     chart.datasource_name = None
     chart.datasource_type = None
     chart.description = None
+    chart.certified_by = None
+    chart.certification_details = None
     chart.cache_timeout = None
     chart.changed_by = None
     chart.changed_by_name = None
@@ -133,8 +135,7 @@ def _setup_generate_dashboard_mocks(
 
     The tool creates dashboards directly via db.session (bypassing
     CreateDashboardCommand) and re-queries user/charts in the tool's
-    own session.  The re-fetch uses DashboardDAO.find_by_id() with
-    query_options for eager loading of slice relationships.
+    own session.  This helper wires up the mock chain for that path.
     """
     mock_user = Mock()
     mock_user.id = 1
@@ -144,8 +145,8 @@ def _setup_generate_dashboard_mocks(
     mock_user.email = "admin@example.com"
     mock_user.active = True
 
-    mock_query = MagicMock()
-    mock_filter = MagicMock()
+    mock_query = Mock()
+    mock_filter = Mock()
     mock_query.filter.return_value = mock_filter
     mock_query.filter_by.return_value = mock_filter
     mock_filter.order_by.return_value = mock_filter
@@ -154,7 +155,6 @@ def _setup_generate_dashboard_mocks(
     mock_db_session.query.return_value = mock_query
 
     mock_dashboard_cls.return_value = dashboard
-    # DashboardDAO.find_by_id is used for the re-fetch with eager loading
     mock_find_by_id.return_value = dashboard
 
 
@@ -446,7 +446,34 @@ class TestGenerateDashboard:
                 == "Minimal Dashboard"
             )
 
-            # Verify dashboard was created with default published=True
+            # Verify dashboard was created with default published=False
+            created = mock_dashboard_cls.return_value
+            assert created.published is False
+
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_explicit_published(
+        self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
+    ):
+        """Test dashboard generation with published explicitly set to True."""
+        charts = [_mock_chart(id=3)]
+        mock_dashboard = _mock_dashboard(id=41, title="Published Dashboard")
+        _setup_generate_dashboard_mocks(
+            mock_db_session, mock_find_by_id, mock_dashboard_cls, charts, mock_dashboard
+        )
+
+        request = {
+            "chart_ids": [3],
+            "dashboard_title": "Published Dashboard",
+            "published": True,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            assert result.structured_content["error"] is None
             created = mock_dashboard_cls.return_value
             assert created.published is True
 
@@ -558,14 +585,14 @@ class TestAddChartToExistingDashboard:
             _mock_chart(id=20),
             _mock_chart(id=30),
         ]
+        # First call: initial validation returns original dashboard
+        # Second call: re-fetch after update returns updated dashboard
+        mock_find_dashboard.side_effect = [mock_dashboard, updated_dashboard]
+
         mock_chart = _mock_chart(id=30, slice_name="New Chart")
         mock_db_session.get.return_value = mock_chart
 
         mock_update_command.return_value.run.return_value = updated_dashboard
-
-        # First DAO call returns initial dashboard (validation),
-        # second DAO call returns updated dashboard (re-fetch with eager loading)
-        mock_find_dashboard.side_effect = [mock_dashboard, updated_dashboard]
 
         request = {"dashboard_id": 1, "chart_id": 30}
 
@@ -702,16 +729,14 @@ class TestAddChartToExistingDashboard:
         mock_dashboard = _mock_dashboard(id=2)
         mock_dashboard.slices = []
         mock_dashboard.position_json = "{}"
+        mock_find_dashboard.return_value = mock_dashboard
+
         mock_chart = _mock_chart(id=15)
         mock_db_session.get.return_value = mock_chart
 
         updated_dashboard = _mock_dashboard(id=2)
         updated_dashboard.slices = [_mock_chart(id=15)]
         mock_update_command.return_value.run.return_value = updated_dashboard
-
-        # First DAO call returns initial dashboard (validation),
-        # second returns updated dashboard (re-fetch)
-        mock_find_dashboard.side_effect = [mock_dashboard, updated_dashboard]
 
         request = {"dashboard_id": 2, "chart_id": 15}
 
@@ -820,8 +845,8 @@ class TestAddChartToExistingDashboard:
         updated_dashboard.slices = [_mock_chart(id=10), _mock_chart(id=25)]
         mock_update_command.return_value.run.return_value = updated_dashboard
 
-        # First DAO call returns initial dashboard (validation),
-        # second returns updated dashboard (re-fetch)
+        # side_effect: first call returns initial dashboard (validation),
+        # second call returns updated dashboard (re-fetch after update)
         mock_find_dashboard.side_effect = [mock_dashboard, updated_dashboard]
 
         request = {"dashboard_id": 3, "chart_id": 25}
@@ -922,8 +947,8 @@ class TestAddChartToExistingDashboard:
         updated_dashboard.slices = [_mock_chart(id=10), _mock_chart(id=30)]
         mock_update_command.return_value.run.return_value = updated_dashboard
 
-        # First DAO call returns initial dashboard (validation),
-        # second returns updated dashboard (re-fetch)
+        # side_effect: first call returns initial dashboard (validation),
+        # second call returns updated dashboard (re-fetch after update)
         mock_find_dashboard.side_effect = [mock_dashboard, updated_dashboard]
 
         request = {"dashboard_id": 3, "chart_id": 30, "target_tab": "Customers"}
@@ -953,6 +978,118 @@ class TestAddChartToExistingDashboard:
             assert "TABS-abc123" in chart_parents
             assert "TAB-tab2" in chart_parents
             assert "TAB-tab1" not in chart_parents
+
+    @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_add_chart_to_tabbed_dashboard_tabs_under_root(
+        self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
+    ):
+        """Test adding chart when TABS are under ROOT_ID (real-world layout).
+
+        Real Superset dashboards place TABS directly under ROOT_ID with an
+        empty GRID_ID, unlike test fixtures that place TABS under GRID_ID.
+        The tool must NOT inject GRID_ID into ROOT_ID.children alongside
+        TABS, as the frontend hides non-TABS content when a TABS container
+        is a ROOT_ID child.
+        """
+        mock_dashboard = _mock_dashboard(id=7, title="COVID Vaccine Dashboard")
+        mock_dashboard.slices = [_mock_chart(id=10)]
+        mock_dashboard.position_json = json.dumps(
+            {
+                "ROOT_ID": {
+                    "children": ["TABS-wUKya7eQ0Z"],
+                    "id": "ROOT_ID",
+                    "type": "ROOT",
+                },
+                "GRID_ID": {
+                    "children": [],
+                    "id": "GRID_ID",
+                    "parents": ["ROOT_ID"],
+                    "type": "GRID",
+                },
+                "TABS-wUKya7eQ0Z": {
+                    "children": ["TAB-BCIJF4NvgQ", "TAB-kl2Hkh2IR"],
+                    "id": "TABS-wUKya7eQ0Z",
+                    "parents": ["ROOT_ID"],
+                    "type": "TABS",
+                },
+                "TAB-BCIJF4NvgQ": {
+                    "children": ["ROW-existing"],
+                    "id": "TAB-BCIJF4NvgQ",
+                    "meta": {"text": "Vaccine Candidates"},
+                    "parents": ["ROOT_ID", "TABS-wUKya7eQ0Z"],
+                    "type": "TAB",
+                },
+                "TAB-kl2Hkh2IR": {
+                    "children": [],
+                    "id": "TAB-kl2Hkh2IR",
+                    "meta": {"text": "Doses Administered"},
+                    "parents": ["ROOT_ID", "TABS-wUKya7eQ0Z"],
+                    "type": "TAB",
+                },
+                "ROW-existing": {
+                    "children": ["CHART-10"],
+                    "id": "ROW-existing",
+                    "meta": {"background": "BACKGROUND_TRANSPARENT"},
+                    "parents": [
+                        "ROOT_ID",
+                        "TABS-wUKya7eQ0Z",
+                        "TAB-BCIJF4NvgQ",
+                    ],
+                    "type": "ROW",
+                },
+                "CHART-10": {
+                    "id": "CHART-10",
+                    "type": "CHART",
+                    "parents": [
+                        "ROOT_ID",
+                        "TABS-wUKya7eQ0Z",
+                        "TAB-BCIJF4NvgQ",
+                        "ROW-existing",
+                    ],
+                },
+                "DASHBOARD_VERSION_KEY": "v2",
+            }
+        )
+        mock_chart = _mock_chart(id=91, slice_name="Vaccines by Stage")
+        mock_db_session.get.return_value = mock_chart
+
+        updated_dashboard = _mock_dashboard(id=7, title="COVID Vaccine Dashboard")
+        updated_dashboard.slices = [_mock_chart(id=10), _mock_chart(id=91)]
+        mock_update_command.return_value.run.return_value = updated_dashboard
+
+        mock_find_dashboard.side_effect = [mock_dashboard, updated_dashboard]
+
+        request = {"dashboard_id": 7, "chart_id": 91}
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "add_chart_to_existing_dashboard", {"request": request}
+            )
+
+            assert result.structured_content["error"] is None
+
+            call_args = mock_update_command.call_args[0][1]
+            layout = json.loads(call_args["position_json"])
+
+            row_key = result.structured_content["position"]["row_key"]
+            assert row_key in layout
+
+            # Chart must be inside the first tab, not GRID_ID
+            assert row_key in layout["TAB-BCIJF4NvgQ"]["children"]
+            assert row_key not in layout["GRID_ID"]["children"]
+
+            # GRID_ID must NOT be added to ROOT_ID.children alongside TABS
+            assert "GRID_ID" not in layout["ROOT_ID"]["children"]
+            assert layout["ROOT_ID"]["children"] == ["TABS-wUKya7eQ0Z"]
+
+            # Parent chain must include the tab hierarchy, not GRID_ID
+            chart_parents = layout["CHART-91"]["parents"]
+            assert "TABS-wUKya7eQ0Z" in chart_parents
+            assert "TAB-BCIJF4NvgQ" in chart_parents
+            assert "GRID_ID" not in chart_parents
 
     @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -992,16 +1129,14 @@ class TestAddChartToExistingDashboard:
                 "DASHBOARD_VERSION_KEY": "v2",
             }
         )
+        mock_find_dashboard.return_value = mock_dashboard
+
         mock_chart = _mock_chart(id=50, slice_name="New Nanoid Chart")
         mock_db_session.get.return_value = mock_chart
 
         updated_dashboard = _mock_dashboard(id=4, title="Nanoid Dashboard")
         updated_dashboard.slices = [_mock_chart(id=10), _mock_chart(id=50)]
         mock_update_command.return_value.run.return_value = updated_dashboard
-
-        # First DAO call returns initial dashboard (validation),
-        # second returns updated dashboard (re-fetch)
-        mock_find_dashboard.side_effect = [mock_dashboard, updated_dashboard]
 
         request = {"dashboard_id": 4, "chart_id": 50}
 
@@ -1117,6 +1252,28 @@ class TestLayoutHelpers:
             _find_tab_insert_target(layout, target_tab="Nonexistent Tab") == "TAB-first"
         )
 
+    def test_find_tab_insert_target_tabs_under_root(self):
+        """Test _find_tab_insert_target when TABS are under ROOT_ID (real layout)."""
+        layout = {
+            "ROOT_ID": {"children": ["TABS-xxx"], "type": "ROOT"},
+            "GRID_ID": {"children": [], "type": "GRID", "parents": ["ROOT_ID"]},
+            "TABS-xxx": {"children": ["TAB-a", "TAB-b"], "type": "TABS"},
+            "TAB-a": {"children": [], "type": "TAB", "meta": {"text": "Overview"}},
+            "TAB-b": {"children": [], "type": "TAB", "meta": {"text": "Details"}},
+        }
+        assert _find_tab_insert_target(layout) == "TAB-a"
+
+    def test_find_tab_insert_target_tabs_under_root_by_name(self):
+        """Test _find_tab_insert_target matches tab name when TABS under ROOT_ID."""
+        layout = {
+            "ROOT_ID": {"children": ["TABS-xxx"], "type": "ROOT"},
+            "GRID_ID": {"children": [], "type": "GRID", "parents": ["ROOT_ID"]},
+            "TABS-xxx": {"children": ["TAB-a", "TAB-b"], "type": "TABS"},
+            "TAB-a": {"children": [], "type": "TAB", "meta": {"text": "Overview"}},
+            "TAB-b": {"children": [], "type": "TAB", "meta": {"text": "Details"}},
+        }
+        assert _find_tab_insert_target(layout, target_tab="Details") == "TAB-b"
+
     def test_find_tab_insert_target_no_grid(self):
         """Test _find_tab_insert_target with missing GRID_ID."""
         assert _find_tab_insert_target({"ROOT_ID": {"type": "ROOT"}}) is None
@@ -1174,6 +1331,56 @@ class TestLayoutHelpers:
         assert "ROW-new" in layout["TAB-first"]["children"]
         assert "ROW-new" not in layout["GRID_ID"]["children"]
 
+    def test_ensure_layout_structure_tabs_under_root_no_grid_added(self):
+        """Test _ensure_layout_structure does NOT add GRID_ID to ROOT_ID
+        when TABS already exists as a ROOT_ID child.
+
+        Real Superset tabbed dashboards place TABS under ROOT_ID, not
+        GRID_ID.  Adding GRID_ID as a sibling of TABS confuses the
+        frontend and makes charts invisible.
+        """
+        layout = {
+            "ROOT_ID": {"children": ["TABS-xxx"], "type": "ROOT"},
+            "GRID_ID": {"children": [], "type": "GRID", "parents": ["ROOT_ID"]},
+            "TABS-xxx": {
+                "children": ["TAB-a", "TAB-b"],
+                "type": "TABS",
+                "parents": ["ROOT_ID"],
+            },
+            "TAB-a": {
+                "children": ["ROW-existing"],
+                "type": "TAB",
+                "meta": {"text": "Overview"},
+                "parents": ["ROOT_ID", "TABS-xxx"],
+            },
+            "TAB-b": {
+                "children": [],
+                "type": "TAB",
+                "meta": {"text": "Details"},
+                "parents": ["ROOT_ID", "TABS-xxx"],
+            },
+        }
+        _ensure_layout_structure(layout, "ROW-new", "TAB-a")
+
+        # Row added to the correct tab
+        assert "ROW-new" in layout["TAB-a"]["children"]
+        # GRID_ID must NOT be injected into ROOT_ID alongside TABS
+        assert "GRID_ID" not in layout["ROOT_ID"]["children"]
+        assert layout["ROOT_ID"]["children"] == ["TABS-xxx"]
+
+    def test_ensure_layout_structure_no_tabs_adds_grid_to_root(self):
+        """Test _ensure_layout_structure still adds GRID_ID to ROOT_ID
+        when the dashboard has no tabs (non-tabbed dashboard regression check).
+        """
+        layout = {
+            "ROOT_ID": {"children": [], "type": "ROOT"},
+            "GRID_ID": {"children": [], "type": "GRID", "parents": ["ROOT_ID"]},
+        }
+        _ensure_layout_structure(layout, "ROW-new", "GRID_ID")
+
+        assert "GRID_ID" in layout["ROOT_ID"]["children"]
+        assert "ROW-new" in layout["GRID_ID"]["children"]
+
 
 class TestGenerateTitleFromCharts:
     """Tests for _generate_title_from_charts helper."""
@@ -1228,14 +1435,7 @@ class TestGenerateTitleFromCharts:
 
 
 class TestDashboardSerializationEagerLoading:
-    """Tests for eager loading fix in dashboard serialization paths.
-
-    The re-fetch uses DashboardDAO.find_by_id() with query_options for
-    eager loading.  A try/except around the DAO call handles "Can't
-    reconnect until invalid transaction is rolled back" errors in
-    multi-tenant environments by rolling back and falling back to the
-    original dashboard object.
-    """
+    """Tests for eager loading fix in dashboard serialization paths."""
 
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -1244,106 +1444,94 @@ class TestDashboardSerializationEagerLoading:
     async def test_generate_dashboard_refetches_via_dao(
         self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
     ):
-        """generate_dashboard re-fetches dashboard via DashboardDAO.find_by_id()
+        """generate_dashboard re-fetches dashboard via DashboardDAO.find_by_id
         with eager-loaded slice relationships before serialization."""
-        charts = [_mock_chart(id=1, slice_name="Chart 1")]
-        dashboard = _mock_dashboard(id=10, title="Refetch Test")
+        charts = [_mock_chart(id=1, slice_name="Refetched Chart")]
+        refetched_dashboard = _mock_dashboard(id=10)
+        refetched_dashboard.slices = charts
+
         _setup_generate_dashboard_mocks(
-            mock_db_session, mock_find_by_id, mock_dashboard_cls, charts, dashboard
+            mock_db_session,
+            mock_find_by_id,
+            mock_dashboard_cls,
+            charts,
+            refetched_dashboard,
         )
 
-        request = {"chart_ids": [1], "dashboard_title": "Refetch Test"}
+        request = {"chart_ids": [1]}
+
         async with Client(mcp_server) as client:
             result = await client.call_tool("generate_dashboard", {"request": request})
 
-        assert result.structured_content["error"] is None
-        # Verify DashboardDAO.find_by_id was called for re-fetch
-        mock_find_by_id.assert_called()
-
-    @patch("superset.models.dashboard.Dashboard")
-    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
-    @patch("superset.db.session")
-    @pytest.mark.asyncio
-    async def test_generate_dashboard_refetch_sqlalchemy_error_rollback(
-        self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
-    ):
-        """When the DAO re-fetch raises SQLAlchemyError, the session is
-        rolled back and a minimal response is returned with only scalar
-        attributes (no owners/tags/charts that would trigger lazy-loading)."""
-        from sqlalchemy.exc import SQLAlchemyError
-
-        charts = [_mock_chart(id=1, slice_name="Chart 1")]
-        dashboard = _mock_dashboard(id=10, title="Rollback Test")
-        _setup_generate_dashboard_mocks(
-            mock_db_session, mock_find_by_id, mock_dashboard_cls, charts, dashboard
-        )
-        # Make the DAO re-fetch raise SQLAlchemyError
-        mock_find_by_id.side_effect = SQLAlchemyError("session error")
-
-        request = {"chart_ids": [1], "dashboard_title": "Rollback Test"}
-        async with Client(mcp_server) as client:
-            result = await client.call_tool("generate_dashboard", {"request": request})
-
-        data = result.structured_content
-        assert data["error"] is None
-        mock_db_session.rollback.assert_called()
-        # Minimal response should have scalar fields
-        dash = data["dashboard"]
-        assert dash["id"] == 10
-        assert dash["dashboard_title"] == "Rollback Test"
-        assert "/superset/dashboard/10/" in data["dashboard_url"]
-        # Relationship fields should be empty (defaults)
-        assert dash["owners"] == []
-        assert dash["tags"] == []
-        assert dash["charts"] == []
+            assert result.structured_content["error"] is None
+            # Verify DashboardDAO.find_by_id was called for re-fetch
+            mock_find_by_id.assert_called()
 
     @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
     @pytest.mark.asyncio
-    async def test_add_chart_refetch_sqlalchemy_error_rollback(
+    async def test_add_chart_refetches_dashboard_via_dao(
         self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
     ):
-        """When the DAO re-fetch raises SQLAlchemyError after adding a chart,
-        the session is rolled back and a minimal response is returned with
-        only scalar attributes and position info."""
-        from sqlalchemy.exc import SQLAlchemyError
-
-        mock_dashboard = _mock_dashboard(id=1, title="Dashboard")
+        """add_chart_to_existing_dashboard re-fetches dashboard via
+        DashboardDAO.find_by_id with eager-loaded slice relationships."""
+        mock_dashboard = _mock_dashboard(id=1)
         mock_dashboard.slices = []
         mock_dashboard.position_json = "{}"
 
-        mock_chart = _mock_chart(id=15)
+        mock_chart = _mock_chart(id=5, slice_name="New Chart")
         mock_db_session.get.return_value = mock_chart
 
-        updated = _mock_dashboard(id=1, title="Dashboard")
-        updated.slices = [_mock_chart(id=15)]
-        mock_update_command.return_value.run.return_value = updated
+        updated_dashboard = _mock_dashboard(id=1)
+        updated_dashboard.slices = [mock_chart]
+        mock_update_command.return_value.run.return_value = updated_dashboard
 
-        # First call returns dashboard (validation), second raises (re-fetch)
-        mock_find_dashboard.side_effect = [
-            mock_dashboard,
-            SQLAlchemyError("session error"),
-        ]
+        # side_effect: first call returns initial dashboard (validation),
+        # second call returns updated dashboard (re-fetch with eager loading)
+        mock_find_dashboard.side_effect = [mock_dashboard, updated_dashboard]
 
-        request = {"dashboard_id": 1, "chart_id": 15}
+        request = {"dashboard_id": 1, "chart_id": 5}
+
         async with Client(mcp_server) as client:
             result = await client.call_tool(
                 "add_chart_to_existing_dashboard", {"request": request}
             )
 
-        data = result.structured_content
-        assert data["error"] is None
-        mock_db_session.rollback.assert_called()
-        # Minimal response should have scalar fields
-        dash = data["dashboard"]
-        assert dash["id"] == 1
-        assert dash["dashboard_title"] == "Dashboard"
-        assert "/superset/dashboard/1/" in data["dashboard_url"]
-        # Position info should still be returned
-        assert data["position"] is not None
-        assert "chart_key" in data["position"]
-        # Relationship fields should be empty (defaults)
-        assert dash["owners"] == []
-        assert dash["tags"] == []
-        assert dash["charts"] == []
+            assert result.structured_content["error"] is None
+            # DashboardDAO.find_by_id called twice: validation + re-fetch
+            assert mock_find_dashboard.call_count == 2
+
+    @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_add_chart_falls_back_on_refetch_failure(
+        self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
+    ):
+        """add_chart_to_existing_dashboard falls back to original dashboard
+        if DashboardDAO.find_by_id returns None on re-fetch."""
+        mock_dashboard = _mock_dashboard(id=1)
+        mock_dashboard.slices = []
+        mock_dashboard.position_json = "{}"
+
+        mock_chart = _mock_chart(id=5, slice_name="New Chart")
+        mock_db_session.get.return_value = mock_chart
+
+        updated_dashboard = _mock_dashboard(id=1)
+        updated_dashboard.slices = [mock_chart]
+        mock_update_command.return_value.run.return_value = updated_dashboard
+
+        # side_effect: first call returns dashboard (validation),
+        # second call returns None (re-fetch fails, should fall back)
+        mock_find_dashboard.side_effect = [mock_dashboard, None]
+
+        request = {"dashboard_id": 1, "chart_id": 5}
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "add_chart_to_existing_dashboard", {"request": request}
+            )
+
+            # Tool should still succeed using fallback dashboard
+            assert result.structured_content["error"] is None
