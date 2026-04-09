@@ -23,7 +23,21 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 // Currently pinned to v3.0.1 for compatibility with react-markdown v8 and React 17.
 import remarkGfm from 'remark-gfm';
 import { mergeWith } from 'lodash';
+import { styled } from '@apache-superset/core/theme';
 import { FeatureFlag, isFeatureEnabled } from '../../utils';
+
+const MarkdownContainer = styled.div`
+  ul,
+  ol {
+    list-style: revert;
+    padding: revert;
+    margin: revert;
+  }
+
+  li {
+    list-style: revert;
+  }
+`;
 
 interface SafeMarkdownProps {
   source: string;
@@ -78,13 +92,15 @@ export function SafeMarkdown({
 
   // React Markdown escapes HTML by default
   return (
-    <ReactMarkdown
-      rehypePlugins={rehypePlugins}
-      remarkPlugins={[remarkGfm]}
-      skipHtml={false}
-      transformLinkUri={null}
-    >
-      {source}
-    </ReactMarkdown>
+    <MarkdownContainer>
+      <ReactMarkdown
+        rehypePlugins={rehypePlugins}
+        remarkPlugins={[remarkGfm]}
+        skipHtml={false}
+        transformLinkUri={null}
+      >
+        {source}
+      </ReactMarkdown>
+    </MarkdownContainer>
   );
 }
