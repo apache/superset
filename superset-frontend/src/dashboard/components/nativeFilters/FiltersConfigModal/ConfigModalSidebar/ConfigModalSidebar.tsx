@@ -43,7 +43,7 @@ const StyledSidebarFlex = styled(Flex)`
 
   /* WCAG 1.4.10 Reflow: stack sidebar above content at narrow viewports */
   @media (max-width: 768px) {
-    min-width: 100%;
+    width: 100%;
     max-width: 100%;
     border-right: none;
     border-bottom: 1px solid ${({ theme }) => theme.colorBorderSecondary};

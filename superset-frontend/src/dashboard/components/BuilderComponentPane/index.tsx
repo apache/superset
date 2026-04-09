@@ -53,9 +53,9 @@ const BuilderComponentPane = ({ topOffset = 0 }) => (
         position: fixed;
         width: 100%;
         z-index: 100;
-        top: 0;
+        top: ${topOffset}px;
         right: 0;
-        height: 100vh;
+        height: calc(100vh - ${topOffset}px);
       }
     `}
   >

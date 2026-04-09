@@ -97,8 +97,12 @@ export const BaseModalBody = styled.div<BaseModalBodyProps>`
 
   /* WCAG 1.4.10 Reflow: stack sidebar above content at narrow viewports */
   @media (max-width: 768px) {
-    flex-direction: column;
     height: auto;
+
+    /* Apply column layout to the nested Flex container (StyledMainFlex) */
+    .ant-flex {
+      flex-direction: column;
+    }
   }
 `;
 

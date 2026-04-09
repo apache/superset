@@ -60,7 +60,6 @@ const StyledHeader = styled.header`
     /* WCAG 1.4.10 Reflow: prevent horizontal overflow at narrow viewports */
     @media (max-width: 768px) {
       padding: 0 ${theme.sizeUnit * 2}px;
-      overflow-x: hidden;
     }
   `}
 `;

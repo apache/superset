@@ -131,6 +131,7 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
       float: none;
       flex-wrap: wrap;
       width: 100%;
+      margin-left: 0;
       justify-content: flex-start;
       gap: ${({ theme }) => theme.sizeUnit}px;
     }

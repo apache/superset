@@ -81,9 +81,11 @@ const FiltersPanel = styled.div<{ width: number; hidden: boolean }>`
   width: ${({ width }) => width}px;
   ${({ hidden }) => hidden && `display: none;`}
 
-  /* WCAG 1.4.10 Reflow: auto-collapse filter bar at narrow viewports */
+  /* WCAG 1.4.10 Reflow: collapse filter bar at narrow viewports but keep accessible */
   @media (max-width: 768px) {
-    display: none;
+    width: 0;
+    min-width: 0;
+    overflow: hidden;
   }
 `;
 
@@ -111,7 +113,7 @@ const StyledHeader = styled.div<{ filterBarWidth: number }>`
 
     /* WCAG 1.4.10 Reflow: full width when filter bar is hidden */
     @media (max-width: 768px) {
-      max-width: 100vw;
+      max-width: 100%;
     }
 
     .empty-droptarget:before {
@@ -331,10 +333,10 @@ const StyledDashboardContent = styled.div<{
       @media (max-width: 768px) {
         width: 100%;
         position: fixed;
-        top: 0;
+        top: 64px;
         left: 0;
         z-index: 100;
-        height: 100vh;
+        height: calc(100vh - 64px);
       }
     }
 
