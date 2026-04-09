@@ -1044,7 +1044,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const dashboard = currentAlert?.dashboard;
   useEffect(() => {
-    if (!tabsEnabled) return;
+    if (!tabsEnabled && !filtersEnabled) return;
 
     if (dashboard?.value) {
       SupersetClient.get({
@@ -1124,7 +1124,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           addDangerToast(t('There was an error retrieving dashboard tabs.'));
         });
     }
-  }, [dashboard, tabsEnabled, currentAlert?.extra, addDangerToast]);
+  }, [
+    dashboard,
+    tabsEnabled,
+    filtersEnabled,
+    currentAlert?.extra,
+    addDangerToast,
+  ]);
 
   const databaseLabel = currentAlert?.database && !currentAlert.database.label;
   useEffect(() => {
@@ -1336,8 +1342,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('chart', null);
     if (tabsEnabled) {
       setTabOptions([]);
-      setNativeFilterOptions([]);
       updateAnchorState('');
+    }
+    if (tabsEnabled || filtersEnabled) {
+      setNativeFilterOptions([]);
     }
     if (filtersEnabled) {
       setNativeFilterData([
