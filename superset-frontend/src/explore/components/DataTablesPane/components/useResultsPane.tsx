@@ -30,6 +30,7 @@ import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { ResultsPaneProps, QueryResultInterface } from '../types';
 import { SingleQueryResultPane } from './SingleQueryResultPane';
 import { TableControls } from './DataTableControls';
+import { transformTableData } from '../utils';
 
 const Error = styled.pre`
   margin-top: ${({ theme }) => `${theme.sizeUnit * 4}px`};
@@ -45,18 +46,20 @@ const StyledDiv = styled.div`
 
 const cache = new WeakMap();
 
-export const useResultsPane = ({
-  isRequest,
-  queryFormData,
-  queryForce,
-  ownState,
-  errorMessage,
-  setForceQuery,
-  isVisible,
-  dataSize = 50,
-  canDownload,
-  columnDisplayNames,
-}: ResultsPaneProps): ReactElement[] => {
+export const useResultsPane = (args: ResultsPaneProps): ReactElement[] => {
+  const {
+    isRequest,
+    queryFormData,
+    queryForce,
+    ownState,
+    errorMessage,
+    setForceQuery,
+    isVisible,
+    dataSize = 50,
+    canDownload,
+    columnDisplayNames,
+  } = args;
+
   const metadata = getChartMetadataRegistry().get(
     queryFormData?.viz_type || queryFormData?.vizType,
   );
@@ -88,11 +91,13 @@ export const useResultsPane = ({
         formData: queryFormData,
         force: queryForce,
         resultFormat: 'json',
-        resultType: 'results',
+        resultType: 'full',
         ownState,
       })
         .then(({ json }) => {
-          setResultResp(ensureIsArray(json.result) as QueryResultInterface[]);
+          const responseArray = ensureIsArray<any>(json.result);
+          const transformedResponseArray = transformTableData(responseArray);
+          setResultResp(transformedResponseArray);
           setResponseError('');
           cache.set(queryFormData, json.result);
           if (queryForce) {
