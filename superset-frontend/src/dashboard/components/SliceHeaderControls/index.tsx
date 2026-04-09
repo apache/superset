@@ -154,6 +154,12 @@ const dropdownIconsStyles = css`
   }
 `;
 
+const queueChartResize = () => {
+  window.setTimeout(() => {
+    window.dispatchEvent(new Event('resize'));
+  }, 300);
+};
+
 const SliceHeaderControls = (
   props: SliceHeaderControlsPropsWithRouter | SliceHeaderControlsProps,
 ) => {
@@ -201,6 +207,41 @@ const SliceHeaderControls = (
     }
   };
 
+  const requestChartFullscreen = () => {
+    const chartHolder = props.chartHolderRef?.current;
+
+    if (!chartHolder?.requestFullscreen) {
+      props.addDangerToast(t('Fullscreen is not supported in this browser.'));
+      return;
+    }
+
+    chartHolder.requestFullscreen().catch(error => {
+      props.addDangerToast(
+        t(
+          'Error enabling fullscreen: %s',
+          error instanceof Error ? error.message : t('Unknown error'),
+        ),
+      );
+    });
+  };
+
+  const exitChartFullscreen = () => {
+    if (!document.exitFullscreen) {
+      props.handleToggleFullSize();
+      queueChartResize();
+      return;
+    }
+
+    document.exitFullscreen().catch(error => {
+      props.addDangerToast(
+        t(
+          'Error disabling fullscreen: %s',
+          error instanceof Error ? error.message : t('Unknown error'),
+        ),
+      );
+    });
+  };
+
   const handleMenuClick = ({
     key,
     domEvent,
@@ -236,30 +277,15 @@ const SliceHeaderControls = (
         props.exportPivotCSV?.(props.slice.slice_id);
         break;
       case MenuKeys.Fullscreen: {
-        const el = props.chartHolderRef?.current;
-
-        if (!document.fullscreenElement) {
-          el?.requestFullscreen?.()
-            .then(() => {
-              props.handleToggleFullSize();
-              // Trigger resize to fit the fullscreen container
-              setTimeout(() => {
-                window.dispatchEvent(new Event('resize'));
-              }, 300);
-            })
-            .catch((err: Error) => {
-              props.addDangerToast(
-                t('Error enabling fullscreen: %s', err.message),
-              );
-            });
-        } else {
-          document.exitFullscreen?.().then(() => {
+        if (props.isFullSize) {
+          if (document.fullscreenElement) {
+            exitChartFullscreen();
+          } else {
             props.handleToggleFullSize();
-            // Trigger resize to original dimensions
-            setTimeout(() => {
-              window.dispatchEvent(new Event('resize'));
-            }, 300);
-          });
+            queueChartResize();
+          }
+        } else {
+          requestChartFullscreen();
         }
         break;
       }
@@ -585,16 +611,21 @@ const SliceHeaderControls = (
 
   useEffect(() => {
     const handleFullscreenChange = () => {
-      if (!document.fullscreenElement && isFullSize) {
+      const isChartFullscreen =
+        document.fullscreenElement === props.chartHolderRef?.current;
+
+      if (isChartFullscreen !== Boolean(isFullSize)) {
         props.handleToggleFullSize();
       }
+
+      queueChartResize();
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
-  }, [isFullSize, props]);
+  }, [isFullSize, props.chartHolderRef, props.handleToggleFullSize]);
 
   return (
     <>
@@ -603,11 +634,10 @@ const SliceHeaderControls = (
           style={{ fontSize: 22 }}
           onClick={() => {
             if (document.fullscreenElement) {
-              document.exitFullscreen()?.then(() => {
-                props.handleToggleFullSize();
-              });
+              exitChartFullscreen();
             } else {
               props.handleToggleFullSize();
+              queueChartResize();
             }
           }}
         />

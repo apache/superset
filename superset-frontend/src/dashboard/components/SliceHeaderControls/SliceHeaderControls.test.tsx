@@ -127,6 +127,13 @@ const openMenu = () => {
   userEvent.click(screen.getByRole('button', { name: 'More Options' }));
 };
 
+const mockFullscreenElement = (getElement: () => Element | null) => {
+  Object.defineProperty(document, 'fullscreenElement', {
+    configurable: true,
+    get: getElement,
+  });
+};
+
 beforeEach(() => {
   mockCachedSupersetGet.mockClear();
   mockCachedSupersetGet.mockResolvedValue({
@@ -138,6 +145,10 @@ beforeEach(() => {
       },
     },
   });
+});
+
+afterEach(() => {
+  Reflect.deleteProperty(document, 'fullscreenElement');
 });
 
 test('Should render', () => {
@@ -309,9 +320,13 @@ test('Should "Force refresh"', () => {
   expect(props.addSuccessToast).toHaveBeenCalledTimes(1);
 });
 
-test('Should "Enter fullscreen"', async () => {
+test('Should sync local state after entering fullscreen', async () => {
   const mockDiv = document.createElement('div');
-  mockDiv.requestFullscreen = jest.fn().mockResolvedValue(undefined);
+  let fullscreenElement: Element | null = null;
+  mockFullscreenElement(() => fullscreenElement);
+  mockDiv.requestFullscreen = jest.fn().mockImplementation(async () => {
+    fullscreenElement = mockDiv;
+  });
   const originalExitFullscreen = document.exitFullscreen;
   (document as any).exitFullscreen = jest.fn().mockResolvedValue(undefined);
   const props = {
@@ -325,10 +340,40 @@ test('Should "Enter fullscreen"', async () => {
     name: /enter fullscreen/i,
   });
   await userEvent.click(fullscreenItem);
+  expect(props.handleToggleFullSize).toHaveBeenCalledTimes(0);
+  expect(mockDiv.requestFullscreen).toHaveBeenCalled();
+  document.dispatchEvent(new Event('fullscreenchange'));
   await waitFor(() => {
     expect(props.handleToggleFullSize).toHaveBeenCalledTimes(1);
   });
-  expect(mockDiv.requestFullscreen).toHaveBeenCalled();
+  (document as any).exitFullscreen = originalExitFullscreen;
+});
+
+test('Should sync local state after exiting fullscreen', async () => {
+  const mockDiv = document.createElement('div');
+  let fullscreenElement: Element | null = mockDiv;
+  mockFullscreenElement(() => fullscreenElement);
+  const originalExitFullscreen = document.exitFullscreen;
+  (document as any).exitFullscreen = jest.fn().mockImplementation(async () => {
+    fullscreenElement = null;
+  });
+  const props = {
+    ...createProps(),
+    isFullSize: true,
+    chartHolderRef: { current: mockDiv },
+  };
+  renderWrapper(props);
+  openMenu();
+  const fullscreenItem = screen.getByRole('menuitem', {
+    name: /exit fullscreen/i,
+  });
+  await userEvent.click(fullscreenItem);
+  expect(props.handleToggleFullSize).toHaveBeenCalledTimes(0);
+  expect(document.exitFullscreen).toHaveBeenCalledTimes(1);
+  document.dispatchEvent(new Event('fullscreenchange'));
+  await waitFor(() => {
+    expect(props.handleToggleFullSize).toHaveBeenCalledTimes(1);
+  });
   (document as any).exitFullscreen = originalExitFullscreen;
 });
 

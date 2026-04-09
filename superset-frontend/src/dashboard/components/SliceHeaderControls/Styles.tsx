@@ -63,8 +63,9 @@ export const fullscreenStyles = (theme: SupersetTheme) => css`
     pointer-events: auto;
   }
 
-  [data-test='dashboard-component-chart-header'] {
-    z-index: 100;
+  [data-test='dashboard-component-chart-holder']:fullscreen
+    [data-test='slice-header'] {
+    z-index: ${theme.zIndexPopupBase};
     position: relative;
   }
 `;
