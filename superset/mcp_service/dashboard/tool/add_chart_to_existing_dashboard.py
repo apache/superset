@@ -33,7 +33,6 @@ from superset.commands.exceptions import CommandException
 from superset.extensions import event_logger
 from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import mcp_auth_hook
-from superset.mcp_service.chart.schemas import serialize_chart_object
 from superset.mcp_service.dashboard.constants import (
     generate_id,
     GRID_COLUMN_COUNT,
@@ -43,6 +42,7 @@ from superset.mcp_service.dashboard.schemas import (
     AddChartToDashboardRequest,
     AddChartToDashboardResponse,
     DashboardInfo,
+    serialize_chart_summary,
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
@@ -528,7 +528,7 @@ def add_chart_to_existing_dashboard(
             charts=[
                 obj
                 for chart in getattr(updated_dashboard, "slices", [])
-                if (obj := serialize_chart_object(chart)) is not None
+                if (obj := serialize_chart_summary(chart)) is not None
             ],
         )
 

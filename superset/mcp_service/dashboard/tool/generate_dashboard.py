@@ -31,7 +31,6 @@ from mcp.types import ToolAnnotations
 from superset.extensions import event_logger
 from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import mcp_auth_hook
-from superset.mcp_service.chart.schemas import serialize_chart_object
 from superset.mcp_service.dashboard.constants import (
     generate_id,
     GRID_COLUMN_COUNT,
@@ -397,6 +396,7 @@ def generate_dashboard(  # noqa: C901
 
         # Convert to our response format
         from superset.mcp_service.dashboard.schemas import (
+            serialize_chart_summary,
             serialize_tag_object,
             serialize_user_object,
         )
@@ -428,7 +428,7 @@ def generate_dashboard(  # noqa: C901
             charts=[
                 obj
                 for chart in getattr(dashboard, "slices", [])
-                if (obj := serialize_chart_object(chart)) is not None
+                if (obj := serialize_chart_summary(chart)) is not None
             ],
         )
 
