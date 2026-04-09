@@ -47,12 +47,17 @@ test('renders tabs when rawSql differs from sql', () => {
   expect(getByText('Source SQL')).toBeInTheDocument();
 });
 
-test('renders single SQL block when rawSql only differs by trailing LIMIT', () => {
-  const { getByRole, queryByRole, getByTestId, queryByText } = render(
-    <HighlightedSql sql={sql} rawSql={`${sql} LIMIT 1000`} shrink maxWidth={5} />,
+test('renders tabs when rawSql has an added LIMIT', () => {
+  const { getByRole, queryByRole, getByTestId, getByText } = render(
+    <HighlightedSql
+      sql={sql}
+      rawSql={`${sql} LIMIT 1000`}
+      shrink
+      maxWidth={5}
+    />,
   );
   expect(queryByRole('dialog')).not.toBeInTheDocument();
   fireEvent.click(getByTestId('span-modal-trigger'));
   expect(queryByRole('dialog')).toBeInTheDocument();
-  expect(queryByText('Executed SQL')).not.toBeInTheDocument();
+  expect(getByText('Executed SQL')).toBeInTheDocument();
 });

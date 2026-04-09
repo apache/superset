@@ -47,11 +47,6 @@ const Title = styled.h4`
   font-weight: ${({ theme }) => theme.fontWeightStrong};
 `;
 
-// Strip a trailing LIMIT (and optional OFFSET) clause for comparison purposes only.
-// This avoids showing tabs when the only difference is an applied row limit.
-const stripTrailingLimit = (sql: string) =>
-  sql.replace(/\s+LIMIT\s+\d+(\s+OFFSET\s+\d+)?\s*;?\s*$/i, '').trim();
-
 const shrinkSql = (sql: string, maxLines: number, maxWidth: number) => {
   const ssql = sql || '';
   let lines = ssql.split('\n');
@@ -85,10 +80,7 @@ function HighlightSqlModal({ rawSql, sql }: HighlightedSqlModalTypes) {
     padding: theme.sizeUnit * 2,
   };
 
-  const isDifferent =
-    !!rawSql &&
-    rawSql !== sql &&
-    stripTrailingLimit(rawSql) !== stripTrailingLimit(sql);
+  const isDifferent = !!rawSql && rawSql !== sql;
 
   if (!isDifferent) {
     return (
