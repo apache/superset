@@ -274,7 +274,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
           }}
           role="button"
           tabIndex={0}
-          aria-expanded={false}
+          aria-expanded={filtersOpen}
           aria-label={t('Expand filters')}
           offset={offset}
         >
