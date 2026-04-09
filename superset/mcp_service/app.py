@@ -54,6 +54,10 @@ Dashboard Management:
 - generate_dashboard: Create a dashboard from chart IDs
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard
 
+Database Connections:
+- list_databases: List database connections with advanced filters (1-based pagination)
+- get_database_info: Get detailed database connection info by ID (backend, capabilities)
+
 Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
 - get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
@@ -88,19 +92,39 @@ Available Prompts:
 - quickstart: Interactive guide for getting started with the MCP service
 - create_chart_guided: Step-by-step chart creation wizard
 
+IMPORTANT - Using Saved Metrics vs Columns:
+When get_dataset_info returns a dataset, it includes both 'columns' and 'metrics'.
+- 'columns' are raw database columns (e.g., order_date, product_name, revenue)
+- 'metrics' are pre-defined saved metrics with SQL expressions
+  (e.g., count, total_revenue)
+
+When building chart configurations
+(generate_chart, generate_explore_link, update_chart):
+- For raw columns: use {{"name": "col_name", "aggregate": "SUM"}}
+- For saved metrics: use {{"name": "metric", "saved_metric": true}}
+  Do NOT add an aggregate when using saved_metric=true
+  (it's already defined in the metric).
+  Do NOT use a saved metric name as if it were a column — it will fail.
+
+Example: If get_dataset_info returns metrics=[{{"metric_name": "count", ...}}], use:
+  {{"name": "count", "saved_metric": true}}  ← CORRECT
+  {{"name": "count", "aggregate": "COUNT"}}  ← WRONG (count is not a column)
+
 Recommended Workflows:
 
 To create a chart:
 1. list_datasets -> find a dataset
-2. get_dataset_info(id) -> examine columns and metrics
+2. get_dataset_info(id) -> examine columns AND metrics (note which names are metrics!)
 3. generate_explore_link(dataset_id, config) -> preview interactively
 4. generate_chart(dataset_id, config, save_chart=True) -> save permanently
 
-To find your own charts/dashboards:
+To find your own charts/dashboards/databases:
 1. get_instance_info -> get current_user.id
 2. list_charts(filters=[{{"col": "created_by_fk",
    "opr": "eq", "value": current_user.id}}])
 3. Or: list_dashboards(filters=[{{"col": "created_by_fk",
+   "opr": "eq", "value": current_user.id}}])
+4. Or: list_databases(filters=[{{"col": "created_by_fk",
    "opr": "eq", "value": current_user.id}}])
 
 To explore data with SQL:
@@ -118,6 +142,9 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
 - chart_type="xy", kind="bar": Bar chart for category comparison
 - chart_type="xy", kind="area": Area chart for volume visualization
 - chart_type="xy", kind="scatter": Scatter plot for correlation analysis
+- chart_type="big_number": Big Number display (single metric, header only)
+- chart_type="big_number", show_trendline=True,
+  temporal_column="<date_col>": Big Number with trendline
 - chart_type="table": Data table for detailed views
 - chart_type="table", viz_type="ag-grid-table": Interactive AG Grid table
 - chart_type="pie": Pie chart for proportional data (set donut=True for donut)
@@ -147,6 +174,8 @@ Query Examples:
   filters=[{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]
 - My dashboards:
   filters=[{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]
+- My databases:
+  filters=[{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]
 
 To modify an existing chart (add filters, change metrics, change dimensions, etc.):
 1. get_chart_info(chart_id) -> examine current configuration
@@ -159,8 +188,8 @@ CRITICAL RULES - NEVER VIOLATE:
   open_sql_lab_with_context, etc.) and use the URL it returns.
 - To modify an existing chart's filters, metrics, or dimensions, use update_chart.
   Do NOT use execute_sql for chart modifications.
-- Parameter name reminders: open_sql_lab_with_context uses "sql" (not "query"),
-  execute_sql uses "sql" (not "query").
+- Parameter name reminders: ALWAYS use the EXACT parameter names from the tool schema.
+  Do NOT use Superset's internal form_data names.
 
 IMPORTANT - Tool-Only Interaction:
 - Do NOT generate code artifacts, HTML pages, JavaScript snippets, or any code intended
@@ -401,6 +430,7 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
     get_chart_data,
     get_chart_info,
     get_chart_preview,
+    get_chart_type_schema,
     list_charts,
     update_chart,
     update_chart_preview,
@@ -410,6 +440,10 @@ from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     generate_dashboard,
     get_dashboard_info,
     list_dashboards,
+)
+from superset.mcp_service.database.tool import (  # noqa: F401, E402
+    get_database_info,
+    list_databases,
 )
 from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
     get_dataset_info,
