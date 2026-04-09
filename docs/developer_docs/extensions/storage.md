@@ -303,20 +303,14 @@ For development, the default `SupersetMetastoreCache` stores data in the metadat
 
 ### Tier 3: Persistent Storage
 
-Tier 3 values are stored in the `extension_storage` database table. Values are unencrypted by default. To enable encryption at rest, configure one or more Fernet keys:
+Tier 3 values are stored in the `extension_storage` database table. The encryption infrastructure is in place (Fernet-based, keyed from `EXTENSION_STORAGE_ENCRYPTION_KEYS`), but values written through the standard storage API are stored unencrypted by default. Encryption is available at the DAO layer for backend extensions that call `ExtensionStorageDAO.set(..., is_encrypted=True)` directly.
 
 ```python
-# Encryption keys for Tier 3 persistent storage.
+# Optional: override the encryption key(s) used for Tier 3 persistent storage.
 # Falls back to SECRET_KEY when not set.
-# Rotate keys by prepending the new key — old keys are kept for decryption.
+# Rotate keys by prepending the new key — all keys are tried on decryption.
 EXTENSION_STORAGE_ENCRYPTION_KEYS = [
     "my-new-key-base64url-encoded",  # used for new writes
     "my-old-key-base64url-encoded",  # kept for reading old values
 ]
-```
-
-To rotate encryption keys without downtime, prepend the new key and re-encrypt existing rows:
-
-```bash
-superset rotate-extension-storage-keys
 ```

@@ -61,7 +61,10 @@ def _set_user(user_id: int) -> None:
     g.user = MagicMock(id=user_id)
 
 
-def test_persistent_state_raises_without_context(app: Flask) -> None:
+@patch("superset.db")
+def test_persistent_state_raises_without_context(
+    mock_db: MagicMock, app: Flask
+) -> None:
     """PersistentStateImpl operations raise RuntimeError without extension context."""
     with app.app_context():
         _set_user(1)
@@ -115,8 +118,11 @@ def test_persistent_state_get_returns_none_when_missing(
     assert result is None
 
 
+@patch("superset.db")
 @patch("superset.extensions.storage.persistent_state_impl.ExtensionStorageDAO")
-def test_persistent_state_set_encodes_value(mock_dao: MagicMock, app: Flask) -> None:
+def test_persistent_state_set_encodes_value(
+    mock_dao: MagicMock, mock_db: MagicMock, app: Flask
+) -> None:
     """PersistentStateImpl.set encodes value as JSON bytes."""
     ctx = _create_context()
 
@@ -130,8 +136,11 @@ def test_persistent_state_set_encodes_value(mock_dao: MagicMock, app: Flask) -> 
     )
 
 
+@patch("superset.db")
 @patch("superset.extensions.storage.persistent_state_impl.ExtensionStorageDAO")
-def test_persistent_state_remove_deletes_entry(mock_dao: MagicMock, app: Flask) -> None:
+def test_persistent_state_remove_deletes_entry(
+    mock_dao: MagicMock, mock_db: MagicMock, app: Flask
+) -> None:
     """PersistentStateImpl.remove calls DAO delete."""
     ctx = _create_context()
 

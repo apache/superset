@@ -27,6 +27,7 @@ from sqlalchemy import (
     LargeBinary,
     String,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy_utils import UUIDType
@@ -66,7 +67,15 @@ class ExtensionStorage(AuditMixinNullable, Model):
     extension_id = Column(String(255), nullable=False)
 
     # Scope discriminators — all nullable; NULLs define the scope (see docstring)
-    user_fk = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
+    user_fk = Column(
+        Integer,
+        ForeignKey(
+            "ab_user.id",
+            ondelete="SET NULL",
+            name="fk_extension_storage_user_fk_ab_user",
+        ),
+        nullable=True,
+    )
     resource_type = Column(String(64), nullable=True)
     resource_uuid = Column(String(36), nullable=True)
 
@@ -89,6 +98,15 @@ class ExtensionStorage(AuditMixinNullable, Model):
     )
 
     __table_args__ = (
+        # Unique constraint prevents duplicate rows from concurrent writes
+        UniqueConstraint(
+            "extension_id",
+            "user_fk",
+            "resource_type",
+            "resource_uuid",
+            "key",
+            name="uq_extension_storage_scoped_key",
+        ),
         # Composite index covering all lookup dimensions
         Index(
             "ix_ext_storage_lookup",

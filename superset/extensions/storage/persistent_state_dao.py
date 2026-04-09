@@ -21,7 +21,7 @@ import base64
 import hashlib
 import logging
 
-from cryptography.fernet import Fernet, MultiFernet
+from cryptography.fernet import Fernet, InvalidToken, MultiFernet
 from flask import current_app
 from sqlalchemy import and_
 
@@ -105,7 +105,7 @@ class ExtensionStorageDAO:
         resource_type: str | None = None,
         resource_uuid: str | None = None,
     ) -> ExtensionStorage | None:
-        """Return a storage entry, decrypting the value if needed."""
+        """Return the raw storage entry. The value field may be encrypted."""
         entry = (
             db.session.query(ExtensionStorage)
             .filter(
@@ -134,7 +134,16 @@ class ExtensionStorageDAO:
         if entry is None:
             return None
         if entry.is_encrypted:
-            return _fernet().decrypt(entry.value)
+            try:
+                return _fernet().decrypt(entry.value)
+            except InvalidToken:
+                logger.error(
+                    "Failed to decrypt extension storage value for "
+                    "extension_id=%s key=%s — possible key rotation issue",
+                    extension_id,
+                    key,
+                )
+                return None
         return entry.value
 
     # ── Write (upsert) ────────────────────────────────────────────────────────

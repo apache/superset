@@ -60,11 +60,34 @@ def upgrade() -> None:
         sa.Column("changed_on", sa.DateTime(), nullable=True),
         sa.Column("created_by_fk", sa.Integer(), nullable=True),
         sa.Column("changed_by_fk", sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(["user_fk"], ["ab_user.id"]),
-        sa.ForeignKeyConstraint(["created_by_fk"], ["ab_user.id"]),
-        sa.ForeignKeyConstraint(["changed_by_fk"], ["ab_user.id"]),
+        sa.ForeignKeyConstraint(
+            ["user_fk"],
+            ["ab_user.id"],
+            name="fk_extension_storage_user_fk_ab_user",
+            ondelete="SET NULL",
+        ),
+        sa.ForeignKeyConstraint(
+            ["created_by_fk"],
+            ["ab_user.id"],
+            name="fk_extension_storage_created_by_fk_ab_user",
+            ondelete="SET NULL",
+        ),
+        sa.ForeignKeyConstraint(
+            ["changed_by_fk"],
+            ["ab_user.id"],
+            name="fk_extension_storage_changed_by_fk_ab_user",
+            ondelete="SET NULL",
+        ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("uuid"),
+        sa.UniqueConstraint(
+            "extension_id",
+            "user_fk",
+            "resource_type",
+            "resource_uuid",
+            "key",
+            name="uq_extension_storage_scoped_key",
+        ),
     )
     op.create_index(
         "ix_ext_storage_extension_id",
