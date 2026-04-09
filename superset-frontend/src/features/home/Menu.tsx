@@ -18,6 +18,7 @@
  */
 import { useState, useEffect } from 'react';
 import { styled, css, useTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { ensureStaticPrefix } from 'src/utils/assetUrl';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import { getUrlParam } from 'src/utils/urlUtils';
@@ -334,7 +335,7 @@ export function Menu({
     return <>{link}</>;
   };
   return (
-    <StyledHeader className="top" id="main-menu" role="navigation" aria-label="Main navigation">
+    <StyledHeader className="top" id="main-menu" role="navigation" aria-label={t('Main navigation')}>
       <StyledRow>
         <StyledCol md={16} xs={24}>
           <Tooltip
