@@ -60,7 +60,7 @@ export const useResultsPane = ({
     queryFormData?.viz_type || queryFormData?.vizType,
   );
 
-  const chartRowLimit = queryFormData?.row_limit ?? 10000;
+  const chartRowLimit = Number(queryFormData?.row_limit) || 10000;
   const [rowLimit, setRowLimit] = useState(1000);
   const [resultResp, setResultResp] = useState<QueryResultInterface[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);

@@ -91,7 +91,10 @@ export const SamplesPane = ({
 
     if (isRequest && !cache.has(queryFormData)) {
       setIsLoading(true);
-      const payload = getDrillPayload(queryFormData) ?? {};
+      const payload =
+        getDrillPayload(
+          queryFormData as Parameters<typeof getDrillPayload>[0],
+        ) ?? {};
       getDatasourceSamples(
         datasource.type,
         datasource.id,

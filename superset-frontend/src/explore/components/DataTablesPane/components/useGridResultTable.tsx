@@ -99,28 +99,25 @@ export function useGridHeight(fallbackHeight = 400) {
   const [gridHeight, setGridHeight] = useState(fallbackHeight);
   const observerRef = useRef<ResizeObserver | null>(null);
 
-  const measuredRef = useCallback(
-    (el: HTMLDivElement | null) => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-        observerRef.current = null;
-      }
-      if (!el) return;
+  const measuredRef = useCallback((el: HTMLDivElement | null) => {
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+      observerRef.current = null;
+    }
+    if (!el) return;
 
-      const observer = new ResizeObserver(entries => {
-        const entry = entries[0];
-        if (entry) {
-          const h = Math.floor(entry.contentRect.height);
-          if (h > 0) {
-            setGridHeight(prev => (prev !== h ? h : prev));
-          }
+    const observer = new ResizeObserver(entries => {
+      const entry = entries[0];
+      if (entry) {
+        const h = Math.floor(entry.contentRect.height);
+        if (h > 0) {
+          setGridHeight(prev => (prev !== h ? h : prev));
         }
-      });
-      observer.observe(el);
-      observerRef.current = observer;
-    },
-    [],
-  );
+      }
+    });
+    observer.observe(el);
+    observerRef.current = observer;
+  }, []);
 
   return { gridHeight, measuredRef };
 }

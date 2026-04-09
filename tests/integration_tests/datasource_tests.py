@@ -798,7 +798,7 @@ def test_get_samples_pagination(test_client, login_as_admin, virtual_dataset):
     assert rv.json["result"]["total_count"] == 10
 
     # 2. incorrect per_page
-    per_pages = (current_app.config["SAMPLES_ROW_LIMIT"] + 1, 0, "xx")
+    per_pages = (10001, 0, "xx")
     for per_page in per_pages:
         uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&per_page={per_page}"  # noqa: E501
         rv = test_client.post(uri, json={})
