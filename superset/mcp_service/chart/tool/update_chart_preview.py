@@ -183,7 +183,7 @@ def update_chart_preview(
     except OAuth2RedirectError as ex:
         logger.warning(
             "Chart preview update requires OAuth authentication: chart_id=%s",
-            request.chart_id,
+            request.form_data_key,
         )
         return {
             "chart": None,
@@ -191,7 +191,7 @@ def update_chart_preview(
             "success": False,
         }
     except OAuth2Error:
-        logger.warning("OAuth2 configuration error: chart_id=%s", request.chart_id)
+        logger.warning("OAuth2 configuration error: chart_id=%s", request.form_data_key)
         return {
             "chart": None,
             "error": OAUTH2_CONFIG_ERROR_MESSAGE,

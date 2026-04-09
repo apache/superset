@@ -320,7 +320,8 @@ async def update_chart(  # noqa: C901
 
     except OAuth2RedirectError as ex:
         await ctx.error(
-            "Chart update requires OAuth authentication: chart_id=%s" % request.chart_id
+            "Chart update requires OAuth authentication: chart_id=%s"
+            % request.identifier
         )
         return GenerateChartResponse.model_validate(
             {
@@ -333,7 +334,7 @@ async def update_chart(  # noqa: C901
             }
         )
     except OAuth2Error:
-        await ctx.error("OAuth2 configuration error: chart_id=%s" % request.chart_id)
+        await ctx.error("OAuth2 configuration error: chart_id=%s" % request.identifier)
         return GenerateChartResponse.model_validate(
             {
                 "chart": None,
