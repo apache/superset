@@ -54,6 +54,9 @@ export const SingleQueryResultPane = ({
   datasourceId,
   canDownload,
   columnDisplayNames,
+  rowLimit,
+  rowLimitOptions,
+  onRowLimitChange,
 }: SingleQueryResultPaneProp) => {
   const [filterText, setFilterText] = useState('');
   const { gridHeight, measuredRef } = useGridHeight();
@@ -77,6 +80,9 @@ export const SingleQueryResultPane = ({
         onInputChange={handleInputChange}
         isLoading={false}
         canDownload={canDownload}
+        rowLimit={rowLimit}
+        rowLimitOptions={rowLimitOptions}
+        onRowLimitChange={onRowLimitChange}
       />
       <GridContainer>
         <GridSizer ref={measuredRef}>

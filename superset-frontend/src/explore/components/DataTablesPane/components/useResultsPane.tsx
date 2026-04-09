@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, ReactElement, useCallback } from 'react';
+import { useState, useEffect, useMemo, ReactElement, useCallback } from 'react';
 
 import { t } from '@apache-superset/core/translation';
 import {
@@ -29,7 +29,7 @@ import { EmptyState, Loading } from '@superset-ui/core/components';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { ResultsPaneProps, QueryResultInterface } from '../types';
 import { SingleQueryResultPane } from './SingleQueryResultPane';
-import { TableControls } from './DataTableControls';
+import { TableControls, RESULTS_ROW_LIMIT_OPTIONS } from './DataTableControls';
 
 const Error = styled.pre`
   margin-top: ${({ theme }) => `${theme.sizeUnit * 4}px`};
@@ -60,6 +60,8 @@ export const useResultsPane = ({
     queryFormData?.viz_type || queryFormData?.vizType,
   );
 
+  const DEFAULT_RESULTS_ROW_LIMIT = 1000;
+  const [rowLimit, setRowLimit] = useState(DEFAULT_RESULTS_ROW_LIMIT);
   const [resultResp, setResultResp] = useState<QueryResultInterface[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [responseError, setResponseError] = useState<string>('');
@@ -68,12 +70,25 @@ export const useResultsPane = ({
 
   const noOpInputChange = useCallback(() => {}, []);
 
+  const cappedFormData = useMemo(
+    () => ({ ...queryFormData, row_limit: rowLimit }),
+    [queryFormData, rowLimit],
+  );
+
+  const handleRowLimitChange = useCallback(
+    (limit: number) => {
+      setRowLimit(limit);
+      cache.delete(cappedFormData);
+    },
+    [cappedFormData],
+  );
+
   useEffect(() => {
     // it's an invalid formData when gets a errorMessage
     if (errorMessage) return;
-    if (isRequest && cache.has(queryFormData)) {
+    if (isRequest && cache.has(cappedFormData)) {
       setResultResp(
-        ensureIsArray(cache.get(queryFormData)) as QueryResultInterface[],
+        ensureIsArray(cache.get(cappedFormData)) as QueryResultInterface[],
       );
       setResponseError('');
       if (queryForce) {
@@ -81,10 +96,10 @@ export const useResultsPane = ({
       }
       setIsLoading(false);
     }
-    if (isRequest && !cache.has(queryFormData)) {
+    if (isRequest && !cache.has(cappedFormData)) {
       setIsLoading(true);
       getChartDataRequest({
-        formData: queryFormData,
+        formData: cappedFormData,
         force: queryForce,
         resultFormat: 'json',
         resultType: 'results',
@@ -93,7 +108,7 @@ export const useResultsPane = ({
         .then(({ json }) => {
           setResultResp(ensureIsArray(json.result) as QueryResultInterface[]);
           setResponseError('');
-          cache.set(queryFormData, json.result);
+          cache.set(cappedFormData, json.result);
           if (queryForce) {
             setForceQuery?.(false);
           }
@@ -107,7 +122,7 @@ export const useResultsPane = ({
           setIsLoading(false);
         });
     }
-  }, [queryFormData, isRequest]);
+  }, [cappedFormData, isRequest]);
 
   useEffect(() => {
     if (errorMessage) {
@@ -166,6 +181,9 @@ export const useResultsPane = ({
         isVisible={isVisible}
         canDownload={canDownload}
         columnDisplayNames={columnDisplayNames}
+        rowLimit={rowLimit}
+        rowLimitOptions={RESULTS_ROW_LIMIT_OPTIONS}
+        onRowLimitChange={handleRowLimitChange}
       />
     </StyledDiv>
   ));

@@ -30,16 +30,25 @@ import { getTimeColumns } from 'src/explore/components/DataTableControl/utils';
 import RowCountLabel from 'src/components/RowCountLabel';
 import { TableControlsProps } from '../types';
 
-const ROW_LIMIT_OPTIONS = [
+export const SAMPLES_ROW_LIMIT_OPTIONS = [
   { value: 100, label: '100 rows' },
   { value: 500, label: '500 rows' },
   { value: 1000, label: '1k rows' },
+];
+
+export const RESULTS_ROW_LIMIT_OPTIONS = [
+  { value: 100, label: '100 rows' },
+  { value: 500, label: '500 rows' },
+  { value: 1000, label: '1k rows' },
+  { value: 5000, label: '5k rows' },
+  { value: 10000, label: '10k rows' },
 ];
 
 export const TableControlsWrapper = styled.div`
   ${({ theme }) => `
     display: flex;
     align-items: center;
+    padding-top: ${theme.sizeUnit * 2}px;
     padding-bottom: ${theme.sizeUnit * 2}px;
     justify-content: space-between;
 
@@ -59,6 +68,7 @@ export const TableControls = ({
   isLoading,
   canDownload,
   rowLimit,
+  rowLimitOptions,
   onRowLimitChange,
 }: TableControlsProps) => {
   const originalTimeColumns = getTimeColumns(datasourceId);
@@ -92,7 +102,7 @@ export const TableControls = ({
           <Select
             value={rowLimit}
             onChange={onRowLimitChange}
-            options={ROW_LIMIT_OPTIONS}
+            options={rowLimitOptions}
             size="small"
             css={css`
               min-width: 110px;

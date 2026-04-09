@@ -74,6 +74,7 @@ export interface TableControlsProps {
   rowcount: number;
   canDownload: boolean;
   rowLimit?: number;
+  rowLimitOptions?: { value: number; label: string }[];
   onRowLimitChange?: (limit: number) => void;
 }
 
@@ -91,4 +92,7 @@ export interface SingleQueryResultPaneProp extends QueryResultInterface {
   canDownload: boolean;
   // Optional map of column/metric name -> verbose label
   columnDisplayNames?: Record<string, string>;
+  rowLimit?: number;
+  rowLimitOptions?: { value: number; label: string }[];
+  onRowLimitChange?: (limit: number) => void;
 }
