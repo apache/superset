@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import type { EChartsCoreOption } from 'echarts/core';
 import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import {
   QueryFormColumn,
@@ -27,10 +28,34 @@ import {
 import { TOOLTIP_OVERFLOW_MARGIN, TOOLTIP_POINTER_MARGIN } from '../constants';
 import { Refs } from '../types';
 
+export const getTooltipAppendToBody = () =>
+  typeof document !== 'undefined' ? !document.fullscreenElement : true;
+
+export function syncTooltipAppendToBody(
+  tooltip: EChartsCoreOption['tooltip'],
+): EChartsCoreOption['tooltip'] {
+  if (!tooltip) {
+    return tooltip;
+  }
+
+  const appendToBody = getTooltipAppendToBody();
+
+  if (Array.isArray(tooltip)) {
+    return tooltip.map(config => ({
+      ...config,
+      appendToBody,
+    }));
+  }
+
+  return {
+    ...tooltip,
+    appendToBody,
+  };
+}
+
 export function getDefaultTooltip(refs: Refs) {
   return {
-    appendToBody:
-      typeof document !== 'undefined' ? !document.fullscreenElement : true,
+    appendToBody: getTooltipAppendToBody(),
     borderColor: 'transparent',
     // CSS hack applied on this class to resolve https://github.com/apache/superset/issues/30058
     className: 'echarts-tooltip',
