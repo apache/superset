@@ -39,6 +39,7 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
+import { FILTER_BAR_HEADER_HEIGHT } from 'src/dashboard/constants';
 import { getFilterBarTestId, useChartsVerboseMaps } from './utils';
 import { VerticalBarProps } from './types';
 import Header from './Header';
@@ -63,8 +64,8 @@ const BarWrapper = styled.div<{ width: number }>`
   }
 `;
 
-const Bar = styled.div<{ width: number }>`
-  ${({ theme, width }) => `
+const Bar = styled.div<{ width: number; height: string | number }>`
+  ${({ theme, width, height }) => `
     & .ant-typography-edit-content {
       left: 0;
       margin-top: 0;
@@ -76,10 +77,11 @@ const Bar = styled.div<{ width: number }>`
     flex-direction: column;
     flex-grow: 1;
     width: ${width}px;
+    height: ${typeof height === 'number' ? `${height}px` : height};
+    overflow: hidden;
     background: ${theme.colorBgContainer};
     border-right: 1px solid ${theme.colorSplit};
     border-bottom: 1px solid ${theme.colorSplit};
-    min-height: 100%;
     display: none;
     &.open {
       display: flex;
@@ -120,8 +122,6 @@ const FilterControlsWrapper = styled.div`
     gap: ${theme.sizeUnit * 2}px;
     padding: ${theme.sizeUnit * 4}px;
     padding-top: 0; /* Works with other changes in PR https://github.com/apache/superset/pull/38646 to reduces space between filter header and 1st filter */
-    // 108px padding to make room for buttons with position: absolute
-    padding-bottom: ${theme.sizeUnit * 27}px;
   `}
 `;
 
@@ -171,9 +171,27 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
     };
   }, [onScroll]);
 
-  const tabPaneStyle = useMemo(
-    () => ({ overflow: 'auto', height, overscrollBehavior: 'contain' }),
+  // Total height of the Bar including the filter bar header.
+  // The `height` prop covers the scrollable content area (100vh minus the
+  // combined dashboard header and filter bar header offsets). Adding the
+  // filter bar header back gives the full panel height so we can use a flex
+  // layout instead of position:fixed for the action buttons.
+  const barHeight = useMemo(
+    () =>
+      typeof height === 'number'
+        ? height + FILTER_BAR_HEADER_HEIGHT
+        : `calc(${height} + ${FILTER_BAR_HEADER_HEIGHT}px)`,
     [height],
+  );
+
+  const tabPaneStyle = useMemo(
+    () => ({
+      flex: 1,
+      minHeight: 0,
+      overflow: 'auto',
+      overscrollBehavior: 'contain',
+    }),
+    [],
   );
 
   const dataMask = useSelector<RootState, DataMaskStateWithId>(
@@ -285,12 +303,17 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
             iconSize="l"
           />
         </CollapsedBar>
-        <Bar className={cx({ open: filtersOpen })} width={width}>
+        <Bar
+          className={cx({ open: filtersOpen })}
+          width={width}
+          height={barHeight}
+        >
           <Header toggleFiltersBar={toggleFiltersBar} />
           {!isInitialized ? (
             <div
               css={{
-                height,
+                flex: 1,
+                minHeight: 0,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
