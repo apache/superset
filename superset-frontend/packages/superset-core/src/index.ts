@@ -29,3 +29,4 @@ export * as theme from './theme';
 export * as translation from './translation';
 export * as components from './components';
 export * as utils from './utils';
+export * as colors from './colors';

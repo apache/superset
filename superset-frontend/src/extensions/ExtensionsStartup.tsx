@@ -19,7 +19,11 @@
 import { useEffect, useState } from 'react';
 // eslint-disable-next-line no-restricted-syntax
 import * as supersetCore from '@apache-superset/core';
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  getCategoricalSchemeRegistry,
+} from '@superset-ui/core';
 import {
   authentication,
   core,
@@ -45,6 +49,7 @@ declare global {
       menus: typeof menus;
       sqlLab: typeof sqlLab;
       views: typeof views;
+      colors: typeof supersetCore.colors;
     };
   }
 }
@@ -79,6 +84,12 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
       sqlLab,
       views,
     };
+
+    // Inject the categorical color scheme registry so extensions can access
+    // Superset's registered palettes without depending on @superset-ui/core.
+    supersetCore.colors.registerCategoricalSchemeRegistry(
+      getCategoricalSchemeRegistry(),
+    );
 
     const setup = async () => {
       if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
