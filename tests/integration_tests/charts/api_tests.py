@@ -32,7 +32,7 @@ from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import cache_manager, db, security_manager
-from superset.models.core import Database, FavStar, FavStarClassName
+from superset.models.core import Database, FavStar, FavStarClassName, Log
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.reports.models import ReportSchedule, ReportScheduleType
@@ -320,6 +320,16 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert rv.status_code == 200
         model = db.session.query(Slice).get(chart_id)
         assert model is None
+
+        # Verify audit log
+        log = (
+            db.session.query(Log)
+            .filter_by(action="ChartRestApi.delete", slice_id=chart_id)
+            .order_by(Log.dttm.desc())
+            .first()
+        )
+        assert log is not None
+        assert log.slice_id == chart_id
 
     def test_delete_bulk_charts(self):
         """
@@ -712,6 +722,17 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert model.certified_by == "Mario Rossi"
         assert model.certification_details == "Edited certification"
         assert model.id in [slice.id for slice in related_dashboard.slices]
+
+        # Verify audit log
+        log = (
+            db.session.query(Log)
+            .filter_by(action="ChartRestApi.put", slice_id=chart_id)
+            .order_by(Log.dttm.desc())
+            .first()
+        )
+        assert log is not None
+        assert log.slice_id == chart_id
+
         db.session.delete(model)
         db.session.commit()
 

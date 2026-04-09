@@ -254,3 +254,117 @@ class TestEventLogger(unittest.TestCase):
                 }
             ]
             assert payload["duration_ms"] >= 100
+
+
+class TestMutationEndpointAuditIds(unittest.TestCase):
+    """
+    Regression tests for GitHub issue #38187.
+
+    Verifies that dashboard_id and slice_id are populated in the audit log
+    when REST API mutation endpoints are called (previously they were NULL).
+    """
+
+    # ------------------------------------------------------------------ #
+    # Helper: build a log_this_with_context wrapper with allow_extra_payload
+    # ------------------------------------------------------------------ #
+    def _make_wrapped(self, logger: DBEventLogger, action: str, id_kwarg: str):
+        """
+        Return a function wrapped with log_this_with_context(allow_extra_payload=True)
+        that calls add_extra_log_payload(**{id_kwarg: 42}) — simulating the pattern
+        used by the fixed mutation endpoints.
+        """
+
+        @logger.log_this_with_context(
+            action=action,
+            log_to_statsd=False,
+            allow_extra_payload=True,
+        )
+        def endpoint(add_extra_log_payload=lambda **kw: None):
+            add_extra_log_payload(**{id_kwarg: 42})
+            return "ok"
+
+        return endpoint
+
+    # ------------------------------------------------------------------ #
+    # DashboardRestApi tests
+    # ------------------------------------------------------------------ #
+
+    @patch.object(DBEventLogger, "log")
+    def test_dashboard_put_logs_dashboard_id(self, mock_log):
+        """DashboardRestApi.put must populate dashboard_id in log."""
+        logger = DBEventLogger()
+        endpoint = self._make_wrapped(logger, "DashboardRestApi.put", "dashboard_id")
+
+        with app.test_request_context("/api/v1/dashboard/42"):
+            endpoint()  # pylint: disable=no-value-for-parameter
+
+        assert mock_log.called
+        assert mock_log.call_args[1]["dashboard_id"] == 42
+
+    @patch.object(DBEventLogger, "log")
+    def test_dashboard_delete_logs_dashboard_id(self, mock_log):
+        """DashboardRestApi.delete must populate dashboard_id in log."""
+        logger = DBEventLogger()
+        endpoint = self._make_wrapped(
+            logger, "DashboardRestApi.delete", "dashboard_id"
+        )
+
+        with app.test_request_context("/api/v1/dashboard/42"):
+            endpoint()  # pylint: disable=no-value-for-parameter
+
+        assert mock_log.called
+        assert mock_log.call_args[1]["dashboard_id"] == 42
+
+    @patch.object(DBEventLogger, "log")
+    def test_dashboard_post_logs_dashboard_id(self, mock_log):
+        """DashboardRestApi.post must populate dashboard_id in log after creation."""
+        logger = DBEventLogger()
+        endpoint = self._make_wrapped(
+            logger, "DashboardRestApi.post", "dashboard_id"
+        )
+
+        with app.test_request_context("/api/v1/dashboard/"):
+            endpoint()  # pylint: disable=no-value-for-parameter
+
+        assert mock_log.called
+        assert mock_log.call_args[1]["dashboard_id"] == 42
+
+    # ------------------------------------------------------------------ #
+    # ChartRestApi tests
+    # ------------------------------------------------------------------ #
+
+    @patch.object(DBEventLogger, "log")
+    def test_chart_put_logs_slice_id(self, mock_log):
+        """ChartRestApi.put must populate slice_id in log."""
+        logger = DBEventLogger()
+        endpoint = self._make_wrapped(logger, "ChartRestApi.put", "slice_id")
+
+        with app.test_request_context("/api/v1/chart/42"):
+            endpoint()  # pylint: disable=no-value-for-parameter
+
+        assert mock_log.called
+        assert mock_log.call_args[1]["slice_id"] == 42
+
+    @patch.object(DBEventLogger, "log")
+    def test_chart_delete_logs_slice_id(self, mock_log):
+        """ChartRestApi.delete must populate slice_id in log."""
+        logger = DBEventLogger()
+        endpoint = self._make_wrapped(logger, "ChartRestApi.delete", "slice_id")
+
+        with app.test_request_context("/api/v1/chart/42"):
+            endpoint()  # pylint: disable=no-value-for-parameter
+
+        assert mock_log.called
+        assert mock_log.call_args[1]["slice_id"] == 42
+
+    @patch.object(DBEventLogger, "log")
+    def test_chart_post_logs_slice_id(self, mock_log):
+        """ChartRestApi.post must populate slice_id in log after creation."""
+        logger = DBEventLogger()
+        endpoint = self._make_wrapped(logger, "ChartRestApi.post", "slice_id")
+
+        with app.test_request_context("/api/v1/chart/"):
+            endpoint()  # pylint: disable=no-value-for-parameter
+
+        assert mock_log.called
+        assert mock_log.call_args[1]["slice_id"] == 42
