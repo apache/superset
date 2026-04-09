@@ -320,6 +320,7 @@ const ChartHolder = ({
       extraControls,
       isInView,
       handleDeleteComponent,
+      theme,
     ],
   );
 

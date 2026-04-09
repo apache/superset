@@ -415,6 +415,25 @@ describe('ChartHolder', () => {
     expect(fullscreenChartHolder.parentElement).toBe(document.body);
   });
 
+  test('should return fullscreen chart content to the grid when fullscreen is cleared', () => {
+    const store = createMockStore();
+    const { rerender } = renderWrapper(store, {
+      fullSizeChartId: chartId,
+    });
+
+    expect(
+      screen.getByTestId('dashboard-component-chart-holder').parentElement,
+    ).toBe(document.body);
+
+    rerender(<ChartHolder {...defaultProps} fullSizeChartId={null} isInView />);
+
+    const chartHolder = screen.getByTestId('dashboard-component-chart-holder');
+    expect(
+      screen.getByTestId('dragdroppable-object').contains(chartHolder),
+    ).toBe(true);
+    expect(chartHolder.parentElement).not.toBe(document.body);
+  });
+
   test('should call setFullSizeChartId(null) when exiting fullscreen from chart menu', () => {
     const setFullSizeChartId = jest.fn();
     renderWrapper(createMockStore(), {
