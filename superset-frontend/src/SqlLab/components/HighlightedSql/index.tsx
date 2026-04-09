@@ -68,7 +68,7 @@ const shrinkSql = (sql: string, maxLines: number, maxWidth: number) => {
 
 function TriggerNode({ shrink, sql, maxLines, maxWidth }: TriggerNodeProps) {
   return (
-    <CodeSyntaxHighlighter language="sql">
+    <CodeSyntaxHighlighter language="sql" showCopyButton={false}>
       {shrink ? shrinkSql(sql, maxLines, maxWidth) : sql}
     </CodeSyntaxHighlighter>
   );
@@ -85,12 +85,6 @@ function HighlightSqlModal({ rawSql, sql }: HighlightedSqlModalTypes) {
     padding: theme.sizeUnit * 2,
   };
 
-  const sqlBlock = (
-    <CodeSyntaxHighlighter language="sql" customStyle={codeBlockStyle}>
-      {sql}
-    </CodeSyntaxHighlighter>
-  );
-
   const isDifferent =
     !!rawSql &&
     rawSql !== sql &&
@@ -100,7 +94,9 @@ function HighlightSqlModal({ rawSql, sql }: HighlightedSqlModalTypes) {
     return (
       <div>
         <Title>{t('Source SQL')}</Title>
-        {sqlBlock}
+        <CodeSyntaxHighlighter language="sql" customStyle={codeBlockStyle}>
+          {sql}
+        </CodeSyntaxHighlighter>
       </div>
     );
   }
@@ -114,14 +110,18 @@ function HighlightSqlModal({ rawSql, sql }: HighlightedSqlModalTypes) {
           label: t('Executed SQL'),
           children: (
             <CodeSyntaxHighlighter language="sql" customStyle={codeBlockStyle}>
-              {rawSql}
+              {rawSql!}
             </CodeSyntaxHighlighter>
           ),
         },
         {
           key: 'source',
           label: t('Source SQL'),
-          children: sqlBlock,
+          children: (
+            <CodeSyntaxHighlighter language="sql" customStyle={codeBlockStyle}>
+              {sql}
+            </CodeSyntaxHighlighter>
+          ),
         },
       ]}
     />
