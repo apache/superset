@@ -248,6 +248,13 @@ MCP_RESPONSE_SIZE_CONFIG: Dict[str, Any] = {
 # - "bm25": Natural language search using BM25 ranking (recommended)
 # - "regex": Pattern-based search using regular expressions
 #
+# Schema Compaction:
+# ------------------
+# When compact_schemas=True, search results strip $defs sections and replace
+# $ref pointers with {"type": "object"}, and truncate tool descriptions.
+# This reduces per-search token cost by ~40-60%.  Full schemas remain
+# available when the tool is actually invoked via call_tool.
+#
 # Rollback:
 # ---------
 # Set enabled=False in superset_config.py for instant rollback.
@@ -262,6 +269,8 @@ MCP_TOOL_SEARCH_CONFIG: Dict[str, Any] = {
     ],
     "search_tool_name": "search_tools",  # Name of the search tool
     "call_tool_name": "call_tool",  # Name of the call proxy tool
+    "compact_schemas": True,  # Strip $defs and simplify $ref in search results
+    "max_description_length": 300,  # Truncate tool descriptions (0 = no truncation)
 }
 
 
