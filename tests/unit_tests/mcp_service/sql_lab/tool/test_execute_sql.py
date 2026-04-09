@@ -20,6 +20,7 @@ Unit tests for execute_sql MCP tool
 """
 
 import logging
+from decimal import Decimal
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
@@ -756,3 +757,163 @@ class TestExecuteSql:
 
             # No data-bearing statements — no warning
             assert result.data.multi_statement_warning is None
+
+
+class TestSanitizeRowValues:
+    """Tests for _sanitize_row_values helper."""
+
+    def test_sanitize_utf8_bytes(self):
+        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
+
+        rows = [{"data": b"hello"}]
+        _sanitize_row_values(rows)
+        assert rows[0]["data"] == "hello"
+
+    def test_sanitize_non_utf8_bytes(self):
+        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
+
+        rows = [{"data": b"\x00\x01\x02\xff"}]
+        _sanitize_row_values(rows)
+        assert rows[0]["data"] == "000102ff"
+
+    def test_sanitize_memoryview(self):
+        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
+
+        rows = [{"data": memoryview(b"hello")}]
+        _sanitize_row_values(rows)
+        assert rows[0]["data"] == "hello"
+
+    def test_sanitize_decimal(self):
+        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
+
+        rows = [{"price": Decimal("9.99")}]
+        _sanitize_row_values(rows)
+        assert rows[0]["price"] == 9.99
+
+    def test_sanitize_custom_type_uses_str(self):
+        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
+
+        class CustomType:
+            def __str__(self) -> str:
+                return "custom_value"
+
+        rows = [{"data": CustomType()}]
+        _sanitize_row_values(rows)
+        assert rows[0]["data"] == "custom_value"
+
+    def test_preserves_json_serializable_types(self):
+        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
+
+        rows = [
+            {
+                "str_val": "hello",
+                "int_val": 42,
+                "float_val": 3.14,
+                "bool_val": True,
+                "none_val": None,
+                "list_val": [1, 2],
+                "dict_val": {"a": 1},
+            }
+        ]
+        original = [dict(row) for row in rows]
+        _sanitize_row_values(rows)
+        assert rows == original
+
+    def test_sanitize_empty_rows(self):
+        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
+
+        rows: list[dict[str, Any]] = []
+        _sanitize_row_values(rows)
+        assert rows == []
+
+    def test_sanitize_mixed_types_in_single_row(self):
+        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
+
+        rows = [
+            {
+                "id": 1,
+                "name": "test",
+                "price": Decimal("9.99"),
+                "blob": b"\x00\x01\x02\xff",
+            }
+        ]
+        _sanitize_row_values(rows)
+        assert rows[0]["id"] == 1
+        assert rows[0]["name"] == "test"
+        assert rows[0]["price"] == 9.99
+        assert rows[0]["blob"] == "000102ff"
+
+
+class TestExecuteSqlOAuth2:
+    """Tests for OAuth2 error handling in execute_sql."""
+
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    async def test_execute_sql_oauth2_redirect_error(
+        self, mock_db, mock_security_manager, mcp_server
+    ):
+        """Test that OAuth2RedirectError is caught and returns a clear message."""
+        from superset.exceptions import OAuth2RedirectError
+
+        mock_database = _mock_database()
+        # Raise OAuth2RedirectError from get_raw_connection, which is the
+        # actual code path used by execute_sql_query (not database.execute).
+        mock_database.get_raw_connection.side_effect = OAuth2RedirectError(
+            url="https://oauth.example.com/authorize",
+            tab_id="test-tab-id",
+            redirect_uri="https://superset.example.com/callback",
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.can_access_database.return_value = True
+
+        request = {
+            "database_id": 1,
+            "sql": "SELECT 1",
+            "limit": 100,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+
+            data = result.structured_content
+            assert data["success"] is False
+            assert "OAuth" in data["error"]
+            assert "https://oauth.example.com/authorize" in data["error"]
+            assert data["error_type"] == "OAUTH2_REDIRECT"
+
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    async def test_execute_sql_oauth2_error(
+        self, mock_db, mock_security_manager, mcp_server
+    ):
+        """Test that OAuth2Error is caught and returns a clear message."""
+        from superset.exceptions import OAuth2Error
+
+        mock_database = _mock_database()
+        # Raise OAuth2Error from get_raw_connection, which is the actual
+        # code path used by execute_sql_query (not database.execute).
+        mock_database.get_raw_connection.side_effect = OAuth2Error(
+            "Unable to determine the OAuth2 redirect URI."
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.can_access_database.return_value = True
+
+        request = {
+            "database_id": 1,
+            "sql": "SELECT 1",
+            "limit": 100,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+
+            data = result.structured_content
+            assert data["success"] is False
+            assert "configuration" in data["error"]
+            assert data["error_type"] == "OAUTH2_REDIRECT_ERROR"

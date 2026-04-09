@@ -82,6 +82,13 @@ class ExecuteSqlCore(BaseCore):
                 return self._execute_simple(request, database)
 
         except Exception as e:
+            # Re-raise OAuth2 errors so the tool-level handler can format
+            # them with user-facing messages (redirect URL, config hints).
+            from superset.exceptions import OAuth2Error, OAuth2RedirectError
+
+            if isinstance(e, (OAuth2RedirectError, OAuth2Error)):
+                raise
+
             # Handle errors and return error response with proper error types
             self._log_error(e, "executing SQL")
             return self._handle_execution_error(e)
