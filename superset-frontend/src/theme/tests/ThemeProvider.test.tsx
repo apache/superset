@@ -278,60 +278,58 @@ describe('SupersetThemeProvider', () => {
     });
   });
 
-  describe('Theme Mode Data Attribute', () => {
-    afterEach(() => {
-      document.documentElement.removeAttribute('data-theme-mode');
-    });
+  afterEach(() => {
+    document.documentElement.removeAttribute('data-theme-mode');
+  });
 
-    test('should set data-theme-mode="light" on mount when resolved mode is light', () => {
-      mockThemeController.getCurrentModeResolved.mockReturnValue('light');
+  test('should set data-theme-mode="light" on mount when resolved mode is light', () => {
+    mockThemeController.getCurrentModeResolved.mockReturnValue('light');
 
-      render(
-        <SupersetThemeProvider themeController={mockThemeController}>
-          <div>Content</div>
-        </SupersetThemeProvider>,
-      );
+    render(
+      <SupersetThemeProvider themeController={mockThemeController}>
+        <div>Content</div>
+      </SupersetThemeProvider>,
+    );
 
-      expect(document.documentElement.getAttribute('data-theme-mode')).toBe(
-        'light',
-      );
-    });
+    expect(document.documentElement.getAttribute('data-theme-mode')).toBe(
+      'light',
+    );
+  });
 
-    test('should set data-theme-mode="dark" on mount when resolved mode is dark', () => {
+  test('should set data-theme-mode="dark" on mount when resolved mode is dark', () => {
+    mockThemeController.getCurrentModeResolved.mockReturnValue('dark');
+
+    render(
+      <SupersetThemeProvider themeController={mockThemeController}>
+        <div>Content</div>
+      </SupersetThemeProvider>,
+    );
+
+    expect(document.documentElement.getAttribute('data-theme-mode')).toBe(
+      'dark',
+    );
+  });
+
+  test('should update data-theme-mode when theme changes', () => {
+    mockThemeController.getCurrentModeResolved.mockReturnValue('light');
+
+    render(
+      <SupersetThemeProvider themeController={mockThemeController}>
+        <div>Content</div>
+      </SupersetThemeProvider>,
+    );
+
+    expect(document.documentElement.getAttribute('data-theme-mode')).toBe(
+      'light',
+    );
+
+    act(() => {
       mockThemeController.getCurrentModeResolved.mockReturnValue('dark');
-
-      render(
-        <SupersetThemeProvider themeController={mockThemeController}>
-          <div>Content</div>
-        </SupersetThemeProvider>,
-      );
-
-      expect(document.documentElement.getAttribute('data-theme-mode')).toBe(
-        'dark',
-      );
+      mockOnChangeCallback(mockDarkTheme);
     });
 
-    test('should update data-theme-mode when theme changes', () => {
-      mockThemeController.getCurrentModeResolved.mockReturnValue('light');
-
-      render(
-        <SupersetThemeProvider themeController={mockThemeController}>
-          <div>Content</div>
-        </SupersetThemeProvider>,
-      );
-
-      expect(document.documentElement.getAttribute('data-theme-mode')).toBe(
-        'light',
-      );
-
-      act(() => {
-        mockThemeController.getCurrentModeResolved.mockReturnValue('dark');
-        mockOnChangeCallback(mockDarkTheme);
-      });
-
-      expect(document.documentElement.getAttribute('data-theme-mode')).toBe(
-        'dark',
-      );
-    });
+    expect(document.documentElement.getAttribute('data-theme-mode')).toBe(
+      'dark',
+    );
   });
 });
