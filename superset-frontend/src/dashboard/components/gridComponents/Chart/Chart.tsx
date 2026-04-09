@@ -17,7 +17,15 @@
  * under the License.
  */
 import cx from 'classnames';
-import { useCallback, useEffect, useRef, useMemo, useState, memo } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useMemo,
+  useState,
+  memo,
+} from 'react';
 import type { ChartCustomization, JsonObject } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
@@ -304,13 +312,9 @@ const Chart = (props: ChartProps) => {
     [dispatch, props.id, sliceVizType],
   );
 
-  useEffect(() => {
-    if (isExpanded) {
-      const descHeight =
-        isExpanded && descriptionRef.current
-          ? descriptionRef.current?.offsetHeight
-          : 0;
-      setDescriptionHeight(descHeight);
+  useLayoutEffect(() => {
+    if (isExpanded && descriptionRef.current) {
+      setDescriptionHeight(descriptionRef.current.offsetHeight);
     } else {
       setDescriptionHeight(0);
     }
