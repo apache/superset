@@ -97,7 +97,6 @@ export default function ColorSchemeLabel(props: ColorSchemeLabelProps) {
         `}
         data-test={id}
         aria-label={t('Color scheme: %s', label)}
-        role="option"
       >
         <span
           className="color-scheme-label"

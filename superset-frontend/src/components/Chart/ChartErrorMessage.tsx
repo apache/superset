@@ -18,7 +18,7 @@
  */
 
 import { ClientErrorObject, SupersetError } from '@superset-ui/core';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { FC } from 'react';
 import { useChartOwnerNames } from 'src/hooks/apiResources';
 import { ErrorMessageWithStackTrace } from 'src/components';

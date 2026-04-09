@@ -112,7 +112,6 @@ export default function AlertStatusIcon({
             theme,
           )}
           spin={isWorkingState}
-          aria-hidden="true"
         />
       </span>
     </Tooltip>
