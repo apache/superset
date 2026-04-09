@@ -1,0 +1,175 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { ChartCustomization, NativeFilterScope } from '@superset-ui/core';
+import uniq from 'lodash/uniq';
+import snakeCase from 'lodash/snakeCase';
+import { ChartCustomizationPlugins } from 'src/constants';
+import { LayoutItem } from 'src/dashboard/types';
+import { getChartIdsInFilterScope } from './getChartIdsInFilterScope';
+
+export type DynamicTitleTokenMappings = Record<string, string>;
+
+export interface DynamicTitleControlValues {
+  template?: string;
+  tokenMappings?: DynamicTitleTokenMappings;
+}
+
+export interface DynamicTitleScopeCandidate {
+  id: string;
+  chartsInScope: number[];
+  template?: string;
+}
+
+interface ResolveChartsInScopeArgs {
+  scope?: NativeFilterScope;
+  chartsInScope?: number[];
+  dashboardChartIds: number[];
+  chartLayoutItems: LayoutItem[];
+  preferScope?: boolean;
+}
+
+const PLACEHOLDER_REGEX = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g;
+export const DYNAMIC_TITLE_CHART_TITLE_ALIAS = 'chart_title';
+const RESERVED_DYNAMIC_TITLE_ALIASES = new Set([
+  DYNAMIC_TITLE_CHART_TITLE_ALIAS,
+]);
+
+export const isDynamicTitleCustomization = (
+  customization?: Partial<ChartCustomization> | null,
+): customization is ChartCustomization =>
+  customization?.filterType === ChartCustomizationPlugins.DynamicTitle;
+
+export const getDynamicTitleControlValues = (
+  customization?: Partial<ChartCustomization> | null,
+): DynamicTitleControlValues => {
+  const controlValues =
+    (customization?.controlValues as DynamicTitleControlValues | undefined) ||
+    {};
+
+  return {
+    ...controlValues,
+    tokenMappings: Object.fromEntries(
+      Object.entries(controlValues.tokenMappings || {}).filter(
+        ([alias]) => !RESERVED_DYNAMIC_TITLE_ALIASES.has(alias),
+      ),
+    ),
+  };
+};
+
+export const extractDynamicTitleAliases = (template?: string): string[] => {
+  if (!template) {
+    return [];
+  }
+
+  const aliases: string[] = [];
+  for (const match of template.matchAll(PLACEHOLDER_REGEX)) {
+    aliases.push(match[1]);
+  }
+  return uniq(aliases);
+};
+
+export const renderDynamicTitleTemplate = (
+  template: string,
+  values: Record<string, string | undefined>,
+): string =>
+  template
+    .replace(PLACEHOLDER_REGEX, (_, alias: string) => values[alias] ?? '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+export const hasSingleChartScope = (chartsInScope?: number[]): boolean =>
+  Array.isArray(chartsInScope) && chartsInScope.length === 1;
+
+export const isBuiltInDynamicTitleAlias = (alias: string): boolean =>
+  alias === DYNAMIC_TITLE_CHART_TITLE_ALIAS;
+
+export const usesChartTitleToken = (template?: string): boolean =>
+  extractDynamicTitleAliases(template).includes(
+    DYNAMIC_TITLE_CHART_TITLE_ALIAS,
+  );
+
+export const canApplyDynamicTitleToScope = (
+  template?: string,
+  chartsInScope?: number[],
+): boolean => {
+  if (!Array.isArray(chartsInScope) || chartsInScope.length === 0) {
+    return false;
+  }
+
+  return hasSingleChartScope(chartsInScope) || usesChartTitleToken(template);
+};
+
+export const resolveChartsInScope = ({
+  scope,
+  chartsInScope,
+  dashboardChartIds,
+  chartLayoutItems,
+  preferScope = false,
+}: ResolveChartsInScopeArgs): number[] => {
+  if (preferScope && scope && Array.isArray(scope.excluded)) {
+    return getChartIdsInFilterScope(scope, dashboardChartIds, chartLayoutItems);
+  }
+
+  if (Array.isArray(chartsInScope)) {
+    return chartsInScope;
+  }
+
+  if (scope && Array.isArray(scope.excluded)) {
+    return getChartIdsInFilterScope(scope, dashboardChartIds, chartLayoutItems);
+  }
+
+  return dashboardChartIds;
+};
+
+export const createDynamicTitleAlias = (
+  label: string,
+  existingAliases: Iterable<string>,
+): string => {
+  const usedAliases = new Set([
+    ...RESERVED_DYNAMIC_TITLE_ALIASES,
+    ...existingAliases,
+  ]);
+  const baseAlias = snakeCase(label).replace(/^_+|_+$/g, '') || 'filter';
+
+  let alias = baseAlias;
+  let suffix = 2;
+  while (usedAliases.has(alias)) {
+    alias = `${baseAlias}_${suffix}`;
+    suffix += 1;
+  }
+  return alias;
+};
+
+export const findDynamicTitleScopeConflict = (
+  candidate: DynamicTitleScopeCandidate,
+  existingCandidates: DynamicTitleScopeCandidate[],
+): DynamicTitleScopeCandidate | undefined => {
+  if (candidate.chartsInScope.length === 0) {
+    return undefined;
+  }
+
+  const chartsInScope = new Set(candidate.chartsInScope);
+  return existingCandidates.find(
+    existingCandidate =>
+      existingCandidate.id !== candidate.id &&
+      existingCandidate.chartsInScope.some(chartId =>
+        chartsInScope.has(chartId),
+      ),
+  );
+};

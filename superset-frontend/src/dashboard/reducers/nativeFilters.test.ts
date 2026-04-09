@@ -415,3 +415,30 @@ test('SET_NATIVE_FILTERS_CONFIG_COMPLETE treats backend response as source of tr
   expect(result.filters.customization1.chartsInScope).toEqual([12, 13]);
   expect(result.filters.customization1.tabsInScope).toEqual(['tab6']);
 });
+
+test('SET_NATIVE_FILTERS_CONFIG_COMPLETE clears stale highlighted ids when their items are removed', () => {
+  const initialState = {
+    filters: {
+      filter1: createMockFilter('filter1', [1, 2], ['tab1']),
+      customization1: createMockChartCustomization(
+        'customization1',
+        [7, 8],
+        ['tab4'],
+      ),
+    },
+    focusedFilterId: 'filter1',
+    hoveredFilterId: 'filter1',
+    hoveredChartCustomizationId: 'customization1',
+  };
+
+  const action = {
+    type: SET_NATIVE_FILTERS_CONFIG_COMPLETE as typeof SET_NATIVE_FILTERS_CONFIG_COMPLETE,
+    filterChanges: [createMockFilter('filter2', [10, 11], ['tab5'])],
+  };
+
+  const result = nativeFilterReducer(initialState, action);
+
+  expect(result.focusedFilterId).toBeUndefined();
+  expect(result.hoveredFilterId).toBeUndefined();
+  expect(result.hoveredChartCustomizationId).toBeUndefined();
+});

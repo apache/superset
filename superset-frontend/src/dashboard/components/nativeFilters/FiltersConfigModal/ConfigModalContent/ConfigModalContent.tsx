@@ -143,9 +143,12 @@ function ConfigModalContent({
         }}
       >
         <CustomizationContentRenderer
+          filterIds={filterIds}
           chartCustomizationIds={chartCustomizationIds}
           renderedIds={customizationState.renderedIds}
           removedItems={customizationState.removedItems}
+          filterRemovedItems={filterState.removedItems}
+          filterConfigMap={filterConfigMap}
           chartCustomizationConfigMap={chartCustomizationConfigMap}
           isItemActive={isItemActive}
           expanded={expanded}

@@ -213,6 +213,19 @@ Draft dashboards are only visible to the dashboard owners and admins. Published 
 
 You can mark a dashboard as a favorite by clicking on the star icon next to the title of your dashboard. This makes it easier to find it in the list of dashboards or on the home page.
 
+### Dynamic chart titles
+
+Dashboard owners can add dynamic chart titles from the **Filters and controls**
+modal by creating a **Dynamic title** display control. The title template can
+reference dashboard native filters with tokens such as `{{country}}`.
+
+Dynamic titles are scoped to the selected charts on the dashboard and update as
+the referenced native filter values change. If a referenced filter has no value,
+Superset falls back to the saved chart title when the rendered title is empty.
+
+Dynamic titles are dashboard-specific metadata. They do not rename the saved
+chart itself, and they only support dashboard native filters.
+
 ### Customizing dashboard
 
 The following URL parameters can be used to modify how the dashboard is rendered:

@@ -45,6 +45,7 @@ import {
   migrateChartCustomizationArray,
   isLegacyChartCustomizationFormat,
 } from 'src/dashboard/util/migrateChartCustomization';
+import { isDynamicTitleCustomization } from 'src/dashboard/util/dynamicTitle';
 import { isEqual } from 'lodash';
 import {
   AnyDataMaskAction,
@@ -148,7 +149,17 @@ function updateDataMaskForFilterChanges(
     delete mergedDataMask[filterId];
   });
 
-  filterChanges.modified.forEach((filter: Filter) => {
+  filterChanges.modified.forEach(modifiedItem => {
+    if (isCustomizationChanges) {
+      if (
+        !isChartCustomizationItem(modifiedItem) ||
+        isDynamicTitleCustomization(modifiedItem)
+      ) {
+        return;
+      }
+    }
+
+    const filter = modifiedItem as Filter;
     const existingFilter = draftDataMask[filter.id] as FilterWithExtaFromData;
     const prevFilterDef = initialDataMask?.[filter.id] as Filter | undefined;
 
@@ -245,35 +256,24 @@ const dataMaskReducer = produce(
           if (!isChartCustomizationItem(item)) {
             return;
           }
+          if (isDynamicTitleCustomization(item)) {
+            return;
+          }
+          const customizationItem = item as ChartCustomization;
 
-          const customizationFilterId = item.id;
+          const customizationFilterId = customizationItem.id;
           const dataMask = loadedDataMask || {};
 
           cleanState[customizationFilterId] = {
             ...getInitialDataMask(customizationFilterId),
-            ...item.defaultDataMask,
+            ...customizationItem.defaultDataMask,
             ...dataMask[customizationFilterId],
           };
 
-          if (
-            draft[customizationFilterId] &&
-            item.defaultDataMask &&
-            !areObjectsEqual(
-              item.defaultDataMask,
-              draft[customizationFilterId],
-              { ignoreUndefined: true },
-            )
-          ) {
-            cleanState[customizationFilterId] = {
-              ...cleanState[customizationFilterId],
-              ...item.defaultDataMask,
-            };
-          }
-
-          if (item.controlValues?.column) {
+          if (customizationItem.controlValues?.column) {
             cleanState[customizationFilterId].ownState = {
               ...cleanState[customizationFilterId].ownState,
-              column: item.controlValues.column,
+              column: customizationItem.controlValues.column,
             };
           }
         });

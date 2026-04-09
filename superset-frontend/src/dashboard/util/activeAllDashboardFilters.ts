@@ -49,6 +49,46 @@ export const getRelevantDataMask = (
       }),
   );
 
+const isRelevantDashboardContextDataMaskEntry = ({
+  filterId,
+  nativeFilters,
+  chartConfiguration,
+}: {
+  filterId: string;
+  nativeFilters: PartialFilters;
+  chartConfiguration: ChartConfiguration;
+}): boolean => {
+  if (nativeFilters[filterId]) {
+    return true;
+  }
+
+  const numericChartId = Number.parseInt(filterId, 10);
+  if (Number.isNaN(numericChartId)) {
+    return false;
+  }
+
+  return Boolean(chartConfiguration?.[numericChartId]?.crossFilters);
+};
+
+export const getRelevantDashboardContextDataMask = ({
+  dataMask,
+  nativeFilters,
+  chartConfiguration,
+}: {
+  dataMask: DataMaskStateWithId;
+  nativeFilters: PartialFilters;
+  chartConfiguration: ChartConfiguration;
+}): DataMaskStateWithId =>
+  Object.fromEntries(
+    Object.entries(dataMask).filter(([filterId]) =>
+      isRelevantDashboardContextDataMaskEntry({
+        filterId,
+        nativeFilters,
+        chartConfiguration,
+      }),
+    ),
+  ) as DataMaskStateWithId;
+
 interface LayerInfo {
   layerMap: { [chartId: number]: number[] };
   chartIds: Set<number>;
@@ -86,8 +126,13 @@ export const getAllActiveFilters = ({
   allSliceIds: number[];
 }): ActiveFilters => {
   const activeFilters: ActiveFilters = {};
+  const relevantDataMask = getRelevantDashboardContextDataMask({
+    dataMask,
+    nativeFilters,
+    chartConfiguration,
+  });
 
-  const hasLayerSelectionsInAnyFilter = Object.values(dataMask).some(
+  const hasLayerSelectionsInAnyFilter = Object.values(relevantDataMask).some(
     ({ id: filterId }) => {
       const selectedLayers = (nativeFilters?.[filterId]?.scope as any)
         ?.selectedLayers;
@@ -98,7 +143,7 @@ export const getAllActiveFilters = ({
   let masterSelectedLayers: string[] = [];
   let masterExcluded: number[] = [];
   if (hasLayerSelectionsInAnyFilter) {
-    Object.values(dataMask).forEach(({ id: filterId }) => {
+    Object.values(relevantDataMask).forEach(({ id: filterId }) => {
       const selectedLayers = (nativeFilters?.[filterId]?.scope as any)
         ?.selectedLayers;
       const excluded =
@@ -110,67 +155,69 @@ export const getAllActiveFilters = ({
     });
   }
 
-  Object.values(dataMask).forEach(({ id: filterId, extraFormData = {} }) => {
-    const nativeFilter = nativeFilters?.[filterId];
-    let scope =
-      (nativeFilter && 'chartsInScope' in nativeFilter
-        ? nativeFilter.chartsInScope
-        : undefined) ??
-      chartConfiguration?.[parseInt(filterId, 10)]?.crossFilters
-        ?.chartsInScope ??
-      allSliceIds ??
-      [];
-    const filterType = nativeFilters?.[filterId]?.filterType;
-    const targets = nativeFilters?.[filterId]?.targets;
+  Object.values(relevantDataMask).forEach(
+    ({ id: filterId, extraFormData = {} }) => {
+      const nativeFilter = nativeFilters?.[filterId];
+      let scope =
+        (nativeFilter && 'chartsInScope' in nativeFilter
+          ? nativeFilter.chartsInScope
+          : undefined) ??
+        chartConfiguration?.[parseInt(filterId, 10)]?.crossFilters
+          ?.chartsInScope ??
+        allSliceIds ??
+        [];
+      const filterType = nativeFilters?.[filterId]?.filterType;
+      const targets = nativeFilters?.[filterId]?.targets;
 
-    let selectedLayers = (nativeFilters?.[filterId]?.scope as any)
-      ?.selectedLayers;
-    let excludedCharts =
-      (nativeFilters?.[filterId]?.scope as any)?.excluded || [];
+      let selectedLayers = (nativeFilters?.[filterId]?.scope as any)
+        ?.selectedLayers;
+      let excludedCharts =
+        (nativeFilters?.[filterId]?.scope as any)?.excluded || [];
 
-    if (
-      hasLayerSelectionsInAnyFilter &&
-      (!selectedLayers || selectedLayers.length === 0)
-    ) {
-      selectedLayers = masterSelectedLayers;
-      excludedCharts = masterExcluded;
-    }
+      if (
+        hasLayerSelectionsInAnyFilter &&
+        (!selectedLayers || selectedLayers.length === 0)
+      ) {
+        selectedLayers = masterSelectedLayers;
+        excludedCharts = masterExcluded;
+      }
 
-    let layerScope;
-    if (selectedLayers && selectedLayers.length > 0) {
-      const layerInfo = extractLayerIndicesFromKeys(selectedLayers);
-      layerScope = layerInfo.layerMap;
+      let layerScope;
+      if (selectedLayers && selectedLayers.length > 0) {
+        const layerInfo = extractLayerIndicesFromKeys(selectedLayers);
+        layerScope = layerInfo.layerMap;
 
-      const explicitlyTargetedCharts = new Set<number>(layerInfo.chartIds);
+        const explicitlyTargetedCharts = new Set<number>(layerInfo.chartIds);
 
-      const originalScope = scope;
-      originalScope.forEach((chartId: number) => {
-        if (!excludedCharts.includes(chartId)) {
-          const hasLayerSelections = selectedLayers.some((key: string) =>
-            key.startsWith(`chart-${chartId}-layer-`),
-          );
+        const originalScope = scope;
+        originalScope.forEach((chartId: number) => {
+          if (!excludedCharts.includes(chartId)) {
+            const hasLayerSelections = selectedLayers.some((key: string) =>
+              key.startsWith(`chart-${chartId}-layer-`),
+            );
 
-          if (!hasLayerSelections) {
-            explicitlyTargetedCharts.add(chartId);
+            if (!hasLayerSelections) {
+              explicitlyTargetedCharts.add(chartId);
+            }
           }
-        }
-      });
+        });
 
-      scope = Array.from(explicitlyTargetedCharts);
-    } else {
-      scope = scope.filter(
-        (chartId: number) => !excludedCharts.includes(chartId),
-      );
-    }
+        scope = Array.from(explicitlyTargetedCharts);
+      } else {
+        scope = scope.filter(
+          (chartId: number) => !excludedCharts.includes(chartId),
+        );
+      }
 
-    activeFilters[filterId] = {
-      scope,
-      targets: targets || [],
-      values: extraFormData,
-      filterType,
-      ...(layerScope && { layerScope }),
-    };
-  });
+      activeFilters[filterId] = {
+        scope,
+        targets: targets || [],
+        values: extraFormData,
+        filterType,
+        ...(layerScope && { layerScope }),
+      };
+    },
+  );
 
   return activeFilters;
 };

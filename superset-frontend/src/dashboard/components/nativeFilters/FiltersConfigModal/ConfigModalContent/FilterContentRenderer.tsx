@@ -95,6 +95,12 @@ function FilterContentRenderer({
                 filterId={id}
                 filterToEdit={filterConfigMap[id] as Filter}
                 removedFilters={removedItems}
+                nativeFilterIds={Object.keys(filterConfigMap).filter(
+                  filterId =>
+                    !filterId.startsWith(NATIVE_FILTER_DIVIDER_PREFIX),
+                )}
+                nativeFilterConfigMap={filterConfigMap}
+                removedNativeFilters={removedItems}
                 restoreFilter={restoreItem}
                 getAvailableFilters={getAvailableFilters}
                 key={id}

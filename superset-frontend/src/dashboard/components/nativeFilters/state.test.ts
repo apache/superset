@@ -19,8 +19,19 @@
 
 import { renderHook } from '@testing-library/react-hooks';
 import { useSelector } from 'react-redux';
-import { NativeFilterType, Filter, Divider } from '@superset-ui/core';
-import { useIsFilterInScope, useSelectFiltersInScope } from './state';
+import {
+  ChartCustomizationType,
+  NativeFilterType,
+  Filter,
+  Divider,
+} from '@superset-ui/core';
+import { ChartCustomizationPlugins } from 'src/constants';
+import {
+  useIsFilterInScope,
+  useSelectFiltersInScope,
+  useInteractiveChartCustomizationConfiguration,
+  useDynamicTitleCustomizations,
+} from './state';
 
 jest.mock('react-redux', () => {
   const actual = jest.requireActual('react-redux');
@@ -506,4 +517,124 @@ test('filter with mix of existing and non-existent charts in chartsInScope', () 
 
   const { result } = renderHook(() => useIsFilterInScope());
   expect(result.current(filter)).toBe(true);
+});
+
+test('useInteractiveChartCustomizationConfiguration excludes dynamic titles', () => {
+  (useSelector as jest.Mock).mockImplementation((selector: Function) => {
+    const mockState = {
+      dashboardInfo: {
+        metadata: {
+          chart_customization_config: [
+            {
+              id: 'customization-divider',
+              type: ChartCustomizationType.Divider,
+              title: 'Display controls',
+              description: 'Divider between controls',
+            },
+            {
+              id: 'interactive-customization',
+              type: ChartCustomizationType.ChartCustomization,
+              name: 'Interactive customization',
+              filterType: 'chart_customization_dynamic_groupby',
+              targets: [{ datasetId: 1, column: { name: 'country' } }],
+              scope: { rootPath: ['ROOT_ID'], excluded: [] },
+              chartsInScope: [123],
+              controlValues: {},
+              defaultDataMask: {},
+            },
+            {
+              id: 'dynamic-title-customization',
+              type: ChartCustomizationType.ChartCustomization,
+              name: 'Dynamic title',
+              filterType: ChartCustomizationPlugins.DynamicTitle,
+              targets: [],
+              scope: { rootPath: ['ROOT_ID'], excluded: [] },
+              chartsInScope: [123],
+              controlValues: {
+                template: 'Sales in {{country}}',
+                tokenMappings: { country: 'NATIVE_FILTER-country' },
+              },
+              defaultDataMask: {},
+            },
+          ],
+        },
+      },
+      dashboardLayout: {
+        present: {
+          CHART_ID: {
+            id: 'CHART_ID',
+            type: 'CHART',
+            meta: { chartId: 123 },
+          },
+        },
+      },
+    };
+    return selector(mockState);
+  });
+
+  const { result } = renderHook(() =>
+    useInteractiveChartCustomizationConfiguration(),
+  );
+
+  expect(result.current).toHaveLength(2);
+  expect(result.current.map(customization => customization.id)).toEqual([
+    'customization-divider',
+    'interactive-customization',
+  ]);
+});
+
+test('useDynamicTitleCustomizations excludes customizations scoped outside the dashboard', () => {
+  (useSelector as jest.Mock).mockImplementation((selector: Function) => {
+    const mockState = {
+      dashboardInfo: {
+        metadata: {
+          chart_customization_config: [
+            {
+              id: 'dynamic-title-in-scope',
+              type: ChartCustomizationType.ChartCustomization,
+              name: 'Dynamic title',
+              filterType: ChartCustomizationPlugins.DynamicTitle,
+              targets: [],
+              scope: { rootPath: ['ROOT_ID'], excluded: [] },
+              chartsInScope: [123],
+              controlValues: {
+                template: 'Sales in {{country}}',
+                tokenMappings: { country: 'NATIVE_FILTER-country' },
+              },
+              defaultDataMask: {},
+            },
+            {
+              id: 'dynamic-title-out-of-scope',
+              type: ChartCustomizationType.ChartCustomization,
+              name: 'Dynamic title',
+              filterType: ChartCustomizationPlugins.DynamicTitle,
+              targets: [],
+              scope: { rootPath: ['ROOT_ID'], excluded: [] },
+              chartsInScope: [999],
+              controlValues: {
+                template: 'Sales in {{country}}',
+                tokenMappings: { country: 'NATIVE_FILTER-country' },
+              },
+              defaultDataMask: {},
+            },
+          ],
+        },
+      },
+      dashboardLayout: {
+        present: {
+          CHART_ID: {
+            id: 'CHART_ID',
+            type: 'CHART',
+            meta: { chartId: 123 },
+          },
+        },
+      },
+    };
+    return selector(mockState);
+  });
+
+  const { result } = renderHook(() => useDynamicTitleCustomizations());
+
+  expect(result.current).toHaveLength(1);
+  expect(result.current[0].id).toBe('dynamic-title-in-scope');
 });

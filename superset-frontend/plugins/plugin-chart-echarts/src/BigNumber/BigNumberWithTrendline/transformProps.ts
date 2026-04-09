@@ -140,8 +140,9 @@ export default function transformProps(
   const compareLag = Number(compareLag_) || 0;
   let formattedSubheader = subheader;
 
-  const { r, g, b } = colorPicker;
-  const mainColor = `rgb(${r}, ${g}, ${b})`;
+  const mainColor = colorPicker
+    ? `rgb(${colorPicker.r}, ${colorPicker.g}, ${colorPicker.b})`
+    : theme.colorPrimary;
 
   const xAxisLabel = getXAxisLabel(rawFormData) as string;
   let trendLineData: TimeSeriesDatum[] | undefined;

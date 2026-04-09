@@ -99,6 +99,19 @@ function handleFilterChangesComplete(
   return {
     ...state,
     filters: newFilters,
+    focusedFilterId:
+      state.focusedFilterId && !newFilters[state.focusedFilterId]
+        ? undefined
+        : state.focusedFilterId,
+    hoveredFilterId:
+      state.hoveredFilterId && !newFilters[state.hoveredFilterId]
+        ? undefined
+        : state.hoveredFilterId,
+    hoveredChartCustomizationId:
+      state.hoveredChartCustomizationId &&
+      !newFilters[state.hoveredChartCustomizationId]
+        ? undefined
+        : state.hoveredChartCustomizationId,
   } as ExtendedNativeFiltersState;
 }
 
@@ -139,6 +152,19 @@ export default function nativeFilterReducer(
 
       return {
         filters: mergedFilters,
+        focusedFilterId:
+          state.focusedFilterId && !mergedFilters[state.focusedFilterId]
+            ? undefined
+            : state.focusedFilterId,
+        hoveredFilterId:
+          state.hoveredFilterId && !mergedFilters[state.hoveredFilterId]
+            ? undefined
+            : state.hoveredFilterId,
+        hoveredChartCustomizationId:
+          state.hoveredChartCustomizationId &&
+          !mergedFilters[state.hoveredChartCustomizationId]
+            ? undefined
+            : state.hoveredChartCustomizationId,
       };
     }
 

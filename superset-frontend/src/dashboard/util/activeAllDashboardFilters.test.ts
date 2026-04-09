@@ -16,8 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataMaskStateWithId } from '@superset-ui/core';
-import { getRelevantDataMask } from './activeAllDashboardFilters';
+import { DataMaskStateWithId, NativeFilterType } from '@superset-ui/core';
+import {
+  getAllActiveFilters,
+  getRelevantDashboardContextDataMask,
+  getRelevantDataMask,
+} from './activeAllDashboardFilters';
 
 const mockDataMask: DataMaskStateWithId = {
   filter1: {
@@ -312,6 +316,97 @@ test('should return filterState unchanged (clientView stripping only applies to 
     filter1: {
       value: ['A', 'B'],
       label: 'Categories A and B',
+    },
+  });
+});
+
+test('should exclude dynamic title entries from dashboard context data mask', () => {
+  const dataMask: DataMaskStateWithId = {
+    'NATIVE_FILTER-country': {
+      id: 'NATIVE_FILTER-country',
+      extraFormData: { filters: [{ col: 'country', op: 'IN', val: ['USA'] }] },
+      filterState: { value: ['USA'] },
+    },
+    'CHART_CUSTOMIZATION-dynamic-title': {
+      id: 'CHART_CUSTOMIZATION-dynamic-title',
+      filterState: { value: ['leaked'] },
+      ownState: {},
+    },
+    '101': {
+      id: '101',
+      extraFormData: { filters: [{ col: 'state', op: 'IN', val: ['CA'] }] },
+    },
+  };
+
+  const result = getRelevantDashboardContextDataMask({
+    dataMask,
+    nativeFilters: {
+      'NATIVE_FILTER-country': {
+        id: 'NATIVE_FILTER-country',
+        type: NativeFilterType.NativeFilter,
+      },
+    },
+    chartConfiguration: {
+      101: {
+        id: 101,
+        crossFilters: {
+          chartsInScope: [202],
+          scope: {
+            rootPath: ['ROOT_ID'],
+            excluded: [],
+          },
+        },
+      },
+    },
+  });
+
+  expect(result).toEqual({
+    '101': {
+      id: '101',
+      extraFormData: { filters: [{ col: 'state', op: 'IN', val: ['CA'] }] },
+    },
+    'NATIVE_FILTER-country': {
+      id: 'NATIVE_FILTER-country',
+      extraFormData: { filters: [{ col: 'country', op: 'IN', val: ['USA'] }] },
+      filterState: { value: ['USA'] },
+    },
+  });
+});
+
+test('should ignore leaked dynamic title entries when deriving active filters', () => {
+  const result = getAllActiveFilters({
+    chartConfiguration: {},
+    nativeFilters: {
+      'NATIVE_FILTER-country': {
+        id: 'NATIVE_FILTER-country',
+        type: NativeFilterType.NativeFilter,
+        chartsInScope: [11],
+        scope: { rootPath: ['ROOT_ID'], excluded: [] },
+        targets: [],
+        filterType: 'filter_select',
+      },
+    },
+    dataMask: {
+      'NATIVE_FILTER-country': {
+        id: 'NATIVE_FILTER-country',
+        extraFormData: {
+          filters: [{ col: 'country', op: 'IN', val: ['USA'] }],
+        },
+      },
+      'CHART_CUSTOMIZATION-dynamic-title': {
+        id: 'CHART_CUSTOMIZATION-dynamic-title',
+        extraFormData: { filters: [{ col: 'country', op: 'IN', val: ['CA'] }] },
+      },
+    },
+    allSliceIds: [11],
+  });
+
+  expect(result).toEqual({
+    'NATIVE_FILTER-country': {
+      filterType: 'filter_select',
+      scope: [11],
+      targets: [],
+      values: { filters: [{ col: 'country', op: 'IN', val: ['USA'] }] },
     },
   });
 });

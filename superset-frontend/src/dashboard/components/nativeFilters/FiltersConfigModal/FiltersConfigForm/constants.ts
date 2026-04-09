@@ -46,4 +46,5 @@ export const CHART_CUSTOMIZATION_SUPPORTED_TYPES = {
   ],
   customization_timecolumn: [GenericDataType.Temporal],
   customization_timegrain: [GenericDataType.Temporal],
+  customization_dynamic_title: [],
 };

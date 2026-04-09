@@ -18,7 +18,11 @@
  */
 import cx from 'classnames';
 import { useCallback, useEffect, useRef, useMemo, useState, memo } from 'react';
-import type { ChartCustomization, JsonObject } from '@superset-ui/core';
+import {
+  NativeFilterType,
+  type ChartCustomization,
+  type JsonObject,
+} from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { debounce } from 'lodash';
@@ -43,6 +47,7 @@ import { DEFAULT_CSV_STREAMING_ROW_THRESHOLD } from 'src/constants';
 import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
 import type { RootState, Datasource, Slice } from 'src/dashboard/types';
+import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import {
   convertChartStateToOwnState,
   hasChartStateConverter,
@@ -70,8 +75,20 @@ import {
   getAppliedFilterValues,
 } from '../../../util/activeDashboardFilters';
 import getFormDataWithExtraFilters from '../../../util/charts/getFormDataWithExtraFilters';
-import { useChartCustomizationFromRedux } from '../../nativeFilters/state';
+import {
+  useChartCustomizationFromRedux,
+  useDynamicTitleCustomizations,
+} from '../../nativeFilters/state';
+import { extractLabel } from '../../nativeFilters/selectors';
+import { getFilterValueForDisplay } from '../../nativeFilters/utils';
 import { PLACEHOLDER_DATASOURCE } from '../../../constants';
+import {
+  canApplyDynamicTitleToScope,
+  DYNAMIC_TITLE_CHART_TITLE_ALIAS,
+  getDynamicTitleControlValues,
+  renderDynamicTitleTemplate,
+  resolveChartsInScope,
+} from '../../../util/dynamicTitle';
 
 interface ChartProps {
   id: number;
@@ -389,6 +406,7 @@ const Chart = (props: ChartProps) => {
     (state: RootState) => state.dashboardInfo.metadata?.chart_configuration,
   );
   const chartCustomizationItems = useChartCustomizationFromRedux();
+  const dynamicTitleCustomizations = useDynamicTitleCustomizations();
   const colorScheme = useSelector(
     (state: RootState) => state.dashboardState.colorScheme,
   );
@@ -402,6 +420,9 @@ const Chart = (props: ChartProps) => {
   );
   const allSliceIds = useSelector(
     (state: RootState) => state.dashboardState.sliceIds,
+  );
+  const dashboardLayout = useSelector(
+    (state: RootState) => state.dashboardLayout.present,
   );
   const nativeFilters = useSelector(
     (state: RootState) => state.nativeFilters?.filters,
@@ -423,6 +444,18 @@ const Chart = (props: ChartProps) => {
     enforceSharedLabelsColorsArray(
       state.dashboardInfo?.metadata?.shared_label_colors,
     ),
+  );
+  const chartLayoutItems = useMemo(
+    () =>
+      Object.values(dashboardLayout).filter(item => item?.type === CHART_TYPE),
+    [dashboardLayout],
+  );
+  const dashboardChartIds = useMemo(
+    () =>
+      chartLayoutItems
+        .map(item => item.meta?.chartId)
+        .filter((chartId): chartId is number => typeof chartId === 'number'),
+    [chartLayoutItems],
   );
 
   const formData = useMemo(
@@ -466,6 +499,78 @@ const Chart = (props: ChartProps) => {
       ownColorScheme,
     ],
   );
+
+  const displaySliceName = useMemo(() => {
+    if (editMode) {
+      return props.sliceName;
+    }
+
+    const matchingCustomizations = dynamicTitleCustomizations.filter(
+      customization =>
+        !customization.removed &&
+        customization.chartsInScope?.includes(props.id),
+    );
+    const matchingCustomization =
+      matchingCustomizations[matchingCustomizations.length - 1];
+
+    if (!matchingCustomization) {
+      return props.sliceName;
+    }
+
+    const { template, tokenMappings = {} } = getDynamicTitleControlValues(
+      matchingCustomization,
+    );
+
+    if (
+      !template ||
+      !canApplyDynamicTitleToScope(
+        template,
+        matchingCustomization.chartsInScope,
+      )
+    ) {
+      return props.sliceName;
+    }
+
+    const aliasValues = {
+      ...Object.entries(tokenMappings).reduce<
+        Record<string, string | undefined>
+      >((acc, [alias, filterId]) => {
+        const filter = nativeFilters?.[filterId];
+
+        if (
+          !filter ||
+          filter.type !== NativeFilterType.NativeFilter ||
+          !resolveChartsInScope({
+            scope: filter.scope,
+            chartsInScope: filter.chartsInScope,
+            dashboardChartIds,
+            chartLayoutItems,
+          }).includes(props.id)
+        ) {
+          acc[alias] = undefined;
+          return acc;
+        }
+
+        const filterState = dataMask[filterId]?.filterState;
+        const label = extractLabel(filterState);
+        const value = label || getFilterValueForDisplay(filterState?.value);
+        acc[alias] = value || undefined;
+        return acc;
+      }, {}),
+      [DYNAMIC_TITLE_CHART_TITLE_ALIAS]: props.sliceName,
+    };
+
+    return renderDynamicTitleTemplate(template, aliasValues) || props.sliceName;
+  }, [
+    dataMask,
+    dynamicTitleCustomizations,
+    editMode,
+    nativeFilters,
+    dashboardChartIds,
+    chartLayoutItems,
+    props.id,
+    props.sliceName,
+  ]);
 
   (formData as JsonObject).dashboardId = dashboardInfo.id;
 
@@ -645,7 +750,7 @@ const Chart = (props: ChartProps) => {
       data-test="chart-grid-component"
       data-test-chart-id={props.id}
       data-test-viz-type={slice.viz_type}
-      data-test-chart-name={slice.slice_name}
+      data-test-chart-name={displaySliceName}
     >
       <SliceHeader
         ref={headerRef}
@@ -669,7 +774,7 @@ const Chart = (props: ChartProps) => {
         updateSliceName={(name: string) =>
           props.updateSliceName(props.id, name)
         }
-        sliceName={props.sliceName}
+        sliceName={displaySliceName}
         supersetCanExplore={supersetCanExplore}
         supersetCanShare={supersetCanShare}
         supersetCanCSV={supersetCanCSV}
