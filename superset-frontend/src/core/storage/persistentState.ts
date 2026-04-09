@@ -26,7 +26,14 @@ import { SupersetClient } from '@superset-ui/core';
 export function createPersistentState(
   extensionId: string,
 ): typeof StorageTypes.persistentState {
+  const MAX_KEY_LENGTH = 255;
+
   const buildUrl = (key: string, shared?: boolean): string => {
+    if (key.length > MAX_KEY_LENGTH) {
+      throw new Error(
+        `Persistent storage key must be ${MAX_KEY_LENGTH} characters or less.`,
+      );
+    }
     const basePath = '/api/v1/extensions/storage/persistent';
     const encodedId = encodeURIComponent(extensionId);
     const encodedKey = encodeURIComponent(key);
