@@ -130,22 +130,17 @@ class LoggingMiddleware(Middleware):
     in on_message().
     """
 
-    def _is_error_response(self, result: Any) -> bool:
-        """Check if a ToolResult contains an error response.
+    def _is_error_response(self, result: ToolResult) -> bool:
+        """Check if a tool result contains an error schema response.
 
-        StructuredContentStripperMiddleware catches exceptions and converts them
-        to ToolResult with content starting with "Error:". This method detects
-        such error responses so we can log them with success=False.
+        MCP tools return error schemas (ChartError, DashboardError, etc.)
+        instead of raising exceptions. These serialize to JSON containing
+        an "error_type" field.
         """
-        if not isinstance(result, ToolResult):
+        try:
+            return '"error_type"' in result.content[0].text
+        except (AttributeError, IndexError):
             return False
-        if not result.content:
-            return False
-        # Check first content item for error prefix
-        first_content = result.content[0]
-        if hasattr(first_content, "text") and first_content.text:
-            return first_content.text.startswith("Error:")
-        return False
 
     def _extract_context_info(
         self, context: MiddlewareContext
@@ -186,11 +181,8 @@ class LoggingMiddleware(Middleware):
 
         start_time = time.time()
         success = False
-        result = None
         try:
             result = await call_next(context)
-            # Check if result is an error response
-            # (converted by StructuredContentStripperMiddleware)
             success = not self._is_error_response(result)
             return result
         except Exception:

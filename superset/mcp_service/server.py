@@ -28,6 +28,7 @@ from collections.abc import Sequence
 from typing import Annotated, Any
 
 import uvicorn
+from fastmcp.server.middleware import Middleware
 
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
 from superset.mcp_service.mcp_config import (
@@ -374,6 +375,24 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
     return auth_provider
 
 
+def build_middleware_list() -> list[Middleware]:
+    """Build the core MCP middleware list in the correct order.
+
+    FastMCP wraps handlers so that the FIRST-added middleware is
+    outermost.  Order here is outermost → innermost:
+
+    1. StructuredContentStripper — safety net, converts exceptions
+       to safe ToolResult text for transports that can't encode errors
+    2. LoggingMiddleware — logs tool calls with success/failure status
+    3. GlobalErrorHandler — catches tool exceptions, raises ToolError
+    """
+    return [
+        StructuredContentStripperMiddleware(),
+        LoggingMiddleware(),
+        GlobalErrorHandlerMiddleware(),
+    ]
+
+
 def run_server(
     host: str = "127.0.0.1",
     port: int = 5008,
@@ -421,30 +440,15 @@ def run_server(
         flask_app = get_flask_app()
         auth_provider = _create_auth_provider(flask_app)
 
-        # Build middleware list
-        # FastMCP wraps handlers so that the LAST-added middleware is
-        # outermost.  Order here is innermost → outermost.
-        middleware_list = []
+        middleware_list = build_middleware_list()
 
-        # Add caching middleware (innermost – runs closest to the tool)
-        if caching_middleware := create_response_caching_middleware():
-            middleware_list.append(caching_middleware)
-
-        # Add response size guard (protects LLM clients from huge responses)
-        if size_guard_middleware := create_response_size_guard_middleware():
+        # Add optional middleware (innermost, closest to tool)
+        size_guard_middleware = create_response_size_guard_middleware()
+        if size_guard_middleware:
             middleware_list.append(size_guard_middleware)
 
-        # Add logging middleware (logs all tool calls with duration tracking)
-        middleware_list.append(LoggingMiddleware())
-
-        # Add global error handler (catches all exceptions, raises ToolError)
-        middleware_list.append(GlobalErrorHandlerMiddleware())
-
-        # Strip outputSchema from tool definitions and structuredContent from
-        # tool responses to prevent encoding errors on Claude.ai's MCP bridge.
-        # MUST be outermost so it catches ToolError from GlobalErrorHandler
-        # and converts to plain text before the MCP SDK tries to encode it.
-        middleware_list.append(StructuredContentStripperMiddleware())
+        if caching_middleware := create_response_caching_middleware():
+            middleware_list.append(caching_middleware)
 
         mcp_instance = init_fastmcp_server(
             auth=auth_provider,
