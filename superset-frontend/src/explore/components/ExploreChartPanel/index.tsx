@@ -558,6 +558,7 @@ const ExploreChartPanel = ({
           errorMessage={errorMessage}
           setForceQuery={actions.setForceQuery}
           canDownload={canDownload}
+          queriesResponse={chart.queriesResponse}
         />
       </Split>
       {showDatasetModal && (
