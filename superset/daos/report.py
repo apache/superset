@@ -94,7 +94,7 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
     def find_by_extra_metadata(slug: str) -> list[ReportSchedule]:
         return (
             db.session.query(ReportSchedule)
-            .filter(ReportSchedule.extra_json.like(f"%{slug}%"))
+            .filter(ReportSchedule.extra_json.contains(slug, autoescape=True))
             .all()
         )
 
