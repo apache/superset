@@ -18,6 +18,7 @@
  */
 import { t } from '@superset-ui/core';
 import { ModalTrigger } from '@superset-ui/core/components';
+import Tabs from '@superset-ui/core/components/Tabs';
 import CodeSyntaxHighlighter from '@superset-ui/core/components/CodeSyntaxHighlighter';
 
 export interface HighlightedSqlProps {
@@ -56,24 +57,46 @@ const shrinkSql = (sql: string, maxLines: number, maxWidth: number) => {
 
 function TriggerNode({ shrink, sql, maxLines, maxWidth }: TriggerNodeProps) {
   return (
-    <CodeSyntaxHighlighter language="sql">
+    <CodeSyntaxHighlighter language="sql" showCopyButton={false}>
       {shrink ? shrinkSql(sql, maxLines, maxWidth) : sql}
     </CodeSyntaxHighlighter>
   );
 }
 
 function HighlightSqlModal({ rawSql, sql }: HighlightedSqlModalTypes) {
+  const isDifferent = !!rawSql && rawSql !== sql;
+
+  if (!isDifferent) {
+    return (
+      <div>
+        <h4>{t('Source SQL')}</h4>
+        <CodeSyntaxHighlighter language="sql">{sql}</CodeSyntaxHighlighter>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <h4>{t('Source SQL')}</h4>
-      <CodeSyntaxHighlighter language="sql">{sql}</CodeSyntaxHighlighter>
-      {rawSql && rawSql !== sql && (
-        <div>
-          <h4>{t('Executed SQL')}</h4>
-          <CodeSyntaxHighlighter language="sql">{rawSql}</CodeSyntaxHighlighter>
-        </div>
-      )}
-    </div>
+    <Tabs
+      defaultActiveKey="executed"
+      items={[
+        {
+          key: 'executed',
+          label: t('Executed SQL'),
+          children: (
+            <CodeSyntaxHighlighter language="sql">
+              {rawSql!}
+            </CodeSyntaxHighlighter>
+          ),
+        },
+        {
+          key: 'source',
+          label: t('Source SQL'),
+          children: (
+            <CodeSyntaxHighlighter language="sql">{sql}</CodeSyntaxHighlighter>
+          ),
+        },
+      ]}
+    />
   );
 }
 
@@ -96,6 +119,7 @@ function HighlightedSql({
           maxWidth={maxWidth}
         />
       }
+      responsive
     />
   );
 }
