@@ -25,7 +25,7 @@ import {
   within,
 } from '@superset-ui/core/spec';
 import { cloneDeep } from 'lodash';
-import { GenericDataType } from '@superset-ui/core';
+import { GenericDataType, QueryMode } from '@superset-ui/core';
 import TableChart, { sanitizeHeaderId } from '../src/TableChart';
 import transformProps from '../src/transformProps';
 import DateWithFormatter from '../src/utils/DateWithFormatter';
@@ -1450,6 +1450,146 @@ describe('plugin-chart-table', () => {
           expect(totalCellAfter).toBeInTheDocument();
         });
       });
+    });
+
+    test('should build columnLabelToNameMap for adhoc columns with custom labels', () => {
+      const result = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          query_mode: QueryMode.Aggregate,
+          groupby: [
+            {
+              sqlExpression: 'name',
+              label: 'Name_Renamed',
+              expressionType: 'SQL',
+            },
+          ],
+          metrics: ['sum__num'],
+        },
+        emitCrossFilters: true,
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['Name_Renamed', 'sum__num'],
+            coltypes: [GenericDataType.String, GenericDataType.Numeric],
+            data: [{ Name_Renamed: 'Michael', sum__num: 2467063 }],
+          },
+        ],
+      });
+      expect(result.columnLabelToNameMap).toEqual({
+        Name_Renamed: 'name',
+      });
+    });
+
+    test('should not populate columnLabelToNameMap for physical columns', () => {
+      const result = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          query_mode: QueryMode.Aggregate,
+          groupby: ['name'],
+          metrics: ['sum__num'],
+        },
+        emitCrossFilters: true,
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['name', 'sum__num'],
+            coltypes: [GenericDataType.String, GenericDataType.Numeric],
+            data: [{ name: 'Michael', sum__num: 2467063 }],
+          },
+        ],
+      });
+      expect(result.columnLabelToNameMap).toEqual({});
+    });
+
+    test('should not populate columnLabelToNameMap when adhoc label matches sqlExpression', () => {
+      const result = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          query_mode: QueryMode.Aggregate,
+          groupby: [
+            {
+              sqlExpression: 'name',
+              label: 'name',
+              expressionType: 'SQL',
+            },
+          ],
+          metrics: ['sum__num'],
+        },
+        emitCrossFilters: true,
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['name', 'sum__num'],
+            coltypes: [GenericDataType.String, GenericDataType.Numeric],
+            data: [{ name: 'Michael', sum__num: 2467063 }],
+          },
+        ],
+      });
+      expect(result.columnLabelToNameMap).toEqual({});
+    });
+
+    test('cross-filter on adhoc column with custom label emits original column name', () => {
+      const setDataMask = jest.fn();
+      const baseProps = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          query_mode: QueryMode.Aggregate,
+          groupby: [
+            {
+              sqlExpression: 'name',
+              label: 'Name_Renamed',
+              expressionType: 'SQL',
+            },
+          ],
+          metrics: ['sum__num'],
+        },
+        filterState: { filters: {} },
+        ownState: {},
+        hooks: {
+          onAddFilter: jest.fn(),
+          setDataMask,
+          onContextMenu: jest.fn(),
+        },
+        emitCrossFilters: true,
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['Name_Renamed', 'sum__num'],
+            coltypes: [GenericDataType.String, GenericDataType.Numeric],
+            data: [
+              { Name_Renamed: 'Michael', sum__num: 2467063 },
+              { Name_Renamed: 'Joe', sum__num: 2467 },
+            ],
+          },
+        ],
+      });
+
+      render(
+        <ProviderWrapper>
+          <TableChart {...baseProps} emitCrossFilters sticky={false} />
+        </ProviderWrapper>,
+      );
+
+      // Verify the table rendered with data
+      expect(screen.getByText('Michael')).toBeInTheDocument();
+
+      // Find the td cell containing "Michael" and click it
+      const cell = screen.getByText('Michael').closest('td')!;
+      fireEvent.click(cell);
+
+      expect(setDataMask).toHaveBeenCalled();
+      const lastCall =
+        setDataMask.mock.calls[setDataMask.mock.calls.length - 1][0];
+      const { filters } = lastCall.extraFormData;
+      expect(filters).toHaveLength(1);
+      // Should emit the original column name, not the label
+      expect(filters[0].col).toBe('name');
+      expect(filters[0].val).toEqual(['Michael']);
     });
   });
 });

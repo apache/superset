@@ -177,6 +177,10 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   hasServerPageLengthChanged: boolean;
   serverPageLength: number;
   slice_id: number;
+  // Maps column labels (used as keys in query results) back to original
+  // column names for cross-filtering, so that adhoc columns with custom labels
+  // emit the correct column name in cross-filter data masks
+  columnLabelToNameMap?: Record<string, string>;
 }
 
 export enum ColorSchemeEnum {
