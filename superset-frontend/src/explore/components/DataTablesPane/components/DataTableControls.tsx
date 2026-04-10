@@ -72,8 +72,7 @@ export const TableControls = ({
     () => applyFormattingToTabularData(data, formattedTimeColumns),
     [data, formattedTimeColumns],
   );
-  const { canCopyClipboard } = usePermissions();
-  const copyEnabled = canCopyClipboard;
+  const { canCopyClipboard: copyEnabled } = usePermissions();
   return (
     <TableControlsWrapper>
       <FilterInput onChangeHandler={onInputChange} shouldFocus />
