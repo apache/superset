@@ -901,7 +901,7 @@ test('valueGetter returns correct row numbers without server pagination', () => 
     { wrapper: defaultThemeWrapper },
   );
   const colDef = result.current[0];
-  const valueGetter = colDef.valueGetter;
+  const {valueGetter} = colDef;
   expect(valueGetter).toBeDefined();
   expect(typeof valueGetter).toBe('function');
 
@@ -926,7 +926,7 @@ test('valueGetter respects server pagination', () => {
     () => useColDefs({ ...serverProps, showNumberedColumn: true }),
     { wrapper: defaultThemeWrapper },
   );
-  const valueGetter = result.current[0].valueGetter;
+  const {valueGetter} = result.current[0];
   expect(typeof valueGetter).toBe('function');
 
   expect((valueGetter as Function)({ node: { rowIndex: 0 } })).toBe(11);
