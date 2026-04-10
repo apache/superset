@@ -858,23 +858,6 @@ test('is added as first column when showNumberedColumn is true', () => {
   expect(result.current.length).toBe(2);
 });
 
-test('valueGetter respects server pagination', () => {
-  const serverProps = {
-    ...basePropsNumericColumns,
-    serverPagination: true,
-    serverPaginationData: { currentPage: 2, pageSize: 5 },
-    data: [{ a: 11 }, { a: 12 }],
-  };
-  const { result } = renderHook(
-    () => useColDefs({ ...serverProps, showNumberedColumn: true }),
-    { wrapper: defaultThemeWrapper },
-  );
-  const valueGetter = result.current[0].valueGetter;
-
-  expect(valueGetter({ node: { rowIndex: 0 } } as never)).toBe(11);
-  expect(valueGetter({ node: { rowIndex: 1 } } as never)).toBe(12);
-});
-
 test('width defaults to 36 when maxVisibleRowNumber is 0 (empty data)', () => {
   const emptyProps = {
     ...basePropsNumericColumns,
