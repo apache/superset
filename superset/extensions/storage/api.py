@@ -88,7 +88,7 @@ class ExtensionStorageRestApi(BaseApi):
     """REST API for extension ephemeral state storage."""
 
     allow_browser_login = True
-    route_base = "/api/v1/extensions/storage"
+    route_base = "/api/v1/extensions"
 
     def response(self, status_code: int, **kwargs: Any) -> Response:
         """Helper method to create JSON responses."""
@@ -110,19 +110,27 @@ class ExtensionStorageRestApi(BaseApi):
 
     @protect()
     @safe
-    @expose("/ephemeral/<extension_id>/<key>", methods=("GET",))
-    def get_ephemeral(self, extension_id: str, key: str, **kwargs: Any) -> Response:
+    @expose("/<publisher>/<name>/storage/ephemeral/<key>", methods=("GET",))
+    def get_ephemeral(
+        self, publisher: str, name: str, key: str, **kwargs: Any
+    ) -> Response:
         """Get a value from ephemeral state.
         ---
         get:
           summary: Get a value from ephemeral state
           parameters:
           - in: path
-            name: extension_id
+            name: publisher
             schema:
               type: string
             required: true
-            description: Extension ID (publisher.name)
+            description: Extension publisher
+          - in: path
+            name: name
+            schema:
+              type: string
+            required: true
+            description: Extension name
           - in: path
             name: key
             schema:
@@ -148,6 +156,7 @@ class ExtensionStorageRestApi(BaseApi):
             404:
               description: Extension not found
         """
+        extension_id = f"{publisher}.{name}"
         extension = _get_extension_or_404(extension_id)
         if not extension:
             return self.response_404("Extension not found")
@@ -160,19 +169,27 @@ class ExtensionStorageRestApi(BaseApi):
 
     @protect()
     @safe
-    @expose("/ephemeral/<extension_id>/<key>", methods=("PUT",))
-    def set_ephemeral(self, extension_id: str, key: str, **kwargs: Any) -> Response:
+    @expose("/<publisher>/<name>/storage/ephemeral/<key>", methods=("PUT",))
+    def set_ephemeral(
+        self, publisher: str, name: str, key: str, **kwargs: Any
+    ) -> Response:
         """Set a value in ephemeral state.
         ---
         put:
           summary: Set a value in ephemeral state
           parameters:
           - in: path
-            name: extension_id
+            name: publisher
             schema:
               type: string
             required: true
-            description: Extension ID (publisher.name)
+            description: Extension publisher
+          - in: path
+            name: name
+            schema:
+              type: string
+            required: true
+            description: Extension name
           - in: path
             name: key
             schema:
@@ -206,6 +223,7 @@ class ExtensionStorageRestApi(BaseApi):
             404:
               description: Extension not found
         """
+        extension_id = f"{publisher}.{name}"
         extension = _get_extension_or_404(extension_id)
         if not extension:
             return self.response_404("Extension not found")
@@ -227,19 +245,27 @@ class ExtensionStorageRestApi(BaseApi):
 
     @protect()
     @safe
-    @expose("/ephemeral/<extension_id>/<key>", methods=("DELETE",))
-    def delete_ephemeral(self, extension_id: str, key: str, **kwargs: Any) -> Response:
+    @expose("/<publisher>/<name>/storage/ephemeral/<key>", methods=("DELETE",))
+    def delete_ephemeral(
+        self, publisher: str, name: str, key: str, **kwargs: Any
+    ) -> Response:
         """Delete a value from ephemeral state.
         ---
         delete:
           summary: Delete a value from ephemeral state
           parameters:
           - in: path
-            name: extension_id
+            name: publisher
             schema:
               type: string
             required: true
-            description: Extension ID (publisher.name)
+            description: Extension publisher
+          - in: path
+            name: name
+            schema:
+              type: string
+            required: true
+            description: Extension name
           - in: path
             name: key
             schema:
@@ -258,6 +284,7 @@ class ExtensionStorageRestApi(BaseApi):
             404:
               description: Extension not found
         """
+        extension_id = f"{publisher}.{name}"
         extension = _get_extension_or_404(extension_id)
         if not extension:
             return self.response_404("Extension not found")
@@ -270,19 +297,27 @@ class ExtensionStorageRestApi(BaseApi):
 
     @protect()
     @safe
-    @expose("/persistent/<extension_id>/<key>", methods=("GET",))
-    def get_persistent(self, extension_id: str, key: str, **kwargs: Any) -> Response:
+    @expose("/<publisher>/<name>/storage/persistent/<key>", methods=("GET",))
+    def get_persistent(
+        self, publisher: str, name: str, key: str, **kwargs: Any
+    ) -> Response:
         """Get a value from persistent state.
         ---
         get:
           summary: Get a value from persistent state
           parameters:
           - in: path
-            name: extension_id
+            name: publisher
             schema:
               type: string
             required: true
-            description: Extension ID (publisher.name)
+            description: Extension publisher
+          - in: path
+            name: name
+            schema:
+              type: string
+            required: true
+            description: Extension name
           - in: path
             name: key
             schema:
@@ -308,6 +343,7 @@ class ExtensionStorageRestApi(BaseApi):
             404:
               description: Extension not found
         """
+        extension_id = f"{publisher}.{name}"
         extension = _get_extension_or_404(extension_id)
         if not extension:
             return self.response_404("Extension not found")
@@ -321,20 +357,28 @@ class ExtensionStorageRestApi(BaseApi):
 
     @protect()
     @safe
-    @expose("/persistent/<extension_id>/<key>", methods=("PUT",))
+    @expose("/<publisher>/<name>/storage/persistent/<key>", methods=("PUT",))
     @transaction()
-    def set_persistent(self, extension_id: str, key: str, **kwargs: Any) -> Response:
+    def set_persistent(
+        self, publisher: str, name: str, key: str, **kwargs: Any
+    ) -> Response:
         """Set a value in persistent state.
         ---
         put:
           summary: Set a value in persistent state
           parameters:
           - in: path
-            name: extension_id
+            name: publisher
             schema:
               type: string
             required: true
-            description: Extension ID (publisher.name)
+            description: Extension publisher
+          - in: path
+            name: name
+            schema:
+              type: string
+            required: true
+            description: Extension name
           - in: path
             name: key
             schema:
@@ -364,6 +408,7 @@ class ExtensionStorageRestApi(BaseApi):
             404:
               description: Extension not found
         """
+        extension_id = f"{publisher}.{name}"
         extension = _get_extension_or_404(extension_id)
         if not extension:
             return self.response_404("Extension not found")
@@ -381,20 +426,28 @@ class ExtensionStorageRestApi(BaseApi):
 
     @protect()
     @safe
-    @expose("/persistent/<extension_id>/<key>", methods=("DELETE",))
+    @expose("/<publisher>/<name>/storage/persistent/<key>", methods=("DELETE",))
     @transaction()
-    def delete_persistent(self, extension_id: str, key: str, **kwargs: Any) -> Response:
+    def delete_persistent(
+        self, publisher: str, name: str, key: str, **kwargs: Any
+    ) -> Response:
         """Delete a value from persistent state.
         ---
         delete:
           summary: Delete a value from persistent state
           parameters:
           - in: path
-            name: extension_id
+            name: publisher
             schema:
               type: string
             required: true
-            description: Extension ID (publisher.name)
+            description: Extension publisher
+          - in: path
+            name: name
+            schema:
+              type: string
+            required: true
+            description: Extension name
           - in: path
             name: key
             schema:
@@ -413,6 +466,7 @@ class ExtensionStorageRestApi(BaseApi):
             404:
               description: Extension not found
         """
+        extension_id = f"{publisher}.{name}"
         extension = _get_extension_or_404(extension_id)
         if not extension:
             return self.response_404("Extension not found")
