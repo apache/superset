@@ -21,6 +21,7 @@ import SyntaxHighlighterBase from 'react-syntax-highlighter/dist/cjs/light';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import tomorrow from 'react-syntax-highlighter/dist/cjs/styles/hljs/tomorrow-night';
 import { css, isThemeDark, useTheme } from '@apache-superset/core/theme';
+import copyTextToClipboard from '../../utils/copy';
 import { Icons } from '../Icons';
 
 export type SupportedLanguage = 'sql' | 'htmlbars' | 'markdown' | 'json';
@@ -106,30 +107,7 @@ export const CodeSyntaxHighlighter: React.FC<CodeSyntaxHighlighterProps> = ({
   );
 
   const handleCopy = useCallback(() => {
-    const copyText = async () => {
-      if (navigator.clipboard) {
-        await navigator.clipboard.writeText(children);
-      } else {
-        // Fallback for environments without the Clipboard API
-        const span = document.createElement('span');
-        span.textContent = children;
-        span.style.cssText =
-          'position:fixed;top:0;clip:rect(0,0,0,0);white-space:pre';
-        document.body.appendChild(span);
-        const selection = document.getSelection();
-        if (selection) {
-          selection.removeAllRanges();
-          const range = document.createRange();
-          range.selectNode(span);
-          selection.addRange(range);
-          document.execCommand('copy');
-          selection.removeAllRanges();
-        }
-        document.body.removeChild(span);
-      }
-    };
-
-    copyText().then(() => {
+    copyTextToClipboard(() => Promise.resolve(children)).then(() => {
       setCopied(true);
       copyTimeoutRef.current = setTimeout(() => setCopied(false), 1500);
     });
