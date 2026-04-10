@@ -352,7 +352,7 @@ test('"Cache timeout" field and Configuration section should not be present', ()
   expect(screen.queryByText('Configuration')).not.toBeInTheDocument();
 });
 
-test('"Save" should not include cache_timeout in the payload', async () => {
+test('"Save" should not include cache_timeout in the PUT request body', async () => {
   const props = createProps();
   renderModal(props);
 
@@ -364,10 +364,14 @@ test('"Save" should not include cache_timeout in the payload', async () => {
 
   await waitFor(() => {
     expect(props.onSave).toHaveBeenCalledTimes(1);
-    expect(props.onSave).not.toHaveBeenCalledWith(
-      expect.objectContaining({ cache_timeout: expect.anything() }),
-    );
   });
+
+  // onSave receives the GET response (full chart object), not the PUT payload.
+  // Inspect the PUT fetch call body to confirm cache_timeout was not sent.
+  const putCalls = fetchMock.calls('glob:*/api/v1/chart/318', 'PUT');
+  expect(putCalls).toHaveLength(1);
+  const putBody = JSON.parse(putCalls[0][1]?.body as string);
+  expect(putBody).not.toHaveProperty('cache_timeout');
 });
 
 test('"Description" should not be empty when saved', async () => {
