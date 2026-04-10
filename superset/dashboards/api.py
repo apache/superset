@@ -58,8 +58,10 @@ from superset.commands.dashboard.exceptions import (
     DashboardInvalidError,
     DashboardNativeFiltersUpdateFailedError,
     DashboardNotFoundError,
+    DashboardRestoreFailedError,
     DashboardUpdateFailedError,
 )
+from superset.commands.dashboard.restore import RestoreDashboardCommand
 from superset.commands.dashboard.export import ExportDashboardsCommand
 from superset.commands.dashboard.export_example import ExportExampleCommand
 from superset.commands.dashboard.fave import AddFavoriteDashboardCommand
@@ -1186,6 +1188,61 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         except DashboardForbiddenError:
             return self.response_403()
         except DashboardDeleteFailedError as ex:
+            return self.response_422(message=str(ex))
+
+    @expose("/<pk>/restore", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.restore",
+        log_to_statsd=False,
+    )
+    def restore(self, pk: int) -> Response:
+        """Restore a soft-deleted dashboard.
+        ---
+        post:
+          summary: Restore a soft-deleted dashboard
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: Dashboard restored
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            RestoreDashboardCommand(pk).run()
+            return self.response(200, message="OK")
+        except DashboardNotFoundError:
+            return self.response_404()
+        except DashboardForbiddenError:
+            return self.response_403()
+        except DashboardRestoreFailedError as ex:
+            logger.error(
+                "Error restoring model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
             return self.response_422(message=str(ex))
 
     @expose("/export/", methods=("GET",))
