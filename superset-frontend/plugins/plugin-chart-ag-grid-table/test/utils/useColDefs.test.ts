@@ -869,3 +869,28 @@ test('width defaults to 36 when maxVisibleRowNumber is 0 (empty data)', () => {
   });
   expect(result.current[0].width).toBe(36);
 });
+
+test('width uses server pagination row count when available', () => {
+  const serverProps = {
+    ...basePropsNumericColumns,
+    serverPagination: true,
+    serverPaginationData: { currentPage: 0, pageSize: 5 },
+    data: [{ a: 1 }, { a: 2 }],
+    showNumberedColumn: true,
+  };
+  const { result } = renderHook(() => useColDefs(serverProps), {
+    wrapper: defaultThemeWrapper,
+  });
+
+  expect(result.current[0].width).toBe(36);
+
+  const laterPageProps = {
+    ...serverProps,
+    serverPaginationData: { currentPage: 3, pageSize: 5 },
+    data: [{ a: 21 }, { a: 22 }],
+  };
+  const { result: resultLater } = renderHook(() => useColDefs(laterPageProps), {
+    wrapper: defaultThemeWrapper,
+  });
+  expect(resultLater.current[0].width).toBe(42);
+});
