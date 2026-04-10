@@ -65,7 +65,6 @@ const StyledDatasourceModal = styled(Modal)`
     display: flex;
     flex-direction: column;
   }
-
 `;
 
 function buildExtraJsonObject(
