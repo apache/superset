@@ -86,6 +86,72 @@ test('GlobalStyles injects color-scheme: dark for a dark theme', () => {
   expect(getInjectedCss()).toMatch(/color-scheme\s*:\s*dark/);
 });
 
+/**
+ * Embedded context simulation:
+ * Embedded dashboards initialize with ThemeMode.DEFAULT (light). Without
+ * an explicit color-scheme declaration, OS dark mode leaks into the iframe
+ * and applies dark borders/scrollbars. This test verifies the injected CSS
+ * declares color-scheme: light (preventing the OS preference from winning)
+ * and explicitly does NOT declare color-scheme: dark.
+ */
+test('GlobalStyles prevents OS dark mode from affecting embedded light-mode dashboards', () => {
+  // EmbeddedContextProviders always initializes with ThemeMode.DEFAULT (light theme)
+  const embeddedLightTheme = Theme.fromConfig({});
+
+  act(() => {
+    render(
+      <ThemeProvider theme={embeddedLightTheme.theme}>
+        <GlobalStyles />
+      </ThemeProvider>,
+      container,
+    );
+  });
+
+  const css = getInjectedCss();
+  // Must declare light to override any prefers-color-scheme: dark from OS
+  expect(css).toMatch(/color-scheme\s*:\s*light/);
+  // Must NOT declare dark — that would reproduce the original bug
+  expect(css).not.toMatch(/color-scheme\s*:\s*dark/);
+});
+
+/**
+ * Theme switching test:
+ * Confirms that when the active theme changes from light to dark (e.g., via
+ * the Switchboard setThemeMode API), the color-scheme declaration updates
+ * accordingly so native browser UI stays in sync with the app theme.
+ */
+test('GlobalStyles updates color-scheme dynamically when theme switches light → dark', () => {
+  const lightTheme = Theme.fromConfig({});
+  const darkTheme = Theme.fromConfig({ algorithm: ThemeAlgorithm.DARK });
+
+  // Initial render: light theme → color-scheme: light
+  act(() => {
+    render(
+      <ThemeProvider theme={lightTheme.theme}>
+        <GlobalStyles />
+      </ThemeProvider>,
+      container,
+    );
+  });
+
+  expect(getInjectedCss()).toMatch(/color-scheme\s*:\s*light/);
+
+  // Clean up Emotion styles before re-rendering with dark theme
+  document.querySelectorAll('style[data-emotion]').forEach(el => el.remove());
+
+  // Re-render with dark theme → color-scheme: dark
+  act(() => {
+    render(
+      <ThemeProvider theme={darkTheme.theme}>
+        <GlobalStyles />
+      </ThemeProvider>,
+      container,
+    );
+  });
+
+  expect(getInjectedCss()).toMatch(/color-scheme\s*:\s*dark/);
+});
+
 test('GlobalStyles calls isThemeDark with the current theme to determine color-scheme', () => {
   const isThemeDarkSpy = jest.spyOn(themeUtils, 'isThemeDark');
   const lightTheme = Theme.fromConfig({});
