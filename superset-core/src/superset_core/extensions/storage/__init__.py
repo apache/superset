@@ -50,10 +50,13 @@ Usage:
     ephemeral_state.shared.get('job_progress')
     ephemeral_state.shared.set('job_progress', {'pct': 42}, ttl=3600)
 
-    # Future: Persistent state
-    # from superset_core.extensions.storage import persistent_state
-    # persistent_state.get('config')
-    # persistent_state.for_resource('dashboard', uuid).get('settings')
+    # Tier 3: Persistent state
+    from superset_core.extensions.storage import persistent_state
+    persistent_state.get('config')
+    persistent_state.set('config', {'version': 2})
 """
 
-from superset_core.extensions.storage import ephemeral_state  # noqa: F401
+from superset_core.extensions.storage import (
+    ephemeral_state,  # noqa: F401
+    persistent_state,  # noqa: F401
+)

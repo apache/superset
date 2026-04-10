@@ -73,6 +73,13 @@ export interface ExtensionStorage {
    * Use `.shared` for data visible to all users.
    */
   ephemeral: StorageTier;
+
+  /**
+   * Durable database-backed storage (Tier 3).
+   * Data survives server restarts and cache evictions.
+   * Use `.shared` for data visible to all users.
+   */
+  persistent: StorageTier;
 }
 
 /**

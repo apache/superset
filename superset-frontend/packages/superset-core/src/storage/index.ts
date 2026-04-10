@@ -56,4 +56,5 @@
 export * as localState from './localState';
 export * as sessionState from './sessionState';
 export * as ephemeralState from './ephemeralState';
+export * as persistentState from './persistentState';
 export * from './types';

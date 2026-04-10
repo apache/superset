@@ -44,6 +44,14 @@ class ExtensionStorage:
 
         return EphemeralStateImpl
 
+    @property
+    def persistent(self) -> Any:
+        from superset.extensions.storage.persistent_state_impl import (
+            PersistentStateImpl,
+        )
+
+        return PersistentStateImpl
+
 
 class ConcreteExtensionContext:
     """Concrete implementation of ExtensionContext for the host."""

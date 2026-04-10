@@ -24,3 +24,4 @@
 
 export { createBrowserStorage } from './localState';
 export { createEphemeralState } from './ephemeralState';
+export { createPersistentState } from './persistentState';
