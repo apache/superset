@@ -37,7 +37,7 @@ test('renders a ModalTrigger component with shrink prop and maxWidth prop set to
   expect(getByTestId('span-modal-trigger')).toBeInTheDocument();
 });
 test('renders single SQL block with no tabs when rawSql equals sql', () => {
-  const { getByRole, queryByRole, getByTestId, queryByText } = render(
+  const { queryByRole, getByTestId, queryByText } = render(
     <HighlightedSql sql={sql} rawSql={sql} shrink maxWidth={5} />,
   );
   expect(queryByRole('dialog')).not.toBeInTheDocument();
@@ -48,7 +48,7 @@ test('renders single SQL block with no tabs when rawSql equals sql', () => {
 });
 
 test('renders tabs when rawSql differs from sql', () => {
-  const { getByRole, queryByRole, getByTestId, getByText } = render(
+  const { queryByRole, getByTestId, getByText } = render(
     <HighlightedSql sql={sql} rawSql="SELECT * FROM foo" shrink maxWidth={5} />,
   );
   expect(queryByRole('dialog')).not.toBeInTheDocument();
@@ -59,7 +59,7 @@ test('renders tabs when rawSql differs from sql', () => {
 });
 
 test('renders tabs when rawSql has an added LIMIT', () => {
-  const { getByRole, queryByRole, getByTestId, getByText } = render(
+  const { queryByRole, getByTestId, getByText } = render(
     <HighlightedSql
       sql={sql}
       rawSql={`${sql} LIMIT 1000`}
@@ -71,4 +71,5 @@ test('renders tabs when rawSql has an added LIMIT', () => {
   fireEvent.click(getByTestId('span-modal-trigger'));
   expect(queryByRole('dialog')).toBeInTheDocument();
   expect(getByText('Executed SQL')).toBeInTheDocument();
+  expect(getByText('Source SQL')).toBeInTheDocument();
 });

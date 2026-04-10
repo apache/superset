@@ -21,6 +21,7 @@ import SyntaxHighlighterBase from 'react-syntax-highlighter/dist/cjs/light';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import tomorrow from 'react-syntax-highlighter/dist/cjs/styles/hljs/tomorrow-night';
 import { css, isThemeDark, useTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import copyTextToClipboard from '../../utils/copy';
 import { Icons } from '../Icons';
 
@@ -108,6 +109,7 @@ export const CodeSyntaxHighlighter: React.FC<CodeSyntaxHighlighterProps> = ({
 
   const handleCopy = useCallback(() => {
     copyTextToClipboard(() => Promise.resolve(children)).then(() => {
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
       setCopied(true);
       copyTimeoutRef.current = setTimeout(() => setCopied(false), 1500);
     });
@@ -127,8 +129,11 @@ export const CodeSyntaxHighlighter: React.FC<CodeSyntaxHighlighterProps> = ({
   const copyButton = showCopyButton && (
     <button
       type="button"
-      onClick={handleCopy}
-      title={copied ? 'Copied!' : 'Copy to clipboard'}
+      onClick={(e: React.MouseEvent) => {
+        e.stopPropagation();
+        handleCopy();
+      }}
+      title={copied ? t('Copied!') : t('Copy to clipboard')}
       css={css`
         position: absolute;
         top: ${theme.sizeUnit}px;
