@@ -20,6 +20,8 @@ Unit tests for LoggingMiddleware on_call_tool() and on_message() methods.
 
 Tests verify that:
 - on_call_tool() captures duration_ms and success status
+- on_call_tool() resolves call_tool proxy to actual tool name (mcp_tool)
+- on_call_tool() captures error_type on failure
 - on_message() logs non-tool messages without duration
 - _extract_context_info() extracts entity IDs from params
 """
@@ -88,7 +90,7 @@ class TestLoggingMiddlewareOnCallTool:
     async def test_on_call_tool_logs_failure_on_exception(
         self, mock_get_user_id, mock_event_logger
     ):
-        """on_call_tool records success=False when tool raises."""
+        """on_call_tool records success=False and error_type when tool raises."""
         middleware = LoggingMiddleware()
         ctx = _make_context(name="execute_sql")
         call_next = AsyncMock(side_effect=ValueError("boom"))
@@ -100,7 +102,24 @@ class TestLoggingMiddlewareOnCallTool:
         mock_event_logger.log.assert_called_once()
         call_kwargs = mock_event_logger.log.call_args[1]
         assert call_kwargs["curated_payload"]["success"] is False
+        assert call_kwargs["curated_payload"]["error_type"] == "ValueError"
         assert call_kwargs["duration_ms"] >= 0
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_on_call_tool_no_error_type_on_success(
+        self, mock_get_user_id, mock_event_logger
+    ):
+        """on_call_tool omits error_type from payload on success."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="list_charts")
+        call_next = AsyncMock(return_value="ok")
+
+        await middleware.on_call_tool(ctx, call_next)
+
+        payload = mock_event_logger.log.call_args[1]["curated_payload"]
+        assert "error_type" not in payload
 
     @patch("superset.mcp_service.middleware.event_logger")
     @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
@@ -126,6 +145,66 @@ class TestLoggingMiddlewareOnCallTool:
         assert call_kwargs["dashboard_id"] == 10
         assert call_kwargs["slice_id"] == 20
         assert call_kwargs["curated_payload"]["dataset_id"] == 30
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_on_call_tool_resolves_call_tool_proxy(
+        self, mock_get_user_id, mock_event_logger
+    ):
+        """call_tool proxy is resolved to the actual tool name via mcp_tool."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(
+            name="call_tool",
+            params={"name": "list_datasets", "arguments": {"page": 1}},
+        )
+        call_next = AsyncMock(return_value="datasets")
+
+        await middleware.on_call_tool(ctx, call_next)
+
+        payload = mock_event_logger.log.call_args[1]["curated_payload"]
+        assert payload["tool"] == "call_tool"
+        assert payload["mcp_tool"] == "list_datasets"
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_on_call_tool_no_mcp_tool_for_direct_calls(
+        self, mock_get_user_id, mock_event_logger
+    ):
+        """Direct tool calls (not via proxy) omit mcp_tool from payload."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="list_charts")
+        call_next = AsyncMock(return_value="charts")
+
+        await middleware.on_call_tool(ctx, call_next)
+
+        payload = mock_event_logger.log.call_args[1]["curated_payload"]
+        assert payload["tool"] == "list_charts"
+        assert "mcp_tool" not in payload
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_on_call_tool_proxy_failure_captures_both_fields(
+        self, mock_get_user_id, mock_event_logger
+    ):
+        """call_tool proxy failure captures mcp_tool and error_type."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(
+            name="call_tool",
+            params={"name": "get_chart_data", "arguments": {"chart_id": 1}},
+        )
+        call_next = AsyncMock(side_effect=PermissionError("access denied"))
+
+        with pytest.raises(PermissionError):
+            await middleware.on_call_tool(ctx, call_next)
+
+        payload = mock_event_logger.log.call_args[1]["curated_payload"]
+        assert payload["tool"] == "call_tool"
+        assert payload["mcp_tool"] == "get_chart_data"
+        assert payload["success"] is False
+        assert payload["error_type"] == "PermissionError"
 
 
 class TestLoggingMiddlewareOnMessage:
@@ -153,6 +232,42 @@ class TestLoggingMiddlewareOnMessage:
         assert call_kwargs["duration_ms"] is None
         # on_message should NOT have success field
         assert "success" not in call_kwargs["curated_payload"]
+
+
+class TestResolveToolName:
+    """Tests for LoggingMiddleware._resolve_tool_name()."""
+
+    def test_resolves_call_tool_proxy(self):
+        """Returns the real tool name when call_tool proxy is used."""
+        assert (
+            LoggingMiddleware._resolve_tool_name(
+                "call_tool", {"name": "list_datasets", "arguments": {}}
+            )
+            == "list_datasets"
+        )
+
+    def test_returns_none_for_direct_tool(self):
+        """Returns None for direct tool calls (not via proxy)."""
+        assert LoggingMiddleware._resolve_tool_name("list_charts", {"page": 1}) is None
+
+    def test_returns_none_when_name_missing(self):
+        """Returns None when call_tool params lack 'name'."""
+        assert LoggingMiddleware._resolve_tool_name("call_tool", {"foo": "bar"}) is None
+
+    def test_returns_none_for_empty_name(self):
+        """Returns None when call_tool params have empty 'name'."""
+        assert LoggingMiddleware._resolve_tool_name("call_tool", {"name": ""}) is None
+
+    def test_returns_none_for_non_string_name(self):
+        """Returns None when call_tool name param is not a string."""
+        assert LoggingMiddleware._resolve_tool_name("call_tool", {"name": 123}) is None
+
+    def test_returns_none_for_search_tools(self):
+        """search_tools proxy is not resolved (no underlying tool name)."""
+        assert (
+            LoggingMiddleware._resolve_tool_name("search_tools", {"query": "datasets"})
+            is None
+        )
 
 
 class TestExtractContextInfo:
