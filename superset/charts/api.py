@@ -57,7 +57,6 @@ from superset.charts.schemas import (
 )
 from superset.commands.chart.create import CreateChartCommand
 from superset.commands.chart.delete import DeleteChartCommand
-from superset.commands.chart.restore import RestoreChartCommand
 from superset.commands.chart.exceptions import (
     ChartCreateFailedError,
     ChartDeleteFailedError,
@@ -71,6 +70,7 @@ from superset.commands.chart.exceptions import (
 from superset.commands.chart.export import ExportChartsCommand
 from superset.commands.chart.fave import AddFavoriteChartCommand
 from superset.commands.chart.importers.dispatcher import ImportChartsCommand
+from superset.commands.chart.restore import RestoreChartCommand
 from superset.commands.chart.unfave import DelFavoriteChartCommand
 from superset.commands.chart.update import UpdateChartCommand
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand

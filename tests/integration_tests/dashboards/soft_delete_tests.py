@@ -16,13 +16,25 @@
 # under the License.
 """Integration tests for dashboard soft-delete and restore (sc-103157)."""
 
-import json
-
 from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.models.helpers import SKIP_VISIBILITY_FILTER
+from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME
+
+
+def _hard_delete_dashboard(dashboard_id: int) -> None:
+    """Hard-delete a dashboard row regardless of soft-delete state."""
+    row = (
+        db.session.query(Dashboard)
+        .execution_options(**{SKIP_VISIBILITY_FILTER: True})
+        .filter(Dashboard.id == dashboard_id)
+        .one_or_none()
+    )
+    if row:
+        db.session.delete(row)
+        db.session.commit()
 
 
 class TestDashboardSoftDelete(SupersetTestCase):
@@ -58,8 +70,11 @@ class TestDashboardSoftDelete(SupersetTestCase):
         assert row is not None
         assert row.deleted_at is not None
 
+        # Cleanup
+        _hard_delete_dashboard(dashboard_id)
+
     def test_soft_deleted_dashboard_excluded_from_list(self):
-        """GET /api/v1/dashboard/ should not include soft-deleted dashboards."""
+        """GET /api/v1/dashboard/ should not include soft-deleted."""
         dashboard = self._create_dashboard("sd_list_test")
         dashboard_id = dashboard.id
         self.login(ADMIN_USERNAME)
@@ -70,6 +85,9 @@ class TestDashboardSoftDelete(SupersetTestCase):
         data = json.loads(rv.data)
         ids = [d["id"] for d in data["result"]]
         assert dashboard_id not in ids
+
+        # Cleanup
+        _hard_delete_dashboard(dashboard_id)
 
 
 class TestDashboardRestore(SupersetTestCase):
@@ -88,31 +106,28 @@ class TestDashboardRestore(SupersetTestCase):
         return dashboard
 
     def test_restore_soft_deleted_dashboard(self):
-        """POST /api/v1/dashboard/<pk>/restore should make it visible again."""
+        """POST /api/v1/dashboard/<pk>/restore makes it visible again."""
         dashboard = self._create_dashboard("restore_sd_test")
         dashboard_id = dashboard.id
         self.login(ADMIN_USERNAME)
 
         self.client.delete(f"/api/v1/dashboard/{dashboard_id}")
-
         rv = self.client.post(f"/api/v1/dashboard/{dashboard_id}/restore")
         assert rv.status_code == 200
 
         rv = self.client.get(f"/api/v1/dashboard/{dashboard_id}")
         assert rv.status_code == 200
 
-    def test_restore_preserves_chart_associations(self):
-        """Restoring a dashboard should reconnect to its charts (T028).
+        # Cleanup
+        _hard_delete_dashboard(dashboard_id)
 
-        Junction table rows (dashboard_slices) are preserved because
-        soft delete leaves parent rows intact.
-        """
+    def test_restore_preserves_chart_associations(self):
+        """Restoring a dashboard reconnects to its charts (T028)."""
         from superset.models.slice import Slice
 
         admin = self.get_user("admin")
         dashboard = self._create_dashboard("assoc_test")
 
-        # Create a chart and associate it with the dashboard
         chart = Slice(
             slice_name="assoc_chart",
             viz_type="table",
@@ -129,14 +144,16 @@ class TestDashboardRestore(SupersetTestCase):
         chart_id = chart.id
         self.login(ADMIN_USERNAME)
 
-        # Soft-delete the dashboard
         self.client.delete(f"/api/v1/dashboard/{dashboard_id}")
-
-        # Restore it
         rv = self.client.post(f"/api/v1/dashboard/{dashboard_id}/restore")
         assert rv.status_code == 200
 
-        # Chart association is preserved
-        restored = db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one()
+        restored = (
+            db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one()
+        )
         chart_ids = [s.id for s in restored.slices]
         assert chart_id in chart_ids
+
+        # Cleanup
+        db.session.delete(chart)
+        _hard_delete_dashboard(dashboard_id)

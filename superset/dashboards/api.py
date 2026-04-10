@@ -61,12 +61,12 @@ from superset.commands.dashboard.exceptions import (
     DashboardRestoreFailedError,
     DashboardUpdateFailedError,
 )
-from superset.commands.dashboard.restore import RestoreDashboardCommand
 from superset.commands.dashboard.export import ExportDashboardsCommand
 from superset.commands.dashboard.export_example import ExportExampleCommand
 from superset.commands.dashboard.fave import AddFavoriteDashboardCommand
 from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCommand
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
+from superset.commands.dashboard.restore import RestoreDashboardCommand
 from superset.commands.dashboard.unfave import DelFavoriteDashboardCommand
 from superset.commands.dashboard.update import (
     UpdateDashboardChartCustomizationsCommand,

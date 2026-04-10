@@ -20,12 +20,10 @@ from __future__ import annotations
 
 from datetime import datetime
 
-import pytest
 from sqlalchemy.orm.session import Session
 
 from superset.models.helpers import (
     SKIP_VISIBILITY_FILTER,
-    SoftDeleteMixin,
 )
 
 
@@ -139,9 +137,7 @@ def test_skip_visibility_filter_returns_soft_deleted_rows(
     session.expire_all()
 
     # Without the flag: invisible (the global filter excludes it)
-    normal_result = (
-        session.query(Slice).filter(Slice.id == chart_id).one_or_none()
-    )
+    normal_result = session.query(Slice).filter(Slice.id == chart_id).one_or_none()
     assert normal_result is None
 
     # With the flag: visible

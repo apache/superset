@@ -46,6 +46,21 @@ class DeleteChartCommand(BaseCommand):
     def run(self) -> None:
         self.validate()
         assert self._models
+
+        # TODO(sc-103157): Decide whether to hard-delete dashboard_slices
+        # junction rows on chart soft-delete (FR-011). With soft delete,
+        # ondelete=CASCADE no longer fires because the parent row isn't
+        # removed. The MissingChart frontend component handles orphaned
+        # position_json references gracefully (same as hard delete).
+        # Uncomment the following to clean up junction rows:
+        #
+        # chart_ids = [model.id for model in self._models]
+        # db.session.execute(
+        #     dashboard_slices.delete().where(
+        #         dashboard_slices.c.slice_id.in_(chart_ids)
+        #     )
+        # )
+
         ChartDAO.delete(self._models)
 
     def validate(self) -> None:

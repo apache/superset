@@ -29,6 +29,7 @@ from superset.models.dashboard import (
     dashboard_user,
     DashboardRoles,
 )
+from superset.models.helpers import SKIP_VISIBILITY_FILTER
 from superset.models.slice import Slice, slice_user
 from tests.integration_tests.dashboards.dashboard_test_utils import (
     random_slug,
@@ -194,6 +195,7 @@ def delete_all_inserted_dashboards():
         db.session.expire_all()
         dashboards_to_delete: list[Dashboard] = (
             db.session.query(Dashboard)
+            .execution_options(**{SKIP_VISIBILITY_FILTER: True})
             .filter(Dashboard.id.in_(inserted_dashboards_ids))
             .all()
         )
@@ -242,7 +244,10 @@ def delete_dashboard_slices_associations(dashboard: Dashboard) -> None:
 def delete_all_inserted_slices():
     try:
         slices_to_delete: list[Slice] = (
-            db.session.query(Slice).filter(Slice.id.in_(inserted_slices_ids)).all()
+            db.session.query(Slice)
+            .execution_options(**{SKIP_VISIBILITY_FILTER: True})
+            .filter(Slice.id.in_(inserted_slices_ids))
+            .all()
         )
         for slice in slices_to_delete:
             try:
@@ -274,6 +279,7 @@ def delete_all_inserted_tables():
     try:
         tables_to_delete: list[SqlaTable] = (
             db.session.query(SqlaTable)
+            .execution_options(**{SKIP_VISIBILITY_FILTER: True})
             .filter(SqlaTable.id.in_(inserted_sqltables_ids))
             .all()
         )

@@ -20,10 +20,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
-from superset.models.helpers import SoftDeleteMixin
-
 
 def test_delete_routes_to_soft_delete_for_mixin_models(
     app_context: None,
@@ -41,7 +37,7 @@ def test_delete_routes_to_soft_delete_for_mixin_models(
 def test_delete_routes_to_hard_delete_for_non_mixin_models(
     app_context: None,
 ) -> None:
-    """delete() should call hard_delete() when model_cls does not include SoftDeleteMixin."""
+    """delete() calls hard_delete() for non-SoftDeleteMixin models."""
     from superset.daos.database import DatabaseDAO
 
     items = [MagicMock(), MagicMock()]

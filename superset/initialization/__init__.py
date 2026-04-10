@@ -955,7 +955,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         from superset.models.helpers import _add_soft_delete_filter
 
-        event.listen(Session, "do_orm_execute", _add_soft_delete_filter)
+        if not event.contains(Session, "do_orm_execute", _add_soft_delete_filter):
+            event.listen(Session, "do_orm_execute", _add_soft_delete_filter)
 
     def configure_wtf(self) -> None:
         if self.config["WTF_CSRF_ENABLED"]:
