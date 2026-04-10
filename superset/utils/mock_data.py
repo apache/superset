@@ -28,7 +28,7 @@ from uuid import uuid4
 import sqlalchemy.sql.sqltypes
 import sqlalchemy_utils
 from flask_appbuilder import Model
-from sqlalchemy import Column, inspect, MetaData, Table as DBTable
+from sqlalchemy import Column, inspect, MetaData, Table as DBTable, text
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.sql import func
 from sqlalchemy.sql.visitors import VisitableType
@@ -202,11 +202,12 @@ def add_data(
         table = DBTable(table_name, metadata, *column_objects)
         metadata.create_all(engine)
 
-        if not append:
-            engine.execute(table.delete())
+        with engine.connect() as conn:
+            if not append:
+                conn.execute(table.delete())
 
-        data = generate_data(columns, num_rows)
-        engine.execute(table.insert(), data)
+            data = generate_data(columns, num_rows)
+            conn.execute(table.insert(), data)
 
 
 def get_column_objects(columns: list[ColumnInfo]) -> list[Column]:
@@ -284,7 +285,10 @@ def add_sample_rows(model: type[Model], count: int) -> Iterator[Model]:
 def get_valid_foreign_key(column: Column) -> Any:
     foreign_key = list(column.foreign_keys)[0]
     table_name, column_name = foreign_key.target_fullname.split(".", 1)
-    return db.engine.execute(f"SELECT {column_name} FROM {table_name} LIMIT 1").scalar()  # noqa: S608
+    with db.engine.connect() as conn:
+        return conn.execute(
+            text(f"SELECT {column_name} FROM {table_name} LIMIT 1")  # noqa: S608
+        ).scalar()
 
 
 def generate_value(column: Column) -> Any:
