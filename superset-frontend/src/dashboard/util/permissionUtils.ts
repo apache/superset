@@ -28,6 +28,7 @@ import { findPermission } from 'src/utils/findPermission';
 // this should really be a config value,
 // but is hardcoded in backend logic already, so...
 const ADMIN_ROLE_NAME = 'admin';
+const TEAM_ADMIN_ROLE_NAME = 'team admin';
 
 export const isUserAdmin = (
   user?: UserWithPermissionsAndRoles | UndefinedUser,
@@ -35,6 +36,14 @@ export const isUserAdmin = (
   isUserWithPermissionsAndRoles(user) &&
   Object.keys(user.roles || {}).some(
     role => role.toLowerCase() === ADMIN_ROLE_NAME,
+  );
+
+export const isUserTeamAdmin = (
+  user?: UserWithPermissionsAndRoles | UndefinedUser,
+) =>
+  isUserWithPermissionsAndRoles(user) &&
+  Object.keys(user.roles || {}).some(
+    role => role.toLowerCase() === TEAM_ADMIN_ROLE_NAME,
   );
 
 const isUserDashboardOwner = (

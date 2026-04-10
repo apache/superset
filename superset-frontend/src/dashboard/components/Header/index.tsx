@@ -62,6 +62,7 @@ import {
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import DashboardEmbedModal from '../EmbeddedModal';
+import ShareDashboardModal from '../ShareDashboardModal';
 import OverwriteConfirm from '../OverwriteConfirm';
 import {
   addDangerToast,
@@ -230,6 +231,7 @@ const Header = (): JSX.Element => {
   const [showingRefreshModal, setShowingRefreshModal] = useState(false);
   const [showingEmbedModal, setShowingEmbedModal] = useState(false);
   const [showingReportModal, setShowingReportModal] = useState(false);
+  const [showingShareModal, setShowingShareModal] = useState(false);
   const [currentReportDeleting, setCurrentReportDeleting] =
     useState<AlertObject | null>(null);
   const dashboardInfo = useSelector(
@@ -531,6 +533,14 @@ const Header = (): JSX.Element => {
     setShowingEmbedModal(false);
   }, []);
 
+  const showShareModal = useCallback(() => {
+    setShowingShareModal(true);
+  }, []);
+
+  const hideShareModal = useCallback(() => {
+    setShowingShareModal(false);
+  }, []);
+
   const showReportModal = useCallback(() => {
     setShowingReportModal(true);
   }, []);
@@ -815,6 +825,7 @@ const Header = (): JSX.Element => {
     showReportModal,
     showPropertiesModal,
     showRefreshModal,
+    showShareModal,
     setCurrentReportDeleting,
     manageEmbedded: showEmbedModal,
     lastModifiedTime: actualLastModifiedTime,
@@ -899,6 +910,18 @@ const Header = (): JSX.Element => {
           show={showingEmbedModal}
           onHide={hideEmbedModal}
           dashboardId={String(dashboardInfo.id)}
+        />
+      )}
+
+      {userCanShare && (
+        <ShareDashboardModal
+          show={showingShareModal}
+          onHide={hideShareModal}
+          dashboardId={dashboardInfo.id}
+          dashboardTitle={dashboardTitle ?? ''}
+          addSuccessToast={boundActionCreators.addSuccessToast}
+          addDangerToast={boundActionCreators.addDangerToast}
+          user={user}
         />
       )}
       <Global

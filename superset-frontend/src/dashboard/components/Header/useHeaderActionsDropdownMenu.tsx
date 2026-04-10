@@ -62,6 +62,7 @@ export const useHeaderActionsMenu = ({
   showPropertiesModal,
   showRefreshModal,
   showReportModal,
+  showShareModal,
   manageEmbedded,
   dashboardTitle,
   logEvent,
@@ -111,6 +112,9 @@ export const useHeaderActionsMenu = ({
         case MenuKeys.ManageEmbedded:
           manageEmbedded();
           break;
+        case MenuKeys.ShareDashboardModal:
+          showShareModal();
+          break;
         default:
           break;
       }
@@ -121,6 +125,7 @@ export const useHeaderActionsMenu = ({
       addSuccessToast,
       showPropertiesModal,
       showRefreshModal,
+      showShareModal,
       manageEmbedded,
       history,
     ],
@@ -266,9 +271,18 @@ export const useHeaderActionsMenu = ({
     // Download submenu
     menuItems.push(downloadMenuItem);
 
-    // Share submenu
+    // Share submenu (permalink copy/email)
     if (userCanShare) {
       menuItems.push(shareMenuItems);
+    }
+
+    // Share dashboard modal (invite flow)
+    if (userCanShare) {
+      menuItems.push({
+        key: MenuKeys.ShareDashboardModal,
+        label: t('Share dashboard...'),
+        disabled: isLoading,
+      });
     }
 
     // Embed dashboard
