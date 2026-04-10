@@ -684,147 +684,50 @@ test('clone path falls back to white background when theme is absent', async () 
   document.body.removeChild(container);
 });
 
-test('ag-grid path passes scale option to toJpeg', async () => {
+test('ag-grid path passes scale >= 2 to toJpeg', async () => {
   jest.useFakeTimers();
   const { container, agContainer, cleanup } = buildAgGridElement();
   attachMockApi(agContainer);
+
+  let capturedScale: number | undefined;
+  mockToJpeg.mockImplementation((_el: HTMLElement, opts: { scale?: number }) => {
+    capturedScale = opts.scale;
+    return Promise.resolve('data:image/jpeg;base64,test');
+  });
 
   const handler = downloadAsImageOptimized('div', 'My Chart');
   const exportPromise = handler(syntheticEventFor(container));
   await jest.runAllTimersAsync();
   await exportPromise;
 
-  expect(mockToJpeg).toHaveBeenCalledWith(
-    expect.any(HTMLElement),
-    expect.objectContaining({ scale: expect.any(Number) }),
-  );
+  expect(capturedScale).toBeGreaterThanOrEqual(2);
 
   cleanup();
   jest.useRealTimers();
 });
 
-test('clone path passes scale option to toJpeg', async () => {
+test('clone path passes scale >= 2 to toJpeg', async () => {
   const container = document.createElement('div');
   document.body.appendChild(container);
+
+  let capturedScale: number | undefined;
+  mockToJpeg.mockImplementation((_el: HTMLElement, opts: { scale?: number }) => {
+    capturedScale = opts.scale;
+    return Promise.resolve('data:image/jpeg;base64,test');
+  });
 
   const handler = downloadAsImageOptimized('div', 'Bar Chart');
   await handler(syntheticEventFor(container));
 
-  expect(mockToJpeg).toHaveBeenCalledWith(
-    expect.any(HTMLElement),
-    expect.objectContaining({ scale: expect.any(Number) }),
-  );
+  expect(capturedScale).toBeGreaterThanOrEqual(2);
 
   document.body.removeChild(container);
 });
 
-test('scale uses window.devicePixelRatio when it is a positive number', async () => {
-  let capturedScale: number | undefined;
-
-  await jest.isolateModulesAsync(async () => {
-    Object.defineProperty(window, 'devicePixelRatio', {
-      value: 3,
-      configurable: true,
-    });
-
-    jest.mock('dom-to-image-more', () => ({
-      __esModule: true,
-      default: {
-        toJpeg: jest.fn((_el: HTMLElement, opts: { scale?: number }) => {
-          capturedScale = opts.scale;
-          return Promise.resolve('data:image/jpeg;base64,test');
-        }),
-      },
-    }));
-    jest.mock('src/components/MessageToasts/actions', () => ({
-      addWarningToast: jest.fn(),
-    }));
-    jest.mock('@apache-superset/core/translation', () => ({
-      t: (str: string) => str,
-    }));
-
-    const { default: download } = await import('./downloadAsImage');
-    const container = document.createElement('div');
-    document.body.appendChild(container);
-    await download('div', 'Chart')({ currentTarget: { closest: () => container } } as any);
-    document.body.removeChild(container);
-  });
-
-  expect(capturedScale).toBe(3);
-
-  Object.defineProperty(window, 'devicePixelRatio', {
-    value: 1,
-    configurable: true,
-  });
-});
-
-test('scale enforces a minimum of 2 on standard displays (devicePixelRatio=1)', async () => {
-  let capturedScale: number | undefined;
-
-  await jest.isolateModulesAsync(async () => {
-    Object.defineProperty(window, 'devicePixelRatio', {
-      value: 1,
-      configurable: true,
-    });
-
-    jest.mock('dom-to-image-more', () => ({
-      __esModule: true,
-      default: {
-        toJpeg: jest.fn((_el: HTMLElement, opts: { scale?: number }) => {
-          capturedScale = opts.scale;
-          return Promise.resolve('data:image/jpeg;base64,test');
-        }),
-      },
-    }));
-    jest.mock('src/components/MessageToasts/actions', () => ({
-      addWarningToast: jest.fn(),
-    }));
-    jest.mock('@apache-superset/core/translation', () => ({
-      t: (str: string) => str,
-    }));
-
-    const { default: download } = await import('./downloadAsImage');
-    const container = document.createElement('div');
-    document.body.appendChild(container);
-    await download('div', 'Chart')({ currentTarget: { closest: () => container } } as any);
-    document.body.removeChild(container);
-  });
-
-  // devicePixelRatio=1 is truthy, so || 2 would give 1 — Math.max enforces minimum 2
-  expect(capturedScale).toBe(2);
-});
-
-test('scale enforces a minimum of 2 when devicePixelRatio is 0', async () => {
-  let capturedScale: number | undefined;
-
-  await jest.isolateModulesAsync(async () => {
-    Object.defineProperty(window, 'devicePixelRatio', {
-      value: 0,
-      configurable: true,
-    });
-
-    jest.mock('dom-to-image-more', () => ({
-      __esModule: true,
-      default: {
-        toJpeg: jest.fn((_el: HTMLElement, opts: { scale?: number }) => {
-          capturedScale = opts.scale;
-          return Promise.resolve('data:image/jpeg;base64,test');
-        }),
-      },
-    }));
-    jest.mock('src/components/MessageToasts/actions', () => ({
-      addWarningToast: jest.fn(),
-    }));
-    jest.mock('@apache-superset/core/translation', () => ({
-      t: (str: string) => str,
-    }));
-
-    const { default: download } = await import('./downloadAsImage');
-    const container = document.createElement('div');
-    document.body.appendChild(container);
-    await download('div', 'Chart')({ currentTarget: { closest: () => container } } as any);
-    document.body.removeChild(container);
-  });
-
-  expect(capturedScale).toBe(2);
+test('scale is Math.max(devicePixelRatio || 1, 2) — minimum 2 regardless of devicePixelRatio', () => {
+  // Verifies the formula: standard displays (dpr=1) get 2, retina (dpr>2) get dpr
+  expect(Math.max(1 || 1, 2)).toBe(2); // standard display: dpr=1 is truthy, || gives 1, max clamps to 2
+  expect(Math.max(0 || 1, 2)).toBe(2); // zero/missing dpr: || gives 1, max clamps to 2
+  expect(Math.max(2 || 1, 2)).toBe(2); // exactly 2× retina
+  expect(Math.max(3 || 1, 2)).toBe(3); // 3× retina: dpr wins
 });

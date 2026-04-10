@@ -351,8 +351,7 @@ export default function downloadAsImageOptimized(
 
     if (agContainer && agRootWrapper) {
       const api = agContainer._agGridApi;
-      const isFirstDataRendered =
-        agContainer._agGridFirstDataRendered === true;
+      const isFirstDataRendered = agContainer._agGridFirstDataRendered === true;
 
       if (!isFirstDataRendered) {
         addWarningToast(
