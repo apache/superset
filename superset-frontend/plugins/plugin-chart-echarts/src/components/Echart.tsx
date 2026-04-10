@@ -288,14 +288,14 @@ function Echart(
 
   // Clear tooltip on refresh start to avoid stale content (#39247)
   useEffect(() => {
-    if (isDashboardRefreshing && chartRef.current) {
+    if (didMount && isDashboardRefreshing && chartRef.current) {
       chartRef.current.dispatchAction({ type: 'hideTip' });
       chartRef.current.dispatchAction({
         type: 'updateAxisPointer',
         currTrigger: 'leave',
       });
     }
-  }, [isDashboardRefreshing]);
+  }, [didMount, isDashboardRefreshing]);
 
   useEffect(() => () => chartRef.current?.dispose(), []);
 
