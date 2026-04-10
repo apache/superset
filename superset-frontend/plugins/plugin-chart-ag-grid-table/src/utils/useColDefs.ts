@@ -280,7 +280,7 @@ export const useColDefs = ({
       return {
         field: colId,
         headerName: getHeaderLabel(col),
-        headerTooltip: col.description || '',
+        headerTooltip: col.description,
         valueFormatter: p => valueFormatter(p, col),
         valueGetter: p => valueGetter(p, col),
         cellStyle: p => {

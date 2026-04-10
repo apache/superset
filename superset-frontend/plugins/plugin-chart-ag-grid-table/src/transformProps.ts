@@ -385,11 +385,16 @@ const processColumns = memoizeOne(function processColumns(
         ? config.currencyFormat
         : savedCurrency;
 
+      const metricLookupKey = key.startsWith('%') ? key.slice(1) : key;
       const description =
-        rawDatasource.columns?.find((item: any) => item.column_name === key)
-          ?.description ??
-        rawDatasource.metrics?.find((item: any) => item.metric_name === key)
-          ?.description;
+        rawDatasource.columns?.find(
+          (item: { column_name?: string; description?: string | null }) =>
+            item.column_name === key,
+        )?.description ??
+        rawDatasource.metrics?.find(
+          (item: { metric_name?: string; description?: string | null }) =>
+            item.metric_name === metricLookupKey,
+        )?.description;
 
       let formatter;
 
