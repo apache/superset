@@ -429,24 +429,52 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         return item  # type: ignore
 
     @classmethod
-    def delete(cls, items: list[T]) -> None:
+    def soft_delete(cls, items: list[T]) -> None:
+        """Mark items as soft-deleted by setting ``deleted_at``.
+
+        Only valid for models that include ``SoftDeleteMixin``.
+
+        :param items: The items to soft-delete
         """
-        Delete the specified items including their associated relationships.
+        for item in items:
+            item.soft_delete()
 
-        Note that bulk deletion via `delete` is not invoked in the base class as this
-        does not dispatch the ORM `after_delete` event which may be required to augment
-        additional records loosely defined via implicit relationships. Instead ORM
-        objects are deleted one-by-one via `Session.delete`.
+    @classmethod
+    def hard_delete(cls, items: list[T]) -> None:
+        """Permanently remove rows from the database.
 
-        Subclasses may invoke bulk deletion but are responsible for instrumenting any
-        post-deletion logic.
+        Note that bulk deletion via ``delete`` is not invoked in the base
+        class as this does not dispatch the ORM ``after_delete`` event which
+        may be required to augment additional records loosely defined via
+        implicit relationships. Instead ORM objects are deleted one-by-one
+        via ``Session.delete``.
+
+        Subclasses may invoke bulk deletion but are responsible for
+        instrumenting any post-deletion logic.
 
         :param items: The items to delete
         :see: https://docs.sqlalchemy.org/en/latest/orm/queryguide/dml.html
         """
-
         for item in items:
             db.session.delete(item)
+
+    @classmethod
+    def delete(cls, items: list[T]) -> None:
+        """Route to soft or hard delete based on whether the model supports
+        soft delete.
+
+        For models that include ``SoftDeleteMixin``, this calls
+        ``soft_delete()``. For all other models, this calls ``hard_delete()``
+        (the original behaviour).
+
+        :param items: The items to delete
+        """
+        from superset.models.helpers import SoftDeleteMixin
+
+        if cls.model_cls is not None and issubclass(cls.model_cls, SoftDeleteMixin):
+            cls.soft_delete(items)
+        else:
+            cls.hard_delete(items)
 
     @classmethod
     def query(cls, query: Query) -> list[T]:
