@@ -17,32 +17,90 @@
  * under the License.
  */
 import React from 'react';
-import { render } from '@testing-library/react';
+import { render, unmountComponentAtNode } from 'react-dom';
+import { act } from '@testing-library/react';
 import { ThemeProvider } from '@emotion/react';
 import { Theme } from './Theme';
 import { GlobalStyles } from './GlobalStyles';
 import { ThemeAlgorithm } from './types';
 import * as themeUtils from './utils/themeUtils';
 
-// Mock emotion's cache to avoid actual DOM operations
-jest.mock('@emotion/cache', () => ({
-  __esModule: true,
-  default: jest.fn().mockReturnValue({}),
-}));
+/**
+ * Read all CSS text injected into the document by Emotion's Global component.
+ * Emotion uses insertRule() so cssRules is authoritative; textContent is empty.
+ */
+function getInjectedCss(): string {
+  const parts: string[] = [];
+  for (const sheet of Array.from(document.styleSheets)) {
+    try {
+      for (const rule of Array.from(sheet.cssRules)) {
+        parts.push(rule.cssText);
+      }
+    } catch {
+      // Cross-origin sheets are inaccessible — skip
+    }
+  }
+  return parts.join('\n');
+}
+
+let container: HTMLDivElement;
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  container = document.createElement('div');
+  document.body.appendChild(container);
+});
+
+afterEach(() => {
+  unmountComponentAtNode(container);
+  container.remove();
+  // Remove any style tags injected by Emotion to keep tests isolated
+  document
+    .querySelectorAll('style[data-emotion]')
+    .forEach(el => el.remove());
+});
+
+test('GlobalStyles injects color-scheme: light for a light theme', () => {
+  const lightTheme = Theme.fromConfig({});
+
+  act(() => {
+    render(
+      <ThemeProvider theme={lightTheme.theme}>
+        <GlobalStyles />
+      </ThemeProvider>,
+      container,
+    );
+  });
+
+  expect(getInjectedCss()).toMatch(/color-scheme\s*:\s*light/);
+});
+
+test('GlobalStyles injects color-scheme: dark for a dark theme', () => {
+  const darkTheme = Theme.fromConfig({ algorithm: ThemeAlgorithm.DARK });
+
+  act(() => {
+    render(
+      <ThemeProvider theme={darkTheme.theme}>
+        <GlobalStyles />
+      </ThemeProvider>,
+      container,
+    );
+  });
+
+  expect(getInjectedCss()).toMatch(/color-scheme\s*:\s*dark/);
 });
 
 test('GlobalStyles calls isThemeDark with the current theme to determine color-scheme', () => {
   const isThemeDarkSpy = jest.spyOn(themeUtils, 'isThemeDark');
   const lightTheme = Theme.fromConfig({});
 
-  render(
-    <ThemeProvider theme={lightTheme.theme}>
-      <GlobalStyles />
-    </ThemeProvider>,
-  );
+  act(() => {
+    render(
+      <ThemeProvider theme={lightTheme.theme}>
+        <GlobalStyles />
+      </ThemeProvider>,
+      container,
+    );
+  });
 
   expect(isThemeDarkSpy).toHaveBeenCalledWith(lightTheme.theme);
   expect(isThemeDarkSpy).toHaveReturnedWith(false);
@@ -52,36 +110,15 @@ test('GlobalStyles detects dark theme via isThemeDark', () => {
   const isThemeDarkSpy = jest.spyOn(themeUtils, 'isThemeDark');
   const darkTheme = Theme.fromConfig({ algorithm: ThemeAlgorithm.DARK });
 
-  render(
-    <ThemeProvider theme={darkTheme.theme}>
-      <GlobalStyles />
-    </ThemeProvider>,
-  );
-
-  expect(isThemeDarkSpy).toHaveBeenCalledWith(darkTheme.theme);
-  expect(isThemeDarkSpy).toHaveReturnedWith(true);
-});
-
-test('GlobalStyles renders without errors for light theme', () => {
-  const lightTheme = Theme.fromConfig({});
-
-  expect(() => {
-    render(
-      <ThemeProvider theme={lightTheme.theme}>
-        <GlobalStyles />
-      </ThemeProvider>,
-    );
-  }).not.toThrow();
-});
-
-test('GlobalStyles renders without errors for dark theme', () => {
-  const darkTheme = Theme.fromConfig({ algorithm: ThemeAlgorithm.DARK });
-
-  expect(() => {
+  act(() => {
     render(
       <ThemeProvider theme={darkTheme.theme}>
         <GlobalStyles />
       </ThemeProvider>,
+      container,
     );
-  }).not.toThrow();
+  });
+
+  expect(isThemeDarkSpy).toHaveBeenCalledWith(darkTheme.theme);
+  expect(isThemeDarkSpy).toHaveReturnedWith(true);
 });

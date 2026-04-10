@@ -39,10 +39,10 @@ export const GlobalStyles = () => {
     <Global
       key={`global-${theme.colorLink}`}
       styles={css`
-        // Explicitly declare color-scheme so the browser uses matching native
-        // styling (scrollbars, form controls, etc.) rather than inheriting the
-        // OS dark-mode preference. Without this, an embedded iframe renders
-        // dark borders/scrollbars even when Superset's theme is light.
+        /* Explicitly declare color-scheme so the browser uses matching native
+           styling (scrollbars, form controls, etc.) rather than inheriting the
+           OS dark-mode preference. Without this, an embedded iframe renders
+           dark borders/scrollbars even when Superset's theme is light. */
         html {
           color-scheme: ${isDark ? 'dark' : 'light'};
         }
