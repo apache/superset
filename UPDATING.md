@@ -38,6 +38,21 @@ When the feature flag is enabled, these permissions are enforced on both the fro
 
 **Migration behavior:** All three new permissions are granted to every role that currently has `can_csv`, preserving existing access. Admins can then selectively revoke individual export permissions from specific roles as needed.
 
+### Soft delete for Charts, Dashboards, and Datasets
+
+DELETE API endpoints for charts, dashboards, and datasets now perform **soft delete** — setting a `deleted_at` timestamp instead of removing the row from the database. Soft-deleted objects are automatically excluded from all standard API responses and UI views.
+
+**What changed:**
+- `DELETE /api/v1/chart/<pk>`, `DELETE /api/v1/dashboard/<pk>`, `DELETE /api/v1/dataset/<pk>` now set `deleted_at` instead of removing the row
+- Bulk delete endpoints follow the same behaviour
+- New `POST /api/v1/{chart,dashboard,dataset}/<pk>/restore` endpoints allow restoring soft-deleted objects
+- No cascade: soft-deleting a dashboard or dataset does NOT cascade to dependent charts
+
+**Impact on external integrations:**
+- API callers see no change in request/response format — same endpoints, same status codes
+- External tooling that queries the database directly (bypassing the API) may see "deleted" rows that are still present with `deleted_at IS NOT NULL`
+- The import/export pipeline uses `skip_visibility_filter` to handle soft-deleted rows during re-import
+
 ### Deck.gl MapBox viewport and opacity controls are functional
 
 The Deck.gl MapBox chart's **Opacity**, **Default longitude**, **Default latitude**, and **Zoom** controls were previously non-functional — changing them had no effect on the rendered map. These controls are now wired up correctly.
