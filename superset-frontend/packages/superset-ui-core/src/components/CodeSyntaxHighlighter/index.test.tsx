@@ -178,6 +178,7 @@ describe('CodeSyntaxHighlighter', () => {
       value: undefined,
       configurable: true,
     });
+    document.execCommand = jest.fn().mockReturnValue(true);
 
     render(
       <CodeSyntaxHighlighter language="sql">SELECT 1;</CodeSyntaxHighlighter>,

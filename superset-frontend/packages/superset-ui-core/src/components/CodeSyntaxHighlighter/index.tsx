@@ -106,7 +106,30 @@ export const CodeSyntaxHighlighter: React.FC<CodeSyntaxHighlighterProps> = ({
   );
 
   const handleCopy = useCallback(() => {
-    navigator.clipboard?.writeText(children)?.then(() => {
+    const copyText = async () => {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(children);
+      } else {
+        // Fallback for environments without the Clipboard API
+        const span = document.createElement('span');
+        span.textContent = children;
+        span.style.cssText =
+          'position:fixed;top:0;clip:rect(0,0,0,0);white-space:pre';
+        document.body.appendChild(span);
+        const selection = document.getSelection();
+        if (selection) {
+          selection.removeAllRanges();
+          const range = document.createRange();
+          range.selectNode(span);
+          selection.addRange(range);
+          document.execCommand('copy');
+          selection.removeAllRanges();
+        }
+        document.body.removeChild(span);
+      }
+    };
+
+    copyText().then(() => {
       setCopied(true);
       copyTimeoutRef.current = setTimeout(() => setCopied(false), 1500);
     });
@@ -156,7 +179,11 @@ export const CodeSyntaxHighlighter: React.FC<CodeSyntaxHighlighterProps> = ({
   // Show a simple pre-formatted text while language is loading
   if (!isLanguageReady) {
     return (
-      <div css={css`position: relative;`}>
+      <div
+        css={css`
+          position: relative;
+        `}
+      >
         {copyButton}
         <pre
           style={{
@@ -173,7 +200,11 @@ export const CodeSyntaxHighlighter: React.FC<CodeSyntaxHighlighterProps> = ({
   }
 
   return (
-    <div css={css`position: relative;`}>
+    <div
+      css={css`
+        position: relative;
+      `}
+    >
       {copyButton}
       <SyntaxHighlighterBase
         language={language}
