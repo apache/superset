@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, unmountComponentAtNode } from 'react-dom';
 import { act } from '@testing-library/react';
 import { ThemeProvider } from '@emotion/react';
@@ -54,9 +53,7 @@ afterEach(() => {
   unmountComponentAtNode(container);
   container.remove();
   // Remove any style tags injected by Emotion to keep tests isolated
-  document
-    .querySelectorAll('style[data-emotion]')
-    .forEach(el => el.remove());
+  document.querySelectorAll('style[data-emotion]').forEach(el => el.remove());
 });
 
 test('GlobalStyles injects color-scheme: light for a light theme', () => {
