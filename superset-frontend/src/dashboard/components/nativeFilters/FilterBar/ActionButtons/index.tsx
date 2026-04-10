@@ -29,13 +29,11 @@ import {
   styled,
 } from '@superset-ui/core';
 import { Button, Tooltip, Icons, Flex } from '@superset-ui/core/components';
-import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
 import tinycolor from 'tinycolor2';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { getFilterBarTestId } from '../utils';
 
 interface ActionButtonsProps {
-  width?: number;
   onApply: () => void;
   onClearAll: () => void;
   dataMaskSelected: DataMaskState;
@@ -46,17 +44,16 @@ interface ActionButtonsProps {
   hasOutOfScopeRequiredFilters?: boolean;
 }
 
-const ButtonsContainer = styled.div<{ isVertical: boolean; width: number }>`
-  ${({ theme, isVertical, width }) => css`
+const ButtonsContainer = styled.div<{ isVertical: boolean }>`
+  ${({ theme, isVertical }) => css`
     display: flex;
 
     ${isVertical
       ? css`
           flex-direction: column;
           align-items: center;
-          position: fixed;
+          position: sticky;
           z-index: 100;
-          width: ${width - 1}px;
           bottom: 0;
           padding: ${theme.sizeUnit * 4}px;
           padding-top: ${theme.sizeUnit * 6}px;
@@ -102,7 +99,6 @@ const clearAllButtonStyle = (theme: SupersetTheme, isVertical: boolean) => css`
 `;
 
 const ActionButtons = ({
-  width = OPEN_FILTER_BAR_WIDTH,
   onApply,
   onClearAll,
   dataMaskApplied,
@@ -145,7 +141,6 @@ const ActionButtons = ({
   return (
     <ButtonsContainer
       isVertical={isVertical}
-      width={width}
       data-test="filterbar-action-buttons"
     >
       <Button
