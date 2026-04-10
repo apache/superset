@@ -28,6 +28,7 @@ import tinycolor from 'tinycolor2';
 import { createElement, type ComponentProps, ReactNode } from 'react';
 import { useColDefs } from '../../src/utils/useColDefs';
 import { InputColumn } from '../../src/types';
+import { PIVOT_COL_ID } from '../../src/consts';
 
 type TestCellStyleFunc = (params: unknown) => unknown;
 
@@ -137,6 +138,12 @@ const defaultProps = {
   emitCrossFilters: false,
   alignPositiveNegative: false,
   slice_id: 1,
+};
+
+const basePropsNumericColumns = {
+  ...defaultProps,
+  columns: [makeColumn({ key: 'a', label: 'A' })],
+  data: [{ a: 1 }, { a: 2 }, { a: 3 }],
 };
 
 test('boolean columns use agCheckboxCellRenderer', () => {
@@ -830,4 +837,52 @@ test('cellStyle respects explicit horizontal alignment overrides', () => {
   expect(getCellStyleResult(cellStyle)).toMatchObject({
     textAlign: 'center',
   });
+});
+
+test('is not added when showNumberedColumn is false', () => {
+  const { result } = renderHook(
+    () => useColDefs({ ...basePropsNumericColumns, showNumberedColumn: false }),
+    { wrapper: defaultThemeWrapper },
+  );
+  expect(result.current.some(col => col.field === PIVOT_COL_ID)).toBe(false);
+  expect(result.current.length).toBe(1);
+});
+
+test('is added as first column when showNumberedColumn is true', () => {
+  const { result } = renderHook(
+    () => useColDefs({ ...basePropsNumericColumns, showNumberedColumn: true }),
+    { wrapper: defaultThemeWrapper },
+  );
+  expect(result.current[0].field).toBe(PIVOT_COL_ID);
+  expect(result.current[0].headerName).toBe('№');
+  expect(result.current.length).toBe(2);
+});
+
+test('valueGetter respects server pagination', () => {
+  const serverProps = {
+    ...basePropsNumericColumns,
+    serverPagination: true,
+    serverPaginationData: { currentPage: 2, pageSize: 5 },
+    data: [{ a: 11 }, { a: 12 }],
+  };
+  const { result } = renderHook(
+    () => useColDefs({ ...serverProps, showNumberedColumn: true }),
+    { wrapper: defaultThemeWrapper },
+  );
+  const valueGetter = result.current[0].valueGetter;
+
+  expect(valueGetter({ node: { rowIndex: 0 } } as never)).toBe(11);
+  expect(valueGetter({ node: { rowIndex: 1 } } as never)).toBe(12);
+});
+
+test('width defaults to 36 when maxVisibleRowNumber is 0 (empty data)', () => {
+  const emptyProps = {
+    ...basePropsNumericColumns,
+    data: [],
+    showNumberedColumn: true,
+  };
+  const { result } = renderHook(() => useColDefs(emptyProps), {
+    wrapper: defaultThemeWrapper,
+  });
+  expect(result.current[0].width).toBe(36);
 });
