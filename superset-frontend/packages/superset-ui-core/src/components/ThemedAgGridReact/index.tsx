@@ -171,6 +171,7 @@ export type {
   CellClassParams,
   IMenuActionParams,
   IHeaderParams,
+  SelectionChangedEvent,
   SortModelItem,
   ValueFormatterParams,
   ValueGetterParams,
