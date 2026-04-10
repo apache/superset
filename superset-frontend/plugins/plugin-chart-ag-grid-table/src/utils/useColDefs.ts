@@ -444,16 +444,19 @@ export const useColDefs = ({
     }, []);
   }, [stringifiedCols, getCommonColProps]);
 
-  const rowIndexLength = `${data.length}}`.length;
-
+  const pageSize =
+    serverPaginationData.pageSize ?? serverPageLength ?? data.length;
+  const currentPage = serverPaginationData.currentPage ?? 0;
+  const maxVisibleRowNumber = serverPagination
+    ? currentPage * pageSize + data.length
+    : data.length;
+  const rowIndexLength = `${Math.max(maxVisibleRowNumber, 1)}`.length;
   const rowNumberCol: ColDef = {
     headerName: '№',
     headerClass: 'ag-header-center',
     field: PIVOT_COL_ID,
     valueGetter: params => {
       if (serverPagination && serverPaginationData) {
-        const currentPage = serverPaginationData.currentPage ?? 0;
-        const pageSize = serverPaginationData.pageSize ?? serverPageLength ?? 0;
         return currentPage * pageSize + (params.node?.rowIndex ?? 0) + 1;
       }
       return (params.node?.rowIndex ?? 0) + 1;
@@ -471,6 +474,9 @@ export const useColDefs = ({
     suppressNavigable: true,
     resizable: false,
     suppressMovable: true,
+    context: {
+      isMetric: true,
+    },
     cellStyle: {
       backgroundColor: theme.colorFillTertiary,
       padding: '0',
