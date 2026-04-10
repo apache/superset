@@ -43,17 +43,18 @@ def _key_to_fernet(raw_key: str | bytes) -> Fernet:
 
 
 def _fernet() -> MultiFernet:
-    """Return a MultiFernet built from EXTENSION_STORAGE_ENCRYPTION_KEYS.
+    """Return a MultiFernet built from EXTENSIONS_PERSISTENT_STORAGE["ENCRYPTION_KEYS"].
 
-    Falls back to SECRET_KEY when the config list is absent.  The first key in
+    Falls back to SECRET_KEY when the list is absent or empty.  The first key in
     the list is used for new encryptions; all keys are tried on decryption,
     enabling zero-downtime rotation: add the new key at the front of
-    EXTENSION_STORAGE_ENCRYPTION_KEYS, then run ``superset rotate-extension-
-    storage-keys`` to re-encrypt every row with the new key.
+    ENCRYPTION_KEYS, then run ``superset rotate-extension-storage-keys`` to
+    re-encrypt every row with the new key.
     """
-    raw_keys: list[str | bytes] = current_app.config.get(
-        "EXTENSION_STORAGE_ENCRYPTION_KEYS"
-    ) or [current_app.config["SECRET_KEY"]]
+    persistent_cfg = current_app.config.get("EXTENSIONS_PERSISTENT_STORAGE", {})
+    raw_keys: list[str | bytes] = persistent_cfg.get("ENCRYPTION_KEYS") or [
+        current_app.config["SECRET_KEY"]
+    ]
     return MultiFernet([_key_to_fernet(k) for k in raw_keys])
 
 
