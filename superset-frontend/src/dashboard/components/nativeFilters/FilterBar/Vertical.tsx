@@ -171,11 +171,14 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
     };
   }, [onScroll]);
 
-  // Total height of the Bar including the filter bar header.
-  // The `height` prop covers the scrollable content area (100vh minus the
-  // combined dashboard header and filter bar header offsets). Adding the
-  // filter bar header back gives the full panel height so we can use a flex
-  // layout instead of position:fixed for the action buttons.
+  // The `height` prop is computed in DashboardBuilder as:
+  //   calc(100vh - FILTER_BAR_HEADER_HEIGHT - MAIN_HEADER_HEIGHT)
+  // It therefore represents the height of the scrollable content area only
+  // (everything below the filter bar header). Adding FILTER_BAR_HEADER_HEIGHT
+  // back gives the total panel height, equivalent to (100vh - MAIN_HEADER_HEIGHT).
+  // This lets Bar use an explicit height so the action buttons can be a natural
+  // flex footer instead of relying on position:fixed (which breaks at high
+  // display scale factors such as 150% on a 1920×1080 screen).
   const barHeight = useMemo(
     () =>
       typeof height === 'number'
@@ -184,6 +187,8 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
     [height],
   );
 
+  // Empty deps are intentional: the style object no longer depends on `height`
+  // because the scrollable area grows via flex:1 rather than a fixed pixel value.
   const tabPaneStyle = useMemo(
     () => ({
       flex: 1,

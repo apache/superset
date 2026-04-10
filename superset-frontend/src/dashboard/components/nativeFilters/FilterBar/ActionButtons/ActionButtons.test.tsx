@@ -17,6 +17,7 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { FilterBarOrientation } from 'src/dashboard/types';
 import ActionButtons from './index';
 
 const createProps = () => ({
@@ -76,10 +77,29 @@ test('should apply', () => {
   expect(mockedProps.onApply).toHaveBeenCalled();
 });
 
-test('action buttons container does not use position fixed (visible at any zoom level)', () => {
+// Use toHaveStyleRule (from @emotion/jest, extended in spec/helpers/setup.ts) so we
+// read emotion's CSS rules directly rather than jsdom's computed styles, which do not
+// reflect styled-component / emotion class-based CSS.
+test('vertical container uses flex layout (no position:fixed)', () => {
   const mockedProps = createProps();
   render(<ActionButtons {...mockedProps} />, { useRedux: true });
   const container = screen.getByTestId('filterbar-action-buttons');
-  const style = window.getComputedStyle(container);
-  expect(style.position).not.toBe('fixed');
+  // flex layout is now responsible for keeping the button visible at any zoom level
+  expect(container).toHaveStyleRule('display', 'flex');
+  expect(container).toHaveStyleRule('flex-direction', 'column');
+  expect(container).not.toHaveStyleRule('position', 'fixed');
+});
+
+test('horizontal container uses auto left-margin layout', () => {
+  const mockedProps = createProps();
+  render(
+    <ActionButtons
+      {...mockedProps}
+      filterBarOrientation={FilterBarOrientation.Horizontal}
+    />,
+    { useRedux: true },
+  );
+  const container = screen.getByTestId('filterbar-action-buttons');
+  expect(container).toHaveStyleRule('margin-left', 'auto');
+  expect(container).not.toHaveStyleRule('position', 'fixed');
 });
