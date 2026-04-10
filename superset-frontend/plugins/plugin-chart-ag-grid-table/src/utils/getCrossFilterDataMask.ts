@@ -69,9 +69,7 @@ export const buildSelectionCrossFilterDataMask = ({
           {
             col: key,
             op: 'IN' as const,
-            val: values.map(el =>
-              el instanceof Date ? el.getTime() : el!,
-            ),
+            val: values.map(el => (el instanceof Date ? el.getTime() : el!)),
             grain: isTimestamp ? timeGrain : undefined,
           },
         ],

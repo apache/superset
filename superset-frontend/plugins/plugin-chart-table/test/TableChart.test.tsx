@@ -1851,9 +1851,6 @@ describe('plugin-chart-table', () => {
         expect(crossFilterCall).toBeDefined();
         const firstCallArg = crossFilterCall![0];
 
-        // The filter should contain the DateWithFormatter value
-        const filterKey = Object.keys(firstCallArg.filterState.filters)[0];
-
         // Now re-render with the filters from the first click
         // This simulates what happens via Redux in the real app
         setDataMask.mockClear();
