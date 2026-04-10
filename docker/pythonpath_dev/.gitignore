@@ -22,3 +22,4 @@
 !superset_config.py
 !superset_config_docker_light.py
 !superset_config_local.example
+!superset_config_docker.py
