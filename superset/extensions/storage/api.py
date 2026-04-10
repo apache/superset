@@ -34,8 +34,11 @@ from flask.wrappers import Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 
 from superset.extensions import cache_manager
+from superset.extensions.storage.persistent_state_dao import ExtensionStorageDAO
 from superset.extensions.types import LoadedExtension
 from superset.extensions.utils import get_extensions
+from superset.utils import json
+from superset.utils.decorators import transaction
 
 # Key separator
 SEPARATOR = ":"
@@ -262,5 +265,160 @@ class ExtensionStorageRestApi(BaseApi):
         shared = request.args.get("shared", "false").lower() == "true"
         cache_key = _build_storage_key(extension_id, key, shared)
         cache_manager.extension_ephemeral_state_cache.delete(cache_key)
+
+        return self.response(200, message="Value deleted successfully")
+
+    @protect()
+    @safe
+    @expose("/persistent/<extension_id>/<key>", methods=("GET",))
+    def get_persistent(self, extension_id: str, key: str, **kwargs: Any) -> Response:
+        """Get a value from persistent state.
+        ---
+        get:
+          summary: Get a value from persistent state
+          parameters:
+          - in: path
+            name: extension_id
+            schema:
+              type: string
+            required: true
+            description: Extension ID (publisher.name)
+          - in: path
+            name: key
+            schema:
+              type: string
+            required: true
+            description: Storage key
+          - in: query
+            name: shared
+            schema:
+              type: boolean
+            required: false
+            description: If true, read from shared state visible to all users
+          responses:
+            200:
+              description: Value retrieved successfully
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        description: The stored value
+            404:
+              description: Extension not found
+        """
+        extension = _get_extension_or_404(extension_id)
+        if not extension:
+            return self.response_404("Extension not found")
+
+        shared = request.args.get("shared", "false").lower() == "true"
+        user_fk = None if shared else g.user.id
+        raw = ExtensionStorageDAO.get_value(extension_id, key, user_fk=user_fk)
+        value = json.loads(raw) if raw is not None else None
+
+        return self.response(200, result=value)
+
+    @protect()
+    @safe
+    @expose("/persistent/<extension_id>/<key>", methods=("PUT",))
+    @transaction()
+    def set_persistent(self, extension_id: str, key: str, **kwargs: Any) -> Response:
+        """Set a value in persistent state.
+        ---
+        put:
+          summary: Set a value in persistent state
+          parameters:
+          - in: path
+            name: extension_id
+            schema:
+              type: string
+            required: true
+            description: Extension ID (publisher.name)
+          - in: path
+            name: key
+            schema:
+              type: string
+            required: true
+            description: Storage key
+          - in: query
+            name: shared
+            schema:
+              type: boolean
+            required: false
+            description: If true, store as shared state visible to all users
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    value:
+                      description: The value to store (must be JSON-serializable)
+          responses:
+            200:
+              description: Value stored successfully
+            400:
+              description: Invalid request body
+            404:
+              description: Extension not found
+        """
+        extension = _get_extension_or_404(extension_id)
+        if not extension:
+            return self.response_404("Extension not found")
+
+        body = request.get_json(silent=True) or {}
+        if "value" not in body:
+            return self.response_400("Request body must contain 'value' field")
+
+        shared = request.args.get("shared", "false").lower() == "true"
+        user_fk = None if shared else g.user.id
+        value_bytes = json.dumps(body["value"]).encode()
+        ExtensionStorageDAO.set(extension_id, key, value_bytes, user_fk=user_fk)
+
+        return self.response(200, message="Value stored successfully")
+
+    @protect()
+    @safe
+    @expose("/persistent/<extension_id>/<key>", methods=("DELETE",))
+    @transaction()
+    def delete_persistent(self, extension_id: str, key: str, **kwargs: Any) -> Response:
+        """Delete a value from persistent state.
+        ---
+        delete:
+          summary: Delete a value from persistent state
+          parameters:
+          - in: path
+            name: extension_id
+            schema:
+              type: string
+            required: true
+            description: Extension ID (publisher.name)
+          - in: path
+            name: key
+            schema:
+              type: string
+            required: true
+            description: Storage key
+          - in: query
+            name: shared
+            schema:
+              type: boolean
+            required: false
+            description: If true, delete from shared state
+          responses:
+            200:
+              description: Value deleted successfully
+            404:
+              description: Extension not found
+        """
+        extension = _get_extension_or_404(extension_id)
+        if not extension:
+            return self.response_404("Extension not found")
+
+        shared = request.args.get("shared", "false").lower() == "true"
+        user_fk = None if shared else g.user.id
+        ExtensionStorageDAO.delete(extension_id, key, user_fk=user_fk)
 
         return self.response(200, message="Value deleted successfully")

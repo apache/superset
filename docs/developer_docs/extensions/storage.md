@@ -34,6 +34,7 @@ Each extension receives its own isolated storage namespace. When Superset loads 
 | ---- | ----------------- | ------------------------------------------ | -------------------------------------- |
 | 1    | Browser storage   | `ctx.storage.local`, `ctx.storage.session` | UI state, wizard progress, draft forms |
 | 2    | Server-side cache | `ctx.storage.ephemeral`                    | Job progress, temporary results        |
+| 3    | Database          | `ctx.storage.persistent`                   | User preferences, durable config       |
 
 ## Tier 1: Local State
 
@@ -193,6 +194,79 @@ result = ctx.storage.ephemeral.shared.get('shared_result')
 - Subject to cache eviction under memory pressure
 - TTL-based expiration (data disappears after timeout)
 
+## Tier 3: Persistent State
+
+Database-backed storage that survives server restarts, cache evictions, and browser clears. Use for any data that must not be lost.
+
+### Frontend Usage
+
+```typescript
+import { getContext } from '@apache-superset/core/extensions';
+
+const ctx = getContext();
+
+// Store user preferences
+await ctx.storage.persistent.set('preferences', { theme: 'dark', locale: 'en' });
+
+// Retrieve
+const prefs = await ctx.storage.persistent.get('preferences');
+
+// Remove
+await ctx.storage.persistent.remove('preferences');
+```
+
+### Backend Usage
+
+```python
+from superset_core.extensions.context import get_context
+
+ctx = get_context()
+
+# Store user preferences
+ctx.storage.persistent.set('preferences', {'theme': 'dark', 'locale': 'en'})
+
+# Retrieve
+prefs = ctx.storage.persistent.get('preferences')
+
+# Remove
+ctx.storage.persistent.remove('preferences')
+```
+
+### Shared State
+
+For data that should be visible to all users of the extension:
+
+```typescript
+import { getContext } from '@apache-superset/core/extensions';
+
+const ctx = getContext();
+
+await ctx.storage.persistent.shared.set('global_config', { version: 2 });
+const config = await ctx.storage.persistent.shared.get('global_config');
+```
+
+```python
+from superset_core.extensions.context import get_context
+
+ctx = get_context()
+
+ctx.storage.persistent.shared.set('global_config', {'version': 2})
+config = ctx.storage.persistent.shared.get('global_config')
+```
+
+### When to Use Tier 3
+
+- User preferences and settings
+- Extension configuration that must survive restarts
+- Saved state that needs to roam across devices and browsers
+- Any data where loss is unacceptable
+
+### Limitations
+
+- Higher latency than Tiers 1–2 (database round-trip per operation)
+- Subject to the 16 MB value size limit
+- Requires a database migration when first deployed
+
 ## Key Patterns
 
 All storage keys are automatically namespaced:
@@ -210,7 +284,9 @@ This ensures:
 
 ## Configuration
 
-Administrators can configure Tier 2 storage in `superset_config.py`:
+### Tier 2: Ephemeral Storage
+
+Administrators can configure the server-side cache backend in `superset_config.py`:
 
 ```python
 EXTENSIONS_STORAGE = {
@@ -224,3 +300,17 @@ EXTENSIONS_STORAGE = {
 ```
 
 For development, the default `SupersetMetastoreCache` stores data in the metadata database.
+
+### Tier 3: Persistent Storage
+
+Tier 3 values are stored in the `extension_storage` database table. The encryption infrastructure is in place (Fernet-based, keyed from `EXTENSION_STORAGE_ENCRYPTION_KEYS`), but values written through the standard storage API are stored unencrypted by default. Encryption is available at the DAO layer for backend extensions that call `ExtensionStorageDAO.set(..., is_encrypted=True)` directly.
+
+```python
+# Optional: override the encryption key(s) used for Tier 3 persistent storage.
+# Falls back to SECRET_KEY when not set.
+# Rotate keys by prepending the new key — all keys are tried on decryption.
+EXTENSION_STORAGE_ENCRYPTION_KEYS = [
+    "my-new-key-base64url-encoded",  # used for new writes
+    "my-old-key-base64url-encoded",  # kept for reading old values
+]
+```

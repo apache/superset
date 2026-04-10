@@ -20,7 +20,11 @@ import type {
   extensions as extensionsApi,
   common,
 } from '@apache-superset/core';
-import { createBrowserStorage, createEphemeralState } from 'src/core/storage';
+import {
+  createBrowserStorage,
+  createEphemeralState,
+  createPersistentState,
+} from 'src/core/storage';
 
 type ExtensionContextType = extensionsApi.ExtensionContext;
 type Extension = common.Extension;
@@ -44,6 +48,7 @@ class ExtensionContext implements ExtensionContextType {
         local: createBrowserStorage(localStorage, id),
         session: createBrowserStorage(sessionStorage, id),
         ephemeral: createEphemeralState(id),
+        persistent: createPersistentState(id),
       };
     }
     return this._storage;
