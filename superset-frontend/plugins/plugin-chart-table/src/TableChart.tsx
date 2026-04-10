@@ -345,6 +345,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     hasServerPageLengthChanged,
     serverPageLength,
     slice_id,
+    columnLabelToNameMap = {},
   } = props;
 
   const comparisonColumns = useMemo(
@@ -457,19 +458,22 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               groupBy.length === 0
                 ? []
                 : groupBy.map(col => {
+                    // Resolve adhoc column labels back to original column names
+                    // so that cross-filters work on the receiving chart
+                    const resolvedCol = columnLabelToNameMap[col] ?? col;
                     const val = ensureIsArray(updatedFilters?.[col]);
                     if (!val.length)
                       return {
-                        col,
+                        col: resolvedCol,
                         op: 'IS NULL' as const,
                       };
                     return {
-                      col,
+                      col: resolvedCol,
                       op: 'IN' as const,
                       val: val.map(el =>
                         el instanceof Date ? el.getTime() : el!,
                       ),
-                      grain: col === DTTM_ALIAS ? timeGrain : undefined,
+                      grain: resolvedCol === DTTM_ALIAS ? timeGrain : undefined,
                     };
                   }),
           },
@@ -485,7 +489,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         isCurrentValueSelected: isActiveFilterValue(key, value),
       };
     },
-    [filters, isActiveFilterValue, timestampFormatter, timeGrain],
+    [
+      filters,
+      isActiveFilterValue,
+      timestampFormatter,
+      timeGrain,
+      columnLabelToNameMap,
+    ],
   );
 
   const toggleFilter = useCallback(
