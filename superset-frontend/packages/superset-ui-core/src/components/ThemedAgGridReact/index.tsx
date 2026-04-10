@@ -16,19 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, forwardRef } from 'react';
+import { useMemo, useRef, useCallback, forwardRef } from 'react';
 import { css } from '@emotion/react';
 import { AgGridReact, type AgGridReactProps } from 'ag-grid-react';
 import {
   themeQuartz,
   colorSchemeDark,
   colorSchemeLight,
+  type GridApi,
+  type GridReadyEvent,
+  type FirstDataRenderedEvent,
 } from 'ag-grid-community';
 import { useTheme } from '../../theme';
 import { useThemeMode } from '../../theme/utils/themeUtils';
 
 // Note: With ag-grid v34's new theming API, CSS files are injected automatically
 // Do NOT import 'ag-grid-community/styles/ag-grid.css' or theme CSS files
+
+// Extends HTMLDivElement with ag-grid state attached to the container for downloadAsImage.
+export interface AgGridContainerElement extends HTMLDivElement {
+  _agGridApi?: GridApi;
+  _agGridFirstDataRendered?: boolean;
+}
 
 export interface ThemedAgGridReactProps extends AgGridReactProps {
   /**
@@ -72,9 +81,13 @@ export interface ThemedAgGridReactProps extends AgGridReactProps {
 export const ThemedAgGridReact = forwardRef<
   AgGridReact,
   ThemedAgGridReactProps
->(function ThemedAgGridReact({ themeOverrides, ...props }, ref) {
+>(function ThemedAgGridReact(
+  { themeOverrides, onGridReady, onFirstDataRendered, ...props },
+  ref,
+) {
   const theme = useTheme();
   const isDarkMode = useThemeMode();
+  const containerRef = useRef<AgGridContainerElement>(null);
 
   // Get the appropriate ag-grid theme based on dark/light mode
   const agGridTheme = useMemo(() => {
@@ -138,8 +151,35 @@ export const ThemedAgGridReact = forwardRef<
     return baseTheme.withParams(finalParams);
   }, [theme, isDarkMode, themeOverrides]);
 
+  // Expose gridApi and first-data-rendered flag on the container for downloadAsImage.
+  const handleGridReady = useCallback(
+    (event: GridReadyEvent) => {
+      if (containerRef.current) {
+        // eslint-disable-next-line no-underscore-dangle
+        containerRef.current._agGridFirstDataRendered = false;
+        // eslint-disable-next-line no-underscore-dangle
+        containerRef.current._agGridApi = event.api;
+      }
+      onGridReady?.(event);
+    },
+    [onGridReady],
+  );
+
+  // Mark the container once rows are painted so downloadAsImage can gate on readiness.
+  const handleFirstDataRendered = useCallback(
+    (event: FirstDataRenderedEvent) => {
+      if (containerRef.current) {
+        // eslint-disable-next-line no-underscore-dangle
+        containerRef.current._agGridFirstDataRendered = true;
+      }
+      onFirstDataRendered?.(event);
+    },
+    [onFirstDataRendered],
+  );
+
   return (
     <div
+      ref={containerRef}
       css={css`
         width: 100%;
         height: 100%;
@@ -149,7 +189,13 @@ export const ThemedAgGridReact = forwardRef<
       `}
       data-themed-ag-grid="true"
     >
-      <AgGridReact ref={ref} theme={agGridTheme} {...props} />
+      <AgGridReact
+        ref={ref}
+        theme={agGridTheme}
+        onGridReady={handleGridReady}
+        onFirstDataRendered={handleFirstDataRendered}
+        {...props}
+      />
     </div>
   );
 });

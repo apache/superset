@@ -22,8 +22,13 @@ import { kebabCase } from 'lodash';
 // eslint-disable-next-line no-restricted-imports
 import { SupersetTheme, t } from '@superset-ui/core';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
+import type { AgGridContainerElement } from '@superset-ui/core/components';
 
 const IMAGE_DOWNLOAD_QUALITY = 0.95;
+const POLL_INTERVAL_MS = 100;
+
+// Tracks original cell styles to restore after capture
+type CellFixup = { el: HTMLElement; minHeight: string; overflow: string };
 
 /**
  * generate a consistent file stem from a description and date
@@ -78,6 +83,9 @@ const CRITICAL_STYLE_PROPERTIES = new Set([
   'table-layout',
   'vertical-align',
   'text-align',
+  'box-sizing',
+  'min-height',
+  'min-width',
 ]);
 
 const styleCache = new WeakMap<Element, CSSStyleDeclaration>();
@@ -253,6 +261,45 @@ const createEnhancedClone = (
   return { clone, cleanup };
 };
 
+// Polls until scrollHeight is stable for minStablePolls consecutive intervals or maxMs elapses.
+// ag-grid has no "layout settled" event, so polling is the recommended workaround.
+export const waitForStableScrollHeight = (
+  el: HTMLElement,
+  maxMs = 5000,
+  minStablePolls = 2,
+): Promise<void> =>
+  new Promise<void>(resolve => {
+    const deadline = Date.now() + maxMs;
+    let lastHeight = el.scrollHeight;
+    let stableCount = 0;
+
+    const poll = () => {
+      if (Date.now() >= deadline) {
+        resolve();
+        return;
+      }
+      try {
+        const h = el.scrollHeight;
+        if (h === lastHeight) {
+          stableCount += 1;
+          if (stableCount >= minStablePolls) {
+            resolve();
+            return;
+          }
+        } else {
+          stableCount = 0;
+          lastHeight = h;
+        }
+      } catch {
+        resolve(); // element removed from DOM
+        return;
+      }
+      setTimeout(poll, POLL_INTERVAL_MS);
+    };
+
+    setTimeout(poll, POLL_INTERVAL_MS);
+  });
+
 export default function downloadAsImageOptimized(
   selector: string,
   description: string,
@@ -271,17 +318,145 @@ export default function downloadAsImageOptimized(
       return;
     }
 
+    const filter = (node: Element) =>
+      typeof node.className === 'string'
+        ? !node.className.includes('mapboxgl-control-container') &&
+          !node.className.includes('header-controls')
+        : true;
+
+    // Only apply ag-grid path for single-chart captures.
+    // Skip entirely for dashboard-level exports (selector targets the .dashboard root).
+    const isDashboardCapture = (
+      elementToPrint as HTMLElement
+    ).classList.contains('dashboard');
+    const agContainers = isDashboardCapture
+      ? []
+      : elementToPrint.querySelectorAll('[data-themed-ag-grid]');
+    const agContainer =
+      agContainers.length === 1
+        ? (agContainers[0] as AgGridContainerElement)
+        : null;
+    const agRootWrapper = agContainer
+      ? (agContainer.querySelector('.ag-root-wrapper') as HTMLElement | null)
+      : null;
+
+    if (agContainer && agRootWrapper) {
+      // eslint-disable-next-line no-underscore-dangle
+      const api = agContainer._agGridApi;
+      // eslint-disable-next-line no-underscore-dangle
+      const isFirstDataRendered = agContainer._agGridFirstDataRendered === true;
+
+      if (!isFirstDataRendered) {
+        addWarningToast(
+          t('The chart is still loading. Please wait a moment and try again.'),
+        );
+        return;
+      }
+
+      // Capture resolved pixel widths before print layout can re-trigger sizeColumnsToFit.
+      // sizeColumnsToFit() sets flex (not pixel widths), so after print layout expands the
+      // container it recalculates column widths wider. We restore with flex: null to force
+      // pixel widths when calling applyColumnState after the layout switch.
+      const savedColumnState = api?.getColumnState?.();
+      const visibleColumnState =
+        savedColumnState?.filter(col => !col.hide) ?? [];
+      const originalWidth =
+        visibleColumnState.reduce((sum, col) => sum + (col.width ?? 0), 0) ||
+        agRootWrapper.offsetWidth;
+
+      // Chrome SVG foreignObject bug: % min-height resolves against canvas height,
+      // causing cells to expand to full image height and overlap adjacent rows.
+      const cellFixups: CellFixup[] = [];
+
+      try {
+        await document.fonts.ready;
+
+        if (api) {
+          api.setGridOption('domLayout', 'print');
+
+          // Wait for ResizeObserver + any triggered sizeColumnsToFit() to settle,
+          // then restore column widths before measurement.
+          await new Promise<void>(resolve =>
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+          );
+
+          if (visibleColumnState.length > 0) {
+            api.applyColumnState?.({
+              state: visibleColumnState.map(col => ({
+                colId: col.colId,
+                width: col.width,
+                flex: null,
+              })),
+              applyOrder: false,
+            });
+          }
+
+          // Rows never scrolled into view have stale cached heights; remeasure all.
+          api.resetRowHeights?.();
+
+          // 5 polls × POLL_INTERVAL_MS = 500 ms; autoHeight rows batch-measure slowly.
+          await waitForStableScrollHeight(agRootWrapper, 5000, 5);
+        }
+
+        agRootWrapper.querySelectorAll('.ag-cell').forEach(cell => {
+          const el = cell as HTMLElement;
+          const rowHeight =
+            (el.parentElement as HTMLElement)?.offsetHeight ?? 0;
+          // scrollHeight catches any cells where resetRowHeights lagged behind.
+          const minH = Math.max(rowHeight, el.scrollHeight);
+          cellFixups.push({
+            el,
+            minHeight: el.style.minHeight,
+            overflow: el.style.overflow,
+          });
+          el.style.minHeight = minH > 0 ? `${minH}px` : '0px';
+          el.style.overflow = 'hidden';
+        });
+
+        const imageHeight = agRootWrapper.scrollHeight;
+
+        const dataUrl = await domToImage.toJpeg(agRootWrapper, {
+          bgcolor: theme?.colorBgContainer,
+          filter,
+          quality: IMAGE_DOWNLOAD_QUALITY,
+          height: imageHeight,
+          width: originalWidth,
+          cacheBust: true,
+        });
+
+        const link = document.createElement('a');
+        link.download = `${generateFileStem(description)}.jpg`;
+        link.href = dataUrl;
+        link.click();
+      } catch (error) {
+        console.error('Creating image failed', error);
+        addWarningToast(
+          t('Image download failed, please refresh and try again.'),
+        );
+      } finally {
+        cellFixups.forEach(({ el, minHeight, overflow }) => {
+          el.style.minHeight = minHeight; // eslint-disable-line no-param-reassign
+          el.style.overflow = overflow; // eslint-disable-line no-param-reassign
+        });
+        if (api) {
+          api.setGridOption('domLayout', 'normal');
+          if (savedColumnState) {
+            api.applyColumnState?.({
+              state: savedColumnState,
+              applyOrder: false,
+            });
+          }
+        }
+      }
+      return;
+    }
+
+    // All other chart types: use the clone-based approach
     let cleanup: (() => void) | null = null;
 
     try {
       const { clone, cleanup: cleanupFn } = createEnhancedClone(elementToPrint);
       cleanup = cleanupFn;
-
-      const filter = (node: Element) =>
-        typeof node.className === 'string'
-          ? !node.className.includes('mapboxgl-control-container') &&
-            !node.className.includes('header-controls')
-          : true;
 
       const dataUrl = await domToImage.toJpeg(clone, {
         bgcolor: theme?.colorBgContainer,
