@@ -1,0 +1,183 @@
+#  Copyright (c) University College London Hospitals NHS Foundation Trust
+#  
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#  
+#      http://www.apache.org/licenses/LICENSE-2.0
+#  
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+################################################################################
+
+x-https-proxy: &https-proxy ${HTTPS_PROXY}
+x-no-proxy: &no-proxy
+  ${HOST_NAME}
+  ${HOST_NAME}.xuclh.nhs.uk
+  127.0.0.1
+  redis
+  db
+  superset
+  superset-init
+  superset-worker
+  superset-worker-beat
+  postgres
+x-network: &network
+  HOST_NAME: *host-name
+  HTTP_PROXY: *http-proxy
+  http_proxy: *http-proxy
+  HTTPS_PROXY: *https-proxy
+  https_proxy: *https-proxy
+  NO_PROXY: *no-proxy
+  no_proxy: *no-proxy
+x-ducklake-connection: &ducklake-connection
+  DUCKLAKE_CONNECTION: "ducklake:postgres:dbname=${DUCKLAKE_DB_NAME} host=${DUCKLAKE_POSTGRES_HOST} port=${DUCKLAKE_POSTGRES_PORT} user=${DUCKLAKE_DB_USER} password=${DUCKLAKE_DB_PASSWORD}"
+
+x-superset-image: &superset-image apachesuperset.docker.scarf.sh/apache/superset:${TAG}
+x-superset-volumes:
+  &superset-volumes # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
+  - ./docker:/app/docker
+  - ./superset-core:/app/superset-core
+  - superset_home:/app/superset_home
+  # https://github.com/apache/superset/issues/9748#issuecomment-2099107789
+  - camino-db-data:/app/camino:ro
+  - /gae/Camino/data/superset-user-dbs/:/app/snaphots:rw
+  - ./data:/var/data
+  - ./dashboards:/var/dashboards
+
+services:
+  redis:
+    image: redis:7
+    container_name: superset_cache
+    restart: unless-stopped
+    volumes:
+      - redis:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      superset:
+
+  db:
+    env_file:
+      - docker/.env
+      - docker/.env-local
+    image: postgres:17
+    container_name: superset_db
+    restart: unless-stopped
+    volumes:
+      - db_home:/var/lib/postgresql/data
+      - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      superset:
+
+  superset:
+    env_file:
+      - docker/.env
+      - docker/.env-local
+    environment:
+      <<: [*network, *ducklake-connection]
+    image: *superset-image
+    container_name: superset_app
+    command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
+    user: "root"
+    restart: unless-stopped
+    ports:
+      - 8088:8088
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
+    volumes: *superset-volumes
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      superset:
+
+  superset-init:
+    image: *superset-image
+    container_name: superset_init
+    command: ["/app/docker/docker-init.sh"]
+    env_file:
+      - docker/.env
+      - docker/.env-local
+    environment:
+      <<: [*network, *ducklake-connection]
+    depends_on:
+      db:
+        condition: service_healthy 
+    user: "root"
+    volumes: *superset-volumes
+    healthcheck:
+      disable: true
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      superset:
+
+  superset-worker:
+    image: *superset-image
+    container_name: superset_worker
+    command: ["/app/docker/docker-bootstrap.sh", "worker"]
+    env_file:
+      - docker/.env
+      - docker/.env-local
+    environment:
+      <<: [*network, *ducklake-connection]
+    restart: unless-stopped
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
+    user: "root"
+    volumes: *superset-volumes
+    healthcheck:
+      disable: true
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      superset:
+
+  superset-worker-beat:
+    image: *superset-image
+    container_name: superset_worker_beat
+    command: ["/app/docker/docker-bootstrap.sh", "beat"]
+    env_file:
+      - docker/.env
+      - docker/.env-local
+    restart: unless-stopped
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
+    user: "root"
+    volumes: *superset-volumes
+    healthcheck:
+      disable: true
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      superset:
+
+volumes:
+  superset_home:
+    external: false
+  db_home:
+    external: false
+  redis:
+    external: false
+  camino-db-data:
+    name: camino-db-data
+    external: true
+
+networks:
+  superset:
+    external: false
+    name: superset-net
