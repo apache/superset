@@ -29,6 +29,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    field_validator,
     model_serializer,
     model_validator,
     PositiveInt,
@@ -304,6 +305,79 @@ class GetDatasetInfoRequest(MetadataCacheControl):
         int | str,
         Field(description="Dataset identifier - can be numeric ID or UUID string"),
     ]
+
+
+class CreateVirtualDatasetRequest(BaseModel):
+    """Request schema for create_virtual_dataset."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    database_id: int = Field(
+        ...,
+        description="ID of the database connection to use. "
+        "Use list_databases to find valid IDs.",
+    )
+    sql: str = Field(
+        ...,
+        description="SQL query to save as a virtual dataset. "
+        "Can be a JOIN, CTE, aggregation, or any valid SELECT.",
+    )
+    dataset_name: str = Field(
+        ...,
+        min_length=1,
+        max_length=250,
+        description="Name for the new virtual dataset.",
+    )
+    schema_name: str | None = Field(
+        None,
+        alias="schema",
+        description="Schema to associate with the dataset (optional).",
+    )
+    catalog: str | None = Field(
+        None,
+        description="Catalog to associate with the dataset (optional).",
+    )
+    description: str | None = Field(
+        None,
+        description="Human-readable description of the dataset (optional).",
+    )
+
+    @field_validator("sql")
+    @classmethod
+    def sql_must_not_be_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("sql must not be empty")
+        return v
+
+    @field_validator("dataset_name")
+    @classmethod
+    def dataset_name_must_not_be_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("dataset_name must not be empty")
+        return v
+
+
+class CreateVirtualDatasetResponse(BaseModel):
+    """Response schema for create_virtual_dataset."""
+
+    id: int = Field(
+        ...,
+        description="Dataset ID. Pass this as dataset_id to generate_chart "
+        "or generate_explore_link.",
+    )
+    dataset_name: str = Field(..., description="Name of the created dataset.")
+    sql: str = Field(..., description="SQL query stored in the dataset.")
+    database_id: int = Field(..., description="Database ID used.")
+    columns: List[str] = Field(
+        default_factory=list,
+        description="Column names available for charting. "
+        "Use these when building chart configs.",
+    )
+    url: str = Field(..., description="URL to view/edit the dataset in Superset.")
+    error: str | None = Field(
+        None,
+        description="Error message if creation failed, otherwise null.",
+    )
 
 
 def _parse_json_field(obj: Any, field_name: str) -> Dict[str, Any] | None:
