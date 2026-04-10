@@ -57,7 +57,8 @@ from pandas import DateOffset
 from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import Mapper, validates
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import Mapper, Session, validates, with_loader_criteria
 from sqlalchemy.sql.elements import ColumnElement, Grouping, literal_column, TextClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
@@ -655,6 +656,68 @@ class AuditMixinNullable(AuditMixin):
     @renders("changed_on")
     def modified(self) -> Markup:
         return Markup(f'<span class="no-wrap">{self.changed_on_humanized}</span>')
+
+
+SKIP_VISIBILITY_FILTER = "skip_visibility_filter"
+
+
+class SoftDeleteMixin:
+    """Mixin that adds soft-delete support to a SQLAlchemy model.
+
+    Adds a nullable ``deleted_at`` column. When set, the row is treated as
+    deleted and excluded from standard ORM queries via a global
+    ``do_orm_execute`` listener registered at app init.
+
+    See also: ``_add_soft_delete_filter`` (the listener function) and
+    ``SKIP_VISIBILITY_FILTER`` (the execution-option key used to opt out
+    of the filter in restore commands and admin tooling).
+    """
+
+    deleted_at = sa.Column(sa.DateTime, nullable=True, index=True)
+
+    @hybrid_property
+    def is_deleted(self) -> bool:
+        return self.deleted_at is not None
+
+    @is_deleted.expression  # type: ignore
+    @classmethod
+    def is_deleted(cls) -> ColumnElement:
+        return cls.deleted_at.is_not(None)
+
+    @classmethod
+    def not_deleted(cls) -> ColumnElement:
+        """Filter clause for active (non-deleted) rows."""
+        return cls.deleted_at.is_(None)
+
+    def soft_delete(self) -> None:
+        """Mark this object as soft-deleted."""
+        self.deleted_at = datetime.now()
+
+    def restore(self) -> None:
+        """Clear the soft-delete marker, making this object active again."""
+        self.deleted_at = None
+
+
+def _add_soft_delete_filter(execute_state):  # type: ignore
+    """Global ``do_orm_execute`` listener that automatically excludes
+    soft-deleted rows from every ORM SELECT.
+
+    Uses SQLAlchemy's recommended soft-delete pattern
+    (``do_orm_execute`` + ``with_loader_criteria``).
+
+    Opt out for a specific query by passing
+    ``execution_options(skip_visibility_filter=True)``.
+    """
+    if execute_state.is_select and not execute_state.execution_options.get(
+        SKIP_VISIBILITY_FILTER, False
+    ):
+        execute_state.statement = execute_state.statement.options(
+            with_loader_criteria(
+                SoftDeleteMixin,
+                lambda cls: cls.deleted_at.is_(None),
+                include_aliases=True,
+            )
+        )
 
 
 class QueryResult:  # pylint: disable=too-few-public-methods
