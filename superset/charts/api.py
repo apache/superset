@@ -57,12 +57,14 @@ from superset.charts.schemas import (
 )
 from superset.commands.chart.create import CreateChartCommand
 from superset.commands.chart.delete import DeleteChartCommand
+from superset.commands.chart.restore import RestoreChartCommand
 from superset.commands.chart.exceptions import (
     ChartCreateFailedError,
     ChartDeleteFailedError,
     ChartForbiddenError,
     ChartInvalidError,
     ChartNotFoundError,
+    ChartRestoreFailedError,
     ChartUpdateFailedError,
     DashboardsForbiddenError,
 )
@@ -566,6 +568,61 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except ChartForbiddenError:
             return self.response_403()
         except ChartDeleteFailedError as ex:
+            return self.response_422(message=str(ex))
+
+    @expose("/<pk>/restore", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.restore",
+        log_to_statsd=False,
+    )
+    def restore(self, pk: int) -> Response:
+        """Restore a soft-deleted chart.
+        ---
+        post:
+          summary: Restore a soft-deleted chart
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: Chart restored
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            RestoreChartCommand(pk).run()
+            return self.response(200, message="OK")
+        except ChartNotFoundError:
+            return self.response_404()
+        except ChartForbiddenError:
+            return self.response_403()
+        except ChartRestoreFailedError as ex:
+            logger.error(
+                "Error restoring model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
             return self.response_422(message=str(ex))
 
     @expose("/<pk>/cache_screenshot/", methods=("GET",))

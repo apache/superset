@@ -123,6 +123,10 @@ class ChartDeleteFailedError(DeleteFailedError):
     message = _("Charts could not be deleted.")
 
 
+class ChartRestoreFailedError(CommandException):
+    message = _("Chart could not be restored.")
+
+
 class ChartDeleteFailedReportsExistError(ChartDeleteFailedError):
     message = _("There are associated alerts or reports")
 
