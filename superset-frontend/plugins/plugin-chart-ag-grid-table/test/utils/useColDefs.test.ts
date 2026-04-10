@@ -894,3 +894,41 @@ test('width uses server pagination row count when available', () => {
   });
   expect(resultLater.current[0].width).toBe(42);
 });
+
+test('valueGetter returns correct row numbers without server pagination', () => {
+  const { result } = renderHook(
+    () => useColDefs({ ...basePropsNumericColumns, showNumberedColumn: true }),
+    { wrapper: defaultThemeWrapper },
+  );
+  const colDef = result.current[0];
+  const valueGetter = colDef.valueGetter;
+  expect(valueGetter).toBeDefined();
+  expect(typeof valueGetter).toBe('function');
+
+  const params = (rowIndex: number) => ({
+    node: { rowIndex },
+    data: basePropsNumericColumns.data[rowIndex],
+  });
+
+  expect((valueGetter as Function)(params(0))).toBe(1);
+  expect((valueGetter as Function)(params(1))).toBe(2);
+  expect((valueGetter as Function)(params(2))).toBe(3);
+});
+
+test('valueGetter respects server pagination', () => {
+  const serverProps = {
+    ...basePropsNumericColumns,
+    serverPagination: true,
+    serverPaginationData: { currentPage: 2, pageSize: 5 },
+    data: [{ a: 11 }, { a: 12 }],
+  };
+  const { result } = renderHook(
+    () => useColDefs({ ...serverProps, showNumberedColumn: true }),
+    { wrapper: defaultThemeWrapper },
+  );
+  const valueGetter = result.current[0].valueGetter;
+  expect(typeof valueGetter).toBe('function');
+
+  expect((valueGetter as Function)({ node: { rowIndex: 0 } })).toBe(11);
+  expect((valueGetter as Function)({ node: { rowIndex: 1 } })).toBe(12);
+});
