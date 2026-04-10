@@ -265,9 +265,7 @@ function Echart(
       );
 
       const notMerge = !isDashboardRefreshing;
-      if (!notMerge) {
-        chartRef.current?.dispatchAction({ type: 'hideTip' });
-      }
+      chartRef.current?.dispatchAction({ type: 'hideTip' });
       chartRef.current?.setOption(themedEchartOptions, {
         notMerge,
         replaceMerge: notMerge ? undefined : ['series'],

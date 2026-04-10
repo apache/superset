@@ -85,6 +85,7 @@ const propTypes = {
   isFullSize: PropTypes.bool,
   extraControls: PropTypes.object,
   isInView: PropTypes.bool,
+  chartHolderRef: PropTypes.object,
 };
 
 const RESIZE_TIMEOUT = 500;
@@ -619,6 +620,7 @@ const Chart = props => {
         width={width}
         height={getHeaderHeight()}
         exportPivotExcel={exportPivotExcel}
+        chartHolderRef={props.chartHolderRef}
       />
 
       {/*
