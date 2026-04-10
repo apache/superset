@@ -24,7 +24,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag, SupersetClient } from '@superset-ui/core';
 import PropertiesModal, { PropertiesModalProps } from '.';
 
 jest.mock('@superset-ui/core', () => ({
@@ -91,7 +91,6 @@ fetchMock.get('glob:*/api/v1/chart/318*', {
       certification_details: 'Test certification details',
       certified_by: 'Test certified by',
       description: 'Test description',
-      cache_timeout: 1000,
       slice_name: 'Test chart new name',
     },
     show_columns: [
@@ -352,8 +351,9 @@ test('"Cache timeout" field and Configuration section should not be present', ()
   expect(screen.queryByText('Configuration')).not.toBeInTheDocument();
 });
 
-test('"Save" should not include cache_timeout in the PUT request body', async () => {
+test('"Save" should not include cache_timeout in the PUT body or onSave payload', async () => {
   const props = createProps();
+  const putSpy = jest.spyOn(SupersetClient, 'put');
   renderModal(props);
 
   await waitFor(() => {
@@ -366,12 +366,18 @@ test('"Save" should not include cache_timeout in the PUT request body', async ()
     expect(props.onSave).toHaveBeenCalledTimes(1);
   });
 
-  // onSave receives the GET response (full chart object), not the PUT payload.
-  // Inspect the PUT fetch call body to confirm cache_timeout was not sent.
-  const putCalls = fetchMock.calls('glob:*/api/v1/chart/318', 'PUT');
-  expect(putCalls).toHaveLength(1);
-  const putBody = JSON.parse(putCalls[0][1]?.body as string);
+  // Verify cache_timeout was not sent in the PUT request body
+  expect(putSpy).toHaveBeenCalledTimes(1);
+  const putOptions = putSpy.mock.calls[0][0] as { body: string };
+  const putBody = JSON.parse(putOptions.body);
   expect(putBody).not.toHaveProperty('cache_timeout');
+
+  // Verify cache_timeout is not in the object passed to the onSave callback
+  expect(props.onSave).not.toHaveBeenCalledWith(
+    expect.objectContaining({ cache_timeout: expect.anything() }),
+  );
+
+  putSpy.mockRestore();
 });
 
 test('"Description" should not be empty when saved', async () => {
@@ -462,7 +468,50 @@ test('"Certification details" should not be empty when saved', async () => {
   });
 });
 
-test('Should render updated helper text for Description, Owners, and Tags fields', async () => {
+test('Should render correct section subtitles', async () => {
+  const props = createProps();
+  renderModal(props);
+
+  await waitFor(() => {
+    expect(
+      screen.getByText('Name, description, and ownership'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Mark this chart as certified')).toBeInTheDocument();
+  });
+});
+
+test('Should render correct placeholder text on input fields', async () => {
+  const props = createProps();
+  renderModal(props);
+
+  await waitFor(() => {
+    expect(
+      screen.getByRole('textbox', { name: 'Name' }),
+    ).toHaveAttribute('placeholder', 'Enter a name for this chart');
+    expect(
+      screen.getByRole('textbox', { name: 'Description' }),
+    ).toHaveAttribute('placeholder', 'Add a description for this chart');
+  });
+
+  // Expand Certification section to check its placeholders
+  const certPanel = screen
+    .getByText('Certification')
+    .closest('[role="tab"]');
+  if (certPanel) {
+    await userEvent.click(certPanel);
+  }
+
+  await waitFor(() => {
+    expect(
+      screen.getByRole('textbox', { name: 'Certified by' }),
+    ).toHaveAttribute('placeholder', 'Name of certifying person or team');
+    expect(
+      screen.getByRole('textbox', { name: 'Certification details' }),
+    ).toHaveAttribute('placeholder', 'Describe the certification');
+  });
+});
+
+test('Should render updated helper text for Description and Owners fields', async () => {
   const props = createProps();
   renderModal(props);
 
@@ -478,6 +527,28 @@ test('Should render updated helper text for Description, Owners, and Tags fields
       ),
     ).toBeInTheDocument();
   });
+});
+
+test('Should render correct Tags helper text when tagging system is enabled', async () => {
+  const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
+    typeof isFeatureEnabled
+  >;
+  mockIsFeatureEnabled.mockImplementation(
+    flag => flag === FeatureFlag.TaggingSystem,
+  );
+
+  const props = createProps();
+  renderModal(props);
+
+  await waitFor(() => {
+    expect(
+      screen.getByText(
+        'Tags applied to this chart for organization and discovery.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  mockIsFeatureEnabled.mockRestore();
 });
 
 test('Should display only custom tags when tagging system is enabled', async () => {
