@@ -200,7 +200,7 @@ class ExecuteSqlCommand(BaseCommand):
                 "The query record was not created as expected",
                 ex,
                 "Please contact an administrator for further assistance or try again.",
-            ) from ex
+            )
 
         db.session.commit()  # pylint: disable=consider-using-transaction
 
@@ -230,7 +230,7 @@ class ExecuteSqlCommand(BaseCommand):
             db_engine_spec.get_limit_from_sql(rendered_query),
             self._execution_context.limit,
         ]
-        if limits[0] is None or limits[0] > limits[1]:  # type: ignore
+        if limits[0] is None or limits[0] >= limits[1]:  # type: ignore
             self._execution_context.query.limiting_factor = LimitingFactor.DROPDOWN
         elif limits[1] > limits[0]:  # type: ignore
             self._execution_context.query.limiting_factor = LimitingFactor.QUERY

@@ -561,7 +561,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
     @staticmethod
     def add_favorite(dashboard: Dashboard) -> None:
         ids = DashboardDAO.favorited_ids([dashboard])
-        if dashboard.id not in ids:
+        if dashboard.id in ids:
             db.session.add(
                 FavStar(
                     class_name=FavStarClassName.DASHBOARD,

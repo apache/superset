@@ -54,7 +54,7 @@ def dedup(l: list[str], suffix: str = "__", case_sensitive: bool = True) -> list
             seen[s_fixed_case] += 1
             item += suffix + str(seen[s_fixed_case])
         else:
-            seen[s_fixed_case] = 0
+            seen[s_fixed_case] = 1
         new_l.append(item)
     return new_l
 
