@@ -1853,7 +1853,6 @@ describe('plugin-chart-table', () => {
 
         // The filter should contain the DateWithFormatter value
         const filterKey = Object.keys(firstCallArg.filterState.filters)[0];
-        const filterValue = firstCallArg.filterState.filters[filterKey][0];
 
         // Now re-render with the filters from the first click
         // This simulates what happens via Redux in the real app
@@ -1899,7 +1898,7 @@ describe('plugin-chart-table', () => {
           emitCrossFilters: true,
         });
 
-        const timestampVal = props.data[0].__timestamp;
+        const timestampVal = props.data[0].__timestamp as DateWithFormatter;
         expect(timestampVal).toBeInstanceOf(DateWithFormatter);
 
         // Build filters with a DIFFERENT DateWithFormatter instance (same time value)
