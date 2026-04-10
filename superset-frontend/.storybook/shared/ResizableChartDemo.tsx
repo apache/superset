@@ -18,7 +18,7 @@
  */
 
 import { useState, ReactNode, SyntheticEvent } from 'react';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import type { Decorator } from '@storybook/react';
 import { ResizeCallbackData } from 'react-resizable';
 import ResizablePanel, { Size } from './ResizablePanel';

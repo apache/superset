@@ -87,10 +87,6 @@ class BaseExtension(BaseModel):
 class ExtensionConfigBackend(BaseModel):
     """Backend section in extension.json."""
 
-    entryPoints: list[str] = Field(  # noqa: N815
-        default_factory=list,
-        description="Python module entry points to load",
-    )
     files: list[str] = Field(
         default_factory=list,
         description="Glob patterns for backend Python files",
@@ -131,10 +127,7 @@ class ManifestFrontend(BaseModel):
 class ManifestBackend(BaseModel):
     """Backend section in manifest.json."""
 
-    entryPoints: list[str] = Field(  # noqa: N815
-        default_factory=list,
-        description="Python module entry points to load",
-    )
+    entrypoint: str
 
 
 class Manifest(BaseExtension):

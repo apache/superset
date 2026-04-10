@@ -20,8 +20,8 @@ import { createRef, useCallback, useMemo } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { nanoid } from 'nanoid';
 import Tabs from '@superset-ui/core/components/Tabs';
-import { t } from '@apache-superset/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 
 import { removeTables, setActiveSouthPaneTab } from 'src/SqlLab/actions/sqlLab';
 
@@ -63,6 +63,7 @@ const TABS_KEYS = {
 const StyledPane = styled.div`
   width: 100%;
   height: 100%;
+
   .ant-tabs .ant-tabs-content-holder {
     overflow: visible;
   }
@@ -79,6 +80,7 @@ const StyledPane = styled.div`
       ${({ theme }) => theme.sizeUnit * 2}px;
   }
   .ant-tabs-tabpane {
+    padding-top: ${({ theme }) => theme.sizeUnit * 3}px;
     .scrollable {
       overflow-y: auto;
     }

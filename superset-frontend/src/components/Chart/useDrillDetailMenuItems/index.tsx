@@ -25,7 +25,7 @@ import {
   useMemo,
 } from 'react';
 import { isEmpty } from 'lodash';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   Behavior,
   BinaryQueryObjectFilterClause,
@@ -34,7 +34,7 @@ import {
   QueryFormData,
   removeHTMLTags,
 } from '@superset-ui/core';
-import { css, styled } from '@apache-superset/core/ui';
+import { css, styled } from '@apache-superset/core/theme';
 import { useSelector } from 'react-redux';
 import { type ItemType } from '@superset-ui/core/components/Menu';
 import { RootState } from 'src/dashboard/types';

@@ -4,11 +4,5 @@
   "displayName": "{{ display_name }}",
   "version": "{{ version }}",
   "license": "{{ license }}",
-  {% if include_backend -%}
-  "backend": {
-    "entryPoints": ["{{ backend_entry }}"],
-    "files": ["backend/src/{{ backend_path|replace('.', '/') }}/**/*.py"]
-  },
-  {% endif -%}
   "permissions": []
 }

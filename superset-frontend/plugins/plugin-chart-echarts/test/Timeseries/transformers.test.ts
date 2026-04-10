@@ -17,29 +17,25 @@
  * under the License.
  */
 import { CategoricalColorScale, ChartProps } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { GenericDataType } from '@apache-superset/core/common';
+import { supersetTheme } from '@apache-superset/core/theme';
 import type { SeriesOption } from 'echarts';
 import { EchartsTimeseriesSeriesType } from '../../src';
 import { TIMESERIES_CONSTANTS } from '../../src/constants';
-import {
-  LegendOrientation,
-  EchartsTimeseriesChartProps,
-} from '../../src/types';
+import { LegendOrientation } from '../../src/types';
 import {
   transformSeries,
-  optimizeBarLabelPlacement,
+  transformNegativeLabelsPosition,
   getPadding,
 } from '../../src/Timeseries/transformers';
 import transformProps from '../../src/Timeseries/transformProps';
+import { EchartsTimeseriesChartProps } from '../../src/types';
 import * as seriesUtils from '../../src/utils/series';
 
-// Mock the colorScale function to return different colors based on key
-const mockColorScale = jest.fn((key: string) => {
-  if (key === 'test-key') return '#1f77b4'; // blue
-  if (key === 'series-key') return '#ff7f0e'; // orange
-  return '#2ca02c'; // green for any other key
-}) as unknown as CategoricalColorScale;
+// Mock the colorScale function
+const mockColorScale = jest.fn(
+  (key: string, sliceId?: number) => `color-for-${key}-${sliceId}`,
+) as unknown as CategoricalColorScale;
 
 describe('transformSeries', () => {
   const series = { name: 'test-series' };
@@ -53,8 +49,7 @@ describe('transformSeries', () => {
 
     const result = transformSeries(series, mockColorScale, 'test-key', opts);
 
-    expect(mockColorScale).toHaveBeenCalledWith('test-key', 1);
-    expect((result as any)?.itemStyle.color).toBe('#1f77b4');
+    expect((result as any)?.itemStyle.color).toBe('color-for-test-key-1');
   });
 
   test('should use seriesKey if timeShiftColor is not enabled', () => {
@@ -66,8 +61,7 @@ describe('transformSeries', () => {
 
     const result = transformSeries(series, mockColorScale, 'test-key', opts);
 
-    expect(mockColorScale).toHaveBeenCalledWith('series-key', 2);
-    expect((result as any)?.itemStyle.color).toBe('#ff7f0e');
+    expect((result as any)?.itemStyle.color).toBe('color-for-series-key-2');
   });
 
   test('should apply border styles for bar series with connectNulls', () => {
@@ -129,8 +123,8 @@ describe('transformSeries', () => {
   });
 });
 
-describe('optimizeBarLabelPlacement', () => {
-  test('label position for non-stacked vertical charts', () => {
+describe('transformNegativeLabelsPosition', () => {
+  test('label position bottom of negative value no Horizontal', () => {
     const isHorizontal = false;
     const series: SeriesOption = {
       data: [
@@ -143,12 +137,15 @@ describe('optimizeBarLabelPlacement', () => {
       type: EchartsTimeseriesSeriesType.Bar,
       stack: undefined,
     };
-    const result = optimizeBarLabelPlacement(series, isHorizontal);
-    expect((result as any)[0].label.position).toBe('insideTop');
-    expect((result as any)[1].label.position).toBe('insideTop');
-    expect((result as any)[2].label.position).toBe('insideBottom');
-    expect((result as any)[3].label.position).toBe('insideBottom');
-    expect((result as any)[4].label.position).toBe('insideTop');
+    const result =
+      Array.isArray(series.data) && series.type === 'bar' && !series.stack
+        ? transformNegativeLabelsPosition(series, isHorizontal)
+        : series.data;
+    expect((result as any)[0].label).toBe(undefined);
+    expect((result as any)[1].label).toBe(undefined);
+    expect((result as any)[2].label.position).toBe('outside');
+    expect((result as any)[3].label.position).toBe('outside');
+    expect((result as any)[4].label).toBe(undefined);
   });
 
   test('label position left of negative value is Horizontal', () => {
@@ -165,12 +162,15 @@ describe('optimizeBarLabelPlacement', () => {
       stack: undefined,
     };
 
-    const result = optimizeBarLabelPlacement(series, isHorizontal);
-    expect((result as any)[0].label.position).toBe('insideRight');
-    expect((result as any)[1].label.position).toBe('insideLeft');
-    expect((result as any)[2].label.position).toBe('insideRight');
-    expect((result as any)[3].label.position).toBe('insideLeft');
-    expect((result as any)[4].label.position).toBe('insideLeft');
+    const result =
+      Array.isArray(series.data) && series.type === 'bar' && !series.stack
+        ? transformNegativeLabelsPosition(series, isHorizontal)
+        : series.data;
+    expect((result as any)[0].label).toBe(undefined);
+    expect((result as any)[1].label.position).toBe('outside');
+    expect((result as any)[2].label).toBe(undefined);
+    expect((result as any)[3].label.position).toBe('outside');
+    expect((result as any)[4].label.position).toBe('outside');
   });
 
   test('label position to line type', () => {
@@ -192,7 +192,7 @@ describe('optimizeBarLabelPlacement', () => {
       !series.stack &&
       series.type !== 'line' &&
       series.type === 'bar'
-        ? optimizeBarLabelPlacement(series, isHorizontal)
+        ? transformNegativeLabelsPosition(series, isHorizontal)
         : series.data;
     expect((result as any)[0].label).toBe(undefined);
     expect((result as any)[1].label).toBe(undefined);
@@ -215,34 +215,15 @@ describe('optimizeBarLabelPlacement', () => {
       stack: 'obs',
     };
 
-    const result = optimizeBarLabelPlacement(series, isHorizontal);
-    expect((result as any)[0].label.position).toBe('insideTop');
-    expect((result as any)[1].label.position).toBe('insideTop');
-    expect((result as any)[2].label.position).toBe('insideBottom');
-    expect((result as any)[3].label.position).toBe('insideBottom');
-    expect((result as any)[4].label.position).toBe('insideTop');
-  });
-
-  test('label position for horizontal stacked charts', () => {
-    const isHorizontal = true;
-    const series: SeriesOption = {
-      data: [
-        [1, 2020],
-        [-3, 2021],
-        [2, 2022],
-        [-4, 2023],
-        [-6, 2024],
-      ],
-      type: EchartsTimeseriesSeriesType.Bar,
-      stack: 'obs',
-    };
-
-    const result = optimizeBarLabelPlacement(series, isHorizontal);
-    expect((result as any)[0].label.position).toBe('insideRight');
-    expect((result as any)[1].label.position).toBe('insideLeft');
-    expect((result as any)[2].label.position).toBe('insideRight');
-    expect((result as any)[3].label.position).toBe('insideLeft');
-    expect((result as any)[4].label.position).toBe('insideLeft');
+    const result =
+      Array.isArray(series.data) && series.type === 'bar' && !series.stack
+        ? transformNegativeLabelsPosition(series, isHorizontal)
+        : series.data;
+    expect((result as any)[0].label).toBe(undefined);
+    expect((result as any)[1].label).toBe(undefined);
+    expect((result as any)[2].label).toBe(undefined);
+    expect((result as any)[3].label).toBe(undefined);
+    expect((result as any)[4].label).toBe(undefined);
   });
 });
 

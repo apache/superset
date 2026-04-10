@@ -32,7 +32,7 @@ import {
   ConnectDropTarget,
 } from 'react-dnd';
 import cx from 'classnames';
-import { css, styled } from '@apache-superset/core/ui';
+import { css, styled } from '@apache-superset/core/theme';
 
 import { dragConfig, dropConfig } from './dragDroppableConfig';
 import type { DragDroppableProps as BaseDragDroppableProps } from './dragDroppableConfig';
@@ -91,6 +91,15 @@ const DragDroppableStyles = styled.div`
 
     &.dragdroppable-row {
       width: 100%;
+    }
+    /* workaround to avoid a bug in react-dnd where the drag
+      preview expands outside of the bounds of the drag source card, see:
+      https://github.com/react-dnd/react-dnd/issues/832 */
+    &.dragdroppable-column {
+      /* for chrome */
+      transform: translate3d(0, 0, 0);
+      /* for safari */
+      backface-visibility: hidden;
     }
 
     &.dragdroppable-column .resizable-container span div {

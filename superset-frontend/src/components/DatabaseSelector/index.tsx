@@ -24,9 +24,9 @@ import {
   useRef,
   useCallback,
 } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { SupersetClient, SupersetError } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import rison from 'rison';
 import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -515,17 +515,12 @@ export function DatabaseSelector({
 
   function renderSchemaSelect() {
     if (sqlLabMode) {
-      return renderSelectRow(
-        t('Select schema or type to search schemas'),
-        null,
-        null,
-        {
-          displayValue: currentSchema?.label,
-          disabled: !currentDb || readOnly,
-          loading: loadingSchemas,
-          icon: <Icons.RightOutlined />,
-        },
-      );
+      return renderSelectRow(t('Select schema'), null, null, {
+        displayValue: currentSchema?.label,
+        disabled: !currentDb || readOnly,
+        loading: loadingSchemas,
+        icon: <Icons.RightOutlined />,
+      });
     }
     const refreshIcon = !readOnly && (
       <RefreshLabel
@@ -539,13 +534,13 @@ export function DatabaseSelector({
         {renderSelectRow(
           t('Schema'),
           <Select
-            ariaLabel={t('Select schema or type to search schemas')}
+            ariaLabel={t('Select schema')}
             disabled={!currentDb || readOnly}
             labelInValue
             loading={loadingSchemas}
             name="select-schema"
             notFoundContent={t('No compatible schema found')}
-            placeholder={t('Select schema or type to search schemas')}
+            placeholder={t('Select schema')}
             onChange={item => changeSchema(item as SchemaOption)}
             options={schemaOptions}
             showSearch

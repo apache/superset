@@ -27,7 +27,8 @@ import {
 } from 'react';
 import classNames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
-import { t, styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 
 import { EditableTitle, EmptyState } from '@superset-ui/core/components';
 import { setEditMode, onRefresh } from 'src/dashboard/actions/dashboardState';
@@ -445,7 +446,7 @@ const Tab = (props: TabProps): ReactElement => {
             title={component.meta.text}
             defaultTitle={component.meta.defaultText}
             placeholder={component.meta.placeholder}
-            canEdit={editMode && isFocused}
+            canEdit={editMode}
             onSaveTitle={handleChangeText}
             showTooltip={false}
             editing={editMode && isFocused}

@@ -19,14 +19,20 @@
 import {
   forwardRef,
   ReactNode,
+  RefObject,
   useContext,
   useEffect,
   useRef,
   useState,
 } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { getExtensionsRegistry, QueryData } from '@superset-ui/core';
-import { css, styled, SupersetTheme, useTheme } from '@apache-superset/core/ui';
+import {
+  css,
+  styled,
+  SupersetTheme,
+  useTheme,
+} from '@apache-superset/core/theme';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { Tooltip, EditableTitle, Icons } from '@superset-ui/core/components';
@@ -56,6 +62,7 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   height: number;
   queriedDttm?: string | null;
   exportPivotExcel?: (arg0: string) => void;
+  chartHolderRef?: RefObject<HTMLDivElement>;
 };
 
 const annotationsLoading = t('Annotation layers are still loading.');
@@ -166,6 +173,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       width,
       height,
       exportPivotExcel = () => ({}),
+      chartHolderRef,
     },
     ref,
   ) => {
@@ -369,6 +377,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   exploreUrl={exploreUrl}
                   crossFiltersEnabled={isCrossFiltersEnabled}
                   exportPivotExcel={exportPivotExcel}
+                  chartHolderRef={chartHolderRef}
                 />
               )}
             </>

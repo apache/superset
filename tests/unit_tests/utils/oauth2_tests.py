@@ -33,6 +33,7 @@ from superset.utils.oauth2 import (
     generate_code_challenge,
     generate_code_verifier,
     get_oauth2_access_token,
+    get_oauth2_redirect_uri,
     refresh_oauth2_token,
 )
 
@@ -188,6 +189,62 @@ def test_refresh_oauth2_token_no_access_token_in_response(
     assert result is None
 
 
+def test_refresh_oauth2_token_updates_refresh_token(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that refresh_oauth2_token updates the refresh token when a new one is returned.
+
+    Some OAuth2 providers issue single-use refresh tokens, where each token refresh
+    response includes a new refresh token that replaces the previous one.
+    """
+    db = mocker.patch("superset.utils.oauth2.db")
+    mocker.patch("superset.utils.oauth2.DistributedLock")
+    db_engine_spec = mocker.MagicMock()
+    db_engine_spec.get_oauth2_fresh_token.return_value = {
+        "access_token": "new-access-token",
+        "expires_in": 3600,
+        "refresh_token": "new-refresh-token",
+    }
+    token = mocker.MagicMock()
+    token.refresh_token = "old-refresh-token"  # noqa: S105
+
+    with freeze_time("2024-01-01"):
+        refresh_oauth2_token(DUMMY_OAUTH2_CONFIG, 1, 1, db_engine_spec, token)
+
+    assert token.access_token == "new-access-token"  # noqa: S105
+    assert token.access_token_expiration == datetime(2024, 1, 1, 1)
+    assert token.refresh_token == "new-refresh-token"  # noqa: S105
+    db.session.add.assert_called_with(token)
+
+
+def test_refresh_oauth2_token_keeps_refresh_token(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that refresh_oauth2_token keeps the existing refresh token when none returned.
+
+    When the OAuth2 provider does not issue a new refresh token in the response,
+    the original refresh token should be preserved.
+    """
+    db = mocker.patch("superset.utils.oauth2.db")
+    mocker.patch("superset.utils.oauth2.DistributedLock")
+    db_engine_spec = mocker.MagicMock()
+    db_engine_spec.get_oauth2_fresh_token.return_value = {
+        "access_token": "new-access-token",
+        "expires_in": 3600,
+    }
+    token = mocker.MagicMock()
+    token.refresh_token = "original-refresh-token"  # noqa: S105
+
+    with freeze_time("2024-01-01"):
+        refresh_oauth2_token(DUMMY_OAUTH2_CONFIG, 1, 1, db_engine_spec, token)
+
+    assert token.access_token == "new-access-token"  # noqa: S105
+    assert token.refresh_token == "original-refresh-token"  # noqa: S105
+    db.session.add.assert_called_with(token)
+
+
 def test_generate_code_verifier_length() -> None:
     """
     Test that generate_code_verifier produces a string of valid length (RFC 7636).
@@ -279,3 +336,66 @@ def test_encode_decode_oauth2_state(
     assert "code_verifier" not in decoded
     assert decoded["database_id"] == 1
     assert decoded["user_id"] == 2
+
+
+def test_get_oauth2_redirect_uri_from_config(mocker: MockerFixture) -> None:
+    """
+    Test that get_oauth2_redirect_uri returns the configured value when set.
+    """
+    custom_uri = "https://proxy.example.com/oauth2/"
+    mocker.patch(
+        "flask.current_app.config",
+        {"DATABASE_OAUTH2_REDIRECT_URI": custom_uri},
+    )
+    assert get_oauth2_redirect_uri() == custom_uri
+
+
+def test_get_oauth2_redirect_uri_falls_back_to_url_for(mocker: MockerFixture) -> None:
+    """
+    Test that get_oauth2_redirect_uri falls back to url_for when config is not set.
+    """
+    fallback_uri = "http://localhost:8088/api/v1/database/oauth2/"
+    mocker.patch("flask.current_app.config", {})
+    mocker.patch(
+        "superset.utils.oauth2.url_for",
+        return_value=fallback_uri,
+    )
+    assert get_oauth2_redirect_uri() == fallback_uri
+
+
+def test_get_oauth2_redirect_uri_raises_on_build_error(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that get_oauth2_redirect_uri raises OAuth2Error when url_for raises
+    BuildError (e.g. in headless/MCP contexts).
+    """
+    from werkzeug.routing import BuildError
+
+    from superset.exceptions import OAuth2Error
+
+    mocker.patch("flask.current_app.config", {})
+    mocker.patch(
+        "superset.utils.oauth2.url_for",
+        side_effect=BuildError("DatabaseRestApi.oauth2", {}, ("GET",)),
+    )
+    with pytest.raises(OAuth2Error):
+        get_oauth2_redirect_uri()
+
+
+def test_get_oauth2_redirect_uri_raises_on_runtime_error(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that get_oauth2_redirect_uri raises OAuth2Error when url_for raises
+    RuntimeError (e.g. no request context and no SERVER_NAME).
+    """
+    from superset.exceptions import OAuth2Error
+
+    mocker.patch("flask.current_app.config", {})
+    mocker.patch(
+        "superset.utils.oauth2.url_for",
+        side_effect=RuntimeError("Unable to build URL outside of request context"),
+    )
+    with pytest.raises(OAuth2Error):
+        get_oauth2_redirect_uri()

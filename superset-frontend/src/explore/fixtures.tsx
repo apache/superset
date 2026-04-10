@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { DatasourceType, VizType } from '@superset-ui/core';
 import {
   ColumnMeta,

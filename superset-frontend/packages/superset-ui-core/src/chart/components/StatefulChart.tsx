@@ -19,7 +19,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ParentSize } from '@visx/responsive';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   QueryFormData,
   QueryData,

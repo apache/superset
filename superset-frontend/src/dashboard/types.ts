@@ -29,7 +29,7 @@ import {
   NativeFilterTarget,
   ColumnOption,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { Dataset } from '@superset-ui/chart-controls';
 import { chart } from 'src/components/Chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
@@ -207,9 +207,9 @@ export type DashboardInfo = {
   pendingChartCustomizations?: Record<string, ChartCustomization>;
   theme?: {
     id: number;
-    name: string;
+    theme_name: string;
+    json_data: string;
   } | null;
-  theme_id?: number | null;
   css?: string;
   slug?: string;
   last_modified_time: number;

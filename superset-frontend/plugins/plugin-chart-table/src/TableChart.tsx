@@ -35,9 +35,11 @@ import {
   Row,
 } from 'react-table';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
-import { FaSort } from 'react-icons/fa';
-import { FaSortDown as FaSortDesc } from 'react-icons/fa';
-import { FaSortUp as FaSortAsc } from 'react-icons/fa';
+import {
+  CaretUpOutlined,
+  CaretDownOutlined,
+  ColumnHeightOutlined,
+} from '@ant-design/icons';
 import cx from 'classnames';
 import {
   DataRecord,
@@ -54,10 +56,9 @@ import {
   css,
   useTheme,
   SupersetTheme,
-  t,
-  tn,
-} from '@apache-superset/core/ui';
-import { GenericDataType } from '@apache-superset/core/api/core';
+} from '@apache-superset/core/theme';
+import { t, tn } from '@apache-superset/core/translation';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   Input,
   Space,
@@ -76,6 +77,7 @@ import {
 import { isEmpty, debounce, isEqual } from 'lodash';
 import {
   ColorFormatters,
+  getTextColorForBackground,
   ObjectFormattingEnum,
   ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
@@ -221,9 +223,9 @@ function cellBackground({
 
 function SortIcon<D extends object>({ column }: { column: ColumnInstance<D> }) {
   const { isSorted, isSortedDesc } = column;
-  let sortIcon = <FaSort />;
+  let sortIcon = <ColumnHeightOutlined />;
   if (isSorted) {
-    sortIcon = isSortedDesc ? <FaSortDesc /> : <FaSortAsc />;
+    sortIcon = isSortedDesc ? <CaretDownOutlined /> : <CaretUpOutlined />;
   }
   return sortIcon;
 }
@@ -945,9 +947,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               if (!formatterResult) return;
 
               if (
-                formatter.objectFormatting === ObjectFormattingEnum.TEXT_COLOR
+                formatter.objectFormatting ===
+                  ObjectFormattingEnum.TEXT_COLOR ||
+                formatter.toTextColor
               ) {
-                color = formatterResult.slice(0, -2);
+                color = formatterResult;
               } else if (
                 formatter.objectFormatting === ObjectFormattingEnum.CELL_BAR
               ) {
@@ -998,8 +1002,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 ? basicColorColumnFormatters[row.index][column.key]?.mainArrow
                 : '';
           }
+          const rowSurfaceColor =
+            row.index % 2 === 0 ? theme.colorBgLayout : theme.colorBgBase;
+          const resolvedTextColor = getTextColorForBackground(
+            { backgroundColor, color },
+            rowSurfaceColor,
+          );
           const StyledCell = styled.td`
-            color: ${color ? `${color}FF` : theme.colorText};
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
@@ -1098,6 +1107,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 : '',
               isActiveFilterValue(key, value) ? ' dt-is-active-filter' : '',
             ].join(' '),
+            style: resolvedTextColor
+              ? ({ color: resolvedTextColor } as CSSProperties)
+              : undefined,
             tabIndex: 0,
           };
           if (html) {

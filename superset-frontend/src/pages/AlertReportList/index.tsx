@@ -19,13 +19,13 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   SupersetClient,
   makeApi,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { css, styled } from '@apache-superset/core/ui';
+import { css, styled } from '@apache-superset/core/theme';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import {
   Tooltip,
@@ -242,9 +242,13 @@ function AlertList({
           }),
         );
 
-        updateResource(update_id, { active: checked }, false, false)
-          .then()
-          .catch(() => setResourceCollection(original));
+        updateResource(update_id, { active: checked }, false, false).then(
+          response => {
+            if (!response) {
+              setResourceCollection(original);
+            }
+          },
+        );
       }
     },
     [alerts, setResourceCollection, updateResource],
