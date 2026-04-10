@@ -124,6 +124,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         RouteMethod.IMPORT,
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
+        "restore",
         "viz_types",
         "favorite_status",
         "add_favorite",

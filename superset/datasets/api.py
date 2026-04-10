@@ -113,6 +113,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         RouteMethod.RELATED,
         RouteMethod.DISTINCT,
         "bulk_delete",
+        "restore",
         "refresh",
         "related_objects",
         "duplicate",
