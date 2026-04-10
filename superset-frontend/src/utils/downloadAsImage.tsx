@@ -25,6 +25,7 @@ import { addWarningToast } from 'src/components/MessageToasts/actions';
 import type { AgGridContainerElement } from '@superset-ui/core/components';
 
 const IMAGE_DOWNLOAD_QUALITY = 0.95;
+const IMAGE_DOWNLOAD_SCALE = window.devicePixelRatio || 2;
 const TRANSPARENT_RGBA = 'transparent';
 const POLL_INTERVAL_MS = 100;
 
@@ -426,6 +427,7 @@ export default function downloadAsImageOptimized(
           bgcolor: theme?.colorBgContainer,
           filter,
           quality: IMAGE_DOWNLOAD_QUALITY,
+          scale: IMAGE_DOWNLOAD_SCALE,
           height: imageHeight,
           width: originalWidth,
           cacheBust: true,
@@ -472,6 +474,7 @@ export default function downloadAsImageOptimized(
         bgcolor: theme?.colorBgContainer,
         filter,
         quality: IMAGE_DOWNLOAD_QUALITY,
+        scale: IMAGE_DOWNLOAD_SCALE,
         height: clone.scrollHeight,
         width: clone.scrollWidth,
         cacheBust: true,
