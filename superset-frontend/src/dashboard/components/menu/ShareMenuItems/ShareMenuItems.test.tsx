@@ -45,13 +45,17 @@ const createProps = () => ({
   submenuKey: 'share',
 });
 
-const { location } = window;
+const originalLocation = window.location;
 
 const postDashboardPermalinkMockUrl = `http://localhost/api/v1/dashboard/${DASHBOARD_ID}/permalink`;
 
-beforeAll((): void => {
+beforeEach(() => {
+  jest.clearAllMocks();
   // @ts-expect-error
   delete window.location;
+  window.location = { href: '' } as any;
+  fetchMock.removeRoutes();
+  fetchMock.clearHistory();
   fetchMock.post(
     postDashboardPermalinkMockUrl,
     { key: '123', url: 'http://localhost/superset/dashboard/p/123/' },
@@ -59,15 +63,11 @@ beforeAll((): void => {
   );
 });
 
-beforeEach(() => {
-  jest.clearAllMocks();
-  window.location = {
-    href: '',
-  } as any;
-});
-
-afterAll((): void => {
-  window.location = location;
+afterEach(() => {
+  window.location = originalLocation;
+  delete window.featureFlags;
+  fetchMock.removeRoutes();
+  fetchMock.clearHistory();
 });
 
 const MenuWrapper = (
@@ -113,7 +113,7 @@ test('Click on "Copy dashboard URL" and succeed', async () => {
     expect(props.addDangerToast).toHaveBeenCalledTimes(0);
   });
 
-  userEvent.click(screen.getByText('Copy dashboard URL'));
+  await userEvent.click(screen.getByText('Copy dashboard URL'));
 
   await waitFor(async () => {
     expect(spy).toHaveBeenCalledTimes(1);
@@ -145,7 +145,7 @@ test('Click on "Copy dashboard URL" and fail', async () => {
     expect(props.addDangerToast).toHaveBeenCalledTimes(0);
   });
 
-  userEvent.click(screen.getByText('Copy dashboard URL'));
+  await userEvent.click(screen.getByText('Copy dashboard URL'));
 
   await waitFor(async () => {
     expect(spy).toHaveBeenCalledTimes(1);
@@ -177,7 +177,7 @@ test('Click on "Share dashboard by email" and succeed', async () => {
     expect(window.location.href).toBe('');
   });
 
-  userEvent.click(screen.getByText('Share dashboard by email'));
+  await userEvent.click(screen.getByText('Share dashboard by email'));
 
   await waitFor(() => {
     expect(props.addDangerToast).toHaveBeenCalledTimes(0);
@@ -189,11 +189,7 @@ test('Click on "Share dashboard by email" and succeed', async () => {
 
 test('Click on "Share dashboard by email" and fail', async () => {
   fetchMock.removeRoute(postDashboardPermalinkMockUrl);
-  fetchMock.post(
-    `http://localhost/api/v1/dashboard/${DASHBOARD_ID}/permalink`,
-    { status: 404 },
-    { name: postDashboardPermalinkMockUrl },
-  );
+  fetchMock.post(postDashboardPermalinkMockUrl, { status: 404 });
   const props = createProps();
   render(
     <MenuWrapper
@@ -211,7 +207,7 @@ test('Click on "Share dashboard by email" and fail', async () => {
     expect(window.location.href).toBe('');
   });
 
-  userEvent.click(screen.getByText('Share dashboard by email'));
+  await userEvent.click(screen.getByText('Share dashboard by email'));
 
   await waitFor(() => {
     expect(window.location.href).toBe('');
