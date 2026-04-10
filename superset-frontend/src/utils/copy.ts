@@ -17,4 +17,6 @@
  * under the License.
  */
 
-export { default } from '@superset-ui/core/utils/copy';
+import copyTextToClipboard from '@superset-ui/core/utils/copy';
+
+export default copyTextToClipboard;
