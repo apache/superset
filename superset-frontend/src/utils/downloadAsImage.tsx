@@ -25,7 +25,7 @@ import { addWarningToast } from 'src/components/MessageToasts/actions';
 import type { AgGridContainerElement } from '@superset-ui/core/components';
 
 const IMAGE_DOWNLOAD_QUALITY = 0.95;
-const IMAGE_DOWNLOAD_SCALE = window.devicePixelRatio || 2;
+const IMAGE_DOWNLOAD_SCALE = Math.max(window.devicePixelRatio || 1, 2);
 const TRANSPARENT_RGBA = 'transparent';
 const POLL_INTERVAL_MS = 100;
 

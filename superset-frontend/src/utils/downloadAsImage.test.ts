@@ -683,3 +683,148 @@ test('clone path falls back to white background when theme is absent', async () 
 
   document.body.removeChild(container);
 });
+
+test('ag-grid path passes scale option to toJpeg', async () => {
+  jest.useFakeTimers();
+  const { container, agContainer, cleanup } = buildAgGridElement();
+  attachMockApi(agContainer);
+
+  const handler = downloadAsImageOptimized('div', 'My Chart');
+  const exportPromise = handler(syntheticEventFor(container));
+  await jest.runAllTimersAsync();
+  await exportPromise;
+
+  expect(mockToJpeg).toHaveBeenCalledWith(
+    expect.any(HTMLElement),
+    expect.objectContaining({ scale: expect.any(Number) }),
+  );
+
+  cleanup();
+  jest.useRealTimers();
+});
+
+test('clone path passes scale option to toJpeg', async () => {
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+
+  const handler = downloadAsImageOptimized('div', 'Bar Chart');
+  await handler(syntheticEventFor(container));
+
+  expect(mockToJpeg).toHaveBeenCalledWith(
+    expect.any(HTMLElement),
+    expect.objectContaining({ scale: expect.any(Number) }),
+  );
+
+  document.body.removeChild(container);
+});
+
+test('scale uses window.devicePixelRatio when it is a positive number', async () => {
+  let capturedScale: number | undefined;
+
+  await jest.isolateModulesAsync(async () => {
+    Object.defineProperty(window, 'devicePixelRatio', {
+      value: 3,
+      configurable: true,
+    });
+
+    jest.mock('dom-to-image-more', () => ({
+      __esModule: true,
+      default: {
+        toJpeg: jest.fn((_el: HTMLElement, opts: { scale?: number }) => {
+          capturedScale = opts.scale;
+          return Promise.resolve('data:image/jpeg;base64,test');
+        }),
+      },
+    }));
+    jest.mock('src/components/MessageToasts/actions', () => ({
+      addWarningToast: jest.fn(),
+    }));
+    jest.mock('@apache-superset/core/translation', () => ({
+      t: (str: string) => str,
+    }));
+
+    const { default: download } = await import('./downloadAsImage');
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    await download('div', 'Chart')({ currentTarget: { closest: () => container } } as any);
+    document.body.removeChild(container);
+  });
+
+  expect(capturedScale).toBe(3);
+
+  Object.defineProperty(window, 'devicePixelRatio', {
+    value: 1,
+    configurable: true,
+  });
+});
+
+test('scale enforces a minimum of 2 on standard displays (devicePixelRatio=1)', async () => {
+  let capturedScale: number | undefined;
+
+  await jest.isolateModulesAsync(async () => {
+    Object.defineProperty(window, 'devicePixelRatio', {
+      value: 1,
+      configurable: true,
+    });
+
+    jest.mock('dom-to-image-more', () => ({
+      __esModule: true,
+      default: {
+        toJpeg: jest.fn((_el: HTMLElement, opts: { scale?: number }) => {
+          capturedScale = opts.scale;
+          return Promise.resolve('data:image/jpeg;base64,test');
+        }),
+      },
+    }));
+    jest.mock('src/components/MessageToasts/actions', () => ({
+      addWarningToast: jest.fn(),
+    }));
+    jest.mock('@apache-superset/core/translation', () => ({
+      t: (str: string) => str,
+    }));
+
+    const { default: download } = await import('./downloadAsImage');
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    await download('div', 'Chart')({ currentTarget: { closest: () => container } } as any);
+    document.body.removeChild(container);
+  });
+
+  // devicePixelRatio=1 is truthy, so || 2 would give 1 — Math.max enforces minimum 2
+  expect(capturedScale).toBe(2);
+});
+
+test('scale enforces a minimum of 2 when devicePixelRatio is 0', async () => {
+  let capturedScale: number | undefined;
+
+  await jest.isolateModulesAsync(async () => {
+    Object.defineProperty(window, 'devicePixelRatio', {
+      value: 0,
+      configurable: true,
+    });
+
+    jest.mock('dom-to-image-more', () => ({
+      __esModule: true,
+      default: {
+        toJpeg: jest.fn((_el: HTMLElement, opts: { scale?: number }) => {
+          capturedScale = opts.scale;
+          return Promise.resolve('data:image/jpeg;base64,test');
+        }),
+      },
+    }));
+    jest.mock('src/components/MessageToasts/actions', () => ({
+      addWarningToast: jest.fn(),
+    }));
+    jest.mock('@apache-superset/core/translation', () => ({
+      t: (str: string) => str,
+    }));
+
+    const { default: download } = await import('./downloadAsImage');
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    await download('div', 'Chart')({ currentTarget: { closest: () => container } } as any);
+    document.body.removeChild(container);
+  });
+
+  expect(capturedScale).toBe(2);
+});
