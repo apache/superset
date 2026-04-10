@@ -54,8 +54,7 @@ beforeEach(() => {
   // @ts-expect-error
   delete window.location;
   window.location = { href: '' } as any;
-  fetchMock.removeRoutes();
-  fetchMock.clearHistory();
+  fetchMock.clearHistory().removeRoutes();
   fetchMock.post(
     postDashboardPermalinkMockUrl,
     { key: '123', url: 'http://localhost/superset/dashboard/p/123/' },
@@ -65,9 +64,8 @@ beforeEach(() => {
 
 afterEach(() => {
   window.location = originalLocation;
-  delete window.featureFlags;
-  fetchMock.removeRoutes();
-  fetchMock.clearHistory();
+  window.featureFlags = {};
+  fetchMock.clearHistory().removeRoutes();
 });
 
 const MenuWrapper = (
