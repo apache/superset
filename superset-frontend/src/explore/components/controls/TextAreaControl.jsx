@@ -68,7 +68,6 @@ const propTypes = {
 
 const defaultProps = {
   onChange: () => {},
-  initialValue: '',
   height: 250,
   minLines: 3,
   maxLines: 10,
@@ -115,7 +114,7 @@ class TextAreaControl extends Component {
 
   componentWillUnmount() {
     if (this.debouncedOnChange) {
-      this.debouncedOnChange.cancel();
+      this.debouncedOnChange.flush();
     }
   }
 
@@ -130,6 +129,7 @@ class TextAreaControl extends Component {
       };
       if (this.props.resize) {
         style.resize = this.props.resize;
+        style.overflow = 'auto';
       }
       if (this.props.readOnly) {
         style.backgroundColor = '#f2f2f2';
@@ -152,7 +152,7 @@ class TextAreaControl extends Component {
             maxLines={inModal ? 1000 : this.props.maxLines}
             editorProps={{ $blockScrolling: true }}
             onLoad={onEditorLoad}
-            defaultValue={this.props.initialValue}
+            defaultValue={this.props.initialValue ?? this.props.value}
             readOnly={this.props.readOnly}
             key={this.props.name}
             {...this.props}
