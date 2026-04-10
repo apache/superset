@@ -22,8 +22,8 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
+import { SupersetClient } from '@superset-ui/core';
 import * as copyTextToClipboard from 'src/utils/copy';
-import * as urlUtils from 'src/utils/urlUtils';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import ShareDashboardModal from '.';
 
@@ -37,6 +37,13 @@ jest.mock('src/utils/urlUtils', () => ({
   getDashboardPermalink: jest
     .fn()
     .mockResolvedValue({ url: 'http://localhost/superset/dashboard/p/abc/' }),
+}));
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual<any>('@superset-ui/core'),
+  SupersetClient: {
+    post: jest.fn().mockResolvedValue({}),
+  },
 }));
 
 const mockOnHide = jest.fn();
@@ -87,7 +94,7 @@ test('renders Cancel and Share buttons with correct capitalization', async () =>
   expect(
     await screen.findByRole('button', { name: 'Cancel' }),
   ).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Share' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Done' })).toBeInTheDocument();
 });
 
 test('renders Copy link button with correct capitalization', async () => {
@@ -95,6 +102,13 @@ test('renders Copy link button with correct capitalization', async () => {
   expect(
     await screen.findByRole('button', { name: 'Copy link' }),
   ).toBeInTheDocument();
+});
+
+test('Share button label is Share (not Done) when invite emails are queued', async () => {
+  setup({ user: makeUser(['Admin']) });
+  const emailInput = await screen.findByTestId('share-dashboard-email-input');
+  await userEvent.type(emailInput, 'user@example.com{enter}');
+  expect(await screen.findByRole('button', { name: 'Share' })).toBeInTheDocument();
 });
 
 test('does not render invite section for regular users', async () => {
@@ -138,17 +152,69 @@ test('Cancel button calls onHide', async () => {
   expect(mockOnHide).toHaveBeenCalledTimes(1);
 });
 
-test('Share button with no invite emails calls onHide', async () => {
+test('Done button (no emails) calls onHide without posting invite', async () => {
   setup({ user: makeUser(['Alpha']) });
-  const shareBtn = await screen.findByRole('button', { name: 'Share' });
-  await userEvent.click(shareBtn);
+  const doneBtn = await screen.findByRole('button', { name: 'Done' });
+  await userEvent.click(doneBtn);
   expect(mockOnHide).toHaveBeenCalledTimes(1);
+  expect(SupersetClient.post).not.toHaveBeenCalled();
 });
 
+test('rejects email input without @ and shows validation error', async () => {
+  setup({ user: makeUser(['Admin']) });
+  const emailInput = await screen.findByTestId('share-dashboard-email-input');
+  await userEvent.type(emailInput, 'notanemail{enter}');
+  expect(
+    await screen.findByTestId('share-dashboard-email-error'),
+  ).toBeInTheDocument();
+  expect(screen.queryByText('notanemail')).not.toBeInTheDocument();
+});
+
+// MINOR-2 fix: complete the team admin invite flow end-to-end
 test('team admin can add email and trigger invite on Share', async () => {
   setup({ user: makeUser(['Team Admin']) });
   const emailInput = await screen.findByTestId('share-dashboard-email-input');
   await userEvent.type(emailInput, 'invitee@example.com{enter}');
-
   expect(await screen.findByText('invitee@example.com')).toBeInTheDocument();
+
+  const shareBtn = await screen.findByRole('button', { name: 'Share' });
+  await userEvent.click(shareBtn);
+
+  await waitFor(() => {
+    expect(SupersetClient.post).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endpoint: '/api/v1/security/users/invite',
+        jsonPayload: expect.objectContaining({
+          emails: ['invitee@example.com'],
+        }),
+      }),
+    );
+  });
+  expect(mockAddSuccessToast).toHaveBeenCalled();
+  expect(mockOnHide).toHaveBeenCalled();
+});
+
+// MINOR-3: happy path end-to-end for workspace admin
+test('workspace admin sends invite successfully', async () => {
+  setup({ user: makeUser(['Admin']) });
+  const emailInput = await screen.findByTestId('share-dashboard-email-input');
+  await userEvent.type(emailInput, 'new.user@example.com{enter}');
+  expect(await screen.findByText('new.user@example.com')).toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole('button', { name: 'Share' }));
+
+  await waitFor(() => {
+    expect(SupersetClient.post).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endpoint: '/api/v1/security/users/invite',
+        jsonPayload: expect.objectContaining({
+          emails: ['new.user@example.com'],
+          dashboard_id: 1,
+          dashboard_title: 'Test Dashboard',
+        }),
+      }),
+    );
+    expect(mockAddSuccessToast).toHaveBeenCalled();
+    expect(mockOnHide).toHaveBeenCalled();
+  });
 });

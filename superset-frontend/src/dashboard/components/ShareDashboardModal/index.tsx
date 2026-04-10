@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { SupersetClient, logging } from '@superset-ui/core';
@@ -31,10 +31,9 @@ import {
   UserWithPermissionsAndRoles,
   UndefinedUser,
 } from 'src/types/bootstrapTypes';
-import { useSelector } from 'react-redux';
+import { useSelector, shallowEqual } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
 import { hasStatefulCharts } from 'src/dashboard/util/chartStateConverter';
-import { shallowEqual } from 'react-redux';
 
 export type ShareDashboardModalProps = {
   dashboardId: number;
@@ -84,6 +83,13 @@ const HintText = styled.p`
   margin-bottom: 0;
 `;
 
+const ErrorText = styled.p`
+  color: ${({ theme }) => theme.colors.error.base};
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  margin-top: ${({ theme }) => theme.gridUnit}px;
+  margin-bottom: 0;
+`;
+
 const ShareDashboardModal = ({
   dashboardId,
   dashboardTitle,
@@ -95,8 +101,14 @@ const ShareDashboardModal = ({
 }: ShareDashboardModalProps) => {
   const [dashboardUrl, setDashboardUrl] = useState('');
   const [emailInput, setEmailInput] = useState('');
+  const [emailError, setEmailError] = useState('');
   const [inviteEmails, setInviteEmails] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // MAJOR-4: guard against onBlur double-add after Enter/comma keydown
+  const keyDownAddedRef = useRef(false);
+  // MAJOR-5: only fetch the permalink once per modal open
+  const permalinkFetchedRef = useRef(false);
 
   const { dataMask, activeTabs, chartStates, sliceEntities } = useSelector(
     (state: RootState) => ({
@@ -113,8 +125,14 @@ const ShareDashboardModal = ({
     [user],
   );
 
+  // MAJOR-5: generate permalink only once when the modal transitions to open
   useEffect(() => {
-    if (!show) return;
+    if (!show) {
+      permalinkFetchedRef.current = false;
+      return;
+    }
+    if (permalinkFetchedRef.current) return;
+    permalinkFetchedRef.current = true;
 
     const includeChartState =
       hasStatefulCharts(sliceEntities) &&
@@ -134,7 +152,8 @@ const ShareDashboardModal = ({
       .catch(err => {
         logging.error(err);
       });
-  }, [show, dashboardId, dataMask, activeTabs, chartStates, sliceEntities]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [show]);
 
   const handleCopyLink = useCallback(async () => {
     try {
@@ -146,9 +165,16 @@ const ShareDashboardModal = ({
     }
   }, [dashboardUrl, addSuccessToast, addDangerToast]);
 
+  // MAJOR-1: validate that input contains '@' before adding to the list
   const handleAddEmail = useCallback(() => {
     const trimmed = emailInput.trim();
-    if (trimmed && !inviteEmails.includes(trimmed)) {
+    if (!trimmed) return;
+    if (!trimmed.includes('@')) {
+      setEmailError(t('Please enter a valid email address'));
+      return;
+    }
+    setEmailError('');
+    if (!inviteEmails.includes(trimmed)) {
       setInviteEmails(prev => [...prev, trimmed]);
     }
     setEmailInput('');
@@ -158,11 +184,22 @@ const ShareDashboardModal = ({
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter' || e.key === ',') {
         e.preventDefault();
+        // MAJOR-4: flag that we handled this via keydown so onBlur is a no-op
+        keyDownAddedRef.current = true;
         handleAddEmail();
       }
     },
     [handleAddEmail],
   );
+
+  // MAJOR-4: skip the blur handler if keydown already committed the value
+  const handleEmailBlur = useCallback(() => {
+    if (keyDownAddedRef.current) {
+      keyDownAddedRef.current = false;
+      return;
+    }
+    handleAddEmail();
+  }, [handleAddEmail]);
 
   const handleRemoveEmail = useCallback((email: string) => {
     setInviteEmails(prev => prev.filter(e => e !== email));
@@ -187,9 +224,16 @@ const ShareDashboardModal = ({
       });
       addSuccessToast(t('Invitation sent to %s', inviteEmails.join(', ')));
       onHide();
-    } catch (error) {
+    } catch (error: any) {
       logging.error(error);
-      addDangerToast(t('Failed to send invitations. Please try again.'));
+      // MAJOR-6: the invite endpoint may not exist in all deployments; degrade gracefully
+      if (error?.status === 404) {
+        addDangerToast(
+          t('User invitation is not supported in this deployment.'),
+        );
+      } else {
+        addDangerToast(t('Failed to send invitations. Please try again.'));
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -206,9 +250,14 @@ const ShareDashboardModal = ({
 
   const handleHide = useCallback(() => {
     setEmailInput('');
+    setEmailError('');
     setInviteEmails([]);
     onHide();
   }, [onHide]);
+
+  // MAJOR-2: show 'Done' when there are no emails to send so intent is clear
+  const shareButtonLabel =
+    canInviteUsers && inviteEmails.length === 0 ? t('Done') : t('Share');
 
   const footer = (
     <Space>
@@ -220,15 +269,16 @@ const ShareDashboardModal = ({
       >
         {t('Cancel')}
       </Button>
+      {/* MAJOR-3: disabled only when submitting or URL not yet loaded */}
       <Button
         key="share"
         buttonStyle="primary"
         onClick={handleShare}
         loading={isSubmitting}
-        disabled={canInviteUsers && inviteEmails.length === 0 && !dashboardUrl}
+        disabled={isSubmitting || !dashboardUrl}
         data-test="share-dashboard-modal-share"
       >
-        {t('Share')}
+        {shareButtonLabel}
       </Button>
     </Space>
   );
@@ -277,11 +327,16 @@ const ShareDashboardModal = ({
               value={emailInput}
               onChange={e => setEmailInput(e.target.value)}
               onKeyDown={handleEmailKeyDown}
-              onBlur={handleAddEmail}
+              onBlur={handleEmailBlur}
               placeholder={t('Enter email address')}
               data-test="share-dashboard-email-input"
             />
           </EmailInputRow>
+          {emailError && (
+            <ErrorText data-test="share-dashboard-email-error">
+              {emailError}
+            </ErrorText>
+          )}
           <HintText>
             {t('Press Enter or comma to add multiple email addresses.')}
           </HintText>
