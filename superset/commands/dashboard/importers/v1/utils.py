@@ -200,8 +200,27 @@ def import_dashboard(  # noqa: C901
         "can_write",
         "Dashboard",
     )
-    existing = db.session.query(Dashboard).filter_by(uuid=config["uuid"]).first()
+    from superset.models.helpers import SKIP_VISIBILITY_FILTER
+
+    existing = (
+        db.session.query(Dashboard)
+        .execution_options(**{SKIP_VISIBILITY_FILTER: True})
+        .filter_by(uuid=config["uuid"])
+        .first()
+    )
     user = get_user()
+
+    # If the matching row was soft-deleted, hard-delete it so the import
+    # can proceed without a unique-constraint violation on ``uuid``.
+    # Use a direct SQL DELETE instead of ORM delete() to avoid triggering
+    # complex ORM cascades that can fail on association tables.
+    if existing and getattr(existing, "deleted_at", None) is not None:
+        db.session.execute(
+            Dashboard.__table__.delete().where(Dashboard.id == existing.id)
+        )
+        db.session.flush()
+        existing = None
+
     if existing:
         if overwrite and can_write and user:
             if not security_manager.can_access_dashboard(existing) or (

@@ -656,7 +656,7 @@ class TestFavoriteChartCommand(SupersetTestCase):
     def test_fave_unfave_chart_command_not_found(self):
         """Test that faving / unfaving a non-existing chart raises an exception"""
         with self.client.application.test_request_context():
-            example_chart_id = 1234
+            example_chart_id = 0
 
             with override_user(security_manager.find_user("admin")):
                 with self.assertRaises(ChartNotFoundError):  # noqa: PT027

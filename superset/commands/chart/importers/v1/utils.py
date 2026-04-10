@@ -49,8 +49,25 @@ def import_chart(
     ignore_permissions: bool = False,
 ) -> Slice:
     can_write = ignore_permissions or security_manager.can_access("can_write", "Chart")
-    existing = db.session.query(Slice).filter_by(uuid=config["uuid"]).first()
+    from superset.models.helpers import SKIP_VISIBILITY_FILTER
+
+    existing = (
+        db.session.query(Slice)
+        .execution_options(**{SKIP_VISIBILITY_FILTER: True})
+        .filter_by(uuid=config["uuid"])
+        .first()
+    )
     user = get_user()
+
+    # If the matching row was soft-deleted, hard-delete it so the import
+    # can proceed without a unique-constraint violation on ``uuid``.
+    # Use a direct SQL DELETE instead of ORM delete() to avoid triggering
+    # complex ORM cascades that can fail on association tables.
+    if existing and getattr(existing, "deleted_at", None) is not None:
+        db.session.execute(Slice.__table__.delete().where(Slice.id == existing.id))
+        db.session.flush()
+        existing = None
+
     if existing:
         if overwrite and can_write and user:
             if not security_manager.can_access_chart(existing) or (

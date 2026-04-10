@@ -16,21 +16,33 @@
 # under the License.
 """Integration tests for chart soft-delete and restore (sc-103157)."""
 
-import json
-
 from superset.extensions import db
 from superset.models.helpers import SKIP_VISIBILITY_FILTER
 from superset.models.slice import Slice
+from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.insert_chart_mixin import InsertChartMixin
+
+
+def _hard_delete_chart(chart_id: int) -> None:
+    """Hard-delete a chart row regardless of soft-delete state."""
+    row = (
+        db.session.query(Slice)
+        .execution_options(**{SKIP_VISIBILITY_FILTER: True})
+        .filter(Slice.id == chart_id)
+        .one_or_none()
+    )
+    if row:
+        db.session.delete(row)
+        db.session.commit()
 
 
 class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
     """Tests for chart soft-delete behaviour (T013, T016)."""
 
     def test_delete_chart_soft_deletes(self):
-        """DELETE /api/v1/chart/<pk> should set deleted_at instead of removing the row."""
+        """DELETE /api/v1/chart/<pk> sets deleted_at instead of removing."""
         admin_id = self.get_user("admin").id
         chart = self.insert_chart("soft_delete_test", [admin_id], 1)
         chart_id = chart.id
@@ -49,19 +61,22 @@ class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
         assert row is not None
         assert row.deleted_at is not None
 
+        # Cleanup
+        _hard_delete_chart(chart_id)
+
     def test_soft_deleted_chart_excluded_from_get(self):
-        """GET /api/v1/chart/<pk> should return 404 for a soft-deleted chart."""
+        """GET /api/v1/chart/<pk> returns 404 for a soft-deleted chart."""
         admin_id = self.get_user("admin").id
         chart = self.insert_chart("invisible_chart", [admin_id], 1)
         chart_id = chart.id
         self.login(ADMIN_USERNAME)
 
-        # Soft-delete it
         self.client.delete(f"/api/v1/chart/{chart_id}")
-
-        # GET should return 404
         rv = self.client.get(f"/api/v1/chart/{chart_id}")
         assert rv.status_code == 404
+
+        # Cleanup
+        _hard_delete_chart(chart_id)
 
     def test_soft_deleted_chart_excluded_from_list(self):
         """GET /api/v1/chart/ should not include soft-deleted charts."""
@@ -70,51 +85,50 @@ class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
         chart_id = chart.id
         self.login(ADMIN_USERNAME)
 
-        # Soft-delete it
         self.client.delete(f"/api/v1/chart/{chart_id}")
-
-        # List should not include it
         rv = self.client.get("/api/v1/chart/")
         data = json.loads(rv.data)
         chart_ids = [c["id"] for c in data["result"]]
         assert chart_id not in chart_ids
 
+        # Cleanup
+        _hard_delete_chart(chart_id)
+
     def test_delete_already_soft_deleted_chart_returns_404(self):
-        """DELETE on an already soft-deleted chart should return 404 (FR-008)."""
+        """DELETE on an already soft-deleted chart returns 404 (FR-008)."""
         admin_id = self.get_user("admin").id
         chart = self.insert_chart("double_delete_test", [admin_id], 1)
         chart_id = chart.id
         self.login(ADMIN_USERNAME)
 
-        # First delete succeeds
         rv = self.client.delete(f"/api/v1/chart/{chart_id}")
         assert rv.status_code == 200
-
-        # Second delete returns 404
         rv = self.client.delete(f"/api/v1/chart/{chart_id}")
         assert rv.status_code == 404
+
+        # Cleanup
+        _hard_delete_chart(chart_id)
 
 
 class TestChartRestore(InsertChartMixin, SupersetTestCase):
     """Tests for chart restore behaviour (T025)."""
 
     def test_restore_soft_deleted_chart(self):
-        """POST /api/v1/chart/<pk>/restore should make the chart visible again."""
+        """POST /api/v1/chart/<pk>/restore makes the chart visible again."""
         admin_id = self.get_user("admin").id
         chart = self.insert_chart("restore_test", [admin_id], 1)
         chart_id = chart.id
         self.login(ADMIN_USERNAME)
 
-        # Soft-delete
         self.client.delete(f"/api/v1/chart/{chart_id}")
-
-        # Restore
         rv = self.client.post(f"/api/v1/chart/{chart_id}/restore")
         assert rv.status_code == 200
 
-        # Chart is visible again
         rv = self.client.get(f"/api/v1/chart/{chart_id}")
         assert rv.status_code == 200
+
+        # Cleanup
+        _hard_delete_chart(chart_id)
 
     def test_restore_nonexistent_chart_returns_404(self):
         """POST /api/v1/chart/99999/restore should return 404."""
@@ -123,12 +137,14 @@ class TestChartRestore(InsertChartMixin, SupersetTestCase):
         assert rv.status_code == 404
 
     def test_restore_active_chart_returns_404(self):
-        """POST /api/v1/chart/<pk>/restore on an active chart should return 404."""
+        """POST /api/v1/chart/<pk>/restore on active chart returns 404."""
         admin_id = self.get_user("admin").id
         chart = self.insert_chart("active_restore_test", [admin_id], 1)
         chart_id = chart.id
         self.login(ADMIN_USERNAME)
 
-        # Restore without deleting first — should 404
         rv = self.client.post(f"/api/v1/chart/{chart_id}/restore")
         assert rv.status_code == 404
+
+        # Cleanup
+        _hard_delete_chart(chart_id)

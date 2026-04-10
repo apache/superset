@@ -16,12 +16,11 @@
 # under the License.
 """Integration tests for dataset soft-delete and restore (sc-103157)."""
 
-import json
-
 from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import db
 from superset.models.helpers import SKIP_VISIBILITY_FILTER
 from superset.models.slice import Slice
+from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME
 
@@ -99,7 +98,9 @@ class TestDatasetSoftDelete(SupersetTestCase):
         for chart_id in dependent_chart_ids:
             chart = db.session.query(Slice).filter(Slice.id == chart_id).one_or_none()
             assert chart is not None, f"Chart {chart_id} should still be active"
-            assert chart.deleted_at is None, f"Chart {chart_id} should not be soft-deleted"
+            assert chart.deleted_at is None, (
+                f"Chart {chart_id} should not be soft-deleted"
+            )
 
         # Cleanup
         row = (

@@ -595,9 +595,15 @@ class SupersetTestCase(TestCase):
             obj_roles.append(role_obj)
 
         # Defensive cleanup: remove any existing dashboard with the same slug
+        # (including soft-deleted rows that still occupy the unique constraint)
         if slug:
+            from superset.models.helpers import SKIP_VISIBILITY_FILTER
+
             existing_dashboard = (
-                db.session.query(Dashboard).filter_by(slug=slug).first()
+                db.session.query(Dashboard)
+                .execution_options(**{SKIP_VISIBILITY_FILTER: True})
+                .filter_by(slug=slug)
+                .first()
             )
             if existing_dashboard:
                 db.session.delete(existing_dashboard)
