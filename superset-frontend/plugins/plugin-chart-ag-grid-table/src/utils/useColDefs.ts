@@ -19,7 +19,7 @@
  */
 import { ColDef } from '@superset-ui/core/components/ThemedAgGridReact';
 import { useCallback, useMemo } from 'react';
-import { DataRecord, DataRecordValue } from '@superset-ui/core';
+import { DataRecord, DataRecordValue, JsonObject } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { useTheme } from '@apache-superset/core/theme';
 import { ColorFormatters } from '@superset-ui/chart-controls';
@@ -38,7 +38,7 @@ import { getAggFunc } from './getAggFunc';
 import { TextCellRenderer } from '../renderers/TextCellRenderer';
 import { NumericCellRenderer } from '../renderers/NumericCellRenderer';
 import CustomHeader from '../AgGridTable/components/CustomHeader';
-import { NOOP_FILTER_COMPARATOR } from '../consts';
+import { NOOP_FILTER_COMPARATOR, PIVOT_COL_ID } from '../consts';
 import { valueFormatter, valueGetter } from './formatValue';
 import getCellStyle from './getCellStyle';
 
@@ -50,6 +50,9 @@ type UseColDefsProps = {
   columns: InputColumn[];
   data: InputData[];
   serverPagination: boolean;
+  serverPaginationData: JsonObject;
+  serverPageLength: number;
+  showNumberedColumn: boolean;
   isRawRecords: boolean;
   defaultAlignPN: boolean;
   showCellBars: boolean;
@@ -213,6 +216,9 @@ export const useColDefs = ({
   columns,
   data,
   serverPagination,
+  serverPaginationData,
+  serverPageLength,
+  showNumberedColumn,
   isRawRecords,
   defaultAlignPN,
   showCellBars,
@@ -438,5 +444,44 @@ export const useColDefs = ({
     }, []);
   }, [stringifiedCols, getCommonColProps]);
 
+  const rowIndexLength = `${data.length}}`.length;
+
+  const rowNumberCol: ColDef = {
+    headerName: '№',
+    headerClass: 'ag-header-center',
+    field: PIVOT_COL_ID,
+    valueGetter: params => {
+      if (serverPagination && serverPaginationData) {
+        const currentPage = serverPaginationData.currentPage ?? 0;
+        const pageSize = serverPaginationData.pageSize ?? serverPageLength ?? 0;
+        return currentPage * pageSize + (params.node?.rowIndex ?? 0) + 1;
+      }
+      return (params.node?.rowIndex ?? 0) + 1;
+    },
+    headerStyle: {
+      backgroundColor: theme.colorFillTertiary,
+      fontSize: '1em',
+      color: theme.colorTextTertiary,
+    },
+    width: 30 + rowIndexLength * 6,
+    sortable: false,
+    filter: false,
+    pinned: 'left' as const,
+    lockPosition: true,
+    suppressNavigable: true,
+    resizable: false,
+    suppressMovable: true,
+    cellStyle: {
+      backgroundColor: theme.colorFillTertiary,
+      padding: '0',
+      textAlign: 'center',
+      fontSize: '0.9em',
+      color: theme.colorTextTertiary,
+    },
+  };
+
+  if (showNumberedColumn) {
+    return [rowNumberCol, ...colDefs];
+  }
   return colDefs;
 };

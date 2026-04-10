@@ -419,5 +419,11 @@ export const StyledChartContainer = styled.div<{
         color: ${theme.colorTextQuaternary};
       }
     }
+
+    .ag-header-center {
+      .ag-header-cell-label {
+        justify-content: center;
+      }
+    }
   `}
 `;

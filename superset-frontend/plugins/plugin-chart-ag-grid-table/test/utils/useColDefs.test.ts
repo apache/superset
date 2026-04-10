@@ -122,6 +122,9 @@ const defaultThemeWrapper = makeThemeWrapper(supersetTheme);
 const defaultProps = {
   data: [{ test_col: 'value' }],
   serverPagination: false,
+  serverPaginationData: {},
+  serverPageLength: 0,
+  showNumberedColumn: false,
   isRawRecords: true,
   defaultAlignPN: false,
   showCellBars: false,
