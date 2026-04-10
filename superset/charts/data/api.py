@@ -27,7 +27,7 @@ from flask_babel import gettext as _
 from marshmallow import ValidationError
 from werkzeug.utils import secure_filename
 
-from superset import is_feature_enabled, security_manager
+from superset import db, is_feature_enabled, security_manager
 from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.charts.api import ChartRestApi
 from superset.charts.client_processing import apply_client_processing
@@ -58,6 +58,7 @@ from superset.constants import (
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.extensions import event_logger
+from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.utils import json
 from superset.utils.core import (
@@ -512,10 +513,34 @@ class ChartDataRestApi(ChartRestApi):
             if len(result["queries"]) == 1:
                 # return single query results
                 data = result["queries"][0]["data"]
-                if is_csv_format:
-                    return CsvResponse(data, headers=generate_download_headers("csv"))
+                _slice_name = (form_data or {}).get("slice_name")
+                if not _slice_name:
+                    _slice_id = (form_data or {}).get("slice_id")
+                    if _slice_id:
+                        try:
+                            _slice_obj = db.session.get(Slice, int(_slice_id))
+                            if _slice_obj:
+                                _slice_name = _slice_obj.slice_name
+                        except Exception:  # noqa: BLE001
+                            logger.warning(
+                                "Failed to look up chart name for slice_id=%s",
+                                _slice_id,
+                            )
+                _chart_name = (
+                    _slice_name or (form_data or {}).get("viz_type") or "export"
+                )
+                _filename = secure_filename(
+                    f"{_chart_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                )
 
-                return XlsxResponse(data, headers=generate_download_headers("xlsx"))
+                if is_csv_format:
+                    return CsvResponse(
+                        data, headers=generate_download_headers("csv", _filename)
+                    )
+
+                return XlsxResponse(
+                    data, headers=generate_download_headers("xlsx", _filename)
+                )
 
             # return multi-query results bundled as a zip file
             def _process_data(query_data: Any) -> Any:
@@ -612,14 +637,11 @@ class ChartDataRestApi(ChartRestApi):
     def _extract_export_params_from_request(self) -> tuple[str | None, int | None]:
         """Extract filename and expected_rows from request for streaming exports."""
         filename = request.form.get("filename")
-        if filename:
-            logger.info("FRONTEND PROVIDED FILENAME: %s", filename)
 
         expected_rows = None
         if expected_rows_str := request.form.get("expected_rows"):
             try:
                 expected_rows = int(expected_rows_str)
-                logger.info("FRONTEND PROVIDED EXPECTED ROWS: %d", expected_rows)
             except (ValueError, TypeError):
                 logger.warning("Invalid expected_rows value: %s", expected_rows_str)
 
@@ -723,10 +745,6 @@ class ChartDataRestApi(ChartRestApi):
 
             # Sanitize chart name for filename
             filename = secure_filename(f"superset_{chart_name}_{timestamp}.csv")
-
-        logger.info("Creating streaming CSV response: %s", filename)
-        if expected_rows:
-            logger.info("Using expected_rows from frontend: %d", expected_rows)
 
         # Execute streaming command
         # TODO: Make chunk size configurable via SUPERSET_CONFIG
