@@ -30,9 +30,14 @@ import { FilterRemoval } from '../types';
 import { FILTER_TYPE, CUSTOMIZATION_TYPE } from '../DraggableFilter';
 import { isFilterId, isChartCustomizationId } from '../utils';
 
+// max-height constrains the sidebar so its inner Collapse can scroll when
+// there are many filters (sc-101839). The parent height chain through the
+// antd Form is unreliable, so a viewport-relative max-height is used instead
+// of height: 100%.
 const StyledSidebarFlex = styled(Flex)`
   min-width: 290px;
   max-width: 290px;
+  max-height: 70vh;
   border-right: 1px solid ${({ theme }) => theme.colorBorderSecondary};
 `;
 
@@ -40,8 +45,13 @@ const StyledHeaderFlex = styled(Flex)`
   padding: ${({ theme }) => theme.sizeUnit * 3}px;
 `;
 
+// min-height: 0 lets the flex item shrink below its content size so that
+// overflow: auto produces a scrollbar when the filter list is taller than
+// the sidebar. Without it, flex items default to min-height: auto and
+// refuse to shrink.
 const BaseStyledCollapse = styled(Collapse)`
   flex: 1;
+  min-height: 0; /* required for flex item to shrink */
   overflow: auto;
   .ant-collapse-content-box {
     padding: 0;
