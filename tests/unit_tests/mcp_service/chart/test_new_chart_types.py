@@ -22,6 +22,7 @@ Tests cover schema validation, form_data mapping, chart name generation,
 and schema validator pre-validation for all three new chart types.
 """
 
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -975,3 +976,116 @@ class TestSchemaValidatorNewTypes:
         assert is_valid is False
         assert error is not None
         assert error.error_code == "INVALID_CHART_TYPE"
+
+
+# ============================================================
+# adhoc_filters detection tests  (sc-103356)
+# ============================================================
+
+
+class TestAdhocFiltersDetection:
+    """Tests for sc-103356: generate_chart should surface a clear error when
+    adhoc_filters is passed in the config instead of silently dropping it."""
+
+    @pytest.mark.parametrize(
+        "chart_type,extra_fields",
+        [
+            (
+                "xy",
+                {"x": {"name": "date"}, "y": [{"name": "rev", "aggregate": "SUM"}]},
+            ),
+            (
+                "table",
+                {"columns": [{"name": "product"}]},
+            ),
+            (
+                "pie",
+                {
+                    "dimension": {"name": "region"},
+                    "metric": {"name": "rev", "aggregate": "SUM"},
+                },
+            ),
+            (
+                "pivot_table",
+                {
+                    "rows": [{"name": "region"}],
+                    "metrics": [{"name": "rev", "aggregate": "SUM"}],
+                },
+            ),
+            (
+                "mixed_timeseries",
+                {
+                    "x": {"name": "date"},
+                    "y": [{"name": "rev", "aggregate": "SUM"}],
+                    "y_secondary": [{"name": "cnt", "aggregate": "COUNT"}],
+                },
+            ),
+        ],
+    )
+    def test_adhoc_filters_in_config_returns_clear_error(
+        self, chart_type: str, extra_fields: dict[str, Any]
+    ) -> None:
+        """adhoc_filters in config must be rejected with UNSUPPORTED_ADHOC_FILTERS."""
+        config = {
+            "chart_type": chart_type,
+            **extra_fields,
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "subject": "region",
+                    "operator": "==",
+                    "comparator": "US",
+                    "clause": "WHERE",
+                }
+            ],
+        }
+        data = {"dataset_id": 1, "config": config}
+        is_valid, _, error = SchemaValidator.validate_request(data)
+
+        assert is_valid is False
+        assert error is not None
+        assert error.error_code == "UNSUPPORTED_ADHOC_FILTERS"
+        assert "adhoc_filters" in error.message
+        assert "filters" in (error.details or "")
+        # Suggestions must guide callers towards the correct field
+        assert error.suggestions is not None
+        assert any("filters" in s for s in error.suggestions)
+
+    def test_adhoc_filters_empty_list_still_rejected(self) -> None:
+        """An empty adhoc_filters list should also be rejected."""
+        data = {
+            "dataset_id": 1,
+            "config": {
+                "chart_type": "xy",
+                "x": {"name": "date"},
+                "y": [{"name": "rev", "aggregate": "SUM"}],
+                "adhoc_filters": [],
+            },
+        }
+        is_valid, _, error = SchemaValidator.validate_request(data)
+
+        assert is_valid is False
+        assert error is not None
+        assert error.error_code == "UNSUPPORTED_ADHOC_FILTERS"
+
+    def test_filters_field_still_accepted(self) -> None:
+        """The proper 'filters' field must continue to work after the fix."""
+        data = {
+            "dataset_id": 1,
+            "config": {
+                "chart_type": "xy",
+                "x": {"name": "date"},
+                "y": [{"name": "rev", "aggregate": "SUM"}],
+                "filters": [{"column": "region", "op": "=", "value": "US"}],
+            },
+        }
+        is_valid, request, error = SchemaValidator.validate_request(data)
+
+        assert is_valid is True
+        assert error is None
+        assert request is not None
+        # config is stored as a raw dict in GenerateChartRequest
+        assert isinstance(request.config, dict)
+        assert request.config.get("filters") is not None
+        assert len(request.config["filters"]) == 1
+        assert request.config["filters"][0]["column"] == "region"

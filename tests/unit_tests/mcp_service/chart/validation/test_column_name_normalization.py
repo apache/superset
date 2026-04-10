@@ -30,6 +30,9 @@ import pytest
 from superset.mcp_service.chart.schemas import (
     ColumnRef,
     FilterConfig,
+    MixedTimeseriesChartConfig,
+    PieChartConfig,
+    PivotTableChartConfig,
     TableChartConfig,
     XYChartConfig,
 )
@@ -259,6 +262,7 @@ class TestNormalizeColumnNames:
 
         normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
 
+        assert isinstance(normalized, TableChartConfig)
         assert normalized.columns[0].name == "OrderDate"
         assert normalized.columns[1].name == "ProductLine"
         assert normalized.columns[2].name == "Sales"
@@ -729,3 +733,126 @@ class TestValidateSavedMetrics:
         assert not is_valid
         assert error is not None
         assert error.error_code == "INVALID_SAVED_METRIC"
+
+
+# ============================================================
+# Tests for non-XY/Table chart type normalization  (sc-103356)
+# ============================================================
+
+
+@pytest.fixture
+def pie_dataset_context() -> DatasetContext:
+    return DatasetContext(
+        id=99,
+        table_name="orders",
+        schema="public",
+        database_name="examples",
+        available_columns=[
+            {"name": "Region", "type": "VARCHAR", "is_temporal": False},
+            {"name": "Revenue", "type": "DECIMAL", "is_numeric": True},
+            {"name": "Category", "type": "VARCHAR", "is_temporal": False},
+        ],
+        available_metrics=[],
+    )
+
+
+class TestNormalizeNonXYTableChartTypes:
+    """Tests for sc-103356: normalize_column_names used to crash with an
+    uncaught Pydantic ValidationError for PieChartConfig, PivotTableChartConfig,
+    and MixedTimeseriesChartConfig because the fallback path always called
+    TableChartConfig.model_validate(), which rejected the mismatched discriminator."""
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_pie_chart_config_normalizes_without_error(
+        self, mock_get_context, pie_dataset_context: DatasetContext
+    ) -> None:
+        """PieChartConfig must survive normalize_column_names unchanged."""
+        mock_get_context.return_value = pie_dataset_context
+
+        config = PieChartConfig(
+            chart_type="pie",
+            dimension=ColumnRef(name="region"),
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+        )
+
+        # Before the fix this raised pydantic.ValidationError (not caught by
+        # the narrow except-tuple), which bubbled up as validation_system_error.
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=99)
+
+        assert isinstance(normalized, PieChartConfig)
+        assert normalized.chart_type == "pie"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_pivot_table_config_normalizes_without_error(
+        self, mock_get_context, pie_dataset_context: DatasetContext
+    ) -> None:
+        """PivotTableChartConfig must survive normalize_column_names unchanged."""
+        mock_get_context.return_value = pie_dataset_context
+
+        config = PivotTableChartConfig(
+            chart_type="pivot_table",
+            rows=[ColumnRef(name="region")],
+            metrics=[ColumnRef(name="revenue", aggregate="SUM")],
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=99)
+
+        assert isinstance(normalized, PivotTableChartConfig)
+        assert normalized.chart_type == "pivot_table"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_mixed_timeseries_config_normalizes_without_error(
+        self, mock_get_context, pie_dataset_context: DatasetContext
+    ) -> None:
+        """MixedTimeseriesChartConfig must survive normalize_column_names unchanged."""
+        mock_get_context.return_value = pie_dataset_context
+
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="region"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="revenue", aggregate="COUNT")],
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=99)
+
+        assert isinstance(normalized, MixedTimeseriesChartConfig)
+        assert normalized.chart_type == "mixed_timeseries"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_pie_chart_filter_columns_normalized(
+        self, mock_get_context, pie_dataset_context: DatasetContext
+    ) -> None:
+        """Filters on a PieChartConfig should have their column names normalized."""
+        mock_get_context.return_value = pie_dataset_context
+
+        config = PieChartConfig(
+            chart_type="pie",
+            dimension=ColumnRef(name="region"),
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            filters=[FilterConfig(column="category", op="=", value="Electronics")],
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=99)
+
+        assert isinstance(normalized, PieChartConfig)
+        assert normalized.filters is not None
+        # "category" matches "Category" case-insensitively -> normalized to "Category"
+        assert normalized.filters[0].column == "Category"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_pie_no_dataset_context_returns_original(
+        self, mock_get_context
+    ) -> None:
+        """When dataset context is unavailable the original config is returned."""
+        mock_get_context.return_value = None
+
+        config = PieChartConfig(
+            chart_type="pie",
+            dimension=ColumnRef(name="region"),
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+        )
+
+        result = DatasetValidator.normalize_column_names(config, dataset_id=99)
+
+        assert result is config

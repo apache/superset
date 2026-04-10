@@ -120,6 +120,34 @@ class SchemaValidator:
                 error_code="INVALID_CONFIG_FORMAT",
             )
 
+        # Check for adhoc_filters — Superset's native format is not supported.
+        # Without this check, the field is silently dropped by Pydantic's
+        # extra="ignore" and filters are never applied, giving the caller no
+        # indication that something went wrong.
+        if "adhoc_filters" in config:
+            return False, ChartGenerationError(
+                error_type="unsupported_adhoc_filters",
+                message="'adhoc_filters' is not supported in generate_chart",
+                details=(
+                    "The 'adhoc_filters' field uses Superset's internal format and "
+                    "is not accepted by the generate_chart tool. Use the 'filters' "
+                    "field instead, which takes a simplified list of column/op/value "
+                    "objects."
+                ),
+                suggestions=[
+                    "Replace 'adhoc_filters' with 'filters' in the config",
+                    "Format: 'filters': [{'column': 'col_name', 'op': '=', "
+                    "'value': 'some_value'}]",
+                    "Supported operators: =, >, <, >=, <=, !=, LIKE, ILIKE, "
+                    "NOT LIKE, IN, NOT IN",
+                    "Example: 'filters': [{'column': 'region', 'op': '=', "
+                    "'value': 'US'}]",
+                    "For multiple values use IN: 'filters': [{'column': 'status', "
+                    "'op': 'IN', 'value': ['active', 'pending']}]",
+                ],
+                error_code="UNSUPPORTED_ADHOC_FILTERS",
+            )
+
         # Check chart_type early
         chart_type = config.get("chart_type")
         if not chart_type:

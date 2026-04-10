@@ -325,10 +325,12 @@ class ValidationPipeline:
 
             return GenerateChartRequest.model_validate(request_dict)
 
-        except (ImportError, AttributeError, KeyError, ValueError, TypeError) as e:
-            # If normalization fails, return the original request
-            # Validation has already passed, so this is a non-critical failure
-            logger.warning("Column name normalization failed: %s", e)
+        except Exception:  # noqa: BLE001
+            # If normalization fails, return the original request.
+            # Validation has already passed, so this is a non-critical failure.
+            # Use broad except because Pydantic v2 ValidationError does not
+            # inherit from ValueError, so the previous narrow tuple missed it.
+            logger.exception("Column name normalization failed unexpectedly")
             return request
 
     @staticmethod
