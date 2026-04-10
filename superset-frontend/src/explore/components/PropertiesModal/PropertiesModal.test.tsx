@@ -342,15 +342,31 @@ test('"Name" should not be empty when saved', async () => {
   });
 });
 
-test('"Cache timeout" field should not be present in the modal', async () => {
+test('"Cache timeout" field and Configuration section should not be present', () => {
+  const props = createProps();
+  renderModal(props);
+
+  expect(
+    screen.queryByRole('textbox', { name: 'Cache timeout' }),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText('Configuration')).not.toBeInTheDocument();
+});
+
+test('"Save" should not include cache_timeout in the payload', async () => {
   const props = createProps();
   renderModal(props);
 
   await waitFor(() => {
-    expect(
-      screen.queryByRole('textbox', { name: 'Cache timeout' }),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText('Configuration')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+  });
+
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+  await waitFor(() => {
+    expect(props.onSave).toHaveBeenCalledTimes(1);
+    expect(props.onSave).not.toHaveBeenCalledWith(
+      expect.objectContaining({ cache_timeout: expect.anything() }),
+    );
   });
 });
 
@@ -415,8 +431,10 @@ test('"Certification details" should not be empty when saved', async () => {
   const props = createProps();
   renderModal(props);
 
-  // Expand the Advanced section first to access certification details
-  const advancedPanel = screen.getByText('Advanced').closest('[role="tab"]');
+  // Expand the Certification section first to access certification details
+  const advancedPanel = screen
+    .getByText('Certification')
+    .closest('[role="tab"]');
   if (advancedPanel) {
     await userEvent.click(advancedPanel);
   }
@@ -437,6 +455,24 @@ test('"Certification details" should not be empty when saved', async () => {
         certification_details: 'Test certification details',
       }),
     );
+  });
+});
+
+test('Should render updated helper text for Description, Owners, and Tags fields', async () => {
+  const props = createProps();
+  renderModal(props);
+
+  await waitFor(() => {
+    expect(
+      screen.getByText(
+        'Add context to this chart. Supports markdown. The description can be displayed as a header in dashboard view.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Users who can modify this chart. Searchable by name or username.',
+      ),
+    ).toBeInTheDocument();
   });
 });
 
