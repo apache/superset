@@ -960,3 +960,103 @@ test('has correct static column properties', () => {
   expect(colDef.headerStyle).toBeDefined();
   expect(colDef.cellStyle).toBeDefined();
 });
+
+test('pageSize priority chain works correctly', () => {
+  const props1 = {
+    ...basePropsNumericColumns,
+    serverPagination: true,
+    serverPaginationData: { currentPage: 2, pageSize: 10 },
+    serverPageLength: 5,
+    data: new Array(3).fill({ a: 1 }),
+    showNumberedColumn: true,
+  };
+  const { result: res1 } = renderHook(() => useColDefs(props1), {
+    wrapper: defaultThemeWrapper,
+  });
+
+  expect(res1.current[0].width).toBe(42);
+
+  const props2 = {
+    ...props1,
+    serverPaginationData: { currentPage: 2 },
+    serverPageLength: 20,
+  };
+  const { result: res2 } = renderHook(() => useColDefs(props2), {
+    wrapper: defaultThemeWrapper,
+  });
+
+  expect(res2.current[0].width).toBe(42);
+});
+
+test('column width adapts to max row number length in client mode', () => {
+  const base = {
+    ...basePropsNumericColumns,
+    showNumberedColumn: true,
+    serverPagination: false,
+  };
+
+  const props9 = { ...base, data: new Array(9).fill({ a: 1 }) };
+  const { result: res9 } = renderHook(() => useColDefs(props9), {
+    wrapper: defaultThemeWrapper,
+  });
+  expect(res9.current[0].width).toBe(36);
+
+  const props10 = { ...base, data: new Array(10).fill({ a: 1 }) };
+  const { result: res10 } = renderHook(() => useColDefs(props10), {
+    wrapper: defaultThemeWrapper,
+  });
+  expect(res10.current[0].width).toBe(42);
+
+  const props100 = { ...base, data: new Array(100).fill({ a: 1 }) };
+  const { result: res100 } = renderHook(() => useColDefs(props100), {
+    wrapper: defaultThemeWrapper,
+  });
+  expect(res100.current[0].width).toBe(48);
+});
+
+test('row number column uses theme variables for styling', () => {
+  const { result } = renderHook(
+    () => useColDefs({ ...basePropsNumericColumns, showNumberedColumn: true }),
+    { wrapper: defaultThemeWrapper },
+  );
+  const colDef = result.current[0];
+  expect(colDef.cellStyle).toMatchObject({
+    backgroundColor: expect.any(String),
+    padding: '0',
+    textAlign: 'center',
+    fontSize: '0.9em',
+    color: expect.any(String),
+  });
+  expect(colDef.headerStyle).toMatchObject({
+    backgroundColor: expect.any(String),
+    fontSize: '1em',
+    color: expect.any(String),
+  });
+});
+
+test('valueGetter handles missing node or rowIndex gracefully', () => {
+  const { result } = renderHook(
+    () => useColDefs({ ...basePropsNumericColumns, showNumberedColumn: true }),
+    { wrapper: defaultThemeWrapper },
+  );
+  const getter = result.current[0].valueGetter as (params: {
+    node?: { rowIndex?: number };
+  }) => number;
+  expect(getter({})).toBe(1);
+  expect(getter({ node: {} })).toBe(1);
+
+  const serverProps = {
+    ...basePropsNumericColumns,
+    serverPagination: true,
+    serverPaginationData: { currentPage: 2, pageSize: 5 },
+    showNumberedColumn: true,
+  };
+  const { result: serverResult } = renderHook(() => useColDefs(serverProps), {
+    wrapper: defaultThemeWrapper,
+  });
+  const serverGetter = serverResult.current[0].valueGetter as (params: {
+    node?: { rowIndex?: number };
+  }) => number;
+  expect(serverGetter({})).toBe(2 * 5 + 1);
+  expect(serverGetter({ node: {} })).toBe(11);
+});
