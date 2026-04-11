@@ -125,6 +125,8 @@ test('fetchPermissionOptions makes single request when search term is empty', as
   expect(rison.decode(queryString)).toEqual({
     page: 0,
     page_size: 100,
+    order_column: 'id',
+    order_direction: 'asc',
   });
 });
 
@@ -236,6 +238,8 @@ test('fetchGroupOptions sends filters array with search term', async () => {
   expect(rison.decode(queryString)).toEqual({
     page: 1,
     page_size: 25,
+    order_column: 'name',
+    order_direction: 'asc',
     filters: [{ col: 'name', opr: 'ct', value: 'eng' }],
   });
   expect(result).toEqual({
@@ -261,6 +265,8 @@ test('fetchGroupOptions omits filters when search term is empty', async () => {
   expect(rison.decode(queryString)).toEqual({
     page: 0,
     page_size: 100,
+    order_column: 'name',
+    order_direction: 'asc',
   });
 });
 

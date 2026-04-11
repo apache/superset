@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useCallback } from 'react';
 import { FormItem, Input, AsyncSelect } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core/translation';
 import { fetchUserOptions } from '../groups/utils';
@@ -44,51 +45,69 @@ export const RoleNameField = () => (
 export const PermissionsField = ({
   addDangerToast,
   loading = false,
-}: AsyncOptionsFieldProps) => (
-  <FormItem name="rolePermissions" label={t('Permissions')}>
-    <AsyncSelect
-      mode="multiple"
-      name="rolePermissions"
-      placeholder={t('Select permissions')}
-      options={(filterValue, page, pageSize) =>
-        fetchPermissionOptions(filterValue, page, pageSize, addDangerToast)
-      }
-      loading={loading}
-      getPopupContainer={trigger => trigger.closest('.ant-modal-content')}
-      data-test="permissions-select"
-    />
-  </FormItem>
-);
+}: AsyncOptionsFieldProps) => {
+  const options = useCallback(
+    (filterValue: string, page: number, pageSize: number) =>
+      fetchPermissionOptions(filterValue, page, pageSize, addDangerToast),
+    [addDangerToast],
+  );
 
-export const UsersField = ({ addDangerToast, loading }: UsersFieldProps) => (
-  <FormItem name="roleUsers" label={t('Users')}>
-    <AsyncSelect
-      name="roleUsers"
-      mode="multiple"
-      placeholder={t('Select users')}
-      options={(filterValue, page, pageSize) =>
-        fetchUserOptions(filterValue, page, pageSize, addDangerToast)
-      }
-      loading={loading}
-      data-test="roles-select"
-    />
-  </FormItem>
-);
+  return (
+    <FormItem name="rolePermissions" label={t('Permissions')}>
+      <AsyncSelect
+        mode="multiple"
+        name="rolePermissions"
+        placeholder={t('Select permissions')}
+        options={options}
+        loading={loading}
+        getPopupContainer={trigger => trigger.closest('.ant-modal-content')}
+        data-test="permissions-select"
+      />
+    </FormItem>
+  );
+};
+
+export const UsersField = ({ addDangerToast, loading }: UsersFieldProps) => {
+  const options = useCallback(
+    (filterValue: string, page: number, pageSize: number) =>
+      fetchUserOptions(filterValue, page, pageSize, addDangerToast),
+    [addDangerToast],
+  );
+
+  return (
+    <FormItem name="roleUsers" label={t('Users')}>
+      <AsyncSelect
+        name="roleUsers"
+        mode="multiple"
+        placeholder={t('Select users')}
+        options={options}
+        loading={loading}
+        data-test="roles-select"
+      />
+    </FormItem>
+  );
+};
 
 export const GroupsField = ({
   addDangerToast,
   loading = false,
-}: AsyncOptionsFieldProps) => (
-  <FormItem name="roleGroups" label={t('Groups')}>
-    <AsyncSelect
-      mode="multiple"
-      name="roleGroups"
-      placeholder={t('Select groups')}
-      options={(filterValue, page, pageSize) =>
-        fetchGroupOptions(filterValue, page, pageSize, addDangerToast)
-      }
-      loading={loading}
-      data-test="groups-select"
-    />
-  </FormItem>
-);
+}: AsyncOptionsFieldProps) => {
+  const options = useCallback(
+    (filterValue: string, page: number, pageSize: number) =>
+      fetchGroupOptions(filterValue, page, pageSize, addDangerToast),
+    [addDangerToast],
+  );
+
+  return (
+    <FormItem name="roleGroups" label={t('Groups')}>
+      <AsyncSelect
+        mode="multiple"
+        name="roleGroups"
+        placeholder={t('Select groups')}
+        options={options}
+        loading={loading}
+        data-test="groups-select"
+      />
+    </FormItem>
+  );
+};
