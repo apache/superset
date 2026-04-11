@@ -263,7 +263,7 @@ export default function transformProps(
     xAxisForceCategorical,
     xAxisDataType,
     seriesType === EchartsTimeseriesSeriesType.Bar ||
-    seriesTypeB === EchartsTimeseriesSeriesType.Bar
+      seriesTypeB === EchartsTimeseriesSeriesType.Bar
       ? EchartsTimeseriesSeriesType.Bar
       : seriesType,
   );
