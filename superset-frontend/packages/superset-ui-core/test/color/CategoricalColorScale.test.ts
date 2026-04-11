@@ -600,7 +600,9 @@ describe('CategoricalColorScale', () => {
 
       expect(chartBScale.chartLabelsColorMap.get('Trains')).toBe('red');
       expect(chartBScale.chartLabelsColorMap.get('Classic Cars')).toBeDefined();
-      expect(chartBScale.chartLabelsColorMap.get('Classic Cars')).not.toBe('red');
+      expect(chartBScale.chartLabelsColorMap.get('Classic Cars')).not.toBe(
+        'red',
+      );
       expect(chartBScale.range()).toHaveLength(6);
       expect(
         addSliceSpy.mock.calls.some(
