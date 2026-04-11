@@ -18,8 +18,9 @@
  */
 
 import { useEffect, useState } from 'react';
-import { JsonObject, seed, SuperChart, SequentialD3 } from '@superset-ui/core';
+import { JsonObject, seed, SuperChart } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/theme';
+import { sequentialD3 } from '@apache-superset/core/colors';
 import CountryMapChartPlugin, {
   countries,
 } from '@superset-ui/legacy-plugin-chart-country-map';
@@ -115,7 +116,7 @@ BasicCountryMapStory.argTypes = {
   },
   colorSchema: {
     control: 'select',
-    options: SequentialD3.map(x => x.id),
+    options: sequentialD3.map(x => x.id),
     description: 'Choose a color schema',
     defaultValue: 'schemeOranges',
   },
