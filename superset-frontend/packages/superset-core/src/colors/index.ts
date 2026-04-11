@@ -17,6 +17,44 @@
  * under the License.
  */
 
+// Types & enums — single source of truth for ColorSchemeGroup and config shapes
+export type { ColorSchemeConfig, SequentialSchemeConfig } from './types';
+export { ColorSchemeGroup } from './types';
+
+// Categorical palette configs — raw data with no class dependencies
+export {
+  categoricalAirbnb,
+  categoricalBlueToGreen,
+  categoricalColorsOfRainbow,
+  categoricalD3,
+  categoricalEcharts,
+  categoricalGoogle,
+  categoricalLyft,
+  categoricalModernSunset,
+  categoricalPreset,
+  categoricalPresetAndSuperset,
+  categoricalRedToYellow,
+  categoricalSuperset,
+  categoricalWavesOfBlue,
+  allCategoricalColorSchemeConfigs,
+  DEFAULT_CATEGORICAL_SCHEME,
+} from './categorical';
+
+// Sequential / diverging palette configs
+export {
+  sequentialCommon,
+  sequentialD3,
+  allSequentialColorSchemeConfigs,
+  DEFAULT_SEQUENTIAL_SCHEME,
+} from './sequential';
+
+// ─── Registry bridge for extensions ──────────────────────────────────────────
+//
+// The host app (ExtensionsStartup) calls `registerCategoricalSchemeRegistry()`
+// to inject @superset-ui/core's live singleton.  Extensions then call
+// `getCategoricalSchemeNames()` / `getSchemeColors()` and receive the same
+// palettes that the host app registered (including any custom extra schemes).
+
 /**
  * Minimal interface for the categorical color scheme registry.
  * Mirrors the public surface of @superset-ui/core's ColorSchemeRegistry.
