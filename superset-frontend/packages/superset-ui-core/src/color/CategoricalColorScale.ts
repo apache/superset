@@ -145,19 +145,13 @@ class CategoricalColorScale extends ExtensibleFunction {
         this.incrementColorRange();
       }
       if (
-        // feature flag to be deprecated (will become standard behaviour)
         isFeatureEnabled(FeatureFlag.AvoidColorsCollision) &&
         this.isColorUsed(color)
       ) {
-        // fallback to least used color
         color = this.getNextAvailableColor(cleanedValue, color);
       }
     }
 
-    // Dashboard: a label may take a forced or synced color that matches another
-    // series in this chart that already consumed the same ordinal slot (e.g. shared
-    // dimension "Trains" locked to red while "Classic Cars" was assigned red first).
-    // Reassign other non-forced labels in this slice so the locked label keeps its color.
     if (
       isFeatureEnabled(FeatureFlag.AvoidColorsCollision) &&
       source === LabelsColorMapSource.Dashboard &&
