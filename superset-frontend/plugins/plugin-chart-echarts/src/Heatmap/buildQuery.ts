@@ -19,6 +19,7 @@
 import {
   QueryFormColumn,
   QueryFormData,
+  QueryObject,
   QueryFormOrderBy,
   buildQueryContext,
   ensureIsArray,
@@ -37,17 +38,17 @@ export default function buildQuery(formData: QueryFormData) {
     ...ensureIsArray(groupby),
   ];
   const orderby: QueryFormOrderBy[] = [];
-  if (sort_x_axis) {
-    orderby.push([
-      sort_x_axis.includes('value') ? metric : columns[0],
-      sort_x_axis.includes('asc'),
-    ]);
+  if (sort_x_axis && !sort_x_axis.includes('value')) {
+    // Value-based X-axis sorting is handled post-query by sortAxisValues in transformProps.ts.
+    // Adding a SQL orderby here would sort by individual (x,y) metric values rather than
+    // aggregated sums per X category, causing biased row_limit truncation.
+    orderby.push([columns[0], sort_x_axis.includes('asc')]);
   }
-  if (sort_y_axis) {
-    orderby.push([
-      sort_y_axis.includes('value') ? metric : columns[1],
-      sort_y_axis.includes('asc'),
-    ]);
+  if (sort_y_axis && !sort_y_axis.includes('value')) {
+    // Value-based Y-axis sorting is handled post-query by sortAxisValues in transformProps.ts.
+    // Adding a SQL orderby here would sort by individual (x,y) metric values rather than
+    // aggregated sums per Y category, causing biased row_limit truncation.
+    orderby.push([columns[1], sort_y_axis.includes('asc')]);
   }
   const group_by =
     normalize_across === 'x'
@@ -55,7 +56,7 @@ export default function buildQuery(formData: QueryFormData) {
       : normalize_across === 'y'
         ? getColumnLabel(groupby as unknown as QueryFormColumn)
         : undefined;
-  return buildQueryContext(formData, baseQueryObject => [
+  return buildQueryContext(formData, (baseQueryObject: QueryObject) => [
     {
       ...baseQueryObject,
       columns,
