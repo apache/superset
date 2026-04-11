@@ -964,10 +964,12 @@ test('pasting an existing option does not duplicate it in multiple mode', async 
 });
 
 test('pasting an non-existent option should not add it if allowNewOptions is false', async () => {
+  const onChange = jest.fn();
   render(
     <AsyncSelect
       {...defaultProps}
       allowNewOptions={false}
+      onChange={onChange}
       options={async () => ({ data: [], totalCount: 0 })}
     />,
   );
@@ -980,6 +982,7 @@ test('pasting an non-existent option should not add it if allowNewOptions is fal
   });
   await waitFor(() => fireEvent(input, paste));
   expect(await findAllSelectOptions()).toHaveLength(0);
+  expect(onChange).not.toHaveBeenCalled();
 });
 
 test('onChange is called with the value property when pasting an option that was not loaded yet', async () => {

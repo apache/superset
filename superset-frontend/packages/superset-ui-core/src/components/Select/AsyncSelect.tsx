@@ -571,9 +571,10 @@ const AsyncSelect = forwardRef(
     const onPaste = async (e: ClipboardEvent<HTMLInputElement>) => {
       const pastedText = e.clipboardData.getData('text');
       if (isSingleMode) {
-        const value = await getPastedTextValue(pastedText);
-        if (value) {
-          setSelectValue(value);
+        const pastedValue = await getPastedTextValue(pastedText);
+        if (pastedValue) {
+          setSelectValue(pastedValue);
+          fireOnChange();
         }
       } else {
         const token = tokenSeparators.find(token => pastedText.includes(token));
@@ -581,12 +582,16 @@ const AsyncSelect = forwardRef(
         const values = (
           await Promise.all(array.map(item => getPastedTextValue(item)))
         ).filter(item => item !== undefined) as AntdLabeledValue[];
-        setSelectValue(previous => [
-          ...((previous || []) as AntdLabeledValue[]),
-          ...values.filter(value => !hasOption(value.value, previous)),
-        ]);
+        const base = ensureIsArray(
+          selectValueRef.current,
+        ) as AntdLabeledValue[];
+        const newItems = values.filter(value => !hasOption(value.value, base));
+        if (newItems.length === 0) {
+          return;
+        }
+        setSelectValue([...base, ...newItems]);
+        fireOnChange();
       }
-      fireOnChange();
     };
 
     return (
