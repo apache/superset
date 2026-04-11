@@ -79,7 +79,7 @@ test('extracts description from datasource.columns for a regular column', () => 
         rowcount: 1,
         applied_filters: [],
         rejected_filters: [],
-      } as any,
+      } as unknown as TableChartProps['queriesData'][number],
     ],
     rawDatasource: {
       columns: [
@@ -90,7 +90,7 @@ test('extracts description from datasource.columns for a regular column', () => 
   });
 
   const result = transformProps(props);
-  const {columns} = result;
+  const { columns } = result;
   const columnMeta = columns.find(c => c.key === 'col1');
   expect(columnMeta).toBeDefined();
   expect(columnMeta!.description).toBe('This is a column description');
@@ -118,7 +118,7 @@ test('extracts description from datasource.metrics for a metric column', () => {
         applied_filters: [],
         rejected_filters: [],
       },
-    ] as any,
+    ] as unknown as TableChartProps['queriesData'],
     rawDatasource: {
       columns: [],
       metrics: [
@@ -128,7 +128,7 @@ test('extracts description from datasource.metrics for a metric column', () => {
   });
 
   const result = transformProps(props);
-  const {columns} = result;
+  const { columns } = result;
   const columnMeta = columns.find(c => c.key === 'sum_sales');
   expect(columnMeta).toBeDefined();
   expect(columnMeta!.description).toBe('Total sales amount');
@@ -156,7 +156,7 @@ test('prefers column description over metric description when both exist with sa
         applied_filters: [],
         rejected_filters: [],
       },
-    ] as any,
+    ] as unknown as TableChartProps['queriesData'],
     rawDatasource: {
       columns: [{ column_name: 'revenue', description: 'Column desc' }],
       metrics: [{ metric_name: 'revenue', description: 'Metric desc' }],
@@ -164,7 +164,7 @@ test('prefers column description over metric description when both exist with sa
   });
 
   const result = transformProps(props);
-  const {columns} = result;
+  const { columns } = result;
   const columnMeta = columns.find(c => c.key === 'revenue');
   expect(columnMeta!.description).toBe('Column desc');
 });
@@ -191,7 +191,7 @@ test('handles percent metrics correctly – uses base metric name for lookup', (
         applied_filters: [],
         rejected_filters: [],
       },
-    ] as any,
+    ] as unknown as TableChartProps['queriesData'],
     rawDatasource: {
       columns: [],
       metrics: [
@@ -201,7 +201,7 @@ test('handles percent metrics correctly – uses base metric name for lookup', (
   });
 
   const result = transformProps(props);
-  const {columns} = result;
+  const { columns } = result;
   const columnMeta = columns.find(c => c.key === '%profit');
   expect(columnMeta).toBeDefined();
   expect(columnMeta!.description).toBe('Profit margin percent');
@@ -218,7 +218,7 @@ test('sets description to undefined when no matching column or metric is found',
         applied_filters: [],
         rejected_filters: [],
       },
-    ] as any,
+    ] as unknown as TableChartProps['queriesData'],
     rawDatasource: {
       columns: [],
       metrics: [],
@@ -226,7 +226,7 @@ test('sets description to undefined when no matching column or metric is found',
   });
 
   const result = transformProps(props);
-  const {columns} = result;
+  const { columns } = result;
   const columnMeta = columns.find(c => c.key === 'unknown_col');
   expect(columnMeta!.description).toBeUndefined();
 });
@@ -242,14 +242,14 @@ test('uses description from column even when verboseMap renames the column', () 
         applied_filters: [],
         rejected_filters: [],
       },
-    ] as any,
+    ] as unknown as TableChartProps['queriesData'],
     datasource: {
       columns: [],
       metrics: [],
       columnFormats: {},
       currencyFormats: {},
       verboseMap: { col_x: 'Custom Label' },
-    } as any,
+    } as unknown as TableChartProps['datasource'],
     rawDatasource: {
       columns: [
         { column_name: 'col_x', description: 'Original column description' },
@@ -259,7 +259,7 @@ test('uses description from column even when verboseMap renames the column', () 
   });
 
   const result = transformProps(props);
-  const {columns} = result;
+  const { columns } = result;
   const columnMeta = columns.find(c => c.key === 'col_x');
   expect(columnMeta!.label).toBe('Custom Label');
   expect(columnMeta!.description).toBe('Original column description');
