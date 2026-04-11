@@ -905,7 +905,10 @@ test('valueGetter returns row numbers without server pagination', () => {
   expect(valueGetter).toBeDefined();
   expect(typeof valueGetter).toBe('function');
 
-  const getter = valueGetter as (params: any) => any;
+  const getter = valueGetter as (params: {
+    node?: { rowIndex?: number };
+    data?: Record<string, unknown>;
+  }) => number;
 
   const params = (rowIndex: number) => ({
     node: { rowIndex },
@@ -931,8 +934,29 @@ test('valueGetter respects server pagination', () => {
   const { valueGetter } = result.current[0];
   expect(typeof valueGetter).toBe('function');
 
-  const getter = valueGetter as (params: any) => any;
+  const getter = valueGetter as (params: {
+    node?: { rowIndex?: number };
+    data?: Record<string, unknown>;
+  }) => number;
 
   expect(getter({ node: { rowIndex: 0 } })).toBe(11);
   expect(getter({ node: { rowIndex: 1 } })).toBe(12);
+});
+
+test('has correct static column properties', () => {
+  const { result } = renderHook(
+    () => useColDefs({ ...basePropsNumericColumns, showNumberedColumn: true }),
+    { wrapper: defaultThemeWrapper },
+  );
+  const colDef = result.current[0];
+  expect(colDef.sortable).toBe(false);
+  expect(colDef.filter).toBe(false);
+  expect(colDef.pinned).toBe('left');
+  expect(colDef.lockPosition).toBe(true);
+  expect(colDef.suppressNavigable).toBe(true);
+  expect(colDef.resizable).toBe(false);
+  expect(colDef.suppressMovable).toBe(true);
+  expect(colDef.context).toEqual({ isMetric: true });
+  expect(colDef.headerStyle).toBeDefined();
+  expect(colDef.cellStyle).toBeDefined();
 });

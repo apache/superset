@@ -445,8 +445,8 @@ export const useColDefs = ({
   }, [stringifiedCols, getCommonColProps]);
 
   const pageSize =
-    serverPaginationData.pageSize ?? serverPageLength ?? data.length;
-  const currentPage = serverPaginationData.currentPage ?? 0;
+    serverPaginationData?.pageSize ?? serverPageLength ?? data.length;
+  const currentPage = serverPaginationData?.currentPage ?? 0;
   const maxVisibleRowNumber = serverPagination
     ? currentPage * pageSize + data.length
     : data.length;
