@@ -262,7 +262,10 @@ export default function transformProps(
     stack,
     xAxisForceCategorical,
     xAxisDataType,
-    seriesType,
+    seriesType === EchartsTimeseriesSeriesType.Bar ||
+    seriesTypeB === EchartsTimeseriesSeriesType.Bar
+      ? EchartsTimeseriesSeriesType.Bar
+      : seriesType,
   );
 
   const [rawSeriesA, sortedTotalValuesA] = extractSeries(rebasedDataA, {
