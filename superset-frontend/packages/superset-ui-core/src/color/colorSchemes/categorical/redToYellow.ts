@@ -17,28 +17,8 @@
  * under the License.
  */
 
+import { categoricalRedToYellow } from '@apache-superset/core/colors';
 import CategoricalScheme from '../../CategoricalScheme';
-import { ColorSchemeGroup } from '../../types';
 
-// TODO: add the colors to the theme while working on SIP https://github.com/apache/superset/issues/20159
-const schemes = [
-  {
-    id: 'redToYellow',
-    label: 'Red to yellow',
-    group: ColorSchemeGroup.Featured,
-    colors: [
-      '#90042A',
-      '#D60039',
-      '#D1353B',
-      '#E45233',
-      '#F47028',
-      '#FE8E17',
-      '#FFAD00',
-      '#FFCC00',
-      '#FFE601',
-      '#FFF46D',
-    ],
-  },
-].map(s => new CategoricalScheme(s));
-
-export default schemes;
+// Palette data lives in @apache-superset/core/colors — edit configs there.
+export default categoricalRedToYellow.map(s => new CategoricalScheme(s));

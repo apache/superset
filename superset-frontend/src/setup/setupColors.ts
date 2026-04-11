@@ -17,33 +17,23 @@
  * under the License.
  */
 import {
-  CategoricalScheme,
-  ColorScheme,
+  allCategoricalColorSchemeConfigs,
+  allSequentialColorSchemeConfigs,
   ColorSchemeConfig,
+  ColorSchemeGroup,
+  DEFAULT_CATEGORICAL_SCHEME,
+  DEFAULT_SEQUENTIAL_SCHEME,
+  SequentialSchemeConfig,
+} from '@apache-superset/core/colors';
+import {
+  CategoricalScheme,
+  ColorSchemeRegistry,
   getCategoricalSchemeRegistry,
   getSequentialSchemeRegistry,
   SequentialScheme,
-  SequentialSchemeConfig,
-  CategoricalAirbnb,
-  CategoricalD3,
-  CategoricalEcharts,
-  CategoricalGoogle,
-  CategoricalLyft,
-  CategoricalPreset,
-  CategoricalSuperset,
-  SequentialCommon,
-  SequentialD3,
-  ColorSchemeRegistry,
-  ColorSchemeGroup,
-  CategoricalPresetSuperset,
-  CategoricalModernSunset,
-  CategoricalColorsOfRainbow,
-  CategoricalBlueToGreen,
-  CategoricalRedToYellow,
-  CategoricalWavesOfBlue,
 } from '@superset-ui/core';
 
-function registerColorSchemes<T extends ColorScheme>(
+function registerColorSchemes<T extends { id: string; isDefault?: boolean }>(
   registry: ColorSchemeRegistry<T>,
   colorSchemes: T[],
   standardDefaultKey: string,
@@ -68,29 +58,22 @@ export default function setupColors(
   const extraSequentialColorSchemes = extraSequentialColorSchemeConfigs.map(
     config => new SequentialScheme(config),
   );
+
   registerColorSchemes(
     getCategoricalSchemeRegistry(),
     [
-      ...CategoricalAirbnb,
-      ...CategoricalD3,
-      ...CategoricalEcharts,
-      ...CategoricalGoogle,
-      ...CategoricalLyft,
-      ...CategoricalPreset,
-      ...CategoricalSuperset,
-      ...CategoricalPresetSuperset,
-      ...CategoricalModernSunset,
-      ...CategoricalColorsOfRainbow,
-      ...CategoricalBlueToGreen,
-      ...CategoricalRedToYellow,
-      ...CategoricalWavesOfBlue,
+      ...allCategoricalColorSchemeConfigs.map(c => new CategoricalScheme(c)),
       ...extraCategoricalColorSchemes,
     ],
-    'supersetColors',
+    DEFAULT_CATEGORICAL_SCHEME,
   );
+
   registerColorSchemes(
     getSequentialSchemeRegistry(),
-    [...SequentialCommon, ...SequentialD3, ...extraSequentialColorSchemes],
-    'superset_seq_1',
+    [
+      ...allSequentialColorSchemeConfigs.map(c => new SequentialScheme(c)),
+      ...extraSequentialColorSchemes,
+    ],
+    DEFAULT_SEQUENTIAL_SCHEME,
   );
 }

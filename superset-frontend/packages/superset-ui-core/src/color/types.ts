@@ -32,8 +32,7 @@ export interface RgbaColor {
   a: number;
 }
 
-export enum ColorSchemeGroup {
-  Custom = 'custom',
-  Featured = 'featured',
-  Other = 'other',
-}
+// Re-exported from @apache-superset/core/colors so that @superset-ui/core
+// consumers continue to import from the same path without breaking changes,
+// while @apache-superset/core remains the single source of truth.
+export { ColorSchemeGroup } from '@apache-superset/core/colors';
