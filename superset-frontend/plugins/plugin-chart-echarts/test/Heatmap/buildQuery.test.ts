@@ -34,7 +34,6 @@ describe('Heatmap buildQuery - X-axis sort orderby', () => {
   test('should NOT add orderby when sort_x_axis is value-based ascending', () => {
     const formData = { ...baseFormData, sort_x_axis: 'value_asc' };
     const [query] = buildQuery(formData).queries;
-    // The metric orderby must be absent; value-sort is handled by sortAxisValues in transformProps
     expect(query.orderby).toEqual([]);
   });
 
@@ -76,7 +75,6 @@ describe('Heatmap buildQuery - Y-axis sort orderby', () => {
   test('should NOT add orderby when sort_y_axis is value-based ascending', () => {
     const formData = { ...baseFormData, sort_y_axis: 'value_asc' };
     const [query] = buildQuery(formData).queries;
-    // The metric orderby must be absent; value-sort is handled by sortAxisValues in transformProps
     expect(query.orderby).toEqual([]);
   });
 

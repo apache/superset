@@ -39,15 +39,11 @@ export default function buildQuery(formData: QueryFormData) {
   ];
   const orderby: QueryFormOrderBy[] = [];
   if (sort_x_axis && !sort_x_axis.includes('value')) {
-    // Value-based X-axis sorting is handled post-query by sortAxisValues in transformProps.ts.
-    // Adding a SQL orderby here would sort by individual (x,y) metric values rather than
-    // aggregated sums per X category, causing biased row_limit truncation.
+    // Value sorts are applied post-query; SQL orderby biases row_limit truncation.
     orderby.push([columns[0], sort_x_axis.includes('asc')]);
   }
   if (sort_y_axis && !sort_y_axis.includes('value')) {
-    // Value-based Y-axis sorting is handled post-query by sortAxisValues in transformProps.ts.
-    // Adding a SQL orderby here would sort by individual (x,y) metric values rather than
-    // aggregated sums per Y category, causing biased row_limit truncation.
+    // Value sorts are applied post-query; SQL orderby biases row_limit truncation.
     orderby.push([columns[1], sort_y_axis.includes('asc')]);
   }
   const group_by =
