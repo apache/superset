@@ -137,6 +137,9 @@ describe('ShareSqlLabQuery', () => {
         // CopyToClipboard default tooltip must NOT appear —
         // only the Button-level "Copy query link to your clipboard" should show.
         expect(screen.queryByText('Copy to clipboard')).not.toBeInTheDocument();
+        expect(
+          screen.getByText('Copy query link to your clipboard'),
+        ).toBeInTheDocument();
       });
     });
 
