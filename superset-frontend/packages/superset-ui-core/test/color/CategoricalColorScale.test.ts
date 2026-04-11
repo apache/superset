@@ -225,6 +225,28 @@ describe('CategoricalColorScale', () => {
 
       expect(getNextAvailableColorSpy).not.toHaveBeenCalled();
     });
+    test('reassigns non-forced labels when a dashboard-synced label would duplicate their color', () => {
+      window.featureFlags = {
+        [FeatureFlag.AvoidColorsCollision]: true,
+      };
+
+      const dashScale = new CategoricalColorScale(['red', 'blue', 'green']);
+      const sliceId = 501;
+      const colorScheme = 'preset';
+
+      dashScale.labelsColorMapInstance.source = LabelsColorMapSource.Dashboard;
+      jest
+        .spyOn(dashScale.labelsColorMapInstance, 'getColorMap')
+        .mockReturnValue(new Map([['Trains', 'red']]));
+
+      // Ordinal assigns first range color (red) before the synced "Trains" label is applied.
+      dashScale.getColor('Classic Cars', sliceId, colorScheme);
+      dashScale.getColor('Trains', sliceId, colorScheme);
+
+      expect(dashScale.chartLabelsColorMap.get('Trains')).toBe('red');
+      expect(dashScale.chartLabelsColorMap.get('Classic Cars')).not.toBe('red');
+      expect(dashScale.chartLabelsColorMap.get('Classic Cars')).toBeDefined();
+    });
   });
 
   describe('.setColor(value, forcedColor)', () => {
@@ -476,6 +498,135 @@ describe('CategoricalColorScale', () => {
       expect(scale.getColorUsageCount('red')).toBe(1);
       expect(scale.getColorUsageCount('green')).toBe(1);
       expect(scale.getColorUsageCount('yellow')).toBe(1);
+    });
+  });
+
+  describe('dashboard color collision — shared dimension across charts (SC bug)', () => {
+    /**
+     * Reproduces: Dashboard color collision — shared dimension names cause
+     * duplicate colors across charts.
+     *
+     * Steps from the bug report:
+     *   Chart A: only "Trains" → palette assigns red (slot 0)
+     *            → dashboard singleton locks Trains = red
+     *   Chart B: "Classic Cars" + "Trains"
+     *            → ordinal assigns Classic Cars = red (slot 0, same as Trains)
+     *            → dashboard sync forces Trains = red
+     *            → BUG: both Classic Cars and Trains render as red
+     *
+     * The fix (AvoidColorsCollision flag) detects the collision when Trains
+     * locks to red and reassigns Classic Cars to a different color.
+     */
+
+    let labelsColorMap: ReturnType<
+      CategoricalColorScale['labelsColorMapInstance']['constructor']
+    >;
+
+    beforeEach(() => {
+      window.featureFlags = {
+        [FeatureFlag.AvoidColorsCollision]: true,
+      };
+      // Reset the shared dashboard singleton before each scenario
+      const sentinel = new CategoricalColorScale(['red', 'blue', 'green']);
+      labelsColorMap = sentinel.labelsColorMapInstance;
+      labelsColorMap.reset();
+      labelsColorMap.source = LabelsColorMapSource.Dashboard;
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+      labelsColorMap.reset();
+    });
+
+    test('reproduces the bug without the fix: Classic Cars and Trains would both be red', () => {
+      // Disable the fix so the raw collision is observable
+      window.featureFlags = {
+        [FeatureFlag.AvoidColorsCollision]: false,
+      };
+
+      const PALETTE = ['red', 'blue', 'green'];
+
+      // Chart A: Trains → red (ordinal slot 0), stored in dashboard singleton
+      const chartAScale = new CategoricalColorScale(PALETTE);
+      chartAScale.getColor('Trains', 101, 'testScheme');
+      expect(labelsColorMap.getColorMap().get('Trains')).toBe('red');
+
+      // Chart B: Classic Cars renders first → ordinal assigns red (slot 0)
+      // Then Trains renders → dashboard map returns red (locked from Chart A)
+      const chartBScale = new CategoricalColorScale(PALETTE);
+      chartBScale.getColor('Classic Cars', 102, 'testScheme');
+      chartBScale.getColor('Trains', 102, 'testScheme');
+
+      const classicCarsColor =
+        chartBScale.chartLabelsColorMap.get('Classic Cars');
+      const trainsColor = chartBScale.chartLabelsColorMap.get('Trains');
+
+      // Without the fix both are red — this is the bug
+      expect(trainsColor).toBe('red');
+      expect(classicCarsColor).toBe('red'); // collision!
+    });
+
+    test('fix: Classic Cars is reassigned when Trains locks red from the dashboard', () => {
+      const PALETTE = ['red', 'blue', 'green'];
+
+      // Chart A: Trains → red (ordinal slot 0), stored in dashboard singleton
+      const chartAScale = new CategoricalColorScale(PALETTE);
+      chartAScale.getColor('Trains', 101, 'testScheme');
+      expect(labelsColorMap.getColorMap().get('Trains')).toBe('red');
+
+      // Chart B: Classic Cars renders first → ordinal assigns red (slot 0)
+      // Then Trains renders → dashboard map returns red (locked from Chart A)
+      // Fix: collision detected, Classic Cars reassigned away from red
+      const chartBScale = new CategoricalColorScale(PALETTE);
+      chartBScale.getColor('Classic Cars', 102, 'testScheme');
+      chartBScale.getColor('Trains', 102, 'testScheme');
+
+      const classicCarsColor =
+        chartBScale.chartLabelsColorMap.get('Classic Cars');
+      const trainsColor = chartBScale.chartLabelsColorMap.get('Trains');
+
+      // Trains keeps its dashboard-locked color
+      expect(trainsColor).toBe('red');
+      // Classic Cars must be reassigned to something other than red
+      expect(classicCarsColor).toBeDefined();
+      expect(classicCarsColor).not.toBe('red');
+    });
+
+    test('fix: no series in Chart B share a color when palette has enough colors', () => {
+      const PALETTE = ['red', 'blue', 'green'];
+
+      // Chart A locks Trains = red
+      const chartAScale = new CategoricalColorScale(PALETTE);
+      chartAScale.getColor('Trains', 101, 'testScheme');
+
+      // Chart B has Classic Cars + Trains
+      const chartBScale = new CategoricalColorScale(PALETTE);
+      chartBScale.getColor('Classic Cars', 102, 'testScheme');
+      chartBScale.getColor('Trains', 102, 'testScheme');
+
+      const colors = Array.from(chartBScale.chartLabelsColorMap.values());
+      const uniqueColors = new Set(colors);
+
+      // Both series should have distinct colors
+      expect(uniqueColors.size).toBe(colors.length);
+    });
+
+    test('fix: forced colors (user-set in dashboard JSON) are never reassigned', () => {
+      const PALETTE = ['red', 'blue', 'green'];
+      // Simulate the user having set "Classic Cars" = red in dashboard metadata
+      const forcedColors = { 'Classic Cars': 'red' };
+
+      // Chart A locks Trains = red
+      const chartAScale = new CategoricalColorScale(PALETTE);
+      chartAScale.getColor('Trains', 101, 'testScheme');
+
+      // Chart B: Classic Cars is forced to red, Trains is dashboard-locked to red
+      const chartBScale = new CategoricalColorScale(PALETTE, forcedColors);
+      chartBScale.getColor('Classic Cars', 102, 'testScheme');
+      chartBScale.getColor('Trains', 102, 'testScheme');
+
+      // Classic Cars must keep its forced color even if it collides
+      expect(chartBScale.chartLabelsColorMap.get('Classic Cars')).toBe('red');
     });
   });
 

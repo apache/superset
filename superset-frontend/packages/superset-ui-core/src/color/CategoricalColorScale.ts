@@ -154,6 +154,37 @@ class CategoricalColorScale extends ExtensibleFunction {
       }
     }
 
+    // Dashboard: a label may take a forced or synced color that matches another
+    // series in this chart that already consumed the same ordinal slot (e.g. shared
+    // dimension "Trains" locked to red while "Classic Cars" was assigned red first).
+    // Reassign other non-forced labels in this slice so the locked label keeps its color.
+    if (
+      isFeatureEnabled(FeatureFlag.AvoidColorsCollision) &&
+      source === LabelsColorMapSource.Dashboard
+    ) {
+      const colliding = [...this.chartLabelsColorMap.entries()].filter(
+        ([labelKey, c]) => c === color && labelKey !== cleanedValue,
+      );
+      if (colliding.length > 0 && isFeatureEnabled(FeatureFlag.UseAnalogousColors)) {
+        this.incrementColorRange();
+      }
+      for (const [otherLabel] of colliding) {
+        if (Object.prototype.hasOwnProperty.call(this.forcedColors, otherLabel)) {
+          continue;
+        }
+        const newColor = this.getNextAvailableColor(otherLabel, color);
+        this.chartLabelsColorMap.set(otherLabel, newColor);
+        if (sliceId) {
+          this.labelsColorMapInstance.addSlice(
+            otherLabel,
+            newColor,
+            sliceId,
+            appliedColorScheme,
+          );
+        }
+      }
+    }
+
     // keep track of values in this slice
     this.chartLabelsColorMap.set(cleanedValue, color);
 
