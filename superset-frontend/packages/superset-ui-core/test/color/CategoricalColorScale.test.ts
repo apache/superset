@@ -578,6 +578,37 @@ describe('CategoricalColorScale', () => {
       expect(uniqueColors.size).toBe(colors.length);
     });
 
+    test('fix: increments analogous color range for dashboard collisions when UseAnalogousColors is enabled', () => {
+      window.featureFlags = {
+        [FeatureFlag.AvoidColorsCollision]: true,
+        [FeatureFlag.UseAnalogousColors]: true,
+      };
+
+      const PALETTE = ['red', 'blue', 'green'];
+
+      const chartAScale = new CategoricalColorScale(PALETTE);
+      chartAScale.getColor('Trains', 101, 'testScheme');
+
+      const chartBScale = new CategoricalColorScale(PALETTE);
+      const addSliceSpy = jest.spyOn(
+        chartBScale.labelsColorMapInstance,
+        'addSlice',
+      );
+      chartBScale.getColor('Classic Cars', 102, 'testScheme');
+      chartBScale.getColor('Model T', 102, 'testScheme');
+      chartBScale.getColor('Trains', 102, 'testScheme');
+
+      expect(chartBScale.chartLabelsColorMap.get('Trains')).toBe('red');
+      expect(chartBScale.chartLabelsColorMap.get('Classic Cars')).toBeDefined();
+      expect(chartBScale.chartLabelsColorMap.get('Classic Cars')).not.toBe('red');
+      expect(chartBScale.range()).toHaveLength(6);
+      expect(
+        addSliceSpy.mock.calls.some(
+          ([label, color]) => label === 'Classic Cars' && color !== 'red',
+        ),
+      ).toBe(true);
+    });
+
     test('fix: forced colors (user-set in dashboard JSON) are never reassigned', () => {
       const PALETTE = ['red', 'blue', 'green'];
       const forcedColors = { 'Classic Cars': 'red' };
