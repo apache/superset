@@ -160,7 +160,8 @@ class CategoricalColorScale extends ExtensibleFunction {
     // Reassign other non-forced labels in this slice so the locked label keeps its color.
     if (
       isFeatureEnabled(FeatureFlag.AvoidColorsCollision) &&
-      source === LabelsColorMapSource.Dashboard
+      source === LabelsColorMapSource.Dashboard &&
+      (forcedColor || isExistingLabel)
     ) {
       const colliding = [...this.chartLabelsColorMap.entries()].filter(
         ([labelKey, c]) => c === color && labelKey !== cleanedValue,
