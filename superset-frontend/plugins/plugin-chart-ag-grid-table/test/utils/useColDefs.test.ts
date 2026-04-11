@@ -895,24 +895,26 @@ test('width uses server pagination row count when available', () => {
   expect(resultLater.current[0].width).toBe(42);
 });
 
-test('valueGetter returns correct row numbers without server pagination', () => {
+test('valueGetter returns row numbers without server pagination', () => {
   const { result } = renderHook(
     () => useColDefs({ ...basePropsNumericColumns, showNumberedColumn: true }),
     { wrapper: defaultThemeWrapper },
   );
   const colDef = result.current[0];
-  const {valueGetter} = colDef;
+  const { valueGetter } = colDef;
   expect(valueGetter).toBeDefined();
   expect(typeof valueGetter).toBe('function');
+
+  const getter = valueGetter as (params: any) => any;
 
   const params = (rowIndex: number) => ({
     node: { rowIndex },
     data: basePropsNumericColumns.data[rowIndex],
   });
 
-  expect((valueGetter as Function)(params(0))).toBe(1);
-  expect((valueGetter as Function)(params(1))).toBe(2);
-  expect((valueGetter as Function)(params(2))).toBe(3);
+  expect(getter(params(0))).toBe(1);
+  expect(getter(params(1))).toBe(2);
+  expect(getter(params(2))).toBe(3);
 });
 
 test('valueGetter respects server pagination', () => {
@@ -926,9 +928,11 @@ test('valueGetter respects server pagination', () => {
     () => useColDefs({ ...serverProps, showNumberedColumn: true }),
     { wrapper: defaultThemeWrapper },
   );
-  const {valueGetter} = result.current[0];
+  const { valueGetter } = result.current[0];
   expect(typeof valueGetter).toBe('function');
 
-  expect((valueGetter as Function)({ node: { rowIndex: 0 } })).toBe(11);
-  expect((valueGetter as Function)({ node: { rowIndex: 1 } })).toBe(12);
+  const getter = valueGetter as (params: any) => any;
+
+  expect(getter({ node: { rowIndex: 0 } })).toBe(11);
+  expect(getter({ node: { rowIndex: 1 } })).toBe(12);
 });
