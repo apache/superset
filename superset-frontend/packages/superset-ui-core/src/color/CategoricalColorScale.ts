@@ -166,11 +166,16 @@ class CategoricalColorScale extends ExtensibleFunction {
       const colliding = [...this.chartLabelsColorMap.entries()].filter(
         ([labelKey, c]) => c === color && labelKey !== cleanedValue,
       );
-      if (colliding.length > 0 && isFeatureEnabled(FeatureFlag.UseAnalogousColors)) {
+      if (
+        colliding.length > 0 &&
+        isFeatureEnabled(FeatureFlag.UseAnalogousColors)
+      ) {
         this.incrementColorRange();
       }
       for (const [otherLabel] of colliding) {
-        if (Object.prototype.hasOwnProperty.call(this.forcedColors, otherLabel)) {
+        if (
+          Object.prototype.hasOwnProperty.call(this.forcedColors, otherLabel)
+        ) {
           continue;
         }
         const newColor = this.getNextAvailableColor(otherLabel, color);
