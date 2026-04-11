@@ -138,7 +138,12 @@ export const fetchPermissionOptions = async (
 ) => {
   if (!filterValue) {
     try {
-      return await fetchPermissionPageRaw({ page, page_size: pageSize });
+      return await fetchPermissionPageRaw({
+        page,
+        page_size: pageSize,
+        order_column: 'id',
+        order_direction: 'asc',
+      });
     } catch {
       addDangerToast(t('There was an error while fetching permissions'));
       return { data: [], totalCount: 0 };
@@ -193,6 +198,8 @@ export const fetchGroupOptions = async (
   const query = rison.encode({
     page,
     page_size: pageSize,
+    order_column: 'name',
+    order_direction: 'asc',
     ...(filterValue
       ? { filters: [{ col: 'name', opr: 'ct', value: filterValue }] }
       : {}),
