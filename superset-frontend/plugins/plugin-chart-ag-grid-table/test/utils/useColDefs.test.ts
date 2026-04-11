@@ -967,7 +967,7 @@ test('pageSize priority chain works correctly', () => {
     serverPagination: true,
     serverPaginationData: { currentPage: 2, pageSize: 10 },
     serverPageLength: 5,
-    data: new Array(3).fill({ a: 1 }),
+    data: Array.from({ length: 3 }, () => ({ a: 1 })),
     showNumberedColumn: true,
   };
   const { result: res1 } = renderHook(() => useColDefs(props1), {
@@ -995,19 +995,25 @@ test('column width adapts to max row number length in client mode', () => {
     serverPagination: false,
   };
 
-  const props9 = { ...base, data: new Array(9).fill({ a: 1 }) };
+  const props9 = { ...base, data: Array.from({ length: 9 }, () => ({ a: 1 })) };
   const { result: res9 } = renderHook(() => useColDefs(props9), {
     wrapper: defaultThemeWrapper,
   });
   expect(res9.current[0].width).toBe(36);
 
-  const props10 = { ...base, data: new Array(10).fill({ a: 1 }) };
+  const props10 = {
+    ...base,
+    data: Array.from({ length: 10 }, () => ({ a: 1 })),
+  };
   const { result: res10 } = renderHook(() => useColDefs(props10), {
     wrapper: defaultThemeWrapper,
   });
   expect(res10.current[0].width).toBe(42);
 
-  const props100 = { ...base, data: new Array(100).fill({ a: 1 }) };
+  const props100 = {
+    ...base,
+    data: Array.from({ length: 100 }, () => ({ a: 1 })),
+  };
   const { result: res100 } = renderHook(() => useColDefs(props100), {
     wrapper: defaultThemeWrapper,
   });
