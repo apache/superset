@@ -21,6 +21,7 @@ import { ScaleOrdinal } from 'd3-scale';
 import {
   CategoricalColorScale,
   FeatureFlag,
+  getLabelsColorMap,
   LabelsColorMapSource,
 } from '@superset-ui/core';
 
@@ -518,9 +519,7 @@ describe('CategoricalColorScale', () => {
      * locks to red and reassigns Classic Cars to a different color.
      */
 
-    let labelsColorMap: ReturnType<
-      CategoricalColorScale['labelsColorMapInstance']['constructor']
-    >;
+    let labelsColorMap: ReturnType<typeof getLabelsColorMap>;
 
     beforeEach(() => {
       window.featureFlags = {
