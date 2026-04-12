@@ -64,7 +64,8 @@ def test_get_cancel_query_id() -> None:
 def test_cancel_query(post_mock: Mock) -> None:
     query = Query()
     database = Database(
-        database_name="test_impala", sqlalchemy_uri="impala://localhost:21050/default"
+        database_name="test_impala",
+        sqlalchemy_uri="impala://impala.example.com:21050/default",
     )
     query.database = database
 
@@ -72,10 +73,11 @@ def test_cancel_query(post_mock: Mock) -> None:
     response_mock.status_code = 200
     post_mock.return_value = response_mock
 
-    result = spec.cancel_query(None, query, "6940643a2731718b:9fbdba2000000000")
+    with patch("superset.db_engine_specs.impala.is_safe_host", return_value=True):
+        result = spec.cancel_query(None, query, "6940643a2731718b:9fbdba2000000000")
 
     post_mock.assert_called_once_with(
-        "http://localhost:25000/cancel_query?query_id=6940643a2731718b:9fbdba2000000000",
+        "http://impala.example.com:25000/cancel_query?query_id=6940643a2731718b:9fbdba2000000000",
         timeout=3,
     )
     assert result is True
@@ -85,7 +87,8 @@ def test_cancel_query(post_mock: Mock) -> None:
 def test_cancel_query_failed(post_mock: Mock) -> None:
     query = Query()
     database = Database(
-        database_name="test_impala", sqlalchemy_uri="impala://localhost:21050/default"
+        database_name="test_impala",
+        sqlalchemy_uri="impala://impala.example.com:21050/default",
     )
     query.database = database
 
@@ -93,10 +96,11 @@ def test_cancel_query_failed(post_mock: Mock) -> None:
     response_mock.status_code = 500
     post_mock.return_value = response_mock
 
-    result = spec.cancel_query(None, query, "6940643a2731718b:9fbdba2000000000")
+    with patch("superset.db_engine_specs.impala.is_safe_host", return_value=True):
+        result = spec.cancel_query(None, query, "6940643a2731718b:9fbdba2000000000")
 
     post_mock.assert_called_once_with(
-        "http://localhost:25000/cancel_query?query_id=6940643a2731718b:9fbdba2000000000",
+        "http://impala.example.com:25000/cancel_query?query_id=6940643a2731718b:9fbdba2000000000",
         timeout=3,
     )
     assert result is False
@@ -106,12 +110,28 @@ def test_cancel_query_failed(post_mock: Mock) -> None:
 def test_cancel_query_exception(post_mock: Mock) -> None:
     query = Query()
     database = Database(
-        database_name="test_impala", sqlalchemy_uri="impala://localhost:21050/default"
+        database_name="test_impala",
+        sqlalchemy_uri="impala://impala.example.com:21050/default",
     )
     query.database = database
 
     post_mock.side_effect = Exception("Network error")
 
+    with patch("superset.db_engine_specs.impala.is_safe_host", return_value=True):
+        result = spec.cancel_query(None, query, "6940643a2731718b:9fbdba2000000000")
+
+    assert result is False
+
+
+@patch("requests.post")
+def test_cancel_query_unsafe_host(post_mock: Mock) -> None:
+    query = Query()
+    database = Database(
+        database_name="test_impala", sqlalchemy_uri="impala://192.168.1.1:21050/default"
+    )
+    query.database = database
+
     result = spec.cancel_query(None, query, "6940643a2731718b:9fbdba2000000000")
 
+    post_mock.assert_not_called()
     assert result is False
