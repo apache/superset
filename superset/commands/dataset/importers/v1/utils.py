@@ -89,8 +89,7 @@ def validate_data_uri(data_uri: str) -> None:
     Local ``file://`` URIs (used for bundled example data) are always allowed
     since they do not make network requests.  All other URIs must match a
     pattern in ``DATASET_IMPORT_ALLOWED_DATA_URLS`` *and* resolve to a
-    publicly-routable host — preventing SSRF via userinfo injection such as
-    ``https://allowed.example.com@169.254.169.254/``.
+    publicly-routable host.
 
     :param data_uri: the URI to validate
     :raises DatasetForbiddenDataURI: if the URI is not permitted

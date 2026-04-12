@@ -77,6 +77,15 @@ def test_is_safe_host_empty_results_returns_false() -> None:
         assert is_safe_host("empty-result.example.com") is False
 
 
+def test_is_safe_host_malformed_sockaddr_returns_false() -> None:
+    """A sockaddr that cannot be parsed as an IP address must return False."""
+    with patch(
+        "superset.utils.network.socket.getaddrinfo",
+        return_value=[(None, None, None, None, ("not-an-ip", 0))],
+    ):
+        assert is_safe_host("malformed") is False
+
+
 def test_is_safe_host_rejects_if_any_ip_is_private() -> None:
     """A hostname that resolves to both a public and a private IP (split-DNS
     or multi-homed host) must be rejected — all resolved IPs must be safe."""

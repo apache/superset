@@ -834,3 +834,16 @@ def test_validate_data_uri_allow_internal_flag_bypasses_host_check():
     ) as mock_check:
         validate_data_uri("http://10.0.0.5/data.csv")
         mock_check.assert_not_called()
+
+
+def test_validate_data_uri_no_hostname_passes_host_check():
+    """A URI that produces no hostname from urlparse (e.g. opaque URIs) must
+    not call is_safe_host and must pass the allowlist check cleanly."""
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = [r".*"]
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+    with patch(
+        "superset.commands.dataset.importers.v1.utils.is_safe_host",
+    ) as mock_check:
+        # urlparse("data:text/csv,...").hostname is None
+        validate_data_uri("data:text/csv,col1,col2")
+        mock_check.assert_not_called()
