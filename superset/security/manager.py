@@ -2798,6 +2798,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     self.get_datasource_access_error_object(datasource)
                 )
 
+            # When the guest token carries a dataset allowlist, restrict access
+            # to only those dataset IDs even if the chart/dashboard check above
+            # would otherwise grant it.  Tokens without the ``datasets`` claim
+            # retain the existing behaviour (all dashboard datasets accessible).
+            if self.is_guest_user():
+                guest_user = self.get_current_guest_user_if_guest()
+                if guest_user:
+                    allowed_datasets: Optional[list[int]] = guest_user.guest_token.get(
+                        "datasets"
+                    )
+                    if (
+                        allowed_datasets is not None
+                        and datasource.id not in allowed_datasets
+                    ):
+                        raise SupersetSecurityException(
+                            self.get_datasource_access_error_object(datasource)
+                        )
+
         if dashboard:
             if self.is_guest_user():
                 # Guest user is currently used for embedded dashboards only. If the guest  # noqa: E501
@@ -3127,6 +3145,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         user: GuestTokenUser,
         resources: GuestTokenResources,
         rls: list[GuestTokenRlsRule],
+        datasets: Optional[list[int]] = None,
     ) -> bytes:
         secret = get_conf()["GUEST_TOKEN_JWT_SECRET"]
         algo = get_conf()["GUEST_TOKEN_JWT_ALGO"]
@@ -3135,7 +3154,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # calculate expiration time
         now = self._get_current_epoch_time()
         exp = now + exp_seconds
-        claims = {
+        claims: dict[str, Any] = {
             "user": user,
             "resources": resources,
             "rls_rules": rls,
@@ -3145,6 +3164,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             "aud": audience,
             "type": "guest",
         }
+        if datasets is not None:
+            claims["datasets"] = datasets
         return self.pyjwt_for_guest_token.encode(claims, secret, algorithm=algo)
 
     def get_guest_user_from_request(self, req: Request) -> Optional[GuestUser]:

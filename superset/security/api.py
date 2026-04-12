@@ -83,6 +83,17 @@ class GuestTokenCreateSchema(PermissiveSchema):
     user = fields.Nested(UserSchema)
     resources = fields.List(fields.Nested(ResourceSchema), required=True)
     rls = fields.List(fields.Nested(RlsRuleSchema), required=True)
+    datasets = fields.List(
+        fields.Integer(),
+        load_default=None,
+        metadata={
+            "description": (
+                "Optional allowlist of dataset IDs the guest may access. "
+                "When omitted all datasets linked to the embedded dashboard "
+                "are accessible, preserving the default behaviour."
+            )
+        },
+    )
 
 
 class RoleResponseSchema(PermissiveSchema):
@@ -187,7 +198,10 @@ class SecurityRestApi(BaseSupersetApi):
             # make sure username doesn't reference an existing user
             # check rls rules for validity?
             token = self.appbuilder.sm.create_guest_access_token(
-                body["user"], body["resources"], body["rls"]
+                body["user"],
+                body["resources"],
+                body["rls"],
+                datasets=body.get("datasets"),
             )
             return self.response(200, token=token)
         except EmbeddedDashboardNotFoundError as error:
