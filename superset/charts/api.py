@@ -30,7 +30,7 @@ from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
-from superset import is_feature_enabled
+from superset import is_feature_enabled, security_manager
 from superset.charts.filters import (
     ChartAllTextFilter,
     ChartCertifiedFilter,
@@ -1007,6 +1007,14 @@ class ChartRestApi(BaseSupersetModelRestApi):
             self.response_403()
 
         return self.response(200, result="OK")
+
+    def related(self, column_name: str, **kwargs: Any) -> Response:
+        """Restrict the owners related field to users with write access."""
+        if column_name == "owners" and not security_manager.can_access(
+            "can_write", self.class_permission_name
+        ):
+            return self.response_403()
+        return super().related(column_name, **kwargs)
 
     @expose("/warm_up_cache", methods=("PUT",))
     @protect()
