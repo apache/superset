@@ -18,10 +18,10 @@
  */
 
 /**
- * Strip C0/C1 control characters except tab, LF, and CR.
+ * Strip all C0/C1 control characters (U+0000–U+001F, U+007F–U+009F).
  * Headless browsers (Playwright/Chromium) can hang or crash when document.title
  * contains characters such as U+0008 (backspace).
  */
 export function sanitizeDocumentTitle(title: string): string {
-  return title.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]/g, '');
+  return title.replace(/[\x00-\x1f\x7f-\x9f]/g, '');
 }

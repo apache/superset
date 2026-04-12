@@ -18,12 +18,14 @@ import re
 
 from werkzeug.utils import secure_filename
 
-# C0/C1 controls except tab (\x09), LF (\x0a), CR (\x0d) — safe for filenames and
-# downstream consumers that mishandle these bytes.
-_CONTROL_CHARS_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]")
+# All C0 (U+0000–U+001F) and C1 (U+007F–U+009F) control characters.
+# Stripping every control char (including tab, LF, CR) keeps titles safe for
+# SMTP headers, Content-Disposition filenames, and headless-browser document.title.
+_CONTROL_CHARS_RE = re.compile(r"[\x00-\x1f\x7f-\x9f]")
 
 
 def sanitize_title(title: str) -> str:
+    """Remove all C0/C1 control characters from a title string."""
     return _CONTROL_CHARS_RE.sub("", title)
 
 
