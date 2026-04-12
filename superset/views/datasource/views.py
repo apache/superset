@@ -36,6 +36,7 @@ from superset.connectors.sqla.utils import get_physical_table_metadata
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.dataset import DatasetDAO
 from superset.daos.datasource import DatasourceDAO
+from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.core import Database
 from superset.sql.parse import Table
@@ -229,10 +230,12 @@ class Datasource(BaseSupersetView):
             ):
                 return json_error_response(_("Forbidden"), status=403)
         else:
-            dataset = DatasetDAO.find_by_id(
-                params["datasource_id"], skip_base_filter=True
-            )
-            if not dataset:
+            try:
+                dataset = DatasourceDAO.get_datasource(
+                    params["datasource_type"],
+                    params["datasource_id"],
+                )
+            except (DatasourceNotFound, DatasourceTypeNotSupportedError):
                 return self.response_404()
             try:
                 security_manager.raise_for_access(datasource=dataset)

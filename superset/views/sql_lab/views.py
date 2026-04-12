@@ -282,20 +282,24 @@ class TableSchemaView(BaseSupersetView):
     @has_access_api
     @expose("/<int:table_schema_id>/expanded", methods=("POST",))
     def expanded(self, table_schema_id: int) -> FlaskResponse:
-        tab_state_id = (
-            db.session.query(TableSchema.tab_state_id)
-            .filter_by(id=table_schema_id)
-            .scalar()
-        )
-        if tab_state_id is None:
-            return json_error_response(__("Not found"), status=404)
-        owner_id = _get_owner_id(tab_state_id)
-        if owner_id is None or owner_id != get_user_id():
-            return json_error_response(__("Forbidden"), status=403)
-        payload = json.loads(request.form["expanded"])
-        db.session.query(TableSchema).filter_by(id=table_schema_id).update(
-            {"expanded": payload}
-        )
-        db.session.commit()
-        response = json.dumps({"id": table_schema_id, "expanded": payload})
-        return json_success(response)
+        try:
+            tab_state_id = (
+                db.session.query(TableSchema.tab_state_id)
+                .filter_by(id=table_schema_id)
+                .scalar()
+            )
+            if tab_state_id is None:
+                return json_error_response(__("Not found"), status=404)
+            owner_id = _get_owner_id(tab_state_id)
+            if owner_id is None or owner_id != get_user_id():
+                return json_error_response(__("Forbidden"), status=403)
+            payload = json.loads(request.form["expanded"])
+            db.session.query(TableSchema).filter_by(id=table_schema_id).update(
+                {"expanded": payload}
+            )
+            db.session.commit()
+            response = json.dumps({"id": table_schema_id, "expanded": payload})
+            return json_success(response)
+        except Exception as ex:  # pylint: disable=broad-except
+            db.session.rollback()
+            return json_error_response(error_msg_from_exception(ex), 400)
