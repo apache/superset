@@ -828,7 +828,7 @@ def test_validate_data_uri_blocks_userinfo_ssrf_injection(data_uri: str) -> None
             validate_data_uri(data_uri)
 
 
-def test_validate_data_uri_allow_internal_flag_bypasses_host_check():
+def test_validate_data_uri_allow_internal_flag_bypasses_host_check() -> None:
     """When DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS is True, internal hosts
     must be permitted to support air-gapped / on-premises deployments."""
     current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = [r".*"]
