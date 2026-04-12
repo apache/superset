@@ -102,12 +102,21 @@ function createEmbedAppServer(): Server {
 
 // ─── Test Suite ────────────────────────────────────────────────────────────
 
+// Run tests serially: they share a static file server on a fixed port
+test.describe.configure({ mode: 'serial' });
+
 test.describe('Embedded Dashboard E2E', () => {
   let server: Server;
   let embedUuid: string;
   let dashboardId: number;
 
   test.beforeAll(async ({ browser }) => {
+    // Skip all tests if the SDK bundle hasn't been built
+    test.skip(
+      !existsSync(SDK_BUNDLE_PATH),
+      'Embedded SDK bundle not found. Build it with: cd superset-embedded-sdk && npm ci && npm run build',
+    );
+
     // Start the embedded test app server
     server = createEmbedAppServer();
     await new Promise<void>((resolve, reject) => {
@@ -219,9 +228,6 @@ test.describe('Embedded Dashboard E2E', () => {
 
     // Verify the filter bar is present in the iframe
     const frame = embeddedPage.getIframeLocator();
-    const filterBar = frame.locator(
-      '[data-test="filter-bar"], [data-test="dashboard-filters-panel"]',
-    );
     // The World Health dashboard may or may not have filters,
     // so we just verify the dashboard rendered without errors
     const charts = frame.locator(
@@ -285,7 +291,7 @@ test.describe('Embedded Dashboard E2E', () => {
 
     let tokenCallCount = 0;
     await embeddedPage.exposeTokenFetcher(async () => {
-      tokenCallCount++;
+      tokenCallCount += 1;
       return getGuestToken(page, String(dashboardId));
     });
 
