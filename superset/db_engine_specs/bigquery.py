@@ -20,9 +20,9 @@ from __future__ import annotations
 import logging
 import re
 import urllib
+from collections.abc import Callable
 from datetime import datetime
 from re import Pattern
-from collections.abc import Callable
 from typing import Any, TYPE_CHECKING, TypedDict
 
 import pandas as pd
@@ -136,9 +136,7 @@ class BigQueryStringType(types.TypeDecorator):
     impl = types.String
     cache_ok = True
 
-    def literal_processor(
-        self, dialect: DefaultDialect
-    ) -> Callable[[Any], str]:
+    def literal_processor(self, dialect: DefaultDialect) -> Callable[[Any], str]:
         def process(value: Any) -> str:
             raw = str(value)
             escaped = raw.replace("\\", "\\\\").replace("'", "\\'")
@@ -161,7 +159,7 @@ def _monkeypatch_bigquery_dialect() -> None:
     try:
         from sqlalchemy_bigquery import BigQueryDialect
 
-        BigQueryDialect.colspecs[types.String] = BigQueryStringType  # type: ignore
+        BigQueryDialect.colspecs[types.String] = BigQueryStringType
     except ImportError:
         pass
 
