@@ -44,8 +44,6 @@ SENSITIVE_FIELDS = {
         "created_by_fk",  # Internal user references
     },
     "dashboard": {
-        "json_metadata",  # May contain sensitive configuration
-        "position_json",  # Internal layout data
         "css",  # May contain sensitive styling info
         "changed_by_fk",  # Internal user references
         "created_by_fk",  # Internal user references
@@ -64,8 +62,6 @@ SENSITIVE_FIELD_PERMISSIONS = {
     "database_id": "can_this_form_get",  # Database access permissions
     "query_context": "can_explore_json",  # Explore permissions
     "cache_key": "can_warm_up_cache",  # Cache management permissions
-    "json_metadata": "can_this_form_get",  # Advanced dashboard permissions
-    "position_json": "can_this_form_get",  # Dashboard edit permissions
     "css": "can_this_form_get",  # Dashboard styling permissions
 }
 
