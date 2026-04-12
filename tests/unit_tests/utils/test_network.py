@@ -102,8 +102,8 @@ def test_is_safe_host_rejects_if_any_ip_is_private() -> None:
 @pytest.mark.parametrize(
     "mapped_ip",
     [
-        "::ffff:127.0.0.1",   # loopback via IPv4-mapped IPv6
-        "::ffff:10.0.0.1",    # RFC-1918 via IPv4-mapped IPv6
+        "::ffff:127.0.0.1",  # loopback via IPv4-mapped IPv6
+        "::ffff:10.0.0.1",  # RFC-1918 via IPv4-mapped IPv6
         "::ffff:169.254.169.254",  # link-local via IPv4-mapped IPv6
     ],
 )

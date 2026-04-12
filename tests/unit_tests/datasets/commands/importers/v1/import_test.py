@@ -578,16 +578,20 @@ def test_import_dataset_extra_empty_string(
     assert sqla_table.extra is None  # noqa: E711
 
 
-@patch("superset.commands.dataset.importers.v1.utils.request.urlopen")
+@patch("superset.commands.dataset.importers.v1.utils.is_safe_host", return_value=True)
+@patch("superset.commands.dataset.importers.v1.utils.request.build_opener")
 def test_import_column_allowed_data_url(
-    mock_urlopen: Mock,
+    mock_build_opener: Mock,
+    mock_is_safe_host: Mock,
     mocker: MockerFixture,
     session: Session,
 ) -> None:
     """
     Test importing a dataset when using data key to fetch data from a URL.
     """
-    mock_urlopen.return_value = io.StringIO("col1\nvalue1\nvalue2\n")
+    mock_opener = Mock()
+    mock_opener.open.return_value = io.StringIO("col1\nvalue1\nvalue2\n")
+    mock_build_opener.return_value = mock_opener
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 

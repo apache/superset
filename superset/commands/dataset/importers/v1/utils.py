@@ -60,6 +60,7 @@ class _ValidatingRedirectHandler(HTTPRedirectHandler):
         validate_data_uri(newurl)
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
+
 CHUNKSIZE = 512
 VARCHAR = re.compile(r"VARCHAR\((\d+)\)", re.IGNORECASE)
 
