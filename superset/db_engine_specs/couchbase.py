@@ -35,7 +35,7 @@ from superset.db_engine_specs.base import (
     DatabaseCategory,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.utils.network import is_hostname_valid, is_port_open
+from superset.utils.network import is_port_open, is_safe_host
 
 
 class BasicParametersType(TypedDict, total=False):
@@ -228,7 +228,7 @@ class CouchbaseEngineSpec(BasicParametersMixin, BaseEngineSpec):
         if not host:
             return errors
         # host can be a connection string in case of couchbase cloud. So Connection Check is not required in that case.  # noqa: E501
-        if not is_hostname_valid(host):
+        if not is_safe_host(host):
             errors.append(
                 SupersetError(
                     message="The hostname provided can't be resolved.",
