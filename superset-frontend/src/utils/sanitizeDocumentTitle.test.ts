@@ -19,11 +19,11 @@
 import { sanitizeDocumentTitle } from './sanitizeDocumentTitle';
 
 describe('sanitizeDocumentTitle', () => {
-  it('removes backspace and other C0 controls except tab/LF/CR', () => {
+  it('removes all C0 control characters including tab/LF/CR', () => {
     expect(sanitizeDocumentTitle('a\x08b')).toBe('ab');
-    expect(sanitizeDocumentTitle('x\x09y')).toBe('x\ty');
-    expect(sanitizeDocumentTitle('x\ny')).toBe('x\ny');
-    expect(sanitizeDocumentTitle('x\ry')).toBe('x\ry');
+    expect(sanitizeDocumentTitle('x\x09y')).toBe('xy');
+    expect(sanitizeDocumentTitle('x\ny')).toBe('xy');
+    expect(sanitizeDocumentTitle('x\ry')).toBe('xy');
   });
 
   it('removes DEL and C1 controls', () => {

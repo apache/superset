@@ -51,9 +51,9 @@ def test_get_filename(
     [
         ("normal", "normal"),
         ("a\x08b", "ab"),
-        ("x\x09y", "x\ty"),
-        ("x\ny", "x\ny"),
-        ("x\ry", "x\ry"),
+        ("x\x09y", "xy"),
+        ("x\ny", "xy"),
+        ("x\ry", "xy"),
         ("\x00\x01\x02", ""),
         ("a\x7fb", "ab"),
         ("a\x9fb", "ab"),
