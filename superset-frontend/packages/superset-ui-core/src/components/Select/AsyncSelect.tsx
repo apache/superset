@@ -573,7 +573,15 @@ const AsyncSelect = forwardRef(
       if (isSingleMode) {
         const pastedValue = await getPastedTextValue(pastedText);
         if (pastedValue) {
-          setSelectValue(pastedValue);
+          const valueChanged = !utilsIsEqual(
+            pastedValue,
+            selectValue as RawValue | AntdLabeledValue,
+            'value',
+          );
+          if (valueChanged) {
+            setSelectValue(pastedValue);
+            fireOnChange();
+          }
           fireOnChange();
         }
       } else {
