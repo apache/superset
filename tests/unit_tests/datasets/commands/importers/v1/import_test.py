@@ -777,9 +777,60 @@ def test_import_dataset_without_owner_permission(
     ],
 )
 def test_validate_data_uri(allowed_urls, data_uri, expected, exception_class):
+    """Tests allowlist pattern matching. is_safe_host is stubbed out so that
+    fake/unresolvable test hostnames do not interfere with DNS-based checks
+    (those are covered by the dedicated is_safe_host tests below)."""
     current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = allowed_urls
-    if expected:
-        validate_data_uri(data_uri)
-    else:
-        with pytest.raises(exception_class):
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+    with patch(
+        "superset.commands.dataset.importers.v1.utils.is_safe_host",
+        return_value=True,
+    ):
+        if expected:
             validate_data_uri(data_uri)
+        else:
+            with pytest.raises(exception_class):
+                validate_data_uri(data_uri)
+
+
+def test_validate_data_uri_file_scheme_always_allowed():
+    """file:// URIs must always pass regardless of allowlist or SSRF guards."""
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = []
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+    validate_data_uri("file:///tmp/data.csv")
+
+
+@pytest.mark.parametrize(
+    "data_uri",
+    [
+        # Userinfo-injection: allowlist matches the trusted hostname in the
+        # authority but urlparse().hostname resolves to the actual target.
+        "https://allowed.example.com@169.254.169.254/latest/meta-data/",
+        "https://allowed.example.com@10.0.0.1/internal",
+        "https://allowed.example.com@127.0.0.1/admin",
+    ],
+)
+def test_validate_data_uri_blocks_userinfo_ssrf_injection(data_uri):
+    """Userinfo-injected private IPs must be rejected even when the leading
+    hostname matches an allowlist pattern."""
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = [r".*"]
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+    with patch(
+        "superset.commands.dataset.importers.v1.utils.is_safe_host",
+        return_value=False,
+    ):
+        with pytest.raises(DatasetForbiddenDataURI):
+            validate_data_uri(data_uri)
+
+
+def test_validate_data_uri_allow_internal_flag_bypasses_host_check():
+    """When DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS is True, internal hosts
+    must be permitted to support air-gapped / on-premises deployments."""
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = [r".*"]
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = True
+    with patch(
+        "superset.commands.dataset.importers.v1.utils.is_safe_host",
+        return_value=False,
+    ) as mock_check:
+        validate_data_uri("http://10.0.0.5/data.csv")
+        mock_check.assert_not_called()

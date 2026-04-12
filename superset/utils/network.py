@@ -14,12 +14,53 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import ipaddress
 import platform
 import socket
 import subprocess
 
+# Networks that must never be reached via user-supplied hostnames.
+# Includes loopback, RFC-1918 private ranges, link-local (covers cloud
+# metadata endpoints such as 169.254.169.254), and IPv6 equivalents.
+_SSRF_UNSAFE_NETWORKS = (
+    ipaddress.ip_network("0.0.0.0/8"),
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("169.254.0.0/16"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("::1/128"),
+    ipaddress.ip_network("fc00::/7"),
+    ipaddress.ip_network("fe80::/10"),
+)
+
 PORT_TIMEOUT = 5
 PING_TIMEOUT = 5
+
+
+def is_safe_host(host: str) -> bool:
+    """
+    Return True if ``host`` resolves exclusively to public, globally-routable
+    IP addresses.
+
+    Returns False if any resolved address falls within a private, loopback,
+    link-local, or otherwise non-routable range.  An unresolvable host also
+    returns False.
+    """
+    try:
+        results = socket.getaddrinfo(host, None)
+    except socket.gaierror:
+        return False
+    if not results:
+        return False
+    for _, _, _, _, sockaddr in results:
+        try:
+            ip = ipaddress.ip_address(sockaddr[0])
+        except ValueError:
+            return False
+        if any(ip in net for net in _SSRF_UNSAFE_NETWORKS):
+            return False
+    return True
 
 
 def is_port_open(host: str, port: int) -> bool:

@@ -2267,12 +2267,20 @@ PREVENT_UNSAFE_DB_CONNECTIONS = True
 # If true all default urls on datasets will be handled as relative URLs by the frontend
 PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = True
 
-# Define a list of allowed URLs for dataset data imports (v1).
+# Define a list of allowed URL patterns (regex) for dataset data imports (v1).
 # Simple example to only allow URLs that belong to certain domains:
-# ALLOWED_IMPORT_URL_DOMAINS = [
+# DATASET_IMPORT_ALLOWED_DATA_URLS = [
 #     r"^https://.+\.domain1\.com\/?.*", r"^https://.+\.domain2\.com\/?.*"
 # ]
+# Local file:// URIs used for bundled example data are always permitted
+# regardless of this setting.
 DATASET_IMPORT_ALLOWED_DATA_URLS = [r".*"]
+
+# When True, dataset import is permitted to fetch data from private/internal
+# IP addresses (RFC-1918, loopback, link-local). Intended for air-gapped or
+# on-premises deployments where the data source is on an internal network.
+# Leave False (the default) in any internet-facing deployment.
+DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS: bool = False
 
 # Path used to store SSL certificates that are generated when using custom certs.
 # Defaults to temporary directory.
