@@ -228,6 +228,16 @@ class Datasource(BaseSupersetView):
                 dashboard,
             ):
                 return json_error_response(_("Forbidden"), status=403)
+        else:
+            dataset = DatasetDAO.find_by_id(
+                params["datasource_id"], skip_base_filter=True
+            )
+            if not dataset:
+                return self.response_404()
+            try:
+                security_manager.raise_for_access(datasource=dataset)
+            except SupersetSecurityException:
+                return json_error_response(_("Forbidden"), status=403)
 
         rv = get_samples(
             datasource_type=params["datasource_type"],
@@ -236,6 +246,7 @@ class Datasource(BaseSupersetView):
             page=params["page"],
             per_page=params["per_page"],
             payload=payload,
+            datasource=dataset,
             dashboard_id=dashboard_id,
         )
         return self.json_response({"result": rv})

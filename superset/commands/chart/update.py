@@ -138,6 +138,9 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
             try:
                 datasource = get_datasource_by_id(datasource_id, datasource_type)
                 self._properties["datasource_name"] = datasource.name
+                security_manager.raise_for_access(datasource=datasource)
+            except SupersetSecurityException as ex:
+                raise ChartForbiddenError() from ex
             except ValidationError as ex:
                 exceptions.append(ex)
 

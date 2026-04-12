@@ -242,10 +242,12 @@ def get_form_data(
     # or if form_data only contains slice_id and additional filters
     if slice_id and (use_slice_data or valid_slice_id):
         slc = db.session.query(Slice).filter_by(id=slice_id).one_or_none()
-        if slc:
+        if slc and security_manager.can_access_chart(slc):
             slice_form_data = slc.form_data.copy()
             slice_form_data.update(form_data)
             form_data = slice_form_data
+        else:
+            slc = None
 
     update_time_range(form_data)
     return form_data, slc

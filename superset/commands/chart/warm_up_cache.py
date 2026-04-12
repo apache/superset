@@ -27,7 +27,7 @@ from superset.commands.chart.exceptions import (
     WarmUpCacheChartNotFoundError,
 )
 from superset.common.db_query_status import QueryStatus
-from superset.extensions import db
+from superset.extensions import db, security_manager
 from superset.models.slice import Slice
 from superset.utils import json
 from superset.utils.core import error_msg_from_exception, QueryObjectFilterClause
@@ -124,8 +124,10 @@ class ChartWarmUpCacheCommand(BaseCommand):
 
     def validate(self) -> None:
         if isinstance(self._chart_or_id, Slice):
-            return
-        chart = db.session.query(Slice).filter_by(id=self._chart_or_id).scalar()
-        if not chart:
-            raise WarmUpCacheChartNotFoundError()
-        self._chart_or_id = chart
+            chart = self._chart_or_id
+        else:
+            chart = db.session.query(Slice).filter_by(id=self._chart_or_id).scalar()
+            if not chart:
+                raise WarmUpCacheChartNotFoundError()
+            self._chart_or_id = chart
+        security_manager.raise_for_access(viz=chart)

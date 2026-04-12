@@ -95,12 +95,14 @@ def get_samples(  # pylint: disable=too-many-arguments
     page: int = 1,
     per_page: int = 1000,
     payload: SamplesPayloadSchema | None = None,
+    datasource: Any | None = None,
     dashboard_id: int | None = None,
 ) -> dict[str, Any]:
-    datasource = DatasourceDAO.get_datasource(
-        datasource_type=datasource_type,
-        database_id_or_uuid=str(datasource_id),
-    )
+    if datasource is None:
+        datasource = DatasourceDAO.get_datasource(
+            datasource_type=datasource_type,
+            database_id_or_uuid=str(datasource_id),
+        )
 
     form_data = {"dashboardId": dashboard_id} if dashboard_id else None
     limit_clause = get_limit_clause(page, per_page)

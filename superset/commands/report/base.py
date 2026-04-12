@@ -22,6 +22,7 @@ from flask import current_app as app
 from flask_babel import gettext as _
 from marshmallow import ValidationError
 
+from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.report.exceptions import (
     ChartNotFoundValidationError,
@@ -29,11 +30,13 @@ from superset.commands.report.exceptions import (
     DashboardNotFoundValidationError,
     DashboardNotSavedValidationError,
     ReportScheduleEitherChartOrDashboardError,
+    ReportScheduleForbiddenError,
     ReportScheduleFrequencyNotAllowed,
     ReportScheduleOnlyChartOrDashboardError,
 )
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
+from superset.exceptions import SupersetSecurityException
 from superset.reports.models import ReportCreationMethod, ReportScheduleType
 from superset.reports.types import ReportScheduleExtra
 from superset.utils import json
@@ -74,11 +77,21 @@ class BaseReportScheduleCommand(BaseCommand):
             chart = ChartDAO.find_by_id(chart_id)
             if not chart:
                 exceptions.append(ChartNotFoundValidationError())
+            else:
+                try:
+                    security_manager.raise_for_access(viz=chart)
+                except SupersetSecurityException as ex:
+                    raise ReportScheduleForbiddenError() from ex
             self._properties["chart"] = chart
         elif dashboard_id:
             dashboard = DashboardDAO.find_by_id(dashboard_id)
             if not dashboard:
                 exceptions.append(DashboardNotFoundValidationError())
+            else:
+                try:
+                    security_manager.raise_for_access(dashboard=dashboard)
+                except SupersetSecurityException as ex:
+                    raise ReportScheduleForbiddenError() from ex
             self._properties["dashboard"] = dashboard
         elif not update:
             exceptions.append(ReportScheduleEitherChartOrDashboardError())

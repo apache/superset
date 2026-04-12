@@ -1002,9 +1002,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         try:
             DelFavoriteChartCommand(pk).run()
         except ChartNotFoundError:
-            self.response_404()
+            return self.response_404()
         except ChartForbiddenError:
-            self.response_403()
+            return self.response_403()
 
         return self.response(200, result="OK")
 

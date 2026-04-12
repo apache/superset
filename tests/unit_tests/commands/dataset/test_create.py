@@ -136,7 +136,8 @@ def test_create_dataset_valid_sql_with_access_error():
                     )
 
 
-def test_create_dataset_physical_table_no_parse_error():
+@patch("superset.commands.dataset.create.security_manager")
+def test_create_dataset_physical_table_no_parse_error(mock_security_manager):
     """Test that physical tables (no SQL) don't trigger parsing."""
     mock_database = Mock(spec=Database)
     mock_database.id = 1
