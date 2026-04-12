@@ -207,6 +207,106 @@ class TestResponseSizeGuardMiddleware:
         call_args = mock_event_logger.log.call_args
         assert call_args.kwargs["action"] == "mcp_response_size_exceeded"
 
+    @pytest.mark.asyncio
+    async def test_truncates_info_tool_instead_of_blocking(self) -> None:
+        """Should truncate info tool responses instead of blocking them."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "get_dataset_info"
+        context.message.params = {}
+
+        # Large info tool response with a big description
+        large_response = {
+            "id": 1,
+            "table_name": "test",
+            "description": "x" * 50000,
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        # Should return truncated response, not raise ToolError
+        assert isinstance(result, dict)
+        assert result["id"] == 1
+        assert result["_response_truncated"] is True
+        assert "[truncated" in result["description"]
+
+    @pytest.mark.asyncio
+    async def test_truncates_chart_info_with_large_form_data(self) -> None:
+        """Should truncate get_chart_info with large form_data."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "get_chart_info"
+        context.message.params = {}
+
+        large_response = {
+            "id": 1,
+            "slice_name": "My Chart",
+            "form_data": {f"key_{i}": f"value_{i}" for i in range(100)},
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        assert result["id"] == 1
+        assert result["_response_truncated"] is True
+
+    @pytest.mark.asyncio
+    async def test_still_blocks_non_info_tools(self) -> None:
+        """Should still block non-info tools that exceed limit."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=100)
+
+        context = MagicMock()
+        context.message.name = "list_charts"  # Not an info tool
+        context.message.params = {}
+
+        large_response = {"data": "x" * 10000}
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_call_tool(context, call_next)
+
+    @pytest.mark.asyncio
+    async def test_logs_truncation_event(self) -> None:
+        """Should log mcp_response_truncated event on successful truncation."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "get_dashboard_info"
+        context.message.params = {}
+
+        large_response = {
+            "id": 1,
+            "description": "x" * 50000,
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger") as mock_event_logger,
+        ):
+            await middleware.on_call_tool(context, call_next)
+
+        # Should log truncation event (not size_exceeded)
+        mock_event_logger.log.assert_called()
+        call_args = mock_event_logger.log.call_args
+        assert call_args.kwargs["action"] == "mcp_response_truncated"
+
 
 class TestCreateResponseSizeGuardMiddleware:
     """Test create_response_size_guard_middleware factory function."""
