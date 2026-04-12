@@ -20,6 +20,7 @@ import re
 from typing import Any
 from urllib import request
 from urllib.parse import urlparse
+from urllib.request import HTTPRedirectHandler
 
 import pandas as pd
 from flask import current_app as app
@@ -38,6 +39,26 @@ from superset.utils.core import get_user
 from superset.utils.network import is_safe_host
 
 logger = logging.getLogger(__name__)
+
+
+class _ValidatingRedirectHandler(HTTPRedirectHandler):
+    """Re-validates the redirect target URL before following any HTTP redirect.
+
+    Prevents bypasses where an initial URL passes validation but a subsequent
+    redirect points to a disallowed destination.
+    """
+
+    def redirect_request(
+        self,
+        req: request.Request,
+        fp: Any,
+        code: int,
+        msg: str,
+        headers: Any,
+        newurl: str,
+    ) -> request.Request | None:
+        validate_data_uri(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 CHUNKSIZE = 512
 VARCHAR = re.compile(r"VARCHAR\((\d+)\)", re.IGNORECASE)
@@ -222,7 +243,8 @@ def load_data(data_uri: str, dataset: SqlaTable, database: Database) -> None:
 
     validate_data_uri(data_uri)
     logger.info("Downloading data from %s", data_uri)
-    data = request.urlopen(data_uri)  # pylint: disable=consider-using-with  # noqa: S310
+    opener = request.build_opener(_ValidatingRedirectHandler)
+    data = opener.open(data_uri)  # pylint: disable=consider-using-with  # noqa: S310
     if data_uri.endswith(".gz"):
         data = gzip.open(data)
     df = pd.read_csv(data, encoding="utf-8")

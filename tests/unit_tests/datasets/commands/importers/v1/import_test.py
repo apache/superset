@@ -22,6 +22,7 @@ import re
 import uuid
 from typing import Any
 from unittest.mock import Mock, patch
+from urllib import request
 
 import pytest
 from flask import current_app
@@ -836,7 +837,7 @@ def test_validate_data_uri_allow_internal_flag_bypasses_host_check():
         mock_check.assert_not_called()
 
 
-def test_validate_data_uri_no_hostname_passes_host_check():
+def test_validate_data_uri_no_hostname_passes_host_check() -> None:
     """A URI that produces no hostname from urlparse (e.g. opaque URIs) must
     not call is_safe_host and must pass the allowlist check cleanly."""
     current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = [r".*"]
@@ -847,3 +848,29 @@ def test_validate_data_uri_no_hostname_passes_host_check():
         # urlparse("data:text/csv,...").hostname is None
         validate_data_uri("data:text/csv,col1,col2")
         mock_check.assert_not_called()
+
+
+def test_redirect_handler_blocks_disallowed_redirect_target() -> None:
+    """The redirect handler must reject a redirect to a disallowed host by
+    re-running validate_data_uri() on the new URL before following it."""
+    from superset.commands.dataset.importers.v1.utils import (
+        _ValidatingRedirectHandler,
+    )
+
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = [r".*"]
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+
+    handler = _ValidatingRedirectHandler()
+    with patch(
+        "superset.commands.dataset.importers.v1.utils.is_safe_host",
+        return_value=False,
+    ):
+        with pytest.raises(DatasetForbiddenDataURI):
+            handler.redirect_request(
+                request.Request("http://public.example.com/data.csv"),
+                None,
+                302,
+                "Found",
+                {},
+                "http://169.254.169.254/latest/meta-data/",
+            )
