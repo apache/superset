@@ -2809,7 +2809,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         "datasets"
                     )
                     if (
-                        allowed_datasets is not None
+                        isinstance(allowed_datasets, list)
                         and datasource.id not in allowed_datasets
                     ):
                         raise SupersetSecurityException(
@@ -3236,7 +3236,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return hasattr(user, "is_guest_user") and user.is_guest_user
 
     def get_current_guest_user_if_guest(self) -> Optional[GuestUser]:
-        return getattr(g, "user", None) if self.is_guest_user() else None
+        user = getattr(g, "user", None)
+        if isinstance(user, GuestUser):
+            return user
+        return None
 
     def has_guest_access(self, dashboard: "Dashboard") -> bool:
         user = self.get_current_guest_user_if_guest()

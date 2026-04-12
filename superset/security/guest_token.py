@@ -46,6 +46,8 @@ class GuestTokenRlsRule(TypedDict):
 
 
 class _GuestTokenRequired(TypedDict):
+    """Required JWT claims for a guest token payload."""
+
     iat: float
     exp: float
     user: GuestTokenUser

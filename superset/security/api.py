@@ -198,10 +198,10 @@ class SecurityRestApi(BaseSupersetApi):
             # make sure username doesn't reference an existing user
             # check rls rules for validity?
             token = self.appbuilder.sm.create_guest_access_token(
-                body["user"],
+                body.get("user", {}),
                 body["resources"],
                 body["rls"],
-                datasets=body.get("datasets"),
+                **({"datasets": body["datasets"]} if "datasets" in body else {}),
             )
             return self.response(200, token=token)
         except EmbeddedDashboardNotFoundError as error:
