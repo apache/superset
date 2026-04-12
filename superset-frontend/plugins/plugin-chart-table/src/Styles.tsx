@@ -98,6 +98,11 @@ export default styled.div`
       background-color: ${theme.colorBgLayout};
     }
 
+    .dt-select-page-size .ant-select .ant-select-arrow {
+      color: ${theme.colorTextQuaternary};
+      z-index: 11;
+    }
+
     /* Controls and metrics */
     .dt-controls {
       padding-bottom: 0.65em;
