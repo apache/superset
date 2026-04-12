@@ -200,6 +200,7 @@ def test_subscribe_schema_ignores_excluded_fields(mocker: MockerFixture) -> None
     )
     assert "recipients" not in result
     assert "creation_method" not in result
+    assert "owners" not in result
 
 
 def test_subscribe_schema_rejects_alert_type(mocker: MockerFixture) -> None:
