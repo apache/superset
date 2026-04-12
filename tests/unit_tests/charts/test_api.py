@@ -17,6 +17,7 @@
 from unittest.mock import MagicMock, patch
 
 from superset.charts.api import ChartRestApi
+from superset.views.base_api import BaseSupersetModelRestApi
 
 
 def _make_api() -> ChartRestApi:
@@ -50,7 +51,7 @@ def test_related_owners_allowed_for_write_users() -> None:
             "superset.charts.api.security_manager.can_access",
             return_value=True,
         ),
-        patch.object(ChartRestApi.__bases__[0], "related", super_related),
+        patch.object(BaseSupersetModelRestApi, "related", super_related),
     ):
         result = api.related("owners")
 
@@ -66,7 +67,7 @@ def test_related_created_by_allows_read_only_users() -> None:
         patch(
             "superset.charts.api.security_manager.can_access",
         ) as mock_can_access,
-        patch.object(ChartRestApi.__bases__[0], "related", super_related),
+        patch.object(BaseSupersetModelRestApi, "related", super_related),
     ):
         result = api.related("created_by")
 
