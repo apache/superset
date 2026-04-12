@@ -21,10 +21,12 @@ import subprocess
 
 # Networks that must never be reached via user-supplied hostnames.
 # Includes loopback, RFC-1918 private ranges, link-local (covers cloud
-# metadata endpoints such as 169.254.169.254), and IPv6 equivalents.
+# metadata endpoints such as 169.254.169.254), shared address space
+# (RFC 6598, 100.64.0.0/10), and IPv6 equivalents.
 _SSRF_UNSAFE_NETWORKS = (
     ipaddress.ip_network("0.0.0.0/8"),
     ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("100.64.0.0/10"),
     ipaddress.ip_network("127.0.0.0/8"),
     ipaddress.ip_network("169.254.0.0/16"),
     ipaddress.ip_network("172.16.0.0/12"),
@@ -58,6 +60,10 @@ def is_safe_host(host: str) -> bool:
             ip = ipaddress.ip_address(sockaddr[0])
         except ValueError:
             return False
+        # Unwrap IPv4-mapped IPv6 addresses (e.g. ::ffff:127.0.0.1) so they
+        # are checked against the IPv4 unsafe networks rather than bypassing.
+        if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+            ip = ip.ipv4_mapped
         if any(ip in net for net in _SSRF_UNSAFE_NETWORKS):
             return False
     return True

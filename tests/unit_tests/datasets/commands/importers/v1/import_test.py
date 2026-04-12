@@ -793,7 +793,7 @@ def test_validate_data_uri(allowed_urls, data_uri, expected, exception_class):
                 validate_data_uri(data_uri)
 
 
-def test_validate_data_uri_file_scheme_always_allowed():
+def test_validate_data_uri_file_scheme_always_allowed() -> None:
     """file:// URIs must always pass regardless of allowlist or SSRF guards."""
     current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = []
     current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
@@ -810,7 +810,7 @@ def test_validate_data_uri_file_scheme_always_allowed():
         "https://allowed.example.com@127.0.0.1/admin",
     ],
 )
-def test_validate_data_uri_blocks_userinfo_ssrf_injection(data_uri):
+def test_validate_data_uri_blocks_userinfo_ssrf_injection(data_uri: str) -> None:
     """Userinfo-injected private IPs must be rejected even when the leading
     hostname matches an allowlist pattern."""
     current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = [r".*"]

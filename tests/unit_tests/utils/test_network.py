@@ -97,3 +97,30 @@ def test_is_safe_host_rejects_if_any_ip_is_private() -> None:
         ],
     ):
         assert is_safe_host("dual-homed.example.com") is False
+
+
+@pytest.mark.parametrize(
+    "mapped_ip",
+    [
+        "::ffff:127.0.0.1",   # loopback via IPv4-mapped IPv6
+        "::ffff:10.0.0.1",    # RFC-1918 via IPv4-mapped IPv6
+        "::ffff:169.254.169.254",  # link-local via IPv4-mapped IPv6
+    ],
+)
+def test_is_safe_host_rejects_ipv4_mapped_ipv6(mapped_ip: str) -> None:
+    """IPv4-mapped IPv6 addresses must be unwrapped and checked against the
+    IPv4 unsafe networks — not treated as safe IPv6 addresses."""
+    with patch(
+        "superset.utils.network.socket.getaddrinfo",
+        return_value=[(None, None, None, None, (mapped_ip, 0, 0, 0))],
+    ):
+        assert is_safe_host("mapped") is False
+
+
+def test_is_safe_host_rejects_cgnat_range() -> None:
+    """100.64.0.0/10 (RFC 6598 shared address space) must be rejected."""
+    with patch(
+        "superset.utils.network.socket.getaddrinfo",
+        return_value=[(None, None, None, None, ("100.100.100.200", 0))],
+    ):
+        assert is_safe_host("cgnat-host") is False
