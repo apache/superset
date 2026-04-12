@@ -265,11 +265,7 @@ def test_report_to_alert_with_db_accepted(mocker: MockerFixture) -> None:
 
 # --- Recipient enforcement for chart/dashboard reports ---
 
-
-def _make_user(email: str | None) -> Mock:
-    user = Mock()
-    user.email = email
-    return user
+_PATCH_GET_USER_EMAIL = "superset.commands.report.update.get_user_email"
 
 
 def test_chart_report_update_recipient_overridden_with_owner_email(
@@ -293,8 +289,7 @@ def test_chart_report_update_recipient_overridden_with_owner_email(
         ]
     }
     cmd = UpdateReportScheduleCommand(model_id=1, data=data)
-    with patch("superset.commands.report.update.g") as mock_g:
-        mock_g.user = _make_user("owner@example.com")
+    with patch(_PATCH_GET_USER_EMAIL, return_value="owner@example.com"):
         cmd.validate()
 
     recipients = cmd._properties["recipients"]
@@ -323,8 +318,7 @@ def test_dashboard_report_update_recipient_overridden_with_owner_email(
         ]
     }
     cmd = UpdateReportScheduleCommand(model_id=1, data=data)
-    with patch("superset.commands.report.update.g") as mock_g:
-        mock_g.user = _make_user("owner@example.com")
+    with patch(_PATCH_GET_USER_EMAIL, return_value="owner@example.com"):
         cmd.validate()
 
     recipients = cmd._properties["recipients"]
@@ -351,8 +345,7 @@ def test_alerts_reports_update_recipient_not_overridden(
     cmd = UpdateReportScheduleCommand(
         model_id=1, data={"recipients": [original_recipient]}
     )
-    with patch("superset.commands.report.update.g") as mock_g:
-        mock_g.user = _make_user("owner@example.com")
+    with patch(_PATCH_GET_USER_EMAIL, return_value="owner@example.com"):
         cmd.validate()
 
     assert (
@@ -374,8 +367,7 @@ def test_chart_report_update_no_recipients_in_payload_unchanged(
     _setup_mocks(mocker, model)
 
     cmd = UpdateReportScheduleCommand(model_id=1, data={"name": "new name"})
-    with patch("superset.commands.report.update.g") as mock_g:
-        mock_g.user = _make_user("owner@example.com")
+    with patch(_PATCH_GET_USER_EMAIL, return_value="owner@example.com"):
         cmd.validate()
 
     assert "recipients" not in cmd._properties
@@ -399,8 +391,7 @@ def test_chart_report_update_no_user_email_raises(mocker: MockerFixture) -> None
             ]
         },
     )
-    with patch("superset.commands.report.update.g") as mock_g:
-        mock_g.user = _make_user(None)
+    with patch(_PATCH_GET_USER_EMAIL, return_value=None):
         with pytest.raises(ReportScheduleInvalidError) as exc_info:
             cmd.validate()
 

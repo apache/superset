@@ -18,7 +18,6 @@ import logging
 from functools import partial
 from typing import Any, Optional
 
-from flask import g
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
@@ -47,6 +46,7 @@ from superset.reports.models import (
     ReportState,
 )
 from superset.utils import json
+from superset.utils.core import get_user_email
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -107,11 +107,11 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
             )
             and "recipients" in self._properties
         ):
-            if hasattr(g, "user") and g.user and g.user.email:
+            if user_email := get_user_email():
                 self._properties["recipients"] = [
                     {
                         "type": ReportRecipientType.EMAIL,
-                        "recipient_config_json": {"target": g.user.email},
+                        "recipient_config_json": {"target": user_email},
                     }
                 ]
             else:
