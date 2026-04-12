@@ -24,13 +24,7 @@ metadata:
   name: "{{ template "superset.fullname" . }}-ws"
   namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ template "superset.name" . }}-ws"
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
-    {{- if .Values.extraLabels }}
-      {{- toYaml .Values.extraLabels | nindent 4 }}
-    {{- end }}
+    {{- include "superset.componentLabels" (dict "component" "websocket" "root" .) | nindent 4 }}
   {{- if .Values.supersetWebsockets.deploymentAnnotations }}
   annotations: {{- toYaml .Values.supersetWebsockets.deploymentAnnotations | nindent 4 }}
   {{- end }}
@@ -51,11 +45,7 @@ spec:
           {{- toYaml .Values.supersetWebsockets.podAnnotations | nindent 8 }}
         {{- end }}
       labels:
-        app: "{{ template "superset.name" . }}-ws"
-        release: {{ .Release.Name }}
-        {{- if .Values.extraLabels }}
-          {{- toYaml .Values.extraLabels | nindent 8 }}
-        {{- end }}
+        {{- include "supersetWebsockets.selectorLabels" . | nindent 8 }}
         {{- if .Values.supersetWebsockets.podLabels }}
           {{- toYaml .Values.supersetWebsockets.podLabels | nindent 8 }}
         {{- end }}

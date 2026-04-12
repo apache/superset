@@ -61,6 +61,50 @@ Create chart name and version as used by the chart label.
   {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
+{{/*
+Common labels for all resources - follows Kubernetes recommended labels
+https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/
+*/}}
+{{- define "superset.labels" -}}
+helm.sh/chart: {{ include "superset.chart" . }}
+{{ include "superset.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+app.kubernetes.io/part-of: superset
+{{- if .Values.extraLabels }}
+{{ toYaml .Values.extraLabels }}
+{{- end }}
+{{- end -}}
+
+{{/*
+Selector labels - used by selectors and matchLabels
+*/}}
+{{- define "superset.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "superset.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end -}}
+
+{{/*
+Component labels - extends superset.labels with component-specific labels
+Usage: {{ include "superset.componentLabels" (dict "component" "web" "root" .) }}
+*/}}
+{{- define "superset.componentLabels" -}}
+{{ include "superset.labels" .root }}
+app.kubernetes.io/component: {{ .component }}
+{{- end -}}
+
+{{/*
+Component selector labels - for matchLabels with component
+Usage: {{ include "superset.componentSelectorLabels" (dict "component" "web" "root" .) }}
+*/}}
+{{- define "superset.componentSelectorLabels" -}}
+app.kubernetes.io/name: {{ include "superset.name" .root }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: {{ .component }}
+{{- end -}}
+
 
 {{- define "superset-config" }}
 import os
@@ -148,27 +192,32 @@ RESULTS_BACKEND = RedisCache(
 
 {{- end }}
 
+{{- define "supersetNode.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "superset.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: web
+{{- end }}
+
 {{- define "supersetCeleryBeat.selectorLabels" -}}
-app: {{ include "superset.name" . }}-celerybeat
-release: {{ .Release.Name }}
+app.kubernetes.io/name: {{ include "superset.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: celerybeat
 {{- end }}
 
 {{- define "supersetCeleryFlower.selectorLabels" -}}
-app: {{ include "superset.name" . }}-flower
-release: {{ .Release.Name }}
-{{- end }}
-
-{{- define "supersetNode.selectorLabels" -}}
-app: {{ include "superset.name" . }}
-release: {{ .Release.Name }}
+app.kubernetes.io/name: {{ include "superset.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: flower
 {{- end }}
 
 {{- define "supersetWebsockets.selectorLabels" -}}
-app: {{ include "superset.name" . }}-ws
-release: {{ .Release.Name }}
+app.kubernetes.io/name: {{ include "superset.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: websocket
 {{- end }}
 
 {{- define "supersetWorker.selectorLabels" -}}
-app: {{ include "superset.name" . }}-worker
-release: {{ .Release.Name }}
+app.kubernetes.io/name: {{ include "superset.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: worker
 {{- end }}

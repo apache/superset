@@ -24,13 +24,7 @@ metadata:
   name: {{ template "superset.fullname" . }}-celerybeat
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "superset.name" . }}-celerybeat
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
-    {{- if .Values.extraLabels }}
-      {{- toYaml .Values.extraLabels | nindent 4 }}
-    {{- end }}
+    {{- include "superset.componentLabels" (dict "component" "celerybeat" "root" .) | nindent 4 }}
   {{- if .Values.supersetCeleryBeat.deploymentAnnotations }}
   annotations: {{- toYaml .Values.supersetCeleryBeat.deploymentAnnotations | nindent 4 }}
   {{- end }}
@@ -59,11 +53,7 @@ spec:
           {{- toYaml .Values.supersetCeleryBeat.podAnnotations | nindent 8 }}
         {{- end }}
       labels:
-        app: "{{ template "superset.name" . }}-celerybeat"
-        release: {{ .Release.Name }}
-        {{- if .Values.extraLabels }}
-          {{- toYaml .Values.extraLabels | nindent 8 }}
-        {{- end }}
+        {{- include "supersetCeleryBeat.selectorLabels" . | nindent 8 }}
         {{- if .Values.supersetCeleryBeat.podLabels }}
           {{- toYaml .Values.supersetCeleryBeat.podLabels | nindent 8 }}
         {{- end }}

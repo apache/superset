@@ -23,15 +23,9 @@ metadata:
   name: {{ template "superset.fullname" . }}-worker
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "superset.name" . }}-worker
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
-    {{- if .Values.extraLabels }}
-      {{- toYaml .Values.extraLabels | nindent 4 }}
-    {{- end }}
-    {{- if .Values.supersetWorker.deploymentLabels }}
-      {{- toYaml .Values.supersetWorker.deploymentLabels | nindent 4 }}
+    {{- include "superset.componentLabels" (dict "component" "worker" "root" .) | nindent 4 }}
+    {{- with .Values.supersetWorker.deploymentLabels }}
+      {{- toYaml . | nindent 4 }}
     {{- end }}
   {{- if .Values.supersetWorker.deploymentAnnotations }}
   annotations: {{- toYaml .Values.supersetWorker.deploymentAnnotations | nindent 4 }}
@@ -65,11 +59,7 @@ spec:
           {{- toYaml .Values.supersetWorker.podAnnotations | nindent 8 }}
         {{- end }}
       labels:
-        app: {{ template "superset.name" . }}-worker
-        release: {{ .Release.Name }}
-        {{- if .Values.extraLabels }}
-          {{- toYaml .Values.extraLabels | nindent 8 }}
-        {{- end }}
+        {{- include "supersetWorker.selectorLabels" . | nindent 8 }}
         {{- if .Values.supersetWorker.podLabels }}
           {{- toYaml .Values.supersetWorker.podLabels | nindent 8 }}
         {{- end }}
