@@ -29,6 +29,8 @@ import sqlalchemy as sa
 from pydantic import BaseModel, Field
 from sqlalchemy.inspection import inspect
 
+from superset.mcp_service.constants import ModelType
+
 
 class ColumnMetadata(BaseModel):
     """Metadata for a selectable column."""
@@ -52,7 +54,7 @@ class ModelSchemaInfo(BaseModel):
     - Default values for each
     """
 
-    model_type: Literal["chart", "dataset", "dashboard"] = Field(
+    model_type: ModelType = Field(
         ..., description="The model type this schema describes"
     )
     select_columns: list[ColumnMetadata] = Field(
@@ -82,9 +84,7 @@ class ModelSchemaInfo(BaseModel):
 class GetSchemaRequest(BaseModel):
     """Request schema for unified get_schema tool."""
 
-    model_type: Literal["chart", "dataset", "dashboard"] = Field(
-        ..., description="Model type to get schema for"
-    )
+    model_type: ModelType = Field(..., description="Model type to get schema for")
 
 
 class GetSchemaResponse(BaseModel):
@@ -169,9 +169,9 @@ _COLUMN_DESCRIPTIONS: dict[str, str] = {
     "dashboard_title": "Dashboard display title",
     "slug": "URL-friendly identifier for the dashboard",
     "published": "Whether the dashboard is published and visible",
-    "position_json": "JSON layout of dashboard components",
-    "json_metadata": "JSON metadata including filters and settings",
     "css": "Custom CSS for the dashboard",
+    "native_filters": "Native filter configuration (name, type, targets)",
+    "cross_filters_enabled": "Whether cross-filtering between charts is enabled",
     "theme_id": "Theme ID for dashboard styling",
 }
 
@@ -180,6 +180,7 @@ def get_columns_from_model(
     model_cls: Type[Any],
     default_columns: list[str],
     extra_columns: dict[str, ColumnMetadata] | None = None,
+    exclude_columns: set[str] | None = None,
 ) -> list[ColumnMetadata]:
     """
     Dynamically extract column metadata from a SQLAlchemy model.
@@ -188,6 +189,7 @@ def get_columns_from_model(
         model_cls: The SQLAlchemy model class to inspect
         default_columns: List of column names that should be marked as defaults
         extra_columns: Additional columns not on the model (e.g., computed fields)
+        exclude_columns: Column names to omit (e.g., sensitive fields)
 
     Returns:
         List of ColumnMetadata objects for all columns
@@ -197,6 +199,8 @@ def get_columns_from_model(
 
     for col in mapper.columns:
         col_name = col.key
+        if exclude_columns and col_name in exclude_columns:
+            continue
         col_type = _get_sqlalchemy_type_name(col.type)
         # Get description from column doc, comment, or fallback mapping
         description = (
@@ -234,7 +238,17 @@ def get_columns_from_model(
 # - Extra columns (computed/relationship fields not on the model)
 
 # Chart configuration
-CHART_DEFAULT_COLUMNS = ["id", "slice_name", "viz_type", "url", "changed_on_humanized"]
+CHART_DEFAULT_COLUMNS = [
+    "id",
+    "slice_name",
+    "viz_type",
+    "description",
+    "certified_by",
+    "certification_details",
+    "url",
+    "changed_on",
+    "changed_on_humanized",
+]
 CHART_SORTABLE_COLUMNS = [
     "id",
     "slice_name",
@@ -302,6 +316,18 @@ CHART_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
         type="str",
         is_default=False,
     ),
+    "certified_by": ColumnMetadata(
+        name="certified_by",
+        description="Name of the person who certified this chart",
+        type="str",
+        is_default=True,
+    ),
+    "certification_details": ColumnMetadata(
+        name="certification_details",
+        description="Certification details or reason",
+        type="str",
+        is_default=True,
+    ),
     "tags": ColumnMetadata(
         name="tags", description="Chart tags", type="list", is_default=False
     ),
@@ -311,7 +337,16 @@ CHART_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
 }
 
 # Dataset configuration
-DATASET_DEFAULT_COLUMNS = ["id", "table_name", "schema", "changed_on_humanized"]
+DATASET_DEFAULT_COLUMNS = [
+    "id",
+    "table_name",
+    "schema",
+    "description",
+    "certified_by",
+    "certification_details",
+    "changed_on",
+    "changed_on_humanized",
+]
 DATASET_SORTABLE_COLUMNS = [
     "id",
     "table_name",
@@ -363,6 +398,18 @@ DATASET_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
         type="str",
         is_default=False,
     ),
+    "certified_by": ColumnMetadata(
+        name="certified_by",
+        description="Name of the person who certified this dataset",
+        type="str",
+        is_default=True,
+    ),
+    "certification_details": ColumnMetadata(
+        name="certification_details",
+        description="Certification details or reason",
+        type="str",
+        is_default=True,
+    ),
     "metrics": ColumnMetadata(
         name="metrics",
         description="Dataset metrics definitions",
@@ -388,7 +435,11 @@ DASHBOARD_DEFAULT_COLUMNS = [
     "id",
     "dashboard_title",
     "slug",
+    "description",
+    "certified_by",
+    "certification_details",
     "url",
+    "changed_on",
     "changed_on_humanized",
 ]
 DASHBOARD_SORTABLE_COLUMNS = [
@@ -452,6 +503,68 @@ DASHBOARD_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
 }
 
 
+# Database configuration
+DATABASE_DEFAULT_COLUMNS = [
+    "id",
+    "database_name",
+    "backend",
+    "expose_in_sqllab",
+    "changed_on",
+    "changed_on_humanized",
+]
+DATABASE_SORTABLE_COLUMNS = [
+    "id",
+    "database_name",
+    "changed_on",
+    "created_on",
+]
+DATABASE_SEARCH_COLUMNS = ["database_name"]
+DATABASE_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
+    "backend": ColumnMetadata(
+        name="backend",
+        description="Database backend type (e.g., postgresql, mysql)",
+        type="str",
+        is_default=True,
+    ),
+    "changed_by": ColumnMetadata(
+        name="changed_by",
+        description="Last modifier username",
+        type="str",
+        is_default=False,
+    ),
+    "changed_by_name": ColumnMetadata(
+        name="changed_by_name",
+        description="Last modifier display name",
+        type="str",
+        is_default=False,
+    ),
+    "changed_on_humanized": ColumnMetadata(
+        name="changed_on_humanized",
+        description="Humanized modification time",
+        type="str",
+        is_default=True,
+    ),
+    "created_by": ColumnMetadata(
+        name="created_by",
+        description="Creator username",
+        type="str",
+        is_default=False,
+    ),
+    "created_by_name": ColumnMetadata(
+        name="created_by_name",
+        description="Creator display name",
+        type="str",
+        is_default=False,
+    ),
+    "created_on_humanized": ColumnMetadata(
+        name="created_on_humanized",
+        description="Humanized creation time",
+        type="str",
+        is_default=False,
+    ),
+}
+
+
 def get_chart_columns() -> list[ColumnMetadata]:
     """Get column metadata for Chart model dynamically."""
     from superset.models.slice import Slice
@@ -477,6 +590,27 @@ def get_dashboard_columns() -> list[ColumnMetadata]:
     )
 
 
+# Sensitive columns that should not be exposed via schema discovery
+DATABASE_EXCLUDE_COLUMNS = {
+    "sqlalchemy_uri",
+    "password",
+    "encrypted_extra",
+    "server_cert",
+}
+
+
+def get_database_columns() -> list[ColumnMetadata]:
+    """Get column metadata for Database model dynamically."""
+    from superset.models.core import Database
+
+    return get_columns_from_model(
+        Database,
+        DATABASE_DEFAULT_COLUMNS,
+        DATABASE_EXTRA_COLUMNS,
+        exclude_columns=DATABASE_EXCLUDE_COLUMNS,
+    )
+
+
 def get_all_column_names(columns: list[ColumnMetadata]) -> list[str]:
     """Extract all column names from column metadata list."""
     return [col.name for col in columns]
@@ -487,3 +621,4 @@ def get_all_column_names(columns: list[ColumnMetadata]) -> list[str]:
 CHART_ALL_COLUMNS: list[str] = []
 DATASET_ALL_COLUMNS: list[str] = []
 DASHBOARD_ALL_COLUMNS: list[str] = []
+DATABASE_ALL_COLUMNS: list[str] = []

@@ -346,7 +346,9 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             if clause and self.datasource:
                 try:
                     database = self.datasource.database
-                    processor = get_template_processor(database=database)
+                    processor = get_template_processor(
+                        database=database, table=self.datasource
+                    )
                     try:
                         clause = processor.process_template(clause, force=True)
                     except TemplateError as ex:
