@@ -2345,6 +2345,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                         <AsyncSelect
                           ariaLabel={t('Chart')}
                           name="chart"
+                          allowClear
                           value={
                             currentAlert?.chart?.label &&
                             currentAlert?.chart?.value
