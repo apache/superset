@@ -22,7 +22,7 @@ from superset.utils.network import is_safe_host
 
 
 @pytest.mark.parametrize(
-    "resolved_ip, expected",
+    ("resolved_ip", "expected"),
     [
         # Public IPs → safe
         ("93.184.216.34", True),  # example.com
