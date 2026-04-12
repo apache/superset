@@ -3039,6 +3039,15 @@ def test_tokenize_kql(kql: str, expected: list[tuple[KQLTokenType, str]]) -> Non
         ("SELECT 1 EXCEPT SELECT 2", "postgresql", False),
         ("SELECT 1 INTERSECT SELECT 2", "postgresql", False),
         ("SELECT * FROM (SELECT 1 UNION SELECT 2)", "postgresql", True),
+        # Raw predicate forms (as used in RLS rules) — must detect subqueries
+        # even when the expression is not a full SELECT statement.
+        ("id IN (SELECT id FROM secret_table)", "postgresql", True),
+        (
+            "EXISTS (SELECT 1 FROM admin WHERE admin.user_id = users.id)",
+            "postgresql",
+            True,
+        ),
+        ("department_id = 5", "postgresql", False),
     ],
 )
 def test_has_subquery(sql: str, engine: str, expected: bool) -> None:

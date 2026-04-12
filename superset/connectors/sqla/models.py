@@ -795,7 +795,7 @@ class BaseDatasource(
             template_processor=template_processor,
         )
 
-        if not processed:
+        if processed is None:
             processed = (
                 template_processor.process_template(clause)
                 if template_processor
