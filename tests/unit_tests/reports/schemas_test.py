@@ -83,6 +83,7 @@ def test_report_post_schema_custom_width_validation(mocker: MockerFixture) -> No
 
 
 def test_report_recipient_schema_email_valid() -> None:
+    """Valid email target is accepted by the recipient schema."""
     schema = ReportRecipientSchema()
     result = schema.load(
         {
@@ -94,6 +95,7 @@ def test_report_recipient_schema_email_valid() -> None:
 
 
 def test_report_recipient_schema_email_invalid_target() -> None:
+    """Invalid email address in target field raises a validation error."""
     schema = ReportRecipientSchema()
     with pytest.raises(ValidationError) as excinfo:
         schema.load(
@@ -106,6 +108,7 @@ def test_report_recipient_schema_email_invalid_target() -> None:
 
 
 def test_report_recipient_schema_email_invalid_cc() -> None:
+    """Invalid address in ccTarget field raises a validation error."""
     schema = ReportRecipientSchema()
     with pytest.raises(ValidationError) as excinfo:
         schema.load(
@@ -121,6 +124,7 @@ def test_report_recipient_schema_email_invalid_cc() -> None:
 
 
 def test_report_recipient_schema_email_invalid_bcc() -> None:
+    """Invalid address in bccTarget field raises a validation error."""
     schema = ReportRecipientSchema()
     with pytest.raises(ValidationError) as excinfo:
         schema.load(
@@ -136,6 +140,7 @@ def test_report_recipient_schema_email_invalid_bcc() -> None:
 
 
 def test_report_recipient_schema_email_empty_bcc_allowed() -> None:
+    """Empty string in bccTarget is accepted (optional field)."""
     schema = ReportRecipientSchema()
     result = schema.load(
         {
@@ -150,6 +155,7 @@ def test_report_recipient_schema_email_empty_bcc_allowed() -> None:
 
 
 def test_report_recipient_schema_email_empty_cc_allowed() -> None:
+    """Empty string in ccTarget is accepted (optional field)."""
     schema = ReportRecipientSchema()
     result = schema.load(
         {
@@ -164,6 +170,7 @@ def test_report_recipient_schema_email_empty_cc_allowed() -> None:
 
 
 def test_report_recipient_schema_slack_skips_email_validation() -> None:
+    """Slack recipients are not validated as email addresses."""
     schema = ReportRecipientSchema()
     result = schema.load(
         {
