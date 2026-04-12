@@ -209,3 +209,53 @@ def test_guest_token_create_schema_datasets_accepted() -> None:
         }
     )
     assert result["datasets"] == [7, 8]
+
+
+# ---------------------------------------------------------------------------
+# get_current_guest_user_if_guest — direct implementation coverage
+# ---------------------------------------------------------------------------
+
+
+def test_get_current_guest_user_if_guest_returns_guest_user() -> None:
+    """Returns the GuestUser when g.user is a GuestUser instance."""
+    from unittest.mock import patch
+
+    from superset.security.manager import SupersetSecurityManager
+
+    guest_user = _make_guest_user()
+    sm = MagicMock(spec=SupersetSecurityManager)
+
+    with patch("superset.security.manager.g") as mock_g:
+        mock_g.user = guest_user
+        result = SupersetSecurityManager.get_current_guest_user_if_guest(sm)
+
+    assert result is guest_user
+
+
+def test_get_current_guest_user_if_guest_returns_none_for_regular_user() -> None:
+    """Returns None when g.user is a regular (non-guest) user."""
+    from unittest.mock import patch
+
+    from superset.security.manager import SupersetSecurityManager
+
+    regular_user = MagicMock()  # not a GuestUser instance
+    sm = MagicMock(spec=SupersetSecurityManager)
+
+    with patch("superset.security.manager.g") as mock_g:
+        mock_g.user = regular_user
+        result = SupersetSecurityManager.get_current_guest_user_if_guest(sm)
+
+    assert result is None
+
+
+def test_raise_for_access_non_guest_skips_allowlist_check() -> None:
+    """When is_guest_user() returns False the allowlist check is never reached."""
+    from superset.security.manager import SupersetSecurityManager
+
+    sm = MagicMock(spec=SupersetSecurityManager)
+    sm.is_guest_user.return_value = False
+    datasource = _make_datasource(dataset_id=99)
+
+    # Should not raise — allowlist block is not entered for non-guests.
+    SupersetSecurityManager.raise_for_access(sm, datasource=datasource)
+    sm.get_current_guest_user_if_guest.assert_not_called()
