@@ -19,6 +19,7 @@
 import {
   QueryFormColumn,
   QueryFormData,
+  QueryObject,
   QueryFormOrderBy,
   buildQueryContext,
   ensureIsArray,
@@ -37,17 +38,13 @@ export default function buildQuery(formData: QueryFormData) {
     ...ensureIsArray(groupby),
   ];
   const orderby: QueryFormOrderBy[] = [];
-  if (sort_x_axis) {
-    orderby.push([
-      sort_x_axis.includes('value') ? metric : columns[0],
-      sort_x_axis.includes('asc'),
-    ]);
+  if (sort_x_axis && !sort_x_axis.includes('value')) {
+    // Value sorts are applied post-query; SQL orderby biases row_limit truncation.
+    orderby.push([columns[0], sort_x_axis.includes('asc')]);
   }
-  if (sort_y_axis) {
-    orderby.push([
-      sort_y_axis.includes('value') ? metric : columns[1],
-      sort_y_axis.includes('asc'),
-    ]);
+  if (sort_y_axis && !sort_y_axis.includes('value')) {
+    // Value sorts are applied post-query; SQL orderby biases row_limit truncation.
+    orderby.push([columns[1], sort_y_axis.includes('asc')]);
   }
   const group_by =
     normalize_across === 'x'
@@ -55,7 +52,7 @@ export default function buildQuery(formData: QueryFormData) {
       : normalize_across === 'y'
         ? getColumnLabel(groupby as unknown as QueryFormColumn)
         : undefined;
-  return buildQueryContext(formData, baseQueryObject => [
+  return buildQueryContext(formData, (baseQueryObject: QueryObject) => [
     {
       ...baseQueryObject,
       columns,
