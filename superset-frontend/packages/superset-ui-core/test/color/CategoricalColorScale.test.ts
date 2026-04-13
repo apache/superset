@@ -201,28 +201,41 @@ describe('CategoricalColorScale', () => {
       expect(returnedColor).toBe(expectedColor);
     });
     test('reassigns colliding colors when no sliceId is provided', () => {
+      window.featureFlags = {
+        [FeatureFlag.AvoidColorsCollision]: true,
+      };
       const PALETTE = ['red', 'blue', 'green'];
 
       const chartAScale = new CategoricalColorScale(PALETTE);
-      chartAScale.getColor('Trains', 101, 'testScheme');
+      const labelsColorMap = chartAScale.labelsColorMapInstance;
+      labelsColorMap.reset();
+      labelsColorMap.source = LabelsColorMapSource.Dashboard;
 
-      const chartBScale = new CategoricalColorScale(PALETTE);
-      // Call getColor without sliceId (or with undefined)
-      chartBScale.getColor('Classic Cars', undefined, 'testScheme');
-      chartBScale.getColor('Trains', undefined, 'testScheme');
+      try {
+        chartAScale.getColor('Trains', 101, 'testScheme');
 
-      const classicCarsColor =
-        chartBScale.chartLabelsColorMap.get('Classic Cars');
-      const trainsColor = chartBScale.chartLabelsColorMap.get('Trains');
+        const chartBScale = new CategoricalColorScale(PALETTE);
+        // Call getColor without sliceId (or with undefined)
+        chartBScale.getColor('Classic Cars', undefined, 'testScheme');
+        chartBScale.getColor('Trains', undefined, 'testScheme');
 
-      expect(trainsColor).toBe('red');
-      expect(classicCarsColor).toBeDefined();
-      expect(classicCarsColor).not.toBe('red');
+        const classicCarsColor =
+          chartBScale.chartLabelsColorMap.get('Classic Cars');
+        const trainsColor = chartBScale.chartLabelsColorMap.get('Trains');
+
+        expect(trainsColor).toBe('red');
+        expect(classicCarsColor).toBeDefined();
+        expect(classicCarsColor).not.toBe('red');
+      } finally {
+        labelsColorMap.reset();
+        labelsColorMap.source = LabelsColorMapSource.Dashboard;
+      }
     });
     test('conditionally calls getNextAvailableColor', () => {
       window.featureFlags = {
         [FeatureFlag.AvoidColorsCollision]: true,
       };
+      scale.labelsColorMapInstance.source = LabelsColorMapSource.Explore;
 
       scale.getColor('testValue1');
       scale.getColor('testValue2');
