@@ -17,36 +17,9 @@
  * under the License.
  */
 
-// Types & enums — single source of truth for ColorSchemeGroup and config shapes
+// Types & enums for color scheme configuration — usable by extensions and host alike
 export type { ColorSchemeConfig, SequentialSchemeConfig } from './types';
 export { ColorSchemeGroup } from './types';
-
-// Categorical palette configs — raw data with no class dependencies
-export {
-  categoricalAirbnb,
-  categoricalBlueToGreen,
-  categoricalColorsOfRainbow,
-  categoricalD3,
-  categoricalEcharts,
-  categoricalGoogle,
-  categoricalLyft,
-  categoricalModernSunset,
-  categoricalPreset,
-  categoricalPresetAndSuperset,
-  categoricalRedToYellow,
-  categoricalSuperset,
-  categoricalWavesOfBlue,
-  allCategoricalColorSchemeConfigs,
-  DEFAULT_CATEGORICAL_SCHEME,
-} from './categorical';
-
-// Sequential / diverging palette configs
-export {
-  sequentialCommon,
-  sequentialD3,
-  allSequentialColorSchemeConfigs,
-  DEFAULT_SEQUENTIAL_SCHEME,
-} from './sequential';
 
 // ─── Registry bridge for extensions ──────────────────────────────────────────
 //

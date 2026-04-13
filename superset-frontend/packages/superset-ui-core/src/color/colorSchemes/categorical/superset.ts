@@ -17,8 +17,40 @@
  * under the License.
  */
 
-import { categoricalSuperset } from '@apache-superset/core/colors';
 import CategoricalScheme from '../../CategoricalScheme';
+import { ColorSchemeGroup } from '../../types';
 
-// Palette data lives in @apache-superset/core/colors — edit configs there.
-export default categoricalSuperset.map(s => new CategoricalScheme(s));
+// TODO: add the colors to the theme while working on SIP https://github.com/apache/superset/issues/20159
+const schemes = [
+  {
+    id: 'supersetColors',
+    label: 'Superset Colors',
+    group: ColorSchemeGroup.Featured,
+    colors: [
+      // Full color
+      '#1FA8C9',
+      '#454E7C',
+      '#5AC189',
+      '#FF7F44',
+      '#666666',
+      '#E04355',
+      '#FCC700',
+      '#A868B7',
+      '#3CCCCB',
+      '#A38F79',
+      // Pastels
+      '#8FD3E4',
+      '#A1A6BD',
+      '#ACE1C4',
+      '#FEC0A1',
+      '#B2B2B2',
+      '#EFA1AA',
+      '#FDE380',
+      '#D3B3DA',
+      '#9EE5E5',
+      '#D1C6BC',
+    ],
+  },
+].map(s => new CategoricalScheme(s));
+
+export default schemes;

@@ -593,9 +593,7 @@ function main() {
     /\.stories\./,
     /\/demo\//,
     /\/examples\//,
-    /\/color\/colorSchemes\//, // @superset-ui/core palette wrappers (data now in @apache-superset/core)
-    /\/colors\/categorical\//, // @apache-superset/core categorical palette definitions
-    /\/colors\/sequential\//, // @apache-superset/core sequential palette definitions
+    /\/color\/colorSchemes\//, // @superset-ui/core palette scheme definitions legitimately contain colors
     /\/cypress\//,
     /\/cypress-base\//,
     /\/esm\//,
@@ -625,8 +623,6 @@ function main() {
         '**/demo/**',
         '**/examples/**',
         '**/color/colorSchemes/**', // Color scheme definitions legitimately contain colors
-        '**/colors/categorical/**', // @apache-superset/core categorical palette definitions
-        '**/colors/sequential/**', // @apache-superset/core sequential palette definitions
         '**/cypress/**',
         '**/cypress-base/**',
         '**/esm/**', // Build artifacts
