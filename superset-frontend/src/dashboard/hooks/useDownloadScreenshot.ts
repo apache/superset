@@ -20,6 +20,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { last } from 'lodash';
+import rison from 'rison';
 import contentDisposition from 'content-disposition';
 import {
   logging,
@@ -148,7 +149,7 @@ export const useDownloadScreenshot = (
       };
 
       SupersetClient.post({
-        endpoint: `/api/v1/dashboard/${dashboardId}/cache_dashboard_screenshot/`,
+        endpoint: `/api/v1/dashboard/${dashboardId}/cache_dashboard_screenshot/?q=${rison.encode({ force: true })}`,
         jsonPayload: {
           anchor,
           activeTabs,
