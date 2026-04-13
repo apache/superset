@@ -141,9 +141,9 @@ function processPathData(
     // Set width from metric or fixed value
     if (fixedWidthValue != null) {
       // Use fixed width
-      const parsedFixedWith = parseMetricValue(fixedWidthValue);
-      if (parsedFixedWith !== undefined) {
-        feature.width = parsedFixedWith;
+      const parsedFixedWidth = parseMetricValue(fixedWidthValue);
+      if (parsedFixedWidth !== undefined) {
+        feature.width = parsedFixedWidth;
       }
     } else if (widthMetricLabel && record[widthMetricLabel] != null) {
       // Use metric value for width
