@@ -16,8 +16,10 @@
 # under the License.
 from unittest.mock import MagicMock, patch
 
+import pytest
+from flask import current_app, request as flask_request
+
 from superset.charts.api import ChartRestApi
-from superset.views.base_api import BaseSupersetModelRestApi
 
 
 def _make_api() -> ChartRestApi:
@@ -26,51 +28,54 @@ def _make_api() -> ChartRestApi:
     return api
 
 
-def test_related_owners_requires_write_permission() -> None:
-    """Users with only read access must receive 403 on related/owners."""
+@pytest.mark.parametrize("column_name", ["owners"])
+def test_ensure_owners_write_access_blocks_read_only_users(
+    column_name: str,
+) -> None:
+    """Users without write access receive 403 when requesting the owners field."""
     api = _make_api()
     api.response_403 = MagicMock(return_value="forbidden")
 
-    with patch(
-        "superset.charts.api.security_manager.can_access",
-        return_value=False,
-    ) as mock_can_access:
-        result = api.related("owners")
+    with current_app.test_request_context(f"/api/v1/chart/related/{column_name}"):
+        flask_request.view_args = {"column_name": column_name}
+        with patch(
+            "superset.charts.api.security_manager.can_access",
+            return_value=False,
+        ) as mock_can_access:
+            result = api.ensure_owners_write_access()
 
     mock_can_access.assert_called_once_with("can_write", "Chart")
     assert result == "forbidden"
 
 
-def test_related_owners_allowed_for_write_users() -> None:
-    """Users with write access can call related/owners."""
+def test_ensure_owners_write_access_allows_write_users() -> None:
+    """Users with write access receive None (request proceeds normally)."""
     api = _make_api()
-    super_related = MagicMock(return_value="ok")
 
-    with (
-        patch(
+    with current_app.test_request_context("/api/v1/chart/related/owners"):
+        flask_request.view_args = {"column_name": "owners"}
+        with patch(
             "superset.charts.api.security_manager.can_access",
             return_value=True,
-        ),
-        patch.object(BaseSupersetModelRestApi, "related", super_related),
-    ):
-        result = api.related("owners")
+        ):
+            result = api.ensure_owners_write_access()
 
-    assert result == "ok"
+    assert result is None
 
 
-def test_related_created_by_allows_read_only_users() -> None:
-    """created_by and changed_by related fields are not restricted to write users."""
+@pytest.mark.parametrize("column_name", ["created_by", "changed_by"])
+def test_ensure_owners_write_access_skips_non_owners_fields(
+    column_name: str,
+) -> None:
+    """Non-owners related fields bypass the write-access check entirely."""
     api = _make_api()
-    super_related = MagicMock(return_value="ok")
 
-    with (
-        patch(
+    with current_app.test_request_context(f"/api/v1/chart/related/{column_name}"):
+        flask_request.view_args = {"column_name": column_name}
+        with patch(
             "superset.charts.api.security_manager.can_access",
-        ) as mock_can_access,
-        patch.object(BaseSupersetModelRestApi, "related", super_related),
-    ):
-        result = api.related("created_by")
+        ) as mock_can_access:
+            result = api.ensure_owners_write_access()
 
-    # can_access should NOT be called for non-owners fields
     mock_can_access.assert_not_called()
-    assert result == "ok"
+    assert result is None
