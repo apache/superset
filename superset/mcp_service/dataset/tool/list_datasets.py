@@ -36,11 +36,6 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
 
 from superset.extensions import event_logger
-from superset.mcp_service.common.popularity import (
-    attach_popularity_scores,
-    compute_dataset_popularity,
-    get_popularity_sorted_ids,
-)
 from superset.mcp_service.dataset.schemas import (
     DatasetFilter,
     DatasetInfo,
@@ -50,7 +45,6 @@ from superset.mcp_service.dataset.schemas import (
 )
 from superset.mcp_service.mcp_core import ModelListCore
 from superset.mcp_service.system.schemas import PaginationInfo
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -120,9 +114,13 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
     )
 
     try:
-        # Avoid circular imports: DAO and schema_discovery depend on models
-        # that import from mcp_service during app initialization
+        # Avoid circular imports: DAO, schema_discovery, and popularity depend
+        # on models that import from mcp_service during app initialization
         from superset.daos.dataset import DatasetDAO
+        from superset.mcp_service.common.popularity import (
+            attach_popularity_scores,
+            compute_dataset_popularity,
+        )
         from superset.mcp_service.common.schema_discovery import (
             DATASET_SORTABLE_COLUMNS,
             get_all_column_names,
@@ -251,6 +249,11 @@ def _list_datasets_by_popularity(
     ctx: Context,
 ) -> DatasetList:
     """Two-pass listing: sort all matching datasets by popularity score."""
+    from superset.mcp_service.common.popularity import (
+        attach_popularity_scores,
+        compute_dataset_popularity,
+        get_popularity_sorted_ids,
+    )
     from superset.mcp_service.common.schema_discovery import DATASET_SORTABLE_COLUMNS
 
     sorted_ids, scores, total_count = get_popularity_sorted_ids(

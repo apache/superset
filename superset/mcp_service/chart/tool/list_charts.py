@@ -41,14 +41,8 @@ from superset.mcp_service.chart.schemas import (
     ListChartsRequest,
     serialize_chart_object,
 )
-from superset.mcp_service.common.popularity import (
-    attach_popularity_scores,
-    compute_chart_popularity,
-    get_popularity_sorted_ids,
-)
 from superset.mcp_service.mcp_core import ModelListCore
 from superset.mcp_service.system.schemas import PaginationInfo
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -106,9 +100,13 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
         )
     )
 
-    # Avoid circular imports: DAO and schema_discovery depend on models
-    # that import from mcp_service during app initialization
+    # Avoid circular imports: DAO, schema_discovery, and popularity depend
+    # on models that import from mcp_service during app initialization
     from superset.daos.chart import ChartDAO
+    from superset.mcp_service.common.popularity import (
+        attach_popularity_scores,
+        compute_chart_popularity,
+    )
     from superset.mcp_service.common.schema_discovery import (
         CHART_SORTABLE_COLUMNS,
         get_all_column_names,
@@ -225,6 +223,11 @@ def _list_charts_by_popularity(
     ctx: Context,
 ) -> ChartList:
     """Two-pass listing: sort all matching charts by popularity score."""
+    from superset.mcp_service.common.popularity import (
+        attach_popularity_scores,
+        compute_chart_popularity,
+        get_popularity_sorted_ids,
+    )
     from superset.mcp_service.common.schema_discovery import CHART_SORTABLE_COLUMNS
 
     sorted_ids, scores, total_count = get_popularity_sorted_ids(

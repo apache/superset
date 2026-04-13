@@ -36,11 +36,6 @@ if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
 
 from superset.extensions import event_logger
-from superset.mcp_service.common.popularity import (
-    attach_popularity_scores,
-    compute_dashboard_popularity,
-    get_popularity_sorted_ids,
-)
 from superset.mcp_service.dashboard.schemas import (
     DashboardFilter,
     DashboardInfo,
@@ -50,7 +45,6 @@ from superset.mcp_service.dashboard.schemas import (
 )
 from superset.mcp_service.mcp_core import ModelListCore
 from superset.mcp_service.system.schemas import PaginationInfo
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -110,9 +104,13 @@ async def list_dashboards(
         )
     )
 
-    # Avoid circular imports: DAO and schema_discovery depend on models
-    # that import from mcp_service during app initialization
+    # Avoid circular imports: DAO, schema_discovery, and popularity depend
+    # on models that import from mcp_service during app initialization
     from superset.daos.dashboard import DashboardDAO
+    from superset.mcp_service.common.popularity import (
+        attach_popularity_scores,
+        compute_dashboard_popularity,
+    )
     from superset.mcp_service.common.schema_discovery import (
         DASHBOARD_SORTABLE_COLUMNS,
         get_all_column_names,
@@ -222,6 +220,11 @@ def _list_dashboards_by_popularity(
     ctx: Context,
 ) -> DashboardList:
     """Two-pass listing: sort all matching dashboards by popularity score."""
+    from superset.mcp_service.common.popularity import (
+        attach_popularity_scores,
+        compute_dashboard_popularity,
+        get_popularity_sorted_ids,
+    )
     from superset.mcp_service.common.schema_discovery import (
         DASHBOARD_SORTABLE_COLUMNS,
     )
