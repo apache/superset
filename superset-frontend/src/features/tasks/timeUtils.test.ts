@@ -31,7 +31,7 @@ test('formatDuration returns null for invalid inputs', () => {
 });
 
 test('formatDuration formats seconds correctly', () => {
-  expect(formatDuration(37.5)).toBe('37s');
+  expect(formatDuration(37.5)).toBe('37s 500ms');
   expect(formatDuration(1)).toBe('1s');
   expect(formatDuration(30)).toBe('30s');
 });

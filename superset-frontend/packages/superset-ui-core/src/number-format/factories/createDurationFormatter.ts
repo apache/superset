@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import prettyMilliseconds, { Options } from 'pretty-ms';
 import NumberFormatter from '../NumberFormatter';
+import { parseMilliseconds } from '../utils/parseMilliseconds';
 
 export default function createDurationFormatter(
   config: {
@@ -26,14 +26,40 @@ export default function createDurationFormatter(
     id?: string;
     label?: string;
     multiplier?: number;
-  } & Options = {},
+    locale?: string;
+    formatSubMilliseconds?: boolean;
+  } & Intl.DurationFormatOptions = {},
 ) {
-  const { description, id, label, multiplier = 1, ...prettyMsOptions } = config;
-
+  const {
+    description,
+    id,
+    label,
+    multiplier = 1,
+    locale = 'en',
+    formatSubMilliseconds = false,
+    ...intlOptions
+  } = config;
   return new NumberFormatter({
     description,
-    formatFunc: value =>
-      prettyMilliseconds(value * multiplier, prettyMsOptions),
+    formatFunc: value => {
+      const durObject = parseMilliseconds(value * multiplier);
+
+      if (!formatSubMilliseconds) {
+        durObject.milliseconds = 0;
+        durObject.microseconds = 0;
+        durObject.nanoseconds = 0;
+      }
+
+      const isAllUnitsZero = Object.values(durObject).every(
+        value => value === 0,
+      );
+
+      return new Intl.DurationFormat(locale, {
+        secondsDisplay: isAllUnitsZero ? 'always' : 'auto',
+        style: 'narrow',
+        ...intlOptions,
+      }).format(durObject);
+    },
     id: id ?? 'duration_format',
     label: label ?? `Duration formatter`,
   });
