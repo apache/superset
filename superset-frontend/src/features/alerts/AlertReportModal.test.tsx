@@ -701,7 +701,7 @@ test('does not show screenshot width when csv is selected', async () => {
   expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
 });
 
-test('clearing chart selection invokes chart change with empty value', async () => {
+test('clearing the chart selection removes it from the combobox', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
     useRedux: true,
   });

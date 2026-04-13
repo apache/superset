@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  act,
   createEvent,
   fireEvent,
   render,
@@ -963,6 +964,32 @@ test('pasting an existing option does not duplicate it in multiple mode', async 
   );
 });
 
+test('does not fire onChange when pasting a value already selected in single mode', async () => {
+  const onChange = jest.fn();
+  const options = jest.fn(async () => ({
+    data: [OPTIONS[0]],
+    totalCount: 1,
+  }));
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      options={options}
+      onChange={onChange}
+      value={OPTIONS[0]}
+    />,
+  );
+  await open();
+  const input = getElementByClassName('.ant-select-selection-search-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => OPTIONS[0].label,
+    },
+  });
+  fireEvent(input, paste);
+  await act(async () => {});
+  expect(onChange).not.toHaveBeenCalled();
+});
+
 test('does not fire onChange when pasting only values already selected in multiple mode', async () => {
   const onChange = jest.fn();
   render(
@@ -981,7 +1008,8 @@ test('does not fire onChange when pasting only values already selected in multip
     },
   });
   fireEvent(input, paste);
-  await waitFor(() => expect(onChange).not.toHaveBeenCalled());
+  await act(async () => {});
+  expect(onChange).not.toHaveBeenCalled();
 });
 
 test('pasting an non-existent option should not add it if allowNewOptions is false', async () => {
