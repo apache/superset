@@ -575,7 +575,7 @@ const AsyncSelect = forwardRef(
         if (pastedValue) {
           const valueChanged = !utilsIsEqual(
             pastedValue,
-            selectValue as RawValue | AntdLabeledValue,
+            selectValueRef.current as RawValue | AntdLabeledValue,
             'value',
           );
           if (valueChanged) {
