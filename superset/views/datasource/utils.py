@@ -24,7 +24,7 @@ from superset.common.chart_data import ChartDataResultType
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.constants import CacheRegion
-from superset.daos.datasource import DatasourceDAO
+from superset.daos.datasource import Datasource, DatasourceDAO
 from superset.utils.core import QueryStatus
 from superset.views.datasource.schemas import SamplesPayloadSchema
 
@@ -95,7 +95,7 @@ def get_samples(  # pylint: disable=too-many-arguments
     page: int = 1,
     per_page: int = 1000,
     payload: SamplesPayloadSchema | None = None,
-    datasource: Any | None = None,
+    datasource: Datasource | None = None,
     dashboard_id: int | None = None,
 ) -> dict[str, Any]:
     if datasource is None:
