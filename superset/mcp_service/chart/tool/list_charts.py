@@ -19,8 +19,6 @@
 MCP tool: list_charts (advanced filtering with metadata cache control)
 """
 
-from __future__ import annotations
-
 import logging
 from collections.abc import Callable
 from datetime import datetime, timezone
