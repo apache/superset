@@ -35,6 +35,21 @@ const config: ControlPanelConfig = {
         ['adhoc_filters'],
         ['row_limit'],
         ['sort_by_metric'],
+        [
+          {
+            name: 'sort_by_series',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Sort by series'),
+              default: false,
+              description: t(
+                'Include a secondary sort by series name (ascending). '
+                  + 'This produces consistent ordering when multiple series have the '
+                  + 'same metric value, but may reduce query performance on some databases.',
+              ),
+            },
+          },
+        ],
       ],
     },
     {

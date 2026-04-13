@@ -36,15 +36,16 @@ describe('plugin-chart-word-cloud', () => {
       expect(query.columns).toEqual(['foo']);
     });
 
-    test('should order by series ASC when sort_by_metric is false', () => {
+    test('should not include orderby when neither sort option is enabled', () => {
       const queryContext = buildQuery({
         ...basicFormData,
         metric: 'count',
         sort_by_metric: false,
+        sort_by_series: false,
         row_limit: 100,
       });
       const [query] = queryContext.queries;
-      expect(query.orderby).toEqual([['foo', true]]);
+      expect(query.orderby).toBeUndefined();
     });
 
     test('should order by metric DESC only when sort_by_metric is true', () => {
@@ -52,21 +53,38 @@ describe('plugin-chart-word-cloud', () => {
         ...basicFormData,
         metric: 'count',
         sort_by_metric: true,
+        sort_by_series: false,
         row_limit: 100,
       });
       const [query] = queryContext.queries;
       expect(query.orderby).toEqual([['count', false]]);
     });
 
-    test('should not include secondary series sort when sort_by_metric is true', () => {
+    test('should order by series ASC only when sort_by_series is true', () => {
+      const queryContext = buildQuery({
+        ...basicFormData,
+        metric: 'count',
+        sort_by_metric: false,
+        sort_by_series: true,
+        row_limit: 100,
+      });
+      const [query] = queryContext.queries;
+      expect(query.orderby).toEqual([['foo', true]]);
+    });
+
+    test('should order by metric DESC then series ASC when both are true', () => {
       const queryContext = buildQuery({
         ...basicFormData,
         metric: 'count',
         sort_by_metric: true,
+        sort_by_series: true,
         row_limit: 100,
       });
       const [query] = queryContext.queries;
-      expect(query.orderby).toHaveLength(1);
+      expect(query.orderby).toEqual([
+        ['count', false],
+        ['foo', true],
+      ]);
     });
   });
 });
