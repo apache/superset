@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PostProcessingRule, QueryFormData } from '@superset-ui/core';
+import { isPostProcessingRank, QueryFormData } from '@superset-ui/core';
 import buildQuery from '../../src/Heatmap/buildQuery';
 
-const isRankOperation = (op?: PostProcessingRule) => op?.operation === 'rank';
 const baseFormData = {
   datasource: '5__table',
   granularity_sqla: 'ds',
@@ -29,93 +28,116 @@ const baseFormData = {
   viz_type: 'heatmap',
 } as QueryFormData;
 
+const getQuery = (formData: QueryFormData) => buildQuery(formData).queries[0];
+const getRankOperation = (formData: QueryFormData) =>
+  getQuery(formData).post_processing?.find(isPostProcessingRank);
+
 test('Heatmap buildQuery omits orderby for value-based ascending X-axis sort', () => {
-  const formData = { ...baseFormData, sort_x_axis: 'value_asc' };
-  const [query] = buildQuery(formData).queries;
+  const query = getQuery({
+    ...baseFormData,
+    sort_x_axis: 'value_asc',
+  });
 
   expect(query.orderby).toEqual([]);
 });
 
 test('Heatmap buildQuery omits orderby for value-based descending X-axis sort', () => {
-  const formData = { ...baseFormData, sort_x_axis: 'value_desc' };
-  const [query] = buildQuery(formData).queries;
+  const query = getQuery({
+    ...baseFormData,
+    sort_x_axis: 'value_desc',
+  });
 
   expect(query.orderby).toEqual([]);
 });
 
 test('Heatmap buildQuery adds column orderby for alpha ascending X-axis sort', () => {
-  const formData = { ...baseFormData, sort_x_axis: 'alpha_asc' };
-  const [query] = buildQuery(formData).queries;
+  const query = getQuery({
+    ...baseFormData,
+    sort_x_axis: 'alpha_asc',
+  });
 
   expect(query.orderby).toEqual([['category', true]]);
 });
 
 test('Heatmap buildQuery adds column orderby for alpha descending X-axis sort', () => {
-  const formData = { ...baseFormData, sort_x_axis: 'alpha_desc' };
-  const [query] = buildQuery(formData).queries;
+  const query = getQuery({
+    ...baseFormData,
+    sort_x_axis: 'alpha_desc',
+  });
 
   expect(query.orderby).toEqual([['category', false]]);
 });
 
 test('Heatmap buildQuery omits X-axis orderby when sort_x_axis is not set', () => {
-  const [query] = buildQuery({ ...baseFormData }).queries;
+  const query = getQuery({ ...baseFormData });
 
   expect(query.orderby).toEqual([]);
 });
 
 test('Heatmap buildQuery omits orderby for value-based ascending Y-axis sort', () => {
-  const formData = { ...baseFormData, sort_y_axis: 'value_asc' };
-  const [query] = buildQuery(formData).queries;
+  const query = getQuery({
+    ...baseFormData,
+    sort_y_axis: 'value_asc',
+  });
 
   expect(query.orderby).toEqual([]);
 });
 
 test('Heatmap buildQuery omits orderby for value-based descending Y-axis sort', () => {
-  const formData = { ...baseFormData, sort_y_axis: 'value_desc' };
-  const [query] = buildQuery(formData).queries;
+  const query = getQuery({
+    ...baseFormData,
+    sort_y_axis: 'value_desc',
+  });
 
   expect(query.orderby).toEqual([]);
 });
 
 test('Heatmap buildQuery adds column orderby for alpha ascending Y-axis sort', () => {
-  const formData = { ...baseFormData, sort_y_axis: 'alpha_asc' };
-  const [query] = buildQuery(formData).queries;
+  const query = getQuery({
+    ...baseFormData,
+    sort_y_axis: 'alpha_asc',
+  });
 
   expect(query.orderby).toEqual([['region', true]]);
 });
 
 test('Heatmap buildQuery adds column orderby for alpha descending Y-axis sort', () => {
-  const formData = { ...baseFormData, sort_y_axis: 'alpha_desc' };
-  const [query] = buildQuery(formData).queries;
+  const query = getQuery({
+    ...baseFormData,
+    sort_y_axis: 'alpha_desc',
+  });
 
   expect(query.orderby).toEqual([['region', false]]);
 });
 
 test('Heatmap buildQuery omits Y-axis orderby when sort_y_axis is not set', () => {
-  const [query] = buildQuery({ ...baseFormData }).queries;
+  const query = getQuery({ ...baseFormData });
 
   expect(query.orderby).toEqual([]);
 });
 
 test('Heatmap buildQuery always includes rank operation when normalized is true', () => {
-  const [query] = buildQuery({ ...baseFormData, normalized: true }).queries;
-  const rankOperation = query.post_processing?.find(isRankOperation);
+  const rankOperation = getRankOperation({
+    ...baseFormData,
+    normalized: true,
+  });
 
   expect(rankOperation).toBeDefined();
   expect(rankOperation?.operation).toBe('rank');
 });
 
 test('Heatmap buildQuery always includes rank operation when normalized is false', () => {
-  const [query] = buildQuery({ ...baseFormData, normalized: false }).queries;
-  const rankOperation = query.post_processing?.find(isRankOperation);
+  const rankOperation = getRankOperation({
+    ...baseFormData,
+    normalized: false,
+  });
 
   expect(rankOperation).toBeDefined();
   expect(rankOperation?.operation).toBe('rank');
 });
 
 test('Heatmap buildQuery always includes rank operation when normalized is unset', () => {
-  const [query] = buildQuery({ ...baseFormData }).queries;
-  const rankOperation = query.post_processing?.find(isRankOperation);
+  const rankOperation = getRankOperation({ ...baseFormData });
 
   expect(rankOperation).toBeDefined();
   expect(rankOperation?.operation).toBe('rank');
