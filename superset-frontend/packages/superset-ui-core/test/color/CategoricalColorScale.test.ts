@@ -211,7 +211,8 @@ describe('CategoricalColorScale', () => {
       chartBScale.getColor('Classic Cars', undefined, 'testScheme');
       chartBScale.getColor('Trains', undefined, 'testScheme');
 
-      const classicCarsColor = chartBScale.chartLabelsColorMap.get('Classic Cars');
+      const classicCarsColor =
+        chartBScale.chartLabelsColorMap.get('Classic Cars');
       const trainsColor = chartBScale.chartLabelsColorMap.get('Trains');
 
       expect(trainsColor).toBe('red');
