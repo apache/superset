@@ -238,12 +238,6 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         });
 
         if (matchingColumn) {
-          if (
-            typeof matchingColumn === 'object' &&
-            'sqlExpression' in matchingColumn
-          ) {
-            return matchingColumn.sqlExpression;
-          }
           return getColumnLabel(matchingColumn);
         }
 
