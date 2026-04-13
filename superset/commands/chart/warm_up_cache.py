@@ -130,5 +130,4 @@ class ChartWarmUpCacheCommand(BaseCommand):
             if not chart:
                 raise WarmUpCacheChartNotFoundError()
             self._chart_or_id = chart
-        if chart.datasource:
-            security_manager.raise_for_access(viz=chart)
+        security_manager.raise_for_access(chart=chart)
