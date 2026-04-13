@@ -478,7 +478,6 @@ def create_report_schedule(
     schedule.database = None
     schedule.custom_width = custom_width
     schedule.custom_height = custom_height
-    schedule.get_native_filters_params = mocker.MagicMock(return_value=("", []))
     return schedule
 
 
