@@ -129,8 +129,6 @@ playwright_testdata() {
   superset init
   # Enable DML on the examples database so Playwright tests can create/drop
   # temporary tables via SQL Lab without depending on external data sources.
-  # Uses `superset shell` (Flask shell with app context pre-loaded) rather
-  # than `python -c` to avoid the create_app()/app_context() boilerplate.
   superset shell <<'PYEOF'
 import sys
 from superset.extensions import db
