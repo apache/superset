@@ -993,7 +993,7 @@ msgstr ""
 
 #, fuzzy
 msgid "Add certification details for this dashboard"
-msgstr "Přidat podrobnosti certifikace pro tento dashboard"
+msgstr "Přidat podrobnosti certifikace pro tuto nástěnku"
 
 msgid "Add color for positive/negative change"
 msgstr "Přidat barvu pro kladnou/zápornou změnu"
@@ -1071,11 +1071,11 @@ msgstr "Přidat nový formátovač"
 
 #, fuzzy
 msgid "Add or edit display controls"
-msgstr "Přidat nebo upravit filtry"
+msgstr "Přidat nebo upravit ovládací prvky zobrazení"
 
 #, fuzzy
 msgid "Add or edit filters and controls"
-msgstr "Přidat nebo upravit filtry"
+msgstr "Přidat nebo upravit filtry a ovládací prvky"
 
 #, fuzzy
 msgid "Add report"
@@ -2258,6 +2258,9 @@ msgid ""
 "data. When left empty, bounds dynamically defined based on the min/max of"
 " the data."
 msgstr ""
+"Hranice pro osu X. Zvolený čas se přizpůsobí minimálnímu a maximálnímu datu "
+"dat. Pokud pole zůstane prázdné, rozsah se dynamicky určí na základě "
+"minimálního a maximálního data dat."
 
 msgid ""
 "Bounds for the Y-axis. When left empty, the bounds are dynamically "
@@ -7183,8 +7186,8 @@ msgid "Invalid state."
 msgstr "Neplatný stav."
 
 #, python-format
-msgid "Invalid tab ids: %s(tab_ids)"
-msgstr "Neplatná ID karet: %s(tab_ids)"
+msgid "Invalid tab ids: %(tab_ids)s"
+msgstr "Neplatná ID karet: %(tab_ids)s"
 
 #, fuzzy
 msgid "Invalid username or password"
@@ -7385,9 +7388,8 @@ msgstr "Pozice popisku"
 msgid "Label property name"
 msgstr "Název vlastnosti popisku"
 
-#, fuzzy
 msgid "Label size"
-msgstr "Čára popisku"
+msgstr "Velikost popisku"
 
 msgid "Label size unit"
 msgstr "Jednotka velikosti popisku"
@@ -9471,9 +9473,8 @@ msgstr "Zadejte prosím své křestní jméno"
 msgid "Please enter your last name"
 msgstr "Zadejte prosím své příjmení"
 
-#, fuzzy
 msgid "Please enter your password"
-msgstr "Potvrďte prosím své heslo"
+msgstr "Zadejte prosím své heslo"
 
 #, fuzzy
 msgid "Please enter your username"
@@ -10288,17 +10289,19 @@ msgstr ""
 "k nástěnce obejde kontroly na úrovni sady dat. Pokud nejsou definovány "
 "žádné role, platí běžná přístupová oprávnění."
 
+#, fuzzy
 msgid "Rolling Function"
-msgstr "Plovoucí funkce"
+msgstr "Klouzavá funkce"
 
+#, fuzzy
 msgid "Rolling Window"
-msgstr "Plovoucí okno"
+msgstr "Klouzavé okno"
 
 msgid "Rolling function"
-msgstr "Plovoucí funkce"
+msgstr "Klouzavá funkce"
 
 msgid "Rolling window"
-msgstr "Plovoucí okno"
+msgstr "Klouzavé okno"
 
 msgid "Root certificate"
 msgstr "Kořenový certifikát"
@@ -10570,7 +10573,7 @@ msgid "Save chart"
 msgstr "Uložit graf"
 
 msgid "Save color breakpoint values"
-msgstr ""
+msgstr "Uložit hodnoty zlomů barev"
 
 msgid "Save dashboard"
 msgstr "Uložit nástěnku"
@@ -11801,10 +11804,10 @@ msgstr "Řadit sestupně"
 
 #, fuzzy
 msgid "Sort display control values"
-msgstr "Zobrazit hodnoty kontroly řazení"
+msgstr "Řadit hodnoty ovládacího prvku zobrazení"
 
 msgid "Sort filter values"
-msgstr "Hondoty filtru řazení"
+msgstr "Hodnoty filtru řazení"
 
 #, fuzzy
 msgid "Sort legend"
@@ -12028,7 +12031,7 @@ msgstr "Stylizace"
 
 #, fuzzy
 msgid "Subcategories"
-msgstr "série"
+msgstr "Podkategorie"
 
 msgid "Subdomain"
 msgstr "Subdoména"
@@ -13228,16 +13231,14 @@ msgstr "Jednotka míry pro zadaný poloměr bodu"
 msgid "The upper limit of the threshold range of the Isoband"
 msgstr "Horní limit prahového rozsahu izopásu"
 
-#, fuzzy
 msgid "The user has been updated successfully."
-msgstr "Tato nástěnka byla úspěšně uložena."
+msgstr "Uživatel byl úspěšně aktualizován."
 
 msgid "The user seems to have been deleted"
 msgstr "Zdá se, že uživatel byl smazán"
 
-#, fuzzy
 msgid "The user was updated successfully"
-msgstr "Tato nástěnka byla úspěšně uložena."
+msgstr "Uživatel byl úspěšně aktualizován"
 
 msgid "The user/password combination is not valid (Incorrect password for user)."
 msgstr ""
@@ -15248,7 +15249,8 @@ msgid ""
 msgstr ""
 "Při specifikaci SQL funguje zdroj dat jako pohled. Superset použije tento"
 " příkaz jako poddotaz při seskupování a filtrování v generovaných "
-"nadřazených dotazech."
+"nadřazených dotazech. Pokud jsou provedeny změny ve vašem SQL dotazu, "
+"sloupce v datové sadě budou synchronizovány při uložení datové sady."
 
 msgid ""
 "When the secondary temporal columns are filtered, apply the same filter "
@@ -15690,8 +15692,9 @@ msgid ""
 "might cause you to lose some of your work. Are you sure you want to "
 "overwrite?"
 msgstr ""
-"Importujete jednu nebo více sad dat, které již existují. Přepsání může "
-"způsobit ztrátu vaší práce. Jste si jisti, že chcete přepsat?"
+"Importujete jeden nebo více již existujících datových souborů. Pokud je"
+"přepíšete, může dojít ke ztrátě části vaší práce. Opravdu chcete"
+"přepsat?"
 
 msgid ""
 "You are viewing this chart in a dashboard context with labels shared "
