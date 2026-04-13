@@ -235,6 +235,7 @@ class TestGetSchemaToolViaClient:
 
             # Check search columns match list_datasets actual search columns
             assert "table_name" in info["search_columns"]
+            assert "description" in info["search_columns"]
             assert "schema" in info["search_columns"]
             assert "sql" in info["search_columns"]
             assert "uuid" in info["search_columns"]

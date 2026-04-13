@@ -63,7 +63,7 @@ DEFAULT_DATASET_COLUMNS = [
     "changed_on_humanized",
 ]
 
-DATASET_SEARCH_COLUMNS = ["schema", "sql", "table_name", "uuid"]
+DATASET_SEARCH_COLUMNS = ["table_name", "description", "schema", "sql", "uuid"]
 
 
 @tool(

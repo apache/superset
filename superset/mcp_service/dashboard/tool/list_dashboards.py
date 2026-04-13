@@ -242,9 +242,20 @@ def _list_dashboards_by_popularity(
     start = page * page_size
     end = start + page_size
 
-    # Fetch full models for page IDs
+    # Fetch full models for page IDs with eager loading to avoid N+1
+    # lazy loads during serialization (owners, tags, roles, slices).
     if page_ids := sorted_ids[start:end]:
-        items = dao_class.find_by_ids(page_ids)
+        from sqlalchemy.orm import subqueryload
+
+        from superset.models.dashboard import Dashboard
+
+        eager_options = [
+            subqueryload(Dashboard.owners),
+            subqueryload(Dashboard.tags),
+            subqueryload(Dashboard.roles),
+            subqueryload(Dashboard.slices),
+        ]
+        items = dao_class.find_by_ids(page_ids, query_options=eager_options)
         id_to_item = {item.id: item for item in items}
         ordered_items = [id_to_item[pid] for pid in page_ids if pid in id_to_item]
     else:

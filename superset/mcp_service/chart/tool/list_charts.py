@@ -243,9 +243,18 @@ def _list_charts_by_popularity(
     start = page * page_size
     end = start + page_size
 
-    # Fetch full models for page IDs
+    # Fetch full models for page IDs with eager loading to avoid N+1
+    # lazy loads during serialization (tags, owners).
     if page_ids := sorted_ids[start:end]:
-        items = dao_class.find_by_ids(page_ids)
+        from sqlalchemy.orm import subqueryload
+
+        from superset.models.slice import Slice
+
+        eager_options = [
+            subqueryload(Slice.tags),
+            subqueryload(Slice.owners),
+        ]
+        items = dao_class.find_by_ids(page_ids, query_options=eager_options)
         # Preserve popularity sort order
         id_to_item = {item.id: item for item in items}
         ordered_items = [id_to_item[pid] for pid in page_ids if pid in id_to_item]
