@@ -78,7 +78,10 @@ interface CountryMapProps {
 
 const maps: Record<string, GeoData> = {};
 // Store zoom state per chart instance using element as key to enable garbage collection
-const zoomStates = new WeakMap<HTMLElement, { scale: number; translate: [number, number] }>();
+const zoomStates = new WeakMap<
+  HTMLElement,
+  { scale: number; translate: [number, number] }
+>();
 
 function CountryMap(element: HTMLElement, props: CountryMapProps) {
   const {
@@ -136,7 +139,7 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
     .attr('width', width)
     .attr('height', height)
     .attr('preserveAspectRatio', 'xMidYMid meet');
-  
+
   // Only set grab cursor if not in edit mode
   if (!isEditMode) {
     svg.style('cursor', 'grab');
@@ -155,7 +158,9 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
   let mousedownPos: { x: number; y: number } | null = null;
 
   // Cross-filter support
-  const getCrossFilterDataMask = (source: GeoFeature): { dataMask: any; isCurrentValueSelected: boolean } | undefined => {
+  const getCrossFilterDataMask = (
+    source: GeoFeature,
+  ): { dataMask: any; isCurrentValueSelected: boolean } | undefined => {
     if (!entity) return undefined;
 
     const selected = filterState?.selectedValues || [];
@@ -309,7 +314,9 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
   }
 
   // Visual highlighting for selected regions
-  function highlightSelectedRegion(selectedValues: string[] | null = null): void {
+  function highlightSelectedRegion(
+    selectedValues: string[] | null = null,
+  ): void {
     const selected = selectedValues || filterState?.selectedValues || [];
 
     mapLayer
