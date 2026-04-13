@@ -69,10 +69,12 @@ export default function reconcileColumnState(
     return null;
   }
 
-  const savedColumnIds = filteredColumnState.map(column => column.colId);
+  const savedColumnIdSet = new Set(
+    filteredColumnState.map(column => column.colId),
+  );
   const hasSameColumnSet =
-    currentColumnIds.length === savedColumnIds.length &&
-    currentColumnIds.every(columnId => savedColumnIds.includes(columnId));
+    currentColumnIds.length === savedColumnIdSet.size &&
+    currentColumnIds.every(columnId => savedColumnIdSet.has(columnId));
 
   return {
     columnState: filteredColumnState,
