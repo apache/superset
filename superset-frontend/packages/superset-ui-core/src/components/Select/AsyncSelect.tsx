@@ -582,7 +582,6 @@ const AsyncSelect = forwardRef(
             setSelectValue(pastedValue);
             fireOnChange();
           }
-          fireOnChange();
         }
       } else {
         const token = tokenSeparators.find(token => pastedText.includes(token));
