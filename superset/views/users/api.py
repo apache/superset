@@ -169,6 +169,7 @@ class UserRestApi(BaseSupersetApi):
 
     resource_name = "user"
     openapi_spec_tag = "User"
+    allow_browser_login = True
     openapi_spec_component_schemas = (UserResponseSchema,)
 
     @expose("/<int:user_id>/avatar.png", methods=("GET",))
