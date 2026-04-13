@@ -287,13 +287,35 @@ class BaseReportState:
                 except json.JSONDecodeError:
                     logger.debug("Anchor value is not a list, Fall back to single tab")
 
+            # Merge native_filters into existing urlParams instead of
+            # overwriting — dashboard_state may already have urlParams
+            # (e.g. standalone=true) that must be preserved.
+            state: DashboardPermalinkState = {**dashboard_state}
+            existing_params: list[tuple[str, str]] = state.get("urlParams") or []
+            merged_params: list[list[str]] = [
+                list(p) for p in existing_params if p[0] != "native_filters"
+            ]
+            merged_params.append(["native_filters", native_filter_params or ""])
+            state["urlParams"] = merged_params  # type: ignore[typeddict-item]
+            return [
+                self._get_tab_url(
+                    state,
+                    user_friendly=user_friendly,
+                )
+            ]
+
+        native_filter_params, filter_warnings = (
+            self._report_schedule.get_native_filters_params()
+        )
+        if filter_warnings:
+            self._filter_warnings.extend(filter_warnings)
+        if native_filter_params and native_filter_params != "()":
             return [
                 self._get_tab_url(
                     {
                         "urlParams": [
                             ["native_filters", native_filter_params]  # type: ignore
                         ],
-                        **dashboard_state,
                     },
                     user_friendly=user_friendly,
                 )
@@ -479,7 +501,7 @@ class BaseReportState:
             raise ReportScheduleCsvTimeout() from ex
         except Exception as ex:
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
-            logger.error(
+            logger.exception(
                 "CSV generation failed after %.2fs - execution_id: %s",
                 elapsed_seconds,
                 self._execution_id,
