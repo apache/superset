@@ -153,10 +153,13 @@ class CategoricalColorScale extends ExtensibleFunction {
       if (isFeatureEnabled(FeatureFlag.UseAnalogousColors)) {
         this.incrementColorRange();
       }
+
       if (
+        // feature flag to be deprecated (will become standard behaviour)
         isFeatureEnabled(FeatureFlag.AvoidColorsCollision) &&
         this.isColorUsed(color)
       ) {
+        // fallback to least used color
         color = this.getNextAvailableColor(cleanedValue, color);
       }
     }
