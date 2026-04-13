@@ -200,6 +200,24 @@ describe('CategoricalColorScale', () => {
       const returnedColor = scale.getColor(value, sliceId);
       expect(returnedColor).toBe(expectedColor);
     });
+    test('reassigns colliding colors when no sliceId is provided', () => {
+      const PALETTE = ['red', 'blue', 'green'];
+
+      const chartAScale = new CategoricalColorScale(PALETTE);
+      chartAScale.getColor('Trains', 101, 'testScheme');
+
+      const chartBScale = new CategoricalColorScale(PALETTE);
+      // Call getColor without sliceId (or with undefined)
+      chartBScale.getColor('Classic Cars', undefined, 'testScheme');
+      chartBScale.getColor('Trains', undefined, 'testScheme');
+
+      const classicCarsColor = chartBScale.chartLabelsColorMap.get('Classic Cars');
+      const trainsColor = chartBScale.chartLabelsColorMap.get('Trains');
+
+      expect(trainsColor).toBe('red');
+      expect(classicCarsColor).toBeDefined();
+      expect(classicCarsColor).not.toBe('red');
+    });
     test('conditionally calls getNextAvailableColor', () => {
       window.featureFlags = {
         [FeatureFlag.AvoidColorsCollision]: true,
