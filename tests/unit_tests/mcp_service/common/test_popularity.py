@@ -385,3 +385,103 @@ class TestGetPopularitySortedIds:
         assert sorted_ids == []
         assert scores == {}
         assert total == 0
+
+
+class TestLogsTableDegradation:
+    """Tests for graceful degradation when the logs table is empty or inaccessible."""
+
+    def _mock_query_chain(self, results):
+        chain = MagicMock()
+        chain.filter.return_value = chain
+        chain.group_by.return_value = chain
+        chain.all.return_value = results
+        return chain
+
+    @patch("superset.mcp_service.common.popularity.db")
+    def test_chart_scoring_without_view_data(self, mock_db):
+        """Charts still score on favs, dashboard count, certification, and recency
+        when the logs table returns no view data (e.g. Preset production)."""
+        recent = datetime.now(timezone.utc) - timedelta(days=2)  # +5 recency
+
+        mock_session = MagicMock()
+        mock_db.session = mock_session
+
+        query_chains = [
+            self._mock_query_chain([]),  # No views (empty logs table)
+            self._mock_query_chain([FavRow(obj_id=1, fav_count=3)]),
+            self._mock_query_chain([DashCountRow(slice_id=1, dash_count=4)]),
+            self._mock_query_chain(
+                [ChartMeta(id=1, certified_by="admin", changed_on=recent)]
+            ),
+        ]
+        mock_session.query.side_effect = query_chains
+
+        scores = compute_chart_popularity([1])
+
+        # No views, favs: 3*5=15, dashes: 4*2=8, certified: 10, recency: 5
+        assert scores[1] == 15 + 8 + 10 + 5
+
+    @patch("superset.mcp_service.common.popularity.db")
+    def test_chart_scoring_when_logs_query_raises(self, mock_db):
+        """Charts still score when the logs table query raises SQLAlchemyError."""
+        import sqlalchemy as sa
+
+        recent = datetime.now(timezone.utc) - timedelta(days=2)
+
+        mock_session = MagicMock()
+        mock_db.session = mock_session
+
+        # First query (views) raises, remaining queries succeed
+        error_chain = MagicMock()
+        error_chain.filter.return_value = error_chain
+        error_chain.group_by.return_value = error_chain
+        error_chain.all.side_effect = sa.exc.OperationalError(
+            "SELECT", {}, Exception("logs table does not exist")
+        )
+
+        query_chains = [
+            error_chain,  # Views query fails
+            self._mock_query_chain([FavRow(obj_id=1, fav_count=2)]),
+            self._mock_query_chain([DashCountRow(slice_id=1, dash_count=1)]),
+            self._mock_query_chain(
+                [ChartMeta(id=1, certified_by=None, changed_on=recent)]
+            ),
+        ]
+        mock_session.query.side_effect = query_chains
+
+        scores = compute_chart_popularity([1])
+
+        # No views (error), favs: 2*5=10, dashes: 1*2=2, no cert, recency: 5
+        assert scores[1] == 10 + 2 + 5
+
+    @patch("superset.mcp_service.common.popularity.db")
+    def test_dashboard_scoring_when_logs_query_raises(self, mock_db):
+        """Dashboards still score when the logs table query raises."""
+        import sqlalchemy as sa
+
+        old = datetime.now(timezone.utc) - timedelta(days=60)
+
+        mock_session = MagicMock()
+        mock_db.session = mock_session
+
+        error_chain = MagicMock()
+        error_chain.filter.return_value = error_chain
+        error_chain.group_by.return_value = error_chain
+        error_chain.all.side_effect = sa.exc.OperationalError(
+            "SELECT", {}, Exception("logs table does not exist")
+        )
+
+        query_chains = [
+            error_chain,  # Views query fails
+            self._mock_query_chain([FavRow(obj_id=1, fav_count=4)]),
+            self._mock_query_chain([ChartCountRow(dashboard_id=1, chart_count=3)]),
+            self._mock_query_chain(
+                [DashMeta(id=1, published=True, certified_by="admin", changed_on=old)]
+            ),
+        ]
+        mock_session.query.side_effect = query_chains
+
+        scores = compute_dashboard_popularity([1])
+
+        # No views, favs: 4*5=20, charts: 3*1=3, published: 3, certified: 10
+        assert scores[1] == 20 + 3 + 3 + 10

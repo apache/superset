@@ -91,13 +91,26 @@ def _add_view_scores(
     cutoff: datetime,
     weight: int,
 ) -> None:
-    """Add view count scores from the logs table."""
-    view_counts = (
-        db.session.query(id_column, sa.func.count(Log.id).label("view_count"))
-        .filter(Log.action == action, id_column.in_(entity_ids), Log.dttm >= cutoff)
-        .group_by(id_column)
-        .all()
-    )
+    """Add view count scores from the logs table.
+
+    Degrades gracefully when the logs table is empty (e.g. Preset production
+    where events are routed to external systems) or inaccessible.
+    """
+    try:
+        view_counts = (
+            db.session.query(id_column, sa.func.count(Log.id).label("view_count"))
+            .filter(Log.action == action, id_column.in_(entity_ids), Log.dttm >= cutoff)
+            .group_by(id_column)
+            .all()
+        )
+    except sa.exc.SQLAlchemyError:
+        logger.warning(
+            "Failed to query logs table for view counts (action=%s). "
+            "Scoring will proceed without view data.",
+            action,
+            exc_info=True,
+        )
+        return
     for row in view_counts:
         entity_id = row[0]
         if entity_id in scores:
