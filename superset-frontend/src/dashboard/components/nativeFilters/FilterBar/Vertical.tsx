@@ -266,7 +266,16 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
           {...getFilterBarTestId('collapsable')}
           className={cx({ open: !filtersOpen })}
           onClick={openFiltersBar}
+          onKeyDown={(e: React.KeyboardEvent) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              openFiltersBar();
+            }
+          }}
           role="button"
+          tabIndex={0}
+          aria-expanded={filtersOpen}
+          aria-label={t('Expand filters')}
           offset={offset}
         >
           <Icons.VerticalAlignTopOutlined

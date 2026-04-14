@@ -39,7 +39,7 @@ test('should render the expand button', () => {
   const mockedProps = createProps();
   render(<Header {...mockedProps} />, { useRedux: true });
   expect(
-    screen.getByRole('button', { name: 'vertical-align' }),
+    screen.getByRole('button', { name: 'Collapse filters' }),
   ).toBeInTheDocument();
 });
 
@@ -47,9 +47,27 @@ test('should toggle', () => {
   const mockedProps = createProps();
   render(<Header {...mockedProps} />, { useRedux: true });
   const expandBtn = screen.getByRole('button', {
-    name: 'vertical-align',
+    name: 'Collapse filters',
   });
   expect(mockedProps.toggleFiltersBar).not.toHaveBeenCalled();
   userEvent.click(expandBtn);
   expect(mockedProps.toggleFiltersBar).toHaveBeenCalled();
+});
+
+test('collapse button should have aria-expanded attribute', () => {
+  const mockedProps = createProps();
+  render(<Header {...mockedProps} />, { useRedux: true });
+  const collapseBtn = screen.getByRole('button', {
+    name: 'Collapse filters',
+  });
+  expect(collapseBtn).toHaveAttribute('aria-expanded', 'true');
+});
+
+test('collapse button should have aria-label for accessibility', () => {
+  const mockedProps = createProps();
+  render(<Header {...mockedProps} />, { useRedux: true });
+  const collapseBtn = screen.getByRole('button', {
+    name: 'Collapse filters',
+  });
+  expect(collapseBtn).toHaveAttribute('aria-label', 'Collapse filters');
 });
