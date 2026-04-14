@@ -21,8 +21,7 @@ import { t } from '@apache-superset/core/translation';
 import { GenericDataType } from '@apache-superset/core/common';
 import { useMemo } from 'react';
 import { zip } from 'lodash';
-import { Tooltip } from '@superset-ui/core/components';
-import { Select } from 'antd';
+import { Select, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import {
   CopyToClipboardButton,
