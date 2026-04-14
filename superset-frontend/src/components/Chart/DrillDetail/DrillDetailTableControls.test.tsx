@@ -17,9 +17,7 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import TableControls, {
-  TableControlsProps,
-} from './DrillDetailTableControls';
+import TableControls, { TableControlsProps } from './DrillDetailTableControls';
 
 const setFilters = jest.fn();
 const onReload = jest.fn();
