@@ -20,6 +20,7 @@
 import {
   ChartCustomization,
   ChartCustomizationDivider,
+  ChartCustomizationType,
   ColumnOption,
 } from '@superset-ui/core';
 import {
@@ -36,6 +37,7 @@ import {
   CLEAR_PENDING_CHART_CUSTOMIZATION,
   CLEAR_ALL_PENDING_CHART_CUSTOMIZATIONS,
   CLEAR_ALL_CHART_CUSTOMIZATIONS,
+  clearChartCustomizationSelection,
 } from '../actions/chartCustomizationActions';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 import {
@@ -296,12 +298,10 @@ export default function dashboardInfoReducer(
         metadata: {
           ...state.metadata,
           chart_customization_config: customizationConfig.map(
-            customization => ({
-              ...customization,
-              targets: customization.targets?.map(target => ({
-                datasetId: target.datasetId,
-              })),
-            }),
+            customization =>
+              customization.type === ChartCustomizationType.ChartCustomization
+                ? clearChartCustomizationSelection(customization)
+                : customization,
           ),
         } as DashboardInfo['metadata'],
         last_modified_time: Math.round(new Date().getTime() / 1000),

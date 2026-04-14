@@ -37,8 +37,8 @@ import {
   DataMask,
   isNativeFilter,
   usePrevious,
-  NativeFilterTarget,
   ChartCustomization,
+  ChartCustomizationType,
   ChartCustomizationDivider,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
@@ -49,6 +49,7 @@ import {
   saveChartCustomization,
   clearAllPendingChartCustomizations,
   clearAllChartCustomizationsFromMetadata,
+  clearChartCustomizationSelection,
 } from 'src/dashboard/actions/chartCustomizationActions';
 
 import { useImmer } from 'use-immer';
@@ -457,14 +458,12 @@ const FilterBar: FC<FiltersBarProps> = ({
       dispatch(clearAllPendingChartCustomizations());
       setPendingCustomizationDataMasks({});
     } else if (hasClearedChartCustomizations) {
-      const clearedChartCustomizations = chartCustomizationValues.map(item => ({
-        ...item,
-        targets: [
-          {
-            datasetId: item.targets?.[0]?.datasetId,
-          },
-        ] as [Partial<NativeFilterTarget>],
-      }));
+      const clearedChartCustomizations = chartCustomizationValues
+        .filter(
+          (item): item is ChartCustomization =>
+            item.type === ChartCustomizationType.ChartCustomization,
+        )
+        .map(item => clearChartCustomizationSelection(item));
 
       chartCustomizationValues.forEach(item => {
         dispatch(removeDataMask(item.id));

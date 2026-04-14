@@ -32,6 +32,7 @@ import { FILTER_BAR_TEST_ID } from './utils';
 import FilterBar from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 import * as dataMaskActions from 'src/dataMask/actions';
+import * as chartCustomizationActions from 'src/dashboard/actions/chartCustomizationActions';
 
 jest.useFakeTimers();
 
@@ -789,4 +790,82 @@ test('FilterBar Clear All only clears in-scope filters, not out-of-scope ones', 
   });
 
   updateDataMaskSpy.mockRestore();
+});
+
+test('clear all removes persisted dynamic group-by selections before saving', async () => {
+  const saveChartCustomizationSpy = jest.spyOn(
+    chartCustomizationActions,
+    'saveChartCustomization',
+  );
+  const customizationId = 'CHART_CUSTOMIZATION-groupby';
+  const chartCustomization = {
+    id: customizationId,
+    type: 'CHART_CUSTOMIZATION',
+    name: 'Dynamic Group By',
+    filterType: 'chart_customization_dynamic_groupby',
+    targets: [{ datasetId: 7, column: { name: 'status' } }],
+    scope: { rootPath: ['ROOT_ID'], excluded: [] },
+    chartsInScope: [18],
+    cascadeParentIds: [],
+    defaultDataMask: {},
+    controlValues: {
+      canSelectMultiple: true,
+      groupby: ['status', 'region'],
+    },
+    description: '',
+  };
+
+  const stateWithCustomization = {
+    ...stateWithoutNativeFilters,
+    dashboardInfo: {
+      id: 1,
+      dash_edit_perm: true,
+      filterBarOrientation: FilterBarOrientation.Vertical,
+      metadata: {
+        native_filter_configuration: [],
+        chart_customization_config: [chartCustomization],
+      },
+    },
+    dashboardState: {
+      ...stateWithoutNativeFilters.dashboardState,
+      activeTabs: ['ROOT_ID'],
+    },
+    dataMask: {
+      [customizationId]: createDataMask(customizationId, ['status', 'region'], {
+        custom_form_data: { groupby: ['status', 'region'] },
+      }),
+    },
+    nativeFilters: {
+      filters: {},
+      filtersState: {},
+    },
+  };
+
+  const props = createOpenedBarProps();
+  renderFilterBar(props, stateWithCustomization);
+  await act(async () => {
+    jest.advanceTimersByTime(300);
+  });
+
+  const clearButton = screen.getByTestId(getTestId('clear-button'));
+  await act(async () => {
+    userEvent.click(clearButton);
+  });
+
+  const applyButton = screen.getByTestId(getTestId('apply-button'));
+  await act(async () => {
+    userEvent.click(applyButton);
+  });
+
+  expect(saveChartCustomizationSpy).toHaveBeenCalledWith(
+    [
+      expect.objectContaining({
+        targets: [{ datasetId: 7 }],
+        controlValues: { canSelectMultiple: true },
+      }),
+    ],
+    [],
+  );
+
+  saveChartCustomizationSpy.mockRestore();
 });

@@ -24,6 +24,7 @@ import {
   getClientErrorObject,
   ChartCustomization,
   ChartCustomizationDivider,
+  NativeFilterTarget,
   ColumnOption,
   Filter,
   Filters,
@@ -293,6 +294,22 @@ export interface ClearAllChartCustomizations {
 export function clearAllChartCustomizations(): ClearAllChartCustomizations {
   return {
     type: CLEAR_ALL_CHART_CUSTOMIZATIONS,
+  };
+}
+
+export function clearChartCustomizationSelection(
+  item: ChartCustomization,
+): ChartCustomization {
+  const { groupby, ...controlValues } = item.controlValues ?? {};
+
+  return {
+    ...item,
+    controlValues,
+    targets: [
+      {
+        datasetId: item.targets?.[0]?.datasetId,
+      },
+    ] as [Partial<NativeFilterTarget>],
   };
 }
 

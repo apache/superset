@@ -20,6 +20,7 @@ import {
   DASHBOARD_INFO_UPDATED,
   dashboardInfoChanged,
 } from '../actions/dashboardInfo';
+import { clearAllChartCustomizations } from '../actions/chartCustomizationActions';
 import type { DashboardInfo } from '../types';
 import dashboardInfoReducer from './dashboardInfo';
 
@@ -145,6 +146,42 @@ test('preserves chart_customization_config scopes during DASHBOARD_INFO_UPDATED 
   expect(customizations).toHaveLength(1);
   expect(customizations![0].chartsInScope).toEqual([100]);
   expect(customizations![0].tabsInScope).toEqual(['TAB-X']);
+});
+
+test('clears chart customization target column and persisted groupby state', () => {
+  const stateWithCustomizationSelection = {
+    id: 1,
+    metadata: {
+      chart_customization_config: [
+        {
+          id: 'CUSTOM-1',
+          type: 'CHART_CUSTOMIZATION',
+          name: 'Dynamic Group By',
+          filterType: 'chart_customization_dynamic_groupby',
+          targets: [{ datasetId: 3, column: { name: 'status' } }],
+          scope: { rootPath: [], excluded: [] },
+          chartsInScope: [100],
+          cascadeParentIds: [],
+          defaultDataMask: {},
+          controlValues: {
+            groupby: ['status', 'region'],
+            canSelectMultiple: true,
+          },
+        },
+      ],
+    },
+  } as unknown as Partial<DashboardInfo>;
+
+  const result = dashboardInfoReducer(stateWithCustomizationSelection, {
+    type: clearAllChartCustomizations().type,
+  });
+
+  expect(result.metadata?.chart_customization_config).toEqual([
+    expect.objectContaining({
+      targets: [{ datasetId: 3 }],
+      controlValues: { canSelectMultiple: true },
+    }),
+  ]);
 });
 
 test('does not affect metadata when DASHBOARD_INFO_UPDATED has no metadata key', () => {
