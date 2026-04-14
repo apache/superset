@@ -25,21 +25,28 @@ import logging
 from urllib.parse import urlencode
 
 from fastmcp import Context
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.extensions import event_logger
+from superset.extensions import db, event_logger
 from superset.mcp_service.sql_lab.schemas import (
     OpenSqlLabRequest,
     SqlLabResponse,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 
 logger = logging.getLogger(__name__)
 
 
-@tool(tags=["explore"], class_permission_name="SQLLab", method_permission_name="read")
-@parse_request(OpenSqlLabRequest)
+@tool(
+    tags=["explore"],
+    class_permission_name="SQLLab",
+    method_permission_name="read",
+    annotations=ToolAnnotations(
+        title="Open SQL Lab with context",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 def open_sql_lab_with_context(
     request: OpenSqlLabRequest, ctx: Context
 ) -> SqlLabResponse:
@@ -111,6 +118,15 @@ def open_sql_lab_with_context(
         )
 
     except Exception as e:
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except Exception:  # noqa: BLE001
+            # Broad catch: the DB connection itself may be broken (e.g.,
+            # SSL drop), so even rollback can fail with non-SQLAlchemy
+            # errors. This is a cleanup path — swallow and log.
+            logger.warning(
+                "Database rollback failed during error handling", exc_info=True
+            )
         logger.error("Error generating SQL Lab URL: %s", e)
         return SqlLabResponse(
             url="",

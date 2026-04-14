@@ -17,7 +17,11 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
-import { ObjectFormattingEnum } from '@superset-ui/chart-controls';
+import {
+  getTextColorForBackground,
+  ObjectFormattingEnum,
+} from '@superset-ui/chart-controls';
+import { supersetTheme } from '@apache-superset/core/theme';
 import {
   render,
   screen,
@@ -670,6 +674,52 @@ describe('plugin-chart-table', () => {
         );
         expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
       });
+
+      test('preserves muted null styling when no formatter resolves text color', () => {
+        const dataWithEmptyCell = cloneDeep(testData.advanced.queriesData[0]);
+        dataWithEmptyCell.data.push({
+          __timestamp: null,
+          name: 'Noah',
+          sum__num: null,
+          '%pct_nice': 0.643,
+          'abc.com': 'bazzinga',
+        });
+
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  queriesData: [dataWithEmptyCell],
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'sum__num',
+                        operator: '<',
+                        targetValue: 12342,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        const noahRow = screen.getByText('Noah').closest('tr');
+        expect(noahRow).not.toBeNull();
+
+        const nullCell = noahRow?.querySelector('td.dt-is-null');
+        expect(nullCell).not.toBeNull();
+        expect((nullCell as HTMLElement).style.color).toBe('');
+        expect(getComputedStyle(nullCell as Element).color).toBe(
+          'rgba(0, 0, 0, 0.45)',
+        );
+      });
+
       test('should display original label in grouped headers', () => {
         const props = transformProps(testData.comparison);
 
@@ -1351,11 +1401,9 @@ describe('plugin-chart-table', () => {
         );
 
         expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).color).toBe(
-          'rgba(0, 0, 0, 0.88)',
-        );
+        expect((screen.getByTitle('2467') as HTMLElement).style.color).toBe('');
       });
 
       test('display text color using column color formatter for entire row', () => {
@@ -1385,13 +1433,182 @@ describe('plugin-chart-table', () => {
         );
 
         expect(getComputedStyle(screen.getByText('Michael')).color).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByTitle('0.123456')).color).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
+        );
+      });
+
+      test('derive readable text color from dark background formatting', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#111111',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        useGradient: false,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+          'rgb(17, 17, 17)',
+        );
+        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
+          'rgb(255, 255, 255)',
+        );
+      });
+
+      test('keep explicit text color over adaptive contrast', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#111111',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        useGradient: false,
+                      },
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        objectFormatting: ObjectFormattingEnum.TEXT_COLOR,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+          'rgb(17, 17, 17)',
+        );
+        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
+          'rgb(172, 225, 196)',
+        );
+      });
+
+      test('support legacy toTextColor formatters', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#111111',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        useGradient: false,
+                      },
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        toTextColor: true,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+          'rgb(17, 17, 17)',
+        );
+        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
+          'rgb(172, 225, 196)',
+        );
+      });
+
+      test('use striped row surface when deriving adaptive text color', () => {
+        const backgroundColor = Array.from(
+          { length: 0xff },
+          (_, index) => `#000000${(index + 1).toString(16).padStart(2, '0')}`,
+        ).find(candidate => {
+          const baseColor = getTextColorForBackground(
+            { backgroundColor: candidate },
+            supersetTheme.colorBgBase,
+          );
+          const layoutColor = getTextColorForBackground(
+            { backgroundColor: candidate },
+            supersetTheme.colorBgLayout,
+          );
+          return baseColor !== layoutColor;
+        });
+
+        expect(backgroundColor).toBeDefined();
+
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: backgroundColor,
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2000,
+                        useGradient: false,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
+          getTextColorForBackground(
+            { backgroundColor },
+            supersetTheme.colorBgLayout,
+          ),
+        );
+        expect(getComputedStyle(screen.getByTitle('2467')).color).toBe(
+          getTextColorForBackground(
+            { backgroundColor },
+            supersetTheme.colorBgBase,
+          ),
         );
       });
 
@@ -1569,6 +1786,146 @@ describe('plugin-chart-table', () => {
           expect(totalCellAfter).toBeInTheDocument();
         });
       });
+    });
+
+    test('should build columnLabelToNameMap for adhoc columns with custom labels', () => {
+      const result = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          query_mode: QueryMode.Aggregate,
+          groupby: [
+            {
+              sqlExpression: 'name',
+              label: 'Name_Renamed',
+              expressionType: 'SQL',
+            },
+          ],
+          metrics: ['sum__num'],
+        },
+        emitCrossFilters: true,
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['Name_Renamed', 'sum__num'],
+            coltypes: [GenericDataType.String, GenericDataType.Numeric],
+            data: [{ Name_Renamed: 'Michael', sum__num: 2467063 }],
+          },
+        ],
+      });
+      expect(result.columnLabelToNameMap).toEqual({
+        Name_Renamed: 'name',
+      });
+    });
+
+    test('should not populate columnLabelToNameMap for physical columns', () => {
+      const result = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          query_mode: QueryMode.Aggregate,
+          groupby: ['name'],
+          metrics: ['sum__num'],
+        },
+        emitCrossFilters: true,
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['name', 'sum__num'],
+            coltypes: [GenericDataType.String, GenericDataType.Numeric],
+            data: [{ name: 'Michael', sum__num: 2467063 }],
+          },
+        ],
+      });
+      expect(result.columnLabelToNameMap).toEqual({});
+    });
+
+    test('should not populate columnLabelToNameMap when adhoc label matches sqlExpression', () => {
+      const result = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          query_mode: QueryMode.Aggregate,
+          groupby: [
+            {
+              sqlExpression: 'name',
+              label: 'name',
+              expressionType: 'SQL',
+            },
+          ],
+          metrics: ['sum__num'],
+        },
+        emitCrossFilters: true,
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['name', 'sum__num'],
+            coltypes: [GenericDataType.String, GenericDataType.Numeric],
+            data: [{ name: 'Michael', sum__num: 2467063 }],
+          },
+        ],
+      });
+      expect(result.columnLabelToNameMap).toEqual({});
+    });
+
+    test('cross-filter on adhoc column with custom label emits original column name', () => {
+      const setDataMask = jest.fn();
+      const baseProps = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          query_mode: QueryMode.Aggregate,
+          groupby: [
+            {
+              sqlExpression: 'name',
+              label: 'Name_Renamed',
+              expressionType: 'SQL',
+            },
+          ],
+          metrics: ['sum__num'],
+        },
+        filterState: { filters: {} },
+        ownState: {},
+        hooks: {
+          onAddFilter: jest.fn(),
+          setDataMask,
+          onContextMenu: jest.fn(),
+        },
+        emitCrossFilters: true,
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['Name_Renamed', 'sum__num'],
+            coltypes: [GenericDataType.String, GenericDataType.Numeric],
+            data: [
+              { Name_Renamed: 'Michael', sum__num: 2467063 },
+              { Name_Renamed: 'Joe', sum__num: 2467 },
+            ],
+          },
+        ],
+      });
+
+      render(
+        <ProviderWrapper>
+          <TableChart {...baseProps} emitCrossFilters sticky={false} />
+        </ProviderWrapper>,
+      );
+
+      // Verify the table rendered with data
+      expect(screen.getByText('Michael')).toBeInTheDocument();
+
+      // Find the td cell containing "Michael" and click it
+      const cell = screen.getByText('Michael').closest('td')!;
+      fireEvent.click(cell);
+
+      expect(setDataMask).toHaveBeenCalled();
+      const lastCall =
+        setDataMask.mock.calls[setDataMask.mock.calls.length - 1][0];
+      const { filters } = lastCall.extraFormData;
+      expect(filters).toHaveLength(1);
+      // Should emit the original column name, not the label
+      expect(filters[0].col).toBe('name');
+      expect(filters[0].val).toEqual(['Michael']);
     });
   });
 });

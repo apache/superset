@@ -1895,16 +1895,19 @@ class TestSecurityManager(SupersetTestCase):
                         }
                     )
 
-                # Undefined dashboard chart.
-                with self.assertRaises(SupersetSecurityException):  # noqa: PT027
-                    security_manager.raise_for_access(
-                        **{
-                            kwarg: Mock(
-                                datasource=birth_names,
-                                form_data={"dashboardId": births.id},
-                            )
-                        }
-                    )
+                # Drill to Detail (no slice_id/chart_id): datasource on dashboard.
+                # Access is granted via DASHBOARD_RBAC — D2D is a valid operation
+                # for users who have dashboard access.
+                security_manager.raise_for_access(
+                    **{
+                        kwarg: Mock(
+                            datasource=birth_names,
+                            form_data={"dashboardId": births.id},
+                            slice_=None,
+                            queries=[],
+                        )
+                    }
+                )
 
                 # Ill-defined dashboard chart.
                 with self.assertRaises(SupersetSecurityException):  # noqa: PT027

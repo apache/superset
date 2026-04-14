@@ -17,9 +17,33 @@
 
 """Schemas for SQL Lab MCP tools."""
 
-from typing import Any
+from typing import Any, Dict
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
+from pydantic import (
+    AliasChoices,
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_serializer,
+)
+
+
+class _SchemaFieldNormalizer(BaseModel):
+    """Mixin that renames schema_name → schema in JSON output.
+
+    Pydantic serializes using field names by default, but the MCP/API
+    convention uses the alias ``schema``.  Adding this as a base class
+    to any response model that carries a ``schema_name`` field with
+    ``alias="schema"`` keeps the JSON key consistent.
+    """
+
+    @model_serializer(mode="wrap", when_used="json")
+    def _normalize_schema_field(self, serializer: Any, _info: Any) -> Dict[str, Any]:
+        data = serializer(self)
+        if "schema_name" in data:
+            data["schema"] = data.pop("schema_name")
+        return data
 
 
 class ExecuteSqlRequest(BaseModel):
@@ -33,6 +57,7 @@ class ExecuteSqlRequest(BaseModel):
     sql: str = Field(
         ...,
         description="SQL query to execute (supports Jinja2 {{ var }} template syntax)",
+        validation_alias=AliasChoices("sql", "query"),
     )
     schema_name: str | None = Field(
         None, description="Schema to use for query execution", alias="schema"
@@ -147,6 +172,69 @@ class ExecuteSqlResponse(BaseModel):
     )
 
 
+class SaveSqlQueryRequest(BaseModel):
+    """Request schema for saving a SQL query."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    database_id: int = Field(
+        ..., description="Database connection ID the query runs against"
+    )
+    label: str = Field(
+        ...,
+        description="Name for the saved query (shown in Saved Queries list)",
+        min_length=1,
+        max_length=256,
+    )
+    sql: str = Field(
+        ...,
+        description="SQL query text to save",
+    )
+    schema_name: str | None = Field(
+        None,
+        description="Schema the query targets",
+        alias="schema",
+    )
+    catalog: str | None = Field(None, description="Catalog name (if applicable)")
+    description: str | None = Field(
+        None, description="Optional description of the query"
+    )
+
+    @field_validator("sql")
+    @classmethod
+    def sql_not_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("SQL query cannot be empty")
+        return v.strip()
+
+    @field_validator("label")
+    @classmethod
+    def label_not_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Label cannot be empty")
+        return v.strip()
+
+
+class SaveSqlQueryResponse(_SchemaFieldNormalizer):
+    """Response schema for a saved SQL query."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: int = Field(..., description="Saved query ID")
+    label: str = Field(..., description="Query name")
+    sql: str = Field(..., description="SQL query text")
+    database_id: int = Field(..., description="Database ID")
+    schema_name: str | None = Field(None, description="Schema name", alias="schema")
+    catalog: str | None = Field(None, description="Catalog name (if applicable)")
+    description: str | None = Field(None, description="Query description")
+    url: str = Field(
+        ...,
+        description=(
+            "URL to open this saved query in SQL Lab (e.g., /sqllab?savedQueryId=42)"
+        ),
+    )
+
+
 class OpenSqlLabRequest(BaseModel):
     """Request schema for opening SQL Lab with context."""
 
@@ -171,7 +259,7 @@ class OpenSqlLabRequest(BaseModel):
     title: str | None = Field(None, description="Title for the SQL Lab tab/query")
 
 
-class SqlLabResponse(BaseModel):
+class SqlLabResponse(_SchemaFieldNormalizer):
     """Response schema for SQL Lab URL generation."""
 
     model_config = ConfigDict(populate_by_name=True)

@@ -24,20 +24,22 @@ import type { PlaceholderProps } from './types';
 function DefaultPlaceholder({
   width,
   height,
-  showLoadingForImport = false,
+  showLoadingForImport = true,
   placeholderStyle: style,
 }: PlaceholderProps) {
-  return (
-    // since `width` defaults to 100%, we can display the placeholder once
-    // height is specified.
-    (height && (
+  if (showLoadingForImport) {
+    return (
       <div key="async-asm-placeholder" style={{ width, height, ...style }}>
-        {showLoadingForImport && <Loading position="floating" />}
+        <Loading position="floating" size="s" />
       </div>
-    )) ||
-    // `|| null` is for in case of height=0.
-    null
-  );
+    );
+  }
+  if (height) {
+    return (
+      <div key="async-asm-placeholder" style={{ width, height, ...style }} />
+    );
+  }
+  return null;
 }
 
 /**

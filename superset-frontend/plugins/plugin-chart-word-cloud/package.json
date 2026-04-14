@@ -34,9 +34,9 @@
     "d3-scale": "^4.0.2"
   },
   "peerDependencies": {
+    "@apache-superset/core": "*",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "@apache-superset/core": "*",
     "@types/lodash": "*",
     "@types/react": "*",
     "react": "^18.2.0"

@@ -56,6 +56,7 @@ import SearchSelectDropdown from './components/SearchSelectDropdown';
 import { SearchOption, SortByItem } from '../types';
 import getInitialSortState, { shouldSort } from '../utils/getInitialSortState';
 import getInitialFilterModel from '../utils/getInitialFilterModel';
+import reconcileColumnState from '../utils/reconcileColumnState';
 import { PAGE_SIZE_OPTIONS } from '../consts';
 import { getCompleteFilterState } from '../utils/filterStateManager';
 
@@ -431,10 +432,17 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       // Note: filterModel is now handled via gridInitialState for better performance
       if (chartState?.columnState && params.api) {
         try {
-          params.api.applyColumnState?.({
-            state: chartState.columnState as ColumnState[],
-            applyOrder: true,
-          });
+          const reconciledColumnState = reconcileColumnState(
+            chartState.columnState as ColumnState[],
+            colDefsFromProps as ColDef[],
+          );
+
+          if (reconciledColumnState) {
+            params.api.applyColumnState?.({
+              state: reconciledColumnState.columnState,
+              applyOrder: reconciledColumnState.applyOrder,
+            });
+          }
         } catch {
           // Silently fail if state restoration fails
         }

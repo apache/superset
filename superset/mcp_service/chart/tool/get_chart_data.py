@@ -25,14 +25,14 @@ from typing import Any, Dict, List, TYPE_CHECKING
 
 from fastmcp import Context
 from flask import current_app
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
     from superset.models.slice import Slice
 
 from superset.commands.exceptions import CommandException
 from superset.commands.explore.form_data.parameters import CommandParameters
-from superset.exceptions import SupersetException
+from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
@@ -43,7 +43,10 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
 )
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
-from superset.mcp_service.utils.schema_utils import parse_request
+from superset.mcp_service.utils.oauth2_utils import (
+    build_oauth2_redirect_message,
+    OAUTH2_CONFIG_ERROR_MESSAGE,
+)
 from superset.utils.core import merge_extra_filters
 
 logger = logging.getLogger(__name__)
@@ -74,8 +77,15 @@ def _get_cached_form_data(form_data_key: str) -> str | None:
         return None
 
 
-@tool(tags=["data"], class_permission_name="Chart")
-@parse_request(GetChartDataRequest)
+@tool(
+    tags=["data"],
+    class_permission_name="Chart",
+    annotations=ToolAnnotations(
+        title="Get chart data",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 async def get_chart_data(  # noqa: C901
     request: GetChartDataRequest, ctx: Context
 ) -> ChartData | ChartError:
@@ -295,7 +305,13 @@ async def get_chart_data(  # noqa: C901
                     cached_groupby: list[str] = []
                 else:
                     cached_metrics = cached_form_data_dict.get("metrics", [])
-                    cached_groupby = cached_form_data_dict.get("groupby", [])
+                    raw_groupby = cached_form_data_dict.get("groupby", [])
+                    # Guard against string groupby (e.g. heatmap_v2 migrated
+                    # from legacy heatmap where all_columns_y was a string)
+                    if isinstance(raw_groupby, str):
+                        cached_groupby = [raw_groupby]
+                    else:
+                        cached_groupby = list(raw_groupby)
 
                 _apply_extra_form_data(cached_form_data_dict, request.extra_form_data)
 
@@ -363,6 +379,29 @@ async def get_chart_data(  # noqa: C901
                 # Bubble charts use x/y/size as separate metric fields.
                 viz_type = chart.viz_type or ""
 
+                # Deck.gl chart types store spatial data (lat/lon)
+                # rather than traditional metrics/groupby. They
+                # require a saved query_context to retrieve data.
+                # Match by prefix to cover all current and future
+                # deck.gl viz types (deck_arc, deck_scatter, etc.).
+                if viz_type.startswith("deck_"):
+                    await ctx.warning(
+                        "Chart %s is a deck.gl visualization (%s) with no "
+                        "saved query_context. Data retrieval requires "
+                        "re-saving the chart in Superset." % (chart.id, viz_type)
+                    )
+                    return ChartError(
+                        error=(
+                            f"Chart {chart.id} is a deck.gl visualization "
+                            f"(type: {viz_type}) with no saved query_context. "
+                            f"Deck.gl charts use spatial data (lat/lon) that "
+                            f"cannot be reconstructed from form_data alone. "
+                            f"Please open this chart in Superset and re-save "
+                            f"it to generate a query_context."
+                        ),
+                        error_type="MissingQueryContext",
+                    )
+
                 singular_metric_no_groupby = (
                     "big_number",
                     "big_number_total",
@@ -414,7 +453,13 @@ async def get_chart_data(  # noqa: C901
                 else:
                     # Standard charts use "metrics" (plural) and "groupby"
                     metrics = form_data.get("metrics", [])
-                    groupby_columns = list(form_data.get("groupby") or [])
+                    raw_groupby = form_data.get("groupby") or []
+                    # Guard against string groupby (e.g. heatmap_v2 migrated
+                    # from legacy heatmap where all_columns_y was a string)
+                    if isinstance(raw_groupby, str):
+                        groupby_columns = [raw_groupby]
+                    else:
+                        groupby_columns = list(raw_groupby)
                     # Some chart types use "columns" instead of "groupby"
                     if not groupby_columns:
                         form_columns = form_data.get("columns")
@@ -756,6 +801,23 @@ async def get_chart_data(  # noqa: C901
                 error_type="DataError",
             )
 
+    except OAuth2RedirectError as ex:
+        await ctx.error(
+            "Chart data requires OAuth authentication: identifier=%s"
+            % request.identifier
+        )
+        return ChartError(
+            error=build_oauth2_redirect_message(ex),
+            error_type="OAUTH2_REDIRECT",
+        )
+    except OAuth2Error:
+        await ctx.error(
+            "OAuth2 configuration error: identifier=%s" % request.identifier
+        )
+        return ChartError(
+            error=OAUTH2_CONFIG_ERROR_MESSAGE,
+            error_type="OAUTH2_REDIRECT_ERROR",
+        )
     except Exception as e:
         await ctx.error(
             "Chart data retrieval failed: identifier=%s, error=%s, error_type=%s"

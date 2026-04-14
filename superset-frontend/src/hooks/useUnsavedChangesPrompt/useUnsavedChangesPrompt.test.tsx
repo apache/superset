@@ -126,7 +126,7 @@ test('should close modal when handleConfirmNavigation is called', () => {
   expect(result.current.showModal).toBe(false);
 });
 
-test('should preserve pathname and state when confirming navigation', () => {
+test('should preserve pathname, search, and state when confirming navigation', () => {
   const onSave = jest.fn();
   const history = createMemoryHistory();
   const wrapper = ({ children }: any) => (
@@ -135,6 +135,7 @@ test('should preserve pathname and state when confirming navigation', () => {
 
   const locationState = { fromDashboard: true, dashboardId: 123 };
   const pathname = '/another-page';
+  const search = '?slice_id=42&foo=bar';
 
   const { result } = renderHook(
     () => useUnsavedChangesPrompt({ hasUnsavedChanges: true, onSave }),
@@ -145,7 +146,7 @@ test('should preserve pathname and state when confirming navigation', () => {
 
   // Simulate a blocked navigation (the hook sets up history.block internally)
   act(() => {
-    history.push(pathname, locationState);
+    history.push({ pathname, search }, locationState);
   });
 
   // Modal should now be visible
@@ -159,8 +160,8 @@ test('should preserve pathname and state when confirming navigation', () => {
   // Modal should close
   expect(result.current.showModal).toBe(false);
 
-  // Verify correct call with pathname and state preserved
-  expect(pushSpy).toHaveBeenCalledWith(pathname, locationState);
+  // Verify correct call with pathname, search, and state preserved
+  expect(pushSpy).toHaveBeenCalledWith({ pathname, search }, locationState);
 
   pushSpy.mockRestore();
 });

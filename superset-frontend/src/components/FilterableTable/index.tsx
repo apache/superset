@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useRef, useCallback, memo } from 'react';
+import { useMemo, useCallback, useRef, memo } from 'react';
 import { GridSize } from 'src/components/GridTable/constants';
 import { GridTable } from 'src/components/GridTable';
 import { type ColDef } from 'src/components/GridTable/types';
