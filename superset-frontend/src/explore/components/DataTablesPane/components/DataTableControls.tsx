@@ -106,7 +106,6 @@ export const TableControls = ({
             value={rowLimit}
             onChange={onRowLimitChange}
             options={rowLimitOptions ?? []}
-            size="small"
             css={css`
               min-width: 110px;
             `}
