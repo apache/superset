@@ -63,6 +63,10 @@ import {
 } from 'src/dashboard/actions/dashboardState';
 import { getColorNamespace, resetColors } from 'src/utils/colorScheme';
 import { calculateScopes } from 'src/dashboard/util/calculateScopes';
+import {
+  isLegacyChartCustomizationFormat,
+  migrateChartCustomizationArray,
+} from 'src/dashboard/util/migrateChartCustomization';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
 import { selectFilterConfiguration } from '../nativeFilters/state';
@@ -192,8 +196,16 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       return;
     }
 
+    // Normalize legacy chart customizations before scope calculation.
+    const hasLegacy = chartCustomizations.some(
+      isLegacyChartCustomizationFormat,
+    );
+    const normalizedCustomizations = hasLegacy
+      ? migrateChartCustomizationArray(chartCustomizations)
+      : chartCustomizations;
+
     const scopes = calculateScopes(
-      chartCustomizations,
+      normalizedCustomizations,
       chartIds,
       chartLayoutItems,
       item => item.type === ChartCustomizationType.Divider,
