@@ -63,6 +63,10 @@ import {
 } from 'src/dashboard/actions/dashboardState';
 import { getColorNamespace, resetColors } from 'src/utils/colorScheme';
 import { calculateScopes } from 'src/dashboard/util/calculateScopes';
+import {
+  isLegacyChartCustomizationFormat,
+  migrateChartCustomizationArray,
+} from 'src/dashboard/util/migrateChartCustomization';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
 import { selectFilterConfiguration } from '../nativeFilters/state';
@@ -192,8 +196,18 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       return;
     }
 
+    // Legacy items (stored with a `customization` wrapper, no `type` field) lack
+    // the `scope` field that calculateScopes requires.  Migrate them so that
+    // scope-less items get a default scope covering the whole dashboard, which
+    // prevents calculateScopes from returning chartsInScope:[] and overwriting
+    // the correctly initialised nativeFilters state with an empty set.
+    const hasLegacy = chartCustomizations.some(isLegacyChartCustomizationFormat);
+    const normalizedCustomizations = hasLegacy
+      ? migrateChartCustomizationArray(chartCustomizations)
+      : chartCustomizations;
+
     const scopes = calculateScopes(
-      chartCustomizations,
+      normalizedCustomizations,
       chartIds,
       chartLayoutItems,
       item => item.type === ChartCustomizationType.Divider,

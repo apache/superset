@@ -25,6 +25,7 @@ import { NativeFilterType } from '@superset-ui/core';
 import { CHART_TYPE } from '../../util/componentTypes';
 import DashboardContainer from './DashboardContainer';
 import * as nativeFiltersActions from '../../actions/nativeFilters';
+import * as chartCustomizationActions from '../../actions/chartCustomizationActions';
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 fetchMock.put('glob:*/api/v1/dashboard/*/colors*', {});
@@ -41,6 +42,19 @@ jest.mock('@visx/responsive', () => ({
 jest.mock('src/dashboard/containers/DashboardGrid', () => ({
   __esModule: true,
   default: () => <div data-test="mock-dashboard-grid" />,
+}));
+
+// Mock color-related dashboard actions that call SupersetClient.
+// DashboardContainer dispatches these on mount; without the mock the
+// SupersetClient singleton (not configured in the unit-test environment)
+// throws "You must call SupersetClient.configure(...)".
+jest.mock('src/dashboard/actions/dashboardState', () => ({
+  ...jest.requireActual('src/dashboard/actions/dashboardState'),
+  applyDashboardLabelsColorOnLoad: jest.fn(() => () => Promise.resolve()),
+  updateDashboardLabelsColor: jest.fn(() => () => Promise.resolve()),
+  persistDashboardLabelsColor: jest.fn(() => () => Promise.resolve()),
+  ensureSyncedSharedLabelsColors: jest.fn(() => () => Promise.resolve()),
+  ensureSyncedLabelsColorMap: jest.fn(() => () => Promise.resolve()),
 }));
 
 const defaultTestFilter = {
@@ -437,4 +451,167 @@ test('calculates tabsInScope for filters with tab-scoped charts', async () => {
       }),
     ]),
   );
+});
+
+// ── Chart Customization scope tests ────────────────────────────────────────────
+//
+// These cover the useEffect in DashboardContainer that calls
+// setInScopeStatusOfCustomizations. The native-filter tests above only exercise
+// the setInScopeStatusOfFilters path; the customization path has no existing
+// coverage. The Bug 0 fix (migrateChartCustomizationArray before calculateScopes)
+// is specifically exercised in the legacy-format test.
+
+test('calculates chartsInScope correctly for new-format chart customizations', async () => {
+  const customizationId = 'CHART_CUSTOMIZATION-1';
+  const originalFn = chartCustomizationActions.setInScopeStatusOfCustomizations;
+  const spy = jest.spyOn(
+    chartCustomizationActions,
+    'setInScopeStatusOfCustomizations',
+  );
+  spy.mockImplementation(args => originalFn(args));
+
+  try {
+    const state = {
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        metadata: {
+          ...mockState.dashboardInfo.metadata,
+          native_filter_configuration: [],
+          chart_customization_config: [
+            {
+              id: customizationId,
+              type: 'CHART_CUSTOMIZATION',
+              name: 'Dynamic Group By',
+              filterType: 'chart_customization_dynamic_groupby',
+              targets: [{ datasetId: 1, column: { name: 'status' } }],
+              scope: { rootPath: ['ROOT_ID'], excluded: [] },
+              chartsInScope: [],
+              defaultDataMask: {},
+              controlValues: {},
+            },
+          ],
+        },
+      },
+      nativeFilters: {
+        filters: {
+          [customizationId]: {
+            id: customizationId,
+            type: 'CHART_CUSTOMIZATION',
+            chartsInScope: [],
+          },
+        },
+      },
+    };
+    setup(state);
+
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            customizationId,
+            chartsInScope: [sliceId],
+          }),
+        ]),
+      );
+    });
+  } finally {
+    spy.mockRestore();
+  }
+});
+
+test('migrates legacy-format customizations before scope calculation (Bug 0 integration)', async () => {
+  // Legacy items (stored with a `customization` wrapper, no `type` field) have no
+  // `scope` field. Without the migrateChartCustomizationArray call in DashboardContainer,
+  // calculateScopes would return chartsInScope:[] for these items (the Bug 0 regression).
+  // With the fix, migration adds scope:{rootPath:['ROOT_ID'], excluded:[]}, so the chart
+  // is correctly included in scope.
+  const legacyCustomizationId = 'CHART_CUSTOMIZATION-legacy-1';
+  const originalFn = chartCustomizationActions.setInScopeStatusOfCustomizations;
+  const spy = jest.spyOn(
+    chartCustomizationActions,
+    'setInScopeStatusOfCustomizations',
+  );
+  spy.mockImplementation(args => originalFn(args));
+
+  try {
+    const state = {
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        metadata: {
+          ...mockState.dashboardInfo.metadata,
+          native_filter_configuration: [],
+          chart_customization_config: [
+            {
+              // Legacy format: has `customization` wrapper, NO `type` field.
+              // isLegacyChartCustomizationFormat returns true for this shape.
+              id: legacyCustomizationId,
+              customization: {
+                dataset: 1,
+                column: 'status',
+                filterType: 'chart_customization_dynamic_groupby',
+                name: 'Legacy Group By',
+              },
+              // No `scope` field — calculateScopes would return chartsInScope:[]
+              // without the migration fix.
+            },
+          ],
+        },
+      },
+      nativeFilters: {
+        filters: {
+          [legacyCustomizationId]: {
+            id: legacyCustomizationId,
+            chartsInScope: [],
+          },
+        },
+      },
+    };
+    setup(state);
+
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            customizationId: legacyCustomizationId,
+            // Non-empty: migration produced scope:{rootPath:['ROOT_ID'], excluded:[]},
+            // so calculateScopes includes the chart rather than returning [].
+            chartsInScope: [sliceId],
+          }),
+        ]),
+      );
+    });
+  } finally {
+    spy.mockRestore();
+  }
+});
+
+test('does not dispatch setInScopeStatusOfCustomizations when chart_customization_config is empty', async () => {
+  const spy = jest.spyOn(
+    chartCustomizationActions,
+    'setInScopeStatusOfCustomizations',
+  );
+
+  try {
+    const state = {
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        metadata: {
+          ...mockState.dashboardInfo.metadata,
+          native_filter_configuration: [],
+          chart_customization_config: [],
+        },
+      },
+      nativeFilters: { filters: {} },
+    };
+    setup(state);
+
+    // Allow any pending effects to settle
+    await new Promise(resolve => {
+      setTimeout(resolve, 50);
+    });
+
+    expect(spy).not.toHaveBeenCalled();
+  } finally {
+    spy.mockRestore();
+  }
 });

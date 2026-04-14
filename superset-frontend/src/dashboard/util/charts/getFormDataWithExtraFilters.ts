@@ -135,9 +135,6 @@ function buildExistingColumnsSet(chart: ChartQueryPayload): Set<string> {
   const existingColumns = new Set<string>();
   const chartType = chart.form_data?.viz_type;
 
-  const existingGroupBy = ensureIsArray(chart.form_data?.groupby);
-  existingGroupBy.forEach((col: string) => existingColumns.add(col));
-
   const xAxisColumn = chart.form_data?.x_axis;
   if (xAxisColumn && chartType !== 'heatmap' && chartType !== 'heatmap_v2') {
     existingColumns.add(xAxisColumn);
@@ -283,7 +280,6 @@ function processGroupByCustomizations(
 ): {
   groupby?: string[];
   order_by_cols?: string[];
-  filters?: QueryFormExtraFilter[];
   x_axis?: string;
   series?: string;
   columns?: string[];
@@ -328,7 +324,6 @@ function processGroupByCustomizations(
   const xAxisColumn = chart.form_data?.x_axis;
 
   const groupByColumns: string[] = [];
-  const allFilters: QueryFormExtraFilter[] = [];
   let orderByConfig: string[] | undefined;
   let heatmapColumnAdded = false;
 
@@ -376,16 +371,6 @@ function processGroupByCustomizations(
       });
     }
 
-    columnNames.forEach(columnName => {
-      if (selectedValues.length > 0) {
-        allFilters.push({
-          col: columnName,
-          op: 'IN',
-          val: selectedValues,
-        });
-      }
-    });
-
     const sortMetric = item.controlValues?.sortMetric;
     const sortAscending = item.controlValues?.sortAscending;
     if (sortMetric) {
@@ -399,10 +384,6 @@ function processGroupByCustomizations(
     existingGroupBy,
     xAxisColumn,
   );
-
-  if (allFilters.length > 0) {
-    groupByFormData.filters = allFilters;
-  }
 
   if (orderByConfig) {
     groupByFormData.order_by_cols = orderByConfig;
@@ -548,7 +529,11 @@ export default function getFormDataWithExtraFilters({
 
       const selectedValues = mask.filterState?.value;
       groupByState[key] = {
-        selectedValues: Array.isArray(selectedValues) ? selectedValues : [],
+        selectedValues: Array.isArray(selectedValues)
+          ? selectedValues
+          : typeof selectedValues === 'string'
+            ? [selectedValues]
+            : [],
         hasInteracted: mask.filterState?.value !== undefined,
       };
     }
