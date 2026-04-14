@@ -32,6 +32,7 @@ import { TIME_FILTER_MAP } from 'src/explore/constants';
 import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
 import { ChartConfiguration, LayoutItem } from 'src/dashboard/types';
 import { areObjectsEqual } from 'src/reduxUtils';
+import { getPrimaryChartCustomizationColumnName } from './utils';
 
 export enum IndicatorStatus {
   Unset = 'UNSET',
@@ -179,7 +180,12 @@ export const getAppliedColumnsWithFallback = (
         const filterState = dataMask[filter.id]?.filterState;
         const hasValue = extractLabel(filterState) !== null;
         if (hasValue && filter.targets?.[0]?.column?.name) {
-          derivedColumns.add(filter.targets[0].column.name);
+          const derivedColumn = getPrimaryChartCustomizationColumnName(
+            filter.targets[0].column.name,
+          );
+          if (derivedColumn) {
+            derivedColumns.add(derivedColumn);
+          }
         }
       }
     });

@@ -163,6 +163,20 @@ export function nativeFilterGate(behaviors: Behavior[]): boolean {
   );
 }
 
+export function getPrimaryChartCustomizationColumnName(
+  column: string | string[] | null | undefined,
+): string {
+  if (column == null) {
+    return '';
+  }
+
+  if (Array.isArray(column)) {
+    return column[0] || '';
+  }
+
+  return column;
+}
+
 export const findTabsWithChartsInScope = (
   chartLayoutItems: LayoutItem[],
   chartsInScope: number[],

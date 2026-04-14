@@ -254,6 +254,36 @@ test('getAppliedColumnsWithFallback derives columns from native filters when que
   expect(result).toEqual(new Set(['age', 'name']));
 });
 
+test('getAppliedColumnsWithFallback normalizes multi-select chart customization targets to the first column name', () => {
+  const chart = {
+    queriesResponse: [{ applied_filters: [] }],
+  };
+  const nativeFilters = {
+    filter1: {
+      id: 'filter1',
+      type: NativeFilterType.NativeFilter,
+      chartsInScope: [123],
+      targets: [{ column: { name: ['status', 'region'] } }],
+    },
+  } as any;
+  const dataMask = {
+    filter1: {
+      id: 'filter1',
+      filterState: { value: ['status', 'region'] },
+      extraFormData: {},
+    },
+  } as any;
+
+  const result = getAppliedColumnsWithFallback(
+    chart,
+    nativeFilters,
+    dataMask,
+    123,
+  );
+
+  expect(result).toEqual(new Set(['status']));
+});
+
 test('getAppliedColumnsWithFallback excludes filters not in chart scope', () => {
   const chart = {
     queriesResponse: [{ applied_filters: [] }],

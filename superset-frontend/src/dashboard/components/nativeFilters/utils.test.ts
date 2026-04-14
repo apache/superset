@@ -19,7 +19,11 @@
 import { Behavior } from '@superset-ui/core';
 import { DashboardLayout } from 'src/dashboard/types';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
-import { nativeFilterGate, findTabsWithChartsInScope } from './utils';
+import {
+  nativeFilterGate,
+  findTabsWithChartsInScope,
+  getPrimaryChartCustomizationColumnName,
+} from './utils';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('nativeFilterGate', () => {
@@ -80,4 +84,20 @@ test('findTabsWithChartsInScope should handle a recursive layout structure', () 
   expect(Array.from(findTabsWithChartsInScope(chartLayoutItems, []))).toEqual(
     [],
   );
+});
+
+test('getPrimaryChartCustomizationColumnName returns the selected column for single-select values', () => {
+  expect(getPrimaryChartCustomizationColumnName('status')).toBe('status');
+});
+
+test('getPrimaryChartCustomizationColumnName returns the first selected column for multi-select values', () => {
+  expect(getPrimaryChartCustomizationColumnName(['status', 'region'])).toBe(
+    'status',
+  );
+});
+
+test('getPrimaryChartCustomizationColumnName returns an empty string for empty or missing selections', () => {
+  expect(getPrimaryChartCustomizationColumnName([])).toBe('');
+  expect(getPrimaryChartCustomizationColumnName(null)).toBe('');
+  expect(getPrimaryChartCustomizationColumnName(undefined)).toBe('');
 });

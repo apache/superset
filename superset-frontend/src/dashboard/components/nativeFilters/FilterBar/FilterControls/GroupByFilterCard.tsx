@@ -50,7 +50,10 @@ import { TooltipWithTruncation } from 'src/dashboard/components/nativeFilters/Fi
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import { dispatchChartCustomizationHoverAction } from './utils';
-import { mergeExtraFormData } from '../../utils';
+import {
+  getPrimaryChartCustomizationColumnName,
+  mergeExtraFormData,
+} from '../../utils';
 
 interface ColumnApiResponse {
   column_name?: string;
@@ -364,7 +367,9 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
         ? ([
             {
               datasetId: dataset,
-              column: { name: columnValue },
+              column: {
+                name: getPrimaryChartCustomizationColumnName(columnValue),
+              },
             },
           ] as [Partial<NativeFilterTarget>])
         : ([{}] as [Partial<NativeFilterTarget>]);

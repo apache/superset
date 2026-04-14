@@ -74,6 +74,7 @@ import crossFiltersSelector from '../CrossFilters/selectors';
 import CrossFilter from '../CrossFilters/CrossFilter';
 import { useFilterOutlined } from '../useFilterOutlined';
 import { useChartsVerboseMaps } from '../utils';
+import { getPrimaryChartCustomizationColumnName } from '../../utils';
 import FilterControl from './FilterControl';
 import FilterDivider from './FilterDivider';
 
@@ -248,7 +249,7 @@ const FilterControls: FC<FilterControlsProps> = ({
               ...(columnValue && {
                 column: {
                   ...existingTarget.column,
-                  name: columnValue,
+                  name: getPrimaryChartCustomizationColumnName(columnValue),
                 },
               }),
             },
