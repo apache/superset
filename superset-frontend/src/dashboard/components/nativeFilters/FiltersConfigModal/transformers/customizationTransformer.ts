@@ -26,6 +26,7 @@ import {
   NativeFilterType,
 } from '@superset-ui/core';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
+import { serializeChartCustomizationSelection } from '../../utils';
 import {
   ChartCustomizationsFormItem,
   NativeFiltersFormItem,
@@ -87,13 +88,17 @@ function buildCustomizationTarget(
   formInputs: ChartCustomizationsFormItem,
 ): Partial<NativeFilterTarget> {
   const target: Partial<NativeFilterTarget> = {};
+  const serializedSelection = serializeChartCustomizationSelection(
+    formInputs.column,
+    formInputs.controlValues,
+  );
 
   if (formInputs.dataset) {
     target.datasetId = formInputs.dataset.value;
   }
 
-  if (formInputs.dataset && formInputs.column) {
-    target.column = { name: formInputs.column };
+  if (formInputs.dataset && serializedSelection.column) {
+    target.column = { name: serializedSelection.column };
   }
 
   return target;
@@ -103,6 +108,10 @@ function transformFormInput(
   id: string,
   formInputs: ChartCustomizationsFormItem,
 ): ChartCustomization {
+  const serializedSelection = serializeChartCustomizationSelection(
+    formInputs.column,
+    formInputs.controlValues,
+  );
   const defaultScope = {
     rootPath: [DASHBOARD_ROOT_ID],
     excluded: [],
@@ -116,7 +125,7 @@ function transformFormInput(
     description: (formInputs.description || '').trim(),
     targets: [buildCustomizationTarget(formInputs)],
     scope: formInputs.scope || defaultScope,
-    controlValues: formInputs.controlValues ?? {},
+    controlValues: serializedSelection.controlValues,
     defaultDataMask: formInputs.defaultDataMask ?? {},
     removed: false,
   };

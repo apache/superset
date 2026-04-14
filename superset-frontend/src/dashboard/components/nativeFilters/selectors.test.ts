@@ -254,7 +254,7 @@ test('getAppliedColumnsWithFallback derives columns from native filters when que
   expect(result).toEqual(new Set(['age', 'name']));
 });
 
-test('getAppliedColumnsWithFallback normalizes multi-select chart customization targets to the first column name', () => {
+test('getAppliedColumnsWithFallback normalizes array-shaped native filter targets to the first column name', () => {
   const chart = {
     queriesResponse: [{ applied_filters: [] }],
   };

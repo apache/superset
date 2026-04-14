@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  createHandleCustomizationSave,
   isDivider,
   transformDividerId,
   isNativeFilterDivider,
@@ -29,6 +30,7 @@ import {
   CHART_CUSTOMIZATION_PREFIX,
 } from './utils';
 import { NativeFilterType, ChartCustomizationType } from '@superset-ui/core';
+import type { ChartCustomizationsForm } from './types';
 
 test('isDivider returns true for native filter dividers', () => {
   const dividerId = `${NATIVE_FILTER_DIVIDER_PREFIX}abc123`;
@@ -136,4 +138,56 @@ test('getItemTypeInfo returns correct info for customization type', () => {
   expect(info.dividerPrefix).toBe(CHART_CUSTOMIZATION_DIVIDER_PREFIX);
   expect(info.dividerType).toBe(ChartCustomizationType.Divider);
   expect(info.itemTypeName).toBe('customization');
+});
+
+test('createHandleCustomizationSave preserves multi-select groupby values while saving a canonical target column', async () => {
+  const saveForm = jest.fn().mockResolvedValue(undefined);
+  const values: ChartCustomizationsForm = {
+    filters: {
+      'CHART_CUSTOMIZATION-1': {
+        type: ChartCustomizationType.ChartCustomization,
+        name: 'Dynamic Group By',
+        description: '',
+        scope: { rootPath: ['ROOT_ID'], excluded: [] },
+        dataset: { value: 1, label: 'orders' },
+        datasetInfo: { value: 1, label: 'orders' },
+        filterType: 'chart_customization_dynamic_groupby',
+        column: ['status', 'region'],
+        controlValues: {},
+        requiredFirst: {},
+        hasDefaultValue: false,
+        defaultValue: null,
+        defaultDataMask: {},
+        sortMetric: null,
+        aggregation: undefined,
+        canSelectMultiple: true,
+      },
+    },
+  };
+
+  await createHandleCustomizationSave(
+    saveForm,
+    {
+      modified: ['CHART_CUSTOMIZATION-1'],
+      deleted: [],
+      reordered: [],
+    },
+    values,
+    {},
+  )();
+
+  expect(saveForm).toHaveBeenCalledWith([
+    {
+      id: 'CHART_CUSTOMIZATION-1',
+      title: 'Dynamic Group By',
+      description: '',
+      removed: false,
+      chartId: undefined,
+      customization: expect.objectContaining({
+        dataset: 1,
+        column: 'status',
+        controlValues: { groupby: ['status', 'region'] },
+      }),
+    },
+  ]);
 });

@@ -32,6 +32,7 @@ import {
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
+import { serializeChartCustomizationSelection } from '../utils';
 import {
   ChartCustomizationsForm,
   FilterChangesType,
@@ -261,6 +262,10 @@ export const createHandleCustomizationSave =
         formInputs.dataset && typeof formInputs.dataset === 'object'
           ? formInputs.dataset.value
           : formInputs.dataset;
+      const serializedSelection = serializeChartCustomizationSelection(
+        formInputs.column,
+        formInputs.controlValues,
+      );
 
       return {
         id,
@@ -275,7 +280,7 @@ export const createHandleCustomizationSave =
           dataset: datasetValue,
           datasetInfo: formInputs.datasetInfo,
           filterType: formInputs.filterType,
-          column: formInputs.column || null,
+          column: serializedSelection.column,
           description: (formInputs.description || '').trim(),
           hasDefaultValue: formInputs.hasDefaultValue,
           defaultValue: formInputs.defaultValue,
@@ -285,7 +290,7 @@ export const createHandleCustomizationSave =
           defaultValueQueriesData: formInputs.defaultValueQueriesData,
           aggregation: formInputs.aggregation,
           canSelectMultiple: formInputs.canSelectMultiple ?? true,
-          controlValues: formInputs.controlValues ?? {},
+          controlValues: serializedSelection.controlValues,
         },
       };
     };

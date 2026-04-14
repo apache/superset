@@ -26,6 +26,7 @@ import {
   ChartCustomizationDivider,
   ColumnOption,
   ChartCustomization,
+  ChartCustomizationType,
 } from '@superset-ui/core';
 import { ReactNode } from 'react';
 
@@ -74,7 +75,7 @@ export interface ChartCustomizationsFormItem {
     value: number;
     label: string | ReactNode;
   };
-  column: string;
+  column: string | string[];
   controlValues: {
     [key: string]: any;
   };
@@ -88,7 +89,7 @@ export interface ChartCustomizationsFormItem {
   adhoc_filters?: AdhocFilter[];
   time_range?: string;
   granularity_sqla?: string;
-  type: typeof NativeFilterType.NativeFilter;
+  type: typeof ChartCustomizationType.ChartCustomization;
   description: string;
   datasetInfo?: {
     label: string | ReactNode;

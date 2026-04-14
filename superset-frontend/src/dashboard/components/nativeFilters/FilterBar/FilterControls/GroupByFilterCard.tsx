@@ -51,8 +51,8 @@ import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import { dispatchChartCustomizationHoverAction } from './utils';
 import {
-  getPrimaryChartCustomizationColumnName,
   mergeExtraFormData,
+  serializeChartCustomizationSelection,
 } from '../../utils';
 
 interface ColumnApiResponse {
@@ -362,13 +362,17 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
         : typeof value === 'string'
           ? value
           : null;
+      const serializedSelection = serializeChartCustomizationSelection(
+        columnValue,
+        customizationItem.controlValues,
+      );
 
       const targets: [Partial<NativeFilterTarget>] = columnValue
         ? ([
             {
               datasetId: dataset,
               column: {
-                name: getPrimaryChartCustomizationColumnName(columnValue),
+                name: serializedSelection.column,
               },
             },
           ] as [Partial<NativeFilterTarget>])
@@ -377,10 +381,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
       dispatch(
         setPendingChartCustomization({
           ...customizationItem,
-          controlValues: {
-            ...customizationItem.controlValues,
-            groupby: columnValue,
-          },
+          controlValues: serializedSelection.controlValues,
           targets,
         }),
       );

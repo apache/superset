@@ -74,7 +74,7 @@ import crossFiltersSelector from '../CrossFilters/selectors';
 import CrossFilter from '../CrossFilters/CrossFilter';
 import { useFilterOutlined } from '../useFilterOutlined';
 import { useChartsVerboseMaps } from '../utils';
-import { getPrimaryChartCustomizationColumnName } from '../../utils';
+import { serializeChartCustomizationSelection } from '../../utils';
 import FilterControl from './FilterControl';
 import FilterDivider from './FilterDivider';
 
@@ -239,21 +239,22 @@ const FilterControls: FC<FilterControlsProps> = ({
     (customizationItem: ChartCustomization, dataMask: DataMask) => {
       const columnValue = dataMask.ownState?.column;
       const existingTarget = customizationItem.targets?.[0] || {};
+      const serializedSelection = serializeChartCustomizationSelection(
+        columnValue,
+        customizationItem.controlValues,
+      );
 
       dispatch(
         setPendingChartCustomization({
           ...customizationItem,
-          controlValues: {
-            ...customizationItem.controlValues,
-            groupby: columnValue,
-          },
+          controlValues: serializedSelection.controlValues,
           targets: [
             {
               ...existingTarget,
-              ...(columnValue && {
+              ...(serializedSelection.column && {
                 column: {
                   ...existingTarget.column,
-                  name: getPrimaryChartCustomizationColumnName(columnValue),
+                  name: serializedSelection.column,
                 },
               }),
             },

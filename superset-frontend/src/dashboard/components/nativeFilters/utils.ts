@@ -179,6 +179,31 @@ export function getPrimaryChartCustomizationColumnName(
   return column;
 }
 
+export function serializeChartCustomizationSelection(
+  column: string | string[] | null | undefined,
+  controlValues: Record<string, any> = {},
+): {
+  column: string | null;
+  controlValues: Record<string, any>;
+} {
+  const nextControlValues = { ...controlValues };
+
+  if (
+    column == null ||
+    column === '' ||
+    (Array.isArray(column) && column.length === 0)
+  ) {
+    delete nextControlValues.groupby;
+  } else {
+    nextControlValues.groupby = column;
+  }
+
+  return {
+    column: getPrimaryChartCustomizationColumnName(column) || null,
+    controlValues: nextControlValues,
+  };
+}
+
 export const findTabsWithChartsInScope = (
   chartLayoutItems: LayoutItem[],
   chartsInScope: number[],
