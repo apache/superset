@@ -37,6 +37,15 @@ if TYPE_CHECKING:
     from superset.daos.datasource import DatasourceDAO
 
 
+def _temporal_filter_col_name(col: Any) -> str | None:
+    """Normalize filter ``col`` (str or adhoc dict) for comparison with ``get_x_axis_label``."""
+    if col is None:
+        return None
+    if isinstance(col, dict):
+        return col.get("sqlExpression") or col.get("label")
+    return str(col)
+
+
 class QueryObjectFactory:  # pylint: disable=too-few-public-methods
     _config: dict[str, Any]
     _datasource_dao: DatasourceDAO
@@ -138,16 +147,19 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
                 if flt.get("op") == FilterOperator.TEMPORAL_RANGE
             ]
             if temporal_flt:
-                # Use the temporal filter as the time range.
-                # if the temporal filters uses x-axis as the temporal filter
-                # then use it or use the first temporal filter
-                x_axis_label = get_x_axis_label(columns)
+                # Prefer TEMPORAL_RANGE on the chart x-axis (BASE_AXIS). Do not blindly use
+                # temporal_flt[0]: it may be another datetime (e.g. dashboard filter on event_b
+                # while the chart axis is event_a), which would drive wrong from_dttm/to_dttm.
+                x_axis_label = get_x_axis_label(columns or [])
                 match_flt = [
-                    flt for flt in temporal_flt if flt.get("col") == x_axis_label
+                    flt
+                    for flt in temporal_flt
+                    if _temporal_filter_col_name(flt.get("col")) == x_axis_label
                 ]
                 if match_flt:
                     time_range = cast(str, match_flt[0].get("val"))
-                else:
+                elif x_axis_label is None:
+                    # No BASE_AXIS on the query: preserve legacy behavior.
                     time_range = cast(str, temporal_flt[0].get("val"))
         return time_range
 
