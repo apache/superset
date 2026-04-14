@@ -25,6 +25,7 @@ import {
   waitFor,
   within,
 } from '@superset-ui/core/spec';
+import { formatNumber } from '@superset-ui/core';
 import { Select } from '.';
 
 type Option = {
@@ -85,8 +86,10 @@ const getElementsByClassName = (className: string) =>
 const getSelect = () =>
   screen.getByRole('combobox', { name: new RegExp(ARIA_LABEL, 'i') });
 
-const selectAllButtonText = (length: number) => `Select all (${length})`;
-const deselectAllButtonText = (length: number) => `Clear (${length})`;
+const selectAllButtonText = (length: number) =>
+  `Select all (${formatNumber('SMART_NUMBER', length)})`;
+const deselectAllButtonText = (length: number) =>
+  `Clear (${formatNumber('SMART_NUMBER', length)})`;
 
 const findSelectOption = (text: string) =>
   waitFor(() =>
@@ -913,6 +916,17 @@ test('"Select all" does not affect disabled options', async () => {
   await userEvent.click(await screen.findByText(selectAll));
   expect(await findSelectValue()).toHaveTextContent(options[0].label);
   expect(await findSelectValue()).not.toHaveTextContent(options[1].label);
+});
+
+test('abbreviates large numbers in bulk action buttons', async () => {
+  const manyOptions = Array.from({ length: 1500 }, (_, i) => ({
+    label: `Option ${i}`,
+    value: i,
+  }));
+  render(<Select {...defaultProps} mode="multiple" options={manyOptions} />);
+  await open();
+  // SMART_NUMBER format uses lowercase 'k' for thousands (d3-format)
+  expect(await screen.findByText('Select all (1.5k)')).toBeInTheDocument();
 });
 
 test('dropdown takes full width of the select input for multi select', async () => {

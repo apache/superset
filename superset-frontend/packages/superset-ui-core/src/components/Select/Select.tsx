@@ -31,7 +31,7 @@ import {
 } from 'react';
 
 import { t } from '@apache-superset/core/translation';
-import { ensureIsArray, usePrevious } from '@superset-ui/core';
+import { ensureIsArray, formatNumber, usePrevious } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
 import {
   LabeledValue as AntdLabeledValue,
@@ -494,7 +494,7 @@ const Select = forwardRef(
 
     const bulkSelectComponent = useMemo(
       () => (
-        <StyledBulkActionsContainer justify="center">
+        <StyledBulkActionsContainer justify="space-between">
           <Button
             type="link"
             buttonStyle="link"
@@ -506,7 +506,7 @@ const Select = forwardRef(
               handleSelectAll();
             }}
           >
-            {`${t('Select all')} (${bulkSelectCounts.selectable})`}
+            {`${t('Select all')} (${formatNumber('SMART_NUMBER', bulkSelectCounts.selectable)})`}
           </Button>
           <Button
             type="link"
@@ -523,7 +523,7 @@ const Select = forwardRef(
               handleDeselectAll();
             }}
           >
-            {`${t('Clear')} (${bulkSelectCounts.deselectable})`}
+            {`${t('Clear')} (${formatNumber('SMART_NUMBER', bulkSelectCounts.deselectable)})`}
           </Button>
         </StyledBulkActionsContainer>
       ),
