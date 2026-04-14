@@ -373,13 +373,19 @@ export default function DrillByModal({
 
   const handleDownload = useCallback(
     (exportType: 'csv' | 'xlsx') => {
-      exportChart({
-        formData: drilledFormData,
-        resultFormat: exportType,
-        resultType: 'full',
+      Promise.resolve(
+        exportChart({
+          formData: drilledFormData,
+          resultFormat: exportType,
+          resultType: 'full',
+        }),
+      ).catch(error => {
+        addDangerToast(
+          t('Failed to generate download: %s', error?.message || error),
+        );
       });
     },
-    [drilledFormData],
+    [drilledFormData, addDangerToast],
   );
 
   const handleDownloadCSV = useCallback(
