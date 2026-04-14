@@ -456,7 +456,7 @@ MCP_CACHE_CONFIG = {
     "enabled": False,
     "list_tools_ttl": 300,
     "call_tool_ttl": 3600,
-    "excluded_tools": ["execute_sql", "generate_dashboard", ...],
+    "excluded_tools": ["execute_sql", "generate_dashboard"],  # add tools to exclude
 }
 
 # Multi-pod Storage (optional, requires Redis)
