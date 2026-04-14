@@ -1012,8 +1012,38 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     def related(self, column_name: str, **kwargs: Any) -> Response:
-        """Restrict the owners related field to users with write access, then
-        delegate to the standard related field lookup.
+        """Get related fields data, restricting owner lookup to users with write access.
+        ---
+        get:
+          summary: Get related fields data
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: column_name
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_related_schema'
+          responses:
+            200:
+              description: Related column data
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/RelatedResponseSchema"
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
         """
         if response := self.ensure_owners_write_access():
             return response
