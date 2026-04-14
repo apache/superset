@@ -347,23 +347,23 @@ class CreateVirtualDatasetRequest(BaseModel):
     def sql_must_not_be_empty(cls, v: str) -> str:
         if not v.strip():
             raise ValueError("sql must not be empty")
-        return v
+        return v.strip()
 
     @field_validator("dataset_name")
     @classmethod
     def dataset_name_must_not_be_empty(cls, v: str) -> str:
         if not v.strip():
             raise ValueError("dataset_name must not be empty")
-        return v
+        return v.strip()
 
 
 class CreateVirtualDatasetResponse(BaseModel):
     """Response schema for create_virtual_dataset."""
 
-    id: int = Field(
-        ...,
+    id: int | None = Field(
+        None,
         description="Dataset ID. Pass this as dataset_id to generate_chart "
-        "or generate_explore_link.",
+        "or generate_explore_link. None if creation failed.",
     )
     dataset_name: str = Field(..., description="Name of the created dataset.")
     sql: str = Field(..., description="SQL query stored in the dataset.")
@@ -373,7 +373,10 @@ class CreateVirtualDatasetResponse(BaseModel):
         description="Column names available for charting. "
         "Use these when building chart configs.",
     )
-    url: str = Field(..., description="URL to view/edit the dataset in Superset.")
+    url: str | None = Field(
+        None,
+        description="URL to view/edit the dataset in Superset. None if failed.",
+    )
     error: str | None = Field(
         None,
         description="Error message if creation failed, otherwise null.",

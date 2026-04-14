@@ -66,50 +66,31 @@ async def create_virtual_dataset(
             DatasetCreateFailedError,
             DatasetInvalidError,
         )
-        from superset.daos.database import DatabaseDAO
         from superset.mcp_service.utils.url_utils import get_superset_base_url
 
-        # 1. Validate the database exists
-        with event_logger.log_context(
-            action="mcp.create_virtual_dataset.db_validation"
-        ):
-            database = DatabaseDAO.find_by_id(request.database_id)
-            if not database:
-                await ctx.error(
-                    "Database not found: database_id=%s" % request.database_id
-                )
-                return CreateVirtualDatasetResponse(
-                    id=0,
-                    dataset_name=request.dataset_name,
-                    sql=request.sql,
-                    database_id=request.database_id,
-                    columns=[],
-                    url="",
-                    error=(
-                        f"Database with ID {request.database_id} not found. "
-                        "Use list_databases to find valid database IDs."
-                    ),
-                )
-
-        # 2. Create the virtual dataset — CreateDatasetCommand enforces access control
+        # Create the virtual dataset — CreateDatasetCommand enforces access control
+        # and validates that the database exists (raises DatasetInvalidError otherwise)
         with event_logger.log_context(action="mcp.create_virtual_dataset.create"):
             properties: dict[str, Any] = {
                 "database": request.database_id,
                 "table_name": request.dataset_name,
                 "sql": request.sql,
             }
-            if request.schema_name:
+            if request.schema_name is not None:
                 properties["schema"] = request.schema_name
-            if request.catalog:
+            if request.catalog is not None:
                 properties["catalog"] = request.catalog
-            if request.description:
+            if request.description is not None:
                 properties["description"] = request.description
 
             dataset = CreateDatasetCommand(properties).run()
 
-        # 3. Build response
+        # Build response
         columns = [col.column_name for col in dataset.columns]
-        dataset_url = f"{get_superset_base_url()}/tablemodelview/edit/{dataset.id}"
+        dataset_url = (
+            f"{get_superset_base_url()}"
+            f"/explore/?datasource_type=table&datasource_id={dataset.id}"
+        )
 
         await ctx.info(
             "Virtual dataset created: id=%s, dataset_name=%r, columns=%s"
@@ -129,23 +110,23 @@ async def create_virtual_dataset(
         messages = exc.normalized_messages()
         await ctx.error("Virtual dataset validation failed: %s" % (messages,))
         return CreateVirtualDatasetResponse(
-            id=0,
+            id=None,
             dataset_name=request.dataset_name,
             sql=request.sql,
             database_id=request.database_id,
             columns=[],
-            url="",
+            url=None,
             error=str(messages),
         )
     except DatasetCreateFailedError as exc:
         await ctx.error("Virtual dataset creation failed: %s" % (str(exc),))
         return CreateVirtualDatasetResponse(
-            id=0,
+            id=None,
             dataset_name=request.dataset_name,
             sql=request.sql,
             database_id=request.database_id,
             columns=[],
-            url="",
+            url=None,
             error=f"Failed to create dataset: {exc}",
         )
     except Exception as exc:

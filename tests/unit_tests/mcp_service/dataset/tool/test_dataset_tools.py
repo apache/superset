@@ -1517,6 +1517,7 @@ class TestDatasetSortableColumns:
 
 
 def _make_mock_db(database_name: str = "examples") -> MagicMock:
+    """Create a mock database object with a configurable database name."""
     db = MagicMock()
     db.database_name = database_name
     return db
@@ -1527,6 +1528,7 @@ def _make_mock_virtual_dataset(
     table_name: str = "Customer Revenue",
     column_names: list[str] | None = None,
 ) -> MagicMock:
+    """Create a mock virtual dataset object with configurable columns."""
     if column_names is None:
         column_names = ["name", "revenue"]
     dataset = MagicMock()
@@ -1591,9 +1593,8 @@ def test_create_virtual_dataset_request_optional_fields() -> None:
 
 
 @pytest.mark.asyncio
-async def test_create_virtual_dataset_success(mcp_server) -> None:
+async def test_create_virtual_dataset_success(mcp_server: object) -> None:
     """Happy path: dataset created, columns and URL returned."""
-    mock_db = _make_mock_db()
     mock_dataset = _make_mock_virtual_dataset(
         id=21, table_name="Customer Revenue", column_names=["name", "revenue"]
     )
@@ -1601,7 +1602,6 @@ async def test_create_virtual_dataset_success(mcp_server) -> None:
     mock_command.run.return_value = mock_dataset
 
     with (
-        patch("superset.daos.database.DatabaseDAO.find_by_id", return_value=mock_db),
         patch(
             "superset.commands.dataset.create.CreateDatasetCommand",
             return_value=mock_command,
@@ -1629,14 +1629,29 @@ async def test_create_virtual_dataset_success(mcp_server) -> None:
     assert data["id"] == 21
     assert data["dataset_name"] == "Customer Revenue"
     assert data["columns"] == ["name", "revenue"]
-    assert "/tablemodelview/edit/21" in data["url"]
+    assert "datasource_type=table" in data["url"]
+    assert "datasource_id=21" in data["url"]
     assert data["error"] is None
 
 
 @pytest.mark.asyncio
-async def test_create_virtual_dataset_db_not_found(mcp_server) -> None:
-    """When the database ID does not exist, returns an error response."""
-    with patch("superset.daos.database.DatabaseDAO.find_by_id", return_value=None):
+async def test_create_virtual_dataset_db_not_found(mcp_server: object) -> None:
+    """When the database ID does not exist, CreateDatasetCommand raises
+    DatasetInvalidError containing DatabaseNotFoundValidationError."""
+    from superset.commands.dataset.exceptions import (
+        DatabaseNotFoundValidationError,
+        DatasetInvalidError,
+    )
+
+    invalid_exc = DatasetInvalidError()
+    invalid_exc.append(DatabaseNotFoundValidationError())
+    mock_command = MagicMock()
+    mock_command.run.side_effect = invalid_exc
+
+    with patch(
+        "superset.commands.dataset.create.CreateDatasetCommand",
+        return_value=mock_command,
+    ):
         async with Client(mcp_server) as client:
             request = CreateVirtualDatasetRequest(
                 database_id=999, sql="SELECT 1", dataset_name="Test"
@@ -1646,20 +1661,18 @@ async def test_create_virtual_dataset_db_not_found(mcp_server) -> None:
             )
             data = json.loads(result.content[0].text)
 
-    assert data["id"] == 0
+    assert data["id"] is None
     assert data["columns"] == []
     assert data["error"] is not None
-    assert "999" in data["error"]
 
 
 @pytest.mark.asyncio
-async def test_create_virtual_dataset_invalid_error(mcp_server) -> None:
+async def test_create_virtual_dataset_invalid_error(mcp_server: object) -> None:
     """DatasetInvalidError is caught and returned as an error response."""
     from marshmallow.exceptions import ValidationError as MarshmallowValidationError
 
     from superset.commands.dataset.exceptions import DatasetInvalidError
 
-    mock_db = _make_mock_db()
     invalid_exc = DatasetInvalidError()
     invalid_exc.append(
         MarshmallowValidationError(
@@ -1669,12 +1682,9 @@ async def test_create_virtual_dataset_invalid_error(mcp_server) -> None:
     mock_command = MagicMock()
     mock_command.run.side_effect = invalid_exc
 
-    with (
-        patch("superset.daos.database.DatabaseDAO.find_by_id", return_value=mock_db),
-        patch(
-            "superset.commands.dataset.create.CreateDatasetCommand",
-            return_value=mock_command,
-        ),
+    with patch(
+        "superset.commands.dataset.create.CreateDatasetCommand",
+        return_value=mock_command,
     ):
         async with Client(mcp_server) as client:
             request = CreateVirtualDatasetRequest(
@@ -1685,22 +1695,82 @@ async def test_create_virtual_dataset_invalid_error(mcp_server) -> None:
             )
             data = json.loads(result.content[0].text)
 
-    assert data["id"] == 0
+    assert data["id"] is None
     assert data["columns"] == []
     assert data["error"] is not None
 
 
 @pytest.mark.asyncio
-async def test_create_virtual_dataset_optional_fields_forwarded(mcp_server) -> None:
+async def test_create_virtual_dataset_create_failed(mcp_server: object) -> None:
+    """DatasetCreateFailedError is caught and returned as an error response."""
+    from superset.commands.dataset.exceptions import DatasetCreateFailedError
+
+    mock_command = MagicMock()
+    mock_command.run.side_effect = DatasetCreateFailedError()
+
+    with patch(
+        "superset.commands.dataset.create.CreateDatasetCommand",
+        return_value=mock_command,
+    ):
+        async with Client(mcp_server) as client:
+            request = CreateVirtualDatasetRequest(
+                database_id=1, sql="SELECT 1", dataset_name="Test"
+            )
+            result = await client.call_tool(
+                "create_virtual_dataset", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["columns"] == []
+    assert data["error"] is not None
+    assert "Failed to create dataset" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_create_virtual_dataset_permission_denied(mcp_server: object) -> None:
+    """SQL access denied surfaces as DatasetInvalidError with id=None."""
+    from superset.commands.dataset.exceptions import (
+        DatasetDataAccessIsNotAllowed,
+        DatasetInvalidError,
+    )
+
+    invalid_exc = DatasetInvalidError()
+    invalid_exc.append(DatasetDataAccessIsNotAllowed("Access denied to schema public"))
+    mock_command = MagicMock()
+    mock_command.run.side_effect = invalid_exc
+
+    with patch(
+        "superset.commands.dataset.create.CreateDatasetCommand",
+        return_value=mock_command,
+    ):
+        async with Client(mcp_server) as client:
+            request = CreateVirtualDatasetRequest(
+                database_id=1,
+                sql="SELECT * FROM sensitive_table",
+                dataset_name="Restricted",
+            )
+            result = await client.call_tool(
+                "create_virtual_dataset", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["columns"] == []
+    assert data["error"] is not None
+
+
+@pytest.mark.asyncio
+async def test_create_virtual_dataset_optional_fields_forwarded(
+    mcp_server: object,
+) -> None:
     """schema_name, catalog, and description are forwarded to CreateDatasetCommand."""
-    mock_db = _make_mock_db()
     mock_dataset = _make_mock_virtual_dataset(column_names=["col1"])
     mock_command_instance = MagicMock()
     mock_command_instance.run.return_value = mock_dataset
     mock_command_cls = MagicMock(return_value=mock_command_instance)
 
     with (
-        patch("superset.daos.database.DatabaseDAO.find_by_id", return_value=mock_db),
         patch(
             "superset.commands.dataset.create.CreateDatasetCommand",
             mock_command_cls,
