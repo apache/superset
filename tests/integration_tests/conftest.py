@@ -152,9 +152,7 @@ def drop_from_schema(engine: Engine, schema_name: str):
         if schema_name not in [s[0] for s in schemas]:
             # schema doesn't exist
             return
-        tables_or_views = conn.execute(
-            text(f"SHOW TABLES in {schema_name}")
-        ).fetchall()
+        tables_or_views = conn.execute(text(f"SHOW TABLES in {schema_name}")).fetchall()
         for tv in tables_or_views:
             conn.execute(text(f"DROP TABLE IF EXISTS {schema_name}.{tv[0]}"))
             conn.execute(text(f"DROP VIEW IF EXISTS {schema_name}.{tv[0]}"))
@@ -361,33 +359,34 @@ def physical_dataset():
     with example_database.get_sqla_engine() as engine:
         quoter = get_identifier_quoter(engine.name)
         # sqlite can only execute one statement at a time
+        time_col = quoter("time column with spaces")
         with engine.begin() as conn:
             conn.execute(
                 text(f"""
-                CREATE TABLE IF NOT EXISTS physical_dataset(
-                col1 INTEGER,
-                col2 VARCHAR(255),
-                col3 DECIMAL(4,2),
-                col4 VARCHAR(255),
-                col5 TIMESTAMP DEFAULT '1970-01-01 00:00:01',
-                col6 TIMESTAMP DEFAULT '1970-01-01 00:00:01',
-                {quoter("time column with spaces")} TIMESTAMP DEFAULT '1970-01-01 00:00:01'
-                );
-                """)
+            CREATE TABLE IF NOT EXISTS physical_dataset(
+            col1 INTEGER,
+            col2 VARCHAR(255),
+            col3 DECIMAL(4,2),
+            col4 VARCHAR(255),
+            col5 TIMESTAMP DEFAULT '1970-01-01 00:00:01',
+            col6 TIMESTAMP DEFAULT '1970-01-01 00:00:01',
+            {time_col} TIMESTAMP DEFAULT '1970-01-01 00:00:01'
+            );
+            """)
             )
             conn.execute(
                 text("""
-                INSERT INTO physical_dataset values
-                (0, 'a', 1.0, NULL, '2000-01-01 00:00:00', '2002-01-03 00:00:00', '2002-01-03 00:00:00'),
-                (1, 'b', 1.1, NULL, '2000-01-02 00:00:00', '2002-02-04 00:00:00', '2002-02-04 00:00:00'),
-                (2, 'c', 1.2, NULL, '2000-01-03 00:00:00', '2002-03-07 00:00:00', '2002-03-07 00:00:00'),
-                (3, 'd', 1.3, NULL, '2000-01-04 00:00:00', '2002-04-12 00:00:00', '2002-04-12 00:00:00'),
-                (4, 'e', 1.4, NULL, '2000-01-05 00:00:00', '2002-05-11 00:00:00', '2002-05-11 00:00:00'),
-                (5, 'f', 1.5, NULL, '2000-01-06 00:00:00', '2002-06-13 00:00:00', '2002-06-13 00:00:00'),
-                (6, 'g', 1.6, NULL, '2000-01-07 00:00:00', '2002-07-15 00:00:00', '2002-07-15 00:00:00'),
-                (7, 'h', 1.7, NULL, '2000-01-08 00:00:00', '2002-08-18 00:00:00', '2002-08-18 00:00:00'),
-                (8, 'i', 1.8, NULL, '2000-01-09 00:00:00', '2002-09-20 00:00:00', '2002-09-20 00:00:00'),
-                (9, 'j', 1.9, NULL, '2000-01-10 00:00:00', '2002-10-22 00:00:00', '2002-10-22 00:00:00');
+            INSERT INTO physical_dataset values
+            (0, 'a', 1.0, NULL, '2000-01-01 00:00:00', '2002-01-03 00:00:00', '2002-01-03 00:00:00'),
+            (1, 'b', 1.1, NULL, '2000-01-02 00:00:00', '2002-02-04 00:00:00', '2002-02-04 00:00:00'),
+            (2, 'c', 1.2, NULL, '2000-01-03 00:00:00', '2002-03-07 00:00:00', '2002-03-07 00:00:00'),
+            (3, 'd', 1.3, NULL, '2000-01-04 00:00:00', '2002-04-12 00:00:00', '2002-04-12 00:00:00'),
+            (4, 'e', 1.4, NULL, '2000-01-05 00:00:00', '2002-05-11 00:00:00', '2002-05-11 00:00:00'),
+            (5, 'f', 1.5, NULL, '2000-01-06 00:00:00', '2002-06-13 00:00:00', '2002-06-13 00:00:00'),
+            (6, 'g', 1.6, NULL, '2000-01-07 00:00:00', '2002-07-15 00:00:00', '2002-07-15 00:00:00'),
+            (7, 'h', 1.7, NULL, '2000-01-08 00:00:00', '2002-08-18 00:00:00', '2002-08-18 00:00:00'),
+            (8, 'i', 1.8, NULL, '2000-01-09 00:00:00', '2002-09-20 00:00:00', '2002-09-20 00:00:00'),
+            (9, 'j', 1.9, NULL, '2000-01-10 00:00:00', '2002-10-22 00:00:00', '2002-10-22 00:00:00');
             """)  # noqa: E501
             )
 

@@ -187,7 +187,8 @@ def test_df_to_sql_if_exists_replace(mock_upload_to_s3, mock_g):
     mock_execute = mock.MagicMock(return_value=True)
     mock_conn = mock.MagicMock()
     mock_conn.execute = mock_execute
-    mock_database.get_sqla_engine.return_value.__enter__.return_value.connect.return_value.__enter__.return_value = (
+    engine_ctx = mock_database.get_sqla_engine.return_value
+    engine_ctx.__enter__.return_value.connect.return_value.__enter__.return_value = (
         mock_conn
     )
     table_name = "foobar"
@@ -224,7 +225,8 @@ def test_df_to_sql_if_exists_replace_with_schema(mock_upload_to_s3, mock_g):
     mock_execute = mock.MagicMock(return_value=True)
     mock_conn = mock.MagicMock()
     mock_conn.execute = mock_execute
-    mock_database.get_sqla_engine.return_value.__enter__.return_value.connect.return_value.__enter__.return_value = (
+    engine_ctx = mock_database.get_sqla_engine.return_value
+    engine_ctx.__enter__.return_value.connect.return_value.__enter__.return_value = (
         mock_conn
     )
     table_name = "foobar"

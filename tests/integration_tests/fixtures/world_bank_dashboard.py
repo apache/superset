@@ -141,7 +141,8 @@ def _create_world_bank_dashboard(table: SqlaTable) -> Dashboard:
 
 def _cleanup(dash_id: int, slices_ids: list[int]) -> None:
     dash = db.session.query(Dashboard).filter_by(id=dash_id).first()
-    db.session.delete(dash)
+    if dash:
+        db.session.delete(dash)
     for slice_id in slices_ids:
         db.session.query(Slice).filter_by(id=slice_id).delete()
     db.session.commit()
