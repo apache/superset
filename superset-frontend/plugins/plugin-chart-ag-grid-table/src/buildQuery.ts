@@ -238,6 +238,11 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         });
 
         if (matchingColumn) {
+          // Return the label, not the raw sqlExpression. The backend
+          // (helpers.py get_sqla_query) resolves orderby strings by
+          // matching adhoc column labels, then uses adhoc_column_to_sqla
+          // to emit the actual SQL expression into ORDER BY — so this
+          // is dialect-safe across all database engines.
           return getColumnLabel(matchingColumn);
         }
 
