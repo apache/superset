@@ -15,10 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from .get_column_sample_data import get_column_sample_data
 from .get_dataset_info import get_dataset_info
 from .list_datasets import list_datasets
 
 __all__ = [
-    "list_datasets",
+    "get_column_sample_data",
     "get_dataset_info",
+    "list_datasets",
 ]

@@ -446,6 +446,7 @@ from superset.mcp_service.database.tool import (  # noqa: F401, E402
     list_databases,
 )
 from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
+    get_column_sample_data,
     get_dataset_info,
     list_datasets,
 )

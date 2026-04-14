@@ -306,6 +306,36 @@ class GetDatasetInfoRequest(MetadataCacheControl):
     ]
 
 
+class GetColumnSampleDataRequest(BaseModel):
+    """Request schema for get_column_sample_data."""
+
+    dataset_id: int = Field(..., description="The dataset ID to query")
+    column_name: str = Field(
+        ..., description="The column name to get distinct values for"
+    )
+    limit: int = Field(
+        default=20,
+        ge=1,
+        le=100,
+        description="Maximum number of distinct values to return (default 20, max 100)",
+    )
+
+
+class ColumnSampleDataResponse(BaseModel):
+    """Response schema for get_column_sample_data."""
+
+    dataset_id: int = Field(..., description="The dataset ID queried")
+    column_name: str = Field(..., description="The column name queried")
+    values: List[str | int | float | bool | None] = Field(
+        ..., description="Distinct values found in the column"
+    )
+    count: int = Field(..., description="Number of distinct values returned")
+    truncated: bool = Field(
+        False,
+        description="True if more distinct values exist beyond the limit",
+    )
+
+
 def _parse_json_field(obj: Any, field_name: str) -> Dict[str, Any] | None:
     """Parse a field that may be stored as a JSON string into a dict."""
     value = getattr(obj, field_name, None)
