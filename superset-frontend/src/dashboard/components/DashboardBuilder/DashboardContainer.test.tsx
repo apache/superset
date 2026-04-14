@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, waitFor } from 'spec/helpers/testing-library';
+import { act, render, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import { storeWithState } from 'spec/fixtures/mockStore';
 import mockState from 'spec/fixtures/mockState';
@@ -572,6 +572,7 @@ test('does not dispatch setInScopeStatusOfCustomizations when chart_customizatio
   );
 
   try {
+    jest.useFakeTimers();
     const state = {
       dashboardInfo: {
         ...mockState.dashboardInfo,
@@ -585,10 +586,13 @@ test('does not dispatch setInScopeStatusOfCustomizations when chart_customizatio
     };
     setup(state);
 
-    await waitFor(() => {
-      expect(spy).not.toHaveBeenCalled();
+    await act(async () => {
+      jest.runOnlyPendingTimers();
     });
+
+    expect(spy).not.toHaveBeenCalled();
   } finally {
+    jest.useRealTimers();
     spy.mockRestore();
   }
 });

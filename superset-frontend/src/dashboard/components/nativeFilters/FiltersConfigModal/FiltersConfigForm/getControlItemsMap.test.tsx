@@ -289,4 +289,40 @@ describe('ColumnSelect filterValues behavior', () => {
 
     expect(formItem.props.initialValue).toEqual(['status', 'region']);
   });
+
+  test('falls back to the canonical target column when persisted groupby values are missing', () => {
+    const customizationToEdit: NonNullable<
+      ControlItemsProps['customizationToEdit']
+    > = {
+      id: 'CHART_CUSTOMIZATION-2',
+      type: ChartCustomizationType.ChartCustomization,
+      name: 'Dynamic Group By',
+      filterType: 'chart_customization_dynamic_groupby',
+      targets: [{ datasetId: 1, column: { name: 'status' } }],
+      scope: { rootPath: [], excluded: [] },
+      chartsInScope: [1],
+      cascadeParentIds: [],
+      defaultDataMask: {},
+      controlValues: {},
+      description: '',
+    };
+    const props = {
+      ...createProps(),
+      customizationToEdit,
+    };
+    (getControlItems as jest.Mock).mockReturnValue([
+      {
+        name: 'groupby',
+        config: { label: 'Column', multiple: true, required: false },
+      },
+    ]);
+
+    const groupbyElement = getControlItemsMap(props).mainControlItems.groupby
+      .element as ReactElement;
+    const formItem = Children.toArray(
+      groupbyElement.props.children,
+    )[1] as ReactElement;
+
+    expect(formItem.props.initialValue).toBe('status');
+  });
 });

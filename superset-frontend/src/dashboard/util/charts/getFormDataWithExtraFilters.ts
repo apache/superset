@@ -274,10 +274,7 @@ function applyChartSpecificGroupBy(
 function processGroupByCustomizations(
   chartCustomizationItems: ChartCustomization[],
   chart: ChartQueryPayload,
-  groupByState: Record<
-    string,
-    { selectedValues: string[]; hasInteracted: boolean }
-  >,
+  groupByState: Record<string, { selectedValues: string[] }>,
 ): {
   groupby?: string[];
   order_by_cols?: string[];
@@ -509,10 +506,7 @@ export default function getFormDataWithExtraFilters({
     }
   }
 
-  const groupByState: Record<
-    string,
-    { selectedValues: string[]; hasInteracted: boolean }
-  > = {};
+  const groupByState: Record<string, { selectedValues: string[] }> = {};
   const customizationIds: string[] = [];
   Object.entries(dataMask).forEach(([key, mask]) => {
     if (isChartCustomization(key)) {
@@ -535,7 +529,6 @@ export default function getFormDataWithExtraFilters({
           : typeof selectedValues === 'string'
             ? [selectedValues]
             : [],
-        hasInteracted: mask.filterState?.value !== undefined,
       };
     }
   });
