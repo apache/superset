@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { getIntlDurationFormatter } from '@superset-ui/core/number-format/utils/getIntlDurationFormatter';
 import { parseMilliseconds } from '@superset-ui/core/number-format/utils/parseMilliseconds';
 
 /**
@@ -61,8 +62,7 @@ export function formatDuration(
       },
       {} as Record<string, number>,
     );
-
-  return new Intl.DurationFormat(locale, { style: 'narrow' }).format(
+  return getIntlDurationFormatter(locale, { style: 'narrow' }).format(
     nonZeroUnits,
   );
 }
@@ -81,7 +81,7 @@ export function formatDuration(
 export function calculateEta(
   progressPercent: number | null | undefined,
   durationSeconds: number | null | undefined,
-  locale: string = 'en',
+  locale?: string,
 ): string | null {
   // Need both progress and duration to calculate ETA
   if (

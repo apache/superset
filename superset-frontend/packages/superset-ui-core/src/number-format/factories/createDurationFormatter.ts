@@ -18,6 +18,7 @@
  */
 
 import NumberFormatter from '../NumberFormatter';
+import { getIntlDurationFormatter } from '../utils/getIntlDurationFormatter';
 import { parseMilliseconds } from '../utils/parseMilliseconds';
 
 export default function createDurationFormatter(
@@ -35,10 +36,20 @@ export default function createDurationFormatter(
     id,
     label,
     multiplier = 1,
-    locale = 'en',
+    locale,
     formatSubMilliseconds = false,
     ...intlOptions
   } = config;
+  const durationFormatter = getIntlDurationFormatter(locale, {
+    secondsDisplay: 'auto',
+    style: 'narrow',
+    ...intlOptions,
+  });
+  const zeroDurationFormatter = getIntlDurationFormatter(locale, {
+    secondsDisplay: 'always',
+    style: 'narrow',
+    ...intlOptions,
+  });
   return new NumberFormatter({
     description,
     formatFunc: value => {
@@ -54,11 +65,9 @@ export default function createDurationFormatter(
         value => value === 0,
       );
 
-      return new Intl.DurationFormat(locale, {
-        secondsDisplay: isAllUnitsZero ? 'always' : 'auto',
-        style: 'narrow',
-        ...intlOptions,
-      }).format(durObject);
+      return (
+        isAllUnitsZero ? zeroDurationFormatter : durationFormatter
+      ).format(durObject);
     },
     id: id ?? 'duration_format',
     label: label ?? `Duration formatter`,
