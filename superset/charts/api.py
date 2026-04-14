@@ -1008,7 +1008,17 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         return self.response(200, result="OK")
 
-    @before_request(only=["related"])
+    @expose("/related/<column_name>", methods=("GET",))
+    @protect()
+    @safe
+    def related(self, column_name: str, **kwargs: Any) -> Response:
+        """Restrict the owners related field to users with write access, then
+        delegate to the standard related field lookup.
+        """
+        if response := self.ensure_owners_write_access():
+            return response
+        return super().related(column_name, **kwargs)
+
     def ensure_owners_write_access(self) -> Optional[Response]:
         """Restrict the owners related field to users with write access."""
         if request.view_args.get("column_name") == "owners" and not (
