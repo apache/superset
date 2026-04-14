@@ -23,6 +23,7 @@ from superset.charts.api import ChartRestApi
 
 
 def _make_api() -> ChartRestApi:
+    """Create a minimally initialized chart API instance for unit tests."""
     api = ChartRestApi.__new__(ChartRestApi)
     api.class_permission_name = "Chart"
     return api
