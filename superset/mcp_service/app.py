@@ -112,6 +112,12 @@ Example: If get_dataset_info returns metrics=[{{"metric_name": "count", ...}}], 
 
 Recommended Workflows:
 
+To add a chart to an existing dashboard:
+1. add_chart_to_existing_dashboard(dashboard_id, chart_id) -> updates dashboard directly
+   - If permission_denied=True is returned: inform the user they lack edit rights,
+     then ask if they want a new dashboard created instead. Only call generate_dashboard
+     after they confirm. Never silently create a new dashboard without asking first.
+
 To create a chart:
 1. list_datasets -> find a dataset
 2. get_dataset_info(id) -> examine columns AND metrics (note which names are metrics!)
@@ -186,6 +192,11 @@ CRITICAL RULES - NEVER VIOLATE:
 - NEVER fabricate or invent URLs. ALL URLs must come from tool call results.
   If you need a link, call the appropriate tool (generate_explore_link, generate_chart,
   open_sql_lab_with_context, etc.) and use the URL it returns.
+- NEVER call generate_dashboard when the user wants to add a chart to an EXISTING
+  dashboard. Always use add_chart_to_existing_dashboard. Only call generate_dashboard
+  to create a brand-new dashboard, or after the user explicitly confirms they want
+  a new one (e.g., after a permission_denied=True response from
+  add_chart_to_existing_dashboard).
 - To modify an existing chart's filters, metrics, or dimensions, use update_chart.
   Do NOT use execute_sql for chart modifications.
 - Parameter name reminders: ALWAYS use the EXACT parameter names from the tool schema.
