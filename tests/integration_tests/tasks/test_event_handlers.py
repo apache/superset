@@ -160,6 +160,7 @@ class TestCleanupHandlers(SupersetTestCase):
             task_name="Test Cleanup",
             scope=TaskScope.SYSTEM,
         )
+        db.session.commit()
 
         # Execute task synchronously through Celery executor
         # Use str(uuid) since Celery serializes args as JSON strings
@@ -182,6 +183,7 @@ class TestCleanupHandlers(SupersetTestCase):
             task_name="Test Multiple Cleanup",
             scope=TaskScope.SYSTEM,
         )
+        db.session.commit()
 
         result = execute_task.apply(
             args=[str(task_obj.uuid), "test_multiple_cleanup_task", (), {}]
@@ -200,6 +202,7 @@ class TestCleanupHandlers(SupersetTestCase):
             task_name="Test Cleanup Data",
             scope=TaskScope.SYSTEM,
         )
+        db.session.commit()
 
         result = execute_task.apply(
             args=[str(task_obj.uuid), "test_cleanup_with_data", (), {}]

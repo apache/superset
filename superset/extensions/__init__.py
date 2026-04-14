@@ -16,6 +16,7 @@
 # under the License.
 import json
 import os
+import threading
 from typing import Any, Callable, Optional
 
 import celery
@@ -135,7 +136,11 @@ async_query_manager: AsyncQueryManager = LocalProxy(
 cache_manager = CacheManager()
 celery_app = celery.Celery()
 csrf = CSRFProtect()
-db = get_sqla_class()()
+# Use thread-based session scoping (like Flask-SQLAlchemy 2.x) instead of
+# app-context scoping (Flask-SQLAlchemy 3.x default). This is needed because
+# Superset code and tests pass SQLAlchemy objects across app context boundaries,
+# which breaks with app-context-scoped sessions.
+db = get_sqla_class()(session_options={"scopefunc": threading.get_ident})
 _event_logger: dict[str, Any] = {}
 encrypted_field_factory = EncryptedFieldFactory()
 event_logger = LocalProxy(lambda: _event_logger.get("event_logger"))
