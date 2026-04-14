@@ -85,12 +85,10 @@ export class EmbeddedPage {
    * Wait for the iframe to appear in the DOM.
    */
   async waitForIframe(options?: { timeout?: number }): Promise<void> {
-    await this.page
-      .locator(EmbeddedPage.SELECTORS.IFRAME)
-      .waitFor({
-        state: 'attached',
-        timeout: options?.timeout ?? EMBEDDED.IFRAME_LOAD,
-      });
+    await this.page.locator(EmbeddedPage.SELECTORS.IFRAME).waitFor({
+      state: 'attached',
+      timeout: options?.timeout ?? EMBEDDED.IFRAME_LOAD,
+    });
   }
 
   /**

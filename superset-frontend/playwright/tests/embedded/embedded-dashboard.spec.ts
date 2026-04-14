@@ -161,9 +161,9 @@ test.describe('Embedded Dashboard E2E', () => {
     const embeddedPage = new EmbeddedPage(page);
 
     // Bridge the guest token from Node.js into the browser
-    await embeddedPage.exposeTokenFetcher(async () => {
-      return getGuestToken(page, String(dashboardId));
-    });
+    await embeddedPage.exposeTokenFetcher(async () =>
+      getGuestToken(page, String(dashboardId)),
+    );
 
     // Navigate to the embed app
     await embeddedPage.goto({
@@ -191,9 +191,9 @@ test.describe('Embedded Dashboard E2E', () => {
   test('UI config hideTitle hides dashboard title', async ({ page }) => {
     const embeddedPage = new EmbeddedPage(page);
 
-    await embeddedPage.exposeTokenFetcher(async () => {
-      return getGuestToken(page, String(dashboardId));
-    });
+    await embeddedPage.exposeTokenFetcher(async () =>
+      getGuestToken(page, String(dashboardId)),
+    );
 
     await embeddedPage.goto({
       uuid: embedUuid,
@@ -214,9 +214,9 @@ test.describe('Embedded Dashboard E2E', () => {
   test('native filters are functional in embedded mode', async ({ page }) => {
     const embeddedPage = new EmbeddedPage(page);
 
-    await embeddedPage.exposeTokenFetcher(async () => {
-      return getGuestToken(page, String(dashboardId));
-    });
+    await embeddedPage.exposeTokenFetcher(async () =>
+      getGuestToken(page, String(dashboardId)),
+    );
 
     await embeddedPage.goto({
       uuid: embedUuid,
@@ -258,9 +258,9 @@ test.describe('Embedded Dashboard E2E', () => {
       ]);
 
       const embeddedPage = new EmbeddedPage(page);
-      await embeddedPage.exposeTokenFetcher(async () => {
-        return getGuestToken(page, String(dashboardId));
-      });
+      await embeddedPage.exposeTokenFetcher(async () =>
+        getGuestToken(page, String(dashboardId)),
+      );
 
       await embeddedPage.goto({
         uuid: restrictedEmbed.uuid,
