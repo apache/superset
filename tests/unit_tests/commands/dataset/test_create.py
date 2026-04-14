@@ -26,7 +26,7 @@ from superset.exceptions import SupersetParseError
 from superset.models.core import Database
 
 
-def test_create_dataset_invalid_sql_parse_error():
+def test_create_dataset_invalid_sql_parse_error() -> None:
     """Test that invalid SQL returns a 4xx error when caught as SupersetParseError."""
     mock_database = Mock(spec=Database)
     mock_database.id = 1
@@ -75,7 +75,7 @@ def test_create_dataset_invalid_sql_parse_error():
                     )
 
 
-def test_create_dataset_valid_sql_with_access_error():
+def test_create_dataset_valid_sql_with_access_error() -> None:
     """
     Test that security exceptions work correctly
     """
