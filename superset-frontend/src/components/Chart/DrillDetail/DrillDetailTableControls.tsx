@@ -29,6 +29,7 @@ import RowCountLabel from 'src/components/RowCountLabel';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Tooltip } from '@superset-ui/core/components';
 import { CopyToClipboardButton } from 'src/explore/components/DataTableControl';
+import { TabularDataRow } from 'src/utils/common';
 import DownloadDropdown from './DownloadDropdown';
 
 export type TableControlsProps = {
@@ -40,7 +41,7 @@ export type TableControlsProps = {
   canDownload: boolean;
   onDownloadCSV: () => void;
   onDownloadXLSX: () => void;
-  data?: Record<string, any>[];
+  data?: TabularDataRow[];
   columnNames?: string[];
 };
 
