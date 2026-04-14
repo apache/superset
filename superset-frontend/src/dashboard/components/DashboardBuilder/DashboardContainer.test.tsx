@@ -44,10 +44,7 @@ jest.mock('src/dashboard/containers/DashboardGrid', () => ({
   default: () => <div data-test="mock-dashboard-grid" />,
 }));
 
-// Mock color-related dashboard actions that call SupersetClient.
-// DashboardContainer dispatches these on mount; without the mock the
-// SupersetClient singleton (not configured in the unit-test environment)
-// throws "You must call SupersetClient.configure(...)".
+// DashboardContainer dispatches these on mount, so unit tests stub them.
 jest.mock('src/dashboard/actions/dashboardState', () => ({
   ...jest.requireActual('src/dashboard/actions/dashboardState'),
   applyDashboardLabelsColorOnLoad: jest.fn(() => () => Promise.resolve()),
@@ -453,13 +450,7 @@ test('calculates tabsInScope for filters with tab-scoped charts', async () => {
   );
 });
 
-// ── Chart Customization scope tests ────────────────────────────────────────────
-//
-// These cover the useEffect in DashboardContainer that calls
-// setInScopeStatusOfCustomizations. The native-filter tests above only exercise
-// the setInScopeStatusOfFilters path; the customization path has no existing
-// coverage. The Bug 0 fix (migrateChartCustomizationArray before calculateScopes)
-// is specifically exercised in the legacy-format test.
+// Chart customization scope tests.
 
 test('calculates chartsInScope correctly for new-format chart customizations', async () => {
   const customizationId = 'CHART_CUSTOMIZATION-1';
@@ -520,11 +511,6 @@ test('calculates chartsInScope correctly for new-format chart customizations', a
 });
 
 test('migrates legacy-format customizations before scope calculation (Bug 0 integration)', async () => {
-  // Legacy items (stored with a `customization` wrapper, no `type` field) have no
-  // `scope` field. Without the migrateChartCustomizationArray call in DashboardContainer,
-  // calculateScopes would return chartsInScope:[] for these items (the Bug 0 regression).
-  // With the fix, migration adds scope:{rootPath:['ROOT_ID'], excluded:[]}, so the chart
-  // is correctly included in scope.
   const legacyCustomizationId = 'CHART_CUSTOMIZATION-legacy-1';
   const originalFn = chartCustomizationActions.setInScopeStatusOfCustomizations;
   const spy = jest.spyOn(
@@ -542,8 +528,6 @@ test('migrates legacy-format customizations before scope calculation (Bug 0 inte
           native_filter_configuration: [],
           chart_customization_config: [
             {
-              // Legacy format: has `customization` wrapper, NO `type` field.
-              // isLegacyChartCustomizationFormat returns true for this shape.
               id: legacyCustomizationId,
               customization: {
                 dataset: 1,
@@ -551,8 +535,6 @@ test('migrates legacy-format customizations before scope calculation (Bug 0 inte
                 filterType: 'chart_customization_dynamic_groupby',
                 name: 'Legacy Group By',
               },
-              // No `scope` field — calculateScopes would return chartsInScope:[]
-              // without the migration fix.
             },
           ],
         },
@@ -573,8 +555,6 @@ test('migrates legacy-format customizations before scope calculation (Bug 0 inte
         expect.arrayContaining([
           expect.objectContaining({
             customizationId: legacyCustomizationId,
-            // Non-empty: migration produced scope:{rootPath:['ROOT_ID'], excluded:[]},
-            // so calculateScopes includes the chart rather than returning [].
             chartsInScope: [sliceId],
           }),
         ]),

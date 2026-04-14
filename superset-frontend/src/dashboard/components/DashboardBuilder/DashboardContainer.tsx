@@ -196,11 +196,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       return;
     }
 
-    // Legacy items (stored with a `customization` wrapper, no `type` field) lack
-    // the `scope` field that calculateScopes requires.  Migrate them so that
-    // scope-less items get a default scope covering the whole dashboard, which
-    // prevents calculateScopes from returning chartsInScope:[] and overwriting
-    // the correctly initialised nativeFilters state with an empty set.
+    // Normalize legacy chart customizations before scope calculation.
     const hasLegacy = chartCustomizations.some(isLegacyChartCustomizationFormat);
     const normalizedCustomizations = hasLegacy
       ? migrateChartCustomizationArray(chartCustomizations)

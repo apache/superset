@@ -208,8 +208,6 @@ describe('getFormDataWithExtraFilters', () => {
     expect(result.extra_form_data).toBeDefined();
   });
 
-  // Regression tests for Dynamic Group By display control bugs
-
   const makeGroupByArgs = (
     selectedValue: string | string[],
     baseGroupby: string[] = [],
@@ -251,8 +249,6 @@ describe('getFormDataWithExtraFilters', () => {
   };
 
   test('dynamic group by does not inject a filter using the selected column name as a value', () => {
-    // Selecting a column should replace groupby, never add a WHERE IN filter
-    // using the column NAME as the filter VALUE (e.g. WHERE status IN ('status'))
     const result = getFormDataWithExtraFilters(makeGroupByArgs(['status']));
     const spuriousFilter = (result as any).filters?.find(
       (f: any) =>
@@ -263,7 +259,6 @@ describe('getFormDataWithExtraFilters', () => {
   });
 
   test('dynamic group by still applies when the selected column is already in the base groupby', () => {
-    // Previously, nonConflictingColumns guard blocked columns already in chart's base groupby
     const result = getFormDataWithExtraFilters(
       makeGroupByArgs(['status'], ['status']),
     );
@@ -288,15 +283,11 @@ describe('getFormDataWithExtraFilters', () => {
   });
 
   test('dynamic group by normalizes a single-select string value into a one-item groupby array', () => {
-    // filterState.value is a string (not array) in single-select mode
     const result = getFormDataWithExtraFilters(makeGroupByArgs('status'));
     expect(result.groupby).toEqual(['status']);
   });
 
   test('structural conflict: metric column blocks groupby override (nonConflictingColumns guard)', () => {
-    // When a user selects a column that already serves as a metric, it is in
-    // existingColumns (buildExistingColumnsSet includes metric column names).
-    // nonConflictingColumns becomes empty → early-return → groupby unchanged.
     const customizationId = 'CHART_CUSTOMIZATION-groupby-conflict';
     const argsWithMetricConflict: GetFormDataWithExtraFiltersArguments = {
       ...mockArgs,
@@ -314,8 +305,6 @@ describe('getFormDataWithExtraFilters', () => {
         [customizationId]: {
           id: customizationId,
           extraFormData: {},
-          // User selected 'revenue', but 'revenue' is already in metrics →
-          // structural conflict → nonConflictingColumns = [] → early-return.
           filterState: { value: ['revenue'] },
           ownState: {},
         },
@@ -336,13 +325,10 @@ describe('getFormDataWithExtraFilters', () => {
     };
 
     const result = getFormDataWithExtraFilters(argsWithMetricConflict);
-    // Revenue is in existingColumns (metrics), so no override is applied.
     expect(result.groupby).toEqual(['original_column']);
   });
 
   test('multi-column selection: all selected columns appear in result groupby', () => {
-    // Selecting multiple columns via the Dynamic Group By control should
-    // add all non-conflicting columns to groupby.
     const result = getFormDataWithExtraFilters(
       makeGroupByArgs(['status', 'product_line']),
     );
@@ -353,9 +339,6 @@ describe('getFormDataWithExtraFilters', () => {
   });
 
   test('dataset mismatch: display control for a different dataset does not affect the chart', () => {
-    // When the customization's target datasetId does not match the chart's
-    // datasource ID, processGroupByCustomizations must return {} and leave
-    // the chart's groupby unchanged.
     const customizationId = 'CHART_CUSTOMIZATION-wrong-dataset';
     const argsWrongDataset: GetFormDataWithExtraFiltersArguments = {
       ...mockArgs,
@@ -364,7 +347,7 @@ describe('getFormDataWithExtraFilters', () => {
         form_data: {
           ...mockChart.form_data,
           viz_type: 'table',
-          datasource: '3__table', // chart uses dataset 3
+          datasource: '3__table',
           groupby: ['original_column'],
         },
       },
@@ -382,7 +365,7 @@ describe('getFormDataWithExtraFilters', () => {
           type: 'CHART_CUSTOMIZATION' as any,
           name: 'Dynamic Group By',
           filterType: 'chart_customization_dynamic_groupby',
-          targets: [{ datasetId: 999, column: { name: 'status' } }], // wrong dataset
+          targets: [{ datasetId: 999, column: { name: 'status' } }],
           scope: { rootPath: [], excluded: [] },
           chartsInScope: [chartId],
           defaultDataMask: {},
@@ -396,9 +379,6 @@ describe('getFormDataWithExtraFilters', () => {
   });
 
   test('Scope boundary: display control with chartsInScope:[] does not affect the chart', () => {
-    // When calculateScopes returns chartsInScope:[] (e.g. because a legacy
-    // display control lacks a `scope` field), setInScopeStatusOfCustomizations
-    // writes [] back to nativeFilters.  The chart should not be modified.
     const customizationId = 'CHART_CUSTOMIZATION-groupby-out-of-scope';
     const argsOutOfScope: GetFormDataWithExtraFiltersArguments = {
       ...mockArgs,
@@ -427,7 +407,6 @@ describe('getFormDataWithExtraFilters', () => {
           filterType: 'chart_customization_dynamic_groupby',
           targets: [{ datasetId: 3, column: { name: 'status' } }],
           scope: { rootPath: [], excluded: [] },
-          // Empty array means "no charts in scope" — must NOT apply.
           chartsInScope: [],
           defaultDataMask: {},
           controlValues: {},
@@ -436,7 +415,6 @@ describe('getFormDataWithExtraFilters', () => {
     };
 
     const result = getFormDataWithExtraFilters(argsOutOfScope);
-    // groupby must stay unchanged when the chart is outside scope
     expect(result.groupby).toEqual(['original_column']);
   });
 });
