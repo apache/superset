@@ -33,7 +33,7 @@
     "@types/lodash": "^4.17.24",
     "@types/node": "^25.6.0",
     "@types/ws": "^8.18.1",
-    "@typescript-eslint/eslint-plugin": "^8.58.0",
+    "@typescript-eslint/eslint-plugin": "^8.58.2",
     "@typescript-eslint/parser": "^8.57.0",
     "eslint": "^10.2.0",
     "eslint-config-prettier": "^10.1.8",
