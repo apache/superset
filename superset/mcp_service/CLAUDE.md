@@ -67,9 +67,6 @@ superset/mcp_service/
 ├── dataset/                   # Dataset tools and schemas
 │   ├── schemas.py
 │   └── tool/
-├── database/                  # Database connection tools and schemas
-│   ├── schemas.py
-│   └── tool/
 ├── explore/                   # Explore link generation
 │   ├── schemas.py
 │   └── tool/
@@ -300,6 +297,8 @@ dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).first()
 
 ```python
 # GOOD - Modern Python 3.10+ syntax
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 class MySchema(BaseModel):
@@ -340,7 +339,7 @@ Use the FastMCP `Context` object for structured logging within tools:
 ```python
 async def my_tool(request: MyRequest, ctx: Context) -> MyResponse:
     await ctx.info("Starting: param=%s" % (request.param,))
-    await ctx.debug("Details: keys=%s" % (sorted(request.dict().keys()),))
+    await ctx.debug("Details: keys=%s" % (sorted(request.model_dump().keys()),))
     await ctx.warning("Something unexpected: %s" % (warning_msg,))
     await ctx.error("Failed: %s" % (str(exc),))
     await ctx.report_progress(1, 5, "Step 1 of 5")
@@ -428,7 +427,7 @@ The MCP service uses FastMCP middleware (registered in `server.py`):
 | `GlobalErrorHandlerMiddleware` | Catches unhandled exceptions, converts to ToolError |
 | `StructuredContentStripperMiddleware` | Strips structuredContent from responses (Claude.ai compatibility) |
 | `ResponseSizeGuardMiddleware` | Prevents oversized responses from crashing clients |
-| `ResponseCachingMiddleware` | Optional response caching (Redis-backed) |
+| `ResponseCachingMiddleware` | Optional response caching (in-memory by default, Redis when store enabled) |
 
 Middleware is applied in `server.py` and should NOT be modified in individual tools.
 
@@ -452,7 +451,7 @@ MCP_RBAC_ENABLED = True          # Enable permission checking (default: True)
 # Request Parsing
 MCP_PARSE_REQUEST_ENABLED = True # Accept JSON string requests (workaround for client bugs)
 
-# Response Caching (optional, requires Redis)
+# Response Caching (optional, uses in-memory store by default; Redis when MCP_STORE_CONFIG enabled)
 MCP_CACHE_CONFIG = {
     "enabled": False,
     "list_tools_ttl": 300,
@@ -485,7 +484,6 @@ tests/unit_tests/mcp_service/
 │       └── ...
 ├── dashboard/tool/
 ├── dataset/tool/
-├── database/tool/
 ├── sql_lab/tool/
 ├── system/tool/
 ├── test_auth_*.py                 # Auth/RBAC tests
