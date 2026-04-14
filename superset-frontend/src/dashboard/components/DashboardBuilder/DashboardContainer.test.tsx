@@ -510,7 +510,7 @@ test('calculates chartsInScope correctly for new-format chart customizations', a
   }
 });
 
-test('migrates legacy-format customizations before scope calculation (Bug 0 integration)', async () => {
+test('migrates legacy-format customizations before scope calculation for scope-less items', async () => {
   const legacyCustomizationId = 'CHART_CUSTOMIZATION-legacy-1';
   const originalFn = chartCustomizationActions.setInScopeStatusOfCustomizations;
   const spy = jest.spyOn(

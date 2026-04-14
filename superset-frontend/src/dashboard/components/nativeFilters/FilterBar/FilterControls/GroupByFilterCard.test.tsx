@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { ChartCustomizationType } from '@superset-ui/core';
+import { ChartCustomization, ChartCustomizationType } from '@superset-ui/core';
 import { render, screen, userEvent, waitFor, within } from 'spec/helpers/testing-library';
 import { useDispatch, useSelector } from 'react-redux';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
@@ -39,7 +39,7 @@ const mockUseSelector = useSelector as jest.Mock;
 const mockCachedSupersetGet = cachedSupersetGet as jest.Mock;
 let selectorState: ReturnType<typeof makeSelectorState>;
 
-const customizationItem = {
+const customizationItem: ChartCustomization = {
   id: 'CHART_CUSTOMIZATION-multi-select',
   type: ChartCustomizationType.ChartCustomization,
   name: 'Dynamic Group By',
@@ -68,60 +68,90 @@ const makeSelectorState = (dataMaskSelected = {}) => ({
   },
 });
 
-describe('GroupByFilterCard multi-select behavior', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockUseDispatch.mockReturnValue(dispatchMock);
-    selectorState = makeSelectorState();
-    mockUseSelector.mockImplementation(selector => selector(selectorState));
-    mockCachedSupersetGet.mockResolvedValue({
-      json: {
-        result: {
-          table_name: 'orders',
-          columns: [
-            { column_name: 'status', verbose_name: 'status' },
-            { column_name: 'region', verbose_name: 'region' },
-            { column_name: 'order_date', verbose_name: 'order_date' },
-          ],
-        },
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockUseDispatch.mockReturnValue(dispatchMock);
+  selectorState = makeSelectorState();
+  mockUseSelector.mockImplementation(selector => selector(selectorState));
+  mockCachedSupersetGet.mockResolvedValue({
+    json: {
+      result: {
+        table_name: 'orders',
+        columns: [
+          { column_name: 'status', verbose_name: 'status' },
+          { column_name: 'region', verbose_name: 'region' },
+          { column_name: 'order_date', verbose_name: 'order_date' },
+        ],
       },
-    });
+    },
+  });
+});
+
+test('multi-select group by persists selected values and stores a canonical target column name', async () => {
+  const onFilterSelectionChange = jest.fn();
+
+  const { rerender } = render(
+    <GroupByFilterCard
+      customizationItem={customizationItem}
+      dataMaskSelected={{}}
+      onFilterSelectionChange={onFilterSelectionChange}
+    />,
+  );
+
+  const combobox = await screen.findByRole('combobox');
+  await userEvent.click(combobox);
+
+  const virtualList = await waitFor(() => {
+    const list = document.querySelector('.rc-virtual-list');
+    if (!list) {
+      throw new Error('Virtual list not found');
+    }
+    return list as HTMLElement;
   });
 
-  test('multi-select group by persists selected values and stores a canonical target column name', async () => {
-    const onFilterSelectionChange = jest.fn();
+  await userEvent.click(within(virtualList).getByText('status'));
+  await userEvent.click(within(virtualList).getByText('region'));
 
-    const { rerender } = render(
-      <GroupByFilterCard
-        customizationItem={customizationItem as any}
-        dataMaskSelected={{}}
-        onFilterSelectionChange={onFilterSelectionChange}
-      />,
-    );
-
-    const combobox = await screen.findByRole('combobox');
-    await userEvent.click(combobox);
-
-    const virtualList = await waitFor(() => {
-      const list = document.querySelector('.rc-virtual-list');
-      if (!list) {
-        throw new Error('Virtual list not found');
-      }
-      return list as HTMLElement;
-    });
-
-    await userEvent.click(within(virtualList).getByText('status'));
-    await userEvent.click(within(virtualList).getByText('region'));
-
-    await waitFor(() => {
-      expect(onFilterSelectionChange).toHaveBeenLastCalledWith(
-        customizationItem,
-        expect.objectContaining({
-          extraFormData: {
-            custom_form_data: {
-              groupby: ['status', 'region'],
-            },
+  await waitFor(() => {
+    expect(onFilterSelectionChange).toHaveBeenLastCalledWith(
+      customizationItem,
+      expect.objectContaining({
+        extraFormData: {
+          custom_form_data: {
+            groupby: ['status', 'region'],
           },
+        },
+        filterState: {
+          label: 'status, region',
+          value: ['status', 'region'],
+        },
+        ownState: {
+          column: ['status', 'region'],
+        },
+      }),
+    );
+  });
+
+  expect(dispatchMock).toHaveBeenCalledWith(
+    expect.objectContaining({
+      type: 'SET_PENDING_CHART_CUSTOMIZATION',
+      pendingCustomization: expect.objectContaining({
+        targets: [
+          expect.objectContaining({
+            datasetId: 3,
+            column: { name: 'status' },
+          }),
+        ],
+      }),
+    }),
+  );
+
+  rerender(
+    <GroupByFilterCard
+      customizationItem={customizationItem}
+      dataMaskSelected={{
+        [customizationItem.id]: {
+          id: customizationItem.id,
           filterState: {
             label: 'status, region',
             value: ['status', 'region'],
@@ -129,54 +159,23 @@ describe('GroupByFilterCard multi-select behavior', () => {
           ownState: {
             column: ['status', 'region'],
           },
-        }),
-      );
-    });
-
-    expect(dispatchMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: 'SET_PENDING_CHART_CUSTOMIZATION',
-        pendingCustomization: expect.objectContaining({
-          targets: [
-            expect.objectContaining({
-              datasetId: 3,
-              column: { name: 'status' },
-            }),
-          ],
-        }),
-      }),
-    );
-
-    rerender(
-      <GroupByFilterCard
-        customizationItem={customizationItem as any}
-        dataMaskSelected={{
-          [customizationItem.id]: {
-            filterState: {
-              label: 'status, region',
-              value: ['status', 'region'],
-            },
-            ownState: {
-              column: ['status', 'region'],
-            },
-            extraFormData: {
-              custom_form_data: {
-                groupby: ['status', 'region'],
-              },
+          extraFormData: {
+            custom_form_data: {
+              groupby: ['status', 'region'],
             },
           },
-        }}
-        onFilterSelectionChange={onFilterSelectionChange}
-      />,
-    );
+        },
+      }}
+      onFilterSelectionChange={onFilterSelectionChange}
+    />,
+  );
 
-    await waitFor(() => {
-      expect(
-        document.querySelector('.ant-select-selection-item[title="status"]'),
-      ).toBeInTheDocument();
-      expect(
-        document.querySelector('.ant-select-selection-item[title="region"]'),
-      ).toBeInTheDocument();
-    });
+  await waitFor(() => {
+    expect(
+      document.querySelector('.ant-select-selection-item[title="status"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('.ant-select-selection-item[title="region"]'),
+    ).toBeInTheDocument();
   });
 });

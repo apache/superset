@@ -166,6 +166,8 @@ export function nativeFilterGate(behaviors: Behavior[]): boolean {
 export function getPrimaryChartCustomizationColumnName(
   column: string | string[] | null | undefined,
 ): string {
+  // Persist the configured target as a single column name; the full multi-select
+  // choice remains in the data mask state.
   if (column == null) {
     return '';
   }
