@@ -605,12 +605,9 @@ test('does not dispatch setInScopeStatusOfCustomizations when chart_customizatio
     };
     setup(state);
 
-    // Allow any pending effects to settle
-    await new Promise(resolve => {
-      setTimeout(resolve, 50);
+    await waitFor(() => {
+      expect(spy).not.toHaveBeenCalled();
     });
-
-    expect(spy).not.toHaveBeenCalled();
   } finally {
     spy.mockRestore();
   }

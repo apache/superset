@@ -250,7 +250,7 @@ describe('getFormDataWithExtraFilters', () => {
     };
   };
 
-  test('Bug A: dynamic group by does not inject spurious IN filters', () => {
+  test('dynamic group by does not inject a filter using the selected column name as a value', () => {
     // Selecting a column should replace groupby, never add a WHERE IN filter
     // using the column NAME as the filter VALUE (e.g. WHERE status IN ('status'))
     const result = getFormDataWithExtraFilters(makeGroupByArgs(['status']));
@@ -262,7 +262,7 @@ describe('getFormDataWithExtraFilters', () => {
     expect(result.groupby).toEqual(['status']);
   });
 
-  test('Bug B: dynamic group by applies when selected column is already in base groupby', () => {
+  test('dynamic group by still applies when the selected column is already in the base groupby', () => {
     // Previously, nonConflictingColumns guard blocked columns already in chart's base groupby
     const result = getFormDataWithExtraFilters(
       makeGroupByArgs(['status'], ['status']),
@@ -270,7 +270,24 @@ describe('getFormDataWithExtraFilters', () => {
     expect(result.groupby).toEqual(['status']);
   });
 
-  test('Bug C: dynamic group by works in single-select mode (string value)', () => {
+  test('chord chart does not duplicate a selected column that already exists in the base groupby', () => {
+    const result = getFormDataWithExtraFilters({
+      ...makeGroupByArgs(['status'], ['status']),
+      chart: {
+        ...mockChart,
+        form_data: {
+          ...mockChart.form_data,
+          viz_type: 'chord',
+          datasource: '3__table',
+          groupby: ['status'],
+        },
+      },
+    });
+
+    expect(result.groupby).toEqual(['status']);
+  });
+
+  test('dynamic group by normalizes a single-select string value into a one-item groupby array', () => {
     // filterState.value is a string (not array) in single-select mode
     const result = getFormDataWithExtraFilters(makeGroupByArgs('status'));
     expect(result.groupby).toEqual(['status']);

@@ -24,7 +24,6 @@ import {
   ensureIsArray,
   JsonObject,
   PartialFilters,
-  QueryFormExtraFilter,
   ChartCustomization,
 } from '@superset-ui/core';
 import {
@@ -248,7 +247,9 @@ function applyChartSpecificGroupBy(
       groupByFormData.target = limitedColumns[1];
     }
   } else if (['chord'].includes(chartType)) {
-    groupByFormData.groupby = [...existingGroupBy, ...groupByColumns];
+    groupByFormData.groupby = [
+      ...new Set([...existingGroupBy, ...groupByColumns]),
+    ];
   } else if (chartType === 'bubble_v2') {
     const { limitedColumns } = limitColumnsForChartType(
       chartType,
