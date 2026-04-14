@@ -337,7 +337,9 @@ function processGroupByCustomizations(
       return;
     }
 
-    const selectedValues = groupByInfo.selectedValues || [];
+    const selectedValues = (groupByInfo.selectedValues || []).filter(
+      (value): value is string => typeof value === 'string' && value.length > 0,
+    );
     const columnNames = selectedValues;
 
     if (columnNames.length === 0) {

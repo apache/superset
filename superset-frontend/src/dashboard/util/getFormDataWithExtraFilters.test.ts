@@ -324,6 +324,18 @@ test('dynamic group by still applies when the selected column is already in the 
   expectGroupBy(result, ['status']);
 });
 
+test('dynamic group by with no selection leaves the base groupby unchanged', () => {
+  const result = getFormDataWithExtraFilters(makeGroupByArgs([], ['status']));
+  expectGroupBy(result, ['status']);
+});
+
+test('dynamic group by ignores empty-string selections and keeps the base groupby', () => {
+  const result = getFormDataWithExtraFilters(
+    makeGroupByArgs(['', 'status'], ['original_column']),
+  );
+  expectGroupBy(result, ['status']);
+});
+
 test('chord chart does not duplicate a selected column that already exists in the base groupby', () => {
   const result = getFormDataWithExtraFilters({
     ...makeGroupByArgs(['status'], ['status']),
@@ -356,6 +368,23 @@ test('chord chart replaces an existing source column with the selected display c
   });
 
   expectGroupBy(result, ['payment_method']);
+});
+
+test('chord chart with no selection leaves the existing source column unchanged', () => {
+  const result = getFormDataWithExtraFilters({
+    ...makeGroupByArgs([], ['status']),
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        viz_type: 'chord',
+        datasource: '3__table',
+        groupby: ['status'],
+      },
+    },
+  });
+
+  expectGroupBy(result, ['status']);
 });
 
 test('dynamic group by normalizes a single-select string value into a one-item groupby array', () => {

@@ -21,7 +21,7 @@ import fetchMock from 'fetch-mock';
 import { storeWithState } from 'spec/fixtures/mockStore';
 import mockState from 'spec/fixtures/mockState';
 import { sliceId } from 'spec/fixtures/mockChartQueries';
-import { NativeFilterType } from '@superset-ui/core';
+import { ChartCustomizationType, NativeFilterType } from '@superset-ui/core';
 import { CHART_TYPE } from '../../util/componentTypes';
 import DashboardContainer from './DashboardContainer';
 import * as nativeFiltersActions from '../../actions/nativeFilters';
@@ -638,6 +638,59 @@ test('preserves legacy chart-specific customizations during scope calculation', 
           expect.objectContaining({
             customizationId: legacyCustomizationId,
             chartsInScope: [18],
+          }),
+        ]),
+      );
+    });
+  } finally {
+    spy.mockRestore();
+  }
+});
+
+test('returns empty scope data for chart customization dividers', async () => {
+  const dividerId = 'CHART_CUSTOMIZATION_DIVIDER-1';
+  const originalFn = chartCustomizationActions.setInScopeStatusOfCustomizations;
+  const spy = jest.spyOn(
+    chartCustomizationActions,
+    'setInScopeStatusOfCustomizations',
+  );
+  spy.mockImplementation(args => originalFn(args));
+
+  try {
+    const state = {
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        metadata: {
+          ...mockState.dashboardInfo.metadata,
+          native_filter_configuration: [],
+          chart_customization_config: [
+            {
+              id: dividerId,
+              type: ChartCustomizationType.Divider,
+              title: 'Divider',
+              description: 'Section divider',
+            },
+          ],
+        },
+      },
+      nativeFilters: {
+        filters: {
+          [dividerId]: {
+            id: dividerId,
+            type: ChartCustomizationType.Divider,
+          },
+        },
+      },
+    };
+    setup(state);
+
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            customizationId: dividerId,
+            chartsInScope: [],
+            tabsInScope: [],
           }),
         ]),
       );
