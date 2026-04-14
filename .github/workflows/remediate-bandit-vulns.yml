@@ -1,0 +1,97 @@
+name: Vulnerability Remediation
+
+on:
+  # Manual trigger via GitHub UI — primary way to demo this
+  workflow_dispatch:
+    inputs:
+      max_issues:
+        description: "Max issues to create and remediate"
+        required: false
+        default: "5"
+      skip_devin:
+        description: "Only create issues, skip Devin sessions"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+  # Scheduled trigger — runs weekly on Friday at 9am UTC
+  schedule:
+    - cron: "0 9 * * 5"
+
+jobs:
+  scan-and-remediate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout solution repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install bandit requests
+
+      - name: Clone Superset fork
+        run: |
+          git clone --depth 1 https://github.com/julezjw/superset.git
+
+      - name: Run Bandit scan
+        run: |
+          echo "Running Bandit security scan..."
+          bandit -r superset/superset/ \
+            -f json \
+            -o bandit_results.json \
+            --confidence-level medium \
+            --severity-level medium \
+            -x superset-fork/superset/migrations,superset-fork/tests \
+            || true
+          echo "Scan complete. Results saved to bandit_results.json"
+          # Print a quick summary
+          python -c "
+          import json
+          with open('bandit_results.json') as f:
+              data = json.load(f)
+          results = data.get('results', [])
+          print(f'Total findings: {len(results)}')
+          from collections import Counter
+          sevs = Counter(r['issue_severity'] for r in results)
+          for s in ['HIGH', 'MEDIUM', 'LOW']:
+              print(f'  {s}: {sevs.get(s, 0)}')
+          "
+
+      - name: Run remediation pipeline
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+          DEVIN_ORG_ID: ${{ secrets.DEVIN_ORG_ID }}
+        run: |
+          ARGS="--bandit-results bandit_results.json"
+          ARGS="$ARGS --repo julezjw/superset"
+          ARGS="$ARGS --max-issues ${{ github.event.inputs.max_issues || '5' }}"
+
+          if [ "${{ github.event.inputs.skip_devin }}" = "true" ]; then
+            ARGS="$ARGS --skip-devin"
+          fi
+
+          python scripts/remediate_bandit_vulns.py $ARGS
+
+      - name: Upload Bandit scan results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bandit-results
+          path: bandit_results.json
+
+      - name: Upload remediation log
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: remediation-log
+          path: remediation_log.json
