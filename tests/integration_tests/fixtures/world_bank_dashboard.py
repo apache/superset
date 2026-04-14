@@ -67,9 +67,8 @@ def load_world_bank_data():
     yield
     with app.app_context():
         with get_example_database().get_sqla_engine() as engine:
-            with engine.connect() as conn:
+            with engine.begin() as conn:
                 conn.execute(text("DROP TABLE IF EXISTS wb_health_population"))
-                conn.commit()
 
 
 @pytest.fixture

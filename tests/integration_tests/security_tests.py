@@ -161,7 +161,9 @@ class TestRolePermission(SupersetTestCase):
             s.schema_perm = None
 
         delete_schema_perm(schema_perm)
-        db.session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
+        role = security_manager.find_role(SCHEMA_ACCESS_ROLE)
+        if role:
+            db.session.delete(role)
         db.session.commit()
         super().tearDown()
 
