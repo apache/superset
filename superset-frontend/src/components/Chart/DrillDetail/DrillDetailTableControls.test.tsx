@@ -17,13 +17,15 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import TableControls from './DrillDetailTableControls';
+import TableControls, {
+  TableControlsProps,
+} from './DrillDetailTableControls';
 
 const setFilters = jest.fn();
 const onReload = jest.fn();
 const onDownloadCSV = jest.fn();
 const onDownloadXLSX = jest.fn();
-const setup = (overrides: Record<string, any> = {}) => {
+const setup = (overrides: Partial<TableControlsProps> = {}) => {
   const props = {
     filters: [],
     setFilters,
