@@ -795,7 +795,11 @@ class BaseDatasource(
             template_processor=template_processor,
         )
 
-        if processed is None:
+        if not processed:
+            # _process_select_expression returns None when the expression was not
+            # processed (e.g. Jinja templates), and may return "" for degenerate
+            # inputs. In both cases fall back to template processing to avoid
+            # generating empty parentheses `()` that would produce invalid SQL.
             processed = (
                 template_processor.process_template(clause)
                 if template_processor
