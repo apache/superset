@@ -49,10 +49,14 @@ const isValidResult = (rv: JsonObject): boolean =>
 const hasDatasetId = (rv: JsonObject): boolean =>
   isDefined(rv?.result?.dataset?.id);
 
-const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
+const fetchExploreData = async (
+  exploreUrlParams: URLSearchParams,
+  signal?: AbortSignal,
+) => {
   const rv = await makeApi<{}, ExploreResponsePayload>({
     method: 'GET',
     endpoint: 'api/v1/explore/',
+    signal,
   })(exploreUrlParams);
   if (isValidResult(rv)) {
     if (hasDatasetId(rv)) {
@@ -129,6 +133,7 @@ const getDashboardContextFormData = () => {
 export default function ExplorePage() {
   const [isLoaded, setIsLoaded] = useState(false);
   const isExploreInitialized = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const dispatch = useDispatch();
   const location = useLocation();
 
@@ -140,8 +145,14 @@ export default function ExplorePage() {
     const dashboardContextFormData = getDashboardContextFormData();
 
     if (!isExploreInitialized.current || !!saveAction) {
-      fetchExploreData(exploreUrlParams)
+      // Abort any in-flight request before starting a new one
+      abortControllerRef.current?.abort();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      fetchExploreData(exploreUrlParams, controller.signal)
         .then(({ result }) => {
+          if (controller.signal.aborted) return;
           const formData = dashboardContextFormData
             ? getFormDataWithDashboardContext(
                 result.form_data,
@@ -158,8 +169,21 @@ export default function ExplorePage() {
             }),
           );
         })
-        .catch(err => Promise.all([getClientErrorObject(err), err]))
+        .catch(err => {
+          // Silently ignore aborted requests - AbortError may be wrapped in SupersetApiError by makeApi
+          // or come through with statusText === 'abort' from SupersetClient
+          if (
+            err.name === 'AbortError' ||
+            err.statusText === 'abort' ||
+            err.originalError?.name === 'AbortError' ||
+            err.originalError?.statusText === 'abort'
+          ) {
+            return undefined;
+          }
+          return Promise.all([getClientErrorObject(err), err]);
+        })
         .then(resolved => {
+          if (controller.signal.aborted) return Promise.resolve();
           const [clientError, err] = resolved || [];
           if (!err) {
             return Promise.resolve();
@@ -216,11 +240,18 @@ export default function ExplorePage() {
           return Promise.resolve();
         })
         .finally(() => {
-          setIsLoaded(true);
-          isExploreInitialized.current = true;
+          if (!controller.signal.aborted) {
+            setIsLoaded(true);
+            isExploreInitialized.current = true;
+          }
         });
     }
     getLabelsColorMap().source = LabelsColorMapSource.Explore;
+
+    // Cleanup: abort in-flight requests on unmount
+    return () => {
+      abortControllerRef.current?.abort();
+    };
   }, [dispatch, location]);
 
   if (!isLoaded) {

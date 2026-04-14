@@ -32,6 +32,7 @@ import { URL_PARAMS } from 'src/constants';
 import { JsonObject, VizType } from '@superset-ui/core';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { getParsedExploreURLParams } from 'src/explore/exploreUtils/getParsedExploreURLParams';
+import * as messageToastActions from 'src/components/MessageToasts/actions';
 import ChartPage from '.';
 
 jest.mock('src/hooks/useUnsavedChangesPrompt', () => ({
@@ -289,5 +290,97 @@ describe('ChartPage', () => {
         }).slice(1, -1),
       );
     });
+  });
+
+  test('does not show error toast when request is aborted on unmount', async () => {
+    const addDangerToastSpy = jest.spyOn(messageToastActions, 'addDangerToast');
+    const exploreApiRoute = 'glob:*/api/v1/explore/*';
+    let rejectRequest: (error: Error) => void;
+    const pendingPromise = new Promise((_, reject) => {
+      rejectRequest = reject;
+    });
+
+    fetchMock.get(exploreApiRoute, () => pendingPromise);
+
+    const { unmount } = render(<ChartPage />, {
+      useRouter: true,
+      useRedux: true,
+      useDnd: true,
+    });
+
+    // Unmount before the request completes
+    unmount();
+
+    // Simulate the aborted request rejection
+    const abortError = new Error('The operation was aborted.');
+    abortError.name = 'AbortError';
+    rejectRequest!(abortError);
+
+    // Wait for the rejected request to settle before asserting no toast was shown
+    await pendingPromise.catch(() => undefined);
+    expect(addDangerToastSpy).not.toHaveBeenCalled();
+
+    addDangerToastSpy.mockRestore();
+  });
+
+  test('aborts in-flight request when a new request is made', async () => {
+    const addDangerToastSpy = jest.spyOn(messageToastActions, 'addDangerToast');
+    const exploreApiRoute = 'glob:*/api/v1/explore/*';
+    const exploreFormData = getExploreFormData({
+      viz_type: VizType.Table,
+      show_cell_bars: true,
+    });
+
+    // First request will reject with AbortError when aborted
+    let rejectFirstRequest: (error: Error) => void;
+    const firstRequestPromise = new Promise((_, reject) => {
+      rejectFirstRequest = reject;
+    });
+
+    fetchMock.get(exploreApiRoute, () => firstRequestPromise);
+
+    render(
+      <>
+        <Link to="/?slice_id=99">Navigate</Link>
+        <ChartPage />
+      </>,
+      {
+        useRouter: true,
+        useRedux: true,
+        useDnd: true,
+      },
+    );
+
+    // Wait for the first request to be initiated
+    await waitFor(() =>
+      expect(fetchMock.calls(exploreApiRoute).length).toBe(1),
+    );
+
+    // Set up second request to return immediately
+    fetchMock.reset();
+    fetchMock.get(exploreApiRoute, {
+      result: { dataset: { id: 1 }, form_data: exploreFormData },
+    });
+
+    // Navigate to trigger a new request (which should abort the first)
+    fireEvent.click(screen.getByText('Navigate'));
+
+    // Simulate the first request being aborted
+    const abortError = new Error('The operation was aborted.');
+    abortError.name = 'AbortError';
+    rejectFirstRequest!(abortError);
+
+    // Wait for the first request to settle before asserting
+    await firstRequestPromise.catch(() => undefined);
+
+    // Wait for the second request to complete
+    await waitFor(() =>
+      expect(fetchMock.calls(exploreApiRoute).length).toBe(1),
+    );
+
+    // No error toast should be shown from the aborted first request
+    expect(addDangerToastSpy).not.toHaveBeenCalled();
+
+    addDangerToastSpy.mockRestore();
   });
 });
