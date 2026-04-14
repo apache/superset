@@ -16,9 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Filter, NativeFilterType } from '@superset-ui/core';
+import {
+  ChartCustomizationType,
+  Filter,
+  NativeFilterType,
+} from '@superset-ui/core';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import type { FormInstance } from '@superset-ui/core/components';
+import { Children, ReactElement } from 'react';
 import getControlItemsMap, { ControlItemsProps } from './getControlItemsMap';
 import {
   getControlItems,
@@ -247,5 +252,41 @@ describe('ColumnSelect filterValues behavior', () => {
     expect(screen.queryByText('col1')).not.toBeInTheDocument();
     expect(screen.queryByText('col3')).not.toBeInTheDocument();
     expect(screen.queryByText('col2')).not.toBeInTheDocument();
+  });
+
+  test('prefers persisted multi-select groupby values over the canonical target column name', () => {
+    const customizationToEdit: NonNullable<
+      ControlItemsProps['customizationToEdit']
+    > = {
+      id: 'CHART_CUSTOMIZATION-1',
+      type: ChartCustomizationType.ChartCustomization,
+      name: 'Dynamic Group By',
+      filterType: 'chart_customization_dynamic_groupby',
+      targets: [{ datasetId: 1, column: { name: 'status' } }],
+      scope: { rootPath: [], excluded: [] },
+      chartsInScope: [1],
+      cascadeParentIds: [],
+      defaultDataMask: {},
+      controlValues: { groupby: ['status', 'region'] },
+      description: '',
+    };
+    const props = {
+      ...createProps(),
+      customizationToEdit,
+    };
+    (getControlItems as jest.Mock).mockReturnValue([
+      {
+        name: 'groupby',
+        config: { label: 'Column', multiple: true, required: false },
+      },
+    ]);
+
+    const groupbyElement = getControlItemsMap(props).mainControlItems.groupby
+      .element as ReactElement;
+    const formItem = Children.toArray(
+      groupbyElement.props.children,
+    )[1] as ReactElement;
+
+    expect(formItem.props.initialValue).toEqual(['status', 'region']);
   });
 });

@@ -377,6 +377,10 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
       dispatch(
         setPendingChartCustomization({
           ...customizationItem,
+          controlValues: {
+            ...customizationItem.controlValues,
+            groupby: columnValue,
+          },
           targets,
         }),
       );

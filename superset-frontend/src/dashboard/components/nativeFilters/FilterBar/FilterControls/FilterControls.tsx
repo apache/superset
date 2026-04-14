@@ -243,6 +243,10 @@ const FilterControls: FC<FilterControlsProps> = ({
       dispatch(
         setPendingChartCustomization({
           ...customizationItem,
+          controlValues: {
+            ...customizationItem.controlValues,
+            groupby: columnValue,
+          },
           targets: [
             {
               ...existingTarget,

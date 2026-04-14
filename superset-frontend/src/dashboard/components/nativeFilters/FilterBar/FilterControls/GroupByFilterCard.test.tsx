@@ -18,7 +18,13 @@
  */
 
 import { ChartCustomization, ChartCustomizationType } from '@superset-ui/core';
-import { render, screen, userEvent, waitFor, within } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import { useDispatch, useSelector } from 'react-redux';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import GroupByFilterCard from './GroupByFilterCard';
@@ -136,6 +142,9 @@ test('multi-select group by persists selected values and stores a canonical targ
     expect.objectContaining({
       type: 'SET_PENDING_CHART_CUSTOMIZATION',
       pendingCustomization: expect.objectContaining({
+        controlValues: expect.objectContaining({
+          groupby: ['status', 'region'],
+        }),
         targets: [
           expect.objectContaining({
             datasetId: 3,

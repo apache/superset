@@ -101,6 +101,7 @@ export default function getControlItemsMap({
         customizationToEdit?.controlValues?.[mainControlItem.name] ??
         mainControlItem?.config?.default;
       const initColumn =
+        initialValue ??
         customizationToEdit?.targets?.[0]?.column?.name ??
         filterToEdit?.targets?.[0]?.column?.name;
 

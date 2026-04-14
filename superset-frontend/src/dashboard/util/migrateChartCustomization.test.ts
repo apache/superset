@@ -101,6 +101,7 @@ test('migrateChartCustomization handles basic legacy format', () => {
     sortAscending: true,
     sortMetric: 'count',
     canSelectMultiple: true,
+    groupby: 'country',
   });
 });
 
@@ -169,6 +170,7 @@ test('migrateChartCustomization handles column as array', () => {
   const result = migrateChartCustomization(legacy);
 
   expect(result.targets[0].column?.name).toBe('country');
+  expect(result.controlValues.groupby).toEqual(['country', 'region']);
 });
 
 test('migrateChartCustomization handles empty column array', () => {
@@ -303,6 +305,7 @@ test('migrateChartCustomization merges controlValues', () => {
     sortAscending: false,
     sortMetric: undefined,
     canSelectMultiple: undefined,
+    groupby: 'country',
     enableEmptyFilter: true,
     customSetting: 'value',
   });

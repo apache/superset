@@ -81,6 +81,10 @@ export function migrateChartCustomization(
     canSelectMultiple: customization.canSelectMultiple,
   };
 
+  if (customization.column !== null) {
+    controlValues.groupby = customization.column;
+  }
+
   if (customization.controlValues) {
     Object.assign(controlValues, customization.controlValues);
   }
