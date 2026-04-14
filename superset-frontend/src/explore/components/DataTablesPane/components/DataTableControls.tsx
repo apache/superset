@@ -63,7 +63,6 @@ export const TableControls = ({
   columnTypes,
   rowcount,
   isLoading,
-  canDownload,
   rowLimit,
   rowLimitOptions,
   onRowLimitChange,
@@ -114,15 +113,11 @@ export const TableControls = ({
           <CopyToClipboardButton data={formattedData} columns={columnNames} />
         ) : (
           <Tooltip title={t("You don't have permission to copy to clipboard")}>
-            <span
-              css={css`
-                opacity: 0.3;
-                cursor: not-allowed;
-              `}
-            >
+            <span>
               <CopyToClipboardButton
                 data={formattedData}
                 columns={columnNames}
+                disabled
               />
             </span>
           </Tooltip>

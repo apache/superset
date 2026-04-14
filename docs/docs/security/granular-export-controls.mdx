@@ -19,11 +19,11 @@ FEATURE_FLAGS = {
 
 ## Permissions
 
-| Permission | Resource | Controls |
-|---|---|---|
-| `can_export_data` | `Superset` | CSV, Excel, and JSON data exports from charts, dashboards, and SQL Lab |
-| `can_export_image` | `Superset` | Screenshot (JPEG/PNG) and PDF exports from charts and dashboards |
-| `can_copy_clipboard` | `Superset` | Copy-to-clipboard operations in SQL Lab and the Explore data pane |
+| Permission           | Resource   | Controls                                                               |
+| -------------------- | ---------- | ---------------------------------------------------------------------- |
+| `can_export_data`    | `Superset` | CSV, Excel, and JSON data exports from charts, dashboards, and SQL Lab |
+| `can_export_image`   | `Superset` | Screenshot (JPEG/PNG) and PDF exports from charts and dashboards       |
+| `can_copy_clipboard` | `Superset` | Copy-to-clipboard operations in SQL Lab and the Explore data pane      |
 
 ## Default Role Assignments
 
@@ -34,6 +34,7 @@ After the migration, admins can selectively revoke individual export permissions
 ## Configuration Steps
 
 1. **Enable the feature flag** in `superset_config.py`:
+
    ```python
    FEATURE_FLAGS = {
        "GRANULAR_EXPORT_CONTROLS": True,
@@ -41,11 +42,13 @@ After the migration, admins can selectively revoke individual export permissions
    ```
 
 2. **Run the database migration** to register the new permissions:
+
    ```bash
    superset db upgrade
    ```
 
 3. **Initialize permissions** so roles are populated:
+
    ```bash
    superset init
    ```
@@ -66,10 +69,10 @@ When a user lacks a required export permission:
 
 The following API endpoints enforce granular export permissions when the feature flag is enabled:
 
-| Endpoint | Required Permission |
-|---|---|
-| `GET /api/v1/chart/{id}/data/` (CSV/Excel format) | `can_export_data` |
-| `GET /api/v1/chart/{id}/cache_screenshot/` | `can_export_image` |
-| `GET /api/v1/dashboard/{id}/cache_screenshot/` | `can_export_image` |
-| `GET /api/v1/sqllab/export/{client_id}/` | `can_export_data` |
-| `POST /api/v1/sqllab/export_streaming/` | `can_export_data` |
+| Endpoint                                                  | Required Permission |
+| --------------------------------------------------------- | ------------------- |
+| `GET /api/v1/chart/{id}/data/` (CSV/Excel format)         | `can_export_data`   |
+| `GET /api/v1/chart/{id}/cache_screenshot/`                | `can_export_image`  |
+| `POST /api/v1/dashboard/{id}/cache_dashboard_screenshot/` | `can_export_image`  |
+| `GET /api/v1/sqllab/export/{client_id}/`                  | `can_export_data`   |
+| `POST /api/v1/sqllab/export_streaming/`                   | `can_export_data`   |

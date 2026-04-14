@@ -37,26 +37,28 @@ export const usePermissions = () => {
   const canExportCsvSqlLab = useSelector((state: RootState) =>
     findPermission('can_export_csv', 'SQLLab', state.user?.roles),
   );
-  const canExportDataRaw = useSelector((state: RootState) =>
+  const canExportDataGranular = useSelector((state: RootState) =>
     findPermission('can_export_data', 'Superset', state.user?.roles),
   );
-  const canExportImageRaw = useSelector((state: RootState) =>
+  const canExportImageGranular = useSelector((state: RootState) =>
     findPermission('can_export_image', 'Superset', state.user?.roles),
   );
-  const canCopyClipboardRaw = useSelector((state: RootState) =>
+  const canCopyClipboardGranular = useSelector((state: RootState) =>
     findPermission('can_copy_clipboard', 'Superset', state.user?.roles),
   );
   const granularExport = isFeatureEnabled(FeatureFlag.GranularExportControls);
-  const canExportData = granularExport ? canExportDataRaw : canCsvLegacy;
-  const canExportImage = granularExport ? canExportImageRaw : canCsvLegacy;
-  const canCopyClipboard = granularExport ? canCopyClipboardRaw : canCsvLegacy;
+  const canExportData = granularExport ? canExportDataGranular : canCsvLegacy;
+  const canExportImage = granularExport ? canExportImageGranular : canCsvLegacy;
+  const canCopyClipboard = granularExport
+    ? canCopyClipboardGranular
+    : canCsvLegacy;
   const canDownload = canExportData;
   // SQL Lab uses a separate legacy permission (can_export_csv on SQLLab)
   const canExportDataSqlLab = granularExport
-    ? canExportDataRaw
+    ? canExportDataGranular
     : canExportCsvSqlLab;
   const canCopyClipboardSqlLab = granularExport
-    ? canCopyClipboardRaw
+    ? canCopyClipboardGranular
     : canExportCsvSqlLab;
   const canDrill = useSelector((state: RootState) =>
     findPermission('can_drill', 'Dashboard', state.user?.roles),

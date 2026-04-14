@@ -195,7 +195,7 @@ class TestGranularExportDashboardAPI(SupersetTestCase):
         "can_access",
         side_effect=_deny_can_export_image,
     )
-    def test_dashboard_screenshot_allowed_when_flag_disabled(
+    def test_dashboard_cache_screenshot_allowed_when_flag_disabled(
         self, mock_can_access
     ) -> None:
         """When GRANULAR_EXPORT_CONTROLS is OFF, the granular permission check
@@ -204,9 +204,10 @@ class TestGranularExportDashboardAPI(SupersetTestCase):
         dashboard = self.get_dash_by_slug("births") or self.get_dash_by_slug(
             "birth_names"
         )
-        uri = f"api/v1/dashboard/{dashboard.id}/screenshot/fake_digest/"
-        rv = self.client.get(uri)
-        assert rv.status_code != 403
+        uri = f"api/v1/dashboard/{dashboard.id}/cache_dashboard_screenshot/"
+        rison_params = prison.dumps({"force": False})
+        rv = self.client.post(f"{uri}?q={rison_params}", json={})
+        assert rv.status_code == 202
 
 
 class TestGranularExportSqlLabAPI(SupersetTestCase):

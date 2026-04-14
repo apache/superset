@@ -850,7 +850,9 @@ describe('ResultSet', () => {
         },
       }),
     );
-    expect(queryByTestId('copy-to-clipboard-button')).toBeInTheDocument();
+    const clipboardButton = queryByTestId('copy-to-clipboard-button');
+    expect(clipboardButton).toBeInTheDocument();
+    expect(clipboardButton).toBeEnabled();
     mockIsFeatureEnabled.mockReset();
   });
 
@@ -902,8 +904,12 @@ describe('ResultSet', () => {
         },
       }),
     );
-    expect(queryByTestId('export-csv-button')).toBeInTheDocument();
-    expect(queryByTestId('copy-to-clipboard-button')).toBeInTheDocument();
+    const csvButton = queryByTestId('export-csv-button');
+    const clipboardButton = queryByTestId('copy-to-clipboard-button');
+    expect(csvButton).toBeInTheDocument();
+    expect(csvButton).toBeEnabled();
+    expect(clipboardButton).toBeInTheDocument();
+    expect(clipboardButton).toBeEnabled();
     mockIsFeatureEnabled.mockReset();
   });
 
@@ -931,7 +937,12 @@ describe('ResultSet', () => {
     );
     const csvButton = getByTestId('export-csv-button');
     expect(csvButton).toBeDisabled();
-    expect(csvButton).toHaveAttribute('aria-label', 'Download to CSV');
+    fireEvent.mouseOver(csvButton.parentElement ?? csvButton);
+    await waitFor(() => {
+      expect(
+        screen.getByText("You don't have permission to export data"),
+      ).toBeInTheDocument();
+    });
     mockIsFeatureEnabled.mockReset();
   });
 
@@ -959,7 +970,12 @@ describe('ResultSet', () => {
     );
     const clipboardButton = getByTestId('copy-to-clipboard-button');
     expect(clipboardButton).toBeDisabled();
-    expect(clipboardButton).toHaveAttribute('aria-label', 'Copy to Clipboard');
+    fireEvent.mouseOver(clipboardButton.parentElement ?? clipboardButton);
+    await waitFor(() => {
+      expect(
+        screen.getByText("You don't have permission to copy to clipboard"),
+      ).toBeInTheDocument();
+    });
     mockIsFeatureEnabled.mockReset();
   });
 

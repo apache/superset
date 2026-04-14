@@ -432,10 +432,15 @@ const ResultSet = ({
             />
           )}
           <CopyToClipboard
-            text={prepareCopyToClipboardTabularData(
-              data,
-              columns.map(c => c.column_name),
-            )}
+            text={
+              canCopyClipboard
+                ? prepareCopyToClipboardTabularData(
+                    data,
+                    columns.map(c => c.column_name),
+                  )
+                : ''
+            }
+            disabled={!canCopyClipboard}
             wrapped={false}
             copyNode={
               <Button
