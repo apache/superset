@@ -76,6 +76,9 @@ export interface TableControlsProps {
   rowLimit?: number;
   rowLimitOptions?: { value: number; label: string }[];
   onRowLimitChange?: (limit: number) => void;
+  onDownloadCSV?: () => void;
+  onDownloadXLSX?: () => void;
+  onReload?: () => void;
 }
 
 export interface QueryResultInterface {
@@ -95,4 +98,7 @@ export interface SingleQueryResultPaneProp extends QueryResultInterface {
   rowLimit?: number;
   rowLimitOptions?: { value: number; label: string }[];
   onRowLimitChange?: (limit: number) => void;
+  onDownloadCSV?: () => void;
+  onDownloadXLSX?: () => void;
+  onReload?: () => void;
 }
