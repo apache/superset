@@ -128,9 +128,8 @@ const FilterValue: FC<FilterValueProps> = ({
     [isCustomization],
   );
   const [state, setState] = useState<ChartDataResponseResult[]>([]);
-  const [hasDepsFilterValue, setHasDepsFilterValue] = useState(
-    Boolean(filter.cascadeParentIds?.length),
-  );
+  const hasDeps = Boolean(filter.cascadeParentIds?.length);
+  const [hasDepsFilterValue, setHasDepsFilterValue] = useState(hasDeps);
   const dashboardId = useSelector<RootState, number>(
     state => state.dashboardInfo.id,
   );
@@ -164,6 +163,10 @@ const FilterValue: FC<FilterValueProps> = ({
   }, [dispatch, shouldRefresh]);
 
   useEffect(() => {
+    setHasDepsFilterValue(hasDeps);
+  }, [hasDeps]);
+
+  useEffect(() => {
     if (!inViewFirstTime && inView) {
       setInViewFirstTime(true);
     }
@@ -193,7 +196,8 @@ const FilterValue: FC<FilterValueProps> = ({
         const extraFormData = dataMaskSelected?.[pId]?.extraFormData;
         if (extraFormData?.filters?.length) {
           selectedParentFilterValueCounts += extraFormData.filters.length;
-        } else if (extraFormData?.time_range) {
+        }
+        if (extraFormData?.time_range) {
           isTimeRangeSelected = true;
         }
       });
