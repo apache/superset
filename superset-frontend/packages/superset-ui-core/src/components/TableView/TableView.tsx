@@ -151,10 +151,10 @@ const RawTableView = ({
   );
 
   const content = useMemo(() => {
-    if (!withPagination) return rows;
+    if (!withPagination || serverPagination) return rows;
     const start = pageIndex * effectivePageSize;
     return rows.slice(start, start + effectivePageSize);
-  }, [withPagination, rows, pageIndex, effectivePageSize]);
+  }, [withPagination, serverPagination, rows, pageIndex, effectivePageSize]);
 
   const EmptyWrapperComponent = useMemo(() => {
     switch (emptyWrapperType) {

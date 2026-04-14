@@ -50,7 +50,14 @@ import { StaticPosition, StyledTooltip, ModalResultSetWrapper } from './styles';
 
 interface QueryTableQuery extends Omit<
   QueryResponse,
-  'state' | 'sql' | 'progress' | 'results' | 'duration' | 'started'
+  | 'state'
+  | 'sql'
+  | 'progress'
+  | 'results'
+  | 'duration'
+  | 'started'
+  | 'user'
+  | 'db'
 > {
   state?: ReactNode;
   sql?: ReactNode;
@@ -58,6 +65,8 @@ interface QueryTableQuery extends Omit<
   results?: ReactNode;
   duration?: ReactNode;
   started?: ReactNode;
+  user?: ReactNode;
+  db?: ReactNode;
 }
 
 interface QueryTableProps {

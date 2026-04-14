@@ -135,7 +135,7 @@ function UserListModal({
       initialValues={initialValues}
     >
       {
-        ((form: FormInstance) => (
+        ((_form: FormInstance) => (
           <>
             <FormItem
               name="first_name"
@@ -172,11 +172,7 @@ function UserListModal({
               label={t('Is active?')}
               valuePropName="checked"
             >
-              <Checkbox
-                onChange={checked => {
-                  form.setFieldsValue({ isActive: checked });
-                }}
-              />
+              <Checkbox />
             </FormItem>
             <FormItem
               name="email"
