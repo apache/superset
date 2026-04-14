@@ -22,6 +22,7 @@ import { t } from '@apache-superset/core/translation';
 import { useMemo } from 'react';
 import { zip } from 'lodash';
 import { Tooltip } from '@superset-ui/core/components';
+import { Select } from 'antd';
 import {
   CopyToClipboardButton,
   FilterInput,
@@ -32,10 +33,19 @@ import RowCountLabel from 'src/components/RowCountLabel';
 import { usePermissions } from 'src/hooks/usePermissions';
 import { TableControlsProps } from '../types';
 
+export const ROW_LIMIT_OPTIONS = [
+  { value: 100, label: '100 rows' },
+  { value: 500, label: '500 rows' },
+  { value: 1000, label: '1k rows' },
+  { value: 5000, label: '5k rows' },
+  { value: 10000, label: '10k rows' },
+];
+
 export const TableControlsWrapper = styled.div`
   ${({ theme }) => `
     display: flex;
     align-items: center;
+    padding-top: ${theme.sizeUnit * 2}px;
     padding-bottom: ${theme.sizeUnit * 2}px;
     justify-content: space-between;
 
@@ -54,6 +64,9 @@ export const TableControls = ({
   rowcount,
   isLoading,
   canDownload,
+  rowLimit,
+  rowLimitOptions,
+  onRowLimitChange,
 }: TableControlsProps) => {
   const originalTimeColumns = getTimeColumns(datasourceId);
   const formattedTimeColumns = zip<string, GenericDataType>(
@@ -80,9 +93,23 @@ export const TableControls = ({
         css={css`
           display: flex;
           align-items: center;
+          gap: 8px;
         `}
       >
-        <RowCountLabel rowcount={rowcount} loading={isLoading} />
+        {onRowLimitChange && (
+          <Select
+            value={rowLimit}
+            onChange={onRowLimitChange}
+            options={rowLimitOptions}
+            size="small"
+            css={css`
+              min-width: 110px;
+            `}
+          />
+        )}
+        {(!onRowLimitChange || rowcount < (rowLimit ?? Infinity)) && (
+          <RowCountLabel rowcount={rowcount} loading={isLoading} />
+        )}
         {copyEnabled ? (
           <CopyToClipboardButton data={formattedData} columns={columnNames} />
         ) : (

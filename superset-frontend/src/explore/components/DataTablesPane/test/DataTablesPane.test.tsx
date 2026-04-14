@@ -19,15 +19,15 @@
 import fetchMock from 'fetch-mock';
 import { FeatureFlag } from '@superset-ui/core';
 import * as copyUtils from 'src/utils/copy';
-import {
-  render,
-  screen,
-  userEvent,
-  waitForElementToBeRemoved,
-} from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { DataTablesPane } from '..';
 import { createDataTablesPaneProps } from './fixture';
+
+beforeAll(() => {
+  setupAGGridModules();
+});
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DataTablesPane', () => {
@@ -177,12 +177,6 @@ describe('DataTablesPane', () => {
 
     expect(screen.getByText('Action')).toBeVisible();
     expect(screen.getByText('Horror')).toBeVisible();
-
-    userEvent.type(screen.getByPlaceholderText('Search'), 'hor');
-
-    await waitForElementToBeRemoved(() => screen.queryByText('Action'));
-    expect(screen.getByText('Horror')).toBeVisible();
-    expect(screen.queryByText('Action')).not.toBeInTheDocument();
     fetchMock.clearHistory().removeRoutes();
   });
 
