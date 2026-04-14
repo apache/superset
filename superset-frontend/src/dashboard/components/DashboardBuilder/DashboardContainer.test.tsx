@@ -47,11 +47,11 @@ jest.mock('src/dashboard/containers/DashboardGrid', () => ({
 // DashboardContainer dispatches these on mount, so unit tests stub them.
 jest.mock('src/dashboard/actions/dashboardState', () => ({
   ...jest.requireActual('src/dashboard/actions/dashboardState'),
-  applyDashboardLabelsColorOnLoad: jest.fn(() => () => Promise.resolve()),
-  updateDashboardLabelsColor: jest.fn(() => () => Promise.resolve()),
-  persistDashboardLabelsColor: jest.fn(() => () => Promise.resolve()),
-  ensureSyncedSharedLabelsColors: jest.fn(() => () => Promise.resolve()),
-  ensureSyncedLabelsColorMap: jest.fn(() => () => Promise.resolve()),
+  applyDashboardLabelsColorOnLoad: jest.fn(() => () => undefined),
+  updateDashboardLabelsColor: jest.fn(() => () => undefined),
+  persistDashboardLabelsColor: jest.fn(() => () => undefined),
+  ensureSyncedSharedLabelsColors: jest.fn(() => () => undefined),
+  ensureSyncedLabelsColorMap: jest.fn(() => () => undefined),
 }));
 
 const defaultTestFilter = {
@@ -556,6 +556,88 @@ test('migrates legacy-format customizations before scope calculation for scope-l
           expect.objectContaining({
             customizationId: legacyCustomizationId,
             chartsInScope: [sliceId],
+          }),
+        ]),
+      );
+    });
+  } finally {
+    spy.mockRestore();
+  }
+});
+
+test('preserves legacy chart-specific customizations during scope calculation', async () => {
+  const legacyCustomizationId = 'CHART_CUSTOMIZATION-legacy-chart-1';
+  const originalFn = chartCustomizationActions.setInScopeStatusOfCustomizations;
+  const spy = jest.spyOn(
+    chartCustomizationActions,
+    'setInScopeStatusOfCustomizations',
+  );
+  spy.mockImplementation(args => originalFn(args));
+
+  const baseDashboardLayout = mockState.dashboardLayout.present;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { CHART_ID: _removed, ...cleanLayout } = baseDashboardLayout;
+
+  try {
+    const state = {
+      dashboardState: {
+        ...mockState.dashboardState,
+        sliceIds: [18, 19],
+      },
+      dashboardLayout: {
+        ...mockState.dashboardLayout,
+        present: {
+          ...cleanLayout,
+          CHART_ID_1: {
+            id: 'CHART_ID_1',
+            type: CHART_TYPE,
+            meta: { chartId: 18, width: 4, height: 10 },
+            parents: ['ROOT_ID', 'GRID_ID', 'ROW_ID'],
+          },
+          CHART_ID_2: {
+            id: 'CHART_ID_2',
+            type: CHART_TYPE,
+            meta: { chartId: 19, width: 4, height: 10 },
+            parents: ['ROOT_ID', 'GRID_ID', 'ROW_ID'],
+          },
+        },
+      },
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        metadata: {
+          ...mockState.dashboardInfo.metadata,
+          native_filter_configuration: [],
+          chart_customization_config: [
+            {
+              id: legacyCustomizationId,
+              chartId: 18,
+              customization: {
+                dataset: 1,
+                column: 'status',
+                filterType: 'chart_customization_dynamic_groupby',
+                name: 'Legacy Chart Scoped Group By',
+              },
+            },
+          ],
+        },
+      },
+      nativeFilters: {
+        filters: {
+          [legacyCustomizationId]: {
+            id: legacyCustomizationId,
+            chartsInScope: [],
+          },
+        },
+      },
+    };
+    setup(state);
+
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            customizationId: legacyCustomizationId,
+            chartsInScope: [18],
           }),
         ]),
       );

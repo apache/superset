@@ -247,9 +247,8 @@ function applyChartSpecificGroupBy(
       groupByFormData.target = limitedColumns[1];
     }
   } else if (['chord'].includes(chartType)) {
-    groupByFormData.groupby = [
-      ...new Set([...existingGroupBy, ...groupByColumns]),
-    ];
+    groupByFormData.groupby =
+      groupByColumns.length > 0 ? [groupByColumns[0]] : existingGroupBy;
   } else if (chartType === 'bubble_v2') {
     const { limitedColumns } = limitColumnsForChartType(
       chartType,

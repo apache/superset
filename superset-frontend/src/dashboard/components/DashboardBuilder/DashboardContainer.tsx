@@ -65,7 +65,7 @@ import { getColorNamespace, resetColors } from 'src/utils/colorScheme';
 import { calculateScopes } from 'src/dashboard/util/calculateScopes';
 import {
   isLegacyChartCustomizationFormat,
-  migrateChartCustomizationArray,
+  migrateChartCustomization,
 } from 'src/dashboard/util/migrateChartCustomization';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
@@ -87,6 +87,37 @@ interface FilterScopeData extends ScopeData {
 
 interface CustomizationScopeData extends ScopeData {
   customizationId: string;
+}
+
+function normalizeChartCustomizationsForScopeCalculation(
+  chartCustomizations: ChartCustomizationConfiguration,
+  chartIds: number[],
+): ChartCustomizationConfiguration {
+  if (!chartCustomizations.some(isLegacyChartCustomizationFormat)) {
+    return chartCustomizations;
+  }
+
+  return chartCustomizations.map(item => {
+    if (!isLegacyChartCustomizationFormat(item)) {
+      return item;
+    }
+
+    const migratedCustomization = migrateChartCustomization(item);
+
+    if (!item.chartId) {
+      return migratedCustomization;
+    }
+
+    return {
+      ...migratedCustomization,
+      // Legacy items could target a single chart without an explicit scope.
+      // Preserve that targeting before calculateScopes recomputes chartsInScope.
+      scope: {
+        ...migratedCustomization.scope,
+        excluded: chartIds.filter(chartId => chartId !== item.chartId),
+      },
+    };
+  });
 }
 
 export const renderedChartIdsSelector: (state: RootState) => number[] =
@@ -196,13 +227,11 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       return;
     }
 
-    // Normalize legacy chart customizations before scope calculation.
-    const hasLegacy = chartCustomizations.some(
-      isLegacyChartCustomizationFormat,
-    );
-    const normalizedCustomizations = hasLegacy
-      ? migrateChartCustomizationArray(chartCustomizations)
-      : chartCustomizations;
+    const normalizedCustomizations =
+      normalizeChartCustomizationsForScopeCalculation(
+        chartCustomizations,
+        chartIds,
+      );
 
     const scopes = calculateScopes(
       normalizedCustomizations,

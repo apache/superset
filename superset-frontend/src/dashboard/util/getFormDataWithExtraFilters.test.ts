@@ -20,7 +20,29 @@ import getFormDataWithExtraFilters, {
   CachedFormDataWithExtraControls,
   GetFormDataWithExtraFiltersArguments,
 } from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
+import { ChartCustomizationType } from '@superset-ui/core';
 import { sliceId as chartId } from 'spec/fixtures/mockChartQueries';
+
+type ChartCustomizationItem = NonNullable<
+  GetFormDataWithExtraFiltersArguments['chartCustomizationItems']
+>[number];
+
+function createChartCustomization(
+  overrides: Partial<ChartCustomizationItem> = {},
+): ChartCustomizationItem {
+  return {
+    id: 'CHART_CUSTOMIZATION-1',
+    type: ChartCustomizationType.ChartCustomization,
+    name: 'Dynamic Group By',
+    filterType: 'chart_customization_dynamic_groupby',
+    targets: [{ datasetId: 3, column: { name: 'status' } }],
+    scope: { rootPath: [], excluded: [] },
+    chartsInScope: [chartId],
+    defaultDataMask: {},
+    controlValues: {},
+    ...overrides,
+  };
+}
 
 const expectGroupBy = (
   result: CachedFormDataWithExtraControls,
@@ -152,9 +174,8 @@ test('should merge extraFormData from chart customizations', () => {
       },
     },
     chartCustomizationItems: [
-      {
+      createChartCustomization({
         id: customizationId,
-        type: 'CHART_CUSTOMIZATION' as any,
         name: 'Time Grain Customization',
         filterType: 'chart_customization_time_grain',
         targets: [
@@ -170,31 +191,38 @@ test('should merge extraFormData from chart customizations', () => {
         chartsInScope: [chartId],
         defaultDataMask: {},
         controlValues: {},
-      },
+      }),
     ],
   };
 
   const result = getFormDataWithExtraFilters(argsWithCustomization);
-  expect((result as any).time_grain_sqla).toEqual('PT1H');
+  expect(result).toEqual(expect.objectContaining({ time_grain_sqla: 'PT1H' }));
 });
 
 test('should merge both filters and customization extraFormData', () => {
   const customizationId = 'CHART_CUSTOMIZATION-1';
   const argsWithBoth: GetFormDataWithExtraFiltersArguments = {
     ...mockArgs,
-    chartConfiguration: {
+    activeFilters: {
       [filterId]: {
-        id: filterId,
         targets: [
           {
             datasetId: 123,
             column: { name: 'country_name' },
           },
         ],
-        scope: { rootPath: ['ROOT_ID'], excluded: [] },
-        cascadeParentIds: [],
+        scope: [chartId],
+        values: {
+          filters: [
+            {
+              col: 'country_name',
+              op: 'IN',
+              val: ['United States'],
+            },
+          ],
+        },
       },
-    } as any,
+    },
     dataMask: {
       [filterId]: {
         id: filterId,
@@ -222,9 +250,8 @@ test('should merge both filters and customization extraFormData', () => {
       },
     },
     chartCustomizationItems: [
-      {
+      createChartCustomization({
         id: customizationId,
-        type: 'CHART_CUSTOMIZATION' as any,
         name: 'Time Grain Customization',
         filterType: 'chart_customization_time_grain',
         targets: [
@@ -240,12 +267,12 @@ test('should merge both filters and customization extraFormData', () => {
         chartsInScope: [chartId],
         defaultDataMask: {},
         controlValues: {},
-      },
+      }),
     ],
   };
 
   const result = getFormDataWithExtraFilters(argsWithBoth);
-  expect((result as any).time_grain_sqla).toEqual('PT1H');
+  expect(result).toEqual(expect.objectContaining({ time_grain_sqla: 'PT1H' }));
   expect(result.extra_form_data).toBeDefined();
 });
 
@@ -274,17 +301,9 @@ const makeGroupByArgs = (
       },
     },
     chartCustomizationItems: [
-      {
+      createChartCustomization({
         id: customizationId,
-        type: 'CHART_CUSTOMIZATION' as any,
-        name: 'Dynamic Group By',
-        filterType: 'chart_customization_dynamic_groupby',
-        targets: [{ datasetId: 3, column: { name: 'status' } }],
-        scope: { rootPath: [], excluded: [] },
-        chartsInScope: [chartId],
-        defaultDataMask: {},
-        controlValues: {},
-      },
+      }),
     ],
   };
 };
@@ -322,6 +341,23 @@ test('chord chart does not duplicate a selected column that already exists in th
   expectGroupBy(result, ['status']);
 });
 
+test('chord chart replaces an existing source column with the selected display control value', () => {
+  const result = getFormDataWithExtraFilters({
+    ...makeGroupByArgs(['payment_method'], ['status']),
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        viz_type: 'chord',
+        datasource: '3__table',
+        groupby: ['status'],
+      },
+    },
+  });
+
+  expectGroupBy(result, ['payment_method']);
+});
+
 test('dynamic group by normalizes a single-select string value into a one-item groupby array', () => {
   const result = getFormDataWithExtraFilters(makeGroupByArgs('status'));
   expectGroupBy(result, ['status']);
@@ -350,17 +386,10 @@ test('structural conflict: metric column blocks groupby override (nonConflicting
       },
     },
     chartCustomizationItems: [
-      {
+      createChartCustomization({
         id: customizationId,
-        type: 'CHART_CUSTOMIZATION' as any,
-        name: 'Dynamic Group By',
-        filterType: 'chart_customization_dynamic_groupby',
         targets: [{ datasetId: 3, column: { name: 'revenue' } }],
-        scope: { rootPath: [], excluded: [] },
-        chartsInScope: [chartId],
-        defaultDataMask: {},
-        controlValues: {},
-      },
+      }),
     ],
   };
 
@@ -398,17 +427,10 @@ test('dataset mismatch: display control for a different dataset does not affect 
       },
     },
     chartCustomizationItems: [
-      {
+      createChartCustomization({
         id: customizationId,
-        type: 'CHART_CUSTOMIZATION' as any,
-        name: 'Dynamic Group By',
-        filterType: 'chart_customization_dynamic_groupby',
         targets: [{ datasetId: 999, column: { name: 'status' } }],
-        scope: { rootPath: [], excluded: [] },
-        chartsInScope: [chartId],
-        defaultDataMask: {},
-        controlValues: {},
-      },
+      }),
     ],
   };
 
@@ -438,17 +460,11 @@ test('Scope boundary: display control with chartsInScope:[] does not affect the 
       },
     },
     chartCustomizationItems: [
-      {
+      createChartCustomization({
         id: customizationId,
-        type: 'CHART_CUSTOMIZATION' as any,
         name: 'Out Of Scope Group By',
-        filterType: 'chart_customization_dynamic_groupby',
-        targets: [{ datasetId: 3, column: { name: 'status' } }],
-        scope: { rootPath: [], excluded: [] },
         chartsInScope: [],
-        defaultDataMask: {},
-        controlValues: {},
-      },
+      }),
     ],
   };
 
