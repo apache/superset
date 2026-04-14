@@ -814,6 +814,62 @@ test('Maintains stable maxTagCount to prevent click target disappearing in oneLi
   expect(withinSelector.getByText('+ 2 ...')).toBeVisible();
 });
 
+test('dropdown width matches input width after tags collapse in oneLine mode', async () => {
+  render(
+    <div style={{ width: '300px' }}>
+      <Select
+        {...defaultProps}
+        value={[OPTIONS[0], OPTIONS[1], OPTIONS[2]]}
+        mode="multiple"
+        oneLine
+      />
+    </div>,
+  );
+
+  await open();
+
+  // Wait for RAF to complete and tags to collapse
+  await waitFor(() => {
+    const withinSelector = within(
+      getElementByClassName('.ant-select-selector'),
+    );
+    expect(
+      withinSelector.queryByText(OPTIONS[0].label),
+    ).not.toBeInTheDocument();
+    expect(withinSelector.getByText('+ 3 ...')).toBeVisible();
+  });
+
+  const selectElement = document.querySelector('.ant-select') as HTMLElement;
+  expect(selectElement).toBeInTheDocument();
+
+  // Mock the select element's width since JSDOM doesn't perform real layout
+  jest.spyOn(selectElement, 'getBoundingClientRect').mockReturnValue({
+    width: 300,
+    height: 32,
+    top: 0,
+    left: 0,
+    right: 300,
+    bottom: 32,
+    x: 0,
+    y: 0,
+    toJSON: () => ({}),
+  } as DOMRect);
+
+  // Close and reopen to trigger width measurement with mocked value
+  await type('{esc}');
+  await open();
+
+  const dropdown = document.querySelector(
+    '.ant-select-dropdown',
+  ) as HTMLElement;
+  expect(dropdown).toBeInTheDocument();
+
+  // Verify the dropdown has inline width matching the mocked select width
+  await waitFor(() => {
+    expect(parseInt(dropdown.style.width, 10)).toBe(300);
+  });
+});
+
 test('does not render "Select all" when there are 0 or 1 options', async () => {
   const { rerender } = render(
     <Select {...defaultProps} options={[]} mode="multiple" allowNewOptions />,
