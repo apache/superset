@@ -99,14 +99,27 @@ class SecretsMigrator:
 
     def discover_encrypted_fields(self) -> dict[str, dict[str, EncryptedType]]:
         """
-        Iterates over SqlAlchemy's metadata, looking for EncryptedType
-        columns along the way. Builds up a dict of
+        Iterates over ORM-mapped tables, looking for EncryptedType columns
+        along the way. Builds up a dict of
         table_name -> dict of col_name: enc type instance
+
+        Superset's ORM models inherit from Flask-AppBuilder's declarative base
+        (`flask_appbuilder.Model`), whose MetaData is distinct from
+        `db.metadata`. We combine both sources so encrypted columns are found
+        regardless of which base a model uses.
         :return:
         """
+        from flask_appbuilder import (  # pylint: disable=import-outside-toplevel
+            Model as FABModel,
+        )
+
         meta_info: dict[str, Any] = {}
 
-        for table_name, table in self._db.metadata.tables.items():
+        tables: dict[str, Any] = {}
+        tables.update(FABModel.metadata.tables)
+        tables.update(self._db.metadata.tables)
+
+        for table_name, table in tables.items():
             for col_name, col in table.columns.items():
                 if isinstance(col.type, EncryptedType):
                     cols = meta_info.get(table_name, {})

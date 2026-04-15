@@ -89,6 +89,21 @@ class EncryptedFieldTest(SupersetTestCase):
                         " encrypted_field_factory"
                     )
 
+    def test_discover_encrypted_fields_finds_dbs_table(self):
+        """
+        Ensure discover_encrypted_fields finds the encrypted columns on the
+        dbs table (password, encrypted_extra, server_cert). This guards
+        against db.metadata diverging from db.Model.metadata.
+        """
+        migrator = SecretsMigrator("")
+        encrypted_fields = migrator.discover_encrypted_fields()
+        assert "dbs" in encrypted_fields, (
+            "dbs table not found in encrypted fields — "
+            "discover_encrypted_fields may be using the wrong MetaData instance"
+        )
+        dbs_cols = set(encrypted_fields["dbs"].keys())
+        assert {"password", "encrypted_extra", "server_cert"}.issubset(dbs_cols)
+
     def test_lazy_key_resolution(self):
         """
         Verify that the encryption key is resolved lazily at runtime,
