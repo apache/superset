@@ -180,6 +180,24 @@ jobs:
           docker run --rm $TAG bash -c \
           "npm run plugins:build"
 
+  core-packages-coverage:
+    needs: frontend-build
+    if: needs.frontend-build.outputs.should-run == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download Docker Image Artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: docker-image
+
+      - name: Load Docker Image
+        run: |
+          zstd -d < docker-image.tar.zst | docker load
+
+      - name: Enforce 100% TS coverage on core packages
+        run: |
+          docker run --rm $TAG bash -c "npm run core:cover"
+
   test-storybook:
     needs: frontend-build
     if: needs.frontend-build.outputs.should-run == 'true'
