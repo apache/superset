@@ -110,3 +110,82 @@ test('resetTranslation does nothing when not yet configured', () => {
     consoleSpy.mockRestore();
   });
 });
+
+// --- autoConfigureFromWindow ----------------------------------------------
+// These cover the bootstrap-injection path used to dodge the
+// module-level `const X = t(...)` race across code-split chunks
+// (upstream issue #35330).
+
+test('t() self-configures from window.__SUPERSET_LANGUAGE_PACK__ on first call', () => {
+  jest.isolateModules(() => {
+    (window as any).__SUPERSET_LANGUAGE_PACK__ = {
+      domain: 'superset',
+      locale_data: {
+        superset: {
+          '': {
+            domain: 'superset',
+            lang: 'fr',
+            plural_forms: 'nplurals=2; plural=(n > 1);',
+          },
+          hello: ['bonjour'],
+        },
+      },
+    };
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const { t } = require('./TranslatorSingleton');
+    expect(t('hello')).toBe('bonjour');
+    // No "should call configure" warning because we self-configured first.
+    expect(consoleSpy).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+    delete (window as any).__SUPERSET_LANGUAGE_PACK__;
+  });
+});
+
+test('t() falls back to msgid when window has no language pack', () => {
+  jest.isolateModules(() => {
+    delete (window as any).__SUPERSET_LANGUAGE_PACK__;
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const { t } = require('./TranslatorSingleton');
+    expect(t('hello')).toBe('hello');
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'You should call configure(...) before calling other methods',
+    );
+    consoleSpy.mockRestore();
+  });
+});
+
+test('explicit configure() takes precedence over window pack', () => {
+  jest.isolateModules(() => {
+    (window as any).__SUPERSET_LANGUAGE_PACK__ = {
+      domain: 'superset',
+      locale_data: {
+        superset: {
+          '': {
+            domain: 'superset',
+            lang: 'fr',
+            plural_forms: 'nplurals=2; plural=(n > 1);',
+          },
+          hello: ['bonjour'],
+        },
+      },
+    };
+    const { configure, t } = require('./TranslatorSingleton');
+    configure({
+      languagePack: {
+        domain: 'superset',
+        locale_data: {
+          superset: {
+            '': {
+              domain: 'superset',
+              lang: 'es',
+              plural_forms: 'nplurals=2; plural=(n != 1);',
+            },
+            hello: ['hola'],
+          },
+        },
+      },
+    });
+    expect(t('hello')).toBe('hola');
+    delete (window as any).__SUPERSET_LANGUAGE_PACK__;
+  });
+});

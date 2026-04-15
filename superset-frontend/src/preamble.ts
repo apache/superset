@@ -62,35 +62,54 @@ export default function initPreamble(): Promise<void> {
     // Setup SupersetClient early so we can fetch language pack
     setupClient({ appRoot: applicationRoot() });
 
-    // Load language pack before rendering
-    // Use native fetch to avoid race condition with SupersetClient initialization
+    // Load language pack before rendering.
+    // Prefer the bootstrap-injected pack (stashed on window by the inline
+    // script in spa.html, sourced from common.language_pack) so
+    // module-level `const X = t('...')` calls in code-split chunks all
+    // see a configured translator. Fall back to the async fetch only
+    // when the bootstrap payload didn't carry the pack (e.g. embedded
+    // or a legacy entry that doesn't extend spa.html). See issue #35330.
     const lang = bootstrapData.common.locale || 'en';
     if (lang !== 'en') {
-      const abortController = new AbortController();
-      const timeoutId = window.setTimeout(() => {
-        abortController.abort();
-      }, LANGUAGE_PACK_REQUEST_TIMEOUT_MS);
-
-      try {
-        const languagePackUrl = makeUrl(`/superset/language_pack/${lang}/`);
-        const resp = await fetch(languagePackUrl, {
-          signal: abortController.signal,
-        });
-        if (!resp.ok) {
-          throw new Error(`Failed to fetch language pack: ${resp.status}`);
-        }
-        const json = await resp.json();
-        configure({ languagePack: json as LanguagePack });
+      const bootstrapPack =
+        (bootstrapData.common as { language_pack?: LanguagePack })
+          .language_pack ??
+        (typeof window !== 'undefined'
+          ? window.__SUPERSET_LANGUAGE_PACK__
+          : undefined);
+      if (bootstrapPack) {
+        configure({ languagePack: bootstrapPack });
         dayjs.locale(lang);
-      } catch (err) {
-        logging.warn(
-          'Failed to fetch language pack, falling back to default.',
-          err,
-        );
-        configure();
-        dayjs.locale('en');
-      } finally {
-        window.clearTimeout(timeoutId);
+      } else {
+        const abortController = new AbortController();
+        const timeoutId = window.setTimeout(() => {
+          abortController.abort();
+        }, LANGUAGE_PACK_REQUEST_TIMEOUT_MS);
+
+        try {
+          const languagePackUrl = makeUrl(`/superset/language_pack/${lang}/`);
+          const resp = await fetch(languagePackUrl, {
+            signal: abortController.signal,
+          });
+          if (!resp.ok) {
+            throw new Error(`Failed to fetch language pack: ${resp.status}`);
+          }
+          const json = await resp.json();
+          configure({ languagePack: json as LanguagePack });
+          if (typeof window !== 'undefined') {
+            window.__SUPERSET_LANGUAGE_PACK__ = json as LanguagePack;
+          }
+          dayjs.locale(lang);
+        } catch (err) {
+          logging.warn(
+            'Failed to fetch language pack, falling back to default.',
+            err,
+          );
+          configure();
+          dayjs.locale('en');
+        } finally {
+          window.clearTimeout(timeoutId);
+        }
       }
     }
 
