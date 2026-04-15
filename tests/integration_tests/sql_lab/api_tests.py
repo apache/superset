@@ -314,6 +314,13 @@ class TestSqlLabApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         example_db = get_example_database()
 
+        # Quoted identifier formatting varies by dialect (e.g., MySQL uses backticks).
+        # Compute the expected result from the actual engine so the test is
+        # environment-independent.
+        rendered_sql = 'select * from "Vehicle Sales"'
+        engine = example_db.db_engine_spec.engine
+        expected = SQLScript(rendered_sql, engine).format()
+
         data = {
             "sql": "select * from {{tbl}}",
             "database_id": example_db.id,
@@ -324,10 +331,10 @@ class TestSqlLabApi(SupersetTestCase):
             json=data,
         )
         resp_data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
         # Verify that Jinja template was processed before formatting
         assert "{{tbl}}" not in resp_data["result"]
-        assert '"Vehicle Sales"' in resp_data["result"]
-        assert rv.status_code == 200
+        assert resp_data["result"] == expected
 
     @mock.patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
     def test_execute_required_params(self):
