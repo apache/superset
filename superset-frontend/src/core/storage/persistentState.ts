@@ -25,8 +25,9 @@ import { SupersetClient } from '@superset-ui/core';
  */
 export function createPersistentState(
   extensionId: string,
-): typeof StorageTypes.persistentState {
+): StorageTypes.StorageTier {
   const MAX_KEY_LENGTH = 255;
+  const [publisher, name] = extensionId.split('.');
 
   const buildUrl = (key: string, shared?: boolean): string => {
     if (key.length > MAX_KEY_LENGTH) {
@@ -34,16 +35,10 @@ export function createPersistentState(
         `Persistent storage key must be ${MAX_KEY_LENGTH} characters or less.`,
       );
     }
-    const dotIndex = extensionId.indexOf('.');
-    if (dotIndex === -1) {
-      throw new Error(
-        `Invalid extensionId "${extensionId}": expected format "publisher.name"`,
-      );
-    }
-    const publisher = encodeURIComponent(extensionId.slice(0, dotIndex));
-    const name = encodeURIComponent(extensionId.slice(dotIndex + 1));
+    const encodedPublisher = encodeURIComponent(publisher);
+    const encodedName = encodeURIComponent(name);
     const encodedKey = encodeURIComponent(key);
-    const url = `/api/v1/extensions/${publisher}/${name}/storage/persistent/${encodedKey}`;
+    const url = `/api/v1/extensions/${encodedPublisher}/${encodedName}/storage/persistent/${encodedKey}`;
     return shared ? `${url}?shared=true` : url;
   };
 

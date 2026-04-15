@@ -59,7 +59,7 @@ export interface StorageAccessor {
   set(
     key: string,
     value: JsonValue,
-    options?: Record<string, JsonValue>,
+    options: Record<string, JsonValue>,
   ): Promise<void>;
 
   /**

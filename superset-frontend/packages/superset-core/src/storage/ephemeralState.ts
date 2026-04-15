@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import type { JsonValue, StorageAccessor } from './types';
+import type { JsonValue } from './types';
 
 /**
  * @fileoverview Ephemeral State API for Superset extensions (Tier 2 Storage).
@@ -54,25 +54,12 @@ import type { JsonValue, StorageAccessor } from './types';
  */
 export interface SetOptions {
   /**
-   * Time-to-live in seconds. When omitted, the server uses CACHE_DEFAULT_TIMEOUT.
+   * Time-to-live in seconds. Must be a positive integer not exceeding the
+   * server-configured MAX_TTL.
    */
-  ttl?: number;
+  ttl: number;
 }
 
-/**
- * Interface for scoped ephemeral state access.
- * Extends StorageAccessor with TTL-specific options for set().
- */
-export interface EphemeralStateAccessor extends StorageAccessor {
-  /**
-   * Set a value in scoped ephemeral state with TTL.
-   *
-   * @param key The key to store.
-   * @param value The value to store (must be JSON-serializable).
-   * @param options Optional settings including TTL.
-   */
-  set(key: string, value: JsonValue, options?: SetOptions): Promise<void>;
-}
 
 /**
  * Get a value from user-scoped ephemeral state.
@@ -101,21 +88,18 @@ export declare function get(key: string): Promise<JsonValue | null>;
  *
  * @param key The key to store.
  * @param value The value to store (must be JSON-serializable).
- * @param options Optional settings including TTL (defaults to server CACHE_DEFAULT_TIMEOUT).
+ * @param options Settings including required TTL in seconds.
  *
  * @example
  * ```typescript
- * // Store with server default TTL (CACHE_DEFAULT_TIMEOUT)
- * await ephemeralState.set('recent_items', ['item1', 'item2']);
- *
- * // Store with custom TTL (5 minutes)
+ * // Store with a 5-minute TTL
  * await ephemeralState.set('temp_selection', data, { ttl: 300 });
  * ```
  */
 export declare function set(
   key: string,
   value: JsonValue,
-  options?: SetOptions,
+  options: SetOptions,
 ): Promise<void>;
 
 /**
@@ -152,4 +136,8 @@ export declare function remove(key: string): Promise<void>;
  * await ephemeralState.shared.remove('computation_progress');
  * ```
  */
-export declare const shared: EphemeralStateAccessor;
+export declare const shared: {
+  get(key: string): Promise<JsonValue | null>;
+  set(key: string, value: JsonValue, options: SetOptions): Promise<void>;
+  remove(key: string): Promise<void>;
+};

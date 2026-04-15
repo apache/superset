@@ -1243,9 +1243,9 @@ EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
 # `Flask-Caching` backend (e.g. RedisCache for production).
 EXTENSIONS_EPHEMERAL_STORAGE: CacheConfig = {
     "CACHE_TYPE": "SupersetMetastoreCache",
-    "CACHE_DEFAULT_TIMEOUT": int(timedelta(hours=1).total_seconds()),
-    # Should the timeout be reset when retrieving a cached value?
-    "REFRESH_TIMEOUT_ON_RETRIEVAL": False,
+    # Maximum TTL (in seconds) that clients may request. Requests exceeding
+    # this value are rejected. Defaults to 7 days.
+    "MAX_TTL": int(timedelta(days=7).total_seconds()),
     # The following parameter only applies to `MetastoreCache`:
     # How should entries be serialized/deserialized?
     "CODEC": JsonKeyValueCodec(),

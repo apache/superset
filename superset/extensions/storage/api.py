@@ -29,7 +29,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from flask import g, request
+from flask import current_app, g, request
 from flask.wrappers import Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 
@@ -62,17 +62,19 @@ def _parse_ttl(body: dict[str, Any]) -> tuple[int | None, str | None]:
     """Parse and validate TTL from request body.
 
     Returns:
-        (ttl, error_message) - ttl is None when omitted (cache uses
-        CACHE_DEFAULT_TIMEOUT), error_message is set if the value is invalid.
+        (ttl, error_message) - error_message is set if the value is missing or invalid.
     """
     if "ttl" not in body:
-        return None, None
+        return None, "Field 'ttl' is required"
     try:
         ttl = int(body["ttl"])
     except (TypeError, ValueError):
         return None, "Field 'ttl' must be a positive integer"
     if ttl <= 0:
         return None, "Field 'ttl' must be a positive integer"
+    max_ttl = current_app.config.get("EXTENSIONS_EPHEMERAL_STORAGE", {}).get("MAX_TTL")
+    if max_ttl is not None and ttl > max_ttl:
+        return None, f"Field 'ttl' must not exceed {max_ttl} seconds"
     return ttl, None
 
 
@@ -208,13 +210,16 @@ class ExtensionStorageRestApi(BaseApi):
               application/json:
                 schema:
                   type: object
+                  required:
+                    - value
+                    - ttl
                   properties:
                     value:
                       description: The value to store
                     ttl:
                       type: integer
-                      description: Time-to-live in seconds (defaults to
-                        CACHE_DEFAULT_TIMEOUT)
+                      description: Time-to-live in seconds (must be a positive
+                        integer not exceeding MAX_TTL)
           responses:
             200:
               description: Value stored successfully

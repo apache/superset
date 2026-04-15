@@ -26,21 +26,16 @@ import { SupersetClient } from '@superset-ui/core';
 export function createEphemeralState(
   extensionId: string,
 ): typeof StorageTypes.ephemeralState {
+  const [publisher, name] = extensionId.split('.');
   const buildUrl = (key: string, shared?: boolean): string => {
-    const dotIndex = extensionId.indexOf('.');
-    if (dotIndex === -1) {
-      throw new Error(
-        `Invalid extensionId "${extensionId}": expected format "publisher.name"`,
-      );
-    }
-    const publisher = encodeURIComponent(extensionId.slice(0, dotIndex));
-    const name = encodeURIComponent(extensionId.slice(dotIndex + 1));
+    const encodedPublisher = encodeURIComponent(publisher);
+    const encodedName = encodeURIComponent(name);
     const encodedKey = encodeURIComponent(key);
-    const url = `/api/v1/extensions/${publisher}/${name}/storage/ephemeral/${encodedKey}`;
+    const url = `/api/v1/extensions/${encodedPublisher}/${encodedName}/storage/ephemeral/${encodedKey}`;
     return shared ? `${url}?shared=true` : url;
   };
 
-  const shared: StorageTypes.ephemeralState.EphemeralStateAccessor = {
+  const shared: typeof StorageTypes.ephemeralState.shared = {
     get: async (key: string) => {
       const response = await SupersetClient.get({
         endpoint: buildUrl(key, true),
@@ -50,13 +45,11 @@ export function createEphemeralState(
     set: async (
       key: string,
       value: StorageTypes.JsonValue,
-      options?: StorageTypes.ephemeralState.SetOptions,
+      options: StorageTypes.ephemeralState.SetOptions,
     ) => {
-      const body: Record<string, unknown> = { value };
-      if (options?.ttl !== undefined) body.ttl = options.ttl;
       await SupersetClient.put({
         endpoint: buildUrl(key, true),
-        body: JSON.stringify(body),
+        body: JSON.stringify({ value, ttl: options.ttl }),
         headers: { 'Content-Type': 'application/json' },
       });
     },
@@ -73,13 +66,11 @@ export function createEphemeralState(
     set: async (
       key: string,
       value: StorageTypes.JsonValue,
-      options?: StorageTypes.ephemeralState.SetOptions,
+      options: StorageTypes.ephemeralState.SetOptions,
     ) => {
-      const body: Record<string, unknown> = { value };
-      if (options?.ttl !== undefined) body.ttl = options.ttl;
       await SupersetClient.put({
         endpoint: buildUrl(key),
-        body: JSON.stringify(body),
+        body: JSON.stringify({ value, ttl: options.ttl }),
         headers: { 'Content-Type': 'application/json' },
       });
     },

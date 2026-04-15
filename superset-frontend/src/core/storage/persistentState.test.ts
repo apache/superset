@@ -28,137 +28,105 @@ jest.mock('@superset-ui/core', () => ({
   },
 }));
 
-const EXT_ID = 'acme.dashboard';
-const BASE = '/api/v1/extensions/acme/dashboard/storage/persistent';
+const mockGet = SupersetClient.get as jest.Mock;
+const mockPut = SupersetClient.put as jest.Mock;
+const mockDelete = SupersetClient.delete as jest.Mock;
 
-describe('createPersistentState', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockGet.mockResolvedValue({ json: { result: null } });
+  mockPut.mockResolvedValue({});
+  mockDelete.mockResolvedValue({});
+});
+
+test('get calls correct URL with publisher/name pattern', async () => {
+  const store = createPersistentState('myorg.myext');
+  await store.get('prefs');
+  expect(mockGet).toHaveBeenCalledWith({
+    endpoint: '/api/v1/extensions/myorg/myext/storage/persistent/prefs',
   });
+});
 
-  describe('user-scoped operations', () => {
-    it('gets a value via GET', async () => {
-      (SupersetClient.get as jest.Mock).mockResolvedValueOnce({
-        json: { result: { theme: 'dark' } },
-      });
-      const api = createPersistentState(EXT_ID);
-      const result = await api.get('preferences');
-      expect(SupersetClient.get).toHaveBeenCalledWith({
-        endpoint: `${BASE}/preferences`,
-      });
-      expect(result).toEqual({ theme: 'dark' });
-    });
+test('get returns result from response', async () => {
+  mockGet.mockResolvedValue({ json: { result: { theme: 'dark' } } });
+  const store = createPersistentState('myorg.myext');
+  expect(await store.get('prefs')).toEqual({ theme: 'dark' });
+});
 
-    it('returns null when result is missing', async () => {
-      (SupersetClient.get as jest.Mock).mockResolvedValueOnce({ json: {} });
-      const api = createPersistentState(EXT_ID);
-      const result = await api.get('missing');
-      expect(result).toBeNull();
-    });
+test('get returns null when result is absent', async () => {
+  mockGet.mockResolvedValue({ json: {} });
+  const store = createPersistentState('myorg.myext');
+  expect(await store.get('key')).toBeNull();
+});
 
-    it('sets a value via PUT', async () => {
-      (SupersetClient.put as jest.Mock).mockResolvedValueOnce({});
-      const api = createPersistentState(EXT_ID);
-      await api.set('preferences', { theme: 'dark', locale: 'en' });
-      expect(SupersetClient.put).toHaveBeenCalledWith({
-        endpoint: `${BASE}/preferences`,
-        body: JSON.stringify({ value: { theme: 'dark', locale: 'en' } }),
-        headers: { 'Content-Type': 'application/json' },
-      });
-    });
-
-    it('removes a value via DELETE', async () => {
-      (SupersetClient.delete as jest.Mock).mockResolvedValueOnce({});
-      const api = createPersistentState(EXT_ID);
-      await api.remove('preferences');
-      expect(SupersetClient.delete).toHaveBeenCalledWith({
-        endpoint: `${BASE}/preferences`,
-      });
-    });
+test('set calls correct URL with value in body', async () => {
+  const store = createPersistentState('myorg.myext');
+  await store.set('prefs', { theme: 'dark' });
+  expect(mockPut).toHaveBeenCalledWith({
+    endpoint: '/api/v1/extensions/myorg/myext/storage/persistent/prefs',
+    body: JSON.stringify({ value: { theme: 'dark' } }),
+    headers: { 'Content-Type': 'application/json' },
   });
+});
 
-  describe('shared operations', () => {
-    it('gets a shared value with ?shared=true', async () => {
-      (SupersetClient.get as jest.Mock).mockResolvedValueOnce({
-        json: { result: { version: 2 } },
-      });
-      const api = createPersistentState(EXT_ID);
-      const result = await api.shared.get('global_config');
-      expect(SupersetClient.get).toHaveBeenCalledWith({
-        endpoint: `${BASE}/global_config?shared=true`,
-      });
-      expect(result).toEqual({ version: 2 });
-    });
-
-    it('sets a shared value with ?shared=true', async () => {
-      (SupersetClient.put as jest.Mock).mockResolvedValueOnce({});
-      const api = createPersistentState(EXT_ID);
-      await api.shared.set('global_config', { version: 3 });
-      expect(SupersetClient.put).toHaveBeenCalledWith({
-        endpoint: `${BASE}/global_config?shared=true`,
-        body: JSON.stringify({ value: { version: 3 } }),
-        headers: { 'Content-Type': 'application/json' },
-      });
-    });
-
-    it('removes a shared value', async () => {
-      (SupersetClient.delete as jest.Mock).mockResolvedValueOnce({});
-      const api = createPersistentState(EXT_ID);
-      await api.shared.remove('global_config');
-      expect(SupersetClient.delete).toHaveBeenCalledWith({
-        endpoint: `${BASE}/global_config?shared=true`,
-      });
-    });
+test('remove calls correct URL', async () => {
+  const store = createPersistentState('myorg.myext');
+  await store.remove('prefs');
+  expect(mockDelete).toHaveBeenCalledWith({
+    endpoint: '/api/v1/extensions/myorg/myext/storage/persistent/prefs',
   });
+});
 
-  describe('URL encoding', () => {
-    it('encodes special characters in keys', async () => {
-      (SupersetClient.get as jest.Mock).mockResolvedValueOnce({
-        json: { result: 'ok' },
-      });
-      const api = createPersistentState(EXT_ID);
-      await api.get('key/with spaces&special=chars');
-      expect(SupersetClient.get).toHaveBeenCalledWith({
-        endpoint: `${BASE}/${encodeURIComponent('key/with spaces&special=chars')}`,
-      });
-    });
+test('throws when key exceeds 255 characters', () => {
+  const store = createPersistentState('myorg.myext');
+  const longKey = 'a'.repeat(256);
+  expect(() => store.get(longKey)).toThrow('255 characters or less');
+  expect(() => store.set(longKey, 'value')).toThrow('255 characters or less');
+  expect(() => store.remove(longKey)).toThrow('255 characters or less');
+});
 
-    it('encodes special characters in publisher/name', async () => {
-      (SupersetClient.get as jest.Mock).mockResolvedValueOnce({
-        json: { result: 'ok' },
-      });
-      const api = createPersistentState('org name.ext name');
-      await api.get('key');
-      expect(SupersetClient.get).toHaveBeenCalledWith({
-        endpoint: `/api/v1/extensions/${encodeURIComponent('org name')}/${encodeURIComponent('ext name')}/storage/persistent/key`,
-      });
-    });
+test('keys are URL-encoded', async () => {
+  const store = createPersistentState('myorg.myext');
+  await store.get('key/with/slashes');
+  expect(mockGet).toHaveBeenCalledWith({
+    endpoint:
+      '/api/v1/extensions/myorg/myext/storage/persistent/key%2Fwith%2Fslashes',
   });
+});
 
-  describe('validation', () => {
-    it('throws for key exceeding 255 characters', () => {
-      const api = createPersistentState(EXT_ID);
-      const longKey = 'x'.repeat(256);
-      expect(api.get(longKey)).rejects.toThrow(
-        'Persistent storage key must be 255 characters or less',
-      );
-    });
+test('publisher and name are URL-encoded', async () => {
+  const store = createPersistentState('my org.my ext');
+  await store.get('key');
+  expect(mockGet).toHaveBeenCalledWith({
+    endpoint: '/api/v1/extensions/my%20org/my%20ext/storage/persistent/key',
+  });
+});
 
-    it('accepts key at exactly 255 characters', async () => {
-      (SupersetClient.get as jest.Mock).mockResolvedValueOnce({
-        json: { result: 'ok' },
-      });
-      const api = createPersistentState(EXT_ID);
-      const exactKey = 'x'.repeat(255);
-      await api.get(exactKey);
-      expect(SupersetClient.get).toHaveBeenCalled();
-    });
+test('shared.get appends ?shared=true', async () => {
+  const store = createPersistentState('myorg.myext');
+  await store.shared.get('config');
+  expect(mockGet).toHaveBeenCalledWith({
+    endpoint:
+      '/api/v1/extensions/myorg/myext/storage/persistent/config?shared=true',
+  });
+});
 
-    it('throws for extensionId without a dot separator', () => {
-      expect(() => {
-        const api = createPersistentState('nodot');
-        api.get('key');
-      }).rejects.toThrow('expected format "publisher.name"');
-    });
+test('shared.set appends ?shared=true', async () => {
+  const store = createPersistentState('myorg.myext');
+  await store.shared.set('config', { version: 2 });
+  expect(mockPut).toHaveBeenCalledWith({
+    endpoint:
+      '/api/v1/extensions/myorg/myext/storage/persistent/config?shared=true',
+    body: JSON.stringify({ value: { version: 2 } }),
+    headers: { 'Content-Type': 'application/json' },
+  });
+});
+
+test('shared.remove appends ?shared=true', async () => {
+  const store = createPersistentState('myorg.myext');
+  await store.shared.remove('config');
+  expect(mockDelete).toHaveBeenCalledWith({
+    endpoint:
+      '/api/v1/extensions/myorg/myext/storage/persistent/config?shared=true',
   });
 });

@@ -28,131 +28,98 @@ jest.mock('@superset-ui/core', () => ({
   },
 }));
 
-const EXT_ID = 'acme.dashboard';
-const BASE = '/api/v1/extensions/acme/dashboard/storage/ephemeral';
+const mockGet = SupersetClient.get as jest.Mock;
+const mockPut = SupersetClient.put as jest.Mock;
+const mockDelete = SupersetClient.delete as jest.Mock;
 
-describe('createEphemeralState', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockGet.mockResolvedValue({ json: { result: null } });
+  mockPut.mockResolvedValue({});
+  mockDelete.mockResolvedValue({});
+});
+
+test('get calls correct URL with publisher/name pattern', async () => {
+  const store = createEphemeralState('myorg.myext');
+  await store.get('job_progress');
+  expect(mockGet).toHaveBeenCalledWith({
+    endpoint: '/api/v1/extensions/myorg/myext/storage/ephemeral/job_progress',
   });
+});
 
-  describe('user-scoped operations', () => {
-    it('gets a value via GET', async () => {
-      (SupersetClient.get as jest.Mock).mockResolvedValueOnce({
-        json: { result: { pct: 42 } },
-      });
-      const api = createEphemeralState(EXT_ID);
-      const result = await api.get('job_progress');
-      expect(SupersetClient.get).toHaveBeenCalledWith({
-        endpoint: `${BASE}/job_progress`,
-      });
-      expect(result).toEqual({ pct: 42 });
-    });
+test('get returns result from response', async () => {
+  mockGet.mockResolvedValue({ json: { result: { pct: 42 } } });
+  const store = createEphemeralState('myorg.myext');
+  const result = await store.get('job_progress');
+  expect(result).toEqual({ pct: 42 });
+});
 
-    it('returns null when result is missing', async () => {
-      (SupersetClient.get as jest.Mock).mockResolvedValueOnce({ json: {} });
-      const api = createEphemeralState(EXT_ID);
-      const result = await api.get('missing');
-      expect(result).toBeNull();
-    });
+test('get returns null when result is absent', async () => {
+  mockGet.mockResolvedValue({ json: {} });
+  const store = createEphemeralState('myorg.myext');
+  expect(await store.get('key')).toBeNull();
+});
 
-    it('sets a value via PUT', async () => {
-      (SupersetClient.put as jest.Mock).mockResolvedValueOnce({});
-      const api = createEphemeralState(EXT_ID);
-      await api.set('job_progress', { pct: 100 });
-      expect(SupersetClient.put).toHaveBeenCalledWith({
-        endpoint: `${BASE}/job_progress`,
-        body: JSON.stringify({ value: { pct: 100 } }),
-        headers: { 'Content-Type': 'application/json' },
-      });
-    });
-
-    it('sets a value with TTL', async () => {
-      (SupersetClient.put as jest.Mock).mockResolvedValueOnce({});
-      const api = createEphemeralState(EXT_ID);
-      await api.set('cache', 'data', { ttl: 300 });
-      expect(SupersetClient.put).toHaveBeenCalledWith({
-        endpoint: `${BASE}/cache`,
-        body: JSON.stringify({ value: 'data', ttl: 300 }),
-        headers: { 'Content-Type': 'application/json' },
-      });
-    });
-
-    it('removes a value via DELETE', async () => {
-      (SupersetClient.delete as jest.Mock).mockResolvedValueOnce({});
-      const api = createEphemeralState(EXT_ID);
-      await api.remove('job_progress');
-      expect(SupersetClient.delete).toHaveBeenCalledWith({
-        endpoint: `${BASE}/job_progress`,
-      });
-    });
+test('set calls correct URL and includes value and ttl in body', async () => {
+  const store = createEphemeralState('myorg.myext');
+  await store.set('job_progress', { pct: 42 }, { ttl: 300 });
+  expect(mockPut).toHaveBeenCalledWith({
+    endpoint: '/api/v1/extensions/myorg/myext/storage/ephemeral/job_progress',
+    body: JSON.stringify({ value: { pct: 42 }, ttl: 300 }),
+    headers: { 'Content-Type': 'application/json' },
   });
+});
 
-  describe('shared operations', () => {
-    it('gets a shared value with ?shared=true', async () => {
-      (SupersetClient.get as jest.Mock).mockResolvedValueOnce({
-        json: { result: [1, 2, 3] },
-      });
-      const api = createEphemeralState(EXT_ID);
-      const result = await api.shared.get('shared_result');
-      expect(SupersetClient.get).toHaveBeenCalledWith({
-        endpoint: `${BASE}/shared_result?shared=true`,
-      });
-      expect(result).toEqual([1, 2, 3]);
-    });
-
-    it('sets a shared value with ?shared=true', async () => {
-      (SupersetClient.put as jest.Mock).mockResolvedValueOnce({});
-      const api = createEphemeralState(EXT_ID);
-      await api.shared.set('config', { v: 1 });
-      expect(SupersetClient.put).toHaveBeenCalledWith({
-        endpoint: `${BASE}/config?shared=true`,
-        body: JSON.stringify({ value: { v: 1 } }),
-        headers: { 'Content-Type': 'application/json' },
-      });
-    });
-
-    it('removes a shared value', async () => {
-      (SupersetClient.delete as jest.Mock).mockResolvedValueOnce({});
-      const api = createEphemeralState(EXT_ID);
-      await api.shared.remove('config');
-      expect(SupersetClient.delete).toHaveBeenCalledWith({
-        endpoint: `${BASE}/config?shared=true`,
-      });
-    });
+test('remove calls correct URL', async () => {
+  const store = createEphemeralState('myorg.myext');
+  await store.remove('job_progress');
+  expect(mockDelete).toHaveBeenCalledWith({
+    endpoint: '/api/v1/extensions/myorg/myext/storage/ephemeral/job_progress',
   });
+});
 
-  describe('URL encoding', () => {
-    it('encodes special characters in keys', async () => {
-      (SupersetClient.get as jest.Mock).mockResolvedValueOnce({
-        json: { result: 'ok' },
-      });
-      const api = createEphemeralState(EXT_ID);
-      await api.get('key/with spaces&special=chars');
-      expect(SupersetClient.get).toHaveBeenCalledWith({
-        endpoint: `${BASE}/${encodeURIComponent('key/with spaces&special=chars')}`,
-      });
-    });
-
-    it('encodes special characters in publisher/name', async () => {
-      (SupersetClient.get as jest.Mock).mockResolvedValueOnce({
-        json: { result: 'ok' },
-      });
-      const api = createEphemeralState('org name.ext name');
-      await api.get('key');
-      expect(SupersetClient.get).toHaveBeenCalledWith({
-        endpoint: `/api/v1/extensions/${encodeURIComponent('org name')}/${encodeURIComponent('ext name')}/storage/ephemeral/key`,
-      });
-    });
+test('keys are URL-encoded', async () => {
+  const store = createEphemeralState('myorg.myext');
+  await store.get('key with spaces');
+  expect(mockGet).toHaveBeenCalledWith({
+    endpoint:
+      '/api/v1/extensions/myorg/myext/storage/ephemeral/key%20with%20spaces',
   });
+});
 
-  describe('validation', () => {
-    it('throws for extensionId without a dot separator', () => {
-      expect(() => {
-        const api = createEphemeralState('nodot');
-        // buildUrl is called lazily — trigger it
-        api.get('key');
-      }).rejects.toThrow('expected format "publisher.name"');
-    });
+test('publisher and name are URL-encoded', async () => {
+  const store = createEphemeralState('my org.my ext');
+  await store.get('key');
+  expect(mockGet).toHaveBeenCalledWith({
+    endpoint: '/api/v1/extensions/my%20org/my%20ext/storage/ephemeral/key',
+  });
+});
+
+test('shared.get appends ?shared=true', async () => {
+  const store = createEphemeralState('myorg.myext');
+  await store.shared.get('result');
+  expect(mockGet).toHaveBeenCalledWith({
+    endpoint:
+      '/api/v1/extensions/myorg/myext/storage/ephemeral/result?shared=true',
+  });
+});
+
+test('shared.set appends ?shared=true and includes value and ttl', async () => {
+  const store = createEphemeralState('myorg.myext');
+  await store.shared.set('result', [1, 2, 3], { ttl: 600 });
+  expect(mockPut).toHaveBeenCalledWith({
+    endpoint:
+      '/api/v1/extensions/myorg/myext/storage/ephemeral/result?shared=true',
+    body: JSON.stringify({ value: [1, 2, 3], ttl: 600 }),
+    headers: { 'Content-Type': 'application/json' },
+  });
+});
+
+test('shared.remove appends ?shared=true', async () => {
+  const store = createEphemeralState('myorg.myext');
+  await store.shared.remove('result');
+  expect(mockDelete).toHaveBeenCalledWith({
+    endpoint:
+      '/api/v1/extensions/myorg/myext/storage/ephemeral/result?shared=true',
   });
 });

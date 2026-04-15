@@ -17,116 +17,101 @@
  * under the License.
  */
 
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { createBrowserStorage } from './localState';
 
-const MOCK_USER_ID = 42;
+jest.mock('src/utils/getBootstrapData');
+const mockedGetBootstrapData = getBootstrapData as jest.Mock;
 
-jest.mock('src/utils/getBootstrapData', () => ({
-  __esModule: true,
-  default: () => ({ user: { userId: MOCK_USER_ID } }),
-}));
+beforeEach(() => {
+  localStorage.clear();
+  sessionStorage.clear();
+  mockedGetBootstrapData.mockReturnValue({ user: { userId: 42 } });
+});
 
-describe('createBrowserStorage', () => {
-  let mockStorage: Storage;
+test('get returns null when key is not in storage', async () => {
+  const store = createBrowserStorage(localStorage, 'org.ext');
+  const result = await store.get('missing');
+  expect(result).toBeNull();
+});
 
-  beforeEach(() => {
-    const store: Record<string, string> = {};
-    mockStorage = {
-      getItem: jest.fn((k: string) => store[k] ?? null),
-      setItem: jest.fn((k: string, v: string) => {
-        store[k] = v;
-      }),
-      removeItem: jest.fn((k: string) => {
-        delete store[k];
-      }),
-      clear: jest.fn(),
-      get length() {
-        return Object.keys(store).length;
-      },
-      key: jest.fn(),
-    };
-  });
+test('get returns parsed value for user-scoped key', async () => {
+  localStorage.setItem('superset-ext:org.ext:user:42:prefs', JSON.stringify({ theme: 'dark' }));
+  const store = createBrowserStorage(localStorage, 'org.ext');
+  const result = await store.get('prefs');
+  expect(result).toEqual({ theme: 'dark' });
+});
 
-  describe('user-scoped operations', () => {
-    it('gets a value scoped to current user', async () => {
-      const api = createBrowserStorage(mockStorage, 'acme.dashboard');
-      (mockStorage.getItem as jest.Mock).mockReturnValueOnce(
-        JSON.stringify({ collapsed: true }),
-      );
-      const result = await api.get('sidebar');
-      expect(mockStorage.getItem).toHaveBeenCalledWith(
-        `superset-ext:acme.dashboard:user:${MOCK_USER_ID}:sidebar`,
-      );
-      expect(result).toEqual({ collapsed: true });
-    });
+test('set writes value under user-scoped namespaced key', async () => {
+  const store = createBrowserStorage(localStorage, 'org.ext');
+  await store.set('prefs', { theme: 'dark' });
+  expect(localStorage.getItem('superset-ext:org.ext:user:42:prefs')).toBe(
+    JSON.stringify({ theme: 'dark' }),
+  );
+});
 
-    it('returns null for missing keys', async () => {
-      const api = createBrowserStorage(mockStorage, 'acme.dashboard');
-      const result = await api.get('nonexistent');
-      expect(result).toBeNull();
-    });
+test('remove deletes user-scoped key', async () => {
+  localStorage.setItem('superset-ext:org.ext:user:42:prefs', '{}');
+  const store = createBrowserStorage(localStorage, 'org.ext');
+  await store.remove('prefs');
+  expect(localStorage.getItem('superset-ext:org.ext:user:42:prefs')).toBeNull();
+});
 
-    it('sets a value scoped to current user', async () => {
-      const api = createBrowserStorage(mockStorage, 'acme.dashboard');
-      await api.set('theme', 'dark');
-      expect(mockStorage.setItem).toHaveBeenCalledWith(
-        `superset-ext:acme.dashboard:user:${MOCK_USER_ID}:theme`,
-        JSON.stringify('dark'),
-      );
-    });
+test('get throws when user is not authenticated', async () => {
+  mockedGetBootstrapData.mockReturnValue({ user: {} });
+  const store = createBrowserStorage(localStorage, 'org.ext');
+  await expect(store.get('key')).rejects.toThrow('authenticated user');
+});
 
-    it('removes a value scoped to current user', async () => {
-      const api = createBrowserStorage(mockStorage, 'acme.dashboard');
-      await api.remove('theme');
-      expect(mockStorage.removeItem).toHaveBeenCalledWith(
-        `superset-ext:acme.dashboard:user:${MOCK_USER_ID}:theme`,
-      );
-    });
-  });
+test('set throws when user is not authenticated', async () => {
+  mockedGetBootstrapData.mockReturnValue({ user: {} });
+  const store = createBrowserStorage(localStorage, 'org.ext');
+  await expect(store.set('key', 'value')).rejects.toThrow('authenticated user');
+});
 
-  describe('shared operations', () => {
-    it('gets a shared value (no user scope)', async () => {
-      const api = createBrowserStorage(mockStorage, 'acme.dashboard');
-      (mockStorage.getItem as jest.Mock).mockReturnValueOnce(
-        JSON.stringify('abc-123'),
-      );
-      const result = await api.shared.get('device_id');
-      expect(mockStorage.getItem).toHaveBeenCalledWith(
-        'superset-ext:acme.dashboard:device_id',
-      );
-      expect(result).toBe('abc-123');
-    });
+test('different extensions use isolated keys', async () => {
+  const store1 = createBrowserStorage(localStorage, 'org.ext1');
+  const store2 = createBrowserStorage(localStorage, 'org.ext2');
+  await store1.set('key', 'value1');
+  await store2.set('key', 'value2');
+  expect(await store1.get('key')).toBe('value1');
+  expect(await store2.get('key')).toBe('value2');
+});
 
-    it('sets a shared value', async () => {
-      const api = createBrowserStorage(mockStorage, 'acme.dashboard');
-      await api.shared.set('global_flag', true);
-      expect(mockStorage.setItem).toHaveBeenCalledWith(
-        'superset-ext:acme.dashboard:global_flag',
-        JSON.stringify(true),
-      );
-    });
+test('different users use isolated keys', async () => {
+  const store = createBrowserStorage(localStorage, 'org.ext');
+  mockedGetBootstrapData.mockReturnValue({ user: { userId: 1 } });
+  await store.set('key', 'user1-value');
+  mockedGetBootstrapData.mockReturnValue({ user: { userId: 2 } });
+  expect(await store.get('key')).toBeNull();
+});
 
-    it('removes a shared value', async () => {
-      const api = createBrowserStorage(mockStorage, 'acme.dashboard');
-      await api.shared.remove('global_flag');
-      expect(mockStorage.removeItem).toHaveBeenCalledWith(
-        'superset-ext:acme.dashboard:global_flag',
-      );
-    });
-  });
+test('shared.get returns null when key is not in storage', async () => {
+  const store = createBrowserStorage(localStorage, 'org.ext');
+  expect(await store.shared.get('key')).toBeNull();
+});
 
-  describe('isolation', () => {
-    it('isolates keys between different extensions', async () => {
-      const api1 = createBrowserStorage(mockStorage, 'acme.ext1');
-      const api2 = createBrowserStorage(mockStorage, 'acme.ext2');
+test('shared.set writes value without user scope', async () => {
+  const store = createBrowserStorage(localStorage, 'org.ext');
+  await store.shared.set('device', 'abc-123');
+  expect(localStorage.getItem('superset-ext:org.ext:device')).toBe('"abc-123"');
+});
 
-      await api1.set('key', 'value1');
-      await api2.set('key', 'value2');
+test('shared.get reads value without user scope', async () => {
+  localStorage.setItem('superset-ext:org.ext:device', '"abc-123"');
+  const store = createBrowserStorage(localStorage, 'org.ext');
+  expect(await store.shared.get('device')).toBe('abc-123');
+});
 
-      const calls = (mockStorage.setItem as jest.Mock).mock.calls;
-      expect(calls[0][0]).toContain('acme.ext1');
-      expect(calls[1][0]).toContain('acme.ext2');
-      expect(calls[0][0]).not.toBe(calls[1][0]);
-    });
-  });
+test('shared.remove deletes key without user scope', async () => {
+  localStorage.setItem('superset-ext:org.ext:device', '"abc-123"');
+  const store = createBrowserStorage(localStorage, 'org.ext');
+  await store.shared.remove('device');
+  expect(localStorage.getItem('superset-ext:org.ext:device')).toBeNull();
+});
+
+test('works with sessionStorage', async () => {
+  const store = createBrowserStorage(sessionStorage, 'org.ext');
+  await store.set('step', 3);
+  expect(await store.get('step')).toBe(3);
 });
