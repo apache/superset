@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-02-06 23:58-0800\n"
+"POT-Creation-Date: 2026-02-25 10:47+0100\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -270,6 +270,16 @@ msgstr ""
 msgid "%s column(s)"
 msgstr ""
 
+#, python-format
+msgid "%s day ago"
+msgid_plural "%s days ago"
+msgstr[0] ""
+
+#, fuzzy, python-format
+msgid "%s hr ago"
+msgid_plural "%s hr ago"
+msgstr[0] "%s 에러"
+
 #, fuzzy, python-format
 msgid "%s item(s)"
 msgstr "5분"
@@ -279,6 +289,11 @@ msgid ""
 "%s items could not be tagged because you don’t have edit permissions to "
 "all selected objects."
 msgstr ""
+
+#, fuzzy, python-format
+msgid "%s min ago"
+msgid_plural "%s min ago"
+msgstr[0] "월"
 
 #, python-format
 msgid "%s operator(s)"
@@ -303,13 +318,28 @@ msgid_plural "%s records..."
 msgstr[0] "%s 에러"
 
 #, fuzzy, python-format
+msgid "%s record..."
+msgid_plural "%s records..."
+msgstr[0] "%s 에러"
+
+#, fuzzy, python-format
 msgid "%s row"
 msgid_plural "%s rows"
 msgstr[0] "%s 에러"
 
 #, python-format
+msgid "%s s ago"
+msgid_plural "%s s ago"
+msgstr[0] ""
+
+#, python-format
 msgid "%s saved metric(s)"
 msgstr ""
+
+#, fuzzy, python-format
+msgid "%s second"
+msgid_plural "%s seconds"
+msgstr[0] "30초"
 
 #, fuzzy, python-format
 msgid "%s tab selected"
@@ -782,6 +812,14 @@ msgstr ""
 
 msgid "AUG"
 msgstr ""
+
+#, fuzzy
+msgid "Aborted"
+msgstr "상태"
+
+#, fuzzy
+msgid "Aborting"
+msgstr "주석"
 
 msgid "About"
 msgstr ""
@@ -1451,6 +1489,10 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 msgid "An error occurred while fetching chart owners values: %s"
 msgstr ""
 
+#, fuzzy, python-format
+msgid "An error occurred while fetching created by values: %s"
+msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+
 #, python-format
 msgid "An error occurred while fetching dashboard owner values: %s"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
@@ -1772,6 +1814,12 @@ msgid ""
 "source query satisfies the minimum periods defined in the rolling window."
 msgstr ""
 
+msgid ""
+"Applies only when \"Cell bars\" formatting is selected: the background of"
+" the histogram columns is displayed if the \"Show cell bars\" flag is "
+"enabled."
+msgstr ""
+
 msgid "Apply"
 msgstr ""
 
@@ -1869,9 +1917,6 @@ msgstr ""
 msgid "Are you sure you want to overwrite this dataset?"
 msgstr ""
 
-msgid "Are you sure you want to proceed?"
-msgstr ""
-
 msgid ""
 "Are you sure you want to remove the system dark theme? The application "
 "will fall back to the configuration file dark theme."
@@ -1953,6 +1998,18 @@ msgstr "생성자"
 
 msgid "Auto Zoom"
 msgstr ""
+
+#, python-format
+msgid "Auto refresh paused (set to %s seconds)"
+msgstr ""
+
+#, python-format
+msgid "Auto refresh paused - tab inactive (set to %s seconds)"
+msgstr ""
+
+#, fuzzy, python-format
+msgid "Auto refresh set to %s seconds"
+msgstr "Query 공유"
 
 msgid "Auto-detect"
 msgstr ""
@@ -2433,7 +2490,14 @@ msgstr ""
 msgid "Cancel"
 msgstr "취소"
 
+#, fuzzy
+msgid "Cancel Task"
+msgstr "취소"
+
 msgid "Cancel query on window unload event"
+msgstr ""
+
+msgid "Cancellation not available due to missing abort handler"
 msgstr ""
 
 msgid "Cannot access the query"
@@ -2625,6 +2689,10 @@ msgstr "이 차트를 변경하는 것은 불가능합니다"
 
 msgid "Changing this report is forbidden"
 msgstr ""
+
+#, fuzzy
+msgid "Changing this task is forbidden"
+msgstr "이 차트를 변경하는 것은 불가능합니다"
 
 msgid "Character to interpret as decimal point"
 msgstr ""
@@ -3502,6 +3570,10 @@ msgstr ""
 msgid "Copied to clipboard!"
 msgstr ""
 
+#, fuzzy
+msgid "Copied!"
+msgstr "복사됨!"
+
 msgid "Copy"
 msgstr ""
 
@@ -3687,6 +3759,10 @@ msgstr "생성자"
 msgid "Created by me"
 msgstr "생성자"
 
+#, fuzzy, python-format
+msgid "Created by: %s"
+msgstr "생성자"
+
 msgid "Created on"
 msgstr "생성자"
 
@@ -3743,6 +3819,10 @@ msgstr ""
 
 #, fuzzy
 msgid "Current"
+msgstr "컬럼 추가"
+
+#, fuzzy
+msgid "Current Zoom"
 msgstr "컬럼 추가"
 
 #, fuzzy
@@ -4006,6 +4086,10 @@ msgstr ""
 msgid "Dashboard title"
 msgstr "대시보드"
 
+#, fuzzy, python-format
+msgid "Dashboard updated %s"
+msgstr "대시보드"
+
 #, fuzzy
 msgid "Dashboard usage"
 msgstr "대시보드"
@@ -4139,6 +4223,9 @@ msgstr "데이터베이스"
 #, fuzzy
 msgid "Database port"
 msgstr "데이터베이스"
+
+msgid "Database reference is not allowed on a report"
+msgstr ""
 
 msgid "Database schema is not allowed for csv uploads."
 msgstr ""
@@ -4482,6 +4569,11 @@ msgid ""
 "Defines whether the step should appear at the beginning, middle or end "
 "between two data points"
 msgstr ""
+
+#, python-format
+msgid "Delayed (missed %s refresh)"
+msgid_plural "Delayed (missed %s refreshes)"
+msgstr[0] ""
 
 msgid "Delete"
 msgstr "삭제"
@@ -4970,6 +5062,9 @@ msgid ""
 "Drag columns and metrics here to customize tooltip content. Order matters"
 " - items will appear in the same order in tooltips. Click the button to "
 "manually select columns and metrics."
+msgstr ""
+
+msgid "Drag to reorder"
 msgstr ""
 
 msgid "Draw a marker on data points. Only applicable for line types."
@@ -5952,14 +6047,15 @@ msgstr ""
 msgid "Failed to apply theme: Invalid JSON"
 msgstr ""
 
+#, fuzzy
+msgid "Failed to copy stack trace to clipboard"
+msgstr "클립보드에 복사하기"
+
 msgid "Failed to create report"
 msgstr ""
 
 #, python-format
 msgid "Failed to execute %(query)s"
-msgstr ""
-
-msgid "Failed to fetch user info:"
 msgstr ""
 
 msgid "Failed to generate chart edit URL"
@@ -6051,6 +6147,10 @@ msgid "Favorite"
 msgstr ""
 
 #, fuzzy
+msgid "Feature Not Enabled"
+msgstr "엑셀 업로드"
+
+#, fuzzy
 msgid "Featured"
 msgstr "생성자"
 
@@ -6069,6 +6169,10 @@ msgstr ""
 
 msgid "Fetching"
 msgstr ""
+
+#, fuzzy
+msgid "Fetching data..."
+msgstr "데이터베이스 선택"
 
 #, python-format
 msgid "Field cannot be decoded by JSON. %(json_error)s"
@@ -6305,6 +6409,9 @@ msgstr ""
 msgid "Force Time Grain as Max Interval"
 msgstr ""
 
+msgid "Force abort (stops task for all subscribers)"
+msgstr ""
+
 msgid ""
 "Force all tables and views to be created in this schema when clicking "
 "CTAS or CVAS in SQL Lab."
@@ -6385,6 +6492,14 @@ msgstr "필터"
 
 #, fuzzy
 msgid "Formatting"
+msgstr "주석"
+
+#, fuzzy
+msgid "Formatting column"
+msgstr "주석"
+
+#, fuzzy
+msgid "Formatting object"
 msgstr "주석"
 
 msgid "Formula"
@@ -6535,6 +6650,10 @@ msgstr ""
 
 msgid "Grid Size"
 msgstr ""
+
+#, fuzzy
+msgid "Grid view"
+msgstr "데이터 미리보기"
 
 msgid "Group"
 msgstr ""
@@ -6828,6 +6947,10 @@ msgid "In"
 msgstr "활동"
 
 #, fuzzy
+msgid "In Progress"
+msgstr "대시보드"
+
+#, fuzzy
 msgid "In Range"
 msgstr "관리"
 
@@ -6990,6 +7113,9 @@ msgid ""
 msgstr ""
 
 msgid "Invalid JSON"
+msgstr ""
+
+msgid "Invalid JSON configuration"
 msgstr ""
 
 msgid "Invalid JSON metadata"
@@ -7393,6 +7519,10 @@ msgstr "분기"
 msgid "Last run"
 msgstr ""
 
+#, fuzzy, python-format
+msgid "Last updated %s ago"
+msgstr "마지막 수정"
+
 #, fuzzy
 msgid "Last week"
 msgstr "주"
@@ -7634,6 +7764,10 @@ msgstr ""
 msgid "List updated"
 msgstr "분기"
 
+#, fuzzy
+msgid "List view"
+msgstr "저장된 Query 수정"
+
 msgid "Live render"
 msgstr ""
 
@@ -7646,6 +7780,10 @@ msgstr ""
 
 msgid "Loaded from cache"
 msgstr ""
+
+#, fuzzy
+msgid "Loading"
+msgstr "로그인"
 
 msgid "Loading deck.gl layers..."
 msgstr ""
@@ -8046,6 +8184,9 @@ msgstr "메트릭"
 msgid "Metrics / Dimensions"
 msgstr "대시보드 저장"
 
+msgid "Metrics can't be used for both rows and columns at the same time"
+msgstr ""
+
 msgid "Metrics folder can only contain metric items"
 msgstr ""
 
@@ -8199,6 +8340,10 @@ msgstr "테이블 추가"
 
 msgid "MotherDuck token"
 msgstr ""
+
+#, fuzzy
+msgid "Move"
+msgstr "새로고침 간격"
 
 msgid "Move only"
 msgstr ""
@@ -8553,6 +8698,10 @@ msgstr ""
 #, fuzzy
 msgid "No table columns"
 msgstr "컬럼 보기"
+
+#, fuzzy
+msgid "No tasks yet"
+msgstr "차트"
 
 msgid "No temporal columns found"
 msgstr ""
@@ -9172,6 +9321,17 @@ msgstr ""
 msgid "Pattern"
 msgstr ""
 
+msgid "Pause auto refresh if tab is inactive"
+msgstr ""
+
+#, fuzzy
+msgid "Pause auto-refresh"
+msgstr "새로고침 간격"
+
+#, fuzzy
+msgid "Pending"
+msgstr "CSV 업로드"
+
 #, fuzzy
 msgid "Per user caching"
 msgstr "Superset 튜토리얼"
@@ -9590,6 +9750,10 @@ msgstr ""
 msgid "Primary y-axis format"
 msgstr ""
 
+#, fuzzy
+msgid "Private"
+msgstr "테이블 수정"
+
 msgid "Private Channels (Bot in channel)"
 msgstr ""
 
@@ -9852,6 +10016,10 @@ msgstr "검색 결과"
 msgid "Refresh dashboard"
 msgstr "대시보드 가져오기"
 
+#, fuzzy
+msgid "Refresh delayed"
+msgstr "대시보드 가져오기"
+
 msgid "Refresh frequency"
 msgstr ""
 
@@ -9944,6 +10112,14 @@ msgstr ""
 
 #, fuzzy
 msgid "Remove cross-filter"
+msgstr "필터"
+
+#, fuzzy
+msgid "Remove customization"
+msgstr "시각화 유형"
+
+#, fuzzy
+msgid "Remove filter"
 msgstr "필터"
 
 msgid "Remove item"
@@ -10159,6 +10335,10 @@ msgstr ""
 
 msgid "Results backend needed for asynchronous queries is not configured."
 msgstr ""
+
+#, fuzzy
+msgid "Resume auto-refresh"
+msgstr "새로고침 간격"
 
 #, fuzzy
 msgid "Retry"
@@ -10677,11 +10857,27 @@ msgstr "컬럼 추가"
 msgid "Search box"
 msgstr "검색"
 
+#, fuzzy
+msgid "Search by"
+msgstr "검색"
+
 msgid "Search by query text"
 msgstr ""
 
 #, fuzzy
+msgid "Search calculated columns by name"
+msgstr "컬럼 목록"
+
+#, fuzzy
+msgid "Search charts by name, owner, or dashboard"
+msgstr "대시보드 추가"
+
+#, fuzzy
 msgid "Search columns"
+msgstr "컬럼 추가"
+
+#, fuzzy
+msgid "Search columns by name"
 msgstr "컬럼 추가"
 
 #, fuzzy
@@ -10691,6 +10887,10 @@ msgstr "컬럼 추가"
 #, fuzzy
 msgid "Search in filters"
 msgstr "필터"
+
+#, fuzzy
+msgid "Search metrics by key or label"
+msgstr "컬럼 추가"
 
 #, fuzzy
 msgid "Search owners"
@@ -10914,6 +11114,10 @@ msgstr ""
 msgid "Select column"
 msgstr "컬럼 목록"
 
+#, fuzzy
+msgid "Select column name"
+msgstr "컬럼 목록"
+
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
 "columns."
@@ -11013,6 +11217,10 @@ msgstr ""
 #, fuzzy
 msgid "Select layers to hide"
 msgstr "차트 추가"
+
+#, fuzzy
+msgid "Select object name"
+msgstr "필터"
 
 msgid ""
 "Select one or many metrics to display, that will be displayed in the "
@@ -11139,6 +11347,10 @@ msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
 "query by clicking on the %s button."
 msgstr ""
+
+#, fuzzy
+msgid "Selected"
+msgstr "테이블 선택"
 
 #, fuzzy
 msgid "Selecting a database is required"
@@ -11294,6 +11506,10 @@ msgstr ""
 msgid "Share permalink by email"
 msgstr ""
 
+#, fuzzy
+msgid "Shared"
+msgstr "Query 공유"
+
 msgid "Shared query"
 msgstr "Query 공유"
 
@@ -11368,6 +11584,10 @@ msgstr "메트릭 보기"
 #, fuzzy
 msgid "Show Range Filter"
 msgstr "테이블 추가"
+
+#, fuzzy
+msgid "Show SQL"
+msgstr "컬럼 보기"
 
 msgid "Show Timestamp"
 msgstr ""
@@ -12021,6 +12241,10 @@ msgid "Submit"
 msgstr ""
 
 #, fuzzy
+msgid "Subscribers"
+msgstr "데이터소스 명"
+
+#, fuzzy
 msgid "Subtitle"
 msgstr "제목"
 
@@ -12306,6 +12530,42 @@ msgid "Target value"
 msgstr "원본 값"
 
 #, fuzzy
+msgid "Task"
+msgstr "상태"
+
+#, fuzzy, python-format
+msgid "Task cancelled: %s"
+msgstr "차트 유형"
+
+#, fuzzy
+msgid "Task could not be aborted."
+msgstr "차트를 업데이트할 수 없습니다."
+
+#, fuzzy
+msgid "Task could not be created."
+msgstr "차트를 생성할 수 없습니다."
+
+#, fuzzy
+msgid "Task could not be updated."
+msgstr "차트를 업데이트할 수 없습니다."
+
+msgid ""
+"Task is not abortable. The task is in progress but has not registered an "
+"abort handler."
+msgstr ""
+
+#, fuzzy
+msgid "Task parameters are invalid."
+msgstr "차트의 파라미터가 부적절합니다."
+
+#, fuzzy
+msgid "Tasks"
+msgstr "상태"
+
+msgid "Tasks will appear here as background operations are executed."
+msgstr ""
+
+#, fuzzy
 msgid "Template"
 msgstr "CSS 템플릿"
 
@@ -12373,6 +12633,18 @@ msgstr ""
 msgid ""
 "The GeoJsonLayer takes in GeoJSON formatted data and renders it as "
 "interactive polygons, lines and points (circles, icons and/or texts)."
+msgstr ""
+
+msgid ""
+"The Global Task Framework is not enabled. Please contact your "
+"administrator to enable the GLOBAL_TASK_FRAMEWORK feature flag."
+msgstr ""
+
+msgid ""
+"The Global Task Framework is not enabled. Set GLOBAL_TASK_FRAMEWORK=True "
+"in your feature flags to use @task. See "
+"https://superset.apache.org/docs/configuration/async-queries-celery for "
+"configuration details."
 msgstr ""
 
 msgid ""
@@ -13185,6 +13457,12 @@ msgid ""
 "or increasing the destination width."
 msgstr ""
 
+#, python-format
+msgid ""
+"There was a problem refreshing your dashboard. We'll try again in %s, as "
+"scheduled."
+msgstr ""
+
 #, fuzzy
 msgid "There was an error creating the group. Please, try again."
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
@@ -13261,6 +13539,10 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 
 msgid "There was an error with your request"
 msgstr ""
+
+#, fuzzy, python-format
+msgid "There was an issue cancelling the task: %s"
+msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
 #, fuzzy, python-format
 msgid "There was an issue deleting %s"
@@ -13463,12 +13745,6 @@ msgid ""
 "annotation data."
 msgstr ""
 
-#, python-format
-msgid ""
-"This dashboard is currently auto refreshing; the next auto refresh will "
-"be in %s."
-msgstr ""
-
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
 
@@ -13514,6 +13790,13 @@ msgid ""
 "table."
 msgstr ""
 
+msgid ""
+"This database uses OAuth2 for authentication. Please click the link above"
+" to grant Apache Superset permission to access the data. Your personal "
+"access token will be stored encrypted and used only for queries run by "
+"you."
+msgstr ""
+
 msgid "This dataset is managed externally, and can't be edited in Superset"
 msgstr ""
 
@@ -13547,10 +13830,10 @@ msgstr ""
 msgid "This folder is currently empty"
 msgstr ""
 
-msgid "This folder only accepts columns"
+msgid "This folder only supports columns"
 msgstr ""
 
-msgid "This folder only accepts metrics"
+msgid "This folder only supports metrics"
 msgstr ""
 
 msgid "This functionality is disabled in your environment for security reasons."
@@ -13677,10 +13960,17 @@ msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] ""
 
+#, python-format
+msgid "This will abort (stop) the task for all %s subscriber(s)."
+msgstr ""
+
 msgid ""
 "This will be applied to the whole table. Arrows (↑ and ↓) will be added "
 "to main columns for increase and decrease. Basic conditional formatting "
 "can be overwritten by conditional formatting below."
+msgstr ""
+
+msgid "This will cancel the task."
 msgstr ""
 
 msgid "This will remove your current embed configuration."
@@ -13872,8 +14162,18 @@ msgid "Time-series Table"
 msgstr "시계열 테이블"
 
 #, fuzzy
+msgid "Timed Out"
+msgstr "D3 포멧"
+
+#, fuzzy
 msgid "Timeline"
 msgstr "분"
+
+#, python-format
+msgid ""
+"Timeout configured (%s seconds) but no abort handler defined. Task will "
+"continue running past the timeout."
+msgstr ""
 
 msgid "Timeout error"
 msgstr ""
@@ -13917,18 +14217,11 @@ msgid ""
 "clicking the column header."
 msgstr ""
 
-msgid "To entire row"
-msgstr ""
-
 msgid "To filter on a metric, use Custom SQL tab."
 msgstr ""
 
 msgid "To get a readable URL for your dashboard"
 msgstr ""
-
-#, fuzzy
-msgid "To text color"
-msgstr "시작 시간"
 
 msgid "Token Request URI"
 msgstr ""
@@ -14277,6 +14570,9 @@ msgstr "알 수 없는 에러"
 msgid "Unknown input format"
 msgstr ""
 
+msgid "Unknown tokens will be highlighted as warnings."
+msgstr ""
+
 #, fuzzy
 msgid "Unknown type"
 msgstr "알 수 없는 에러"
@@ -14336,6 +14632,10 @@ msgstr "수정됨"
 
 msgid "Update"
 msgstr ""
+
+#, fuzzy
+msgid "Update auto-refresh"
+msgstr "새로고침 간격"
 
 #, fuzzy
 msgid "Update chart"
@@ -14807,6 +15107,9 @@ msgid "WFS"
 msgstr ""
 
 msgid "WMS"
+msgstr ""
+
+msgid "Waiting for first refresh"
 msgstr ""
 
 #, python-format
@@ -15341,6 +15644,10 @@ msgstr "년"
 msgid "Yes"
 msgstr ""
 
+#, fuzzy
+msgid "Yes, Cancel"
+msgstr "취소"
+
 msgid "Yes, cancel"
 msgstr ""
 
@@ -15452,6 +15759,9 @@ msgstr ""
 msgid "You do not have permission to edit this dashboard"
 msgstr ""
 
+msgid "You do not have permission to perform this operation"
+msgstr ""
+
 msgid "You do not have permission to read tags"
 msgstr ""
 
@@ -15498,6 +15808,10 @@ msgstr ""
 msgid "You don't have the rights to download as csv"
 msgstr ""
 
+#, python-format
+msgid "You have been removed from task: %s"
+msgstr ""
+
 msgid "You have removed this filter."
 msgstr ""
 
@@ -15526,6 +15840,15 @@ msgstr ""
 msgid "You must run the query successfully first"
 msgstr ""
 
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"`all_database_access` or `all_datasource_access` permission"
+msgstr ""
+
+msgid "You need to"
+msgstr ""
+
 msgid "You need to configure HTML sanitization to use CSS"
 msgstr ""
 
@@ -15533,6 +15856,12 @@ msgid ""
 "You updated the values in the control panel, but the chart was not "
 "updated automatically. Run the query by clicking on the \"Update chart\" "
 "button or"
+msgstr ""
+
+#, python-format
+msgid ""
+"You'll be removed from this task. It will continue running for %s other "
+"subscriber(s)."
 msgstr ""
 
 msgid ""
@@ -15674,6 +16003,10 @@ msgstr ""
 msgid "`width` must be greater or equal to 0"
 msgstr ""
 
+#, fuzzy
+msgid "a few seconds"
+msgstr "30초"
+
 msgid "aggregate"
 msgstr ""
 
@@ -15714,6 +16047,10 @@ msgstr "생성자"
 
 msgid "background"
 msgstr ""
+
+#, fuzzy
+msgid "background color"
+msgstr "컬럼 수정"
 
 msgid "basis"
 msgstr ""
@@ -15756,6 +16093,10 @@ msgstr ""
 #, fuzzy
 msgid "cardinal"
 msgstr "실패"
+
+#, fuzzy
+msgid "cell bar"
+msgstr "차트 추가"
 
 #, fuzzy
 msgid "change"
@@ -15981,6 +16322,10 @@ msgid "ends with"
 msgstr "차트 유형"
 
 #, fuzzy
+msgid "entire row"
+msgstr "D3 포멧"
+
+#, fuzzy
 msgid "entries"
 msgstr "저장된 Query"
 
@@ -16058,10 +16403,10 @@ msgstr "Query 공유"
 msgid "hour"
 msgstr "시간"
 
-msgid "https://"
+msgid "in"
 msgstr ""
 
-msgid "in"
+msgid "in order to run this operation."
 msgstr ""
 
 msgid "invalid email"
@@ -16287,6 +16632,9 @@ msgstr ""
 msgid "previous calendar year"
 msgstr ""
 
+msgid "provide authorization"
+msgstr ""
+
 #, fuzzy
 msgid "quarter"
 msgstr "분기"
@@ -16398,8 +16746,16 @@ msgstr ""
 msgid "tags"
 msgstr "상태"
 
+#, fuzzy
+msgid "task"
+msgstr "상태"
+
 msgid "temporal type icon"
 msgstr ""
+
+#, fuzzy
+msgid "text color"
+msgstr "시작 시간"
 
 msgid "textarea"
 msgstr ""

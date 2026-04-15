@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-02-06 23:58-0800\n"
+"POT-Creation-Date: 2026-02-25 10:47+0100\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -281,6 +281,16 @@ msgid "%s column(s)"
 msgstr "%s 列"
 
 #, fuzzy, python-format
+msgid "%s day ago"
+msgid_plural "%s days ago"
+msgstr[0] "1 天之前"
+
+#, fuzzy, python-format
+msgid "%s hr ago"
+msgid_plural "%s hr ago"
+msgstr[0] "%s 行"
+
+#, fuzzy, python-format
 msgid "%s item(s)"
 msgstr "%s 個選項"
 
@@ -289,6 +299,11 @@ msgid ""
 "%s items could not be tagged because you don’t have edit permissions to "
 "all selected objects."
 msgstr ""
+
+#, fuzzy, python-format
+msgid "%s min ago"
+msgid_plural "%s min ago"
+msgstr[0] "月"
 
 #, python-format
 msgid "%s operator(s)"
@@ -313,13 +328,28 @@ msgid_plural "%s records..."
 msgstr[0] "%s 異常"
 
 #, fuzzy, python-format
+msgid "%s record..."
+msgid_plural "%s records..."
+msgstr[0] "%s 異常"
+
+#, fuzzy, python-format
 msgid "%s row"
 msgid_plural "%s rows"
 msgstr[0] "%s 行"
 
+#, fuzzy, python-format
+msgid "%s s ago"
+msgid_plural "%s s ago"
+msgstr[0] "30 天之前"
+
 #, python-format
 msgid "%s saved metric(s)"
 msgstr "%s 保存的指標"
+
+#, fuzzy, python-format
+msgid "%s second"
+msgid_plural "%s seconds"
+msgstr[0] "5 秒"
 
 #, fuzzy, python-format
 msgid "%s tab selected"
@@ -797,6 +827,14 @@ msgstr "異步執行查詢"
 
 msgid "AUG"
 msgstr "八月"
+
+#, fuzzy
+msgid "Aborted"
+msgstr "開始了"
+
+#, fuzzy
+msgid "Aborting"
+msgstr "正在執行"
 
 msgid "About"
 msgstr "關於"
@@ -1474,6 +1512,10 @@ msgstr "獲取可用的CSS模板時出錯"
 msgid "An error occurred while fetching chart owners values: %s"
 msgstr "獲取圖表所有者時出錯 %s"
 
+#, fuzzy, python-format
+msgid "An error occurred while fetching created by values: %s"
+msgstr "獲取結構訊息時出錯：%s"
+
 #, python-format
 msgid "An error occurred while fetching dashboard owner values: %s"
 msgstr "獲取看板所有者時出錯：%s"
@@ -1784,6 +1826,12 @@ msgid ""
 "source query satisfies the minimum periods defined in the rolling window."
 msgstr "應用的滚動窗口（rolling window）未返回任何數據。請確保源查詢满足滚動窗口中定義的最小週期。"
 
+msgid ""
+"Applies only when \"Cell bars\" formatting is selected: the background of"
+" the histogram columns is displayed if the \"Show cell bars\" flag is "
+"enabled."
+msgstr ""
+
 msgid "Apply"
 msgstr "應用"
 
@@ -1888,9 +1936,6 @@ msgstr "您確定要删除選定的查詢嗎？"
 msgid "Are you sure you want to overwrite this dataset?"
 msgstr "確定要删除選定的數據集嗎？"
 
-msgid "Are you sure you want to proceed?"
-msgstr "您確定要繼續執行嗎？"
-
 msgid ""
 "Are you sure you want to remove the system dark theme? The application "
 "will fall back to the configuration file dark theme."
@@ -1974,6 +2019,18 @@ msgstr "自動"
 #, fuzzy
 msgid "Auto Zoom"
 msgstr "數據縮放"
+
+#, python-format
+msgid "Auto refresh paused (set to %s seconds)"
+msgstr ""
+
+#, python-format
+msgid "Auto refresh paused - tab inactive (set to %s seconds)"
+msgstr ""
+
+#, fuzzy, python-format
+msgid "Auto refresh set to %s seconds"
+msgstr "過濾器設定"
 
 #, fuzzy
 msgid "Auto-detect"
@@ -2477,8 +2534,15 @@ msgstr "允許選擇多個值"
 msgid "Cancel"
 msgstr "取消"
 
+#, fuzzy
+msgid "Cancel Task"
+msgstr "取消"
+
 msgid "Cancel query on window unload event"
 msgstr "當窗口關闭時取消查詢"
+
+msgid "Cancellation not available due to missing abort handler"
+msgstr ""
 
 msgid "Cannot access the query"
 msgstr "無法訪問查詢"
@@ -2672,6 +2736,10 @@ msgstr "没有權限更新此數據集"
 
 msgid "Changing this report is forbidden"
 msgstr "禁止更改此報告"
+
+#, fuzzy
+msgid "Changing this task is forbidden"
+msgstr "没有權限更新此數據集"
 
 #, fuzzy
 msgid "Character to interpret as decimal point"
@@ -3558,6 +3626,10 @@ msgstr "控件已標記"
 msgid "Copied to clipboard!"
 msgstr "複製到剪貼簿！"
 
+#, fuzzy
+msgid "Copied!"
+msgstr "SQL 複製成功！"
+
 msgid "Copy"
 msgstr "複製"
 
@@ -3745,6 +3817,10 @@ msgstr "創建人"
 msgid "Created by me"
 msgstr "我創建的"
 
+#, fuzzy, python-format
+msgid "Created by: %s"
+msgstr "創建人"
+
 msgid "Created on"
 msgstr "創建日期"
 
@@ -3803,6 +3879,10 @@ msgstr "貨幣符號"
 
 #, fuzzy
 msgid "Current"
+msgstr "貨幣"
+
+#, fuzzy
+msgid "Current Zoom"
 msgstr "貨幣"
 
 #, fuzzy
@@ -4067,6 +4147,10 @@ msgstr ""
 msgid "Dashboard title"
 msgstr "看板"
 
+#, fuzzy, python-format
+msgid "Dashboard updated %s"
+msgstr "最後更新 %s"
+
 #, fuzzy
 msgid "Dashboard usage"
 msgstr "看板"
@@ -4197,6 +4281,10 @@ msgstr "資料庫密碼"
 
 msgid "Database port"
 msgstr "資料庫端口"
+
+#, fuzzy
+msgid "Database reference is not allowed on a report"
+msgstr "允許使用 CSV 上傳的模式"
 
 #, fuzzy
 msgid "Database schema is not allowed for csv uploads."
@@ -4547,6 +4635,11 @@ msgid ""
 "Defines whether the step should appear at the beginning, middle or end "
 "between two data points"
 msgstr "定義步骤應出現在兩個數據點之間的開始、中間還是结束處"
+
+#, python-format
+msgid "Delayed (missed %s refresh)"
+msgid_plural "Delayed (missed %s refreshes)"
+msgstr[0] ""
 
 msgid "Delete"
 msgstr "删除"
@@ -5049,6 +5142,10 @@ msgid ""
 " - items will appear in the same order in tooltips. Click the button to "
 "manually select columns and metrics."
 msgstr ""
+
+#, fuzzy
+msgid "Drag to reorder"
+msgstr "原始紀錄"
 
 msgid "Draw a marker on data points. Only applicable for line types."
 msgstr "在數據點上繪制標記。僅適用於線型。"
@@ -6060,14 +6157,15 @@ msgstr "檢索结果失敗"
 msgid "Failed to apply theme: Invalid JSON"
 msgstr ""
 
+#, fuzzy
+msgid "Failed to copy stack trace to clipboard"
+msgstr "複製到剪貼簿"
+
 msgid "Failed to create report"
 msgstr "創建報告發生錯誤"
 
 #, python-format
 msgid "Failed to execute %(query)s"
-msgstr ""
-
-msgid "Failed to fetch user info:"
 msgstr ""
 
 msgid "Failed to generate chart edit URL"
@@ -6159,6 +6257,10 @@ msgstr "禁用"
 msgid "Favorite"
 msgstr "收藏"
 
+#, fuzzy
+msgid "Feature Not Enabled"
+msgstr "SSH 隧道未啟用"
+
 msgid "Featured"
 msgstr "特色"
 
@@ -6177,6 +6279,10 @@ msgstr "刷新於 %s"
 
 #, fuzzy
 msgid "Fetching"
+msgstr "抓取中"
+
+#, fuzzy
+msgid "Fetching data..."
 msgstr "抓取中"
 
 #, python-format
@@ -6421,6 +6527,9 @@ msgstr "力導向"
 msgid "Force Time Grain as Max Interval"
 msgstr ""
 
+msgid "Force abort (stops task for all subscribers)"
+msgstr ""
+
 msgid ""
 "Force all tables and views to be created in this schema when clicking "
 "CTAS or CVAS in SQL Lab."
@@ -6504,6 +6613,14 @@ msgstr "格式化值"
 
 #, fuzzy
 msgid "Formatting"
+msgstr "自動匹配格式化"
+
+#, fuzzy
+msgid "Formatting column"
+msgstr "自動匹配格式化"
+
+#, fuzzy
+msgid "Formatting object"
 msgstr "自動匹配格式化"
 
 #, fuzzy
@@ -6655,6 +6772,10 @@ msgstr "網格"
 
 #, fuzzy
 msgid "Grid Size"
+msgstr "網格大小"
+
+#, fuzzy
+msgid "Grid view"
 msgstr "網格大小"
 
 #, fuzzy
@@ -6957,6 +7078,10 @@ msgid "In"
 msgstr ""
 
 #, fuzzy
+msgid "In Progress"
+msgstr "進度"
+
+#, fuzzy
 msgid "In Range"
 msgstr "時間範圍"
 
@@ -7119,6 +7244,10 @@ msgstr "連接字符串無效，有效字符串通常如下：ocient://user:pass
 
 msgid "Invalid JSON"
 msgstr "無效的JSON"
+
+#, fuzzy
+msgid "Invalid JSON configuration"
+msgstr "錯誤的經緯度配置。"
 
 #, fuzzy
 msgid "Invalid JSON metadata"
@@ -7536,6 +7665,10 @@ msgstr "上一季度"
 msgid "Last run"
 msgstr "上次執行"
 
+#, fuzzy, python-format
+msgid "Last updated %s ago"
+msgstr "最後更新 %s"
+
 #, fuzzy
 msgid "Last week"
 msgstr "上一週"
@@ -7785,6 +7918,10 @@ msgstr "要用三角形標記的值列表"
 msgid "List updated"
 msgstr "列表已更新"
 
+#, fuzzy
+msgid "List view"
+msgstr "數字"
+
 msgid "Live render"
 msgstr "實時渲染"
 
@@ -7797,6 +7934,10 @@ msgstr "加载的數據已缓存"
 
 msgid "Loaded from cache"
 msgstr "從缓存中加载"
+
+#, fuzzy
+msgid "Loading"
+msgstr "加载中..."
 
 msgid "Loading deck.gl layers..."
 msgstr ""
@@ -8207,6 +8348,9 @@ msgstr "指標"
 msgid "Metrics / Dimensions"
 msgstr "维度"
 
+msgid "Metrics can't be used for both rows and columns at the same time"
+msgstr ""
+
 msgid "Metrics folder can only contain metric items"
 msgstr ""
 
@@ -8361,6 +8505,10 @@ msgstr "更多過濾器"
 
 msgid "MotherDuck token"
 msgstr ""
+
+#, fuzzy
+msgid "Move"
+msgstr "删除"
 
 msgid "Move only"
 msgstr "僅移動"
@@ -8722,6 +8870,10 @@ msgstr "没有發現這樣的列。若要在度量值上篩選，請嘗試自定
 #, fuzzy
 msgid "No table columns"
 msgstr "没有列"
+
+#, fuzzy, python-format
+msgid "No tasks yet"
+msgstr "還没有 %s"
 
 #, fuzzy
 msgid "No temporal columns found"
@@ -9359,6 +9511,17 @@ msgstr "把您的代碼放在這里"
 msgid "Pattern"
 msgstr "樣式"
 
+msgid "Pause auto refresh if tab is inactive"
+msgstr ""
+
+#, fuzzy
+msgid "Pause auto-refresh"
+msgstr "設定自動刷新"
+
+#, fuzzy
+msgid "Pending"
+msgstr "正在處理"
+
 #, fuzzy
 msgid "Per user caching"
 msgstr "百分比變化"
@@ -9786,6 +9949,10 @@ msgstr "主 Y 軸界限"
 msgid "Primary y-axis format"
 msgstr "主 Y 軸格式"
 
+#, fuzzy
+msgid "Private"
+msgstr "私鑰"
+
 msgid "Private Channels (Bot in channel)"
 msgstr ""
 
@@ -10042,6 +10209,10 @@ msgstr "重新獲取结果"
 msgid "Refresh dashboard"
 msgstr "刷新看板"
 
+#, fuzzy
+msgid "Refresh delayed"
+msgstr "刷新看板"
+
 msgid "Refresh frequency"
 msgstr "刷新頻率"
 
@@ -10139,6 +10310,14 @@ msgstr "刷新預設值"
 #, fuzzy
 msgid "Remove cross-filter"
 msgstr "删除交叉篩選"
+
+#, fuzzy
+msgid "Remove customization"
+msgstr "可視化類型"
+
+#, fuzzy
+msgid "Remove filter"
+msgstr "删除項"
 
 msgid "Remove item"
 msgstr "删除項"
@@ -10359,6 +10538,10 @@ msgstr "後端未配置结果"
 
 msgid "Results backend needed for asynchronous queries is not configured."
 msgstr "後端未配置異步查詢所需的结果"
+
+#, fuzzy
+msgid "Resume auto-refresh"
+msgstr "設定自動刷新"
 
 #, fuzzy
 msgid "Retry"
@@ -10887,11 +11070,27 @@ msgstr "搜索指標和列"
 msgid "Search box"
 msgstr "搜索框"
 
+#, fuzzy
+msgid "Search by"
+msgstr "搜索框"
+
 msgid "Search by query text"
 msgstr "按查詢文本搜索"
 
 #, fuzzy
+msgid "Search calculated columns by name"
+msgstr "計算列"
+
+#, fuzzy
+msgid "Search charts by name, owner, or dashboard"
+msgstr "此看板中没有增加圖表。"
+
+#, fuzzy
 msgid "Search columns"
+msgstr "使用列"
+
+#, fuzzy
+msgid "Search columns by name"
 msgstr "使用列"
 
 #, fuzzy
@@ -10901,6 +11100,10 @@ msgstr "使用列"
 #, fuzzy
 msgid "Search in filters"
 msgstr "搜索 / 過濾"
+
+#, fuzzy
+msgid "Search metrics by key or label"
+msgstr "搜索指標和列"
 
 #, fuzzy
 msgid "Search owners"
@@ -11124,6 +11327,10 @@ msgstr "選擇颜色方案"
 msgid "Select column"
 msgstr "選擇列"
 
+#, fuzzy
+msgid "Select column name"
+msgstr "選擇列"
+
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
 "columns."
@@ -11223,6 +11430,10 @@ msgstr ""
 #, fuzzy
 msgid "Select layers to hide"
 msgstr "選擇圖表"
+
+#, fuzzy
+msgid "Select object name"
+msgstr "選擇主題"
 
 msgid ""
 "Select one or many metrics to display, that will be displayed in the "
@@ -11353,6 +11564,10 @@ msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
 "query by clicking on the %s button."
 msgstr "在控制面板中的突出顯示欄位中選擇值。然後點擊 %s 按钮來運行查詢。"
+
+#, fuzzy
+msgid "Selected"
+msgstr "0 個被選中"
 
 #, fuzzy
 msgid "Selecting a database is required"
@@ -11513,6 +11728,10 @@ msgstr "通過電子郵件分享圖表"
 msgid "Share permalink by email"
 msgstr "通過電子郵件分享链接"
 
+#, fuzzy
+msgid "Shared"
+msgstr "分享"
+
 msgid "Shared query"
 msgstr "已分享的查詢"
 
@@ -11583,6 +11802,10 @@ msgstr "顯示指標名"
 
 msgid "Show Range Filter"
 msgstr "顯示範圍過濾器"
+
+#, fuzzy
+msgid "Show SQL"
+msgstr "顯示日誌"
 
 msgid "Show Timestamp"
 msgstr "顯示時間戳"
@@ -12243,6 +12466,10 @@ msgid "Submit"
 msgstr "提交"
 
 #, fuzzy
+msgid "Subscribers"
+msgstr "分類"
+
+#, fuzzy
 msgid "Subtitle"
 msgstr "選項卡標題"
 
@@ -12523,6 +12750,42 @@ msgid "Target value"
 msgstr "目標值"
 
 #, fuzzy
+msgid "Task"
+msgstr "標籤"
+
+#, fuzzy, python-format
+msgid "Task cancelled: %s"
+msgstr "報告失敗"
+
+#, fuzzy
+msgid "Task could not be aborted."
+msgstr "無法更新標籤。"
+
+#, fuzzy
+msgid "Task could not be created."
+msgstr "無法創建標籤。"
+
+#, fuzzy
+msgid "Task could not be updated."
+msgstr "無法更新標籤。"
+
+msgid ""
+"Task is not abortable. The task is in progress but has not registered an "
+"abort handler."
+msgstr ""
+
+#, fuzzy
+msgid "Task parameters are invalid."
+msgstr "標籤参數無效。"
+
+#, fuzzy
+msgid "Tasks"
+msgstr "標籤"
+
+msgid "Tasks will appear here as background operations are executed."
+msgstr ""
+
+#, fuzzy
 msgid "Template"
 msgstr "css 模板"
 
@@ -12593,6 +12856,18 @@ msgstr ""
 msgid ""
 "The GeoJsonLayer takes in GeoJSON formatted data and renders it as "
 "interactive polygons, lines and points (circles, icons and/or texts)."
+msgstr ""
+
+msgid ""
+"The Global Task Framework is not enabled. Please contact your "
+"administrator to enable the GLOBAL_TASK_FRAMEWORK feature flag."
+msgstr ""
+
+msgid ""
+"The Global Task Framework is not enabled. Set GLOBAL_TASK_FRAMEWORK=True "
+"in your feature flags to use @task. See "
+"https://superset.apache.org/docs/configuration/async-queries-celery for "
+"configuration details."
 msgstr ""
 
 msgid ""
@@ -13447,6 +13722,12 @@ msgid ""
 "or increasing the destination width."
 msgstr "此組件没有足够的空間。請嘗試減小其寬度，或增加目標寬度。"
 
+#, python-format
+msgid ""
+"There was a problem refreshing your dashboard. We'll try again in %s, as "
+"scheduled."
+msgstr ""
+
 #, fuzzy
 msgid "There was an error creating the group. Please, try again."
 msgstr "抱歉，這個看板在獲取圖表時發生錯誤："
@@ -13523,6 +13804,10 @@ msgstr "抱歉，獲取資料庫訊息時出錯：%s"
 
 msgid "There was an error with your request"
 msgstr "您的請求有錯誤"
+
+#, fuzzy, python-format
+msgid "There was an issue cancelling the task: %s"
+msgstr "删除 %s 時出現問題：%s"
 
 #, fuzzy, python-format
 msgid "There was an issue deleting %s"
@@ -13733,12 +14018,6 @@ msgid ""
 "annotation data."
 msgstr ""
 
-#, python-format
-msgid ""
-"This dashboard is currently auto refreshing; the next auto refresh will "
-"be in %s."
-msgstr "此看板當前正在强制刷新；下一次强制刷新將在 %s 内執行。"
-
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
 
@@ -13784,6 +14063,13 @@ msgid ""
 "table."
 msgstr ""
 
+msgid ""
+"This database uses OAuth2 for authentication. Please click the link above"
+" to grant Apache Superset permission to access the data. Your personal "
+"access token will be stored encrypted and used only for queries run by "
+"you."
+msgstr ""
+
 msgid "This dataset is managed externally, and can't be edited in Superset"
 msgstr ""
 
@@ -13819,10 +14105,10 @@ msgstr "此圖表可能與過濾器不兼容(數據集不匹配)"
 msgid "This folder is currently empty"
 msgstr ""
 
-msgid "This folder only accepts columns"
+msgid "This folder only supports columns"
 msgstr ""
 
-msgid "This folder only accepts metrics"
+msgid "This folder only supports metrics"
 msgstr ""
 
 msgid "This functionality is disabled in your environment for security reasons."
@@ -13955,10 +14241,17 @@ msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] "這是由以下因素引發的："
 
+#, python-format
+msgid "This will abort (stop) the task for all %s subscriber(s)."
+msgstr ""
+
 msgid ""
 "This will be applied to the whole table. Arrows (↑ and ↓) will be added "
 "to main columns for increase and decrease. Basic conditional formatting "
 "can be overwritten by conditional formatting below."
+msgstr ""
+
+msgid "This will cancel the task."
 msgstr ""
 
 msgid "This will remove your current embed configuration."
@@ -14149,8 +14442,18 @@ msgid "Time-series Table"
 msgstr "時間序列 - 表格"
 
 #, fuzzy
+msgid "Timed Out"
+msgstr "時間格式"
+
+#, fuzzy
 msgid "Timeline"
 msgstr "時區"
+
+#, python-format
+msgid ""
+"Timeout configured (%s seconds) but no abort handler defined. Task will "
+"continue running past the timeout."
+msgstr ""
 
 msgid "Timeout error"
 msgstr "超時錯誤"
@@ -14191,18 +14494,11 @@ msgid ""
 "clicking the column header."
 msgstr ""
 
-msgid "To entire row"
-msgstr ""
-
 msgid "To filter on a metric, use Custom SQL tab."
 msgstr "若要在計量值上篩選，請使用自定義 SQL 選項卡。"
 
 msgid "To get a readable URL for your dashboard"
 msgstr "為看板生成一個可讀的 URL"
-
-#, fuzzy
-msgid "To text color"
-msgstr "目標颜色"
 
 msgid "Token Request URI"
 msgstr ""
@@ -14557,6 +14853,9 @@ msgstr "未知錯誤"
 msgid "Unknown input format"
 msgstr "未知输入格式"
 
+msgid "Unknown tokens will be highlighted as warnings."
+msgstr ""
+
 #, fuzzy
 msgid "Unknown type"
 msgstr "未知錯誤"
@@ -14616,6 +14915,10 @@ msgstr "未命名"
 
 msgid "Update"
 msgstr "更新"
+
+#, fuzzy
+msgid "Update auto-refresh"
+msgstr "設定自動刷新"
 
 #, fuzzy
 msgid "Update chart"
@@ -15094,6 +15397,9 @@ msgid "WFS"
 msgstr ""
 
 msgid "WMS"
+msgstr ""
+
+msgid "Waiting for first refresh"
 msgstr ""
 
 #, fuzzy, python-format
@@ -15664,6 +15970,10 @@ msgstr "年 %s"
 msgid "Yes"
 msgstr "是"
 
+#, fuzzy
+msgid "Yes, Cancel"
+msgstr "是的，取消"
+
 msgid "Yes, cancel"
 msgstr "是的，取消"
 
@@ -15779,6 +16089,10 @@ msgid "You do not have permission to edit this dashboard"
 msgstr "您没有編輯此看板的權限"
 
 #, fuzzy
+msgid "You do not have permission to perform this operation"
+msgstr "您没有編輯此圖表的權限"
+
+#, fuzzy
 msgid "You do not have permission to read tags"
 msgstr "您没有編輯此標籤的權限"
 
@@ -15834,6 +16148,10 @@ msgstr "您没有權利創建看板"
 msgid "You don't have the rights to download as csv"
 msgstr "您没有權利創建下载 csv"
 
+#, fuzzy, python-format
+msgid "You have been removed from task: %s"
+msgstr "您已删除此過濾條件。"
+
 msgid "You have removed this filter."
 msgstr "您已删除此過濾條件。"
 
@@ -15862,6 +16180,15 @@ msgstr "您必須為新的看板選擇一個名稱"
 msgid "You must run the query successfully first"
 msgstr "必須先成功運行查詢"
 
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"`all_database_access` or `all_datasource_access` permission"
+msgstr ""
+
+msgid "You need to"
+msgstr ""
+
 msgid "You need to configure HTML sanitization to use CSS"
 msgstr "您需要配置 HTML 限制以使用 CSS"
 
@@ -15870,6 +16197,12 @@ msgid ""
 "updated automatically. Run the query by clicking on the \"Update chart\" "
 "button or"
 msgstr "您已更新了控制面板中的值，但圖表未自動更新。請點擊 \"更新圖表\" 按钮運行查詢或"
+
+#, python-format
+msgid ""
+"You'll be removed from this task. It will continue running for %s other "
+"subscriber(s)."
+msgstr ""
 
 msgid ""
 "You've changed datasets. Any controls with data (columns, metrics) that "
@@ -16014,6 +16347,10 @@ msgstr "`行偏移量` 必須大於或等於 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "`寬度` 必須大於或等於 0"
 
+#, fuzzy
+msgid "a few seconds"
+msgstr "5 秒"
+
 msgid "aggregate"
 msgstr "合計"
 
@@ -16054,6 +16391,10 @@ msgid "auto"
 msgstr "自動"
 
 msgid "background"
+msgstr "背景"
+
+#, fuzzy
+msgid "background color"
 msgstr "背景"
 
 #, fuzzy
@@ -16098,6 +16439,10 @@ msgstr "不能為空"
 #, fuzzy
 msgid "cardinal"
 msgstr "徑向"
+
+#, fuzzy
+msgid "cell bar"
+msgstr "顯示單元格的柱"
 
 #, fuzzy
 msgid "change"
@@ -16334,6 +16679,10 @@ msgid "ends with"
 msgstr "邊缘寬度"
 
 #, fuzzy
+msgid "entire row"
+msgstr "空的行"
+
+#, fuzzy
 msgid "entries"
 msgstr "序列"
 
@@ -16412,11 +16761,11 @@ msgstr "點擊這里"
 msgid "hour"
 msgstr "小時"
 
-msgid "https://"
-msgstr ""
-
 msgid "in"
 msgstr "處於"
+
+msgid "in order to run this operation."
+msgstr ""
 
 #, fuzzy
 msgid "invalid email"
@@ -16647,6 +16996,9 @@ msgstr "前一週"
 msgid "previous calendar year"
 msgstr "前一年"
 
+msgid "provide authorization"
+msgstr ""
+
 #, fuzzy
 msgid "quarter"
 msgstr "季度"
@@ -16768,8 +17120,16 @@ msgstr "標籤"
 msgid "tags"
 msgstr "標籤"
 
+#, fuzzy
+msgid "task"
+msgstr "標籤"
+
 msgid "temporal type icon"
 msgstr "時間類型圖標"
+
+#, fuzzy
+msgid "text color"
+msgstr "目標颜色"
 
 msgid "textarea"
 msgstr "文本區域"
