@@ -180,15 +180,15 @@ async def my_new_prompt_handler(
 
 ### How to Add a New Resource
 
-Resources still use direct FastMCP decorators plus `@mcp_auth_hook` for authentication:
+Resources use direct FastMCP decorators and **must include `@mcp_auth_hook`** for authentication:
 
 ```python
 # superset/mcp_service/chart/resources/my_new_resource.py
 from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
+from superset.mcp_service.auth import mcp_auth_hook  # REQUIRED for resources
 
 @mcp.resource("superset://chart/my_resource")
-@mcp_auth_hook
+@mcp_auth_hook  # Always add this decorator to resources
 def get_my_resource() -> str:
     """Resource description for LLMs."""
     return "Resource data here..."
@@ -200,13 +200,11 @@ def get_my_resource() -> str:
 
 The `@tool` decorator from `superset_core.mcp.decorators` accepts:
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `tags` | List of tags (e.g., `["core"]`, `["mutate"]`) | `[]` |
-| `class_permission_name` | FAB permission class (e.g., `"Chart"`, `"Dashboard"`) | `None` |
-| `method_permission_name` | Permission action (e.g., `"read"`, `"write"`) | Auto: `"write"` if `"mutate"` in tags, else `"read"` |
-| `protect` | Enable authentication wrapping | `True` |
-| `annotations` | MCP `ToolAnnotations` object | `None` |
+- **`tags`**: List of tags (e.g., `["core"]`, `["mutate"]`). Default: `[]`
+- **`class_permission_name`**: FAB permission class (e.g., `"Chart"`, `"Dashboard"`). Default: `None`
+- **`method_permission_name`**: Permission action (e.g., `"read"`, `"write"`). Default: Auto — `"write"` if `"mutate"` in tags, else `"read"`
+- **`protect`**: Enable authentication wrapping. Default: `True`
+- **`annotations`**: MCP `ToolAnnotations` object. Default: `None`
 
 **ToolAnnotations** (from `superset_core.mcp.decorators`):
 ```python
@@ -421,13 +419,11 @@ These are used internally by `ModelListCore` for `filters` and `select_columns`.
 
 The MCP service uses FastMCP middleware (registered in `server.py`):
 
-| Middleware | Purpose |
-|-----------|---------|
-| `LoggingMiddleware` | Logs tool calls with duration, entity IDs, sanitizes sensitive data |
-| `GlobalErrorHandlerMiddleware` | Catches unhandled exceptions, converts to ToolError |
-| `StructuredContentStripperMiddleware` | Strips structuredContent from responses (Claude.ai compatibility) |
-| `ResponseSizeGuardMiddleware` | Prevents oversized responses from crashing clients |
-| `ResponseCachingMiddleware` | Optional response caching (in-memory by default, Redis when store enabled) |
+- **`LoggingMiddleware`**: Logs tool calls with duration, entity IDs, sanitizes sensitive data
+- **`GlobalErrorHandlerMiddleware`**: Catches unhandled exceptions, converts to ToolError
+- **`StructuredContentStripperMiddleware`**: Strips structuredContent from responses (Claude.ai compatibility)
+- **`ResponseSizeGuardMiddleware`**: Prevents oversized responses from crashing clients
+- **`ResponseCachingMiddleware`**: Optional response caching (in-memory by default, Redis when store enabled)
 
 Middleware is applied in `server.py` and should NOT be modified in individual tools.
 
