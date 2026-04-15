@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { fireEvent, render } from 'spec/helpers/testing-library';
 import FiltersConfigModal from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal';
 
@@ -35,7 +34,6 @@ Object.defineProperty(window, 'matchMedia', {
 });
 
 jest.mock('@superset-ui/core', () => ({
-  // @ts-ignore
   ...jest.requireActual('@superset-ui/core'),
   getChartMetadataRegistry: () => ({
     items: {
@@ -60,6 +58,13 @@ function setup(overridesProps?: any) {
   return render(<FiltersConfigModal {...mockedProps} {...overridesProps} />, {
     useDnd: true,
     useRedux: true,
+    initialState: {
+      dashboardLayout: {
+        present: {},
+        past: [],
+        future: [],
+      },
+    },
   });
 }
 
@@ -79,6 +84,7 @@ test('the form validates required fields', async () => {
   expect(onSave).toHaveBeenCalledTimes(0);
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('createNewOnOpen', () => {
   test('does not show alert when there is no unsaved filters', async () => {
     const onCancel = jest.fn();
@@ -93,9 +99,12 @@ describe('createNewOnOpen', () => {
       onCancel,
       createNewOnOpen: false,
     });
-    fireEvent.mouseOver(getByTestId('new-dropdown-icon'));
-    const addFilterButton = await findByRole('menuitem', { name: 'Filter' });
-    fireEvent.click(addFilterButton);
+    const dropdownButton = getByTestId('new-item-dropdown-button');
+    fireEvent.mouseEnter(dropdownButton);
+    const addFilterMenuItem = await findByRole('menuitem', {
+      name: /add filter/i,
+    });
+    fireEvent.click(addFilterMenuItem);
     fireEvent.click(getByRole('button', { name: 'Cancel' }));
     expect(onCancel).toHaveBeenCalledTimes(0);
     expect(getByRole('alert')).toBeInTheDocument();

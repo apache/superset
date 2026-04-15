@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
+  Children,
+  cloneElement,
   useRef,
   useMemo,
   useLayoutEffect,
@@ -28,6 +30,7 @@ import React, {
   UIEventHandler,
 } from 'react';
 import { TableInstance, Hooks } from 'react-table';
+import { useTheme, css } from '@apache-superset/core/theme';
 import getScrollBarSize from '../utils/getScrollBarSize';
 import needScrollBar from '../utils/needScrollBar';
 import useMountedMemo from '../utils/useMountedMemo';
@@ -123,6 +126,8 @@ function StickyWrap({
   children: Table;
   sticky?: StickyState; // current sticky element sizes
 }) {
+  const theme = useTheme();
+
   if (!table || table.type !== 'table') {
     throw new Error('<StickyWrap> must have only one <table> element as child');
   }
@@ -130,7 +135,7 @@ function StickyWrap({
   let tbody: Tbody | undefined;
   let tfoot: Tfoot | undefined;
 
-  React.Children.forEach(table.props.children, node => {
+  Children.forEach(table.props.children, node => {
     if (!node) {
       return;
     }
@@ -148,7 +153,7 @@ function StickyWrap({
     );
   }
   const columnCount = useMemo(() => {
-    const headerRows = React.Children.toArray(
+    const headerRows = Children.toArray(
       thead?.props.children,
     ).pop() as TrWithTh;
     return headerRows.props.children.length;
@@ -161,7 +166,7 @@ function StickyWrap({
   const scrollBodyRef = useRef<HTMLDivElement>(null); // main body
 
   const scrollBarSize = getScrollBarSize();
-  const { bodyHeight, columnWidths } = sticky;
+  const { bodyHeight, columnWidths, hasVerticalScroll } = sticky;
   const needSizer =
     !columnWidths ||
     sticky.width !== maxWidth ||
@@ -181,7 +186,9 @@ function StickyWrap({
     }
     const fullTableHeight = (bodyThead.parentNode as HTMLTableElement)
       .clientHeight;
-    const ths = bodyThead.childNodes[0]
+    // instead of always using the first tr, we use the last one to support
+    // multi-level headers assuming the last one is the more detailed one
+    const ths = bodyThead.childNodes?.[bodyThead.childNodes?.length - 1 || 0]
       .childNodes as NodeListOf<HTMLTableHeaderCellElement>;
     const widths = Array.from(ths).map(
       th => th.getBoundingClientRect()?.width || th.clientWidth,
@@ -217,9 +224,29 @@ function StickyWrap({
   let footerTable: ReactElement | undefined;
   let bodyTable: ReactElement | undefined;
 
+  const scrollBarStyles = css`
+    &::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    &::-webkit-scrollbar-track {
+      background: ${theme.colorFillQuaternary};
+    }
+    &::-webkit-scrollbar-thumb {
+      background: ${theme.colorFillSecondary};
+      border-radius: ${theme.borderRadiusSM}px;
+      &:hover {
+        background: ${theme.colorFillTertiary};
+      }
+    }
+    &::-webkit-scrollbar-corner {
+      background: ${theme.colorFillQuaternary};
+    }
+  `;
+
   if (needSizer) {
-    const theadWithRef = React.cloneElement(thead, { ref: theadRef });
-    const tfootWithRef = tfoot && React.cloneElement(tfoot, { ref: tfootRef });
+    const theadWithRef = cloneElement(thead, { ref: theadRef });
+    const tfootWithRef = tfoot && cloneElement(tfoot, { ref: tfootRef });
     sizerTable = (
       <div
         key="sizer"
@@ -229,9 +256,10 @@ function StickyWrap({
           visibility: 'hidden',
           scrollbarGutter: 'stable',
         }}
+        css={scrollBarStyles}
         role="presentation"
       >
-        {React.cloneElement(
+        {cloneElement(
           table,
           { role: 'presentation' },
           theadWithRef,
@@ -255,18 +283,23 @@ function StickyWrap({
       </colgroup>
     );
 
+    const headerContainerWidth = hasVerticalScroll
+      ? maxWidth - scrollBarSize
+      : maxWidth;
+
     headerTable = (
       <div
         key="header"
         ref={scrollHeaderRef}
         style={{
           overflow: 'hidden',
-          scrollbarGutter: 'stable',
+          width: headerContainerWidth,
+          boxSizing: 'border-box',
         }}
         role="presentation"
       >
-        {React.cloneElement(
-          React.cloneElement(table, { role: 'presentation' }),
+        {cloneElement(
+          cloneElement(table, { role: 'presentation' }),
           mergeStyleProp(table, fixedTableLayout),
           colgroup,
           thead,
@@ -281,12 +314,13 @@ function StickyWrap({
         ref={scrollFooterRef}
         style={{
           overflow: 'hidden',
-          scrollbarGutter: 'stable',
+          width: headerContainerWidth,
+          boxSizing: 'border-box',
         }}
         role="presentation"
       >
-        {React.cloneElement(
-          React.cloneElement(table, { role: 'presentation' }),
+        {cloneElement(
+          cloneElement(table, { role: 'presentation' }),
           mergeStyleProp(table, fixedTableLayout),
           colgroup,
           tfoot,
@@ -310,13 +344,16 @@ function StickyWrap({
         style={{
           height: bodyHeight,
           overflow: 'auto',
-          scrollbarGutter: 'stable',
+          scrollbarGutter: hasVerticalScroll ? 'stable' : undefined,
+          width: maxWidth,
+          boxSizing: 'border-box',
         }}
+        css={scrollBarStyles}
         onScroll={sticky.hasHorizontalScroll ? onScroll : undefined}
         role="presentation"
       >
-        {React.cloneElement(
-          React.cloneElement(table, { role: 'presentation' }),
+        {cloneElement(
+          cloneElement(table, { role: 'presentation' }),
           mergeStyleProp(table, fixedTableLayout),
           colgroup,
           tbody,

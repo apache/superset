@@ -27,7 +27,6 @@ revision = "78ee127d0d1d"
 down_revision = "c2acd2cf3df2"
 
 import copy  # noqa: E402
-import json  # noqa: E402
 import logging  # noqa: E402
 
 from alembic import op  # noqa: E402
@@ -35,11 +34,14 @@ from sqlalchemy import Column, Integer, Text  # noqa: E402
 from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 
 from superset import db  # noqa: E402
+from superset.utils import json  # noqa: E402
 from superset.utils.core import (  # noqa: E402
     convert_legacy_filters_into_adhoc,
 )
 
 Base = declarative_base()
+
+logger = logging.getLogger("alembic.env")
 
 
 class Slice(Base):
@@ -63,7 +65,7 @@ def upgrade():
                 if source != target:
                     slc.params = json.dumps(target, sort_keys=True)
             except Exception as ex:
-                logging.warn(ex)
+                logger.warning(ex)
 
     session.commit()
     session.close()

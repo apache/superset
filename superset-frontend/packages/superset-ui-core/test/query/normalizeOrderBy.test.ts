@@ -16,23 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { normalizeOrderBy, QueryObject } from '@superset-ui/core';
+import { normalizeOrderBy, QueryObject, VizType } from '@superset-ui/core';
 
 describe('normalizeOrderBy', () => {
-  it('should not change original queryObject when orderby populated', () => {
+  test('should not change original queryObject when orderby populated', () => {
     const query: QueryObject = {
       datasource: '5__table',
-      viz_type: 'table',
+      viz_type: VizType.Table,
       time_range: '1 year ago : 2013',
       orderby: [['count(*)', true]],
     };
     expect(normalizeOrderBy(query)).toEqual(query);
   });
 
-  it('has series_limit_metric in queryObject', () => {
+  test('has series_limit_metric in queryObject', () => {
     const query: QueryObject = {
       datasource: '5__table',
-      viz_type: 'table',
+      viz_type: VizType.Table,
       time_range: '1 year ago : 2013',
       metrics: ['count(*)'],
       series_limit_metric: {
@@ -50,7 +50,7 @@ describe('normalizeOrderBy', () => {
     expect(expectedQueryObject).not.toHaveProperty('order_desc');
     expect(expectedQueryObject).toEqual({
       datasource: '5__table',
-      viz_type: 'table',
+      viz_type: VizType.Table,
       time_range: '1 year ago : 2013',
       metrics: ['count(*)'],
       orderby: [
@@ -69,10 +69,10 @@ describe('normalizeOrderBy', () => {
     });
   });
 
-  it('should transform legacy_order_by in queryObject', () => {
+  test('should transform legacy_order_by in queryObject', () => {
     const query: QueryObject = {
       datasource: '5__table',
-      viz_type: 'table',
+      viz_type: VizType.Table,
       time_range: '1 year ago : 2013',
       metrics: ['count(*)'],
       legacy_order_by: {
@@ -90,7 +90,7 @@ describe('normalizeOrderBy', () => {
     expect(expectedQueryObject).not.toHaveProperty('order_desc');
     expect(expectedQueryObject).toEqual({
       datasource: '5__table',
-      viz_type: 'table',
+      viz_type: VizType.Table,
       time_range: '1 year ago : 2013',
       metrics: ['count(*)'],
       orderby: [
@@ -109,10 +109,10 @@ describe('normalizeOrderBy', () => {
     });
   });
 
-  it('has metrics in queryObject', () => {
+  test('has metrics in queryObject', () => {
     const query: QueryObject = {
       datasource: '5__table',
-      viz_type: 'table',
+      viz_type: VizType.Table,
       time_range: '1 year ago : 2013',
       metrics: ['count(*)'],
       order_desc: true,
@@ -122,68 +122,68 @@ describe('normalizeOrderBy', () => {
     expect(expectedQueryObject).not.toHaveProperty('order_desc');
     expect(expectedQueryObject).toEqual({
       datasource: '5__table',
-      viz_type: 'table',
+      viz_type: VizType.Table,
       time_range: '1 year ago : 2013',
       metrics: ['count(*)'],
       orderby: [['count(*)', false]],
     });
   });
 
-  it('should not change', () => {
+  test('should not change', () => {
     const query: QueryObject = {
       datasource: '5__table',
-      viz_type: 'table',
+      viz_type: VizType.Table,
       time_range: '1 year ago : 2013',
     };
     expect(normalizeOrderBy(query)).toEqual(query);
   });
 
-  it('remove empty orderby', () => {
+  test('remove empty orderby', () => {
     const query: QueryObject = {
       datasource: '5__table',
-      viz_type: 'table',
+      viz_type: VizType.Table,
       time_range: '1 year ago : 2013',
       orderby: [],
     };
     expect(normalizeOrderBy(query)).not.toHaveProperty('orderby');
   });
 
-  it('remove orderby with an empty array', () => {
+  test('remove orderby with an empty array', () => {
     const query: QueryObject = {
       datasource: '5__table',
-      viz_type: 'table',
+      viz_type: VizType.Table,
       time_range: '1 year ago : 2013',
       orderby: [[]],
     };
     expect(normalizeOrderBy(query)).not.toHaveProperty('orderby');
   });
 
-  it('remove orderby with an empty metric', () => {
+  test('remove orderby with an empty metric', () => {
     const query: QueryObject = {
       datasource: '5__table',
-      viz_type: 'table',
+      viz_type: VizType.Table,
       time_range: '1 year ago : 2013',
       orderby: [['', true]],
     };
     expect(normalizeOrderBy(query)).not.toHaveProperty('orderby');
   });
 
-  it('remove orderby with an empty adhoc metric', () => {
+  test('remove orderby with an empty adhoc metric', () => {
     const query: QueryObject = {
       datasource: '5__table',
-      viz_type: 'table',
+      viz_type: VizType.Table,
       time_range: '1 year ago : 2013',
       orderby: [[{}, true]],
     };
     expect(normalizeOrderBy(query)).not.toHaveProperty('orderby');
   });
 
-  it('remove orderby with an non-boolean type', () => {
+  test('remove orderby with an non-boolean type', () => {
     const query: QueryObject = {
       datasource: '5__table',
-      viz_type: 'table',
+      viz_type: VizType.Table,
       time_range: '1 year ago : 2013',
-      // @ts-ignore
+      // @ts-expect-error
       orderby: [['count(*)', 'true']],
     };
     expect(normalizeOrderBy(query)).not.toHaveProperty('orderby');

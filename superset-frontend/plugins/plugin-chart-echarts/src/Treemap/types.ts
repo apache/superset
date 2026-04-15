@@ -23,7 +23,7 @@ import {
   QueryFormData,
   QueryFormMetric,
 } from '@superset-ui/core';
-import { CallbackDataParams } from 'echarts/types/src/util/types';
+import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import {
   BaseTransformedProps,
   ContextMenuTransformedProps,
@@ -51,8 +51,7 @@ export enum EchartsTreemapLabelType {
   KeyValue = 'key_value',
 }
 
-export interface EchartsTreemapChartProps
-  extends ChartProps<EchartsTreemapFormData> {
+export interface EchartsTreemapChartProps extends ChartProps<EchartsTreemapFormData> {
   formData: EchartsTreemapFormData;
   queriesData: ChartDataResponseResult[];
 }

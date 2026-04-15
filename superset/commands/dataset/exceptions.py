@@ -26,11 +26,23 @@ from superset.commands.exceptions import (
     ImportFailedError,
     UpdateFailedError,
 )
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 
 
 def get_dataset_exist_error_msg(table: Table) -> str:
     return _("Dataset %(table)s already exists", table=table)
+
+
+class MultiCatalogDisabledValidationError(ValidationError):
+    """
+    Validation error for using a non-default catalog when multi-catalog is disabled
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            [_("Only the default catalog is supported for this connection")],
+            field_name="catalog",
+        )
 
 
 class DatabaseNotFoundValidationError(ValidationError):
@@ -40,15 +52,6 @@ class DatabaseNotFoundValidationError(ValidationError):
 
     def __init__(self) -> None:
         super().__init__([_("Database does not exist")], field_name="database")
-
-
-class DatabaseChangeValidationError(ValidationError):
-    """
-    Marshmallow validation error database changes are not allowed on update
-    """
-
-    def __init__(self) -> None:
-        super().__init__([_("Database not allowed to change")], field_name="database")
 
 
 class DatasetExistsValidationError(ValidationError):
@@ -143,7 +146,7 @@ class OwnersNotFoundValidationError(ValidationError):
         super().__init__([_("Owners are invalid")], field_name="owners")
 
 
-class DatasetDataAccessIsNotAllowed(ValidationError):
+class DatasetDataAccessIsNotAllowed(ValidationError):  # noqa: N818
     status = 422
 
     def __init__(self, message: str) -> None:
@@ -195,7 +198,7 @@ class DatasetDuplicateFailedError(CreateFailedError):
     message = _("Dataset could not be duplicated.")
 
 
-class DatasetForbiddenDataURI(ImportFailedError):
+class DatasetForbiddenDataURI(ImportFailedError):  # noqa: N818
     message = _("Data URI is not allowed.")
 
 

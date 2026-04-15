@@ -27,7 +27,6 @@ revision = "a23c6f8b1280"
 down_revision = "863adcf72773"
 
 
-import json  # noqa: E402
 import logging  # noqa: E402
 
 from alembic import op  # noqa: E402
@@ -35,6 +34,7 @@ from sqlalchemy import Column, Integer, Text  # noqa: E402
 from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 
 from superset import db  # noqa: E402
+from superset.utils import json  # noqa: E402
 
 Base = declarative_base()
 
@@ -70,7 +70,7 @@ def upgrade():
                     dashboard.json_metadata = json.dumps(json_metadata)
             except Exception:
                 logging.exception(
-                    f"Unable to parse JSON metadata for dashboard {dashboard.id}"
+                    "Unable to parse JSON metadata for dashboard %s", dashboard.id
                 )
 
     session.commit()

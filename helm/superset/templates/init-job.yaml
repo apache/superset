@@ -23,6 +23,14 @@ kind: Job
 metadata:
   name: {{ template "superset.fullname" . }}-init-db
   namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ template "superset.name" . }}
+    chart: {{ template "superset.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    {{- if .Values.extraLabels }}
+      {{- toYaml .Values.extraLabels | nindent 4 }}
+    {{- end }}
   {{- if .Values.init.jobAnnotations }}
   annotations: {{- toYaml .Values.init.jobAnnotations | nindent 4 }}
   {{- end }}
@@ -32,6 +40,15 @@ spec:
       name: {{ template "superset.fullname" . }}-init-db
       {{- if .Values.init.podAnnotations }}
       annotations: {{- toYaml .Values.init.podAnnotations | nindent 8 }}
+      {{- end }}
+      {{- if or .Values.extraLabels .Values.init.podLabels }}
+      labels:
+        {{- if .Values.extraLabels }}
+          {{- toYaml .Values.extraLabels | nindent 8 }}
+        {{- end }}
+        {{- if .Values.init.podLabels }}
+          {{- toYaml .Values.init.podLabels | nindent 8 }}
+        {{- end }}
       {{- end }}
     spec:
       {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
@@ -97,6 +114,9 @@ spec:
         {{- with .Values.init.affinity }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
+      {{- end }}
+      {{- if .Values.init.priorityClassName }}
+      priorityClassName: {{ .Values.init.priorityClassName }}
       {{- end }}
       {{- if or .Values.topologySpreadConstraints .Values.init.topologySpreadConstraints }}
       topologySpreadConstraints:

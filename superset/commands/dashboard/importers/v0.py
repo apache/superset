@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 import time
 from copy import copy
@@ -32,10 +31,12 @@ from superset.exceptions import DashboardImportException
 from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.utils import json
 from superset.utils.dashboard_filter_scopes_converter import (
     convert_filter_scopes,
     copy_filter_scopes,
 )
+from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,7 @@ def import_chart(
     return slc_to_import.id
 
 
-def import_dashboard(
+def import_dashboard(  # noqa: C901
     # pylint: disable=too-many-locals,too-many-statements
     dashboard_to_import: Dashboard,
     dataset_id_mapping: Optional[dict[int, int]] = None,
@@ -311,7 +312,6 @@ def import_dashboards(
 
     for dashboard in data["dashboards"]:
         import_dashboard(dashboard, dataset_id_mapping, import_time=import_time)
-    db.session.commit()
 
 
 class ImportDashboardsCommand(BaseCommand):
@@ -329,6 +329,7 @@ class ImportDashboardsCommand(BaseCommand):
         self.contents = contents
         self.database_id = database_id
 
+    @transaction()
     def run(self) -> None:
         self.validate()
 

@@ -78,11 +78,13 @@ class TestExportDatasetsCommand(SupersetTestCase):
 
         assert list(contents.keys()) == [
             "metadata.yaml",
-            "datasets/examples/energy_usage.yaml",
+            f"datasets/examples/energy_usage_{example_dataset.id}.yaml",
             "databases/examples.yaml",
         ]
 
-        metadata = yaml.safe_load(contents["datasets/examples/energy_usage.yaml"]())
+        metadata = yaml.safe_load(
+            contents[f"datasets/examples/energy_usage_{example_dataset.id}.yaml"]()
+        )
 
         # sort columns for deterministic comparison
         metadata["columns"] = sorted(metadata["columns"], key=itemgetter("column_name"))
@@ -96,9 +98,11 @@ class TestExportDatasetsCommand(SupersetTestCase):
         assert metadata == {
             "cache_timeout": None,
             "catalog": None,
+            "currency_code_column": None,
             "columns": [
                 {
                     "column_name": "source",
+                    "datetime_format": None,
                     "description": None,
                     "expression": "",
                     "filterable": True,
@@ -113,6 +117,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
                 },
                 {
                     "column_name": "target",
+                    "datetime_format": None,
                     "description": None,
                     "expression": "",
                     "filterable": True,
@@ -127,6 +132,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
                 },
                 {
                     "column_name": "value",
+                    "datetime_format": None,
                     "description": None,
                     "expression": "",
                     "filterable": True,
@@ -171,6 +177,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
                     "warning_text": None,
                 },
             ],
+            "folders": None,
             "normalize_columns": False,
             "always_filter_main_dttm": False,
             "offset": 0,
@@ -192,7 +199,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
         example_dataset = example_db.tables[0]
         command = ExportDatasetsCommand([example_dataset.id])
         contents = command.run()
-        with self.assertRaises(DatasetNotFoundError):
+        with self.assertRaises(DatasetNotFoundError):  # noqa: PT027
             next(contents)
 
     @patch("superset.security.manager.g")
@@ -201,7 +208,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
         mock_g.user = security_manager.find_user("admin")
         command = ExportDatasetsCommand([-1])
         contents = command.run()
-        with self.assertRaises(DatasetNotFoundError):
+        with self.assertRaises(DatasetNotFoundError):  # noqa: PT027
             next(contents)
 
     @patch("superset.security.manager.g")
@@ -217,10 +224,13 @@ class TestExportDatasetsCommand(SupersetTestCase):
         command = ExportDatasetsCommand([example_dataset.id])
         contents = dict(command.run())
 
-        metadata = yaml.safe_load(contents["datasets/examples/energy_usage.yaml"]())
+        metadata = yaml.safe_load(
+            contents[f"datasets/examples/energy_usage_{example_dataset.id}.yaml"]()
+        )
         assert list(metadata.keys()) == [
             "table_name",
             "main_dttm_col",
+            "currency_code_column",
             "description",
             "default_endpoint",
             "offset",
@@ -235,6 +245,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
             "extra",
             "normalize_columns",
             "always_filter_main_dttm",
+            "folders",
             "uuid",
             "metrics",
             "columns",
@@ -259,7 +270,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
 
         assert list(contents.keys()) == [
             "metadata.yaml",
-            "datasets/examples/energy_usage.yaml",
+            f"datasets/examples/energy_usage_{example_dataset.id}.yaml",
         ]
 
 
@@ -282,7 +293,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         )
         assert (
             dataset.params
-            == '{"remote_id": 3, "database_name": "examples", "import_time": 1604342885}'
+            == '{"remote_id": 3, "database_name": "examples", "import_time": 1604342885}'  # noqa: E501
         )
         assert len(dataset.metrics) == 2
         assert dataset.main_dttm_col == "ds"
@@ -322,7 +333,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         )
         assert (
             dataset.params
-            == '{"remote_id": 3, "database_name": "examples", "import_time": 1604342885}'
+            == '{"remote_id": 3, "database_name": "examples", "import_time": 1604342885}'  # noqa: E501
         )
         assert len(dataset.metrics) == 2
         assert dataset.main_dttm_col == "ds"
@@ -343,8 +354,9 @@ class TestImportDatasetsCommand(SupersetTestCase):
 
     @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_import_v1_dataset(self, sm_g, utils_g):
+    def test_import_v1_dataset(self, mock_add_permissions, sm_g, utils_g):
         """Test that we can import a dataset"""
         admin = sm_g.user = utils_g.user = security_manager.find_user("admin")
         contents = {
@@ -360,6 +372,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         )
         assert dataset.table_name == "imported_dataset"
         assert dataset.main_dttm_col is None
+        assert dataset.currency_code_column == "currency"
         assert dataset.description == "This is a dataset that was exported"
         assert dataset.default_endpoint == ""
         assert dataset.offset == 66
@@ -372,7 +385,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         assert dataset.fetch_values_predicate is None
         assert (
             dataset.extra
-            == '{"certification": {"certified_by": "Data Platform Team", "details": "This table is the source of truth."}, "warning_markdown": "This is a warning."}'
+            == '{"certification": {"certified_by": "Data Platform Team", "details": "This table is the source of truth."}, "warning_markdown": "This is a warning."}'  # noqa: E501
         )
 
         # user should be included as one of the owners
@@ -411,7 +424,8 @@ class TestImportDatasetsCommand(SupersetTestCase):
         db.session.commit()
 
     @patch("superset.security.manager.g")
-    def test_import_v1_dataset_multiple(self, mock_g):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_dataset_multiple(self, mock_add_permissions, mock_g):
         """Test that a dataset can be imported multiple times"""
         mock_g.user = security_manager.find_user("admin")
 
@@ -452,7 +466,8 @@ class TestImportDatasetsCommand(SupersetTestCase):
         db.session.delete(dataset.database)
         db.session.commit()
 
-    def test_import_v1_dataset_validation(self):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_dataset_validation(self, mock_add_permissions):
         """Test different validations applied when importing a dataset"""
         # metadata.yaml must be present
         contents = {
@@ -481,7 +496,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         command = v1.ImportDatasetsCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing dataset"
+        assert str(excinfo.value).startswith("Error importing dataset")
         assert excinfo.value.normalized_messages() == {
             "metadata.yaml": {"type": ["Must be equal to SqlaTable."]}
         }
@@ -494,7 +509,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         command = v1.ImportDatasetsCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing dataset"
+        assert str(excinfo.value).startswith("Error importing dataset")
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
                 "database_name": ["Missing data for required field."],
@@ -502,7 +517,8 @@ class TestImportDatasetsCommand(SupersetTestCase):
         }
 
     @patch("superset.security.manager.g")
-    def test_import_v1_dataset_existing_database(self, mock_g):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_dataset_existing_database(self, mock_add_permissions, mock_g):
         """Test that a dataset can be imported when the database already exists"""
         mock_g.user = security_manager.find_user("admin")
 
@@ -550,7 +566,7 @@ class TestCreateDatasetCommand(SupersetTestCase):
     @patch("superset.commands.utils.g")
     def test_database_not_found(self, mock_g):
         mock_g.user = security_manager.find_user("admin")
-        with self.assertRaises(DatasetInvalidError):
+        with self.assertRaises(DatasetInvalidError):  # noqa: PT027
             CreateDatasetCommand({"table_name": "table", "database": 9999}).run()
 
     @patch("superset.commands.utils.g")
@@ -558,7 +574,7 @@ class TestCreateDatasetCommand(SupersetTestCase):
     def test_get_table_from_database_error(self, get_table_mock, mock_g):
         get_table_mock.side_effect = SQLAlchemyError
         mock_g.user = security_manager.find_user("admin")
-        with self.assertRaises(DatasetInvalidError):
+        with self.assertRaises(DatasetInvalidError):  # noqa: PT027
             CreateDatasetCommand(
                 {"table_name": "table", "database": get_example_database().id}
             ).run()
@@ -583,8 +599,8 @@ class TestCreateDatasetCommand(SupersetTestCase):
                 .filter_by(table_name="test_create_dataset_command")
                 .one()
             )
-            self.assertEqual(table, fetched_table)
-            self.assertEqual([owner.username for owner in table.owners], ["admin"])
+            assert table == fetched_table
+            assert [owner.username for owner in table.owners] == ["admin"]
 
         db.session.delete(table)
         with examples_db.get_sqla_engine() as engine:
@@ -594,7 +610,7 @@ class TestCreateDatasetCommand(SupersetTestCase):
     def test_create_dataset_command_not_allowed(self):
         examples_db = get_example_database()
         with override_user(security_manager.find_user("gamma")):
-            with self.assertRaises(DatasetInvalidError):
+            with self.assertRaises(DatasetInvalidError):  # noqa: PT027
                 _ = CreateDatasetCommand(
                     {
                         "sql": "select * from ab_user",
@@ -606,7 +622,7 @@ class TestCreateDatasetCommand(SupersetTestCase):
 
 class TestDatasetWarmUpCacheCommand(SupersetTestCase):
     def test_warm_up_cache_command_table_not_found(self):
-        with self.assertRaises(WarmUpCacheTableNotFoundError):
+        with self.assertRaises(WarmUpCacheTableNotFoundError):  # noqa: PT027
             DatasetWarmUpCacheCommand("not", "here", None, None).run()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -622,7 +638,7 @@ class TestDatasetWarmUpCacheCommand(SupersetTestCase):
         results = DatasetWarmUpCacheCommand(
             get_example_database().database_name, "birth_names", None, None
         ).run()
-        self.assertEqual(len(results), len(birth_charts))
+        assert len(results) == len(birth_charts)
         for chart_result in results:
             assert "chart_id" in chart_result
             assert "viz_error" in chart_result

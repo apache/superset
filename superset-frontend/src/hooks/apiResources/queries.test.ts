@@ -66,7 +66,7 @@ const fakeApiResult = {
 };
 
 afterEach(() => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   act(() => {
     store.dispatch(api.util.resetApiState());
   });
@@ -86,15 +86,23 @@ test('returns api response mapping camelCase keys', async () => {
     },
   );
   await waitFor(() =>
-    expect(fetchMock.calls(editorQueryApiRoute).length).toBe(1),
+    expect(fetchMock.callHistory.calls(editorQueryApiRoute).length).toBe(1),
   );
   const expectedResult = {
     ...fakeApiResult,
     result: fakeApiResult.result.map(mapQueryResponse),
   };
-  expect(
-    rison.decode(fetchMock.calls(editorQueryApiRoute)[0][0].split('?q=')[1]),
-  ).toEqual(
+
+  // Check if the URL contains the expected rison-encoded parameters
+  const actualUrl = fetchMock.callHistory.calls(editorQueryApiRoute)[0].url;
+  expect(actualUrl).toContain('/api/v1/query/?q=');
+
+  // Extract and decode the query parameter
+  const urlParams = new URL(actualUrl).searchParams;
+  const queryParam = urlParams.get('q');
+
+  expect(queryParam).toBeTruthy();
+  expect(rison.decode(queryParam!)).toEqual(
     expect.objectContaining({
       order_column: 'start_time',
       order_direction: 'desc',
@@ -123,7 +131,7 @@ test('merges paginated results', async () => {
     }),
   });
   await waitFor(() =>
-    expect(fetchMock.calls(editorQueryApiRoute).length).toBe(1),
+    expect(fetchMock.callHistory.calls(editorQueryApiRoute).length).toBe(1),
   );
   const { result: paginatedResult } = renderHook(
     () => useEditorQueriesQuery({ editorId, pageIndex: 1 }),
@@ -135,11 +143,19 @@ test('merges paginated results', async () => {
     },
   );
   await waitFor(() =>
-    expect(fetchMock.calls(editorQueryApiRoute).length).toBe(2),
+    expect(fetchMock.callHistory.calls(editorQueryApiRoute).length).toBe(2),
   );
-  expect(
-    rison.decode(fetchMock.calls(editorQueryApiRoute)[1][0].split('?q=')[1]),
-  ).toEqual(
+
+  // Check the second call has page=1
+  const secondUrl = fetchMock.callHistory.calls(editorQueryApiRoute)[1].url;
+  expect(secondUrl).toContain('/api/v1/query/?q=');
+
+  // Extract and decode the query parameter
+  const urlParams = new URL(secondUrl).searchParams;
+  const queryParam = urlParams.get('q');
+
+  expect(queryParam).toBeTruthy();
+  expect(rison.decode(queryParam!)).toEqual(
     expect.objectContaining({
       page: 1,
     }),

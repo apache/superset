@@ -24,6 +24,15 @@ import {
   FilterWithDataMask,
   Divider,
   isNativeFilterWithDataMask,
+  isAppliedCrossFilterType,
+  isAppliedNativeFilterType,
+  AppliedCrossFilterType,
+  AppliedNativeFilterType,
+  isChartCustomization,
+  isChartCustomizationDivider,
+  ChartCustomization,
+  ChartCustomizationDivider,
+  ChartCustomizationType,
 } from '@superset-ui/core';
 
 const filter: Filter = {
@@ -51,6 +60,20 @@ const filterDivider: Divider = {
   description: 'Divider description.',
 };
 
+const appliedCrossFilter: AppliedCrossFilterType = {
+  filterType: undefined,
+  targets: [1, 2],
+  scope: [1, 2],
+  values: null,
+};
+
+const appliedNativeFilter: AppliedNativeFilterType = {
+  filterType: 'filter_select',
+  scope: [1, 2],
+  targets: [{}],
+  values: null,
+};
+
 test('filter type guard', () => {
   expect(isNativeFilter(filter)).toBeTruthy();
   expect(isNativeFilter(filterWithDataMask)).toBeTruthy();
@@ -67,4 +90,42 @@ test('filter divider type guard', () => {
   expect(isFilterDivider(filter)).toBeFalsy();
   expect(isFilterDivider(filterWithDataMask)).toBeFalsy();
   expect(isFilterDivider(filterDivider)).toBeTruthy();
+});
+
+test('applied cross filter type guard', () => {
+  expect(isAppliedCrossFilterType(appliedCrossFilter)).toBeTruthy();
+  expect(isAppliedCrossFilterType(appliedNativeFilter)).toBeFalsy();
+});
+
+test('applied native filter type guard', () => {
+  expect(isAppliedNativeFilterType(appliedNativeFilter)).toBeTruthy();
+  expect(isAppliedNativeFilterType(appliedCrossFilter)).toBeFalsy();
+});
+
+const chartCustomization: ChartCustomization = {
+  id: 'custom_id',
+  type: ChartCustomizationType.ChartCustomization,
+  name: 'My Customization',
+  filterType: 'chart_customization',
+  targets: [],
+  scope: { rootPath: [], excluded: [] },
+  defaultDataMask: {},
+  controlValues: {},
+};
+
+const chartCustomizationDivider: ChartCustomizationDivider = {
+  id: 'divider_id',
+  type: ChartCustomizationType.Divider,
+  title: 'Divider',
+  description: 'A divider',
+};
+
+test('isChartCustomization type guard', () => {
+  expect(isChartCustomization(chartCustomization)).toBeTruthy();
+  expect(isChartCustomization(filter)).toBeFalsy();
+});
+
+test('isChartCustomizationDivider type guard', () => {
+  expect(isChartCustomizationDivider(chartCustomizationDivider)).toBeTruthy();
+  expect(isChartCustomizationDivider(chartCustomization)).toBeFalsy();
 });

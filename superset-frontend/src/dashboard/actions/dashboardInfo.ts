@@ -17,13 +17,8 @@
  * under the License.
  */
 import { Dispatch } from 'redux';
-import {
-  makeApi,
-  CategoricalColorNamespace,
-  t,
-  getErrorText,
-} from '@superset-ui/core';
-import { isString } from 'lodash';
+import { t } from '@apache-superset/core/translation';
+import { makeApi, getClientErrorObject } from '@superset-ui/core';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import {
   ChartConfiguration,
@@ -34,43 +29,27 @@ import {
 } from 'src/dashboard/types';
 import { onSave } from './dashboardState';
 
-export const DASHBOARD_INFO_UPDATED = 'DASHBOARD_INFO_UPDATED';
-
-export function updateColorSchema(
-  metadata: Record<string, any>,
-  labelColors: Record<string, string>,
-) {
-  const categoricalNamespace = CategoricalColorNamespace.getNamespace(
-    metadata?.color_namespace,
-  );
-  const colorMap = isString(labelColors)
-    ? JSON.parse(labelColors)
-    : labelColors;
-  Object.keys(colorMap).forEach(label => {
-    categoricalNamespace.setColor(label, colorMap[label]);
+const createUpdateDashboardApi = (id: number) =>
+  makeApi<
+    Partial<DashboardInfo>,
+    { result: Partial<DashboardInfo>; last_modified_time: number }
+  >({
+    method: 'PUT',
+    endpoint: `/api/v1/dashboard/${id}`,
   });
-}
+
+export const DASHBOARD_INFO_UPDATED = 'DASHBOARD_INFO_UPDATED';
+export const DASHBOARD_INFO_FILTERS_CHANGED = 'DASHBOARD_INFO_FILTERS_CHANGED';
 
 // updates partially changed dashboard info
-export function dashboardInfoChanged(newInfo: { metadata: any }) {
-  const { metadata } = newInfo;
-
-  const categoricalNamespace = CategoricalColorNamespace.getNamespace(
-    metadata?.color_namespace,
-  );
-
-  categoricalNamespace.resetColors();
-
-  if (metadata?.shared_label_colors) {
-    updateColorSchema(metadata, metadata?.shared_label_colors);
-  }
-
-  if (metadata?.label_colors) {
-    updateColorSchema(metadata, metadata?.label_colors);
-  }
-
+export function dashboardInfoChanged(newInfo: Partial<DashboardInfo>) {
   return { type: DASHBOARD_INFO_UPDATED, newInfo };
 }
+
+export function nativeFiltersConfigChanged(newInfo: Record<string, any>) {
+  return { type: DASHBOARD_INFO_FILTERS_CHANGED, newInfo };
+}
+
 export const SAVE_CHART_CONFIG_BEGIN = 'SAVE_CHART_CONFIG_BEGIN';
 export const SAVE_CHART_CONFIG_COMPLETE = 'SAVE_CHART_CONFIG_COMPLETE';
 export const SAVE_CHART_CONFIG_FAIL = 'SAVE_CHART_CONFIG_FAIL';
@@ -91,14 +70,7 @@ export const saveChartConfiguration =
     });
     const { id, metadata } = getState().dashboardInfo;
 
-    // TODO extract this out when makeApi supports url parameters
-    const updateDashboard = makeApi<
-      Partial<DashboardInfo>,
-      { result: DashboardInfo }
-    >({
-      method: 'PUT',
-      endpoint: `/api/v1/dashboard/${id}`,
-    });
+    const updateDashboard = createUpdateDashboardApi(id);
 
     try {
       const response = await updateDashboard({
@@ -112,7 +84,7 @@ export const saveChartConfiguration =
       });
       dispatch(
         dashboardInfoChanged({
-          metadata: JSON.parse(response.result.json_metadata),
+          metadata: JSON.parse(response.result.json_metadata || '{}'),
         }),
       );
       dispatch({
@@ -147,13 +119,7 @@ export function setCrossFiltersEnabled(crossFiltersEnabled: boolean) {
 export function saveFilterBarOrientation(orientation: FilterBarOrientation) {
   return async (dispatch: Dispatch, getState: () => RootState) => {
     const { id, metadata } = getState().dashboardInfo;
-    const updateDashboard = makeApi<
-      Partial<DashboardInfo>,
-      { result: Partial<DashboardInfo>; last_modified_time: number }
-    >({
-      method: 'PUT',
-      endpoint: `/api/v1/dashboard/${id}`,
-    });
+    const updateDashboard = createUpdateDashboardApi(id);
     try {
       const response = await updateDashboard({
         json_metadata: JSON.stringify({
@@ -173,23 +139,33 @@ export function saveFilterBarOrientation(orientation: FilterBarOrientation) {
         dispatch(onSave(lastModifiedTime));
       }
     } catch (errorObject) {
-      const errorText = await getErrorText(errorObject, 'dashboard');
-      dispatch(addDangerToast(errorText));
+      const { error } = await getClientErrorObject(errorObject);
+      dispatch(
+        addDangerToast(
+          t(
+            'Sorry, there was an error saving this dashboard: %s',
+            error || 'Bad Request',
+          ),
+        ),
+      );
       throw errorObject;
     }
   };
 }
 
 export function saveCrossFiltersSetting(crossFiltersEnabled: boolean) {
-  return async (dispatch: Dispatch, getState: () => RootState) => {
+  return async function saveCrossFiltersSettingThunk(
+    dispatch: Dispatch,
+    getState: () => RootState,
+  ) {
     const { id, metadata } = getState().dashboardInfo;
-    const updateDashboard = makeApi<
-      Partial<DashboardInfo>,
-      { result: Partial<DashboardInfo>; last_modified_time: number }
-    >({
-      method: 'PUT',
-      endpoint: `/api/v1/dashboard/${id}`,
-    });
+
+    const previousCrossFiltersEnabled =
+      getState().dashboardInfo.crossFiltersEnabled;
+
+    dispatch(setCrossFiltersEnabled(crossFiltersEnabled));
+    const updateDashboard = createUpdateDashboardApi(id);
+
     try {
       const response = await updateDashboard({
         json_metadata: JSON.stringify({
@@ -197,19 +173,29 @@ export function saveCrossFiltersSetting(crossFiltersEnabled: boolean) {
           cross_filters_enabled: crossFiltersEnabled,
         }),
       });
+
       const updatedDashboard = response.result;
       const lastModifiedTime = response.last_modified_time;
+
       if (updatedDashboard.json_metadata) {
         const metadata = JSON.parse(updatedDashboard.json_metadata);
         dispatch(setCrossFiltersEnabled(metadata.cross_filters_enabled));
       }
+
       if (lastModifiedTime) {
         dispatch(onSave(lastModifiedTime));
       }
-    } catch (errorObject) {
-      const errorText = await getErrorText(errorObject, 'dashboard');
-      dispatch(addDangerToast(errorText));
-      throw errorObject;
+
+      dispatch(
+        dashboardInfoChanged({
+          metadata: JSON.parse(response.result.json_metadata || '{}'),
+        }),
+      );
+      return response;
+    } catch (err) {
+      dispatch(setCrossFiltersEnabled(previousCrossFiltersEnabled));
+      dispatch(addDangerToast(t('Failed to save cross-filters setting')));
+      throw err;
     }
   };
 }

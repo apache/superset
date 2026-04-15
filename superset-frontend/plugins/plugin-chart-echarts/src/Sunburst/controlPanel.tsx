@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
@@ -44,18 +43,7 @@ const config: ControlPanelConfig = {
         ['secondary_metric'],
         ['adhoc_filters'],
         ['row_limit'],
-        [
-          {
-            name: 'sort_by_metric',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Sort by metric'),
-              description: t(
-                'Whether to sort results by the selected metric in descending order.',
-              ),
-            },
-          },
-        ],
+        ['sort_by_metric'],
       ],
     },
     {
@@ -176,7 +164,7 @@ const config: ControlPanelConfig = {
       visibility: ({ controls }: ControlPanelsContainerProps) =>
         Boolean(
           !controls?.secondary_metric?.value ||
-            controls?.secondary_metric?.value === controls?.metric.value,
+          controls?.secondary_metric?.value === controls?.metric.value,
         ),
     },
     linear_color_scheme: {
@@ -186,7 +174,7 @@ const config: ControlPanelConfig = {
       visibility: ({ controls }: ControlPanelsContainerProps) =>
         Boolean(
           controls?.secondary_metric?.value &&
-            controls?.secondary_metric?.value !== controls?.metric.value,
+          controls?.secondary_metric?.value !== controls?.metric.value,
         ),
     },
     columns: {

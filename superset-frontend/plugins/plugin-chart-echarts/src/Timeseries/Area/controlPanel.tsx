@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { getColumnLabel, QueryFormColumn } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
+  checkColumnType,
   ControlPanelConfig,
   ControlPanelsContainerProps,
   ControlSubSectionHeader,
@@ -38,9 +40,11 @@ import {
   seriesOrderSection,
   percentageThresholdControl,
   xAxisLabelRotation,
+  xAxisLabelInterval,
   truncateXAxis,
   xAxisBounds,
   minorTicks,
+  forceMaxInterval,
 } from '../../controls';
 import { AreaChartStackControlOptions } from '../../constants';
 
@@ -54,7 +58,6 @@ const {
   seriesType,
   truncateYAxis,
   yAxisBounds,
-  zoomable,
 } = DEFAULT_FORM_DATA;
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -69,6 +72,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         ...seriesOrderSection,
         ['color_scheme'],
+        ['time_shift_color'],
         [
           {
             name: 'seriesType',
@@ -131,7 +135,7 @@ const config: ControlPanelConfig = {
               default: false,
               description: t(
                 'Whether to show extra controls or not. Extra controls ' +
-                  'include things like making mulitBar charts stacked ' +
+                  'include things like making multiBar charts stacked ' +
                   'or side by side.',
               ),
             },
@@ -170,18 +174,7 @@ const config: ControlPanelConfig = {
           },
         ],
         [minorTicks],
-        [
-          {
-            name: 'zoomable',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Data Zoom'),
-              default: zoomable,
-              renderTrigger: true,
-              description: t('Enable data zooming controls'),
-            },
-          },
-        ],
+        ['zoomable'],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         [
@@ -190,10 +183,36 @@ const config: ControlPanelConfig = {
             config: {
               ...sharedControls.x_axis_time_format,
               description: `${D3_TIME_FORMAT_DOCS}. ${TIME_SERIES_DESCRIPTION_TEXT}`,
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                checkColumnType(
+                  getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+                  controls?.datasource?.datasource,
+                  [GenericDataType.Temporal],
+                ),
+              disableStash: true,
+              resetOnHide: false,
+            },
+          },
+        ],
+        [
+          {
+            name: 'x_axis_number_format',
+            config: {
+              ...sharedControls.x_axis_number_format,
+              default: '~g',
+              mapStateToProps: undefined,
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                checkColumnType(
+                  getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+                  controls?.datasource?.datasource,
+                  [GenericDataType.Numeric],
+                ),
             },
           },
         ],
         [xAxisLabelRotation],
+        [xAxisLabelInterval],
+        [forceMaxInterval],
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
         [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
@@ -258,6 +277,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['echart_options'],
       ],
     },
   ],

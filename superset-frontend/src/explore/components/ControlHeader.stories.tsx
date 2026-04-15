@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import ControlHeader, { ControlHeaderProps } from './ControlHeader';
 
 export default {
-  title: 'ControlHeader',
+  title: 'Components/ControlHeader',
   component: ControlHeader,
 };
 

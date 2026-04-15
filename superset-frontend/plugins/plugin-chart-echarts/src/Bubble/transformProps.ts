@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { EChartsCoreOption, ScatterSeriesOption } from 'echarts';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { ScatterSeriesOption } from 'echarts/charts';
 import { extent } from 'd3-array';
 import {
   CategoricalColorNamespace,
@@ -30,6 +31,7 @@ import { EchartsBubbleChartProps, EchartsBubbleFormData } from './types';
 import { DEFAULT_FORM_DATA, MINIMUM_BUBBLE_SIZE } from './constants';
 import { defaultGrid } from '../defaults';
 import { getLegendProps, getMinAndMaxFromBounds } from '../utils/series';
+import { resolveLegendLayout } from '../utils/legendLayout';
 import { Refs } from '../types';
 import { parseAxisBound } from '../utils/controls';
 import { getDefaultTooltip } from '../utils/tooltip';
@@ -37,18 +39,37 @@ import { getPadding } from '../Timeseries/transformers';
 import { convertInteger } from '../utils/convertInteger';
 import { NULL_STRING } from '../constants';
 
+const isIterable = (obj: any): obj is Iterable<any> =>
+  obj != null && typeof obj[Symbol.iterator] === 'function';
+
 function normalizeSymbolSize(
   nodes: ScatterSeriesOption[],
   maxBubbleValue: number,
 ) {
-  const [bubbleMinValue, bubbleMaxValue] = extent(nodes, x => x.data![0][2]);
-  const nodeSpread = bubbleMaxValue - bubbleMinValue;
-  nodes.forEach(node => {
-    // eslint-disable-next-line no-param-reassign
-    node.symbolSize =
-      (((node.data![0][2] - bubbleMinValue) / nodeSpread) *
-        (maxBubbleValue * 2) || 0) + MINIMUM_BUBBLE_SIZE;
-  });
+  const [bubbleMinValue, bubbleMaxValue] = extent<ScatterSeriesOption, number>(
+    nodes,
+    x => {
+      const tmpValue = x.data?.[0];
+      const result = isIterable(tmpValue) ? tmpValue[2] : null;
+      if (typeof result === 'number') {
+        return result;
+      }
+      return null;
+    },
+  );
+  if (bubbleMinValue !== undefined && bubbleMaxValue !== undefined) {
+    const nodeSpread = bubbleMaxValue - bubbleMinValue;
+    nodes.forEach(node => {
+      const tmpValue = node.data?.[0];
+      const calculated = isIterable(tmpValue) ? tmpValue[2] : null;
+      if (typeof calculated === 'number') {
+        // eslint-disable-next-line no-param-reassign
+        node.symbolSize =
+          (((calculated - bubbleMinValue) / nodeSpread) *
+            (maxBubbleValue * 2) || 0) + MINIMUM_BUBBLE_SIZE;
+      }
+    });
+  }
 }
 
 export function formatTooltip(
@@ -100,6 +121,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     truncateXAxis,
     truncateYAxis,
     xAxisLabelRotation,
+    xAxisLabelInterval,
     yAxisLabelRotation,
     tooltipSizeFormat,
     opacity,
@@ -107,8 +129,9 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     legendOrientation,
     legendMargin,
     legendType,
+    legendSort,
+    sliceId,
   }: EchartsBubbleFormData = { ...DEFAULT_FORM_DATA, ...formData };
-
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
 
   const legends = new Set<string>();
@@ -137,7 +160,10 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
         ],
       ],
       type: 'scatter',
-      itemStyle: { color: colorFn(name), opacity },
+      itemStyle: {
+        color: colorFn(name, sliceId),
+        opacity,
+      },
     });
     legends.add(name);
   });
@@ -147,6 +173,20 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
   const xAxisFormatter = getNumberFormatter(xAxisFormat);
   const yAxisFormatter = getNumberFormatter(yAxisFormat);
   const tooltipSizeFormatter = getNumberFormatter(tooltipSizeFormat);
+  const legendData = Array.from(legends).sort((a: string, b: string) => {
+    if (!legendSort) return 0;
+    return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+  });
+  const { effectiveLegendMargin, effectiveLegendType } = resolveLegendLayout({
+    chartHeight: height,
+    chartWidth: width,
+    legendItems: legendData,
+    legendMargin,
+    orientation: legendOrientation,
+    show: showLegend,
+    theme,
+    type: legendType,
+  });
 
   const [xAxisMin, xAxisMax] = (xAxisBounds || []).map(parseAxisBound);
   const [yAxisMin, yAxisMax] = (yAxisBounds || []).map(parseAxisBound);
@@ -156,7 +196,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     legendOrientation,
     true,
     false,
-    legendMargin,
+    effectiveLegendMargin,
     true,
     'Left',
     convertInteger(yAxisTitleMargin),
@@ -167,36 +207,35 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
   const echartOptions: EChartsCoreOption = {
     series,
     xAxis: {
-      axisLabel: { formatter: xAxisFormatter },
+      axisLabel: { formatter: xAxisFormatter, rotate: xAxisLabelRotation },
       splitLine: {
         lineStyle: {
           type: 'dashed',
         },
       },
-      nameRotate: xAxisLabelRotation,
+      interval: xAxisLabelInterval,
       scale: true,
       name: bubbleXAxisTitle,
       nameLocation: 'middle',
       nameTextStyle: {
-        fontWight: 'bolder',
+        fontWeight: 'bolder',
       },
       nameGap: convertInteger(xAxisTitleMargin),
       type: xAxisType,
       ...getMinAndMaxFromBounds(xAxisType, truncateXAxis, xAxisMin, xAxisMax),
     },
     yAxis: {
-      axisLabel: { formatter: yAxisFormatter },
+      axisLabel: { formatter: yAxisFormatter, rotate: yAxisLabelRotation },
       splitLine: {
         lineStyle: {
           type: 'dashed',
         },
       },
-      nameRotate: yAxisLabelRotation,
       scale: truncateYAxis,
       name: bubbleYAxisTitle,
       nameLocation: 'middle',
       nameTextStyle: {
-        fontWight: 'bolder',
+        fontWeight: 'bolder',
       },
       nameGap: convertInteger(yAxisTitleMargin),
       min: yAxisMin,
@@ -204,8 +243,13 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
       type: logYAxis ? AxisType.Log : AxisType.Value,
     },
     legend: {
-      ...getLegendProps(legendType, legendOrientation, showLegend, theme),
-      data: Array.from(legends),
+      ...getLegendProps(
+        effectiveLegendType,
+        legendOrientation,
+        showLegend,
+        theme,
+      ),
+      data: legendData,
     },
     tooltip: {
       show: !inContextMenu,

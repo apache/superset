@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
@@ -48,21 +47,22 @@ const setup = (props: Partial<ExploreCtasResultsButtonProps>, store?: Store) =>
     },
   );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ExploreCtasResultsButton', () => {
   const postFormSpy = jest.spyOn(SupersetClientClass.prototype, 'postForm');
   postFormSpy.mockImplementation(jest.fn());
 
-  it('renders', async () => {
+  test('renders', async () => {
     const { queryByText } = setup({}, mockStore(initialState));
 
-    expect(queryByText('Explore')).toBeTruthy();
+    expect(queryByText('Explore')).toBeInTheDocument();
   });
 
-  it('visualize results', async () => {
+  test('visualize results', async () => {
     const { getByText } = setup({}, mockStore(initialState));
 
     postFormSpy.mockClear();
-    fetchMock.reset();
+    fetchMock.clearHistory().removeRoutes();
     fetchMock.post(getOrCreateTableEndpoint, { result: { table_id: 1234 } });
 
     fireEvent.click(getByText('Explore'));
@@ -76,11 +76,11 @@ describe('ExploreCtasResultsButton', () => {
     });
   });
 
-  it('visualize results fails', async () => {
+  test('visualize results fails', async () => {
     const { getByText } = setup({}, mockStore(initialState));
 
     postFormSpy.mockClear();
-    fetchMock.reset();
+    fetchMock.clearHistory().removeRoutes();
     fetchMock.post(getOrCreateTableEndpoint, {
       throws: new Error('Unexpected all to v1 API'),
     });

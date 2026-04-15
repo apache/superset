@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { GaugeChartTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { allEventHandlers } from '../utils/eventHandlers';
 
 export default function EchartsGauge(props: GaugeChartTransformedProps) {
-  const { height, width, echartOptions, selectedValues, refs } = props;
+  const { height, width, echartOptions, selectedValues, refs, formData } =
+    props;
 
   const eventHandlers = allEventHandlers(props);
 
@@ -34,6 +34,7 @@ export default function EchartsGauge(props: GaugeChartTransformedProps) {
       echartOptions={echartOptions}
       eventHandlers={eventHandlers}
       selectedValues={selectedValues}
+      vizType={formData.vizType}
     />
   );
 }

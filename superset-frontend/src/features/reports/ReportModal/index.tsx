@@ -16,26 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   useState,
   useEffect,
   useReducer,
   useCallback,
   useMemo,
+  ChangeEvent,
 } from 'react';
-import { t, SupersetTheme, getClientErrorObject } from '@superset-ui/core';
+
+import { t } from '@apache-superset/core/translation';
+import { getClientErrorObject, VizType } from '@superset-ui/core';
+import { Alert } from '@apache-superset/core/components';
+import { SupersetTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   addReport,
   editReport,
 } from 'src/features/reports/ReportModal/actions';
-import Alert from 'src/components/Alert';
-import TimezoneSelector from 'src/components/TimezoneSelector';
-import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
-import Icons from 'src/components/Icons';
-import { CronError } from 'src/components/CronPicker';
-import { RadioChangeEvent } from 'src/components';
-import { Input } from 'src/components/Input';
+import {
+  Input,
+  LabeledErrorBoundInput,
+  type CronError,
+} from '@superset-ui/core/components';
+import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Typography } from '@superset-ui/core/components/Typography';
+import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { ChartState } from 'src/explore/types';
 import {
@@ -61,8 +68,6 @@ import {
   TimezoneHeaderStyle,
   SectionHeaderStyle,
   StyledMessageContentTitle,
-  StyledRadio,
-  StyledRadioGroup,
 } from './styles';
 
 interface ReportProps {
@@ -71,6 +76,8 @@ interface ReportProps {
   show: boolean;
   userId: number;
   userEmail: string;
+  ccEmail: string;
+  bccEmail: string;
   chart?: ChartState;
   chartName?: string;
   dashboardId?: number;
@@ -80,9 +87,9 @@ interface ReportProps {
 }
 
 const TEXT_BASED_VISUALIZATION_TYPES = [
-  'pivot_table_v2',
+  VizType.PivotTable,
   'table',
-  'paired_ttest',
+  VizType.PairedTTest,
 ];
 
 const INITIAL_STATE = {
@@ -107,6 +114,8 @@ function ReportModal({
   chart,
   userId,
   userEmail,
+  ccEmail,
+  bccEmail,
   creationMethod,
   dashboardName,
   chartName,
@@ -182,7 +191,11 @@ function ReportModal({
       owners: [userId],
       recipients: [
         {
-          recipient_config_json: { target: userEmail },
+          recipient_config_json: {
+            target: userEmail,
+            ccTarget: ccEmail,
+            bccTarget: bccEmail,
+          },
           type: 'Email',
         },
       ],
@@ -195,11 +208,12 @@ function ReportModal({
 
     setCurrentReport({ isSubmitting: true, error: undefined });
     try {
-      if (isEditMode) {
+      if (isEditMode && currentReport.id) {
         await dispatch(
           editReport(currentReport.id, newReportValues as ReportObject),
         );
       } else {
+        // Create new report (either not in edit mode, or edit mode without valid ID)
         await dispatch(addReport(newReportValues as ReportObject));
       }
       onHide();
@@ -212,7 +226,7 @@ function ReportModal({
 
   const wrappedTitle = (
     <StyledIconWrapper>
-      <Icons.Calendar />
+      <Icons.CalendarOutlined />
       <span className="text">
         {isEditMode ? t('Edit email report') : t('Schedule a new email report')}
       </span>
@@ -239,27 +253,35 @@ function ReportModal({
   const renderMessageContentSection = (
     <>
       <StyledMessageContentTitle>
-        <h4>{t('Message content')}</h4>
+        <Typography.Title level={4}>{t('Message content')}</Typography.Title>
       </StyledMessageContentTitle>
       <div className="inline-container">
-        <StyledRadioGroup
+        <Radio.GroupWrapper
+          spaceConfig={{
+            direction: 'vertical',
+            size: 'middle',
+            align: 'start',
+            wrap: false,
+          }}
           onChange={(event: RadioChangeEvent) => {
             setCurrentReport({ report_format: event.target.value });
           }}
           value={currentReport.report_format || defaultNotificationFormat}
-        >
-          {isTextBasedChart && (
-            <StyledRadio value={NotificationFormats.Text}>
-              {t('Text embedded in email')}
-            </StyledRadio>
-          )}
-          <StyledRadio value={NotificationFormats.PNG}>
-            {t('Image (PNG) embedded in email')}
-          </StyledRadio>
-          <StyledRadio value={NotificationFormats.CSV}>
-            {t('Formatted CSV attached in email')}
-          </StyledRadio>
-        </StyledRadioGroup>
+          options={[
+            {
+              label: t('Text embedded in email'),
+              value: NotificationFormats.Text,
+            },
+            {
+              label: t('Image (PNG) embedded in email'),
+              value: NotificationFormats.PNG,
+            },
+            {
+              label: t('Formatted CSV attached in email'),
+              value: NotificationFormats.CSV,
+            },
+          ]}
+        />
       </div>
     </>
   );
@@ -274,7 +296,7 @@ function ReportModal({
           name="custom_width"
           value={currentReport?.custom_width || ''}
           placeholder={t('Input custom width in pixels')}
-          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+          onChange={(event: ChangeEvent<HTMLInputElement>) => {
             setCurrentReport({
               custom_width: parseInt(event.target.value, 10) || null,
             });
@@ -327,9 +349,12 @@ function ReportModal({
 
       <StyledBottomSection>
         <StyledScheduleTitle>
-          <h4 css={(theme: SupersetTheme) => SectionHeaderStyle(theme)}>
+          <Typography.Title
+            level={5}
+            css={(theme: SupersetTheme) => SectionHeaderStyle(theme)}
+          >
             {t('Schedule')}
-          </h4>
+          </Typography.Title>
           <p>{t('The report will be sent to your email at')}</p>
         </StyledScheduleTitle>
 

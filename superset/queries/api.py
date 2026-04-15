@@ -91,6 +91,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
         "user.id",
         "user.last_name",
         "start_time",
+        "start_running_time",
         "end_time",
         "tmp_table_name",
         "tracking_url",
@@ -144,11 +145,13 @@ class QueryRestApi(BaseSupersetModelRestApi):
     ]
     base_related_field_filters = {
         "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
         "user": [["id", BaseFilterRelatedUsers, lambda: []]],
         "database": [["id", DatabaseFilter, lambda: []]],
     }
     related_field_filters = {
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "user": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
 
@@ -160,6 +163,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
         "user",
         "start_time",
         "sql_editor_id",
+        "uuid",
     ]
 
     allowed_rel_fields = {"database", "user"}
@@ -223,16 +227,15 @@ class QueryRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".stop_query",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.stop_query",
         log_to_statsd=False,
     )
     @backoff.on_exception(
         backoff.constant,
         Exception,
         interval=1,
-        on_backoff=lambda details: db.session.rollback(),
-        on_giveup=lambda details: db.session.rollback(),
+        on_backoff=lambda details: db.session.rollback(),  # pylint: disable=consider-using-transaction
+        on_giveup=lambda details: db.session.rollback(),  # pylint: disable=consider-using-transaction
         max_tries=5,
     )
     @requires_json

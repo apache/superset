@@ -17,7 +17,6 @@
 """Superset wrapper around pyarrow.Table."""
 
 import datetime
-import json
 import logging
 from typing import Any, Optional
 
@@ -28,7 +27,7 @@ from numpy.typing import NDArray
 
 from superset.db_engine_specs import BaseEngineSpec
 from superset.superset_typing import DbapiDescription, DbapiResult, ResultSetColumnType
-from superset.utils import core as utils, json as json_utils
+from superset.utils import core as utils, json
 from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
@@ -61,7 +60,7 @@ def dedup(l: list[str], suffix: str = "__", case_sensitive: bool = True) -> list
 
 
 def stringify(obj: Any) -> str:
-    return json_utils.dumps(obj, default=json_utils.json_iso_dttm_ser)
+    return json.dumps(obj, default=json.json_iso_dttm_ser)
 
 
 def stringify_values(array: NDArray[Any]) -> NDArray[Any]:
@@ -100,8 +99,40 @@ def convert_to_string(value: Any) -> str:
     return str(value)
 
 
+def normalize_cursor_description_names(
+    cursor_description: DbapiDescription,
+) -> list[str]:
+    """
+    Replace empty cursor.description names with synthetic names that do not
+    collide with any explicit column names.
+    """
+    normalized_names: list[str] = []
+    unavailable_names = {
+        convert_to_string(col[0])
+        for col in cursor_description
+        if convert_to_string(col[0])
+    }
+    synthetic_index = 0
+
+    for col in cursor_description:
+        column_name = convert_to_string(col[0])
+        if column_name:
+            normalized_names.append(column_name)
+            continue
+
+        while True:
+            synthetic_name = f"_col_{synthetic_index}"
+            synthetic_index += 1
+            if synthetic_name not in unavailable_names:
+                unavailable_names.add(synthetic_name)
+                normalized_names.append(synthetic_name)
+                break
+
+    return normalized_names
+
+
 class SupersetResultSet:
-    def __init__(  # pylint: disable=too-many-locals
+    def __init__(  # pylint: disable=too-many-locals  # noqa: C901
         self,
         data: DbapiResult,
         cursor_description: DbapiDescription,
@@ -117,14 +148,21 @@ class SupersetResultSet:
 
         if cursor_description:
             # get deduped list of column names
-            column_names = dedup(
-                [convert_to_string(col[0]) for col in cursor_description]
-            )
+            # Some databases (e.g. SQL Server) return an empty string as the
+            # column name for un-aliased expressions like SELECT COUNT(*).
+            # An empty field name is illegal in NumPy structured arrays and in
+            # PyArrow tables, so we substitute a synthetic name when needed.
+            # Synthetic names are chosen to avoid colliding with any explicit
+            # column names before deduplication runs.
+            # See https://github.com/apache/superset/issues/23848
+            column_names = dedup(normalize_cursor_description_names(cursor_description))
 
             # fix cursor descriptor with the deduped names
             deduped_cursor_desc = [
-                tuple([column_name, *list(description)[1:]])
-                for column_name, description in zip(column_names, cursor_description)
+                tuple([column_name, *list(description)[1:]])  # noqa: C409
+                for column_name, description in zip(
+                    column_names, cursor_description, strict=False
+                )
             ]
 
             # generate numpy structured array dtype
@@ -134,21 +172,21 @@ class SupersetResultSet:
         if data and (not isinstance(data, list) or not isinstance(data[0], tuple)):
             data = [tuple(row) for row in data]
         array = np.array(data, dtype=numpy_dtype)
-        if array.size > 0:
-            for column in column_names:
-                try:
-                    pa_data.append(pa.array(array[column].tolist()))
-                except (
-                    pa.lib.ArrowInvalid,
-                    pa.lib.ArrowTypeError,
-                    pa.lib.ArrowNotImplementedError,
-                    ValueError,
-                    TypeError,  # this is super hackey,
-                    # https://issues.apache.org/jira/browse/ARROW-7855
-                ):
-                    # attempt serialization of values as strings
-                    stringified_arr = stringify_values(array[column])
-                    pa_data.append(pa.array(stringified_arr.tolist()))
+
+        for column in column_names:
+            try:
+                pa_data.append(pa.array(array[column].tolist()))
+            except (
+                pa.lib.ArrowInvalid,
+                pa.lib.ArrowTypeError,
+                pa.lib.ArrowNotImplementedError,
+                ValueError,
+                TypeError,  # this is super hackey,
+                # https://issues.apache.org/jira/browse/ARROW-7855
+            ):
+                # attempt serialization of values as strings
+                stringified_arr = stringify_values(array[column])
+                pa_data.append(pa.array(stringified_arr.tolist()))
 
         if pa_data:  # pylint: disable=too-many-nested-blocks
             for i, column in enumerate(column_names):
@@ -169,7 +207,7 @@ class SupersetResultSet:
                             if sample.tzinfo:
                                 tz = sample.tzinfo
                                 series = pd.Series(array[column])
-                                series = pd.to_datetime(series)
+                                series = pd.to_datetime(series, utc=True)
                                 pa_data[i] = pa.Array.from_pandas(
                                     series,
                                     type=pa.timestamp("ns", tz=tz),

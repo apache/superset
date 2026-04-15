@@ -80,6 +80,7 @@ import ethiopia from './countries/ethiopia.geojson';
 import fiji from './countries/fiji.geojson';
 import finland from './countries/finland.geojson';
 import france from './countries/france.geojson';
+import france_overseas from './countries/france_overseas.geojson';
 import france_regions from './countries/france_regions.geojson';
 import french_polynesia from './countries/french_polynesia.geojson';
 import gabon from './countries/gabon.geojson';
@@ -94,6 +95,7 @@ import guinea from './countries/guinea.geojson';
 import guyana from './countries/guyana.geojson';
 import haiti from './countries/haiti.geojson';
 import honduras from './countries/honduras.geojson';
+import hungary from './countries/hungary.geojson';
 import iceland from './countries/iceland.geojson';
 import india from './countries/india.geojson';
 import indonesia from './countries/indonesia.geojson';
@@ -101,6 +103,7 @@ import iran from './countries/iran.geojson';
 import israel from './countries/israel.geojson';
 import italy from './countries/italy.geojson';
 import italy_regions from './countries/italy_regions.geojson';
+import ivory_coast from './countries/ivory_coast.geojson';
 import japan from './countries/japan.geojson';
 import jordan from './countries/jordan.geojson';
 import kazakhstan from './countries/kazakhstan.geojson';
@@ -158,6 +161,7 @@ import philippines_regions from './countries/philippines_regions.geojson';
 import poland from './countries/poland.geojson';
 import portugal from './countries/portugal.geojson';
 import qatar from './countries/qatar.geojson';
+import republic_of_serbia from './countries/republic_of_serbia.geojson';
 import romania from './countries/romania.geojson';
 import russia from './countries/russia.geojson';
 import rwanda from './countries/rwanda.geojson';
@@ -279,6 +283,7 @@ export const countries = {
   fiji,
   finland,
   france,
+  france_overseas,
   france_regions,
   french_polynesia,
   gabon,
@@ -293,6 +298,7 @@ export const countries = {
   guyana,
   haiti,
   honduras,
+  hungary,
   iceland,
   india,
   indonesia,
@@ -300,6 +306,7 @@ export const countries = {
   israel,
   italy,
   italy_regions,
+  ivory_coast,
   japan,
   jordan,
   kazakhstan,
@@ -357,6 +364,7 @@ export const countries = {
   poland,
   portugal,
   qatar,
+  republic_of_serbia,
   romania,
   russia,
   rwanda,
@@ -424,6 +432,9 @@ export const countryOptions = Object.keys(countries).map(x => {
   }
   if (x === 'france_regions') {
     return [x, 'France (regions)'];
+  }
+  if (x === 'france_overseas') {
+    return [x, 'France (with overseas)'];
   }
   if (x === 'turkey_regions') {
     return [x, 'Turkey (regions)'];

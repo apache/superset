@@ -22,19 +22,21 @@ Create Date: 2022-01-28 16:03:02.944080
 
 """
 
+from uuid import uuid4
+
+import sqlalchemy as sa
+from alembic import op
+from sqlalchemy_utils import UUIDType
+
+from superset.migrations.shared.utils import create_table
+
 # revision identifiers, used by Alembic.
 revision = "5afbb1a5849b"
 down_revision = "5fd49410a97a"
 
-from uuid import uuid4  # noqa: E402
-
-import sqlalchemy as sa  # noqa: E402
-from alembic import op  # noqa: E402
-from sqlalchemy_utils import UUIDType  # noqa: E402
-
 
 def upgrade():
-    op.create_table(
+    create_table(
         "embedded_dashboards",
         sa.Column("created_on", sa.DateTime(), nullable=True),
         sa.Column("changed_on", sa.DateTime(), nullable=True),

@@ -16,24 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ChangeEvent, useState, useEffect } from 'react';
+import { ChangeEvent, useState, useEffect, FC } from 'react';
+
 import rison from 'rison';
-import Modal from 'src/components/Modal';
-import AsyncSelect from 'src/components/Select/AsyncSelect';
-import { FormLabel } from 'src/components/Form';
-import { t, styled, SupersetClient } from '@superset-ui/core';
-import { Input } from 'antd';
-import { Divider } from 'src/components';
-import Button from 'src/components/Button';
+import {
+  AsyncSelect,
+  Button,
+  Divider,
+  Flex,
+  FormLabel,
+  Input,
+  Modal,
+} from '@superset-ui/core/components';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { Tag } from 'src/views/CRUD/types';
 import { fetchObjectsByTagIds } from 'src/features/tags/tags';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 
 const StyledModalBody = styled.div`
   .ant-select-dropdown {
-    max-height: ${({ theme }) => theme.gridUnit * 40}px;
+    max-height: ${({ theme }) => theme.sizeUnit * 40}px;
   }
   .tag-input {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 3}px;
   }
 `;
 
@@ -59,7 +66,7 @@ interface TagModalProps {
   editTag?: Tag | null;
 }
 
-const TagModal: React.FC<TagModalProps> = ({
+const TagModal: FC<TagModalProps> = ({
   show,
   onHide,
   editTag,
@@ -78,9 +85,9 @@ const TagModal: React.FC<TagModalProps> = ({
 
   const [tagName, setTagName] = useState<string>('');
   const [description, setDescription] = useState<string>('');
+  const theme = useTheme();
 
   const isEditMode = !!editTag;
-  const modalTitle = isEditMode ? 'Edit Tag' : 'Create Tag';
 
   const clearResources = () => {
     setDashboardsToTag([]);
@@ -160,7 +167,7 @@ const TagModal: React.FC<TagModalProps> = ({
     const { result, count } = json;
 
     return {
-      data: result.map((item: { id: number }) => ({
+      data: result.map((item: Record<string, any> & { id: number }) => ({
         value: item.id,
         label: item[filterColumn],
       })),
@@ -231,7 +238,7 @@ const TagModal: React.FC<TagModalProps> = ({
           objects_to_tag: [...dashboards, ...charts, ...savedQueries],
         },
       })
-        .then(({ json = {} }) => {
+        .then(() => {
           refreshData();
           clearTagForm();
           addSuccessToast(t('Tag updated'));
@@ -249,7 +256,7 @@ const TagModal: React.FC<TagModalProps> = ({
           objects_to_tag: [...dashboards, ...charts, ...savedQueries],
         },
       })
-        .then(({ json = {} }) => {
+        .then(() => {
           refreshData();
           clearTagForm();
           addSuccessToast(t('Tag created'));
@@ -261,7 +268,13 @@ const TagModal: React.FC<TagModalProps> = ({
 
   return (
     <Modal
-      title={modalTitle}
+      name={isEditMode ? t('Edit Tag') : t('Create Tag')}
+      title={
+        <ModalTitleWithIcon
+          isEditMode={isEditMode}
+          title={isEditMode ? t('Edit Tag') : t('Create Tag')}
+        />
+      }
       onHide={() => {
         if (clearOnHide) clearTagForm();
         onHide();
@@ -287,32 +300,39 @@ const TagModal: React.FC<TagModalProps> = ({
       }
     >
       <StyledModalBody>
-        <FormLabel>{t('Tag name')}</FormLabel>
-        <Input
-          className="tag-input"
-          onChange={handleTagNameChange}
-          placeholder={t('Name of your tag')}
-          value={tagName}
-        />
-        <FormLabel>{t('Description')}</FormLabel>
-        <Input
-          className="tag-input"
-          onChange={handleDescriptionChange}
-          placeholder={t('Add description of your tag')}
-          value={description}
-        />
+        <Flex vertical gap={theme.sizeUnit}>
+          <FormLabel htmlFor="tag-name">{t('Tag name')}</FormLabel>
+          <Input
+            id="tag-name"
+            className="tag-input"
+            onChange={handleTagNameChange}
+            placeholder={t('Name of your tag')}
+            value={tagName}
+          />
+        </Flex>
+
+        <Flex vertical gap={theme.sizeUnit}>
+          <FormLabel>{t('Description')}</FormLabel>
+          <Input
+            className="tag-input"
+            onChange={handleDescriptionChange}
+            placeholder={t('Add description of your tag')}
+            value={description}
+          />
+        </Flex>
         <Divider />
         <AsyncSelect
           className="tag-input"
           ariaLabel={t('Select dashboards')}
           mode="multiple"
           name="dashboards"
-          // @ts-ignore
+          // @ts-expect-error
           value={dashboardsToTag}
           options={loadDashboards}
           onChange={value =>
             handleOptionChange(TaggableResources.Dashboard, value)
           }
+          getPopupContainer={() => document.body}
           header={<FormLabel>{t('Dashboards')}</FormLabel>}
           allowClear
         />
@@ -321,10 +341,11 @@ const TagModal: React.FC<TagModalProps> = ({
           ariaLabel={t('Select charts')}
           mode="multiple"
           name="charts"
-          // @ts-ignore
+          // @ts-expect-error
           value={chartsToTag}
           options={loadCharts}
           onChange={value => handleOptionChange(TaggableResources.Chart, value)}
+          getPopupContainer={() => document.body}
           header={<FormLabel>{t('Charts')}</FormLabel>}
           allowClear
         />
@@ -333,12 +354,13 @@ const TagModal: React.FC<TagModalProps> = ({
           ariaLabel={t('Select saved queries')}
           mode="multiple"
           name="savedQueries"
-          // @ts-ignore
+          // @ts-expect-error
           value={savedQueriesToTag}
           options={loadQueries}
           onChange={value =>
             handleOptionChange(TaggableResources.SavedQuery, value)
           }
+          getPopupContainer={() => document.body}
           header={<FormLabel>{t('Saved queries')}</FormLabel>}
           allowClear
         />

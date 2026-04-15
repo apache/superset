@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { OptionName } from 'echarts/types/src/util/types';
+import type { OptionName } from 'echarts/types/src/util/types';
 import {
   AnnotationLayer,
   AxisType,
@@ -55,6 +55,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   annotationLayers: AnnotationLayer[];
   area: boolean;
   colorScheme?: string;
+  timeShiftColor?: boolean;
   contributionMode?: ContributionType;
   forecastEnabled: boolean;
   forecastPeriods: number;
@@ -73,29 +74,35 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   rowLimit: number;
   seriesType: EchartsTimeseriesSeriesType;
   stack: StackType;
+  stackDimension: string;
   timeCompare?: string[];
   tooltipTimeFormat?: string;
+  showTooltipTotal?: boolean;
+  showTooltipPercentage?: boolean;
   truncateXAxis: boolean;
   truncateYAxis: boolean;
   yAxisFormat?: string;
   xAxisForceCategorical?: boolean;
   xAxisTimeFormat?: string;
+  xAxisNumberFormat?: string;
   timeGrainSqla?: TimeGranularity;
+  forceMaxInterval?: boolean;
   xAxisBounds: [number | undefined | null, number | undefined | null];
   yAxisBounds: [number | undefined | null, number | undefined | null];
   zoomable: boolean;
   richTooltip: boolean;
   xAxisLabelRotation: number;
+  xAxisLabelInterval: number | string;
   showValue: boolean;
   onlyTotal: boolean;
   showExtraControls: boolean;
   percentageThreshold: number;
+  colorByPrimaryAxis?: boolean;
   orientation?: OrientationType;
 } & LegendFormData &
   TitleFormData;
 
-export interface EchartsTimeseriesChartProps
-  extends BaseChartProps<EchartsTimeseriesFormData> {
+export interface EchartsTimeseriesChartProps extends BaseChartProps<EchartsTimeseriesFormData> {
   formData: EchartsTimeseriesFormData;
 }
 
@@ -104,6 +111,7 @@ export type TimeseriesChartTransformedProps =
     ContextMenuTransformedProps &
     CrossFilterTransformedProps & {
       legendData?: OptionName[];
+      isRefreshing?: boolean;
       xValueFormatter: TimeFormatter | StringConstructor;
       xAxis: {
         label: string;

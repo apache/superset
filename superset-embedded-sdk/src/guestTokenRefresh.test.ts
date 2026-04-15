@@ -26,7 +26,7 @@ import {
 
 describe("guest token refresh", () => {
   beforeAll(() => {
-    jest.useFakeTimers("modern"); // "modern" allows us to fake the system time
+    jest.useFakeTimers();
     jest.setSystemTime(new Date("2022-03-03 01:00"));
     jest.spyOn(global, "setTimeout");
   });

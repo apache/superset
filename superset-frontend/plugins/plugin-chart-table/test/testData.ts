@@ -20,15 +20,17 @@ import {
   ChartDataResponseResult,
   ChartProps,
   DatasourceType,
-  GenericDataType,
   QueryMode,
-  supersetTheme,
+  ComparisonType,
+  VizType,
 } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import { TableChartProps, TableChartFormData } from '../src/types';
 
 const basicFormData: TableChartFormData = {
   datasource: '1__abc',
-  viz_type: 'table',
+  viz_type: VizType.Table,
   align_pn: false,
   color_pn: false,
   show_cell_bars: true,
@@ -73,6 +75,7 @@ const basicQueryResult: ChartDataResponseResult = {
   cache_key: null,
   cached_dttm: null,
   cache_timeout: null,
+  queried_dttm: null,
   data: [],
   colnames: [],
   coltypes: [],
@@ -175,6 +178,206 @@ const advanced: TableChartProps = {
   ],
 };
 
+const comparison: TableChartProps = {
+  ...basic,
+  rawFormData: {
+    ...basicFormData,
+    table_timestamp_format: 'smart_date',
+    metrics: ['metric_1', 'metric_2'],
+    percent_metrics: ['percent_metric_1'],
+    column_config: {},
+    align_pn: true,
+    color_pn: true,
+    show_cell_bars: true,
+    include_search: true,
+    page_length: 10,
+    server_pagination: false,
+    order_desc: false,
+    query_mode: QueryMode.Aggregate,
+    show_totals: true,
+    conditional_formatting: [],
+    allow_rearrange_columns: true,
+    allow_render_html: false,
+    time_compare: ['P1D'],
+    comparison_color_enabled: true,
+    comparison_color_scheme: 'Green',
+    comparison_type: ComparisonType.Values,
+  },
+  queriesData: [
+    {
+      ...basicQueryResult,
+      data: [
+        {
+          metric_1: 100,
+          metric_2: 200,
+          percent_metric_1: 0.5,
+          date: '2023-01-01',
+        },
+        {
+          metric_1: 110,
+          metric_2: 210,
+          percent_metric_1: 0.55,
+          date: '2023-01-02',
+        },
+      ],
+      colnames: ['metric_1', 'metric_2', 'percent_metric_1', 'date'],
+      coltypes: [
+        GenericDataType.Numeric,
+        GenericDataType.Numeric,
+        GenericDataType.Numeric,
+        GenericDataType.Temporal,
+      ],
+    },
+    {
+      ...basicQueryResult,
+      data: [
+        {
+          metric_1: 10,
+          metric_2: 20,
+          percent_metric_1: 0.05,
+          date: '2023-01-01',
+        },
+        {
+          metric_1: 11,
+          metric_2: 21,
+          percent_metric_1: 0.055,
+          date: '2023-01-02',
+        },
+      ],
+    },
+  ],
+  filterState: { filters: {} },
+  ownState: {},
+  hooks: {
+    onAddFilter: jest.fn(),
+    setDataMask: jest.fn(),
+    onContextMenu: jest.fn(),
+  },
+  emitCrossFilters: true,
+};
+
+const comparisonWithConfig: TableChartProps = {
+  ...comparison,
+  height: 400,
+  width: 400,
+  rawFormData: {
+    ...comparison.rawFormData,
+    table_timestamp_format: 'smart_date',
+    metrics: ['metric_1'],
+    percent_metrics: ['percent_metric_1'],
+    column_config: {
+      'Main metric_1': { d3NumberFormat: '.2f' },
+      '# metric_1': { d3NumberFormat: '.1f' },
+      '△ metric_1': { d3NumberFormat: '.0f' },
+      '% metric_1': { d3NumberFormat: '.3f' },
+    },
+    time_compare: ['1 year ago'],
+    comparison_color_enabled: true,
+    comparison_type: ComparisonType.Values,
+  },
+  datasource: {
+    ...comparison.datasource,
+    columnFormats: { metric_1: '.2f' },
+    currencyFormats: {},
+    verboseMap: { metric_1: 'Metric 1' },
+  },
+  queriesData: [
+    {
+      ...basicQueryResult,
+      data: [{ metric_1: 100, 'metric_1__1 year ago': 80 }],
+      colnames: ['metric_1', 'metric_1__1 year ago'],
+      coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+    },
+    {
+      ...basicQueryResult,
+      data: [{ rowcount: 1 }],
+    },
+  ],
+  filterState: { filters: {} },
+  ownState: {},
+  hooks: {
+    onAddFilter: jest.fn(),
+    setDataMask: jest.fn(),
+    onContextMenu: jest.fn(),
+  },
+  emitCrossFilters: false,
+};
+
+/**
+ * Time comparison data with multiple metrics and some columns hidden.
+ * Used to test that group headers align correctly when filtering columns.
+ * Reproduces issue #37074.
+ */
+const comparisonWithHiddenColumns: TableChartProps = {
+  ...comparison,
+  height: 400,
+  width: 600,
+  rawFormData: {
+    ...comparison.rawFormData,
+    table_timestamp_format: 'smart_date',
+    metrics: ['metric_1', 'metric_2'],
+    percent_metrics: [],
+    column_config: {
+      // Hide Main and # columns for metric_1, only show △ and %
+      'Main metric_1': { visible: false },
+      '# metric_1': { visible: false },
+      '△ metric_1': { d3NumberFormat: '.0f' },
+      '% metric_1': { d3NumberFormat: '.2%' },
+      // Show all columns for metric_2
+      'Main metric_2': { d3NumberFormat: '.0f' },
+      '# metric_2': { d3NumberFormat: '.0f' },
+      '△ metric_2': { d3NumberFormat: '.0f' },
+      '% metric_2': { d3NumberFormat: '.2%' },
+    },
+    time_compare: ['1 year ago'],
+    comparison_color_enabled: true,
+    comparison_type: ComparisonType.Values,
+  },
+  datasource: {
+    ...comparison.datasource,
+    columnFormats: {},
+    currencyFormats: {},
+    verboseMap: { metric_1: 'Metric 1', metric_2: 'Metric 2' },
+  },
+  queriesData: [
+    {
+      ...basicQueryResult,
+      data: [
+        {
+          metric_1: 100,
+          'metric_1__1 year ago': 80,
+          metric_2: 200,
+          'metric_2__1 year ago': 150,
+        },
+      ],
+      colnames: [
+        'metric_1',
+        'metric_1__1 year ago',
+        'metric_2',
+        'metric_2__1 year ago',
+      ],
+      coltypes: [
+        GenericDataType.Numeric,
+        GenericDataType.Numeric,
+        GenericDataType.Numeric,
+        GenericDataType.Numeric,
+      ],
+    },
+    {
+      ...basicQueryResult,
+      data: [{ rowcount: 1 }],
+    },
+  ],
+  filterState: { filters: {} },
+  ownState: {},
+  hooks: {
+    onAddFilter: jest.fn(),
+    setDataMask: jest.fn(),
+    onContextMenu: jest.fn(),
+  },
+  emitCrossFilters: false,
+};
+
 const raw = {
   ...advanced,
   rawFormData: {
@@ -222,10 +425,61 @@ const empty = {
   ],
 };
 
+const bigint = {
+  ...advanced,
+  queriesData: [
+    {
+      ...basicQueryResult,
+      colnames: ['name', 'id'],
+      coltypes: [GenericDataType.String, GenericDataType.Numeric],
+      data: [
+        {
+          name: 'Michael',
+          id: 4312,
+        },
+        {
+          name: 'John',
+          id: 1234567890123456789n,
+        },
+      ],
+    },
+  ],
+};
+
+const nameAndBoolean: TableChartProps = {
+  ...new ChartProps(basicChartProps),
+  queriesData: [
+    {
+      ...basicQueryResult,
+      colnames: ['name', 'is_adult'],
+      coltypes: [GenericDataType.String, GenericDataType.Boolean],
+      data: [
+        {
+          name: 'Alice',
+          is_adult: true,
+        },
+        {
+          name: 'Bob',
+          is_adult: false,
+        },
+        {
+          name: 'Carl',
+          is_adult: null,
+        },
+      ],
+    },
+  ],
+};
+
 export default {
   basic,
   advanced,
   advancedWithCurrency,
+  comparison,
+  comparisonWithConfig,
+  comparisonWithHiddenColumns,
   empty,
   raw,
+  bigint,
+  nameAndBoolean,
 };

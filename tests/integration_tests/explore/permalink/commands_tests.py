@@ -18,8 +18,9 @@
 from unittest.mock import patch
 
 import pytest
+from flask import current_app
 
-from superset import app, db, security_manager
+from superset import db, security_manager
 from superset.commands.explore.permalink.create import CreateExplorePermalinkCommand
 from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
 from superset.connectors.sqla.models import SqlaTable
@@ -31,7 +32,7 @@ from tests.integration_tests.base_tests import SupersetTestCase
 
 
 class TestCreatePermalinkDataCommand(SupersetTestCase):
-    @pytest.fixture()
+    @pytest.fixture
     def create_dataset(self):
         with self.create_app().app_context():
             dataset = SqlaTable(
@@ -49,7 +50,7 @@ class TestCreatePermalinkDataCommand(SupersetTestCase):
             db.session.delete(dataset)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_slice(self):
         with self.create_app().app_context():
             dataset = (
@@ -73,7 +74,7 @@ class TestCreatePermalinkDataCommand(SupersetTestCase):
             db.session.delete(slice)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_query(self):
         with self.create_app().app_context():
             query = Query(
@@ -112,7 +113,7 @@ class TestCreatePermalinkDataCommand(SupersetTestCase):
     @pytest.mark.usefixtures("create_dataset", "create_slice")
     def test_get_permalink_command(self, mock_g):
         mock_g.user = security_manager.find_user("admin")
-        app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"] = {
+        current_app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"] = {
             "REFRESH_TIMEOUT_ON_RETRIEVAL": True
         }
 
@@ -133,14 +134,14 @@ class TestCreatePermalinkDataCommand(SupersetTestCase):
         assert cache_data.get("datasource") == datasource
 
     @patch("superset.security.manager.g")
-    @patch("superset.commands.key_value.get.GetKeyValueCommand.run")
+    @patch("superset.daos.key_value.KeyValueDAO.get_value")
     @patch("superset.commands.explore.permalink.get.decode_permalink_id")
     @pytest.mark.usefixtures("create_dataset", "create_slice")
     def test_get_permalink_command_with_old_dataset_key(
-        self, decode_id_mock, get_kv_command_mock, mock_g
+        self, decode_id_mock, kv_get_value_mock, mock_g
     ):
         mock_g.user = security_manager.find_user("admin")
-        app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"] = {
+        current_app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"] = {
             "REFRESH_TIMEOUT_ON_RETRIEVAL": True
         }
 
@@ -149,13 +150,14 @@ class TestCreatePermalinkDataCommand(SupersetTestCase):
         )
         slice = db.session.query(Slice).filter_by(slice_name="slice_name").first()
 
-        datasource_string = f"{dataset.id}__{DatasourceType.TABLE}"
+        datasource_string = f"{dataset.id}__{DatasourceType.TABLE.value}"
 
         decode_id_mock.return_value = "123456"
-        get_kv_command_mock.return_value = {
+        kv_get_value_mock.return_value = {
             "chartId": slice.id,
             "datasetId": dataset.id,
             "datasource": datasource_string,
+            "datasourceType": DatasourceType.TABLE.value,
             "state": {
                 "formData": {"datasource": datasource_string, "slice_id": slice.id}
             },

@@ -17,14 +17,23 @@
  * under the License.
  */
 
-import { CallbackDataParams } from 'echarts/types/src/util/types';
+import type { CallbackDataParams } from 'echarts/types/src/util/types';
+import {
+  QueryFormColumn,
+  QueryFormMetric,
+  getColumnLabel,
+  getMetricLabel,
+} from '@superset-ui/core';
 import { TOOLTIP_OVERFLOW_MARGIN, TOOLTIP_POINTER_MARGIN } from '../constants';
 import { Refs } from '../types';
 
 export function getDefaultTooltip(refs: Refs) {
   return {
-    appendToBody: true,
+    appendToBody:
+      typeof document !== 'undefined' ? !document.fullscreenElement : true,
     borderColor: 'transparent',
+    // CSS hack applied on this class to resolve https://github.com/apache/superset/issues/30058
+    className: 'echarts-tooltip',
     position: (
       canvasMousePos: [number, number],
       params: CallbackDataParams,
@@ -77,4 +86,17 @@ export function getDefaultTooltip(refs: Refs) {
       return [xPos - (divRect?.x || 0), yPos - (divRect?.y || 0)];
     },
   };
+}
+
+export function getTooltipLabels({
+  tooltipMetrics,
+  tooltipColumns,
+}: {
+  tooltipMetrics?: QueryFormMetric[];
+  tooltipColumns?: QueryFormColumn[];
+}) {
+  return [
+    ...(tooltipMetrics ?? []).map(v => getMetricLabel(v)),
+    ...(tooltipColumns ?? []).map(v => getColumnLabel(v)),
+  ];
 }

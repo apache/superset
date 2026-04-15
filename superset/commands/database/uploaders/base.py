@@ -16,11 +16,11 @@
 # under the License.
 import logging
 from abc import abstractmethod
+from functools import partial
 from typing import Any, Optional, TypedDict
 
 import pandas as pd
 from flask_babel import lazy_gettext as _
-from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.datastructures import FileStorage
 
 from superset import db
@@ -35,13 +35,21 @@ from superset.commands.database.exceptions import (
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.database import DatabaseDAO
 from superset.models.core import Database
-from superset.sql_parse import Table
+from superset.sql.parse import Table
+from superset.utils.backports import StrEnum
 from superset.utils.core import get_user
+from superset.utils.decorators import on_error, transaction
 from superset.views.database.validators import schema_allows_file_upload
 
 logger = logging.getLogger(__name__)
 
 READ_CHUNK_SIZE = 1000
+
+
+class UploadFileType(StrEnum):
+    CSV = "csv"
+    EXCEL = "excel"
+    COLUMNAR = "columnar"
 
 
 class ReaderOptions(TypedDict, total=False):
@@ -125,7 +133,8 @@ class BaseDataReader:
                 )
             ) from ex
         except Exception as ex:
-            raise DatabaseUploadFailed(exception=ex) from ex
+            message = ex.message if hasattr(ex, "message") and ex.message else str(ex)
+            raise DatabaseUploadFailed(message=message, exception=ex) from ex
 
 
 class UploadCommand(BaseCommand):
@@ -144,10 +153,17 @@ class UploadCommand(BaseCommand):
         self._file = file
         self._reader = reader
 
+    @transaction(on_error=partial(on_error, reraise=DatabaseUploadSaveMetadataFailed))
     def run(self) -> None:
         self.validate()
         if not self._model:
             return
+
+        self._table_name, self._schema = (
+            self._model.db_engine_spec.normalize_table_name_for_upload(
+                self._table_name, self._schema
+            )
+        )
 
         self._reader.read(self._file, self._model, self._table_name, self._schema)
 
@@ -171,12 +187,6 @@ class UploadCommand(BaseCommand):
             db.session.add(sqla_table)
 
         sqla_table.fetch_metadata()
-
-        try:
-            db.session.commit()
-        except SQLAlchemyError as ex:
-            db.session.rollback()
-            raise DatabaseUploadSaveMetadataFailed() from ex
 
     def validate(self) -> None:
         self._model = DatabaseDAO.find_by_id(self._model_id)

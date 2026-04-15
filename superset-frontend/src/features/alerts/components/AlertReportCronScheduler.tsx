@@ -16,12 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useCallback, useRef, FocusEvent } from 'react';
-import { t, useTheme } from '@superset-ui/core';
+import { useState, useCallback, FocusEvent, FC } from 'react';
 
-import { AntdInput, Select } from 'src/components';
-import { Input } from 'src/components/Input';
-import { CronPicker, CronError } from 'src/components/CronPicker';
+import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
+
+import {
+  Input,
+  CronPicker,
+  Select,
+  type CronError,
+} from '@superset-ui/core/components';
 import { StyledInputContainer } from '../AlertReportModal';
 
 export interface AlertReportCronSchedulerProps {
@@ -45,11 +50,11 @@ const SCHEDULE_TYPE_OPTIONS = [
   },
 ];
 
-export const AlertReportCronScheduler: React.FC<
-  AlertReportCronSchedulerProps
-> = ({ value, onChange }) => {
+export const AlertReportCronScheduler: FC<AlertReportCronSchedulerProps> = ({
+  value,
+  onChange,
+}) => {
   const theme = useTheme();
-  const inputRef = useRef<AntdInput>(null);
   const [scheduleFormat, setScheduleFormat] = useState<ScheduleType>(
     ScheduleType.Picker,
   );
@@ -57,9 +62,8 @@ export const AlertReportCronScheduler: React.FC<
   const customSetValue = useCallback(
     (newValue: string) => {
       onChange(newValue);
-      inputRef.current?.setValue(newValue);
     },
-    [inputRef, onChange],
+    [onChange],
   );
 
   const handleBlur = useCallback(
@@ -70,8 +74,8 @@ export const AlertReportCronScheduler: React.FC<
   );
 
   const handlePressEnter = useCallback(() => {
-    onChange(inputRef.current?.input.value || '');
-  }, [onChange]);
+    onChange(value || '');
+  }, [onChange, value]);
 
   const [error, onError] = useState<CronError>();
 
@@ -104,8 +108,7 @@ export const AlertReportCronScheduler: React.FC<
           <Input
             type="text"
             name="crontab"
-            ref={inputRef}
-            style={error ? { borderColor: theme.colors.error.base } : {}}
+            style={error ? { borderColor: theme.colorError } : {}}
             placeholder={t('CRON expression')}
             value={value}
             onBlur={handleBlur}

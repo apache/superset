@@ -1,0 +1,908 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+import json  # noqa: TID251
+import re
+import shutil
+import subprocess
+import sys
+import time
+import zipfile
+from pathlib import Path
+from typing import Any, Callable
+
+import click
+import semver
+from jinja2 import Environment, FileSystemLoader
+from superset_core.extensions.types import (
+    ExtensionConfig,
+    Manifest,
+    ManifestBackend,
+    ManifestFrontend,
+)
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
+
+from superset_extensions_cli.constants import MIN_NPM_VERSION
+from superset_extensions_cli.exceptions import ExtensionNameError
+from superset_extensions_cli.types import ExtensionNames
+from superset_extensions_cli.utils import (
+    generate_extension_names,
+    get_module_federation_name,
+    kebab_to_snake_case,
+    read_json,
+    read_toml,
+    suggest_technical_name,
+    validate_display_name,
+    validate_publisher,
+    validate_technical_name,
+    write_json,
+    write_toml,
+)
+
+REMOTE_ENTRY_REGEX = re.compile(r"^remoteEntry\..+\.js$")
+FRONTEND_DIST_REGEX = re.compile(r"/frontend/dist")
+
+
+def validate_npm() -> None:
+    """Abort if `npm` is not on PATH."""
+    if shutil.which("npm") is None:
+        click.secho(
+            "❌ npm is not installed or not on your PATH.",
+            err=True,
+            fg="red",
+        )
+        sys.exit(1)
+
+    try:
+        result = subprocess.run(  # noqa: S603
+            ["npm", "-v"],  # noqa: S607
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        if result.returncode != 0:
+            click.secho(
+                f"❌ Failed to run `npm -v`: {result.stderr.strip()}",
+                err=True,
+                fg="red",
+            )
+            sys.exit(1)
+
+        npm_version = result.stdout.strip()
+        if semver.compare(npm_version, MIN_NPM_VERSION) < 0:
+            click.secho(
+                f"❌ npm version {npm_version} is lower than the required {MIN_NPM_VERSION}.",  # noqa: E501
+                err=True,
+                fg="red",
+            )
+            sys.exit(1)
+
+    except FileNotFoundError:
+        click.secho(
+            "❌ npm was not found when checking its version.",
+            err=True,
+            fg="red",
+        )
+        sys.exit(1)
+
+
+def init_frontend_deps(frontend_dir: Path) -> None:
+    """
+    If node_modules is missing under `frontend_dir`, run `npm ci` if package-lock.json
+    exists, otherwise run `npm i`.
+    """
+    node_modules = frontend_dir / "node_modules"
+    if not node_modules.exists():
+        package_lock = frontend_dir / "package-lock.json"
+        if package_lock.exists():
+            click.secho("⚙️  node_modules not found, running `npm ci`…", fg="cyan")
+            npm_command = ["npm", "ci"]
+            error_msg = "❌ `npm ci` failed. Aborting."
+        else:
+            click.secho("⚙️  node_modules not found, running `npm i`…", fg="cyan")
+            npm_command = ["npm", "i"]
+            error_msg = "❌ `npm i` failed. Aborting."
+
+        validate_npm()
+        res = subprocess.run(  # noqa: S603
+            npm_command,  # noqa: S607
+            cwd=frontend_dir,
+            text=True,
+        )
+        if res.returncode != 0:
+            click.secho(error_msg, err=True, fg="red")
+            sys.exit(1)
+        click.secho("✅ Dependencies installed", fg="green")
+
+
+def clean_dist(cwd: Path) -> None:
+    dist_dir = cwd / "dist"
+    if dist_dir.exists():
+        shutil.rmtree(dist_dir)
+    dist_dir.mkdir(parents=True)
+
+
+def clean_dist_frontend(cwd: Path) -> None:
+    frontend_dist = cwd / "dist" / "frontend"
+    if frontend_dist.exists():
+        shutil.rmtree(frontend_dist)
+
+
+def build_manifest(cwd: Path, remote_entry: str | None) -> Manifest:
+    extension_data = read_json(cwd / "extension.json")
+    if not extension_data:
+        click.secho("❌ extension.json not found.", err=True, fg="red")
+        sys.exit(1)
+
+    extension = ExtensionConfig.model_validate(extension_data)
+
+    # Generate composite ID from publisher and name
+    composite_id = f"{extension.publisher}.{extension.name}"
+
+    frontend: ManifestFrontend | None = None
+    if remote_entry:
+        frontend = ManifestFrontend(
+            remoteEntry=remote_entry,
+            moduleFederationName=get_module_federation_name(
+                extension.publisher, extension.name
+            ),
+        )
+
+    backend: ManifestBackend | None = None
+    backend_dir = cwd / "backend"
+    if backend_dir.exists():
+        # Generate conventional entry point
+        publisher_snake = kebab_to_snake_case(extension.publisher)
+        name_snake = kebab_to_snake_case(extension.name)
+        entrypoint = f"{publisher_snake}.{name_snake}.entrypoint"
+        backend = ManifestBackend(entrypoint=entrypoint)
+
+    return Manifest(
+        id=composite_id,
+        publisher=extension.publisher,
+        name=extension.name,
+        displayName=extension.displayName,
+        version=extension.version,
+        permissions=extension.permissions,
+        dependencies=extension.dependencies,
+        frontend=frontend,
+        backend=backend,
+    )
+
+
+def write_manifest(cwd: Path, manifest: Manifest) -> None:
+    dist_dir = cwd / "dist"
+    (dist_dir / "manifest.json").write_text(
+        manifest.model_dump_json(indent=2, exclude_none=True, by_alias=True)
+    )
+    click.secho("✅ Manifest updated", fg="green")
+
+
+def run_frontend_build(frontend_dir: Path) -> subprocess.CompletedProcess[str]:
+    click.echo()
+    click.secho("⚙️  Building frontend assets…", fg="cyan")
+    return subprocess.run(  # noqa: S603
+        ["npm", "run", "build"],  # noqa: S607
+        cwd=frontend_dir,
+        text=True,
+    )
+
+
+def copy_frontend_dist(cwd: Path) -> str:
+    dist_dir = cwd / "dist"
+    frontend_dist = cwd / "frontend" / "dist"
+    remote_entry: str | None = None
+
+    for f in frontend_dist.rglob("*"):
+        if not f.is_file():
+            continue
+        if REMOTE_ENTRY_REGEX.match(f.name):
+            remote_entry = f.name
+        tgt = dist_dir / f.relative_to(cwd)
+        tgt.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(f, tgt)
+
+    if not remote_entry:
+        click.secho("❌ No remote entry file found.", err=True, fg="red")
+        sys.exit(1)
+    return remote_entry
+
+
+def copy_backend_files(cwd: Path) -> None:
+    """Copy backend files based on pyproject.toml build configuration (validation already passed)."""
+    dist_dir = cwd / "dist"
+    backend_dir = cwd / "backend"
+
+    # Read build config from pyproject.toml
+    pyproject = read_toml(backend_dir / "pyproject.toml")
+    assert pyproject
+    build_config = (
+        pyproject.get("tool", {}).get("apache_superset_extensions", {}).get("build", {})
+    )
+    include_patterns = build_config.get("include", [])
+    exclude_patterns = build_config.get("exclude", [])
+
+    # Process include patterns
+    for pattern in include_patterns:
+        for f in backend_dir.glob(pattern):
+            if not f.is_file():
+                continue
+
+            # Check exclude patterns
+            relative_path = f.relative_to(backend_dir)
+            should_exclude = any(
+                relative_path.match(excl_pattern) for excl_pattern in exclude_patterns
+            )
+            if should_exclude:
+                continue
+
+            tgt = dist_dir / "backend" / relative_path
+            tgt.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(f, tgt)
+
+
+def rebuild_frontend(cwd: Path, frontend_dir: Path) -> str | None:
+    """Clean and rebuild frontend, return the remoteEntry filename."""
+    clean_dist_frontend(cwd)
+
+    res = run_frontend_build(frontend_dir)
+    if res.returncode != 0:
+        click.secho("❌ Frontend build failed", fg="red")
+        return None
+
+    remote_entry = copy_frontend_dist(cwd)
+    click.secho("✅ Frontend rebuilt", fg="green")
+    return remote_entry
+
+
+def rebuild_backend(cwd: Path) -> None:
+    """Copy backend files (no manifest update)."""
+    copy_backend_files(cwd)
+    click.secho("✅ Backend files synced", fg="green")
+
+
+class FrontendChangeHandler(FileSystemEventHandler):
+    def __init__(self, trigger_build: Callable[[], None]):
+        self.trigger_build = trigger_build
+
+    def on_any_event(self, event: Any) -> None:
+        if FRONTEND_DIST_REGEX.search(event.src_path):
+            return
+        click.secho(f"🔁 Frontend change detected: {event.src_path}", fg="yellow")
+        self.trigger_build()
+
+
+@click.group(help="CLI for validating and bundling Superset extensions.")
+def app() -> None:
+    pass
+
+
+@app.command()
+def validate() -> None:
+    """Validate the extension structure and metadata consistency."""
+    validate_npm()
+
+    cwd = Path.cwd()
+
+    # Validate extension.json exists and is valid
+    extension_data = read_json(cwd / "extension.json")
+    if not extension_data:
+        click.secho("❌ extension.json not found.", err=True, fg="red")
+        sys.exit(1)
+
+    try:
+        extension = ExtensionConfig.model_validate(extension_data)
+    except Exception as e:
+        click.secho(f"❌ Invalid extension.json: {e}", err=True, fg="red")
+        sys.exit(1)
+
+    # Validate conventional backend structure if backend directory exists
+    backend_dir = cwd / "backend"
+    if backend_dir.exists():
+        # Check for pyproject.toml
+        pyproject_path = backend_dir / "pyproject.toml"
+        if not pyproject_path.exists():
+            click.secho(
+                "❌ Backend directory exists but pyproject.toml not found",
+                err=True,
+                fg="red",
+            )
+            sys.exit(1)
+
+        # Validate pyproject.toml has build configuration
+        pyproject = read_toml(pyproject_path)
+        if not pyproject:
+            click.secho("❌ Failed to read backend pyproject.toml", err=True, fg="red")
+            sys.exit(1)
+
+        build_config = (
+            pyproject.get("tool", {})
+            .get("apache_superset_extensions", {})
+            .get("build", {})
+        )
+        if not build_config.get("include"):
+            click.secho(
+                "❌ Missing [tool.apache_superset_extensions.build] section with 'include' patterns in pyproject.toml",
+                err=True,
+                fg="red",
+            )
+            sys.exit(1)
+
+        # Check conventional backend entry point
+        publisher_snake = kebab_to_snake_case(extension.publisher)
+        name_snake = kebab_to_snake_case(extension.name)
+        expected_entry_file = (
+            backend_dir / "src" / publisher_snake / name_snake / "entrypoint.py"
+        )
+
+        if not expected_entry_file.exists():
+            click.secho(
+                f"❌ Backend entry point not found at expected location: {expected_entry_file.relative_to(cwd)}",
+                err=True,
+                fg="red",
+            )
+            click.secho(
+                f"   Convention requires: backend/src/{publisher_snake}/{name_snake}/entrypoint.py",
+                fg="yellow",
+            )
+            sys.exit(1)
+
+    # Validate conventional frontend entry point if frontend directory exists
+    frontend_dir = cwd / "frontend"
+    if frontend_dir.exists():
+        expected_frontend_entry = frontend_dir / "src" / "index.tsx"
+        if not expected_frontend_entry.exists():
+            click.secho(
+                f"❌ Frontend entry point not found at expected location: {expected_frontend_entry.relative_to(cwd)}",
+                err=True,
+                fg="red",
+            )
+            click.secho("   Convention requires: frontend/src/index.tsx", fg="yellow")
+            sys.exit(1)
+
+    # Validate version and license consistency across extension.json, frontend, and backend
+    mismatches: list[str] = []
+    frontend_pkg_path = cwd / "frontend" / "package.json"
+    frontend_pkg = None
+    if frontend_pkg_path.is_file():
+        frontend_pkg = read_json(frontend_pkg_path)
+        if frontend_pkg:
+            if frontend_pkg.get("version") != extension.version:
+                mismatches.append(
+                    f"  frontend/package.json version: {frontend_pkg.get('version')} "
+                    f"(expected {extension.version})"
+                )
+            if extension.license and frontend_pkg.get("license") != extension.license:
+                mismatches.append(
+                    f"  frontend/package.json license: {frontend_pkg.get('license')} "
+                    f"(expected {extension.license})"
+                )
+
+    backend_pyproject_path = cwd / "backend" / "pyproject.toml"
+    if backend_pyproject_path.is_file():
+        backend_pyproject = read_toml(backend_pyproject_path)
+        if backend_pyproject:
+            project = backend_pyproject.get("project", {})
+            if project.get("version") != extension.version:
+                mismatches.append(
+                    f"  backend/pyproject.toml version: {project.get('version')} "
+                    f"(expected {extension.version})"
+                )
+            if extension.license and project.get("license") != extension.license:
+                mismatches.append(
+                    f"  backend/pyproject.toml license: {project.get('license')} "
+                    f"(expected {extension.license})"
+                )
+
+    if mismatches:
+        click.secho("❌ Metadata mismatch detected:", err=True, fg="red")
+        for mismatch in mismatches:
+            click.secho(mismatch, err=True, fg="red")
+        click.secho(
+            "Run `superset-extensions update` to sync from extension.json.",
+            fg="yellow",
+        )
+        sys.exit(1)
+
+    click.secho("✅ Validation successful", fg="green")
+
+
+@app.command()
+@click.option(
+    "--version",
+    "version_opt",
+    is_flag=False,
+    flag_value="__prompt__",
+    default=None,
+    help="Set a new version. Prompts for value if none given.",
+)
+@click.option(
+    "--license",
+    "license_opt",
+    is_flag=False,
+    flag_value="__prompt__",
+    default=None,
+    help="Set a new license. Prompts for value if none given.",
+)
+def update(version_opt: str | None, license_opt: str | None) -> None:
+    """Update derived and generated files in the extension project."""
+    cwd = Path.cwd()
+
+    extension_json_path = cwd / "extension.json"
+    extension_data = read_json(extension_json_path)
+    if not extension_data:
+        click.secho("❌ extension.json not found.", err=True, fg="red")
+        sys.exit(1)
+
+    try:
+        extension = ExtensionConfig.model_validate(extension_data)
+    except Exception as e:
+        click.secho(f"❌ Invalid extension.json: {e}", err=True, fg="red")
+        sys.exit(1)
+
+    # Resolve version: prompt if flag used without value
+    if version_opt == "__prompt__":
+        version_opt = click.prompt("Version", default=extension.version)
+    target_version = (
+        version_opt
+        if version_opt and version_opt != extension.version
+        else extension.version
+    )
+
+    # Resolve license: prompt if flag used without value
+    if license_opt == "__prompt__":
+        license_opt = click.prompt("License", default=extension.license or "")
+    target_license = (
+        license_opt
+        if license_opt and license_opt != extension.license
+        else extension.license
+    )
+
+    updated: list[str] = []
+
+    # Update extension.json if version or license changed
+    ext_changed = False
+    if version_opt and version_opt != extension.version:
+        extension_data["version"] = target_version
+        ext_changed = True
+    if license_opt and license_opt != extension.license:
+        extension_data["license"] = target_license
+        ext_changed = True
+    if ext_changed:
+        try:
+            ExtensionConfig.model_validate(extension_data)
+        except Exception as e:
+            click.secho(f"❌ Invalid value: {e}", err=True, fg="red")
+            sys.exit(1)
+        write_json(extension_json_path, extension_data)
+        updated.append("extension.json")
+
+    # Update frontend/package.json
+    frontend_pkg_path = cwd / "frontend" / "package.json"
+    if frontend_pkg_path.is_file():
+        frontend_pkg = read_json(frontend_pkg_path)
+        if frontend_pkg:
+            pkg_changed = False
+            if frontend_pkg.get("version") != target_version:
+                frontend_pkg["version"] = target_version
+                pkg_changed = True
+            if target_license and frontend_pkg.get("license") != target_license:
+                frontend_pkg["license"] = target_license
+                pkg_changed = True
+            if pkg_changed:
+                write_json(frontend_pkg_path, frontend_pkg)
+                updated.append("frontend/package.json")
+
+    # Update backend/pyproject.toml
+    backend_pyproject_path = cwd / "backend" / "pyproject.toml"
+    if backend_pyproject_path.is_file():
+        backend_pyproject = read_toml(backend_pyproject_path)
+        if backend_pyproject:
+            project = backend_pyproject.setdefault("project", {})
+            toml_changed = False
+            if project.get("version") != target_version:
+                project["version"] = target_version
+                toml_changed = True
+            if target_license and project.get("license") != target_license:
+                project["license"] = target_license
+                toml_changed = True
+            if toml_changed:
+                write_toml(backend_pyproject_path, backend_pyproject)
+                updated.append("backend/pyproject.toml")
+
+    if updated:
+        for path in updated:
+            click.secho(f"✅ Updated {path}", fg="green")
+    else:
+        click.secho("✅ All files already up to date.", fg="green")
+
+
+@app.command()
+@click.pass_context
+def build(ctx: click.Context) -> None:
+    """Build extension assets."""
+    ctx.invoke(validate)
+    cwd = Path.cwd()
+    frontend_dir = cwd / "frontend"
+    backend_dir = cwd / "backend"
+
+    clean_dist(cwd)
+
+    # Build frontend if it exists
+    remote_entry = None
+    if frontend_dir.exists():
+        init_frontend_deps(frontend_dir)
+        remote_entry = rebuild_frontend(cwd, frontend_dir)
+
+    # Build backend independently if it exists
+    if backend_dir.exists():
+        pyproject = read_toml(backend_dir / "pyproject.toml")
+        if pyproject:
+            rebuild_backend(cwd)
+
+    # Build manifest and write it
+    manifest = build_manifest(cwd, remote_entry)
+    write_manifest(cwd, manifest)
+
+    click.secho("✅ Full build completed in dist/", fg="green")
+
+
+@app.command()
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(path_type=Path, dir_okay=True, file_okay=True, writable=True),
+    help="Optional output path or filename for the bundle.",
+)
+@click.pass_context
+def bundle(ctx: click.Context, output: Path | None) -> None:
+    """Package the extension into a .supx file."""
+    ctx.invoke(build)
+
+    cwd = Path.cwd()
+    dist_dir = cwd / "dist"
+    manifest_path = dist_dir / "manifest.json"
+
+    if not manifest_path.exists():
+        click.secho(
+            "❌ dist/manifest.json not found. Run `build` first.", err=True, fg="red"
+        )
+        sys.exit(1)
+
+    manifest = json.loads(manifest_path.read_text())
+    name = manifest["name"]
+    version = manifest["version"]
+    default_filename = f"{name}-{version}.supx"
+
+    if output is None:
+        zip_path = Path(default_filename)
+    elif output.is_dir():
+        zip_path = output / default_filename
+    else:
+        zip_path = output
+
+    try:
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+            for file in dist_dir.rglob("*"):
+                if file.is_file():
+                    arcname = file.relative_to(dist_dir)
+                    zipf.write(file, arcname)
+    except Exception as ex:
+        click.secho(f"❌ Failed to create bundle: {ex}", err=True, fg="red")
+        sys.exit(1)
+
+    click.secho(f"✅ Bundle created: {zip_path}", fg="green")
+
+
+@app.command()
+@click.pass_context
+def dev(ctx: click.Context) -> None:
+    """Automatically rebuild the extension as files change."""
+    cwd = Path.cwd()
+    frontend_dir = cwd / "frontend"
+    backend_dir = cwd / "backend"
+
+    clean_dist(cwd)
+
+    # Build frontend if it exists
+    remote_entry = None
+    if frontend_dir.exists():
+        init_frontend_deps(frontend_dir)
+        remote_entry = rebuild_frontend(cwd, frontend_dir)
+
+    # Build backend if it exists
+    if backend_dir.exists():
+        rebuild_backend(cwd)
+
+    manifest = build_manifest(cwd, remote_entry)
+    write_manifest(cwd, manifest)
+
+    def frontend_watcher() -> None:
+        if frontend_dir.exists():
+            if (remote_entry := rebuild_frontend(cwd, frontend_dir)) is not None:
+                manifest = build_manifest(cwd, remote_entry)
+                write_manifest(cwd, manifest)
+
+    def backend_watcher() -> None:
+        if backend_dir.exists():
+            rebuild_backend(cwd)
+
+    # Build watch message based on existing directories
+    watch_dirs = []
+    if frontend_dir.exists():
+        watch_dirs.append(str(frontend_dir))
+    if backend_dir.exists():
+        watch_dirs.append(str(backend_dir))
+
+    if watch_dirs:
+        click.secho(f"👀 Watching for changes in: {', '.join(watch_dirs)}", fg="green")
+    else:
+        click.secho("⚠️  No frontend or backend directories found to watch", fg="yellow")
+
+    observer = Observer()
+
+    # Only set up watchers for directories that exist
+    if frontend_dir.exists():
+        frontend_handler = FrontendChangeHandler(trigger_build=frontend_watcher)
+        observer.schedule(frontend_handler, str(frontend_dir), recursive=True)
+
+    if backend_dir.exists():
+        backend_handler = FileSystemEventHandler()
+        backend_handler.on_any_event = lambda event: backend_watcher()
+        observer.schedule(backend_handler, str(backend_dir), recursive=True)
+
+    if watch_dirs:
+        observer.start()
+
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            click.secho("\n🛑 Stopping watch mode", fg="blue")
+            observer.stop()
+
+        observer.join()
+    else:
+        click.secho("❌ No directories to watch. Exiting.", fg="red")
+
+
+def prompt_for_extension_info(
+    display_name_opt: str | None,
+    publisher_opt: str | None,
+    technical_name_opt: str | None,
+) -> ExtensionNames:
+    """
+    Prompt for extension info with graceful validation and re-prompting.
+
+    Args:
+        display_name_opt: Display name provided via CLI option (if any)
+        publisher_opt: Publisher provided via CLI option (if any)
+        technical_name_opt: Technical name provided via CLI option (if any)
+
+    Returns:
+        ExtensionNames: Validated extension name variants
+    """
+
+    # Step 1: Get display name
+    if display_name_opt:
+        display_name = display_name_opt
+        try:
+            display_name = validate_display_name(display_name)
+        except ExtensionNameError as e:
+            click.secho(f"❌ {e}", fg="red")
+            sys.exit(1)
+    else:
+        while True:
+            display_name = click.prompt("Extension display name", type=str)
+            try:
+                display_name = validate_display_name(display_name)
+                break
+            except ExtensionNameError as e:
+                click.secho(f"❌ {e}", fg="red")
+
+    # Step 2: Get technical name (with suggestion from display name)
+    if technical_name_opt:
+        technical_name = technical_name_opt
+        try:
+            validate_technical_name(technical_name)
+        except ExtensionNameError as e:
+            click.secho(f"❌ {e}", fg="red")
+            sys.exit(1)
+    else:
+        # Suggest technical name from display name
+        try:
+            suggested_technical = suggest_technical_name(display_name)
+        except ExtensionNameError:
+            suggested_technical = "extension"
+
+        while True:
+            technical_name = click.prompt(
+                f"Extension name ({suggested_technical})",
+                default=suggested_technical,
+                type=str,
+            )
+            try:
+                validate_technical_name(technical_name)
+                break
+            except ExtensionNameError as e:
+                click.secho(f"❌ {e}", fg="red")
+
+    # Step 3: Get publisher
+    if publisher_opt:
+        publisher = publisher_opt
+        try:
+            validate_publisher(publisher)
+        except ExtensionNameError as e:
+            click.secho(f"❌ {e}", fg="red")
+            sys.exit(1)
+    else:
+        while True:
+            publisher = click.prompt("Publisher (e.g., my-org)", type=str)
+            try:
+                validate_publisher(publisher)
+                break
+            except ExtensionNameError as e:
+                click.secho(f"❌ {e}", fg="red")
+
+    # Generate all name variants
+    try:
+        return generate_extension_names(display_name, publisher, technical_name)
+    except ExtensionNameError as e:
+        click.secho(f"❌ {e}", fg="red")
+        sys.exit(1)
+
+
+@app.command()
+@click.option(
+    "--publisher",
+    "publisher_opt",
+    default=None,
+    help="Publisher namespace (kebab-case, e.g. my-org)",
+)
+@click.option(
+    "--name",
+    "name_opt",
+    default=None,
+    help="Technical extension name (kebab-case, e.g. dashboard-widgets)",
+)
+@click.option(
+    "--display-name",
+    "display_name_opt",
+    default=None,
+    help="Extension display name (e.g. Dashboard Widgets)",
+)
+@click.option(
+    "--version", "version_opt", default=None, help="Initial version (default: 0.1.0)"
+)
+@click.option(
+    "--license", "license_opt", default=None, help="License (default: Apache-2.0)"
+)
+@click.option(
+    "--frontend/--no-frontend", "frontend_opt", default=None, help="Include frontend"
+)
+@click.option(
+    "--backend/--no-backend", "backend_opt", default=None, help="Include backend"
+)
+def init(
+    publisher_opt: str | None,
+    name_opt: str | None,
+    display_name_opt: str | None,
+    version_opt: str | None,
+    license_opt: str | None,
+    frontend_opt: bool | None,
+    backend_opt: bool | None,
+) -> None:
+    """Scaffold a new extension project."""
+    # Get extension names with graceful validation
+    names = prompt_for_extension_info(display_name_opt, publisher_opt, name_opt)
+
+    version = version_opt or click.prompt("Initial version", default="0.1.0")
+    license_ = license_opt or click.prompt("License", default="Apache-2.0")
+    include_frontend = (
+        frontend_opt
+        if frontend_opt is not None
+        else click.confirm("Include frontend?", default=True)
+    )
+    include_backend = (
+        backend_opt
+        if backend_opt is not None
+        else click.confirm("Include backend?", default=True)
+    )
+
+    target_dir = Path.cwd() / names["name"]
+    if target_dir.exists():
+        click.secho(f"❌ Directory {target_dir} already exists.", fg="red")
+        sys.exit(1)
+
+    # Set up Jinja environment
+    templates_dir = Path(__file__).parent / "templates"
+    env = Environment(loader=FileSystemLoader(templates_dir))  # noqa: S701
+    ctx = {
+        **names,  # Include all name variants
+        "include_frontend": include_frontend,
+        "include_backend": include_backend,
+        "license": license_,
+        "version": version,
+    }
+
+    # Create base directory
+    target_dir.mkdir()
+    extension_json = env.get_template("extension.json.j2").render(ctx)
+    (target_dir / "extension.json").write_text(extension_json)
+    click.secho("✅ Created extension.json", fg="green")
+
+    # Create .gitignore
+    gitignore = env.get_template("gitignore.j2").render(ctx)
+    (target_dir / ".gitignore").write_text(gitignore)
+    click.secho("✅ Created .gitignore", fg="green")
+
+    # Initialize frontend files
+    if include_frontend:
+        frontend_dir = target_dir / "frontend"
+        frontend_dir.mkdir()
+        frontend_src_dir = frontend_dir / "src"
+        frontend_src_dir.mkdir()
+
+        # frontend files
+        package_json = env.get_template("frontend/package.json.j2").render(ctx)
+        (frontend_dir / "package.json").write_text(package_json)
+        webpack_config = env.get_template("frontend/webpack.config.js.j2").render(ctx)
+        (frontend_dir / "webpack.config.js").write_text(webpack_config)
+        tsconfig_json = env.get_template("frontend/tsconfig.json.j2").render(ctx)
+        (frontend_dir / "tsconfig.json").write_text(tsconfig_json)
+        index_tsx = env.get_template("frontend/src/index.tsx.j2").render(ctx)
+        (frontend_src_dir / "index.tsx").write_text(index_tsx)
+        click.secho("✅ Created frontend folder structure", fg="green")
+
+    # Initialize backend files with publisher.name structure
+    if include_backend:
+        backend_dir = target_dir / "backend"
+        backend_dir.mkdir()
+        backend_src_dir = backend_dir / "src"
+        backend_src_dir.mkdir()
+
+        # Create publisher directory (e.g., my_org)
+        publisher_snake = kebab_to_snake_case(names["publisher"])
+        publisher_dir = backend_src_dir / publisher_snake
+        publisher_dir.mkdir()
+
+        # Create extension package directory (e.g., my_org/dashboard_widgets)
+        name_snake = kebab_to_snake_case(names["name"])
+        extension_package_dir = publisher_dir / name_snake
+        extension_package_dir.mkdir()
+
+        # backend files
+        pyproject_toml = env.get_template("backend/pyproject.toml.j2").render(ctx)
+        (backend_dir / "pyproject.toml").write_text(pyproject_toml)
+
+        # Extension package files
+        entrypoint_py = env.get_template("backend/src/package/entrypoint.py.j2").render(
+            ctx
+        )
+        (extension_package_dir / "entrypoint.py").write_text(entrypoint_py)
+
+        click.secho("✅ Created backend folder structure", fg="green")
+
+    click.secho(
+        f"🎉 Extension {names['display_name']} (ID: {names['id']}) initialized at {target_dir}",
+        fg="cyan",
+    )
+
+
+if __name__ == "__main__":
+    app()

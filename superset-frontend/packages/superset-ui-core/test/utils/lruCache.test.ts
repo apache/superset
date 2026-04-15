@@ -35,8 +35,11 @@ test('LRU operations', () => {
   expect(cache.size).toBe(3);
   expect(cache.has('1')).toBeFalsy();
   expect(cache.get('1')).toBeUndefined();
+  expect(cache.values()).toEqual(['b', 'c', 'd']);
   cache.get('2');
+  expect(cache.values()).toEqual(['c', 'd', 'b']);
   cache.set('5', 'e');
+  expect(cache.values()).toEqual(['d', 'b', 'e']);
   expect(cache.has('2')).toBeTruthy();
   expect(cache.has('3')).toBeFalsy();
   // @ts-expect-error
@@ -44,6 +47,7 @@ test('LRU operations', () => {
   // @ts-expect-error
   expect(() => cache.get(0)).toThrow(TypeError);
   expect(cache.size).toBe(3);
+  expect(cache.values()).toEqual(['d', 'b', 'e']);
   cache.clear();
   expect(cache.size).toBe(0);
   expect(cache.capacity).toBe(3);

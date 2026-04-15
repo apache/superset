@@ -17,11 +17,9 @@
  * under the License.
  */
 
-import React from 'react';
 import * as reactRedux from 'react-redux';
 import { Filter, NativeFilterType } from '@superset-ui/core';
-import userEvent from '@testing-library/user-event';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { SET_DIRECT_PATH } from 'src/dashboard/actions/dashboardState';
 import { FilterCardContent } from './FilterCardContent';
@@ -86,6 +84,9 @@ const baseInitialState = {
     '3': {
       id: 3,
     },
+  },
+  dashboardState: {
+    sliceIds: [1, 2, 3],
   },
   dashboardLayout: {
     past: [],
@@ -193,7 +194,6 @@ const baseFilter: Filter = {
 };
 
 jest.mock('@superset-ui/core', () => ({
-  // @ts-ignore
   ...jest.requireActual('@superset-ui/core'),
   getChartMetadataRegistry: () => ({
     get: (type: string) => {
@@ -229,7 +229,7 @@ const renderContent = (filter = baseFilter, initialState = baseInitialState) =>
 test('filter card title, type, scope, dependencies', () => {
   renderContent();
   expect(screen.getByText('Native filter 1')).toBeVisible();
-  expect(screen.getByLabelText('filter-small')).toBeVisible();
+  expect(screen.getByLabelText('filter')).toBeVisible();
 
   expect(screen.getByText('Filter type')).toBeVisible();
   expect(screen.getByText('Select filter')).toBeVisible();
@@ -304,9 +304,7 @@ test('focus filter on filter card dependency click', () => {
 
 test('edit filter button for dashboard viewer', () => {
   renderContent();
-  expect(
-    screen.queryByRole('button', { name: /edit/i }),
-  ).not.toBeInTheDocument();
+  expect(screen.queryByRole('img', { name: /edit/i })).not.toBeInTheDocument();
 });
 
 test('edit filter button for dashboard editor', () => {
@@ -315,7 +313,7 @@ test('edit filter button for dashboard editor', () => {
     dashboardInfo: { dash_edit_perm: true },
   });
 
-  expect(screen.getByRole('button', { name: /edit/i })).toBeVisible();
+  expect(screen.getByRole('img', { name: /edit/i })).toBeVisible();
 });
 
 test('open modal on edit filter button click', async () => {
@@ -324,9 +322,17 @@ test('open modal on edit filter button click', async () => {
     dashboardInfo: { dash_edit_perm: true },
   });
 
-  const editButton = screen.getByRole('button', { name: /edit/i });
+  const editButton = screen.getByRole('img', { name: /edit/i });
+
+  expect(
+    screen.queryByRole('dialog', {
+      name: /add or edit display controls/i,
+    }),
+  ).not.toBeInTheDocument();
   userEvent.click(editButton);
   expect(
-    await screen.findByRole('dialog', { name: /add and edit filters/i }),
-  ).toBeVisible();
+    await screen.findByRole('dialog', {
+      name: /add or edit display controls/i,
+    }),
+  ).toBeInTheDocument();
 });

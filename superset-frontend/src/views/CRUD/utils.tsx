@@ -17,25 +17,38 @@
  * under the License.
  */
 
+import { logging } from '@apache-superset/core/utils';
+import { t } from '@apache-superset/core/translation';
 import {
-  css,
-  logging,
-  styled,
   SupersetClient,
   SupersetClientResponse,
-  SupersetTheme,
   getClientErrorObject,
-  t,
+  lruCache,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import Chart from 'src/types/Chart';
 import { intersection } from 'lodash';
 import rison from 'rison';
-import { FetchDataConfig, FilterValue } from 'src/components/ListView';
+import type {
+  ListViewFetchDataConfig as FetchDataConfig,
+  ListViewFilterValue as FilterValue,
+} from 'src/components';
 import SupersetText from 'src/utils/textUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { User } from 'src/types/bootstrapTypes';
-import { WelcomeTable } from 'src/features/home/types';
-import { Dashboard, Filter, TableTab } from './types';
+import { RecentActivity, WelcomeTable } from 'src/features/home/types';
+import {
+  OwnerSelectLabel,
+  OWNER_TEXT_LABEL_PROP,
+  OWNER_EMAIL_PROP,
+} from 'src/features/owners/OwnerSelectLabel';
+import {
+  Dashboard,
+  EncryptedExtraField,
+  FileEncryptedExtraFields,
+  Filter,
+  TableTab,
+} from './types';
 
 // Modifies the rison encoding slightly to match the backend's rison encoding/decoding. Applies globally.
 // Code pulled from rison.js (https://github.com/Nanonid/rison), rison is licensed under the MIT license.
@@ -67,7 +80,7 @@ import { Dashboard, Filter, TableTab } from './types';
 })();
 
 export const Actions = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorText};
 `;
 
 const createFetchResourceMethod =
@@ -90,6 +103,7 @@ const createFetchResourceMethod =
     });
 
     let fetchedLoggedUser = false;
+    let loggedUserExtra: Record<string, unknown> | undefined;
     const loggedUser = user
       ? {
           label: `${user.firstName} ${user.lastName}`,
@@ -97,26 +111,42 @@ const createFetchResourceMethod =
         }
       : undefined;
 
-    const data: { label: string; value: string | number }[] = [];
+    const data: {
+      label: string;
+      value: string | number;
+      extra?: Record<string, unknown>;
+    }[] = [];
     json?.result
       ?.filter(({ text }: { text: string }) => text.trim().length > 0)
-      .forEach(({ text, value }: { text: string; value: string | number }) => {
-        if (
-          loggedUser &&
-          value === loggedUser.value &&
-          text === loggedUser.label
-        ) {
-          fetchedLoggedUser = true;
-        } else {
-          data.push({
-            label: text,
-            value,
-          });
-        }
-      });
+      .forEach(
+        ({
+          text,
+          value,
+          extra,
+        }: {
+          text: string;
+          value: string | number;
+          extra?: Record<string, unknown>;
+        }) => {
+          if (
+            loggedUser &&
+            value === loggedUser.value &&
+            text === loggedUser.label
+          ) {
+            fetchedLoggedUser = true;
+            loggedUserExtra = extra;
+          } else {
+            data.push({
+              label: text,
+              value,
+              extra,
+            });
+          }
+        },
+      );
 
     if (loggedUser && (!filterValue || fetchedLoggedUser)) {
-      data.unshift(loggedUser);
+      data.unshift({ ...loggedUser, extra: loggedUserExtra });
     }
 
     return {
@@ -126,15 +156,17 @@ const createFetchResourceMethod =
   };
 
 export const PAGE_SIZE = 5;
-const getParams = (filters?: Filter[]) => {
+const getParams = (filters?: Filter[], selectColumns?: string[]) => {
   const params = {
     order_column: 'changed_on_delta_humanized',
     order_direction: 'desc',
     page: 0,
     page_size: PAGE_SIZE,
     filters,
+    select_columns: selectColumns,
   };
   if (!filters) delete params.filters;
+  if (!selectColumns) delete params.select_columns;
   return rison.encode(params);
 };
 
@@ -177,10 +209,41 @@ export const getUserOwnedObjects = (
       value: `${userId}`,
     },
   ],
+  selectColumns?: string[],
 ) =>
   SupersetClient.get({
-    endpoint: `/api/v1/${resource}/?q=${getParams(filters)}`,
+    endpoint: `/api/v1/${resource}/?q=${getParams(filters, selectColumns)}`,
   }).then(res => res.json?.result);
+
+export const getFilteredChartsandDashboards = (
+  addDangerToast: (arg1: string, arg2: any) => any,
+  filters: Filter[],
+  dashboardSelectColumns?: string[],
+  chartSelectColumns?: string[],
+) => {
+  const newBatch = [
+    SupersetClient.get({
+      endpoint: `/api/v1/chart/?q=${getParams(filters, chartSelectColumns)}`,
+    }),
+    SupersetClient.get({
+      endpoint: `/api/v1/dashboard/?q=${getParams(
+        filters,
+        dashboardSelectColumns,
+      )}`,
+    }),
+  ];
+  return Promise.all(newBatch)
+    .then(([chartRes, dashboardRes]) => ({
+      other: [...chartRes.json.result, ...dashboardRes.json.result],
+    }))
+    .catch(errMsg => {
+      addDangerToast(
+        t('There was an error fetching the filtered charts and dashboards:'),
+        errMsg,
+      );
+      return { other: [] };
+    });
+};
 
 export const getRecentActivityObjs = (
   userId: string | number,
@@ -190,30 +253,50 @@ export const getRecentActivityObjs = (
 ) =>
   SupersetClient.get({ endpoint: recent }).then(recentsRes => {
     const res: any = {};
-    const newBatch = [
-      SupersetClient.get({
-        endpoint: `/api/v1/chart/?q=${getParams(filters)}`,
-      }),
-      SupersetClient.get({
-        endpoint: `/api/v1/dashboard/?q=${getParams(filters)}`,
-      }),
-    ];
-    return Promise.all(newBatch)
-      .then(([chartRes, dashboardRes]) => {
-        res.other = [...chartRes.json.result, ...dashboardRes.json.result];
-        res.viewed = recentsRes.json.result;
+    const distinctRes = lruCache<RecentActivity>(6);
+    recentsRes.json.result.reverse().forEach((record: RecentActivity) => {
+      distinctRes.set(record.item_url, record);
+    });
+    return getFilteredChartsandDashboards(addDangerToast, filters).then(
+      ({ other }) => {
+        res.other = other;
+        res.viewed = distinctRes.values().reverse();
         return res;
-      })
-      .catch(errMsg =>
-        addDangerToast(
-          t('There was an error fetching your recent activity:'),
-          errMsg,
-        ),
-      );
+      },
+    );
   });
 
 export const createFetchRelated = createFetchResourceMethod('related');
 export const createFetchDistinct = createFetchResourceMethod('distinct');
+
+export const createFetchOwners = (
+  resource: string,
+  handleError: (error: Response) => void,
+  user?: { userId: string | number; firstName: string; lastName: string },
+) => {
+  const fetchRelated = createFetchRelated(
+    resource,
+    'owners',
+    handleError,
+    user,
+  );
+  return async (filterValue = '', page: number, pageSize: number) => {
+    const result = await fetchRelated(filterValue, page, pageSize);
+    return {
+      ...result,
+      data: result.data.map(item => {
+        const email = item.extra?.email as string | undefined;
+        return {
+          label: OwnerSelectLabel({ name: item.label, email }),
+          value: item.value,
+          title: item.label,
+          [OWNER_TEXT_LABEL_PROP]: item.label,
+          [OWNER_EMAIL_PROP]: email ?? '',
+        };
+      }),
+    };
+  };
+};
 
 export function createErrorHandler(
   handleErrorFunc: (
@@ -223,7 +306,6 @@ export function createErrorHandler(
   return async (e: SupersetClientResponse | string) => {
     const parsedError = await getClientErrorObject(e);
     // Taking the first error returned from the API
-    // @ts-ignore
     const errorsArray = parsedError?.errors;
     const config = await SupersetText;
     if (
@@ -284,6 +366,7 @@ export function handleDashboardDelete(
   addDangerToast: (arg0: string) => void,
   dashboardFilter?: string,
   userId?: string | number,
+  getData?: (tab: TableTab) => void,
 ) {
   return SupersetClient.delete({
     endpoint: `/api/v1/dashboard/${id}`,
@@ -307,6 +390,8 @@ export function handleDashboardDelete(
         ],
       };
       if (dashboardFilter === 'Mine') refreshData(filters);
+      else if (dashboardFilter === 'Other' && getData)
+        getData(dashboardFilter as TableTab);
       else refreshData();
       addSuccessToast(t('Deleted: %s', dashboardTitle));
     },
@@ -339,14 +424,15 @@ export const CardContainer = styled.div<{
   ${({ showThumbnails, theme }) => `
     overflow: hidden;
     display: grid;
-    grid-gap: ${theme.gridUnit * 12}px ${theme.gridUnit * 4}px;
+    justify-content: start;
+    grid-gap: ${theme.sizeUnit * 12}px ${theme.sizeUnit * 4}px;
     grid-template-columns: repeat(auto-fit, 300px);
     max-height: ${showThumbnails ? '314' : '148'}px;
-    margin-top: ${theme.gridUnit * -6}px;
+    margin-top: ${theme.sizeUnit * -6}px;
     padding: ${
       showThumbnails
-        ? `${theme.gridUnit * 8 + 3}px ${theme.gridUnit * 9}px`
-        : `${theme.gridUnit * 8 + 1}px ${theme.gridUnit * 9}px`
+        ? `${theme.sizeUnit * 8 + 3}px ${theme.sizeUnit * 20}px`
+        : `${theme.sizeUnit * 8 + 1}px ${theme.sizeUnit * 20}px`
     };
   `}
 `;
@@ -360,11 +446,6 @@ export const CardStyles = styled.div`
     /* Height is calculated based on 300px width, to keep the same aspect ratio as the 800*450 thumbnails */
     height: 168px;
   }
-`;
-
-export const StyledIcon = (theme: SupersetTheme) => css`
-  margin: auto ${theme.gridUnit * 2}px auto 0;
-  color: ${theme.colors.grayscale.base};
 `;
 
 export /* eslint-disable no-underscore-dangle */
@@ -405,51 +486,73 @@ export const isAlreadyExists = (payload: any) =>
   payload.includes('already exists and `overwrite=true` was not passed');
 
 export const getPasswordsNeeded = (errors: Record<string, any>[]) =>
-  errors
-    .map(error =>
-      Object.entries(error.extra)
-        .filter(([, payload]) => isNeedsPassword(payload))
-        .map(([fileName]) => fileName),
-    )
-    .flat();
+  errors.flatMap(error =>
+    Object.entries(error.extra)
+      .filter(([, payload]) => isNeedsPassword(payload))
+      .map(([fileName]) => fileName),
+  );
 
 export const getSSHPasswordsNeeded = (errors: Record<string, any>[]) =>
-  errors
-    .map(error =>
-      Object.entries(error.extra)
-        .filter(([, payload]) => isNeedsSSHPassword(payload))
-        .map(([fileName]) => fileName),
-    )
-    .flat();
+  errors.flatMap(error =>
+    Object.entries(error.extra)
+      .filter(([, payload]) => isNeedsSSHPassword(payload))
+      .map(([fileName]) => fileName),
+  );
 
 export const getSSHPrivateKeysNeeded = (errors: Record<string, any>[]) =>
-  errors
-    .map(error =>
-      Object.entries(error.extra)
-        .filter(([, payload]) => isNeedsSSHPrivateKey(payload))
-        .map(([fileName]) => fileName),
-    )
-    .flat();
+  errors.flatMap(error =>
+    Object.entries(error.extra)
+      .filter(([, payload]) => isNeedsSSHPrivateKey(payload))
+      .map(([fileName]) => fileName),
+  );
 
 export const getSSHPrivateKeyPasswordsNeeded = (
   errors: Record<string, any>[],
 ) =>
-  errors
-    .map(error =>
-      Object.entries(error.extra)
-        .filter(([, payload]) => isNeedsSSHPrivateKeyPassword(payload))
-        .map(([fileName]) => fileName),
-    )
-    .flat();
+  errors.flatMap(error =>
+    Object.entries(error.extra)
+      .filter(([, payload]) => isNeedsSSHPrivateKeyPassword(payload))
+      .map(([fileName]) => fileName),
+  );
 
 export const getAlreadyExists = (errors: Record<string, any>[]) =>
-  errors
-    .map(error =>
-      Object.entries(error.extra)
-        .filter(([, payload]) => isAlreadyExists(payload))
-        .map(([fileName]) => fileName),
-    )
-    .flat();
+  errors.flatMap(error =>
+    Object.entries(error.extra)
+      .filter(([, payload]) => isAlreadyExists(payload))
+      .map(([fileName]) => fileName),
+  );
+
+// Matches error messages for masked_encrypted_extra fields.
+// Format: "Must provide value for masked_encrypted_extra field: $.path (Label)"
+// The label in parentheses is optional.
+const ENCRYPTED_EXTRA_FIELD_REGEX =
+  /^Must provide value for masked_encrypted_extra field: (.+?)(?:\s+\((.+)\))?$/;
+
+export /* eslint-disable no-underscore-dangle */
+const isNeedsEncryptedExtraField = (payload: any) =>
+  typeof payload === 'object' &&
+  Array.isArray(payload._schema) &&
+  payload._schema?.some((e: string) => ENCRYPTED_EXTRA_FIELD_REGEX.test(e));
+
+export const getEncryptedExtraFieldsNeeded = (
+  errors: Record<string, any>[],
+): FileEncryptedExtraFields[] =>
+  errors.flatMap(error =>
+    Object.entries(error.extra)
+      .filter(([, payload]) => isNeedsEncryptedExtraField(payload))
+      .map(([fileName, payload]) => ({
+        fileName,
+        fields: (payload as any)._schema
+          .filter((e: string) => ENCRYPTED_EXTRA_FIELD_REGEX.test(e))
+          .map((e: string) => {
+            const match = e.match(ENCRYPTED_EXTRA_FIELD_REGEX);
+            if (!match) return null;
+            const path = match[1];
+            return { path, label: match[2] || path };
+          })
+          .filter(Boolean) as EncryptedExtraField[],
+      })),
+  );
 
 export const hasTerminalValidation = (errors: Record<string, any>[]) =>
   errors.some(error => {
@@ -465,7 +568,8 @@ export const hasTerminalValidation = (errors: Record<string, any>[]) =>
         isAlreadyExists(payload) ||
         isNeedsSSHPassword(payload) ||
         isNeedsSSHPrivateKey(payload) ||
-        isNeedsSSHPrivateKeyPassword(payload),
+        isNeedsSSHPrivateKeyPassword(payload) ||
+        isNeedsEncryptedExtraField(payload),
     );
   });
 
@@ -487,14 +591,14 @@ export const uploadUserPerms = (
   allowedExt: Array<string>,
 ) => {
   const canUploadCSV =
-    findPermission('can_csv_upload', 'Database', roles) &&
+    findPermission('can_upload', 'Database', roles) &&
     checkUploadExtensions(csvExt, allowedExt);
   const canUploadColumnar =
     checkUploadExtensions(colExt, allowedExt) &&
-    findPermission('can_columnar_upload', 'Database', roles);
+    findPermission('can_upload', 'Database', roles);
   const canUploadExcel =
     checkUploadExtensions(excelExt, allowedExt) &&
-    findPermission('can_excel_upload', 'Database', roles);
+    findPermission('can_upload', 'Database', roles);
   return {
     canUploadCSV,
     canUploadColumnar,

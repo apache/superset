@@ -19,7 +19,8 @@
 /* eslint camelcase: 0 */
 import rison from 'rison';
 import { Dataset } from '@superset-ui/chart-controls';
-import { t, SupersetClient, QueryFormData } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient, QueryFormData } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import {
   addDangerToast,
@@ -152,6 +153,19 @@ export function setForceQuery(force: boolean) {
   };
 }
 
+export const UPDATE_EXPLORE_CHART_STATE = 'UPDATE_EXPLORE_CHART_STATE';
+export function updateExploreChartState(
+  chartId: number,
+  chartState: Record<string, unknown>,
+) {
+  return {
+    type: UPDATE_EXPLORE_CHART_STATE,
+    chartId,
+    chartState,
+    lastModified: Date.now(),
+  };
+}
+
 export const SET_STASH_FORM_DATA = 'SET_STASH_FORM_DATA';
 export function setStashFormData(
   isHidden: boolean,
@@ -162,6 +176,21 @@ export function setStashFormData(
     isHidden,
     fieldNames,
   };
+}
+
+export const START_METADATA_LOADING = 'START_METADATA_LOADING';
+export function startMetaDataLoading() {
+  return { type: START_METADATA_LOADING };
+}
+
+export const STOP_METADATA_LOADING = 'STOP_METADATA_LOADING';
+export function stopMetaDataLoading() {
+  return { type: STOP_METADATA_LOADING };
+}
+
+export const SYNC_DATASOURCE_METADATA = 'SYNC_DATASOURCE_METADATA';
+export function syncDatasourceMetadata(datasource: Dataset) {
+  return { type: SYNC_DATASOURCE_METADATA, datasource };
 }
 
 export const exploreActions = {
@@ -178,6 +207,7 @@ export const exploreActions = {
   createNewSlice,
   sliceUpdated,
   setForceQuery,
+  syncDatasourceMetadata,
 };
 
 export type ExploreActions = typeof exploreActions;

@@ -1,0 +1,215 @@
+---
+title: AutoComplete
+sidebar_label: AutoComplete
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# AutoComplete
+
+AutoComplete component for search functionality.
+
+## Live Example
+
+<StoryWithControls
+  component="AutoComplete"
+  props={{
+  placeholder: "Type to search...",
+  options: [
+    {
+      value: "Dashboard",
+      label: "Dashboard"
+    },
+    {
+      value: "Chart",
+      label: "Chart"
+    },
+    {
+      value: "Dataset",
+      label: "Dataset"
+    },
+    {
+      value: "Database",
+      label: "Database"
+    },
+    {
+      value: "Query",
+      label: "Query"
+    }
+  ],
+  style: {
+    width: 300
+  },
+  filterOption: true
+}}
+  controls={[
+  {
+    name: "placeholder",
+    label: "Placeholder",
+    type: "text",
+    description: "Placeholder text for AutoComplete"
+  },
+  {
+    name: "style",
+    label: "Style",
+    type: "object",
+    description: "Custom styles for AutoComplete"
+  },
+  {
+    name: "value",
+    label: "Value",
+    type: "text",
+    description: "Selected option"
+  },
+  {
+    name: "disabled",
+    label: "Disabled",
+    type: "boolean",
+    description: "Disable the AutoComplete"
+  },
+  {
+    name: "popupMatchSelectWidth",
+    label: "Popup Match Select Width",
+    type: "number",
+    description: "Width of the dropdown"
+  },
+  {
+    name: "allowClear",
+    label: "Allow Clear",
+    type: "boolean",
+    description: "Show clear button"
+  },
+  {
+    name: "autoFocus",
+    label: "Auto Focus",
+    type: "boolean",
+    description: "If get focus when component mounted"
+  },
+  {
+    name: "backfill",
+    label: "Backfill",
+    type: "boolean",
+    description: "If backfill selected item the input when using keyboard"
+  },
+  {
+    name: "popupClassName",
+    label: "Popup Class Name",
+    type: "text",
+    description: "The className of dropdown menu"
+  },
+  {
+    name: "filterOption",
+    label: "Filter Option",
+    type: "boolean",
+    description: "Enable filtering of options based on input"
+  },
+  {
+    name: "notFoundContent",
+    label: "Not Found Content",
+    type: "text",
+    description: "Specify content to show when no result matches."
+  },
+  {
+    name: "open",
+    label: "Open",
+    type: "boolean",
+    description: "Controlled open state of dropdown"
+  },
+  {
+    name: "status",
+    label: "Status",
+    type: "select",
+    options: [
+      "error",
+      "warning"
+    ],
+    description: "Set validation status"
+  },
+  {
+    name: "size",
+    label: "Size",
+    type: "select",
+    options: [
+      "large",
+      "middle",
+      "small"
+    ],
+    description: "The size of the input box"
+  },
+  {
+    name: "variant",
+    label: "Variant",
+    type: "select",
+    options: [
+      "outlined",
+      "borderless",
+      "filled"
+    ],
+    description: "Variants of input"
+  },
+  {
+    name: "virtual",
+    label: "Virtual",
+    type: "boolean",
+    description: "Disable virtual scroll when set to false"
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <AutoComplete
+      placeholder="Type to search..."
+      options={[{"value":"Dashboard","label":"Dashboard"},{"value":"Chart","label":"Chart"},{"value":"Dataset","label":"Dataset"},{"value":"Database","label":"Database"},{"value":"Query","label":"Query"}]}
+      style={{"width":300}}
+      filterOption
+    />
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `placeholder` | `string` | `"Type to search..."` | Placeholder text for AutoComplete |
+| `options` | `any` | `[{"value":"Dashboard","label":"Dashboard"},{"value":"Chart","label":"Chart"},{"value":"Dataset","label":"Dataset"},{"value":"Database","label":"Database"},{"value":"Query","label":"Query"}]` | The dropdown options |
+| `style` | `any` | `{"width":300}` | Custom styles for AutoComplete |
+| `filterOption` | `boolean` | `true` | Enable filtering of options based on input |
+
+## Import
+
+```tsx
+import { AutoComplete } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/AutoComplete/AutoComplete.stories.tsx).
+:::

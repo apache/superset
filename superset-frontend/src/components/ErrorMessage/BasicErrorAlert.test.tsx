@@ -17,13 +17,13 @@
  * under the License.
  */
 
-import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import { ErrorLevel, supersetTheme } from '@superset-ui/core';
-import BasicErrorAlert from './BasicErrorAlert';
+import { ErrorLevel } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
+import { BasicErrorAlert } from './BasicErrorAlert';
 
 jest.mock(
-  'src/components/Icons/Icon',
+  '@superset-ui/core/components/Icons/AsyncIcon',
   () =>
     ({ fileName }: { fileName: string }) => (
       <span role="img" aria-label={fileName.replace('_', '-')} />
@@ -44,7 +44,7 @@ test('should render', () => {
 test('should render warning icon', () => {
   render(<BasicErrorAlert {...mockedProps} />);
   expect(
-    screen.getByRole('img', { name: 'warning-solid' }),
+    screen.getByRole('img', { name: 'exclamation-circle' }),
   ).toBeInTheDocument();
 });
 
@@ -54,7 +54,9 @@ test('should render error icon', () => {
     level: 'error' as ErrorLevel,
   };
   render(<BasicErrorAlert {...errorProps} />);
-  expect(screen.getByRole('img', { name: 'error-solid' })).toBeInTheDocument();
+  expect(
+    screen.getByRole('img', { name: 'exclamation-circle' }),
+  ).toBeInTheDocument();
 });
 
 test('should render the error title', () => {
@@ -71,7 +73,7 @@ test('should render with warning theme', () => {
   render(<BasicErrorAlert {...mockedProps} />);
   expect(screen.getByRole('alert')).toHaveStyle(
     `
-      backgroundColor: ${supersetTheme.colors.warning.light2};
+      color: ${supersetTheme.colorWarningText};
     `,
   );
 });
@@ -84,7 +86,7 @@ test('should render with error theme', () => {
   render(<BasicErrorAlert {...errorProps} />);
   expect(screen.getByRole('alert')).toHaveStyle(
     `
-      backgroundColor: ${supersetTheme.colors.error.light2};
+      color: ${supersetTheme.colorErrorText};
     `,
   );
 });
