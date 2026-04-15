@@ -530,23 +530,31 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
 
     Supports both sync and async tool functions.
     """
-    import contextlib
     import functools
     import inspect
     import types
 
-    from flask import has_app_context
-
     from superset.mcp_service.flask_singleton import get_flask_app
 
     def _get_app_context_manager() -> AbstractContextManager[None]:
-        """Return app context manager only if not already in one."""
-        if has_app_context():
-            # Already in app context (e.g., in tests), use null context
-            return contextlib.nullcontext()
-        # Push new app context for standalone MCP server
-        app = get_flask_app()
-        return app.app_context()
+        """Always push a fresh app context to isolate g.user per tool call.
+
+        The MCP server typically runs inside a long-lived app context
+        (e.g. ``__main__.py`` wraps ``mcp.run()`` in ``app.app_context()``).
+        When FastMCP dispatches concurrent tool calls via
+        ``asyncio.create_task()``, each task inherits the parent's
+        ``ContextVar`` *value* — a reference to the **same** ``AppContext``
+        object. If we returned ``nullcontext()`` here, all tasks would
+        share one ``g`` namespace and concurrent mutations to ``g.user``
+        would race: one user's identity could overwrite another's before
+        ``get_user_id()`` is called during the SQLAlchemy INSERT flush,
+        attributing the created asset to the wrong user.
+
+        Pushing a new ``app_context()`` calls ``_cv_app.set(new_ctx)`` in
+        the current task's context copy, giving it its own ``AppContext``
+        (and therefore its own ``g``). Sibling tasks are unaffected.
+        """
+        return get_flask_app().app_context()
 
     is_async = inspect.iscoroutinefunction(tool_func)
 
