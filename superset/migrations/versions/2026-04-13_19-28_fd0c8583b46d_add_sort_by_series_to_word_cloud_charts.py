@@ -62,8 +62,13 @@ def upgrade():
     for slc in paginated_update(
         session.query(Slice).filter(Slice.viz_type == "word_cloud")
     ):
-        params = json.loads(slc.params or "{}")
-        slc.params = json.dumps(upgrade_params(params))
+        try:
+            params = json.loads(slc.params or "{}")
+            if not isinstance(params, dict):
+                continue
+            slc.params = json.dumps(upgrade_params(params))
+        except (json.JSONDecodeError, TypeError):
+            continue
     session.close()
 
 
@@ -74,6 +79,11 @@ def downgrade():
     for slc in paginated_update(
         session.query(Slice).filter(Slice.viz_type == "word_cloud")
     ):
-        params = json.loads(slc.params or "{}")
-        slc.params = json.dumps(downgrade_params(params))
+        try:
+            params = json.loads(slc.params or "{}")
+            if not isinstance(params, dict):
+                continue
+            slc.params = json.dumps(downgrade_params(params))
+        except (json.JSONDecodeError, TypeError):
+            continue
     session.close()
