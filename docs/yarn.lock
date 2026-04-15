@@ -2063,10 +2063,10 @@
     fs-extra "^11.1.1"
     tslib "^2.6.0"
 
-"@docusaurus/tsconfig@^3.9.2":
-  version "3.9.2"
-  resolved "https://registry.npmjs.org/@docusaurus/tsconfig/-/tsconfig-3.9.2.tgz"
-  integrity sha512-j6/Fp4Rlpxsc632cnRnl5HpOWeb6ZKssDj6/XzzAzVGXXfm9Eptx3rxCC+fDzySn9fHTS+CWJjPineCR1bB5WQ==
+"@docusaurus/tsconfig@^3.10.0":
+  version "3.10.0"
+  resolved "https://registry.yarnpkg.com/@docusaurus/tsconfig/-/tsconfig-3.10.0.tgz#f40a57248828f0503a5f355cf30aa59941c9baaa"
+  integrity sha512-TXdC3WXuPrdQAexLvjUJfnYf3YKEgEqAs5nK0Q88pRBCW7t7oN4ILvWYb3A5Z1wlSXyXGWW/mCUmLEhdWsjnDQ==
 
 "@docusaurus/types@3.10.0":
   version "3.10.0"
