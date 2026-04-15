@@ -151,7 +151,7 @@ To explore data with SQL:
      "database_id": <id>, "label": "name", "sql": "..."
    }})
 4. open_sql_lab_with_context(request={{
-     "database_connection_id": <id>
+     "database_id": <id>
    }})
 
 To chart from a SQL query (JOIN, CTE, aggregation):
