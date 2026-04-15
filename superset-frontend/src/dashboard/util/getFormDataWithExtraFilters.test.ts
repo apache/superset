@@ -473,4 +473,75 @@ describe('getFormDataWithExtraFilters', () => {
     const result = getFormDataWithExtraFilters(argsOutOfScope);
     expectGroupBy(result, ['original_column']);
   });
+
+  const getResultFilters = (result: CachedFormDataWithExtraControls) => {
+    if (!('filters' in result) || !Array.isArray(result.filters)) {
+      return [];
+    }
+
+    return result.filters.filter(
+      (
+        filter,
+      ): filter is {
+        col: string;
+        val: unknown[];
+      } =>
+        typeof filter === 'object' &&
+        filter !== null &&
+        'col' in filter &&
+        'val' in filter &&
+        typeof filter.col === 'string' &&
+        Array.isArray(filter.val),
+    );
+  };
+
+  test('dynamic group by does not inject a filter using the selected column name as a value', () => {
+    const result = getFormDataWithExtraFilters(makeGroupByArgs(['status']));
+    const spuriousFilter = getResultFilters(result).find(
+      filter => filter.col === 'status' && filter.val.includes('status'),
+    );
+    expect(spuriousFilter).toBeUndefined();
+    expectGroupBy(result, ['status']);
+  });
+
+  test('dynamic group by still applies when the selected column is already in the base groupby', () => {
+    const result = getFormDataWithExtraFilters(
+      makeGroupByArgs(['status'], ['status']),
+    );
+    expectGroupBy(result, ['status']);
+  });
+
+  test('dynamic group by with no selection leaves the base groupby unchanged', () => {
+    const result = getFormDataWithExtraFilters(makeGroupByArgs([], ['status']));
+    expectGroupBy(result, ['status']);
+  });
+
+  test('dynamic group by ignores empty-string selections and keeps the base groupby', () => {
+    const result = getFormDataWithExtraFilters(
+      makeGroupByArgs(['', 'status'], ['original_column']),
+    );
+    expectGroupBy(result, ['status']);
+  });
+
+  test('chord chart ignores dynamic group by selections and keeps the existing source unchanged', () => {
+    const result = getFormDataWithExtraFilters({
+      ...makeGroupByArgs(['payment_method'], ['status']),
+      chart: {
+        ...mockChart,
+        form_data: {
+          ...mockChart.form_data,
+          viz_type: 'chord',
+          datasource: '3__table',
+          groupby: ['status'],
+        },
+      },
+    });
+
+    expectGroupBy(result, ['status']);
+  });
+
+  test('dynamic group by normalizes a single-select string value into a one-item groupby array', () => {
+    const result = getFormDataWithExtraFilters(makeGroupByArgs('status'));
+    expectGroupBy(result, ['status']);
+  });
 });

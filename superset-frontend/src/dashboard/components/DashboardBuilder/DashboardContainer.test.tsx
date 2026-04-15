@@ -44,6 +44,16 @@ jest.mock('src/dashboard/containers/DashboardGrid', () => ({
   default: () => <div data-test="mock-dashboard-grid" />,
 }));
 
+// DashboardContainer dispatches these on mount, so unit tests stub them.
+jest.mock('src/dashboard/actions/dashboardState', () => ({
+  ...jest.requireActual('src/dashboard/actions/dashboardState'),
+  applyDashboardLabelsColorOnLoad: jest.fn(() => () => undefined),
+  updateDashboardLabelsColor: jest.fn(() => () => undefined),
+  persistDashboardLabelsColor: jest.fn(() => () => undefined),
+  ensureSyncedSharedLabelsColors: jest.fn(() => () => undefined),
+  ensureSyncedLabelsColorMap: jest.fn(() => () => undefined),
+}));
+
 const defaultTestFilter = {
   id: 'FILTER-1',
   name: 'Test Filter',

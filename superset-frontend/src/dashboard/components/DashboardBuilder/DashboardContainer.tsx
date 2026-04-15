@@ -63,11 +63,11 @@ import {
 } from 'src/dashboard/actions/dashboardState';
 import { getColorNamespace, resetColors } from 'src/utils/colorScheme';
 import { calculateScopes } from 'src/dashboard/util/calculateScopes';
-import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import {
   isLegacyChartCustomizationFormat,
   migrateChartCustomization,
 } from 'src/dashboard/util/migrateChartCustomization';
+import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
 import { selectFilterConfiguration } from '../nativeFilters/state';
 import { getRootLevelTabsComponent } from './utils';
