@@ -112,12 +112,13 @@ Example: If get_dataset_info returns metrics=[{{"metric_name": "count", ...}}], 
   {{"name": "count", "aggregate": "COUNT"}}  ← WRONG (count is not a column)
 
 IMPORTANT - Request Wrapper:
-Most tools require a 'request' wrapper object. Pass all parameters inside request:
+For tools whose schema includes a top-level 'request' parameter, wrap all fields under request:
   list_charts(request={{"filters": [...], "page": 1}})
   get_chart_info(request={{"identifier": 123}})
   get_dataset_info(request={{"identifier": 456}})
   execute_sql(request={{"database_id": 1, "sql": "SELECT 1"}})
-Do NOT pass parameters directly without the request wrapper — it will fail.
+Some tools do not use a request wrapper, so follow each tool's schema
+(for example: get_chart_type_schema(chart_type="xy")).
 
 Recommended Workflows:
 
