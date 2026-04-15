@@ -93,11 +93,6 @@ export const StyledModal = styled(Modal)`
   .ant-modal-body {
     overflow: visible;
   }
-  i {
-    position: absolute;
-    top: -${({ theme }) => theme.sizeUnit * 5.25}px;
-    left: ${({ theme }) => theme.sizeUnit * 26.75}px;
-  }
 `;
 
 class SaveModal extends Component<SaveModalProps, SaveModalState> {
@@ -172,17 +167,21 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
     this.setState({ newSliceName: event.target.value });
   }
 
-  onDashboardChange = async (dashboard: {
-    label: string;
-    value: string | number;
-  }) => {
+  onDashboardChange = async (
+    dashboard:
+      | {
+          label: string;
+          value: string | number;
+        }
+      | undefined,
+  ) => {
     this.setState({
       dashboard,
       tabsData: [],
       selectedTab: undefined,
     });
 
-    if (typeof dashboard.value === 'number') {
+    if (dashboard && typeof dashboard.value === 'number') {
       await this.loadTabs(dashboard.value);
     }
   };

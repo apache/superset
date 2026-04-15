@@ -37,7 +37,7 @@ from superset.commands.sql_lab.streaming_export_command import (
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.daos.database import DatabaseDAO
 from superset.daos.query import QueryDAO
-from superset.extensions import event_logger
+from superset.extensions import event_logger, security_manager
 from superset.jinja_context import get_template_processor
 from superset.models.sql_lab import Query
 from superset.sql.parse import SQLScript
@@ -149,8 +149,9 @@ class SqlLabRestApi(BaseSupersetApi):
     @statsd_metrics
     @requires_json
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".estimate_query_cost",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.estimate_query_cost"
+        ),
         log_to_statsd=False,
     )
     def estimate_query_cost(self) -> Response:
@@ -302,6 +303,10 @@ class SqlLabRestApi(BaseSupersetApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if is_feature_enabled(
+            "GRANULAR_EXPORT_CONTROLS"
+        ) and not security_manager.can_access("can_export_data", "Superset"):
+            return self.response_403()
         result = SqlResultExportCommand(client_id=client_id).run()
 
         query, data, row_count = result["query"], result["data"], result["count"]
@@ -331,9 +336,9 @@ class SqlLabRestApi(BaseSupersetApi):
     @permission_name("read")
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.export_streaming_csv",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.export_streaming_csv"
+        ),
         log_to_statsd=False,
     )
     def export_streaming_csv(self) -> Response:
@@ -376,6 +381,10 @@ class SqlLabRestApi(BaseSupersetApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if is_feature_enabled(
+            "GRANULAR_EXPORT_CONTROLS"
+        ) and not security_manager.can_access("can_export_data", "Superset"):
+            return self.response_403()
         # Extract parameters from form data
         client_id = request.form.get("client_id")
         filename = request.form.get("filename")

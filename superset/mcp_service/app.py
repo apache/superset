@@ -61,6 +61,7 @@ Database Connections:
 Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
 - get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
+- create_virtual_dataset: Save a SQL query as a virtual dataset for charting
 
 Chart Management:
 - list_charts: List charts with advanced filters (1-based pagination)
@@ -132,6 +133,13 @@ To explore data with SQL:
 2. execute_sql(database_id, sql) -> run query
 3. save_sql_query(database_id, label, sql) -> save query for later reuse
 4. open_sql_lab_with_context(database_id) -> open SQL Lab UI
+
+To chart from a SQL query (JOIN, CTE, aggregation):
+1. execute_sql(database_id, sql) -> verify the query returns expected data
+2. Ask the user if they want to save it as a dataset
+3. create_virtual_dataset(database_id, sql, dataset_name) -> save as chartable dataset
+4. generate_explore_link(dataset_id, config) or generate_chart(dataset_id, config)
+   (use the column names returned by create_virtual_dataset)
 
 generate_explore_link vs generate_chart:
 - Use generate_explore_link for exploration (no permanent chart created)
@@ -446,6 +454,7 @@ from superset.mcp_service.database.tool import (  # noqa: F401, E402
     list_databases,
 )
 from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
+    create_virtual_dataset,
     get_dataset_info,
     list_datasets,
 )

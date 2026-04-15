@@ -40,7 +40,7 @@ import {
 } from '@superset-ui/core/components';
 import type { SqlLabRootState } from 'src/SqlLab/types';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
-import { addTable } from 'src/SqlLab/actions/sqlLab';
+import { addTable, removeTables } from 'src/SqlLab/actions/sqlLab';
 import PanelToolbar from 'src/components/PanelToolbar';
 import { ViewLocations } from 'src/SqlLab/contributions';
 import TreeNodeRenderer from './TreeNodeRenderer';
@@ -64,16 +64,24 @@ const StyledTreeContainer = styled.div`
     &:hover {
       background-color: ${({ theme }) => theme.colorBgTextHover};
 
-      .side-action-container {
-        opacity: 1;
+      .action-static {
+        display: none;
+      }
+
+      .action-hover {
+        display: flex;
       }
     }
 
     &[data-selected='true'] {
       background-color: ${({ theme }) => theme.colorBgTextActive};
 
-      .side-action-container {
-        opacity: 1;
+      .action-static {
+        display: none;
+      }
+
+      .action-hover {
+        display: flex;
       }
     }
   }
@@ -98,12 +106,21 @@ const StyledTreeContainer = styled.div`
   }
 
   .side-action-container {
-    opacity: 0;
-    position: absolute;
-    right: ${({ theme }) => theme.sizeUnit * 1.5}px;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: ${({ theme }) => theme.zIndexPopupBase};
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+
+  .action-static {
+    display: flex;
+    align-items: center;
+  }
+
+  .action-hover {
+    display: none;
+    align-items: center;
+    gap: ${({ theme }) => theme.sizeUnit * 0.5}px;
   }
 `;
 
@@ -119,19 +136,20 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
   );
   const queryEditor = useQueryEditor(queryEditorId, [
     'dbId',
-    'schema',
     'catalog',
+    'tabViewId',
   ]);
-  const { dbId, catalog, schema: selectedSchema } = queryEditor;
+  const { dbId, catalog } = queryEditor;
+  const editorId = queryEditor.tabViewId ?? queryEditor.id;
   const pinnedTables = useMemo(
     () =>
       Object.fromEntries(
         tables.map(({ queryEditorId, dbId, schema, name, persistData }) => [
-          queryEditor.id === queryEditorId ? `${dbId}:${schema}:${name}` : '',
+          editorId === queryEditorId ? `${dbId}:${schema}:${name}` : '',
           persistData,
         ]),
       ),
-    [tables, queryEditor.id],
+    [tables, editorId],
   );
 
   // Tree data hook - manages schema/table/column data fetching and tree structure
@@ -140,20 +158,46 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
     isFetching,
     refetch,
     loadingNodes,
+    selectStarMap,
     handleToggle,
-    fetchLazyTables,
+    handleRefreshTables,
     errorPayload,
   } = useTreeData({
     dbId,
     catalog,
-    selectedSchema,
     pinnedTables,
   });
+
+  const pinnedTableKeys = useMemo(
+    () =>
+      new Set(
+        tables
+          .filter(({ queryEditorId: qeId }) => editorId === qeId)
+          .map(({ dbId, schema, name }) => `${dbId}:${schema}:${name}`),
+      ),
+    [tables, editorId],
+  );
 
   const handlePinTable = useCallback(
     (tableName: string, schemaName: string, catalogName: string | null) =>
       dispatch(addTable(queryEditor, tableName, catalogName, schemaName)),
     [dispatch, queryEditor],
+  );
+
+  const handleUnpinTable = useCallback(
+    (tableName: string, schemaName: string) => {
+      const table = tables.find(
+        t =>
+          t.queryEditorId === editorId &&
+          t.dbId === dbId &&
+          t.schema === schemaName &&
+          t.name === tableName,
+      );
+      if (table) {
+        dispatch(removeTables([table]));
+      }
+    },
+    [dispatch, tables, editorId, dbId],
   );
   const [searchTerm, setSearchTerm] = useState('');
   const handleSearchChange = useCallback(
@@ -238,14 +282,20 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
         loadingNodes={loadingNodes}
         searchTerm={searchTerm}
         catalog={catalog}
-        fetchLazyTables={fetchLazyTables}
+        pinnedTableKeys={pinnedTableKeys}
+        selectStarMap={selectStarMap}
+        handleRefreshTables={handleRefreshTables}
         handlePinTable={handlePinTable}
+        handleUnpinTable={handleUnpinTable}
       />
     ),
     [
       catalog,
-      fetchLazyTables,
+      pinnedTableKeys,
+      selectStarMap,
+      handleRefreshTables,
       handlePinTable,
+      handleUnpinTable,
       loadingNodes,
       manuallyOpenedNodes,
       searchTerm,
