@@ -25,6 +25,8 @@ const CHROME_UA =
 
 const makeGetText = (text: string) => () => Promise.resolve(text);
 
+const globalWithClipboardItem = global as unknown as { ClipboardItem?: unknown };
+
 test('uses Clipboard API writeText on non-Safari browsers', async () => {
   Object.defineProperty(navigator, 'userAgent', {
     value: CHROME_UA,
@@ -52,14 +54,14 @@ test('uses ClipboardItem API on Safari browsers', async () => {
     configurable: true,
   });
   const MockClipboardItem = jest.fn().mockImplementation(data => ({ data }));
-  (global as any).ClipboardItem = MockClipboardItem;
+  globalWithClipboardItem.ClipboardItem = MockClipboardItem;
 
   await copyTextToClipboard(makeGetText('safari text'));
 
   expect(MockClipboardItem).toHaveBeenCalled();
   expect(write).toHaveBeenCalledWith([expect.anything()]);
 
-  delete (global as any).ClipboardItem;
+  delete globalWithClipboardItem.ClipboardItem;
 });
 
 test('falls back to writeText on Safari when ClipboardItem write fails', async () => {
@@ -74,13 +76,13 @@ test('falls back to writeText on Safari when ClipboardItem write fails', async (
     configurable: true,
   });
   const MockClipboardItem = jest.fn().mockImplementation(data => ({ data }));
-  (global as any).ClipboardItem = MockClipboardItem;
+  globalWithClipboardItem.ClipboardItem = MockClipboardItem;
 
   await copyTextToClipboard(makeGetText('fallback text'));
 
   expect(writeText).toHaveBeenCalledWith('fallback text');
 
-  delete (global as any).ClipboardItem;
+  delete globalWithClipboardItem.ClipboardItem;
 });
 
 function mockExecCommand(impl: (cmd: string) => boolean) {
