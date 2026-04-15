@@ -90,7 +90,7 @@ describe('plugin-chart-ag-grid-table', () => {
         },
       ).queries[0];
 
-      expect(query.orderby).toEqual([['degree_type', true]]);
+      expect(query.orderby).toEqual([['Highest Degree', true]]);
     });
 
     it('should map string metric colId to backend identifier', () => {
@@ -266,6 +266,25 @@ describe('plugin-chart-ag-grid-table', () => {
         ['state', true],
         ['city', false],
       ]);
+    });
+
+    it('should use label (not sqlExpression) for adhoc column in CSV export sortModel', () => {
+      const adhocColumn = createAdhocColumn('sales / 100', 'Margin');
+
+      const query = buildQuery(
+        {
+          ...basicFormData,
+          groupby: [adhocColumn],
+          result_format: 'csv',
+        },
+        {
+          ownState: {
+            sortModel: [{ colId: 'Margin', sort: 'desc' }],
+          },
+        },
+      ).queries[0];
+
+      expect(query.orderby?.[0]).toEqual(['Margin', false]);
     });
 
     it('should not add tie-breaker for non-download queries with server pagination', () => {
