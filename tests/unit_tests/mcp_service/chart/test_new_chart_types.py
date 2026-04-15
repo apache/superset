@@ -1020,6 +1020,18 @@ class TestAdhocFiltersDetection:
                     "y_secondary": [{"name": "cnt", "aggregate": "COUNT"}],
                 },
             ),
+            (
+                "handlebars",
+                {
+                    "metrics": [{"name": "rev", "aggregate": "SUM"}],
+                },
+            ),
+            (
+                "big_number",
+                {
+                    "metric": {"name": "rev", "aggregate": "SUM"},
+                },
+            ),
         ],
     )
     def test_adhoc_filters_in_config_returns_clear_error(

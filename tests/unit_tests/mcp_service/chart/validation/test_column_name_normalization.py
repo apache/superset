@@ -28,8 +28,10 @@ from unittest.mock import patch
 import pytest
 
 from superset.mcp_service.chart.schemas import (
+    BigNumberChartConfig,
     ColumnRef,
     FilterConfig,
+    HandlebarsChartConfig,
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
@@ -841,9 +843,7 @@ class TestNormalizeNonXYTableChartTypes:
         assert normalized.filters[0].column == "Category"
 
     @patch.object(DatasetValidator, "_get_dataset_context")
-    def test_pie_no_dataset_context_returns_original(
-        self, mock_get_context
-    ) -> None:
+    def test_pie_no_dataset_context_returns_original(self, mock_get_context) -> None:
         """When dataset context is unavailable the original config is returned."""
         mock_get_context.return_value = None
 
@@ -856,3 +856,38 @@ class TestNormalizeNonXYTableChartTypes:
         result = DatasetValidator.normalize_column_names(config, dataset_id=99)
 
         assert result is config
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_handlebars_config_normalizes_without_error(
+        self, mock_get_context, pie_dataset_context: DatasetContext
+    ) -> None:
+        """HandlebarsChartConfig must survive normalize_column_names unchanged."""
+        mock_get_context.return_value = pie_dataset_context
+
+        config = HandlebarsChartConfig(
+            chart_type="handlebars",
+            handlebars_template="<ul>{{#each data}}<li>{{this.revenue}}</li>{{/each}}</ul>",
+            metrics=[ColumnRef(name="revenue", aggregate="SUM")],
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=99)
+
+        assert isinstance(normalized, HandlebarsChartConfig)
+        assert normalized.chart_type == "handlebars"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_big_number_config_normalizes_without_error(
+        self, mock_get_context, pie_dataset_context: DatasetContext
+    ) -> None:
+        """BigNumberChartConfig must survive normalize_column_names unchanged."""
+        mock_get_context.return_value = pie_dataset_context
+
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=99)
+
+        assert isinstance(normalized, BigNumberChartConfig)
+        assert normalized.chart_type == "big_number"

@@ -43,16 +43,6 @@ from superset.mcp_service.common.error_schemas import (
 
 logger = logging.getLogger(__name__)
 
-# Exceptions that can occur during column name normalization.
-# Shared by the validation pipeline and tool-level normalization calls.
-NORMALIZATION_EXCEPTIONS = (
-    ImportError,
-    AttributeError,
-    KeyError,
-    ValueError,
-    TypeError,
-)
-
 
 class DatasetValidator:
     """Validates chart configuration against dataset schema."""
