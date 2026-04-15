@@ -14,12 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any
+from typing import Any, cast
 from unittest.mock import Mock
 
 from pytest import fixture  # noqa: PT013
 
 from superset.common.query_object_factory import QueryObjectFactory
+from superset.constants import NO_TIME_RANGE
+from superset.utils.core import FilterOperator, QueryObjectFilterClause
 from tests.common.query_context_generator import QueryContextGenerator
 
 
@@ -138,3 +140,90 @@ class TestQueryObjectFactory:
             **raw_query_object,
         )
         assert query_object.metric_names == ["SUM", "num_girls", "num_boys"]
+
+    def test_process_time_range_no_fallback_when_xaxis_has_no_matching_temporal(
+        self,
+    ) -> None:
+        """
+        BASE_AXIS is known but TEMPORAL_RANGE exists only on another column: do not use
+        that column's bounds as the main time_range.
+        """
+        columns: list[Any] = [
+            {
+                "label": "event_a",
+                "sqlExpression": "event_a",
+                "columnType": "BASE_AXIS",
+            },
+        ]
+        filters = [
+            {
+                "col": "event_b",
+                "op": FilterOperator.TEMPORAL_RANGE,
+                "val": "2025-01-01 : 2025-01-31",
+            },
+        ]
+        result = QueryObjectFactory._process_time_range(
+            None, cast(list[QueryObjectFilterClause], filters), columns
+        )
+        assert result == NO_TIME_RANGE
+
+    def test_process_time_range_fallback_first_temporal_when_no_xaxis(self) -> None:
+        filters = [
+            {
+                "col": "event_b",
+                "op": FilterOperator.TEMPORAL_RANGE,
+                "val": "2025-02-01 : 2025-02-28",
+            },
+        ]
+        result = QueryObjectFactory._process_time_range(
+            None, cast(list[QueryObjectFilterClause], filters), []
+        )
+        assert result == "2025-02-01 : 2025-02-28"
+
+    def test_process_time_range_prefers_temporal_on_x_axis_column(self) -> None:
+        columns: list[Any] = [
+            {
+                "label": "event_a",
+                "sqlExpression": "event_a",
+                "columnType": "BASE_AXIS",
+            },
+        ]
+        filters = [
+            {
+                "col": "event_b",
+                "op": FilterOperator.TEMPORAL_RANGE,
+                "val": "wrong-range-b",
+            },
+            {
+                "col": "event_a",
+                "op": FilterOperator.TEMPORAL_RANGE,
+                "val": "2025-03-01 : 2025-03-31",
+            },
+        ]
+        result = QueryObjectFactory._process_time_range(
+            None, cast(list[QueryObjectFilterClause], filters), columns
+        )
+        assert result == "2025-03-01 : 2025-03-31"
+
+    def test_process_time_range_matches_adhoc_filter_col_to_xaxis(self) -> None:
+        columns: list[Any] = [
+            {
+                "label": "event_a",
+                "sqlExpression": "event_a",
+                "columnType": "BASE_AXIS",
+            },
+        ]
+        filters = [
+            {
+                "col": {
+                    "label": "Event A",
+                    "sqlExpression": "event_a",
+                },
+                "op": FilterOperator.TEMPORAL_RANGE,
+                "val": "2025-04-01 : 2025-04-30",
+            },
+        ]
+        result = QueryObjectFactory._process_time_range(
+            None, cast(list[QueryObjectFilterClause], filters), columns
+        )
+        assert result == "2025-04-01 : 2025-04-30"

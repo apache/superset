@@ -161,6 +161,7 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
                 elif x_axis_label is None:
                     # No BASE_AXIS on the query: preserve legacy behavior.
                     time_range = cast(str, temporal_flt[0].get("val"))
+                # If x_axis_label is set but match_flt is empty, keep NO_TIME_RANGE (set above).
         return time_range
 
     # light version of the view.utils.core
